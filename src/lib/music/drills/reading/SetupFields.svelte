@@ -124,6 +124,18 @@
         value={s.follower}
         onchange={(v) => cfg.set({ follower: v })}
       />
+      {#if s.follower === "tap"}
+        <Choice
+          label="Kick lane"
+          setupKey="kick"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "on", label: "Kick every beat", hint: "A kick on every quarter under the rhythm: a kick pad (MIDI 36) or the Kick button. Both are graded." },
+          ]}
+          value={s.kick ? "on" : "off"}
+          onchange={(v) => cfg.set({ kick: v === "on" })}
+        />
+      {/if}
     {/if}
     <Choice
       label="Meter"

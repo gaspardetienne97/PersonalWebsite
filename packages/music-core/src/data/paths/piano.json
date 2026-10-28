@@ -1970,8 +1970,18 @@
           "title": "Turnaround and ending",
           "setup": "The I-I7-IV-#IVdim-I-VI7-ii-V7 turnaround and a chromatic ending, in C and F.",
           "done": "3 clean runs per key.",
-          "needs": "A piano blues turnaround (I-I7-IV-#IVdim-I-VI7-ii-V7) and chromatic ending in Phrases.",
-          "feeds": "every blues"
+          "feeds": "every blues",
+          "href": "/music/phrases?instrument=piano&phrase=piano.blues-turnaround-c",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "piano.blues-turnaround-c",
+              "piano.blues-turnaround-f",
+              "piano.blues-ending-c",
+              "piano.blues-ending-f"
+            ]
+          },
+          "threshold": 0.9
         },
         {
           "id": "4.9",
@@ -2473,10 +2483,29 @@
         {
           "id": "5.9",
           "title": "Melody balance in a ballad",
-          "setup": "Voicing balance scored on a shelf ballad in Song Studio.",
+          "setup": "Song Studio, Performance with Melody balance graded (MIDI velocity): a shelf ballad, the melody louder than the notes struck with it.",
           "done": "Melody above the accompaniment on 80% of beats.",
-          "needs": "Voicing balance in Song Studio: the melody graded louder than the accompaniment (drill 9).",
-          "feeds": "Your Song, Married Life"
+          "feeds": "Your Song, Married Life",
+          "href": "/music/songs/shelf/piano/your-song-full?mode=performance&grade=balance",
+          "match": {
+            "grade": "balance",
+            "shelf": "piano/*"
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Married Life",
+              "href": "/music/songs/shelf/piano/married-life?mode=performance&grade=balance"
+            },
+            {
+              "label": "Kiss the Rain",
+              "href": "/music/songs/shelf/piano/kiss-the-rain?mode=performance&grade=balance"
+            },
+            {
+              "label": "Arietta Op. 12 No. 1",
+              "href": "/music/songs/shelf/piano/arietta-op-12-no-1?mode=performance&grade=balance"
+            }
+          ]
         },
         {
           "id": "5.10",
@@ -2880,8 +2909,18 @@
           "title": "Amen ending and the 7-3-6-2-5-1 turnaround",
           "setup": "Both in C and F.",
           "done": "3 clean runs per key.",
-          "needs": "A gospel riffs set in Phrases: the Amen ending and the 7-3-6-2-5-1 turnaround (drill 10).",
-          "feeds": "every gospel song"
+          "feeds": "every gospel song",
+          "href": "/music/phrases?instrument=piano&phrase=piano.amen-ending-c",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "piano.amen-ending-c",
+              "piano.amen-ending-f",
+              "piano.seven-three-six-c",
+              "piano.seven-three-six-f"
+            ]
+          },
+          "threshold": 0.9
         },
         {
           "id": "6.7",
@@ -2917,8 +2956,13 @@
           "title": "Rock and roll RH triplets and glissando",
           "setup": "Repeated-chord triplets over a boogie LH.",
           "done": "3 clean runs at 140.",
-          "needs": "A rock and roll item in Phrases: right-hand triplets over a boogie left hand (drill 7).",
-          "feeds": "Great Balls of Fire"
+          "feeds": "Great Balls of Fire",
+          "href": "/music/phrases?instrument=piano&phrase=piano.rock-triplets",
+          "match": {
+            "phrase": "piano.rock-triplets"
+          },
+          "threshold": 0.9,
+          "minBpm": 140
         },
         {
           "id": "6.9",
@@ -3347,8 +3391,23 @@
           "title": "Fills at phrase ends",
           "setup": "Pentatonic run down, grace-note slide, octave pickup, in C, F and G.",
           "done": "3 clean runs per riff in 3 keys.",
-          "needs": "A riffs and fills set in Phrases (drill 10).",
-          "feeds": "Bennie and the Jets, Just the Way You Are"
+          "feeds": "Bennie and the Jets, Just the Way You Are",
+          "href": "/music/phrases?instrument=piano&phrase=piano.fill-pentatonic-run-c",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "piano.fill-pentatonic-run-c",
+              "piano.fill-pentatonic-run-f",
+              "piano.fill-pentatonic-run-g",
+              "piano.fill-grace-slide-c",
+              "piano.fill-grace-slide-f",
+              "piano.fill-grace-slide-g",
+              "piano.fill-octave-pickup-c",
+              "piano.fill-octave-pickup-f",
+              "piano.fill-octave-pickup-g"
+            ]
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.6",
@@ -3371,10 +3430,29 @@
         {
           "id": "7.7",
           "title": "Melody balance in a full arrangement",
-          "setup": "Voicing balance on the shelf song in progress.",
+          "setup": "Song Studio, Performance with Melody balance graded (MIDI velocity), on the shelf song in progress.",
           "done": "Melody above the accompaniment on 85% of beats.",
-          "needs": "Voicing balance in Song Studio: the melody graded louder than the accompaniment (drill 9).",
-          "feeds": "every ballad"
+          "feeds": "every ballad",
+          "href": "/music/songs/shelf/piano/someone-like-you-full?mode=performance&grade=balance",
+          "match": {
+            "grade": "balance",
+            "shelf": "piano/*"
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Moonlight Sonata, mvt 1",
+              "href": "/music/songs/shelf/piano/moonlight-sonata-mvt-1?mode=performance&grade=balance"
+            },
+            {
+              "label": "Mia and Sebastian's Theme",
+              "href": "/music/songs/shelf/piano/mia-and-sebastians-theme?mode=performance&grade=balance"
+            },
+            {
+              "label": "Rêverie",
+              "href": "/music/songs/shelf/piano/reverie?mode=performance&grade=balance"
+            }
+          ]
         },
         {
           "id": "7.8",
@@ -3793,8 +3871,18 @@
           "title": "Rock piano RH fills in 3/4 and 4/4",
           "setup": "Piano Man-style turns, November Rain-style octave runs.",
           "done": "3 clean runs per riff in 2 keys.",
-          "needs": "A riffs and fills set in Phrases (drill 10).",
-          "feeds": "Piano Man, November Rain"
+          "feeds": "Piano Man, November Rain",
+          "href": "/music/phrases?instrument=piano&phrase=piano.rock-turn-waltz-c",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "piano.rock-turn-waltz-c",
+              "piano.rock-turn-waltz-g",
+              "piano.rock-octave-run-c",
+              "piano.rock-octave-run-g"
+            ]
+          },
+          "threshold": 0.9
         },
         {
           "id": "8.7",
@@ -4152,8 +4240,20 @@
           "title": "Gospel runs and pentatonic fills",
           "setup": "Descending major pentatonic with grace notes, the 6-5-3 gospel run, octave tremolo, in C, F, Bb and Eb.",
           "done": "3 clean runs per riff in 2 keys.",
-          "needs": "A riffs and fills set in Phrases (drill 10).",
-          "feeds": "Bridge Over Troubled Water, Georgia"
+          "feeds": "Bridge Over Troubled Water, Georgia",
+          "href": "/music/phrases?instrument=piano&phrase=piano.gospel-pentatonic-c",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "piano.gospel-pentatonic-c",
+              "piano.gospel-pentatonic-f",
+              "piano.gospel-653-c",
+              "piano.gospel-653-f",
+              "piano.gospel-octave-tremolo-c",
+              "piano.gospel-octave-tremolo-f"
+            ]
+          },
+          "threshold": 0.9
         },
         {
           "id": "9.5",

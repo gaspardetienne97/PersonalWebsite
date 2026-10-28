@@ -113,3 +113,46 @@ describe("gospel and ballad chords", () => {
     expect(new Set(items.map((i) => i.group)).size).toBe(3);
   });
 });
+
+describe("jazz voicing types", () => {
+  it("every type grades right when played as shown, held or as an arpeggio", () => {
+    for (const variant of [
+      "sevenths",
+      "so-what",
+      "sus",
+      "close",
+      "drop2",
+      "locked",
+      "garland",
+      "monk",
+      "upper",
+    ] as const)
+      for (const it of voicingItems({ variant, keyPc: 2, keys: 1 })) {
+        const shown = it.show.map((n) => n.midi);
+        expect(gradeItem(it, shown, opts).correct, it.id).toBe(true);
+        expect(gradeItem(it, shown, { strict: false, arpeggio: true }).correct, it.id).toBe(true);
+      }
+  });
+  it("drop-2 played as 4-way close has the right notes in the wrong order", () => {
+    const [drop] = voicingItems({ variant: "drop2", keyPc: 0, keys: 1 });
+    const [close] = voicingItems({ variant: "close", keyPc: 0, keys: 1 });
+    const r = gradeItem(
+      drop,
+      close.show.map((n) => n.midi),
+      opts,
+    );
+    expect(r).toMatchObject({ correct: false, score: 0.5, note: "wrong note at the bottom" });
+    // The same notes with the dropped voice lowest but the rest rearranged.
+    const [low, ...rest] = drop.show.map((n) => n.midi);
+    const swapped = [low, rest[0] + 12, rest[1], rest[2]];
+    expect(gradeItem(drop, swapped, opts).note).toBe("notes in the wrong order");
+  });
+  it("a slash chord takes the triad in any inversion", () => {
+    const [d7sus] = voicingItems({ variant: "sus", keyPc: 2, keys: 1 });
+    expect(gradeItem(d7sus, [50, 57, 64, 67, 72], opts).correct).toBe(true);
+  });
+  it("a tune's upper structures run on that tune in one key", () => {
+    const items = voicingItems({ variant: "upper", keyPc: 5, keys: 12, tune: "tune-jazz-blues" });
+    expect(new Set(items.map((i) => i.group))).toEqual(new Set(["Jazz blues in F"]));
+  });
+});

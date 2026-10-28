@@ -3,6 +3,7 @@
 // no melody is bundled: the head is read from the player's own Real Book.
 
 import { parseChordSymbol } from "../theory/chords";
+import { FLAT_NAMES, pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
 import type { JamChord, Progression } from "./jam";
 import { goToScale } from "./piano";
@@ -15,6 +16,8 @@ interface TuneSpec {
   bpm: number;
   feel: "swing" | "straight";
   difficulty: Progression["difficulty"];
+  /** 3 for a waltz; 4 when unset. */
+  meter?: 3;
   /** Section order, e.g. "A A B A". */
   form: string;
   /** Each section's bars split by "|"; two chords in a bar take half each. */
@@ -22,7 +25,7 @@ interface TuneSpec {
 }
 
 /** The chord's go-to scale (dorian on m7, mixolydian on 7...); a triad takes its own major, dorian or locrian. */
-function scaleFor(symbol: string): JamChord["scale"] {
+export function scaleFor(symbol: string): JamChord["scale"] {
   const parsed = parseChordSymbol(symbol);
   if (!parsed) throw new Error(`Unreadable chord in a tune: ${symbol}`);
   const row = goToScale(symbol);
@@ -74,6 +77,7 @@ function tune(spec: TuneSpec): Progression {
     sections,
     feel: spec.feel,
     composer: spec.composer,
+    ...(spec.meter ? { beatsPerBar: spec.meter } : {}),
   };
 }
 
@@ -261,6 +265,198 @@ export const TUNES: Progression[] = [
       A: "Bmaj7 D7 | Gmaj7 Bb7 | Ebmaj7 | Am7 D7 | Gmaj7 Bb7 | Ebmaj7 F#7 | Bmaj7 | Fm7 Bb7 | Ebmaj7 | Am7 D7 | Gmaj7 | C#m7 F#7 | Bmaj7 | Fm7 Bb7 | Ebmaj7 | C#m7 F#7",
     },
   }),
+  // Added 2026-10-27, each checked against two independent charts (iReal Pro's Jazz 1350,
+  // learnjazzstandards.com, swiss-jazz.ch, Music Theory Online); extensions dropped to the
+  // nearest symbol, passing chords inside a bar left out. Tempos are the jazz shelf's.
+  tune({
+    id: "yardbird-suite",
+    name: "Yardbird Suite",
+    composer: "Charlie Parker",
+    key: "C major",
+    bpm: 160,
+    feel: "swing",
+    difficulty: "intermediate",
+    form: "A A2 B A3",
+    sections: {
+      A: "C6 | Fm7 Bb7 | C7 Bb7 | A7 | D7 | G7 | Em7 A7 | Dm7 G7",
+      A2: "C6 | Fm7 Bb7 | C7 Bb7 | A7 | D7 | G7 | C6 | F#m7b5 B7b9",
+      B: "Em7 | F#m7b5 B7b9 | Em7 | A7 | Dm7 | Em7b5 A7 | D7 | Dm7 G7",
+      A3: "C6 | Fm7 Bb7 | C7 Bb7 | A7 | D7 | G7 | C6 | Dm7 G7",
+    },
+  }),
+  tune({
+    id: "well-you-neednt",
+    name: "Well You Needn't",
+    composer: "Thelonious Monk (his own bridge)",
+    key: "F",
+    bpm: 160,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A A B A",
+    sections: {
+      A: "F7 | Gb7 | F7 | Gb7 | F7 | Gb7 | F7 | F7",
+      B: "Db7 | Db7 | D7 | D7 | Eb7 E7 | Eb7 D7 | Db7 C7 | B7 C7",
+    },
+  }),
+  tune({
+    id: "epistrophy",
+    name: "Epistrophy",
+    composer: "Thelonious Monk and Kenny Clarke",
+    key: "Db",
+    bpm: 160,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A B C B",
+    sections: {
+      A: "Db7 D7 | Db7 D7 | Db7 D7 | Db7 D7 | Eb7 E7 | Eb7 E7 | Eb7 E7 | Eb7 E7",
+      B: "Eb7 E7 | Eb7 E7 | Eb7 E7 | Eb7 E7 | Db7 D7 | Db7 D7 | Db7 D7 | Db7 D7",
+      C: "F#m7 | F#m7 | F#m7 | F#m7 | B7 | B7 | Db7 | D7",
+    },
+  }),
+  tune({
+    id: "ruby-my-dear",
+    name: "Ruby, My Dear",
+    composer: "Thelonious Monk",
+    key: "Eb major",
+    bpm: 66,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A A B A2",
+    sections: {
+      A: "Fm7 Bb7 | Ebmaj7 | Gm7 C7 | Fmaj7 | Bbm7 Eb7 | Abmaj7 | Bbm7 A7 | Bm7 Bb7",
+      B: "Amaj7 | Bm7 E7 | Amaj7 | Bb6 Bdim7 | Cm7 | Cm7 Dm7 | Ebm7 | Ab7",
+      A2: "Fm7 Bb7 | Ebmaj7 | Gm7 C7 | Fmaj7 | Bbm7 Eb7 | Abmaj7 | Bbm7 A7 | Gb6 Bb7",
+    },
+  }),
+  tune({
+    id: "peace",
+    name: "Peace",
+    composer: "Horace Silver",
+    key: "Bb major",
+    bpm: 60,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A",
+    sections: {
+      A: "Am7b5 D7b9 | Gm7 C7 | Bmaj7 F7 | Bbmaj7 | Bm7 E7 | Amaj7 F#m7 | Ebm7b5 Ab7 | Dbmaj7 | C7 B7 | Bbmaj7",
+    },
+  }),
+  tune({
+    id: "stella-by-starlight",
+    name: "Stella by Starlight",
+    composer: "Victor Young",
+    key: "Bb major",
+    bpm: 130,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A B C",
+    sections: {
+      A: "Em7b5 | A7b9 | Cm7 | F7 | Fm7 | Bb7 | Ebmaj7 | Ab7 | Bbmaj7 | Em7b5 A7b9 | Dm7 | Bbm7 Eb7 | Fmaj7 | Em7b5 A7b9 | Am7b5 | D7b9",
+      B: "G7#5 | G7#5 | Cm7 | Cm7 | Ab7#11 | Ab7#11 | Bbmaj7 | Bbmaj7",
+      C: "Em7b5 | A7b9 | Dm7b5 | G7b9 | Cm7b5 | F7b9 | Bbmaj7 | Bbmaj7",
+    },
+  }),
+  tune({
+    id: "just-friends",
+    name: "Just Friends",
+    composer: "John Klenner",
+    key: "G major",
+    bpm: 180,
+    feel: "swing",
+    difficulty: "intermediate",
+    form: "A B A C",
+    sections: {
+      A: "Cmaj7 | Cmaj7 | Cm7 | F7 | Gmaj7 | Gmaj7 | Bbm7 | Eb7",
+      B: "Am7 | D7 | Bm7 | Em7 | A7 | A7 | Am7 | D7",
+      C: "Am7 | D7 | Bm7 | Em7 | A7 | Am7 D7 | G6 | Dm7 G7",
+    },
+  }),
+  tune({
+    id: "ill-remember-april",
+    name: "I'll Remember April",
+    composer: "Gene de Paul",
+    key: "G major",
+    bpm: 180,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A B A",
+    sections: {
+      A: "Gmaj7 | G6 | Gmaj7 | G6 | Gm7 | Gm6 | Gm7 | Gm6 | Am7b5 | D7b9 | Bm7b5 | E7b9 | Am7 | D7 | Gmaj7 | Gmaj7",
+      B: "Cm7 | F7 | Bbmaj7 | Gm7 | Cm7 | F7 | Bbmaj7 | Bbmaj7 | Am7 | D7 | Gmaj7 | Gmaj7 | F#m7 | B7 | Emaj7 | Am7 D7",
+    },
+  }),
+  tune({
+    id: "infant-eyes",
+    name: "Infant Eyes",
+    composer: "Wayne Shorter",
+    key: "Eb major",
+    bpm: 60,
+    feel: "swing",
+    difficulty: "advanced",
+    // Three 9-bar phrases.
+    form: "A B A",
+    sections: {
+      A: "Gm7 | Fm7 | Ebmaj7 | A7b9 | Gbmaj7 | F7sus4 | Ebm7 | Bb7sus4 | Bb7alt",
+      B: "Ebmaj7 | Emaj7 | Ebmaj7 | Emaj7 | Bmaj7 | Bb7sus4 | Abm7 | Eb7sus4 | D7b9",
+    },
+  }),
+  tune({
+    id: "footprints",
+    name: "Footprints",
+    composer: "Wayne Shorter",
+    key: "C minor",
+    bpm: 140,
+    feel: "swing",
+    difficulty: "intermediate",
+    // The 12-bar 6/4 form, written as 24 bars of 3/4.
+    meter: 3,
+    form: "A",
+    sections: {
+      A: "Cm7 | Cm7 | Cm7 | Cm7 | Cm7 | Cm7 | Cm7 | Cm7 | Fm7 | Fm7 | Fm7 | Fm7 | Cm7 | Cm7 | Cm7 | Cm7 | F#m7b5 | F7#11 | E7alt | A7alt | Cm7 | Cm7 | Cm7 | Cm7",
+    },
+  }),
+  tune({
+    id: "very-early",
+    name: "Very Early",
+    composer: "Bill Evans",
+    key: "C major",
+    bpm: 160,
+    feel: "swing",
+    difficulty: "advanced",
+    meter: 3,
+    form: "A A B",
+    sections: {
+      A: "Cmaj7 | Bb7 | Ebmaj7 | Ab7 | Dbmaj7 | G7 | Cmaj7 | Bb7 | Dmaj7 | Am7 | F#m7 | B7 | Em7 | Ab7 | Dbmaj7 | G7",
+      B: "Bmaj7 | Ab7 | Dbmaj7 | Bb7 | Bmaj7 | G7 | Cmaj7 | Ab7 | Dbmaj7 | G7 | Cmaj7 | A7 | Dm7 Em7 | Fmaj7 G7 | Cmaj7 | G7",
+    },
+  }),
+  tune({
+    id: "inner-urge",
+    name: "Inner Urge",
+    composer: "Joe Henderson",
+    key: "G",
+    bpm: 180,
+    feel: "swing",
+    difficulty: "advanced",
+    form: "A B",
+    sections: {
+      A: "F#m7b5 | F#m7b5 | F#m7b5 | F#m7b5 | Fmaj7 | Fmaj7 | Fmaj7 | Fmaj7 | Ebmaj7 | Ebmaj7 | Ebmaj7 | Ebmaj7 | Dbmaj7 | Dbmaj7 | Dbmaj7 | Dbmaj7",
+      B: "Emaj7 | Dbmaj7 | Dmaj7 | Bmaj7 | Cmaj7 | Amaj7 | Bb7#11 | Gmaj7",
+    },
+  }),
+  tune({
+    id: "summertime",
+    name: "Summertime",
+    composer: "George Gershwin",
+    key: "A minor",
+    bpm: 80,
+    feel: "swing",
+    difficulty: "beginner",
+    form: "A",
+    sections: {
+      A: "Am7 | Bm7b5 E7 | Am7 | Am7 A7 | Dm7 | F7 | Bm7b5 | E7 | Am7 | Bm7b5 E7 | Am7 | D7 G7 | Cmaj7 Am7 | Bm7b5 E7 | Am7 | Bm7b5 E7",
+    },
+  }),
 ];
 
 /** Where each section starts, in bars from the top of the chorus. */
@@ -282,4 +478,131 @@ export function chorusLabel(k: number, total: number): string {
   if (total >= 3 && k === total - 1) return "Head out";
   if (total >= 3) return `Solo ${k}`;
   return `Chorus ${k + 1}`;
+}
+
+// ---------------------------------------------------------------------------
+// Reharmonisation (jazz path rank 10): swap a chord in a chart for a substitute.
+
+export type ReharmDevice =
+  | "tritone"
+  | "related-ii"
+  | "backdoor"
+  | "secondary"
+  | "passing-dim"
+  | "chromatic-ii-v";
+
+export const REHARM_DEVICES: { id: ReharmDevice; label: string; about: string }[] = [
+  {
+    id: "tritone",
+    label: "Tritone sub",
+    about: "A dominant becomes the dominant a tritone away (G7 to Db7).",
+  },
+  {
+    id: "related-ii",
+    label: "Related ii",
+    about: "A dominant shares its time with its ii (G7 becomes Dm7 G7).",
+  },
+  {
+    id: "backdoor",
+    label: "Backdoor ii-V",
+    about: "Reach the next chord from iv7 to bVII7 (Fm7 Bb7 to C).",
+  },
+  {
+    id: "secondary",
+    label: "Secondary dominant",
+    about: "The chord becomes the dominant of the chord after it (Am7 before Dm7 becomes A7).",
+  },
+  {
+    id: "passing-dim",
+    label: "Passing diminished",
+    about: "Its second half becomes a diminished 7th a half step below the next chord.",
+  },
+  {
+    id: "chromatic-ii-v",
+    label: "Chromatic ii-V",
+    about: "Its second half becomes the ii-V a half step above the next chord (Ebm7 Ab7 to Dm7).",
+  },
+];
+
+const isDominant = (symbol: string) => {
+  const c = parseChordSymbol(symbol);
+  return !!c && c.intervals.includes(4) && c.intervals.includes(10);
+};
+const chordOn = (root: number, suffix: string, bars: number): JamChord => {
+  const symbol = `${FLAT_NAMES[pc(root)]}${suffix}`;
+  return { symbol, bars, scale: scaleFor(symbol) };
+};
+
+/** The devices that apply to chord `i` (a dominant for the tritone sub and the related ii). */
+export function reharmOptions(p: Progression, i: number): ReharmDevice[] {
+  const ch = p.chords[i];
+  const next = p.chords[(i + 1) % p.chords.length];
+  if (!ch || !next) return [];
+  const nextRoot = parseChordSymbol(next.symbol)!.rootPc;
+  const out: ReharmDevice[] = [];
+  if (isDominant(ch.symbol)) out.push("tritone", "related-ii");
+  out.push("backdoor");
+  if (!isDominant(ch.symbol) || parseChordSymbol(ch.symbol)!.rootPc !== pc(nextRoot + 7))
+    out.push("secondary");
+  out.push("passing-dim", "chromatic-ii-v");
+  return out;
+}
+
+/** What chord `i` becomes under a device: one or more chords filling its bars. */
+export function reharmChord(p: Progression, i: number, device: ReharmDevice): JamChord[] {
+  const ch = p.chords[i];
+  const root = parseChordSymbol(ch.symbol)!.rootPc;
+  const next = parseChordSymbol(p.chords[(i + 1) % p.chords.length].symbol)!.rootPc;
+  const half = ch.bars / 2;
+  switch (device) {
+    case "tritone":
+      return [chordOn(root + 6, "7", ch.bars)];
+    case "related-ii":
+      return [chordOn(root + 7, "m7", half), { ...ch, bars: half }];
+    case "backdoor":
+      return [chordOn(next + 5, "m7", half), chordOn(next + 10, "7", half)];
+    case "secondary":
+      return [chordOn(next + 7, "7", ch.bars)];
+    case "passing-dim":
+      return [{ ...ch, bars: half }, chordOn(next - 1, "dim7", half)];
+    case "chromatic-ii-v":
+      return [
+        { ...ch, bars: half },
+        chordOn(next + 3, "m7", half / 2),
+        chordOn(next + 8, "7", half / 2),
+      ];
+  }
+}
+
+/** Swaps as written in a setup or a link: "5:tritone,7:backdoor" (chord indexes of the chart as written). */
+export function parseReharm(text: string): Map<number, ReharmDevice> {
+  const ids = new Set(REHARM_DEVICES.map((d) => d.id));
+  const out = new Map<number, ReharmDevice>();
+  for (const part of (text ?? "").split(",")) {
+    const [i, d] = part.split(":");
+    if (/^\d+$/.test(i ?? "") && ids.has(d as ReharmDevice)) out.set(Number(i), d as ReharmDevice);
+  }
+  return out;
+}
+
+export const formatReharm = (swaps: Map<number, ReharmDevice>) =>
+  [...swaps]
+    .sort((a, b) => a[0] - b[0])
+    .map(([i, d]) => `${i}:${d}`)
+    .join(",");
+
+/** The chart with its swaps applied; swaps on chords it does not have, or that do not apply, are dropped. */
+export function reharmonise(p: Progression, swaps: Map<number, ReharmDevice>): Progression {
+  if (!swaps.size) return p;
+  const chords = p.chords.flatMap((ch, i) => {
+    const d = swaps.get(i);
+    return d && reharmOptions(p, i).includes(d) ? reharmChord(p, i, d) : [ch];
+  });
+  return { ...p, chords };
+}
+
+/** The run param for a reharmonised chart: the one device used, "mixed", or undefined when none. */
+export function reharmDevice(swaps: Map<number, ReharmDevice>): string | undefined {
+  const kinds = new Set(swaps.values());
+  return kinds.size === 0 ? undefined : kinds.size === 1 ? [...kinds][0] : "mixed";
 }

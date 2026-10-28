@@ -23,6 +23,8 @@ export interface LineInput {
   handsTogether?: boolean;
   /** A checkpoint bar that evenness must also clear ("Hands together, one octave, 80" is 0.85). */
   minEvenness?: number;
+  /** Evenness's share of the score (0.15 by default; a tremolo is mostly evenness). */
+  evennessWeight?: number;
 }
 
 export interface LineResult extends Graded {
@@ -146,7 +148,8 @@ export function gradeLine(input: LineInput): LineResult {
       meanSpreadMs: mean(chordSteps),
     };
 
-  const score = ons.length ? pitch * 0.85 + even.score * 0.15 : 0;
+  const w = input.evennessWeight ?? 0.15;
+  const score = ons.length ? pitch * (1 - w) + even.score * w : 0;
   const metrics: Metric[] = [
     ...targets.map((t, i) => ({
       kind: "pitch" as const,

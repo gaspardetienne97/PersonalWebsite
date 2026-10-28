@@ -151,17 +151,69 @@
         {
           "id": "P1.9",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: one scored pass at 70% of the marked tempo.",
+          "setup": "Song Studio, Sight-read at 70% of the marked tempo: a 30 second look, then one scored pass that keeps going. It counts only on a song's first run here.",
           "done": "3 different shelf pieces at 80% or better on the first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/elf-handstucke?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 3,
+          "links": [
+            {
+              "label": "The First Lessons Op. 117 No. 1",
+              "href": "/music/songs/shelf/reading/the-first-lessons-op-117-no-1?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "The Hunt Op. 117 No. 15",
+              "href": "/music/songs/shelf/reading/the-hunt-op-117-no-15?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "For Children Vol. 1 No. 1, Children at Play",
+              "href": "/music/songs/shelf/reading/for-children-vol-1-no-1-children-at-play?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Melodious Pieces Op. 149 No. 1 (duet)",
+              "href": "/music/songs/shelf/reading/melodious-pieces-op-149-no-1?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Waltz Op. 39 No. 13",
+              "href": "/music/songs/shelf/reading/waltz-op-39-no-13?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Amazing Grace (easy piano)",
+              "href": "/music/songs/shelf/reading/amazing-grace?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Scarborough Fair (Alfred's version)",
+              "href": "/music/songs/shelf/reading/scarborough-fair?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Morning Has Broken",
+              "href": "/music/songs/shelf/reading/morning-has-broken?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Let It Be (Big Note Piano)",
+              "href": "/music/songs/shelf/reading/let-it-be?mode=sight-read&tempo=70"
+            }
+          ]
         },
         {
           "id": "P1.10",
           "title": "Read a duet part",
-          "setup": "Song Studio: Diabelli Op. 149 No. 1, your part against the other. Until the duet partner ships, play with a recording.",
+          "setup": "Song Studio, No-stop with the duet partner: turn on your part only and the app plays the other part in time with you.",
           "done": "Through to the end without stopping, 80%.",
-          "needs": "Duet partner in Song Studio: the app plays the other part while you read yours.",
-          "feeds": "Diabelli"
+          "feeds": "Diabelli",
+          "href": "/music/songs/shelf/reading/melodious-pieces-op-149-no-1?mode=no-stop&partner=true",
+          "match": {
+            "mode": "no-stop",
+            "partner": "true",
+            "kept": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "P1.11",
@@ -490,15 +542,67 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 different shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/minuet-in-g-major?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Minuet in G minor (BWV Anh. 115)",
+              "href": "/music/songs/shelf/reading/minuet-in-g-minor?mode=sight-read"
+            },
+            {
+              "label": "Musette in D (BWV Anh. 126)",
+              "href": "/music/songs/shelf/reading/musette-in-d?mode=sight-read"
+            },
+            {
+              "label": "Melody Op. 68 No. 1",
+              "href": "/music/songs/shelf/reading/melody-op-68-no-1?mode=sight-read"
+            },
+            {
+              "label": "Soldiers' March Op. 68 No. 2",
+              "href": "/music/songs/shelf/reading/soldiers-march-op-68-no-2?mode=sight-read"
+            },
+            {
+              "label": "Old French Song Op. 39 No. 16",
+              "href": "/music/songs/shelf/reading/old-french-song-op-39-no-16?mode=sight-read"
+            },
+            {
+              "label": "Sonatina Op. 36 No. 1, first movement",
+              "href": "/music/songs/shelf/reading/sonatina-op-36-no-1-first-movement?mode=sight-read"
+            },
+            {
+              "label": "Allegro alla Turca Op. 149 No. 26 (duet)",
+              "href": "/music/songs/shelf/reading/allegro-alla-turca-op-149-no-26?mode=sight-read"
+            },
+            {
+              "label": "Someone Like You (easy piano)",
+              "href": "/music/songs/shelf/reading/someone-like-you?mode=sight-read"
+            },
+            {
+              "label": "River Flow in You (easy)",
+              "href": "/music/songs/shelf/reading/river-flow-in-you?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "P2.9",
           "title": "Duet secondo",
-          "setup": "Song Studio: Diabelli Allegro alla Turca, the secondo part.",
+          "setup": "Song Studio, No-stop with the duet partner: turn on the secondo only and the app plays the other part in time with you.",
           "done": "Through without stopping, 80%.",
-          "needs": "Duet partner in Song Studio: the app plays the other part while you read yours.",
-          "feeds": "Diabelli"
+          "feeds": "Diabelli",
+          "href": "/music/songs/shelf/reading/allegro-alla-turca-op-149-no-26?mode=no-stop&partner=true",
+          "match": {
+            "mode": "no-stop",
+            "partner": "true",
+            "kept": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "P2.10",
@@ -1074,7 +1178,52 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/the-wild-horseman-op-68-no-8?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "The Happy Farmer Op. 68 No. 10",
+              "href": "/music/songs/shelf/reading/the-happy-farmer-op-68-no-10?mode=sight-read"
+            },
+            {
+              "label": "La Candeur Op. 100 No. 1",
+              "href": "/music/songs/shelf/reading/la-candeur-op-100-no-1?mode=sight-read"
+            },
+            {
+              "label": "Arabesque Op. 100 No. 2",
+              "href": "/music/songs/shelf/reading/arabesque-op-100-no-2?mode=sight-read"
+            },
+            {
+              "label": "Pastorale Op. 100 No. 3",
+              "href": "/music/songs/shelf/reading/pastorale-op-100-no-3?mode=sight-read"
+            },
+            {
+              "label": "Morning Prayer Op. 39 No. 1",
+              "href": "/music/songs/shelf/reading/morning-prayer-op-39-no-1?mode=sight-read"
+            },
+            {
+              "label": "Sweet Dreams Op. 39 No. 21",
+              "href": "/music/songs/shelf/reading/sweet-dreams-op-39-no-21?mode=sight-read"
+            },
+            {
+              "label": "Sonatina in G (Anh. 5 No. 1)",
+              "href": "/music/songs/shelf/reading/sonatina-in-g?mode=sight-read"
+            },
+            {
+              "label": "Greensleeves (for solo piano)",
+              "href": "/music/songs/shelf/reading/greensleeves?mode=sight-read"
+            },
+            {
+              "label": "Hallelujah (Leonard Cohen, piano)",
+              "href": "/music/songs/shelf/reading/hallelujah-p4?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "P4.8",
@@ -1389,9 +1538,47 @@
         {
           "id": "P5.7",
           "title": "A hymn a day",
-          "setup": "Song Studio, sight-read: one new hymn or chorale each practice day.",
+          "setup": "Song Studio, Sight-read: one new hymn or chorale each practice day, imported as its own song (a hymnal or chorale book from the shelf, or any you own).",
           "done": "10 hymns or chorales at 80% first pass over 2 weeks.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 10,
+          "links": [
+            {
+              "label": "371 Four-Part Chorales, Nos. 1 to 5 (piano score)",
+              "href": "/music/songs/shelf/reading/371-four-part-chorales-nos-1-to-5?mode=sight-read"
+            },
+            {
+              "label": "Bach's chorale harmonisations 1 to 120 (Breitkopf order)",
+              "href": "/music/songs/shelf/reading/bachs-chorale-harmonisations-1-to-120?mode=sight-read"
+            },
+            {
+              "label": "O Haupt voll Blut und Wunden (St Matthew Passion)",
+              "href": "/music/songs/shelf/reading/o-haupt-voll-blut-und-wunden?mode=sight-read"
+            },
+            {
+              "label": "Hymn 136, Old Hundredth",
+              "href": "/music/songs/shelf/reading/hymn-136-old-hundredth?mode=sight-read"
+            },
+            {
+              "label": "Hymn 14, Abide with Me",
+              "href": "/music/songs/shelf/reading/hymn-14-abide-with-me?mode=sight-read"
+            },
+            {
+              "label": "Hymn 135, Holy, Holy, Holy (Nicaea)",
+              "href": "/music/songs/shelf/reading/hymn-135-holy-holy-holy?mode=sight-read"
+            },
+            {
+              "label": "Be Thou My Vision (violin and piano)",
+              "href": "/music/songs/shelf/reading/be-thou-my-vision?mode=sight-read"
+            }
+          ],
+          "exerciseIds": ["song.studio"],
+          "minDays": 10
         },
         {
           "id": "P5.8",
@@ -1673,7 +1860,52 @@
           "title": "Standards at sight",
           "setup": "Song Studio, sight-read: shelf lead sheets at 100.",
           "done": "4 shelf tunes at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read&bpm=100",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Fly Me to the Moon (lead sheet with lyrics)",
+              "href": "/music/songs/shelf/reading/fly-me-to-the-moon?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Blue Bossa (lead sheet)",
+              "href": "/music/songs/shelf/reading/blue-bossa?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Sonnymoon for Two (lead sheet)",
+              "href": "/music/songs/shelf/reading/sonnymoon-for-two?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Satin Doll (lead sheet in C)",
+              "href": "/music/songs/shelf/reading/satin-doll?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Take the \"A\" Train (lead sheet in C)",
+              "href": "/music/songs/shelf/reading/take-the-a-train?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "There Will Never Be Another You (lead sheet)",
+              "href": "/music/songs/shelf/reading/there-will-never-be-another-you?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Summertime (Easy Lead Sheet)",
+              "href": "/music/songs/shelf/reading/summertime?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Misty (lead sheet with lyrics)",
+              "href": "/music/songs/shelf/reading/misty?mode=sight-read&bpm=100"
+            },
+            {
+              "label": "Georgia on My Mind (lead sheet in F)",
+              "href": "/music/songs/shelf/reading/georgia-on-my-mind?mode=sight-read&bpm=100"
+            }
+          ]
         },
         {
           "id": "P6.8",
@@ -1950,9 +2182,59 @@
         {
           "id": "P7.8",
           "title": "A page a day",
-          "setup": "Song Studio, sight-read: one shelf or IMSLP piece of this grade a day.",
+          "setup": "Song Studio, Sight-read: one shelf or IMSLP piece of this grade a day, each imported as its own song.",
           "done": "15 pieces at 80% first pass over 3 weeks.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 15,
+          "links": [
+            {
+              "label": "Prelude Op. 28 No. 4",
+              "href": "/music/songs/shelf/reading/prelude-op-28-no-4?mode=sight-read"
+            },
+            {
+              "label": "Prelude Op. 28 No. 7",
+              "href": "/music/songs/shelf/reading/prelude-op-28-no-7?mode=sight-read"
+            },
+            {
+              "label": "Prelude Op. 28 No. 20",
+              "href": "/music/songs/shelf/reading/prelude-op-28-no-20?mode=sight-read"
+            },
+            {
+              "label": "Gymnopédie No. 1",
+              "href": "/music/songs/shelf/reading/gymnopedie-no-1?mode=sight-read"
+            },
+            {
+              "label": "Waltz Op. 12 No. 2",
+              "href": "/music/songs/shelf/reading/waltz-op-12-no-2?mode=sight-read"
+            },
+            {
+              "label": "Arietta Op. 12 No. 1",
+              "href": "/music/songs/shelf/reading/arietta-op-12-no-1?mode=sight-read"
+            },
+            {
+              "label": "Träumerei Op. 15 No. 7",
+              "href": "/music/songs/shelf/reading/traumerei-op-15-no-7?mode=sight-read"
+            },
+            {
+              "label": "Moonlight Sonata, first movement",
+              "href": "/music/songs/shelf/reading/moonlight-sonata-first-movement?mode=sight-read"
+            },
+            {
+              "label": "The Little Shepherd",
+              "href": "/music/songs/shelf/reading/the-little-shepherd?mode=sight-read"
+            },
+            {
+              "label": "Take Five (Dave Brubeck, piano)",
+              "href": "/music/songs/shelf/reading/take-five?mode=sight-read"
+            }
+          ],
+          "exerciseIds": ["song.studio"],
+          "minDays": 15
         },
         {
           "id": "P7.9",
@@ -2216,7 +2498,49 @@
           "title": "Riff a day",
           "setup": "Song Studio, sight-read: one riff a day at 70% of the tempo.",
           "done": "6 shelf riffs at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/seven-nation-army?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6,
+          "links": [
+            {
+              "label": "Iron Man (beginner tab)",
+              "href": "/music/songs/shelf/reading/iron-man?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Ode to Joy for Guitar (easy)",
+              "href": "/music/songs/shelf/reading/ode-to-joy-for-guitar?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Happy Birthday (easy tab)",
+              "href": "/music/songs/shelf/reading/happy-birthday?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Smoke on the Water (Easy Guitar with TAB)",
+              "href": "/music/songs/shelf/reading/smoke-on-the-water?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Come As You Are (tab)",
+              "href": "/music/songs/shelf/reading/come-as-you-are?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Sunshine of Your Love (Easy Guitar with TAB)",
+              "href": "/music/songs/shelf/reading/sunshine-of-your-love?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Enter Sandman (tab)",
+              "href": "/music/songs/shelf/reading/enter-sandman?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Day Tripper (Easy Guitar with TAB)",
+              "href": "/music/songs/shelf/reading/day-tripper?mode=sight-read&tempo=70"
+            }
+          ],
+          "minDays": 6
         },
         {
           "id": "G1.5",
@@ -2451,7 +2775,48 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "4 shelf pieces at 80% first pass at 70% tempo.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/house-of-the-rising-sun?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Amazing Grace (fingerstyle guitar)",
+              "href": "/music/songs/shelf/reading/amazing-grace-g2?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "What Child Is This? (Greensleeves, easy fingerstyle)",
+              "href": "/music/songs/shelf/reading/what-child-is-this?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Etude in E minor",
+              "href": "/music/songs/shelf/reading/etude-in-e-minor?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Spanish Romance (Romance anónimo)",
+              "href": "/music/songs/shelf/reading/spanish-romance?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Scarborough Fair (fingerstyle guitar tab)",
+              "href": "/music/songs/shelf/reading/scarborough-fair-g2?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Easy Malagueña",
+              "href": "/music/songs/shelf/reading/easy-malaguena?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Canon in D (solo guitar)",
+              "href": "/music/songs/shelf/reading/canon-in-d?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Blackbird (guitar tab)",
+              "href": "/music/songs/shelf/reading/blackbird?mode=sight-read&tempo=70"
+            }
+          ]
         },
         {
           "id": "G2.6",
@@ -2688,7 +3053,48 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/ode-to-joy-for-guitar-g3?mode=sight-read&view=staff",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Lightly Row (guitar)",
+              "href": "/music/songs/shelf/reading/lightly-row?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Twinkle Twinkle Little Star",
+              "href": "/music/songs/shelf/reading/twinkle-twinkle-little-star?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Aura Lee / Love Me Tender",
+              "href": "/music/songs/shelf/reading/aura-lee-love-me-tender?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Jingle Bells (easy guitar)",
+              "href": "/music/songs/shelf/reading/jingle-bells?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Jingle Bells (classical guitar)",
+              "href": "/music/songs/shelf/reading/jingle-bells-g3?mode=sight-read&view=staff"
+            },
+            {
+              "label": "First Position Melodies for Guitar",
+              "href": "/music/songs/shelf/reading/first-position-melodies-for-guitar?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Lullaby (Easy Guitar with TAB)",
+              "href": "/music/songs/shelf/reading/lullaby?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Six Easy Duets No. 6",
+              "href": "/music/songs/shelf/reading/six-easy-duets-no-6?mode=sight-read&view=staff"
+            }
+          ]
         },
         {
           "id": "G3.6",
@@ -2916,17 +3322,76 @@
         {
           "id": "G4.4",
           "title": "Bass and melody",
-          "setup": "Song Studio, sight-read: Sagreras First Lessons 1 to 16, one a day.",
+          "setup": "Song Studio, Sight-read: Sagreras First Lessons 1 to 16, one a day, each lesson imported as its own song.",
           "done": "10 lessons at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run.",
-          "feeds": "Sagreras"
+          "feeds": "Sagreras",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 10,
+          "links": [
+            {
+              "label": "First Lessons Book 1 (Nos. 1 to 16)",
+              "href": "/music/songs/shelf/reading/first-lessons-book-1?mode=sight-read"
+            }
+          ],
+          "exerciseIds": ["song.studio"],
+          "minDays": 10
         },
         {
           "id": "G4.5",
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/first-lessons-book-1?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Op. 60 No. 1",
+              "href": "/music/songs/shelf/reading/op-60-no-1?mode=sight-read"
+            },
+            {
+              "label": "Andantino",
+              "href": "/music/songs/shelf/reading/andantino?mode=sight-read"
+            },
+            {
+              "label": "Andantino Op. 241 No. 5",
+              "href": "/music/songs/shelf/reading/andantino-op-241-no-5?mode=sight-read"
+            },
+            {
+              "label": "Allegretto (Op. 59)",
+              "href": "/music/songs/shelf/reading/allegretto?mode=sight-read"
+            },
+            {
+              "label": "Waltz in A minor (Op. 59)",
+              "href": "/music/songs/shelf/reading/waltz-in-a-minor?mode=sight-read"
+            },
+            {
+              "label": "Melodic Etude",
+              "href": "/music/songs/shelf/reading/melodic-etude?mode=sight-read"
+            },
+            {
+              "label": "Scarborough Fair (English folk song, guitar)",
+              "href": "/music/songs/shelf/reading/scarborough-fair-g4?mode=sight-read"
+            },
+            {
+              "label": "Greensleeves with variations (solo guitar)",
+              "href": "/music/songs/shelf/reading/greensleeves-with-variations?mode=sight-read"
+            },
+            {
+              "label": "Minuet in G (classical guitar)",
+              "href": "/music/songs/shelf/reading/minuet-in-g?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "G4.6",
@@ -3194,7 +3659,53 @@
           "title": "A tune a day",
           "setup": "Song Studio, sight-read: a tune a day at 70% of the tempo.",
           "done": "8 shelf tunes at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/red-river-valley?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 8,
+          "links": [
+            {
+              "label": "Star of the County Down",
+              "href": "/music/songs/shelf/reading/star-of-the-county-down?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Turkey in the Straw",
+              "href": "/music/songs/shelf/reading/turkey-in-the-straw?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Soldier's Joy",
+              "href": "/music/songs/shelf/reading/soldiers-joy?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Arkansas Traveler",
+              "href": "/music/songs/shelf/reading/arkansas-traveler?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Whiskey Before Breakfast (two guitars)",
+              "href": "/music/songs/shelf/reading/whiskey-before-breakfast?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Irish Washerwoman",
+              "href": "/music/songs/shelf/reading/irish-washerwoman?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Swallowtail Jig (with tabs)",
+              "href": "/music/songs/shelf/reading/swallowtail-jig?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Wildwood Flower (Maybelle Carter)",
+              "href": "/music/songs/shelf/reading/wildwood-flower?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Salt Creek",
+              "href": "/music/songs/shelf/reading/salt-creek?mode=sight-read&tempo=70"
+            }
+          ],
+          "minDays": 8
         },
         {
           "id": "G5.6",
@@ -3458,7 +3969,48 @@
           "title": "Violin and flute parts",
           "setup": "Song Studio, sight-read: shelf violin and flute parts in fifth position (they sound an octave lower on guitar).",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/minuet-in-g-g6?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Long, Long Ago (violin)",
+              "href": "/music/songs/shelf/reading/long-long-ago?mode=sight-read"
+            },
+            {
+              "label": "Gavotte (violin)",
+              "href": "/music/songs/shelf/reading/gavotte?mode=sight-read"
+            },
+            {
+              "label": "Danny Boy (flute)",
+              "href": "/music/songs/shelf/reading/danny-boy?mode=sight-read"
+            },
+            {
+              "label": "Ashokan Farewell (violin and piano)",
+              "href": "/music/songs/shelf/reading/ashokan-farewell?mode=sight-read"
+            },
+            {
+              "label": "Autumn Leaves (easy guitar melody with jam track)",
+              "href": "/music/songs/shelf/reading/autumn-leaves-g6?mode=sight-read"
+            },
+            {
+              "label": "Blue Bossa",
+              "href": "/music/songs/shelf/reading/blue-bossa-g6?mode=sight-read"
+            },
+            {
+              "label": "Humoresque (violin and cello duet, read the violin)",
+              "href": "/music/songs/shelf/reading/humoresque?mode=sight-read"
+            },
+            {
+              "label": "A Modern Method for Guitar Vol. 1 (position studies)",
+              "href": "/music/songs/shelf/reading/a-modern-method-for-guitar-vol-1?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "G6.6",
@@ -3655,7 +4207,7 @@
           "title": "Generated charts",
           "setup": "Generated charts on guitar, chart-1 and chart-2.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Chord-chart reading on guitar: the generated charts chart-1 to chart-3 are piano-only, in Accompaniment."
+          "needs": "Runs that count in Strum a progression (chart-1 to chart-3 are there now)."
         },
         {
           "id": "G7.4",
@@ -3706,7 +4258,52 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: chords only, then the melody.",
           "done": "4 charts at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/stand-by-me-g7?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Wonderwall (Oasis)",
+              "href": "/music/songs/shelf/reading/wonderwall?mode=sight-read"
+            },
+            {
+              "label": "Hotel California (Guitar Tab Play-Along)",
+              "href": "/music/songs/shelf/reading/hotel-california?mode=sight-read"
+            },
+            {
+              "label": "On the Sunny Side of the Street (lead sheet)",
+              "href": "/music/songs/shelf/reading/on-the-sunny-side-of-the-street?mode=sight-read"
+            },
+            {
+              "label": "Autumn Leaves (Real Book, guitar)",
+              "href": "/music/songs/shelf/reading/autumn-leaves-g7?mode=sight-read"
+            },
+            {
+              "label": "Blue Bossa (lead sheet)",
+              "href": "/music/songs/shelf/reading/blue-bossa-g7?mode=sight-read"
+            },
+            {
+              "label": "Corcovado (lead sheet with lyrics)",
+              "href": "/music/songs/shelf/reading/corcovado?mode=sight-read"
+            },
+            {
+              "label": "Wave (lead sheet with lyrics)",
+              "href": "/music/songs/shelf/reading/wave?mode=sight-read"
+            },
+            {
+              "label": "Jazz blues, two choruses with walking bass and comping",
+              "href": "/music/songs/shelf/reading/jazz-blues-two-choruses-with-walking-bass-and-comping?mode=sight-read"
+            },
+            {
+              "label": "Wes Montgomery's comping on The End of a Love Affair",
+              "href": "/music/songs/shelf/reading/wes-montgomerys-comping-on-the-end-of-a-love-affair?mode=sight-read"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -3906,7 +4503,52 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 60% of the tempo.",
           "done": "4 shelf studies at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/waltz?mode=sight-read&tempo=60",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Andante Op. 241 No. 18",
+              "href": "/music/songs/shelf/reading/andante-op-241-no-18?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Etude No. 15 Op. 44",
+              "href": "/music/songs/shelf/reading/etude-no-15-op-44?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Etude Op. 35 No. 22",
+              "href": "/music/songs/shelf/reading/etude-op-35-no-22?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Le Papillon Op. 50",
+              "href": "/music/songs/shelf/reading/le-papillon-op-50?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Lágrima",
+              "href": "/music/songs/shelf/reading/lagrima?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Etude Op. 60 No. 1",
+              "href": "/music/songs/shelf/reading/etude-op-60-no-1?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Adelita (tab version)",
+              "href": "/music/songs/shelf/reading/adelita?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Romance de Amor (Tabei version)",
+              "href": "/music/songs/shelf/reading/romance-de-amor?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Bourrée in E minor (BWV 996)",
+              "href": "/music/songs/shelf/reading/bourree-in-e-minor?mode=sight-read&tempo=60"
+            }
+          ]
         },
         {
           "id": "G8.5",
@@ -4182,7 +4824,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/ode-to-joy?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Twinkle Twinkle Little Star (Ah! vous dirai-je, maman)",
+              "href": "/music/songs/shelf/reading/twinkle-twinkle-little-star-u1?mode=sight-read"
+            },
+            {
+              "label": "Jingle Bells (ukulele)",
+              "href": "/music/songs/shelf/reading/jingle-bells-u1?mode=sight-read"
+            },
+            {
+              "label": "Happy Birthday (ukulele tab)",
+              "href": "/music/songs/shelf/reading/happy-birthday-u1?mode=sight-read"
+            },
+            {
+              "label": "Seven Nation Army (ukulele)",
+              "href": "/music/songs/shelf/reading/seven-nation-army-u1?mode=sight-read"
+            },
+            {
+              "label": "Can't Help Falling in Love (ukulele)",
+              "href": "/music/songs/shelf/reading/cant-help-falling-in-love?mode=sight-read"
+            },
+            {
+              "label": "Riptide (Vance Joy, ukulele)",
+              "href": "/music/songs/shelf/reading/riptide?mode=sight-read"
+            },
+            {
+              "label": "Over the Rainbow (Jake Shimabukuro arrangement, tab)",
+              "href": "/music/songs/shelf/reading/over-the-rainbow?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "U1.5",
@@ -4428,7 +5107,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/mary-had-a-little-lamb?mode=sight-read&view=staff",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Aura Lee",
+              "href": "/music/songs/shelf/reading/aura-lee?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Frère Jacques (ukulele)",
+              "href": "/music/songs/shelf/reading/frere-jacques?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Kumbaya (ukulele)",
+              "href": "/music/songs/shelf/reading/kumbaya?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Amazing Grace (Lesson 1 song, for ukulele)",
+              "href": "/music/songs/shelf/reading/amazing-grace-u2?mode=sight-read&view=staff"
+            },
+            {
+              "label": "When the Saints (ukulele, picked)",
+              "href": "/music/songs/shelf/reading/when-the-saints?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Oh Susanna (ukulele)",
+              "href": "/music/songs/shelf/reading/oh-susanna?mode=sight-read&view=staff"
+            },
+            {
+              "label": "Amazing Grace (ukulele TAB, fingerstyle)",
+              "href": "/music/songs/shelf/reading/amazing-grace-u2-2?mode=sight-read&view=staff"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -4611,7 +5327,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/aloha-oe?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Edelweiss (ukulele instrumental)",
+              "href": "/music/songs/shelf/reading/edelweiss?mode=sight-read"
+            },
+            {
+              "label": "Home on the Range (Easy Ukulele with Tab)",
+              "href": "/music/songs/shelf/reading/home-on-the-range?mode=sight-read"
+            },
+            {
+              "label": "Red River Valley (from The Daily Ukulele)",
+              "href": "/music/songs/shelf/reading/red-river-valley-u3?mode=sight-read"
+            },
+            {
+              "label": "Scarborough Fair",
+              "href": "/music/songs/shelf/reading/scarborough-fair-u3?mode=sight-read"
+            },
+            {
+              "label": "Greensleeves for Ukulele",
+              "href": "/music/songs/shelf/reading/greensleeves-for-ukulele?mode=sight-read"
+            },
+            {
+              "label": "Danny Boy (UkeTab)",
+              "href": "/music/songs/shelf/reading/danny-boy-u3?mode=sight-read"
+            },
+            {
+              "label": "Shenandoah (ukulele arrangement)",
+              "href": "/music/songs/shelf/reading/shenandoah?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "U3.6",
@@ -4797,7 +5550,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/fur-elise?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Minuet in G (ukulele)",
+              "href": "/music/songs/shelf/reading/minuet-in-g-u4?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Canon in C (ukulele)",
+              "href": "/music/songs/shelf/reading/canon-in-c?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Spanish Romance (ukulele)",
+              "href": "/music/songs/shelf/reading/spanish-romance-u4?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Swallowtail Jig (ukulele)",
+              "href": "/music/songs/shelf/reading/swallowtail-jig-u4?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Arkansas Traveler (ukulele)",
+              "href": "/music/songs/shelf/reading/arkansas-traveler-u4?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Soldier's Joy (ukulele)",
+              "href": "/music/songs/shelf/reading/soldiers-joy-u4?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Cripple Creek (campanella style, high G)",
+              "href": "/music/songs/shelf/reading/cripple-creek?mode=sight-read&tempo=70"
+            }
+          ]
         },
         {
           "id": "U4.5",
@@ -5010,7 +5800,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 60% of the tempo.",
           "done": "4 shelf solos at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/cant-help-falling-in-love-u5?mode=sight-read&tempo=60",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Yesterday (Easy Ukulele with Tab)",
+              "href": "/music/songs/shelf/reading/yesterday?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Hallelujah (ukulele, picked)",
+              "href": "/music/songs/shelf/reading/hallelujah-u5?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Somewhere over the Rainbow (ukulele transcription)",
+              "href": "/music/songs/shelf/reading/somewhere-over-the-rainbow?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "La Vie en Rose (chord melody)",
+              "href": "/music/songs/shelf/reading/la-vie-en-rose?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Blackbird (for ukulele)",
+              "href": "/music/songs/shelf/reading/blackbird-u5?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Hallelujah (Jake Shimabukuro)",
+              "href": "/music/songs/shelf/reading/hallelujah-u5-2?mode=sight-read&tempo=60"
+            },
+            {
+              "label": "Moon River for Jazz Ukulele",
+              "href": "/music/songs/shelf/reading/moon-river-for-jazz-ukulele?mode=sight-read&tempo=60"
+            }
+          ]
         },
         {
           "id": "U5.5",
@@ -5204,7 +6031,48 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/aint-she-sweet?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Blue Moon (ukulele and piano)",
+              "href": "/music/songs/shelf/reading/blue-moon?mode=sight-read"
+            },
+            {
+              "label": "Five Foot Two (from The Daily Ukulele)",
+              "href": "/music/songs/shelf/reading/five-foot-two?mode=sight-read"
+            },
+            {
+              "label": "Sakura Sakura",
+              "href": "/music/songs/shelf/reading/sakura-sakura?mode=sight-read"
+            },
+            {
+              "label": "Pink Panther (melody and chords)",
+              "href": "/music/songs/shelf/reading/pink-panther?mode=sight-read"
+            },
+            {
+              "label": "Blue Bossa (lead sheet and chord melody)",
+              "href": "/music/songs/shelf/reading/blue-bossa-u6?mode=sight-read"
+            },
+            {
+              "label": "Autumn Leaves (ukulele)",
+              "href": "/music/songs/shelf/reading/autumn-leaves-u6?mode=sight-read"
+            },
+            {
+              "label": "Lágrima (ukulele)",
+              "href": "/music/songs/shelf/reading/lagrima-u6?mode=sight-read"
+            },
+            {
+              "label": "Cello Suite No. 1 Prelude (ukulele)",
+              "href": "/music/songs/shelf/reading/cello-suite-no-1-prelude?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "U6.5",
@@ -5462,7 +6330,40 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/hot-cross-buns?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Mary Had a Little Lamb (alto sax)",
+              "href": "/music/songs/shelf/reading/mary-had-a-little-lamb-a1?mode=sight-read"
+            },
+            {
+              "label": "Lightly Row (alto sax)",
+              "href": "/music/songs/shelf/reading/lightly-row-a1?mode=sight-read"
+            },
+            {
+              "label": "Au Clair de la Lune (duet for alto sax)",
+              "href": "/music/songs/shelf/reading/au-clair-de-la-lune?mode=sight-read"
+            },
+            {
+              "label": "Twinkle Twinkle Little Star (alto sax)",
+              "href": "/music/songs/shelf/reading/twinkle-twinkle-little-star-a1?mode=sight-read"
+            },
+            {
+              "label": "Ode to Joy (melody, alto or bari sax)",
+              "href": "/music/songs/shelf/reading/ode-to-joy-a1?mode=sight-read"
+            },
+            {
+              "label": "Jingle Bells (sax duet)",
+              "href": "/music/songs/shelf/reading/jingle-bells-a1?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A1.6",
@@ -5699,7 +6600,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/amazing-grace-a2?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Happy Birthday (traditional)",
+              "href": "/music/songs/shelf/reading/happy-birthday-a2?mode=sight-read"
+            },
+            {
+              "label": "Oh When the Saints (piano, alto sax and guitar)",
+              "href": "/music/songs/shelf/reading/oh-when-the-saints?mode=sight-read"
+            },
+            {
+              "label": "Auld Lang Syne (alto sax solo)",
+              "href": "/music/songs/shelf/reading/auld-lang-syne?mode=sight-read"
+            },
+            {
+              "label": "Shenandoah (sax)",
+              "href": "/music/songs/shelf/reading/shenandoah-a2?mode=sight-read"
+            },
+            {
+              "label": "Scarborough Fair (alto sax and Celtic harp)",
+              "href": "/music/songs/shelf/reading/scarborough-fair-a2?mode=sight-read"
+            },
+            {
+              "label": "Danny Boy (solo sax)",
+              "href": "/music/songs/shelf/reading/danny-boy-a2?mode=sight-read"
+            },
+            {
+              "label": "Simple Gifts (alto sax and piano)",
+              "href": "/music/songs/shelf/reading/simple-gifts?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A2.6",
@@ -5902,7 +6840,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/cant-help-falling-in-love-a3?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Hallelujah (alto sax)",
+              "href": "/music/songs/shelf/reading/hallelujah-a3?mode=sight-read"
+            },
+            {
+              "label": "Greensleeves (alto sax)",
+              "href": "/music/songs/shelf/reading/greensleeves-a3?mode=sight-read"
+            },
+            {
+              "label": "Over the Rainbow (alto sax)",
+              "href": "/music/songs/shelf/reading/over-the-rainbow-a3?mode=sight-read"
+            },
+            {
+              "label": "My Heart Will Go On",
+              "href": "/music/songs/shelf/reading/my-heart-will-go-on?mode=sight-read"
+            },
+            {
+              "label": "La Vie en Rose (piano and alto sax)",
+              "href": "/music/songs/shelf/reading/la-vie-en-rose-a3?mode=sight-read"
+            },
+            {
+              "label": "Star Wars, main theme (alto sax solo)",
+              "href": "/music/songs/shelf/reading/star-wars-main-theme?mode=sight-read"
+            },
+            {
+              "label": "Pirates of the Caribbean (alto sax and flute duet)",
+              "href": "/music/songs/shelf/reading/pirates-of-the-caribbean?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A3.5",
@@ -6127,7 +7102,44 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "5 shelf solos at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/tequila?mode=sight-read&tempo=70",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "The Pink Panther (alto sax)",
+              "href": "/music/songs/shelf/reading/the-pink-panther?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Just the Two of Us (alto sax)",
+              "href": "/music/songs/shelf/reading/just-the-two-of-us?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Careless Whisper (alto sax solo)",
+              "href": "/music/songs/shelf/reading/careless-whisper?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Take On Me (alto sax solo)",
+              "href": "/music/songs/shelf/reading/take-on-me?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Baker Street (alto sax)",
+              "href": "/music/songs/shelf/reading/baker-street?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Sir Duke (alto sax)",
+              "href": "/music/songs/shelf/reading/sir-duke?mode=sight-read&tempo=70"
+            },
+            {
+              "label": "Superstition (alto sax)",
+              "href": "/music/songs/shelf/reading/superstition?mode=sight-read&tempo=70"
+            }
+          ]
         },
         {
           "id": "A4.5",
@@ -6339,7 +7351,48 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 heads at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/c-jam-blues?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Sonnymoon for Two (alto)",
+              "href": "/music/songs/shelf/reading/sonnymoon-for-two-a5?mode=sight-read"
+            },
+            {
+              "label": "Blue Monk (alto sax)",
+              "href": "/music/songs/shelf/reading/blue-monk?mode=sight-read"
+            },
+            {
+              "label": "Bag's Groove (clarinet and sax)",
+              "href": "/music/songs/shelf/reading/bags-groove?mode=sight-read"
+            },
+            {
+              "label": "Now's the Time (alto)",
+              "href": "/music/songs/shelf/reading/nows-the-time?mode=sight-read"
+            },
+            {
+              "label": "Watermelon Man (alto sax)",
+              "href": "/music/songs/shelf/reading/watermelon-man?mode=sight-read"
+            },
+            {
+              "label": "Cantaloupe Island (alto sax)",
+              "href": "/music/songs/shelf/reading/cantaloupe-island?mode=sight-read"
+            },
+            {
+              "label": "St. Thomas (alto and tenor)",
+              "href": "/music/songs/shelf/reading/st-thomas?mode=sight-read"
+            },
+            {
+              "label": "Blues for Alice (alto)",
+              "href": "/music/songs/shelf/reading/blues-for-alice?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A5.6",
@@ -6532,7 +7585,40 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 standards at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/summertime-a6?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Autumn Leaves (trombone, trumpet and alto sax)",
+              "href": "/music/songs/shelf/reading/autumn-leaves-a6?mode=sight-read"
+            },
+            {
+              "label": "Fly Me to the Moon (alto sax)",
+              "href": "/music/songs/shelf/reading/fly-me-to-the-moon-a6?mode=sight-read"
+            },
+            {
+              "label": "Misty (Eb lead sheet)",
+              "href": "/music/songs/shelf/reading/misty-a6?mode=sight-read"
+            },
+            {
+              "label": "The Girl from Ipanema (alto sax)",
+              "href": "/music/songs/shelf/reading/the-girl-from-ipanema?mode=sight-read"
+            },
+            {
+              "label": "Take Five (sax)",
+              "href": "/music/songs/shelf/reading/take-five-a6?mode=sight-read"
+            },
+            {
+              "label": "Misty (alto sax with solo transcription)",
+              "href": "/music/songs/shelf/reading/misty-a6-2?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A6.4",
@@ -6568,8 +7654,21 @@
           "title": "Read a concert-pitch lead sheet",
           "setup": "Song Studio, sight-read: a C lead sheet from the piano level 6 shelf, read a minor third down (written = concert + 9).",
           "done": "One tune at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run.",
-          "feeds": "Autumn Leaves, Blue Bossa"
+          "feeds": "Autumn Leaves, Blue Bossa",
+          "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Blue Bossa (lead sheet)",
+              "href": "/music/songs/shelf/reading/blue-bossa?mode=sight-read"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -6749,7 +7848,48 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
-          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
+          "href": "/music/songs/shelf/reading/the-swan?mode=sight-read",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 4,
+          "links": [
+            {
+              "label": "Ave Maria (alto sax solo)",
+              "href": "/music/songs/shelf/reading/ave-maria?mode=sight-read"
+            },
+            {
+              "label": "Gavotte",
+              "href": "/music/songs/shelf/reading/gavotte-a7?mode=sight-read"
+            },
+            {
+              "label": "Sicilienne (alto sax solo)",
+              "href": "/music/songs/shelf/reading/sicilienne?mode=sight-read"
+            },
+            {
+              "label": "25 Daily Exercises",
+              "href": "/music/songs/shelf/reading/25-daily-exercises?mode=sight-read"
+            },
+            {
+              "label": "Etude No. 12 (alto)",
+              "href": "/music/songs/shelf/reading/etude-no-12?mode=sight-read"
+            },
+            {
+              "label": "Etude No. 40 (alto sax, Andraud edition)",
+              "href": "/music/songs/shelf/reading/etude-no-40?mode=sight-read"
+            },
+            {
+              "label": "Méditation from Thaïs (alto sax)",
+              "href": "/music/songs/shelf/reading/meditation-from-thais?mode=sight-read"
+            },
+            {
+              "label": "Badinerie (alto sax solo)",
+              "href": "/music/songs/shelf/reading/badinerie?mode=sight-read"
+            }
+          ]
         },
         {
           "id": "A7.6",
@@ -7029,7 +8169,49 @@
           "title": "Read a real line",
           "setup": "Tap the rhythm of shelf pieces at sight, then play them on any instrument.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/snare-drum-beginner-exercises?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Rhythm sight-reading exercises (drums)",
+              "href": "/music/songs/shelf/reading/rhythm-sight-reading-exercises?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Rhythm Reading Exercises (bass)",
+              "href": "/music/songs/shelf/reading/rhythm-reading-exercises?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Rhythm Exercise (ta, ti-ti, ti-ka-ti-ka, rest)",
+              "href": "/music/songs/shelf/reading/rhythm-exercise?mode=sight-read&tap=true"
+            },
+            {
+              "label": "We Will Rock You",
+              "href": "/music/songs/shelf/reading/we-will-rock-you?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Yankee Doodle",
+              "href": "/music/songs/shelf/reading/yankee-doodle?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Hot Cross Buns (lead sheet)",
+              "href": "/music/songs/shelf/reading/hot-cross-buns-r1?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Cup Song rhythm",
+              "href": "/music/songs/shelf/reading/cup-song-rhythm?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Back in Black (drums)",
+              "href": "/music/songs/shelf/reading/back-in-black?mode=sight-read&tap=true"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -7244,15 +8426,67 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/ode-to-joy-r2?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Auld Lang Syne",
+              "href": "/music/songs/shelf/reading/auld-lang-syne-r2?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Happy Birthday (easy)",
+              "href": "/music/songs/shelf/reading/happy-birthday-r2?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Morning Has Broken",
+              "href": "/music/songs/shelf/reading/morning-has-broken-r2?mode=sight-read&tap=true"
+            },
+            {
+              "label": "The Blue Danube (very easy)",
+              "href": "/music/songs/shelf/reading/the-blue-danube?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Solfeggio No. 1 (sung)",
+              "href": "/music/songs/shelf/reading/solfeggio-no-1?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Solfeggio No. 2 (sung)",
+              "href": "/music/songs/shelf/reading/solfeggio-no-2?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Rhythmical Articulation, first lessons",
+              "href": "/music/songs/shelf/reading/rhythmical-articulation-first-lessons?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R2.6",
           "title": "Sing it on one pitch",
-          "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped.",
+          "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped at sight in Song Studio (Sight-read, Tap the rhythm), each lesson imported as its own song.",
           "done": "10 lessons tapped at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight.",
-          "feeds": "Bona"
+          "feeds": "Bona",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 10,
+          "links": [
+            {
+              "label": "Rhythmical Articulation, first lessons",
+              "href": "/music/songs/shelf/reading/rhythmical-articulation-first-lessons?mode=sight-read&tap=true"
+            }
+          ],
+          "exerciseIds": ["song.studio"]
         }
       ],
       "shelf": [
@@ -7430,7 +8664,49 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/row-row-row-your-boat?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Pop Goes the Weasel",
+              "href": "/music/songs/shelf/reading/pop-goes-the-weasel?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Silent Night (easy left hand)",
+              "href": "/music/songs/shelf/reading/silent-night?mode=sight-read&tap=true"
+            },
+            {
+              "label": "The Skye Boat Song",
+              "href": "/music/songs/shelf/reading/the-skye-boat-song?mode=sight-read&tap=true"
+            },
+            {
+              "label": "House of the Rising Sun",
+              "href": "/music/songs/shelf/reading/house-of-the-rising-sun-r3?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Irish Washerwoman",
+              "href": "/music/songs/shelf/reading/irish-washerwoman-r3?mode=sight-read&tap=true"
+            },
+            {
+              "label": "We Are the Champions",
+              "href": "/music/songs/shelf/reading/we-are-the-champions?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Nothing Else Matters (violin)",
+              "href": "/music/songs/shelf/reading/nothing-else-matters?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Norwegian Wood (sitar part)",
+              "href": "/music/songs/shelf/reading/norwegian-wood?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R3.5",
@@ -7671,7 +8947,45 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/stick-control?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Turkish March (easy)",
+              "href": "/music/songs/shelf/reading/turkish-march?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Eine kleine Nachtmusik (easy)",
+              "href": "/music/songs/shelf/reading/eine-kleine-nachtmusik?mode=sight-read&tap=true"
+            },
+            {
+              "label": "William Tell Overture",
+              "href": "/music/songs/shelf/reading/william-tell-overture?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Another One Bites the Dust",
+              "href": "/music/songs/shelf/reading/another-one-bites-the-dust?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Billie Jean (bass transcription)",
+              "href": "/music/songs/shelf/reading/billie-jean?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Superstition (bass line)",
+              "href": "/music/songs/shelf/reading/superstition-r4?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Superstition (drums)",
+              "href": "/music/songs/shelf/reading/superstition-r4-2?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R4.6",
@@ -7870,10 +9184,17 @@
         {
           "id": "R5.5",
           "title": "With a foot",
-          "setup": "Reed lines with a kick-quarters lane.",
+          "setup": "Sight-reading, Tap the rhythm with the kick lane: Line 4, 8 bars, the rhythm in the hands and a kick on every beat (a kick pad or the Kick button).",
           "done": "85% at 100.",
-          "needs": "A kick-quarters lane under Tap the rhythm in Sight-reading.",
-          "feeds": "pads path"
+          "feeds": "pads path",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&measures=8&bpm=100&kick=true",
+          "match": {
+            "level": "line-4",
+            "follower": "tap",
+            "kick": "true"
+          },
+          "threshold": 0.85,
+          "minBpm": 100
         },
         {
           "id": "R5.6",
@@ -7895,7 +9216,45 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/progressive-steps-to-syncopation?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Progressive Steps to Syncopation (snare)",
+              "href": "/music/songs/shelf/reading/progressive-steps-to-syncopation-r5?mode=sight-read&tap=true"
+            },
+            {
+              "label": "The Entertainer",
+              "href": "/music/songs/shelf/reading/the-entertainer-r5?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Oye Como Va (flute and piano)",
+              "href": "/music/songs/shelf/reading/oye-como-va?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Take On Me (piano)",
+              "href": "/music/songs/shelf/reading/take-on-me-r5?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Africa (Toto, piano)",
+              "href": "/music/songs/shelf/reading/africa?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Smooth (Santana, alto sax and guitar)",
+              "href": "/music/songs/shelf/reading/smooth?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Uptown Funk (easy piano)",
+              "href": "/music/songs/shelf/reading/uptown-funk?mode=sight-read&tap=true"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -8099,7 +9458,45 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/battle-hymn-of-the-republic?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "The Marines' Hymn (lead sheet)",
+              "href": "/music/songs/shelf/reading/the-marines-hymn?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Stars and Stripes Forever (lead sheet)",
+              "href": "/music/songs/shelf/reading/stars-and-stripes-forever?mode=sight-read&tap=true"
+            },
+            {
+              "label": "The Imperial March (very easy)",
+              "href": "/music/songs/shelf/reading/the-imperial-march?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Moonlight Sonata, first movement (easy)",
+              "href": "/music/songs/shelf/reading/moonlight-sonata-first-movement-r6?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Hedwig's Theme",
+              "href": "/music/songs/shelf/reading/hedwigs-theme?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Ave Maria (easy piano)",
+              "href": "/music/songs/shelf/reading/ave-maria-r6?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Solo No. 1 (snare)",
+              "href": "/music/songs/shelf/reading/solo-no-1?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R6.6",
@@ -8310,7 +9707,48 @@
           "title": "Read real lines",
           "setup": "Tap or play shelf heads at sight, swung.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/c-jam-blues-r7?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Sonnymoon for Two (lead sheet)",
+              "href": "/music/songs/shelf/reading/sonnymoon-for-two-r7?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Mack the Knife (lead sheet)",
+              "href": "/music/songs/shelf/reading/mack-the-knife?mode=sight-read&tap=true"
+            },
+            {
+              "label": "In the Mood (piano)",
+              "href": "/music/songs/shelf/reading/in-the-mood?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Tuxedo Junction (trombone)",
+              "href": "/music/songs/shelf/reading/tuxedo-junction?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Bags' Groove (piano)",
+              "href": "/music/songs/shelf/reading/bags-groove-r7?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Swing Solo No. 1 (snare)",
+              "href": "/music/songs/shelf/reading/swing-solo-no-1?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Swing Solo No. 10 (snare)",
+              "href": "/music/songs/shelf/reading/swing-solo-no-10?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Sing, Sing, Sing (big band, 1938, read the sax 1 part)",
+              "href": "/music/songs/shelf/reading/sing-sing-sing?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R7.6",
@@ -8531,7 +9969,45 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
+          "href": "/music/songs/shelf/reading/take-five-r8?mode=sight-read&tap=true",
+          "match": {
+            "mode": "sight-read",
+            "firstRun": "true",
+            "shelf": "reading/*",
+            "tap": "true"
+          },
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "links": [
+            {
+              "label": "Mission: Impossible theme",
+              "href": "/music/songs/shelf/reading/mission-impossible-theme?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Money (Pink Floyd, bass)",
+              "href": "/music/songs/shelf/reading/money?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Unsquare Dance (piano)",
+              "href": "/music/songs/shelf/reading/unsquare-dance?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Solsbury Hill (guitar)",
+              "href": "/music/songs/shelf/reading/solsbury-hill?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Mars (orchestra, read the strings' ostinato)",
+              "href": "/music/songs/shelf/reading/mars?mode=sight-read&tap=true"
+            },
+            {
+              "label": "America (West Side Story, woodwinds)",
+              "href": "/music/songs/shelf/reading/america?mode=sight-read&tap=true"
+            },
+            {
+              "label": "Blue Rondo à la Turk",
+              "href": "/music/songs/shelf/reading/blue-rondo-a-la-turk?mode=sight-read&tap=true"
+            }
+          ]
         },
         {
           "id": "R8.5",
@@ -8560,10 +10036,17 @@
         {
           "id": "R8.6",
           "title": "Meter changes",
-          "setup": "Read and tap with a meter change every 2 bars (4/4, 3/4, 5/8).",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef with the meter changing every 2 bars (4/4, 3/4, 5/8).",
           "done": "85% on 8 of 10.",
-          "needs": "Meter changes every 2 bars in the sight-reading generator, for Tap the rhythm.",
-          "feeds": "America"
+          "feeds": "America",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=changing",
+          "match": {
+            "level": "piano-9",
+            "follower": "tap",
+            "meter": "changing"
+          },
+          "threshold": 0.85,
+          "minAttempts": 8
         }
       ],
       "shelf": [

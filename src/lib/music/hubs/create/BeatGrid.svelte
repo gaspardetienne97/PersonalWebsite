@@ -60,7 +60,7 @@
   const kitNotes = $derived(kits.notes);
   const rows = $derived.by((): (BeatRow & { sample?: string })[] => {
     const base = DEFAULT_ROWS.map((r) => r.midi);
-    const used = Object.keys(pattern.steps).map(Number);
+    const used = [...Object.keys(pattern.steps).map(Number), ...(pattern.live ?? []).map((h) => h.midi)];
     const extra = [...new Set([...kitNotes, ...used])].filter((n) => !base.includes(n)).sort((a, b) => a - b);
     return [...DEFAULT_ROWS, ...extra.map((midi) => ({ midi, name: padLabel(midi) }))].map((r) => {
       const p = kit?.pads.find((x) => x.note === r.midi);
@@ -68,6 +68,8 @@
     });
   });
 
+  /** Hits recorded live and kept as played, shown on the step they fall nearest. */
+  const liveAt = $derived(new Set((pattern.live ?? []).map((h) => `${h.midi}:${Math.round(h.beat * 4) % total}`)));
   function toggle(row: BeatRow, step: number) {
     const was = isOn(pattern, row.midi, step);
     session.setPattern(toggleStep(pattern, row.midi, step));
@@ -158,6 +160,7 @@
                     class="step"
                     class:alt={Math.floor(s / 4) % 2 === 1}
                     data-on={on || undefined}
+                    data-live={liveAt.has(`${row.midi}:${s}`) || undefined}
                     data-now={playhead === s || undefined}
                     data-row={r}
                     data-step={s}
@@ -258,6 +261,9 @@
     box-shadow:
       inset 0 -3px 0 color-mix(in oklch, var(--instr) 60%, black),
       0 0 10px color-mix(in oklch, var(--instr) 35%, transparent);
+  }
+  .step[data-live]:not([data-on]) {
+    background: radial-gradient(circle, var(--instr) 0 28%, color-mix(in oklch, var(--ws-stage-ink) 9%, transparent) 30%);
   }
   .step[data-now] {
     outline: 2px solid color-mix(in oklch, var(--ws-stage-ink) 55%, transparent);

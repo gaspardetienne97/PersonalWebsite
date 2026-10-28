@@ -344,6 +344,7 @@ export const GROOVE_LEVELS: { id: string; title: string; bars: number; perBeat: 
   { id: "rock", title: "Rock beats", bars: 1, perBeat: 2 },
   { id: "offbeats", title: "Kicks off the beat", bars: 2, perBeat: 2 },
   { id: "sixteenths", title: "Sixteenth kicks and ghost snares", bars: 2, perBeat: 4 },
+  { id: "trap", title: "Trap: the snare on 3, the 808 around it", bars: 2, perBeat: 4 },
 ];
 const KICKS: Record<string, number[][]> = {
   rock: [
@@ -369,6 +370,15 @@ const KICKS: Record<string, number[][]> = {
     [0, 0.75, 2.5, 3.25],
     [0, 1.5, 2.75],
   ],
+  // Trap is half time: the snare (clap) on 3, the 808 placed around it.
+  trap: [
+    [0, 1.75, 2.5],
+    [0, 0.75, 3.5],
+    [0, 1.5, 2.75],
+    [0, 0.75, 1.5, 3.25],
+    [0, 2.5, 3.5],
+    [0, 0.5, 1.75, 3],
+  ],
 };
 
 export interface Groove {
@@ -390,10 +400,17 @@ export function earGroove(rand: () => number, levelId: string): Groove {
   for (let bar = 0; bar < level.bars; bar++) {
     const at = bar * 4;
     // The second bar of a pair answers the first with a different kick.
-    const kick = level.id !== "rock" && bar === 1 ? pickOf(KICKS[level.id]) : pickOf(kicks);
+    const kick =
+      level.id !== "rock" && bar === 1
+        ? pickOf(KICKS[level.id])
+        : pickOf(level.id === "trap" ? KICKS.trap : kicks);
     lanes.kick.push(...kick.map((b) => at + b));
-    lanes.snare.push(at + 1, at + 3);
-    if (level.perBeat === 4 && rand() < 0.6)
+    if (level.id === "trap") {
+      lanes.snare.push(at + 2);
+      // Sometimes a late snare at the end of the second bar, as trap hooks do.
+      if (bar === 1 && rand() < 0.5) lanes.snare.push(at + 3.75);
+    } else lanes.snare.push(at + 1, at + 3);
+    if (level.perBeat === 4 && level.id !== "trap" && rand() < 0.6)
       lanes.snare.push(at + pickOf([1.75, 2.75, 3.25, 3.75]));
     const step = sixteenthHats ? 0.25 : 0.5;
     for (let b = 0; b < 4; b += step) lanes.hat.push(at + b);

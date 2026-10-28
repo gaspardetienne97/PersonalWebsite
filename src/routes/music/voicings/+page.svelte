@@ -15,7 +15,8 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { gradeItem, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
+  import { gradeItem, isJazzType, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
+  import { JAZZ_VOICING_TYPES, UPPER_TUNES } from "@repo/music-core/content/jazz-voicings";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -46,13 +47,23 @@
     position: "A" as string,
     /** Gospel: which progression. */
     progression: GOSPEL_PROGRESSIONS[0].id as string,
+    /** The jazz voicing type the Jazz types tab opens on (`variant=jazz` opens it too). */
+    jazz: "so-what" as string,
+    /** Upper structures: the tune whose dominants are voiced. */
+    tune: UPPER_TUNES[0].id as string,
   });
   const s = $derived(cfg.value);
-  const variant = $derived((VARIANTS.some((v) => v.value === s.variant) ? s.variant : "major") as Variant);
+  const lastJazz = $derived(isJazzType(s.jazz) ? s.jazz : "so-what");
+  const variant = $derived((s.variant === "jazz" ? lastJazz : VARIANTS.some((v) => v.value === s.variant) || isJazzType(s.variant) ? s.variant : "major") as Variant);
+  const jazzType = $derived(JAZZ_VOICING_TYPES.find((t) => t.id === variant));
+  const onTune = $derived(jazzType?.key === "tune");
+  const tune = $derived(UPPER_TUNES.find((t) => t.id === s.tune) ?? UPPER_TUNES[0]);
+  /** One key only: the closest chords, and a tune's own changes. */
+  const oneKey = $derived(variant === "inversions" || onTune);
   const gospel = $derived(GOSPEL_PROGRESSIONS.find((p) => p.id === s.progression) ?? GOSPEL_PROGRESSIONS[0]);
   const monophonic = $derived(settings.value.activeInstrument === "aerophone" || settings.value.activeInstrument === "voice");
   const items = $derived(
-    voicingItems({ variant, keyPc: pc(s.key), keys: variant === "inversions" ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic, progression: gospel.id }),
+    voicingItems({ variant, keyPc: pc(s.key), keys: oneKey ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic, progression: gospel.id, tune: tune.id }),
   );
   const span = $derived(spanOf(items.flatMap((i) => i.show.map((n) => n.midi))));
 
@@ -94,15 +105,19 @@
     return out;
   });
 
-  const variantLabel = $derived(VARIANTS.find((v) => v.value === variant)!.label);
+  const variantLabel = $derived(jazzType?.label ?? VARIANTS.find((v) => v.value === variant)!.label);
   const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
+  /** What the key picker names for a jazz type: a major key, a dorian tonic or a blues. */
+  const keyWord = $derived(jazzType?.key === "dorian" ? (variant === "sus" ? "Set from" : "Dorian on") : jazzType?.key === "blues" ? "Blues in" : variant === "inversions" ? "Key" : "Start key");
   const summaryLine = $derived<SetupClause[]>([
-    { text: `${variant === "gospel" ? gospel.label : variantLabel} ${variant === "inversions" ? "in" : "from"} ${keyName(s.key)}`, focus: variant === "gospel" ? "progression" : "key" },
-    ...(variant === "inversions" ? [] : [{ text: s.keys === 12 ? "all 12 keys" : `${s.keys} key${s.keys > 1 ? "s" : ""}`, focus: "keys" }]),
+    onTune
+      ? { text: `${variantLabel}: ${tune.name}`, focus: "tune" }
+      : { text: `${variant === "gospel" ? gospel.label : variantLabel} ${variant === "inversions" ? "in" : "from"} ${keyName(s.key)}${jazzType?.key === "dorian" && variant !== "sus" ? " dorian" : ""}`, focus: variant === "gospel" ? "progression" : "key" },
+    ...(oneKey ? [] : [{ text: s.keys === 12 ? "all 12 keys" : `${s.keys} key${s.keys > 1 ? "s" : ""}`, focus: "keys" }]),
     ...(variant === "major" ? [{ text: `starting in position ${s.position}`, focus: "position" }] : []),
     ...(monophonic ? [{ text: "as arpeggios" }] : []),
   ]);
-  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${variant === "inversions" ? 1 : s.keys}:${monophonic ? "arp" : "chord"}:${s.position}${variant === "gospel" ? `:${gospel.id}` : ""}`);
+  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${oneKey ? 1 : s.keys}:${monophonic ? "arp" : "chord"}:${s.position}${variant === "gospel" ? `:${gospel.id}` : ""}${onTune ? `:${tune.id}` : ""}`);
   // The staff in the current key's signature (minor variants in the minor key's).
   const keyFifths = $derived(group[0] ? signatureFor(group[0].keyPc, group[0].minor ? "natural-minor" : "major") : 0);
   const skills = $derived([...new Set(items.flatMap((i) => i.skillIds))]);
@@ -196,9 +211,9 @@
       capabilities: ["harmony"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : variant === "gospel" ? 0.5 : 0.55,
+      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : variant === "gospel" ? 0.5 : variant === "sevenths" ? 0.4 : jazzType ? 0.7 : 0.55,
       instrument: settings.value.activeInstrument,
-      params: { variant, key: pc(s.key), keys: s.keys, arpeggio: monophonic, ...(variant === "gospel" ? { progression: gospel.id } : {}) },
+      params: { variant, key: pc(s.key), keys: oneKey ? 1 : s.keys, arpeggio: monophonic, ...(variant === "gospel" ? { progression: gospel.id } : {}), ...(onTune ? { tune: tune.id } : {}) },
     });
     cap = capture(performance.now(), (e) => (e.kind === "noteon" || e.kind === "noteoff") && onEvent(e));
     prompt();
@@ -242,7 +257,7 @@
       ],
       // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
       advance:
-        variant !== "inversions" && notes.some((n) => n.kind === "noteon")
+        !oneKey && notes.some((n) => n.kind === "noteon")
           ? await nextRun(`voicings.${variant}.${pc(s.key)}.${monophonic ? "arp" : "chord"}.${s.position}`, { steps: KEY_STEPS, step: Math.max(0, KEY_STEPS.findIndex((k) => k.value === s.keys)) }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ keys: KEY_STEPS[step].value }))
           : undefined,
     };
@@ -274,11 +289,11 @@
 <DrillShell
   title="Voicings"
   hue="piano"
-  blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, and guide-tone voice leading. Untimed: take the time to find each chord."
+  blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, guide-tone voice leading, and jazz piano voicing types from So What chords to locked hands. Untimed: take the time to find each chord."
   summary={summaryLine}
-  tabs={VARIANTS.map((v) => ({ id: v.value, label: v.tab }))}
-  tab={variant}
-  ontab={(id) => cfg.set({ variant: id })}
+  tabs={[...VARIANTS.map((v) => ({ id: v.value as string, label: v.tab })), { id: "jazz", label: "Jazz types" }]}
+  tab={jazzType ? "jazz" : variant}
+  ontab={(id) => cfg.set({ variant: id === "jazz" ? lastJazz : id })}
   bind:phase
   bind:mode
   bind:status
@@ -289,12 +304,22 @@
   onstop={stop}
 >
   {#snippet setup()}
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
-        <span class="font-medium">{variant === "inversions" ? "Key" : "Start key"}</span>
-        <KeyPicker label={variant === "inversions" ? "Key" : "Start key"} value={pc(s.key)} name={keyName} onchange={(p) => cfg.set({ key: p })} />
+    {#if jazzType}
+      <div class="mb-4">
+        <Choice label="Voicing" setupKey="jazz" options={JAZZ_VOICING_TYPES.map((t) => ({ value: t.id as string, label: t.label }))} value={jazzType.id} onchange={(v) => cfg.set({ variant: v, jazz: v })} />
+        <p class="mt-2 max-w-prose text-sm text-ws-soft">{jazzType.about}</p>
       </div>
-      {#if variant !== "inversions"}
+    {/if}
+    <div class="grid gap-4 sm:grid-cols-3">
+      {#if onTune}
+        <Choice label="Tune" setupKey="tune" options={UPPER_TUNES.map((t) => ({ value: t.id, label: t.name }))} value={tune.id} onchange={(v) => cfg.set({ tune: v })} />
+      {:else}
+        <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
+          <span class="font-medium">{keyWord}</span>
+          <KeyPicker label={keyWord} value={pc(s.key)} name={keyName} onchange={(p) => cfg.set({ key: p })} />
+        </div>
+      {/if}
+      {#if !oneKey}
         <Choice
           label="Keys"
           setupKey="keys"
@@ -364,7 +389,7 @@
       </div>
     {:else if current && mode === "check"}
       <p class="mb-3 text-sm text-ws-stage-soft">
-        Check mode: the voicing and the hints are hidden. {current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`}
+        Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
       </p>
     {/if}
     <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
@@ -375,7 +400,7 @@
         {:else if phase === "running" && collectedMode}
           Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. On-screen keys play one at a time, so held together is not measured.
         {:else}
-          Keys show L for the left-hand root and R for the right hand. Voicings carry no authored fingering.
+          Keys show L for the {jazzType ? "left hand" : "left-hand root"} and R for the right hand. Voicings carry no authored fingering.
         {/if}
       </p>
       {#if phase === "running"}<button type="button" class={btnStage} onclick={skip}>Grade what I played</button>{/if}

@@ -783,13 +783,18 @@
         {
           "id": "3.10",
           "title": "First chop: slices in order",
-          "setup": "A 1-bar loop on A01 to A16, replayed in order to the click.",
+          "href": "/music/pads?mode=chop&exercise=order&source=boom-bap-b",
+          "setup": "Chop, in order: a 1-bar loop (the boom bap break, Funky Drummer or your own) cut onto A01 to A16, replayed slice by slice to the click.",
           "done": "Pass at the loop's tempo.",
-          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 1: replay the slices in order.",
+          "match": {
+            "exercise": "order"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "links": [
             {
-              "label": "Create",
-              "href": "/music/create"
+              "label": "Chop your own loop",
+              "href": "/music/pads?mode=chop&exercise=order&source=file"
             }
           ],
           "feeds": "Sample-based beats"
@@ -1135,9 +1140,44 @@
         {
           "id": "4.10",
           "title": "Stick Control, page one",
-          "setup": "The 16 four-note R/L stickings on two pads, 20 reps each.",
+          "href": "/music/pads?mode=rudiment&pattern=stick-rlrl&bpm=90",
+          "setup": "Technique, Stick Control: the 16 four-note R/L stickings on two pads, eighth notes, 20 repetitions each. The left pad is L, the right pad R, so the sticking is graded.",
           "done": "All 16 stickings at 90, 90% on the right pad.",
-          "needs": "Stick Control permutations in Technique: the 16 four-note stickings on two pads.",
+          "each": {
+            "param": "pattern",
+            "values": [
+              "stick-rlrl",
+              "stick-lrlr",
+              "stick-rrll",
+              "stick-llrr",
+              "stick-rlrr",
+              "stick-lrll",
+              "stick-rrlr",
+              "stick-llrl",
+              "stick-rllr",
+              "stick-lrrl",
+              "stick-rrrl",
+              "stick-lllr",
+              "stick-rlll",
+              "stick-lrrr",
+              "stick-rrrr",
+              "stick-llll"
+            ]
+          },
+          "threshold": 0.85,
+          "minBpm": 90,
+          "minAttempts": 1,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "R R L L",
+              "href": "/music/pads?mode=rudiment&pattern=stick-rrll&bpm=90"
+            },
+            {
+              "label": "R L L R",
+              "href": "/music/pads?mode=rudiment&pattern=stick-rllr&bpm=90"
+            }
+          ],
           "feeds": "Fills, linear grooves"
         },
         {
@@ -1443,13 +1483,19 @@
         {
           "id": "5.5",
           "title": "Note repeat",
-          "setup": "Hold a pad with Note Repeat at 1/8, then 1/16; pressure (aftertouch) sets the velocity.",
+          "href": "/music/pads?mode=repeat&rep=build&bpm=110",
+          "setup": "Note repeat, the build: hold the snare at 1/8 for two bars, then 1/16 for two, louder all the way, and land the drop; pressure (aftertouch) sets the level when the MPC sends it. Needs the MPC's velocity.",
           "done": "A 4-bar build with rising velocity.",
-          "needs": "Note Repeat in Create: hold a pad at 1/8, 1/16, 1/32 or 1/16T, velocity from aftertouch.",
+          "match": {
+            "setup": "repeat-build"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "minDays": 1,
           "links": [
             {
-              "label": "Create",
-              "href": "/music/create"
+              "label": "Note repeat in Create",
+              "href": "/music/create?live=1"
             }
           ],
           "feeds": "Builds, trap"
@@ -1472,23 +1518,29 @@
         {
           "id": "5.7",
           "title": "Chop and reorder",
-          "setup": "Play a written reorder of a chopped loop.",
+          "href": "/music/pads?mode=chop&exercise=reorder&edit=flip&bpm=110",
+          "setup": "Chop, a written reorder: the flip, the stutter or beats backwards, on a chopped 1-bar loop.",
           "done": "Pass at 110.",
-          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 2: play a written reorder.",
-          "links": [
-            {
-              "label": "Create",
-              "href": "/music/create"
-            }
-          ],
+          "match": {
+            "exercise": "reorder"
+          },
+          "threshold": 0.9,
+          "minBpm": 110,
+          "minDays": 1,
           "feeds": "Sample flips"
         },
         {
           "id": "5.8",
           "title": "Song form",
-          "setup": "A 32-bar piece: intro, groove, build, drop, outro.",
+          "href": "/music/pads?mode=song&form=house-drop&bpm=110",
+          "setup": "Song form: House, build to the drop. Intro 4 bars soft, groove 8, a 4-bar build rising, drop 12 loud with the crash, outro 4 soft: 32 bars, each section graded with its level.",
           "done": "Every section passed in one take.",
-          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take.",
+          "match": {
+            "setup": "song-house-drop"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
           "feeds": "The level test"
         },
         {
@@ -1817,9 +1869,25 @@
         {
           "id": "6.7",
           "title": "Reading interpretations",
-          "setup": "Syncopation-style lines read in two interpretations over the hats.",
+          "href": "/music/pads?mode=ostinato&line=read&interp=snare",
+          "setup": "Ostinato and a line, new lines to read: two bars of hats alone, then four new Syncopation-style bars, read by the snare over the hats, then by the kick under them.",
           "done": "8 lines read in 2 interpretations.",
-          "needs": "A Syncopation-style reading generator in Ostinato and a line.",
+          "match": {
+            "line": "read"
+          },
+          "each": {
+            "param": "interp",
+            "values": ["snare", "kick"]
+          },
+          "threshold": 0.85,
+          "minAttempts": 2,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "The kick reads",
+              "href": "/music/pads?mode=ostinato&line=read&interp=kick"
+            }
+          ],
           "feeds": "Sight-reading charts"
         },
         {
@@ -2141,51 +2209,58 @@
         {
           "id": "7.7",
           "title": "Note repeat rolls",
-          "setup": "Note Repeat at 1/16, 1/32 and 1/16T on 4 written roll bars.",
+          "href": "/music/pads?mode=repeat&rep=rolls&bpm=120",
+          "setup": "Note repeat, four written roll bars: hats in eighths with rolls at 1/16, 1/32 and 1/16T, the rate set by the chart; hold the hats pad for each roll.",
           "done": "4 written roll bars, pass.",
-          "needs": "Note Repeat in Create: hold a pad at 1/8, 1/16, 1/32 or 1/16T, velocity from aftertouch.",
-          "links": [
-            {
-              "label": "Create",
-              "href": "/music/create"
-            }
-          ],
+          "match": {
+            "setup": "repeat-rolls"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "feeds": "Trap"
         },
         {
           "id": "7.8",
           "title": "Live beat, 2 bars",
-          "setup": "Record a loop in passes: kick, then snare, then hats.",
+          "href": "/music/create?live=1",
+          "setup": "Create, Play it live: a 2-bar beat at 140, recorded a pass at a time: kick, then snare, then hats. Undo takes back a pass; Keep this loop grades the build.",
           "done": "A 2-bar loop at 140 with no undo after the third pass.",
-          "needs": "Live beat making in Create: loop recording with overdub, played on the pads.",
-          "links": [
-            {
-              "label": "Create",
-              "href": "/music/create"
-            }
-          ],
+          "exerciseIds": ["technique.mpc.live-loop"],
+          "match": {
+            "bars": "2"
+          },
+          "threshold": 0.7,
+          "minBpm": 140,
+          "minAttempts": 1,
+          "minDays": 1,
           "feeds": "The capstone"
         },
         {
           "id": "7.9",
           "title": "Chop a melody",
-          "setup": "Chop a melody freely and record the pattern.",
+          "href": "/music/pads?mode=chop&exercise=free&source=keys",
+          "setup": "Chop, free: the keys riff (or your own loop) on 16 pads. Four bars of your own pattern, then the same four again; hear it back after.",
           "done": "A 4-bar chop pattern repeated twice, in time.",
-          "needs": "A chop drill: a loop sliced onto pads A01 to A16, exercise 3: a free chop, recorded.",
-          "links": [
-            {
-              "label": "Create",
-              "href": "/music/create"
-            }
-          ],
+          "match": {
+            "exercise": "free"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "minDays": 1,
           "feeds": "Sample beats"
         },
         {
           "id": "7.10",
           "title": "Snare and 808 placement",
-          "setup": "Rhythm, Groove dictation on trap grooves.",
+          "href": "/music/rhythm?mode=groove&grooveLevel=trap",
+          "setup": "Rhythm, Groove dictation: trap, the snare on 3 and the 808 around it.",
           "done": "5 dictations averaging 75%.",
-          "needs": "A trap level in Rhythm, Groove dictation.",
+          "match": {
+            "level": "trap"
+          },
+          "threshold": 0.75,
+          "minAttempts": 5,
+          "minDays": 1,
           "links": [
             {
               "label": "Groove dictation",
@@ -2504,9 +2579,12 @@
         {
           "id": "8.11",
           "title": "Hear straight against swung",
-          "setup": "A rhythm feel drill: straight, swung, shuffle, 12/8.",
+          "href": "/music/ear/feel",
+          "setup": "Feel: ten grooves, each straight, swung, a shuffle or 12/8, at their own tempos.",
           "done": "8 of 10 right.",
-          "needs": "A feel item in the ear drills: straight, swung, shuffle, 12/8.",
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "minDays": 1,
           "feeds": "The ear path"
         }
       ],
@@ -2899,9 +2977,14 @@
         {
           "id": "9.11",
           "title": "Clave over a groove",
-          "setup": "Ostinato and a line with the clave as the line.",
+          "href": "/music/pads?mode=ostinato&line=clave",
+          "setup": "Ostinato and a line: son clave on the rim, two bars alone, then held while the kick moves under it for four.",
           "done": "The clave held while the kick moves.",
-          "needs": "A clave line in Ostinato and a line.",
+          "match": {
+            "line": "clave"
+          },
+          "threshold": 0.9,
+          "minDays": 1,
           "links": [
             {
               "label": "Ostinato and a line",
@@ -3253,15 +3336,16 @@
         {
           "id": "10.7",
           "title": "Chop the Amen",
-          "setup": "The Amen on 16 slices; play a written jungle edit at 170.",
+          "href": "/music/pads?mode=chop&exercise=reorder&source=amen&edit=jungle&bpm=160",
+          "setup": "Chop: the Amen's four bars on 16 slices, a beat each; play the written jungle edit, cut on the eighths, 160 to 170.",
           "done": "Pass at 160.",
-          "needs": "A chop drill: a loop sliced onto pads A01 to A16: the Amen on 16 slices and a written jungle edit.",
-          "links": [
-            {
-              "label": "Create",
-              "href": "/music/create"
-            }
-          ],
+          "match": {
+            "exercise": "reorder",
+            "edit": "jungle"
+          },
+          "threshold": 0.9,
+          "minBpm": 160,
+          "minDays": 1,
           "feeds": "Jungle, drum and bass"
         },
         {
@@ -3607,13 +3691,22 @@
         {
           "id": "11.7",
           "title": "Live beat, 4 bars",
-          "setup": "Record 4 bars live with swing 56 and Note Repeat.",
+          "href": "/music/create?live=1",
+          "setup": "Create, Play it live: a 4-bar beat with swing 56 and Note Repeat on a held pad, built in passes in under 5 minutes. Then 16 bars of fills over it; Improvise plays its own loops, not yours, so the fills are not judged here.",
           "done": "Built in under 5 minutes, then 16 bars of fills over it.",
-          "needs": "Live beat making in Create: loop recording with overdub, played on the pads.",
+          "exerciseIds": ["technique.mpc.live-loop"],
+          "match": {
+            "bars": "4",
+            "swing": "56",
+            "repeat": "true"
+          },
+          "threshold": 0.7,
+          "minAttempts": 1,
+          "minDays": 1,
           "links": [
             {
-              "label": "Create",
-              "href": "/music/create"
+              "label": "Fills in Improvise",
+              "href": "/music/pads?mode=improvise&bars=16&fillEvery=4"
             }
           ],
           "feeds": "The set"
@@ -3621,9 +3714,14 @@
         {
           "id": "11.8",
           "title": "Faded feedback",
-          "setup": "Five known grooves with feedback only at the end.",
+          "href": "/music/pads?mode=groove&fade=true",
+          "setup": "Grooves in Check with Feedback set to fade: the notes and judgements for two plays, then summary only; the plays after the fade are graded. Five grooves you know.",
           "done": "Pass with summary-only feedback.",
-          "needs": "A faded feedback mode in Grooves.",
+          "match": {
+            "fade": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 5,
           "feeds": "Performance"
         },
         {
@@ -3631,8 +3729,12 @@
           "title": "The set",
           "setup": "A piece you write: intro, 3 grooves from 3 levels, a chop section, a solo, an ending.",
           "done": "One take, 3 to 5 minutes, recorded.",
-          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take, written by the player.",
+          "needs": "Song-form pieces you write yourself: intro, three grooves from three levels, a chop section, a solo and an ending, graded in one take.",
           "links": [
+            {
+              "label": "The app's song-form pieces",
+              "href": "/music/pads?mode=song"
+            },
             {
               "label": "Record",
               "href": "/music/record"

@@ -157,7 +157,7 @@ const CHORD_FUNCTION_DRILLS = [
   },
 ] as const;
 type DrillRow = (typeof EAR_TRAINING.drills)[number];
-const SUNG = ["intervals", "melody-dictation"];
+const SUNG = ["intervals", "melody-dictation", "bass-lines", "scales"];
 export const EAR_DRILLS = [
   ...EAR_TRAINING.drills.slice(0, 1),
   INTERVAL_COMPARE as unknown as DrillRow,
@@ -166,7 +166,8 @@ export const EAR_DRILLS = [
   ...EAR_TRAINING.drills.slice(3),
 ].map((d) => ({
   ...d,
-  // The app adds singing back to intervals (the second note) and melody dictation (the phrase).
+  // The app adds singing back to intervals (the second note), melody dictation (the phrase),
+  // bass lines (the roots, one at a time) and scales (the scale itself, up or up and down).
   answerModes: (SUNG.includes(d.slug)
     ? [...d.answerModes, "voice"]
     : d.answerModes) as readonly string[],
@@ -451,20 +452,24 @@ export type ScaleDirection = "ascending" | "both" | "descending";
 const SCALE_STEP = 0.3;
 
 /** A low tonic held under the scale, then the scale itself, a note every 0.3 s. */
+/** The scale's notes from `tonic` in the direction played (what a sung answer must follow). */
+export function scaleRun(tonic: number, token: string, direction: ScaleDirection): number[] {
+  const up = (
+    SCALE_DATA.semitonesByKind[token as keyof typeof SCALE_DATA.semitonesByKind] ?? MAJOR
+  ).map((s) => tonic + s);
+  return direction === "ascending"
+    ? up
+    : direction === "descending"
+      ? [...up].reverse()
+      : [...up, ...up.slice(0, -1).reverse()];
+}
+
 export function scalePlayback(
   tonic: number,
   token: string,
   direction: ScaleDirection,
 ): PlaybackEvent[] {
-  const up = (
-    SCALE_DATA.semitonesByKind[token as keyof typeof SCALE_DATA.semitonesByKind] ?? MAJOR
-  ).map((s) => tonic + s);
-  const run =
-    direction === "ascending"
-      ? up
-      : direction === "descending"
-        ? [...up].reverse()
-        : [...up, ...up.slice(0, -1).reverse()];
+  const run = scaleRun(tonic, token, direction);
   return [
     note(tonic - 12, 0, run.length * SCALE_STEP + 0.4),
     ...run.map((m, i) => note(m, 0.2 + i * SCALE_STEP, SCALE_STEP - 0.03)),
@@ -490,6 +495,7 @@ export function scalePrompt(
     drill: "scale",
     skillIds: ["ear.scales", `ear.scale.${scale.token}`],
     playback: scalePlayback(tonic, scale.token, direction),
+    expectedMidi: scaleRun(tonic, scale.token, direction),
     answer: scale.token,
     choices: opts.choices ?? EAR_SCALES.map((x) => x.token),
     difficulty: opts.difficulty,

@@ -977,9 +977,13 @@
           "id": "3.12",
           "title": "Sing roots while you play",
           "strand": "S",
-          "setup": "Play the loop on your instrument and sing the bass roots.",
+          "href": "/music/ear/bass-lines?answer=voice",
+          "setup": "Ear, Bass lines, Sing it: sing each root after the 1 once the key is set. Play the loop on your instrument before and after; singing while you play is not graded yet.",
           "done": "Two choruses, roots in tune within 50 cents, 75%.",
-          "needs": "Voice answers in Bass lines: sing the roots while you play (N12).",
+          "match": {
+            "answer": "voice"
+          },
+          "threshold": 0.75,
           "links": [
             {
               "label": "Pop axis in Jam",
@@ -2838,9 +2842,15 @@
           "id": "8.5",
           "title": "Sing a mode over a drone",
           "strand": "E",
-          "setup": "The tuner's drone; sing the scale up and down.",
+          "href": "/music/ear/scales?answer=voice&scales=dorian,mixolydian&scaleDirection=both&tune=35",
+          "setup": "Ear, Scales, Sing it: Dorian and Mixolydian up and down from the tonic, within 35 cents. In Check only the tonic sounds; the tuner's drone is for practice.",
           "done": "Dorian and Mixolydian up and down, 75% within 35 cents.",
-          "needs": "Voice answers in Scales: sung scale steps over a drone, graded (N12).",
+          "skillIds": ["ear.scale.dorian", "ear.scale.mixolydian"],
+          "match": {
+            "answer": "voice",
+            "tune": "35"
+          },
+          "threshold": 0.75,
           "links": [
             {
               "label": "Drone",
@@ -3266,9 +3276,14 @@
           "id": "9.10",
           "title": "Sing a head, then its roots",
           "strand": "E",
-          "setup": "Sing over the recording: the head, then its roots.",
+          "href": "/music/by-ear?mode=sing",
+          "setup": "Learn by ear, Sing along: sing the head with the recording, then its roots.",
           "done": "Head and roots each in tune, 75%.",
-          "needs": "Voice answers graded over a recording in Learn by ear: the head, then its roots (N12)."
+          "each": {
+            "param": "part",
+            "values": ["head", "roots"]
+          },
+          "threshold": 0.75
         },
         {
           "id": "9.11",
@@ -3559,15 +3574,14 @@
           "id": "10.5",
           "title": "Licks into keys",
           "strand": "E",
-          "setup": "Your two licks through the 12-key transposition in Licks.",
+          "href": "/music/phrases",
+          "setup": "Phrases, Your licks: save two licks (Learn by ear, Save as a lick, or the first bars of a transcription), then take each through the keys.",
           "done": "Each lick in 4 keys at the record's tempo.",
-          "needs": "User licks in Licks: save a transcribed lick and drill it in 12 keys (N14).",
-          "links": [
-            {
-              "label": "Licks",
-              "href": "/music/licks"
-            }
-          ],
+          "match": {
+            "user": "true"
+          },
+          "threshold": 0.9,
+          "minAttempts": 4,
           "feeds": "Improvising"
         },
         {

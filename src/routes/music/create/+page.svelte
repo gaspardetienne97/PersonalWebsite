@@ -16,6 +16,7 @@
   import BeatGrid from "$lib/music/hubs/create/BeatGrid.svelte";
   import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
   import Tracks from "$lib/music/hubs/create/Tracks.svelte";
+  import LivePads from "$lib/music/hubs/create/LivePads.svelte";
   import { MAX_SONG_BARS, session } from "$lib/music/hubs/create/session.svelte";
   import { docToScore, expandLoops, scoreToDoc } from "$lib/music/hubs/create/roll";
   import { download } from "$lib/music/hubs/create/files";
@@ -36,6 +37,8 @@
   let confirmDelete = $state(false);
   let busy = $state(false);
   let panelOpen = $state(false);
+  /** Play it live: record the beat from the pads, pass by pass (?live=1 opens it). */
+  let live = $state(page.url.searchParams.has("live"));
   /** New or Open waiting on what to do with unsaved changes. */
   let pending = $state<{ kind: "new" } | { kind: "open"; id: string } | null>(null);
 
@@ -201,6 +204,9 @@
     >
       <Settings2 class="size-4" aria-hidden="true" />{panelOpen ? "Done" : "Tracks and song"}
     </button>
+    <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" aria-pressed={live} onclick={() => (live = !live)}>
+      {live ? "Close the pads" : "Play it live"}
+    </button>
   </section>
 
   {#if panelOpen}
@@ -247,6 +253,7 @@
 
   <p role="status" class="-my-2 min-h-5 text-sm font-medium">{status}</p>
 
+  {#if live && ready}<LivePads {announce} />{/if}
   <BeatGrid {announce} />
   {#if !ready}
     <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>

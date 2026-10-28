@@ -14,11 +14,11 @@
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
   import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
   import { ACCOMP_PROGRESSIONS } from "@repo/music-core/content/accompany";
-  import { TUNES, chorusLabel, sectionStarts } from "@repo/music-core/content/tunes";
+  import { REHARM_DEVICES, TUNES, chorusLabel, formatReharm, parseReharm, reharmDevice, reharmOptions, reharmonise, sectionStarts, type ReharmDevice } from "@repo/music-core/content/tunes";
   import { rng } from "@repo/music-core/content/random";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { chorusReport, type ChorusReport } from "@repo/music-core/scoring/jam";
-  import { IMPROV_GAMES, bandBar, gameOf, gradeImprov, rangeText, tradeWindows, type ImprovGrade, type ImprovNote } from "@repo/music-core/scoring/improv";
+  import { IMPROV_GAMES, gameOf, gradeImprov, isCount, rangeText, restBar, tradeWindows, type ImprovGrade, type ImprovNote } from "@repo/music-core/scoring/improv";
   import type { Score } from "@repo/music-core";
   import { clamp } from "@repo/music-core/theory/notes";
   import { page } from "$app/state";
@@ -37,14 +37,14 @@
   import { assistanceFor, assistanceText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { backingNotes, callNotes, chordVoicing, degreeLabel, positionAt, BEATS_PER_BAR, type BackingMode } from "$lib/music/drills/jam/backing";
+  import { backingNotes, callNotes, chordVoicing, degreeLabel, positionAt, type BackingMode } from "$lib/music/drills/jam/backing";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
   /** Jam's loops, the accompaniment's (minor blues, Bird blues, rhythm changes...) and the standards. */
   const POOL = [...ACCOMP_PROGRESSIONS, ...TUNES];
-  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "", game: "free", choruses: 2, trade: 0 });
+  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "", game: "free", choruses: 2, trade: 0, meter: 4, reharm: "" });
   const s = $derived(cfg.value);
   const base = $derived(POOL.find((p) => p.id === s.progression) ?? POOL[0]);
   const game = $derived(gameOf(s.game));
@@ -56,13 +56,18 @@
   // A path link carries its tempo: the strip takes it once.
   const urlBpm = Number(page.url.searchParams.get("bpm"));
   if (urlBpm) void settings.ready.then(() => settings.update({ bpm: clamp(Math.round(urlBpm), 40, 220) }));
-  const prog = $derived(transposeProgression(base, s.transpose));
+  /** The chart as written (in the chosen key), then with the sandbox's swaps and the meter. */
+  const writtenProg = $derived(transposeProgression(base, s.transpose));
+  const swaps = $derived(parseReharm(s.reharm));
+  const meter = $derived(s.meter === 3 ? 3 : 4);
+  const prog = $derived({ ...reharmonise(writtenProg, swaps), beatsPerBar: meter });
+  const bpb = $derived(meter);
   // The practice strip owns the tempo; picking a progression sets it to the tune's.
   const bpm = $derived(settings.value.bpm);
   const beatMs = $derived(60000 / bpm);
   function pickProgression(id: string) {
-    cfg.set({ progression: id });
     const tune = POOL.find((p) => p.id === id);
+    cfg.set({ progression: id, reharm: "", meter: tune?.beatsPerBar ?? 4 });
     if (tune) settings.update({ bpm: tune.bpm });
   }
   /** The key the circle shows; a pick becomes the shortest transposition to it. */
@@ -107,7 +112,7 @@
     tracks = await listTracks().catch(() => []);
   });
 
-  const chord = $derived(prog.chords[chordIdx]);
+  const chord = $derived(prog.chords[chordIdx] ?? prog.chords[0]);
   const roles = $derived(jamToneRoles(chord));
   const instrument = $derived(settings.value.activeInstrument);
   const fretted = $derived(instrument === "guitar" || instrument === "ukulele");
@@ -225,7 +230,7 @@
     run = checking
       ? practice.beginRun({
           exerciseId: "jam.improv",
-          setupKey: `jam|${base.id}|${s.transpose}|${game.id}|${s.trade}|${runChoruses}|${bpm}`,
+          setupKey: `jam|${base.id}|${s.transpose}|${game.id}|${s.trade}|${runChoruses}|${bpm}|${meter}|${s.reharm}`,
           skillIds: [],
           capabilities: ["harmony"],
           modality: "played",
@@ -252,7 +257,7 @@
         clearInterval(ticker);
         ticker = setInterval(tick, 40);
       } else await startBacking();
-      endTimer = setTimeout(() => void stop(), ctx.downbeat + runChoruses * barsTotal * BEATS_PER_BAR * beatMs + beatMs / 2 - performance.now());
+      endTimer = setTimeout(() => void stop(), ctx.downbeat + runChoruses * barsTotal * bpb * beatMs + beatMs / 2 - performance.now());
       return;
     }
     status = backingMode === "none" ? "Play. Move to the next chord with Next chord (or N)." : "Play over the changes.";
@@ -300,7 +305,7 @@
         skillIds: [],
         difficulty: base.difficulty === "advanced" ? 0.7 : base.difficulty === "intermediate" ? 0.5 : 0.3,
         instrument: inst,
-        params: { progression: prog.id, key: prog.key, bpm, transpose: s.transpose, backing: s.backing, notes: count, choruses: choruses.length, takeId: take.id },
+        params: { progression: prog.id, key: prog.key, bpm, transpose: s.transpose, backing: s.backing, notes: count, choruses: choruses.length, takeId: take.id, meter, ...reharmParams },
         startedAt: Date.now() - take.durationMs,
         endedAt: Date.now(),
         assistance: "guided",
@@ -332,7 +337,7 @@
   /** Grade the choruses that finished (a stop part way through grades the whole ones before it). */
   async function finishCheck(events: NonNullable<Capture["notes"]>, endAt: number) {
     checking = false;
-    const done = Math.min(runChoruses, Math.floor((endAt - downbeat + beatMs / 2) / (barsTotal * BEATS_PER_BAR * beatMs)));
+    const done = Math.min(runChoruses, Math.floor((endAt - downbeat + beatMs / 2) / (barsTotal * bpb * beatMs)));
     const notes = improvNotes(events);
     if (!done || !notes.length) {
       status = !notes.length ? "Nothing was played, so nothing was recorded." : "Stopped before the first chorus ended, so nothing was graded.";
@@ -352,12 +357,12 @@
     };
     await saveTake(take);
     savedTake = take;
-    choruses = g.choruses.map((c) => ({ n: c.index + 1, report: chorusReport(prog, []), startAt: downbeat + c.index * barsTotal * BEATS_PER_BAR * beatMs, endAt: downbeat + (c.index + 1) * barsTotal * BEATS_PER_BAR * beatMs }));
+    choruses = g.choruses.map((c) => ({ n: c.index + 1, report: chorusReport(prog, []), startAt: downbeat + c.index * barsTotal * bpb * beatMs, endAt: downbeat + (c.index + 1) * barsTotal * bpb * beatMs }));
     const fin = await run!.finish({
       score: g.score,
       correct: g.passed,
       headline: g.headline,
-      params: { progression: prog.id, key: prog.key, bpm, transpose: s.transpose, backing: s.backing, game: game.id, trade: s.trade, notes: notes.length, choruses: done, takeId: take.id },
+      params: { progression: prog.id, key: prog.key, bpm, transpose: s.transpose, backing: s.backing, game: game.id, trade: s.trade, notes: notes.length, choruses: done, takeId: take.id, meter, ...reharmParams },
     });
     delta = fin.delta;
     status = g.headline;
@@ -413,32 +418,59 @@
     { text: `${prog.name} in ${prog.key}`, focus: "progression" },
     { text: game.id === "free" ? "solo over the changes" : game.label.toLowerCase(), focus: "game" },
     { text: `${runChoruses} chorus${runChoruses === 1 ? "" : "es"} in Check${s.trade && !game.windows ? `, trading ${s.trade === 4 ? "fours" : "twos"}` : ""}`, focus: "choruses" },
-    { text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode, focus: "backing" },
+    { text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode === "rhythm" ? "drums and bass" : backingMode, focus: "backing" },
+    ...(meter === 3 ? [{ text: "in 3/4", focus: "meter" }] : []),
+    ...(swaps.size ? [{ text: `${swaps.size} chord${swaps.size === 1 ? "" : "s"} reharmonised`, focus: "reharm" }] : []),
     ...(s.transpose ? [{ text: `transposed ${s.transpose > 0 ? "+" : ""}${s.transpose}`, focus: "transpose" }] : []),
   ]);
   const barsTotal = $derived(chorusBars(prog));
   /** Where the form is now, in beats from the top of the chorus. */
-  const formBeat = $derived(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) * BEATS_PER_BAR + beatInChord);
+  const formBeat = $derived(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) * bpb + beatInChord);
   const sections = $derived(sectionStarts(prog));
   /** A tune's lead sheet: the changes over empty bars, read with the player's own melody. */
   const leadSheet = $derived<Score | null>(
     base.sections
       ? {
-          id: `lead-${prog.id}-${s.transpose}`,
+          id: `lead-${prog.id}-${s.transpose}-${meter}-${s.reharm}`,
           title: prog.name,
           bpm,
-          meter: { beats: 4, beatUnit: 4 },
+          meter: { beats: bpb, beatUnit: 4 },
           keyFifths: signatureFor(prog.keyPc, /minor/.test(prog.key) ? "natural-minor" : /dorian/.test(prog.key) ? "dorian" : "major"),
           voices: [{ id: "line", name: "Melody", notes: [] }],
-          lengthBeats: barsTotal * BEATS_PER_BAR,
-          chords: prog.chords.map((c, i) => ({ symbol: c.symbol, startBeat: prog.chords.slice(0, i).reduce((n, x) => n + x.bars, 0) * BEATS_PER_BAR, durationBeats: c.bars * BEATS_PER_BAR })),
+          lengthBeats: barsTotal * bpb,
+          chords: prog.chords.map((c, i) => ({ symbol: c.symbol, startBeat: prog.chords.slice(0, i).reduce((n, x) => n + x.bars, 0) * bpb, durationBeats: c.bars * bpb })),
           source: { kind: "generated" },
         }
       : null,
   );
   /** Whose bars these are, in a game or trade with windows (bars from the top of the run). */
-  const runBar = $derived((chorus - 1) * barsTotal + Math.floor(formBeat / BEATS_PER_BAR));
-  const bandNow = $derived(bandBar(windows, runBar));
+  const runBar = $derived((chorus - 1) * barsTotal + Math.floor(formBeat / bpb));
+  const bandNow = $derived(restBar(prog, game, windows, runBar));
+  /** A reharmonised run records its device (one kind, or "mixed") and the swaps. */
+  const reharmParams = $derived<Record<string, string>>(swaps.size ? { reharm: reharmDevice(swaps)!, swaps: formatReharm(swaps) } : {});
+
+  // ---- Reharmonisation sandbox -------------------------------------------
+  let swapAt = $state(0);
+  const swapIndex = $derived(Math.min(swapAt, writtenProg.chords.length - 1));
+  function toggleSwap(i: number, d: ReharmDevice) {
+    const next = new Map(swaps);
+    if (next.get(i) === d) next.delete(i);
+    else next.set(i, d);
+    cfg.set({ reharm: formatReharm(next) });
+  }
+  let preview = $state<SequenceHandle | null>(null);
+  async function hearChart() {
+    if (preview) {
+      preview.stop();
+      preview = null;
+      return;
+    }
+    await audio.unlock();
+    const h = audio.playSequence(backingNotes(prog, { bpm, mode: "both", choruses: 1 }));
+    preview = h;
+    setTimeout(() => preview === h && (preview = null), chorusBars(prog) * bpb * beatMs + 500);
+  }
+  const compHref = $derived(`/music/accompany?mode=comping&progression=${base.id}&transpose=${s.transpose}${s.reharm ? `&reharm=${s.reharm}` : ""}`);
   const pctOf = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 </script>
 
@@ -451,11 +483,11 @@
   blurb="Solo over a progression or a standard's form. Practice lights every note as a chord tone, a scale tone or an avoid note; Check grades each chorus on a game."
   summary={summaryLine}
   modeNotes={{ practice: "Tone roles lit, each chorus described. Nothing is graded.", check: "Tone roles hidden. The form runs for the choruses you set, each graded on the game." }}
-  clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
+  clock={{ bpm, beatsPerBar: bpb }}
   bind:phase
   bind:mode
   bind:status
-  progress={checking ? ((chorus - 1) * barsTotal + formBeat / BEATS_PER_BAR) / (runChoruses * barsTotal) : formBeat / BEATS_PER_BAR / barsTotal}
+  progress={checking ? ((chorus - 1) * barsTotal + formBeat / bpb) / (runChoruses * barsTotal) : formBeat / bpb / barsTotal}
   startLabel="Start jamming"
   blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : null}
   onstart={start}
@@ -470,7 +502,7 @@
       </div>
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="game">
         <span class="font-medium">Game</span>
-        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.windows ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
+        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
         <span class="text-ws-soft">{game.about}</span>
       </div>
       <Choice label="Choruses in Check" setupKey="choruses" options={CHORUS_COUNTS.map((n) => ({ value: n, label: String(n) }))} value={runChoruses} onchange={(v) => cfg.set({ choruses: v })} />
@@ -492,6 +524,7 @@
         options={[
           { value: "both", label: "Drums and chords" },
           { value: "drums", label: "Drums" },
+          { value: "rhythm", label: "Drums and bass" },
           { value: "chords", label: "Chords" },
           ...(tracks.length ? [{ value: "track", label: "Your track" }] : []),
           { value: "none", label: "None, chords by hand" },
@@ -499,11 +532,39 @@
         value={s.backing}
         onchange={(v) => cfg.set({ backing: v })}
       />
+      <Choice
+        label="Meter"
+        setupKey="meter"
+        options={[
+          { value: 4, label: "4/4" },
+          { value: 3, label: "3/4 waltz", hint: "Three beats a bar; the band plays a jazz waltz." },
+        ]}
+        value={meter}
+        onchange={(v) => cfg.set({ meter: v })}
+      />
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="transpose">
         <span class="font-medium">Key</span>
         <KeyPicker label="Key" value={keyPc} onchange={pickKey} name={(k) => `${FLAT_NAMES[k]}${k === base.keyPc ? " (written)" : ""}`} />
         <span class="text-ws-soft">{s.transpose ? `Transposed ${s.transpose > 0 ? "+" : ""}${s.transpose} from ${base.key}.` : "The written key."}</span>
       </div>
+    </div>
+    <div class="mt-4 border-t border-ws-line pt-4" data-setup="reharm">
+      <p class="text-sm font-medium">Reharmonise</p>
+      <p class="text-sm text-ws-soft">Swap a chord for a substitute, hear the chart, then play over it. To grade your comping on it, open it in Accompaniment.</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <Picker class="w-auto min-w-40" label="Chord to swap" value={String(swapIndex)} options={writtenProg.chords.map((c, i) => ({ value: String(i), label: `${i + 1}. ${c.symbol}${swaps.has(i) ? " (swapped)" : ""}` }))} onchange={(v) => (swapAt = Number(v))} />
+        {#each REHARM_DEVICES.filter((d) => reharmOptions(writtenProg, swapIndex).includes(d.id)) as d (d.id)}
+          <button type="button" class={btn} aria-pressed={swaps.get(swapIndex) === d.id} title={d.about} onclick={() => toggleSwap(swapIndex, d.id)}>{d.label}</button>
+        {/each}
+      </div>
+      {#if swaps.size}
+        <p class="mt-2 text-sm" data-testid="jam-reharm">Now: {prog.chords.map((c) => c.symbol).join(" ")}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" class={btn} aria-pressed={!!preview} onclick={hearChart}>{#if preview}<Square class="size-4" aria-hidden="true" />Stop{:else}<Play class="size-4" aria-hidden="true" />Hear it{/if}</button>
+          <a class={btn} href={compHref}>Comp it in Accompaniment</a>
+          <button type="button" class={btn} onclick={() => cfg.set({ reharm: "" })}>Back to the written chart</button>
+        </div>
+      {/if}
     </div>
     <div class="mt-4 border-t border-ws-line pt-4" id="backing-tracks">
       <p class="text-sm font-medium">Your backing tracks</p>
@@ -536,6 +597,8 @@
         <span class="font-semibold">{game.label}.</span>
         {#if phase === "running" && windows}
           <span class="window-pill" data-band={bandNow}>{bandNow ? (windows.bandPlays === "call" ? "The band's call: listen" : windows.bandPlays === "drums" ? "The drums' bars: rest" : "Rest") : "Your bars: play"}</span>
+        {:else if phase === "running" && game.only}
+          <span class="window-pill" data-band={bandNow}>{bandNow ? "An A section: rest or play the head" : "The bridge: improvise"}</span>
         {/if}
         {#if phase === "running" && checking}<span class="text-ws-stage-soft">{chorusName(chorus - 1, runChoruses)}, {chorus} of {runChoruses}</span>{/if}
       </p>
@@ -545,7 +608,7 @@
         <p class="mb-1 text-sm text-ws-stage-soft">
           {prog.name}, {sections.map((x) => x.label).join(" ")} ({barsTotal} bars){phase === "running" && !checking ? `. ${chorusName(chorus - 1, chorus + 2)}` : ""}
         </p>
-        <Staff score={leadSheet} cursorBeat={phase === "running" ? formBeat : null} highlights={sections.map((x) => ({ startBeat: x.bar * BEATS_PER_BAR, endBeat: (x.bar + x.bars) * BEATS_PER_BAR, label: x.label }))} maxHeight="24rem" />
+        <Staff score={leadSheet} cursorBeat={phase === "running" ? formBeat : null} highlights={sections.map((x) => ({ startBeat: x.bar * bpb, endBeat: (x.bar + x.bars) * bpb, label: x.label }))} maxHeight="24rem" />
       </div>
     {/if}
     <ol class="mb-4 flex flex-wrap gap-1.5" class:sr-only={!!leadSheet} aria-label="The form, {prog.name}">
@@ -633,7 +696,7 @@
                 {#each c.parts as part (part.metric)}
                   <li class="flex flex-wrap gap-x-2">
                     <span class="font-medium">{part.label}:</span>
-                    <span>{part.detail}{part.value !== null && part.metric !== "rests" ? ` (${pct(part.value)})` : ""}, aim {part.metric === "rests" ? part.aim : pct(part.aim)}</span>
+                    <span>{part.detail}{part.value !== null && !isCount(part.metric) ? ` (${pct(part.value)})` : ""}, aim {isCount(part.metric) ? part.aim : pct(part.aim)}</span>
                     {#if part.credit >= 1}<span class="text-ws-soft">met</span>{/if}
                   </li>
                 {/each}

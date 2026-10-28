@@ -7,7 +7,7 @@ import { scoreGroups } from "@repo/music-core/scoring/follower";
 import type { GroupVerdict } from "@repo/music-core/scoring/follower";
 import type { BeatRange } from "$lib/music/notation/groups";
 import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-import { drumKey } from "@repo/music-core/content/winds-pads";
+import { drumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
 
 export type RangeMode = "whole" | "sections" | "custom";
 export type SectionOrder = "sequence" | "per-section";
@@ -620,4 +620,123 @@ export function gradeVibrato(input: {
     held: counted,
     withVibrato,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Sight-reading: a pass counts as read at sight only on the song's first run.
+
+/** True when no earlier Song Studio run played this song (by its id, or by its shelf key when it has one). */
+export function isFirstRun(
+  runs: readonly { exerciseId: string; params: Record<string, string | number | boolean> }[],
+  songId: string,
+  shelf?: string,
+): boolean {
+  return !runs.some(
+    (r) =>
+      r.exerciseId === "song.studio" &&
+      (r.params.song === songId || (!!shelf && r.params.shelf === shelf)),
+  );
+}
+
+/** Seconds of looking before a sight-read pass. */
+export const SIGHT_LOOK_S = 30;
+
+// ---------------------------------------------------------------------------
+// Tap the rhythm: one tap at every onset of the selected voices, any key or pad.
+
+export const TAP_MIDI = 60;
+export const TAP_VOICE = "tap";
+
+/** The selected voices' rhythm as one voice of TAP_MIDI: a note at each attack (a tie continuation is not one). */
+export function tapScore(score: Score, voiceIds: readonly string[]): Score {
+  const at = new Map<number, Score["voices"][number]["notes"][number]>();
+  for (const v of score.voices)
+    if (voiceIds.includes(v.id))
+      for (const n of v.notes) {
+        if (n.tieFrom) continue;
+        const k = Math.round(n.startBeat * 1e4);
+        const was = at.get(k);
+        if (!was || n.durationBeats > was.durationBeats)
+          at.set(k, { midi: TAP_MIDI, startBeat: n.startBeat, durationBeats: n.durationBeats });
+      }
+  const notes = [...at.values()].sort((a, b) => a.startBeat - b.startBeat);
+  return { ...score, voices: [{ id: TAP_VOICE, name: "Rhythm", notes }] };
+}
+
+// ---------------------------------------------------------------------------
+// The duet partner and the preview: a pass's notes as a sequence to play.
+
+export function passSequence(pass: Pass, bpm: number, isDrum: (voiceId: string) => boolean) {
+  const beatS = 60 / bpm;
+  return pass.groups.flatMap((g) =>
+    g.notes.map((n) => ({
+      ...(isDrum(n.voiceId)
+        ? { midi: scoreDrumPad(n.midi), voice: "kit" as const }
+        : { midi: n.midi }),
+      time: g.startBeat * beatS,
+      duration: Math.max(0.08, n.durationBeats * beatS * 0.95),
+      velocity: n.velocity ?? 0.8,
+    })),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Voicing balance: the melody struck louder than the notes struck with it.
+
+/** The melody must come out this much louder (0..1 velocity) than the accompaniment's mean. */
+export const BALANCE_MARGIN = 0.05;
+/** Notes within this of the melody's attack were struck with it. */
+const TOGETHER_MS = 100;
+
+/** The melody voice: the selected pitched voice that sits highest on average. */
+export function melodyVoice(score: Score, voiceIds: readonly string[]): string | undefined {
+  const mean = (v: Score["voices"][number]) =>
+    v.notes.reduce((a, n) => a + n.midi, 0) / Math.max(1, v.notes.length);
+  return score.voices
+    .filter((v) => voiceIds.includes(v.id) && !v.drums && v.notes.length)
+    .reduce<Score["voices"][number] | undefined>(
+      (b, v) => (!b || mean(v) > mean(b) ? v : b),
+      undefined,
+    )?.id;
+}
+
+/**
+ * Each melody note (the top note of a group, in the melody voice) struck with
+ * accompaniment notes of its group within 100 ms: right when its MIDI velocity
+ * beats their mean by BALANCE_MARGIN. Null when velocity was not measured.
+ */
+export function gradeBalance(input: {
+  pass: Pass;
+  melody: string | undefined;
+  notes: readonly NoteEvent[];
+  startAt: number;
+  beatMs: number;
+}): { share: number | null; right: number; total: number } {
+  const ons = input.notes.filter((n) => n.kind === "noteon");
+  let right = 0;
+  let total = 0;
+  if (!input.melody || !ons.length || !ons.every((n) => n.velocityMeasured))
+    return { share: null, right, total };
+  for (const g of input.pass.groups) {
+    const mel = g.notes
+      .filter((n) => n.voiceId === input.melody)
+      .reduce<(typeof g.notes)[number] | undefined>(
+        (b, n) => (!b || n.midi > b.midi ? n : b),
+        undefined,
+      );
+    if (!mel) continue;
+    const acc = new Set(g.notes.filter((n) => n !== mel && n.midi !== mel.midi).map((n) => n.midi));
+    if (!acc.size) continue;
+    const slot = input.startAt + g.startBeat * input.beatMs;
+    const m = ons
+      .filter((n) => n.midi === mel.midi && Math.abs(n.at - slot) <= input.beatMs / 2)
+      .sort((a, b) => Math.abs(a.at - slot) - Math.abs(b.at - slot))[0];
+    if (!m) continue;
+    const with_ = ons.filter((n) => acc.has(n.midi) && Math.abs(n.at - m.at) <= TOGETHER_MS);
+    if (!with_.length) continue;
+    total++;
+    if (m.velocity >= with_.reduce((a, n) => a + n.velocity, 0) / with_.length + BALANCE_MARGIN)
+      right++;
+  }
+  return { share: total ? right / total : null, right, total };
 }

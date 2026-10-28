@@ -509,7 +509,15 @@
           "title": "Diatonic 7th chords in C, F, Bb, G",
           "setup": "Each degree's seventh chord, up and down the key in root position.",
           "done": "Up and down the key, 3 clean runs at 80 in each key.",
-          "needs": "Diatonic seventh chords on each degree, in Scales (arpeggios) or Voicings."
+          "href": "/music/voicings?variant=sevenths&keys=1",
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "10", "7"]
+          },
+          "match": {
+            "variant": "sevenths"
+          },
+          "minAttempts": 3
         },
         {
           "id": "2.2",
@@ -723,14 +731,15 @@
         {
           "id": "2.10",
           "title": "Bossa comping",
-          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=bossa&bpm=130&progression=minor-ii-v-i&transpose=0",
-          "setup": "Accompaniment, comping on the bossa rhythm. Blue Bossa's changes are not charted yet; the minor ii-V-i stands in.",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=bossa&band=rhythm&choruses=2&bpm=130&progression=tune-blue-bossa",
+          "setup": "Accompaniment, comping on the bossa rhythm through Blue Bossa's changes, drums and bass under you.",
           "done": "Blue Bossa, 2 choruses at 130 with the bossa rhythm, 90%.",
           "match": {
-            "rhythm": "bossa"
+            "rhythm": "bossa",
+            "progression": "tune-blue-bossa"
           },
           "threshold": 0.9,
-          "minAttempts": 2,
+          "minAttempts": 1,
           "minBpm": 130,
           "links": [
             {
@@ -1166,26 +1175,22 @@
         {
           "id": "3.8",
           "title": "Rung d on two shelf tunes",
-          "setup": "The tune player: rootless voicings on a comping rhythm, no melody, Make the changes. Jam grades the chord tones and the 3rd or 7th at each change, not the rhythm; Accompaniment, Comping, grades the rhythm on the ii-V-I.",
+          "setup": "Accompaniment, comping: rootless voicings on a comping rhythm through the tune's changes, no melody, drums and bass under you.",
           "done": "Two choruses, 90% correct voicings on the comping rhythm.",
-          "href": "/music/jam?progression=tune-all-of-me&game=changes&choruses=2",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&choruses=2&progression=tune-all-of-me",
           "each": {
             "param": "progression",
             "values": ["tune-all-of-me", "tune-satin-doll"]
           },
           "match": {
-            "game": "changes"
+            "voicing": "rootless"
           },
           "threshold": 0.9,
           "minAttempts": 1,
           "links": [
             {
-              "label": "Jam: Satin Doll",
-              "href": "/music/jam?progression=tune-satin-doll&game=changes&choruses=2"
-            },
-            {
-              "label": "Accompaniment: rootless, Charleston",
-              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&progression=ii-v-i"
+              "label": "Satin Doll",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&choruses=2&progression=tune-satin-doll"
             }
           ]
         },
@@ -1520,16 +1525,32 @@
           "title": "So What voicing (three 4ths plus a major 3rd)",
           "setup": "Diatonic So What chords up and down D dorian, then Eb dorian.",
           "done": "All 7 positions up and down at 80, then in Eb dorian.",
-          "needs": "So What voicings in Voicings (jazz rank 5).",
-          "feeds": "So What, Impressions"
+          "feeds": "So What, Impressions",
+          "href": "/music/voicings?variant=so-what&key=2&keys=1",
+          "each": {
+            "param": "key",
+            "values": ["2", "3"]
+          },
+          "match": {
+            "variant": "so-what"
+          },
+          "threshold": 0.9
         },
         {
           "id": "4.4",
           "title": "Three- and four-note quartal stacks (McCoy)",
           "setup": "Left-hand stacks of 4ths moving diatonically.",
           "done": "D dorian and F dorian, 2 octaves, at 80.",
-          "needs": "Quartal stacks in Voicings (jazz rank 5).",
-          "feeds": "Impressions, Little Sunflower"
+          "feeds": "Impressions, Little Sunflower",
+          "href": "/music/voicings?variant=quartal&key=2&keys=1",
+          "each": {
+            "param": "key",
+            "values": ["2", "5"]
+          },
+          "match": {
+            "variant": "quartal"
+          },
+          "threshold": 0.9
         },
         {
           "id": "4.5",
@@ -1557,8 +1578,12 @@
           "title": "Sus and slash voicings (Herbie)",
           "setup": "9sus as Bb/C, Gm7/C, left-hand 5th plus right-hand triad.",
           "done": "D7sus, F7sus, Eb7sus, Db7sus (the Maiden Voyage set) clean at 80.",
-          "needs": "Sus and slash voicings in Voicings (jazz rank 5).",
-          "feeds": "Maiden Voyage, Dolphin Dance"
+          "feeds": "Maiden Voyage, Dolphin Dance",
+          "href": "/music/voicings?variant=sus&key=2&keys=1",
+          "match": {
+            "variant": "sus"
+          },
+          "threshold": 0.9
         },
         {
           "id": "4.7",
@@ -1635,9 +1660,13 @@
         {
           "id": "4.11",
           "title": "Ladder rungs a, c, d, e on two shelf tunes",
-          "setup": "Song Studio and the tune player.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song Studio on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a, c, d and e done on two tunes.",
-          "needs": "A per-tune ladder tracker: rungs a to f recorded for each standard across Song Studio, Jam and Accompaniment (jazz rank 1)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "c", "d", "e"],
+            "tunes": 2
+          }
         },
         {
           "id": "4.12",
@@ -1872,15 +1901,25 @@
           "title": "Enclosures into the 3rd and the root",
           "setup": "Scale step above, half step below, then the target.",
           "done": "4 enclosure shapes in 6 keys at 120.",
-          "needs": "A Licks category: bebop enclosures (jazz rank 7)."
+          "href": "/music/licks?category=bebop-enclosures",
+          "each": {
+            "param": "lick",
+            "values": ["101", "102", "103", "104"]
+          },
+          "minBpm": 120
         },
         {
           "id": "5.3",
           "title": "Arpeggio patterns: 1-2-3-5 and 3-5-7-9 on ii-V-I",
           "setup": "Chord scales with a pattern mode.",
           "done": "12 keys at 120.",
-          "needs": "A pattern mode in Chord scales: 1-2-3-5 and 3-5-7-9 on each chord.",
-          "feeds": "Yardbird Suite, Blues for Alice"
+          "feeds": "Yardbird Suite, Blues for Alice",
+          "href": "/music/chord-scales?pattern=1235&keys=12",
+          "each": {
+            "param": "pattern",
+            "values": ["1235", "3579"]
+          },
+          "minBpm": 120
         },
         {
           "id": "5.4",
@@ -1955,7 +1994,12 @@
           "title": "Six bebop blues licks in all 12 keys",
           "setup": "Licks, blues and bebop categories, hear first.",
           "done": "Each lick in 12 keys at 140 over a week, interleaved.",
-          "needs": "A Licks category: blues and bebop lines in 12 keys (jazz rank 7)."
+          "href": "/music/licks?category=bebop-blues",
+          "each": {
+            "param": "lick",
+            "values": ["105", "106", "107", "108", "109", "110"]
+          },
+          "minBpm": 140
         },
         {
           "id": "5.8",
@@ -2000,9 +2044,13 @@
         {
           "id": "5.10",
           "title": "Ladder rungs a to e on two shelf tunes",
-          "setup": "Song Studio and the tune player.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song Studio on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to e done on two tunes.",
-          "needs": "A per-tune ladder tracker: rungs a to f recorded for each standard across Song Studio, Jam and Accompaniment (jazz rank 1)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "b", "c", "d", "e"],
+            "tunes": 2
+          }
         },
         {
           "id": "5.11",
@@ -2045,10 +2093,25 @@
         {
           "id": "5.13",
           "title": "One bebop standard",
-          "setup": "Yardbird Suite through rungs a, c and d.",
+          "setup": "Yardbird Suite through rungs a, c and d: the head in Song Studio, melody and shells in the lead sheet, rootless comping on its changes.",
           "done": "Rungs a, c and d done.",
-          "needs": "Yardbird Suite among Jam's tunes, and the per-tune ladder tracker (jazz rank 1).",
-          "feeds": "Yardbird Suite"
+          "feeds": "Yardbird Suite",
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "c", "d"],
+            "tunes": 1,
+            "among": ["yardbird-suite"]
+          },
+          "links": [
+            {
+              "label": "Comp Yardbird Suite",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&progression=tune-yardbird-suite"
+            },
+            {
+              "label": "Jam: Yardbird Suite",
+              "href": "/music/jam?progression=tune-yardbird-suite"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -2439,9 +2502,16 @@
         {
           "id": "6.9",
           "title": "Improv game: the bridge only",
-          "setup": "Jam, rhythm changes: play the A sections as space or the head, improvise only the bridge with guide-tone lines (3 to b7 to 3).",
+          "setup": "Jam, rhythm changes, The bridge only: play the A sections as space or the head, improvise only the bridge with guide-tone lines (3 to b7 to 3).",
           "done": "4 bridges with 85% guide-tone landings.",
-          "needs": "A bridge-only window in Jam's games: the guide-tone game grades the whole chorus (jazz rank 3)."
+          "href": "/music/jam?progression=tune-rhythm-changes&game=bridge&choruses=4",
+          "match": {
+            "game": "bridge",
+            "progression": "tune-rhythm-changes",
+            "choruses": "4"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "6.10",
@@ -2453,9 +2523,13 @@
         {
           "id": "6.11",
           "title": "Ladder rungs a to f on two shelf tunes",
-          "setup": "The tune player and Song Studio.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song Studio on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to f done on two tunes.",
-          "needs": "A per-tune ladder tracker: rungs a to f recorded for each standard across Song Studio, Jam and Accompaniment (jazz rank 1)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "b", "c", "d", "e", "f"],
+            "tunes": 2
+          }
         },
         {
           "id": "6.12",
@@ -2687,7 +2761,12 @@
           "title": "Two-handed rootless voicings",
           "setup": "Left hand 3-7 (or 7-3), right hand 9-5-13 or 5-9-1; ii-V-I in 12 keys.",
           "done": "12 keys at 95%, onset spread under 40 ms.",
-          "needs": "Two-handed rootless voicings in Voicings: left hand 3-7, right hand 9-5-13 (jazz rank 5)."
+          "href": "/music/voicings?variant=two-hand&keys=12",
+          "match": {
+            "variant": "two-hand",
+            "keys": "12"
+          },
+          "threshold": 0.95
         },
         {
           "id": "7.2",
@@ -2723,23 +2802,36 @@
           "title": "Four-way close and drop-2",
           "setup": "Given a melody note and a chord symbol, play 4-way close, then drop-2.",
           "done": "16 bars of a shelf melody at 70 in each form, 90%.",
-          "needs": "Block chords on a tune's melody in Voicings: 4-way close and drop-2 (jazz rank 5).",
-          "feeds": "Lullaby of Birdland, Darn That Dream"
+          "feeds": "Lullaby of Birdland, Darn That Dream",
+          "href": "/music/voicings?variant=drop2",
+          "each": {
+            "param": "variant",
+            "values": ["close", "drop2"]
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.5",
           "title": "Shearing locked hands",
           "setup": "Melody doubled an octave below in the left hand, 4-way close in the right; a diminished chord on passing notes.",
           "done": "One A section of Lullaby of Birdland at 120, 90%.",
-          "needs": "Shearing locked hands on a tune's melody in Voicings (jazz rank 5).",
-          "feeds": "Lullaby of Birdland"
+          "feeds": "Lullaby of Birdland",
+          "href": "/music/voicings?variant=locked",
+          "match": {
+            "variant": "locked"
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.6",
           "title": "Red Garland block chords",
           "setup": "Left hand 3-7-9, right-hand melody in octaves with the 5th inside.",
           "done": "8 bars of a blues solo in block chords at 120.",
-          "needs": "Red Garland block chords in Voicings (jazz rank 5)."
+          "href": "/music/voicings?variant=garland&key=5",
+          "match": {
+            "variant": "garland"
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.7",
@@ -2754,29 +2846,57 @@
           "title": "Intros, endings and tags",
           "setup": "Phrases: the I-vi-ii-V intro, the iii-VI-ii-V tag, the \"Basie ending\" and the rubato last-4-bars intro.",
           "done": "Each in 3 keys at 80.",
-          "needs": "Phrases entries for piano: jazz intros, tags and endings in 3 keys."
+          "href": "/music/licks?category=intros-endings",
+          "each": {
+            "param": "lick",
+            "values": ["117", "118", "119"]
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.9",
           "title": "Bill Evans voicings",
           "setup": "Voicings, Major ii-V-I from position B (rootless with 9 and 13), then Evans spreads (left hand 7-3-6 or 3-7-9, right-hand melody plus one voice).",
           "done": "Blue in Green changes with spread voicings at 60, 90%.",
-          "needs": "Evans spreads in Voicings (jazz rank 5).",
           "links": [
             {
               "label": "Voicings: Major ii-V-I from B",
               "href": "/music/voicings?variant=major&position=B"
             }
           ],
-          "feeds": "Blue in Green, Waltz for Debby"
+          "feeds": "Blue in Green, Waltz for Debby",
+          "href": "/music/voicings?variant=evans&keys=12",
+          "match": {
+            "variant": "evans",
+            "keys": "12"
+          },
+          "threshold": 0.9
         },
         {
           "id": "7.10",
           "title": "Jazz waltz comping",
-          "setup": "Jam: a 3/4 swing backing; comping on 1 and the and-of-2.",
+          "setup": "Accompaniment, comping in 3/4 over a swing waltz (drums and bass): rootless on 1 and the and of 2. Jam plays the same waltz to solo over (Meter, 3/4).",
           "done": "2 choruses at 140 in 3/4, 90% on the slots.",
-          "needs": "A 3/4 swing backing in Jam, with comping graded over it (jazz ranks 2 and 6).",
-          "feeds": "Waltz for Debby, Very Early"
+          "feeds": "Waltz for Debby, Very Early",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=2&bpm=140&progression=ii-v-i",
+          "match": {
+            "meter": "3",
+            "rhythm": "waltz",
+            "choruses": "2"
+          },
+          "minBpm": 140,
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Very Early",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=2&bpm=140&progression=tune-very-early"
+            },
+            {
+              "label": "Jam in 3/4",
+              "href": "/music/jam?progression=ii-v-i&meter=3"
+            }
+          ]
         },
         {
           "id": "7.11",
@@ -3054,29 +3174,59 @@
           "title": "Monk voicings: b9 clusters and 7th plus root",
           "setup": "Shells with a minor 2nd on top (3-b7-1, 7-3-b9).",
           "done": "Blue Monk and Well You Needn't changes at 100, 90%.",
-          "needs": "Monk clusters in Voicings (jazz rank 5).",
-          "feeds": "Monk shelf"
+          "feeds": "Monk shelf",
+          "href": "/music/voicings?variant=monk&key=10",
+          "match": {
+            "variant": "monk"
+          },
+          "threshold": 0.9
         },
         {
           "id": "8.3",
           "title": "Half-step chord shifts",
-          "setup": "Jam on Well You Needn't (F7 Gb7) and Epistrophy (Db7 D7).",
+          "setup": "Accompaniment, comping: rootless voicings with drums and bass through Well You Needn't (F7 Gb7) and Epistrophy (Db7 D7), two times through.",
           "done": "2 choruses at 160, rootless, 90%.",
-          "needs": "Well You Needn't and Epistrophy among Jam's tunes (jazz ranks 2 and 6).",
-          "feeds": "Well You Needn't, Epistrophy"
+          "feeds": "Well You Needn't, Epistrophy",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&choruses=2&bpm=160&progression=tune-well-you-neednt",
+          "match": {
+            "voicing": "rootless",
+            "choruses": "2"
+          },
+          "each": {
+            "param": "progression",
+            "values": ["tune-well-you-neednt", "tune-epistrophy"]
+          },
+          "minBpm": 160,
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Epistrophy",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&choruses=2&bpm=160&progression=tune-epistrophy"
+            },
+            {
+              "label": "Jam: Well You Needn't",
+              "href": "/music/jam?progression=tune-well-you-neednt"
+            }
+          ]
         },
         {
           "id": "8.4",
           "title": "Improv game: displacement",
-          "setup": "Jam, blues: one 3-note motif, started one beat later each bar (the Straight, No Chaser idea).",
+          "setup": "Jam, blues: one 3-note motif, started one beat later each bar (the Straight, No Chaser idea). Displace a motif counts each repeat of the motif's rhythm a beat later.",
           "done": "One chorus with the motif in 8 bars, each displaced.",
-          "needs": "A displacement game in Jam: one motif moved a beat later each bar (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues in F",
               "href": "/music/jam?progression=blues&transpose=5"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=blues&transpose=5&game=displacement&choruses=1",
+          "match": {
+            "game": "displacement"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "8.5",
@@ -3095,41 +3245,78 @@
         {
           "id": "8.6",
           "title": "Hard-bop comping and Silver's left-hand punches",
-          "setup": "Hits with the drummer on the and-of-4, left-hand octave stabs.",
+          "setup": "Accompaniment, comping: hard-bop hits (1, the and of 2, the next chord pushed on the and of 4) with left-hand octave stabs, over drums and bass. Sister Sadie's changes wait for a chart checked against a second source; the blues in G stands in.",
           "done": "2 choruses of the Sister Sadie changes at 150.",
-          "needs": "Hard-bop hits and left-hand octave stabs in Accompaniment, Comping, and the Sister Sadie changes (jazz rank 2).",
-          "feeds": "Silver shelf"
+          "feeds": "Silver shelf",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=octave-stabs&rhythm=hard-bop&band=rhythm&choruses=2&bpm=150&progression=blues&transpose=7",
+          "match": {
+            "voicing": "octave-stabs",
+            "rhythm": "hard-bop",
+            "choruses": "2"
+          },
+          "minBpm": 150,
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "8.7",
           "title": "Silver's grooves",
           "setup": "Phrases: the Song for My Father bass line, The Preacher two-beat gospel left hand, the Nica's Dream latin vamp.",
           "done": "Each groove 4 times at tempo, 90%.",
-          "needs": "Phrases entries for piano: Silver's grooves.",
-          "feeds": "Silver shelf"
+          "feeds": "Silver shelf",
+          "href": "/music/licks?category=silver-grooves",
+          "each": {
+            "param": "lick",
+            "values": ["120", "121", "122"]
+          },
+          "threshold": 0.9
         },
         {
           "id": "8.8",
           "title": "Silver's soloing devices",
           "setup": "Bluesy triplet runs, quotes, left-hand answers to right-hand lines.",
           "done": "3 devices in 3 keys at 140.",
-          "needs": "A Licks category: Silver's devices (jazz rank 7).",
-          "feeds": "Silver shelf"
+          "feeds": "Silver shelf",
+          "href": "/music/licks?category=silver",
+          "each": {
+            "param": "lick",
+            "values": ["111", "112", "113"]
+          },
+          "minBpm": 140
         },
         {
           "id": "8.9",
           "title": "Ballad composer harmony",
-          "setup": "Ruby, My Dear or Peace through rungs a, b and c.",
+          "setup": "Ruby, My Dear or Peace through rungs a, b and c on the Tunes page.",
           "done": "Rungs a, b and c done.",
-          "needs": "Ruby, My Dear and Peace among Jam's tunes, and the per-tune ladder tracker (jazz rank 1).",
-          "feeds": "Ruby, My Dear, Peace"
+          "feeds": "Ruby, My Dear, Peace",
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "b", "c"],
+            "tunes": 1,
+            "among": ["ruby-my-dear", "peace"]
+          },
+          "links": [
+            {
+              "label": "Guide tones: Ruby, My Dear",
+              "href": "/music/jam?progression=tune-ruby-my-dear&game=guide-tones&choruses=2"
+            },
+            {
+              "label": "Guide tones: Peace",
+              "href": "/music/jam?progression=tune-peace&game=guide-tones&choruses=2"
+            }
+          ]
         },
         {
           "id": "8.10",
           "title": "Ladder rungs a to e on three shelf tunes",
-          "setup": "The tune player and Song Studio.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song Studio on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to e done on three tunes.",
-          "needs": "A per-tune ladder tracker: rungs a to f recorded for each standard across Song Studio, Jam and Accompaniment (jazz rank 1)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "b", "c", "d", "e"],
+            "tunes": 3
+          }
         },
         {
           "id": "8.11",
@@ -3446,16 +3633,23 @@
         {
           "id": "9.3",
           "title": "m7b5 and minor ii-V voicings in context",
-          "setup": "Voicings, Minor ii-V-i, then the Stella changes in the tune player.",
+          "setup": "Voicings, Minor ii-V-i, then Accompaniment, comping: rootless through the Stella changes (the A section is the first 16 bars; the run comps the whole form).",
           "done": "The Stella A section at 120, rootless, 95%.",
-          "needs": "Stella by Starlight among Jam's tunes, with comping graded over it (jazz rank 1).",
           "links": [
             {
               "label": "Voicings: Minor ii-V-i",
               "href": "/music/voicings?variant=minor&keys=12"
             }
           ],
-          "feeds": "Stella by Starlight, Beautiful Love"
+          "feeds": "Stella by Starlight, Beautiful Love",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&bpm=120&progression=tune-stella-by-starlight",
+          "match": {
+            "voicing": "rootless",
+            "progression": "tune-stella-by-starlight"
+          },
+          "minBpm": 120,
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "9.4",
@@ -3479,14 +3673,62 @@
           "title": "Upper structures on a tune",
           "setup": "The upper-structure drill on the V7 chords of a shelf tune.",
           "done": "Every V7 in Just Friends voiced with an upper structure at 120.",
-          "needs": "An upper-structure drill (US II, bIII and bVI over a shell) on a tune's changes (jazz ranks 1 and 5)."
+          "href": "/music/voicings?variant=upper&tune=tune-just-friends",
+          "match": {
+            "variant": "upper",
+            "tune": "tune-just-friends"
+          },
+          "threshold": 0.9
         },
         {
           "id": "9.6",
           "title": "Reharm toolkit, one device at a time",
-          "setup": "On Jam: tritone sub, related ii before each V, backdoor ii-V (iv7 to bVII7), secondary dominants, passing diminished, chromatic ii-V approach.",
+          "setup": "Jam's Reharmonise: swap a chord in Fly Me to the Moon for a tritone sub, related ii, backdoor ii-V, secondary dominant, passing diminished or chromatic ii-V; hear it and solo over it, then Comp it in Accompaniment. Each device is judged on one comped run that uses it alone.",
           "done": "Each device applied to Fly Me to the Moon and comped once, 90%.",
-          "needs": "A reharmonisation sandbox on Jam (jazz rank 10)."
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=2:tritone",
+          "match": {
+            "progression": "tune-fly-me-to-the-moon"
+          },
+          "each": {
+            "param": "reharm",
+            "values": [
+              "tritone",
+              "related-ii",
+              "backdoor",
+              "secondary",
+              "passing-dim",
+              "chromatic-ii-v"
+            ]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Jam: reharmonise Fly Me to the Moon",
+              "href": "/music/jam?progression=tune-fly-me-to-the-moon"
+            },
+            {
+              "label": "Related ii",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=2:related-ii"
+            },
+            {
+              "label": "Backdoor ii-V",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=2:backdoor"
+            },
+            {
+              "label": "Secondary dominant",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=0:secondary"
+            },
+            {
+              "label": "Passing diminished",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=3:passing-dim"
+            },
+            {
+              "label": "Chromatic ii-V",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=1:chromatic-ii-v"
+            }
+          ]
         },
         {
           "id": "9.7",
@@ -3512,24 +3754,49 @@
         {
           "id": "9.9",
           "title": "Improv game: outside and back",
-          "setup": "Jam: side-slip a phrase a half step up for 2 beats, resolve inside on the next downbeat.",
+          "setup": "Jam, Outside and back: side-slip a phrase a half step up for 2 beats, resolve inside on the next beat.",
           "done": "4 side-slips per chorus, every one resolved on a chord tone.",
-          "needs": "A side-slip game in Jam: outside for 2 beats, resolved on the next downbeat (jazz rank 3)."
+          "href": "/music/jam?progression=tune-autumn-leaves&game=side-slip&choruses=1",
+          "match": {
+            "game": "side-slip"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "9.10",
           "title": "Ladder rungs a to f on three shelf tunes",
-          "setup": "The tune player and Song Studio.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song Studio on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to f done on three tunes.",
-          "needs": "A per-tune ladder tracker: rungs a to f recorded for each standard across Song Studio, Jam and Accompaniment (jazz rank 1)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "b", "c", "d", "e", "f"],
+            "tunes": 3
+          }
         },
         {
           "id": "9.11",
           "title": "Tempo ceiling",
-          "setup": "Jam on Just Friends or I'll Remember April at 200.",
+          "setup": "Jam on Just Friends or I'll Remember April at 200, Make the changes. The solo chorus is judged; comp the tune in Accompaniment at the same tempo.",
           "done": "One clean chorus, comping plus solo.",
-          "needs": "Just Friends or I'll Remember April among Jam's tunes (jazz rank 1).",
-          "feeds": "Just Friends, I'll Remember April"
+          "feeds": "Just Friends, I'll Remember April",
+          "href": "/music/jam?progression=tune-just-friends&game=changes&choruses=1&bpm=200",
+          "match": {
+            "game": "changes"
+          },
+          "minBpm": 200,
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "I'll Remember April",
+              "href": "/music/jam?progression=tune-ill-remember-april&game=changes&choruses=1&bpm=200"
+            },
+            {
+              "label": "Comp Just Friends",
+              "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&bpm=200&progression=tune-just-friends"
+            }
+          ]
         },
         {
           "id": "9.12",
@@ -3787,7 +4054,11 @@
           "title": "Triad pairs",
           "setup": "Scales: triad pairs (Eb and F over F7sus, Ab and Bb over Bb7alt).",
           "done": "4 pairs in 6 keys at 140.",
-          "needs": "A triad-pair pattern in Scales."
+          "href": "/music/scales?pattern=triad-pairs&chord=major",
+          "match": {
+            "pattern": "triad-pairs"
+          },
+          "minBpm": 140
         },
         {
           "id": "10.3",
@@ -3809,8 +4080,13 @@
           "title": "1-2-3-5 patterns through the cycle",
           "setup": "1-2-3-5 on each I and V of Giant Steps.",
           "done": "Through the form at 120.",
-          "needs": "A Licks category: Coltrane 1-2-3-5 patterns (jazz rank 7).",
-          "feeds": "Giant Steps"
+          "feeds": "Giant Steps",
+          "href": "/music/licks?category=coltrane-1235",
+          "each": {
+            "param": "lick",
+            "values": ["114", "115", "116"]
+          },
+          "minBpm": 120
         },
         {
           "id": "10.5",
@@ -3838,26 +4114,65 @@
         {
           "id": "10.6",
           "title": "Odd phrase lengths",
-          "setup": "Infant Eyes (9-bar phrases), Peace and Footprints in the tune player.",
+          "setup": "Infant Eyes (9-bar phrases), Peace (10 bars) and Footprints (24 bars of 3/4) in the tune player. Judged on Infant Eyes, rungs a and c; a lost bar shows as a lower score, not on its own.",
           "done": "One chorus of Infant Eyes, rungs a and c, no lost bar.",
-          "needs": "Infant Eyes, Peace and Footprints among Jam's tunes, and the per-tune ladder tracker (jazz rank 1).",
-          "feeds": "Infant Eyes"
+          "feeds": "Infant Eyes",
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a", "c"],
+            "tunes": 1,
+            "among": ["infant-eyes"]
+          },
+          "links": [
+            {
+              "label": "Jam: Infant Eyes",
+              "href": "/music/jam?progression=tune-infant-eyes"
+            },
+            {
+              "label": "Jam: Peace",
+              "href": "/music/jam?progression=tune-peace"
+            },
+            {
+              "label": "Jam: Footprints",
+              "href": "/music/jam?progression=tune-footprints"
+            }
+          ]
         },
         {
           "id": "10.7",
           "title": "Evans in 3/4",
-          "setup": "Jam in 3/4 at 160 on the Very Early changes.",
+          "setup": "Accompaniment, comping: Very Early in 3/4 with drums and bass, rootless on 1 and the and of 2, two times through. The solo chorus is Jam's, on the same tune in 3/4.",
           "done": "Two choruses comped, one solo chorus.",
-          "needs": "Very Early in 3/4 among Jam's tunes, with comping graded over it (jazz ranks 2 and 6).",
-          "feeds": "Very Early"
+          "feeds": "Very Early",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=2&bpm=160&progression=tune-very-early",
+          "match": {
+            "progression": "tune-very-early",
+            "meter": "3",
+            "choruses": "2"
+          },
+          "minBpm": 160,
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Jam: Very Early, one solo chorus",
+              "href": "/music/jam?progression=tune-very-early&game=changes&choruses=1&bpm=160"
+            }
+          ]
         },
         {
           "id": "10.8",
           "title": "Improv game: motif across changes",
-          "setup": "Take one 4-note motif through Inner Urge's descending lydian chords, adjusting each note to the chord.",
+          "setup": "Jam on Inner Urge, One rhythmic motif: take one 4-note motif through the descending lydian chords, adjusting each note to the chord.",
           "done": "16 bars with the motif in every chord.",
-          "needs": "Inner Urge among Jam's tunes; the motif game is there (jazz rank 3).",
-          "feeds": "Inner Urge"
+          "feeds": "Inner Urge",
+          "href": "/music/jam?progression=tune-inner-urge&game=motif&choruses=1",
+          "match": {
+            "game": "motif",
+            "progression": "tune-inner-urge"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "10.9",
@@ -3876,9 +4191,13 @@
         {
           "id": "10.10",
           "title": "Repertoire review",
-          "setup": "One old tune per session, rungs a and d.",
+          "setup": "The Tunes page's repertoire brings back the most overdue tune: play rungs a and d. Judged as rung a done on 30 tunes, over every level.",
           "done": "30 tunes reviewed in the level with 90% on rung a.",
-          "needs": "A repertoire tracker with spaced review of the tunes (jazz rank 11)."
+          "href": "/music/tunes",
+          "ladder": {
+            "rungs": ["a"],
+            "tunes": 30
+          }
         },
         {
           "id": "10.11",

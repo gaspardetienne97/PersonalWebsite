@@ -2,13 +2,15 @@
   // Popular short phrases on the strip's instrument: hear one, then play it
   // back after the count-in, graded on the notes in order and their timing.
   // Written above the instrument (a staff, or tab on guitar and ukulele).
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
-  import { phraseBeats, phraseNotes, phrasesFor, type PhraseInstrument } from "@repo/music-core/content/phrases";
+  import { phraseBeats, phraseNotes, phrasesFor, userPhrase, type PhraseInstrument, type UserLick } from "@repo/music-core/content/phrases";
   import { gradePhrase, matchEvents, phraseEvents, type PhraseResult } from "@repo/music-core/scoring/phrases";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage, { fretTuning, writtenShift } from "$lib/music/components/InstrumentStage.svelte";
+  import InstrumentStage, { fitShift, fretTuning, linePositions, writtenShift } from "$lib/music/components/InstrumentStage.svelte";
+  import Choice from "$lib/music/components/Choice.svelte";
+  import { listUserLicks, removeUserLick } from "$lib/music/user-licks";
   import { transposeFifths } from "@repo/music-core/theory/transposition";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
@@ -17,7 +19,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btnStage } from "$lib/music/components/ui";
+  import { btn, btnStage } from "$lib/music/components/ui";
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -28,23 +30,37 @@
 
   const TEMPO = { min: 40, max: 200 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
-  const cfg = new DrillSetup("phrases", { phrase: "" as string });
+  // transpose: your licks only, -5 to +6 semitones.
+  const cfg = new DrillSetup("phrases", { phrase: "" as string, transpose: 0 });
   const s = $derived(cfg.value);
   const inst = $derived(settings.value.activeInstrument);
   const own = $derived<PhraseInstrument>(inst === "guitar" || inst === "ukulele" || inst === "aerophone" ? inst : "piano");
-  const list = $derived(phrasesFor(own));
+  /** Your licks, saved from Learn by ear or a transcription, after the instrument's phrases. */
+  let licks = $state.raw<UserLick[]>([]);
+  onMount(async () => (licks = await listUserLicks()));
+  const list = $derived([...phrasesFor(own), ...licks.map((l) => userPhrase(l, own))]);
   const phrase = $derived(list.find((p) => p.id === s.phrase) ?? list[0]);
-  // Aerophone phrases are written for the fingering chart; the run is concert, what the AE-20 sends.
-  const shift = $derived(own === "aerophone" ? writtenShift("aerophone") : 0);
-  const notes = $derived(phrase ? phraseNotes(phrase).map((n) => (shift ? { ...n, midi: n.midi - shift } : n)) : []);
-  const beats = $derived(phrase ? Math.ceil(phraseBeats(phrase)) : 4);
-  const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
+  const isUser = $derived(!!phrase?.id.startsWith("user."));
+  const transpose = $derived(isUser ? Math.max(-5, Math.min(6, Math.round(Number(s.transpose) || 0))) : 0);
   const fretted = $derived(own === "guitar" || own === "ukulele");
+  // Aerophone phrases are written for the fingering chart; the run is concert, what the AE-20 sends.
+  // Your licks are concert already (they were played or heard).
+  const shift = $derived(own === "aerophone" && !isUser ? writtenShift("aerophone") : 0);
+  const base = $derived(phrase ? phraseNotes(phrase).map((n) => (shift ? { ...n, midi: n.midi - shift } : n)) : []);
+  // A lick in another key, an octave into the instrument's reach, placed in one hand position on the neck.
+  const lift = $derived(isUser ? fitShift(base.map((n) => n.midi + transpose), own) : 0);
+  const userAt = $derived(isUser && fretted ? linePositions(own, base.map((n) => n.midi + transpose + lift)) : null);
+  const notes = $derived(isUser ? base.map((n) => ({ ...n, midi: n.midi + transpose + lift, ...(userAt?.get(n.midi + transpose + lift) ?? {}) })) : base);
+  /** The run counts clicks: a 12/8 phrase clicks each dotted quarter (`click` 1.5). */
+  const click = $derived(phrase?.click ?? 1);
+  const clicked = $derived(notes.map((n) => ({ ...n, startBeat: n.startBeat / click, durationBeats: n.durationBeats / click })));
+  const beats = $derived(phrase ? Math.ceil(phraseBeats(phrase) / click) : 4);
+  const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const positions = $derived(fretted ? new Map(notes.flatMap((n) => (n.string !== undefined && n.fret !== undefined ? [[n.midi, { string: n.string, fret: n.fret }] as const] : []))) : undefined);
   /** Notes that start together are one step: a chord or a double stop. */
-  const events = $derived(phraseEvents(notes));
+  const events = $derived(phraseEvents(clicked));
   const spell = (midis: number[]) => midis.map((m) => noteName(m + shift, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
-  const timed = $derived<TimedNote[]>(notes.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
+  const timed = $derived<TimedNote[]>(clicked.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -73,8 +89,20 @@
     if (phase === "running") events.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
     return out;
   });
-  const summaryLine = $derived<SetupClause[] | string>(phrase ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, { text: `it goes at about ${phrase.bpm} BPM` }] : `No phrases for the ${own} yet`);
-  const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: `${p.style}, about ${p.bpm} BPM`, group: `Level ${p.level}`, keywords: p.source })));
+  const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? "As saved" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : "semitones" }));
+  const summaryLine = $derived<SetupClause[] | string>(
+    phrase
+      ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, ...(isUser ? [{ text: transpose ? `moved ${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitones` : "in the key it was saved in", focus: "transpose" }] : []), { text: `it goes at about ${phrase.bpm} BPM` }]
+      : `No phrases for the ${own} yet`,
+  );
+  const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: `${p.style}, about ${p.bpm} BPM`, group: p.id.startsWith("user.") ? "Your licks" : `Level ${p.level}`, keywords: p.source })));
+  async function removeLick() {
+    if (!isUser) return;
+    await removeUserLick(phrase.id);
+    licks = licks.filter((l) => l.id !== phrase.id);
+    cfg.set({ phrase: "" });
+    status = "Removed that lick.";
+  }
   /** Picking a phrase starts it at three quarters of its own tempo, and says so. */
   function pickPhrase(id: string) {
     cfg.set({ phrase: id });
@@ -116,14 +144,14 @@
     downbeat = ctx.downbeat;
     run = practice.beginRun({
       exerciseId: `repertoire.phrases.${own}`,
-      setupKey: `phrase:${phrase.id}:${bpm}`,
+      setupKey: `phrase:${phrase.id}:${transpose ? `${transpose}:` : ""}${bpm}`,
       skillIds: [`repertoire.phrases.${own}`],
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
       difficulty: 0.25 + phrase.level * 0.15,
       instrument: own,
-      params: { bpm, phrase: phrase.id },
+      params: { bpm, phrase: phrase.id, ...(isUser ? { user: true, transpose } : {}) },
     });
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     transport.follow(ctx.downbeat, ctx.beatMs);
@@ -202,7 +230,7 @@
   bind:mode
   bind:status
   progress={events.length ? Math.min(1, played / events.length) : 0}
-  clock={{ bpm, beatsPerBar: phrase?.beatsPerBar ?? 4 }}
+  clock={{ bpm, beatsPerBar: (phrase?.beatsPerBar ?? 4) / click }}
   ondemo={() => demo(1)}
   demoPlaying={transport.playing}
   onstart={start}
@@ -212,7 +240,13 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <CatalogPicker label="Phrase" setupKey="phrase" noun="phrase" recentKey="phrases.{own}" {items} value={phrase?.id ?? ""} onchange={pickPhrase} />
-      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; on MPC pads the phrases are drum phrases.</p>
+      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; on MPC pads the phrases are drum phrases. Save a lick in Learn by ear or from a transcription and it joins the list under Your licks.</p>
+      {#if isUser}
+        <div class="flex min-w-0 flex-col gap-2 sm:col-span-2" data-setup="transpose">
+          <Choice label="Key" options={KEYS} value={transpose} onchange={(v) => cfg.set({ transpose: v })} />
+          <button type="button" class="{btn} self-start" onclick={removeLick}>Remove this lick</button>
+        </div>
+      {/if}
     </div>
   {/snippet}
 
@@ -228,7 +262,7 @@
 
   {#snippet stage()}
     {#if phrase}
-      <div class="mb-3 flex flex-wrap items-start justify-between gap-3 text-sm" data-testid="phrase" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-beat-ms={Math.round(60000 / bpm)} data-notes={JSON.stringify(notes.map((n) => [n.midi, n.startBeat]))}>
+      <div class="mb-3 flex flex-wrap items-start justify-between gap-3 text-sm" data-testid="phrase" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-beat-ms={Math.round(60000 / bpm)} data-notes={JSON.stringify(clicked.map((n) => [n.midi, n.startBeat]))}>
         <div class="min-w-0 max-w-prose">
           <p class="font-display text-xl font-semibold">{phrase.title}</p>
           <p class="text-ws-stage-soft">{phrase.style}. {phrase.why} <span class="whitespace-nowrap">Source: {phrase.source}.</span></p>
@@ -238,8 +272,8 @@
         {/if}
       </div>
       {#if mode === "practice" || transport.playing || phase === "results"}
-        <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))} tuning={fretTuning(own)} title={phrase.id} beatsPerBar={phrase.beatsPerBar}
-          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat} groupStates={states} /></div>
+        <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
+          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} /></div>
       {:else}
         <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Hear it, then play it from memory.</p>
       {/if}

@@ -111,7 +111,11 @@ export const DRILL_GROUPS: DrillGroup[] = [
     ),
   },
   { id: "ear-review", section: EAR, title: "Review", rows: ear("mixed") },
-  { id: "reading", title: "Reading and rhythm", rows: [row("reading"), row("rhythm")] },
+  {
+    id: "reading",
+    title: "Reading and rhythm",
+    rows: [row("reading"), row("rhythm"), row("ear-feel")],
+  },
   {
     id: "technique",
     title: "Technique",
@@ -170,6 +174,13 @@ export const DRILL_GROUPS: DrillGroup[] = [
         "Pad grooves",
         "A repertoire of grooves in six levels, fills that land on the one, playing a bar back, an ostinato under a line, and holding the tempo alone.",
         ["groove", "fills", "echo", "ostinato", "steady"],
+      ),
+      part(
+        "pads",
+        "beats",
+        "Beat making on the pads",
+        "Chop a loop onto the pads and play the slices, Note Repeat builds and rolls, and song-form pieces in one take.",
+        ["chop", "repeat", "song"],
       ),
       row("strum"),
     ],

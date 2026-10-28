@@ -13,6 +13,8 @@ import {
   type TwoHandTargetEvent,
   type VoicingTarget,
 } from "../data";
+import type { JazzLickDef, LickNoteTuple } from "../data";
+import vocabularyJson from "../data/jazz-vocabulary.json";
 import type { Score, ScoreNote } from "../types";
 import { FLAT_NAMES, SHARP_NAMES, pc, pcOf } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
@@ -640,15 +642,37 @@ export const pedalChords = (
 // ---------------------------------------------------------------------------
 // Licks
 
-export const LICKS = JAZZ.JAZZ_LICKS;
-export const LICK_CATEGORIES = JAZZ.JAZZ_LICK_CATEGORIES;
+/** A lick; `bars` gives each chord's length in bars when they are not one bar each. */
+export type Lick = JazzLickDef & { bars?: number[] };
+/** Jazz vocabulary written for the drill (data/jazz-vocabulary.json), numbered from 101 beside the transcribed licks. */
+const VOCABULARY = vocabularyJson as unknown as {
+  categories: { id: string; label: string }[];
+  licks: Lick[];
+  phrases: Record<string, LickNoteTuple[]>;
+};
+export const LICKS: Lick[] = [...JAZZ.JAZZ_LICKS, ...VOCABULARY.licks];
+const LICK_PHRASES = { ...JAZZ.LICK_PHRASES, ...VOCABULARY.phrases };
+export const LICK_CATEGORIES = [
+  ...JAZZ.JAZZ_LICK_CATEGORIES,
+  ...VOCABULARY.categories.map((c) => c.id),
+];
 export const LICK_CATEGORY_LABEL: Record<string, string> = {
   "major-ii-V-I": "Major ii-V-I",
   "major-ii-V-I-VI": "Major ii-V-I-VI",
   "minor-ii-V-i": "Minor ii-V-i",
   "minor-chord": "Minor chord",
   "guitar-pentatonic": "Guitar pentatonic",
+  ...Object.fromEntries(VOCABULARY.categories.map((c) => [c.id, c.label])),
 };
+/** The chord sounding at a beat of a lick (chords one bar each unless `bars` says otherwise; the last one held). */
+export function lickChordAt(lick: Lick, beat: number, progression = lick.progression): string {
+  let end = 0;
+  for (const [i, symbol] of progression.entries()) {
+    end += (lick.bars?.[i] ?? 1) * 4;
+    if (beat < end) return symbol;
+  }
+  return progression[progression.length - 1];
+}
 export const lickSkills = (category: string) => [`harmony.ii-v-i.licks.${category}`];
 
 export interface LickNote {
@@ -698,7 +722,7 @@ export function transposeText(text: string, semitones: number, sharps = false): 
 export function lickNotes(lickNumber: number, transpose = 0): LickNote[] {
   let beat = 0;
   const out: LickNote[] = [];
-  for (const [midi, beats, pos] of JAZZ.LICK_PHRASES[String(lickNumber)] ?? []) {
+  for (const [midi, beats, pos] of LICK_PHRASES[String(lickNumber)] ?? []) {
     if (midi !== null)
       out.push({
         index: out.length,
@@ -855,5 +879,46 @@ export function chordScaleTargets(changes: "major" | "minor", transpose = 0): Ch
       ].sort((a, b) => a - b),
       skillIds: [`harmony.ii-v-i.chord-scales.${changes}`],
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Chord-scale patterns: 1-2-3-5 and 3-5-7-9 through the changes
+
+export type ChordPattern = "1235" | "3579";
+export const CHORD_PATTERNS: { id: ChordPattern; label: string }[] = [
+  { id: "1235", label: "1-2-3-5" },
+  { id: "3579", label: "3-5-7-9" },
+];
+
+/**
+ * A pattern's four notes above a chord's root, in semitones: the chord's own
+ * 3rd, 5th and 7th (an altered chord's 5th is its b13), the 2nd or 9th from its
+ * go-to scale (b9 on an altered or b9 dominant).
+ */
+export function chordPattern(symbol: string, pattern: ChordPattern): number[] {
+  const chord = parseChordSymbol(symbol)!;
+  const has = (i: number) => chord.intervals.some((x) => x % 12 === i);
+  const third = has(3) && !has(4) ? 3 : 4;
+  const fifth = has(7) ? 7 : third === 3 || !has(8) ? 6 : 8;
+  const seventh = [10, 11, 9].find(has) ?? 10;
+  const second = goToScale(symbol)?.semitones[1] ?? 2;
+  return pattern === "1235" ? [0, second, third, fifth] : [third, fifth, seventh, second + 12];
+}
+
+/** The pattern up then back down over each chord, a bar of eighths a chord, from the chord's root at octave 4. */
+export function chordPatternLine(
+  symbols: string[],
+  pattern: ChordPattern,
+): { midi: number; startBeat: number; durationBeats: number; chord: number }[] {
+  return symbols.flatMap((symbol, chord) => {
+    const root = 60 + parseChordSymbol(symbol)!.rootPc;
+    const up = chordPattern(symbol, pattern).map((s) => root + s);
+    return [...up, ...[...up].reverse()].map((midi, k) => ({
+      midi,
+      startBeat: chord * 4 + k * 0.5,
+      durationBeats: 0.5,
+      chord,
+    }));
   });
 }

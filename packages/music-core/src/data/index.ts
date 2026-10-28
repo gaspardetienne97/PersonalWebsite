@@ -240,6 +240,8 @@ export interface RudimentDef {
   accents?: number[];
   /** Notes in each beat, cycling (a pyramid: 1 2 3 4 3 2); overrides the subdivision. */
   perBeat?: number[];
+  /** A fixed length in hits (Stick Control: 20 repetitions); overrides the chosen count. */
+  hits?: number;
 }
 export const MPC_RUDIMENTS = mpcRudimentsJson as {
   patterns: RudimentDef[];
@@ -820,6 +822,9 @@ const PAD_SKILLS: [string, string, SkillLevel][] = [
   ["phrases", "Short drum phrases: clave cells, tags, fills and builds", "beginner"],
   ["shuffle", "Shuffles and the triplet grid", "intermediate"],
   ["meter", "Odd meters: 5/4, 7/4 and 7/8", "advanced"],
+  ["chop", "Chopping a loop onto the pads", "intermediate"],
+  ["repeat", "Note Repeat builds and rolls", "intermediate"],
+  ["song", "Song-form pieces in one take", "intermediate"],
 ];
 APP_SKILLS.push(
   ...PAD_SKILLS.map(([t, name, level]) => ({

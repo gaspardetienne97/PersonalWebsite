@@ -3,6 +3,9 @@ import { flashcardPrompt } from "@repo/music-core/content/reading";
 import { rng } from "@repo/music-core/content/random";
 import { TUNINGS } from "@repo/music-core/data/index";
 import {
+  combineLanes,
+  kickGroups,
+  KICK_MIDI,
   clampRange,
   comparisonScore,
   flashcardScore,
@@ -110,5 +113,26 @@ describe("reading helpers", () => {
       satb.midi,
     );
     expect(s.voices[1].notes.every((n) => n.midi < 60)).toBe(true);
+  });
+});
+
+describe("the kick lane", () => {
+  it("puts a kick on every quarter", () => {
+    expect(kickGroups(4).map((g) => [g.startBeat, g.notes[0].midi])).toEqual(
+      [0, 1, 2, 3].map((b) => [b, KICK_MIDI]),
+    );
+    expect(kickGroups(2.5)).toHaveLength(3);
+  });
+  it("weighs the taps and the kicks by count, clean only when both are", () => {
+    expect(combineLanes({ score: 0.9, correct: true, n: 10 }, null)).toEqual({
+      score: 0.9,
+      correct: true,
+    });
+    const both = combineLanes(
+      { score: 1, correct: true, n: 6 },
+      { score: 0.5, correct: false, n: 2 },
+    );
+    expect(both.score).toBeCloseTo(0.875);
+    expect(both.correct).toBe(false);
   });
 });

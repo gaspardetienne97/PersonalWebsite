@@ -5,7 +5,7 @@
 // grooves (so the groove grader scores them); the measures it lacks are here.
 // Every threshold is a proposal to tune on the owner's controller.
 
-import type { GrooveDef } from "../data";
+import type { DrumVoiceId, GrooveDef } from "../data";
 import { gridGroove, type Lanes } from "./pads-grid";
 
 // ---------------------------------------------------------------------------
@@ -195,41 +195,109 @@ export const READING_LINES = [
   { id: "backbeat-push", label: "Backbeat with pushes", line: "....x..x....x.x." },
   { id: "offbeats", label: "Off-beat eighths", line: "..x...x...x...x." },
   { id: "sixteenths", label: "Sixteenth syncopations", line: "...x..x..x...x.x" },
+  // Generated each run: four new bars to read (Reed's Syncopation, one bar at a time).
+  { id: "read", label: "New lines to read", line: "" },
+  // The clave is the ostinato here (on the rim) while the kick moves under it.
+  { id: "clave", label: "Son clave held, the kick moves", line: "" },
 ] as const;
 
-export function ostinatoGroove(id: string): GrooveDef {
+/** Who reads the line under the hats: the left hand on the snare, or the kick. */
+export const INTERPRETATIONS = [
+  { id: "snare", label: "Snare reads, over the hats" },
+  { id: "kick", label: "Kick reads, under the hats" },
+] as const;
+
+/** One beat of a Syncopation-style line on sixteenths: quarters, eighths, dotted figures, rests. */
+const READ_CELLS = [
+  "x...",
+  "x.x.",
+  "..x.",
+  "....",
+  "x..x",
+  "x.x.",
+  "..x.",
+  "x...",
+  "xx..",
+  "..xx",
+] as const;
+
+/**
+ * `n` one-bar lines to read, each beat a cell, at least three notes a bar and
+ * never a bar of plain quarters (that is a groove, not a reading line).
+ */
+export function readingLines(rand: () => number, n = 4): string[] {
+  const out: string[] = [];
+  while (out.length < n) {
+    const bar = Array.from(
+      { length: 4 },
+      () => READ_CELLS[Math.floor(rand() * READ_CELLS.length)],
+    ).join("");
+    const notes = [...bar].filter((c) => c === "x").length;
+    if (notes >= 3 && bar !== "x...x...x...x..." && !out.includes(bar)) out.push(bar);
+  }
+  return out;
+}
+
+/** The clave on the rim, and the four kick bars that move under it. */
+const CLAVE = "x..x..x...x.x...";
+const CLAVE_KICKS = [
+  "x.......x.......",
+  "x.....x.x.......",
+  "...x..x....x..x.",
+  "x..x....x.x...x.",
+];
+
+/**
+ * Two bars of the ostinato alone (the baseline), then four with the line: the
+ * hats in eighths with the snare (or the kick) reading, or the son clave on the
+ * rim with the kick moving under it. `lines` are the four bars for "read".
+ */
+export function ostinatoGroove(
+  id: string,
+  opts: { interp?: string; lines?: string[] } = {},
+): GrooveDef & { ostinato: DrumVoiceId } {
   const r = READING_LINES.find((x) => x.id === id) ?? READING_LINES[0];
-  const hats = Array.from({ length: 6 }, () => "x.x.x.x.x.x.x.x.").join("|");
-  const snare = [EMPTY, EMPTY, r.line, r.line, r.line, r.line].join("|");
-  return gridGroove(
-    `ostinato-${r.id}`,
-    r.label,
-    { hats, snare },
-    {
-      sections: [
-        "hats alone",
-        "hats alone",
-        "with the line",
-        "with the line",
-        "with the line",
-        "with the line",
-      ],
-    },
-  );
+  const clave = r.id === "clave";
+  const ostinato: DrumVoiceId = clave ? "rim" : "hats";
+  const reader: DrumVoiceId = clave || opts.interp === "kick" ? "kick" : "snare";
+  const bars = clave
+    ? CLAVE_KICKS
+    : r.id === "read"
+      ? (opts.lines ?? readingLines(Math.random))
+      : [r.line, r.line, r.line, r.line];
+  const lanes: Lanes = {
+    [ostinato]: Array.from({ length: 6 }, () => (clave ? CLAVE : "x.x.x.x.x.x.x.x.")).join("|"),
+    [reader]: [EMPTY, EMPTY, ...bars].join("|"),
+  };
+  const g = gridGroove(`ostinato-${r.id}`, r.label, lanes, {
+    sections: [
+      "alone",
+      "alone",
+      "with the line",
+      "with the line",
+      "with the line",
+      "with the line",
+    ],
+  });
+  return { ...g, ostinato };
 }
 
 /**
- * The hats' hit rate alone and under the line; the ostinato held when it drops
- * no more than OSTINATO.maxDrop below the baseline (a proposal).
+ * The ostinato's hit rate alone and under the line; held when it drops no more
+ * than OSTINATO.maxDrop below the baseline (a proposal).
  */
-export function ostinatoReport(g: GrooveDef, perTarget: readonly (number | null)[]) {
+export function ostinatoReport(
+  g: GrooveDef,
+  perTarget: readonly (number | null)[],
+  ostinato: string = "hats",
+) {
   const rate = (pred: (t: GrooveDef["targets"][number]) => boolean) => {
     const idx = g.targets.flatMap((t, i) => (pred(t) ? [i] : []));
     return idx.length ? idx.filter((i) => perTarget[i] !== null).length / idx.length : 0;
   };
-  const alone = rate((t) => t.voice === "hats" && t.beat < 8);
-  const together = rate((t) => t.voice === "hats" && t.beat >= 8);
-  const line = rate((t) => t.voice === "snare");
+  const alone = rate((t) => t.voice === ostinato && t.beat < 8);
+  const together = rate((t) => t.voice === ostinato && t.beat >= 8);
+  const line = rate((t) => t.voice !== ostinato);
   return { alone, together, line, held: together >= alone - OSTINATO.maxDrop };
 }
 export const OSTINATO = { maxDrop: 0.1 } as const;

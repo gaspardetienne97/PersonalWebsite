@@ -396,3 +396,16 @@ describe("legato", () => {
     expect(legatoAttacks(["P", "s"], [0, 400], [{ at: 0 }])).toEqual([null, "legato"]);
   });
 });
+
+describe("tremolo grading", () => {
+  it("weights evenness as asked: a lumpy tremolo with every note right fails at half weight", () => {
+    const beats = line([69, 69, 69, 69, 69, 69, 69, 69]);
+    // Every note right, but alternate notes 60 ms late.
+    const notes = beats.map((_, i) => on(69, 1000 + i * 150 + (i % 2 ? 60 : 0)));
+    const plain = gradeLine({ beats, beatMs: 150, notes });
+    const tremolo = gradeLine({ beats, beatMs: 150, notes, evennessWeight: 0.5 });
+    expect(plain.pitch).toBe(1);
+    expect(tremolo.score).toBeLessThan(plain.score);
+    expect(tremolo.score).toBeCloseTo(0.5 + 0.5 * plain.evenness, 5);
+  });
+});

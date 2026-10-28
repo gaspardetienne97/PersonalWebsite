@@ -1,5 +1,5 @@
 <script lang="ts">
-  // String independence (catalog 4.5): Spider, Positions, Note finder, Interval recall.
+  // String independence (catalog 4.5): Spider, Positions, Note finder, Interval recall, Legato, Bends, Harmonics.
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import LineDrill from "$lib/music/drills/guitar/LineDrill.svelte";
@@ -17,7 +17,7 @@
 
 {#if ready}
   {#key mode}
-    {#if mode === "spider" || mode === "positions" || mode === "legato"}
+    {#if mode === "spider" || mode === "positions" || mode === "legato" || mode === "harmonics"}
       <LineDrill kind={mode} />
     {:else if mode === "bends"}
       <BendDrill />

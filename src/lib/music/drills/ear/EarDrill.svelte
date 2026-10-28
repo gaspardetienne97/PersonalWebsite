@@ -548,6 +548,7 @@
       return `Tonic ${noteName(tonicOf(p), "flat", false)}${p.phrase ? `, from ${p.phrase.title}` : ""}`;
     return p.drill === "interval" ? "Two notes" : p.drill === "interval-compare" ? "Two intervals, one after the other" : "One chord";
   };
+  const scaleName = (t: string) => EAR_SCALES.find((x) => x.token === t)?.name ?? t;
   const ask = (p: Prompt) =>
     p.drill === "interval"
       ? answer === "voice"
@@ -566,7 +567,9 @@
         : p.drill === "cadence"
           ? "Which cadence ends the phrase?"
         : p.drill === "scale"
-          ? "Which scale was that?"
+          ? answer === "voice"
+            ? `Sing the ${scaleName(p.answer).toLowerCase()} scale ${p.direction === "descending" ? "down" : p.direction === "both" ? "up and down" : "up"} from the tonic, in any octave.`
+            : "Which scale was that?"
         : p.drill === "error-detect"
           ? p.choices.includes("none")
             ? "Which note was played wrong, if any?"
@@ -586,7 +589,9 @@
               ? "Which chord of the key was the last one?"
               : "Which chord of the key was that?"
         : p.drill === "bass-line"
-          ? isPlayback
+          ? answer === "voice"
+            ? "Sing the bass notes after the 1, one at a time, in any octave."
+            : isPlayback
             ? "Play the bass notes after the 1, one at a time."
             : "Which bass notes came after the 1?"
         : p.drill === "loop"
@@ -614,6 +619,8 @@
   let playToken = 0;
   function playPrompt(p: Prompt, opts: { light?: boolean; onend?: () => void } = {}) {
     seq?.stop();
+    // Singing a scale in Check: only the tonic, low and high, then the scale from its name.
+    if (answer === "voice" && p.drill === "scale" && mode === "check") p = { ...p, playback: [{ midi: [tonicOf(p), tonicOf(p) + 12], time: 0, duration: 1.5 }] };
     const token = ++playToken;
     // A loop plays as a groove: comped chords, a bass and drums.
     const notes = p.drill === "loop" && p.beat ? loopGroove({ playback: p.playback, beat: p.beat }) : notesOf(p);
@@ -799,7 +806,7 @@
             assistance: runAssistance,
             difficulty: prompts.reduce((a, p) => a + p.difficulty, 0) / prompts.length,
             instrument: answer === "voice" ? "voice" : undefined,
-            params: { answer, level, labels, drill: s.drill, ...(slug === "song-loops" ? { loops: s.loops } : {}) },
+            params: { answer, level, labels, drill: s.drill, ...(slug === "song-loops" ? { loops: s.loops } : {}), ...(slug === "scales" ? { scales: s.scales } : {}), ...(answer === "voice" ? { tune } : {}) },
           });
     cap = capture(performance.now(), (e) => {
       if (e.kind === "noteon") onNote(e);
@@ -907,7 +914,12 @@
         void commit(g, heard, e.midi, [e]);
         return;
       }
-      if (p.drill === "melody-dictation") {
+      if (p.drill === "bass-line") {
+        // Each sung root fills the next slot by its degree in the key; out of tune or outside the key it is "?".
+        tapChord(Math.abs(cents) <= tune ? (MAJOR_DEGREE[pc(e.midi - (p.keyPc ?? 0))] ?? "?") : "?", [e]);
+        return;
+      }
+      if (p.drill === "melody-dictation" || p.drill === "scale") {
         played = [...played, e.midi];
         if (played.length < (p.expectedMidi?.length ?? 3)) return;
         const tonic = tonicOf(p);
@@ -1661,7 +1673,8 @@
               <p class="mt-2 font-display text-2xl font-semibold tnum">
                 {#if mic.pitch && p.drill === "interval"}{noteName(mic.pitch.midi, "flat")}{:else if mic.pitch && vocalDegree}{noteName(mic.pitch.midi, "flat")}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}No pitch yet{/if}
               </p>
-              {#if p.drill === "melody-dictation"}
+              {#if p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
+              {#if p.drill === "melody-dictation" || p.drill === "scale"}
                 <p class="mt-1 text-sm text-ws-stage-soft">
                   Sung: {played.length ? played.map((m) => tokenLabel("scale-degree", SCALE_DEGREES[pc(m - tonicOf(p))].label, labels)).join(", ") : "nothing yet"}
                   {#if step === "answer" && played.length}<button type="button" class="{btnStage} ml-2" onclick={() => (played = [])}>Start over</button>{/if}

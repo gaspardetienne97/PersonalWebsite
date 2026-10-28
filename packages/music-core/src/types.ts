@@ -263,6 +263,8 @@ export interface Score {
   composer?: string;
   bpm: number;
   meter: { beats: number; beatUnit: number };
+  /** Meter changes at bar lines: from `startBeat` on, bars are in this meter (the first bars are in `meter`). */
+  meterChanges?: { startBeat: number; beats: number; beatUnit: number }[];
   /** Circle-of-fifths key signature, -7..7. */
   keyFifths?: number;
   keyMode?: "major" | "minor";

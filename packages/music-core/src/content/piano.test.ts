@@ -188,8 +188,8 @@ describe("voice leading", () => {
 });
 
 describe("licks", () => {
-  it("has 31 licks with well-formed phrases", () => {
-    expect(LICKS).toHaveLength(31);
+  it("has 31 transcribed licks with well-formed phrases", () => {
+    expect(LICKS.filter((l) => l.number < 100)).toHaveLength(31);
     expect(Object.keys(JAZZ.LICK_PHRASES)).toHaveLength(31);
     for (const phrase of Object.values(JAZZ.LICK_PHRASES))
       for (const n of phrase) {

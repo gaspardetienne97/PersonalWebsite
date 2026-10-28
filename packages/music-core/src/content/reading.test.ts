@@ -7,6 +7,7 @@ import { pcOf } from "../theory/notes";
 import { rng } from "./random";
 import {
   barQuarters,
+  CHANGING_METERS,
   levelsFor,
   READING_METERS,
   readingLevel,
@@ -350,7 +351,8 @@ describe("levels past 3", () => {
   it("writes every level in each of its meters with voices that never overlap", () => {
     let seed = 1;
     for (const level of MORE)
-      for (const meter of readingLevel(level).meters)
+      // The changing meter has its own test below.
+      for (const meter of readingLevel(level).meters.filter((m) => m !== "changing"))
         for (const measures of [1, 4, 8, 16])
           for (const key of [readingLevel(level).recommendedKeys.at(-1)!, "C major"]) {
             const piano = level.startsWith("piano");
@@ -672,5 +674,41 @@ describe("triplets, odd meters, clef changes and jazz lines", () => {
           approaches++;
     }
     expect(approaches).toBeGreaterThan(10);
+  });
+});
+
+describe("meter changes", () => {
+  it("changes meter every 2 bars, 4/4, 3/4 and 5/8 in turn, each bar filled", () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const score = sightReadingScore(rng(seed), {
+        level: "piano-9",
+        instrument: "piano",
+        clefs: ["treble"],
+        measures: 8,
+        meter: "changing",
+        bpm: 80,
+      });
+      expect(CHANGING_METERS.map((m) => READING_METERS[m].label)).toEqual(["4/4", "3/4", "5/8"]);
+      expect(score.meterChanges?.map((c) => [c.startBeat, `${c.beats}/${c.beatUnit}`])).toEqual([
+        [0, "4/4"],
+        [8, "3/4"],
+        [14, "5/8"],
+        [19, "4/4"],
+      ]);
+      expect(score.lengthBeats).toBe(27);
+      const notes = score.voices.flatMap((v) => v.notes);
+      // Every 2-bar chunk has notes, and nothing crosses the end.
+      for (const [from, to] of [
+        [0, 8],
+        [8, 14],
+        [14, 19],
+        [19, 27],
+      ])
+        expect(
+          notes.some((n) => n.startBeat >= from && n.startBeat < to),
+          `${seed} ${from}`,
+        ).toBe(true);
+      for (const n of notes) expect(n.startBeat + n.durationBeats).toBeLessThanOrEqual(27 + 1e-9);
+    }
   });
 });

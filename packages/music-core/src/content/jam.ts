@@ -39,6 +39,8 @@ export interface Progression {
   feel?: "swing" | "straight";
   /** Who wrote the tune (standards only; the changes are typed from a lead sheet). */
   composer?: string;
+  /** Beats in a bar: 3 for a waltz; unset is 4. */
+  beatsPerBar?: number;
 }
 
 /** "Dm7 D dorian 2" -> chord; a chord with no named scale takes the key's scale. */
@@ -316,6 +318,9 @@ export function jamToneRoles(chord: JamChord): ToneRole[] {
     semitones.map((s) => chord.scale.rootPc + s),
   );
 }
+
+/** Beats in one bar of the progression (4 unless it is a waltz). */
+export const barBeats = (p: Pick<Progression, "beatsPerBar">) => p.beatsPerBar ?? 4;
 
 /** Total bars in one chorus. */
 export const chorusBars = (p: Progression) => p.chords.reduce((n, ch) => n + ch.bars, 0);

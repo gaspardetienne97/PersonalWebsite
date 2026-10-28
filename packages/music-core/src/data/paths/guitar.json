@@ -2255,9 +2255,14 @@
           "id": "6.4",
           "title": "The B.B. box",
           "strand": "L",
-          "setup": "Fretboard, Positions: the B.B. box.",
+          "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=bb-box&rootFret=5&bpm=70",
+          "setup": "Fretboard, Positions: the B.B. box in A, the index on the root at fret 10 of string 2, 70 then 80.",
           "done": "3 clean runs at 80.",
-          "needs": "A B.B. box pattern in Positions.",
+          "match": {
+            "pattern": "bb-box"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
           "feeds": "The Thrill Is Gone"
         },
         {
@@ -2781,9 +2786,25 @@
           "id": "7.5",
           "title": "Chord embellishments",
           "strand": "R",
-          "setup": "Phrases: Hey Joe fills, Little Wing-style hammer-on decorations.",
+          "href": "/music/phrases?instrument=guitar&phrase=guitar.hammer-on-chords",
+          "setup": "Phrases: hammer-ons into chords and sus to major, then add9 moves (the standard decorations; no song's fills).",
           "done": "2 phrases at 80.",
-          "needs": "Chord embellishment phrases in Phrases (Hey Joe fills, Little Wing-style hammer-ons).",
+          "each": {
+            "param": "phrase",
+            "values": ["guitar.hammer-on-chords", "guitar.sus-to-major"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "Sus to major",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.sus-to-major"
+            },
+            {
+              "label": "Add9 moves",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.add9-moves"
+            }
+          ],
           "feeds": "Hey Joe, Level 9"
         },
         {
@@ -2816,9 +2837,14 @@
           "id": "7.8",
           "title": "Blackbird thumb-and-finger",
           "strand": "F",
-          "setup": "Chords, Fingerpicking: the Blackbird pinch, p with i or m together, tenths, the open G string as a drone.",
+          "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=blackbird-pinch&chords=guitar.g-major,guitar.c-major,guitar.d-major&bpm=60",
+          "setup": "Chords, Fingerpicking: the Blackbird-style pinch, p and m together on the bass and string 2, i on the open G string between, over G C D, 60 then 70. The technique, not the song's notes.",
           "done": "3 clean runs at 70.",
-          "needs": "A Blackbird pinch pattern in Fingerpicking.",
+          "match": {
+            "pattern": "blackbird-pinch"
+          },
+          "threshold": 0.9,
+          "minBpm": 70,
           "feeds": "Blackbird"
         },
         {
@@ -3288,9 +3314,14 @@
           "id": "8.6",
           "title": "Texas shuffle",
           "strand": "R",
-          "setup": "Phrases: the Texas shuffle rhythm (SRV), 120.",
+          "href": "/music/phrases?instrument=guitar&phrase=guitar.texas-shuffle&bpm=90",
+          "setup": "Phrases: the Texas shuffle in E, four bars through E, A, E and B in 12/8, 90 then 120. Three clean runs are twelve bars.",
           "done": "12 bars clean at 120.",
-          "needs": "A Texas shuffle rhythm (SRV) in Phrases.",
+          "match": {
+            "phrase": "guitar.texas-shuffle"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
           "feeds": "Pride and Joy"
         },
         {

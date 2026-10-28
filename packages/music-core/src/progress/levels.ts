@@ -4,6 +4,7 @@ import type { Instrument, RunRecord } from "../types";
 import { CATALOG, exerciseIdFor, rhythmExerciseId } from "../content/catalog";
 import type { LearningPath, PathId, PathLink, PathStep } from "./paths";
 import { dayKey } from "./rewards";
+import type { LadderCriterion } from "./ladder";
 
 export interface ScoreLink {
   label: string;
@@ -67,6 +68,8 @@ export interface RawLevelStep {
   minDifficulty?: number;
   /** A new drill or setting this step waits for, in one line. */
   needs?: string;
+  /** Judged on the tune ladder: these rungs done on this many tunes (from `among` when given). */
+  ladder?: LadderCriterion;
   /** Step ids (in this path) this one builds on. */
   requires?: string[];
   /** Step ids a pass here tests out (a placement check): they show as review, nothing locks. */
@@ -126,9 +129,14 @@ const SHELF_ROUTE = /^\/music\/songs\/shelf\/([a-z0-9-]+)\/([a-z0-9-]+)$/;
 export const knownRoute = (href: string) =>
   SHELF_ROUTE.test(ROUTE(href)) ||
   CATALOG.some((e) => ROUTE(e.route) === ROUTE(href)) ||
-  ["/music/tuner", "/music/songs", "/music/library", "/music/create", "/music/record"].includes(
-    ROUTE(href),
-  );
+  [
+    "/music/tuner",
+    "/music/songs",
+    "/music/library",
+    "/music/create",
+    "/music/record",
+    "/music/tunes",
+  ].includes(ROUTE(href));
 
 const shelfMatch = (href?: string) => {
   const m = href && ROUTE(href).match(SHELF_ROUTE);
@@ -148,7 +156,7 @@ export function levelPath(raw: RawLevelPath): LearningPath {
         title: s.title,
         summary: s.setup,
         detail: s.done,
-        kind: s.needs ? "new" : graded && exercises.length ? "drill" : "reference",
+        kind: s.needs ? "new" : graded && (exercises.length || s.ladder) ? "drill" : "reference",
         href: s.href ?? "",
         links: s.links ?? [],
         skillIds: graded ? (s.skillIds ?? []) : [],
@@ -168,6 +176,7 @@ export function levelPath(raw: RawLevelPath): LearningPath {
         level: level.id,
         strand: s.strand,
         needs: s.needs,
+        ...(s.ladder && !s.needs ? { ladder: s.ladder } : {}),
       };
     }),
   );
@@ -196,7 +205,7 @@ export const SONG_PASS = 0.8;
 export const shelfKey = (path: PathId, song: ShelfSong) => `${path}/${song.id}`;
 
 /**
- * Days with a passing performance per shelf song: Song Studio in Performance or No-stop mode, a score of
+ * Days with a passing performance per shelf song: Song Studio in Performance, No-stop or Sight-read mode, a score of
  * SONG_PASS or better, at 90% of the record's tempo or faster when the shelf gives one.
  */
 export function songDays(path: LearningPath, runs: RunRecord[]): Map<string, number> {
@@ -207,11 +216,12 @@ export function songDays(path: LearningPath, runs: RunRecord[]): Map<string, num
   for (const r of runs) {
     const key = String(r.params.shelf ?? "");
     const song = songs.get(key);
-    // A no-stop run keeps time too, so it counts like a performance.
+    // A no-stop or sight-read run keeps time too, so it counts like a performance; tapping the rhythm does not.
     if (
       !song ||
       r.exerciseId !== "song.studio" ||
-      !["performance", "no-stop"].includes(String(r.params.mode))
+      !["performance", "no-stop", "sight-read"].includes(String(r.params.mode)) ||
+      r.params.tap
     )
       continue;
     if ((r.score ?? 0) < SONG_PASS - 1e-9) continue;

@@ -433,6 +433,86 @@
       "version": 1
     },
     {
+      "id": "harmony.ii-v-i.licks.bebop-enclosures",
+      "name": "Bebop enclosures",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.bebop-blues",
+      "name": "Blues and bebop lines",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.silver",
+      "name": "Silver's soloing devices",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.coltrane-1235",
+      "name": "Coltrane 1-2-3-5 patterns",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.intros-endings",
+      "name": "Intros, tags and endings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.ii-v-i.licks.silver-grooves",
+      "name": "Silver's left-hand grooves",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.voicings.diatonic-sevenths",
+      "name": "Diatonic seventh chords",
+      "capability": "harmony",
+      "level": "early-intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.voicings.quartal",
+      "name": "Quartal and So What voicings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.voicings.two-handed",
+      "name": "Two-handed jazz voicings",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
+      "id": "harmony.voicings.block-chords",
+      "name": "Block chords",
+      "capability": "harmony",
+      "level": "intermediate",
+      "tags": ["jazz"],
+      "version": 1
+    },
+    {
       "id": "rhythm.pattern.guitar-four-on-the-floor",
       "name": "Four on the Floor Strum",
       "capability": "rhythm",

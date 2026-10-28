@@ -15,6 +15,12 @@ import {
 } from "@repo/music-core/content/piano";
 import { JAZZ, type VoicingTarget } from "@repo/music-core/data/index";
 import { gradeVoiceLeading, gradeVoicing } from "@repo/music-core/scoring/piano";
+import {
+  JAZZ_VOICING_TYPES,
+  jazzVoicingChords,
+  type JazzVoicingId,
+} from "@repo/music-core/content/jazz-voicings";
+import { TUNES } from "@repo/music-core/content/tunes";
 
 export type Variant =
   | VoicingVariant
@@ -22,7 +28,11 @@ export type Variant =
   | "voice-leading"
   | "cadence"
   | "cadence-minor"
-  | "gospel";
+  | "gospel"
+  | JazzVoicingId;
+
+export const isJazzType = (v: string): v is JazzVoicingId =>
+  JAZZ_VOICING_TYPES.some((t) => t.id === v);
 
 export interface Shown {
   midi: number;
@@ -37,7 +47,7 @@ export interface VoicingItem {
   /** That key's tonic and mode (the staff's key signature). */
   keyPc: number;
   minor: boolean;
-  kind: "voicing" | "closest" | "guide";
+  kind: "voicing" | "closest" | "guide" | "jazz";
   show: Shown[];
   /** How the voicing is built (hidden in Check). */
   name: string;
@@ -51,6 +61,10 @@ export interface VoicingItem {
   voicing?: VoicingTarget;
   closest?: { rightHand: number[]; leftRootPc: number; bassPc: number; from?: number[] };
   guide?: { fromMidi: number[]; register: [number, number] };
+  /** A jazz voicing type: graded on its notes, the lowest one, and (when `order`) their order from the bottom. */
+  jazz?: { order: boolean; midi: number[] };
+  /** What Check asks for, the voicing hidden. */
+  ask?: string;
 }
 
 export const CLOSEST_REGISTER: [number, number] = [55, 76];
@@ -86,8 +100,39 @@ export function voicingItems(opts: {
   arpeggio?: boolean;
   /** Gospel: which progression (GOSPEL_PROGRESSIONS). */
   progression?: string;
+  /** Upper structures: the tune whose dominants are voiced. */
+  tune?: string;
 }): VoicingItem[] {
   const keys = cycleFrom(opts.keyPc, opts.keys);
+  if (isJazzType(opts.variant)) {
+    const type = JAZZ_VOICING_TYPES.find((t) => t.id === opts.variant)!;
+    const tune = TUNES.find((t) => t.id === opts.tune) ?? TUNES[0];
+    const roots = type.key === "tune" ? [tune.keyPc] : keys.map((k) => pcOf(k)!);
+    return roots.flatMap((root) =>
+      jazzVoicingChords(type.id, root, { tune: tune.id }).map((c) => {
+        const midi = [...c.left, ...c.right];
+        return {
+          id: c.id,
+          symbol: c.symbol,
+          group: c.group,
+          // The staff's signature: a dorian set is written in its parent major.
+          keyPc: type.key === "dorian" ? pc(root - 2) : root,
+          minor: type.key === "tune" && / minor$/.test(tune.key),
+          kind: "jazz" as const,
+          show: [
+            ...c.left.map((m) => ({ midi: m, hand: "left" as const })),
+            ...c.right.map((m) => ({ midi: m, hand: "right" as const })),
+          ],
+          name: c.name,
+          pcs: [...new Set(midi.map(pc))],
+          count: new Set(midi).size,
+          skillIds: c.skillIds,
+          jazz: { order: c.order, midi },
+          ask: c.ask,
+        };
+      }),
+    );
+  }
   if (opts.variant === "gospel") {
     const prog =
       GOSPEL_PROGRESSIONS.find((p) => p.id === opts.progression) ?? GOSPEL_PROGRESSIONS[0];
@@ -293,6 +338,38 @@ export function gradeItem(
   opts: { strict: boolean; arpeggio: boolean },
 ): ItemGrade {
   const missingOf = (pcs: number[]) => pcs.filter((p) => !played.some((m) => pc(m) === p));
+  if (item.kind === "jazz") {
+    const target = item.jazz!.midi;
+    const r = gradeVoicing({
+      expectedPcs: item.pcs,
+      expectedBassPc: pc(Math.min(...target)),
+      played,
+      strict: opts.strict,
+      arpeggio: opts.arpeggio,
+    });
+    // The order from the bottom: the voicing's notes as played, low to high, by pitch class.
+    const order = (ms: readonly number[]) =>
+      [...new Set(ms.filter((m) => item.pcs.includes(pc(m))))].sort((a, b) => a - b).map(pc);
+    const orderOk =
+      opts.arpeggio || !item.jazz!.order || order(played).join() === order(target).join();
+    const score = r.membership && !orderOk ? Math.min(r.score, 0.5) : r.score;
+    return {
+      score,
+      correct: score === 1,
+      metrics: r.metrics,
+      missing: r.missing,
+      note:
+        score === 1
+          ? "right"
+          : r.missing.length
+            ? "missing notes"
+            : r.extra.length && opts.strict
+              ? "extra notes"
+              : r.bassOk === false
+                ? "wrong note at the bottom"
+                : "notes in the wrong order",
+    };
+  }
   if (item.kind === "voicing") {
     const r = gradeVoicing({
       expectedPcs: item.pcs,

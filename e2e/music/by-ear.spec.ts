@@ -1,8 +1,9 @@
 // Learn by ear: import a recording, loop and mark it, find home (judged against
-// its key) and play a part along with it (self-rated); both record a run.
+// its key), play a part along with it (self-rated) and sing along (graded
+// against what the recording sounds); each records a run.
 import { writeFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { tap } from "./fixtures";
+import { installSyntheticMic, tap } from "./fixtures";
 
 test.describe.configure({ retries: 2 });
 
@@ -111,4 +112,49 @@ test("learn a part: play along slowed down, notes shown, the run self-rated", as
   const run = await lastRun(page);
   expect(run).toMatchObject({ exerciseId: "ear.by-ear", assistance: "self-assessed", score: 1 });
   expect(run.params).toMatchObject({ mode: "learn", notes: 3, speed: 0.75 });
+});
+
+test("sing along: the tune sung with the recording is graded note by note, then saved as a lick", async ({
+  page,
+}, info) => {
+  test.setTimeout(60_000);
+  await installSyntheticMic(page, 0);
+  await importWav(page, info.outputPath("a-minor.wav"), "/music/by-ear?mode=sing&part=head");
+  await expect(page.getByText("Setup:").locator("..")).toContainText("Sing the tune");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+  // i iv V i, 0.75 s a chord: A over i and iv, E over V and i, alternating octaves so each is a new note.
+  await page.evaluate(() => {
+    const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
+    [69, 57, 64, 52, 69, 57, 64, 52].forEach((m, i) =>
+      setTimeout(() => (window as any).__mic.set(hz(m), 0.4), i * 750 + 80),
+    );
+    setTimeout(() => (window as any).__mic.set(0), 6000);
+  });
+  await page.waitForTimeout(6300);
+  await page.getByRole("button", { name: /^Stop/ }).click();
+  await expect(page.getByLabel("This run")).toContainText("That passes", { timeout: 10_000 });
+  const run = await lastRun(page);
+  expect(run).toMatchObject({ exerciseId: "ear.by-ear.sing", assistance: "independent" });
+  expect(run.params).toMatchObject({ mode: "sing", part: "head" });
+  expect(run.score).toBeGreaterThanOrEqual(0.75);
+
+  await page.getByRole("button", { name: "Save as a lick" }).click();
+  await expect(page.getByLabel("This run")).toContainText("Find it in Phrases under Your licks");
+  await page.goto("/music/phrases");
+  await expect(page.getByText("Setup:").locator("..")).toBeVisible();
+  const licks = await page.evaluate(
+    () =>
+      new Promise<unknown[]>((resolve) => {
+        const open = indexedDB.open("woodshed");
+        open.onsuccess = () => {
+          const get = open.result
+            .transaction("settings")
+            .objectStore("settings")
+            .get("music.user-licks");
+          get.onsuccess = () => resolve(get.result?.value ?? []);
+        };
+      }),
+  );
+  expect(licks).toHaveLength(1);
 });

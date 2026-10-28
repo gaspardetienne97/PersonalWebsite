@@ -23,7 +23,16 @@ export interface BeatPattern {
   bars?: number;
   /** MIDI note -> the steps (0 .. bars*16-1) that hit. */
   steps: Record<string, number[]>;
+  /** Hits recorded live and kept as played (quantise off or 50%): beats into the pattern. */
+  live?: LiveStep[];
+  /** MPC swing for the grid's steps, 50 straight to 75. */
+  swing?: number;
   updatedAt: number;
+}
+export interface LiveStep {
+  midi: number;
+  beat: number;
+  velocity: number;
 }
 
 export const MAX_BARS = 8;
@@ -42,7 +51,15 @@ export function addBar(p: BeatPattern, copy = true): BeatPattern {
       copy ? [...list, ...list.filter((s) => s >= last).map((s) => s + STEPS)] : list,
     ]),
   );
-  return { ...p, bars: bars + 1, steps };
+  const lastBeat = (bars - 1) * 4;
+  const live =
+    p.live && copy
+      ? [
+          ...p.live,
+          ...p.live.filter((h) => h.beat >= lastBeat).map((h) => ({ ...h, beat: h.beat + 4 })),
+        ]
+      : p.live;
+  return { ...p, bars: bars + 1, steps, ...(live ? { live } : {}) };
 }
 
 /** Drop the last bar and its hits. */
@@ -55,7 +72,8 @@ export function removeBar(p: BeatPattern): BeatPattern {
     const kept = list.filter((s) => s < end);
     if (kept.length) steps[k] = kept;
   }
-  return { ...p, bars: bars - 1, steps };
+  const live = p.live?.filter((h) => h.beat < (bars - 1) * 4);
+  return { ...p, bars: bars - 1, steps, ...(live ? { live } : {}) };
 }
 
 /** The synth kit's voices, kick first. */
@@ -81,7 +99,7 @@ export function toggleStep(p: BeatPattern, midi: number, step: number): BeatPatt
 }
 
 export const hitCount = (p: BeatPattern) =>
-  Object.values(p.steps).reduce((n, s) => n + s.length, 0);
+  Object.values(p.steps).reduce((n, s) => n + s.length, 0) + (p.live?.length ?? 0);
 
 /**
  * `loopBars` bars of the beat on the "kit" voice (the pattern repeats to fill
@@ -93,17 +111,27 @@ export function beatNotes(p: BeatPattern, bpm: number, loopBars = barsOf(p)): Se
   const len = stepsOf(p);
   const total = loopBars * STEPS;
   const out: SequenceNote[] = [];
-  for (let base = 0; base < total; base += len)
+  for (let base = 0; base < total; base += len) {
     for (const [key, steps] of Object.entries(p.steps))
       for (const step of steps)
         if (base + step < total)
           out.push({
             midi: Number(key),
-            time: (base + step) * s,
+            time: (base + (p.swing ? swungBeat(step, p.swing) * 4 : step)) * s,
             duration: s,
             velocity: 0.8,
             voice: "kit",
           });
+    for (const h of p.live ?? [])
+      if (base + h.beat * 4 < total)
+        out.push({
+          midi: h.midi,
+          time: (base + h.beat * 4) * s,
+          duration: s,
+          velocity: h.velocity,
+          voice: "kit",
+        });
+  }
   return out.sort((a, b) => a.time - b.time);
 }
 

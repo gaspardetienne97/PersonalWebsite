@@ -122,5 +122,30 @@ describe("levelled progress", () => {
     expect(played([perf(0), perf(1, { bpm: 60 })]).days).toBe(1);
     expect(played([perf(0), perf(1, { mode: "wait" })]).days).toBe(1);
     expect(played([perf(0), perf(1, {}, 0.7)]).days).toBe(1);
+    // A sight-read counts like a performance; tapping the rhythm does not.
+    expect(played([perf(0), perf(1, { mode: "sight-read" })]).days).toBe(2);
+    expect(played([perf(0), perf(1, { mode: "sight-read", tap: "true" })]).days).toBe(1);
+  });
+
+  it("judges sight-reading on first runs of any of the path's shelf songs", () => {
+    const r = LEARNING_PATHS.reading;
+    const p19 = r.steps.find((s) => s.id === "reading.P1.9")!;
+    const read = (song: string, day: number, over: Record<string, string | boolean> = {}) =>
+      run({
+        id: `${song}${day}${JSON.stringify(over)}`,
+        exerciseId: "song.studio",
+        params: { song, shelf: `reading/${song}`, mode: "sight-read", firstRun: true, ...over },
+        score: 0.85,
+        endedAt: T0 + day * DAY_MS,
+      });
+    const status = (runs: ReturnType<typeof run>[]) =>
+      pathProgress(r, [], undefined, runs).steps.find((s) => s.step.id === p19.id)!.status;
+    const three = [read("amazing-grace", 0), read("let-it-be", 0), read("scarborough-fair", 1)];
+    expect(status(three)).toBe("done");
+    // A song played before, or one from another path's shelf, is not a sight-read.
+    expect(
+      status([...three.slice(0, 2), read("scarborough-fair", 1, { firstRun: false })]),
+    ).not.toBe("done");
+    expect(status([...three.slice(0, 2), read("x", 1, { shelf: "piano/x" })])).not.toBe("done");
   });
 });

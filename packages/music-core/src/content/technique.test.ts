@@ -24,6 +24,8 @@ import {
   FINGERPICK_SONGS,
   fingerpickable,
   fingerpickTargets,
+  harmonicTargets,
+  positionPatternsFor,
   GUITAR_GRADE_TEMPOS,
   ABRSM_SPEEDS,
   scaleSkills,
@@ -289,7 +291,9 @@ describe("positions", () => {
     expect(box1).toHaveLength(12);
     expect(box1[0]).toEqual({ string: 6, fret: 5, midi: 45 });
     expect(box1.map((n) => n.midi)).toEqual(box1.map((n) => n.midi).sort((a, b) => a - b));
-    for (const p of POSITION_PATTERNS.filter((x) => x.family === "minor-pentatonic"))
+    for (const p of POSITION_PATTERNS.filter(
+      (x) => x.family === "minor-pentatonic" && !x.instrument,
+    ))
       for (const n of positionTargets({ patternId: p.id, tuning: std, rootFret: 5 }))
         expect([9, 0, 2, 4, 7]).toContain(pc(n.midi));
     for (const p of POSITION_PATTERNS.filter((x) => x.family === "caged-major"))
@@ -645,5 +649,64 @@ describe("piano scale options: hands apart, contrary motion, thirds, octaves, ch
     expect(scaleSetupKey({ ...base, hands: "both", apart: "octave" })).toBe(
       scaleSetupKey({ ...base, hands: "both" }),
     );
+  });
+});
+
+describe("the B.B. box, ukulele positions and harmonics", () => {
+  it("puts the B.B. box's root on string 2 under the index, five frets above the string-6 root", () => {
+    const box = positionTargets({ patternId: "bb-box", tuning: std, rootFret: 5 });
+    expect(box.map((t) => `${t.string}:${t.fret}`)).toEqual([
+      "3:11",
+      "2:10",
+      "2:12",
+      "2:13",
+      "1:10",
+      "1:12",
+    ]);
+    // A, B, C, D, E and the sixth, F#.
+    expect([...new Set(box.map((t) => pc(t.midi)))].sort((a, b) => a - b)).toEqual([
+      0, 2, 4, 6, 9, 11,
+    ]);
+    expect(positionPatternsFor("guitar").some((p) => p.id === "bb-box")).toBe(true);
+    expect(positionPatternsFor("ukulele").some((p) => p.id === "bb-box")).toBe(false);
+  });
+
+  it("has five ukulele minor pentatonic positions, in the scale in A and C, reachable by four fingers", () => {
+    const shapes = positionPatternsFor("ukulele");
+    expect(shapes.map((p) => p.id)).toEqual(
+      [1, 2, 3, 4, 5].map((k) => `ukulele-minor-pentatonic-${k}`),
+    );
+    for (const [rootFret, tones] of [
+      [0, [9, 0, 2, 4, 7]],
+      [3, [0, 3, 5, 7, 10]],
+    ] as const)
+      for (const p of shapes) {
+        const line = positionTargets({ patternId: p.id, tuning: uke, rootFret });
+        expect(line, p.id).toHaveLength(8);
+        expect(
+          line.map((t) => t.string),
+          p.id,
+        ).toEqual([4, 4, 3, 3, 2, 2, 1, 1]);
+        for (const t of line) expect(tones, `${p.id} ${t.string}:${t.fret}`).toContain(pc(t.midi));
+        const frets = line.map((t) => t.fret);
+        expect(Math.max(...frets) - Math.min(...frets), p.id).toBeLessThanOrEqual(4);
+      }
+    // Each position starts where the last one's second notes were: they climb the neck.
+    const lows = shapes.map((p) =>
+      Math.min(
+        ...positionTargets({ patternId: p.id, tuning: uke, rootFret: 0 }).map((t) => t.fret),
+      ),
+    );
+    expect(lows).toEqual([0, 2, 4, 7, 9]);
+  });
+
+  it("asks for harmonics at frets 12, 7 and 5 on every string, an octave, an octave and a fifth, two octaves up", () => {
+    const h = harmonicTargets(uke);
+    expect(h).toHaveLength(12);
+    expect(h.slice(0, 4).map((t) => t.string)).toEqual([4, 3, 2, 1]);
+    expect(h.find((t) => t.string === 1 && t.fret === 12)!.midi).toBe(81);
+    expect(h.find((t) => t.string === 1 && t.fret === 7)!.midi).toBe(88);
+    expect(h.find((t) => t.string === 1 && t.fret === 5)!.midi).toBe(93);
+    expect(harmonicTargets(std)).toHaveLength(18);
   });
 });

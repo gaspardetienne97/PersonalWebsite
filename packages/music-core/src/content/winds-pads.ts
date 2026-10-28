@@ -337,6 +337,37 @@ export const RUDIMENTS: RudimentDef[] = [
     accents: [0, 2, 4, 7, 9, 11],
   },
 ];
+/**
+ * Stick Control, page one (George Lawrence Stone): every four-note sticking of
+ * R and L, eighth notes, 20 repetitions each. One pad a hand, so the grader
+ * sees the sticking, which no acoustic practice app can.
+ */
+export const STICK_CONTROL: RudimentDef[] = [
+  "RLRL",
+  "LRLR",
+  "RRLL",
+  "LLRR",
+  "RLRR",
+  "LRLL",
+  "RRLR",
+  "LLRL",
+  "RLLR",
+  "LRRL",
+  "RRRL",
+  "LLLR",
+  "RLLL",
+  "LRRR",
+  "RRRR",
+  "LLLL",
+].map((s) => ({
+  id: `stick-${s.toLowerCase()}`,
+  label: `Stick Control: ${s.split("").join(" ")}`,
+  unit: [...s].map((c) => (c === "R" ? "right" : "left")),
+  subdivision: 2,
+  hits: 80,
+}));
+RUDIMENTS.push(...STICK_CONTROL);
+
 export const RUDIMENT_TEMPOS = [60, 80, 100, 120];
 /** Names for every grid a rudiment can be on (the rolls go past sixteenths). */
 export const SUBDIVISION_NAMES: Record<number, string> = {
@@ -407,17 +438,18 @@ export function rudimentHits(opts: {
   const padOf = (hand: "left" | "right") =>
     p.onePad ? rightPad : hand === "left" ? leftPad : rightPad;
   const sub = p.subdivision ?? opts.subdivision;
+  const count = p.hits ?? opts.hits;
   const beatMs = 60000 / clamp(opts.bpm, 30, 240);
   const step = beatMs / sub;
   // A pyramid changes notes per beat; everything else keeps one grid.
   const times: number[] = [];
   if (p.perBeat)
-    for (let beat = 0; times.length < opts.hits; beat++) {
+    for (let beat = 0; times.length < count; beat++) {
       const n = p.perBeat[beat % p.perBeat.length];
-      for (let k = 0; k < n && times.length < opts.hits; k++) times.push((beat + k / n) * beatMs);
+      for (let k = 0; k < n && times.length < count; k++) times.push((beat + k / n) * beatMs);
     }
   const out: PadHit[] = [];
-  for (let i = 0; i < opts.hits; i++) {
+  for (let i = 0; i < count; i++) {
     const hand = p.unit[i % p.unit.length];
     const moving = p.accentMode === "moving";
     const marked = !!p.accents;

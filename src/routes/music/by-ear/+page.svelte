@@ -2,7 +2,9 @@
   // Learn by ear from a recording you own: loop a stretch (A to B), slow it
   // down with the pitch kept, mark its sections, and play the part back with
   // what you play drawn over the loop. A Learn run is self-rated; Find home is
-  // judged against the key the recording's chroma points to.
+  // judged against the key the recording's chroma points to; Sing along grades
+  // each sung note against what the recording sounds there. What you played or
+  // sang can be saved as a lick and drilled in Phrases in any key.
   import { onDestroy, onMount } from "svelte";
   import Upload from "lucide-svelte/icons/upload";
   import Play from "lucide-svelte/icons/play";
@@ -10,6 +12,7 @@
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
   import { homeTonics, rankKeys, regionChroma, type KeyGuess } from "@repo/music-core/signal/key";
   import { toMono } from "@repo/music-core/signal/chroma";
+  import { gradeSingAlong, MIN_SUNG, type SingAlongResult, type SingPart } from "@repo/music-core/signal/sing-along";
   import DrillShell, { type Phase } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -20,13 +23,18 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, getBinary, getSetting, putSetting, settings, type EarPlayer } from "$lib/music/runtime";
+  import { audio, db, getBinary, getSetting, mic, putSetting, settings, type EarPlayer } from "$lib/music/runtime";
+  import { estimateTempo } from "$lib/music/hubs/library/transcription";
+  import { saveUserLick, secondsToBeats } from "$lib/music/user-licks";
   import { importTrack, listTracks, trackKey } from "$lib/music/drills/jam/tracks";
   import { envelope, takeKey } from "$lib/music/hubs/create/audioTakes";
 
-  const cfg = new DrillSetup("by-ear", { mode: "learn", source: "", speed: "1", pitch: "0" });
+  const cfg = new DrillSetup("by-ear", { mode: "learn", source: "", speed: "1", pitch: "0", part: "head" });
   const s = $derived(cfg.value);
-  const mode = $derived(s.mode === "home" ? "home" : "learn");
+  const mode = $derived(s.mode === "home" || s.mode === "sing" ? s.mode : "learn");
+  /** Sing along: the tune (the head) or its roots. */
+  const part = $derived<SingPart>(s.part === "roots" ? "roots" : "head");
+  const PART_NAME: Record<SingPart, string> = { head: "the tune", roots: "the roots" };
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -167,6 +175,10 @@
   let rated = $state<boolean | null>(null);
   let home = $state<{ answer: number; ranked: KeyGuess[]; tonics: number[] } | null>(null);
   let homeAnswered = false;
+  /** Sing along: each sung note with where in the recording it fell, and its tuning. */
+  let sung: { midi: number; at: number; cents: number }[] = [];
+  let sing = $state<SingAlongResult | null>(null);
+  let savedLick = $state("");
 
   async function start() {
     rated = null;
@@ -174,24 +186,38 @@
     homeAnswered = false;
     played = [];
     notes = [];
+    sung = [];
+    sing = null;
+    savedLick = "";
     if (!(await load())) {
       phase = "ready";
       status = status || "Pick or import a recording first.";
       return;
     }
+    if (mode === "sing" && !(await mic.start())) {
+      phase = "ready";
+      status = mic.error || "The microphone could not start. Allow it to sing along.";
+      return;
+    }
     t0 = performance.now();
     cap = capture(t0, (e) => {
       if (e.kind !== "noteon") return;
+      // Sing along hears the voice only, so a keyboard can't answer for it.
+      if (mode === "sing" && e.source !== "audio") return;
       notes.push(e);
       if (mode === "home") return answerHome(pc(e.midi));
-      played = [...played.slice(-95), { midi: e.midi, at: player?.position() ?? 0 }];
+      const at = player?.position() ?? 0;
+      played = [...played.slice(-95), { midi: e.midi, at }];
+      if (mode === "sing") sung.push({ midi: e.midi, at, cents: e.cents ?? 0 });
       flashes.add(e.midi, "correct");
     });
     player!.play(loop ? loop.a : pos);
     status =
       mode === "home"
         ? "Listen. Play or sing the note that sounds like home, or pick it below."
-        : loop
+        : mode === "sing"
+          ? `Sing ${PART_NAME[part]} with the recording. Headphones keep the record out of the microphone.`
+          : loop
           ? "Looping. Play the part along with it; your notes show over the loop."
           : "Playing. Set A and B to loop a stretch; your notes show over the recording.";
   }
@@ -204,6 +230,10 @@
       phase = "ready";
       status = "Stopped before an answer: nothing recorded.";
       return;
+    }
+    if (mode === "sing") {
+      mic.stop();
+      return void finishSing();
     }
     phase = "results";
     status = played.length ? `${played.length} notes played. Did you get the part?` : "Nothing was played. Rate it anyway, or start again.";
@@ -242,6 +272,42 @@
     phase = "results";
     status = right ? `Right: ${FLAT_NAMES[answer]} is home.` : `${FLAT_NAMES[answer]} is not home here. The recording points to ${keyName(ranked[0])}.`;
   }
+  /** Grade what was sung against the recording, and record it as a judged run. */
+  async function finishSing() {
+    phase = "results";
+    if (sung.length < MIN_SUNG) {
+      status = `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing recorded.`;
+      return;
+    }
+    const b = player!.buffer;
+    const mono = toMono(Array.from({ length: b.numberOfChannels }, (_, i) => b.getChannelData(i)));
+    const r = gradeSingAlong({ mono, sampleRate: b.sampleRate, sung, part, shift: Number(s.pitch) });
+    sing = r;
+    const run = practice.beginRun({
+      exerciseId: "ear.by-ear.sing",
+      setupKey: `by-ear|sing|${part}|${loaded}`,
+      skillIds: ["ear.by-ear"],
+      capabilities: ["ear"],
+      modality: "sung",
+      assistance: "independent",
+      difficulty: part === "roots" ? 0.6 : 0.5,
+      instrument: "voice",
+      params: { mode: "sing", part, recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration), speed: Number(s.speed), tune: 50 },
+    });
+    await run.attempt({ promptId: `sing-${part}-${loaded}`, correct: r.correct, partialCredit: r.score, source: "audio", target: part, response: sung.map((n) => n.midi) });
+    await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the record` });
+    status = `${r.right} of ${r.total} sung notes matched the recording${r.inTune < r.total ? `; ${r.total - r.inTune} were more than 50 cents out` : ""}.`;
+  }
+
+  /** Save what was played or sung as a lick, at the tempo its notes sit on. */
+  async function saveLick() {
+    const line = played.slice(0, 32);
+    const { bpm } = estimateTempo(line.map((n) => ({ midi: n.midi, start: n.at, duration: 0.2, amplitude: 1 })));
+    const id = await saveUserLick({ title: `${sourceName || "Recording"} at ${clock(line[0].at)}`, from: "Learn by ear", bpm, notes: secondsToBeats(line, bpm) });
+    savedLick = id ? "Saved. Find it in Phrases under Your licks, and take it through the keys." : "Nothing to save yet.";
+    status = savedLick;
+  }
+
   const keyName = (k: KeyGuess) => `${FLAT_NAMES[k.tonicPc]} ${k.minor ? "minor" : "major"}`;
 
   async function rate(got: boolean) {
@@ -272,6 +338,7 @@
   onDestroy(() => {
     cancelAnimationFrame(frame);
     cap?.stop();
+    if (mode === "sing") mic.stop();
     player?.dispose();
   });
 
@@ -302,7 +369,7 @@
   const PITCHES = [-2, -1, 0, 1, 2].map((n) => ({ value: String(n), label: n === 0 ? "As recorded" : `${n > 0 ? "+" : "−"}${Math.abs(n)}` }));
   const lastNotes = $derived(played.slice(-16));
   const summaryLine = $derived([
-    { text: mode === "home" ? "Find home" : "Learn a part", focus: "mode" },
+    { text: mode === "home" ? "Find home" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
     { text: sourceName || "no recording yet", focus: "source" },
     { text: `${Math.round(Number(s.speed) * 100)}% speed`, focus: "speed" },
     ...(s.pitch !== "0" ? [{ text: `${s.pitch} semitones`, focus: "pitch" }] : []),
@@ -330,6 +397,7 @@
         options={[
           { value: "learn", label: "Learn a part", hint: "Loop, slow down, mark sections, play it back. You rate the run." },
           { value: "home", label: "Find home", hint: "Name the note the music rests on. Judged against the recording's key." },
+          { value: "sing", label: "Sing along", hint: "Sing the tune, or its roots, with the recording. Each sung note is checked against what the recording sounds then." },
         ]}
         value={mode}
         onchange={(v) => cfg.set({ mode: v })}
@@ -346,6 +414,18 @@
         <span class="text-ws-soft">Files you own, your backing tracks and your takes from Record. They stay in this browser.</span>
         {#if importError}<p role="alert" class="font-medium text-destructive">{importError}</p>{/if}
       </div>
+      {#if mode === "sing"}
+        <Choice
+          label="Sing"
+          setupKey="part"
+          options={[
+            { value: "head", label: "The tune", hint: "The head: the melody, in any octave." },
+            { value: "roots", label: "The roots", hint: "Each chord's root, the bass note, in any octave." },
+          ]}
+          value={part}
+          onchange={(v) => cfg.set({ part: v })}
+        />
+      {/if}
       <Choice label="Speed" setupKey="speed" options={SPEEDS} value={s.speed} onchange={setSpeed} />
       <Choice label="Pitch" setupKey="pitch" options={PITCHES} value={s.pitch} onchange={setPitch} />
     </div>
@@ -421,6 +501,11 @@
               <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{name}</button>
             {/each}
           </div>
+        {:else if mode === "sing" && phase !== "results"}
+          <p class="text-sm" aria-live="polite">
+            <span class="text-ws-stage-soft">{mic.pitch ? `Hearing ${noteName(mic.pitch.midi, "flat")}.` : "No pitch yet."} You sang:</span>
+            <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
+          </p>
         {:else if mode === "learn" && phase !== "results"}
           <InstrumentStage line={[48, 84]} {flashes} interactive={phase === "running"} />
           <p class="text-sm" aria-live="polite">
@@ -441,6 +526,19 @@
           The recording's notes point to {keyName(home.ranked[0])}{home.tonics.length > 1 ? `, with ${keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1])} close behind, so either tonic counts` : ""}.
           The key is worked out from the whole recording; a song that changes key or sits long away from home can fool it.
         </p>
+      {:else if mode === "sing"}
+        {#if sing}
+          <p class="font-display text-2xl font-semibold">{Math.round(sing.score * 100)}%: {sing.right} of {sing.total} sung notes with the record.</p>
+          <p class="text-sm text-ws-soft">
+            {sing.correct ? `That passes: ${PART_NAME[part]} in tune with the recording.` : `75% passes. ${sing.total - sing.inTune} notes were more than 50 cents out; the rest missed what the recording sounds there.`}
+            A note counts when its pitch class sounds strongly in the recording at that moment{part === "roots" ? ", in the bass" : ""}; any octave.
+          </p>
+          <p class="text-sm">{sing.notes.slice(-24).map((n) => `${noteName(n.midi, "flat")}${n.ok ? "" : "?"}`).join(" ")}</p>
+        {:else}
+          <p class="font-display text-2xl font-semibold">Too few notes to grade.</p>
+        {/if}
+        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
+        {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {:else if mode === "learn"}
         <p class="font-display text-2xl font-semibold">{played.length} notes played{loop ? ` over ${clock(loop.a)} to ${clock(loop.b)}` : ""} at {Math.round(Number(s.speed) * 100)}%.</p>
         {#if played.length}<p class="text-sm">{played.slice(-32).map((n) => noteName(n.midi, "flat")).join(" ")}</p>{/if}
@@ -453,6 +551,8 @@
         {:else}
           <p class="text-sm text-ws-soft">Saved as {rated ? "got it" : "still learning"}, self-rated, in your journal.</p>
         {/if}
+        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
+        {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {/if}
     </article>
   {/snippet}

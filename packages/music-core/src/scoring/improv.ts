@@ -10,9 +10,8 @@
 
 import { FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
-import type { Progression } from "../content/jam";
-
-export const IMPROV_BEATS_PER_BAR = 4;
+import { scaleSemitones } from "../theory/scales";
+import { barBeats, type Progression } from "../content/jam";
 
 /** One played note, in beats from the top of the form (chorus 1, beat 1). */
 export interface ImprovNote {
@@ -42,7 +41,10 @@ export type MetricId =
   | "downbeats"
   | "approach"
   | "offbeat"
-  | "windows";
+  | "windows"
+  | "displaced"
+  | "slips"
+  | "resolved";
 
 export const METRIC_LABEL: Record<MetricId, string> = {
   strong: "Chord tones on beats 1 and 3",
@@ -56,7 +58,13 @@ export const METRIC_LABEL: Record<MetricId, string> = {
   approach: "Beat 1 chord tones approached by a half step",
   offbeat: "Phrases starting off the beat",
   windows: "Bars kept (playing in yours, silent in the band's)",
+  displaced: "The motif, a beat later each time",
+  slips: "Side-slips",
+  resolved: "Slips resolved to a chord tone on the beat",
 };
+
+/** Measures that count things (rests, slips) rather than give a share. */
+export const isCount = (m: MetricId) => m === "rests" || m === "displaced" || m === "slips";
 
 /** A key-relative set: semitones above the key's tonic. */
 type KeySet = { key: number[] };
@@ -69,6 +77,8 @@ export interface Game {
   about: string;
   set?: KeySet | ChordSet;
   windows?: Windows;
+  /** Only the bridge (sections B...) is graded; the A sections are free for the head or rests. */
+  only?: "bridge";
   /** Measures that make the score, with the aim (a share, or a count for rests). */
   aims: { metric: MetricId; aim: number | ((bars: number) => number) }[];
   /** The weakest part against its aim (a game's rules), or the mean of the parts (the open game). */
@@ -228,6 +238,34 @@ export const IMPROV_GAMES: Game[] = [
     aims: [{ metric: "windows", aim: 1 }],
     combine: "min",
   },
+  {
+    id: "bridge",
+    label: "The bridge only",
+    about:
+      "Rest or play the head in the A sections and improvise only the bridge, a 3rd or 7th within a beat of 85% of its changes. Pick a tune with a bridge (rhythm changes, Satin Doll).",
+    only: "bridge",
+    aims: [{ metric: "landings", aim: 0.85 }],
+    combine: "min",
+  },
+  {
+    id: "displacement",
+    label: "Displace a motif",
+    about:
+      "One short motif of two to six notes, each time a beat later in the bar (the Straight, No Chaser idea). The aim is a displaced motif in two bars of every three.",
+    aims: [{ metric: "displaced", aim: (bars) => Math.max(1, Math.round((bars * 2) / 3)) }],
+    combine: "min",
+  },
+  {
+    id: "side-slip",
+    label: "Outside and back",
+    about:
+      "Slip a phrase a half step up (three or more notes outside the scale) for about two beats, then resolve to a chord tone on the next beat. Four slips a chorus, every one resolved.",
+    aims: [
+      { metric: "slips", aim: 4 },
+      { metric: "resolved", aim: 1 },
+    ],
+    combine: "min",
+  },
 ];
 
 export const gameOf = (id: string) => IMPROV_GAMES.find((g) => g.id === id) ?? IMPROV_GAMES[0];
@@ -254,9 +292,12 @@ interface Slot {
   pcs: number[];
   third?: number;
   guide: number[];
+  /** The chord's scale and its chord tones: anything else is outside. */
+  inside: number[];
 }
 
 function timeline(p: Progression): { slots: Slot[]; beats: number } {
+  const bpb = barBeats(p);
   let at = 0;
   const slots = p.chords.map((ch) => {
     const c = parseChordSymbol(ch.symbol);
@@ -268,8 +309,12 @@ function timeline(p: Progression): { slots: Slot[]; beats: number } {
     const slot: Slot = {
       symbol: ch.symbol,
       start: at,
-      beats: ch.bars * IMPROV_BEATS_PER_BAR,
+      beats: ch.bars * bpb,
       pcs: c?.pcs ?? [],
+      inside: [
+        ...(c?.pcs ?? []),
+        ...(scaleSemitones(ch.scale.name) ?? []).map((s) => pc(ch.scale.rootPc + s)),
+      ],
       third: third === undefined ? undefined : rel(third),
       guide: [third, seventh].flatMap((i) => (i === undefined ? [] : [rel(i)])),
     };
@@ -327,6 +372,30 @@ export interface GradeOptions {
 const share = (n: number, d: number) => (d ? n / d : null);
 const nearBeat = (beat: number, target: number, tol = 0.25) => Math.abs(beat - target) <= tol;
 
+/** Bars (from the top of a chorus) in a tune's bridge: its sections labelled B; every bar when it has none. */
+function bridgeBars(p: Progression, bars: number): Set<number> {
+  const out = new Set<number>();
+  let bar = 0;
+  for (const s of p.sections ?? []) {
+    for (let b = 0; s.label.startsWith("B") && b < s.bars; b++) out.add(bar + b);
+    bar += s.bars;
+  }
+  return out.size ? out : new Set(Array.from({ length: bars }, (_, b) => b));
+}
+
+/** Whether bar `bar` (from the top of the run) is one you rest in: the band's, or outside the bridge. */
+export function restBar(
+  p: Progression,
+  game: Game,
+  windows: Windows | undefined,
+  bar: number,
+): boolean {
+  if (bandBar(windows, bar)) return true;
+  if (game.only !== "bridge") return false;
+  const bars = Math.round(p.chords.reduce((n, c) => n + c.bars, 0));
+  return !bridgeBars(p, bars).has(((bar % bars) + bars) % bars);
+}
+
 /** Grade a run of `choruses` choruses over `p` (already transposed). */
 export function gradeImprov(
   p: Progression,
@@ -334,6 +403,7 @@ export function gradeImprov(
   opts: GradeOptions,
 ): ImprovGrade {
   const { slots, beats: cb } = timeline(p);
+  const bpb = barBeats(p);
   const windows = opts.game.windows ?? opts.windows;
   const beatMs = 60000 / opts.bpm;
   const all = [...notes].sort((a, b) => a.beat - b.beat);
@@ -353,13 +423,12 @@ export function gradeImprov(
       (set.chord === "guide" ? s.guide : s.pcs).includes(pc(n.midi)),
     );
   };
-  const yours = (beat: number) =>
-    !bandBar(windows, Math.floor((beat + 0.5) / IMPROV_BEATS_PER_BAR));
+  const yours = (beat: number) => !restBar(p, opts.game, windows, Math.floor((beat + 0.5) / bpb));
 
   const choruses = Array.from({ length: Math.max(1, opts.choruses) }, (_, k): ChorusGrade => {
     const from = k * cb;
     const to = from + cb;
-    const bars = cb / IMPROV_BEATS_PER_BAR;
+    const bars = cb / bpb;
     // A note up to half a beat early belongs to the next chorus's downbeat.
     const idx = all.flatMap((n, i) => (n.beat >= from - 0.5 && n.beat < to - 0.5 ? [i] : []));
     const mine = idx.filter((i) => yours(all[i].beat));
@@ -368,10 +437,10 @@ export function gradeImprov(
     const put = (id: MetricId, n: number, d: number, detail = `${n} of ${d}`) =>
       (m[id] = { value: share(n, d), detail: d ? detail : "nothing to judge" });
 
-    // Chord tones on beats 1 and 3.
+    // Chord tones on beats 1 and 3 (beat 1 in 3/4).
     const strong = ns.filter((n) => {
-      const inBar = (((n.beat - from) % 4) + 4) % 4;
-      return nearBeat(inBar, 0) || nearBeat(inBar, 2) || nearBeat(inBar, 4);
+      const inBar = (((n.beat - from) % bpb) + bpb) % bpb;
+      return nearBeat(inBar, 0) || nearBeat(inBar, bpb) || (bpb === 4 && nearBeat(inBar, 2));
     });
     put(
       "strong",
@@ -435,7 +504,7 @@ export function gradeImprov(
     m.rests = { value: rests, detail: `${rests} rest${rests === 1 ? "" : "s"}` };
     const phrases = {
       count: phraseCount,
-      meanBars: phraseCount ? Math.round((phraseBeats / phraseCount / 4) * 10) / 10 : 0,
+      meanBars: phraseCount ? Math.round((phraseBeats / phraseCount / bpb) * 10) / 10 : 0,
     };
     put(
       "offbeat",
@@ -447,8 +516,8 @@ export function gradeImprov(
 
     // Per bar: the rhythm on an eighth grid, beat 1, and how beat 1 was approached.
     const barRows = Array.from({ length: Math.round(bars) }, (_, b) => {
-      const start = from + b * 4;
-      const inBar = ns.filter((n) => n.beat >= start - 0.25 && n.beat < start + 3.75);
+      const start = from + b * bpb;
+      const inBar = ns.filter((n) => n.beat >= start - 0.25 && n.beat < start + bpb - 0.25);
       const rhythm = [...new Set(inBar.map((n) => Math.round((n.beat - start) * 2)))]
         .sort((a, c) => a - c)
         .join(",");
@@ -480,16 +549,75 @@ export function gradeImprov(
       `${barRows.filter((r) => r.approached).length} of ${barRows.length} bars`,
     );
 
+    // Displacement: motif instances (notes split by half a beat of silence, inside a bar's
+    // length), each with the rhythm of the one before and starting a beat later in the bar.
+    const groups: number[][] = [];
+    for (const i of mine) {
+      const g = groups[groups.length - 1];
+      const last = g?.[g.length - 1];
+      if (g && all[i].beat - ends[last!] < 0.5 - 1e-6 && all[i].beat - all[g[0]].beat < bpb)
+        g.push(i);
+      else groups.push([i]);
+    }
+    const shape = (g: number[]) => g.map((i) => all[i].beat - all[g[0]].beat);
+    const sameShape = (a: number[], b: number[]) =>
+      a.length === b.length && a.every((x, j) => Math.abs(x - b[j]) <= 0.2);
+    let displaced = 0;
+    for (let k = 1; k < groups.length; k++) {
+      const [a, b] = [groups[k - 1], groups[k]];
+      const d = all[b[0]].beat - all[a[0]].beat;
+      const moved = (((d % bpb) + bpb) % bpb) - 1;
+      if (
+        b.length >= 2 &&
+        b.length <= 6 &&
+        sameShape(shape(a), shape(b)) &&
+        d <= 2 * bpb + 0.25 &&
+        Math.abs(moved) <= 0.2
+      )
+        displaced++;
+    }
+    m.displaced = { value: displaced, detail: `${displaced} displaced` };
+
+    // Side-slips: three or more notes outside the chord's scale with no two inside notes in a
+    // row, then the next note a chord tone on a beat within a beat and a half.
+    const outside = (n: ImprovNote) => !slotAt(n.beat).inside.includes(pc(n.midi));
+    const slipEnds: number[] = [];
+    let seq: number[] = [];
+    const close = () => {
+      while (seq.length && !outside(all[seq[seq.length - 1]])) seq.pop();
+      if (seq.filter((i) => outside(all[i])).length >= 3) slipEnds.push(seq[seq.length - 1]);
+      seq = [];
+    };
+    for (const i of mine) {
+      const prev = seq[seq.length - 1];
+      const o = outside(all[i]);
+      if (prev !== undefined && (all[i].beat - all[prev].beat >= 1 || (!o && !outside(all[prev]))))
+        close();
+      if (seq.length || o) seq.push(i);
+    }
+    close();
+    const resolved = slipEnds.filter((i) => {
+      const next = all.find((n) => n.beat > all[i].beat + 0.05);
+      if (!next || next.beat - all[i].beat > 1.5) return false;
+      const off = Math.abs(next.beat - Math.round(next.beat));
+      return off <= 0.25 && slotAt(Math.round(next.beat)).pcs.includes(pc(next.midi));
+    }).length;
+    m.slips = {
+      value: slipEnds.length,
+      detail: `${slipEnds.length} side-slip${slipEnds.length === 1 ? "" : "s"}`,
+    };
+    put("resolved", resolved, slipEnds.length);
+
     // Windows: yours has a note in it, the band's has no onset after its first half beat.
     if (windows) {
       let kept = 0;
       let total = 0;
       const lens = windows.bandFirst ? [windows.band, windows.you] : [windows.you, windows.band];
-      for (let bar = 0, w = 0; bar < to / 4 - 1e-9; bar += lens[w % 2], w++) {
-        if (bar < from / 4 - 1e-9) continue;
+      for (let bar = 0, w = 0; bar < to / bpb - 1e-9; bar += lens[w % 2], w++) {
+        if (bar < from / bpb - 1e-9) continue;
         const band = w % 2 === (windows.bandFirst ? 0 : 1);
-        const s = bar * 4;
-        const e = s + lens[w % 2] * 4;
+        const s = bar * bpb;
+        const e = s + lens[w % 2] * bpb;
         // The band's bars may take a landing note on their first half beat.
         const onsets = all.filter((n) => n.beat >= s + (band ? 0.5 : -0.5) && n.beat < e - 0.5);
         total++;
@@ -503,7 +631,7 @@ export function gradeImprov(
       const value = m[metric]?.value ?? null;
       return {
         metric,
-        label: METRIC_LABEL[metric],
+        label: metric === "strong" && bpb === 3 ? "Chord tones on beat 1" : METRIC_LABEL[metric],
         value,
         aim: a,
         credit: value === null ? (metric === "rests" ? 0 : 1) : Math.min(1, value / a),
@@ -554,7 +682,7 @@ function headline(game: Game, choruses: ChorusGrade[], passed: boolean): string 
   if (passed) return `${game.label}: every chorus met its aims.`;
   // Name the weakest part across the run.
   const weakest = choruses.flatMap((c) => c.parts).reduce((w, x) => (x.credit < w.credit ? x : w));
-  return `${game.label}: ${ok} of ${n} chorus${n === 1 ? "" : "es"} met the aims. The weakest part: ${weakest.label.toLowerCase()}, ${weakest.detail}${weakest.metric === "rests" ? "" : ` (aim ${Math.round(weakest.aim * 100)}%)`}.`;
+  return `${game.label}: ${ok} of ${n} chorus${n === 1 ? "" : "es"} met the aims. The weakest part: ${weakest.label.toLowerCase()}, ${weakest.detail}${isCount(weakest.metric) ? ` (aim ${weakest.aim})` : ` (aim ${Math.round(weakest.aim * 100)}%)`}.`;
 }
 
 /** "Bb3 to F5, 19 semitones". */

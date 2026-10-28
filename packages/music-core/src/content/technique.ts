@@ -39,7 +39,14 @@ export const SCALE_TEMPO = { min: 40, max: 180, default: 100 };
  * What the drill plays: the scale, in double thirds or in octaves in each hand,
  * or the tonic chord as an arpeggio, broken through its inversions, or blocked.
  */
-export type ScalePattern = "scale" | "thirds" | "octaves" | "arpeggio" | "broken" | "blocked";
+export type ScalePattern =
+  | "scale"
+  | "thirds"
+  | "octaves"
+  | "arpeggio"
+  | "broken"
+  | "blocked"
+  | "triad-pairs";
 /** Scale-like patterns walk the scale's degrees; the others walk the chord. */
 export const isScaleLine = (p: ScalePattern) => p === "scale" || p === "thirds" || p === "octaves";
 /** The scale drill's kinds: the scale data's, plus the chromatic scale. */
@@ -126,6 +133,29 @@ export function chordSteps(
     const chords = Array.from({ length: n * octaves + 1 }, (_, k) => inversionOf(k));
     up = pattern === "blocked" ? chords : chords.flatMap((c) => c.map((m) => [m]));
   }
+  const down = [...up].reverse();
+  if (motion === "up") return up;
+  if (motion === "down") return down;
+  return [...up, ...down.slice(1)];
+}
+
+/**
+ * Triad pairs: the tonic's triad, then the same kind a whole step up (Eb and F
+ * over F7sus), each root position, up an octave at a time and back. The two
+ * make a six-note scale; a major pair is the IV and V of the key a 4th above
+ * the tonic, a minor pair its ii and iii.
+ */
+export function triadPairSteps(
+  kind: ChordKind,
+  tonic: number,
+  octaves: 1 | 2,
+  motion: ScaleMotion,
+): number[][] {
+  const iv = kind === "minor" ? [0, 3, 7] : [0, 4, 7];
+  const up = Array.from({ length: octaves }, (_, o) =>
+    [0, 2].flatMap((root) => iv.map((i) => [tonic + 12 * o + root + i])),
+  ).flat();
+  up.push([tonic + 12 * octaves]);
   const down = [...up].reverse();
   if (motion === "up") return up;
   if (motion === "down") return down;
@@ -231,14 +261,21 @@ export function scaleDrillTargets(setup: ScaleSetup): ScaleStep[] {
   const right =
     pattern === "scale"
       ? scaleLine(setup.kind as ScaleKind, setup.tonic, setup.span, setup.motion).map((m) => [m])
-      : chordSteps(
-          setup.chord ?? "major",
-          setup.tonic,
-          pattern as "arpeggio" | "broken" | "blocked",
-          setup.span === "two-octave" ? 2 : 1,
-          setup.motion,
-          pattern === "arpeggio" ? (setup.inversion ?? 0) : 0,
-        );
+      : pattern === "triad-pairs"
+        ? triadPairSteps(
+            setup.chord ?? "major",
+            setup.tonic,
+            setup.span === "two-octave" ? 2 : 1,
+            setup.motion,
+          )
+        : chordSteps(
+            setup.chord ?? "major",
+            setup.tonic,
+            pattern as "arpeggio" | "broken" | "blocked",
+            setup.span === "two-octave" ? 2 : 1,
+            setup.motion,
+            pattern === "arpeggio" ? (setup.inversion ?? 0) : 0,
+          );
   return right.map((midis, index) => ({
     index,
     atBeat: index / per,
@@ -256,7 +293,7 @@ export function scaleDrillTargets(setup: ScaleSetup): ScaleStep[] {
 }
 
 export const scaleSkills = (kind: DrillScaleKind, pattern: ScalePattern = "scale") =>
-  pattern === "arpeggio"
+  pattern === "arpeggio" || pattern === "triad-pairs"
     ? ["technique.arpeggios"]
     : !isScaleLine(pattern)
       ? ["technique.chord-inversions"]
@@ -402,6 +439,9 @@ export interface FingerpickPattern {
   fingers: string[];
 }
 
+/** Tremolo patterns: one note repeated, so evenness is most of the grade. */
+export const isTremolo = (p: Pick<FingerpickPattern, "id">) => p.id.includes("tremolo");
+
 /** The strings of one step ("B+2" is two, "-" none). */
 const stepParts = (step: string) => (step === "-" ? [] : step.split("+"));
 // Sources for the additions: Fender's Travis picking lesson (thumb alone, then one
@@ -508,6 +548,15 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     fingers: ["p", "-", "i+m+a", "-", "p", "-", "i+m+a", "-"],
   },
   {
+    // The Blackbird technique (not the song's notes): thumb and middle pluck tenths
+    // together, the index sounds the open G between them as a drone.
+    id: "blackbird-pinch",
+    label: "Blackbird-style pinch: p and m together, i on string 3",
+    instrument: "guitar",
+    strings: ["B+2", "3", "B+2", "3", "B+2", "3", "B+2", "3"],
+    fingers: ["p+m", "i", "p+m", "i", "p+m", "i", "p+m", "i"],
+  },
+  {
     id: "travis-high",
     label: "Travis picking on strings 2 and 1",
     instrument: "guitar",
@@ -597,6 +646,21 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     instrument: "ukulele",
     strings: ["3", "2", "4", "1", "4", "2"],
     fingers: ["p", "i", "p", "m", "p", "i"],
+  },
+  // Tremolo on string 1, graded mostly on how even the notes are.
+  {
+    id: "uke-tremolo-im",
+    label: "Tremolo, i m on string 1",
+    instrument: "ukulele",
+    strings: ["1", "1", "1", "1", "1", "1", "1", "1"],
+    fingers: ["i", "m", "i", "m", "i", "m", "i", "m"],
+  },
+  {
+    id: "uke-tremolo-pami",
+    label: "Tremolo, p a m i on string 1",
+    instrument: "ukulele",
+    strings: ["1", "1", "1", "1", "1", "1", "1", "1"],
+    fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
   },
   {
     id: "uke-two-strings",
@@ -954,7 +1018,11 @@ export function spiderTargets(opts: {
 }
 
 export interface PositionPattern extends Omit<FretboardPatternDef, "family"> {
-  family: FretboardPatternDef["family"] | "connected" | "triads";
+  family: FretboardPatternDef["family"] | "connected" | "triads" | "blues-box";
+  /** Ukulele shapes; the rest are guitar. */
+  instrument?: "ukulele";
+  /** The string the root fret is on: 6 on guitar, 1 (the A string) on ukulele. */
+  rootString?: number;
   /** Played in the written order (a run across boxes, triads by inversion), not low string to high. */
   ordered?: boolean;
   /** The fretting finger of each offset, when one finger a fret from the lowest would be wrong. */
@@ -1069,11 +1137,90 @@ const TRIADS: PositionPattern[] = [
   },
 ];
 
+/**
+ * B.B. King's box: the root on string 2 under the index (fret 10 in A, five frets
+ * above the string-6 root), the 2nd and flat 3rd above it, the 4th and 5th on
+ * string 1, the 6th on string 3. Six notes (Guitar World, Happy Bluesman).
+ */
+const BB_BOX: PositionPattern = {
+  id: "bb-box",
+  label: "The B.B. box",
+  family: "blues-box",
+  offsets: offs([
+    [3, 6],
+    [2, 5],
+    [2, 7],
+    [2, 8],
+    [1, 5],
+    [1, 7],
+  ]),
+};
+
+/**
+ * Ukulele minor pentatonic, positions 1 to 5 up the neck, offsets from the root on
+ * string 1 (A open, C at fret 3), on GCEA in either G. Each position takes the next
+ * two notes on every string; played string 4 to 1, as a re-entrant G is not the lowest note.
+ */
+const UKE_PENTATONIC: PositionPattern[] = (
+  [
+    [
+      [0, 2],
+      [0, 2],
+      [0, 3],
+      [0, 3],
+    ],
+    [
+      [2, 5],
+      [2, 4],
+      [3, 5],
+      [3, 5],
+    ],
+    [
+      [5, 7],
+      [4, 7],
+      [5, 8],
+      [5, 7],
+    ],
+    [
+      [7, 9],
+      [7, 9],
+      [8, 10],
+      [7, 10],
+    ],
+    [
+      [9, 12],
+      [9, 12],
+      [10, 12],
+      [10, 12],
+    ],
+  ] as const
+).map((perString, k) => ({
+  id: `ukulele-minor-pentatonic-${k + 1}`,
+  label: `Minor pentatonic position ${k + 1}`,
+  family: "minor-pentatonic",
+  instrument: "ukulele",
+  rootString: 1,
+  // Strings 4, 3, 2, 1 in that order.
+  offsets: offs(
+    perString.flatMap(([a, b], i) => [
+      [4 - i, a] as [number, number],
+      [4 - i, b] as [number, number],
+    ]),
+  ),
+  // Position 3 spans five frets: the hand sits at the root and the index reaches back on string 3.
+  ...(k === 2 ? { fingers: [1, 3, 1, 3, 1, 4, 1, 3] } : {}),
+}));
+
 export const POSITION_PATTERNS: PositionPattern[] = [
   ...FRETBOARD_PATTERNS,
   connectedBoxes(),
   ...TRIADS,
+  BB_BOX,
+  ...UKE_PENTATONIC,
 ];
+/** The shapes for one instrument. */
+export const positionPatternsFor = (instrument: "guitar" | "ukulele") =>
+  POSITION_PATTERNS.filter((p) => (p.instrument ?? "guitar") === instrument);
 /** Where a shape's lowest fret sits relative to the root fret (E 0, D 2, C 4, A 7, G 9). */
 export const baseOffset = (p: Pick<FretboardPatternDef, "offsets">) =>
   Math.min(...p.offsets.map((o) => o.fretOffset));
@@ -1109,6 +1256,29 @@ export function positionTargets(opts: {
     midi: midiAt(opts.tuning, t.string, t.fret),
     ...(finger ? { finger } : {}),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Natural harmonics: touched over fret 12 (an octave up), 7 (an octave and a fifth)
+// and 5 (two octaves), every string from the bass up, each fret in turn.
+
+export const HARMONIC_ABOVE: Record<number, number> = { 12: 12, 7: 19, 5: 24 };
+
+/** The harmonic a string and fret sound, or null off frets 12, 7 and 5. */
+export const harmonicMidi = (tuning: Tuning, string: number, fret: number) =>
+  fret in HARMONIC_ABOVE ? tuning.openStrings[string - 1] + HARMONIC_ABOVE[fret] : null;
+
+export function harmonicTargets(tuning: Tuning): FretTarget[] {
+  const strings = tuning.openStrings.map((_, i) => tuning.openStrings.length - i);
+  return [12, 7, 5].flatMap((fret) =>
+    strings.map((string) => ({
+      string,
+      fret,
+      midi: harmonicMidi(tuning, string, fret)!,
+      finger: 0,
+      label: "H",
+    })),
+  );
 }
 
 // ---------------------------------------------------------------------------

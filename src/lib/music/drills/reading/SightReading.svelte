@@ -43,7 +43,8 @@
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
-  import { clampRange, fretPosition, handLabel, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
+  import { clampRange, combineLanes, fretPosition, handLabel, kickGroups, KICK_MIDI, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
+  import { hitDrumKey } from "@repo/music-core/content/winds-pads";
   import SetupFields from "./SetupFields.svelte";
 
   interface Props {
@@ -72,6 +73,9 @@
   const climbing = $derived(!!s.climb);
   // Tap the rhythm: Keep time with any key, the Tap button or Space; pitch is not graded.
   const tapping = $derived(!climbing && s.follower === "tap");
+  // The kick lane: a kick on every quarter under the tapped rhythm, followed on its own.
+  const kick = $derived(tapping && !!s.kick);
+  const isKick = (m: number) => hitDrumKey(m) === hitDrumKey(KICK_MIDI);
   const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" || tapping ? "performance" : "wait");
   const measures = $derived(climbing ? CLIMB.measures : Math.min(16, Math.max(1, s.measures)));
   const strictness = $derived<Strictness>((["relaxed", "normal", "strict"] as const).find((x) => x === s.strictness) ?? "normal");
@@ -131,6 +135,7 @@
   let mode = $state<DrillMode>("practice");
   let status = $state("");
   let fs = $state.raw<FollowerState | null>(null);
+  let kfs = $state.raw<FollowerState | null>(null);
   let live = $state.raw<LiveState | null>(null);
   let startAt = $state(0);
   let now = $state(0);
@@ -232,10 +237,11 @@
     const octaveExact = instrument === "piano" || aero;
     startAt = ctx.downbeat;
     fs = follower === "wait" ? waitStart(followGroups, octaveExact) : performanceStart(followGroups, { bpm, startAt, strictness, octaveExact });
+    kfs = kick ? performanceStart(kickGroups(score.lengthBeats), { bpm, startAt, strictness, octaveExact: true }) : null;
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: modeDef.exerciseId,
-      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${meter}|${tapping ? "tap" : follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}|${range.join("-")}|${s.mask}`,
+      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${meter}|${tapping ? "tap" : follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}|${range.join("-")}|${s.mask}${kick ? "|kick" : ""}`,
       skillIds: sightReadingSkills(score),
       capabilities: ["reading"],
       modality: "read",
@@ -256,12 +262,13 @@
         high: range[1],
         mask: s.mask,
         look: s.look,
+        ...(kick ? { kick } : {}),
         ...(position ? { position: position.value } : {}),
       },
     });
     // Scored input starts at the downbeat (after any count-in).
     cap = capture(follower === "performance" ? ctx.downbeat - beatMs / 2 : performance.now(), (e) => e.kind === "noteon" && onNote(e));
-    status = follower === "wait" ? "Play what the cursor shows. It waits for you." : tapping ? "Tap the rhythm: any key, the Tap button or Space." : "Go.";
+    status = follower === "wait" ? "Play what the cursor shows. It waits for you." : tapping ? `Tap the rhythm: any key, the Tap button or Space.${kick ? " Kick every beat: a kick pad or the Kick button." : ""}` : "Go.";
     loop();
   }
 
@@ -276,6 +283,11 @@
     setTimeout(() => (pressed = false), 90);
     fs = followerInput(fs, { kind: "noteon", midi: TAP_MIDI, velocity: 0.8, at, source: "onscreen", confidence: 1 });
   }
+  function kickTap(at: number) {
+    if (!kfs || (phase !== "running" && phase !== "countin")) return;
+    audio.drum(KICK_MIDI, 0.7);
+    kfs = followerInput(kfs, { kind: "noteon", midi: KICK_MIDI, velocity: 0.8, at, source: "onscreen", confidence: 1 });
+  }
   function onKey(e: KeyboardEvent) {
     if (!tapping || e.code !== "Space" || e.repeat) return;
     const t = e.target as HTMLElement | null;
@@ -288,7 +300,8 @@
     if (!fs || phase !== "running") return;
     if (tapping) {
       if (e.source === "audio") return;
-      fs = followerInput(fs, { ...e, midi: TAP_MIDI });
+      if (kfs && isKick(e.midi)) kfs = followerInput(kfs, { ...e, midi: KICK_MIDI });
+      else fs = followerInput(fs, { ...e, midi: TAP_MIDI });
       return;
     }
     if (useMic ? e.source !== "audio" : e.source === "audio") return;
@@ -337,20 +350,24 @@
     const notes = cap?.notes ?? [];
     teardown();
     const r = followerResult(st);
+    // With the kick lane, its quarters count beside the taps.
+    const kr = kfs ? (followerResult(kfs) as PerformanceResult) : null;
+    kfs = null;
+    const lanes = combineLanes({ score: r.score, correct: r.correct, n: groups.length }, kr && { score: kr.score, correct: kr.correct, n: kr.expected });
     result = r;
     missed = missedGroups(r, st);
     live = liveState(st, performance.now() + 1e6);
     phase = "results";
     await run!.attempt({
       promptId: score.id,
-      correct: r.correct,
-      partialCredit: r.score,
+      correct: lanes.correct,
+      partialCredit: lanes.score,
       metrics: r.metrics,
       source: runSource(st.mode === "performance" ? st.notes : notes),
       target: groups.flatMap((g) => g.notes.map((n) => n.midi)),
       instrument: runInstrument(st.mode === "performance" ? st.notes : notes, instrument) ?? null,
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
+    const fin = await run!.finish({ score: lanes.score, correct: lanes.correct, headline: pct(lanes.score) });
     const perf = "groupVerdicts" in r ? r : null;
     const wait = "cleanGroups" in r ? r : null;
     summary = {
@@ -361,11 +378,11 @@
         : wait!.cleanGroups === wait!.total
           ? `Every group clean, ${wait!.total} of ${wait!.total}.`
           : `${wait!.cleanGroups} of ${wait!.total} groups clean, ${wait!.wrongNotes} wrong note${wait!.wrongNotes === 1 ? "" : "s"} on the way.`,
-      metric: pct(r.score),
+      metric: pct(lanes.score),
       metricLabel: perf ? "score" : "groups clean",
       delta: fin.delta,
       best: fin.best,
-      clean: r.correct && follower === "performance" && mode === "check",
+      clean: lanes.correct && follower === "performance" && mode === "check",
       xp: fin.xp,
       assistance:
         follower === "wait"
@@ -379,6 +396,7 @@
             { label: "On time", value: perf.matched ? perf.onTime / perf.matched : 0, text: `${perf.onTime} on time, ${perf.early} early, ${perf.late} late` },
             { label: "Extra notes", text: String(perf.extra) },
             { label: "Mean timing error", text: `${Math.round(perf.meanAbsErrorMs)} ms` },
+            ...(kr ? [{ label: "Kick on every beat", value: kr.score, text: `${kr.matched} of ${kr.expected}, ${kr.onTime} on time` }] : []),
           ]
         : [
             { label: "Groups clean", value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
@@ -387,7 +405,7 @@
           ],
     };
     // The climb is its own advance; otherwise the next run by the shared rule, when something was played.
-    if (!climbing && (st.mode === "performance" ? st.notes : notes).length) summary.advance = await advanceAfter(r.score, r.correct);
+    if (!climbing && (st.mode === "performance" ? st.notes : notes).length) summary.advance = await advanceAfter(lanes.score, lanes.correct);
     if (climbing && climb) {
       const was = climb;
       climb = climbAfter(was, r.score, rungs.length);
@@ -434,6 +452,7 @@
   function stop() {
     teardown();
     fs = null;
+    kfs = null;
     live = null;
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
@@ -551,7 +570,7 @@
     ...(s.mask ? [{ text: `${s.mask} beats ahead`, focus: "mask" }] : []),
     ...(position ? [{ text: `${position.label.toLowerCase()} position`, focus: "position" }] : []),
     follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `${tapping ? "taps" : "keeps time"} at ${bpm} BPM${swing ? ", swung" : ""}, ${strictness} window`, focus: "strictness" },
-    { text: tapping ? "tapping the rhythm" : `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted && !tapping ? "input" : undefined },
+    { text: tapping ? `tapping the rhythm${kick ? ", kick on every beat" : ""}` : `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted && !tapping ? "input" : undefined },
   ]);
   // Wait mode is guided whichever way the shell's switch is set.
   const modeNotes = $derived(
@@ -633,6 +652,32 @@
     {/if}
     <div class="mt-4">
       {#if tapping}
+        <div class="flex flex-wrap items-start justify-center gap-6">
+        {#if kick}
+          <div class="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              class="tap kick"
+              aria-label="Kick"
+              disabled={phase !== "running" && phase !== "countin"}
+              onpointerdown={(e) => {
+                if (e.button > 0) return;
+                e.preventDefault();
+                kickTap(e.timeStamp || performance.now());
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" && !e.repeat) {
+                  e.preventDefault();
+                  kickTap(e.timeStamp || performance.now());
+                }
+              }}
+            >
+              <span class="font-display text-2xl font-bold">Kick</span>
+              <span class="text-xs opacity-80">every beat</span>
+            </button>
+            <p class="text-center text-xs text-ws-stage-soft">A kick pad (MIDI 36) counts too.</p>
+          </div>
+        {/if}
         <div class="flex flex-col items-center gap-2">
           <button
             type="button"
@@ -657,6 +702,7 @@
             <span class="text-xs opacity-80">or Space</span>
           </button>
           <p class="text-center text-xs text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is graded.</p>
+        </div>
         </div>
       {:else if useMic}
         <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
@@ -703,6 +749,10 @@
     transition: transform 60ms ease-out, box-shadow 60ms ease-out;
     touch-action: manipulation;
     user-select: none;
+  }
+  .tap.kick {
+    width: 6.5rem;
+    height: 6.5rem;
   }
   .tap:disabled {
     opacity: 0.55;

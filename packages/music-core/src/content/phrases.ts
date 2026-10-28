@@ -32,6 +32,10 @@ export interface Phrase {
   meter?: [beats: number, unit: number];
   /** Key signature in fifths (flats negative). */
   keyFifths: number;
+  /** Quarter beats to a click when it isn't one: 1.5 counts 12/8 in dotted quarters (bpm is clicks). */
+  click?: number;
+  /** Piano: notes below this MIDI note are the left hand, drawn on a grand staff. */
+  split?: number;
   steps: PhraseStep[];
 }
 
@@ -75,6 +79,260 @@ const ch = (beats: number, notes: [midi: number, string?: number, fret?: number]
   notes.map((n) => n[0]),
   beats,
   notes[0][1] === undefined ? undefined : notes.map((n) => [n[1]!, n[2]!] as [number, number]),
+];
+
+/** A step moved by `shift` semitones (positions dropped: piano only). */
+const shiftStep = (step: PhraseStep, shift: number): PhraseStep => {
+  const [head, beats] = step;
+  if (head === null) return step;
+  return Array.isArray(head) ? [head.map((m) => m + shift), beats] : [head + shift, beats];
+};
+type Piano = Omit<Phrase, "instrument">;
+/** One piano riff in several keys: [id suffix and title key, semitones from the written key, key signature]. */
+const inKeys = (p: Piano, keys: [name: string, shift: number, fifths: number][]): Piano[] =>
+  keys.map(([name, shift, keyFifths]) => ({
+    ...p,
+    id: `${p.id}-${name.toLowerCase()}`,
+    title: `${p.title} in ${name}`,
+    keyFifths,
+    ...(p.split === undefined ? {} : { split: p.split + shift }),
+    steps: p.steps.map((x) => shiftStep(x, shift)),
+  }));
+const C_F: [string, number, number][] = [
+  ["C", 0, 0],
+  ["F", 5, -1],
+];
+
+/**
+ * Piano riffs and fills: the shared vocabulary of blues, gospel and rock piano,
+ * written for this app (no transcription). Chords put the left hand below middle C.
+ */
+const RIFF = { source: "Blues vocabulary", beatsPerBar: 4, keyFifths: 0, split: 60 };
+const PIANO_RIFFS: Piano[] = [
+  // I I7 IV #IVdim I VI7 ii V7, a chord every two beats.
+  ...inKeys(
+    {
+      ...RIFF,
+      id: "piano.blues-turnaround",
+      title: "Blues turnaround",
+      style: "Blues",
+      why: "I, I7, IV, sharp IV diminished, I, VI7, ii, V7: the last four bars of a blues, the left hand walking up under them.",
+      level: 2,
+      bpm: 90,
+      steps: [
+        ch(2, [[48], [64], [67], [72]]),
+        ch(2, [[48], [64], [67], [70]]),
+        ch(2, [[53], [65], [69], [72]]),
+        ch(2, [[54], [66], [69], [72]]),
+        ch(2, [[55], [64], [67], [72]]),
+        ch(2, [[57], [64], [67], [73]]),
+        ch(2, [[50], [65], [69], [72]]),
+        ch(2, [[55], [65], [71], [74]]),
+      ],
+    },
+    C_F,
+  ),
+  // Down chromatically from the root to the fifth over the low root, then bII7 to I.
+  ...inKeys(
+    {
+      ...RIFF,
+      id: "piano.blues-ending",
+      title: "Chromatic blues ending",
+      style: "Blues",
+      why: "The top line slides down from the root to the fifth over the bass, then the flat II seventh falls into the tonic: the way a blues says goodbye.",
+      level: 2,
+      bpm: 90,
+      steps: [
+        ...[72, 71, 70, 69, 68, 67].map((m) => ch(0.5, [[48], [m]])),
+        ch(1, [[49], [65], [68], [71]]),
+        ch(4, [[48], [64], [70], [74]]),
+      ],
+    },
+    C_F,
+  ),
+  // I, IV over I, minor iv6 over I, I.
+  ...inKeys(
+    {
+      ...RIFF,
+      source: "Gospel vocabulary",
+      id: "piano.amen-ending",
+      title: "Amen ending",
+      style: "Gospel",
+      why: "The plagal close over a held tonic, with the minor four on the way home: the Amen at the end of a hymn or a gospel tune.",
+      level: 2,
+      bpm: 70,
+      steps: [
+        ch(2, [[48], [64], [67], [72]]),
+        ch(2, [[48], [65], [69], [72]]),
+        ch(2, [[48], [65], [68], [74]]),
+        ch(2, [[48], [64], [67], [72]]),
+      ],
+    },
+    C_F,
+  ),
+  // vii half-diminished, III7, vi7, ii7, V7, I: round the circle of fifths home.
+  ...inKeys(
+    {
+      ...RIFF,
+      source: "Gospel vocabulary",
+      id: "piano.seven-three-six",
+      title: "7-3-6-2-5-1 turnaround",
+      style: "Gospel",
+      why: "Six roots a fifth apart walking home, the right hand moving a note or two each time: the turnaround under gospel and soul endings.",
+      level: 3,
+      bpm: 80,
+      steps: [
+        ch(2, [[47], [65], [69], [74]]),
+        ch(2, [[52], [64], [68], [74]]),
+        ch(2, [[45], [64], [67], [72]]),
+        ch(2, [[50], [65], [69], [72]]),
+        ch(2, [[43], [65], [71], [74]]),
+        ch(4, [[48], [64], [67], [72]]),
+      ],
+    },
+    C_F,
+  ),
+  {
+    ...RIFF,
+    source: "Rock and roll vocabulary",
+    id: "piano.rock-triplets",
+    title: "Rock and roll triplets",
+    style: "Rock and roll",
+    why: "The right hand pounds a chord in triplets while the left hand walks a boogie: 1950s rock and roll piano. Written in 12/8, a click to each group of three.",
+    level: 3,
+    bpm: 140,
+    beatsPerBar: 6,
+    meter: [12, 8],
+    click: 1.5,
+    steps: [
+      ...[48, 52, 55, 57].flatMap((lh) => [
+        ch(0.5, [[lh], [67], [72], [76]]),
+        ch(0.5, [[67], [72], [76]]),
+        ch(0.5, [[67], [72], [76]]),
+      ]),
+      ...[41, 45, 48, 50].flatMap((lh) => [
+        ch(0.5, [[lh], [69], [72], [77]]),
+        ch(0.5, [[69], [72], [77]]),
+        ch(0.5, [[69], [72], [77]]),
+      ]),
+    ],
+  },
+  // Fills at the end of a phrase, in C, F and G.
+  ...[
+    {
+      id: "piano.fill-pentatonic-run",
+      title: "Pentatonic run down",
+      why: "A major pentatonic run in sixteenths from the top, filling the bar before the next phrase lands on the chord.",
+      steps: [
+        ch(2, [[48], [64], [67], [72]]),
+        ...each(0.25, 81, 79, 76, 74, 72, 69, 67, 64),
+        ch(4, [[48], [60], [64], [67]]),
+      ],
+    },
+    {
+      id: "piano.fill-grace-slide",
+      title: "Grace-note slide",
+      why: "A quick slide from the flat third into the third, then the fifth and home: the crushed note of blues and pop piano.",
+      steps: [
+        ch(2, [[48], [64], [67], [72]]),
+        [75, 0.25],
+        [76, 0.75],
+        [79, 0.5],
+        [76, 0.5],
+        ch(4, [[48], [64], [67], [72]]),
+      ] as PhraseStep[],
+    },
+    {
+      id: "piano.fill-octave-pickup",
+      title: "Octave pickup",
+      why: "Octaves climbing 5, 6, 7 into the tonic on the next downbeat: the pickup that lifts a ballad into its next phrase.",
+      steps: [
+        ch(2, [[48], [64], [67], [72]]),
+        r(0.5),
+        ch(0.5, [[67], [79]]),
+        ch(0.5, [[69], [81]]),
+        ch(0.5, [[71], [83]]),
+        ch(4, [[48], [72], [84]]),
+      ],
+    },
+  ].flatMap((x) =>
+    inKeys(
+      { ...RIFF, ...x, source: "Pop and ballad vocabulary", style: "Pop fills", level: 3, bpm: 80 },
+      [
+        ["C", 0, 0],
+        ["F", 5, -1],
+        ["G", -5, 1],
+      ],
+    ),
+  ),
+  // Rock piano fills, a turn in 3/4 and an octave run in 4/4, in C and G.
+  ...inKeys(
+    {
+      ...RIFF,
+      source: "Rock piano vocabulary",
+      id: "piano.rock-turn-waltz",
+      title: "Waltz turn",
+      style: "Rock piano",
+      why: "A turn around the fifth that falls to the root in 3/4, the right-hand fill of a piano-bar waltz, then the chord.",
+      level: 3,
+      bpm: 100,
+      beatsPerBar: 3,
+      steps: [
+        ...each(0.25, 67, 69, 67, 66),
+        [67, 1],
+        [64, 0.5],
+        [60, 0.5],
+        ch(3, [[48], [55], [64], [67]]),
+      ] as PhraseStep[],
+    },
+    [
+      ["C", 0, 0],
+      ["G", -5, 1],
+    ],
+  ),
+  ...inKeys(
+    {
+      ...RIFF,
+      source: "Rock piano vocabulary",
+      id: "piano.rock-octave-run",
+      title: "Octave run down",
+      style: "Rock piano",
+      why: "Right-hand octaves down the major scale in eighths, landing on the chord: the big fill of a rock ballad.",
+      level: 3,
+      bpm: 80,
+      steps: [
+        ...[84, 83, 81, 79, 77, 76, 74, 72].map((m) => ch(0.5, [[m - 12], [m]])),
+        ch(4, [[48], [60], [64], [67], [72]]),
+      ],
+    },
+    [
+      ["C", 0, 0],
+      ["G", -5, 1],
+    ],
+  ),
+  // Gospel runs and pentatonic fills, in C and F.
+  ...[
+    {
+      id: "piano.gospel-pentatonic",
+      title: "Gospel pentatonic run",
+      why: "Down the major pentatonic with a grace note into each third: the run a gospel player throws in between lines.",
+      steps: [...each(0.25, 75, 76, 74, 72, 69, 67, 63, 64), ch(2, [[48], [64], [67], [72]])],
+    },
+    {
+      id: "piano.gospel-653",
+      title: "The 6-5-3 run",
+      why: "Six, five, three, then again an octave down, landing on the chord: the most used gospel run.",
+      steps: [r(0.5), ...each(0.25, 81, 79, 76, 69, 67, 64), ch(2, [[48], [60], [64], [67]])],
+    },
+    {
+      id: "piano.gospel-octave-tremolo",
+      title: "Octave tremolo",
+      why: "The right hand rocks between thumb and pinky an octave apart to sustain the top note, then lands on the chord.",
+      steps: [...each(0.25, 72, 84, 72, 84, 72, 84, 72, 84), ch(2, [[48], [64], [67], [72]])],
+    },
+  ].flatMap((x) =>
+    inKeys({ ...RIFF, ...x, source: "Gospel vocabulary", style: "Gospel", level: 3, bpm: 80 }, C_F),
+  ),
 ];
 
 const PIANO: Omit<Phrase, "instrument">[] = [
@@ -389,6 +647,7 @@ const PIANO: Omit<Phrase, "instrument">[] = [
       ]),
     ],
   },
+  ...PIANO_RIFFS,
 ];
 
 const GUITAR: Omit<Phrase, "instrument">[] = [
@@ -983,6 +1242,157 @@ const GUITAR: Omit<Phrase, "instrument">[] = [
       f(64, 1, 3, 9),
       f(62, 2, 4, 12),
     ],
+  },
+  // Chord embellishments: standard rhythm-guitar vocabulary, no song's part.
+  {
+    id: "guitar.hammer-on-chords",
+    title: "Hammer-ons into chords",
+    style: "Rhythm guitar",
+    why: "Strum the chord with one finger still lifted, then hammer it down: the decoration soul and rock players hang on Am, C, Em and D.",
+    source: "Rhythm guitar vocabulary",
+    level: 2,
+    bpm: 80,
+    beatsPerBar: 4,
+    keyFifths: 0,
+    steps: [
+      ch(1, [
+        [45, 5, 0],
+        [52, 4, 2],
+        [55, 3, 0],
+        [60, 2, 1],
+      ]),
+      f(57, 1, 3, 2),
+      ch(1, [
+        [48, 5, 3],
+        [50, 4, 0],
+        [55, 3, 0],
+        [60, 2, 1],
+      ]),
+      f(52, 1, 4, 2),
+      ch(1, [
+        [40, 6, 0],
+        [45, 5, 0],
+        [50, 4, 0],
+      ]),
+      f(47, 0.5, 5, 2),
+      f(52, 0.5, 4, 2),
+      ch(1, [
+        [50, 4, 0],
+        [57, 3, 2],
+        [62, 2, 3],
+        [64, 1, 0],
+      ]),
+      f(66, 1, 1, 2),
+    ],
+  },
+  {
+    id: "guitar.sus-to-major",
+    title: "Sus to major",
+    style: "Rhythm guitar",
+    why: "Dsus4, D, Dsus2, D, then the same on A: one finger lifting and landing on the top strings while the chord rings.",
+    source: "Rhythm guitar vocabulary",
+    level: 2,
+    bpm: 80,
+    beatsPerBar: 4,
+    keyFifths: 2,
+    steps: [
+      ...[67, 66, 64, 66].map((top) =>
+        ch(1, [
+          [50, 4, 0],
+          [57, 3, 2],
+          [62, 2, 3],
+          [top, 1, top - 64],
+        ]),
+      ),
+      ...(
+        [
+          [62, 3],
+          [61, 2],
+          [59, 0],
+          [61, 2],
+        ] as const
+      ).map(([b, fret]) =>
+        ch(1, [
+          [45, 5, 0],
+          [52, 4, 2],
+          [57, 3, 2],
+          [b, 2, fret],
+          [64, 1, 0],
+        ]),
+      ),
+    ],
+  },
+  {
+    id: "guitar.add9-moves",
+    title: "Add9 moves",
+    style: "Rhythm guitar",
+    why: "G, Cadd9, Dsus4 and Em7 with the ring and pinky fingers anchored on strings 2 and 1 at fret 3: the acoustic pop change.",
+    source: "Rhythm guitar vocabulary",
+    level: 2,
+    bpm: 80,
+    beatsPerBar: 4,
+    keyFifths: 1,
+    steps: [
+      ch(2, [
+        [43, 6, 3],
+        [47, 5, 2],
+        [50, 4, 0],
+        [55, 3, 0],
+        [62, 2, 3],
+        [67, 1, 3],
+      ]),
+      ch(2, [
+        [48, 5, 3],
+        [52, 4, 2],
+        [55, 3, 0],
+        [62, 2, 3],
+        [67, 1, 3],
+      ]),
+      ch(2, [
+        [50, 4, 0],
+        [57, 3, 2],
+        [62, 2, 3],
+        [67, 1, 3],
+      ]),
+      ch(2, [
+        [40, 6, 0],
+        [47, 5, 2],
+        [52, 4, 2],
+        [55, 3, 0],
+        [62, 2, 3],
+        [67, 1, 3],
+      ]),
+    ],
+  },
+  {
+    // Written in 12/8 so the long-short shuffle is plain quarters and eighths.
+    id: "guitar.texas-shuffle",
+    title: "Texas shuffle in E",
+    style: "Texas blues",
+    why: "The low-string boogie stretched to 5, 6, flat 7, 6 in a hard long-short shuffle, through E, A, E and B: the engine under Texas blues. A click to each dotted quarter.",
+    source: "Blues vocabulary",
+    level: 3,
+    bpm: 120,
+    beatsPerBar: 6,
+    meter: [12, 8],
+    click: 1.5,
+    keyFifths: 4,
+    steps: (
+      [
+        [40, 6, 0, 5, 0],
+        [45, 5, 0, 4, 0],
+        [40, 6, 0, 5, 0],
+        [47, 5, 2, 4, 2],
+      ] as const
+    ).flatMap(([root, rs, rf, us, base]) =>
+      [2, 4, 5, 4].flatMap((up) => {
+        const dyad: [number, number, number][] = [
+          [root, rs, rf],
+          [root + 7 + up - 2, us, base + up],
+        ];
+        return [ch(1, dyad), ch(0.5, dyad)];
+      }),
+    ),
   },
 ];
 
@@ -2009,3 +2419,79 @@ export const PHRASES: Phrase[] = [
 /** One instrument's phrases, easiest first. */
 export const phrasesFor = (instrument: PhraseInstrument) =>
   PHRASES.filter((p) => p.instrument === instrument).sort((a, b) => a.level - b.level);
+
+// ---------------------------------------------------------------------------
+// Your licks: a line saved from Learn by ear or a transcription, drilled in any key.
+
+/** Note values the staff draws, longest first. */
+const PLAIN = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25];
+/** Beats as plain values (2.25 is 2 then 0.25), to the nearest sixteenth. */
+function plainParts(beats: number): number[] {
+  const out: number[] = [];
+  let left = Math.round(beats * 4) / 4;
+  while (left >= 0.25) {
+    const v = PLAIN.find((p) => p <= left + 1e-9)!;
+    out.push(v);
+    left -= v;
+  }
+  return out;
+}
+
+/**
+ * A played or transcribed line as phrase steps, snapped to sixteenths from its
+ * first note: notes that start together are a chord, each sounds until the next
+ * starts (or for its own length if shorter, the rest a rest), at most `maxBeats`.
+ */
+export function stepsFromNotes(
+  notes: readonly { midi: number; startBeat: number; durationBeats: number }[],
+  maxBeats = 16,
+): PhraseStep[] {
+  if (!notes.length) return [];
+  const snap = (b: number) => Math.round(b * 4) / 4;
+  const t0 = snap(Math.min(...notes.map((n) => n.startBeat)));
+  const groups = new Map<number, { midis: number[]; dur: number }>();
+  for (const n of notes) {
+    const at = snap(n.startBeat) - t0;
+    if (at >= maxBeats) continue;
+    const g = groups.get(at) ?? { midis: [], dur: 0 };
+    if (!g.midis.includes(n.midi)) g.midis.push(n.midi);
+    g.dur = Math.max(g.dur, snap(n.durationBeats));
+    groups.set(at, g);
+  }
+  const starts = [...groups.keys()].sort((a, b) => a - b);
+  const steps: PhraseStep[] = [];
+  starts.forEach((at, i) => {
+    const g = groups.get(at)!;
+    const next = starts[i + 1] ?? Math.min(maxBeats, at + Math.max(1, g.dur));
+    // The longest plain value that fits sounds; what is left until the next note is rest.
+    const [sound] = plainParts(Math.max(0.25, Math.min(g.dur || next - at, next - at)));
+    const midis = [...g.midis].sort((a, b) => a - b);
+    steps.push(midis.length > 1 ? [midis, sound] : [midis[0], sound]);
+    for (const b of plainParts(next - at - sound)) steps.push([null, b]);
+  });
+  return steps;
+}
+
+export interface UserLick {
+  id: string;
+  title: string;
+  bpm: number;
+  /** Where it came from: "Learn by ear" or "a transcription". */
+  from: string;
+  steps: PhraseStep[];
+}
+
+/** A saved lick as a phrase on any instrument (it carries no strings or frets). */
+export const userPhrase = (l: UserLick, instrument: PhraseInstrument): Phrase => ({
+  id: l.id,
+  instrument,
+  title: l.title,
+  style: "Your lick",
+  why: `Saved from ${l.from}. Take it through the keys.`,
+  source: `Saved from ${l.from}`,
+  level: 3,
+  bpm: l.bpm,
+  beatsPerBar: 4,
+  keyFifths: 0,
+  steps: l.steps,
+});

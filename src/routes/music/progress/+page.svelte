@@ -25,7 +25,7 @@
         What to play next, how each skill stands, and what you actually did. <a
           class="font-semibold text-instr-ink underline underline-offset-4"
           href="/music/journal">Open the journal</a
-        >
+        >, or <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/tunes">your tunes</a>, each standard's ladder and what is due for review.
       </p>
     </div>
     <HubTabs param="view" tabs={TABS} label="Progress views" />

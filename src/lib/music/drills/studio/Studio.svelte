@@ -22,7 +22,7 @@
   import { TUNINGS } from "@repo/music-core/data/index";
   import { transposeFifths, transposeScore, writtenOffset } from "@repo/music-core/theory/transposition";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
-  import { GROOVE_VOICES, hitDrumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
+  import { GROOVE_VOICES, hitDrumKey } from "@repo/music-core/content/winds-pads";
   import {
     aggregateTakes,
     followerInput,
@@ -49,7 +49,7 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeExpression, gradeVibrato, gradedDrums, hideBefore, noStopVerdict, passMarks, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
+  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, retryBpm, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
@@ -77,16 +77,32 @@
     memory: "off" as string,
     transpose: 0,
     grade: "notes" as string,
+    tap: false as boolean,
+    partner: false as boolean,
   });
   const s = $derived(setup.value);
   // Performance and No-stop keep time; No-stop is one take that never stops for a slip.
-  const noStop = $derived(s.mode === "no-stop");
+  // Sight-read is a No-stop pass after a 30 second look, read at sight only on the song's first run.
+  const sightRead = $derived(s.mode === "sight-read");
+  const noStop = $derived(s.mode === "no-stop" || sightRead);
   const perfMode = $derived(s.mode === "performance" || noStop);
+  let loaded = $state(false);
+  void practice.ready.then(() => (loaded = true));
+  const firstRun = $derived(
+    loaded &&
+      isFirstRun(
+        practice.sessions.flatMap((x) => x.runs),
+        score.id,
+        song.shelf,
+      ),
+  );
+  // Tap the rhythm: any key, pad or MIDI note (or Space) at each onset; only the timing is graded.
+  const tap = $derived(perfMode && s.tap);
   const transpose = $derived(clamp(Math.round(s.transpose) || 0, -6, 6));
   const memory = $derived(s.memory === "look" || s.memory === "bars" ? s.memory : "off");
   const hasMarks = $derived(!!(score.dynamics?.length || score.hairpins?.length || score.breaths?.length));
   /** What else a timed run grades: the score's dynamics and breaths, or vibrato on held notes. */
-  const grade = $derived(perfMode && ((s.grade === "dynamics" && hasMarks) || s.grade === "vibrato") ? s.grade : "notes");
+  const grade = $derived(perfMode && !tap && ((s.grade === "dynamics" && hasMarks) || s.grade === "vibrato" || s.grade === "balance") ? s.grade : "notes");
   const bpm = $derived(clamp(Math.round(s.bpm) || score.bpm, 20, 300));
   const takes = $derived(perfMode && !noStop ? ([1, 2, 4, 8].includes(s.takes) ? s.takes : 1) : 1);
   const tuning = $derived(TUNING_LIST.find((t) => t.id === s.tuning) ?? TUNING_LIST[0]);
@@ -102,6 +118,9 @@
   let pickedSections = $state<number[]>([]);
   const voiceIds = $derived(choices.filter((c) => picked.includes(c.id)).flatMap((c) => c.voiceIds));
   const drums = $derived(voiceIds.length > 0 && voiceIds.every((id) => drumIds.has(id)));
+  // The duet partner: the app plays the parts you don't, in time with the take.
+  const others = $derived(choices.filter((c) => !picked.includes(c.id)));
+  const partner = $derived(perfMode && s.partner && others.length > 0);
 
   const VIEWS = [
     { id: "staff", label: "Staff" },
@@ -133,7 +152,8 @@
 
   const plans = $derived(planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }));
   // Drums are graded by drum: the follower sees each drum's key, never its pitch.
-  const passes = $derived(plans.map((segs) => buildPass(drums ? gradedDrums(played) : played, voiceIds, segs, sections)));
+  // Tapping, the follower sees one note at each onset of the selected voices.
+  const passes = $derived(plans.map((segs) => (tap ? buildPass(tapScore(played, voiceIds), [TAP_VOICE], segs, sections) : buildPass(drums ? gradedDrums(played) : played, voiceIds, segs, sections))));
   /** The hand of the selected voice sounding `midi` in the group at `beat`. */
   const handAt = (midi: number, beat: number | null) => {
     if (beat === null) return undefined;
@@ -146,7 +166,7 @@
   let staffFailed = $state<string | null>(null);
 
   // ---- Run state ------------------------------------------------------
-  type Phase = "ready" | "countin" | "running" | "results";
+  type Phase = "ready" | "look" | "countin" | "running" | "results";
   interface Done {
     pass: number;
     take: number;
@@ -174,10 +194,16 @@
   let metro: { stop(): void } | null = null;
   let timers: ReturnType<typeof setTimeout>[] = [];
   const flashes = new Flashes();
-  const live = $derived(phase === "running" || phase === "countin");
+  let partnerSeq: SequenceHandle | null = null;
+  let runFirst = false;
+  const live = $derived(phase === "running" || phase === "countin" || phase === "look");
+  // Sight-read on a first run: the notes stay hidden until the look starts.
+  const unseen = $derived(sightRead && phase === "ready" && (!loaded || firstRun));
+  let lookEnds = $state(0);
+  const lookLeft = $derived(Math.max(0, Math.ceil((lookEnds - now) / 1000)));
   // From memory: during a run the notes are hidden, all of them after the look, or bar by bar from the start.
   let memBars = $state(1);
-  const hideBeat = $derived(live && memory !== "off" ? (memory === "look" ? played.lengthBeats + 1 : Math.min(memBars * barLen, played.lengthBeats)) : 0);
+  const hideBeat = $derived(unseen ? played.lengthBeats + 1 : live && phase !== "look" && memory !== "off" ? (memory === "look" ? played.lengthBeats + 1 : Math.min(memBars * barLen, played.lengthBeats)) : 0);
   const shown = $derived(hideBefore(played, hideBeat));
   const viewGroups = $derived(viewGroupsOf(shown, voiceIds));
   const sides = $derived(voiceSides(played, voiceIds));
@@ -221,7 +247,7 @@
       return out;
     }
     // From memory the keys don't show what comes next.
-    if (live && ls && memory === "off") for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
+    if (live && ls && memory === "off" && !tap) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
     return out;
   });
 
@@ -236,15 +262,7 @@
     await audio.unlock();
     // The score's own drums (not the graded keys), on the app's kit.
     const pass = buildPass(played, voiceIds, plans[0], sections);
-    const beatS = 60 / bpm;
-    const notes = pass.groups.flatMap((g) =>
-      g.notes.map((n) => ({
-        ...(drumIds.has(n.voiceId) ? { midi: scoreDrumPad(n.midi), voice: "kit" as const } : { midi: n.midi }),
-        time: g.startBeat * beatS,
-        duration: Math.max(0.08, n.durationBeats * beatS * 0.95),
-        velocity: n.velocity ?? 0.8,
-      })),
-    );
+    const notes = passSequence(pass, bpm, (id) => drumIds.has(id));
     previewPass = pass;
     const h = audio.playSequence(notes);
     preview = h;
@@ -286,9 +304,16 @@
     flashes.clear();
     queue = passes.flatMap((_, p) => Array.from({ length: takes }, (_, t) => ({ pass: p, take: t })));
     qi = 0;
+    // Read at sight only when no earlier run played this song.
+    await practice.ready;
+    const first = (runFirst = isFirstRun(
+      practice.sessions.flatMap((x) => x.runs),
+      score.id,
+      song.shelf,
+    ));
     run = practice.beginRun({
       exerciseId: "song.studio",
-      setupKey: `${score.id}|${s.mode}|${passes.map((p) => p.label).join("+")}|${voiceIds.join(",")}|${bpm}|${s.strictness}${transpose ? `|t${transpose}` : ""}${memory !== "off" ? `|${memory}` : ""}${grade !== "notes" ? `|${grade}` : ""}`,
+      setupKey: `${score.id}|${s.mode}|${passes.map((p) => p.label).join("+")}|${voiceIds.join(",")}|${bpm}|${s.strictness}${transpose ? `|t${transpose}` : ""}${memory !== "off" ? `|${memory}` : ""}${grade !== "notes" ? `|${grade}` : ""}${tap ? "|tap" : ""}${partner ? "|partner" : ""}`,
       // Imported songs never write mastery: no skills, deliberately.
       skillIds: [],
       capabilities: ["reading"],
@@ -310,8 +335,24 @@
         ...(memory !== "off" ? { memory } : {}),
         ...(memory === "bars" ? { hiddenBars: memBars } : {}),
         ...(transpose ? { transpose } : {}),
+        firstRun: first,
+        ...(tap ? { tap } : {}),
+        ...(partner ? { partner } : {}),
       },
     });
+    if (!sightRead) return beginTake();
+    // Sight-read: look for 30 seconds (nothing to play yet), then one pass in time.
+    phase = "look";
+    startAt = 0;
+    now = performance.now();
+    lookEnds = now + SIGHT_LOOK_S * 1000;
+    status = `Look for ${SIGHT_LOOK_S} seconds: the key, the meter, the rhythms and the hardest bar. Then one pass in time, without stopping.${first ? "" : " You've played this song here before, so it won't count as a sight-read."}`;
+    timers.push(setTimeout(endLook, SIGHT_LOOK_S * 1000));
+  }
+
+  function endLook() {
+    if (phase !== "look") return;
+    clearTimers();
     beginTake();
   }
 
@@ -345,7 +386,20 @@
     startAt = downbeat;
     fstate = performanceStart(pass.groups, { bpm, startAt: downbeat, strictness: s.strictness as "relaxed" | "normal" | "strict", octaveExact, sections: pass.sections });
     phase = "countin";
-    status = `${noStop ? "No-stop run: keep going through any slip" : `Take ${item.take + 1} of ${takes}`}${passes.length > 1 ? `, ${pass.label}` : ""}. Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
+    status = `${sightRead ? "Sight-read: one pass, keep going through any slip" : noStop ? "No-stop run: keep going through any slip" : `Take ${item.take + 1} of ${takes}`}${passes.length > 1 ? `, ${pass.label}` : ""}.${tap ? " Tap the rhythm: any key, pad or MIDI note, or Space." : ""} Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
+    if (partner)
+      partnerSeq = audio.playSequence(
+        passSequence(
+          buildPass(
+            played,
+            others.flatMap((c) => c.voiceIds),
+            pass.segments,
+          ),
+          bpm,
+          (id) => drumIds.has(id),
+        ),
+        { startPerf: downbeat },
+      );
     // Scored input only after the count-in, so the speakers cannot bleed into the take.
     cap = capture(downbeat - beatMs / 2, onInput);
     timers.push(
@@ -362,11 +416,12 @@
 
   function onInput(e: InputEvent) {
     if ((e.kind !== "noteon" && e.kind !== "noteoff") || !fstate) return;
-    const ev = drums ? { ...(e as NoteEvent), midi: hitDrumKey((e as NoteEvent).midi) } : (e as NoteEvent);
+    const raw = e as NoteEvent;
+    const ev = tap ? { ...raw, midi: TAP_MIDI } : drums ? { ...raw, midi: hitDrumKey(raw.midi) } : raw;
     if (ev.kind === "noteon") {
       const expected = liveState(fstate, performance.now()).expected;
       const hit = expected.some((m) => (octaveExact ? m === ev.midi : pc(m) === pc(ev.midi)));
-      flashes.add(ev.midi, hit ? "correct" : "wrong");
+      flashes.add(tap ? raw.midi : ev.midi, hit ? "correct" : "wrong");
     }
     fstate = followerInput(fstate, ev);
     if (fstate.mode === "wait" && fstate.index >= fstate.groups.length) endTake();
@@ -398,6 +453,8 @@
     cap = null;
     metro?.stop();
     metro = null;
+    partnerSeq?.stop();
+    partnerSeq = null;
     bench.beat = 0;
     input.router.releaseAll();
     fstate = null;
@@ -427,6 +484,7 @@
     kept: boolean;
     expr: ExpressionResult | null;
     vib: ReturnType<typeof gradeVibrato> | null;
+    bal: ReturnType<typeof gradeBalance> | null;
     /** The extra measure blended in (dynamics or vibrato), null when not measured. */
     measure: number | null;
   }
@@ -442,10 +500,13 @@
     let kept = true;
     let expr: ExpressionResult | null = null;
     let vib: Extra["vib"] = null;
+    let bal: Extra["bal"] = null;
     let measure: number | null = null;
     if (isPerf(d.result)) {
       if (noStop) {
-        cont = continuity(pass, d.notes.filter((n) => n.kind === "noteon").map((n) => n.at), d.startAt, beatMs, barLen);
+        // The follower's notes: they include Space taps, which the capture never sees.
+        const heard = d.state.mode === "performance" ? d.state.notes : d.notes;
+        cont = continuity(pass, heard.filter((n) => n.kind === "noteon").map((n) => n.at), d.startAt, beatMs, barLen);
         const v = noStopVerdict(score, cont);
         score = v.score;
         kept = v.kept;
@@ -457,13 +518,16 @@
       } else if (grade === "vibrato") {
         vib = gradeVibrato({ pass, notes: d.notes, controls: d.controls, startAt: d.startAt, beatMs });
         measure = vib.share;
+      } else if (grade === "balance") {
+        bal = gradeBalance({ pass, melody: melodyVoice(played, voiceIds), notes: d.notes, startAt: d.startAt, beatMs });
+        measure = bal.share;
       }
       if (measure !== null) {
         score = score * 0.5 + measure * 0.5;
         correct = correct && measure >= 0.8;
       }
     }
-    return { score, correct, cont, kept, expr, vib, measure };
+    return { score, correct, cont, kept, expr, vib, bal, measure };
   }
 
   async function finish() {
@@ -504,7 +568,7 @@
     const fin = await run!.finish({
       score: mean,
       correct: extras.every((x) => x.correct),
-      headline: `${pct(mean)} at ${bpm} BPM, ${noStop ? "no-stop" : perfMode ? "performance" : "wait"}`,
+      headline: `${pct(mean)} at ${bpm} BPM, ${sightRead ? "sight-read" : noStop ? "no-stop" : perfMode ? "performance" : "wait"}${tap ? ", rhythm tapped" : ""}`,
       params: {
         takesPlayed: all.length,
         ...(conts.length ? { continuity: Math.round(Math.min(...conts.map((c) => c.share)) * 100) / 100, kept: extras.every((x) => x.kept) } : {}),
@@ -534,7 +598,7 @@
         assistance: "Song practice goes in your journal. Imported songs don't change skill mastery.",
         rows: [
           { label: "Notes matched", value: expected ? matched / expected : 0, text: `${matched} of ${expected}` },
-          { label: drums ? "Drums found" : "Pitch completion", value: expected ? matched / expected : 0 },
+          { label: tap ? "Taps found" : drums ? "Drums found" : "Pitch completion", value: expected ? matched / expected : 0 },
           { label: "Timing error (mean)", text: matched ? `${Math.round(errMs)} ms` : "No notes matched" },
           { label: "Best take", text: `Take ${agg.bestIndex + 1}, ${pct(best.score)}` },
           { label: "Early / on time / late", text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
@@ -552,7 +616,9 @@
             : `${c.barsPlayed} of ${c.bars} bars played. Keep going through every bar.`;
       } else if (grade !== "notes" && x.measure !== null && x.measure < 0.8)
         summary.headline =
-          grade === "vibrato"
+          grade === "balance"
+            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; the melody came out above the accompaniment on ${pct(x.measure)} of its notes. Play the top note with more weight and the rest lighter.`
+            : grade === "vibrato"
             ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; vibrato on ${pct(x.measure)} of the held notes. Pulse the bite 4 to 5 times a second on every long note.`
             : `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; ${pct(x.measure)} of the dynamics and breaths came out. Make the changes bigger than feels natural.`;
     } else {
@@ -582,6 +648,7 @@
       };
     }
     if (spot) summary.headline = spotTake(all);
+    if (sightRead) summary.headline += runFirst ? " Your first run of this song: it counts as a sight-read." : " Not your first run of this song, so it doesn't count as a sight-read.";
     // Bar by bar: a take at 90% or better hides one more bar next time.
     if (memory === "bars" && Math.max(...extras.map((x) => x.score)) >= 0.9 && memBars * barLen < played.lengthBeats - 1e-6) {
       memBars += 1;
@@ -611,6 +678,10 @@
           ? { label: `Dynamics and breaths (${e.unmeasured ?? "nothing marked in this range"})`, notMeasured: true }
           : { label: "Dynamics and breaths as marked", value: e.score, text: `${e.dynamics.right} of ${e.dynamics.total} changes, ${e.breaths.right} of ${e.breaths.total} breaths` },
       );
+    }
+    if (grade === "balance" && best.bal) {
+      const b = best.bal;
+      rows.push(b.share === null ? { label: "Melody balance (needs MIDI velocity and notes struck together)", notMeasured: true } : { label: "Melody louder than the notes under it", value: b.share, text: `${b.right} of ${b.total}` });
     }
     if (grade === "vibrato" && best.vib) {
       const v = best.vib;
@@ -720,6 +791,11 @@
     if (e.code === "Space" && !onControl && !e.repeat && (phase === "ready" || phase === "results")) {
       e.preventDefault();
       void start();
+    } else if (e.code === "Space" && tap && !e.repeat && (phase === "countin" || phase === "running")) {
+      // Space taps the rhythm, like any key or pad.
+      e.preventDefault();
+      audio.drum(37, 0.5);
+      onInput({ kind: "noteon", midi: TAP_MIDI, velocity: 0.8, at: e.timeStamp || performance.now(), source: "onscreen", confidence: 1 });
     } else if (e.key === "Escape" && live) {
       e.preventDefault();
       stop();
@@ -731,6 +807,7 @@
     clearTimers();
     cap?.stop();
     metro?.stop();
+    partnerSeq?.stop();
     stopPreview();
     flashes.clear();
     bench.running = false;
@@ -779,13 +856,15 @@
   );
   const summaryLine = $derived(
     [
-      noStop ? "No-stop run" : perfMode ? `Performance, ${takes} take${takes > 1 ? "s" : ""}` : "Wait mode",
+      sightRead ? "Sight-read" : noStop ? "No-stop run" : perfMode ? `Performance, ${takes} take${takes > 1 ? "s" : ""}` : "Wait mode",
       rangeSummary,
       `${bpm} BPM`,
       picked.length === choices.length ? "all voices" : choices.filter((c) => picked.includes(c.id)).map((c) => c.label).join(" and "),
       ...(transpose ? [`${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitone${Math.abs(transpose) === 1 ? "" : "s"}${keyAt(transpose) ? ` (${keyAt(transpose)})` : ""}`] : []),
       ...(memory === "look" ? ["from memory"] : memory === "bars" ? [`from memory, bars 1 to ${memBars} hidden`] : []),
-      ...(grade === "dynamics" ? ["dynamics and breaths graded"] : grade === "vibrato" ? ["vibrato graded"] : []),
+      ...(grade === "dynamics" ? ["dynamics and breaths graded"] : grade === "vibrato" ? ["vibrato graded"] : grade === "balance" ? ["melody balance graded"] : []),
+      ...(tap ? ["tapping the rhythm"] : []),
+      ...(partner ? [`the app plays ${others.map((c) => c.label).join(" and ")}`] : []),
     ].join(", "),
   );
   const progress = $derived(ls && fstate ? Math.min(1, ls.index / Math.max(1, fstate.groups.length)) : 0);
@@ -893,6 +972,7 @@
               { value: "wait", label: "Wait" },
               { value: "performance", label: "Performance" },
               { value: "no-stop", label: "No-stop" },
+              { value: "sight-read", label: "Sight-read" },
             ]}
             value={s.mode}
             onchange={(v) => setup.set({ mode: v })}
@@ -923,7 +1003,7 @@
             onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
           />
           <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
-          <p class="self-end text-sm text-ws-soft">{noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
+          <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? "; this will be this song's." : ", and this song has been played here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
         </div>
 
         <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
@@ -944,6 +1024,7 @@
               { value: "notes", label: "Notes only" },
               { value: "dynamics", label: "Dynamics and breaths" },
               { value: "vibrato", label: "Vibrato" },
+              { value: "balance", label: "Melody balance" },
             ]}
             value={grade === "notes" ? s.grade : grade}
             disabled={!perfMode}
@@ -952,7 +1033,32 @@
           <p class="self-end text-sm text-ws-soft">
             {memory === "look" ? "Look at the score as long as you like; it hides when the run starts and comes back for the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run; a take at 90% hides one more.` : ""}
             {s.grade === "dynamics" && !hasMarks ? "This score has no dynamics or breath marks to grade." : s.grade === "dynamics" ? `Marked: ${marksText}. Graded loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The score marks ${marksText}; they show on the staff.` : ""}
-            {!perfMode && s.grade !== "notes" ? " Grading dynamics or vibrato needs Performance or No-stop." : ""}
+            {s.grade === "balance" ? "The melody (the top note of the highest part) should sound louder than the notes struck with it, read from MIDI velocity." : ""}
+            {!perfMode && s.grade !== "notes" ? " Grading dynamics, vibrato or balance needs a mode that keeps time." : ""}
+          </p>
+          <Choice
+            label="Play"
+            options={[
+              { value: "notes", label: "The notes" },
+              { value: "tap", label: "Tap the rhythm" },
+            ]}
+            value={tap ? "tap" : "notes"}
+            disabled={!perfMode}
+            onchange={(v) => setup.set({ tap: v === "tap" })}
+          />
+          <Choice
+            label="Duet partner"
+            options={[
+              { value: "off", label: "Off" },
+              { value: "on", label: "Plays the other parts" },
+            ]}
+            value={partner ? "on" : "off"}
+            disabled={!perfMode || !others.length}
+            onchange={(v) => setup.set({ partner: v === "on" })}
+          />
+          <p class="self-end text-sm text-ws-soft md:col-span-2">
+            {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is graded." : ""}
+            {!others.length ? "Turn a part off above and the partner can play it." : partner ? `The app plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, the app can play the parts you turn off."}
           </p>
         </div>
       </div>
@@ -965,12 +1071,13 @@
   <div class="flex flex-wrap items-center gap-2">
     {#if live}
       <button type="button" class="{btnPrimary} min-h-12 px-6" onclick={stop}><Square class="size-4" aria-hidden="true" />Stop <kbd class="text-xs opacity-70">Esc</kbd></button>
+      {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />Ready, count me in</button>{/if}
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
       <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={start}>
-        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
+        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
       </button>
-      <button type="button" class={btn} aria-pressed={!!preview?.playing} onclick={togglePreview}>
+      <button type="button" class={btn} aria-pressed={!!preview?.playing} disabled={unseen} onclick={togglePreview}>
         {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
       </button>
       <a class={btn} href="/music/songs/{song.id}/edit"><Pencil class="size-4" aria-hidden="true" />Edit notes</a>
@@ -1032,15 +1139,15 @@
     </div>
   {/if}
 
-  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={live && perfMode ? Math.round(startAt) : undefined}>
+  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={(phase === "countin" || phase === "running") && perfMode ? Math.round(startAt) : undefined}>
     {#if live}
       <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full rounded-full bg-instr" style:width="{progress * 100}%"></div>
       </div>
       <div class="mb-3 flex flex-wrap gap-2">
-        <Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />
+        {#if phase === "look"}<Stat label="Look" value="{lookLeft} s" />{:else}<Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />{/if}
         {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
-        {#if ls?.expected.length && memory === "off"}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
+        {#if ls?.expected.length && memory === "off" && !tap}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
         {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
@@ -1090,7 +1197,9 @@
       {drums}
       onfallback={(r) => (staffFailed = r)}
     />
-    {#if !live && phase !== "results"}
+    {#if unseen}
+      <p class="mt-3 text-sm text-ws-stage-soft">The notes stay hidden until you start: then {SIGHT_LOOK_S} seconds to look, and one pass in time.</p>
+    {:else if !live && phase !== "results"}
       {#if drums}
         <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the strip on MPC pads. Graded by drum: any hat counts for a hat, kick and snare must be exact.</p>
       {:else}

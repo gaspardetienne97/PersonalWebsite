@@ -12,6 +12,8 @@ export interface BeatRange {
 export interface Bar extends BeatRange {
   /** 1-based bar number, as a musician counts. */
   number: number;
+  /** The bar's meter, when the score changes meter. */
+  meter?: Score["meter"];
 }
 
 export interface TabTuning {
@@ -31,7 +33,18 @@ const key = (beat: number) => Math.round(beat * 1e4);
 export const barBeats = (meter: Score["meter"]) => (meter.beats * 4) / meter.beatUnit;
 export const beatToMs = (beat: number, bpm: number) => (beat * 60000) / bpm;
 
-export function bars(score: Pick<Score, "meter" | "lengthBeats">): Bar[] {
+export function bars(score: Pick<Score, "meter" | "lengthBeats" | "meterChanges">): Bar[] {
+  if (score.meterChanges?.length) {
+    const out: Bar[] = [];
+    for (let at = 0; at < score.lengthBeats - EPS; ) {
+      const c = score.meterChanges.findLast((m) => m.startBeat <= at + EPS);
+      const meter = c ? { beats: c.beats, beatUnit: c.beatUnit } : score.meter;
+      const len = barBeats(meter);
+      out.push({ number: out.length + 1, startBeat: at, endBeat: at + len, meter });
+      at += len;
+    }
+    return out.length ? out : bars({ meter: score.meter, lengthBeats: score.lengthBeats });
+  }
   const len = barBeats(score.meter);
   const count = Math.max(1, Math.ceil(score.lengthBeats / len - EPS));
   return Array.from({ length: count }, (_, i) => ({

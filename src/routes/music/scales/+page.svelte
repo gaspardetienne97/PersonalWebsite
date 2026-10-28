@@ -76,6 +76,7 @@
     { value: "arpeggio", label: "Arpeggio" },
     { value: "broken", label: "Broken", hint: "Broken chords through the inversions" },
     { value: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
+    { value: "triad-pairs", label: "Triad pairs", hint: "The tonic's triad, then the one a whole step up, in turn" },
   ];
   const s = $derived(cfg.value);
   const pattern = $derived((PATTERNS.some((p) => p.value === s.pattern) ? s.pattern : "scale") as ScalePattern);
@@ -86,7 +87,7 @@
   const onPiano = $derived(inst === "piano");
   const scaleSetup = $derived({
     pattern,
-    chord: s.chord as ChordKind,
+    chord: (pattern === "triad-pairs" && s.chord !== "minor" ? "major" : s.chord) as ChordKind,
     perBeat,
     kind: s.kind as DrillScaleKind,
     tonic: s.tonic,
@@ -210,7 +211,9 @@
       ? `${tonicName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()} scale${pattern === "thirds" ? " in double thirds" : pattern === "octaves" ? " in octaves" : ""}`
       : pattern === "arpeggio"
         ? `${tonicName(s.tonic)} ${chordLabel} arpeggio${scaleSetup.inversion ? ` from the ${INVERSIONS[scaleSetup.inversion]}` : ""}`
-        : `${tonicName(s.tonic)} ${chordLabel} ${pattern} chords`,
+        : pattern === "triad-pairs"
+          ? `${tonicName(s.tonic)} and ${tonicName(s.tonic + 2)} ${s.chord === "minor" ? "minor" : "major"} triad pairs`
+          : `${tonicName(s.tonic)} ${chordLabel} ${pattern} chords`,
   );
   const apartLabel = $derived(HANDS_APART.find((a) => a.id === scaleSetup.apart)!.label.toLowerCase());
   const setupLine = $derived<SetupClause[]>([
@@ -283,7 +286,8 @@
   // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
   const frets = $derived(linePositions(inst, all));
   const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, finger: fingerFor(n), ...frets.get(n.midi) }))));
-  const signature = $derived(isScaleLine(pattern) ? signatureFor(s.tonic % 12, s.kind === "chromatic" ? "major" : s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
+  // A triad pair is written in the key it belongs to: a major pair is IV and V a 4th up, a minor pair ii and iii a step down.
+  const signature = $derived(pattern === "triad-pairs" ? signatureFor((s.tonic + (s.chord === "minor" ? 10 : 5)) % 12, "major") : isScaleLine(pattern) ? signatureFor(s.tonic % 12, s.kind === "chromatic" ? "major" : s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
   const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
   const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
   const lineStates = $derived.by(() => {
@@ -476,7 +480,7 @@
         {#if isScaleLine(pattern)}
           <Choice label="Scale" setupKey="kind" options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
         {:else}
-          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.map((c) => ({ value: c.id as string, label: c.label }))} value={s.chord} onchange={(v) => cfg.set({ chord: v, inversion: 0 })} />
+          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.filter((c) => pattern !== "triad-pairs" || c.id === "major" || c.id === "minor").map((c) => ({ value: c.id as string, label: c.label }))} value={scaleSetup.chord} onchange={(v) => cfg.set({ chord: v, inversion: 0 })} />
           {#if pattern === "arpeggio"}
             <Choice
               label="Start on"

@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChunk, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
+  import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChordAt, lickChunk, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -81,11 +81,11 @@
 
   const timed = $derived<(TimedNote & { index: number })[]>(chunk.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats, finger: n.finger, index: n.index })));
   const progression = $derived(lick.progression.map(tx));
-  // ponytail: the data has no chord timing, so the chart assumes one chord per bar with the last one held.
-  const chordAt = (beat: number) => progression[Math.min(progression.length - 1, Math.floor(beat / 4))];
+  // One chord a bar unless the lick gives its chords' lengths (half-bar changes), the last one held.
+  const chordAt = (beat: number) => lickChordAt(lick, beat, progression);
   const laneChords = $derived.by(() => {
     const out: { beat: number; symbol: string }[] = [{ beat: 0, symbol: chordAt(t0) }];
-    for (let b = Math.ceil(t0 / 4) * 4; b < t0 + chunkBeats; b += 4) if (b > t0 && chordAt(b) !== out[out.length - 1].symbol) out.push({ beat: b - t0, symbol: chordAt(b) });
+    for (let b = Math.ceil(t0 / 2) * 2; b < t0 + chunkBeats; b += 2) if (b > t0 && chordAt(b) !== out[out.length - 1].symbol) out.push({ beat: b - t0, symbol: chordAt(b) });
     return out;
   });
   // The drill plays the line only, so the left-hand textures are left out.
@@ -335,8 +335,9 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="mb-3 grid gap-3 text-sm lg:grid-cols-[1fr_auto]">
-      <div class="min-w-0">
+    <!-- Text first; a long row of bar chunks wraps under it rather than squeezing it. -->
+    <div class="mb-3 flex flex-wrap gap-3 text-sm">
+      <div class="min-w-0 flex-[1_1_20rem]">
         <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
         <p class="text-ws-stage-soft">Scales: {lick.scales.map(tx).join(", ")}.</p>
         <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>

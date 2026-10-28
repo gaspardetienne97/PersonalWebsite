@@ -197,6 +197,8 @@ export const READING_SETUP = {
   mask: 0,
   /** Seconds to look at a phrase before Start opens. 0 is off. */
   look: 0,
+  /** Tap the rhythm with a kick on every quarter (a kick pad, MIDI note 36, or the Kick button). */
+  kick: false,
   /** Flashcards: sharps, flats and naturals beside the key's own notes. */
   accidentals: false,
   /** A written range set by note (MIDI), instead of the level's; 0 follows the level. */
@@ -204,3 +206,27 @@ export const READING_SETUP = {
   high: 0,
 };
 export type ReadingSetup = typeof READING_SETUP;
+
+/** The kick lane under Tap the rhythm: a kick on every quarter beat of the phrase. */
+export const KICK_MIDI = 36;
+export function kickGroups(lengthBeats: number): ScoreGroup[] {
+  return Array.from({ length: Math.ceil(lengthBeats - 1e-6) }, (_, i) => ({
+    index: i,
+    startBeat: i,
+    durationBeats: 1,
+    notes: [{ midi: KICK_MIDI, startBeat: i, durationBeats: 1, voiceId: "kick" }],
+  }));
+}
+
+/** The rhythm and the kick lane as one score, each weighed by its number of notes; clean only when both are. */
+export function combineLanes(
+  taps: { score: number; correct: boolean; n: number },
+  kicks: { score: number; correct: boolean; n: number } | null,
+): { score: number; correct: boolean } {
+  if (!kicks) return { score: taps.score, correct: taps.correct };
+  const n = taps.n + kicks.n;
+  return {
+    score: n ? (taps.score * taps.n + kicks.score * kicks.n) / n : 0,
+    correct: taps.correct && kicks.correct,
+  };
+}

@@ -8,6 +8,7 @@
   import type { Strictness } from "@repo/music-core";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { PROGRESSIONS } from "@repo/music-core/content/jam";
+  import { CHART_LEVELS, chartProgression, isChartLevel } from "@repo/music-core/content/accompany";
   import { RHYTHM_PATTERNS } from "@repo/music-core/content/rhythm";
   import RhythmGrid from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
@@ -29,7 +30,8 @@
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
   import ToneMap from "$lib/music/drills/guitar/ToneMap.svelte";
 
-  const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1, pattern: "" as string });
+  // seed: the generated charts' draw; New chart moves it on.
+  const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1, pattern: "" as string, seed: 1 });
   const s = $derived(cfg.value);
   onMount(() => void applyBenchParams());
 
@@ -42,7 +44,9 @@
   };
   const DIFFICULTIES = ["beginner", "intermediate", "advanced"] as const;
   /** Only progressions whose every chord has a shape to show and a voicing a strum can cover. */
-  const playable = $derived(PROGRESSIONS.filter((p) => p.chords.every((c) => shapeOf(c.symbol))));
+  /** Eight-bar charts to read at sight (the reading path's chart-1 to chart-3), where every chord has a shape here. */
+  const charts = $derived(CHART_LEVELS.map((l) => chartProgression(l.id, s.seed)).filter((p) => p.chords.every((c) => shapeOf(c.symbol))));
+  const playable = $derived([...PROGRESSIONS.filter((p) => p.chords.every((c) => shapeOf(c.symbol))), ...charts]);
   const prog = $derived(playable.find((p) => p.id === s.progression) ?? playable.find((p) => p.id === "guitar-g-d-em-c") ?? playable[0]);
   const strictness = $derived((["relaxed", "normal", "strict"].includes(s.strictness) ? s.strictness : "relaxed") as Strictness);
   const choruses = $derived(Math.min(4, Math.max(1, s.choruses)));
@@ -59,7 +63,7 @@
       });
   });
   /** The progressions from beginner to advanced, for the next run. */
-  const LADDER = $derived(DIFFICULTIES.flatMap((d) => playable.filter((p) => p.difficulty === d && !p.song)));
+  const LADDER = $derived(DIFFICULTIES.flatMap((d) => playable.filter((p) => p.difficulty === d && !p.song && !isChartLevel(p.id))));
   /** Songs' chord loops, apart from the ladder. */
   const songs = $derived(playable.filter((p) => p.song));
   const pick = (v: string) => {
@@ -181,7 +185,7 @@
       assistance: "guided",
       difficulty: prog.difficulty === "beginner" ? 0.3 : prog.difficulty === "intermediate" ? 0.5 : 0.7,
       instrument: instr,
-      params: { progression: prog.id, bpm: bpm(), strictness, choruses, ...(strum ? { pattern: strum.id } : {}) },
+      params: { progression: prog.id, bpm: bpm(), strictness, choruses, ...(strum ? { pattern: strum.id } : {}), ...(isChartLevel(prog.id) ? { seed: s.seed } : {}) },
     });
     await run.attempt({
       promptId: prog.id,
@@ -270,7 +274,7 @@
       <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" role="group" aria-label="Progression" data-setup="progression">
         <p class="text-sm font-medium">Progression</p>
         {#each DIFFICULTIES as d (d)}
-          {@const list = playable.filter((p) => p.difficulty === d && !p.song)}
+          {@const list = playable.filter((p) => p.difficulty === d && !p.song && !isChartLevel(p.id))}
           {#if list.length}
             <Choice
               label={d[0].toUpperCase() + d.slice(1)}
@@ -280,6 +284,18 @@
             />
           {/if}
         {/each}
+        {#if charts.length}
+          <div class="flex flex-wrap items-end gap-2">
+            <Choice
+              label="Read a new chart"
+              options={charts.map((p) => ({ value: p.id, label: p.name, detail: p.chords.map((c) => c.symbol).join(" ") }))}
+              value={prog.id}
+              onchange={pick}
+            />
+            <button type="button" class="min-h-11 rounded-full border border-ws-line px-4 text-sm font-medium" onclick={() => cfg.set({ seed: s.seed + 1 })}>New chart</button>
+          </div>
+          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">Eight bars in C you have not seen: read it once, then strum it. Some bars change chord on beat 3.</p>{/if}
+        {/if}
         {#if songs.length}
           <Choice
             label="Songs"

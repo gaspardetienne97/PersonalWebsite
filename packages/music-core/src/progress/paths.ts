@@ -9,6 +9,7 @@ import {
 } from "../types";
 import { SKILL_GRAPH, withDescendants, type SkillGraph } from "./graph";
 import { dayKey } from "./rewards";
+import { ladderEvidence, type LadderCriterion } from "./ladder";
 import {
   levelPath,
   shelfKey,
@@ -77,6 +78,8 @@ export interface PathStep {
   each?: { param: string; values: string[] };
   /** Steps a pass here tests out (marks review) without being needed first: a placement check. */
   covers?: string[];
+  /** Judged on the tune ladder (progress/ladder): rungs done on a number of tunes. */
+  ladder?: LadderCriterion;
   /** Levelled paths: the level, strand and what a new step waits for. */
   level?: string;
   strand?: string;
@@ -498,7 +501,9 @@ const meetsMean = (step: PathStep, mean: number) => mean >= (step.threshold ?? D
 
 /** A step with evidence to judge: named skills, or a levelled step's drill. */
 export const isGraded = (step: PathStep) =>
-  step.skillIds.length > 0 || (step.level !== undefined && !!step.exerciseIds?.length);
+  step.skillIds.length > 0 ||
+  !!step.ladder ||
+  (step.level !== undefined && !!step.exerciseIds?.length);
 
 /** One judged item: a scoring event, or a whole checked run for levelled drill steps. */
 interface Evidence {
@@ -542,11 +547,17 @@ function stepEvidence(
   graph: SkillGraph,
   runOf: Map<string, RunRecord>,
 ): SkillEvidence[] {
+  // A value ending in * matches any value that starts with the rest ("reading/*": any reading shelf song).
   const matches = (param: (k: string) => string) =>
-    !step.match || Object.entries(step.match).every(([k, v]) => param(k) === v);
+    !step.match ||
+    Object.entries(step.match).every(([k, v]) =>
+      v.endsWith("*") ? param(k) !== "" && param(k).startsWith(v.slice(0, -1)) : param(k) === v,
+    );
   const eachKeys = step.each?.values.map((v) => `${step.each!.param}=${v}`);
   const eachOf = (x: Evidence, key: string) =>
     !step.each || `${step.each.param}=${x.param(step.each.param)}` === key;
+
+  if (step.ladder) return ladderEvidence(step.ladder, [...runOf.values()]);
 
   // A levelled step without named skills is judged on its checked runs: each run's score, tempo
   // and setup, as the paths' "three clean runs at 72" reads. Per `each` value when it has one.

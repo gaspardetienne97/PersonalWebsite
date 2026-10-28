@@ -615,3 +615,17 @@ describe("interval choices", () => {
     }
   });
 });
+
+describe("sung answers for bass lines and scales", () => {
+  it("offers voice in Bass lines and Scales, and a scale prompt carries the notes to sing", async () => {
+    const { EAR_DRILLS, scalePrompt } = await import("./ear");
+    const { rng } = await import("./random");
+    for (const slug of ["bass-lines", "scales"])
+      expect(EAR_DRILLS.find((d) => d.slug === slug)!.answerModes).toContain("voice");
+    const p = scalePrompt(rng(3), { difficulty: 0.6, token: "dorian", direction: "both" });
+    const tonic = p.playback[0].midi[0] + 12;
+    expect(p.expectedMidi!.map((m) => m - tonic)).toEqual([
+      0, 2, 3, 5, 7, 9, 10, 12, 10, 9, 7, 5, 3, 2, 0,
+    ]);
+  });
+});

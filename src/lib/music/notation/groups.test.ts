@@ -163,3 +163,25 @@ describe("engraving model", () => {
     expect(readout(list, null, list[2], 96, "bar")).toMatch(/^Start, bar 3\./);
   });
 });
+
+describe("bars with meter changes", () => {
+  it("lays each bar out in its own meter", () => {
+    const b = bars({
+      meter: { beats: 4, beatUnit: 4 },
+      lengthBeats: 11.5,
+      meterChanges: [
+        { startBeat: 0, beats: 4, beatUnit: 4 },
+        { startBeat: 4, beats: 3, beatUnit: 4 },
+        { startBeat: 7, beats: 5, beatUnit: 8 },
+      ],
+    });
+    expect(
+      b.map((x) => [x.number, x.startBeat, x.endBeat, `${x.meter?.beats}/${x.meter?.beatUnit}`]),
+    ).toEqual([
+      [1, 0, 4, "4/4"],
+      [2, 4, 7, "3/4"],
+      [3, 7, 9.5, "5/8"],
+      [4, 9.5, 12, "5/8"],
+    ]);
+  });
+});

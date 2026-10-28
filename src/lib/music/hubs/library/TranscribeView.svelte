@@ -19,6 +19,7 @@
   import { Transcriber, type Engine } from "./transcriber.svelte";
   import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
   import { songFromScore, type Song } from "./songs";
+  import { saveUserLick } from "$lib/music/user-licks";
 
   let {
     from,
@@ -176,6 +177,14 @@
     onsaved?.(song);
   }
 
+  /** The first four bars of the top part as a lick, to drill in Phrases in any key. */
+  async function saveLick() {
+    if (!editor?.noteCount) return announce("Add at least one note before saving a lick.");
+    const score = editor.toScore();
+    const id = await saveUserLick({ title: `${score.title || "Transcription"}, first bars`, from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
+    announce(id ? "Saved the first four bars as a lick. Find it in Phrases under Your licks." : "The top part has no notes to save.");
+  }
+
   const field = "min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
 </script>
 
@@ -323,6 +332,7 @@
     <PianoRoll host={e} {announce} noun="parts" />
     <div class="flex flex-wrap gap-2">
       <button type="button" class={btnPrimary} onclick={save}>Save to songs</button>
+      <button type="button" class={btn} onclick={saveLick}>Save the first bars as a lick</button>
       <button type="button" class={btn} onclick={() => { e.stop(); editor = null; heard = null; }}>Discard</button>
     </div>
   </section>

@@ -69,3 +69,28 @@ describe("backingNotes on a tune", () => {
     expect(notes.some((n) => n.voice === "drum" && n.time >= 8 && n.time < 16)).toBe(true);
   });
 });
+
+describe("a 3/4 swing backing", () => {
+  const waltz = { ...PROGRESSIONS.find((p) => p.id === "ii-v-i")!, beatsPerBar: 3 }; // 8 bars
+  it("walks the form in three-beat bars", () => {
+    // Dm7 lasts two bars: six beats.
+    expect(positionAt(waltz, 0, 6)).toEqual({ chordIndex: 1, choruses: 0, beatInChord: 0 });
+    expect(positionAt(waltz, 0, 24)).toEqual({ chordIndex: 0, choruses: 1, beatInChord: 0 });
+  });
+  it("rides the waltz and comps on 1 and the and of 2", () => {
+    const notes = backingNotes(waltz, { bpm: 60, mode: "both", choruses: 1 });
+    const ride = notes.filter((n) => n.voice === "drum" && n.midi === 51);
+    expect(ride).toHaveLength(8 * 4);
+    expect(ride.slice(0, 4).map((n) => +n.time.toFixed(2))).toEqual([0, 1, 1.67, 2]);
+    // The upper chord tones of Dm7 on 0 and 1.5, then on the next bar at 3 and 4.5.
+    const times = [...new Set(notes.filter((n) => !n.voice && n.midi > 52).map((n) => n.time))];
+    expect(times.slice(0, 4)).toEqual([0, 1.5, 3, 4.5]);
+    // The bass on 1 only, one note a bar.
+    expect(notes.filter((n) => !n.voice && n.midi < 52)).toHaveLength(8);
+  });
+  it("drums and bass leave the chords to you", () => {
+    const notes = backingNotes(waltz, { bpm: 60, mode: "rhythm", choruses: 1 });
+    expect(notes.filter((n) => !n.voice).every((n) => n.midi < 52)).toBe(true);
+    expect(notes.some((n) => n.voice === "drum")).toBe(true);
+  });
+});

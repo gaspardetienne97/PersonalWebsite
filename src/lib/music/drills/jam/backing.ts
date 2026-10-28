@@ -1,13 +1,14 @@
 // Generated jam backing: a drum groove and/or comped chords for a progression,
 // as one sequence for audio.playSequence, plus where in the form a beat falls.
 import { parseChordSymbol } from "@repo/music-core/theory/chords";
-import { swings, type Progression } from "@repo/music-core/content/jam";
+import { barBeats, swings, type Progression } from "@repo/music-core/content/jam";
 import { callPhrase } from "@repo/music-core/content/call-response";
 import type { Rand } from "@repo/music-core/content/random";
 import { bandBar, type Windows } from "@repo/music-core/scoring/improv";
 import type { SequenceNote } from "$lib/music/runtime";
 
-export type BackingMode = "none" | "drums" | "chords" | "both";
+/** "rhythm" is drums and bass with no chords, for comping over. */
+export type BackingMode = "none" | "drums" | "chords" | "both" | "rhythm";
 export const BEATS_PER_BAR = 4;
 
 /** Where `beats` (from the start of chord `fromChord`) lands in the form. */
@@ -16,7 +17,7 @@ export function positionAt(p: Progression, fromChord: number, beats: number) {
   let passed = 0;
   let left = Math.max(0, beats);
   for (let guard = 0; guard < 100_000; guard++) {
-    const len = p.chords[chord].bars * BEATS_PER_BAR;
+    const len = p.chords[chord].bars * barBeats(p);
     if (left < len) return { chordIndex: chord, choruses: passed, beatInChord: left };
     left -= len;
     chord = (chord + 1) % p.chords.length;
@@ -39,7 +40,8 @@ export function chordVoicing(symbol: string): { bass: number; upper: number[] } 
 /**
  * `choruses` repeats of the form starting at `fromChord`, `bpm` quarter notes.
  * Swung tunes get hats on 2 and 4 with a swung ride; the rest a straight rock beat.
- * Chords comp on 1 and 3 (a half-bar chord once), the bass root then fifth.
+ * Chords comp on 1 and 3 (a half-bar chord once), the bass root then fifth. In 3/4 the
+ * ride plays the waltz (1, 2 and the and of 2, 3), chords on 1 and the and of 2, the bass on 1.
  * With `windows`, the band's bars drop the chords for a drum break when trading
  * (`bandPlays: "drums"`); a call is added by the page (`callNotes`).
  */
@@ -50,36 +52,49 @@ export function backingNotes(
   const beat = 60 / opts.bpm;
   const out: SequenceNote[] = [];
   const swing = swings(p);
-  const drums = opts.mode === "drums" || opts.mode === "both";
+  const bpb = barBeats(p);
+  const drums = opts.mode === "drums" || opts.mode === "both" || opts.mode === "rhythm";
   const chords = opts.mode === "chords" || opts.mode === "both";
+  const bassOn = chords || opts.mode === "rhythm";
+  const comp = bpb === 3 ? [0, 1.5] : [0, 2];
   const breakAt = (b: number) =>
-    opts.windows?.bandPlays === "drums" &&
-    bandBar(opts.windows, Math.floor(b / BEATS_PER_BAR + 1e-9));
+    opts.windows?.bandPlays === "drums" && bandBar(opts.windows, Math.floor(b / bpb + 1e-9));
   let at = 0;
   const count = p.chords.length * opts.choruses;
   for (let k = 0; k < count; k++) {
     const ch = p.chords[((opts.fromChord ?? 0) + k) % p.chords.length];
-    const len = ch.bars * BEATS_PER_BAR;
+    const len = ch.bars * bpb;
     const v = chordVoicing(ch.symbol);
-    for (let off = 0; chords && off < len - 1e-9; off += 2) {
-      if (breakAt(at + off)) continue;
-      const dur = Math.min(1.9, len - off - 0.1);
-      const t = (at + off) * beat;
-      for (const m of v.upper) out.push({ midi: m, time: t, duration: dur * beat, velocity: 0.45 });
-      out.push({
-        midi: off % 4 ? v.bass + 7 : v.bass,
-        time: t,
-        duration: dur * beat,
-        velocity: 0.6,
-      });
-    }
+    for (let bar = 0; bassOn && bar < len - 1e-9; bar += bpb)
+      for (const h of comp) {
+        const off = bar + h;
+        if (off >= len - 1e-9 || breakAt(at + off)) continue;
+        const dur = Math.min(bpb === 3 ? 1.4 : 1.9, len - off - 0.1);
+        const t = (at + off) * beat;
+        if (chords)
+          for (const m of v.upper)
+            out.push({ midi: m, time: t, duration: dur * beat, velocity: 0.45 });
+        if (bpb === 3 && h) continue;
+        out.push({
+          midi: h ? v.bass + 7 : v.bass,
+          time: t,
+          duration: (bpb === 3 ? Math.min(2.8, len - off - 0.1) : dur) * beat,
+          velocity: 0.6,
+        });
+      }
     at += len;
   }
-  for (let bar = 0; drums && bar < Math.round(at / BEATS_PER_BAR); bar++) {
-    const t0 = bar * BEATS_PER_BAR * beat;
+  for (let bar = 0; drums && bar < Math.round(at / bpb); bar++) {
+    const t0 = bar * bpb * beat;
     const hit = (midi: number, when: number, velocity: number) =>
       out.push({ midi, time: t0 + when * beat, duration: 0.1, velocity, voice: "drum" });
-    if (swing) {
+    if (bpb === 3) {
+      for (const w of swing ? [0, 1, 1 + 2 / 3, 2] : [0, 0.5, 1, 1.5, 2, 2.5])
+        hit(swing ? 51 : 42, w, w % 1 ? 0.35 : 0.55);
+      hit(44, 1, 0.45);
+      hit(44, 2, 0.45);
+      hit(36, 0, 0.45);
+    } else if (swing) {
       for (const w of [0, 1, 1 + 2 / 3, 2, 3, 3 + 2 / 3]) hit(42, w, w % 1 ? 0.35 : 0.55);
       hit(44, 1, 0.5);
       hit(44, 3, 0.5);
@@ -122,13 +137,17 @@ export function callNotes(
   const out: SequenceNote[] = [];
   for (let bar = 0; bar < bars; bar++) {
     if (!bandBar(windows, bar) || (bar > 0 && bandBar(windows, bar - 1))) continue;
-    for (const n of callPhrase(rand, { groove: p, bar, bars: windows.band }))
+    for (const n of callPhrase(rand, { groove: p, bar, bars: windows.band })) {
+      // Calls are written in 4/4 bars; in 3/4 a note past the third beat is dropped.
+      const inBar = n.startBeat % 4;
+      if (inBar >= barBeats(p)) continue;
       out.push({
         midi: n.midi,
-        time: (bar * BEATS_PER_BAR + n.startBeat) * beat,
+        time: ((bar + Math.floor(n.startBeat / 4)) * barBeats(p) + inBar) * beat,
         duration: n.durationBeats * beat * 0.9,
         velocity: 0.85,
       });
+    }
   }
   return out;
 }

@@ -23,6 +23,12 @@ import {
   statesFor,
   toScoreBeat,
   voiceChoices,
+  isFirstRun,
+  tapScore,
+  TAP_MIDI,
+  gradeBalance,
+  melodyVoice,
+  passSequence,
 } from "./studio";
 
 // Four bars of quarter notes, one per beat: midi 60 + beat.
@@ -451,5 +457,110 @@ describe("no-stop, memory, dynamics and vibrato", () => {
     expect(
       gradeVibrato({ pass: p, notes, controls: [], startAt: 0, beatMs: beat }).share,
     ).toBeNull();
+  });
+});
+
+describe("sight-read: the first run", () => {
+  const run = (song: string, shelf?: string, exerciseId = "song.studio") => ({
+    exerciseId,
+    params: { song, ...(shelf ? { shelf } : {}) },
+  });
+  it("is the first run until a run plays the song, by id or by shelf key", () => {
+    expect(isFirstRun([], "a")).toBe(true);
+    expect(isFirstRun([run("b"), run("a", undefined, "reading.sight-reading")], "a")).toBe(true);
+    expect(isFirstRun([run("a")], "a")).toBe(false);
+    // The same shelf song imported again under a new id has still been played.
+    expect(isFirstRun([run("old", "reading/minuet")], "new", "reading/minuet")).toBe(false);
+    expect(isFirstRun([run("old", "reading/other")], "new", "reading/minuet")).toBe(true);
+  });
+});
+
+describe("tap the rhythm", () => {
+  it("keeps one tap per attack of the selected voices, not ties or pitches", () => {
+    const two: Score = {
+      ...score,
+      voices: [
+        {
+          id: "rh",
+          name: "RH",
+          notes: [
+            { midi: 72, startBeat: 0, durationBeats: 1 },
+            { midi: 76, startBeat: 0, durationBeats: 1 },
+            { midi: 74, startBeat: 1, durationBeats: 1 },
+            { midi: 74, startBeat: 2, durationBeats: 1, tieFrom: true },
+          ],
+        },
+        { id: "lh", name: "LH", notes: [{ midi: 48, startBeat: 0.5, durationBeats: 2 }] },
+      ],
+    };
+    const t = tapScore(two, ["rh", "lh"]);
+    expect(t.voices).toHaveLength(1);
+    expect(t.voices[0].notes.map((n) => [n.startBeat, n.midi])).toEqual([
+      [0, TAP_MIDI],
+      [0.5, TAP_MIDI],
+      [1, TAP_MIDI],
+    ]);
+    expect(tapScore(two, ["rh"]).voices[0].notes.map((n) => n.startBeat)).toEqual([0, 1]);
+  });
+});
+
+describe("the duet partner", () => {
+  it("plays the other voices on the pass clock", () => {
+    const p = buildPass(score, ["p-v2"], [{ label: "B", startBeat: 4, endBeat: 8 }]);
+    expect(passSequence(p, 120, () => false)).toEqual([]);
+    const all = buildPass(score, ["p-v2"], [{ label: "Whole", startBeat: 0, endBeat: 16 }]);
+    expect(passSequence(all, 120, () => false)).toEqual([
+      { midi: 48, time: 0, duration: 1.9, velocity: 0.8 },
+    ]);
+  });
+});
+
+describe("voicing balance", () => {
+  const beat = 500;
+  const on = (midi: number, at: number, velocity: number, measured = true): NoteEvent => ({
+    kind: "noteon",
+    midi,
+    velocity,
+    at,
+    source: "midi",
+    confidence: 1,
+    velocityMeasured: measured,
+  });
+  // Melody C5 D5 over a C3 and a G3 struck with each.
+  const ballad: Score = {
+    ...score,
+    voices: [
+      {
+        id: "mel",
+        name: "Melody",
+        notes: [
+          { midi: 72, startBeat: 0, durationBeats: 1 },
+          { midi: 74, startBeat: 1, durationBeats: 1 },
+        ],
+      },
+      {
+        id: "acc",
+        name: "Accompaniment",
+        notes: [
+          { midi: 48, startBeat: 0, durationBeats: 1 },
+          { midi: 55, startBeat: 1, durationBeats: 1 },
+        ],
+      },
+    ],
+    lengthBeats: 2,
+  };
+  const pass = buildPass(ballad, ["mel", "acc"], [{ label: "Whole", startBeat: 0, endBeat: 2 }]);
+  it("finds the melody voice", () => expect(melodyVoice(ballad, ["mel", "acc"])).toBe("mel"));
+  it("counts the melody notes struck louder than the notes under them", () => {
+    const notes = [on(72, 0, 0.9), on(48, 10, 0.5), on(74, 500, 0.6), on(55, 505, 0.6)];
+    expect(gradeBalance({ pass, melody: "mel", notes, startAt: 0, beatMs: beat })).toEqual({
+      share: 0.5,
+      right: 1,
+      total: 2,
+    });
+  });
+  it("is not measured without MIDI velocity", () => {
+    const notes = [on(72, 0, 0.8, false), on(48, 10, 0.8, false)];
+    expect(gradeBalance({ pass, melody: "mel", notes, startAt: 0, beatMs: beat }).share).toBeNull();
   });
 });

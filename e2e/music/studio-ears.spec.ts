@@ -99,9 +99,9 @@ test.describe("studio ears", () => {
     const jump = page.getByRole("navigation", { name: "Jump to" });
     await expect(jump.getByRole("link")).toHaveText([
       /^Ear training \(16\)$/,
-      /^Reading and rhythm \(2\)$/,
+      /^Reading and rhythm \(3\)$/,
       /^Technique \(9\)$/,
-      /^Grooves and time \(2\)$/,
+      /^Grooves and time \(3\)$/,
       /^Jazz and improvising \(8\)$/,
       /^Theory \(1\)$/,
       /^Studio ears \(1\)$/,

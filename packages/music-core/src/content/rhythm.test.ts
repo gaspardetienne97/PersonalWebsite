@@ -178,13 +178,16 @@ describe("rhythm by ear", () => {
 });
 
 describe("groove dictation", () => {
-  it("puts the snare on 2 and 4, hats on the grid, and a kick on every downbeat", () => {
+  it("puts the snare on 2 and 4 (on 3 in trap), hats on the grid, and a kick on every downbeat", () => {
     for (const level of GROOVE_LEVELS)
       for (let seed = 1; seed <= 30; seed++) {
         const g = earGroove(rng(seed), level.id);
         for (let bar = 0; bar < level.bars; bar++) {
           expect(g.lanes.kick).toContain(bar * 4);
-          expect(g.lanes.snare).toEqual(expect.arrayContaining([bar * 4 + 1, bar * 4 + 3]));
+          if (level.id === "trap") {
+            expect(g.lanes.snare).toContain(bar * 4 + 2);
+            expect(g.lanes.snare).not.toContain(bar * 4 + 1);
+          } else expect(g.lanes.snare).toEqual(expect.arrayContaining([bar * 4 + 1, bar * 4 + 3]));
         }
         for (const b of Object.values(g.lanes).flat())
           expect((b * level.perBeat) % 1).toBeCloseTo(0);

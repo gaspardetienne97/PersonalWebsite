@@ -2905,9 +2905,21 @@
           "id": "8.4",
           "title": "Tremolo",
           "strand": "F",
-          "setup": "One string, i m or p a m i, graded on note evenness.",
+          "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tremolo-pami&chords=ukulele.a-minor,ukulele.c-major&perBeat=4&bpm=60",
+          "setup": "Chords, Fingerpicking, Tremolo: p a m i on string 1 at four notes a click, graded half on evenness. Warm up with i m. Even within a fixed bar (no personal baseline yet).",
           "done": "Even within your baseline at 4 notes a beat, 70.",
-          "needs": "A tremolo drill graded on note evenness (rec 11).",
+          "match": {
+            "pattern": "uke-tremolo-pami",
+            "perBeat": "4"
+          },
+          "threshold": 0.85,
+          "minBpm": 70,
+          "links": [
+            {
+              "label": "Tremolo, i m",
+              "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tremolo-im&chords=ukulele.a-minor,ukulele.c-major&perBeat=4&bpm=60"
+            }
+          ],
           "feeds": "Sakura, Recuerdos (aspiration)"
         },
         {
@@ -2939,9 +2951,11 @@
           "id": "8.7",
           "title": "Natural harmonics at frets 12, 7 and 5",
           "strand": "F",
-          "setup": "A harmonics check: the pitch an octave or more above the open string.",
+          "href": "/music/fretboard?mode=harmonics&instrument=ukulele&bpm=60",
+          "setup": "Fretboard, Harmonics: touch each string over frets 12, 7 and 5 and let it ring, one a click; the microphone hears the harmonic.",
           "done": "12 harmonics at 90% pitch.",
-          "needs": "A natural harmonics check (rec 11).",
+          "threshold": 0.9,
+          "minAttempts": 1,
           "feeds": "Gymnopédie, capstones"
         },
         {
@@ -3239,9 +3253,39 @@
           "id": "9.1",
           "title": "Minor pentatonic, five positions",
           "strand": "L",
-          "setup": "Ukulele positions 1 to 5 in A and C.",
+          "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-1&rootFret=0&bpm=90",
+          "setup": "Fretboard, Positions on ukulele: minor pentatonic positions 1 to 5, root on string 1 (A at the nut, C at fret 3), in A and C.",
           "done": "Each position 3 runs at 95% at 90.",
-          "needs": "Ukulele patterns in Fretboard, Positions (guitar only now): minor pentatonic in five positions (rec 4).",
+          "each": {
+            "param": "pattern",
+            "values": [
+              "ukulele-minor-pentatonic-1",
+              "ukulele-minor-pentatonic-2",
+              "ukulele-minor-pentatonic-3",
+              "ukulele-minor-pentatonic-4",
+              "ukulele-minor-pentatonic-5"
+            ]
+          },
+          "threshold": 0.95,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "Position 2",
+              "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-2&rootFret=0&bpm=90"
+            },
+            {
+              "label": "Position 3",
+              "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-3&rootFret=0&bpm=90"
+            },
+            {
+              "label": "Position 4",
+              "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-4&rootFret=0&bpm=90"
+            },
+            {
+              "label": "Position 5",
+              "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-5&rootFret=0&bpm=90"
+            }
+          ],
           "feeds": "blues"
         },
         {
@@ -3398,8 +3442,14 @@
           "strand": "L",
           "setup": "Jam on a progression taken from a song's chord chart.",
           "done": "2 choruses on Summertime at 80%.",
-          "needs": "Summertime's changes in Jam (rec 9); Jam's Check already grades choruses on its other songs and tunes.",
-          "feeds": "Summertime"
+          "feeds": "Summertime",
+          "href": "/music/jam?progression=tune-summertime&choruses=2",
+          "match": {
+            "progression": "tune-summertime",
+            "choruses": "2"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "9.8",

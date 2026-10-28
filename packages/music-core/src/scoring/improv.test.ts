@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { PROGRESSIONS, chorusBars } from "../content/jam";
-import { TUNES } from "../content/tunes";
+import {
+  TUNES,
+  formatReharm,
+  parseReharm,
+  reharmDevice,
+  reharmOptions,
+  reharmonise,
+} from "../content/tunes";
 import { gameOf, gradeImprov, tradeWindows, type ImprovNote } from "./improv";
 
 const blues = PROGRESSIONS.find((p) => p.id === "blues")!; // C7 4, F7 2, C7 2, G7 2, C7 2
@@ -165,7 +172,8 @@ describe("tunes", () => {
       ).toBe(true);
       const bars = t.sections!.reduce((a, s) => a + s.bars, 0);
       expect(chorusBars(t), t.id).toBe(bars);
-      expect([12, 16, 32, 36], t.id).toContain(bars);
+      // Peace is one 10-bar form, Infant Eyes three 9-bar phrases.
+      expect([10, 12, 16, 24, 27, 32, 36, 48], t.id).toContain(bars);
     }
     const bossa = TUNES.find((t) => t.id === "tune-blue-bossa")!;
     expect(bossa.chords.map((c) => c.symbol).slice(0, 3)).toEqual(["Cm7", "Fm7", "Dm7b5"]);
@@ -173,6 +181,8 @@ describe("tunes", () => {
     const rhythm = TUNES.find((t) => t.id === "tune-rhythm-changes")!;
     expect(rhythm.sections!.map((s) => s.label).join(" ")).toBe("A A2 B A");
     expect(rhythm.chords[0]).toMatchObject({ symbol: "Bb6", bars: 0.5 });
+    expect(TUNES.find((t) => t.id === "tune-very-early")!.beatsPerBar).toBe(3);
+    expect(chorusBars(TUNES.find((t) => t.id === "tune-infant-eyes")!)).toBe(27);
   });
 
   it("grades a tune's changes like any progression", () => {
@@ -180,5 +190,110 @@ describe("tunes", () => {
     // Eb (3rd of Cm7) on the first change, A (3rd of F7) on the second: 2 of the A section's 6 changes.
     const g = grade(leaves, [n(63, 0), n(69, 1)], "guide-tones");
     expect(g.choruses[0].measures.landings!.detail.startsWith("2 of")).toBe(true);
+  });
+});
+
+describe("gradeImprov: bridge, displacement and side-slips", () => {
+  const rhythm = TUNES.find((t) => t.id === "tune-rhythm-changes")!; // A A2 B A, bridge bars 16 to 23
+
+  it("grades only the bridge; the A sections are free", () => {
+    // The 3rd of D7, G7, C7 and F7 on each bridge change; anything at all in the A sections.
+    const bridge = [n(66, 16), n(71, 18), n(64, 20), n(69, 22)];
+    const head = Array.from({ length: 16 }, (_, b) => n(61, b));
+    const g = grade(rhythm, [...head, ...bridge], "bridge");
+    expect(part(g, "landings").detail).toBe("4 of 4");
+    expect(g.passed).toBe(true);
+    // Missing two of the four bridge landings.
+    expect(grade(rhythm, [...head, ...bridge.slice(0, 2)], "bridge").score).toBeCloseTo(0.5 / 0.85);
+  });
+
+  it("counts a motif moved a beat later each time", () => {
+    // Three eighths every five beats: beat 1, then 2, then 3... of each bar (the Straight, No Chaser idea).
+    const motif = (at: number) =>
+      [0, 0.5, 1].map((o, i) => ({ midi: 60 + i * 2, beat: at + o, end: at + o + 0.4 }));
+    const notes = Array.from({ length: 9 }, (_, k) => motif(k * 5)).flat();
+    const g = grade(blues, notes, "displacement");
+    expect(g.choruses[0].measures.displaced!.value).toBe(8);
+    expect(g.passed).toBe(true);
+    // The same motif every bar on beat 1 is repeated, not displaced.
+    const still = Array.from({ length: 12 }, (_, k) => motif(k * 4)).flat();
+    expect(grade(blues, still, "displacement").choruses[0].measures.displaced!.value).toBe(0);
+  });
+
+  it("finds side-slips and checks each resolves on a chord tone", () => {
+    // Over C7 (C mixolydian): Db, Eb, Gb (outside) on beats 3, 3.5 and 4, then E (the 3rd) on the next 1.
+    const slip = (bar: number, land: number) => [
+      n(61, bar, 2, 0.5),
+      n(63, bar, 2.5, 0.5),
+      n(66, bar, 3, 0.5),
+      n(land, bar + 1, 0),
+    ];
+    const notes = [0, 2, 6, 10].flatMap((b) => slip(b, 64)); // all over C7
+    const g = grade(blues, notes, "side-slip");
+    expect(part(g, "slips").value).toBe(4);
+    expect(part(g, "resolved").value).toBe(1);
+    expect(g.passed).toBe(true);
+    // Landing on D (not a chord tone) leaves that slip unresolved.
+    const off = [0, 2, 6].flatMap((b) => slip(b, 64)).concat(slip(10, 62));
+    expect(part(grade(blues, off, "side-slip"), "resolved").detail).toBe("3 of 4");
+    // Inside lines are not slips.
+    const inside = Array.from({ length: 24 }, (_, i) => ({
+      midi: [60, 62, 64, 65][i % 4],
+      beat: i / 2,
+    }));
+    expect(part(grade(blues, inside, "side-slip"), "slips").value).toBe(0);
+  });
+});
+
+describe("gradeImprov in 3/4", () => {
+  const waltz = { ...iiVI, beatsPerBar: 3 }; // 8 bars of 3: Dm7 2, G7 2, Cmaj7 2, A7 2
+
+  it("lays the changes on three-beat bars and judges beat 1 only", () => {
+    // F (3rd of Dm7) at 0, B (3rd of G7) at 6, E at 12, C# at 18.
+    const notes = [n(65, 0), { midi: 71, beat: 6 }, { midi: 64, beat: 12 }, { midi: 61, beat: 18 }];
+    const g = grade(waltz, notes, "thirds");
+    expect(g.passed).toBe(true);
+    // A chord tone on beat 3 of a 3/4 bar is not a strong beat.
+    const c = grade(waltz, [n(62, 0), { midi: 63, beat: 2 }], "chord-tones");
+    expect(part(c, "strong").detail).toBe("1 of 1");
+    expect(part(c, "strong").label).toBe("Chord tones on beat 1");
+  });
+
+  it("keeps windows in three-beat bars", () => {
+    const on = [0, 1, 4, 5].map((b) => ({ midi: 62, beat: b * 3 }));
+    expect(grade(waltz, on, "space").passed).toBe(true);
+  });
+});
+
+describe("reharmonisation", () => {
+  const fly = TUNES.find((t) => t.id === "tune-fly-me-to-the-moon")!; // Am7 Dm7 G7 Cmaj7 ...
+
+  it("offers the tritone sub and related ii on a dominant only", () => {
+    expect(reharmOptions(fly, 2)).toContain("tritone");
+    expect(reharmOptions(fly, 0)).not.toContain("tritone");
+  });
+
+  it("swaps chords and keeps the form's length", () => {
+    // Dm7 (index 1) is no dominant, so a related ii there is dropped.
+    const swaps = parseReharm("2:tritone,1:related-ii,0:secondary,9:nonsense");
+    expect(swaps.size).toBe(3);
+    const r = reharmonise(fly, swaps);
+    expect(r.chords.slice(0, 4).map((c) => c.symbol)).toEqual(["A7", "Dm7", "Db7", "Cmaj7"]);
+    expect(chorusBars(r)).toBe(chorusBars(fly));
+    expect(reharmDevice(swaps)).toBe("mixed");
+    expect(formatReharm(swaps)).toBe("0:secondary,1:related-ii,2:tritone");
+    expect(reharmonise(fly, parseReharm("2:related-ii")).chords[2].symbol).toBe("Dm7");
+  });
+
+  it("writes the backdoor, passing diminished and chromatic ii-V before the next chord", () => {
+    // G7 (index 2) before Cmaj7.
+    const one = (d: string) =>
+      reharmonise(fly, parseReharm(`2:${d}`))
+        .chords.slice(2, 5)
+        .map((c) => `${c.symbol} ${c.bars}`);
+    expect(one("backdoor").slice(0, 2)).toEqual(["Fm7 0.5", "Bb7 0.5"]);
+    expect(one("passing-dim").slice(0, 2)).toEqual(["G7 0.5", "Bdim7 0.5"]);
+    expect(one("chromatic-ii-v")).toEqual(["G7 0.5", "Ebm7 0.25", "Ab7 0.25"]);
+    expect(reharmDevice(parseReharm("2:backdoor"))).toBe("backdoor");
   });
 });

@@ -85,6 +85,7 @@ const ROUTES = [
   "/music/listening",
   "/music/by-ear",
   "/music/call-response",
+  "/music/ear/feel",
   "/music/lab",
   "/music/jam",
   "/music/library?tab=songs",
@@ -108,6 +109,7 @@ describe("drill catalog", () => {
       "interval-recall",
       "legato",
       "bends",
+      "harmonics",
     ]);
     expect(CATALOG.find((e) => e.id === "chords")!.modes).toHaveLength(5);
     expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(13);
@@ -121,6 +123,9 @@ describe("drill catalog", () => {
       "ostinato",
       "orchestrate",
       "improvise",
+      "chop",
+      "repeat",
+      "song",
     ]);
   });
 
@@ -134,9 +139,11 @@ describe("drill catalog", () => {
       p.steps.flatMap((s) => s.exerciseIds ?? []),
     );
     for (const id of pathIds) {
-      // Phrases record one exercise per instrument, fretted drills a ukulele variant, Song Studio its own.
+      // Phrases record one exercise per instrument, fretted drills a ukulele variant, Song Studio
+      // its own, and Create (not a drill) a loop built live on the pads.
       const covered =
         ids.has(id) ||
+        id === "technique.mpc.live-loop" ||
         ids.has(id.replace(/^technique\.ukulele\./, "technique.guitar.")) ||
         RHYTHM_PATTERNS.some((p) => rhythmExerciseId(p.id) === id) ||
         /^repertoire\.phrases\.(piano|guitar|ukulele|aerophone)$/.test(id) ||

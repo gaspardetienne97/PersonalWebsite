@@ -7,7 +7,7 @@ import type { Score } from "../types";
 import { parseChordSymbol, transposeSymbol, type ParsedChord } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
-import { PROGRESSIONS, type JamGroup, type Progression } from "./jam";
+import { PROGRESSIONS, barBeats, type JamGroup, type Progression } from "./jam";
 import { nearestVoicing, placeVoicing } from "./piano";
 import { rng, type Rand } from "./random";
 
@@ -243,20 +243,23 @@ export function chartProgression(level: string, seed = 1): Progression {
   };
 }
 
-/** A progression's chords as a chart, transposed, looped to at least MIN_BARS. */
-export function chartOf(p: Progression, transpose = 0): ChartChord[] {
+/** A progression's chords as a chart, transposed, looped to at least MIN_BARS and `choruses` times through. */
+export function chartOf(p: Progression, transpose = 0, choruses = 1): ChartChord[] {
   const out: ChartChord[] = [];
+  const bpb = barBeats(p);
   let beat = 0;
+  let passes = 0;
   do {
     for (const c of p.chords) {
       out.push({
         symbol: transposeSymbol(c.symbol, transpose),
         startBeat: beat,
-        durationBeats: c.bars * BEATS_PER_BAR,
+        durationBeats: c.bars * bpb,
       });
-      beat += c.bars * BEATS_PER_BAR;
+      beat += c.bars * bpb;
     }
-  } while (beat < MIN_BARS * BEATS_PER_BAR);
+    passes++;
+  } while (beat < MIN_BARS * bpb || passes < choruses);
   return out;
 }
 
@@ -657,6 +660,8 @@ export interface CompRhythm {
   /** [beat, beats held, true when the hit anticipates the next bar's chord]. */
   hits: [number, number, boolean?][];
   straight?: boolean;
+  /** 3 for a waltz rhythm (3/4 only); 4/4 rhythms when unset. */
+  meter?: 3;
 }
 export const COMP_RHYTHMS: CompRhythm[] = [
   { id: "whole", label: "Whole notes", about: "One chord a bar, on 1, held.", hits: [[0, 4]] },
@@ -707,7 +712,42 @@ export const COMP_RHYTHMS: CompRhythm[] = [
     ],
     straight: true,
   },
+  {
+    id: "hard-bop",
+    label: "Hard-bop hits",
+    about:
+      "Short hits with the drummer: on 1, the and of 2, then the next chord pushed on the and of 4.",
+    hits: [
+      [0, 0.5],
+      [1.5, 0.5],
+      [3.5, 0.5, true],
+    ],
+  },
+  {
+    id: "waltz",
+    label: "Waltz: 1 and the and of 2",
+    about: "Jazz waltz comping in 3/4: on 1, then the and of 2.",
+    hits: [
+      [0, 1],
+      [1.5, 1],
+    ],
+    meter: 3,
+  },
+  {
+    id: "waltz-23",
+    label: "Waltz: 2 and 3",
+    about: "In 3/4, leave 1 to the bass and comp on 2 and 3.",
+    hits: [
+      [1, 1],
+      [2, 1],
+    ],
+    meter: 3,
+  },
 ];
+
+/** The rhythms that fit a bar of `beatsPerBar` beats. */
+export const compRhythmsFor = (beatsPerBar: number) =>
+  COMP_RHYTHMS.filter((r) => (r.meter ?? 4) === beatsPerBar);
 
 export interface CompVoicing {
   id: string;
@@ -741,6 +781,12 @@ export const COMP_VOICINGS: CompVoicing[] = [
     id: "two-feel",
     label: "Two-feel bass and guide tones",
     about: "Left hand: root on 1, fifth on 3. Right hand: the 3rd and 7th on the rhythm.",
+  },
+  {
+    id: "octave-stabs",
+    label: "Octave stabs",
+    about:
+      "Left hand: the root in octaves, short, with the right hand (Horace Silver's punches). Right hand: rootless A or B.",
   },
 ];
 
@@ -789,6 +835,14 @@ function compVoices(
       prev = guide;
       return { left: [bassOf(c)], right: guide };
     }
+    if (voicing === "octave-stabs") {
+      const low = 36 + pc(c.rootPc - 36);
+      const [a, b] = (["A", "B"] as const).map((pos) =>
+        placeVoicing(c.rootPc, rootlessShape(c, pos), prev, [60, 79]),
+      );
+      prev = movement(a, prev) <= movement(b, prev) ? a : b;
+      return { left: [low, low + 12], right: prev };
+    }
     const register: [number, number] = voicing === "rootless" ? [48, 67] : [55, 76];
     const [a, b] = (["A", "B"] as const).map((pos) =>
       placeVoicing(c.rootPc, rootlessShape(c, pos), prev, register),
@@ -804,8 +858,10 @@ export function compingRendering(
   voicing: string,
   rhythmId: string,
   swing = true,
+  beatsPerBar = BEATS_PER_BAR,
 ): Rendering {
-  const rhythm = COMP_RHYTHMS.find((r) => r.id === rhythmId) ?? COMP_RHYTHMS[0];
+  const fits = compRhythmsFor(beatsPerBar);
+  const rhythm = fits.find((r) => r.id === rhythmId) ?? fits[0];
   const voices = compVoices(chart, voicing);
   const beats = chartBeats(chart);
   /** The voicing sounding at a beat, the chart looping. */
@@ -815,14 +871,17 @@ export function compingRendering(
   };
   const twoFeel = voicing === "two-feel";
   const out: AccompSlot[] = [];
-  for (let b0 = 0; b0 < beats; b0 += BEATS_PER_BAR) {
+  const stabs = voicing === "octave-stabs";
+  for (let b0 = 0; b0 < beats; b0 += beatsPerBar) {
     for (const [beat, dur, push] of rhythm.hits) {
       // A push sounds the chord of the next beat it leads into.
       const v = at(b0 + beat + (push ? 0.5 : 0));
-      if (!twoFeel && v.left.length) out.push(L(b0 + beat, dur, ...v.left));
+      if (!twoFeel && v.left.length)
+        out.push(L(b0 + beat, stabs ? Math.min(dur, 0.5) : dur, ...v.left));
       if (v.right.length) out.push(R(b0 + beat, dur, ...v.right));
     }
-    if (twoFeel)
+    if (twoFeel && beatsPerBar === 3) out.push(L(b0, 3, at(b0).left[0]));
+    else if (twoFeel)
       out.push(
         L(b0, 2, at(b0).left[0]),
         L(b0 + 2, 2, at(b0 + 2).left[0] + (at(b0 + 2) === at(b0) ? 7 : 0)),

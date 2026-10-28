@@ -328,6 +328,11 @@ interface RowSpec {
 }
 
 const MARGIN = 6;
+/** Whether bar `b` starts a new meter (a time signature to draw). */
+const meterChanged = (list: Bar[], b: number) => {
+  const [m, p] = [list[b]?.meter, list[b - 1]?.meter];
+  return b > 0 && !!m && !!p && (m.beats !== p.beats || m.beatUnit !== p.beatUnit);
+};
 /** Odd eighth meters beam in their groups (2+2+3, 2+3); VexFlow's default pairs them. */
 const ODD_BEAMS: Record<string, string[]> = { "7/8": ["2/8", "2/8", "3/8"], "5/8": ["2/8", "3/8"] };
 
@@ -342,10 +347,14 @@ function engrave(
   /** Stretch a short last line to the width too (a one-line exercise reads better spread out), or centre a one-line staff. */
   fill: boolean | "center" = false,
 ): Layout {
-  const time = `${score.meter.beats}/${score.meter.beatUnit}`;
-  const beamGroups = ODD_BEAMS[time]
-    ? ODD_BEAMS[time].map((g) => new VF.Fraction().parse(g))
-    : VF.Beam.getDefaultBeamGroups(time);
+  // Each bar's meter: the score's, or its own when the score changes meter.
+  const meterOf = (b: number) => barList[b].meter ?? score.meter;
+  const beamGroupsOf = (m: Score["meter"]) => {
+    const time = `${m.beats}/${m.beatUnit}`;
+    return ODD_BEAMS[time]
+      ? ODD_BEAMS[time].map((g) => new VF.Fraction().parse(g))
+      : VF.Beam.getDefaultBeamGroups(time);
+  };
   const sysH = rows.reduce((h, r) => h + r.height, 0) + 12;
 
   const build = (b: number, staves: Stave[]) =>
@@ -371,14 +380,14 @@ function engrave(
           });
         else for (const n of ns) n.applyTickMultiplier(2, 3);
       }
-      const voice = new VF.Voice({ numBeats: score.meter.beats, beatValue: score.meter.beatUnit })
+      const voice = new VF.Voice({ numBeats: meterOf(b).beats, beatValue: meterOf(b).beatUnit })
         .setMode(VF.Voice.Mode.SOFT)
         .addTickables(notes);
       if (row.keySpec) VF.Accidental.applyAccidentals([voice], row.keySpec);
       const beams = row.beams
         ? VF.Beam.generateBeams(
             notes.filter((n) => n instanceof VF.StaveNote),
-            { groups: beamGroups },
+            { groups: beamGroupsOf(meterOf(b)) },
           )
         : [];
       return { notes, voice, beams, tuplets };
@@ -402,8 +411,10 @@ function engrave(
     const f = new VF.Formatter();
     built.forEach((x) => f.joinVoices([x.voice]));
     const min = f.preCalculateMinTotalWidth(built.map((x) => x.voice));
-    least[b] = min + plain + 20;
-    return Math.max(64, min * 1.35 + plain + 24);
+    // A bar that changes meter carries its time signature: room for it.
+    const sig = meterChanged(barList, b) ? 24 : 0;
+    least[b] = min + plain + 20 + sig;
+    return Math.max(64, min * 1.35 + plain + 24) + sig;
   });
 
   // Pack bars into systems.
@@ -691,7 +702,9 @@ export function drawStaff(
         const clef = bar === undefined ? row.clef : barClef[bar];
         if (first) s.addClef(clef).addKeySignature(key);
         else if (bar && clef !== barClef[bar - 1]) s.addClef(clef, "small");
-        if (time && withTime) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
+        const m = bar === undefined ? score.meter : (barList[bar].meter ?? score.meter);
+        if (withTime && (time || (bar && meterChanged(barList, bar))))
+          s.addTimeSignature(`${m.beats}/${m.beatUnit}`);
         return s;
       },
       note(VF, t) {

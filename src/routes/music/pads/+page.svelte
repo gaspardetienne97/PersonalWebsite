@@ -39,6 +39,7 @@
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
+  import ChopDrill from "$lib/music/drills/pads/ChopDrill.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("pads", {
@@ -59,6 +60,8 @@
     backing: false as boolean,
     // MPC swing on any groove whose hits sit on the grid (0: as written).
     swing: 0,
+    // Check, faded: the notes and live judgements for the first two plays, then the guide fades and only the rest counts.
+    fade: false as boolean,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -77,7 +80,9 @@
   const fixedGrid = $derived(!!pattern.subdivision || !!pattern.perBeat);
   const stepMs = $derived(beatMs / perBeat);
   const pads = $derived<[number, number]>(s.padL === s.padR ? [36, 38] : [s.padL, s.padR]);
-  const hits = $derived(rudimentHits({ patternId: pattern.id, subdivision: s.sub as 2 | 3 | 4, hits: s.hits, bpm, pads }));
+  /** Stick Control fixes the length (20 repetitions); the rest take the chosen count. */
+  const hitCount = $derived(pattern.hits ?? s.hits);
+  const hits = $derived(rudimentHits({ patternId: pattern.id, subdivision: s.sub as 2 | 3 | 4, hits: hitCount, bpm, pads }));
   const strokes = $derived(hits.filter((h) => !h.grace));
   const STEADY_BARS = 12;
   const CLICK_BARS = 4;
@@ -94,7 +99,7 @@
   /** Hold the tempo repeats the groove to twelve bars: four with the click, eight without. */
   const played = $derived.by(() => {
     const g = reswing(entry.groove, writtenSwing, swing);
-    const plays = waitMode ? 1 : Math.max(1, Math.min(32, Math.round(s.plays)));
+    const plays = waitMode ? 1 : faded ? Math.max(FADE_PLAYS + 2, Math.min(32, Math.round(s.plays))) : Math.max(1, Math.min(32, Math.round(s.plays)));
     if (!isSteady && plays === 1) return g;
     const cycles = isSteady ? Math.ceil(STEADY_BARS / g.bars) : plays;
     return {
@@ -102,7 +107,9 @@
       bars: cycles * g.bars,
       sectionLabels: isSteady
         ? Array.from({ length: cycles * g.bars }, (_, b) => (b < CLICK_BARS ? "with the click" : "on your own"))
-        : Array.from({ length: cycles }, () => g.sectionLabels).flat(),
+        : faded
+          ? Array.from({ length: cycles * g.bars }, (_, b) => (b < FADE_PLAYS * g.bars ? "with the guide" : "on your own"))
+          : Array.from({ length: cycles }, () => g.sectionLabels).flat(),
       targets: Array.from({ length: cycles }, (_, c) => g.targets.map((t) => ({ ...t, beat: t.beat + c * g.bars * perBar }))).flat(),
     };
   });
@@ -113,6 +120,10 @@
   let mode = $state<DrillMode>("practice");
   /** Wait mode: no click; each note waits until its pads are hit (learn it, then time it). */
   const waitMode = $derived(!!s.wait && !isSteady && mode === "practice");
+  /** Faded feedback (Check only): the guide for FADE_PLAYS plays, then summary only; the plays after it are graded. */
+  const FADE_PLAYS = 2;
+  const faded = $derived(!!s.fade && isGroove && !isSteady && mode === "check");
+  const fadeMs = $derived(faded ? FADE_PLAYS * entry.groove.bars * perBar * beatMs : 0);
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
   let rud = $state<RudimentResult | null>(null);
@@ -136,6 +147,8 @@
   }
   let downbeat = $state(0);
   let now = $state(0);
+  /** The guide shows: in Practice, or a faded run before the fade. */
+  const guided = $derived(mode === "practice" || (faded && (phase === "countin" || now - downbeat < fadeMs)));
   let demo = $state<{ stop(): void; playing: boolean; startPerf: number } | null>(null);
   let demoLit = $state<Record<number, boolean>>({});
   const flashes = new Flashes();
@@ -178,7 +191,7 @@
   // taps already sound through the input layer.
   $effect(() =>
     input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound) audio.drum(e.midi, e.velocity);
+      if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound && cfg.value.mode !== "chop") audio.drum(e.midi, e.velocity);
     }),
   );
 
@@ -186,7 +199,7 @@
   let assign = $state<"left" | "right">("left");
   $effect(() =>
     input.subscribe((e) => {
-      if (e.kind !== "noteon" || phase !== "ready" || isGroove || demo?.playing || e.midi < 36 || e.midi > 51) return;
+      if (e.kind !== "noteon" || phase !== "ready" || cfg.value.mode !== "rudiment" || demo?.playing || e.midi < 36 || e.midi > 51) return;
       const m = e.midi;
       if (pattern.onePad || assign === "right") {
         cfg.set(m === pads[0] ? { padR: m, padL: pads[1] } : { padR: m });
@@ -342,7 +355,7 @@
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     for (const [m, on] of Object.entries(demoLit)) if (on) out[+m] = { demo: true };
-    if (mode === "check" || phase === "results" || demo?.playing) return out;
+    if ((mode === "check" && !guided) || phase === "results" || demo?.playing) return out;
     if (phase === "running" && waitMode) {
       // The pads the waiting notes need.
       const at = waitGroups[waitIdx];
@@ -373,17 +386,18 @@
             ...(grooveMeter(entry.groove) !== "4/4" && !groove.groove.label.includes(grooveMeter(entry.groove)) ? [{ text: `in ${grooveMeter(entry.groove)}` }] : perBeatStep % 2 ? [{ text: "on triplets" }] : []),
             { text: `${bpm} BPM (aim for ${entry.bpm.target})` },
             ...(swing !== 50 ? [{ text: `swing ${swing}%`, focus: "swing" }] : []),
+            ...(faded ? [{ text: `the guide fades after ${FADE_PLAYS} plays`, focus: "fade" }] : []),
           ]
         : [
             { text: `Rudiment: ${pattern.label}`, focus: "pattern" },
             { text: SUBDIVISION_NAMES[perBeat], focus: "sub" },
-            { text: `${s.hits} hits`, focus: "hits" },
+            { text: pattern.hits ? `${pattern.hits / pattern.unit.length} repetitions` : `${s.hits} hits`, focus: "hits" },
             { text: pattern.onePad ? `pad ${padLabel(pads[1])}` : `pads ${padLabel(pads[0])} and ${padLabel(pads[1])}` },
             { text: `${bpm} BPM` },
           ],
   );
   const setupKey = $derived(
-    isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}${swing !== writtenSwing ? `:swing${swing}` : ""}` : `rudiment:${pattern.id}:${perBeat}:${s.hits}:${pads.join("-")}:${bpm}`,
+    isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}${swing !== writtenSwing ? `:swing${swing}` : ""}` : `rudiment:${pattern.id}:${perBeat}:${hitCount}:${pads.join("-")}:${bpm}`,
   );
 
   function stopDemo() {
@@ -420,7 +434,7 @@
   }
 
   function onHit(e: NoteEvent) {
-    if ((phase !== "running" && phase !== "countin") || mode !== "practice") return;
+    if ((phase !== "running" && phase !== "countin") || !guided) return;
     if (waitMode) return waitHit(e);
     judge(e);
     const at = e.at - downbeat;
@@ -473,8 +487,8 @@
         : clamp(0.25 + (perBeat - 2) * 0.1 + (bpm - 60) / 300 + (pattern.id === "paradiddle" || pattern.id === "flam" ? 0.1 : 0), 0, 1),
       instrument: "mpc",
       params: isGroove
-        ? { bpm, groove: entry.groove.value, mode: s.mode, ...(swingable ? { swing } : {}), ...(isSteady ? {} : { plays: played.bars / entry.groove.bars, backing: withBacking }) }
-        : { bpm, pattern: pattern.id, sub: perBeat, hits: s.hits, padL: pads[0], padR: pads[1] },
+        ? { bpm, groove: entry.groove.value, mode: s.mode, ...(swingable ? { swing } : {}), ...(isSteady ? {} : { plays: played.bars / entry.groove.bars, backing: withBacking }), ...(faded ? { fade: FADE_PLAYS } : {}) }
+        : { bpm, pattern: pattern.id, sub: perBeat, hits: hitCount, padL: pads[0], padR: pads[1] },
     });
     const wait = Math.max(0, ctx.downbeat - performance.now());
     if (withBacking) band = audio.playSequence(backingFor(entry.style, groove.targets, groove.groove.bars, beatMs, perBar), { startPerf: ctx.downbeat });
@@ -527,7 +541,9 @@
         return;
       }
       grv = r;
-      const tier = gradeTier(r.perTarget, levelOf.tier, closestGapMs(groove.targets, beatMs));
+      // Faded: only the plays after the guide count.
+      const own = faded ? r.perSection.find((x) => x.label === "on your own") : null;
+      const tier = gradeTier(faded ? r.perTarget.filter((_, i) => groove.targets[i].atMs >= fadeMs - 1) : r.perTarget, levelOf.tier, closestGapMs(groove.targets, beatMs));
       // On your own: the tempo read from the raw hits, since a steady drift leaves the match window.
       const drift = isSteady ? tempoDrift(groove.targets, notes, beatMs, downbeat, CLICK_BARS * 4) : null;
       // Early (negative) or late per drum: each finger has its own lean.
@@ -539,7 +555,8 @@
       const steadyOk = !isSteady || (drift ? Math.abs(drift.driftBpm) < 3 : !ons.length);
       extra = { tier, swing: swing !== 50 && perBeatStep === 4 ? measuredSwing(groove.targets, r.perTarget, beatMs) : null, drift, bias, pass: tier.pass && steadyOk };
       // Holding the tempo counts in the score: drifting 3 BPM or more costs 40%.
-      graded = { ...r, score: steadyOk ? r.score : r.score * 0.6, correct: tier.pass && steadyOk };
+      const base = own ? own.matched / Math.max(1, own.matched + own.missed + own.extra) : r.score;
+      graded = { ...r, score: steadyOk ? base : base * 0.6, correct: tier.pass && steadyOk };
     } else {
       const r = gradeRudiment({
         strokes: strokes.map((h) => ({ pad: h.pad, offsetMs: h.atMs, band: h.velocityBand ? (h.accent ? ("accent" as const) : ("tap" as const)) : undefined })),
@@ -592,6 +609,11 @@
       return nextRun("pads.groove", { bpm, tempo: { min: Math.min(bpm, entry.bpm.start), goal: entry.bpm.target }, steps: GROOVE_STEPS.map((r) => ({ label: `Level ${r.level}, ${r.groove.label}`, goal: r.bpm.target, start: r.bpm.start })), step: GROOVE_STEPS.indexOf(entry) }, run, tempoAnd((i) => cfg.set({ groove: GROOVE_STEPS[i].groove.value })));
     const tempo = { min: 40, goal: 120 };
     // A rudiment with its own subdivision grows in length instead.
+    // Stick Control moves through the stickings once each holds at the goal.
+    if (pattern.hits) {
+      const sticks = RUDIMENTS.filter((r) => r.hits);
+      return nextRun("pads.stick-control", { bpm, tempo: { min: 40, goal: 90 }, steps: sticks.map((r) => ({ label: r.label })), step: Math.max(0, sticks.indexOf(pattern)) }, run, tempoAnd((i) => cfg.set({ pattern: sticks[i].id })));
+    }
     if (fixedGrid)
       return nextRun(`pads.rudiment.${pattern.id}`, { bpm, tempo, steps: RUDIMENT_HIT_COUNTS.map((n) => ({ label: `${n} hits` })), step: Math.max(0, RUDIMENT_HIT_COUNTS.indexOf(s.hits as 8)) }, run, tempoAnd((i) => cfg.set({ hits: RUDIMENT_HIT_COUNTS[i] })));
     return nextRun(`pads.rudiment.${pattern.id}.${s.hits}`, { bpm, tempo, steps: SUB_STEPS, step: Math.max(0, [2, 3, 4].indexOf(s.sub)) }, run, tempoAnd((i) => cfg.set({ sub: [2, 3, 4][i] })));
@@ -664,6 +686,7 @@
       metric: pct(r.score),
       metricLabel: r.inBand === null ? "score, accents not measured" : "score",
       rows: [
+        ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
         { label: `Perfect (within ${Math.round(x.tier.perfectMs)} ms)`, value: x.tier.perfect, text: `${Math.round(x.tier.perfect * 100)}%, 70% to pass` },
         { label: `Good (within ${Math.round(x.tier.goodMs)} ms)`, value: x.tier.good, text: `${Math.round(x.tier.good * 100)}%, 90% to pass` },
         ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
@@ -720,8 +743,11 @@
     ["ostinato", "Ostinato and a line"],
     ["orchestrate", "Rudiments on the kit"],
     ["improvise", "Improvise"],
+    ["chop", "Chop"],
+    ["repeat", "Note repeat"],
+    ["song", "Song form"],
   ] as const;
-  const SKILL_MODES = ["dynamics", "fills", "echo", "ostinato", "orchestrate", "improvise"] as const;
+  const SKILL_MODES = ["dynamics", "fills", "echo", "ostinato", "orchestrate", "improvise", "repeat", "song"] as const;
   const skillMode = $derived(SKILL_MODES.find((m) => m === s.mode) ?? null);
   /** The grooves by level (the drum phrases have their own drill), style and tempo on the line under, stars earned as the badge. */
   const grooveItems = $derived(
@@ -735,15 +761,17 @@
     })),
   );
   /** Rudiments grouped as the skills are: singles and doubles, rolls, accents, paradiddles. */
-  const rudimentOptions = ["Singles and doubles", "Rolls", "Accents", "Paradiddles"].flatMap((group) =>
-    RUDIMENTS.filter((r) => (rudimentSkills(r.id)[1] === "technique.mpc.paradiddles" ? "Paradiddles" : rudimentSkills(r.id)[1] === "technique.mpc.rolls" ? "Rolls" : rudimentSkills(r.id)[1] === "technique.mpc.accents" ? "Accents" : "Singles and doubles") === group).map((r) => ({ value: r.id, label: r.label, group })),
+  const rudimentOptions = ["Singles and doubles", "Rolls", "Accents", "Paradiddles", "Stick Control, page one"].flatMap((group) =>
+    RUDIMENTS.filter((r) => (r.hits ? "Stick Control, page one" : rudimentSkills(r.id)[1] === "technique.mpc.paradiddles" ? "Paradiddles" : rudimentSkills(r.id)[1] === "technique.mpc.rolls" ? "Rolls" : rudimentSkills(r.id)[1] === "technique.mpc.accents" ? "Accents" : "Singles and doubles") === group).map((r) => ({ value: r.id, label: r.hits ? r.label.replace("Stick Control: ", "") : r.label, group })),
   );
   const voiceName = (id: string) => GROOVE_VOICES.find((v) => v.id === id)?.name ?? id;
 </script>
 
 <svelte:head><title>Pads | Woodshed</title></svelte:head>
 
-{#if skillMode}
+{#if s.mode === "chop"}
+  <ChopDrill modes={MODES} onmode={setMode} />
+{:else if skillMode}
   {#key skillMode}<PadSkills skill={skillMode} modes={MODES} onmode={setMode} />{/key}
 {:else}
 <DrillShell
@@ -793,7 +821,14 @@
           onchange={(v) => cfg.set({ sub: v })}
           setupKey="sub"
         />
-        <Choice label="Hits" options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} setupKey="hits" />
+        {#if pattern.hits}
+          <p class="text-sm text-ws-soft sm:pt-6">Stick Control: {pattern.hits / pattern.unit.length} repetitions of {pattern.label.replace("Stick Control: ", "")}, one pad a hand, so the app can check the sticking.</p>
+        {:else}
+          <Choice label="Hits" options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} setupKey="hits" />
+        {/if}
+      {/if}
+      {#if isGroove && !isSteady && mode === "check"}
+        <Choice label="Feedback" setupKey="fade" options={[{ value: "off", label: "None: from memory" }, { value: "on", label: `Fades after ${FADE_PLAYS} plays` }]} value={s.fade ? "on" : "off"} onchange={(v) => cfg.set({ fade: v === "on" })} />
       {/if}
       {#if !isSteady && mode !== "check"}
         <Choice label="Wait mode (learn it)" options={[{ value: "off", label: "Off" }, { value: "on", label: "On: no click, notes wait" }]} value={s.wait ? "on" : "off"} onchange={(v) => cfg.set({ wait: v === "on" })} />
@@ -824,7 +859,7 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if phase === "running" && mode === "practice"}
+    {#if phase === "running" && guided}
       <Stat label="Streak" value={streak} tone={streak >= 8 ? "success" : undefined} />
       {#if liveScore !== null}<Stat label="Score so far" value="{Math.round(liveScore * 100)}%" />{/if}
     {/if}
@@ -848,7 +883,7 @@
       <!-- The notes on top, the pads under them, as play-along apps stack them. -->
       <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-5">
         <div class="min-w-0">
-          {#if (phase === "running" || phase === "countin" || demo?.playing) && (mode === "practice" || demo?.playing)}
+          {#if (phase === "running" || phase === "countin" || demo?.playing) && (guided || demo?.playing)}
             <!-- While it plays: the notes come at you, judged as they pass. -->
             <NoteHighway
               {lanes}
@@ -864,6 +899,7 @@
             {#if waitMode}<p class="mt-2 text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
           {:else if mode === "check" && phase !== "results"}
             <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
+              {#if faded}{phase === "running" ? "The guide has faded: keep it going. " : `Check, faded: the notes and judgements for ${FADE_PLAYS} plays, then summary only; the plays after the fade count. `}{/if}
               Check: from memory, no grid.
               {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else if pattern.onePad}{pattern.label} on {padLabel(pads[1])}.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
             </p>

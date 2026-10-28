@@ -268,6 +268,12 @@ export const CATALOG: CatalogEntry[] = [
       ]),
       mode("cadence", "Cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
       mode("cadence-minor", "Minor cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
+      mode("jazz", "Jazz types", "voicing-drill", [
+        "harmony.voicings.diatonic-sevenths",
+        "harmony.voicings.quartal",
+        "harmony.voicings.two-handed",
+        "harmony.voicings.block-chords",
+      ]),
     ],
   }),
   entry({
@@ -348,6 +354,7 @@ export const CATALOG: CatalogEntry[] = [
         "technique.bends",
         "technique.vibrato",
       ]),
+      mode("harmonics", "Harmonics", "technique.guitar.harmonics", ["technique.strings"]),
     ],
   }),
   entry({
@@ -436,6 +443,12 @@ export const CATALOG: CatalogEntry[] = [
         "technique.mpc",
         "technique.mpc.improvise",
       ]),
+      mode("chop", "Chop", "technique.mpc.chop", ["technique.mpc", "technique.mpc.chop"]),
+      mode("repeat", "Note repeat", "technique.mpc.repeat", [
+        "technique.mpc",
+        "technique.mpc.repeat",
+      ]),
+      mode("song", "Song form", "technique.mpc.song", ["technique.mpc", "technique.mpc.song"]),
     ],
   }),
   entry({
@@ -535,6 +548,7 @@ export const CATALOG: CatalogEntry[] = [
     modes: [
       mode("learn", "Learn a part", "ear.by-ear", ["ear.by-ear"]),
       mode("home", "Find home", "ear.find-home", ["ear.find-home"]),
+      mode("sing", "Sing along", "ear.by-ear.sing", ["ear.by-ear"]),
     ],
   }),
   entry({
@@ -550,6 +564,17 @@ export const CATALOG: CatalogEntry[] = [
       mode("echo", "Echo the call", "ear.call-response.echo", ["ear.call-response"]),
       mode("answer", "Answer it", "ear.call-response.answer", ["ear.call-response"]),
     ],
+  }),
+  entry({
+    id: "ear-feel",
+    route: "/music/ear/feel",
+    title: "Feel",
+    blurb: "Hear a groove and say whether it is straight, swung, a shuffle or in 12/8.",
+    instruments: [...INSTRUMENTS],
+    capability: "ear",
+    modality: "heard",
+    exerciseId: "ear.rhythm-feel",
+    skillIds: ["rhythm.subdivisions"],
   }),
   entry({
     id: "lab",

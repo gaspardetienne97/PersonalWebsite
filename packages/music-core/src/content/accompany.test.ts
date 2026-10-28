@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "../types";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
+import { PROGRESSIONS } from "./jam";
 import { gradeAccompaniment } from "../scoring/piano";
 import {
   ACCOMP_PATTERNS,
@@ -441,5 +442,43 @@ describe("generated charts and jazz lead sheets", () => {
       const chord = chordAt(r, s.beat);
       expect(s.midi.map(pc)).not.toContain(chord.rootPc);
     }
+  });
+});
+
+describe("comping the tune player's standards", () => {
+  it("voices every tune with every voicing", async () => {
+    const { TUNES } = await import("./tunes");
+    const { barBeats } = await import("./jam");
+    for (const t of TUNES)
+      for (const v of COMP_VOICINGS) {
+        const r = compingRendering(chartOf(t), v.id, "whole", true, barBeats(t));
+        expect(r.slots.length, `${t.id} ${v.id}`).toBeGreaterThan(0);
+        expect(
+          r.slots.every((s) => s.midi.every(Number.isFinite)),
+          `${t.id} ${v.id}`,
+        ).toBe(true);
+      }
+  });
+
+  it("comps a waltz on 1 and the and of 2, three beats a bar", () => {
+    const waltz = { ...PROGRESSIONS.find((p) => p.id === "ii-v-i")!, beatsPerBar: 3 };
+    const chart = chartOf(waltz, 0, 2);
+    expect(chart[1].startBeat).toBe(6); // Dm7 for two 3/4 bars
+    const r = compingRendering(chart, "rootless", "waltz", true, 3);
+    expect([...new Set(r.slots.map((s) => s.beat))].slice(0, 4)).toEqual([0, 1.5, 3, 4.5]);
+    // A 4/4 rhythm asked for in 3/4 falls back to a waltz rhythm.
+    expect(compingRendering(chart, "rootless", "charleston", true, 3).slots[1].beat).toBe(1.5);
+    expect(r.beats).toBe(48); // twice through 8 bars of 3
+  });
+
+  it("plays hard-bop hits with left-hand octave stabs", () => {
+    const blues = PROGRESSIONS.find((p) => p.id === "blues")!;
+    const r = compingRendering(chartOf(blues), "octave-stabs", "hard-bop");
+    const left = r.slots.filter((s) => s.hand === "left");
+    expect(left[0].midi[1] - left[0].midi[0]).toBe(12);
+    expect(left.every((s) => s.dur <= 0.5)).toBe(true);
+    // The and of 4 in bar 4 pushes bar 5's F7: F in the left hand.
+    const push = left.find((s) => s.beat === 15.5)!;
+    expect(push.midi[0] % 12).toBe(5);
   });
 });

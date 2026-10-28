@@ -2,9 +2,9 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, chordScaleTargets, cycleTranspose, goToScale } from "@repo/music-core/content/piano";
+  import { CHORD_PATTERNS, KEY_CYCLE, chordPatternLine, chordScaleTargets, cycleTranspose, goToScale } from "@repo/music-core/content/piano";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
-  import { gradeChordScales, type ChordScaleResult } from "@repo/music-core/scoring/piano";
+  import { gradeChordScales, gradeLick, type ChordScaleResult, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
@@ -32,20 +32,25 @@
     { changes: "minor", beats: 4, label: "Minor, one bar a chord" },
   ];
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
-  const cfg = new DrillSetup("chord-scales", { changes: "major" as string, key: "C", beats: 8 });
+  // `pattern`: empty plays the scales; 1235 or 3579 plays that pattern up and back on each chord, a bar each, through `keys` keys of the cycle.
+  const cfg = new DrillSetup("chord-scales", { changes: "major" as string, key: "C", beats: 8, pattern: "" as string, keys: 1 });
   const s = $derived(cfg.value);
   const changes = $derived((s.changes === "minor" ? "minor" : "major") as "major" | "minor");
   const key = $derived(KEY_CYCLE.includes(s.key) ? s.key : "C");
-  const perChord = $derived(s.beats === 4 ? 4 : 8);
+  const pattern = $derived(CHORD_PATTERNS.find((p) => p.id === s.pattern));
+  const keyCount = $derived(pattern ? ([1, 3, 12].includes(s.keys) ? s.keys : 1) : 1);
+  const keyList = $derived(Array.from({ length: keyCount }, (_, i) => KEY_CYCLE[(KEY_CYCLE.indexOf(key) + i) % 12]));
+  const perChord = $derived(pattern || s.beats === 4 ? 4 : 8);
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const targets = $derived(
-    chordScaleTargets(changes, cycleTranspose(key)).map((t) => {
+    keyList.flatMap((k) => chordScaleTargets(changes, cycleTranspose(k))).map((t) => {
       const chord = parseChordSymbol(t.symbol)!;
       const sc = goToScale(t.symbol);
       return { ...t, chord, hint: sc?.hint?.replace(/\s*\(JT\d+\)/g, "") };
     }),
   );
   const totalBeats = $derived(targets.length * perChord);
+  const patternLine = $derived(pattern ? chordPatternLine(targets.map((t) => t.symbol), pattern.id) : []);
   // One keyboard from the lowest root to an octave above the highest.
   const low = $derived(Math.floor(Math.min(...targets.map((t) => t.midi[0])) / 12) * 12);
   const high = $derived(Math.ceil((Math.max(...targets.map((t) => t.midi[0])) + 13) / 12) * 12);
@@ -54,6 +59,8 @@
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
   let result = $state<ChordScaleResult | null>(null);
+  let patternResult = $state<LickResult | null>(null);
+  let played = 0;
   const transport = new Transport();
   const flashes = new Flashes();
   let cap: Capture | null = null;
@@ -66,6 +73,10 @@
   const stageLine = $derived(targets.flatMap((t) => [t.midi[0], t.midi[0] + 12]));
   const lift = $derived(fitShift(stageLine, inst));
   const written = $derived.by(() => {
+    if (pattern) {
+      const at = linePositions(inst, patternLine.map((n) => n.midi + lift));
+      return patternLine.map((n) => ({ midi: n.midi + lift, startBeat: n.startBeat, durationBeats: n.durationBeats, ...at.get(n.midi + lift) }));
+    }
     // Plain values (a nine-note scale over eight beats would be tuplets): the longest that fits, rests after.
     // Each chord's scale in its own hand position on a fretted instrument.
     return targets.flatMap((tg, i) => {
@@ -80,15 +91,20 @@
   const chordIndexAt = (beat: number) => Math.min(targets.length - 1, Math.max(0, Math.floor((beat + 0.5) / perChord)));
   const currentIndex = $derived(transport.beat === null ? 0 : chordIndexAt(transport.beat));
   const current = $derived(targets[currentIndex]);
+  /** The chart shows one key's ii-V-I at a time. */
+  const chartFrom = $derived(Math.floor(currentIndex / 3) * 3);
+  /** Pattern mode: the next note to play. */
+  let nextIndex = $state(0);
 
   const demoNotes = $derived<TimedNote[]>(
     targets.flatMap((t, i) => {
       const line = [...t.midi, t.midi[0] + 12];
       const step = perChord / line.length;
       const shell = [t.chord.rootPc + 48, ...t.chord.intervals.filter((iv) => iv === 3 || iv === 4 || iv === 10 || iv === 11).map((iv) => t.chord.rootPc + 48 + iv)];
+      const right = pattern ? patternLine.filter((n) => n.chord === i).map((n) => ({ midi: n.midi, beat: n.startBeat, dur: 0.5 })) : line.map((midi, k) => ({ midi, beat: i * perChord + k * step, dur: step }));
       return [
         ...shell.map((midi) => ({ midi, beat: i * perChord, dur: perChord * 0.95, hand: "left" as const, velocity: 0.45 })),
-        ...line.map((midi, k) => ({ midi, beat: i * perChord + k * step, dur: step, hand: "right" as const, velocity: 0.8 })),
+        ...right.map((n) => ({ ...n, hand: "right" as const, velocity: 0.8 })),
       ];
     }),
   );
@@ -105,6 +121,8 @@
     }
     const showKey = transport.playing || (mode === "practice" && phase !== "results");
     if (!showKey || !current) return out;
+    const next = pattern && !transport.playing ? patternLine[phase === "running" ? nextIndex : 0] : undefined;
+    if (next) out[next.midi] = { ...out[next.midi], target: true };
     for (let m = current.midi[0]; m <= current.midi[0] + 12; m++) {
       if (out[m]) continue;
       out[m] = { label: toneLabel(m - current.midi[0], current.chord.intervals), role: current.roles[pc(m)] };
@@ -112,20 +130,36 @@
     return out;
   });
 
-  const summaryLine = $derived<SetupClause[]>([
-    { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} in ${key} (${targets.map((t) => t.symbol).join(" ")})`, focus: "key" },
-    { text: `${perChord === 8 ? "two bars" : "one bar"} per chord`, focus: "beats" },
-  ]);
-  const setupKey = $derived(`chord-scales:${changes}:${key}:${perChord}:${bpm}`);
+  const summaryLine = $derived<SetupClause[]>(
+    pattern
+      ? [
+          { text: `${pattern.label} up and back on each chord`, focus: "pattern" },
+          { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} from ${key}`, focus: "key" },
+          { text: keyCount === 12 ? "all 12 keys" : `${keyCount} key${keyCount > 1 ? "s" : ""}`, focus: "keys" },
+        ]
+      : [
+          { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} in ${key} (${targets.map((t) => t.symbol).join(" ")})`, focus: "key" },
+          { text: `${perChord === 8 ? "two bars" : "one bar"} per chord`, focus: "beats" },
+        ],
+  );
+  const setupKey = $derived(`chord-scales:${changes}:${key}:${perChord}:${bpm}${pattern ? `:${pattern.id}:${keyCount}` : ""}`);
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Listen: each chord in the left hand with its go-to scale on top.";
+    status = pattern ? `Listen: ${pattern.label} up and back on each chord, the chord in the left hand.` : "Listen: each chord in the left hand with its go-to scale on top.";
     await transport.demo(demoNotes, bpm);
   }
 
   function onNote(e: NoteEvent) {
-    if (e.kind !== "noteon" || phase !== "running" || mode !== "practice") return;
+    if (e.kind !== "noteon" || phase !== "running") return;
+    if (pattern) {
+      const want = patternLine[played];
+      played += 1;
+      nextIndex = Math.min(played, patternLine.length - 1);
+      if (mode === "practice" && want) flashes.add(e.midi, pc(e.midi) === pc(want.midi) ? "correct" : "wrong");
+      return;
+    }
+    if (mode !== "practice") return;
     const t = targets[chordIndexAt(transport.beat ?? 0)];
     flashes.add(e.midi, t.roles[pc(e.midi)] === "avoid" ? "wrong" : "correct");
   }
@@ -134,6 +168,9 @@
     transport.stop();
     summary = null;
     result = null;
+    patternResult = null;
+    played = 0;
+    nextIndex = 0;
     flashes.clear();
     ctxRef = ctx;
     run = practice.beginRun({
@@ -145,7 +182,7 @@
       assistance: assistanceFor(mode),
       difficulty: changes === "minor" ? 0.65 : 0.5,
       instrument: settings.value.activeInstrument,
-      params: { bpm, changes, key, beatsPerChord: perChord },
+      params: { bpm, changes, key, beatsPerChord: perChord, ...(pattern ? { pattern: pattern.id, keys: keyCount } : {}) },
     });
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     transport.follow(ctx.downbeat, ctx.beatMs);
@@ -160,6 +197,7 @@
     cap?.stop();
     const ctx = ctxRef!;
     const ons = (cap?.notes ?? []).filter((n) => n.kind === "noteon");
+    if (pattern) return finishPattern(ctx, ons);
     const byChord = targets.map(() => [] as number[]);
     for (const n of ons) byChord[chordIndexAt((n.at - ctx.downbeat) / ctx.beatMs)].push(n.midi);
     const r = gradeChordScales(targets.map((t, i) => ({ symbol: t.symbol, chordPcs: t.chord.pcs, scalePcs: t.accepted, played: byChord[i] })));
@@ -209,6 +247,47 @@
     status = summary.headline;
   }
 
+  /** Pattern mode: graded note by note in order, like a lick. */
+  async function finishPattern(ctx: RunContext, ons: NoteEvent[]) {
+    const r = gradeLick({ expected: patternLine, notes: ons, beatMs: ctx.beatMs, startAt: ctx.downbeat });
+    patternResult = r;
+    phase = "results";
+    await run!.attempt({
+      promptId: setupKey,
+      correct: r.correct,
+      partialCredit: r.score,
+      metrics: r.metrics,
+      source: runSource(ons),
+      instrument: runInstrument(ons) ?? null,
+      target: patternLine.map((n) => n.midi),
+      response: ons.map((n) => n.midi),
+    });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} notes` });
+    const slip = r.firstWrong === null ? null : targets[patternLine[r.firstWrong].chord];
+    summary = {
+      headline: !r.matched
+        ? "No notes matched. Hear it first, then start on the first beat after the count-in."
+        : r.correct
+          ? mode === "check"
+            ? `${pattern!.label} through every chord, from memory.`
+            : `${r.matched} of ${r.total} in order. Try it in Check with the colour key hidden.`
+          : `${r.matched} of ${r.total} right. It slipped over ${slip?.symbol ?? "a chord"}.`,
+      metric: pct(r.score),
+      metricLabel: "notes in order",
+      delta: fin.delta,
+      best: fin.best,
+      clean: r.correct && mode === "check",
+      xp: fin.xp,
+      assistance: assistanceText(mode),
+      rows: [
+        { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
+        { label: `On time (within ${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
+      ],
+      advance: ons.length ? await nextRun(`chord-scales.pattern.${pattern!.id}.${keyCount}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max } }, r) : undefined,
+    };
+    status = summary.headline;
+  }
+
   function stop() {
     clearTimeout(timer);
     transport.stop();
@@ -229,7 +308,7 @@
 <DrillShell
   title="Chord scales"
   hue="piano"
-  blurb="As the ii-V-I moves, play the go-to scale for the chord you're on. Every note is judged against that chord's scale."
+  blurb="As the ii-V-I moves, play the go-to scale for the chord you're on, every note judged against that chord's scale; or play 1-2-3-5 or 3-5-7-9 on each chord through the keys."
   summary={summaryLine}
   tabs={[
     { id: "major", label: "Major ii-V-I" },
@@ -248,21 +327,44 @@
   onstop={stop}
 >
   {#snippet setup()}
+    <div class="mb-4">
+      <Choice
+        label="Play"
+        setupKey="pattern"
+        options={[{ value: "", label: "The scales" }, ...CHORD_PATTERNS.map((p) => ({ value: p.id as string, label: `${p.label} pattern` }))]}
+        value={pattern?.id ?? ""}
+        onchange={(v) => cfg.set({ pattern: v })}
+      />
+    </div>
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
-        <span class="font-medium">Key</span>
+        <span class="font-medium">{pattern ? "Start key" : "Key"}</span>
         <KeyPicker label="Key" value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
-      <Choice
-        label="Each chord lasts"
-        setupKey="beats"
-        options={[
-          { value: 4, label: "One bar" },
-          { value: 8, label: "Two bars" },
-        ]}
-        value={perChord}
-        onchange={(v) => cfg.set({ beats: v })}
-      />
+      {#if pattern}
+        <Choice
+          label="Keys"
+          setupKey="keys"
+          options={[
+            { value: 1, label: "One" },
+            { value: 3, label: "Three" },
+            { value: 12, label: "All 12" },
+          ]}
+          value={keyCount}
+          onchange={(v) => cfg.set({ keys: v })}
+        />
+      {:else}
+        <Choice
+          label="Each chord lasts"
+          setupKey="beats"
+          options={[
+            { value: 4, label: "One bar" },
+            { value: 8, label: "Two bars" },
+          ]}
+          value={perChord}
+          onchange={(v) => cfg.set({ beats: v })}
+        />
+      {/if}
     </div>
   {/snippet}
 
@@ -270,6 +372,8 @@
     {#if phase === "running" && transport.beat !== null}
       <Stat label="Chord" value="{currentIndex + 1} of {targets.length}" />
       <Stat label="Beat" value="{Math.min(perChord, Math.floor(Math.max(0, transport.beat) % perChord) + 1)} of {perChord}" />
+    {:else if patternResult}
+      <Stat label="Notes in order" value={pct(patternResult.score)} tone={patternResult.correct ? "success" : "warn"} />
     {:else if result}
       <Stat label="Chords played" value="{result.graded}/{targets.length}" />
       <Stat label="Inside" value={pct(result.score)} tone={result.score >= 0.9 ? "success" : "warn"} />
@@ -278,7 +382,8 @@
 
   {#snippet stage()}
     <ol class="mb-3 grid grid-cols-3 gap-2" aria-label="Chord chart">
-      {#each targets as t, i (t.symbol)}
+      {#each targets.slice(chartFrom, chartFrom + 3) as t, j (t.symbol)}
+        {@const i = chartFrom + j}
         {@const now = (phase === "running" || transport.playing) && i === currentIndex}
         {@const done = result?.chords[i]}
         <li class="min-w-0 rounded-lg border px-2 py-2 sm:px-3 {now ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={now ? "step" : undefined}>
@@ -296,7 +401,7 @@
         {current.hint ?? ""}{current.others.length ? ` Also works, and graded as inside: ${current.others.join(", ")}.` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}
-      <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. Play what fits each chord.</p>
+      <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
       <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} /></div>

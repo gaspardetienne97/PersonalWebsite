@@ -30,7 +30,8 @@ export type ReadingMeter =
   | "2/2"
   | "5/4"
   | "7/8"
-  | "5/8";
+  | "5/8"
+  | "changing";
 export const READING_METERS: Record<
   ReadingMeter,
   { beats: number; beatUnit: number; label: string }
@@ -45,7 +46,10 @@ export const READING_METERS: Record<
   "5/4": { beats: 5, beatUnit: 4, label: "5/4" },
   "7/8": { beats: 7, beatUnit: 8, label: "7/8" },
   "5/8": { beats: 5, beatUnit: 8, label: "5/8" },
+  changing: { beats: 4, beatUnit: 4, label: "4/4, 3/4, 5/8 every 2 bars" },
 };
+/** The "changing" meter: a change every 2 bars, through these in turn. */
+export const CHANGING_METERS: ReadingMeter[] = ["simple", "3/4", "5/8"];
 
 export interface ReadingLevel extends ReadingLevelDef {
   /** Who reads it: both hands at the piano, one line (guitar, ukulele, Aerophone), or either. */
@@ -182,7 +186,7 @@ const MORE_LEVELS: ReadingLevel[] = [
     recommendedRange: { lowestMidi: 36, highestMidi: 91 },
     recommendedKeys: PIANO_9_KEYS,
     reader: "piano",
-    meters: ["simple", "3/4", "compound", "7/8", "5/8", "5/4", "9/8", "2/2"],
+    meters: ["simple", "3/4", "compound", "7/8", "5/8", "5/4", "9/8", "2/2", "changing"],
     climbKeys: ["B major", "Db major", "Bb minor", "C# minor", "Ab major"],
     measures: 16,
   },
@@ -696,6 +700,8 @@ export interface SightReadingOptions {
   /** One of the level's meters; another falls back to the level's first. */
   meter: ReadingMeter;
   bpm: number;
+  /** False keeps out a pickup bar (a chunk inside a longer phrase). */
+  pickup?: boolean;
 }
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + Math.abs(b), 0);
@@ -1052,6 +1058,7 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
   const clefs = opts.clefs?.length ? opts.clefs : level.recommendedClefs;
   const measures = Math.min(16, Math.max(1, Math.round(opts.measures)));
   const meterId = levelMeter(level.id, opts.meter);
+  if (meterId === "changing") return changingMeters(rand, opts, measures);
   const { beats, beatUnit } = READING_METERS[meterId];
   const meter = { beats, beatUnit };
   const split = clefs.length > 1;
@@ -1071,7 +1078,7 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
   // at C4) is left out, and the other clef reads the whole range.
   if (parts.length < voiceClefs.length)
     parts = [{ clef: parts[0]?.clef ?? clefs[0], pool: diatonicIn(k, lo, hi) }];
-  const pickupBar = !!gen.pickup && measures > 1 && rand() < 0.5;
+  const pickupBar = opts.pickup !== false && !!gen.pickup && measures > 1 && rand() < 0.5;
   const accompanied = piano && !!gen.lh && parts.length === 2;
   const chords = gen.lh || gen.jazz ? progression(rand, measures, !gen.fiveFinger) : undefined;
   const voices: ScoreVoice[] = parts.map(({ clef, pool }) => {
@@ -1114,6 +1121,42 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
     voices,
     lengthBeats: measures * barQuarters(meter),
     source: { kind: "generated" },
+  };
+}
+
+/** A phrase whose meter changes every 2 bars (CHANGING_METERS in turn): 2-bar phrases joined. */
+function changingMeters(rand: Rand, opts: SightReadingOptions, measures: number): Score {
+  const parts: { score: Score; at: number }[] = [];
+  for (let b = 0, at = 0; b < measures; b += 2) {
+    const meter = CHANGING_METERS[(b / 2) % CHANGING_METERS.length];
+    const score = sightReadingScore(rand, {
+      ...opts,
+      meter,
+      measures: Math.min(2, measures - b),
+      pickup: false,
+    });
+    parts.push({ score, at });
+    at += score.lengthBeats;
+  }
+  const first = parts[0].score;
+  const shift = <T extends { startBeat: number }>(xs: T[] | undefined, at: number) =>
+    (xs ?? []).map((x) => ({ ...x, startBeat: x.startBeat + at }));
+  const voices = first.voices.map((v) => {
+    const all = parts.map((p) => ({ v: p.score.voices.find((x) => x.id === v.id), at: p.at }));
+    const clefChanges = all.flatMap(({ v: x, at }) => shift(x?.clefChanges, at));
+    return {
+      ...v,
+      notes: all.flatMap(({ v: x, at }) => shift(x?.notes, at)),
+      ...(clefChanges.length ? { clefChanges } : {}),
+    };
+  });
+  const last = parts.at(-1)!;
+  return {
+    ...first,
+    id: `${first.id}-changing`,
+    meterChanges: parts.map((p) => ({ startBeat: p.at, ...p.score.meter })),
+    voices,
+    lengthBeats: last.at + last.score.lengthBeats,
   };
 }
 
