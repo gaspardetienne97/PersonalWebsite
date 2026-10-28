@@ -137,7 +137,9 @@ test.describe("pad skills", () => {
     await page.screenshot({ path: `${SHOTS}/dynamics-1280.png`, fullPage: true });
   });
 
-  test("improvise: the take is described and can be heard back", async ({ page }) => {
+  test("improvise: the take is graded on time and density and can be heard back", async ({
+    page,
+  }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/pads?mode=improvise&bars=4&bpm=120");
     const stage = page.getByTestId("pad-skills");
@@ -156,7 +158,9 @@ test.describe("pad skills", () => {
       },
       { downbeat, port: PORTS.keys.id },
     );
-    await expect(page.getByRole("status")).toContainText("8 hits on 3 pads", { timeout: 15_000 });
+    // One bar of hits in four: graded, and the quiet bars named.
+    await expect(page.getByRole("status")).toContainText("bars went quiet", { timeout: 15_000 });
+    await expect(page.getByText("Bars kept going")).toBeVisible();
     await expect(page.getByRole("button", { name: "Hear it nudged to the grid" })).toBeVisible();
   });
 });

@@ -61,7 +61,10 @@
             "pitch.scale-degree.4",
             "pitch.scale-degree.5"
           ],
-          "each": { "param": "answer", "values": ["play-back", "voice"] },
+          "each": {
+            "param": "answer",
+            "values": ["play-back", "voice"]
+          },
           "minAttempts": 10,
           "threshold": 0.75,
           "links": [
@@ -79,7 +82,9 @@
           "href": "/music/rhythm?mode=echo&earLevel=quarters-eighths",
           "setup": "Rhythm, echo: quarters and eighths.",
           "done": "80% of patterns with every onset in the window, on two days.",
-          "match": { "level": "quarters-eighths" },
+          "match": {
+            "level": "quarters-eighths"
+          },
           "minAttempts": 2,
           "threshold": 0.8,
           "feeds": "Seven Nation Army, Smoke on the Water"
@@ -93,7 +98,12 @@
           "done": "Tonic right first try on 4 of 5 shelf songs.",
           "minAttempts": 5,
           "threshold": 0.8,
-          "links": [{ "label": "Drone in the tuner", "href": "/music/tuner?mode=drone" }],
+          "links": [
+            {
+              "label": "Drone in the tuner",
+              "href": "/music/tuner?mode=drone"
+            }
+          ],
           "feeds": "The shelf"
         },
         {
@@ -103,16 +113,33 @@
           "href": "/music/scales?kind=major&tonic=60&bpm=72",
           "setup": "Library reference (scales), then Scales on your instrument: C, G, F and D major.",
           "done": "Whole and half step pattern recited; four scales clean at 72 BPM twice, on two days.",
-          "match": { "kind": "major" },
-          "each": { "param": "tonic", "values": ["60", "67", "65", "62"] },
+          "match": {
+            "kind": "major"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "65", "62"]
+          },
           "minAttempts": 2,
           "minBpm": 72,
           "threshold": 0.9,
           "links": [
-            { "label": "G", "href": "/music/scales?kind=major&tonic=67&bpm=72" },
-            { "label": "F", "href": "/music/scales?kind=major&tonic=65&bpm=72" },
-            { "label": "D", "href": "/music/scales?kind=major&tonic=62&bpm=72" },
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "G",
+              "href": "/music/scales?kind=major&tonic=67&bpm=72"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?kind=major&tonic=65&bpm=72"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?kind=major&tonic=62&bpm=72"
+            },
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ],
           "feeds": "Lean on Me"
         },
@@ -123,12 +150,20 @@
           "href": "/music/circle?mode=count&band=two",
           "setup": "Circle: the order of sharps and flats, then signatures for C, G and F, then up to 2 sharps or flats.",
           "done": "95% under 2 seconds over 20 items, on two days.",
-          "match": { "band": "two" },
+          "match": {
+            "band": "two"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "links": [
-            { "label": "Order", "href": "/music/circle?mode=order" },
-            { "label": "C, G and F", "href": "/music/circle?mode=count&band=near" }
+            {
+              "label": "Order",
+              "href": "/music/circle?mode=order"
+            },
+            {
+              "label": "C, G and F",
+              "href": "/music/circle?mode=count&band=near"
+            }
           ],
           "feeds": "Key names on the shelf"
         },
@@ -236,7 +271,10 @@
           "detail": "F or C, 3/4, I V7 IV",
           "diff": 1,
           "scores": [
-            { "label": "Free lead sheet", "url": "https://musescore.com/user/73143/scores/125579" }
+            {
+              "label": "Free lead sheet",
+              "url": "https://musescore.com/user/73143/scores/125579"
+            }
           ],
           "fallback": {
             "label": "In the app: Phrases, Happy Birthday (public domain since 2016 in the US)",
@@ -370,7 +408,9 @@
             "pitch.scale-degree.6",
             "pitch.scale-degree.7"
           ],
-          "match": { "answer": "voice" },
+          "match": {
+            "answer": "voice"
+          },
           "minAttempts": 3,
           "threshold": 0.75,
           "feeds": "Amazing Grace"
@@ -382,11 +422,17 @@
           "href": "/music/ear/wrong-note?level=major-pentachord",
           "setup": "Spot the wrong note: major pentachord, then major diatonic.",
           "done": "80% on each, on two days.",
-          "each": { "param": "level", "values": ["major-pentachord", "major-diatonic"] },
+          "each": {
+            "param": "level",
+            "values": ["major-pentachord", "major-diatonic"]
+          },
           "minAttempts": 2,
           "threshold": 0.8,
           "links": [
-            { "label": "Major diatonic", "href": "/music/ear/wrong-note?level=major-diatonic" }
+            {
+              "label": "Major diatonic",
+              "href": "/music/ear/wrong-note?level=major-diatonic"
+            }
           ],
           "feeds": "Reading path"
         },
@@ -397,7 +443,9 @@
           "href": "/music/ear/melody-dictation?answer=play-back&level=major-diatonic",
           "setup": "Melody dictation, play back, major diatonic: three and four note phrases. One and two bar phrases with rhythm wait for N5.",
           "done": "75% per note, half the items fully right, on two days.",
-          "match": { "level": "major-diatonic" },
+          "match": {
+            "level": "major-diatonic"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "feeds": "Auld Lang Syne"
@@ -410,12 +458,20 @@
           "setup": "Rhythm, echo, then dictation: rests and halves.",
           "done": "Echo 80%; dictation 75% per note, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
-          "match": { "level": "rests-halves" },
-          "each": { "param": "mode", "values": ["echo", "dictation"] },
+          "match": {
+            "level": "rests-halves"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["echo", "dictation"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Dictation", "href": "/music/rhythm?mode=dictation&earLevel=rests-halves" }
+            {
+              "label": "Dictation",
+              "href": "/music/rhythm?mode=dictation&earLevel=rests-halves"
+            }
           ],
           "feeds": "La Bamba, Twist and Shout"
         },
@@ -426,11 +482,16 @@
           "href": "/music/circle?mode=chords&band=two",
           "setup": "Library reference, then Circle, a key's chords, up to 2 sharps or flats. Numeral this chord waits for N7.",
           "done": "Quality pattern (Maj min min Maj Maj min dim) recited; the chords of C, G, D, F, A and Bb named under 5 seconds, 95%.",
-          "match": { "band": "two" },
+          "match": {
+            "band": "two"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "links": [
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ],
           "feeds": "All shelf songs"
         },
@@ -445,7 +506,10 @@
           "minAttempts": 6,
           "threshold": 0.8,
           "links": [
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ],
           "feeds": "Twist and Shout (V at the end of each line)"
         },
@@ -500,7 +564,9 @@
           "href": "/music/circle?mode=count&band=four",
           "setup": "Circle, signatures: up to 4 sharps or flats.",
           "done": "95% under 2 seconds, on two days.",
-          "match": { "band": "four" },
+          "match": {
+            "band": "four"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "feeds": "The key of each song"
@@ -765,10 +831,18 @@
           "href": "/music/circle?mode=count&band=four&minor=both",
           "setup": "Circle T-5: neighbours up to four, then signatures up to four with the minor keys.",
           "done": "95% under 2 seconds, on two days.",
-          "match": { "band": "four", "minor": "both" },
+          "match": {
+            "band": "four",
+            "minor": "both"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
-          "links": [{ "label": "Neighbours", "href": "/music/circle?mode=neighbours&band=four" }],
+          "links": [
+            {
+              "label": "Neighbours",
+              "href": "/music/circle?mode=neighbours&band=four"
+            }
+          ],
           "feeds": "Someone Like You"
         },
         {
@@ -780,8 +854,14 @@
           "done": "Loop played in three keys along Jam, two choruses each, no lost place.",
           "exerciseIds": [],
           "links": [
-            { "label": "In G", "href": "/music/jam?progression=pop-axis&transpose=-5" },
-            { "label": "In D", "href": "/music/jam?progression=pop-axis&transpose=2" }
+            {
+              "label": "In G",
+              "href": "/music/jam?progression=pop-axis&transpose=-5"
+            },
+            {
+              "label": "In D",
+              "href": "/music/jam?progression=pop-axis&transpose=2"
+            }
           ],
           "feeds": "Let It Be, No Woman, No Cry, Don't Stop Believin'"
         },
@@ -792,8 +872,13 @@
           "href": "/music/listening?exercise=peak&bands=3&gain=12&material=noise",
           "setup": "Studio ears, find the boost: three bands on pink noise, then five.",
           "done": "Studio S-1 (90% on three bands) and S-2 (80% on five), on two days.",
-          "match": { "material": "noise" },
-          "each": { "param": "bands", "values": ["3", "5"] },
+          "match": {
+            "material": "noise"
+          },
+          "each": {
+            "param": "bands",
+            "values": ["3", "5"]
+          },
           "minAttempts": 2,
           "threshold": 0.8,
           "links": [
@@ -811,7 +896,9 @@
           "href": "/music/listening?exercise=peak&bands=9&gain=12&material=drums",
           "setup": "Studio ears, find the boost: nine bands on the drum loop, then the band loop.",
           "done": "Studio S-3: 70% on nine bands over a loop, on two days.",
-          "match": { "bands": "9" },
+          "match": {
+            "bands": "9"
+          },
           "minAttempts": 2,
           "threshold": 0.7,
           "links": [
@@ -838,12 +925,20 @@
           "setup": "Rhythm, echo, then dictation: dotted.",
           "done": "Echo 80%, dictation 75%, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
-          "match": { "level": "dotted" },
-          "each": { "param": "mode", "values": ["echo", "dictation"] },
+          "match": {
+            "level": "dotted"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["echo", "dictation"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Dictation", "href": "/music/rhythm?mode=dictation&earLevel=dotted" }
+            {
+              "label": "Dictation",
+              "href": "/music/rhythm?mode=dictation&earLevel=dotted"
+            }
           ],
           "feeds": "Riptide, Perfect"
         },
@@ -855,7 +950,12 @@
           "setup": "The shelf loop for chords and bass, in Learn by ear: loop it, slow it down and play it back. The check against the score (N3) is still to come.",
           "done": "Two songs: loop and bass roots right for every bar.",
           "exerciseIds": [],
-          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
+          "links": [
+            {
+              "label": "Learn by ear",
+              "href": "/music/by-ear?mode=learn"
+            }
+          ],
           "feeds": "The shelf"
         },
         {
@@ -875,7 +975,12 @@
           "setup": "Play the loop on your instrument and sing the bass roots.",
           "done": "Two choruses, roots in tune within 50 cents, 75%.",
           "needs": "Voice answers for bass lines (N12).",
-          "links": [{ "label": "Pop axis in Jam", "href": "/music/jam?progression=pop-axis" }]
+          "links": [
+            {
+              "label": "Pop axis in Jam",
+              "href": "/music/jam?progression=pop-axis"
+            }
+          ]
         },
         {
           "id": "3.13",
@@ -1122,10 +1227,22 @@
           "done": "Three choruses along Jam without losing the form.",
           "exerciseIds": [],
           "links": [
-            { "label": "In A", "href": "/music/jam?progression=blues&transpose=-3" },
-            { "label": "In E", "href": "/music/jam?progression=blues&transpose=4" },
-            { "label": "In F", "href": "/music/jam?progression=blues&transpose=5" },
-            { "label": "In Bb", "href": "/music/jam?progression=blues&transpose=-2" }
+            {
+              "label": "In A",
+              "href": "/music/jam?progression=blues&transpose=-3"
+            },
+            {
+              "label": "In E",
+              "href": "/music/jam?progression=blues&transpose=4"
+            },
+            {
+              "label": "In F",
+              "href": "/music/jam?progression=blues&transpose=5"
+            },
+            {
+              "label": "In Bb",
+              "href": "/music/jam?progression=blues&transpose=-2"
+            }
           ],
           "feeds": "Every shelf song"
         },
@@ -1171,12 +1288,21 @@
           "href": "/music/rhythm?mode=echo&earLevel=swing",
           "setup": "Rhythm, echo: swing, then compound; then dictation.",
           "done": "Echo 80% on swing and compound, on two days; dictation 75%.",
-          "each": { "param": "level", "values": ["swing", "compound"] },
+          "each": {
+            "param": "level",
+            "values": ["swing", "compound"]
+          },
           "minAttempts": 2,
           "threshold": 0.8,
           "links": [
-            { "label": "Compound", "href": "/music/rhythm?mode=echo&earLevel=compound" },
-            { "label": "Dictation", "href": "/music/rhythm?mode=dictation&earLevel=swing" }
+            {
+              "label": "Compound",
+              "href": "/music/rhythm?mode=echo&earLevel=compound"
+            },
+            {
+              "label": "Dictation",
+              "href": "/music/rhythm?mode=dictation&earLevel=swing"
+            }
           ],
           "feeds": "Pride and Joy, Folsom Prison Blues"
         },
@@ -1207,7 +1333,10 @@
               "label": "Guitar A blues lick",
               "href": "/music/phrases?instrument=guitar&phrase=guitar.a-blues-lick"
             },
-            { "label": "Licks", "href": "/music/licks" }
+            {
+              "label": "Licks",
+              "href": "/music/licks"
+            }
           ],
           "feeds": "Improvising"
         },
@@ -1218,10 +1347,17 @@
           "setup": "Call and response, Answer, over the 12-bar blues: answer each call in the bars after it, on the grid, and land on a chord tone. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers kept, 75% end on a chord tone in time.",
           "href": "/music/call-response?mode=answer&groove=blues&bars=1",
-          "match": { "groove": "blues" },
+          "match": {
+            "groove": "blues"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
-          "links": [{ "label": "Jam blues", "href": "/music/jam?progression=blues" }],
+          "links": [
+            {
+              "label": "Jam blues",
+              "href": "/music/jam?progression=blues"
+            }
+          ],
           "feeds": "Improvising"
         },
         {
@@ -1232,8 +1368,13 @@
           "setup": "Circle: signatures for all 15 keys, then read them on the staff, treble up to four, then all keys in both clefs.",
           "done": "95% under 2 seconds (count) and under 3 seconds (staff), on two days.",
           "exerciseIds": ["theory.circle.count", "theory.circle.signature"],
-          "match": { "band": "all" },
-          "each": { "param": "mode", "values": ["count", "signature"] },
+          "match": {
+            "band": "all"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["count", "signature"]
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "links": [
@@ -1493,14 +1634,29 @@
           "href": "/music/circle?mode=count&band=all&minor=both",
           "setup": "Library reference; Scales: natural, harmonic and melodic minor in A, E and D; Circle T-5, minor signatures.",
           "done": "Natural, harmonic and melodic forms played in A, E and D minor; 95% on minor keys under 2 seconds, on two days.",
-          "match": { "band": "all", "minor": "both" },
+          "match": {
+            "band": "all",
+            "minor": "both"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "links": [
-            { "label": "A natural minor", "href": "/music/scales?kind=natural-minor&tonic=57" },
-            { "label": "A harmonic minor", "href": "/music/scales?kind=harmonic-minor&tonic=57" },
-            { "label": "A melodic minor", "href": "/music/scales?kind=melodic-minor&tonic=57" },
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "A natural minor",
+              "href": "/music/scales?kind=natural-minor&tonic=57"
+            },
+            {
+              "label": "A harmonic minor",
+              "href": "/music/scales?kind=harmonic-minor&tonic=57"
+            },
+            {
+              "label": "A melodic minor",
+              "href": "/music/scales?kind=melodic-minor&tonic=57"
+            },
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ]
         },
         {
@@ -1530,7 +1686,10 @@
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Minor loops", "href": "/music/ear/song-loops?answer=choice&loops=minor" }
+            {
+              "label": "Minor loops",
+              "href": "/music/ear/song-loops?answer=choice&loops=minor"
+            }
           ],
           "feeds": "Hit the Road Jack, Zombie"
         },
@@ -1541,11 +1700,16 @@
           "href": "/music/ear/melody-dictation?answer=play-back&level=minor-diatonic",
           "setup": "Melody dictation, minor diatonic, then Spot the wrong note, minor diatonic.",
           "done": "75% per note in dictation; 80% on the wrong note, on two days.",
-          "match": { "level": "minor-diatonic" },
+          "match": {
+            "level": "minor-diatonic"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Wrong note", "href": "/music/ear/wrong-note?level=minor-diatonic" }
+            {
+              "label": "Wrong note",
+              "href": "/music/ear/wrong-note?level=minor-diatonic"
+            }
           ],
           "feeds": "Summertime"
         },
@@ -1567,12 +1731,20 @@
           "setup": "Rhythm, echo, then dictation: sixteenths.",
           "done": "Echo 80%, dictation 75%, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
-          "match": { "level": "sixteenths" },
-          "each": { "param": "mode", "values": ["echo", "dictation"] },
+          "match": {
+            "level": "sixteenths"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["echo", "dictation"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Dictation", "href": "/music/rhythm?mode=dictation&earLevel=sixteenths" }
+            {
+              "label": "Dictation",
+              "href": "/music/rhythm?mode=dictation&earLevel=sixteenths"
+            }
           ],
           "feeds": "Rolling in the Deep"
         },
@@ -1603,10 +1775,17 @@
           "setup": "Call and response, Answer, over the minor ii-V-i. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers, 75% end on a chord tone.",
           "href": "/music/call-response?mode=answer&groove=minor-ii-v-i&bars=1",
-          "match": { "groove": "minor-ii-v-i" },
+          "match": {
+            "groove": "minor-ii-v-i"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
-          "links": [{ "label": "Jam minor ii-V-i", "href": "/music/jam?progression=minor-ii-v-i" }]
+          "links": [
+            {
+              "label": "Jam minor ii-V-i",
+              "href": "/music/jam?progression=minor-ii-v-i"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -1807,11 +1986,17 @@
           "id": "6.2",
           "title": "H8 Borrowed chords",
           "strand": "H",
-          "setup": "Library reference, then spot the borrowed chord in written progressions.",
+          "href": "/music/circle?mode=borrowed&band=two",
+          "setup": "Library reference, then Circle of fifths, Spot the borrowed chord: a written progression in a key, pick the chord from the parallel minor (iv, bVI, bVII, bIII). Keys to two sharps or flats; a run is 20 progressions.",
           "done": "90% on 20 progressions.",
-          "needs": "Spot the borrowed chord in written progressions (N7).",
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.9,
           "links": [
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ],
           "feeds": "All shelf songs"
         },
@@ -1885,7 +2070,9 @@
           "setup": "Intervals, sing it: M3, P5 and P8. Warm up on Fine pitch from 50 cents.",
           "done": "75% in the window, on two days.",
           "skillIds": ["pitch.interval.M3", "pitch.interval.P5", "pitch.interval.P8"],
-          "match": { "answer": "voice" },
+          "match": {
+            "answer": "voice"
+          },
           "minAttempts": 3,
           "threshold": 0.75,
           "links": [
@@ -1914,12 +2101,20 @@
           "setup": "Rhythm, echo, then dictation: syncopation.",
           "done": "Echo 80%, dictation 75%, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
-          "match": { "level": "syncopation" },
-          "each": { "param": "mode", "values": ["echo", "dictation"] },
+          "match": {
+            "level": "syncopation"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["echo", "dictation"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
-            { "label": "Dictation", "href": "/music/rhythm?mode=dictation&earLevel=syncopation" }
+            {
+              "label": "Dictation",
+              "href": "/music/rhythm?mode=dictation&earLevel=syncopation"
+            }
           ],
           "feeds": "Here Comes the Sun"
         },
@@ -1931,8 +2126,13 @@
           "setup": "Studio ears: find the cut on nine bands, then smaller boosts (6 dB) on the drum loop.",
           "done": "Studio S-4 and S-5: 70% on nine bands, on two days.",
           "exerciseIds": ["studio.cut", "studio.peak"],
-          "match": { "bands": "9" },
-          "each": { "param": "exercise", "values": ["cut", "peak"] },
+          "match": {
+            "bands": "9"
+          },
+          "each": {
+            "param": "exercise",
+            "values": ["cut", "peak"]
+          },
           "minAttempts": 2,
           "threshold": 0.7,
           "links": [
@@ -2182,12 +2382,20 @@
           "href": "/music/circle?mode=chords&band=four",
           "setup": "Circle T-6, a key's chords up to four; T-7, the blank wheel; T-8, round the circle on your instrument.",
           "done": "T-6 95% under 5 seconds, on two days; the blank wheel from memory; T-8 done.",
-          "match": { "band": "four" },
+          "match": {
+            "band": "four"
+          },
           "minAttempts": 2,
           "threshold": 0.95,
           "links": [
-            { "label": "Blank wheel", "href": "/music/circle?mode=wheel&band=all" },
-            { "label": "Round the circle", "href": "/music/library?tab=reference&section=circle" }
+            {
+              "label": "Blank wheel",
+              "href": "/music/circle?mode=wheel&band=all"
+            },
+            {
+              "label": "Round the circle",
+              "href": "/music/library?tab=reference&section=circle"
+            }
           ],
           "feeds": "Fly Me to the Moon"
         },
@@ -2206,11 +2414,17 @@
           "id": "7.4",
           "title": "H10 Secondary dominants",
           "strand": "H",
-          "setup": "Library reference, then spot the V of in written progressions (II7, III7, VI7, I7).",
+          "href": "/music/circle?mode=secondary&band=two",
+          "setup": "Library reference, then Circle of fifths, Spot the V of: pick the secondary dominant (II7, III7, VI7, I7) in a written progression, or name the chord it leads to. A run is 20 progressions.",
           "done": "90% on 20.",
-          "needs": "Spot the V of in written progressions (N7).",
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.9,
           "links": [
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" }
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            }
           ],
           "feeds": "Yesterday, Isn't She Lovely"
         },
@@ -2275,8 +2489,13 @@
           "setup": "Rhythm, echo, then dictation: dotted sixteenths.",
           "done": "Echo 80%, dictation 75%, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
-          "match": { "level": "dotted-sixteenths" },
-          "each": { "param": "mode", "values": ["echo", "dictation"] },
+          "match": {
+            "level": "dotted-sixteenths"
+          },
+          "each": {
+            "param": "mode",
+            "values": ["echo", "dictation"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
@@ -2311,14 +2530,27 @@
           "id": "7.12",
           "title": "Guide tones",
           "strand": "H",
-          "setup": "Voicings, voice leading, then Jam ii-V-I: play 3rds and 7ths only.",
+          "setup": "Voicings, voice leading, then Jam ii-V-I in Check: 3rds and 7ths only.",
           "done": "Two choruses, 90% chord tones on beat 1.",
-          "needs": "Guide-tone grading in Jam, 3rds and 7ths only (N11).",
           "links": [
-            { "label": "Voice leading", "href": "/music/voicings?mode=inversions" },
-            { "label": "Jam ii-V-I", "href": "/music/jam?progression=ii-v-i" }
+            {
+              "label": "Voice leading",
+              "href": "/music/voicings?mode=inversions"
+            },
+            {
+              "label": "Jam ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            }
           ],
-          "feeds": "Jazz Path shell voicings"
+          "feeds": "Jazz Path shell voicings",
+          "href": "/music/jam?progression=ii-v-i&game=guide-tones&choruses=2",
+          "match": {
+            "game": "guide-tones",
+            "progression": "ii-v-i",
+            "choruses": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         }
       ],
       "shelf": [
@@ -2545,7 +2777,9 @@
           "href": "/music/scales?kind=lydian&tonic=60",
           "setup": "Library reference and the circle's white-note modes (F C G D A E B), then Scales: all seven modes on C, brightest first.",
           "done": "Name each mode's characteristic note; play all seven on one tonic, on two days.",
-          "match": { "tonic": "60" },
+          "match": {
+            "tonic": "60"
+          },
           "each": {
             "param": "kind",
             "values": [
@@ -2561,8 +2795,14 @@
           "minAttempts": 2,
           "threshold": 0.9,
           "links": [
-            { "label": "Reference", "href": "/music/library?tab=reference&section=explorer" },
-            { "label": "Circle", "href": "/music/library?tab=reference&section=circle" }
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=explorer"
+            },
+            {
+              "label": "Circle",
+              "href": "/music/library?tab=reference&section=circle"
+            }
           ]
         },
         {
@@ -2575,7 +2815,12 @@
           "skillIds": ["ear.loops.modal"],
           "minAttempts": 10,
           "threshold": 0.75,
-          "links": [{ "label": "Jam modal", "href": "/music/jam?progression=modal" }],
+          "links": [
+            {
+              "label": "Jam modal",
+              "href": "/music/jam?progression=modal"
+            }
+          ],
           "feeds": "Oye Como Va, So What"
         },
         {
@@ -2585,7 +2830,12 @@
           "setup": "The tuner's drone; sing the scale up and down.",
           "done": "Dorian and Mixolydian up and down, 75% within 35 cents.",
           "needs": "Sung scale steps over a drone, graded (N12).",
-          "links": [{ "label": "Drone", "href": "/music/tuner?mode=drone" }]
+          "links": [
+            {
+              "label": "Drone",
+              "href": "/music/tuner?mode=drone"
+            }
+          ]
         },
         {
           "id": "8.6",
@@ -2594,9 +2844,15 @@
           "href": "/music/chord-scales?mode=major&changes=major",
           "setup": "Chord scales: the major ii-V-I, then the minor; Library chord-scale map.",
           "done": "The chord-scale drill passed for both: 3 checked runs each at 66%, on two days.",
-          "each": { "param": "changes", "values": ["major", "minor"] },
+          "each": {
+            "param": "changes",
+            "values": ["major", "minor"]
+          },
           "links": [
-            { "label": "Minor ii-V-i", "href": "/music/chord-scales?mode=minor&changes=minor" },
+            {
+              "label": "Minor ii-V-i",
+              "href": "/music/chord-scales?mode=minor&changes=minor"
+            },
             {
               "label": "Chord-scale map",
               "href": "/music/library?tab=reference&section=chord-scales"
@@ -2646,7 +2902,9 @@
           "setup": "Call and response over the Dorian vamp: Echo first, then Answer. Checked runs of 6 turns.",
           "done": "12 answers, 75%.",
           "href": "/music/call-response?mode=answer&groove=modal&bars=1",
-          "match": { "groove": "modal" },
+          "match": {
+            "groove": "modal"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
@@ -2654,7 +2912,10 @@
               "label": "Echo the calls",
               "href": "/music/call-response?mode=echo&groove=modal&bars=1"
             },
-            { "label": "Jam modal", "href": "/music/jam?progression=modal" }
+            {
+              "label": "Jam modal",
+              "href": "/music/jam?progression=modal"
+            }
           ]
         }
       ],
@@ -2835,7 +3096,10 @@
           "bpm": 170,
           "diff": 3,
           "scores": [
-            { "label": "Free piano", "url": "https://musescore.com/user/476186/scores/754776" },
+            {
+              "label": "Free piano",
+              "url": "https://musescore.com/user/476186/scores/754776"
+            },
             {
               "label": "Official, easy piano",
               "url": "https://musescore.com/user/39593079/scores/6976469",
@@ -2882,8 +3146,14 @@
           "done": "Two choruses each, no lost place.",
           "exerciseIds": [],
           "links": [
-            { "label": "Minor ii-V-i", "href": "/music/jam?progression=minor-ii-v-i" },
-            { "label": "Reference", "href": "/music/library?tab=reference&section=cycle" }
+            {
+              "label": "Minor ii-V-i",
+              "href": "/music/jam?progression=minor-ii-v-i"
+            },
+            {
+              "label": "Reference",
+              "href": "/music/library?tab=reference&section=cycle"
+            }
           ],
           "feeds": "Autumn Leaves, Blue Bossa"
         },
@@ -2917,7 +3187,9 @@
           "href": "/music/rhythm?mode=dictation&earLevel=swing",
           "setup": "Rhythm, dictation: swing.",
           "done": "75%, on two days.",
-          "match": { "level": "swing" },
+          "match": {
+            "level": "swing"
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "feeds": "St. Thomas"
@@ -2926,11 +3198,23 @@
           "id": "9.7",
           "title": "Guide tones through a standard",
           "strand": "H",
-          "setup": "Jam over the Autumn Leaves changes: 3rds and 7ths only.",
+          "setup": "Jam over the Autumn Leaves changes in Check: 3rds and 7ths only.",
           "done": "Two choruses, 90% 3rds and 7ths on beat 1.",
-          "needs": "Guide-tone grading in Jam (N11), with the Autumn Leaves changes.",
-          "links": [{ "label": "Jam ii-V-I", "href": "/music/jam?progression=ii-v-i" }],
-          "feeds": "Autumn Leaves"
+          "links": [
+            {
+              "label": "Jam ii-V-I",
+              "href": "/music/jam?progression=ii-v-i"
+            }
+          ],
+          "feeds": "Autumn Leaves",
+          "href": "/music/jam?progression=tune-autumn-leaves&game=guide-tones&choruses=2",
+          "match": {
+            "game": "guide-tones",
+            "progression": "tune-autumn-leaves",
+            "choruses": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "9.8",
@@ -2964,11 +3248,16 @@
           "id": "9.11",
           "title": "Improvise a chorus on a shelf tune",
           "strand": "S",
-          "href": "/music/jam?progression=ii-v-i",
-          "setup": "Jam with the tune's changes, or your own track.",
+          "href": "/music/jam?progression=tune-autumn-leaves&game=chord-tones&choruses=2",
+          "setup": "Jam in Check with a shelf tune's changes (Autumn Leaves here; any of the tune charts counts).",
           "done": "Two choruses, 75% strong-beat chord tones.",
-          "exerciseIds": [],
-          "feeds": "Jazz Path improv"
+          "feeds": "Jazz Path improv",
+          "match": {
+            "game": "chord-tones",
+            "choruses": "2"
+          },
+          "threshold": 0.75,
+          "minAttempts": 1
         },
         {
           "id": "9.12",
@@ -2978,7 +3267,10 @@
           "setup": "Studio ears: boost or cut on the band loop, then compression on the drum loop.",
           "done": "Studio S-6 (80%) and S-7 (75%), on two days.",
           "exerciseIds": ["studio.boost-or-cut", "studio.compression"],
-          "each": { "param": "exercise", "values": ["boost-or-cut", "compression"] },
+          "each": {
+            "param": "exercise",
+            "values": ["boost-or-cut", "compression"]
+          },
           "minAttempts": 2,
           "threshold": 0.75,
           "links": [
@@ -3009,7 +3301,10 @@
               "official": true
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "watermelon-man",
@@ -3049,7 +3344,10 @@
               "official": true
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "autumn-leaves",
@@ -3122,7 +3420,10 @@
               "url": "https://musescore.com/user/32454112/scores/20287948"
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "take-five",
@@ -3143,7 +3444,10 @@
               "official": true
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "the-girl-from-ipanema",
@@ -3182,7 +3486,12 @@
           "setup": "Learn by ear: loop the solo at 70% speed with the pitch kept, sing it, then at 100%.",
           "done": "Sing 8 bars along with the record at full speed.",
           "exerciseIds": [],
-          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
+          "links": [
+            {
+              "label": "Learn by ear",
+              "href": "/music/by-ear?mode=learn"
+            }
+          ],
           "feeds": "Every shelf solo"
         },
         {
@@ -3193,7 +3502,12 @@
           "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the score in Song Studio. The check against the score (N3) is still to come.",
           "done": "85% of notes and rhythms per chunk.",
           "exerciseIds": [],
-          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
+          "links": [
+            {
+              "label": "Learn by ear",
+              "href": "/music/by-ear?mode=learn"
+            }
+          ],
           "feeds": "The shelf"
         },
         {
@@ -3222,7 +3536,12 @@
           "setup": "Your two licks through the 12-key transposition in Licks.",
           "done": "Each lick in 4 keys at the record's tempo.",
           "needs": "User licks in Licks: save a transcribed lick and drill it in 12 keys (N14).",
-          "links": [{ "label": "Licks", "href": "/music/licks" }],
+          "links": [
+            {
+              "label": "Licks",
+              "href": "/music/licks"
+            }
+          ],
           "feeds": "Improvising"
         },
         {
@@ -3255,11 +3574,16 @@
             "pitch.interval.M7",
             "pitch.interval.P8"
           ],
-          "match": { "answer": "voice" },
+          "match": {
+            "answer": "voice"
+          },
           "minAttempts": 3,
           "threshold": 0.75,
           "links": [
-            { "label": "Fine pitch", "href": "/music/ear/fine-pitch?answer=choice&startCents=25" }
+            {
+              "label": "Fine pitch",
+              "href": "/music/ear/fine-pitch?answer=choice&startCents=25"
+            }
           ]
         },
         {
@@ -3277,7 +3601,9 @@
           "href": "/music/rhythm?mode=dictation&earLevel=dotted-sixteenths",
           "setup": "Rhythm, dictation: dotted sixteenths.",
           "done": "75%, on two days.",
-          "match": { "level": "dotted-sixteenths" },
+          "match": {
+            "level": "dotted-sixteenths"
+          },
           "minAttempts": 2,
           "threshold": 0.75
         }
@@ -3568,7 +3894,12 @@
           "setup": "Melody, chords and form of a whole song in Learn by ear, compared with the score. The check against the score (N3) is still to come.",
           "done": "85% of the melody, 85% of chord bars.",
           "exerciseIds": [],
-          "links": [{ "label": "Learn by ear", "href": "/music/by-ear?mode=learn" }],
+          "links": [
+            {
+              "label": "Learn by ear",
+              "href": "/music/by-ear?mode=learn"
+            }
+          ],
           "feeds": "The shelf"
         },
         {
@@ -3578,7 +3909,12 @@
           "href": "/music/create",
           "setup": "Create, then Record: 16 or 32 bars, then a reharmonised second chorus.",
           "done": "A recorded take kept in the journal.",
-          "links": [{ "label": "Record", "href": "/music/record" }],
+          "links": [
+            {
+              "label": "Record",
+              "href": "/music/record"
+            }
+          ],
           "feeds": "Reading path (write it out)"
         },
         {
@@ -3650,7 +3986,10 @@
               "url": "https://musescore.com/user/498481/scores/6466459"
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "wichita-lineman",
@@ -3702,7 +4041,10 @@
               "url": "https://musescore.com/user/498481/scores/6480402"
             }
           ],
-          "fallback": { "label": "iReal Pro", "url": "https://www.irealpro.com/main-playlists" }
+          "fallback": {
+            "label": "iReal Pro",
+            "url": "https://www.irealpro.com/main-playlists"
+          }
         },
         {
           "id": "bohemian-rhapsody",

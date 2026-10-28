@@ -72,8 +72,10 @@
 
   function down(s: number, f: number) {
     tapped[s * 100 + f] = true;
+    // Read before the tap: the note that ends a run turns picking on, and must not also move the setup.
+    const pick = onpick;
     input.tap(midiAt(s, f), true, { string: s, fret: f });
-    onpick?.(s, f);
+    pick?.(s, f);
   }
   function up(s: number, f: number) {
     delete tapped[s * 100 + f];

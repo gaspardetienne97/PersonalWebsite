@@ -3,8 +3,10 @@
 // leading through the 12-key cycle. Each item says what to show and how to grade it.
 import { pc, pcOf, type Metric } from "@repo/music-core";
 import {
+  GOSPEL_PROGRESSIONS,
   KEY_CYCLE,
   cadenceChords,
+  gospelChords,
   closestChords,
   goToScale,
   voiceLeadingTargets,
@@ -14,7 +16,13 @@ import {
 import { JAZZ, type VoicingTarget } from "@repo/music-core/data/index";
 import { gradeVoiceLeading, gradeVoicing } from "@repo/music-core/scoring/piano";
 
-export type Variant = VoicingVariant | "inversions" | "voice-leading" | "cadence" | "cadence-minor";
+export type Variant =
+  | VoicingVariant
+  | "inversions"
+  | "voice-leading"
+  | "cadence"
+  | "cadence-minor"
+  | "gospel";
 
 export interface Shown {
   midi: number;
@@ -76,8 +84,43 @@ export function voicingItems(opts: {
   keys: number;
   startPosition?: "A" | "B";
   arpeggio?: boolean;
+  /** Gospel: which progression (GOSPEL_PROGRESSIONS). */
+  progression?: string;
 }): VoicingItem[] {
   const keys = cycleFrom(opts.keyPc, opts.keys);
+  if (opts.variant === "gospel") {
+    const prog =
+      GOSPEL_PROGRESSIONS.find((p) => p.id === opts.progression) ?? GOSPEL_PROGRESSIONS[0];
+    const inv = ["root position", "first inversion", "second inversion", "third inversion"];
+    return keys.flatMap((key) => {
+      const bars = gospelChords(pcOf(key)!, prog.id, CLOSEST_REGISTER);
+      return bars.map((b, i) => ({
+        id: b.id,
+        symbol: b.symbol,
+        group: key,
+        keyPc: pcOf(key)!,
+        minor: false,
+        kind: "closest" as const,
+        show: [
+          { midi: b.leftHand, hand: "left" as const },
+          ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
+        ],
+        name: `${b.symbol}: the right hand in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. ${b.symbol.includes("/") ? "The bass after the slash" : "The root"} in the left hand.`,
+        hint: i
+          ? `${prog.about} Keep the common tones; move the others the shortest way.`
+          : prog.about,
+        pcs: [...new Set([...b.rightHand.map(pc), b.bassPc])],
+        count: 4,
+        skillIds: ["harmony.keyboard-cadences"],
+        closest: {
+          rightHand: b.rightHand,
+          leftRootPc: b.bassPc,
+          bassPc: b.expectedBassPc,
+          from: i ? bars[i - 1].rightHand : undefined,
+        },
+      }));
+    });
+  }
   if (opts.variant === "cadence" || opts.variant === "cadence-minor") {
     const minor = opts.variant === "cadence-minor";
     const inv = ["root position", "first inversion", "second inversion", "third inversion"];

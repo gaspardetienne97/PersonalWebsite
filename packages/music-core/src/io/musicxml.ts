@@ -131,6 +131,8 @@ export function parseMusicXml(xml: string): Score {
   let lengthBeats = 0;
   // Chord symbols from the first part that has any: [beat, symbol].
   let harmony: [number, string][] = [];
+  // Dynamics, hairpins and breath marks, likewise from the first part with any.
+  let marks: Expression = { dynamics: [], hairpins: [], breaths: [] };
 
   for (const part of kids(doc, "part")) {
     const partId = part.attrs.id;
@@ -147,6 +149,8 @@ export function parseMusicXml(xml: string): Score {
     const clefs = new Map<number, "treble" | "bass">();
     const byVoice = new Map<string, { notes: ScoreNote[]; staves: number[] }>();
     const partHarmony: [number, string][] = [];
+    const partMarks: Expression = { dynamics: [], hairpins: [], breaths: [] };
+    let wedge: { startBeat: number; kind: "crescendo" | "diminuendo" } | null = null;
     let measureStart = 0;
 
     kids(part, "measure").forEach((measure, index) => {
@@ -185,6 +189,20 @@ export function parseMusicXml(xml: string): Score {
             ]);
         } else if (el.name === "direction" || el.name === "sound") {
           bpm ??= tempoOf(el);
+          const at = round4(measureStart + (pos + num(el, "offset")) / divisions);
+          for (const dt of kids(el, "direction-type")) {
+            for (const d of kids(dt, "dynamics"))
+              for (const m of d.children)
+                if (m.name !== "other-dynamics")
+                  partMarks.dynamics.push({ startBeat: at, mark: m.name });
+            const w = kid(dt, "wedge");
+            if (w?.attrs.type === "crescendo" || w?.attrs.type === "diminuendo")
+              wedge = { startBeat: at, kind: w.attrs.type };
+            else if (w?.attrs.type === "stop" && wedge) {
+              if (at > wedge.startBeat) partMarks.hairpins.push({ ...wedge, endBeat: at });
+              wedge = null;
+            }
+          }
         } else if (el.name === "backup") {
           pos -= num(el, "duration");
         } else if (el.name === "forward") {
@@ -214,6 +232,13 @@ export function parseMusicXml(xml: string): Score {
               startBeat: round4(measureStart + start / divisions),
               durationBeats: round4(dur / divisions),
             };
+            const notations = kid(el, "notations");
+            const arts = kid(notations, "articulations");
+            if (kid(arts, "breath-mark") || kid(arts, "caesura"))
+              partMarks.breaths.push(round4(note.startBeat + note.durationBeats));
+            for (const d of kids(notations, "dynamics"))
+              for (const m of d.children)
+                partMarks.dynamics.push({ startBeat: note.startBeat, mark: m.name });
             const ties = [...kids(el, "tie"), ...kids(kid(el, "notations"), "tied")];
             if (ties.some((t) => t.attrs.type === "stop")) note.tieFrom = true;
             entry.notes.push(note);
@@ -236,6 +261,8 @@ export function parseMusicXml(xml: string): Score {
 
     lengthBeats = Math.max(lengthBeats, measureStart);
     if (!harmony.length) harmony = partHarmony;
+    if (!marks.dynamics.length && !marks.hairpins.length && !marks.breaths.length)
+      marks = partMarks;
     const many = byVoice.size > 1;
     for (const [voice, { notes, staves: used }] of byVoice) {
       const staff = mode(used);
@@ -271,8 +298,17 @@ export function parseMusicXml(xml: string): Score {
         durationBeats: round4((harmony[i + 1]?.[0] ?? lengthBeats) - startBeat),
       })),
     }),
+    ...(marks.dynamics.length && { dynamics: marks.dynamics }),
+    ...(marks.hairpins.length && { hairpins: marks.hairpins }),
+    ...(marks.breaths.length && { breaths: [...new Set(marks.breaths)].sort((a, b) => a - b) }),
     source: { kind: "musicxml", xml },
   };
+}
+
+interface Expression {
+  dynamics: NonNullable<Score["dynamics"]>;
+  hairpins: NonNullable<Score["hairpins"]>;
+  breaths: number[];
 }
 
 /** MusicXML chord kinds as the suffixes `parseChordSymbol` reads. */

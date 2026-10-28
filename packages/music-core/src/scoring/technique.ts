@@ -54,6 +54,7 @@ const LINE_LOOKAHEAD_BEATS = 2;
 function followLine(beats: LineInput["beats"], ons: NoteEvent[], beatMs: number) {
   const flat = beats.flatMap((notes, beat) => notes.map((n) => ({ ...n, beat })));
   const hitOf: (number | null)[] = flat.map(() => null);
+  const last = flat.length ? flat[flat.length - 1].beat : -1;
   let cursor = 0;
   let started = false;
   for (let h = 0; h < ons.length; h++) {
@@ -65,11 +66,8 @@ function followLine(beats: LineInput["beats"], ons: NoteEvent[], beatMs: number)
     hitOf[ti] = h;
     started = true;
     cursor = Math.max(cursor, flat[ti].beat);
-    while (
-      flat.some((t) => t.beat === cursor) &&
-      flat.every((t, i) => t.beat !== cursor || hitOf[i] !== null)
-    )
-      cursor++;
+    // Past every step that is played, and past empty ones (a hold, a burst's rest).
+    while (cursor <= last && flat.every((t, i) => t.beat !== cursor || hitOf[i] !== null)) cursor++;
   }
   const first = hitOf.findIndex((h) => h !== null);
   const anchor =
@@ -497,7 +495,7 @@ export const LEGATO_ATTACK_MS = 50;
 export type LegatoVerdict = "legato" | "picked" | "missed";
 
 /**
- * For each note marked h or p: "picked" when an onset landed within
+ * For each note marked h, p or s (a slide): "picked" when an onset landed within
  * LEGATO_ATTACK_MS of the note starting, "legato" when none did, "missed"
  * when the note wasn't played. Picked notes (P) get null.
  */
@@ -507,7 +505,7 @@ export function legatoAttacks(
   onsets: readonly { at: number }[],
 ): (LegatoVerdict | null)[] {
   return labels.map((l, i) => {
-    if (l !== "h" && l !== "p") return null;
+    if (l !== "h" && l !== "p" && l !== "s") return null;
     const at = startedAt[i];
     if (at === undefined) return "missed";
     return onsets.some((o) => Math.abs(o.at - at) <= LEGATO_ATTACK_MS) ? "picked" : "legato";

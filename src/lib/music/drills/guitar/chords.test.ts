@@ -3,12 +3,14 @@ import { TUNINGS } from "@repo/music-core/data/index";
 import { gradeChanges } from "@repo/music-core/scoring/technique";
 import { PROGRESSIONS } from "@repo/music-core/content/jam";
 import {
+  cycleRefs,
   chordId,
   chordLabel,
   chordRef,
   chordSymbol,
   groupChanges,
   groupedNotes,
+  hardestPairs,
   mergePairRuns,
   positionsOn,
   shapesFor,
@@ -144,5 +146,47 @@ describe("chord shapes", () => {
     expect(merged).toHaveLength(30);
     expect(merged.at(-1)!.perMinute).toBe(99);
     expect(merged[0].perMinute).toBe(1);
+  });
+});
+
+describe("hardest five", () => {
+  const run = (perMinute: number) => ({ date: "2026-10-27", perMinute, clean: 1, completed: 1 });
+  it("picks the instrument's five slowest pairs by their last three runs", () => {
+    const history = {
+      "guitar.c-major>guitar.g-major": [run(5), run(40), run(42), run(44)],
+      "guitar.g-major>guitar.d-major": [run(12), run(14)],
+      "guitar.c-major>guitar.a-minor": [run(20)],
+      "guitar.g-major>guitar.e-minor": [run(25)],
+      "guitar.c-major>guitar.d-major": [run(18)],
+      "gen.guitar.5.maj@1>guitar.c-major": [run(10)],
+      // Not pairs of this instrument, or not pairs at all.
+      "ukulele.c-major>ukulele.g-major": [run(1)],
+      "guitar.c-major>guitar.g-major>guitar.a-minor": [run(2)],
+    };
+    const five = hardestPairs(history, "guitar");
+    expect(five.map((h) => [h.key, h.perMinute])).toEqual([
+      ["gen.guitar.5.maj@1>guitar.c-major", 10],
+      ["guitar.g-major>guitar.d-major", 13],
+      ["guitar.c-major>guitar.d-major", 18],
+      ["guitar.c-major>guitar.a-minor", 20],
+      ["guitar.g-major>guitar.e-minor", 25],
+    ]);
+    // The old slow run of C to G no longer counts: its last three average 42.
+    expect(five[0]).toMatchObject({ chords: "gen.guitar.5.maj,guitar.c-major", positions: "1," });
+    expect(hardestPairs(history, "ukulele").map((h) => h.key)).toEqual([
+      "ukulele.c-major>ukulele.g-major",
+    ]);
+  });
+});
+
+describe("chord cycle", () => {
+  it("keeps one chord at different positions (CAGED forms) and drops a true repeat", () => {
+    const five = Array(5).fill("guitar.c-major").join(",");
+    expect(cycleRefs("guitar", five, 8, "0,1,2,3,4")).toHaveLength(5);
+    expect(
+      cycleRefs("guitar", "guitar.c-major,guitar.c-major,guitar.g-major", 8, "0,0,0"),
+    ).toHaveLength(2);
+    // Without positions a repeated chord is still one chord, and a cycle needs two.
+    expect(cycleRefs("guitar", "guitar.c-major,guitar.c-major")).toHaveLength(2);
   });
 });

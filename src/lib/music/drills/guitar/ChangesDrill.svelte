@@ -25,7 +25,7 @@
   import { mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, cyclePositions, cycleRefs, groupChanges, groupedNotes, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type PairRun } from "./chords";
+  import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
@@ -53,7 +53,7 @@
   // A link naming a pair (shape and to) and no chord list, like a path's, opens on that pair.
   const pairLink = $derived(page.url.searchParams.has("to") && !page.url.searchParams.has("chords"));
   // Root and quality of each chord, from the setup's shape ids (curated, generated, or the other instrument's).
-  const refs = $derived(cycleRefs(instr, s.chords && !pairLink ? s.chords : `${s.shape},${s.to}`));
+  const refs = $derived(cycleRefs(instr, s.chords && !pairLink ? s.chords : `${s.shape},${s.to}`, undefined, s.positions));
   const chordIds = $derived(refs.map((r) => chordId(instr, r)));
   const n = $derived(refs.length);
   const chosen = $derived(cyclePositions(s.positions, n));
@@ -109,7 +109,23 @@
   let ticker: ReturnType<typeof setInterval> | undefined;
   let stopClockRef: (() => void) | null = null;
 
-  void readKeyed<PairRun[]>(PAIR_HISTORY_KEY).then((h) => (history = h));
+  let historyRead = $state(false);
+  void readKeyed<PairRun[]>(PAIR_HISTORY_KEY).then((h) => {
+    history = h;
+    historyRead = true;
+  });
+  /** The five slowest pairs on this instrument; a run on one of them records `hardest`. */
+  const hardest = $derived(hardestPairs(history, instr));
+  const inHardest = $derived(n === 2 && hardest.some((h) => h.key === cycleKey));
+  const pairName = (h: HardPair) => h.chords.split(",").map((id) => { const r = chordRef(id); return r ? chordLabel(r) : id; }).join(" and ");
+  const useHard = (h: HardPair) => cfg.set({ chords: h.chords, positions: h.positions });
+  // A link with ?hardest (a path's) opens on the slowest pair once the history is read.
+  let openedHardest = false;
+  $effect(() => {
+    if (openedHardest || !historyRead || !page.url.searchParams.has("hardest")) return;
+    openedHardest = true;
+    if (hardest.length && !inHardest) useHard(hardest[0]);
+  });
 
   const live = $derived(phase === "running" || phase === "countin");
   // No clock: one group per chord played, however many pauses it took.
@@ -181,7 +197,7 @@
       assistance: assistanceFor(mode),
       difficulty: Math.min(1, shapes.reduce((a, x) => a + x.difficulty, 0) / n / 5 + (periodMs ? 0.1 : 0) + (s.timed ? 0.1 : 0)),
       instrument: instr,
-      params: { from: shapes[0].id, to: shapes[1].id, chords: cycleKey, timed: s.timed, trips, ...(periodMs ? { bpm: ctx.bpm, beatsPerChord } : {}) },
+      params: { from: shapes[0].id, to: shapes[1].id, chords: cycleKey, timed: s.timed, trips, ...(periodMs ? { bpm: ctx.bpm, beatsPerChord } : {}), ...(inHardest ? { hardest: true } : {}) },
     });
     cap = capture(ctx.downbeat - (ctx.beatMs || 0) / 2, (e) => e.kind === "noteon" && onNote(e));
     usedMic = mic.state === "on";
@@ -275,7 +291,7 @@
   });
 
   const summaryLine = $derived([
-    { text: cycleText, focus: "from" },
+    { text: inHardest ? `${cycleText}, one of your hardest five` : cycleText, focus: "from" },
     { text: s.timed ? "one timed minute" : roundsText(trips), focus: "length" },
     { text: beatsPerChord ? `change every ${beatsPerChord === 4 ? "bar" : beatsPerChord === 1 ? "beat" : "2 beats"}` : "no clock", focus: "clock" },
   ]);
@@ -301,6 +317,14 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <ChordCycleSetup instrument={instr} {tuning} {refs} {shapes} positions={chosen} onchange={save} setupKey="from" />
+      <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="hardest">
+        {#if hardest.length}
+          <Choice label="Hardest five" options={hardest.map((h) => ({ value: h.key, label: pairName(h), detail: `${h.perMinute} a minute` }))} value={inHardest ? cycleKey : ""} onchange={(k) => useHard(hardest.find((h) => h.key === k)!)} />
+          <p class="text-xs text-ws-soft">Your slowest pairs, by changes a minute over each one's last three runs.</p>
+        {:else}
+          <p class="text-sm"><span class="font-medium">Hardest five:</span> <span class="text-ws-soft">play a few pairs first, and the slowest show here.</span></p>
+        {/if}
+      </div>
       <Choice
         label="Stop after"
         setupKey="length"

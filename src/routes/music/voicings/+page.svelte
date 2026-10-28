@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE } from "@repo/music-core/content/piano";
+  import { GOSPEL_PROGRESSIONS, KEY_CYCLE } from "@repo/music-core/content/piano";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
@@ -30,6 +30,7 @@
     { value: "voice-leading", label: "Guide tones through the keys", tab: "Guide tones" },
     { value: "cadence", label: "Cadences I IV I V7 I", tab: "Cadences" },
     { value: "cadence-minor", label: "Minor cadences i iv i V7 i", tab: "Minor cadences" },
+    { value: "gospel", label: "Gospel and ballad chords", tab: "Gospel" },
   ];
   const KEY_STEPS = [
     { value: 1, label: "One key" },
@@ -43,12 +44,15 @@
     key: 0,
     keys: 3,
     position: "A" as string,
+    /** Gospel: which progression. */
+    progression: GOSPEL_PROGRESSIONS[0].id as string,
   });
   const s = $derived(cfg.value);
   const variant = $derived((VARIANTS.some((v) => v.value === s.variant) ? s.variant : "major") as Variant);
+  const gospel = $derived(GOSPEL_PROGRESSIONS.find((p) => p.id === s.progression) ?? GOSPEL_PROGRESSIONS[0]);
   const monophonic = $derived(settings.value.activeInstrument === "aerophone" || settings.value.activeInstrument === "voice");
   const items = $derived(
-    voicingItems({ variant, keyPc: pc(s.key), keys: variant === "inversions" ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic }),
+    voicingItems({ variant, keyPc: pc(s.key), keys: variant === "inversions" ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic, progression: gospel.id }),
   );
   const span = $derived(spanOf(items.flatMap((i) => i.show.map((n) => n.midi))));
 
@@ -93,12 +97,12 @@
   const variantLabel = $derived(VARIANTS.find((v) => v.value === variant)!.label);
   const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
   const summaryLine = $derived<SetupClause[]>([
-    { text: `${variantLabel} ${variant === "inversions" ? "in" : "from"} ${keyName(s.key)}`, focus: "key" },
+    { text: `${variant === "gospel" ? gospel.label : variantLabel} ${variant === "inversions" ? "in" : "from"} ${keyName(s.key)}`, focus: variant === "gospel" ? "progression" : "key" },
     ...(variant === "inversions" ? [] : [{ text: s.keys === 12 ? "all 12 keys" : `${s.keys} key${s.keys > 1 ? "s" : ""}`, focus: "keys" }]),
     ...(variant === "major" ? [{ text: `starting in position ${s.position}`, focus: "position" }] : []),
     ...(monophonic ? [{ text: "as arpeggios" }] : []),
   ]);
-  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${variant === "inversions" ? 1 : s.keys}:${monophonic ? "arp" : "chord"}:${s.position}`);
+  const setupKey = $derived(`voicings:${variant}:${pc(s.key)}:${variant === "inversions" ? 1 : s.keys}:${monophonic ? "arp" : "chord"}:${s.position}${variant === "gospel" ? `:${gospel.id}` : ""}`);
   // The staff in the current key's signature (minor variants in the minor key's).
   const keyFifths = $derived(group[0] ? signatureFor(group[0].keyPc, group[0].minor ? "natural-minor" : "major") : 0);
   const skills = $derived([...new Set(items.flatMap((i) => i.skillIds))]);
@@ -192,9 +196,9 @@
       capabilities: ["harmony"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : 0.55,
+      difficulty: variant === "altered" ? 0.75 : variant === "minor" ? 0.65 : variant === "inversions" ? 0.35 : variant === "cadence" ? 0.45 : variant === "cadence-minor" ? 0.5 : variant === "gospel" ? 0.5 : 0.55,
       instrument: settings.value.activeInstrument,
-      params: { variant, key: pc(s.key), keys: s.keys, arpeggio: monophonic },
+      params: { variant, key: pc(s.key), keys: s.keys, arpeggio: monophonic, ...(variant === "gospel" ? { progression: gospel.id } : {}) },
     });
     cap = capture(performance.now(), (e) => (e.kind === "noteon" || e.kind === "noteoff") && onEvent(e));
     prompt();
@@ -302,6 +306,9 @@
           value={s.keys}
           onchange={(v) => cfg.set({ keys: v })}
         />
+      {/if}
+      {#if variant === "gospel"}
+        <Choice label="Progression" setupKey="progression" options={GOSPEL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label, hint: p.about }))} value={gospel.id} onchange={(v) => cfg.set({ progression: v })} />
       {/if}
       {#if variant === "major"}
         <Choice

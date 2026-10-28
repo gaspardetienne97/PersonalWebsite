@@ -94,8 +94,8 @@
   const uid = $props.id();
 
   type Fingering = { keys: string[]; octave: boolean };
-  const fingeringFor = (m: number | null) =>
-    m === null ? null : ((fingerings.fingeringsByMidi as Record<string, Fingering>)[m] ?? null);
+  // The chart's entry: the verified data, then the palm keys beside it.
+  const fingeringFor = (m: number | null): Fingering | null => (m === null ? null : (chartEntry(m) ?? null));
   const target = $derived(fingeringFor(midi));
   const held = $derived(fingeringFor(heldMidi));
   const keyLabel = (id: string) => fingerings.keys.find((k) => k.id === id)?.label ?? id;
@@ -105,7 +105,7 @@
       ? "No note"
       : target
         ? `${chartEntry(midi)?.name ?? noteName(midi)}: ${[target.octave ? keyLabel("oct+1") : "", ...target.keys.map(keyLabel)].filter(Boolean).join(", ") || "all keys open"}`
-        : `${noteName(midi, "flat")}: outside the charted range, Bb3 to C#6`,
+        : `${noteName(midi, "flat")}: outside the charted range, Bb3 to F#6`,
   );
 </script>
 

@@ -65,6 +65,8 @@ export interface Layout {
   anchors: Anchor[];
   groups: ScoreGroup[];
   groupEls: Map<number, Element[]>;
+  /** Beams, ties and tuplet marks with the groups they join: hidden when any of them is (the look-ahead mask). */
+  linked: { groups: number[]; el: Element }[];
   notice?: string;
 }
 
@@ -86,6 +88,14 @@ export interface Tick {
   fingers?: (number | string)[];
   /** A chord symbol starting here (a lead sheet's), printed above the top staff. */
   symbol?: string;
+  /** Dynamics and hairpin words starting here (p, cresc.), printed under the top staff. */
+  dyn?: string;
+  /** A breath mark after this tick, printed above it. */
+  breath?: boolean;
+  /** Part of a triplet: the beat it fills (three in the time of two). */
+  tuplet?: number;
+  /** This bar's clef when it differs from the row's (a clef change). */
+  clef?: "treble" | "bass";
 }
 
 const EPS = 1e-6;
@@ -101,7 +111,13 @@ const VALUES: [number, string, number][] = [
   [0.25, "16", 0],
   [0.125, "32", 0],
 ];
+/** Inside a triplet beat: a quarter or an eighth, three of them to the beat. */
+const TRIPLET_VALUES: [number, string, number][] = [
+  [2 / 3, "q", 0],
+  [1 / 3, "8", 0],
+];
 const onGrid = (b: number) => Math.abs(b * 8 - Math.round(b * 8)) < 1e-3;
+const onThird = (b: number) => Math.abs(b * 3 - Math.round(b * 3)) < 1e-3;
 const r4 = (b: number) => Math.round(b * 1e4) / 1e4;
 
 /**
@@ -115,13 +131,31 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
   const ns = notes.filter(
     (n) => n.startBeat < to - EPS && n.startBeat + n.durationBeats > from + EPS,
   );
+  // Eighth triplets: a beat with an edge on a third of a beat is written as a triplet.
+  const triplets = new Set<number>();
+  for (const n of ns) {
+    if (n.durationBeats <= 0) throw new NotationError("it has a note with no length");
+    for (const x of [n.startBeat, n.startBeat + n.durationBeats]) {
+      if (onGrid(x)) continue;
+      if (!onThird(x))
+        throw new NotationError(
+          "it has tuplets other than triplets or notes shorter than a 32nd, which are not engraved yet",
+        );
+      triplets.add(Math.floor(x));
+    }
+  }
   for (const n of ns)
-    if (!onGrid(n.startBeat) || !onGrid(n.startBeat + n.durationBeats) || n.durationBeats <= 0)
-      throw new NotationError(
-        "it has tuplets or notes shorter than a 32nd, which are not engraved yet",
-      );
+    for (const x of [n.startBeat, n.startBeat + n.durationBeats])
+      if (triplets.has(Math.floor(x + 1e-3)) && !onThird(x))
+        throw new NotationError("it mixes triplets and straight notes inside one beat");
+  /** The next triplet beat's start at or after `b`. */
+  const nextTriplet = (b: number) =>
+    Math.min(...[...triplets].filter((t) => t > b - EPS), Infinity);
 
-  const onsets = [...new Set(ns.map((n) => r4(n.startBeat)))].sort((a, b) => a - b);
+  // Onsets keep their exact value (a third of a beat is not a round number).
+  const onsets = [...new Map(ns.map((n) => [r4(n.startBeat), n.startBeat])).values()].sort(
+    (a, b) => a - b,
+  );
   type Span = {
     start: number;
     end: number;
@@ -132,7 +166,7 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
   const spans: Span[] = [];
   let t = from;
   onsets.forEach((at, i) => {
-    const chord = ns.filter((n) => r4(n.startBeat) === at);
+    const chord = ns.filter((n) => r4(n.startBeat) === r4(at));
     const end = Math.min(
       onsets[i + 1] ?? Infinity,
       to,
@@ -160,9 +194,13 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
     for (const s of spans) {
       let pos = Math.max(s.start, bar.startBeat);
       const end = Math.min(s.end, bar.endBeat);
-      while (end - pos > EPS) {
+      while (end - pos > 1e-4) {
+        const k = Math.floor(pos + 1e-4);
+        const trip = triplets.has(k);
+        const room = Math.min(end, trip ? k + 1 : nextTriplet(pos)) - pos;
         const [dur, vf, dots] =
-          VALUES.find(([v]) => v <= end - pos + EPS) ?? VALUES[VALUES.length - 1];
+          (trip ? TRIPLET_VALUES : VALUES).find(([v]) => v <= room + 1e-4) ??
+          VALUES[VALUES.length - 1];
         const attack = s.attack && Math.abs(pos - s.start) < EPS;
         const g = attack ? groupAt(groups, s.start) : -1;
         ticks.push({
@@ -173,8 +211,9 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
           midis: s.midis,
           attack,
           group: g < 0 ? null : g,
-          tieNext: s.midis.length > 0 && pos + dur < s.end - EPS,
+          tieNext: s.midis.length > 0 && pos + dur < s.end - 1e-4,
           ...(attack && s.fingers?.length ? { fingers: s.fingers } : {}),
+          ...(trip ? { tuplet: k } : {}),
         });
         pos += dur;
       }
@@ -212,6 +251,8 @@ export function spell(midi: number, fifths = 0): string {
 export interface StaffRow {
   clef: "treble" | "bass";
   notes: ScoreNote[];
+  /** Clef changes at bar lines (a left hand moving into the treble clef). */
+  changes?: { startBeat: number; clef: "treble" | "bass" }[];
 }
 
 /**
@@ -225,8 +266,16 @@ export function staffRows(score: Score, voiceIds?: string[] | null, grand = fals
   const loose: ScoreNote[] = [];
   // A voice set to the bass clef keeps its staff even with no notes (a key signature on its own).
   let bassClef = false;
+  const changes: Record<"treble" | "bass", NonNullable<StaffRow["changes"]>> = {
+    treble: [],
+    bass: [],
+  };
   for (const v of selectedVoices(score, voiceIds)) {
     if (v.clef === "bass" || v.hand === "left") bassClef = true;
+    if (v.clefChanges?.length)
+      changes[v.hand === "left" || (!v.hand && v.clef === "bass") ? "bass" : "treble"].push(
+        ...v.clefChanges,
+      );
     const notes = mergeTies(v.notes);
     const to = v.hand
       ? v.hand === "left"
@@ -246,9 +295,14 @@ export function staffRows(score: Score, voiceIds?: string[] | null, grand = fals
     else for (const n of loose) (n.midi >= 60 ? treble : bass).push(n);
   }
   const rows: StaffRow[] = [];
+  const withChanges = (clef: "treble" | "bass") =>
+    changes[clef].length
+      ? { changes: [...changes[clef]].sort((a, b) => a.startBeat - b.startBeat) }
+      : {};
   if (grand || treble.length || !(bass.length || bassClef))
-    rows.push({ clef: "treble", notes: treble });
-  if (grand || bass.length || bassClef) rows.push({ clef: "bass", notes: bass });
+    rows.push({ clef: "treble", notes: treble, ...withChanges("treble") });
+  if (grand || bass.length || bassClef)
+    rows.push({ clef: "bass", notes: bass, ...withChanges("bass") });
   return rows;
 }
 
@@ -257,7 +311,16 @@ export function staffRows(score: Score, voiceIds?: string[] | null, grand = fals
 
 interface RowSpec {
   height: number;
-  stave(VF: VF, x: number, y: number, w: number, first: boolean, time: boolean): Stave;
+  /** `bar`: the bar's index in the bar list, when drawing it (not when measuring). */
+  stave(
+    VF: VF,
+    x: number,
+    y: number,
+    w: number,
+    first: boolean,
+    time: boolean,
+    bar?: number,
+  ): Stave;
   ticks: Tick[][];
   note(VF: VF, t: Tick): Note;
   keySpec?: string;
@@ -265,6 +328,8 @@ interface RowSpec {
 }
 
 const MARGIN = 6;
+/** Odd eighth meters beam in their groups (2+2+3, 2+3); VexFlow's default pairs them. */
+const ODD_BEAMS: Record<string, string[]> = { "7/8": ["2/8", "2/8", "3/8"], "5/8": ["2/8", "3/8"] };
 
 function engrave(
   VF: VF,
@@ -278,13 +343,34 @@ function engrave(
   fill: boolean | "center" = false,
 ): Layout {
   const time = `${score.meter.beats}/${score.meter.beatUnit}`;
-  const beamGroups = VF.Beam.getDefaultBeamGroups(time);
+  const beamGroups = ODD_BEAMS[time]
+    ? ODD_BEAMS[time].map((g) => new VF.Fraction().parse(g))
+    : VF.Beam.getDefaultBeamGroups(time);
   const sysH = rows.reduce((h, r) => h + r.height, 0) + 12;
 
   const build = (b: number, staves: Stave[]) =>
     rows.map((row, r) => {
-      const notes = row.ticks[b].map((t) => row.note(VF, t));
+      const ticks = row.ticks[b];
+      const notes = ticks.map((t) => row.note(VF, t));
       notes.forEach((n) => n.setStave(staves[r]));
+      // Triplets before the voice counts the ticks: a "3" over staff notes, plain ticks on tab.
+      const tuplets: { tuplet: InstanceType<VF["Tuplet"]> | null; idx: number[] }[] = [];
+      ticks.forEach((t, i) => {
+        if (t.tuplet === undefined) return;
+        const last = tuplets.at(-1);
+        if (last && ticks[last.idx[0]].tuplet === t.tuplet) last.idx.push(i);
+        else tuplets.push({ tuplet: null, idx: [i] });
+      });
+      for (const tp of tuplets) {
+        const ns = tp.idx.map((i) => notes[i]);
+        if (row.beams)
+          tp.tuplet = new VF.Tuplet(ns as InstanceType<VF["StaveNote"]>[], {
+            numNotes: 3,
+            notesOccupied: 2,
+            bracketed: tp.idx.some((i) => ticks[i].vf !== "8" || !ticks[i].midis.length),
+          });
+        else for (const n of ns) n.applyTickMultiplier(2, 3);
+      }
       const voice = new VF.Voice({ numBeats: score.meter.beats, beatValue: score.meter.beatUnit })
         .setMode(VF.Voice.Mode.SOFT)
         .addTickables(notes);
@@ -295,7 +381,7 @@ function engrave(
             { groups: beamGroups },
           )
         : [];
-      return { notes, voice, beams };
+      return { notes, voice, beams, tuplets };
     });
 
   // Measure: modifier widths and each bar's natural width.
@@ -364,11 +450,19 @@ function engrave(
     anchors: [],
     groups,
     groupEls: new Map(),
+    linked: [],
   };
-  const ties: { a: Note; b: Note; ta: Tick; tb: Tick; same: boolean }[] = [];
+  const ties: { a: Note; b: Note; ta: Tick; tb: Tick; same: boolean; owner: number | null }[] = [];
   const last: ({ note: Note; tick: Tick; system: number } | undefined)[] = rows.map(
     () => undefined,
   );
+  // The group a drawn note belongs to: its attack's, for a tie continuation too.
+  const owners = rows.map((): number | null => null);
+  const ownerOf = new Map<Note, number>();
+  const link = (el: Element | undefined, groups: (number | null | undefined)[]) => {
+    const gs = [...new Set(groups.filter((g): g is number => g != null))];
+    if (el && gs.length) layout.linked.push({ groups: gs, el });
+  };
 
   systems.forEach((sys, si) => {
     const y0 = si * sysH;
@@ -378,7 +472,7 @@ function engrave(
       const w = widths[si][k];
       let y = y0;
       const staves = rows.map((row) => {
-        const s = row.stave(VF, x, y, w, k === 0, si === 0 && k === 0);
+        const s = row.stave(VF, x, y, w, k === 0, si === 0 && k === 0, b);
         y += row.height;
         if (k > 0) s.setBegBarType(VF.BarlineType.NONE);
         if (lastSystem && k === sys.length - 1) s.setEndBarType(VF.BarlineType.END);
@@ -411,15 +505,19 @@ function engrave(
         built.map((x) => x.voice),
         staves[0].getNoteEndX() - start - 12,
       );
-      built.forEach(({ voice, beams }, r) => {
-        voice.draw(ctx, staves[r]);
-        beams.forEach((bm) => bm.setContext(ctx).draw());
-      });
+      built.forEach(({ voice }, r) => voice.draw(ctx, staves[r]));
 
       const seen = new Set<number>();
       built.forEach(({ notes }, r) => {
         notes.forEach((note, i) => {
           const tick = rows[r].ticks[b][i];
+          owners[r] = tick.group ?? (tick.midis.length ? owners[r] : null);
+          if (owners[r] !== null) ownerOf.set(note, owners[r]!);
+          if (tick.group === null && tick.midis.length && owners[r] !== null) {
+            const el = note.getSVGElement();
+            if (el)
+              layout.groupEls.set(owners[r]!, [...(layout.groupEls.get(owners[r]!) ?? []), el]);
+          }
           const nx =
             note instanceof VF.StaveNote
               ? (note.getNoteHeadBeginX() + note.getNoteHeadEndX()) / 2
@@ -439,9 +537,33 @@ function engrave(
             note instanceof VF.StaveNote &&
             prev.note instanceof VF.StaveNote
           )
-            ties.push({ a: prev.note, b: note, ta: prev.tick, tb: tick, same: prev.system === si });
+            ties.push({
+              a: prev.note,
+              b: note,
+              ta: prev.tick,
+              tb: tick,
+              same: prev.system === si,
+              owner: ownerOf.get(prev.note) ?? null,
+            });
           last[r] = { note, tick, system: si };
         });
+      });
+      built.forEach(({ beams, tuplets, notes }) => {
+        for (const bm of beams) {
+          bm.setContext(ctx).draw();
+          link(
+            bm.getSVGElement(),
+            bm.getNotes().map((n) => ownerOf.get(n as Note)),
+          );
+        }
+        for (const { tuplet, idx } of tuplets) {
+          if (!tuplet) continue;
+          tuplet.setContext(ctx).draw();
+          link(
+            tuplet.getSVGElement(),
+            idx.map((i) => ownerOf.get(notes[i]) ?? null),
+          );
+        }
       });
 
       const bar = barList[b];
@@ -460,7 +582,7 @@ function engrave(
     });
   });
 
-  for (const { a, b, ta, tb, same } of ties) {
+  for (const { a, b, ta, tb, same, owner } of ties) {
     const common = ta.midis.filter((m) => tb.midis.includes(m));
     const firstIndexes = common.map((m) => ta.midis.indexOf(m));
     const lastIndexes = common.map((m) => tb.midis.indexOf(m));
@@ -470,7 +592,11 @@ function engrave(
           { firstNote: a, firstIndexes, lastIndexes: firstIndexes },
           { lastNote: b, firstIndexes: lastIndexes, lastIndexes },
         ];
-    for (const p of parts) new VF.StaveTie(p).setContext(ctx).draw();
+    for (const p of parts) {
+      const tie = new VF.StaveTie(p);
+      tie.setContext(ctx).draw();
+      link(tie.getSVGElement(), [owner]);
+    }
   }
 
   layout.anchors.sort((p, q) => p.beat - q.beat);
@@ -513,6 +639,13 @@ export function drawStaff(
     // Fingering needs room: above a treble staff (the staff moves down), below a bass staff.
     const fingered = row.notes.some((n) => n.finger !== undefined);
     const ticks = lineTicks(row.notes, barList, groups);
+    // Each bar's clef: the row's, or the last change at or before the bar.
+    const barClef = barList.map(
+      (bar) => row.changes?.findLast((c) => c.startBeat <= bar.startBeat + EPS)?.clef ?? row.clef,
+    );
+    ticks.forEach((bar, b) => {
+      if (barClef[b] !== row.clef) for (const t of bar) t.clef = barClef[b];
+    });
     // Chord symbols sit above the top staff, on the note or rest sounding at their beat.
     const symbols = r === 0 && !!score.chords?.length;
     if (symbols)
@@ -522,25 +655,53 @@ export function drawStaff(
           .find((x) => c.startBeat >= x.start - EPS && c.startBeat < x.start + x.dur - EPS);
         if (t) t.symbol = t.symbol ? `${t.symbol} ${c.symbol}` : c.symbol;
       }
+    // Dynamics under the top staff (between the hands on a grand staff), breaths above it.
+    let marked = false;
+    if (r === 0) {
+      const flat = ticks.flat();
+      const at = (beat: number) =>
+        flat.find((x) => beat >= x.start - EPS && beat < x.start + x.dur - EPS);
+      const words = [
+        ...(score.dynamics ?? []).map((d) => ({ beat: d.startBeat, text: d.mark })),
+        ...(score.hairpins ?? []).map((h) => ({
+          beat: h.startBeat,
+          text: h.kind === "crescendo" ? "cresc." : "dim.",
+        })),
+      ];
+      for (const w of words) {
+        const t = at(w.beat);
+        if (t) [t.dyn, marked] = [t.dyn ? `${t.dyn} ${w.text}` : w.text, true];
+      }
+      for (const b of score.breaths ?? []) {
+        const t = flat.find((x) => Math.abs(x.start + x.dur - b) < 1e-3 && x.midis.length);
+        if (t) t.breath = true;
+      }
+    }
     const above = (fingered && row.clef !== "bass") || symbols ? 22 : 0;
     return {
-      height: (revealLabels ? 112 : 92) + (fingered || symbols ? 22 : 0),
+      height:
+        (revealLabels ? 112 : 92) +
+        (fingered || symbols ? 22 : 0) +
+        (marked && !revealLabels ? 20 : 0),
       keySpec: key,
       beams: true,
       ticks,
-      stave(VF, x, y, w, first, time) {
+      stave(VF, x, y, w, first, time, bar) {
         const s = new VF.Stave(x, y + above, w);
-        if (first) s.addClef(row.clef).addKeySignature(key);
+        const clef = bar === undefined ? row.clef : barClef[bar];
+        if (first) s.addClef(clef).addKeySignature(key);
+        else if (bar && clef !== barClef[bar - 1]) s.addClef(clef, "small");
         if (time && withTime) s.addTimeSignature(`${score.meter.beats}/${score.meter.beatUnit}`);
         return s;
       },
       note(VF, t) {
         const rest = t.midis.length === 0;
+        const clef = t.clef ?? row.clef;
         const n = new VF.StaveNote({
-          keys: rest ? [row.clef === "bass" ? "d/3" : "b/4"] : t.midis.map((m) => spell(m, fifths)),
+          keys: rest ? [clef === "bass" ? "d/3" : "b/4"] : t.midis.map((m) => spell(m, fifths)),
           duration: t.vf + (rest ? "r" : ""),
           dots: t.dots,
-          clef: row.clef,
+          clef,
           autoStem: true,
         });
         if (t.dots) VF.Dot.buildAndAttach([n], { all: true });
@@ -559,6 +720,21 @@ export function drawStaff(
                 ? VF.AnnotationVerticalJustify.BOTTOM
                 : VF.AnnotationVerticalJustify.TOP,
             ),
+            0,
+          );
+        if (t.dyn && !revealLabels)
+          n.addModifier(
+            new VF.Annotation(t.dyn)
+              .setFont("serif", 14, "bold", "italic")
+              .setVerticalJustification(VF.AnnotationVerticalJustify.BOTTOM),
+            0,
+          );
+        if (t.breath && !rest)
+          n.addModifier(
+            new VF.Annotation(",")
+              .setFont("serif", 22, "bold")
+              .setJustification(VF.AnnotationHorizontalJustify.RIGHT)
+              .setVerticalJustification(VF.AnnotationVerticalJustify.TOP),
             0,
           );
         if (revealLabels && t.attack && !rest)

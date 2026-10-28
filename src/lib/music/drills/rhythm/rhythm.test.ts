@@ -51,7 +51,11 @@ describe("rhythm helpers", () => {
       "guitar-four-on-the-floor",
       "guitar-island-strum",
       "guitar-old-faithful",
+      "guitar-backbeat-chuck",
     ]);
+    expect(
+      readPatterns("ukulele").filter((p) => p.group === "Ukulele strums").length,
+    ).toBeGreaterThanOrEqual(14);
     expect(guitar.find((p) => p.value === "guitar-old-faithful")!.label).toMatch(/^Old Faithful/);
     expect(readPatterns("piano").every((p) => p.group === "Rhythms")).toBe(true);
     expect(readPatterns("piano")).toHaveLength(8);

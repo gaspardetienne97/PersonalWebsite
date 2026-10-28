@@ -15,9 +15,12 @@
         {
           "id": "1.1",
           "title": "Set up the AE-20",
-          "setup": "Sax mode, alto scene, Transpose C while practising in the app (switch to Eb only for recordings), breath floor and ceiling, key check.",
+          "href": "/music/aerophone?mode=calibrate",
+          "setup": "Sax mode, alto scene. Setup check: a written G4 (the app's reading key must match the AE-20's transpose: C with Transpose C, Alto Eb with the alto transpose on), then the softest and loudest notes.",
           "done": "Written G4 shows as G4 in the app; the breath trace reaches f without clipping.",
-          "needs": "A calibration and key check: breath floor and ceiling, CC check, transpose check.",
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 1,
           "feeds": "Everything"
         },
         {
@@ -364,9 +367,15 @@
         {
           "id": "2.4",
           "title": "F# and Bb",
-          "setup": "Fingering on a chosen note set: F#4 and Bb4. Meanwhile, Practice runs of G major and F major, stopping at C5.",
+          "href": "/music/aerophone?mode=fingering&lesson=fs-bb",
+          "setup": "Fingering: F# and Bb among neighbours, 20 notes, each waiting until it is right. Practice runs of G major and F major help first.",
           "done": "20 correct F#4 and Bb4 in a row.",
-          "needs": "Fingering mode with a chosen note set.",
+          "match": {
+            "lesson": "fs-bb"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.95,
           "links": [
             {
               "label": "G major (Practice, stop at C5)",
@@ -1084,9 +1093,26 @@
         {
           "id": "4.2",
           "title": "The pinky table",
-          "setup": "Register crossings for the pinkies: C#4 to B3, B3 to Bb3, Eb4 to C4.",
+          "href": "/music/aerophone?mode=register&pair=cs4-b3",
+          "setup": "Register crossings for the pinkies: C#4 to B3, B3 to Bb3, Eb4 to C4, at 70.",
           "done": "No glitches at 70.",
-          "needs": "Register pairs for the pinky table (C#4 to B3, B3 to Bb3, Eb4 to C4).",
+          "each": {
+            "param": "pair",
+            "values": ["cs4-b3", "b3-bb3", "eb4-c4"]
+          },
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "minBpm": 70,
+          "links": [
+            {
+              "label": "B3 to Bb3",
+              "href": "/music/aerophone?mode=register&pair=b3-bb3"
+            },
+            {
+              "label": "Eb4 to C4",
+              "href": "/music/aerophone?mode=register&pair=eb4-c4"
+            }
+          ],
           "feeds": "Peter Gunn"
         },
         {
@@ -1529,9 +1555,33 @@
         {
           "id": "5.4",
           "title": "Blues and pentatonic in alto D and G",
-          "setup": "Scales: blues and minor pentatonic in D and G (concert F and Bb), at 100, two octaves where the range allows.",
+          "href": "/music/aerophone?mode=scales&scale=blues&key=2&perBeat=1",
+          "setup": "Scales: blues and minor pentatonic in D and G (concert F and Bb), at 100, a note a click. Two octaves (the Range setting) where the range allows, for practice.",
           "done": "90% at 100.",
-          "needs": "Blues and minor pentatonic in the Aerophone scale list.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "D blues scale, up and down, 100 BPM, a note a click",
+              "G blues scale, up and down, 100 BPM, a note a click",
+              "D minor pentatonic scale, up and down, 100 BPM, a note a click",
+              "G minor pentatonic scale, up and down, 100 BPM, a note a click"
+            ]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G blues",
+              "href": "/music/aerophone?mode=scales&scale=blues&key=7&perBeat=1"
+            },
+            {
+              "label": "D minor pentatonic",
+              "href": "/music/aerophone?mode=scales&scale=minor-pentatonic&key=2&perBeat=1"
+            },
+            {
+              "label": "G minor pentatonic",
+              "href": "/music/aerophone?mode=scales&scale=minor-pentatonic&key=7&perBeat=1"
+            }
+          ],
           "feeds": "Improvising"
         },
         {
@@ -1551,10 +1601,11 @@
           "id": "5.6",
           "title": "Two heads by memory",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: two blues heads; after 3 runs, play them without looking at the score.",
+          "setup": "Song Studio: two blues heads; after 3 runs, set From memory to After a look: the notes hide when the run starts.",
           "done": "85% from memory, on two days.",
           "match": {
-            "mode": "performance"
+            "mode": "performance",
+            "memory": "look"
           },
           "threshold": 0.85,
           "links": [
@@ -1943,17 +1994,43 @@
         {
           "id": "6.4",
           "title": "Swing articulation",
-          "setup": "Doo-DAH: the off-beat tongued and slurred into the beat, swing ratio scored.",
+          "href": "/music/aerophone?mode=swing&scale=major&key=0",
+          "setup": "Swing articulation: doo-DAH, the off-beat tongued and slurred into the beat, swing ratio scored. C major at 120 on the practice strip.",
           "done": "80% at 120, on two days.",
-          "needs": "A swing articulation drill: off-beats tongued, slurred into the beat, swing ratio scored.",
+          "threshold": 0.8,
+          "minBpm": 120,
           "feeds": "All"
         },
         {
           "id": "6.5",
           "title": "Niehaus on scales",
-          "setup": "The swing articulation drill on the G, C and F major scales and the blues scale.",
+          "href": "/music/aerophone?mode=swing&scale=major&key=7",
+          "setup": "Swing articulation on the G, C and F major scales and the D blues scale, at 140.",
           "done": "80% at 140.",
-          "needs": "The swing articulation drill, on scales.",
+          "each": {
+            "param": "setup",
+            "values": [
+              "G major scale, swung eighths, doo-DAH, 140 BPM",
+              "C major scale, swung eighths, doo-DAH, 140 BPM",
+              "F major scale, swung eighths, doo-DAH, 140 BPM",
+              "D blues scale, swung eighths, doo-DAH, 140 BPM"
+            ]
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "C major",
+              "href": "/music/aerophone?mode=swing&scale=major&key=0"
+            },
+            {
+              "label": "F major",
+              "href": "/music/aerophone?mode=swing&scale=major&key=5"
+            },
+            {
+              "label": "D blues",
+              "href": "/music/aerophone?mode=swing&scale=blues&key=2"
+            }
+          ],
           "feeds": "Heads"
         },
         {
@@ -2244,25 +2321,57 @@
         {
           "id": "7.1",
           "title": "The palm keys",
-          "setup": "A fingering chart for D6 to F#6, then a Fingering lesson for D6, Eb6, E6 and F6.",
+          "href": "/music/aerophone?mode=fingering&lesson=palm-keys",
+          "setup": "Fingering: the palm keys, C#6 to F6 and back (the chart now runs to F#6). The palm fingerings are the standard sax ones, not yet checked on the unit: say if one differs.",
           "done": "3 clean Check runs.",
-          "needs": "Fingering chart and lessons to F#6 (palm keys and front F).",
+          "match": {
+            "lesson": "palm-keys"
+          },
+          "threshold": 0.9,
           "feeds": "Baker Street"
         },
         {
           "id": "7.2",
           "title": "Into and out of the palm keys",
-          "setup": "Register crossings: C#6 to D6, B5 to D6, D6 to F6.",
+          "href": "/music/aerophone?mode=register&pair=cs6-d6",
+          "setup": "Register crossings: C#6 to D6, B5 to D6, D6 to F6, at 80.",
           "done": "No glitches at 80.",
-          "needs": "Register pairs for the palm keys (C#6 to D6, B5 to D6, D6 to F6).",
+          "each": {
+            "param": "pair",
+            "values": ["cs6-d6", "b5-d6", "d6-f6"]
+          },
+          "minAttempts": 2,
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "B5 to D6",
+              "href": "/music/aerophone?mode=register&pair=b5-d6"
+            },
+            {
+              "label": "D6 to F6",
+              "href": "/music/aerophone?mode=register&pair=d6-f6"
+            }
+          ],
           "feeds": "Careless Whisper"
         },
         {
           "id": "7.3",
           "title": "Soft high notes",
-          "setup": "Long tone at p on D6, then F6.",
+          "href": "/music/aerophone?mode=long-tone&level=p&target=86&seconds=5",
+          "setup": "Long tone at p on D6, then F6, 5 s.",
           "done": "75% in band.",
-          "needs": "Fingering chart to F#6, so long tones can sit on D6 and F6.",
+          "each": {
+            "param": "target",
+            "values": ["86", "89"]
+          },
+          "threshold": 0.75,
+          "links": [
+            {
+              "label": "F6",
+              "href": "/music/aerophone?mode=long-tone&level=p&target=89&seconds=5"
+            }
+          ],
           "feeds": "Ballads"
         },
         {
@@ -2312,17 +2421,65 @@
         {
           "id": "7.6",
           "title": "Two octaves",
-          "setup": "Scales from Bb3 to F6: C, D, Eb and F major.",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&octaves=2",
+          "setup": "Scales, Range two octaves: C, D, Eb and F major at 72 (D, Eb and F reach the palm keys).",
           "done": "90% at 72.",
-          "needs": "A two-octave and full-range option for scales.",
+          "match": {
+            "scale": "major",
+            "octaves": "2"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "2", "3", "5"]
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "links": [
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=major&key=2&perBeat=2&octaves=2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/aerophone?mode=scales&scale=major&key=3&perBeat=2&octaves=2"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major&key=5&perBeat=2&octaves=2"
+            }
+          ],
           "feeds": "Shelf"
         },
         {
           "id": "7.7",
           "title": "Two-octave arpeggios",
-          "setup": "The same option, major arpeggios.",
+          "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=0&perBeat=2&octaves=2",
+          "setup": "Scales, Range two octaves: C, D, Eb and F major arpeggios at 80.",
           "done": "90% at 80.",
-          "needs": "A two-octave option for arpeggios.",
+          "match": {
+            "scale": "major-arpeggio",
+            "octaves": "2"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "2", "3", "5"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=2&perBeat=2&octaves=2"
+            },
+            {
+              "label": "Eb",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=3&perBeat=2&octaves=2"
+            },
+            {
+              "label": "F",
+              "href": "/music/aerophone?mode=scales&scale=major-arpeggio&key=5&perBeat=2&octaves=2"
+            }
+          ],
           "feeds": "Just the Two of Us"
         },
         {
@@ -2583,7 +2740,7 @@
           "id": "8.1",
           "title": "Messa di voce",
           "href": "/music/aerophone?mode=swell&swellSeconds=8&target=62",
-          "setup": "Swell over 8 s on a low note (D4) and a middle one (D5). Palm notes wait for the chart to F#6.",
+          "setup": "Swell over 8 s on a low note (D4) and a middle one (D5). The palm notes (D6 and up) can be swelled too now.",
           "done": "3 runs at 75% in each register.",
           "each": {
             "param": "target",
@@ -2601,9 +2758,24 @@
         {
           "id": "8.2",
           "title": "Long-tone scale",
-          "setup": "Each note of a scale held 4 beats at one level.",
+          "href": "/music/aerophone?mode=long-scale&scale=major&key=0&level=p",
+          "setup": "Long-tone scale: each note held 4 beats at one level, at p then f, in two keys (C and F, say).",
           "done": "p and f, 80% in band, in two keys.",
-          "needs": "A long-tone scale mode.",
+          "each": {
+            "param": "level",
+            "values": ["p", "f"]
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "At f",
+              "href": "/music/aerophone?mode=long-scale&scale=major&key=0&level=f"
+            },
+            {
+              "label": "F major at p",
+              "href": "/music/aerophone?mode=long-scale&scale=major&key=5&level=p"
+            }
+          ],
           "feeds": "Ferling"
         },
         {
@@ -2678,18 +2850,33 @@
         {
           "id": "8.7",
           "title": "Vibrato in music",
-          "setup": "Song Studio scores held notes of a beat or more for 4 to 5 pulses a second.",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, Performance with Also grade set to Vibrato, on a ballad from the shelf: held notes of a beat or more should pulse 4 to 5 times a second (the bite as pitch bend). Half the score is the notes, half the vibrato.",
           "done": "80% of held notes on one ballad.",
-          "needs": "Vibrato on held notes in Song Studio.",
+          "match": {
+            "grade": "vibrato"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.8,
           "feeds": "Shelf"
         },
         {
           "id": "8.8",
           "title": "Breath marks and dynamics in a phrase",
-          "href": "/music/aerophone?mode=tonguing&tongue=phrase&key=0",
-          "setup": "Tonguing patterns: phrase, slur eight and breathe. Song Studio will score dynamics and breath marks in a phrase; this stands in until then.",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, Performance with Also grade set to Dynamics and breaths, on a phrase whose score marks them (the Ferling, or a shelf ballad): louder where it says louder, a break at each breath mark. Tonguing patterns, phrase, is the warm-up.",
           "done": "80%.",
+          "match": {
+            "grade": "dynamics"
+          },
           "threshold": 0.8,
+          "links": [
+            {
+              "label": "Tonguing: phrase",
+              "href": "/music/aerophone?mode=tonguing&tongue=phrase&key=0"
+            }
+          ],
           "feeds": "Ferling"
         },
         {
@@ -2946,7 +3133,7 @@
           "id": "9.1",
           "title": "12 major keys",
           "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2",
-          "setup": "Scales: all 12 major keys at 72, two notes a click, one octave. The two-octave option is coming.",
+          "setup": "Scales: all 12 major keys at 72, two notes a click, one octave. Two octaves (the Range setting) for the keys that fit, for practice.",
           "done": "90% in each key, over a week.",
           "each": {
             "param": "setup",
@@ -3017,16 +3204,35 @@
         {
           "id": "9.2",
           "title": "Melodic minor",
-          "setup": "Melodic minor in the Aerophone scale list.",
+          "href": "/music/aerophone?mode=scales&scale=melodic-minor&key=9&perBeat=2",
+          "setup": "Scales: melodic minor (up with the raised 6 and 7, down natural) in A, E, D, G, B and C, at 72, two a click.",
           "done": "90% in 6 keys.",
-          "needs": "Melodic minor in the Aerophone scale list.",
+          "match": {
+            "scale": "melodic-minor"
+          },
+          "each": {
+            "param": "key",
+            "values": ["9", "4", "2", "7", "11", "0"]
+          },
+          "threshold": 0.9,
+          "minBpm": 72,
+          "links": [
+            {
+              "label": "E",
+              "href": "/music/aerophone?mode=scales&scale=melodic-minor&key=4&perBeat=2"
+            },
+            {
+              "label": "D",
+              "href": "/music/aerophone?mode=scales&scale=melodic-minor&key=2&perBeat=2"
+            }
+          ],
           "feeds": "Ferling"
         },
         {
           "id": "9.3",
           "title": "All minor forms, 12 keys",
           "href": "/music/aerophone?mode=scales&scale=natural-minor&key=0&perBeat=2",
-          "setup": "Scales: natural and harmonic minor in 12 keys at 72, two a click. Melodic minor joins when it ships.",
+          "setup": "Scales: natural and harmonic minor in 12 keys at 72, two a click. Melodic minor is step 9.2.",
           "done": "90% in 12 keys.",
           "each": {
             "param": "setup",
@@ -3157,9 +3363,27 @@
         {
           "id": "9.4",
           "title": "Scales in thirds",
-          "setup": "Interval patterns: thirds, then 1-2-3-1, then broken triads.",
+          "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&pattern=thirds",
+          "setup": "Scales, Pattern: in thirds, then 1-2-3-1, then broken triads, in 4 keys, then 12.",
           "done": "90% in 4 keys, then 12.",
-          "needs": "Interval patterns for scales: thirds, 1-2-3-1, broken triads.",
+          "match": {
+            "scale": "major"
+          },
+          "each": {
+            "param": "pattern",
+            "values": ["thirds", "1231", "triads"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "1-2-3-1",
+              "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&pattern=1231"
+            },
+            {
+              "label": "Broken triads",
+              "href": "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&pattern=triads"
+            }
+          ],
           "feeds": "Klosé"
         },
         {
@@ -3298,7 +3522,7 @@
           "id": "9.6",
           "title": "Chromatic 16ths",
           "href": "/music/aerophone?mode=scales&scale=chromatic&key=0&perBeat=4",
-          "setup": "Scales: chromatic, four notes a click at 60. One octave for now; full range when the option ships.",
+          "setup": "Scales: chromatic, four notes a click at 60. One octave counts; Range two octaves for the full chromatic.",
           "done": "90%.",
           "match": {
             "setup": "C chromatic scale, up and down, 60 BPM, 4 notes a click"
@@ -3776,10 +4000,11 @@
           "id": "10.10",
           "title": "Memorise",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: heads from memory, without looking at the score.",
+          "setup": "Song Studio, From memory: After a look. Heads from memory, without looking at the score.",
           "done": "6 heads at 85%.",
           "match": {
-            "mode": "performance"
+            "mode": "performance",
+            "memory": "look"
           },
           "minAttempts": 6,
           "threshold": 0.85,
@@ -4012,9 +4237,15 @@
         {
           "id": "11.2",
           "title": "Plan breaths and dynamics",
-          "setup": "Mark breaths and hairpins on the score.",
+          "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
+          "setup": "Mark breaths and hairpins on the score in MuseScore and import it again; Song Studio shows them on the staff. Then a Performance run with Also grade set to Dynamics and breaths.",
           "done": "A marked copy.",
-          "needs": "Phrase dynamics and breath marks in Song Studio.",
+          "match": {
+            "grade": "dynamics"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.8,
           "feeds": "Ferling"
         },
         {
@@ -4030,9 +4261,12 @@
           "id": "11.4",
           "title": "Ferling whole",
           "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
-          "setup": "Song Studio, performance mode at the marked tempo. Dynamics are scored once Song Studio has them.",
+          "setup": "Song Studio, Performance at the marked tempo with Also grade set to Dynamics and breaths: half the score is the notes, half the dynamics and breaths as marked.",
           "done": "85% notes, 80% dynamics in band.",
-          "threshold": 0.85,
+          "match": {
+            "grade": "dynamics"
+          },
+          "threshold": 0.82,
           "feeds": "Level test"
         },
         {

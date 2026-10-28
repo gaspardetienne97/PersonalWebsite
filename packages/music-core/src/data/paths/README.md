@@ -63,36 +63,36 @@ Read the drill's `params:` in its file before using one; the setup's URL keys ar
 |---|---|
 | chords?mode=build, pick (ShapeDrill) | shape, position, bpm (pick only) |
 | chords?mode=strum (StrumIdentify) | shape, position |
-| chords?mode=changes (ChangesDrill) | from, to, chords (shape ids joined with `>`), timed, trips, bpm, beatsPerChord |
+| chords?mode=changes (ChangesDrill) | from, to, chords (shape ids joined with `>`), timed, trips, bpm, beatsPerChord, hardest (true when the pair was one of the five slowest at the start; `?hardest` in a link opens the slowest) |
 | chords?mode=fingerpick (LineDrill) | bpm, perBeat, pattern, shapes |
-| fretboard?mode=spider | bpm, perBeat, pattern, tuning, strings, startFret, crossing |
-| fretboard?mode=positions | bpm, perBeat, pattern (box id), rootFret |
-| fretboard?mode=legato | bpm, perBeat, pattern, string, startFret |
+| fretboard?mode=spider | bpm, perBeat, pattern, tuning, strings, startFret, crossing, burst (speed bursts, only when on) |
+| fretboard?mode=positions | bpm, perBeat, pattern (box, CAGED, `minor-pentatonic-connected` or a `triads-...` id), rootFret |
+| fretboard?mode=legato | bpm, perBeat, pattern (`slide`, `slide-shift` for slides), string, startFret |
 | fretboard?mode=note-finder, interval-recall | tuning, region, questions, interval |
 | fretboard?mode=bends | exercise, string, fret, reps |
-| strum | progression, bpm, strictness, choruses |
+| strum | progression, bpm, strictness, choruses, pattern (a strum from Rhythm, only when one is picked) |
 | rhythm | read-and-tap: mode, pattern, bpm; pulse: mode, beats, bpm; by ear: mode, level, bpm |
 | phrases | bpm, phrase |
-| scales | bpm, kind, tonic, span, motion, hands, pattern, chord, perBeat |
+| scales | bpm, kind (also chromatic), tonic, span, motion, hands, pattern (scale, thirds, octaves, arpeggio, broken, blocked), chord, perBeat, apart (octave, contrary, third, sixth; with both hands), inversion (an arpeggio from the root 0, 3rd 1, 5th 2, 7th 3) |
 | two-hand | bpm, pattern, tonic, hand, dynamics |
 | comping | bpm, pattern, lh, feel |
-| accompany?mode=patterns | bpm, pattern, progression, hands, key (the key's pitch class, 0 to 11) |
+| accompany?mode=patterns | bpm, pattern, progression (also chart-1 to chart-3, a generated chart), hands, key (the key's pitch class, 0 to 11) |
 | accompany?mode=comping | bpm, voicing, rhythm, feel, progression, key |
-| accompany?mode=lead-sheet | bpm, tune, lh, hands, key |
-| voicings | variant, key, keys, arpeggio |
-| licks | bpm, lick (number), transpose, first, last |
+| accompany?mode=lead-sheet | bpm, tune (lead-1 and lead-2 are generated jazz heads, swung; a generated melody is generated-<progression>), lh (roots, shells, rootless, chords), hands, key, progression (a generated chart only) |
+| voicings | variant (also gospel), key, keys, arpeggio, progression (gospel: slash-walk, four-five-one, passing-dim) |
+| licks | bpm, lick (number), transpose, first, last; byEar (true when the line was learned by ear, the transcription loop) |
 | chord-scales | bpm, changes, key, beatsPerChord |
 | pedal | key, progression, bars, bpm |
 | reading (flashcards) | instrument, kind (note, chord, satb), key, answer, low, high, clefs (crossed for the crossed clefs), accidentals |
-| reading (sight-reading) | instrument, level (primer to level-3, piano-4 to piano-8, line-4 to line-6), key, follower, bpm, measures, meter (simple is 4/4, compound 6/8, else 2/4, 3/4, 3/8, 9/8, 2/2, 5/4), climb, low, high, mask, look, position (guitar open, 2, 5; ukulele open, up) |
+| reading (sight-reading) | instrument, level (primer to level-3, piano-4 to piano-9, line-4 to line-6, line-jazz), key, follower (wait, performance, tap: the rhythm only), bpm, measures, meter (simple is 4/4, compound 6/8, else 2/4, 3/4, 3/8, 9/8, 2/2, 5/4, 7/8, 5/8), climb, low, high, mask, look, position (guitar open, 2, 5; ukulele open, up) |
 | ear/* | answer, level, labels, drill; song-loops also loops (the set, its prompts record `ear.loops.<set>`) |
 | by-ear | find home: mode, recording, from, to (judged); learn: mode, recording, from, to, speed, notes, sections (self-rated, so link it with `exerciseIds: []`) |
 | call-response | mode, groove, bpm, bars |
 | circle | mode, band, minor, clefs |
-| pads | grooves: bpm, groove, mode; rudiments: bpm, pattern, sub, hits, padL, padR; pad skills: skill, bpm, setup |
-| aerophone | mode, target, drone, interval, direction; skills: skill, bpm, setup |
-| jam | progression, key, bpm, transpose, backing, notes, choruses |
-| Song Studio | song, mode, bpm, takes, strictness, range, shelf |
+| pads | grooves: bpm, groove, mode; rudiments: bpm, pattern, sub, hits, padL, padR; pad skills: skill, bpm, setup; Improvise also bars, fillEvery (0, 4 or 8), graded on time and density in Check |
+| aerophone | mode, target, drone, interval, direction; fingering also lesson; set-up check (mode=calibrate): mode, key, received, floor, ceiling; skills (scales, tonguing, register, trills, vibrato, swing, long-scale): skill, bpm, setup, and scale, key (scales, swing, long-scale), perBeat, octaves (1 or 2), pattern (straight, thirds, 1231, triads) for scales, level for long-scale, pair for register |
+| jam | progression (a loop, or a standard `tune-<id>` from content/tunes.ts), key, bpm, transpose, backing, notes, choruses (graded choruses in Check); checked runs also game (scoring/improv `IMPROV_GAMES`: free, changes, chord-tones, guide-tones, thirds, three-notes, blues-scale, pentatonic-1, -2, -5, motif, approach, off-beat, space, space-1, call-response), trade (0, 2, 4) |
+| Song Studio | song, mode (wait, performance, no-stop), bpm, takes, strictness, range, shelf; memory (look, bars) and hiddenBars when from memory; transpose (semitones, when not 0); no-stop also continuity (bars played, 0 to 1) and kept (true when every bar was played and no slip ran past a beat); grade (dynamics or vibrato) only when every take could be measured, and then half the score is that measure |
 
 Ids for shapes, patterns, phrases, grooves, rhythm patterns and so on live in `packages/music-core/src/content/*.ts` and `src/data/*.json`; use real ones only. Routes are the catalog's (`content/catalog.ts`); the old `/music/play/*` and `/music/learn/*` routes are gone.
 

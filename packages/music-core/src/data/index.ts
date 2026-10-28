@@ -436,9 +436,11 @@ export type ReadingLevelId =
   | "piano-6"
   | "piano-7"
   | "piano-8"
+  | "piano-9"
   | "line-4"
   | "line-5"
-  | "line-6";
+  | "line-6"
+  | "line-jazz";
 export interface ReadingLevelDef {
   id: ReadingLevelId;
   label: string;
@@ -776,6 +778,8 @@ const CIRCLE_NAMES: [string, string][] = [
   ["neighbours", "Neighbouring and relative keys"],
   ["chords", "The chords of a key"],
   ["wheel", "The circle from memory"],
+  ["borrowed", "Spotting borrowed chords"],
+  ["secondary", "Spotting secondary dominants"],
 ];
 APP_SKILLS.push(
   {

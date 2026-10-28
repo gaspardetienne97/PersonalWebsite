@@ -697,39 +697,93 @@
         {
           "id": "P3.2",
           "title": "Closest-position loops",
-          "setup": "I-V-vi-IV, I-vi-IV-V and vi-IV-I-V in closest position, in C, G, F and D.",
+          "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-axis&bpm=80",
+          "setup": "Accompaniment, Block chords on 1: the right hand in closest position, the root in the left, over I-V-vi-IV, I-vi-IV-V and vi-IV-I-V; move the key in C, G, F and D.",
           "done": "Each loop 4 times at 80 bpm with no wrong chord, on two days.",
-          "needs": "Pop chord loops in closest position (I-V-vi-IV, I-vi-IV-V, vi-IV-I-V) in Voicings or Comping.",
+          "match": {
+            "pattern": "block-1"
+          },
+          "each": {
+            "param": "progression",
+            "values": ["pop-axis", "pop-fifties", "pop-vi-iv-i-v"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "I-vi-IV-V",
+              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-fifties&bpm=80"
+            },
+            {
+              "label": "vi-IV-I-V",
+              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-vi-iv-i-v&bpm=80"
+            }
+          ],
           "feeds": "Let It Be, Stand By Me"
         },
         {
           "id": "P3.3",
           "title": "Named patterns",
-          "setup": "Comping patterns over a 4-chord loop at 80.",
+          "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1-3&progression=pop-axis&bpm=80",
+          "setup": "Accompaniment patterns over I-V-vi-IV at 80: block chords on 1 and 3, the ballad arpeggio 1-5-8-10, broken chord eighths, and half time with pushes on the and of 4.",
           "done": "Each pattern over a 4-chord loop at 80 bpm, 90%, on two days.",
-          "needs": "Named pop patterns in Comping: block quarters, broken 1-5-8-10, ballad arpeggio, pop eighths, push on the and of 4."
+          "each": {
+            "param": "pattern",
+            "values": ["block-1-3", "ballad-arpeggio", "broken-triad", "half-time-push"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "Ballad arpeggio",
+              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=ballad-arpeggio&progression=pop-axis&bpm=80"
+            },
+            {
+              "label": "Broken chord eighths",
+              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=broken-triad&progression=pop-axis&bpm=80"
+            },
+            {
+              "label": "Pushes on the and of 4",
+              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=half-time-push&progression=pop-axis&bpm=80"
+            }
+          ]
         },
         {
           "id": "P3.4",
           "title": "Generated chart, one chord a bar",
-          "setup": "Generated chart, one chord a bar (chart-1).",
+          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-1&pattern=block-1-3",
+          "setup": "Accompaniment, Patterns, progression Chart 1: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern.",
           "done": "80% first pass on 5 of 6 charts.",
-          "needs": "Chord-chart reading in Sight-reading (chart-1 to chart-3), graded by pitch classes per beat."
+          "match": {
+            "progression": "chart-1"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6
         },
         {
           "id": "P3.5",
           "title": "Two chords a bar and hits",
-          "setup": "Generated chart, two chords a bar with hits (chart-2).",
+          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-2&pattern=block-1-3",
+          "setup": "Accompaniment, Patterns, progression Chart 2: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Rhythm hits are not written yet: play the pattern on the slashes.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Chord-chart reading in Sight-reading (chart-1 to chart-3), graded by pitch classes per beat.",
+          "match": {
+            "progression": "chart-2"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6,
           "feeds": "Piano Man, Your Song"
         },
         {
           "id": "P3.6",
           "title": "Sus, add9, slash bass, 6/8",
-          "setup": "Generated chart with sus, add9, slash bass and 6/8 (chart-3).",
+          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-3&pattern=block-1-3",
+          "setup": "Accompaniment, Patterns, progression Chart 3: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Charts in 6/8 are not in it yet.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Chord-chart reading in Sight-reading (chart-1 to chart-3), graded by pitch classes per beat.",
+          "match": {
+            "progression": "chart-3"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6,
           "feeds": "Hallelujah, Perfect"
         },
         {
@@ -1561,23 +1615,41 @@
         {
           "id": "P6.4",
           "title": "Generated lead sheet with roots",
-          "setup": "Generated lead sheet, melody in the right hand, roots in the left (lead-1).",
+          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=roots",
+          "setup": "Accompaniment, Lead sheet, Jazz lead sheet 1: a new head over the progression (New melody), melody in the right hand, roots in the left, swung.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Lead-sheet reading in Sight-reading (lead-1, lead-2): melody plus symbols, left-hand shells graded."
+          "match": {
+            "tune": "lead-1",
+            "lh": "roots"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6
         },
         {
           "id": "P6.5",
           "title": "Generated lead sheet with shells",
-          "setup": "lead-1 with left-hand shells.",
+          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=shells",
+          "setup": "Jazz lead sheet 1 with left-hand shells.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Lead-sheet reading in Sight-reading (lead-1, lead-2): melody plus symbols, left-hand shells graded."
+          "match": {
+            "tune": "lead-1",
+            "lh": "shells"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6
         },
         {
           "id": "P6.6",
           "title": "Rootless left hand",
-          "setup": "lead-2, rootless A and B forms in the left hand.",
+          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-2&lh=rootless",
+          "setup": "Jazz lead sheet 2 (eighth lines, anticipations) with a rootless A or B left hand.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Lead-sheet reading in Sight-reading (lead-1, lead-2): melody plus symbols, left-hand shells graded.",
+          "match": {
+            "tune": "lead-2",
+            "lh": "rootless"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6,
           "feeds": "Misty, Georgia"
         },
         {
@@ -6187,9 +6259,29 @@
         {
           "id": "A5.2",
           "title": "Jazz lines",
-          "setup": "line-jazz, written keys F, C, G and Bb.",
+          "href": "/music/reading?activity=sight-reading&instrument=aerophone&level=line-jazz&key=F%20major&follower=performance",
+          "setup": "Sight-reading, Jazz lines (written F, C, G and Bb; Eb and D too): written straight, played and graded swung. Keep time.",
           "done": "80% on 5 of 6, on two days.",
-          "needs": "Single-line level line-jazz in Sight-reading, with swing playback for written straight eighths."
+          "match": {
+            "level": "line-jazz",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minAttempts": 6,
+          "links": [
+            {
+              "label": "C",
+              "href": "/music/reading?activity=sight-reading&instrument=aerophone&level=line-jazz&key=C%20major&follower=performance"
+            },
+            {
+              "label": "G",
+              "href": "/music/reading?activity=sight-reading&instrument=aerophone&level=line-jazz&key=G%20major&follower=performance"
+            },
+            {
+              "label": "Bb",
+              "href": "/music/reading?activity=sight-reading&instrument=aerophone&level=line-jazz&key=Bb%20major&follower=performance"
+            }
+          ]
         },
         {
           "id": "A5.3",
@@ -7047,9 +7139,25 @@
         {
           "id": "R2.3",
           "title": "3/4 and 2/4",
-          "setup": "Read and tap in 3/4 and 2/4.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-4&meter=3%2F4",
+          "setup": "Sight-reading, Tap the rhythm, Line 4 in 3/4 and 2/4: any key, the Tap button or Space.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-4",
+            "follower": "tap"
+          },
+          "each": {
+            "param": "meter",
+            "values": ["3/4", "2/4"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "links": [
+            {
+              "label": "2/4",
+              "href": "/music/reading?activity=sight-reading&follower=tap&level=line-4&meter=2%2F4"
+            }
+          ],
           "feeds": "Blue Danube, Morning Has Broken"
         },
         {
@@ -7629,17 +7737,30 @@
         {
           "id": "R5.3",
           "title": "Ties over the bar",
-          "setup": "Read and tap, ties over the bar line.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-5&measures=8",
+          "setup": "Sight-reading, Tap the rhythm, Line 5: notes tied over the bar line, pickups and sixteenths.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-5",
+            "follower": "tap"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
           "feeds": "Reed"
         },
         {
           "id": "R5.4",
           "title": "Reed-style lines",
-          "setup": "Reed-style 8-bar lines at 80, then 100, then 120.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-4&measures=8&bpm=80",
+          "setup": "Sight-reading, Tap the rhythm, Line 4, 8 bars (eighths, quarters, dotted quarters, ties) at 80, then 100, then 120.",
           "done": "85% at 120, on two days.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-4",
+            "follower": "tap",
+            "measures": "8"
+          },
+          "threshold": 0.85,
+          "minBpm": 120,
           "feeds": "Reed"
         },
         {
@@ -7653,9 +7774,16 @@
         {
           "id": "R5.6",
           "title": "Sixteenth syncopation",
-          "setup": "Read and tap, sixteenth syncopation at 80.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-6&bpm=80",
+          "setup": "Sight-reading, Tap the rhythm, Line 6: sixteenth syncopation (sixteenth, eighth, sixteenth and dotted eighth, sixteenth) among the other figures, at 80.",
           "done": "90% on 8 of 10 at 80.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-6",
+            "follower": "tap"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "minAttempts": 8,
           "feeds": "Uptown Funk, Africa"
         },
         {
@@ -7859,9 +7987,15 @@
         {
           "id": "R6.6",
           "title": "Switch figures",
-          "setup": "Read and tap with triplet and dotted-eighth cells in one bar.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-6",
+          "setup": "Sight-reading, Tap the rhythm, Line 6: triplets and dotted eighth-sixteenths in the same bars.",
           "done": "85% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-6",
+            "follower": "tap"
+          },
+          "threshold": 0.85,
+          "minAttempts": 8,
           "feeds": "Battle Hymn, Imperial March"
         }
       ],
@@ -8024,9 +8158,15 @@
         {
           "id": "R7.3",
           "title": "Swing with anticipations",
-          "setup": "Reed lines with swing on.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-jazz&measures=8&bpm=120",
+          "setup": "Sight-reading, Tap the rhythm, Jazz lines: swung eighths and anticipations tied over the beat, 8 bars at 120.",
           "done": "85% at 120.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "line-jazz",
+            "follower": "tap"
+          },
+          "threshold": 0.85,
+          "minBpm": 120,
           "feeds": "big band"
         },
         {
@@ -8207,25 +8347,54 @@
         {
           "id": "R8.1",
           "title": "Groupings",
-          "setup": "Read and tap in 5/4 and 5/8.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=5%2F8",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 5/8 (2+3) and 5/4.",
           "done": "90% on 8 of 10, on two days.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "piano-9",
+            "follower": "tap"
+          },
+          "each": {
+            "param": "meter",
+            "values": ["5/8", "5/4"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "links": [
+            {
+              "label": "5/4",
+              "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=5%2F4"
+            }
+          ],
           "feeds": "Take Five, Mission Impossible"
         },
         {
           "id": "R8.2",
           "title": "Sevens",
-          "setup": "Read and tap in 7/4 and 7/8.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 7/8 (2+2+3). 7/4 is not in it yet.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "level": "piano-9",
+            "follower": "tap",
+            "meter": "7/8"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
           "feeds": "Money, Unsquare Dance, Solsbury Hill"
         },
         {
           "id": "R8.3",
           "title": "Nine and hemiola",
-          "setup": "Read and tap in 9/8 (2+2+2+3) and 6/8 to 3/4 switches.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=9%2F8",
+          "setup": "Sight-reading, Tap the rhythm, 9/8 on the treble clef. It groups 3+3+3; the 2+2+2+3 grouping and 6/8 to 3/4 switches are not in it yet.",
           "done": "85% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "match": {
+            "follower": "tap",
+            "meter": "9/8"
+          },
+          "threshold": 0.85,
+          "minAttempts": 8,
           "feeds": "Blue Rondo, America"
         },
         {
@@ -8238,9 +8407,26 @@
         {
           "id": "R8.5",
           "title": "Count the groups aloud",
-          "setup": "Odd meters at 100, counting the groups aloud.",
+          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8&bpm=100",
+          "setup": "Sight-reading, Tap the rhythm, 5/8 and 7/8 at 100, counting the groups aloud.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines."
+          "match": {
+            "level": "piano-9",
+            "follower": "tap"
+          },
+          "each": {
+            "param": "meter",
+            "values": ["5/8", "7/8"]
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 8,
+          "links": [
+            {
+              "label": "5/8",
+              "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=5%2F8&bpm=100"
+            }
+          ]
         },
         {
           "id": "R8.6",

@@ -25,6 +25,8 @@ import {
 } from "./reading";
 
 const LEVELS: ReadingLevelId[] = ["primer", "level-1", "level-2", "level-3"];
+const onGridOrThird = (x: number) =>
+  Math.abs(x * 8 - Math.round(x * 8)) < 1e-6 || Math.abs(x * 3 - Math.round(x * 3)) < 1e-6;
 
 /** Every bar of every voice must total the meter exactly, with no note crossing a bar line. */
 function expectExactBars(score: Score) {
@@ -311,6 +313,8 @@ describe("levels past 3", () => {
     "line-4",
     "line-5",
     "line-6",
+    "piano-9",
+    "line-jazz",
   ];
   const scaleOf = (key: string) => {
     const k = keyByName(key)!;
@@ -330,12 +334,13 @@ describe("levels past 3", () => {
       "piano-6",
       "piano-7",
       "piano-8",
+      "piano-9",
     ]);
     expect(
       levelsFor("guitar")
         .map((l) => l.id)
         .slice(4),
-    ).toEqual(["line-4", "line-5", "line-6"]);
+    ).toEqual(["line-4", "line-5", "line-6", "line-jazz"]);
     // Every key a level offers is one the drill can spell.
     for (const l of READING_LEVELS)
       for (const key of [...l.recommendedKeys, ...l.climbKeys])
@@ -367,9 +372,9 @@ describe("levels past 3", () => {
               expect(v.notes.length, `${level} ${meter} ${v.id}`).toBeGreaterThan(0);
               const onsets = [...new Set(v.notes.map((n) => n.startBeat))].sort((a, b) => a - b);
               for (const n of v.notes) {
-                // Plain values the engraver draws: on a 32nd grid, ending inside the phrase.
-                expect((n.startBeat * 8) % 1, `${level} ${meter}`).toBe(0);
-                expect((n.durationBeats * 8) % 1).toBe(0);
+                // Values the engraver draws: on a 32nd grid or a triplet's third, ending inside the phrase.
+                for (const x of [n.startBeat, n.startBeat + n.durationBeats])
+                  expect(onGridOrThird(x), `${level} ${meter} ${x}`).toBe(true);
                 expect(n.startBeat + n.durationBeats).toBeLessThanOrEqual(score.lengthBeats + 1e-9);
                 const next = onsets.find((o) => o > n.startBeat + 1e-9);
                 if (next !== undefined)
@@ -395,7 +400,14 @@ describe("levels past 3", () => {
       });
       const [rh, lh] = score.voices;
       const scale = scaleOf(key);
-      expect(lh.notes.every((n) => n.midi >= 41 && n.midi <= 66)).toBe(true);
+      // A clef change moves the left hand up an octave for a bar or two (tested below).
+      const up = (n: { startBeat: number }) =>
+        !!lh.clefChanges &&
+        n.startBeat >= lh.clefChanges[0].startBeat - 1e-9 &&
+        n.startBeat < lh.clefChanges[1].startBeat - 1e-9;
+      expect(
+        lh.notes.every((n) => n.midi - (up(n) ? 12 : 0) >= 41 && n.midi - (up(n) ? 12 : 0) <= 66),
+      ).toBe(true);
       expect(rh.notes.every((n) => n.midi >= 55 && n.midi <= 84)).toBe(true);
       for (let bar = 0; bar < 4; bar++) {
         const down = lh.notes.filter((n) => n.startBeat >= bar * 4 && n.startBeat < bar * 4 + 4);
@@ -466,8 +478,8 @@ describe("levels past 3", () => {
 
   it("climbs each instrument's own levels after the authored rungs", () => {
     expect(readingRungs("piano").slice(0, 14)).toEqual(readingRungs("guitar").slice(0, 14));
-    expect(readingRungs("piano").at(-1)!.level).toBe("piano-8");
-    expect(readingRungs("aerophone").at(-1)!.label).toBe("Line 6, F minor");
+    expect(readingRungs("piano").at(-1)!.level).toBe("piano-9");
+    expect(readingRungs("aerophone").at(-1)!.label).toBe("Jazz lines, Eb major");
     const n = readingRungs("guitar").length;
     expect(climbAfter(startClimb(n - 1, n), 1, n)).toMatchObject({ over: true, best: n - 1 });
   });
@@ -549,3 +561,116 @@ describe("flashcards past the authored levels", () => {
 });
 
 const pick = <T>(xs: readonly T[], seed: number) => xs[seed % xs.length];
+
+describe("triplets, odd meters, clef changes and jazz lines", () => {
+  const phrase = (level: ReadingLevelId, seed: number, meter = "simple", measures = 8) =>
+    sightReadingScore(rng(seed), {
+      level,
+      instrument: level.startsWith("piano") ? "piano" : "aerophone",
+      clefs: level.startsWith("piano") ? ["treble", "bass"] : ["treble"],
+      key: readingLevel(level).recommendedKeys[seed % readingLevel(level).recommendedKeys.length],
+      measures,
+      meter: meter as never,
+      bpm: 80,
+    });
+
+  it("writes eighth triplets as whole beats from Piano 8, Line 6 and Piano 9", () => {
+    for (const level of ["piano-8", "line-6", "piano-9"] as ReadingLevelId[]) {
+      let found = 0;
+      for (let seed = 1; seed < 40; seed++)
+        for (const v of phrase(level, seed).voices) {
+          const thirds = v.notes.filter(
+            (n) => Math.abs(n.startBeat * 8 - Math.round(n.startBeat * 8)) > 1e-6,
+          );
+          found += thirds.length;
+          // A triplet starts on a beat and fills it: every edge inside its beat is a third.
+          for (const n of thirds) {
+            const beat = Math.floor(n.startBeat + 1e-9);
+            const inBeat = v.notes.filter(
+              (m) => m.startBeat >= beat - 1e-9 && m.startBeat < beat + 1 - 1e-9,
+            );
+            expect(
+              inBeat.every(
+                (m) =>
+                  onGridOrThird(m.startBeat) &&
+                  Math.abs(m.startBeat * 3 - Math.round(m.startBeat * 3)) < 1e-6,
+              ),
+            ).toBe(true);
+          }
+        }
+      expect(found, level).toBeGreaterThan(0);
+    }
+  });
+
+  it("fills 7/8 and 5/8 group by group, 2+2+3 and 2+3", () => {
+    for (const [meter, groups] of [
+      ["7/8", [0, 1, 2, 3.5]],
+      ["5/8", [0, 1, 2.5]],
+    ] as const)
+      for (let seed = 1; seed < 20; seed++) {
+        const score = phrase("piano-9", seed, meter, 4);
+        expect(score.meter).toEqual(
+          meter === "7/8" ? { beats: 7, beatUnit: 8 } : { beats: 5, beatUnit: 8 },
+        );
+        const bar = barQuarters(score.meter);
+        for (const n of score.voices[0].notes) {
+          const at = n.startBeat - Math.floor(n.startBeat / bar + 1e-9) * bar;
+          const g = groups.findLastIndex((x) => x <= at + 1e-9);
+          const end = at + n.durationBeats;
+          // Inside its group, or tied over the bar line.
+          expect(
+            end <= groups[g + 1] + 1e-9 || end > bar + 1e-9 || g === groups.length - 1,
+            `${meter} ${at}+${n.durationBeats}`,
+          ).toBe(true);
+        }
+      }
+  });
+
+  it("moves the left hand into the treble clef for a bar or two, below the right hand", () => {
+    let changes = 0;
+    for (const level of ["piano-8", "piano-9"] as ReadingLevelId[])
+      for (let seed = 1; seed < 60; seed++) {
+        const score = phrase(level, seed);
+        const [rh, lh] = score.voices;
+        if (!lh.clefChanges) continue;
+        changes++;
+        const bar = barQuarters(score.meter);
+        const [on, off] = lh.clefChanges;
+        expect(on.clef).toBe("treble");
+        expect(off.clef).toBe("bass");
+        expect(on.startBeat % bar).toBe(0);
+        expect(off.startBeat % bar).toBe(0);
+        const inside = (n: { startBeat: number }) =>
+          n.startBeat >= on.startBeat && n.startBeat < off.startBeat;
+        const left = lh.notes.filter(inside);
+        const right = rh.notes.filter(inside);
+        expect(Math.min(...left.map((n) => n.midi))).toBeGreaterThanOrEqual(53);
+        expect(Math.max(...left.map((n) => n.midi))).toBeLessThan(
+          Math.min(...right.map((n) => n.midi)),
+        );
+      }
+    expect(changes).toBeGreaterThan(5);
+  });
+
+  it("offers Grade 7 in five sharps and flats", () => {
+    expect(readingLevel("piano-9").recommendedKeys).toEqual(
+      expect.arrayContaining(["B major", "Db major", "Bb minor"]),
+    );
+    expect(readingLevel("piano-9").meters).toEqual(expect.arrayContaining(["7/8", "5/8"]));
+  });
+
+  it("writes jazz lines straight, to be swung, with chromatic approaches into the beat", () => {
+    expect(readingLevel("line-jazz").swing).toBe(true);
+    let approaches = 0;
+    for (let seed = 1; seed < 30; seed++) {
+      const score = phrase("line-jazz", seed);
+      expect(score.meter).toEqual({ beats: 4, beatUnit: 4 });
+      const notes = score.voices[0].notes;
+      for (const n of notes) expect((n.startBeat * 2) % 1).toBe(0);
+      for (let i = 0; i + 1 < notes.length; i++)
+        if (notes[i + 1].startBeat % 2 === 0 && notes[i + 1].midi - notes[i].midi === 1)
+          approaches++;
+    }
+    expect(approaches).toBeGreaterThan(10);
+  });
+});

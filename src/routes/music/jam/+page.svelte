@@ -1,8 +1,10 @@
 <script lang="ts">
-  // Jam (catalog 4.10): solo over a progression with every pitch class of the
-  // current chord lit as chord tone, scale tone or avoid. Unscored: after each
-  // chorus a report says where the notes landed, and the session is logged
-  // with its notes saved as a take.
+  // Jam (catalog 4.10): solo over a progression or a standard's form with every
+  // pitch class of the current chord lit as chord tone, scale tone or avoid.
+  // Practice describes each chorus. Check hides the tone roles, keeps the form
+  // on the clock for a set number of choruses and grades each one on a game
+  // (scoring/improv): chord tones on strong beats, guide-tone landings, time,
+  // rests, or a constraint the paths name. Every run is saved as a take.
   import { onDestroy, onMount } from "svelte";
   import Music from "lucide-svelte/icons/music";
   import SkipForward from "lucide-svelte/icons/skip-forward";
@@ -10,11 +12,20 @@
   import Square from "lucide-svelte/icons/square";
   import Upload from "lucide-svelte/icons/upload";
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
-  import { JAM_GROUPS, PROGRESSIONS, jamToneRoles, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
+  import { ACCOMP_PROGRESSIONS } from "@repo/music-core/content/accompany";
+  import { TUNES, chorusLabel, sectionStarts } from "@repo/music-core/content/tunes";
+  import { rng } from "@repo/music-core/content/random";
+  import { signatureFor } from "@repo/music-core/theory/circle";
   import { chorusReport, type ChorusReport } from "@repo/music-core/scoring/jam";
+  import { IMPROV_GAMES, bandBar, gameOf, gradeImprov, rangeText, tradeWindows, type ImprovGrade, type ImprovNote } from "@repo/music-core/scoring/improv";
+  import type { Score } from "@repo/music-core";
+  import { clamp } from "@repo/music-core/theory/notes";
+  import { page } from "$app/state";
+  import Staff from "$lib/music/notation/Staff.svelte";
   import type { ToneRole } from "@repo/music-core/theory/chords";
   import { TUNINGS } from "@repo/music-core/data/index";
-  import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -23,24 +34,35 @@
   import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { backingNotes, chordVoicing, degreeLabel, positionAt, BEATS_PER_BAR, type BackingMode } from "$lib/music/drills/jam/backing";
+  import { backingNotes, callNotes, chordVoicing, degreeLabel, positionAt, BEATS_PER_BAR, type BackingMode } from "$lib/music/drills/jam/backing";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
-  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "" });
+  /** Jam's loops, the accompaniment's (minor blues, Bird blues, rhythm changes...) and the standards. */
+  const POOL = [...ACCOMP_PROGRESSIONS, ...TUNES];
+  const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "", game: "free", choruses: 2, trade: 0 });
   const s = $derived(cfg.value);
-  const base = $derived(PROGRESSIONS.find((p) => p.id === s.progression) ?? PROGRESSIONS[0]);
+  const base = $derived(POOL.find((p) => p.id === s.progression) ?? POOL[0]);
+  const game = $derived(gameOf(s.game));
+  const CHORUS_COUNTS = [1, 2, 3, 4, 6, 8];
+  const runChoruses = $derived(CHORUS_COUNTS.includes(s.choruses) ? s.choruses : 2);
+  /** Bars you play and bars the band takes: the game's own, or trading fours or twos. */
+  const windows = $derived(game.windows ?? tradeWindows(s.trade === 4 || s.trade === 2 ? s.trade : 0));
+  let mode = $state<DrillMode>("practice");
+  // A path link carries its tempo: the strip takes it once.
+  const urlBpm = Number(page.url.searchParams.get("bpm"));
+  if (urlBpm) void settings.ready.then(() => settings.update({ bpm: clamp(Math.round(urlBpm), 40, 220) }));
   const prog = $derived(transposeProgression(base, s.transpose));
   // The practice strip owns the tempo; picking a progression sets it to the tune's.
   const bpm = $derived(settings.value.bpm);
   const beatMs = $derived(60000 / bpm);
   function pickProgression(id: string) {
     cfg.set({ progression: id });
-    const tune = PROGRESSIONS.find((p) => p.id === id);
+    const tune = POOL.find((p) => p.id === id);
     if (tune) settings.update({ bpm: tune.bpm });
   }
   /** The key the circle shows; a pick becomes the shortest transposition to it. */
@@ -72,6 +94,14 @@
   let runStart = 0;
   let chorusStart = 0;
   let review: SequenceHandle | null = $state(null);
+  /** Check mode: the form runs on the clock from the downbeat, and the run ends after its choruses. */
+  let checking = $state(false);
+  let downbeat = $state(0);
+  let endTimer: ReturnType<typeof setTimeout> | undefined;
+  let stopClockRef: (() => void) | null = null;
+  let run: ReturnType<typeof practice.beginRun> | null = null;
+  let graded = $state.raw<ImprovGrade | null>(null);
+  let delta = $state<number | null>(null);
 
   onMount(async () => {
     tracks = await listTracks().catch(() => []);
@@ -87,13 +117,17 @@
       : (TUNINGS.guitar.find((t) => t.id === settings.value.guitarTuningId) ?? TUNINGS.guitar[0]),
   );
 
+  /** Check hides the tone roles: the targets are the player's to hear. */
+  const showRoles = $derived(!(checking || (mode === "check" && phase !== "results")));
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
+    if (!showRoles) return out;
     for (let m = 48; m <= 84; m++) out[m] = { label: degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)] };
     return out;
   });
   const fretMarks = $derived.by(() => {
     const out: FretMark[] = [];
+    if (!showRoles) return out;
     tuning.openStrings.forEach((open, i) => {
       for (let f = 0; f <= 12; f++) out.push({ string: i + 1, fret: f, label: degreeLabel(chord.symbol, pc(open + f)), role: roles[pc(open + f)] });
     });
@@ -120,14 +154,16 @@
         if (!s.track) throw new Error("Pick or import a backing track in the setup first.");
         seq = await playTrack(s.track);
       } else {
-        seq = audio.playSequence(backingNotes(prog, { bpm, mode: backingMode, choruses: 64, fromChord: chordIdx }));
+        const band = backingNotes(prog, { bpm, mode: backingMode, choruses: checking ? runChoruses : 64, fromChord: chordIdx, windows: checking ? windows : undefined });
+        const calls = checking && windows?.bandPlays === "call" ? callNotes(prog, windows, runChoruses * barsTotal, bpm, rng(Math.floor(Math.random() * 2 ** 31))) : [];
+        seq = audio.playSequence([...band, ...calls], checking ? { startPerf: downbeat } : {});
       }
     } catch (e) {
       status = (e as Error).message;
       return;
     }
     // The form clock starts with the audio, or now if the browser has no sound yet.
-    seg = { startPerf: seq.playing ? seq.startPerf : performance.now(), fromChord: chordIdx, chorusBase: chorus };
+    seg = { startPerf: checking ? downbeat : seq.playing ? seq.startPerf : performance.now(), fromChord: chordIdx, chorusBase: chorus };
     backingOn = true;
     ticker = setInterval(tick, 40);
     status = backingMode === "track" ? "Backing track playing. Chords follow the tempo you set." : `Backing playing at ${bpm} BPM.`;
@@ -151,6 +187,12 @@
 
   function closeChorus() {
     const now = performance.now();
+    if (checking) {
+      // Check says nothing about a chorus until the run is graded.
+      chorus += 1;
+      chorusStart = now;
+      return;
+    }
     const notes = played.filter((n) => n.chorus === chorus);
     const report = chorusReport(prog, notes);
     choruses = [...choruses, { n: chorus, report, startAt: chorusStart, endAt: now }];
@@ -175,6 +217,22 @@
 
   async function start(ctx: RunContext) {
     stopReview();
+    graded = null;
+    delta = null;
+    checking = ctx.mode === "check";
+    downbeat = ctx.downbeat;
+    stopClockRef = ctx.stopClock;
+    run = checking
+      ? practice.beginRun({
+          exerciseId: "jam.improv",
+          setupKey: `jam|${base.id}|${s.transpose}|${game.id}|${s.trade}|${runChoruses}|${bpm}`,
+          skillIds: [],
+          capabilities: ["harmony"],
+          modality: "played",
+          assistance: assistanceFor(ctx.mode),
+          difficulty: base.difficulty === "advanced" ? 0.7 : base.difficulty === "intermediate" ? 0.5 : 0.3,
+        })
+      : null;
     chordIdx = 0;
     chorus = 1;
     played = [];
@@ -185,12 +243,28 @@
     chorusStart = ctx.downbeat;
     // Half a beat of grace before the downbeat, as the timed drills allow.
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => (e.kind === "noteon" || e.kind === "noteoff") && onNote(e));
+    if (checking) {
+      // The form follows the clock whatever the backing, and the run ends with its last chorus.
+      status = `${game.label}: ${game.about}`;
+      if (backingMode === "none" || backingMode === "track") {
+        if (backingMode === "track") await startBacking();
+        seg = { startPerf: ctx.downbeat, fromChord: 0, chorusBase: 1 };
+        clearInterval(ticker);
+        ticker = setInterval(tick, 40);
+      } else await startBacking();
+      endTimer = setTimeout(() => void stop(), ctx.downbeat + runChoruses * barsTotal * BEATS_PER_BAR * beatMs + beatMs / 2 - performance.now());
+      return;
+    }
     status = backingMode === "none" ? "Play. Move to the next chord with Next chord (or N)." : "Play over the changes.";
     await startBacking();
   }
 
   async function stop() {
+    if (phase !== "running" && phase !== "countin") return;
+    clearTimeout(endTimer);
+    stopClockRef?.();
     stopBacking();
+    clearInterval(ticker);
     cap?.stop();
     const endAt = performance.now();
     if (played.some((n) => n.chorus === chorus)) closeChorus();
@@ -198,6 +272,7 @@
     const events = cap?.notes ?? [];
     cap = null;
     const count = played.length;
+    if (checking) return finishCheck(events, endAt);
     if (!count) {
       status = "Nothing was played, so nothing was saved.";
       return;
@@ -236,6 +311,61 @@
     status = `${headline}. Saved as a take and logged in your journal.`;
   }
 
+  /** Pair each note-on with its release, in beats from the top of the form. */
+  function improvNotes(events: { kind: string; midi: number; at: number }[]): ImprovNote[] {
+    const out: ImprovNote[] = [];
+    const open = new Map<number, ImprovNote>();
+    for (const e of events) {
+      const beat = (e.at - downbeat) / beatMs;
+      if (e.kind === "noteon") {
+        const n: ImprovNote = { midi: e.midi, beat };
+        out.push(n);
+        open.set(e.midi, n);
+      } else if (e.kind === "noteoff" && open.has(e.midi)) {
+        open.get(e.midi)!.end = beat;
+        open.delete(e.midi);
+      }
+    }
+    return out;
+  }
+
+  /** Grade the choruses that finished (a stop part way through grades the whole ones before it). */
+  async function finishCheck(events: NonNullable<Capture["notes"]>, endAt: number) {
+    checking = false;
+    const done = Math.min(runChoruses, Math.floor((endAt - downbeat + beatMs / 2) / (barsTotal * BEATS_PER_BAR * beatMs)));
+    const notes = improvNotes(events);
+    if (!done || !notes.length) {
+      status = !notes.length ? "Nothing was played, so nothing was recorded." : "Stopped before the first chorus ended, so nothing was graded.";
+      return;
+    }
+    const g = gradeImprov(prog, notes, { game, choruses: done, swing: swings(prog), bpm, windows: s.trade ? windows : undefined });
+    graded = g;
+    const inst = runInstrument(events);
+    const take: MidiTake = {
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      name: `Jam: ${game.label} over ${prog.name} in ${prog.key}`,
+      notes: pairNotes(events, runStart, endAt),
+      durationMs: Math.round(endAt - runStart),
+      instrument: inst,
+      note: g.choruses.map((c) => `${chorusName(c.index, done)}: ${pct(c.score)}`).join("\n"),
+    };
+    await saveTake(take);
+    savedTake = take;
+    choruses = g.choruses.map((c) => ({ n: c.index + 1, report: chorusReport(prog, []), startAt: downbeat + c.index * barsTotal * BEATS_PER_BAR * beatMs, endAt: downbeat + (c.index + 1) * barsTotal * BEATS_PER_BAR * beatMs }));
+    const fin = await run!.finish({
+      score: g.score,
+      correct: g.passed,
+      headline: g.headline,
+      params: { progression: prog.id, key: prog.key, bpm, transpose: s.transpose, backing: s.backing, game: game.id, trade: s.trade, notes: notes.length, choruses: done, takeId: take.id },
+    });
+    delta = fin.delta;
+    status = g.headline;
+  }
+
+  /** "Head", "Solo 2" in a tune's form; "Chorus 3" otherwise. */
+  const chorusName = (k: number, total: number) => (base.sections ? chorusLabel(k, total) : `Chorus ${k + 1}`);
+
   function stopReview() {
     review?.stop();
     review = null;
@@ -273,6 +403,7 @@
   }
 
   onDestroy(() => {
+    clearTimeout(endTimer);
     stopBacking();
     cap?.stop();
     stopReview();
@@ -280,10 +411,34 @@
 
   const summaryLine = $derived([
     { text: `${prog.name} in ${prog.key}`, focus: "progression" },
+    { text: game.id === "free" ? "solo over the changes" : game.label.toLowerCase(), focus: "game" },
+    { text: `${runChoruses} chorus${runChoruses === 1 ? "" : "es"} in Check${s.trade && !game.windows ? `, trading ${s.trade === 4 ? "fours" : "twos"}` : ""}`, focus: "choruses" },
     { text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode, focus: "backing" },
     ...(s.transpose ? [{ text: `transposed ${s.transpose > 0 ? "+" : ""}${s.transpose}`, focus: "transpose" }] : []),
   ]);
   const barsTotal = $derived(chorusBars(prog));
+  /** Where the form is now, in beats from the top of the chorus. */
+  const formBeat = $derived(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) * BEATS_PER_BAR + beatInChord);
+  const sections = $derived(sectionStarts(prog));
+  /** A tune's lead sheet: the changes over empty bars, read with the player's own melody. */
+  const leadSheet = $derived<Score | null>(
+    base.sections
+      ? {
+          id: `lead-${prog.id}-${s.transpose}`,
+          title: prog.name,
+          bpm,
+          meter: { beats: 4, beatUnit: 4 },
+          keyFifths: signatureFor(prog.keyPc, /minor/.test(prog.key) ? "natural-minor" : /dorian/.test(prog.key) ? "dorian" : "major"),
+          voices: [{ id: "line", name: "Melody", notes: [] }],
+          lengthBeats: barsTotal * BEATS_PER_BAR,
+          chords: prog.chords.map((c, i) => ({ symbol: c.symbol, startBeat: prog.chords.slice(0, i).reduce((n, x) => n + x.bars, 0) * BEATS_PER_BAR, durationBeats: c.bars * BEATS_PER_BAR })),
+          source: { kind: "generated" },
+        }
+      : null,
+  );
+  /** Whose bars these are, in a game or trade with windows (bars from the top of the run). */
+  const runBar = $derived((chorus - 1) * barsTotal + Math.floor(formBeat / BEATS_PER_BAR));
+  const bandNow = $derived(bandBar(windows, runBar));
   const pctOf = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 </script>
 
@@ -293,13 +448,14 @@
 <DrillShell
   title="Jam"
   hue={instrument}
-  blurb="Solo over the changes. Every note is lit as a chord tone, a scale tone or an avoid note for the chord sounding now."
+  blurb="Solo over a progression or a standard's form. Practice lights every note as a chord tone, a scale tone or an avoid note; Check grades each chorus on a game."
   summary={summaryLine}
-  checkable={false}
+  modeNotes={{ practice: "Tone roles lit, each chorus described. Nothing is graded.", check: "Tone roles hidden. The form runs for the choruses you set, each graded on the game." }}
   clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
   bind:phase
+  bind:mode
   bind:status
-  progress={(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) + beatInChord / BEATS_PER_BAR) / barsTotal}
+  progress={checking ? ((chorus - 1) * barsTotal + formBeat / BEATS_PER_BAR) / (runChoruses * barsTotal) : formBeat / BEATS_PER_BAR / barsTotal}
   startLabel="Start jamming"
   blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : null}
   onstart={start}
@@ -309,9 +465,27 @@
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="progression">
         <span class="font-medium">Progression</span>
-        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => PROGRESSIONS.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={pickProgression} />
-        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.</span>
+        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => POOL.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={pickProgression} />
+        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.{base.composer ? ` ${base.composer}: the changes only, read the head from your book.` : ""}</span>
       </div>
+      <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="game">
+        <span class="font-medium">Game</span>
+        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.windows ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
+        <span class="text-ws-soft">{game.about}</span>
+      </div>
+      <Choice label="Choruses in Check" setupKey="choruses" options={CHORUS_COUNTS.map((n) => ({ value: n, label: String(n) }))} value={runChoruses} onchange={(v) => cfg.set({ choruses: v })} />
+      <Choice
+        label="Trade with the band"
+        setupKey="trade"
+        disabled={!!game.windows}
+        options={[
+          { value: 0, label: "No trading" },
+          { value: 4, label: "Fours", hint: "You take four bars, the drums take four." },
+          { value: 2, label: "Twos", hint: "You take two bars, the drums take two." },
+        ]}
+        value={game.windows ? 0 : s.trade}
+        onchange={(v) => cfg.set({ trade: v })}
+      />
       <Choice
         label="Backing"
         setupKey="backing"
@@ -356,7 +530,25 @@
   {/snippet}
 
   {#snippet stage()}
-    <ol class="mb-4 flex flex-wrap gap-1.5" aria-label="The form, {prog.name}">
+    <div hidden data-testid="jam-clock" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}></div>
+    {#if mode === "check" || checking}
+      <p class="mb-3 text-sm" data-testid="jam-game">
+        <span class="font-semibold">{game.label}.</span>
+        {#if phase === "running" && windows}
+          <span class="window-pill" data-band={bandNow}>{bandNow ? (windows.bandPlays === "call" ? "The band's call: listen" : windows.bandPlays === "drums" ? "The drums' bars: rest" : "Rest") : "Your bars: play"}</span>
+        {/if}
+        {#if phase === "running" && checking}<span class="text-ws-stage-soft">{chorusName(chorus - 1, runChoruses)}, {chorus} of {runChoruses}</span>{/if}
+      </p>
+    {/if}
+    {#if leadSheet}
+      <div class="mb-4" data-testid="jam-lead-sheet">
+        <p class="mb-1 text-sm text-ws-stage-soft">
+          {prog.name}, {sections.map((x) => x.label).join(" ")} ({barsTotal} bars){phase === "running" && !checking ? `. ${chorusName(chorus - 1, chorus + 2)}` : ""}
+        </p>
+        <Staff score={leadSheet} cursorBeat={phase === "running" ? formBeat : null} highlights={sections.map((x) => ({ startBeat: x.bar * BEATS_PER_BAR, endBeat: (x.bar + x.bars) * BEATS_PER_BAR, label: x.label }))} maxHeight="24rem" />
+      </div>
+    {/if}
+    <ol class="mb-4 flex flex-wrap gap-1.5" class:sr-only={!!leadSheet} aria-label="The form, {prog.name}">
       {#each prog.chords as c, i (i)}
         <li
           class="chord-cell flex min-h-11 items-center justify-center rounded-lg px-3 font-display font-semibold"
@@ -373,13 +565,13 @@
       <div class="min-w-0">
         <p class="text-sm text-ws-stage-soft">Now</p>
         <p class="font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chord.symbol}</p>
-        <p class="mt-1 text-ws-stage-soft">{scaleName(chord)} fits. Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
+        <p class="mt-1 text-ws-stage-soft">{showRoles ? `${scaleName(chord)} fits. ` : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
         {#if phase === "running"}
-          <button type="button" class={btnStage} disabled={backingOn} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>
-          {#if backingMode !== "none"}
+          {#if !checking}<button type="button" class={btnStage} disabled={backingOn} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>{/if}
+          {#if backingMode !== "none" && !checking}
             <button type="button" class={btnStage} aria-pressed={backingOn} onclick={() => (backingOn ? stopBacking() : startBacking())}>
               {#if backingOn}<Square class="size-4" aria-hidden="true" />Stop the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
             </button>
@@ -394,27 +586,68 @@
       <Piano low={48} high={84} marks={pianoMarks} names="c" label="Keyboard, tone roles over {chord.symbol}" />
     {/if}
 
-    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" class:hidden={!showRoles}>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone (filled gold)</span>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone (filled blue)</span>
       <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid (dashed ring)</span>
       <span class="text-ws-stage-soft">Labels are degrees over the chord.</span>
     </div>
 
-    {#if lastNote}
+    {#if lastNote && showRoles}
       <p class="mt-3 text-lg" data-testid="jam-last">
         <span class="font-display font-semibold">{noteName(lastNote.midi)}</span>
         <span class="role-pill" data-role={lastNote.role}>{lastNote.role === "chord" ? "●" : lastNote.role === "scale" ? "◐" : "○"} {ROLE_TEXT[lastNote.role]}</span>
         <span class="text-ws-stage-soft">({lastNote.label} of {lastNote.symbol})</span>
       </p>
     {/if}
-    {#if phase === "running" && choruses.length}
+    {#if phase === "running" && choruses.length && !checking}
       {@const c = choruses[choruses.length - 1]}
       <p class="mt-2 text-sm text-ws-stage-soft">Chorus {c.n}: {c.report.headline}</p>
     {/if}
   {/snippet}
 
   {#snippet results()}
+    {#if graded}
+      <article class="{panel} flex flex-col gap-4" data-testid="jam-graded">
+        <div class="flex flex-wrap items-start gap-4">
+          <div class="min-w-0 flex-1 basis-72">
+            <p class="font-display text-2xl font-semibold leading-snug">{graded.headline}</p>
+            <p class="mt-1 text-sm text-ws-soft">{assistanceText("check")} {game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
+            {#if savedTake}<p class="mt-2 text-sm">Saved as a take. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Open it in Record</a></p>{/if}
+          </div>
+          <div class="text-right">
+            <p class="tnum font-display text-5xl font-bold leading-none" data-testid="jam-score">{pct(graded.score)}</p>
+            <p class="mt-1 text-sm text-ws-soft">score{delta !== null ? `, ${delta >= 0 ? "+" : ""}${Math.round(delta)} on last time` : ""}</p>
+          </div>
+        </div>
+        <ol class="flex flex-col gap-3" aria-label="Choruses graded">
+          {#each graded.choruses as c (c.index)}
+            <li class="rounded-xl border border-ws-line p-3">
+              <div class="flex flex-wrap items-center gap-3">
+                <p class="min-w-0 flex-1"><span class="font-semibold">{chorusName(c.index, graded.choruses.length)}.</span> {pct(c.score)}{c.passed ? ", every aim met" : ""}</p>
+                {#if savedTake && c.notes}
+                  <button type="button" class={btn} onclick={() => playChorus(choruses[c.index])}><Play class="size-4" aria-hidden="true" />Hear this chorus</button>
+                {/if}
+              </div>
+              <ul class="mt-2 flex flex-col gap-1 text-sm">
+                {#each c.parts as part (part.metric)}
+                  <li class="flex flex-wrap gap-x-2">
+                    <span class="font-medium">{part.label}:</span>
+                    <span>{part.detail}{part.value !== null && part.metric !== "rests" ? ` (${pct(part.value)})` : ""}, aim {part.metric === "rests" ? part.aim : pct(part.aim)}</span>
+                    {#if part.credit >= 1}<span class="text-ws-soft">met</span>{/if}
+                  </li>
+                {/each}
+              </ul>
+              <p class="mt-2 text-sm text-ws-soft">
+                {c.notes} notes, range {rangeText(c.range)}. {c.phrases.count} phrase{c.phrases.count === 1 ? "" : "s"}, {c.phrases.meanBars} bars long on average; {c.measures.rests?.detail}.
+                {c.measures.time?.value != null ? `${pct(c.measures.time.value)} on the ${swings(prog) ? "swing (triplet)" : "sixteenth"} grid` : ""}{c.swing !== null ? `, swing ${c.swing}:1` : ""}.
+                {game.id !== "free" && c.measures.strong?.value != null ? ` Chord tones on 1 and 3: ${pct(c.measures.strong.value)}.` : ""}
+              </p>
+            </li>
+          {/each}
+        </ol>
+      </article>
+    {:else}
     <article class="{panel} flex flex-col gap-4">
       <div class="flex flex-wrap items-start gap-4">
         <div class="min-w-0 flex-1 basis-72">
@@ -459,6 +692,7 @@
         </ol>
       {/if}
     </article>
+    {/if}
   {/snippet}
 </DrillShell>
 
@@ -502,6 +736,20 @@
     background: transparent;
     color: inherit;
     border: 2px dashed var(--tone-avoid);
+  }
+  .window-pill {
+    display: inline-block;
+    margin: 0 0.4rem;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+    background: var(--instr);
+    color: var(--ws-stage);
+  }
+  .window-pill[data-band="true"] {
+    background: transparent;
+    color: inherit;
+    border: 2px dashed var(--ws-stage-soft);
   }
   .share {
     display: flex;

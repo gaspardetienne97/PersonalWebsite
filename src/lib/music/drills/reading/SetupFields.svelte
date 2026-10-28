@@ -2,7 +2,7 @@
   // The reading setup, shared by flashcards and sight-reading. The instrument is
   // the practice strip's, and the range follows the level, the clefs and the
   // instrument, so neither is a control here.
-  import { CLIMB, levelMeter, levelsFor, READING_METERS, readingLevel, readingLevelId, readingRungs } from "@repo/music-core/content/reading";
+  import { CLIMB, levelMeter, levelsFor, READING_LEVELS, READING_METERS, readingLevel, readingLevelId, readingRungs } from "@repo/music-core/content/reading";
   import { noteName } from "@repo/music-core";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
@@ -18,7 +18,8 @@
     limits,
   }: { cfg: DrillSetup<ReadingSetup>; activity: "flashcards" | "sight-reading"; fretted: boolean; oneLine?: boolean; instrument: string; limits: [number, number] } = $props();
   const s = $derived(cfg.value);
-  const levels = $derived(levelsFor(instrument));
+  // Tapping reads only the rhythm, so every level's rhythms are open to any instrument.
+  const levels = $derived(activity === "sight-reading" && s.follower === "tap" && !s.climb ? READING_LEVELS : levelsFor(instrument));
   const level = $derived(readingLevel(readingLevelId(s.level)));
   const climbing = $derived(activity === "sight-reading" && !!s.climb);
   const rungs = $derived(readingRungs(instrument));
@@ -118,6 +119,7 @@
         options={[
           { value: "wait", label: "Wait for me", hint: "The cursor holds until you play the right notes. Guided, so it does not count toward mastery." },
           { value: "performance", label: "Keep time", hint: "The cursor runs with the click and grades your timing." },
+          { value: "tap", label: "Tap the rhythm", hint: "Keep time with any key, the Tap button or Space. Only the rhythm is graded." },
         ]}
         value={s.follower}
         onchange={(v) => cfg.set({ follower: v })}

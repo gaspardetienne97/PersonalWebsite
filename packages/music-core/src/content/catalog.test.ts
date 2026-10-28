@@ -110,7 +110,7 @@ describe("drill catalog", () => {
       "bends",
     ]);
     expect(CATALOG.find((e) => e.id === "chords")!.modes).toHaveLength(5);
-    expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(10);
+    expect(CATALOG.find((e) => e.id === "aerophone")!.modes).toHaveLength(13);
     expect(CATALOG.find((e) => e.id === "pads")!.modes.map((m) => m.id)).toEqual([
       "rudiment",
       "groove",

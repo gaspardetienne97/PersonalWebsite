@@ -6,6 +6,9 @@ import { gradeAccompaniment } from "../scoring/piano";
 import {
   ACCOMP_PATTERNS,
   ACCOMP_PROGRESSIONS,
+  CHART_LEVELS,
+  chartProgression,
+  jazzLeadSheet,
   COMP_RHYTHMS,
   COMP_VOICINGS,
   LEAD_LEFT,
@@ -359,5 +362,84 @@ describe("gradeAccompaniment", () => {
     );
     expect(g.notMeasured).toEqual(["chords"]);
     expect(g.correct).toBe(true);
+  });
+});
+
+describe("generated charts and jazz lead sheets", () => {
+  it("writes eight-bar charts at each level, the same from the same seed, every symbol readable", () => {
+    let halves = 0;
+    let colours = 0;
+    for (const level of CHART_LEVELS)
+      for (let seed = 1; seed <= 12; seed++) {
+        const p = chartProgression(level.id, seed);
+        expect(p.id).toBe(level.id);
+        expect(chartProgression(level.id, seed)).toEqual(p);
+        expect(p.chords.reduce((a, c) => a + c.bars, 0)).toBe(8);
+        expect(p.chords[0].symbol).toMatch(/^C/);
+        expect(p.chords.at(-1)!.symbol).toBe("C");
+        for (const c of p.chords) expect(parseChordSymbol(c.symbol), c.symbol).toBeTruthy();
+        if (level.id === "chart-1") expect(wholeBars(p)).toBe(true);
+        halves += p.chords.filter((c) => c.bars === 0.5).length;
+        if (level.id === "chart-3")
+          colours += p.chords.filter((c) => /sus|add9|\//.test(c.symbol)).length;
+        for (const pattern of ACCOMP_PATTERNS)
+          sane(
+            patternRendering(chartOf(p, seed % 12), pattern.id),
+            `${level.id} ${seed} ${pattern.id}`,
+          );
+      }
+    expect(halves).toBeGreaterThan(10);
+    expect(colours).toBeGreaterThan(20);
+  });
+
+  it("plays both chords of a split bar: block chords re-strike on beat 3 with the second", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const r = patternRendering(chartOf(chartProgression("chart-2", seed)), "block-1");
+      for (const c of r.chart.filter((x) => x.durationBeats === 2)) {
+        const struck = r.slots.filter((s) => s.beat === c.startBeat);
+        expect(struck.map((s) => s.hand).sort(), `${seed} ${c.symbol}`).toEqual(["left", "right"]);
+        const chord = parseChordSymbol(c.symbol)!;
+        const pcs = [...chord.pcs, ...(chord.bassPc === undefined ? [] : [chord.bassPc])];
+        for (const s of struck) expect(s.midi.every((m) => pcs.includes(pc(m)))).toBe(true);
+      }
+    }
+  });
+
+  it("writes jazz heads swung over a ii-V-I: lead-2 anticipates the next chord over the bar line", () => {
+    const p = prog("ii-v-i");
+    let anticipations = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const one = jazzLeadSheet("lead-1", p, 0, seed);
+      const two = jazzLeadSheet("lead-2", p, 0, seed);
+      expect(jazzLeadSheet("lead-2", p, 0, seed)).toEqual(two);
+      for (const sheet of [one, two]) {
+        let t = 0;
+        for (const n of sheet.melody) {
+          expect(n.startBeat).toBeCloseTo(t);
+          t = n.startBeat + n.durationBeats;
+        }
+      }
+      for (const n of two.melody) {
+        if (n.startBeat % 4 !== 3.5 || n.durationBeats <= 0.5) continue;
+        anticipations++;
+        expect(chordAtSheet(two.chart, n.startBeat + 0.5).pcs).toContain(pc(n.midi));
+      }
+      for (const left of ["roots", "shells", "rootless"] as const)
+        sane(leadSheetRendering(two, left, 0), `lead-2 ${seed} ${left}`);
+    }
+    expect(anticipations).toBeGreaterThan(5);
+  });
+
+  it("voices a rootless left hand below the melody, without the root", () => {
+    const sheet = jazzLeadSheet("lead-1", prog("ii-v-i"), 5, 3);
+    const r = leadSheetRendering(sheet, "rootless", 0);
+    const left = r.slots.filter((s) => s.hand === "left");
+    const melodyLow = Math.min(...r.slots.filter((s) => s.hand === "right").flatMap((s) => s.midi));
+    expect(left.every((s) => s.midi.length === 4 && Math.min(...s.midi) >= 47)).toBe(true);
+    expect(left.every((s) => Math.max(...s.midi) < melodyLow)).toBe(true);
+    for (const s of left) {
+      const chord = chordAt(r, s.beat);
+      expect(s.midi.map(pc)).not.toContain(chord.rootPc);
+    }
   });
 });

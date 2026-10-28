@@ -14,6 +14,7 @@
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
@@ -32,7 +33,9 @@
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
   // `category` is a setup key, so a category link (the drill's modes) lands on that category's first lick over any saved one.
-  const cfg = new DrillSetup("licks", { lick: 1, key: "C", category: "" as string });
+  // `ear`: the transcription loop. The line is heard, looped and slowed, never shown until the
+  // results; showing it (a hint) makes the run practice.
+  const cfg = new DrillSetup("licks", { lick: 1, key: "C", category: "" as string, ear: false as boolean });
   const s = $derived(cfg.value);
   const lick = $derived.by(() => {
     const picked = LICKS.find((l) => l.number === s.lick) ?? LICKS[0];
@@ -102,7 +105,12 @@
 
   const next = $derived<LickNote | undefined>(phase === "running" ? chunk[played] : phase === "ready" || phase === "countin" ? chunk[0] : undefined);
   const lit = $derived(transport.playing ? sounding(timed, transport.beat) : []);
-  const showTargets = $derived(mode === "practice" && phase !== "results");
+  /** A peek holds for this lick in this key; another lick or key is unseen again. */
+  let peekedKey = $state("");
+  const peeked = $derived(peekedKey === lickKey);
+  /** By ear: no notation, lane or lit keys until the results (or a peek). */
+  const hideNotes = $derived(s.ear && !peeked && phase !== "results");
+  const showTargets = $derived(mode === "practice" && phase !== "results" && !hideNotes);
   /** Tab marks while running: notes played so far, and the one up next. */
   const tabStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
@@ -112,11 +120,12 @@
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
-    if (transport.playing) for (const n of lit) out[n.midi] = { demo: true };
+    if (transport.playing && !hideNotes) for (const n of lit) out[n.midi] = { demo: true };
     else if (showTargets && next) out[next.midi] = { target: true };
     return out;
   });
   const fretMarks = $derived.by((): FretMark[] => {
+    if (transport.playing && hideNotes) return [];
     if (transport.playing) return lit.map((n) => ({ string: chunk.find((c) => c.index === n.index)!.string!, fret: chunk.find((c) => c.index === n.index)!.fret!, label: n.finger ? String(n.finger) : undefined, demo: true }));
     if (!showTargets || !next || next.string === undefined) return [];
     return [{ string: next.string, fret: next.fret!, label: next.finger ? String(next.finger) : undefined, role: "root" }];
@@ -143,7 +152,7 @@
     if (transport.playing) return transport.stop();
     const gap = chunkBeats + 1;
     const notes = Array.from({ length: times }, (_, r) => timed.map((n) => ({ ...n, beat: n.beat + r * gap }))).flat();
-    status = times > 1 ? `Listen: notes ${lo + 1} to ${hi + 1}, three times.` : `Listen: ${whole ? "the whole lick" : `notes ${lo + 1} to ${hi + 1}`}${speed < 1 ? " at half speed" : " at tempo"}.`;
+    status = times > 3 ? `Looping ${whole ? "the lick" : `notes ${lo + 1} to ${hi + 1}`} at ${Math.round(speed * 100)}%, ${times} times. Press it again to stop.` : times > 1 ? `Listen: notes ${lo + 1} to ${hi + 1}, three times.` : `Listen: ${whole ? "the whole lick" : `notes ${lo + 1} to ${hi + 1}`}${speed < 1 ? " at half speed" : " at tempo"}.`;
     await transport.demo(notes, bpm, speed);
   }
 
@@ -178,10 +187,10 @@
       skillIds: lickSkills(lick.category),
       capabilities: ["harmony"],
       modality: "played",
-      assistance: assistanceFor(mode),
+      assistance: assistanceFor(mode, s.ear && peeked),
       difficulty: Math.min(1, 0.4 + chunk.length / 60 + (lick.category.startsWith("minor-ii") ? 0.15 : 0)),
       instrument: fretted ? "guitar" : settings.value.activeInstrument,
-      params: { bpm, lick: lick.number, transpose, first: lo, last: hi },
+      params: { bpm, lick: lick.number, transpose, first: lo, last: hi, ...(s.ear ? { byEar: true } : {}) },
     });
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     transport.follow(ctx.downbeat, ctx.beatMs);
@@ -230,7 +239,7 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      assistance: assistanceText(mode, s.ear && peeked),
       rows,
       advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
     };
@@ -300,6 +309,18 @@
       </div>
       {/if}
     </div>
+    <div class="mt-3">
+      <Choice
+        label="How you learn it"
+        setupKey="ear"
+        options={[
+          { value: "read", label: "Read and hear" },
+          { value: "ear", label: "By ear", hint: "Transcribe it: loop it slowed down, play it back, then move it round the keys. The notes stay hidden until the results." },
+        ]}
+        value={s.ear ? "ear" : "read"}
+        onchange={(v) => cfg.set({ ear: v === "ear" })}
+      />
+    </div>
     <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. The licks are written in C; the key moves the line, the chords and the text together.</p>
   {/snippet}
 
@@ -334,13 +355,25 @@
               <button type="button" class="min-h-11 rounded-full border px-3 font-medium {whole ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={whole} onclick={() => (chunkSel = null)}>Whole lick</button>
             </div>
           {/if}
-          {#if mode === "practice"}
+          {#if s.ear}
+            {#each [0.5, 0.75, 1] as speed (speed)}
+              <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(speed, 8)}>Loop at {Math.round(speed * 100)}%</button>
+            {/each}
+            {#if hideNotes}
+              <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => (peekedKey = lickKey)}>Show the notes</button>
+            {/if}
+          {:else if mode === "practice"}
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(0.5)}>Half speed</button>
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10 disabled:opacity-50" disabled={whole} onclick={() => demo(1, 3)}>Loop chunk 3 times</button>
           {/if}
         </div>
       {/if}
     </div>
+    {#if hideNotes}
+      <p class="mb-3 rounded-xl bg-ws-stage-ink/8 p-4 text-sm" data-testid="licks-by-ear">
+        By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.
+      </p>
+    {:else}
     <BeatLane
       rows={[{ id: "line", mark: fretted ? "♪" : "R", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
       beats={chunkBeats}
@@ -349,7 +382,10 @@
       hidden={mode === "check" && !transport.playing}
       label="Beat lane: {chunk.length} notes over {progression.join(', ')}."
     />
-    {#if fretted && (mode === "practice" || transport.playing || phase === "results")}
+    {/if}
+    {#if hideNotes}
+      <!-- By ear: nothing written until the results. -->
+    {:else if fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
         <LineNotation
           notes={chunk.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))}

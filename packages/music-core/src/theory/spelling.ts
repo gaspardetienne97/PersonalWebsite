@@ -16,7 +16,7 @@ const key = (name: string, fifths: number): KeySignature => {
   return { name, tonic, tonicPc: pcOf(tonic)!, mode, fifths };
 };
 
-/** The selectable reading keys: the first eight, then the keys to four sharps and four flats the later levels add. */
+/** The selectable reading keys: the first eight, then the keys to five sharps and five flats the later levels add. */
 export const KEY_SIGNATURES: KeySignature[] = [
   key("C major", 0),
   key("G major", 1),
@@ -36,6 +36,10 @@ export const KEY_SIGNATURES: KeySignature[] = [
   key("G minor", -2),
   key("C minor", -3),
   key("F minor", -4),
+  // Five sharps and flats, for Grade 7 sight-reading (G# minor's leading tone is a double sharp, left out).
+  key("B major", 5),
+  key("Db major", -5),
+  key("Bb minor", -5),
 ];
 export const keyByName = (name: string) => KEY_SIGNATURES.find((k) => k.name === name);
 

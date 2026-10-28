@@ -123,9 +123,12 @@
           "id": "1.6",
           "title": "Down, down-up",
           "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-d-du&bpm=70",
           "setup": "Rhythm, read and tap: D DU D DU.",
           "done": "5 runs at 80% at 80.",
-          "needs": "A ukulele-d-du pattern (D DU D DU) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 80,
           "feeds": "You Are My Sunshine"
         },
         {
@@ -196,7 +199,7 @@
           "strand": "S",
           "setup": "Strum a progression with a shelf song's chords and strum pattern.",
           "done": "One shelf song start to end, 3 runs at 80% (chords and timing), no stops.",
-          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2).",
+          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument.",
           "feeds": "shelf"
         }
       ],
@@ -412,11 +415,11 @@
           "id": "2.3",
           "title": "Reggae offbeat",
           "strand": "S",
-          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=off-beats&bpm=74",
-          "setup": "Rhythm, read and tap: off-beats. A ukulele reggae pattern (chucks on the \"and\") is coming.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-reggae&bpm=66",
+          "setup": "Rhythm, read and tap: the reggae strum, short strums on the and, damped on the beat.",
           "done": "5 runs at 80% at 74.",
-          "minAttempts": 5,
           "threshold": 0.8,
+          "minAttempts": 5,
           "minBpm": 74,
           "feeds": "Three Little Birds"
         },
@@ -613,7 +616,7 @@
           "strand": "S",
           "setup": "Strum a progression: I'm Yours or Three Little Birds.",
           "done": "3 full runs at 80%.",
-          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2).",
+          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument.",
           "feeds": "I'm Yours, Three Little Birds"
         },
         {
@@ -822,18 +825,24 @@
           "id": "3.1",
           "title": "Waltz strum",
           "strand": "S",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-waltz&bpm=90",
           "setup": "Rhythm, read and tap: D DU DU in 3/4.",
           "done": "5 runs at 80% at 100.",
-          "needs": "A ukulele-waltz pattern (D DU DU in 3/4) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 100,
           "feeds": "Edelweiss"
         },
         {
           "id": "3.2",
           "title": "6/8 strum",
           "strand": "S",
-          "setup": "Rhythm, read and tap: D du du, D du du.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-six-eight&bpm=50",
+          "setup": "Rhythm, read and tap: D du D du in 6/8, the click on each dotted quarter.",
           "done": "5 runs at 80% at 60 (dotted quarter).",
-          "needs": "A ukulele-six-eight pattern (D du du, D du du) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 60,
           "feeds": "Perfect"
         },
         {
@@ -1227,11 +1236,11 @@
           "id": "4.1",
           "title": "Swing strum",
           "strand": "S",
-          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=swing-eighths&bpm=90",
-          "setup": "Rhythm, read and tap: swing eighths. A ukulele swing pattern (D DU DU swung) is coming.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-swing&bpm=90",
+          "setup": "Rhythm, read and tap: the swing strum, D then DU DU DU swung.",
           "done": "5 runs at 80% at 120, on two days.",
-          "minAttempts": 5,
           "threshold": 0.8,
+          "minAttempts": 5,
           "minBpm": 120,
           "feeds": "Five Foot Two, Fly Me to the Moon"
         },
@@ -1289,9 +1298,12 @@
           "id": "4.4",
           "title": "Calypso strum",
           "strand": "S",
-          "setup": "Rhythm, read and tap: D D U U D U.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-calypso&bpm=90",
+          "setup": "Rhythm, read and tap: the calypso strum, D DU UDU with the push on the and of 3.",
           "done": "5 runs at 80% at 100.",
-          "needs": "A ukulele-calypso pattern (D D U U D U) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 100,
           "feeds": "Jambalaya, Pearly Shells"
         },
         {
@@ -1710,11 +1722,11 @@
           "id": "5.3",
           "title": "Triplet strum (i p i)",
           "strand": "S",
-          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=triplets&bpm=70",
-          "setup": "Rhythm, read and tap: triplets. A ukulele triplet strum pattern is coming.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-triplet&bpm=70",
+          "setup": "Rhythm, read and tap: the triplet strum, i down, thumb down, i up.",
           "done": "5 runs at 80% at 90 (eighth-note triplets), on two days.",
-          "minAttempts": 5,
           "threshold": 0.8,
+          "minAttempts": 5,
           "minBpm": 90,
           "feeds": "Hit the Road Jack fills"
         },
@@ -1724,7 +1736,7 @@
           "strand": "S",
           "setup": "Strum a progression: Jam's blues progression with a shuffle strum.",
           "done": "3 choruses at 90, 80% on timing and chords.",
-          "needs": "A blues preset with a shuffle strum in Strum a progression, with runs that count (rec 2).",
+          "needs": "A blues preset with a shuffle strum in Strum a progression, and runs that count there (rec 2).",
           "feeds": "Sweet Home Chicago"
         },
         {
@@ -1746,19 +1758,44 @@
           "id": "5.6",
           "title": "Three blues licks",
           "strand": "L",
-          "setup": "Phrases: a turnaround in A, a pentatonic lick and a double-stop lick.",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.blues-turnaround-a",
+          "setup": "Phrases: a turnaround in A, a minor pentatonic lick and a double-stop lick.",
           "done": "Each 3 runs at 85% at the phrase tempo.",
-          "needs": "Ukulele blues phrases in Phrases: a turnaround in A, a pentatonic lick, a double-stop lick (rec 12).",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "ukulele.blues-turnaround-a",
+              "ukulele.blues-pentatonic-lick",
+              "ukulele.blues-double-stop"
+            ]
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Pentatonic lick",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.blues-pentatonic-lick"
+            },
+            {
+              "label": "Double-stop lick",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.blues-double-stop"
+            }
+          ],
           "feeds": "first solo"
         },
         {
           "id": "5.7",
           "title": "First solo",
           "strand": "L",
-          "setup": "Jam: blues in A on ukulele, the minor pentatonic lit.",
+          "setup": "Jam in Check: blues in A on ukulele, the minor pentatonic lit.",
           "done": "3 choruses where the chorus report shows 80% scale tones and phrases ending on chord tones.",
-          "needs": "A pass rule on Jam's chorus report (rec 9).",
-          "feeds": "boss"
+          "feeds": "boss",
+          "href": "/music/jam?progression=blues&transpose=-3&game=free&choruses=3",
+          "match": {
+            "game": "free",
+            "choruses": "3"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "5.8",
@@ -2038,27 +2075,48 @@
           "id": "6.1",
           "title": "Campanella C major scale",
           "strand": "T",
-          "setup": "Scales in campanella fingerings, ring-over checked as experimental.",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-c-major",
+          "setup": "Phrases: the C major scale in campanella, each note on a new string (high-G). Whether the notes ring over is not checked yet.",
           "done": "3 runs at 95% of the notes at 70.",
-          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5).",
+          "match": {
+            "phrase": "ukulele.campanella-c-major"
+          },
+          "threshold": 0.95,
+          "minBpm": 70,
           "feeds": "all campanella pieces"
         },
         {
           "id": "6.2",
           "title": "Campanella C major pentatonic",
           "strand": "T",
-          "setup": "The same drill: C major pentatonic in campanella.",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-c-pentatonic",
+          "setup": "Phrases: C major pentatonic in campanella.",
           "done": "3 runs at 95% at 90 (RSL Grade 4 to 5 tempo).",
-          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5).",
+          "match": {
+            "phrase": "ukulele.campanella-c-pentatonic"
+          },
+          "threshold": 0.95,
+          "minBpm": 90,
           "feeds": "Cripple Creek"
         },
         {
           "id": "6.3",
           "title": "Campanella tunes",
           "strand": "T",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-london-bridge",
           "setup": "Phrases: London Bridge and Twinkle in campanella.",
           "done": "Each 3 runs at 85%.",
-          "needs": "London Bridge and Twinkle in campanella in Phrases (rec 12).",
+          "each": {
+            "param": "phrase",
+            "values": ["ukulele.campanella-london-bridge", "ukulele.campanella-twinkle"]
+          },
+          "threshold": 0.85,
+          "links": [
+            {
+              "label": "Twinkle in campanella",
+              "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-twinkle"
+            }
+          ],
           "feeds": "London Bridge"
         },
         {
@@ -2083,9 +2141,13 @@
           "id": "6.5",
           "title": "First chord melody",
           "strand": "F",
-          "setup": "Chord-melody phrases: Amazing Grace and Aloha 'Oe, chords under a melody note, graded on the top note.",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.chord-melody-amazing-grace",
+          "setup": "Phrases: Amazing Grace as chord melody, the tune on top of each chord. Every note of a chord is graded, not only the top one, and Aloha 'Oe is still to come.",
           "done": "3 runs at 80%.",
-          "needs": "Chord-melody phrases graded on the top note: Amazing Grace and Aloha 'Oe (rec 6).",
+          "match": {
+            "phrase": "ukulele.chord-melody-amazing-grace"
+          },
+          "threshold": 0.8,
           "feeds": "Amazing Grace"
         },
         {
@@ -2146,10 +2208,16 @@
           "id": "6.9",
           "title": "Major pentatonic over I IV V",
           "strand": "L",
-          "setup": "Jam: a pop or Hawaiian I IV V, C major pentatonic lit.",
+          "setup": "Jam in Check: a pop I IV V, C major pentatonic lit.",
           "done": "3 choruses at 80% scale tones.",
-          "needs": "A pass rule on Jam's chorus report (rec 9).",
-          "feeds": "Hawaiian solos"
+          "feeds": "Hawaiian solos",
+          "href": "/music/jam?progression=pop-i-iv-v&game=free&choruses=3",
+          "match": {
+            "game": "free",
+            "choruses": "3"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "6.10",
@@ -2449,18 +2517,24 @@
           "id": "7.3",
           "title": "Swing comping",
           "strand": "S",
-          "setup": "Rhythm, read and tap: four to the bar, chuck on 2 and 4, over Jam's ii-V-I.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-swing-comp&bpm=100",
+          "setup": "Rhythm, read and tap: four to the bar, chuck on 2 and 4, over Dm7 G7 Cmaj7.",
           "done": "5 runs at 80% at 120.",
-          "needs": "A ukulele-swing-comp pattern (four to the bar, chuck on 2 and 4) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 120,
           "feeds": "All of Me, Bye Bye Blackbird"
         },
         {
           "id": "7.4",
           "title": "Bossa",
           "strand": "S",
-          "setup": "Rhythm, read and tap: thumb on 1 and 3, fingers syncopated.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-bossa&bpm=90",
+          "setup": "Rhythm, read and tap: thumb on 1 and 3, fingers syncopated over two bars.",
           "done": "5 runs at 80% at 110.",
-          "needs": "A ukulele-bossa pattern (thumb on 1 and 3, fingers syncopated) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 110,
           "feeds": "Blue Bossa (level 9), Misty"
         },
         {
@@ -2772,27 +2846,36 @@
           "id": "8.1",
           "title": "Formby split stroke",
           "strand": "S",
-          "setup": "Rhythm, read and tap: the split stroke, accent off beat 2.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-split-stroke&bpm=100",
+          "setup": "Rhythm, read and tap: the split stroke, D dU D dU with the accent on the up after 2 and 4.",
           "done": "5 runs at 80% at 120.",
-          "needs": "A ukulele-split-stroke pattern (accent off beat 2) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 120,
           "feeds": "Ain't She Sweet"
         },
         {
           "id": "8.2",
           "title": "Triple stroke",
           "strand": "S",
-          "setup": "Rhythm, read and tap: the RSL Grade 5 triple-stroke study.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-triple-stroke&bpm=80",
+          "setup": "Rhythm, read and tap: a triple-stroke study in the RSL Grade 5 manner, triplets on 1 and 3, D U on 2 and 4.",
           "done": "4 bars at 90, 80%.",
-          "needs": "A ukulele-triple-stroke pattern (the RSL Grade 5 study) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 1,
+          "minBpm": 90,
           "feeds": "Malagueña"
         },
         {
           "id": "8.3",
           "title": "Fan strokes (rasgueado)",
           "strand": "S",
-          "setup": "Rhythm, read and tap: a four-finger roll pattern.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-fan&bpm=70",
+          "setup": "Rhythm, read and tap: a four-finger roll on 1 and 3.",
           "done": "5 runs at 80% at 80.",
-          "needs": "A ukulele-fan pattern (four-finger roll) in the rhythm patterns.",
+          "threshold": 0.8,
+          "minAttempts": 5,
+          "minBpm": 80,
           "feeds": "Malagueña, Tico-Tico"
         },
         {
@@ -2900,9 +2983,14 @@
           "id": "8.11",
           "title": "Campanella in minor",
           "strand": "T",
-          "setup": "Campanella D harmonic minor (RSL Grade 6 to 8, high-G) in the 6.1 drill.",
+          "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-d-harmonic-minor",
+          "setup": "Phrases: D harmonic minor in campanella (RSL Grade 6 to 8, high-G).",
           "done": "3 runs at 95% at 90.",
-          "needs": "Campanella fingerings in Scales, hidden on low-G (rec 5)."
+          "match": {
+            "phrase": "ukulele.campanella-d-harmonic-minor"
+          },
+          "threshold": 0.95,
+          "minBpm": 90
         },
         {
           "id": "8.12",
@@ -3120,7 +3208,7 @@
     {
       "id": "9",
       "title": "Up the neck and improvising",
-      "goal": "Solo freely over blues, minor tunes and simple standards.",
+      "goal": "Solo freely over blues, minor tunes and simple standards, and find any chord up the neck.",
       "adds": "Minor pentatonic in five positions, the blues scale and major pentatonic mixed over dominant chords; slides, small bends, double stops; chord-tone soloing; minor ii-V; call and response; transcribing four bars.",
       "pick": 2,
       "steps": [
@@ -3132,6 +3220,67 @@
           "done": "Each position 3 runs at 95% at 90.",
           "needs": "Ukulele scale positions: minor pentatonic in five positions (rec 4).",
           "feeds": "blues"
+        },
+        {
+          "id": "9.1b",
+          "title": "One chord in five places up the neck",
+          "strand": "C, T",
+          "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=0",
+          "setup": "Chords, Build: C in its five forms from open to fret 12 (the ukulele's version of guitar CAGED: the guitar's top four strings capoed at 5, so its C A G E D forms become F D C A G here). Then Am the same way.",
+          "done": "Each form rings clean 3 times running, on two days.",
+          "each": {
+            "param": "position",
+            "values": ["0", "1", "2", "3", "4"]
+          },
+          "match": {
+            "shape": "ukulele.c-major"
+          },
+          "minAttempts": 3,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Form 2",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=1"
+            },
+            {
+              "label": "Form 3",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=2"
+            },
+            {
+              "label": "Form 4",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=3"
+            },
+            {
+              "label": "Form 5",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=4"
+            },
+            {
+              "label": "Am forms",
+              "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.a-minor&position=0"
+            }
+          ],
+          "feeds": "comping and soloing up the neck"
+        },
+        {
+          "id": "9.1c",
+          "title": "Move through the forms in time",
+          "strand": "C, T",
+          "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,ukulele.c-major,ukulele.c-major,ukulele.c-major,ukulele.c-major&positions=0,1,2,3,4&timed=true",
+          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built; MIDI or the on-screen frets tell them apart.",
+          "done": "20 changes a minute through the cycle, clean, on two days.",
+          "match": {
+            "chords": "ukulele.c-major>ukulele.c-major>ukulele.c-major>ukulele.c-major>ukulele.c-major"
+          },
+          "minAttempts": 3,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Am forms",
+              "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.a-minor,ukulele.a-minor,ukulele.a-minor,ukulele.a-minor,ukulele.a-minor&positions=0,1,2,3,4&timed=true"
+            }
+          ],
+          "requires": ["9.1b"],
+          "feeds": "9.7 and 9.8, comping up the neck"
         },
         {
           "id": "9.2",
@@ -3194,19 +3343,31 @@
           "id": "9.5",
           "title": "Chord tones over I7 IV7 V7",
           "strand": "L",
-          "setup": "Jazz licks on ukulele; Jam's blues with the chord tones lit.",
+          "setup": "Jazz licks on ukulele; then Jam's blues in Check, chord tones on beats 1 and 3.",
           "done": "3 choruses where the chorus report shows chord tones on beats 1 and 3 at 60%.",
-          "needs": "A pass rule on Jam's chorus report (rec 9).",
-          "feeds": "St. Louis Blues"
+          "feeds": "St. Louis Blues",
+          "href": "/music/jam?progression=blues&game=chord-tones&choruses=3",
+          "match": {
+            "game": "chord-tones",
+            "choruses": "3"
+          },
+          "threshold": 0.6,
+          "minAttempts": 1
         },
         {
           "id": "9.6",
           "title": "Minor ii-V and Dorian",
           "strand": "L",
-          "setup": "Jam: minor ii-V-i and modal, on ukulele.",
+          "setup": "Jam in Check: minor ii-V-i, then modal, on ukulele.",
           "done": "4 choruses at 80% scale tones.",
-          "needs": "A pass rule on Jam's chorus report (rec 9).",
-          "feeds": "Summertime, Blue Bossa"
+          "feeds": "Summertime, Blue Bossa",
+          "href": "/music/jam?progression=minor-ii-v-i&game=free&choruses=4",
+          "match": {
+            "game": "free",
+            "choruses": "4"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "9.7",
@@ -3500,7 +3661,7 @@
           "strand": "S",
           "setup": "Strum a progression with an unseen chart from Jam (LCM unprepared accompaniment).",
           "done": "16 bars at 80% on the first try.",
-          "needs": "Song presets and a strum pattern in Strum a progression, with runs that count (rec 2)."
+          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument."
         },
         {
           "id": "10.10",

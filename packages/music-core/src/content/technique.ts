@@ -4,6 +4,7 @@
 import {
   CHORD_SHAPES,
   FRETBOARD_PATTERNS,
+  SCALE_DATA,
   SKILL_IDS,
   STRING_SPIDER,
   type ChordShape,
@@ -34,8 +35,39 @@ import { pick, type Rand } from "./random";
 
 export const SCALE_TEMPO = { min: 40, max: 180, default: 100 };
 
-/** What the drill plays: the scale, or the tonic chord as an arpeggio, broken through its inversions, or blocked. */
-export type ScalePattern = "scale" | "arpeggio" | "broken" | "blocked";
+/**
+ * What the drill plays: the scale, in double thirds or in octaves in each hand,
+ * or the tonic chord as an arpeggio, broken through its inversions, or blocked.
+ */
+export type ScalePattern = "scale" | "thirds" | "octaves" | "arpeggio" | "broken" | "blocked";
+/** Scale-like patterns walk the scale's degrees; the others walk the chord. */
+export const isScaleLine = (p: ScalePattern) => p === "scale" || p === "thirds" || p === "octaves";
+/** The scale drill's kinds: the scale data's, plus the chromatic scale. */
+export type DrillScaleKind = ScaleKind | "chromatic";
+/** How two hands sit: an octave apart, in contrary motion from the tonic, a third or a sixth apart. */
+export type HandsApart = "octave" | "contrary" | "third" | "sixth";
+export const HANDS_APART: { id: HandsApart; label: string; hint: string }[] = [
+  {
+    id: "octave",
+    label: "An octave apart",
+    hint: "Similar motion, the left hand an octave below.",
+  },
+  {
+    id: "contrary",
+    label: "Contrary motion",
+    hint: "Both hands start on the tonic and move apart, then back.",
+  },
+  {
+    id: "third",
+    label: "A third apart",
+    hint: "The left hand on the tonic, the right hand from the 3rd above.",
+  },
+  {
+    id: "sixth",
+    label: "A sixth apart",
+    hint: "The right hand on the tonic, the left hand from the 3rd below.",
+  },
+];
 export type ChordKind = "major" | "minor" | "dominant-7" | "diminished-7";
 export const CHORD_KINDS: { id: ChordKind; label: string; intervals: number[] }[] = [
   { id: "major", label: "Major", intervals: [0, 4, 7] },
@@ -65,7 +97,7 @@ export const ABRSM_SPEEDS: { grade: string; scale: [number, 2 | 4]; arpeggio: [n
 export const gradeSpeed = (grade: string, pattern: ScalePattern) => {
   const g = ABRSM_SPEEDS.find((x) => x.grade === grade);
   if (!g || pattern === "blocked") return undefined;
-  return pattern === "scale" ? g.scale : g.arpeggio;
+  return isScaleLine(pattern) ? g.scale : g.arpeggio;
 };
 
 /**
@@ -76,18 +108,22 @@ export const gradeSpeed = (grade: string, pattern: ScalePattern) => {
 export function chordSteps(
   kind: ChordKind,
   tonic: number,
-  pattern: Exclude<ScalePattern, "scale">,
+  pattern: "arpeggio" | "broken" | "blocked",
   octaves: 1 | 2,
   motion: ScaleMotion,
+  /** An arpeggio from the 3rd (1) or the 5th (2) up to the same note, octaves above. */
+  inversion = 0,
 ): number[][] {
   const iv = CHORD_KINDS.find((c) => c.id === kind)!.intervals;
   const n = iv.length;
   const tone = (t: number) => tonic + iv[t % n] + 12 * Math.floor(t / n);
-  const inversion = (k: number) => Array.from({ length: n }, (_, j) => tone(k + j));
+  const inversionOf = (k: number) => Array.from({ length: n }, (_, j) => tone(k + j));
+  const inv = Math.max(0, Math.min(n - 1, inversion));
   let up: number[][];
-  if (pattern === "arpeggio") up = Array.from({ length: n * octaves + 1 }, (_, t) => [tone(t)]);
+  if (pattern === "arpeggio")
+    up = Array.from({ length: n * octaves + 1 }, (_, t) => [tone(t + inv)]);
   else {
-    const chords = Array.from({ length: n * octaves + 1 }, (_, k) => inversion(k));
+    const chords = Array.from({ length: n * octaves + 1 }, (_, k) => inversionOf(k));
     up = pattern === "blocked" ? chords : chords.flatMap((c) => c.map((m) => [m]));
   }
   const down = [...up].reverse();
@@ -97,7 +133,7 @@ export function chordSteps(
 }
 
 export interface ScaleSetup {
-  kind: ScaleKind;
+  kind: DrillScaleKind;
   /** Default "scale". */
   pattern?: ScalePattern;
   /** The chord for arpeggios and broken or blocked chords (default major). */
@@ -108,6 +144,10 @@ export interface ScaleSetup {
   span: ScaleSpan;
   motion: ScaleMotion;
   hands: ScaleHands;
+  /** With both hands: how they sit (default an octave apart). */
+  apart?: HandsApart;
+  /** Arpeggios: start on the root (0), the 3rd (1) or the 5th (2). */
+  inversion?: number;
   bpm: number;
   /** Extra bar some presets add: evenness must reach this outright. */
   minEvenness?: number;
@@ -130,20 +170,75 @@ export interface ScaleStep {
   atBeat: number;
 }
 
+/** The scale's steps from the tonic, the chromatic scale's twelve. */
+const degreeSteps = (kind: DrillScaleKind) =>
+  kind === "chromatic"
+    ? Array.from({ length: 12 }, (_, i) => i)
+    : (SCALE_DATA.semitonesByKind[kind] as number[]).filter((st) => st < 12);
+
+/**
+ * A scale line by degree, for the shapes an octave apart can't give: hands a
+ * third or a sixth apart, contrary motion, double thirds and octaves in a hand,
+ * and the chromatic scale. Each step is [left notes, right notes].
+ */
+function degreeLine(setup: ScaleSetup, pattern: "scale" | "thirds" | "octaves"): number[][][] {
+  const steps = degreeSteps(setup.kind);
+  const n = steps.length;
+  const at = (d: number) => setup.tonic + steps[((d % n) + n) % n] + 12 * Math.floor(d / n);
+  const top = setup.span === "pentascale" ? 4 : setup.span === "two-octave" ? 2 * n : n;
+  const up = Array.from({ length: top + 1 }, (_, d) => d);
+  const down = [...up].reverse();
+  const line =
+    setup.motion === "up" ? up : setup.motion === "down" ? down : [...up, ...down.slice(1)];
+  const shape = (m: number) =>
+    pattern === "thirds" ? [m] : pattern === "octaves" ? [m, m + 12] : [m];
+  // Double thirds: the degree and the one two above, in each hand.
+  const hand = (d: number, shift: number) =>
+    pattern === "thirds" ? [at(d) + shift, at(d + 2) + shift] : shape(at(d) + shift);
+  const apart = setup.hands === "both" ? (setup.apart ?? "octave") : "octave";
+  return line.map((d) => {
+    const right = apart === "third" ? hand(d + 2, 0) : hand(d, 0);
+    const left =
+      apart === "contrary"
+        ? hand(-d, pattern === "octaves" ? -12 : 0)
+        : apart === "sixth"
+          ? hand(d + 2, -12)
+          : hand(d, pattern === "octaves" ? -24 : -12);
+    if (setup.hands === "both") return [left, right];
+    if (setup.hands === "left") return [hand(d, pattern === "octaves" ? -24 : -12), []];
+    return [[], right];
+  });
+}
+
 /** One expected step per note-time of the line (`perBeat` of them to a click). */
 export function scaleDrillTargets(setup: ScaleSetup): ScaleStep[] {
   const pattern = setup.pattern ?? "scale";
+  const per = setup.perBeat ?? 1;
+  const plain =
+    pattern === "scale" &&
+    setup.kind !== "chromatic" &&
+    (setup.hands !== "both" || (setup.apart ?? "octave") === "octave");
+  if (isScaleLine(pattern) && !plain)
+    return degreeLine(setup, pattern as "scale" | "thirds" | "octaves").map(([l, r], index) => ({
+      index,
+      atBeat: index / per,
+      // Contrary motion starts and ends in unison: both thumbs share one key, so it is one note.
+      notes: [
+        ...l.filter((m) => !r.includes(m)).map((midi) => ({ midi, hand: "left" as const })),
+        ...r.map((midi) => ({ midi, hand: "right" as const })),
+      ],
+    }));
   const right =
     pattern === "scale"
-      ? scaleLine(setup.kind, setup.tonic, setup.span, setup.motion).map((m) => [m])
+      ? scaleLine(setup.kind as ScaleKind, setup.tonic, setup.span, setup.motion).map((m) => [m])
       : chordSteps(
           setup.chord ?? "major",
           setup.tonic,
-          pattern,
+          pattern as "arpeggio" | "broken" | "blocked",
           setup.span === "two-octave" ? 2 : 1,
           setup.motion,
+          pattern === "arpeggio" ? (setup.inversion ?? 0) : 0,
         );
-  const per = setup.perBeat ?? 1;
   return right.map((midis, index) => ({
     index,
     atBeat: index / per,
@@ -160,10 +255,10 @@ export function scaleDrillTargets(setup: ScaleSetup): ScaleStep[] {
   }));
 }
 
-export const scaleSkills = (kind: ScaleKind, pattern: ScalePattern = "scale") =>
+export const scaleSkills = (kind: DrillScaleKind, pattern: ScalePattern = "scale") =>
   pattern === "arpeggio"
     ? ["technique.arpeggios"]
-    : pattern !== "scale"
+    : !isScaleLine(pattern)
       ? ["technique.chord-inversions"]
       : ["technique.scales", `technique.scale.${kind}`].filter((id) => SKILL_IDS.has(id));
 
@@ -172,15 +267,18 @@ export const scaleSetupKey = (
   s: Pick<
     ScaleSetup,
     "kind" | "tonic" | "motion" | "span" | "hands" | "pattern" | "chord" | "perBeat"
-  >,
+  > &
+    Partial<Pick<ScaleSetup, "apart" | "inversion">>,
 ) => {
-  const base = [s.kind, s.tonic, s.motion, s.span, s.hands];
+  // Hands a third, a sixth or contrary say so; an octave apart keeps the old key.
+  const hands = s.hands === "both" && s.apart && s.apart !== "octave" ? `both-${s.apart}` : s.hands;
+  const base = [s.kind, s.tonic, s.motion, s.span, hands];
   const pattern = s.pattern ?? "scale";
   // Scales one note a click keep their old keys, so stored ladders still apply.
   if (pattern === "scale" && (s.perBeat ?? 1) === 1) return base.join("|");
   return [
-    pattern,
-    pattern === "scale" ? s.kind : (s.chord ?? "major"),
+    pattern === "arpeggio" && s.inversion ? `arpeggio-${s.inversion}` : pattern,
+    isScaleLine(pattern) ? s.kind : (s.chord ?? "major"),
     ...base.slice(1),
     s.perBeat ?? 1,
   ].join("|");
@@ -200,14 +298,14 @@ export interface FretTarget extends FretPosition {
 }
 
 // ---------------------------------------------------------------------------
-// Legato: hammer-ons and pull-offs on one string. Only the first note of each
-// group is picked (P); h hammers on, p pulls off.
+// Legato: hammer-ons, pull-offs and slides on one string. Only the first note of
+// each group is picked (P); h hammers on, p pulls off, s slides from the note before.
 
 export interface LegatoPattern {
   id: string;
   label: string;
-  /** Frets above the start fret, and how each note sounds. */
-  steps: [number, "P" | "h" | "p"][];
+  /** Frets above the start fret, how each note sounds, and its finger when not one a fret from the start. */
+  steps: [number, "P" | "h" | "p" | "s", finger?: number][];
 }
 export const LEGATO_PATTERNS: LegatoPattern[] = [
   {
@@ -239,6 +337,27 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
       [2, "p"],
     ],
   },
+  {
+    id: "slide",
+    label: "Slide up and back: 0 s2 s0",
+    steps: [
+      [0, "P", 3],
+      [2, "s", 3],
+      [0, "s", 3],
+    ],
+  },
+  {
+    id: "slide-shift",
+    label: "Position shift: 0 2 s4 h5 p4 s2",
+    steps: [
+      [0, "P", 1],
+      [2, "P", 3],
+      [4, "s", 3],
+      [5, "h", 4],
+      [4, "p", 3],
+      [2, "s", 3],
+    ],
+  },
 ];
 
 /** The pattern on `string` from `startFret`, `repeats` times. */
@@ -251,15 +370,15 @@ export function legatoTargets(opts: {
 }): FretTarget[] {
   const pattern = LEGATO_PATTERNS.find((p) => p.id === opts.patternId) ?? LEGATO_PATTERNS[0];
   return Array.from({ length: opts.repeats ?? 4 }, () => pattern.steps).flatMap((steps) =>
-    steps.map(([off, how]) => {
+    steps.map(([off, how, finger]) => {
       const fret = opts.startFret + off;
       return {
         string: opts.string,
         fret,
         midi: midiAt(opts.tuning, opts.string, fret),
         label: how,
-        // One finger per fret from the start: 0 the index, 2 the ring, 3 the little finger.
-        finger: off + 1,
+        // One finger per fret from the start (0 the index, 2 the ring), unless a slide carries one finger along.
+        finger: finger ?? off + 1,
       };
     }),
   );
@@ -834,27 +953,162 @@ export function spiderTargets(opts: {
   );
 }
 
-export const POSITION_PATTERNS = FRETBOARD_PATTERNS;
+export interface PositionPattern extends Omit<FretboardPatternDef, "family"> {
+  family: FretboardPatternDef["family"] | "connected" | "triads";
+  /** Played in the written order (a run across boxes, triads by inversion), not low string to high. */
+  ordered?: boolean;
+  /** The fretting finger of each offset, when one finger a fret from the lowest would be wrong. */
+  fingers?: number[];
+}
+
+const offs = (list: [string: number, fret: number][]) =>
+  list.map(([stringNumber, fretOffset]) => ({ stringNumber, fretOffset }));
+
+/** Boxes 1 to 5 joined up the neck: box 1 up, box 2 down, box 3 up, and so on (frets 5 to 17 in A). */
+function connectedBoxes(): PositionPattern {
+  const boxes = FRETBOARD_PATTERNS.filter((p) => p.family === "minor-pentatonic");
+  const offsets: FretboardPatternDef["offsets"] = [];
+  const fingers: number[] = [];
+  boxes.forEach((b, k) => {
+    const low = Math.min(...b.offsets.map((o) => o.fretOffset));
+    const up = [...b.offsets].sort(
+      (x, y) => y.stringNumber - x.stringNumber || x.fretOffset - y.fretOffset,
+    );
+    for (const o of k % 2 ? up.reverse() : up) {
+      offsets.push(o);
+      fingers.push(Math.min(4, o.fretOffset - low + 1));
+    }
+  });
+  return {
+    id: "minor-pentatonic-connected",
+    label: "Boxes 1 to 5 connected",
+    family: "connected",
+    ordered: true,
+    offsets,
+    fingers,
+  };
+}
+
+/**
+ * Triads on three strings, every inversion up the neck, offsets from the root
+ * on string 6 like the boxes. In A at fret 5, major on strings 1 to 3 is
+ * C# E A at 6 5 5, E A C# at 9 10 9, A C# E at 14 14 12.
+ */
+const TRIADS: PositionPattern[] = [
+  {
+    id: "triads-major-strings-1-3",
+    label: "Major triads, strings 1 to 3",
+    family: "triads",
+    ordered: true,
+    offsets: offs([
+      [3, 1],
+      [2, 0],
+      [1, 0],
+      [3, 4],
+      [2, 5],
+      [1, 4],
+      [3, 9],
+      [2, 9],
+      [1, 7],
+    ]),
+    fingers: [2, 1, 1, 1, 3, 2, 2, 3, 1],
+  },
+  {
+    id: "triads-major-strings-2-4",
+    label: "Major triads, strings 2 to 4",
+    family: "triads",
+    ordered: true,
+    offsets: offs([
+      [4, 2],
+      [3, 1],
+      [2, 0],
+      [4, 6],
+      [3, 4],
+      [2, 5],
+      [4, 9],
+      [3, 9],
+      [2, 9],
+    ]),
+    fingers: [3, 2, 1, 3, 1, 2, 1, 1, 1],
+  },
+  {
+    id: "triads-minor-strings-1-3",
+    label: "Minor triads, strings 1 to 3",
+    family: "triads",
+    ordered: true,
+    offsets: offs([
+      [3, 0],
+      [2, 0],
+      [1, 0],
+      [3, 4],
+      [2, 5],
+      [1, 3],
+      [3, 9],
+      [2, 8],
+      [1, 7],
+    ]),
+    fingers: [1, 1, 1, 2, 3, 1, 3, 2, 1],
+  },
+  {
+    id: "triads-minor-strings-2-4",
+    label: "Minor triads, strings 2 to 4",
+    family: "triads",
+    ordered: true,
+    offsets: offs([
+      [4, 2],
+      [3, 0],
+      [2, 0],
+      [4, 5],
+      [3, 4],
+      [2, 5],
+      [4, 9],
+      [3, 9],
+      [2, 8],
+    ]),
+    fingers: [3, 1, 1, 2, 1, 3, 2, 3, 1],
+  },
+];
+
+export const POSITION_PATTERNS: PositionPattern[] = [
+  ...FRETBOARD_PATTERNS,
+  connectedBoxes(),
+  ...TRIADS,
+];
 /** Where a shape's lowest fret sits relative to the root fret (E 0, D 2, C 4, A 7, G 9). */
-export const baseOffset = (p: FretboardPatternDef) =>
+export const baseOffset = (p: Pick<FretboardPatternDef, "offsets">) =>
   Math.min(...p.offsets.map((o) => o.fretOffset));
 /** Root frets that keep the whole shape on the neck. */
-export const positionRootFretMax = (p: FretboardPatternDef, t: Tuning) =>
+export const positionRootFretMax = (p: Pick<FretboardPatternDef, "offsets">, t: Tuning) =>
   t.fretCount - Math.max(...p.offsets.map((o) => o.fretOffset));
 
-/** A box or CAGED shape at a root fret (on string 6), arpeggiated low string to high. */
+/**
+ * A shape at a root fret (on string 6): a box or CAGED shape arpeggiated low
+ * string to high, an ordered pattern in its written order.
+ */
 export function positionTargets(opts: {
   patternId: string;
   tuning: Tuning;
   rootFret: number;
 }): FretTarget[] {
   const p = POSITION_PATTERNS.find((x) => x.id === opts.patternId) ?? POSITION_PATTERNS[0];
-  return p.offsets
-    .filter((o) => o.stringNumber <= opts.tuning.openStrings.length)
-    .map((o) => ({ string: o.stringNumber, fret: opts.rootFret + o.fretOffset }))
-    .filter((t) => t.fret >= 0 && t.fret <= opts.tuning.fretCount)
-    .sort((a, b) => b.string - a.string || a.fret - b.fret)
-    .map((t) => ({ ...t, midi: midiAt(opts.tuning, t.string, t.fret) }));
+  const notes = p.offsets
+    .map((o, i) => ({
+      string: o.stringNumber,
+      fret: opts.rootFret + o.fretOffset,
+      finger: p.fingers?.[i],
+    }))
+    .filter(
+      (t) =>
+        t.string <= opts.tuning.openStrings.length &&
+        t.fret >= 0 &&
+        t.fret <= opts.tuning.fretCount,
+    );
+  if (!p.ordered) notes.sort((a, b) => b.string - a.string || a.fret - b.fret);
+  return notes.map(({ finger, ...t }) => ({
+    ...t,
+    midi: midiAt(opts.tuning, t.string, t.fret),
+    ...(finger ? { finger } : {}),
+  }));
 }
 
 // ---------------------------------------------------------------------------

@@ -1839,24 +1839,36 @@
         {
           "id": "6.9",
           "title": "Dynamics in a song",
-          "setup": "A song-form piece with the verse in the soft band and the chorus in the loud band.",
+          "setup": "Song Studio on a drum song with dynamics marks, graded on dynamics (soft verse, loud chorus). Song Studio grades the whole take, not a band per section yet.",
           "done": "Bands right in 4 of 4 sections.",
-          "needs": "Song-form pieces: sections (intro, groove, build, drop, outro) graded in one take, with a dynamics band per section.",
-          "feeds": "Every song"
+          "feeds": "Every song",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "grade": "dynamics"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "6.10",
           "title": "Two-beat fill, any fill",
           "setup": "Improvise over the funk vamp with a fill every 4th bar, 32 bars.",
           "done": "8 fills over 32 bars, all landed.",
-          "needs": "A fill every Nth bar option and 32 bars in Improvise, with Check runs that count.",
           "links": [
             {
               "label": "Improvise",
               "href": "/music/pads?mode=improvise"
             }
           ],
-          "feeds": "The level test"
+          "feeds": "The level test",
+          "href": "/music/pads?mode=improvise&bars=32&fillEvery=4",
+          "match": {
+            "setup": "funk",
+            "bars": "32",
+            "fillEvery": "4"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         }
       ],
       "shelf": [
@@ -3557,28 +3569,40 @@
           "title": "Improvise 16 bars",
           "setup": "Improvise over the funk vamp, the results played back raw.",
           "done": "16 bars, drift under 2 BPM, at least 3 different fills.",
-          "needs": "Check runs that count in Improvise (16 bars are there).",
           "links": [
             {
               "label": "Improvise, 16 bars",
               "href": "/music/pads?mode=improvise&bars=16"
             }
           ],
-          "feeds": "The set"
+          "feeds": "The set",
+          "href": "/music/pads?mode=improvise&bars=16",
+          "match": {
+            "setup": "funk",
+            "bars": "16"
+          },
+          "threshold": 0.85,
+          "minAttempts": 1
         },
         {
           "id": "11.6",
           "title": "Improvise over a loop",
           "setup": "A chosen loop under Improvise; raw and half-quantised playback reviewed.",
           "done": "32 bars over the loop.",
-          "needs": "Check runs that count in Improvise (a loop under it is there).",
           "links": [
             {
               "label": "Improvise over boom bap",
               "href": "/music/pads?mode=improvise&loop=boom-bap-b&bars=32"
             }
           ],
-          "feeds": "The set"
+          "feeds": "The set",
+          "href": "/music/pads?mode=improvise&loop=boom-bap-b&bars=32",
+          "match": {
+            "setup": "boom-bap-b",
+            "bars": "32"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "11.7",

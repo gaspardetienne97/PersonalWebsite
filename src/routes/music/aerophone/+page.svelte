@@ -8,7 +8,7 @@
     AEROPHONE_RANGE,
     FINGERING_LESSONS,
     fingeringSlip,
-    lessonSequence,
+    lessonLine,
     ARTICULATION_TARGET,
     LANDING_INTERVALS,
     aerophoneSkills,
@@ -32,6 +32,7 @@
   import { BREATH_LEVELS, inBandShare } from "@repo/music-core/content/aero-skills";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import AeroSkills from "$lib/music/drills/aerophone/AeroSkills.svelte";
+  import AeroCalibrate from "$lib/music/drills/aerophone/AeroCalibrate.svelte";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -72,7 +73,7 @@
   const landing = $derived(landingTarget(s.drone, s.interval, s.direction === "down" ? "down" : "up"));
   const drone = $derived(s.drone - shift);
   const lesson = $derived(FINGERING_LESSONS.find((l) => l.id === s.lesson) ?? FINGERING_LESSONS[0]);
-  const seq = $derived(lessonSequence(lesson.notes).map((m) => m - shift));
+  const seq = $derived(lessonLine(lesson).map((m) => m - shift));
   // Fingering: the note waiting to be played (flash cards: nothing moves on until it is right).
   /** A concert note by the chart's spelling of its written note (G#4, Eb4), so names match the buttons and the slip hints. */
   const chartName = (midi: number) => fingeringFor(midi + shift)?.name ?? noteName(midi + shift);
@@ -150,13 +151,13 @@
           ? `articulation:${writtenTarget}:${style}:${bpm}:${s.count}`
           : `interval-landing:${s.drone}:${s.interval}:${s.direction}`,
   );
-  const SKILL_MODES = ["scales", "tonguing", "register", "trills", "vibrato"] as const;
+  const SKILL_MODES = ["scales", "tonguing", "register", "trills", "vibrato", "swing", "long-scale"] as const;
   const skillMode = $derived(SKILL_MODES.find((x) => x === s.mode) ?? null);
   /** Breath inside the level's band while the note was held; null when no level is set. */
   let levelShare = $state<number | null>(null);
   const summaryLine = $derived<SetupClause[]>(
     m === "fingering"
-      ? [{ text: `Fingering: ${lesson.label}`, focus: "lesson" }, { text: "up and back down" }]
+      ? [{ text: `Fingering: ${lesson.label}`, focus: "lesson" }, { text: "line" in lesson ? `${seq.length} notes` : "up and back down" }]
       : m === "long-tone"
         ? [{ text: `Long tone on ${chartName(targetMidi)}` }, { text: `hold ${s.seconds} s`, focus: "seconds" }, ...(level ? [{ text: `at ${level.id}`, focus: "level" }] : [])]
         : m === "swell"
@@ -232,7 +233,7 @@
       assistance: assistanceFor(mode),
       difficulty: m === "long-tone" ? 0.25 + s.seconds / 40 : m === "swell" ? 0.45 : m === "articulation" ? 0.35 + (bpm - 70) / 200 : 0.5,
       instrument: "aerophone",
-      params: { mode: m, target: targetMidi, ...(m === "interval-landing" ? { drone: s.drone, interval: s.interval, direction: s.direction } : {}) },
+      params: { mode: m, target: targetMidi, ...(m === "fingering" ? { lesson: lesson.id } : {}), ...(m === "interval-landing" ? { drone: s.drone, interval: s.interval, direction: s.direction } : {}) },
     });
     if (m === "fingering") {
       step = 0;
@@ -493,6 +494,8 @@
 
 {#if skillMode}
   {#key skillMode}<AeroSkills skill={skillMode} modes={AEROPHONE_MODES} onmode={(v) => cfg.set({ mode: v })} />{/key}
+{:else if s.mode === "calibrate"}
+  <AeroCalibrate modes={AEROPHONE_MODES} onmode={(v) => cfg.set({ mode: v })} />
 {:else}
 <DrillShell
   title="Aerophone"
@@ -554,7 +557,7 @@
       <div class="flex min-w-0 flex-col gap-3">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
-            <p class="text-xs text-ws-stage-soft">{lesson.label}, up and back down</p>
+            <p class="text-xs text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it is right` : "up and back down"}</p>
             <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Lesson notes">
               {#each seq as n, i (i)}
                 {@const done = phase === "results" || (phase === "running" && i < step)}
@@ -590,7 +593,7 @@
         {#if m === "articulation"}
           <AttackGrid count={s.count} target={ARTICULATION_TARGET[style]} played={artPlayed} current={artBeat} {style} />
         {/if}
-        <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" />
+        <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" name={chartName} />
       </div>
       <div class="flex flex-col items-center gap-2">
         {#if showTargets}

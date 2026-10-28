@@ -487,6 +487,111 @@ export function cadenceChords(
   );
 }
 
+/**
+ * Gospel and ballad chord moves (piano path drill 8): [suffix, root above the
+ * key in semitones, right-hand intervals (three notes), bass above the key when
+ * it is not the root]. The right hand moves the shortest way; the left plays the bass.
+ */
+type GospelChord = [string, number, number[], number?];
+const DIM = [3, 6, 9];
+const SEVENTH_NO_FIFTH = [0, 4, 10];
+const MINOR_SEVENTH = [3, 7, 10];
+export const GOSPEL_PROGRESSIONS: {
+  id: string;
+  label: string;
+  about: string;
+  chords: GospelChord[];
+}[] = [
+  {
+    id: "slash-walk",
+    label: "Slash chords, a walking bass",
+    about:
+      "I, V/7, vi, vi/5, IV, I/3, ii7, V: the bass walks down while the right hand barely moves.",
+    chords: [
+      ["", 0, MAJ],
+      ["", 7, MAJ, 11],
+      ["m", 9, MIN],
+      ["m", 9, MIN, 7],
+      ["", 5, MAJ],
+      ["", 0, MAJ, 4],
+      ["m7", 2, MINOR_SEVENTH],
+      ["", 7, MAJ],
+    ],
+  },
+  {
+    id: "four-five-one",
+    label: "Walk-up and the 4-5-1",
+    about: "The bass walks 1-2-3-4 into IV, then V over the IV bass passes back to I/3.",
+    chords: [
+      ["", 0, MAJ],
+      ["m7", 2, MINOR_SEVENTH],
+      ["", 0, MAJ, 4],
+      ["", 5, MAJ],
+      ["", 7, MAJ, 5],
+      ["", 0, MAJ, 4],
+      ["", 5, MAJ],
+      ["7", 7, SEVENTH_NO_FIFTH],
+      ["", 0, MAJ],
+    ],
+  },
+  {
+    id: "passing-dim",
+    label: "Passing diminished",
+    about: "I-#Idim7-ii and IV-#IVdim7-I/5: a diminished chord a half step up joins two chords.",
+    chords: [
+      ["", 0, MAJ],
+      ["dim7", 1, DIM],
+      ["m7", 2, MINOR_SEVENTH],
+      ["7", 7, SEVENTH_NO_FIFTH],
+      ["", 5, MAJ],
+      ["dim7", 6, DIM],
+      ["", 0, MAJ, 7],
+      ["7", 7, SEVENTH_NO_FIFTH],
+      ["", 0, MAJ],
+    ],
+  },
+];
+
+export interface GospelChordBar extends ClosestChordBar {
+  /** The left hand's note: the slash bass, else the root. */
+  bassPc: number;
+}
+
+/** A gospel progression in a key: three right-hand notes moving least from a root-position I, the bass in the left. */
+export function gospelChords(
+  keyPc: number,
+  id: string,
+  register: [number, number] = [55, 76],
+): GospelChordBar[] {
+  const prog = GOSPEL_PROGRESSIONS.find((p) => p.id === id) ?? GOSPEL_PROGRESSIONS[0];
+  const tonic = register[0] + pc(keyPc - register[0]);
+  let rh: number[] = [];
+  return prog.chords.map(([suffix, degree, iv, bass], bar) => {
+    const root = pc(keyPc + degree);
+    const pcs = iv.map((i) => pc(root + i));
+    const next =
+      bar === 0
+        ? { midi: iv.map((i) => tonic + i), movement: 0 }
+        : nearestVoicing(rh, pcs, register);
+    rh = next.midi;
+    const bassPc = pc(keyPc + (bass ?? degree));
+    // A raised degree (the passing diminished) is spelled sharp: C#dim7 in C.
+    const name = (p: number) => (suffix === "dim7" ? SHARP_NAMES[p] : FLAT_NAMES[p]);
+    const lowest = pc(rh[0] - root);
+    return {
+      id: `gospel-${prog.id}-${FLAT_NAMES[pc(keyPc)]}-${bar + 1}`,
+      bar: bar + 1,
+      symbol: `${name(root)}${suffix}${bass === undefined ? "" : `/${FLAT_NAMES[bassPc]}`}`,
+      rightHand: rh,
+      leftHand: leftRoot(bassPc),
+      inversion: lowest === 0 ? 0 : lowest <= 4 ? 1 : lowest <= 7 ? 2 : 3,
+      expectedBassPc: pc(rh[0]),
+      movement: next.movement,
+      bassPc,
+    };
+  });
+}
+
 /** Progressions for the pedal drill: a chord a bar, voiced as the cadences are. */
 export const PEDAL_PROGRESSIONS: { id: string; label: string; plan: Plan }[] = [
   {

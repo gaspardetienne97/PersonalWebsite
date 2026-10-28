@@ -240,6 +240,33 @@ describe("MusicXML", () => {
     expect(parseMusicXml(DUO).chords).toBeUndefined();
   });
 
+  it("reads dynamics, hairpins and breath marks", () => {
+    const n = (step: string, dur: number, extra = "") =>
+      `<note>${pitch(step, 4)}<duration>${dur}</duration>${extra}</note>`;
+    const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Alto Sax</part-name></score-part></part-list>
+      <part id="P1">
+        <measure number="1"><attributes><divisions>2</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+          <direction><direction-type><dynamics><p/></dynamics></direction-type></direction>
+          ${n("C", 4)}
+          <direction><direction-type><wedge type="crescendo"/></direction-type></direction>
+          ${n("D", 4, "<notations><articulations><breath-mark/></articulations></notations>")}
+        </measure>
+        <measure number="2">
+          <direction><direction-type><wedge type="stop"/></direction-type><offset>2</offset></direction>
+          <direction><direction-type><dynamics><f/></dynamics></direction-type><offset>2</offset></direction>
+          ${n("E", 8)}
+        </measure>
+      </part></score-partwise>`;
+    const s = parseMusicXml(xml);
+    expect(s.dynamics).toEqual([
+      { startBeat: 0, mark: "p" },
+      { startBeat: 5, mark: "f" },
+    ]);
+    expect(s.hairpins).toEqual([{ startBeat: 2, endBeat: 5, kind: "crescendo" }]);
+    expect(s.breaths).toEqual([4]);
+    expect(parseMusicXml(DUO).dynamics).toBeUndefined();
+  });
+
   it("refuses timewise and non-MusicXML documents with a message", () => {
     expect(() => parseMusicXml("<score-timewise/>")).toThrow(/Timewise/);
     expect(() => parseMusicXml("<html></html>")).toThrow(/not a MusicXML/);

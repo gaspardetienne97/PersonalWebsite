@@ -107,6 +107,11 @@
         else el.removeAttribute("data-state");
       }
     }
+    // Beams, ties and triplet marks hide with any group they join, so the mask hides them too.
+    for (const { groups, el } of layout.linked ?? []) {
+      if (groups.some((g) => groupStates[g] === "hidden")) el.setAttribute("data-state", "hidden");
+      else el.removeAttribute("data-state");
+    }
   });
 
   const interactive = $derived(!!(onselect || onbarclick));

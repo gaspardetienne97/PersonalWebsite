@@ -435,6 +435,99 @@ export function improviseReport(
     pads: [...new Set(hits.map((h) => h.midi))].sort((a, b) => a - b),
   };
 }
+/**
+ * Improvise graded on time and density (Check runs): how close hits sit to the
+ * loop's grid, whether the tempo held (a line through the hits against the
+ * grid, its slope the tempo played), and whether every bar kept going. With a
+ * fill every `fillEvery` bars, each fill bar must be busier than the groove
+ * bars and land a hit on the next bar's one.
+ */
+export interface ImproviseGrade {
+  score: number;
+  correct: boolean;
+  /** 1 at 15 ms mean distance from the grid or closer, 0 at 60 ms; halved past 2 BPM of drift. */
+  time: number;
+  meanAbsMs: number | null;
+  driftBpm: number | null;
+  /** Bars with at least two hits, out of the bars. */
+  density: number;
+  fills: { expected: number; landed: number } | null;
+  /** Different hit patterns among the busier bars (the fills). */
+  distinctFills: number;
+}
+export const IMPROVISE_DRIFT_BPM = 2;
+
+export function gradeImprovise(
+  hits: readonly { at: number; midi: number }[],
+  startAt: number,
+  beatMs: number,
+  bars: number,
+  opts: { stepsPerBeat?: number; fillEvery?: number } = {},
+): ImproviseGrade {
+  const step = beatMs / (opts.stepsPerBeat ?? 4);
+  const barMs = beatMs * 4;
+  const rel = hits
+    .map((h) => ({ ...h, t: h.at - startAt }))
+    .filter((h) => h.t > -step / 2 && h.t < bars * barMs + step / 2);
+  const offs = rel.map((h) => Math.abs(h.t - Math.round(h.t / step) * step));
+  const meanAbsMs = offs.length ? offs.reduce((a, b) => a + b, 0) / offs.length : null;
+  // Drift: each hit takes the grid step the line so far predicts, and the line is refitted as
+  // it goes, so a steady rush is followed rather than snapped back to the nearest sixteenth.
+  const pts: { x: number; y: number }[] = [];
+  let slope = 1;
+  let intercept = 0;
+  for (const h of [...rel].sort((a, b) => a.t - b.t)) {
+    pts.push({ x: Math.round((h.t - intercept) / slope / step) * step, y: h.t });
+    if (pts.length < 2 || pts[pts.length - 1].x - pts[0].x < beatMs) continue;
+    const mx = pts.reduce((a, p) => a + p.x, 0) / pts.length;
+    const my = pts.reduce((a, p) => a + p.y, 0) / pts.length;
+    const varx = pts.reduce((a, p) => a + (p.x - mx) ** 2, 0);
+    // ponytail: clamped to a fifth either way, as tempoDrift does, so two close hits cannot throw it.
+    slope = varx
+      ? Math.min(1.25, Math.max(0.8, pts.reduce((a, p) => a + (p.x - mx) * (p.y - my), 0) / varx))
+      : 1;
+    intercept = my - slope * mx;
+  }
+  const driftBpm = pts.length >= 8 ? 60000 / beatMs / slope - 60000 / beatMs : null;
+  const drifted = driftBpm !== null && Math.abs(driftBpm) >= IMPROVISE_DRIFT_BPM;
+  let time = meanAbsMs === null ? 0 : Math.max(0, Math.min(1, 1 - (meanAbsMs - 15) / 45));
+  if (drifted) time = Math.min(time, 0.5);
+  const perBar = Array.from({ length: bars }, (_, b) =>
+    rel.filter((h) => Math.floor((h.t + step / 2) / barMs) === b),
+  );
+  const density = perBar.filter((x) => x.length >= 2).length / Math.max(1, bars);
+  const counts = perBar.map((x) => x.length).sort((a, b) => a - b);
+  const median = counts[Math.floor(counts.length / 2)] ?? 0;
+  const pattern = (b: number) =>
+    perBar[b]
+      .map((h) => `${h.midi}@${Math.round((h.t - b * barMs) / step)}`)
+      .sort()
+      .join(",");
+  let fills: ImproviseGrade["fills"] = null;
+  let fillBars: number[];
+  if (opts.fillEvery) {
+    fillBars = Array.from({ length: bars }, (_, b) => b).filter(
+      (b) => (b + 1) % opts.fillEvery! === 0,
+    );
+    const groove = perBar
+      .filter((_, b) => !fillBars.includes(b))
+      .map((x) => x.length)
+      .sort((a, b) => a - b);
+    const typical = groove[Math.floor(groove.length / 2)] ?? 0;
+    const window = Math.max(40, step * 0.6);
+    const landed = fillBars.filter(
+      (b) =>
+        perBar[b].length > typical && rel.some((h) => Math.abs(h.t - (b + 1) * barMs) <= window),
+    ).length;
+    fills = { expected: fillBars.length, landed };
+  } else fillBars = perBar.flatMap((x, b) => (x.length > Math.max(2, median * 1.5) ? [b] : []));
+  const distinctFills = new Set(fillBars.filter((b) => perBar[b].length).map(pattern)).size;
+  const parts = [time, density, ...(fills ? [fills.landed / Math.max(1, fills.expected)] : [])];
+  const score = rel.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
+  const correct =
+    time >= 0.8 && !drifted && density === 1 && (!fills || fills.landed === fills.expected);
+  return { score, correct, time, meanAbsMs, driftBpm, density, fills, distinctFills };
+}
 /** A take nudged `amount` (0..1) of the way to the nearest sixteenth (50% keeps some feel). */
 export const quantise = <T extends { at: number }>(
   hits: readonly T[],

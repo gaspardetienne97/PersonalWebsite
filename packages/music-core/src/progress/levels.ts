@@ -196,7 +196,7 @@ export const SONG_PASS = 0.8;
 export const shelfKey = (path: PathId, song: ShelfSong) => `${path}/${song.id}`;
 
 /**
- * Days with a passing performance per shelf song: Song Studio in Performance mode, a score of
+ * Days with a passing performance per shelf song: Song Studio in Performance or No-stop mode, a score of
  * SONG_PASS or better, at 90% of the record's tempo or faster when the shelf gives one.
  */
 export function songDays(path: LearningPath, runs: RunRecord[]): Map<string, number> {
@@ -207,7 +207,13 @@ export function songDays(path: LearningPath, runs: RunRecord[]): Map<string, num
   for (const r of runs) {
     const key = String(r.params.shelf ?? "");
     const song = songs.get(key);
-    if (!song || r.exerciseId !== "song.studio" || r.params.mode !== "performance") continue;
+    // A no-stop run keeps time too, so it counts like a performance.
+    if (
+      !song ||
+      r.exerciseId !== "song.studio" ||
+      !["performance", "no-stop"].includes(String(r.params.mode))
+    )
+      continue;
     if ((r.score ?? 0) < SONG_PASS - 1e-9) continue;
     if (song.bpm && Number(r.params.bpm) < song.bpm * 0.9 - 1e-9) continue;
     if (!days.has(key)) days.set(key, new Set());

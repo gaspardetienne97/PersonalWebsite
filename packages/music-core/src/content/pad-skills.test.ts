@@ -4,6 +4,7 @@ import {
   fillGroove,
   fillReport,
   gradeDynamics,
+  gradeImprovise,
   improviseReport,
   inRange,
   ladderBand,
@@ -140,5 +141,49 @@ describe("triplet fills", () => {
       "tom-low@15.67",
     ]);
     expect(g.landing.map((i) => g.targets[i].beat)).toEqual([16, 16]);
+  });
+});
+
+describe("gradeImprovise", () => {
+  const beat = 500;
+  const bar = beat * 4;
+  /** Kick on 1 and snare on 3 in each bar, eight sixteenths of toms in each `fillEvery`th bar, landing on the next one. */
+  const take = (bars: number, fillEvery = 0, stretch = 1, jitter = 0) =>
+    Array.from({ length: bars }, (_, b) => {
+      const fill = fillEvery && (b + 1) % fillEvery === 0;
+      const steps = fill ? [0, 8, 9, 10, 11, 12, 13, 14, 15] : [0, 8, 12];
+      return steps.map((s, i) => ({
+        at: (b * bar + (s * beat) / 4) * stretch + (i % 2 ? jitter : -jitter),
+        midi: fill && s > 8 ? 45 + (s % 3) : s === 8 ? 38 : 36,
+      }));
+    })
+      .flat()
+      .concat({ at: bars * bar * stretch, midi: 36 });
+
+  it("passes steady playing in every bar with each fill landed", () => {
+    const g = gradeImprovise(take(32, 4), 0, beat, 32, { fillEvery: 4 });
+    expect(g.fills).toEqual({ expected: 8, landed: 8 });
+    expect(g.density).toBe(1);
+    expect(g.time).toBe(1);
+    expect(g.correct).toBe(true);
+    expect(g.score).toBe(1);
+  });
+
+  it("marks loose time down and catches a drifting tempo", () => {
+    // 40 ms off on almost every hit: about 1 - 25 / 45.
+    const loose = gradeImprovise(take(16, 0, 1, 40), 0, beat, 16);
+    expect(loose.meanAbsMs!).toBeGreaterThan(38);
+    expect(loose.time).toBeLessThan(0.5);
+    // Rushing 3% over 16 bars at 120: about 3.7 BPM fast, so time is capped at a half.
+    const rushed = gradeImprovise(take(16, 0, 0.97), 0, beat, 16);
+    expect(rushed.driftBpm!).toBeGreaterThan(2);
+    expect(rushed.time).toBeLessThanOrEqual(0.5);
+    expect(rushed.correct).toBe(false);
+  });
+
+  it("counts empty bars and different fills", () => {
+    const sparse = take(8).filter((h) => h.at < 4 * bar || h.at >= 6 * bar);
+    expect(gradeImprovise(sparse, 0, beat, 8).density).toBe(0.75);
+    expect(gradeImprovise(take(16, 4), 0, beat, 16).distinctFills).toBe(1);
   });
 });

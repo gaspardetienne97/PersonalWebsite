@@ -20,7 +20,17 @@ import { pick, randInt, type Rand } from "./random";
 export type Clef = "treble" | "bass";
 
 /** Meters a phrase can be written in; "simple" is 4/4 and "compound" 6/8, the first two. */
-export type ReadingMeter = "simple" | "compound" | "2/4" | "3/4" | "3/8" | "9/8" | "2/2" | "5/4";
+export type ReadingMeter =
+  | "simple"
+  | "compound"
+  | "2/4"
+  | "3/4"
+  | "3/8"
+  | "9/8"
+  | "2/2"
+  | "5/4"
+  | "7/8"
+  | "5/8";
 export const READING_METERS: Record<
   ReadingMeter,
   { beats: number; beatUnit: number; label: string }
@@ -33,6 +43,8 @@ export const READING_METERS: Record<
   "9/8": { beats: 9, beatUnit: 8, label: "9/8" },
   "2/2": { beats: 2, beatUnit: 2, label: "2/2" },
   "5/4": { beats: 5, beatUnit: 4, label: "5/4" },
+  "7/8": { beats: 7, beatUnit: 8, label: "7/8" },
+  "5/8": { beats: 5, beatUnit: 8, label: "5/8" },
 };
 
 export interface ReadingLevel extends ReadingLevelDef {
@@ -43,6 +55,8 @@ export interface ReadingLevel extends ReadingLevelDef {
   climbKeys: string[];
   /** Bars a phrase has when the level is picked. */
   measures?: number;
+  /** Written straight, played swung: the eighths long-short (jazz lines). */
+  swing?: boolean;
 }
 
 const PIANO_4_KEYS = [
@@ -58,6 +72,8 @@ const PIANO_4_KEYS = [
 const PIANO_5_KEYS = [...PIANO_4_KEYS, "A major", "Bb major", "Eb major", "B minor", "C minor"];
 const PIANO_7_KEYS = [...PIANO_5_KEYS, "E major", "Ab major", "F# minor"];
 const PIANO_8_KEYS = [...PIANO_7_KEYS, "C# minor", "F minor"];
+const PIANO_9_KEYS = [...PIANO_8_KEYS, "B major", "Db major", "Bb minor"];
+const JAZZ_KEYS = ["C major", "F major", "Bb major", "Eb major", "G major", "D major"];
 const LINE_4_KEYS = [
   "C major",
   "G major",
@@ -144,8 +160,8 @@ const MORE_LEVELS: ReadingLevel[] = [
     id: "piano-8",
     label: "Piano 8",
     description:
-      "About ABRSM Grade 6: right-hand octaves and three-note chords, 9/8 and 5/4, longer phrases. No triplets or clef changes yet.",
-    rhythm: "all of the above in 9/8 and 5/4",
+      "About ABRSM Grade 6: right-hand octaves and three-note chords, triplets, the left hand moving into the treble clef, 9/8 and 5/4, longer phrases.",
+    rhythm: "eighth triplets, and all of the above in 9/8 and 5/4",
     recommendedDifficulty: 0.95,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 88 },
@@ -154,6 +170,21 @@ const MORE_LEVELS: ReadingLevel[] = [
     meters: ["simple", "3/4", "compound", "9/8", "5/4"],
     climbKeys: ["A major", "E major", "C# minor", "F minor", "Ab major"],
     measures: 12,
+  },
+  {
+    id: "piano-9",
+    label: "Piano 9",
+    description:
+      "About ABRSM Grade 7: five sharps or flats, 7/8 and 5/8, triplets and sixteenth syncopation, wider leaps, clef changes. No 8va or tempo changes yet.",
+    rhythm: "7/8 and 5/8 in their groups, quarter and eighth triplets, sixteenth syncopation",
+    recommendedDifficulty: 0.97,
+    recommendedClefs: grand,
+    recommendedRange: { lowestMidi: 36, highestMidi: 91 },
+    recommendedKeys: PIANO_9_KEYS,
+    reader: "piano",
+    meters: ["simple", "3/4", "compound", "7/8", "5/8", "5/4", "9/8", "2/2"],
+    climbKeys: ["B major", "Db major", "Bb minor", "C# minor", "Ab major"],
+    measures: 16,
   },
   {
     id: "line-4",
@@ -188,8 +219,9 @@ const MORE_LEVELS: ReadingLevel[] = [
     id: "line-6",
     label: "Line 6",
     description:
-      "One line at about ABRSM Grade 4 to 5: chromatic neighbour and passing notes. No triplets yet.",
-    rhythm: "syncopation over the beat, dotted eighth and sixteenth, 2/2 and 3/8",
+      "One line at about ABRSM Grade 4 to 5: chromatic neighbour and passing notes, triplets.",
+    rhythm:
+      "syncopation over the beat and the sixteenth, dotted eighth and sixteenth, eighth triplets, 2/2 and 3/8",
     recommendedDifficulty: 0.9,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 52, highestMidi: 89 },
@@ -198,6 +230,22 @@ const MORE_LEVELS: ReadingLevel[] = [
     meters: ["simple", "3/4", "2/4", "compound", "2/2", "3/8"],
     climbKeys: ["E major", "Ab major", "C# minor", "F minor"],
     measures: 8,
+  },
+  {
+    id: "line-jazz",
+    label: "Jazz lines",
+    description:
+      "Jazz heads: chord tones on the beat, blue notes and chromatic approaches, anticipations of 1 and 3. Written straight, played swung.",
+    rhythm: "swing eighths written straight, anticipations tied over the beat",
+    recommendedDifficulty: 0.85,
+    recommendedClefs: ["treble"],
+    recommendedRange: { lowestMidi: 55, highestMidi: 84 },
+    recommendedKeys: JAZZ_KEYS,
+    reader: "line",
+    meters: ["simple"],
+    climbKeys: ["F major", "Bb major", "Eb major"],
+    measures: 8,
+    swing: true,
   },
 ];
 
@@ -455,6 +503,10 @@ interface LevelGen {
   lh?: "roots" | "dyads" | "broken" | "chorale";
   /** Piano: notes on strong beats add chord tones below the melody (1: a lower voice, 2: octaves and three-note chords). */
   rhChords?: 1 | 2;
+  /** Piano: a bar or two of the left hand moves up into the treble clef. */
+  clefChange?: boolean;
+  /** A jazz line: chord tones on the beat, blue notes, chromatic approaches into the beat. */
+  jazz?: boolean;
 }
 const SIMPLE_BASE = [[1], [2], [0.5, 0.5]];
 const COMPOUND_BASE = [[1.5], [1, 0.5], [0.5, 0.5, 0.5]];
@@ -462,6 +514,11 @@ const SIXTEENTHS = [
   [0.5, 0.25, 0.25],
   [0.25, 0.25, 0.5],
 ];
+/** An eighth triplet, three in the time of two (engraved with a 3). */
+const TRIPLET = [1 / 3, 1 / 3, 1 / 3];
+/** Odd eighth meters fill each group (2+2+3, 2+3); a two-eighth group takes these cells. */
+const ODD_GROUPS: Record<string, number[]> = { "7/8": [1, 1, 1.5], "5/8": [1, 1.5] };
+const TWO_EIGHTHS = [[1], [0.5, 0.5], [-0.5, 0.5]];
 const GEN: Record<ReadingLevelId, LevelGen> = {
   primer: { simple: [[1], [2]], compound: [[1.5], [1, 0.5]], maxStep: 1 },
   "level-1": { simple: [[1], [2], [0.5, 0.5]], compound: [[1.5], [1, 0.5]], maxStep: 1 },
@@ -530,6 +587,7 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
       [0.5, 1.5],
       [-1],
       ...SIXTEENTHS,
+      TRIPLET,
     ],
     compound: [
       ...COMPOUND_BASE,
@@ -545,6 +603,7 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
     pickup: true,
     lh: "broken",
     rhChords: 2,
+    clefChange: true,
   },
   "line-4": {
     simple: [...SIMPLE_BASE, [1.5, 0.5], [-1], [-0.5, 0.5], [3]],
@@ -568,10 +627,12 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
       [1.5, 0.5],
       [0.5, 1, 0.5],
       [0.75, 0.25],
+      [0.25, 0.5, 0.25],
       [0.5, 1.5],
       [-1],
       [-0.5, 0.5],
       ...SIXTEENTHS,
+      TRIPLET,
     ],
     compound: [
       ...COMPOUND_BASE,
@@ -585,6 +646,43 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
     ties: 0.2,
     chromatic: 0.3,
     pickup: true,
+  },
+  "piano-9": {
+    simple: [
+      ...SIMPLE_BASE,
+      [1.5, 0.5],
+      [0.5, 1, 0.5],
+      [0.75, 0.25],
+      [0.25, 0.5, 0.25],
+      [0.5, 1.5],
+      [-1],
+      ...SIXTEENTHS,
+      TRIPLET,
+      [2 / 3, 1 / 3],
+    ],
+    compound: [
+      ...COMPOUND_BASE,
+      [0.5, 1],
+      [0.75, 0.25, 0.5],
+      [0.5, 0.25, 0.25, 0.5],
+      [-0.5, 0.5, 0.5],
+    ],
+    maxStep: 9,
+    figures: true,
+    ties: 0.2,
+    chromatic: 0.3,
+    pickup: true,
+    lh: "broken",
+    rhChords: 2,
+    clefChange: true,
+  },
+  "line-jazz": {
+    simple: [[0.5, 0.5], [0.5, 0.5], [1], [1.5, 0.5], [0.5, 1, 0.5], [-0.5, 0.5], [2]],
+    compound: COMPOUND_BASE,
+    maxStep: 4,
+    figures: true,
+    ties: 0.3,
+    jazz: true,
   },
 };
 
@@ -604,19 +702,41 @@ const sum = (xs: number[]) => xs.reduce((a, b) => a + Math.abs(b), 0);
 /** Bar length in quarter-note beats. */
 export const barQuarters = (meter: Score["meter"]) => (meter.beats * 4) / meter.beatUnit;
 
-/** Durations bar by bar; a negative value is a rest. */
-function rhythm(rand: Rand, cells: number[][], barBeats: number, measures: number): number[][] {
+/** Durations bar by bar; a negative value is a rest. `groups` fills an odd meter group by group. */
+function rhythm(
+  rand: Rand,
+  cells: number[][],
+  barBeats: number,
+  measures: number,
+  groups: number[] = [barBeats],
+): number[][] {
   const out: number[][] = [];
+  // A cell is drawn only when what it leaves can still be filled (a 2-eighth cell can't open a 3-eighth group).
+  const known = new Map<number, boolean>();
+  const fillable = (left: number): boolean => {
+    if (left < 1e-9) return true;
+    const k = Math.round(left * 48);
+    if (!known.has(k)) {
+      known.set(k, false);
+      known.set(
+        k,
+        cells.some((c) => sum(c) <= left + 1e-9 && fillable(left - sum(c))),
+      );
+    }
+    return known.get(k)!;
+  };
   for (let bar = 0; bar < measures; bar++) {
     const b: number[] = [];
-    let left = barBeats;
-    while (left > 1e-9) {
-      const cell = pick(
-        rand,
-        cells.filter((c) => sum(c) <= left + 1e-9),
-      );
-      b.push(...cell);
-      left -= sum(cell);
+    for (const group of groups) {
+      let left = group;
+      while (left > 1e-9) {
+        const cell = pick(
+          rand,
+          cells.filter((c) => sum(c) <= left + 1e-9 && fillable(left - sum(c))),
+        );
+        b.push(...cell);
+        left -= sum(cell);
+      }
     }
     // A bar of rests alone reads as nothing to play: its last rest becomes a note.
     if (b.every((d) => d < 0)) b[b.length - 1] *= -1;
@@ -689,6 +809,8 @@ function strongBeats(meter: Score["meter"]): number[] {
 /** Split a bar into chord spans: halves of an even bar, 2 + 1 in 3/4, 3 + 2 in 5/4, dotted quarters in x/8. */
 function spans(meter: Score["meter"]): number[] {
   const bar = barQuarters(meter);
+  const odd = ODD_GROUPS[`${meter.beats}/${meter.beatUnit}`];
+  if (odd) return odd;
   if (meter.beatUnit === 8) return Array.from({ length: Math.round(bar / 1.5) }, () => 1.5);
   if (bar === 3) return [2, 1];
   if (bar === 5) return [3, 2];
@@ -781,7 +903,14 @@ function line(
 ): ScoreNote[] {
   const bar = barQuarters(meter);
   const compound = meter.beatUnit === 8;
-  const bars = rhythm(rand, compound ? gen.compound : gen.simple, bar, measures);
+  const odd = ODD_GROUPS[`${meter.beats}/${meter.beatUnit}`];
+  const bars = rhythm(
+    rand,
+    compound ? [...gen.compound, ...(odd ? TWO_EIGHTHS : [])] : gen.simple,
+    bar,
+    measures,
+    odd,
+  );
   if (pickupBar) {
     const up = compound ? 0.5 : 1;
     bars[0] = [-(bar - up), up];
@@ -801,7 +930,8 @@ function line(
   const notes: ScoreNote[] = [];
   let beat = 0;
   for (const d of durations) {
-    if (d > 0) notes.push({ midi: pitches[notes.length], startBeat: beat, durationBeats: d });
+    if (d > 0)
+      notes.push({ midi: pitches[notes.length], startBeat: snap(beat), durationBeats: snap(d) });
     beat += Math.abs(d);
   }
   const scale = scalePcs(k);
@@ -834,7 +964,42 @@ function line(
             : null;
       if (cand !== null && !pcs.has(pc(cand)) && cand >= pool[0]) n.midi = cand;
     }
+  if (gen.jazz) jazzColour(rand, notes, k, isStrong, pool[0]);
   return notes;
+}
+
+/** A third of a beat is not a round number: starts and lengths sit on a 48th of a beat. */
+const snap = (b: number) => Math.round(b * 48) / 48;
+
+/**
+ * A jazz line's colour: an eighth before a strong-beat note becomes its chromatic
+ * approach from below (half the time), and an off-beat 3rd or 7th of the key
+ * sometimes flattens into a blue note.
+ */
+function jazzColour(
+  rand: Rand,
+  notes: ScoreNote[],
+  k: KeySignature,
+  isStrong: (n: ScoreNote) => boolean,
+  lowest: number,
+) {
+  const third = pc(k.tonicPc + (k.mode === "major" ? 4 : 3));
+  const seventh = pc(k.tonicPc + 10 + (k.mode === "major" ? 1 : 0));
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i];
+    const next = notes[i + 1];
+    if (
+      next &&
+      isStrong(next) &&
+      n.durationBeats <= 0.5 &&
+      Math.abs(n.startBeat + n.durationBeats - next.startBeat) < 1e-6 &&
+      next.midi - 1 >= lowest &&
+      rand() < 0.5
+    )
+      n.midi = next.midi - 1;
+    else if (!isStrong(n) && (pc(n.midi) === third || pc(n.midi) === seventh) && rand() < 0.3)
+      n.midi -= 1;
+  }
 }
 
 /** Chord tones under strong-beat melody notes: one lower voice, or octaves and three-note chords. */
@@ -908,7 +1073,7 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
     parts = [{ clef: parts[0]?.clef ?? clefs[0], pool: diatonicIn(k, lo, hi) }];
   const pickupBar = !!gen.pickup && measures > 1 && rand() < 0.5;
   const accompanied = piano && !!gen.lh && parts.length === 2;
-  const chords = gen.lh ? progression(rand, measures, !gen.fiveFinger) : undefined;
+  const chords = gen.lh || gen.jazz ? progression(rand, measures, !gen.fiveFinger) : undefined;
   const voices: ScoreVoice[] = parts.map(({ clef, pool }) => {
     let notes: ScoreNote[];
     if (accompanied && clef === "bass")
@@ -938,6 +1103,7 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
       notes,
     };
   });
+  if (accompanied && gen.clefChange) clefChange(rand, voices, barQuarters(meter), measures);
   return {
     id: `sight-${opts.level}-${Math.floor(rand() * 2 ** 32).toString(36)}`,
     title: `${level.label} sight-reading`,
@@ -949,6 +1115,30 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
     lengthBeats: measures * barQuarters(meter),
     source: { kind: "generated" },
   };
+}
+
+/**
+ * A bar or two in the middle where the left hand moves up an octave into the
+ * treble clef (and back after), when it stays below the right hand there.
+ */
+function clefChange(rand: Rand, voices: ScoreVoice[], bar: number, measures: number) {
+  const lh = voices.find((v) => v.id === "lh");
+  const rh = voices.find((v) => v.id === "rh");
+  if (!lh || !rh || measures < 4 || rand() < 0.3) return;
+  const from = randInt(rand, 1, measures - 3);
+  const to = Math.min(measures - 1, from + randInt(rand, 1, 2));
+  const inBars = (n: ScoreNote) =>
+    n.startBeat >= from * bar - 1e-6 && n.startBeat < to * bar - 1e-6;
+  const left = lh.notes.filter(inBars);
+  const right = rh.notes.filter(inBars);
+  if (!left.length || !right.length) return;
+  if (Math.max(...left.map((n) => n.midi)) + 12 >= Math.min(...right.map((n) => n.midi))) return;
+  if (Math.min(...left.map((n) => n.midi)) + 12 < 53) return;
+  for (const n of left) n.midi += 12;
+  lh.clefChanges = [
+    { startBeat: from * bar, clef: "treble" },
+    { startBeat: to * bar, clef: "bass" },
+  ];
 }
 
 /** Skill ids a sight-reading score exercises. */

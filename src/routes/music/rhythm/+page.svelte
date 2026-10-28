@@ -336,7 +336,8 @@
     if (groove) return nextRun("rhythm.groove", { ...base, steps: GROOVE_LEVELS.map((l) => ({ label: l.title })), step: GROOVE_LEVELS.indexOf(grooveLevel) }, run, tempoAnd((i) => cfg.set({ grooveLevel: GROOVE_LEVELS[i].id })));
     if (byEar) return nextRun(`rhythm.${s.mode}`, { ...base, steps: EAR_RHYTHM_LEVELS.map((l) => ({ label: l.title })), step: EAR_RHYTHM_LEVELS.indexOf(earLevel) }, run, tempoAnd((i) => cfg.set({ earLevel: EAR_RHYTHM_LEVELS[i].id })));
     const strum = !!def.chords?.length;
-    const list = RHYTHM_PATTERNS.filter((p) => !!p.chords?.length === strum);
+    // Strums move through this instrument's strums only.
+    const list = RHYTHM_PATTERNS.filter((p) => !!p.chords?.length === strum && (!strum || p.id.split("-")[0] === def.id.split("-")[0]));
     return nextRun(`rhythm.${strum ? "strum" : "read"}`, { ...base, steps: list.map((p) => ({ label: p.label })), step: Math.max(0, list.findIndex((p) => p.id === def.id)) }, run, tempoAnd((i) => cfg.set({ pattern: list[i].id })));
   }
 

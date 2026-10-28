@@ -1,8 +1,12 @@
 <script lang="ts">
   // Song Studio (catalog 4.11). Transport and practice actions sit above the
   // score; the score scrolls in its own viewport. Wait mode waits for each
-  // group; Performance keeps time over 1 to 8 takes. Imported songs never
-  // write mastery (skillIds: []), and the whole session is one run.
+  // group; Performance keeps time over 1 to 8 takes; No-stop is one take that
+  // keeps going through slips, scored on what was played and how continuously.
+  // Any mode can run from memory, in another key, and (in time) with the
+  // score's dynamics and breaths or vibrato on held notes graded too.
+  // Imported songs never write mastery (skillIds: []), and the whole session
+  // is one run.
   import { onDestroy, tick } from "svelte";
   import { page } from "$app/state";
   import Play from "lucide-svelte/icons/play";
@@ -14,9 +18,9 @@
   import Timer from "lucide-svelte/icons/timer";
   import Pencil from "lucide-svelte/icons/pencil";
   import Drum from "lucide-svelte/icons/drum";
-  import { clamp, noteName, pc, type InputEvent, type NoteEvent } from "@repo/music-core";
+  import { clamp, noteName, pc, type ControlEvent, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
-  import { writtenOffset } from "@repo/music-core/theory/transposition";
+  import { transposeFifths, transposeScore, writtenOffset } from "@repo/music-core/theory/transposition";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import { GROOVE_VOICES, hitDrumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
   import {
@@ -45,7 +49,7 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, defaultParts, firstSlip, fitToRange, gradedDrums, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
+  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeExpression, gradeVibrato, gradedDrums, hideBefore, noStopVerdict, passMarks, planPasses, retryBpm, segmentAt, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
@@ -70,11 +74,21 @@
     fit: "auto" as string,
     rangeStart: -1,
     rangeEnd: -1,
+    memory: "off" as string,
+    transpose: 0,
+    grade: "notes" as string,
   });
   const s = $derived(setup.value);
-  const perfMode = $derived(s.mode === "performance");
+  // Performance and No-stop keep time; No-stop is one take that never stops for a slip.
+  const noStop = $derived(s.mode === "no-stop");
+  const perfMode = $derived(s.mode === "performance" || noStop);
+  const transpose = $derived(clamp(Math.round(s.transpose) || 0, -6, 6));
+  const memory = $derived(s.memory === "look" || s.memory === "bars" ? s.memory : "off");
+  const hasMarks = $derived(!!(score.dynamics?.length || score.hairpins?.length || score.breaths?.length));
+  /** What else a timed run grades: the score's dynamics and breaths, or vibrato on held notes. */
+  const grade = $derived(perfMode && ((s.grade === "dynamics" && hasMarks) || s.grade === "vibrato") ? s.grade : "notes");
   const bpm = $derived(clamp(Math.round(s.bpm) || score.bpm, 20, 300));
-  const takes = $derived(perfMode ? ([1, 2, 4, 8].includes(s.takes) ? s.takes : 1) : 1);
+  const takes = $derived(perfMode && !noStop ? ([1, 2, 4, 8].includes(s.takes) ? s.takes : 1) : 1);
   const tuning = $derived(TUNING_LIST.find((t) => t.id === s.tuning) ?? TUNING_LIST[0]);
   const custom = $derived<BeatRange | null>(s.rangeStart >= 0 && s.rangeEnd > s.rangeStart ? { startBeat: s.rangeStart, endBeat: s.rangeEnd } : null);
 
@@ -100,12 +114,14 @@
   // On guitar or ukulele (or in Tab) the score moves by octaves into the
   // instrument's range, so every note has a string and a fret.
   const fretted = $derived(!drums && (view === "tab" || ["guitar", "ukulele"].includes(settings.value.activeInstrument)));
+  // A transposed run plays the song in another key: the notes, the staff and the grading all move.
+  const keyed = $derived(transposeScore(score, transpose));
   const fitted = $derived.by(() => {
     const { low, high } = tuningRange(tuning);
-    return fitToRange(score, voiceIds, low, high);
+    return fitToRange(keyed, voiceIds, low, high);
   });
-  const fitting = $derived(fretted && s.fit === "auto" && fitted.score !== score);
-  const played = $derived(fitting ? fitted.score : score);
+  const fitting = $derived(fretted && s.fit === "auto" && fitted.score !== keyed);
+  const played = $derived(fitting ? fitted.score : keyed);
   // The staff shows what the player reads: guitar an octave up, the Aerophone in its reading key.
   const written = $derived(fretted ? writtenOffset(tuning.instrument, settings.value, tuning) : writtenOffset(settings.value.activeInstrument, settings.value));
   const fitNote = $derived.by(() => {
@@ -118,8 +134,6 @@
   const plans = $derived(planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }));
   // Drums are graded by drum: the follower sees each drum's key, never its pitch.
   const passes = $derived(plans.map((segs) => buildPass(drums ? gradedDrums(played) : played, voiceIds, segs, sections)));
-  const viewGroups = $derived(viewGroupsOf(played, voiceIds));
-  const sides = $derived(voiceSides(played, voiceIds));
   /** The hand of the selected voice sounding `midi` in the group at `beat`. */
   const handAt = (midi: number, beat: number | null) => {
     if (beat === null) return undefined;
@@ -140,6 +154,9 @@
     result: PerformanceResult | WaitResult;
     state: FollowerState;
     notes: NoteEvent[];
+    controls: ControlEvent[];
+    /** The take's beat 0. */
+    startAt: number;
   }
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -158,6 +175,12 @@
   let timers: ReturnType<typeof setTimeout>[] = [];
   const flashes = new Flashes();
   const live = $derived(phase === "running" || phase === "countin");
+  // From memory: during a run the notes are hidden, all of them after the look, or bar by bar from the start.
+  let memBars = $state(1);
+  const hideBeat = $derived(live && memory !== "off" ? (memory === "look" ? played.lengthBeats + 1 : Math.min(memBars * barLen, played.lengthBeats)) : 0);
+  const shown = $derived(hideBefore(played, hideBeat));
+  const viewGroups = $derived(viewGroupsOf(shown, voiceIds));
+  const sides = $derived(voiceSides(played, voiceIds));
   const beatMs = $derived(60000 / bpm);
   const octaveExact = $derived(drums || !["guitar", "ukulele", "voice"].includes(settings.value.activeInstrument));
 
@@ -197,7 +220,8 @@
         if (g.startBeat <= previewBeat + 1e-6 && previewBeat < g.startBeat + g.durationBeats) for (const n of g.notes) out[n.midi] = { demo: true, role: sides[n.voiceId] };
       return out;
     }
-    if (live && ls) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
+    // From memory the keys don't show what comes next.
+    if (live && ls && memory === "off") for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
     return out;
   });
 
@@ -264,7 +288,7 @@
     qi = 0;
     run = practice.beginRun({
       exerciseId: "song.studio",
-      setupKey: `${score.id}|${s.mode}|${passes.map((p) => p.label).join("+")}|${voiceIds.join(",")}|${bpm}|${s.strictness}`,
+      setupKey: `${score.id}|${s.mode}|${passes.map((p) => p.label).join("+")}|${voiceIds.join(",")}|${bpm}|${s.strictness}${transpose ? `|t${transpose}` : ""}${memory !== "off" ? `|${memory}` : ""}${grade !== "notes" ? `|${grade}` : ""}`,
       // Imported songs never write mastery: no skills, deliberately.
       skillIds: [],
       capabilities: ["reading"],
@@ -275,7 +299,18 @@
       difficulty: 0.5,
       instrument: settings.value.activeInstrument,
       source: "song",
-      params: { song: score.id, mode: s.mode, bpm, takes, strictness: s.strictness, range: s.range, ...(song.shelf ? { shelf: song.shelf } : {}) },
+      params: {
+        song: score.id,
+        mode: s.mode,
+        bpm,
+        takes,
+        strictness: s.strictness,
+        range: s.range,
+        ...(song.shelf ? { shelf: song.shelf } : {}),
+        ...(memory !== "off" ? { memory } : {}),
+        ...(memory === "bars" ? { hiddenBars: memBars } : {}),
+        ...(transpose ? { transpose } : {}),
+      },
     });
     beginTake();
   }
@@ -289,7 +324,7 @@
       fstate = waitStart(pass.groups, octaveExact);
       startAt = performance.now();
       phase = "running";
-      status = `Wait mode: play ${pass.label.toLowerCase()} at your own pace. The score waits for each note.`;
+      status = `Wait mode: play ${pass.label.toLowerCase()} at your own pace. The score waits for each note.${memory === "look" ? " The notes are hidden: play from memory." : ""}`;
       cap = capture(startAt, onInput);
       void tick().then(() => document.getElementById("studio-run")?.focus());
       return;
@@ -310,7 +345,7 @@
     startAt = downbeat;
     fstate = performanceStart(pass.groups, { bpm, startAt: downbeat, strictness: s.strictness as "relaxed" | "normal" | "strict", octaveExact, sections: pass.sections });
     phase = "countin";
-    status = `Take ${item.take + 1} of ${takes}${passes.length > 1 ? `, ${pass.label}` : ""}. Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
+    status = `${noStop ? "No-stop run: keep going through any slip" : `Take ${item.take + 1} of ${takes}`}${passes.length > 1 ? `, ${pass.label}` : ""}. Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
     // Scored input only after the count-in, so the speakers cannot bleed into the take.
     cap = capture(downbeat - beatMs / 2, onInput);
     timers.push(
@@ -347,7 +382,7 @@
     const item = queue[qi];
     const result = followerResult(fstate);
     const label = `${passes.length > 1 ? `${active.label}, ` : ""}take ${item.take + 1}`;
-    done = [...done, { ...item, label, result, state: fstate, notes: cap?.notes ?? [] }];
+    done = [...done, { ...item, label, result, state: fstate, notes: cap?.notes ?? [], controls: cap?.controls ?? [], startAt }];
     cap = null;
     qi += 1;
     if (qi < queue.length) {
@@ -385,16 +420,63 @@
   let takeRows = $state.raw<Row[]>([]);
   let sectionRows = $state.raw<{ label: string; value: number; text: string }[]>([]);
 
+  interface Extra {
+    score: number;
+    correct: boolean;
+    cont: Continuity | null;
+    kept: boolean;
+    expr: ExpressionResult | null;
+    vib: ReturnType<typeof gradeVibrato> | null;
+    /** The extra measure blended in (dynamics or vibrato), null when not measured. */
+    measure: number | null;
+  }
+  /**
+   * A take's score with what else the run grades: No-stop scales it by
+   * continuity; dynamics or vibrato, when measured, make half of it.
+   */
+  function takeExtras(d: Done): Extra {
+    const pass = passes[d.pass];
+    let score = d.result.score;
+    let correct = d.result.correct;
+    let cont: Continuity | null = null;
+    let kept = true;
+    let expr: ExpressionResult | null = null;
+    let vib: Extra["vib"] = null;
+    let measure: number | null = null;
+    if (isPerf(d.result)) {
+      if (noStop) {
+        cont = continuity(pass, d.notes.filter((n) => n.kind === "noteon").map((n) => n.at), d.startAt, beatMs, barLen);
+        const v = noStopVerdict(score, cont);
+        score = v.score;
+        kept = v.kept;
+        correct = correct && kept;
+      }
+      if (grade === "dynamics") {
+        expr = gradeExpression({ marks: passMarks(played, pass), notes: d.notes, controls: d.controls, startAt: d.startAt, beatMs, lengthBeats: pass.lengthBeats });
+        measure = expr.score;
+      } else if (grade === "vibrato") {
+        vib = gradeVibrato({ pass, notes: d.notes, controls: d.controls, startAt: d.startAt, beatMs });
+        measure = vib.share;
+      }
+      if (measure !== null) {
+        score = score * 0.5 + measure * 0.5;
+        correct = correct && measure >= 0.8;
+      }
+    }
+    return { score, correct, cont, kept, expr, vib, measure };
+  }
+
   async function finish() {
     phase = "results";
     const all = [...done];
+    const extras = all.map(takeExtras);
     const notes = all.flatMap((d) => d.notes);
     const instrument = runInstrument(notes) ?? null;
-    for (const d of all)
+    for (const [i, d] of all.entries())
       await run!.attempt({
         promptId: `${score.id}:${d.label}`,
-        correct: d.result.correct,
-        partialCredit: d.result.score,
+        correct: extras[i].correct,
+        partialCredit: extras[i].score,
         metrics: d.result.metrics,
         source: runSource(d.notes),
         instrument,
@@ -403,13 +485,13 @@
     // "Pick up where you left off" in Songs follows the last song practised.
     void db.songs.update(song.id, { updatedAt: Date.now() });
     const perf = all.filter((d) => isPerf(d.result)).map((d) => d.result as PerformanceResult);
-    const mean = sum(all.map((d) => d.result.score)) / Math.max(1, all.length);
+    const mean = sum(extras.map((x) => x.score)) / Math.max(1, all.length);
     const agg = perf.length ? aggregateTakes(perf) : null;
-    const bestIdx = all.reduce((b, d, i) => (d.result.score > all[b].result.score ? i : b), 0);
+    const bestIdx = extras.reduce((b, x, i) => (x.score > extras[b].score ? i : b), 0);
 
     takeRows = all.map((d, i) => ({
       label: d.label.replace(/^./, (c) => c.toUpperCase()),
-      score: d.result.score,
+      score: extras[i].score,
       best: all.length > 1 && i === bestIdx,
       detail: isPerf(d.result)
         ? `${d.result.matched} of ${d.result.expected} notes, ${Math.round(d.result.meanAbsErrorMs)} ms off, ${d.result.early} early, ${d.result.onTime} on time, ${d.result.late} late, ${d.result.missed} missed, ${d.result.extra} extra`
@@ -417,11 +499,18 @@
     }));
     sectionRows = tallySections(all);
 
+    const conts = extras.flatMap((x) => (x.cont ? [x.cont] : []));
+    const measured = grade !== "notes" && extras.length > 0 && extras.every((x) => x.measure !== null);
     const fin = await run!.finish({
       score: mean,
-      correct: all.every((d) => d.result.correct),
-      headline: `${pct(mean)} at ${bpm} BPM, ${perfMode ? "performance" : "wait"}`,
-      params: { takesPlayed: all.length },
+      correct: extras.every((x) => x.correct),
+      headline: `${pct(mean)} at ${bpm} BPM, ${noStop ? "no-stop" : perfMode ? "performance" : "wait"}`,
+      params: {
+        takesPlayed: all.length,
+        ...(conts.length ? { continuity: Math.round(Math.min(...conts.map((c) => c.share)) * 100) / 100, kept: extras.every((x) => x.kept) } : {}),
+        // A run counts as graded for dynamics or vibrato only when every take could be measured.
+        ...(measured ? { grade } : {}),
+      },
     });
 
     if (perf.length && agg) {
@@ -450,8 +539,22 @@
           { label: "Best take", text: `Take ${agg.bestIndex + 1}, ${pct(best.score)}` },
           { label: "Early / on time / late", text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
           { label: "Missed / extra", text: `${sum(perf.map((r) => r.missed))} / ${sum(perf.map((r) => r.extra))}` },
+          ...extraRows(extras),
         ],
       };
+      const x = extras[bestIdx];
+      if (noStop && x.cont) {
+        const c = x.cont;
+        summary.headline = x.kept
+          ? `Kept going to the end: every bar played, ${pct(x.score)}.`
+          : c.longestGapBeats > 1
+            ? `Stopped for ${c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats} beats at ${barsOf({ startBeat: c.gapAt ?? 0, endBeat: (c.gapAt ?? 0) + 0.01 })}. After a slip, come back in on the next beat.`
+            : `${c.barsPlayed} of ${c.bars} bars played. Keep going through every bar.`;
+      } else if (grade !== "notes" && x.measure !== null && x.measure < 0.8)
+        summary.headline =
+          grade === "vibrato"
+            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; vibrato on ${pct(x.measure)} of the held notes. Pulse the bite 4 to 5 times a second on every long note.`
+            : `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; ${pct(x.measure)} of the dynamics and breaths came out. Make the changes bigger than feels natural.`;
     } else {
       const w = all.map((d) => d.result as WaitResult);
       const clean = sum(w.map((r) => r.cleanGroups));
@@ -479,12 +582,41 @@
       };
     }
     if (spot) summary.headline = spotTake(all);
+    // Bar by bar: a take at 90% or better hides one more bar next time.
+    if (memory === "bars" && Math.max(...extras.map((x) => x.score)) >= 0.9 && memBars * barLen < played.lengthBeats - 1e-6) {
+      memBars += 1;
+      summary.headline += ` Next run hides bars 1 to ${memBars}.`;
+    }
     status = summary.headline;
     fstate = all.at(-1)?.state ?? null;
     active = all.at(-1) ? passes[all.at(-1)!.pass] : null;
     now = performance.now() + 1e7;
     await tick();
     document.getElementById("studio-results")?.focus();
+  }
+
+  /** Result rows for continuity, dynamics and vibrato, from the best take. */
+  function extraRows(extras: Extra[]): NonNullable<RunSummary["rows"]> {
+    const best = extras.reduce((b, x) => (x.score > b.score ? x : b), extras[0]);
+    if (!best) return [];
+    const rows: NonNullable<RunSummary["rows"]> = [];
+    if (best.cont) {
+      const c = best.cont;
+      rows.push({ label: "Kept going (bars played)", value: c.share, text: `${c.barsPlayed} of ${c.bars}, longest slip ${c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats} beat${c.longestGapBeats === 1 ? "" : "s"}` });
+    }
+    if (grade === "dynamics" && best.expr) {
+      const e = best.expr;
+      rows.push(
+        e.score === null
+          ? { label: `Dynamics and breaths (${e.unmeasured ?? "nothing marked in this range"})`, notMeasured: true }
+          : { label: "Dynamics and breaths as marked", value: e.score, text: `${e.dynamics.right} of ${e.dynamics.total} changes, ${e.breaths.right} of ${e.breaths.total} breaths` },
+      );
+    }
+    if (grade === "vibrato" && best.vib) {
+      const v = best.vib;
+      rows.push(v.share === null ? { label: "Vibrato on held notes (no bite arrived as pitch bend)", notMeasured: true } : { label: "Vibrato on held notes, 4 to 5 a second", value: v.share, text: `${v.withVibrato} of ${v.held}` });
+    }
+    return rows;
   }
 
   function tallySections(all: Done[]) {
@@ -627,8 +759,34 @@
   const rangeSummary = $derived(
     s.range === "custom" ? (custom ? `bars ${Math.floor(custom.startBeat / barLen) + 1} to ${Math.ceil(custom.endBeat / barLen)}` : "custom range (not set yet)") : s.range === "sections" && pickedSections.length ? `${pickedSections.length} section${pickedSections.length > 1 ? "s" : ""}${pickedSections.length > 1 ? (s.order === "per-section" ? ", one at a time" : ", in sequence") : ""}` : "whole score",
   );
+  const MAJOR_BY_FIFTHS = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
+  const MINOR_BY_FIFTHS = ["Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#", "G#", "D#", "A#"];
+  /** The song's key moved by `t` semitones, when the score names its key. */
+  const keyAt = (t: number) => {
+    if (score.keyFifths === undefined) return "";
+    const f = transposeFifths(score.keyFifths, t);
+    return score.keyMode === "minor" ? `${MINOR_BY_FIFTHS[f + 7]} minor` : `${MAJOR_BY_FIFTHS[f + 7]} major`;
+  };
+  const transposeLabel = (t: number) => (t ? `${t > 0 ? "Up" : "Down"} ${Math.abs(t)}${keyAt(t) ? `, ${keyAt(t)}` : ""}` : `As written${keyAt(0) ? `, ${keyAt(0)}` : ""}`);
+  const marksText = $derived(
+    [
+      score.dynamics?.length ? `${score.dynamics.length} dynamic${score.dynamics.length === 1 ? "" : "s"}` : "",
+      score.hairpins?.length ? `${score.hairpins.length} hairpin${score.hairpins.length === 1 ? "" : "s"}` : "",
+      score.breaths?.length ? `${score.breaths.length} breath mark${score.breaths.length === 1 ? "" : "s"}` : "",
+    ]
+      .filter(Boolean)
+      .join(", "),
+  );
   const summaryLine = $derived(
-    `${perfMode ? `Performance, ${takes} take${takes > 1 ? "s" : ""}` : "Wait mode"}, ${rangeSummary}, ${bpm} BPM, ${picked.length === choices.length ? "all voices" : choices.filter((c) => picked.includes(c.id)).map((c) => c.label).join(" and ")}`,
+    [
+      noStop ? "No-stop run" : perfMode ? `Performance, ${takes} take${takes > 1 ? "s" : ""}` : "Wait mode",
+      rangeSummary,
+      `${bpm} BPM`,
+      picked.length === choices.length ? "all voices" : choices.filter((c) => picked.includes(c.id)).map((c) => c.label).join(" and "),
+      ...(transpose ? [`${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitone${Math.abs(transpose) === 1 ? "" : "s"}${keyAt(transpose) ? ` (${keyAt(transpose)})` : ""}`] : []),
+      ...(memory === "look" ? ["from memory"] : memory === "bars" ? [`from memory, bars 1 to ${memBars} hidden`] : []),
+      ...(grade === "dynamics" ? ["dynamics and breaths graded"] : grade === "vibrato" ? ["vibrato graded"] : []),
+    ].join(", "),
   );
   const progress = $derived(ls && fstate ? Math.min(1, ls.index / Math.max(1, fstate.groups.length)) : 0);
   const selection = $derived(custom);
@@ -734,6 +892,7 @@
             options={[
               { value: "wait", label: "Wait" },
               { value: "performance", label: "Performance" },
+              { value: "no-stop", label: "No-stop" },
             ]}
             value={s.mode}
             onchange={(v) => setup.set({ mode: v })}
@@ -763,8 +922,38 @@
             value={settings.value.countInBars}
             onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
           />
-          <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode} onchange={(v) => setup.set({ takes: v })} />
-          <p class="self-end text-sm text-ws-soft">{perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
+          <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
+          <p class="self-end text-sm text-ws-soft">{noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
+        </div>
+
+        <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
+          <Choice
+            label="From memory"
+            options={[
+              { value: "off", label: "Off" },
+              { value: "look", label: "After a look" },
+              { value: "bars", label: "Bar by bar" },
+            ]}
+            value={memory}
+            onchange={(v) => setup.set({ memory: v })}
+          />
+          <Choice label="Key" select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
+          <Choice
+            label="Also grade"
+            options={[
+              { value: "notes", label: "Notes only" },
+              { value: "dynamics", label: "Dynamics and breaths" },
+              { value: "vibrato", label: "Vibrato" },
+            ]}
+            value={grade === "notes" ? s.grade : grade}
+            disabled={!perfMode}
+            onchange={(v) => setup.set({ grade: v })}
+          />
+          <p class="self-end text-sm text-ws-soft">
+            {memory === "look" ? "Look at the score as long as you like; it hides when the run starts and comes back for the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run; a take at 90% hides one more.` : ""}
+            {s.grade === "dynamics" && !hasMarks ? "This score has no dynamics or breath marks to grade." : s.grade === "dynamics" ? `Marked: ${marksText}. Graded loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The score marks ${marksText}; they show on the staff.` : ""}
+            {!perfMode && s.grade !== "notes" ? " Grading dynamics or vibrato needs Performance or No-stop." : ""}
+          </p>
         </div>
       </div>
     {/if}
@@ -779,7 +968,7 @@
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
       <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={start}>
-        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : perfMode ? "Start performance" : "Start in wait mode"}
+        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
       </button>
       <button type="button" class={btn} aria-pressed={!!preview?.playing} onclick={togglePreview}>
         {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
@@ -843,7 +1032,7 @@
     </div>
   {/if}
 
-  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"}>
+  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={live && perfMode ? Math.round(startAt) : undefined}>
     {#if live}
       <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full rounded-full bg-instr" style:width="{progress * 100}%"></div>
@@ -851,7 +1040,7 @@
       <div class="mb-3 flex flex-wrap gap-2">
         <Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />
         {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
-        {#if ls?.expected.length}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
+        {#if ls?.expected.length && memory === "off"}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
         {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
@@ -880,8 +1069,10 @@
     {#if view === "fingering" && settings.value.activeInstrument !== "aerophone" && !live}
       <p class="mb-2 text-sm text-ws-stage-soft">Aerophone fingerings for the top line of the selected voices.</p>
     {/if}
+    {#if live && memory === "look"}<p class="mb-2 text-sm text-ws-stage-soft">From memory: the notes are hidden until the results.</p>{/if}
     <StudioScore
       score={played}
+      hide={hideBeat}
       {voiceIds}
       {view}
       tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }}

@@ -19,8 +19,10 @@ const plan = (id: string, bpm: number, bars?: number) =>
   expandRhythm(rhythmPattern(id)!, { bpm, bars });
 
 describe("rhythm patterns", () => {
-  it("has the 14 catalog patterns with their event counts", () => {
-    expect(RHYTHM_PATTERNS.map((p) => `${p.id}:${p.defaultBars}:${p.events.length}`)).toEqual([
+  it("has the 14 verified catalog patterns first, with their event counts", () => {
+    expect(
+      RHYTHM_PATTERNS.slice(0, 14).map((p) => `${p.id}:${p.defaultBars}:${p.events.length}`),
+    ).toEqual([
       "quarter-pulse:1:4",
       "eighths:1:8",
       "sixteenths:1:16",

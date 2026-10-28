@@ -8,6 +8,8 @@
   import type { Strictness } from "@repo/music-core";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { PROGRESSIONS } from "@repo/music-core/content/jam";
+  import { RHYTHM_PATTERNS } from "@repo/music-core/content/rhythm";
+  import RhythmGrid from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { followChords, type ChordFollowResult } from "@repo/music-core/scoring/chord-follower";
   import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -27,7 +29,7 @@
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
   import ToneMap from "$lib/music/drills/guitar/ToneMap.svelte";
 
-  const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1 });
+  const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1, pattern: "" as string });
   const s = $derived(cfg.value);
   onMount(() => void applyBenchParams());
 
@@ -66,6 +68,13 @@
     if (p) settings.update({ bpm: p.bpm });
   };
   const totalBeats = $derived(chart.reduce((n, c) => n + c.durationBeats, 0));
+  // A strum pattern from Rhythm's strums for this instrument (4/4 ones: the charts are in 4/4).
+  // It shapes the demo and the stroke row; the microphone still follows chords, not strokes.
+  const strums = $derived(RHYTHM_PATTERNS.filter((p) => p.chords?.length && p.meter.beats === 4 && p.id.startsWith(`${instr}-`)));
+  const strum = $derived(strums.find((p) => p.id === s.pattern));
+  const strumName = (p: (typeof strums)[number]) => p.label.replace(/^(Guitar|Ukulele): /, "").replace(/ \([^)]*\)$/, "");
+  /** The pattern's strokes in one bar of the chart (a two-bar pattern alternates). */
+  const strokesIn = (bar: number) => (strum ? strum.events.filter((e) => Math.floor(e.beat / 4) === bar % strum.defaultBars).map((e) => ({ ...e, beat: e.beat % 4 })) : []);
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -111,12 +120,21 @@
     const notes: { midi: number; time: number; duration: number; chord: number }[] = [];
     prog.chords.forEach((c, i) => {
       const start = chart[i].startBeat;
-      for (let b = 0; b < c.bars * 4; b += 2)
-        voicing(c.symbol).forEach((m, k) => notes.push({ midi: m, time: (start + b) * beatS + k * 0.015, duration: beatS * 1.8, chord: i }));
+      const v = voicing(c.symbol);
+      for (let bar = 0; bar < c.bars; bar++) {
+        const at = start + bar * 4;
+        if (!strum) for (const b of [0, 2]) v.forEach((m, k) => notes.push({ midi: m, time: (at + b) * beatS + k * 0.015, duration: beatS * 1.8, chord: i }));
+        // A muted chuck is a short, quiet strum; an up stroke runs from the top string.
+        else
+          for (const e of strokesIn(at / 4))
+            (e.stroke === "up" ? [...v].reverse() : v).forEach((m, k) =>
+              notes.push({ midi: m, time: (at + e.beat) * beatS + k * 0.012, duration: e.stroke === "mute" ? 0.05 : beatS * (e.durationBeats ?? 0.5) * 0.9, chord: i }),
+            );
+      }
     });
     const handle = audio.playSequence(notes, { onNote: (i: number) => (demoIndex = notes[i].chord) });
     demo = handle;
-    status = "Listen: one chorus, strummed on beats one and three. The microphone is not listening to this.";
+    status = `Listen: one chorus, ${strum ? strumName(strum) : "strummed on beats one and three"}. The microphone is not listening to this.`;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -152,7 +170,7 @@
     const r = followChords({ chords: chart, observed, bpm: bpm(), startAt: downbeat, strictness });
     result = r;
     phase = "results";
-    const setupKey = `strum:${prog.id}:${choruses}:${strictness}:${bpm()}`;
+    const setupKey = `strum:${prog.id}:${choruses}:${strictness}:${bpm()}${strum ? `:${strum.id}` : ""}`;
     // One run, no skills: nothing here moves mastery.
     const run = practice.beginRun({
       exerciseId: exerciseFor("technique.guitar.strum-progression", instr),
@@ -163,7 +181,7 @@
       assistance: "guided",
       difficulty: prog.difficulty === "beginner" ? 0.3 : prog.difficulty === "intermediate" ? 0.5 : 0.7,
       instrument: instr,
-      params: { progression: prog.id, bpm: bpm(), strictness, choruses },
+      params: { progression: prog.id, bpm: bpm(), strictness, choruses, ...(strum ? { pattern: strum.id } : {}) },
     });
     await run.attempt({
       promptId: prog.id,
@@ -232,6 +250,7 @@
   blurb="Strum the chart in time while the microphone follows each chord. A practice run: it keeps a record, not a skill score."
   summary={[
     { text: `${prog.name} in ${prog.key}`, focus: "progression" },
+    { text: strum ? strumName(strum) : "any strum", focus: "pattern" },
     { text: `${choruses} chorus${choruses > 1 ? "es" : ""}`, focus: "choruses" },
     { text: `${strictness} timing`, focus: "timing" },
   ]}
@@ -271,6 +290,16 @@
           {#if prog.song?.note}<p class="text-sm text-ws-soft">{prog.song.note}</p>{/if}
         {/if}
       </div>
+      {#if strums.length}
+        <Choice
+          label="Strum pattern"
+          setupKey="pattern"
+          select
+          options={[{ value: "", label: "Any strum" }, ...strums.map((p) => ({ value: p.id, label: strumName(p) }))]}
+          value={strum?.id ?? ""}
+          onchange={(v) => cfg.set({ pattern: v })}
+        />
+      {/if}
       <Choice
         label="Timing window"
         setupKey="timing"
@@ -327,6 +356,11 @@
         </li>
       {/each}
     </ol>
+    {#if strum}
+      <div class="mt-4 max-w-md" data-pattern={strum.id}>
+        <RhythmGrid bars={1} perBar={4} events={strokesIn(Math.max(0, chart[shownIndex]?.startBeat ?? 0) / 4).map((e) => ({ beat: e.beat, accent: e.accent === "accent", stroke: e.stroke, duration: e.durationBeats }))} label="{strumName(strum)}, one bar" />
+      </div>
+    {/if}
     {#if shownShape}
       <div class="mt-4"><ShapeBoard shape={shownShape} {tuning} interactive={false} label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
     {/if}

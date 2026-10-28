@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CIRCLE_MODES, circlePrompt, countLabel, gradeCircle, KEY_BANDS } from "./circle";
+import { chordIn, CIRCLE_MODES, circlePrompt, countLabel, gradeCircle, KEY_BANDS } from "./circle";
 import { rng } from "./random";
 
 const seeds = (n: number) => Array.from({ length: n }, (_, i) => rng(i + 1));
@@ -46,6 +46,34 @@ describe("circle of fifths drills", () => {
       const w = circlePrompt(r, { mode: "wheel", band: "all" });
       if (w.ask === "Tap where Bb major goes.") expect(w.answer).toBe("10");
     }
+  });
+
+  it("spots borrowed chords and secondary dominants in written progressions", () => {
+    // C major: iv Fm, bVI Ab, bVII Bb, bIII Eb; V/V D7, V/vi E7, V/ii A7, V/IV C7.
+    expect(["iv", "bVI", "bVII", "bIII"].map((n) => chordIn(0, n))).toEqual([
+      "Fm",
+      "Ab",
+      "Bb",
+      "Eb",
+    ]);
+    expect(["V/V", "V/vi", "V/ii", "V/IV"].map((n) => chordIn(0, n))).toEqual([
+      "D7",
+      "E7",
+      "A7",
+      "C7",
+    ]);
+    expect(chordIn(-1, "bVII")).toBe("Eb");
+    const borrowed = seeds(30).map((r) => circlePrompt(r, { mode: "borrowed", band: "near" }));
+    for (const p of borrowed) {
+      expect(p.ask).toMatch(/Which chord is borrowed from (C|G|F) minor\?$/);
+      expect(p.choices).toHaveLength(new Set(p.choices).size);
+    }
+    const c = borrowed.find((p) => p.ask.startsWith("C major: C | F | Fm | C"));
+    if (c) expect(c.answer).toBe("Fm");
+    const sec = seeds(40).map((r) => circlePrompt(r, { mode: "secondary", band: "near" }));
+    expect(sec.some((p) => /V of which chord/.test(p.ask))).toBe(true);
+    const d7 = sec.find((p) => p.ask.startsWith("C major: C | D7 | G | C. D7 is the V of"));
+    if (d7) expect(d7.answer).toBe("V");
   });
 
   it("asks the weak keys more", () => {

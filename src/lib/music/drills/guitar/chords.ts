@@ -184,6 +184,43 @@ export const pairKey = (from: string, to: string) => `${from}>${to}`;
 /** Newest last, capped so the settings row stays small. */
 export const mergePairRuns = (a: PairRun[], b: PairRun[]) => [...a, ...b].slice(-30);
 
+export interface HardPair {
+  /** The history key, "from>to" as position ids. */
+  key: string;
+  /** Chord ids for a setup's chord list, and each one's position ("" for the first). */
+  chords: string;
+  positions: string;
+  /** Changes a minute: the mean of the pair's last three runs. */
+  perMinute: number;
+}
+
+/**
+ * The instrument's slowest pairs of chords (two-chord cycles, not longer ones),
+ * by the mean of each pair's last three runs, slowest first.
+ */
+export function hardestPairs(
+  history: Record<string, PairRun[]>,
+  instrument: Fretted,
+  n = 5,
+): HardPair[] {
+  const own = (id: string) =>
+    id.startsWith(`${instrument}.`) || id.startsWith(`gen.${instrument}.`);
+  return Object.entries(history)
+    .map(([key, runs]) => ({ key, ids: key.split(">"), recent: runs.slice(-3) }))
+    .filter(
+      (x) => x.ids.length === 2 && x.ids[0] !== x.ids[1] && x.ids.every(own) && x.recent.length,
+    )
+    .map(({ key, ids, recent }) => ({
+      key,
+      chords: ids.map((id) => id.replace(/@\d+$/, "")).join(","),
+      positions: ids.map((id) => /@(\d+)$/.exec(id)?.[1] ?? "").join(","),
+      perMinute:
+        Math.round((recent.reduce((a, r) => a + r.perMinute, 0) / recent.length) * 10) / 10,
+    }))
+    .sort((a, b) => a.perMinute - b.perMinute || a.key.localeCompare(b.key))
+    .slice(0, n);
+}
+
 // ---------------------------------------------------------------------------
 // A cycle of chords (changes, fingerpicking): two to eight, in order.
 
@@ -201,20 +238,29 @@ export const nextChordId = (instrument: Fretted, id: string, not: readonly strin
  * A chord the same as the one before it is dropped, since there is no change to
  * hear; there are always two or more.
  */
-export function cycleRefs(instrument: Fretted, csv: string, max = MAX_CYCLE): ChordRef[] {
+export function cycleRefs(
+  instrument: Fretted,
+  csv: string,
+  max = MAX_CYCLE,
+  positionsCsv = "",
+): ChordRef[] {
   const C: ChordRef = { root: 0, quality: "maj" };
   const id = (r: ChordRef) => chordId(instrument, r);
+  const at = cyclePositions(positionsCsv, max * 2);
   const list = csv
     .split(",")
-    .map((x) => chordRef(x))
-    .filter((r): r is ChordRef => !!r);
-  const out: ChordRef[] = [];
-  for (const r of list.length ? list : [C])
-    if (!out.length || id(r) !== id(out.at(-1)!)) out.push(r);
-  if (out.length > 2 && id(out[0]) === id(out.at(-1)!)) out.pop();
-  if (out.length < 2)
-    out.push(chordRef(nextChordId(instrument, id(out[0]), [id(out[0])]) ?? "") ?? C);
-  return out.slice(0, max);
+    .map((x, i) => ({ ref: chordRef(x), pos: at[i] }))
+    .filter((x): x is { ref: ChordRef; pos: number | null } => !!x.ref);
+  // A chord repeats only at another position (one chord through its CAGED forms).
+  const key = (x: { ref: ChordRef; pos: number | null }) => `${id(x.ref)}@${x.pos ?? 0}`;
+  const out: { ref: ChordRef; pos: number | null }[] = [];
+  for (const x of list.length ? list : [{ ref: C, pos: null }])
+    if (!out.length || key(x) !== key(out.at(-1)!)) out.push(x);
+  if (out.length > 2 && key(out[0]) === key(out.at(-1)!)) out.pop();
+  const refs = out.map((x) => x.ref);
+  if (refs.length < 2)
+    refs.push(chordRef(nextChordId(instrument, id(refs[0]), [id(refs[0])]) ?? "") ?? C);
+  return refs.slice(0, max);
 }
 
 /** Each chord's chosen position from a comma list; null where none was chosen. */

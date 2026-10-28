@@ -14,6 +14,12 @@
     ACCOMP_PATTERNS,
     ACCOMP_PROGRESSIONS,
     BEATS_PER_BAR,
+    CHART_LEVELS,
+    LEAD_LEVELS,
+    chartProgression,
+    isChartLevel,
+    isLeadLevel,
+    jazzLeadSheet,
     COMP_RHYTHMS,
     COMP_VOICINGS,
     LEAD_LEFT,
@@ -74,7 +80,12 @@
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   // Hand patterns and generated melodies need one chord a bar; comping takes half-bar changes too.
   const pool = $derived(tab === "comping" ? ACCOMP_PROGRESSIONS : ACCOMP_PROGRESSIONS.filter(wholeBars));
-  const base = $derived(pool.find((p) => p.id === s.progression) ?? pool[0]);
+  // A generated chart (chart-1 to chart-3) is drawn afresh from the seed; New chart moves it.
+  const charted = $derived(isChartLevel(s.progression));
+  const base = $derived(charted ? chartProgression(s.progression, s.seed) : (pool.find((p) => p.id === s.progression) ?? pool[0]));
+  /** A melody the app writes over the progression: a plain one, or a jazz head (lead-1, lead-2). */
+  const jazzHead = $derived(isLeadLevel(s.tune));
+  const genTune = $derived(s.tune === "generated" || jazzHead);
   const pattern = $derived(ACCOMP_PATTERNS.find((p) => p.id === s.pattern) ?? ACCOMP_PATTERNS[0]);
   const voicing = $derived(COMP_VOICINGS.find((v) => v.id === s.voicing) ?? COMP_VOICINGS[0]);
   const rhythm = $derived(COMP_RHYTHMS.find((r) => r.id === s.rhythm) ?? COMP_RHYTHMS[0]);
@@ -94,20 +105,24 @@
   const tunes = $derived<{ value: string; label: string; group: string }[]>([
     ...LEAD_SHEETS.map((t) => ({ value: t.id, label: t.title, group: "Lead sheets" })),
     { value: "generated", label: "A new melody over the progression", group: "Generated" },
+    ...LEAD_LEVELS.map((l) => ({ value: l.id, label: l.label, group: "Generated" })),
     ...library.map((t) => ({ value: t.id, label: t.title, group: "Your scores with chord symbols" })),
   ]);
   const sheet = $derived<LeadSheet>(
-    s.tune === "generated" ? generatedLeadSheet(base, 0, s.seed) : ([...LEAD_SHEETS, ...library].find((t) => t.id === s.tune) ?? LEAD_SHEETS[0]),
+    jazzHead ? jazzLeadSheet(s.tune, base, 0, s.seed) : s.tune === "generated" ? generatedLeadSheet(base, 0, s.seed) : ([...LEAD_SHEETS, ...library].find((t) => t.id === s.tune) ?? LEAD_SHEETS[0]),
   );
   /** The written key the key picker moves from. */
-  const writtenKey = $derived(tab === "lead-sheet" && s.tune !== "generated" ? sheet.keyPc : base.keyPc);
+  const writtenKey = $derived(tab === "lead-sheet" && !genTune ? sheet.keyPc : base.keyPc);
   const keyPc = $derived(pc(writtenKey + s.transpose));
-  const minor = $derived(tab !== "lead-sheet" || s.tune === "generated" ? /minor/.test(base.key) : false);
+  const minor = $derived(tab !== "lead-sheet" || genTune ? /minor/.test(base.key) : false);
 
   const rendering = $derived.by((): Rendering => {
     if (tab === "comping") return compingRendering(chartOf(base, s.transpose), voicing.id, rhythm.id, s.feel === "swing");
-    if (tab === "lead-sheet")
+    if (tab === "lead-sheet") {
+      // A jazz head is written straight and played swung.
+      if (jazzHead) return { ...leadSheetRendering(jazzLeadSheet(s.tune, base, s.transpose, s.seed), lh, 0, hands), swing: true };
       return s.tune === "generated" ? leadSheetRendering(generatedLeadSheet(base, s.transpose, s.seed), lh, 0, hands) : leadSheetRendering(sheet, lh, s.transpose, hands);
+    }
     return patternRendering(chartOf(base, s.transpose), pattern.id, hands);
   });
   const slots = $derived(rendering.slots);
@@ -125,7 +140,7 @@
   );
   const span = $derived(spanOf(notes.map((n) => n.midi)));
   // Written as Jam writes the key: a blues in its mixolydian (C7's Bb reads as a flat).
-  const scaleKind = $derived(tab === "lead-sheet" && s.tune !== "generated" ? "major" : minor ? "natural-minor" : /dorian/.test(base.key) ? "dorian" : base.group === "blues" ? "mixolydian" : "major");
+  const scaleKind = $derived(tab === "lead-sheet" && !genTune ? "major" : minor ? "natural-minor" : /dorian/.test(base.key) ? "dorian" : base.group === "blues" ? "mixolydian" : "major");
   const keyFifths = $derived(signatureFor(keyPc, scaleKind));
   const chordNow = $derived.by(() => {
     const b = Math.max(0, transport.beat ?? 0);
@@ -172,7 +187,7 @@
         ]
       : tab === "lead-sheet"
         ? [
-            { text: s.tune === "generated" ? `a new melody over ${base.name}` : sheet.title, focus: "tune" },
+            { text: s.tune === "generated" ? `a new melody over ${base.name}` : jazzHead ? `${LEAD_LEVELS.find((l) => l.id === s.tune)!.label.toLowerCase()} over ${base.name}` : sheet.title, focus: "tune" },
             { text: `in ${keyText}`, focus: "key" },
             { text: LEAD_LEFT.find((l) => l.id === lh)!.label.toLowerCase(), focus: "lh" },
             ...(hands === "both" ? [] : [{ text: handsText, focus: "hands" }]),
@@ -187,7 +202,7 @@
     tab === "comping"
       ? { bpm, voicing: voicing.id, rhythm: rhythm.id, feel: s.feel, progression: base.id, key: keyPc }
       : tab === "lead-sheet"
-        ? { bpm, tune: s.tune === "generated" ? `generated-${base.id}` : sheet.id, lh, hands, key: keyPc }
+        ? { bpm, tune: jazzHead ? s.tune : s.tune === "generated" ? `generated-${base.id}` : sheet.id, lh, hands, key: keyPc, ...(charted ? { progression: base.id } : {}) }
         : { bpm, pattern: pattern.id, progression: base.id, hands, key: keyPc },
   );
   const setupKey = $derived(`accompany:${tab}:${Object.values(runParams).join(":")}`);
@@ -306,7 +321,10 @@
     transport.stop();
   });
 
-  const progressionOptions = $derived(JAM_GROUPS.flatMap((g) => pool.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: p.name, group: g.label }))));
+  const progressionOptions = $derived([
+    ...CHART_LEVELS.map((l) => ({ value: l.id, label: l.label, group: "Generated charts" })),
+    ...JAM_GROUPS.flatMap((g) => pool.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: p.name, group: g.label }))),
+  ]);
   const handOptions = [
     { value: "both", label: "Both hands" },
     { value: "left", label: "Left only" },
@@ -367,16 +385,16 @@
       {:else}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tune">
           <span class="font-medium">Tune</span>
-          <Picker label="Tune" value={s.tune} options={tunes} onchange={(v) => cfg.set({ tune: v, transpose: 0 })} />
-          <span class="text-ws-soft">{s.tune === "generated" ? "Chord tones on 1 and 3, steps between." : sheet.source}. Import a MusicXML lead sheet in the Library and it appears here.</span>
+          <Picker label="Tune" value={s.tune} options={tunes} onchange={(v) => cfg.set({ tune: v, transpose: 0, ...(isLeadLevel(v) && base.group !== "jazz" ? { progression: "ii-v-i" } : {}) })} />
+          <span class="text-ws-soft">{s.tune === "generated" ? "Chord tones on 1 and 3, steps between." : jazzHead ? `${LEAD_LEVELS.find((l) => l.id === s.tune)!.about} Written straight, played swung` : sheet.source}. Import a MusicXML lead sheet in the Library and it appears here.</span>
         </div>
         <Choice label="Left hand" setupKey="lh" options={LEAD_LEFT.map((l) => ({ value: l.id, label: l.label, hint: l.about }))} value={lh} onchange={(v) => cfg.set({ lh: v })} />
       {/if}
-      {#if tab !== "lead-sheet" || s.tune === "generated"}
+      {#if tab !== "lead-sheet" || genTune}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="progression">
           <span class="font-medium">Progression</span>
           <Picker label="Progression" value={base.id} options={progressionOptions} onchange={(v) => cfg.set({ progression: v, transpose: 0 })} />
-          <span class="text-ws-soft">{base.chords.map((c) => c.symbol).join(" ")}, written in {base.key}{base.song ? `. ${base.song.artist}` : ""}.</span>
+          <span class="text-ws-soft">{charted ? `${CHART_LEVELS.find((l) => l.id === base.id)!.about} A new chart each time you press New chart` : `${base.chords.map((c) => c.symbol).join(" ")}, written in ${base.key}${base.song ? `. ${base.song.artist}` : ""}`}.</span>
         </div>
       {/if}
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
@@ -415,14 +433,14 @@
         <p class="max-w-prose text-sm text-ws-stage-soft">
           {tab === "comping" ? `${voicing.about} ${rhythm.about}` : tab === "lead-sheet" ? LEAD_LEFT.find((l) => l.id === lh)!.about : pattern.about}
         </p>
-        {#if tab === "lead-sheet" && s.tune === "generated" && phase !== "running" && phase !== "countin"}
-          <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>New melody</button>
+        {#if ((tab === "lead-sheet" && genTune) || charted) && phase !== "running" && phase !== "countin"}
+          <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>{charted ? "New chart" : "New melody"}</button>
         {/if}
       </div>
       <ol class="mb-3 flex flex-wrap gap-1.5" aria-label="The chart">
         {#each rendering.chart as c, i (i)}
           <li class="chord-cell flex min-h-10 items-center justify-center rounded-lg px-3 font-display font-semibold" class:now={i === chordNow && transport.beat !== null} style:flex-grow={c.durationBeats} aria-current={i === chordNow && transport.beat !== null ? "step" : undefined}>
-            {c.symbol}<span class="sr-only">, {c.durationBeats / BEATS_PER_BAR} bar{c.durationBeats === BEATS_PER_BAR ? "" : "s"}</span>
+            {c.symbol}{#if charted}<span class="slashes" aria-hidden="true">{"/".repeat(c.durationBeats)}</span>{/if}<span class="sr-only">, {c.durationBeats / BEATS_PER_BAR} bar{c.durationBeats === BEATS_PER_BAR ? "" : "s"}</span>
           </li>
         {/each}
       </ol>
@@ -454,6 +472,12 @@
     flex-basis: 3.5rem;
     background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
     color: var(--ws-stage-soft);
+  }
+  .slashes {
+    margin-left: 0.6em;
+    letter-spacing: 0.35em;
+    font-weight: 400;
+    opacity: 0.7;
   }
   .chord-cell.now {
     background: var(--instr);

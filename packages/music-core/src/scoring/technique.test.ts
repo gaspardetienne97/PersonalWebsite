@@ -54,6 +54,16 @@ describe("blocked chords", () => {
 });
 
 describe("gradeLine (scales, spider, positions)", () => {
+  it("follows a line across a rest longer than its look-ahead (speed bursts)", () => {
+    const cell = (start: number) => [start, start + 1, start + 2, start + 3];
+    const beats = [...line(cell(45)), [], [], [], [], ...line(cell(50))];
+    const at = [0, 1, 2, 3, 8, 9, 10, 11];
+    const notes = [...cell(45), ...cell(50)].map((m, i) => on(m, 1000 + at[i] * 125));
+    const r = gradeLine({ beats, beatMs: 125, notes });
+    expect(r.pitch).toBe(1);
+    expect(r.correct).toBe(true);
+  });
+
   it("a clean even run scores 1", () => {
     const r = gradeLine({
       beats: line(C_MAJOR),
@@ -382,5 +392,7 @@ describe("legato", () => {
       "picked",
       "missed",
     ]);
+    // A slide is checked like a hammer-on: no new pick attack where it lands.
+    expect(legatoAttacks(["P", "s"], [0, 400], [{ at: 0 }])).toEqual([null, "legato"]);
   });
 });

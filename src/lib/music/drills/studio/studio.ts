@@ -1,7 +1,8 @@
 // Song Studio: which beats a run covers, the follower groups for it, and the
 // mapping between a run's own clock and the score's beats (so the one cursor
 // and the group marks land on the right notes in every view).
-import type { Score, ScoreGroup, ScoreSection } from "@repo/music-core";
+import type { ControlEvent, NoteEvent, Score, ScoreGroup, ScoreSection } from "@repo/music-core";
+import { bendWobble } from "@repo/music-core/content/aero-skills";
 import { scoreGroups } from "@repo/music-core/scoring/follower";
 import type { GroupVerdict } from "@repo/music-core/scoring/follower";
 import type { BeatRange } from "$lib/music/notation/groups";
@@ -310,4 +311,313 @@ export function spotAfter(s: SpotDrill, clean: boolean, barLen: number): SpotDri
     if (grew) return { ...s, takes, streak: 0, range, stage: "wide" };
   }
   return { ...s, takes, streak, stage: "done" };
+}
+
+// ---------------------------------------------------------------------------
+// No-stop runs: keep going through mistakes. Continuity is the share of bars
+// with something expected in which something was played; a slip is a stretch
+// of expected groups with nothing played at all.
+
+export interface Continuity {
+  /** Bars played in, of the bars with notes, 0..1. */
+  share: number;
+  bars: number;
+  barsPlayed: number;
+  /** The longest stretch of expected notes with nothing played, in beats. */
+  longestGapBeats: number;
+  /** Where that stretch starts, on the pass clock (null with none). */
+  gapAt: number | null;
+}
+
+/** `ats`: onset times (ms) of everything played; `startAt` is the pass's beat 0. */
+export function continuity(
+  pass: Pass,
+  ats: readonly number[],
+  startAt: number,
+  beatMs: number,
+  barLen: number,
+): Continuity {
+  const beats = ats.map((t) => (t - startAt) / beatMs);
+  // A group is covered by anything played from a little before it until a little before its end
+  // (so the next note played a hair early does not cover it).
+  const covered = pass.groups.map((g) =>
+    beats.some(
+      (b) => b >= g.startBeat - 0.4 && b < g.startBeat + Math.max(g.durationBeats, 0.5) - 0.4,
+    ),
+  );
+  const barOf = (b: number) => Math.floor(b / barLen + 1e-6);
+  const expected = new Set(pass.groups.map((g) => barOf(g.startBeat)));
+  const played = new Set([...expected].filter((bar) => beats.some((b) => barOf(b + 0.25) === bar)));
+  let longest = 0;
+  let gapAt: number | null = null;
+  for (let i = 0; i < covered.length; ) {
+    if (covered[i]) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < covered.length && !covered[j]) j++;
+    const end = j < covered.length ? pass.groups[j].startBeat : pass.lengthBeats;
+    const len = end - pass.groups[i].startBeat;
+    if (len > longest) [longest, gapAt] = [len, pass.groups[i].startBeat];
+    i = j;
+  }
+  return {
+    share: expected.size ? played.size / expected.size : 0,
+    bars: expected.size,
+    barsPlayed: played.size,
+    longestGapBeats: longest,
+    gapAt,
+  };
+}
+
+/** A no-stop take: the performance score scaled by continuity; kept going when every bar was played and no slip ran past a beat. */
+export const noStopVerdict = (score: number, c: Continuity) => ({
+  score: score * c.share,
+  kept: c.share === 1 && c.longestGapBeats <= 1 + 1e-6,
+});
+
+// ---------------------------------------------------------------------------
+// Memory: hide the notes after a first look, or bar by bar from the start.
+
+/** The score with every note before `beat` taken out (those bars are played from memory). */
+export function hideBefore(score: Score, beat: number): Score {
+  if (beat <= 0) return score;
+  return {
+    ...score,
+    voices: score.voices.map((v) => ({
+      ...v,
+      notes: v.notes.filter((n) => n.startBeat >= beat - 1e-6),
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Dynamics, hairpins and breath marks, graded loosely: a louder mark should
+// come out louder than the one before (by any device's curve), a hairpin
+// should move the right way, and a marked breath should be a break.
+
+/** Rough loudness of each dynamic, only for telling louder from softer. */
+export const DYNAMIC_LEVEL: Record<string, number> = {
+  ppp: 0.1,
+  pp: 0.2,
+  p: 0.33,
+  mp: 0.45,
+  mf: 0.55,
+  f: 0.7,
+  ff: 0.82,
+  fff: 0.92,
+  sf: 0.75,
+  sfz: 0.75,
+  fp: 0.6,
+  rf: 0.7,
+  rfz: 0.7,
+  fz: 0.75,
+};
+/** A move counts when the level changes this much the right way. */
+export const DYNAMIC_MARGIN = 0.04;
+
+export interface Played {
+  at: number;
+  /** 0..1 from breath (CC 2) or measured velocity. */
+  level: number;
+}
+
+/**
+ * Each played note's loudness: the median breath (CC 2) over its first 300 ms
+ * when breath arrives, else its MIDI velocity when measured; null when the
+ * input carries neither (the on-screen keys, the microphone).
+ */
+export function playedLevels(
+  notes: readonly NoteEvent[],
+  controls: readonly ControlEvent[],
+): Played[] | null {
+  const ons = notes.filter((n) => n.kind === "noteon").sort((a, b) => a.at - b.at);
+  const breath = controls.filter((c) => c.kind === "cc" && c.controller === 2);
+  if (breath.length) {
+    const out: Played[] = [];
+    for (const n of ons) {
+      const v = breath
+        .filter((c) => c.at >= n.at - 20 && c.at <= n.at + 300)
+        .map((c) => c.value)
+        .sort((a, b) => a - b);
+      if (v.length) out.push({ at: n.at, level: v[Math.floor(v.length / 2)] });
+    }
+    return out;
+  }
+  if (ons.length && ons.every((n) => n.velocityMeasured))
+    return ons.map((n) => ({ at: n.at, level: n.velocity }));
+  return null;
+}
+
+export interface ExpressionMarks {
+  /** On the pass clock (beats). */
+  dynamics: { beat: number; mark: string }[];
+  hairpins: { start: number; end: number; kind: "crescendo" | "diminuendo" }[];
+  breaths: number[];
+}
+
+/** The score's marks inside the pass, moved onto its clock. */
+export function passMarks(score: Score, pass: Pass): ExpressionMarks {
+  const at = (beat: number) => {
+    let offset = 0;
+    for (const seg of pass.segments) {
+      if (beat >= seg.startBeat - 1e-6 && beat <= seg.endBeat + 1e-6)
+        return beat - seg.startBeat + offset;
+      offset += seg.endBeat - seg.startBeat;
+    }
+    return null;
+  };
+  // A dynamic before the pass still sets its level: it moves to the pass's start.
+  const first = pass.segments[0]?.startBeat ?? 0;
+  const before = (score.dynamics ?? []).filter((d) => d.startBeat < first).at(-1);
+  return {
+    dynamics: [
+      ...(before ? [{ beat: 0, mark: before.mark }] : []),
+      ...(score.dynamics ?? []).flatMap((d) => {
+        const b = at(d.startBeat);
+        return b === null ? [] : [{ beat: b, mark: d.mark }];
+      }),
+    ],
+    hairpins: (score.hairpins ?? []).flatMap((h) => {
+      const s = at(h.startBeat);
+      const e = at(h.endBeat);
+      return s === null || e === null || e <= s ? [] : [{ start: s, end: e, kind: h.kind }];
+    }),
+    breaths: (score.breaths ?? []).flatMap((b) => {
+      const p = at(b);
+      return p === null || p <= 0 || p >= pass.lengthBeats - 1e-6 ? [] : [p];
+    }),
+  };
+}
+
+export interface ExpressionResult {
+  /** Right moves of the checks made, 0..1; null when nothing could be judged. */
+  score: number | null;
+  dynamics: { right: number; total: number };
+  breaths: { right: number; total: number };
+  /** Why the loudness could not be read, when it could not. */
+  unmeasured: string | null;
+}
+
+const meanOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+/**
+ * One take's dynamics and breaths. Levels come from `playedLevels`. Each
+ * change between two dynamics with different levels is right when the notes
+ * under the second average louder (or softer) by DYNAMIC_MARGIN; a hairpin
+ * when its last third moves that way from its first; a breath mark when the
+ * note before it ended, or the breath dipped under 45% of the take's median,
+ * before the next note began.
+ */
+export function gradeExpression(input: {
+  marks: ExpressionMarks;
+  notes: readonly NoteEvent[];
+  controls: readonly ControlEvent[];
+  startAt: number;
+  beatMs: number;
+  lengthBeats: number;
+}): ExpressionResult {
+  const { marks, startAt, beatMs } = input;
+  const beatOf = (t: number) => (t - startAt) / beatMs;
+  const levels = playedLevels(input.notes, input.controls);
+  const dyn = { right: 0, total: 0 };
+  const unmeasured =
+    levels === null
+      ? "the input carries no breath or velocity (MIDI or the Aerophone measure it)"
+      : null;
+  if (levels) {
+    const ds = [...marks.dynamics]
+      .sort((a, b) => a.beat - b.beat)
+      .filter((d) => DYNAMIC_LEVEL[d.mark] !== undefined);
+    const span = (from: number, to: number) =>
+      levels
+        .filter((l) => beatOf(l.at) >= from - 0.25 && beatOf(l.at) < to - 0.25)
+        .map((l) => l.level);
+    for (let i = 1; i < ds.length; i++) {
+      const want = DYNAMIC_LEVEL[ds[i].mark] - DYNAMIC_LEVEL[ds[i - 1].mark];
+      if (!want) continue;
+      const a = span(ds[i - 1].beat, ds[i].beat);
+      const b = span(ds[i].beat, ds[i + 1]?.beat ?? input.lengthBeats);
+      if (!a.length || !b.length) continue;
+      dyn.total++;
+      if (Math.sign(want) * (meanOf(b) - meanOf(a)) >= DYNAMIC_MARGIN) dyn.right++;
+    }
+    for (const h of marks.hairpins) {
+      const third = (h.end - h.start) / 3;
+      const a = span(h.start, h.start + third);
+      const b = span(h.end - third, h.end + 0.5);
+      if (!a.length || !b.length) continue;
+      dyn.total++;
+      if ((h.kind === "crescendo" ? 1 : -1) * (meanOf(b) - meanOf(a)) >= DYNAMIC_MARGIN)
+        dyn.right++;
+    }
+  }
+  const br = { right: 0, total: 0 };
+  const ons = input.notes.filter((n) => n.kind === "noteon").sort((a, b) => a.at - b.at);
+  const breath = input.controls.filter((c) => c.kind === "cc" && c.controller === 2);
+  const sorted = breath.map((c) => c.value).sort((a, b) => a - b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+  for (const b of marks.breaths) {
+    const prev = ons.filter((n) => beatOf(n.at) < b - 0.1).at(-1);
+    const next = ons.find((n) => beatOf(n.at) >= b - 0.1);
+    if (!prev || !next) continue;
+    br.total++;
+    const released = input.notes.some(
+      (n) => n.kind === "noteoff" && n.midi === prev.midi && n.at > prev.at && n.at <= next.at - 40,
+    );
+    const dipped =
+      median > 0 && breath.some((c) => c.at > prev.at && c.at < next.at && c.value < median * 0.45);
+    if (released || dipped) br.right++;
+  }
+  const total = dyn.total + br.total;
+  return {
+    score: total ? (dyn.right + br.right) / total : null,
+    dynamics: dyn,
+    breaths: br,
+    unmeasured,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Vibrato on held notes: the bite (pitch bend) pulsing about 4 to 5 times a
+// second on every note of a beat or longer. Loose: 3.5 to 6.5 counts.
+
+export const HELD_VIBRATO = { minBeats: 1, lowHz: 3.5, highHz: 6.5 } as const;
+
+export function gradeVibrato(input: {
+  pass: Pass;
+  notes: readonly NoteEvent[];
+  controls: readonly ControlEvent[];
+  startAt: number;
+  beatMs: number;
+}): { share: number | null; held: number; withVibrato: number } {
+  const { pass, startAt, beatMs } = input;
+  const bends = input.controls.filter((c) => c.kind === "pitchbend");
+  const ons = input.notes.filter((n) => n.kind === "noteon");
+  const held = pass.groups.filter((g) => g.durationBeats >= HELD_VIBRATO.minBeats - 1e-6);
+  let withVibrato = 0;
+  let counted = 0;
+  for (const g of held) {
+    const slot = startAt + g.startBeat * beatMs;
+    const on = ons.find(
+      (n) => g.notes.some((x) => x.midi === n.midi) && Math.abs(n.at - slot) <= beatMs / 2,
+    );
+    if (!on) continue;
+    counted++;
+    const off = input.notes.find((n) => n.kind === "noteoff" && n.midi === on.midi && n.at > on.at);
+    const end = Math.min(off?.at ?? Infinity, on.at + g.durationBeats * beatMs);
+    // A held note can be shorter than a second: read it from 400 ms.
+    const w = bendWobble(
+      bends.filter((b) => b.at >= on.at && b.at <= end).map((b) => ({ at: b.at, value: b.value })),
+      400,
+    );
+    if (w?.rateHz && w.rateHz >= HELD_VIBRATO.lowHz && w.rateHz <= HELD_VIBRATO.highHz)
+      withVibrato++;
+  }
+  return {
+    share: bends.length && counted ? withVibrato / counted : null,
+    held: counted,
+    withVibrato,
+  };
 }

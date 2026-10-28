@@ -160,6 +160,89 @@ export const ACCOMP_PROGRESSIONS: Progression[] = [
 /** Every chord lasts whole bars: hand patterns need one chord a bar. */
 export const wholeBars = (p: Progression) => p.chords.every((c) => Number.isInteger(c.bars));
 
+// ---------------------------------------------------------------------------
+// Generated chord charts (reading path chart-1 to chart-3): eight bars in C to read and play.
+
+export const CHART_LEVELS: { id: string; label: string; about: string }[] = [
+  {
+    id: "chart-1",
+    label: "Chart 1: one chord a bar",
+    about: "Eight bars of triads, one a bar, closing on V and I.",
+  },
+  {
+    id: "chart-2",
+    label: "Chart 2: two chords in some bars",
+    about: "Sevenths join the triads, and some bars change chord on beat 3.",
+  },
+  {
+    id: "chart-3",
+    label: "Chart 3: sus, add9 and slash bass",
+    about: "Sus and add9 colours and slash chords (the bass named after the slash).",
+  },
+];
+const CHART_POOLS: string[][] = [
+  ["C", "Dm", "Em", "F", "G", "Am"],
+  ["C", "Dm", "Em", "F", "G", "Am", "Dm7", "Em7", "Fmaj7", "G7", "Am7"],
+  [
+    "C",
+    "Dm",
+    "F",
+    "G",
+    "Am",
+    "Dm7",
+    "G7",
+    "Cadd9",
+    "Fadd9",
+    "Gsus4",
+    "Asus2",
+    "G/B",
+    "C/E",
+    "Am/G",
+    "F/G",
+  ],
+];
+export const isChartLevel = (id: string) => CHART_LEVELS.some((l) => l.id === id);
+
+/**
+ * A new chart at a level from a seed: I to open, V (or IV) and I to close,
+ * the bars between drawn from the level's chords with no chord twice running.
+ * From chart-2 some bars split at beat 3. Written in C; the key picker moves it.
+ */
+export function chartProgression(level: string, seed = 1): Progression {
+  const n = Math.max(
+    0,
+    CHART_LEVELS.findIndex((l) => l.id === level),
+  );
+  const rand = rng(seed * 7919 + n * 104729 + 1);
+  const pool = CHART_POOLS[n];
+  const chords: [string, number][] = [];
+  let last = "";
+  const draw = () => {
+    const options = pool.filter((c) => c !== last);
+    last = options[Math.floor(rand() * options.length)];
+    return last;
+  };
+  const close = n === 2 ? ["Gsus4", "G", "F/G", "G7"] : n === 1 ? ["G", "G7"] : ["G"];
+  for (let bar = 0; bar < 8; bar++) {
+    if (bar === 0) chords.push([n === 2 ? "Cadd9" : "C", 1]);
+    else if (bar === 6) chords.push([close[Math.floor(rand() * close.length)], 1]);
+    else if (bar === 7) chords.push(["C", 1]);
+    else if (n > 0 && rand() < 0.4) chords.push([draw(), 0.5], [draw(), 0.5]);
+    else chords.push([draw(), 1]);
+    last = chords[chords.length - 1][0];
+  }
+  return {
+    id: CHART_LEVELS[n].id,
+    name: CHART_LEVELS[n].label,
+    key: "C major",
+    keyPc: 0,
+    group: "pop",
+    difficulty: n === 0 ? "beginner" : "intermediate",
+    bpm: 80,
+    chords: chords.map(([symbol, bars]) => ({ symbol, bars, scale: { rootPc: 0, name: "major" } })),
+  };
+}
+
 /** A progression's chords as a chart, transposed, looped to at least MIN_BARS. */
 export function chartOf(p: Progression, transpose = 0): ChartChord[] {
   const out: ChartChord[] = [];
@@ -502,22 +585,46 @@ function separate(slots: AccompSlot[]): { slots: AccompSlot[]; splitMidi: number
 const sortSlots = (slots: AccompSlot[]) =>
   slots.sort((a, b) => a.beat - b.beat || (a.hand === "left" ? -1 : 1));
 
-/** Render a bar function over every bar of a whole-bar chart. */
+/**
+ * Render a bar function over every bar of a chart. A bar that changes chord on
+ * beat 3 plays its first half from the first chord's bar and its second half
+ * from the second's, re-striking on beat 3 whatever a hand held over it.
+ */
 function byBar(chart: readonly ChartChord[], fn: BarFn): AccompSlot[] {
   const voiced = voiceChart(chart);
-  const bars = Math.round(chartBeats(chart) / BEATS_PER_BAR);
-  const at = (bar: number) => {
-    const beat = (bar % bars) * BEATS_PER_BAR;
-    return voiced[
-      chart.findIndex((c) => beat >= c.startBeat && beat < c.startBeat + c.durationBeats)
-    ];
+  const total = chartBeats(chart);
+  const bars = Math.round(total / BEATS_PER_BAR);
+  const at = (beat: number) => {
+    const b = beat % total;
+    return voiced[chart.findIndex((c) => b >= c.startBeat && b < c.startBeat + c.durationBeats)];
   };
-  return Array.from({ length: bars }, (_, bar) =>
-    fn({ v: at(bar), next: at(bar + 1) }).map((s) => ({
-      ...s,
-      beat: s.beat + bar * BEATS_PER_BAR,
-    })),
-  ).flat();
+  const half = BEATS_PER_BAR / 2;
+  return Array.from({ length: bars }, (_, bar) => {
+    const b0 = bar * BEATS_PER_BAR;
+    const v = at(b0);
+    const next = at(b0 + BEATS_PER_BAR);
+    const mid = at(b0 + half);
+    let slots = fn({ v, next });
+    if (mid !== v) {
+      const second = fn({ v: mid, next });
+      const late = second.filter((s) => s.beat >= half - 1e-6);
+      const held = (["left", "right"] as const).flatMap((hand) =>
+        late.some((s) => s.hand === hand && Math.abs(s.beat - half) < 1e-6)
+          ? []
+          : second
+              .filter((s) => s.hand === hand && s.beat < half && s.beat + s.dur > half + 1e-6)
+              .map((s) => ({ ...s, beat: half, dur: s.beat + s.dur - half })),
+      );
+      slots = [
+        ...slots
+          .filter((s) => s.beat < half - 1e-6)
+          .map((s) => ({ ...s, dur: Math.min(s.dur, half - s.beat) })),
+        ...held,
+        ...late,
+      ];
+    }
+    return slots.map((s) => ({ ...s, beat: s.beat + b0 }));
+  }).flat();
 }
 
 export type HandChoice = "both" | Hand;
@@ -890,7 +997,12 @@ const MELODY_REGISTER: [number, number] = [60, 79];
  * A melody over a progression from a seed: chord tones on beats 1 and 3, scale
  * steps between, no leap past a fourth, ending on the last chord's root.
  */
-export function generatedLeadSheet(p: Progression, transpose = 0, seed = 1): LeadSheet {
+export function generatedLeadSheet(
+  p: Progression,
+  transpose = 0,
+  seed = 1,
+  rhythms: number[][] = RHYTHMS,
+): LeadSheet {
   const chart = chartOf(p, transpose);
   const rand: Rand = rng(seed);
   const beats = chartBeats(chart);
@@ -904,7 +1016,7 @@ export function generatedLeadSheet(p: Progression, transpose = 0, seed = 1): Lea
   };
   for (let bar = 0; bar * BEATS_PER_BAR < beats; bar++) {
     const last = (bar + 1) * BEATS_PER_BAR >= beats;
-    const rhythm = last ? [4] : RHYTHMS[Math.floor(rand() * RHYTHMS.length)];
+    const rhythm = last ? [4] : rhythms[Math.floor(rand() * rhythms.length)];
     let t = bar * BEATS_PER_BAR;
     for (const dur of rhythm) {
       const ci = chart.findIndex((c) => t >= c.startBeat && t < c.startBeat + c.durationBeats);
@@ -943,6 +1055,88 @@ export function generatedLeadSheet(p: Progression, transpose = 0, seed = 1): Lea
   };
 }
 
+/** The jazz lead-sheet levels (reading path lead-1 and lead-2): a generated head over a progression, swung. */
+export const LEAD_LEVELS: { id: string; label: string; about: string }[] = [
+  {
+    id: "lead-1",
+    label: "Jazz lead sheet 1",
+    about: "Quarters and eighths, chord tones on 1 and 3, played swung.",
+  },
+  {
+    id: "lead-2",
+    label: "Jazz lead sheet 2",
+    about: "Eighth-note lines and anticipations: the and of 4 tied into the next chord.",
+  },
+];
+export const isLeadLevel = (id: string) => LEAD_LEVELS.some((l) => l.id === id);
+const LEAD_RHYTHMS: Record<string, number[][]> = {
+  "lead-1": [
+    [2, 2],
+    [1, 1, 2],
+    [1, 1, 1, 1],
+    [1.5, 0.5, 2],
+    [0.5, 0.5, 1, 2],
+    [1, 0.5, 0.5, 2],
+  ],
+  "lead-2": [
+    [0.5, 0.5, 0.5, 0.5, 1, 1],
+    [1, 0.5, 0.5, 0.5, 0.5, 1],
+    [0.5, 0.5, 1, 0.5, 0.5, 1],
+    [1.5, 0.5, 1, 0.5, 0.5],
+    [1, 1, 1, 0.5, 0.5],
+    [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1],
+  ],
+};
+
+/**
+ * A jazz head over a progression from a seed, as `generatedLeadSheet` writes a
+ * melody, with the level's rhythms; at lead-2 a bar's last eighth (the and of 4)
+ * often anticipates the next bar's chord, tied over the bar line.
+ */
+export function jazzLeadSheet(level: string, p: Progression, transpose = 0, seed = 1): LeadSheet {
+  const id = isLeadLevel(level) ? level : "lead-1";
+  const base = generatedLeadSheet(p, transpose, seed, LEAD_RHYTHMS[id]);
+  const melody = [...base.melody];
+  if (id === "lead-2") {
+    const rand = rng(seed * 31 + 7);
+    const chordAt = (t: number) =>
+      base.chart.find((c) => t >= c.startBeat - 1e-6 && t < c.startBeat + c.durationBeats - 1e-6);
+    for (let i = 0; i + 1 < melody.length; i++) {
+      const n = melody[i];
+      const next = melody[i + 1];
+      const end = n.startBeat + n.durationBeats;
+      if (
+        n.durationBeats !== 0.5 ||
+        next.durationBeats > 1.5 ||
+        end % BEATS_PER_BAR !== 0 ||
+        Math.abs(next.startBeat - end) > 1e-6 ||
+        rand() >= 0.6
+      )
+        continue;
+      const chord = parseChordSymbol(chordAt(end)?.symbol ?? "")!;
+      const tones = chord ? chord.intervals.map((iv) => pc(chord.rootPc + iv)) : [];
+      // The next chord's tone nearest the note, held through the next bar's first note.
+      const near = Array.from({ length: 9 }, (_, k) => n.midi - 4 + k)
+        .filter((m) => tones.includes(pc(m)))
+        .sort((a, b) => Math.abs(a - n.midi) - Math.abs(b - n.midi));
+      melody[i] = {
+        ...n,
+        midi: near[0] ?? n.midi,
+        durationBeats: n.durationBeats + next.durationBeats,
+      };
+      melody.splice(i + 1, 1);
+    }
+  }
+  const level0 = LEAD_LEVELS.find((l) => l.id === id)!;
+  return {
+    ...base,
+    id: `${id}-${p.id}`,
+    title: `${level0.label} over ${p.name}`,
+    source: "Generated",
+    melody,
+  };
+}
+
 /** A score with chord symbols as a lead sheet: its top line (the right hand's when marked). */
 export function leadSheetFromScore(score: Score): LeadSheet | null {
   if (!score.chords?.length) return null;
@@ -972,13 +1166,19 @@ export function leadSheetFromScore(score: Score): LeadSheet | null {
   };
 }
 
-export type LeadLeft = "roots" | "shells" | "chords";
+export type LeadLeft = "roots" | "shells" | "rootless" | "chords";
 export const LEAD_LEFT: { id: LeadLeft; label: string; about: string }[] = [
   { id: "roots", label: "Left-hand roots", about: "The root on each chord and each bar line." },
   {
     id: "shells",
     label: "Left-hand shells",
     about: "Root and 7th (root and 5th on a triad) on each chord and each bar line.",
+  },
+  {
+    id: "rootless",
+    label: "Left-hand rootless",
+    about:
+      "Rootless A or B (3 5 7 9 or 7 9 3 5) on each chord and each bar line, whichever moves least.",
   },
   {
     id: "chords",
@@ -1005,10 +1205,19 @@ export function leadSheetRendering(
         BEATS_PER_BAR,
     ) * BEATS_PER_BAR;
   const slots: AccompSlot[] = melody.map((n) => R(n.startBeat, n.durationBeats, n.midi));
+  let prev: number[] | undefined;
   for (const c of chart) {
     const chord = parseChordSymbol(c.symbol)!;
     const b = bassOf(chord);
-    const lh = left === "shells" ? [b, b + (seventh(chord) ?? fifth(chord))] : [b];
+    let lh = left === "shells" ? [b, b + (seventh(chord) ?? fifth(chord))] : [b];
+    if (left === "rootless") {
+      // Around middle C, where rootless voicings sound clear; the melody moves up above them.
+      const [a, bb] = (["A", "B"] as const).map((pos) =>
+        placeVoicing(chord.rootPc, rootlessShape(chord, pos), prev, [47, 70]),
+      );
+      lh = prev && movement(bb, prev) < movement(a, prev) ? bb : a;
+      prev = lh;
+    }
     const end = c.startBeat + c.durationBeats;
     for (let t = c.startBeat; t < end - 1e-6; ) {
       const nextBar = (Math.floor(t / BEATS_PER_BAR + 1e-6) + 1) * BEATS_PER_BAR;

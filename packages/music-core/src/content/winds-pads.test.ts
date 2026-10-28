@@ -8,6 +8,7 @@ import {
   FINGERING_LESSONS,
   fingeringSlip,
   lessonSequence,
+  lessonLine,
   articulationTargets,
   fingeringFor,
   GROOVE_PAD_RANGE,
@@ -22,9 +23,9 @@ import {
 } from "./winds-pads";
 
 describe("aerophone", () => {
-  it("charts Bb3..C#6 with the verified set flagged", () => {
+  it("charts Bb3..F#6 with the verified set flagged", () => {
     expect(AEROPHONE_CHART.map((c) => c.midi)).toEqual(
-      Array.from({ length: 28 }, (_, i) => 58 + i),
+      Array.from({ length: 33 }, (_, i) => 58 + i),
     );
     expect(AEROPHONE_CHART.filter((c) => c.verified).map((c) => c.name)).toEqual([
       "C4",
@@ -51,16 +52,29 @@ describe("aerophone", () => {
     // Middle C is key 2 alone; G5 is G4 with the octave key.
     expect(fingeringFor(72)?.keys).toEqual(["k2"]);
     expect(fingeringFor(79)).toMatchObject({ keys: ["k1", "k2", "k3"], octave: true });
-    expect(fingeringFor(86)).toBeUndefined();
+    // The palm keys: D6 is palm D with the octave key, F#6 adds the high F# key.
+    expect(fingeringFor(86)).toMatchObject({
+      name: "D6",
+      keys: ["C1"],
+      octave: true,
+      verified: false,
+    });
+    expect(fingeringFor(90)?.keys).toEqual(["C1", "C2", "C3", "C4", "C5"]);
+    expect(fingeringFor(91)).toBeUndefined();
+    expect(fingeringSlip(86, 87)?.text).toBe("Lift C2 (palm Eb)");
   });
 
   it("every chart key is a Roland key, and the lessons stay in the chart", () => {
     const ids = new Set(AEROPHONE_KEYS.map((k) => k.id));
     for (const c of AEROPHONE_CHART) for (const k of c.keys) expect(ids.has(k), k).toBe(true);
-    expect(FINGERING_LESSONS).toHaveLength(12);
+    expect(FINGERING_LESSONS).toHaveLength(14);
     for (const l of FINGERING_LESSONS)
-      for (const n of l.notes) expect(fingeringFor(n), `${l.id} ${n}`).toBeDefined();
+      for (const n of lessonLine(l)) expect(fingeringFor(n), `${l.id} ${n}`).toBeDefined();
     expect(lessonSequence([67, 69, 71])).toEqual([67, 69, 71, 69, 67]);
+    // A chosen set: 20 cards, at least half of them F#4 or Bb4.
+    const fsBb = lessonLine(FINGERING_LESSONS.find((l) => l.id === "fs-bb")!);
+    expect(fsBb).toHaveLength(20);
+    expect(fsBb.filter((m) => m === 66 || m === 70).length).toBeGreaterThanOrEqual(10);
   });
 
   it("names the slip between a played note and the target", () => {

@@ -4,6 +4,7 @@ import { tuningById } from "../theory/fretboard";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { rng } from "./random";
+import { scaleFingerMap } from "./piano-fingering";
 import {
   baseOffset,
   chordChangePairs,
@@ -269,7 +270,7 @@ describe("spider spans", () => {
 
 describe("positions", () => {
   it("has 5 boxes and 5 CAGED shapes with their base offsets", () => {
-    expect(POSITION_PATTERNS.map((p) => `${p.id}:${baseOffset(p)}`)).toEqual([
+    expect(POSITION_PATTERNS.slice(0, 10).map((p) => `${p.id}:${baseOffset(p)}`)).toEqual([
       "minor-pentatonic-box-1:0",
       "minor-pentatonic-box-2:2",
       "minor-pentatonic-box-3:4",
@@ -294,6 +295,51 @@ describe("positions", () => {
     for (const p of POSITION_PATTERNS.filter((x) => x.family === "caged-major"))
       for (const n of positionTargets({ patternId: p.id, tuning: std, rootFret: 3 }))
         expect([7, 11, 2], p.id).toContain(pc(n.midi));
+  });
+});
+
+describe("connected boxes and triads", () => {
+  it("joins the five boxes up the neck in A, frets 5 to 17, in the pentatonic", () => {
+    const run = positionTargets({
+      patternId: "minor-pentatonic-connected",
+      tuning: std,
+      rootFret: 5,
+    });
+    expect(run).toHaveLength(60);
+    expect(run[0]).toMatchObject({ string: 6, fret: 5, finger: 1 });
+    // Box 1 ends high, box 2 starts high and walks down.
+    expect(run.slice(11, 13).map((t) => `${t.string}:${t.fret}`)).toEqual(["1:8", "1:10"]);
+    expect(Math.max(...run.map((t) => t.fret))).toBe(17);
+    for (const t of run) {
+      expect([9, 0, 2, 4, 7]).toContain(pc(t.midi));
+      expect(t.finger).toBeGreaterThanOrEqual(1);
+      expect(t.finger).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("plays every inversion of each triad on its three strings, in order up the neck", () => {
+    const tones = { major: [9, 1, 4], minor: [9, 0, 4] };
+    for (const p of POSITION_PATTERNS.filter((x) => x.family === "triads")) {
+      const line = positionTargets({ patternId: p.id, tuning: std, rootFret: 5 });
+      expect(line, p.id).toHaveLength(9);
+      const want = p.id.includes("major") ? tones.major : tones.minor;
+      const strings = p.id.endsWith("1-3") ? [3, 2, 1] : [4, 3, 2];
+      for (let k = 0; k < 3; k++) {
+        const chord = line.slice(k * 3, k * 3 + 3);
+        expect(
+          chord.map((t) => t.string),
+          p.id,
+        ).toEqual(strings);
+        expect(chord.map((t) => pc(t.midi)).sort(), `${p.id} inversion ${k}`).toEqual(
+          [...want].sort(),
+        );
+      }
+      // Three different lowest notes: root position and both inversions.
+      expect(new Set([0, 3, 6].map((i) => pc(line[i].midi))).size, p.id).toBe(3);
+      // Each inversion sits higher on the neck than the one before.
+      const lows = [0, 3, 6].map((i) => Math.min(...line.slice(i, i + 3).map((t) => t.fret)));
+      expect(lows, p.id).toEqual([...lows].sort((a, b) => a - b));
+    }
   });
 });
 
@@ -507,6 +553,97 @@ describe("legato patterns", () => {
     });
     expect(t.map((x) => `${x.fret}${x.label}`)).toEqual(["5P", "7h", "8h", "7p"]);
     expect(t.map((x) => x.midi)).toEqual([60, 62, 63, 62]);
-    expect(LEGATO_PATTERNS).toHaveLength(3);
+    expect(LEGATO_PATTERNS).toHaveLength(5);
+  });
+
+  it("keeps one finger on a slide and shifts position with it", () => {
+    const t = legatoTargets({
+      patternId: "slide-shift",
+      tuning: std,
+      string: 3,
+      startFret: 5,
+      repeats: 1,
+    });
+    expect(t.map((x) => `${x.fret}${x.label}${x.finger}`)).toEqual([
+      "5P1",
+      "7P3",
+      "9s3",
+      "10h4",
+      "9p3",
+      "7s3",
+    ]);
+    const slide = legatoTargets({
+      patternId: "slide",
+      tuning: std,
+      string: 2,
+      startFret: 7,
+      repeats: 1,
+    });
+    expect(slide.map((x) => x.finger)).toEqual([3, 3, 3]);
+  });
+});
+
+describe("piano scale options: hands apart, contrary motion, thirds, octaves, chromatic", () => {
+  const base = {
+    kind: "major" as const,
+    tonic: 60,
+    span: "one-octave" as const,
+    motion: "up" as const,
+    bpm: 80,
+  };
+  const pairs = (steps: ReturnType<typeof scaleDrillTargets>) =>
+    steps.map((st) => st.notes.map((n) => `${n.hand[0]}${n.midi}`).join(" "));
+
+  it("keeps an octave apart exactly as before", () => {
+    expect(scaleDrillTargets({ ...base, hands: "both", apart: "octave" })).toEqual(
+      scaleDrillTargets({ ...base, hands: "both" }),
+    );
+  });
+
+  it("starts contrary motion on the tonic in both hands and mirrors it", () => {
+    const steps = scaleDrillTargets({ ...base, hands: "both", apart: "contrary" });
+    // The unison start is one key under both thumbs.
+    expect(pairs(steps).slice(0, 3)).toEqual(["r60", "l59 r62", "l57 r64"]);
+    expect(pairs(steps).at(-1)).toBe("l48 r72");
+  });
+
+  it("puts the right hand a third above, or the left hand a sixth below, in the key", () => {
+    const third = scaleDrillTargets({ ...base, hands: "both", apart: "third" });
+    expect(pairs(third).slice(0, 2)).toEqual(["l48 r64", "l50 r65"]);
+    const sixth = scaleDrillTargets({ ...base, hands: "both", apart: "sixth" });
+    expect(pairs(sixth).slice(0, 2)).toEqual(["l52 r60", "l53 r62"]);
+  });
+
+  it("plays double thirds and octaves in a hand, and the chromatic scale with its fingering", () => {
+    const thirds = scaleDrillTargets({ ...base, hands: "right", pattern: "thirds" });
+    expect(thirds.map((st) => st.notes.map((n) => n.midi))[0]).toEqual([60, 64]);
+    expect(thirds).toHaveLength(8);
+    const octaves = scaleDrillTargets({ ...base, hands: "both", pattern: "octaves" });
+    expect(octaves[0].notes.map((n) => n.midi)).toEqual([36, 48, 60, 72]);
+    const chromatic = scaleDrillTargets({ ...base, kind: "chromatic", hands: "right" });
+    expect(chromatic.map((st) => st.notes[0].midi)).toEqual(
+      Array.from({ length: 13 }, (_, i) => 60 + i),
+    );
+    const f = scaleFingerMap("chromatic", 60, "rh", 1)!;
+    expect([60, 61, 62, 63, 64, 65].map((m) => f.get(m))).toEqual([2, 3, 1, 3, 1, 2]);
+  });
+
+  it("starts an arpeggio from the 3rd or the 5th, and keys the ladder apart", () => {
+    const first = scaleDrillTargets({ ...base, hands: "right", pattern: "arpeggio", inversion: 1 });
+    expect(first.map((st) => st.notes[0].midi)).toEqual([64, 67, 72, 76]);
+    const dim = scaleDrillTargets({
+      ...base,
+      hands: "right",
+      pattern: "arpeggio",
+      chord: "diminished-7",
+      inversion: 3,
+    });
+    expect(dim.map((st) => st.notes[0].midi)).toEqual([69, 72, 75, 78, 81]);
+    expect(scaleSetupKey({ ...base, hands: "both", apart: "third" })).not.toBe(
+      scaleSetupKey({ ...base, hands: "both" }),
+    );
+    expect(scaleSetupKey({ ...base, hands: "both", apart: "octave" })).toBe(
+      scaleSetupKey({ ...base, hands: "both" }),
+    );
   });
 });

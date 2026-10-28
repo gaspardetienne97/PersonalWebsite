@@ -22,6 +22,7 @@
     fillReport,
     gradeDynamics,
     improviseReport,
+    gradeImprovise,
     inRange,
     ladderBand,
     orchestrationGroove,
@@ -62,6 +63,8 @@
     bars: 4,
     // What Improvise plays over: the band's funk vamp, or a groove on the kit with the band in its style.
     loop: "funk" as string,
+    // Improvise: a fill every this many bars (0: free), each to land on the next one.
+    fillEvery: 0,
     phrase: "son-clave" as string,
   });
   const s = $derived(cfg.value);
@@ -83,6 +86,7 @@
   const dyn = $derived(DYNAMICS_EXERCISES.find((d) => d.id === s.dyn) ?? DYNAMICS_EXERCISES[0]);
   const dynSlots = $derived(Array.from({ length: dyn.notes }, (_, i) => (i * beatMs) / dyn.perBeat));
   const improBars = $derived([4, 8, 16, 32].includes(s.bars) ? s.bars : 4);
+  const fillEvery = $derived([4, 8].includes(s.fillEvery) && s.fillEvery <= improBars ? s.fillEvery : 0);
   const LOOPS = ["funk", "boom-bap-b", "basic-rock", "house", "funk-sixteenths", "blues-shuffle"];
   const loopEntry = $derived(s.loop === "funk" ? null : (repertoireFor(s.loop) ?? null));
   /** The loop under Improvise: the groove on the kit, repeated to fill the bars, and the band in its style. */
@@ -183,7 +187,7 @@
               ? [{ text: `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}`, focus: "echo" }, { text: "four rounds" }]
               : skill === "dynamics"
                 ? [{ text: dyn.label, focus: "dyn" }]
-                : [{ text: `Improvise over ${improBars} bars`, focus: "bars" }, { text: loopEntry ? `of ${loopEntry.groove.label} and the band` : "of the band", focus: "loop" }]),
+                : [{ text: `Improvise over ${improBars} bars`, focus: "bars" }, { text: loopEntry ? `of ${loopEntry.groove.label} and the band` : "of the band", focus: "loop" }, ...(fillEvery ? [{ text: `a fill every ${fillEvery} bars`, focus: "fillEvery" }] : [])]),
     { text: `${bpm} BPM` },
   ]);
 
@@ -239,10 +243,10 @@
       skillIds: ["technique.mpc", `technique.mpc.${skill === "orchestrate" ? "orchestration" : skill === "ostinato" ? "independence" : skill}`],
       capabilities: ["technique"],
       modality: "played",
-      assistance: skill === "improvise" ? "guided" : assistanceFor(mode),
+      assistance: assistanceFor(mode),
       difficulty: skill === "dynamics" ? 0.45 : skill === "echo" ? 0.5 : skill === "improvise" ? 0.4 : 0.55,
       instrument: "mpc",
-      params: { skill, bpm, setup: grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn), ...(skill === "improvise" ? { bars: improBars } : {}) },
+      params: { skill, bpm, setup: grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn), ...(skill === "improvise" ? { bars: improBars, fillEvery: fillEvery } : {}) },
     });
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onHit(e as NoteEvent));
     if (skill === "echo") band = hearCalls(ctx.downbeat);
@@ -339,29 +343,46 @@
     } else {
       take = ons.map((n) => ({ at: n.at, midi: n.midi, velocity: n.velocity }));
       const rep = improviseReport(take, downbeat, beatMs);
+      const g = gradeImprovise(take, downbeat, beatMs, improBars, { stepsPerBeat: loopEntry?.groove.stepsPerBeat ?? 4, fillEvery });
+      score = g.score;
+      correct = g.correct;
       rows = [
+        { label: "Time", value: g.time, text: g.meanAbsMs === null ? "no hits" : `${Math.round(g.meanAbsMs)} ms from the grid on average${g.driftBpm === null ? "" : `, ${Math.abs(g.driftBpm) < 0.5 ? "no drift" : `drifted ${g.driftBpm > 0 ? "+" : ""}${g.driftBpm.toFixed(1)} BPM`}`}` },
+        { label: "Bars kept going", value: g.density, text: pct(g.density) },
+        ...(g.fills ? [{ label: "Fills landed on the one", value: g.fills.landed / Math.max(1, g.fills.expected), text: `${g.fills.landed} of ${g.fills.expected}` }] : []),
+        { label: "Different fills", text: String(g.distinctFills) },
         { label: "Hits", text: String(rep.hits) },
         { label: "Distance from the sixteenth grid", text: rep.timingSpreadMs === null ? "too few hits" : `${Math.round(rep.timingSpreadMs)} ms spread` },
         { label: "Swing", text: rep.swing === null ? "not enough off-beats" : `${rep.swing}% (50 straight, 66 triplet)` },
         { label: "Loudness range", text: rep.velocity ? `${Math.round(rep.velocity[0] * 127)} to ${Math.round(rep.velocity[1] * 127)}` : "none" },
         { label: "Pads used", text: `${rep.pads.length}` },
       ];
-      headline = rep.hits ? `${rep.hits} hits on ${rep.pads.length} pads. Hear it back, then nudged half way to the grid.` : "Nothing was played.";
+      headline = !rep.hits
+        ? "Nothing was played."
+        : g.correct
+          ? `In time and never stopped: ${rep.hits} hits on ${rep.pads.length} pads.`
+          : g.driftBpm !== null && Math.abs(g.driftBpm) >= 2
+            ? `The tempo drifted ${g.driftBpm > 0 ? "+" : ""}${g.driftBpm.toFixed(1)} BPM: lock in with the band's kick.`
+            : g.fills && g.fills.landed < g.fills.expected
+              ? `${g.fills.landed} of ${g.fills.expected} fills landed on the one.`
+              : g.density < 1
+                ? `${Math.round((1 - g.density) * improBars)} bars went quiet: keep the groove going between ideas.`
+                : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25.`;
     }
-    // Improvising is described, not graded, and dynamics the app could not measure are not a fail: neither is recorded.
+    // Dynamics the app could not measure are not a fail, so they are not recorded.
     if (!graded(ons.length)) {
-      summary = { headline, metric: skill === "improvise" ? String(ons.length) : pct(score), metricLabel: skill === "improvise" ? "hits" : "score", assistance: skill === "improvise" ? "Improvising is described, not graded: nothing is recorded." : "Nothing to measure, so nothing is recorded.", rows, recorded: false };
+      summary = { headline, metric: pct(score), metricLabel: "score", assistance: "Nothing to measure, so nothing is recorded.", rows, recorded: false };
       status = headline;
       return;
     }
-    await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? s.dyn}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
+    await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn)}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: await advanceAfter(score, correct) };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: skill === "improvise" ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }
 
-  /** Improvising is described, not graded; dynamics count only with velocity measured. */
-  const graded = (hits: number) => hits > 0 && skill !== "improvise" && (skill !== "dynamics" || levels.length > 0);
+  /** Dynamics count only with velocity measured. */
+  const graded = (hits: number) => hits > 0 && (skill !== "dynamics" || levels.length > 0);
   /** Each skill climbs the tempo to 120, then moves through its own list. */
   function advanceAfter(score: number, correct: boolean) {
     if (skill === "phrases")
@@ -401,7 +422,7 @@
 <DrillShell
   title={skill === "phrases" ? "Phrases" : "Pads"}
   hue="mpc"
-  blurb={skill === "phrases" ? "Short drum phrases drummers know by name: clave cells, a tag ending, a fill and landing, a build. Hear one, then play it on the pads." : skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "The right hand keeps the hats while the left reads a line; the hats are measured against playing them alone." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band; the take is described, then played back as it was and nudged to the grid."}
+  blurb={skill === "phrases" ? "Short drum phrases drummers know by name: clave cells, a tag ending, a fill and landing, a build. Hear one, then play it on the pads." : skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "The right hand keeps the hats while the left reads a line; the hats are measured against playing them alone." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band, graded on time and on keeping every bar going (and landing each fill, with fills set); hear it back as played and nudged to the grid."}
   summary={summaryLine}
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab={skill}
@@ -439,6 +460,7 @@
       {:else}
         <Choice label="Bars" options={[4, 8, 16, 32].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
         <Choice label="Loop" options={LOOPS.map((id) => ({ value: id, label: loopName(id) }))} value={loopEntry ? s.loop : "funk"} onchange={(v) => cfg.set({ loop: v })} setupKey="loop" />
+        <Choice label="A fill every" options={[{ value: 0, label: "No set fills" }, { value: 4, label: "4 bars" }, { value: 8, label: "8 bars" }]} value={fillEvery} onchange={(v) => cfg.set({ fillEvery: v })} setupKey="fillEvery" />
       {/if}
     </div>
   {/snippet}
@@ -482,7 +504,7 @@
           <p class="mt-1 text-xs text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
         </div>
       {:else}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. {loopEntry ? `The kit loops ${loopEntry.groove.label} for ${improBars} bars with the band in its style` : `The band plays ${improBars} bars of a funk vamp`}; listen back afterwards, as played and nudged half way to the grid.</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. {loopEntry ? `The kit loops ${loopEntry.groove.label} for ${improBars} bars with the band in its style` : `The band plays ${improBars} bars of a funk vamp`}; {fillEvery ? ` A fill in every ${fillEvery}th bar, landing on the next one.` : ""} Graded on time and on keeping every bar going; listen back afterwards, as played and nudged half way to the grid.</p>
       {/if}
       <Pads marks={marks} {flashes} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
     </div>

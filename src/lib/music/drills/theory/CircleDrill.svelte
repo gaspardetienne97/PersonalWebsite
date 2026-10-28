@@ -9,6 +9,7 @@
   import { page } from "$app/state";
   import {
     CIRCLE_MODES,
+    chordIn,
     circlePrompt,
     gradeCircle,
     KEY_BANDS,
@@ -41,7 +42,7 @@
   const clefs = $derived((s.clefs === "both" ? ["treble", "bass"] : [s.clefs === "bass" ? "bass" : "treble"]) as ("treble" | "bass")[]);
   const usesMinor = $derived(modeId === "count" || modeId === "signature");
   /** Short names for the tab row. */
-  const TAB: Record<CircleMode, string> = { order: "Order", count: "Signatures", signature: "Read it", neighbours: "Neighbours", chords: "Chords", wheel: "Blank wheel" };
+  const TAB: Record<CircleMode, string> = { order: "Order", count: "Signatures", signature: "Read it", neighbours: "Neighbours", chords: "Chords", wheel: "Blank wheel", borrowed: "Borrowed", secondary: "V of" };
   /** Each key band as the "Up to" button reads it, and as the setup sentence says it. */
   const BAND_TEXT: Record<KeyBand, { label: string; clause: string }> = {
     near: { label: "C, G and F", clause: "keys C, G and F" },
@@ -210,6 +211,10 @@
         return `${k.major} major: ${diatonicChords(p.fifths).map((c) => `${c.numeral} ${c.name}`).join(", ")}. The wedge: IV I V outside, ii vi iii inside.`;
       case "wheel":
         return `From C at the top, clockwise: G D A E B F#, then Db Ab Eb Bb F back to C.`;
+      case "borrowed":
+        return `${k.major} major's own chords: ${diatonicChords(p.fifths).map((c) => c.name).join(" ")}. Borrowed from ${k.major} minor: ${["iv", "bVI", "bVII", "bIII"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ")}.`;
+      case "secondary":
+        return `A secondary dominant is a dominant seventh a fifth above the chord it leads to. In ${k.major}: ${["V/ii", "V/IV", "V/V", "V/vi"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ")}.`;
     }
   }
 

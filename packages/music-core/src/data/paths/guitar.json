@@ -478,9 +478,15 @@
           "id": "2.3",
           "title": "Hardest five",
           "strand": "S",
-          "setup": "Chords, Changes: the five slowest pairs from your history.",
+          "href": "/music/chords?mode=changes&instrument=guitar&hardest=true&clock=2&bpm=50",
+          "setup": "Chords, Changes: Hardest five lists your five slowest pairs. A change every 2 beats at 60 is 30 a minute.",
           "done": "The 5 slowest pairs at 30 changes a minute each.",
-          "needs": "A hardest-five setting in Changes, picked from per-pair history."
+          "match": {
+            "hardest": "true",
+            "beatsPerChord": "2"
+          },
+          "minAttempts": 5,
+          "minBpm": 60
         },
         {
           "id": "2.4",
@@ -1781,9 +1787,11 @@
           "id": "5.4",
           "title": "Accents, ghost strums, muting",
           "strand": "S",
-          "setup": "Rhythm, read and tap: accents on 2 and 4 with a fretting-hand chuck, 90.",
+          "href": "/music/rhythm?mode=read-and-tap&instrument=guitar&pattern=guitar-backbeat-chuck&bpm=90",
+          "setup": "Rhythm, read and tap: accents on 2 and 4 with a fretting-hand chuck.",
           "done": "90% at 100.",
-          "needs": "An accents-on-2-and-4 strum pattern in Rhythm.",
+          "threshold": 0.9,
+          "minBpm": 100,
           "feeds": "Sweet Home Alabama, Hit the Road Jack"
         },
         {
@@ -1870,13 +1878,30 @@
           "id": "5.11",
           "title": "Four stock box-1 licks",
           "strand": "L",
-          "setup": "Licks, guitar blues: root-b7-5, the box-1 bend, the double stop and the turnaround. The turnaround is in Phrases now.",
+          "href": "/music/phrases?instrument=guitar&phrase=guitar.root-b7-5",
+          "setup": "Phrases: root, flat seven, five; the double stop; the turnaround. The box-1 bend is not in yet, since a bend can't be graded as a phrase.",
           "done": "Each in Check mode at 90.",
-          "needs": "A guitar-blues category in Licks with the four stock box-1 licks.",
+          "each": {
+            "param": "phrase",
+            "values": ["guitar.root-b7-5", "guitar.double-stop-intro", "guitar.blues-turnaround"]
+          },
+          "threshold": 0.9,
           "links": [
+            {
+              "label": "Double stop",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.double-stop-intro"
+            },
             {
               "label": "Blues turnaround",
               "href": "/music/phrases?instrument=guitar&phrase=guitar.blues-turnaround"
+            },
+            {
+              "label": "Blues scale run",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.blues-scale-run"
+            },
+            {
+              "label": "C to D and back to A",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.minor-third-rub"
             }
           ],
           "feeds": "Level 6 blues"
@@ -2239,9 +2264,20 @@
           "id": "6.5",
           "title": "Slides",
           "strand": "L",
-          "setup": "Fretboard, Hammer-ons and pull-offs with slides.",
+          "href": "/music/fretboard?mode=legato&instrument=guitar&string=3&startFret=5&bpm=60&pattern=slide",
+          "setup": "Fretboard, Hammer-ons and pull-offs: the slide, then the position shift.",
           "done": "The slide lands in tune 8 of 10.",
-          "needs": "Slides in Hammer-ons and pull-offs.",
+          "each": {
+            "param": "pattern",
+            "values": ["slide", "slide-shift"]
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Position shift",
+              "href": "/music/fretboard?mode=legato&instrument=guitar&string=3&startFret=5&bpm=60&pattern=slide-shift"
+            }
+          ],
           "feeds": "The Thrill Is Gone, Day Tripper"
         },
         {
@@ -2624,12 +2660,85 @@
           "feeds": "everything after"
         },
         {
+          "id": "7.1b",
+          "title": "One chord in its five CAGED forms",
+          "strand": "S, T",
+          "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=0",
+          "setup": "Chords, Build: C in its five forms up the neck, the C, A, G, E and D shapes (open, barre 3, fret 5, barre 8, fret 10). Then Am the same way.",
+          "done": "Each form rings clean 3 times running, on two days.",
+          "each": {
+            "param": "position",
+            "values": ["0", "1", "2", "3", "4"]
+          },
+          "match": {
+            "shape": "guitar.c-major"
+          },
+          "minAttempts": 3,
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "A shape",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=1"
+            },
+            {
+              "label": "G shape",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=2"
+            },
+            {
+              "label": "E shape",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=3"
+            },
+            {
+              "label": "D shape",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=4"
+            },
+            {
+              "label": "Am forms",
+              "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.a-minor&position=0"
+            }
+          ],
+          "feeds": "everything after: any chord anywhere on the neck"
+        },
+        {
+          "id": "7.1c",
+          "title": "Move through the CAGED forms in time",
+          "strand": "S, T",
+          "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.c-major,guitar.c-major,guitar.c-major,guitar.c-major,guitar.c-major&positions=0,1,2,3,4&timed=true",
+          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built; MIDI guitar or the on-screen frets tell them apart.",
+          "done": "20 changes a minute through the cycle, clean, on two days.",
+          "match": {
+            "chords": "guitar.c-major>guitar.c-major>guitar.c-major>guitar.c-major>guitar.c-major"
+          },
+          "minAttempts": 3,
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Am forms",
+              "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.a-minor,guitar.a-minor,guitar.a-minor,guitar.a-minor,guitar.a-minor&positions=0,1,2,3,4&timed=true"
+            }
+          ],
+          "requires": ["7.1b"],
+          "feeds": "Level 8 and 9 rhythm parts up the neck"
+        },
+        {
           "id": "7.2",
           "title": "Triads on strings 1-3 and 2-4",
           "strand": "S, T",
-          "setup": "Fretboard, Positions: three inversions on two string sets.",
+          "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=triads-major-strings-1-3&rootFret=3&bpm=60",
+          "setup": "Fretboard, Positions: major triads on strings 1 to 3 and 2 to 4, every inversion, rooted on G, C and D.",
           "done": "All six for G, C and D at 60.",
-          "needs": "Triad positions in Fretboard: three inversions on strings 1-3 and 2-4.",
+          "each": {
+            "param": "pattern",
+            "values": ["triads-major-strings-1-3", "triads-major-strings-2-4"]
+          },
+          "threshold": 0.9,
+          "minBpm": 60,
+          "links": [
+            {
+              "label": "Strings 2 to 4",
+              "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=triads-major-strings-2-4&rootFret=3&bpm=60"
+            }
+          ],
           "feeds": "Hey Joe, Under the Bridge"
         },
         {
@@ -2722,9 +2831,44 @@
           "id": "7.10",
           "title": "D minor licks",
           "strand": "L",
-          "setup": "Licks: 6 Santana-style licks in D minor pentatonic and Dorian.",
+          "href": "/music/phrases?instrument=guitar&phrase=guitar.d-minor-long-tone",
+          "setup": "Phrases: six Latin-rock licks in D minor pentatonic and Dorian, box 1 at the tenth fret.",
           "done": "Each at 90 in Check mode.",
-          "needs": "Six Santana-style guitar licks in D minor pentatonic and Dorian in Licks.",
+          "each": {
+            "param": "phrase",
+            "values": [
+              "guitar.d-minor-long-tone",
+              "guitar.d-dorian-sixth",
+              "guitar.d-minor-octaves",
+              "guitar.d-dorian-run",
+              "guitar.d-minor-answer",
+              "guitar.d-dorian-vamp"
+            ]
+          },
+          "threshold": 0.9,
+          "minBpm": 90,
+          "links": [
+            {
+              "label": "Lick 2",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.d-dorian-sixth"
+            },
+            {
+              "label": "Lick 3",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.d-minor-octaves"
+            },
+            {
+              "label": "Lick 4",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.d-dorian-run"
+            },
+            {
+              "label": "Lick 5",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.d-minor-answer"
+            },
+            {
+              "label": "Lick 6",
+              "href": "/music/phrases?instrument=guitar&phrase=guitar.d-dorian-vamp"
+            }
+          ],
           "feeds": "Black Magic Woman"
         },
         {
@@ -3065,9 +3209,14 @@
           "id": "8.2",
           "title": "The whole neck in one key",
           "strand": "L",
-          "setup": "Fretboard, Positions: the connected boxes in A minor, frets 5 to 17, 80.",
+          "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-connected&rootFret=5&bpm=70",
+          "setup": "Fretboard, Positions: boxes 1 to 5 connected in A minor, frets 5 to 17.",
           "done": "Up and down the neck clean at 80.",
-          "needs": "A connected-boxes run in Positions.",
+          "match": {
+            "pattern": "minor-pentatonic-connected"
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
           "feeds": "Comfortably Numb, Sweet Child O' Mine"
         },
         {
@@ -3105,11 +3254,16 @@
           "id": "8.5",
           "title": "Target notes on the change",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=-3",
-          "setup": "Jam: 12-bar in A with the chord tones lit; land on the 3rd of each new chord. Jam is practice only, so this step opens it and is not judged.",
+          "href": "/music/jam?progression=blues&transpose=-3&game=changes&choruses=3",
+          "setup": "Jam in Check: 12-bar in A; land on the 3rd of each new chord.",
           "done": "3 choruses, 80% of changes hit.",
-          "exerciseIds": [],
-          "feeds": "improvising"
+          "feeds": "improvising",
+          "match": {
+            "game": "changes",
+            "choruses": "3"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "8.6",
@@ -3149,9 +3303,15 @@
           "id": "8.8",
           "title": "Speed bursts",
           "strand": "R, L",
-          "setup": "Fretboard, speed bursts: 4 to 6 notes looped, a tempo ladder on evenness.",
+          "href": "/music/fretboard?mode=spider&instrument=guitar&burst=true&perBeat=4&bpm=80",
+          "setup": "Fretboard, Spider with speed bursts: a four-note cell in sixteenths, then a rest as long; the tempo climbs while it stays even. The Sweet Child cell itself is not in the app.",
           "done": "The Sweet Child intro cell at 120 in 16ths, even.",
-          "needs": "A speed-burst setting in Fretboard.",
+          "match": {
+            "burst": "true",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 120,
           "feeds": "Sweet Child O' Mine"
         },
         {
@@ -3577,9 +3737,15 @@
           "id": "9.9",
           "title": "A clean picking burst",
           "strand": "L",
-          "setup": "Fretboard, speed bursts: 16ths at 90.",
+          "href": "/music/fretboard?mode=spider&instrument=guitar&burst=true&perBeat=4&bpm=90",
+          "setup": "Fretboard, Spider with speed bursts: sixteenths at 90.",
           "done": "Even at 100, on two days.",
-          "needs": "A speed-burst setting in Fretboard.",
+          "match": {
+            "burst": "true",
+            "perBeat": "4"
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
           "feeds": "Sultans of Swing"
         },
         {
@@ -3903,9 +4069,16 @@
           "id": "10.2",
           "title": "Chords at grade tempo",
           "strand": "S",
-          "setup": "Chords, Changes: the hardest five across all shapes (open, barre, 7ths, 9ths, shells).",
+          "href": "/music/chords?mode=changes&instrument=guitar&hardest=true&clock=1&bpm=50",
+          "setup": "Chords, Changes: the hardest five across every shape you have timed (open, barre, 7ths, 9ths, shells). A change every beat at 60 is 60 a minute.",
           "done": "60 changes a minute on each.",
-          "needs": "The hardest-five setting in Changes, across every shape."
+          "match": {
+            "hardest": "true",
+            "beatsPerChord": "1"
+          },
+          "threshold": 0.9,
+          "minAttempts": 5,
+          "minBpm": 60
         },
         {
           "id": "10.3",

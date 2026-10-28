@@ -1,18 +1,22 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName } from "@repo/music-core";
-  import { SCALE_GROUPS, type ScaleKind } from "@repo/music-core/theory/scales";
+  import { noteName, pc } from "@repo/music-core";
+  import { SCALE_GROUPS } from "@repo/music-core/theory/scales";
   import {
     ABRSM_SPEEDS,
     CHORD_KINDS,
+    HANDS_APART,
     HANDS_TOGETHER_PRESET,
     SCALE_TEMPO,
+    isScaleLine,
     gradeSpeed,
     scaleDrillTargets,
     scaleSetupKey,
     scaleSkills,
     type ChordKind,
+    type DrillScaleKind,
+    type HandsApart,
     type ScalePattern,
   } from "@repo/music-core/content/technique";
   import {
@@ -58,9 +62,17 @@
     perBeat: 1,
     /** An ABRSM grade whose speed was picked ("" for none). */
     grade: "" as string,
+    /** Both hands: an octave apart, contrary motion, a third or a sixth apart. */
+    apart: "octave" as string,
+    /** Arpeggios: from the root (0), the 3rd (1), the 5th (2) or the 7th (3). */
+    inversion: 0,
+    /** After a clean checked run, move the tonic up a fifth round the circle. */
+    rotate: false as boolean,
   });
   const PATTERNS: { value: ScalePattern; label: string; hint?: string }[] = [
     { value: "scale", label: "Scale" },
+    { value: "thirds", label: "Double thirds", hint: "The scale in thirds in one hand" },
+    { value: "octaves", label: "Octaves", hint: "The scale in octaves in each hand" },
     { value: "arpeggio", label: "Arpeggio" },
     { value: "broken", label: "Broken", hint: "Broken chords through the inversions" },
     { value: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
@@ -76,9 +88,11 @@
     pattern,
     chord: s.chord as ChordKind,
     perBeat,
-    kind: s.kind as ScaleKind,
+    kind: s.kind as DrillScaleKind,
     tonic: s.tonic,
-    span: (pattern !== "scale" && s.span === "pentascale" ? "one-octave" : s.span) as "pentascale" | "one-octave" | "two-octave",
+    apart: (HANDS_APART.some((a) => a.id === s.apart) ? s.apart : "octave") as HandsApart,
+    inversion: pattern === "arpeggio" ? s.inversion : 0,
+    span: (!isScaleLine(pattern) && s.span === "pentascale" ? "one-octave" : s.span) as "pentascale" | "one-octave" | "two-octave",
     motion: s.motion as "up" | "down" | "up-down",
     // One line off the piano: hands are a keyboard idea.
     hands: (onPiano ? s.hands : "right") as "right" | "left" | "both",
@@ -151,8 +165,10 @@
     for (const hand of ["right", "left"] as const) {
       const ms = steps.flatMap((st) => st.notes.filter((n) => n.hand === hand).map((n) => n.midi));
       if (!ms.length) continue;
-      const lo = Math.min(...ms);
-      const map = scaleFingerMap(s.kind, lo, hand === "right" ? "rh" : "lh", scaleSetup.span === "pentascale" ? "pentascale" : Math.max(1, Math.round((Math.max(...ms) - lo) / 12)));
+      // From the tonic at or below the hand's lowest note: a hand a third or a sixth off the tonic keeps the scale's fingering.
+      const lo = Math.min(...ms) - pc(Math.min(...ms) - s.tonic);
+      const span = (Math.max(...ms) - lo) / 12;
+      const map = scaleFingerMap(s.kind, lo, hand === "right" ? "rh" : "lh", scaleSetup.span === "pentascale" ? "pentascale" : Math.max(1, Number.isInteger(span) ? span : Math.ceil(span)));
       map?.forEach((f, m) => out.set(`${hand}:${m}`, f));
     }
     return out;
@@ -188,18 +204,21 @@
   const scaleLabel = (k: string) => k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
   const chordLabel = $derived(CHORD_KINDS.find((c) => c.id === s.chord)?.label.toLowerCase() ?? "major");
   const tonicName = (p: number) => noteName(p, "flat", false);
+  const INVERSIONS = ["root", "3rd", "5th", "7th"];
   const what = $derived(
-    pattern === "scale"
-      ? `${tonicName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()} scale`
+    isScaleLine(pattern)
+      ? `${tonicName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()} scale${pattern === "thirds" ? " in double thirds" : pattern === "octaves" ? " in octaves" : ""}`
       : pattern === "arpeggio"
-        ? `${tonicName(s.tonic)} ${chordLabel} arpeggio`
+        ? `${tonicName(s.tonic)} ${chordLabel} arpeggio${scaleSetup.inversion ? ` from the ${INVERSIONS[scaleSetup.inversion]}` : ""}`
         : `${tonicName(s.tonic)} ${chordLabel} ${pattern} chords`,
   );
+  const apartLabel = $derived(HANDS_APART.find((a) => a.id === scaleSetup.apart)!.label.toLowerCase());
   const setupLine = $derived<SetupClause[]>([
     { text: what, focus: "kind" },
     { text: scaleSetup.span === "pentascale" ? "five notes" : scaleSetup.span.replace("-", " "), focus: "span" },
     { text: s.motion === "up-down" ? "up and down" : s.motion, focus: "motion" },
-    onPiano ? { text: scaleSetup.hands === "both" ? "hands together" : `${scaleSetup.hands} hand`, focus: "hands" } : { text: `on ${inst}` },
+    onPiano ? { text: scaleSetup.hands === "both" ? (scaleSetup.apart === "octave" ? "hands together" : `hands together, ${apartLabel}`) : `${scaleSetup.hands} hand`, focus: "hands" } : { text: `on ${inst}` },
+    ...(s.rotate ? [{ text: "round the circle of keys", focus: "rotate" }] : []),
     ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "per" }] : []),
     ...(target ? [{ text: `aiming for ${s.grade} speed (${target[0]}, ${PER[target[1]]})`, focus: "preset" }] : []),
   ]);
@@ -264,7 +283,7 @@
   // The line written out above the instrument (tab on guitar and ukulele, a staff otherwise), its cursor on the step.
   const frets = $derived(linePositions(inst, all));
   const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, finger: fingerFor(n), ...frets.get(n.midi) }))));
-  const signature = $derived(pattern === "scale" ? signatureFor(s.tonic % 12, s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
+  const signature = $derived(isScaleLine(pattern) ? signatureFor(s.tonic % 12, s.kind === "chromatic" ? "major" : s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
   const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
   const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
   const lineStates = $derived.by(() => {
@@ -293,7 +312,7 @@
       assistance: assistanceFor(mode),
       difficulty: Math.min(1, (s.span === "two-octave" ? 0.6 : scaleSetup.hands === "both" ? 0.5 : 0.35) + (perBeat - 1) * 0.05 + (pattern === "scale" ? 0 : 0.05)),
       instrument: settings.value.activeInstrument,
-      params: { bpm: ctx.bpm, kind: s.kind, tonic: s.tonic, span: scaleSetup.span, motion: s.motion, hands: scaleSetup.hands, pattern, chord: s.chord, perBeat },
+      params: { bpm: ctx.bpm, kind: s.kind, tonic: s.tonic, span: scaleSetup.span, motion: s.motion, hands: scaleSetup.hands, pattern, chord: s.chord, perBeat, apart: scaleSetup.hands === "both" ? scaleSetup.apart : "octave", inversion: scaleSetup.inversion },
     });
     // Input is scored only after the count-in, so speakers can't bleed into the take.
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
@@ -386,15 +405,21 @@
       advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
       ladder: proj?.rungs.map((rg) => ({ bpm: rg.bpm, state: rg.status === "next" ? ("next" as const) : rg.status })),
     };
+    // Round the circle: a clean check moves on to the key a fifth up.
+    if (s.rotate && r.correct && mode === "check") {
+      const next = 60 + pc(s.tonic + 7);
+      cfg.set({ tonic: next });
+      summary.rows = [...(summary.rows ?? []), { label: "Next key", text: `${tonicName(next)}, a fifth up` }];
+    }
     status = summary.headline;
   }
 
   /** Notes a click as steps; goals are the fastest ABRSM speed for two and four (blocked chords have none). */
   function advanceAfter(score: number, correct: boolean) {
-    const col = (n: 2 | 4) => Math.max(...ABRSM_SPEEDS.map((g) => (pattern === "scale" ? g.scale : g.arpeggio)).filter((x) => x[1] === n).map((x) => x[0]));
+    const col = (n: 2 | 4) => Math.max(...ABRSM_SPEEDS.map((g) => (isScaleLine(pattern) ? g.scale : g.arpeggio)).filter((x) => x[1] === n).map((x) => x[0]));
     const goals = pattern === "blocked" ? [120, 100, 80] : [120, col(2), col(4)];
     const steps = ([1, 2, 4] as const).map((n, i) => ({ label: PER[n].replace(/^./, (c) => c.toUpperCase()), goal: goals[i] }));
-    const id = `scales.${pattern}.${pattern === "scale" ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${scaleSetup.hands}.${s.tonic}`;
+    const id = `scales.${pattern}.${isScaleLine(pattern) ? s.kind : s.chord}.${scaleSetup.span}.${s.motion}.${scaleSetup.hands}${scaleSetup.hands === "both" && scaleSetup.apart !== "octave" ? `-${scaleSetup.apart}` : ""}.${s.tonic}`;
     // Three or six a click sits outside the ABRSM ladder: the next run moves the tempo only.
     const laddered = ([1, 2, 4] as number[]).includes(perBeat);
     return nextRun(id, { bpm: bpm(), tempo: { min: SCALE_TEMPO.min, goal: 120, max: SCALE_TEMPO.max }, ...(laddered ? { steps, step: [1, 2, 4].indexOf(perBeat) } : {}) }, { score, correct }, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i], preset: false })));
@@ -419,7 +444,11 @@
     stopDemo();
   });
 
-  const scaleOptions = [...SCALE_GROUPS.modes.map((k) => ({ value: k, label: scaleLabel(k), group: "Modes" })), ...SCALE_GROUPS.jazz.map((k) => ({ value: k, label: scaleLabel(k), group: "Jazz" }))];
+  const scaleOptions = [
+    ...SCALE_GROUPS.modes.map((k) => ({ value: k as string, label: scaleLabel(k), group: "Modes" })),
+    { value: "chromatic", label: "Chromatic", group: "Modes" },
+    ...SCALE_GROUPS.jazz.map((k) => ({ value: k as string, label: scaleLabel(k), group: "Jazz" })),
+  ];
 </script>
 
 <svelte:head><title>Scales | Woodshed</title></svelte:head>
@@ -444,10 +473,19 @@
       <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-ws-soft">What</legend>
         <Choice label="Play" options={PATTERNS} value={pattern} onchange={(v) => cfg.set({ pattern: v, preset: false })} />
-        {#if pattern === "scale"}
+        {#if isScaleLine(pattern)}
           <Choice label="Scale" setupKey="kind" options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
         {:else}
-          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.map((c) => ({ value: c.id as string, label: c.label }))} value={s.chord} onchange={(v) => cfg.set({ chord: v })} />
+          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.map((c) => ({ value: c.id as string, label: c.label }))} value={s.chord} onchange={(v) => cfg.set({ chord: v, inversion: 0 })} />
+          {#if pattern === "arpeggio"}
+            <Choice
+              label="Start on"
+              setupKey="inversion"
+              options={INVERSIONS.slice(0, CHORD_KINDS.find((c) => c.id === s.chord)?.intervals.length ?? 3).map((label, i) => ({ value: i, label: i ? `The ${label}` : "The root", hint: i ? `An arpeggio in ${["", "first", "second", "third"][i]} inversion, from the ${label} to the ${label}.` : undefined }))}
+              value={scaleSetup.inversion}
+              onchange={(v) => cfg.set({ inversion: v })}
+            />
+          {/if}
         {/if}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tonic">
           <span class="font-medium">Tonic</span>
@@ -460,7 +498,7 @@
           label="Span"
           setupKey="span"
           options={[
-            ...(pattern === "scale" ? [{ value: "pentascale", label: "Five notes" }] : []),
+            ...(isScaleLine(pattern) ? [{ value: "pentascale", label: "Five notes" }] : []),
             { value: "one-octave", label: "One octave" },
             { value: "two-octave", label: "Two octaves" },
           ]}
@@ -490,7 +528,20 @@
             value={scaleSetup.hands}
             onchange={(v) => cfg.set({ hands: v, preset: false })}
           />
+          {#if scaleSetup.hands === "both" && isScaleLine(pattern)}
+            <Choice label="Hands apart" setupKey="apart" options={HANDS_APART.map((a) => ({ value: a.id as string, label: a.label, hint: a.hint }))} value={scaleSetup.apart} onchange={(v) => cfg.set({ apart: v, preset: false })} />
+          {/if}
         {/if}
+        <Choice
+          label="Keys"
+          setupKey="rotate"
+          options={[
+            { value: "one", label: "This key" },
+            { value: "circle", label: "Round the circle", hint: "After a clean checked run the tonic moves up a fifth: C, G, D and on through all 12." },
+          ]}
+          value={s.rotate ? "circle" : "one"}
+          onchange={(v) => cfg.set({ rotate: v === "circle" })}
+        />
         <Choice label="Notes a click" setupKey="per" options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))} value={perBeat} onchange={(v) => cfg.set({ perBeat: v, grade: "", preset: false })} />
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="preset">
           <span class="font-medium">Preset</span>

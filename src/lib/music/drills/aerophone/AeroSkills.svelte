@@ -2,15 +2,24 @@
   // Aerophone technique beyond the lessons and breath holds (docs/research/
   // pads-aerophone-gaps.md): timed scales and arpeggios in any key, tonguing
   // patterns told apart by the breath, register crossings, trills, and bite
-  // vibrato at a rate. The lines are graded by order and evenness; the rest by
-  // their own measures in content/aero-skills.
+  // vibrato at a rate, swing articulation (doo-DAH over swung eighths) and a
+  // long-tone scale at one level. The lines are graded by order and evenness;
+  // the rest by their own measures in content/aero-skills.
   import { onDestroy } from "svelte";
   import type { ControlEvent, NoteEvent } from "@repo/music-core";
   import { clamp, noteName } from "@repo/music-core";
   import { fingeringFor } from "@repo/music-core/content/winds-pads";
   import {
     AERO_GRADE_SPEEDS,
+    AERO_PATTERNS,
     AERO_SCALES,
+    BREATH_LEVELS,
+    LONG_SCALE_BEATS,
+    SWING,
+    gradeSwing,
+    heldBand,
+    patternFits,
+    swingMarks,
     REGISTER_PAIRS,
     TONGUING,
     TRILL_PAIRS,
@@ -48,7 +57,7 @@
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import { aerophoneSkills, type AerophoneMode } from "@repo/music-core/content/winds-pads";
 
-  type Skill = "scales" | "tonguing" | "register" | "trills" | "vibrato";
+  type Skill = "scales" | "tonguing" | "register" | "trills" | "vibrato" | "swing" | "long-scale";
   let { skill, modes, onmode }: { skill: Skill; modes: readonly { id: string; label: string }[]; onmode: (m: string) => void } = $props();
 
   const cfg = new DrillSetup("aero-skills", {
@@ -60,11 +69,19 @@
     trill: "g4-a4" as string,
     vib: "4-at-60" as string,
     vibNote: 67,
+    octaves: 1,
+    pattern: "straight" as string,
+    level: "p" as string,
   });
   const s = $derived(cfg.value);
   const vib = $derived(VIBRATO_SETS.find((v) => v.id === s.vib) ?? VIBRATO_SETS[0]);
   const bpm = $derived(skill === "vibrato" ? vib.bpm : clamp(settings.value.bpm, 30, 240));
-  const perBeat = $derived(skill === "scales" ? ([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1) : 2);
+  const perBeat = $derived(skill === "scales" ? ([1, 2, 4].includes(s.perBeat) ? s.perBeat : 1) : skill === "long-scale" ? 1 / LONG_SCALE_BEATS : 2);
+  const beatMs = $derived(60000 / bpm);
+  const octaves = $derived(skill === "scales" && s.octaves === 2 ? 2 : 1);
+  const pattern = $derived(skill === "scales" && patternFits(s.scale) ? (AERO_PATTERNS.find((p) => p.id === s.pattern)?.id ?? "straight") : "straight");
+  const level = $derived(BREATH_LEVELS.find((l) => l.id === s.level) ?? BREATH_LEVELS[1]);
+  const scaleOf = $derived(AERO_SCALES.find((x) => x.id === s.scale) ?? AERO_SCALES[0]);
   const stepMs = $derived(60000 / bpm / perBeat);
   const trillPair = $derived(TRILL_PAIRS.find((p) => p.id === s.trill) ?? TRILL_PAIRS[0]);
   const regPair = $derived(REGISTER_PAIRS.find((p) => p.id === s.pair) ?? REGISTER_PAIRS[0]);
@@ -76,14 +93,25 @@
   const vibNote = $derived(s.vibNote - shift);
 
   /** The notes to play in time (scales, tonguing and crossings), concert. */
-  const line = $derived(concert(skill === "scales" ? scaleLine(s.scale, s.key) : skill === "tonguing" ? scaleLine("major", s.key) : skill === "register" ? crossingLine(s.pair) : []));
-  const marks = $derived(skill === "tonguing" ? tonguingMarks(s.tongue, line.length) : []);
+  const writtenLine = $derived.by(() => {
+    if (skill === "scales") return scaleLine(s.scale, s.key, { octaves, pattern });
+    if (skill === "swing") return scaleLine(s.scale, s.key);
+    // The long-tone scale goes up only: a note every four beats.
+    if (skill === "long-scale") {
+      const l = scaleLine(s.scale, s.key);
+      return l.slice(0, (l.length + 1) / 2);
+    }
+    return skill === "tonguing" ? scaleLine("major", s.key) : skill === "register" ? crossingLine(s.pair) : [];
+  });
+  const line = $derived(concert(writtenLine));
+  const marks = $derived(skill === "tonguing" ? tonguingMarks(s.tongue, line.length) : skill === "swing" ? swingMarks(line.length) : []);
+  const keyed = $derived(skill === "scales" || skill === "tonguing" || skill === "swing" || skill === "long-scale");
   const timed = $derived(line.length > 0);
   /** The written line's key signature: the scale's own (arpeggios their key's), the major key for tonguing, none for crossings. */
-  const scaleKind = $derived(skill === "tonguing" ? "major" : s.scale === "major-arpeggio" ? "major" : s.scale === "minor-arpeggio" ? "natural-minor" : s.scale);
-  const signature = $derived(skill === "scales" || skill === "tonguing" ? (scaleKind === "chromatic" ? 0 : signatureFor(s.key, scaleKind)) : 0);
+  const scaleKind = $derived(skill === "tonguing" ? "major" : s.scale === "major-arpeggio" ? "major" : ["minor-arpeggio", "blues", "minor-pentatonic", "melodic-minor"].includes(s.scale) ? "natural-minor" : s.scale);
+  const signature = $derived(keyed ? (scaleKind === "chromatic" ? 0 : signatureFor(s.key, scaleKind)) : 0);
   /** A concert note by its written name: spelled by the key in scales and tonguing (Db major reads Db, not C#), the chart's spelling elsewhere. */
-  const spell = (midi: number) => (skill === "scales" || skill === "tonguing" ? noteName(midi + shift, signature < 0 ? "flat" : "sharp") : (fingeringFor(midi + shift)?.name ?? noteName(midi + shift)));
+  const spell = (midi: number) => (keyed ? noteName(midi + shift, signature < 0 ? "flat" : "sharp") : (fingeringFor(midi + shift)?.name ?? noteName(midi + shift)));
   const keyName = (pc: number) => noteName(pc, (scaleKind === "chromatic" ? 0 : signatureFor(pc, scaleKind)) < 0 ? "flat" : "sharp", false);
 
   let phase = $state<Phase>("ready");
@@ -100,14 +128,29 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let stopClockRef: (() => void) | null = null;
   let joins = $state<("T" | "S")[]>([]);
+  let breathNow = $state<number | null>(null);
   let lineResult = $state.raw<LineResult | null>(null);
 
-  const stepNow = $derived(timed && phase === "running" && now >= downbeat ? Math.min(line.length - 1, Math.floor((now - downbeat) / stepMs + 0.5)) : null);
+  /** The line's note at `t` ms after the downbeat: swung eighths split the beat late, long tones change on the beat. */
+  const stepAt = (t: number) =>
+    skill === "swing" ? Math.floor(t / beatMs) * 2 + ((t % beatMs) / beatMs >= SWING.ideal - 0.25 ? 1 : 0) : skill === "long-scale" ? Math.floor(t / stepMs) : Math.floor(t / stepMs + 0.5);
+  const stepNow = $derived(timed && phase === "running" && now >= downbeat ? Math.min(line.length - 1, stepAt(now - downbeat)) : null);
   const target = $derived(timed ? line[stepNow ?? 0] : skill === "trills" ? trillNotes[0] : skill === "vibrato" ? vibNote : null);
 
+  const patternLabel = $derived(AERO_PATTERNS.find((p) => p.id === pattern)!.label.toLowerCase());
   const summaryLine = $derived<SetupClause[]>(
     skill === "scales"
-      ? [{ text: `${keyName(s.key)} ${AERO_SCALES.find((x) => x.id === s.scale)?.label.toLowerCase()}`, focus: "scale" }, { text: "up and down" }, { text: `${bpm} BPM` }, { text: `${perBeat === 1 ? "a note" : `${perBeat} notes`} a click`, focus: "perBeat" }]
+      ? [
+          { text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" },
+          { text: pattern === "straight" ? "up and down" : `${patternLabel}, up and down`, focus: "pattern" },
+          { text: `${bpm} BPM` },
+          { text: `${perBeat === 1 ? "a note" : `${perBeat} notes`} a click`, focus: "perBeat" },
+          ...(octaves === 2 ? [{ text: "two octaves", focus: "octaves" }] : []),
+        ]
+      : skill === "swing"
+        ? [{ text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: "swung eighths, doo-DAH" }, { text: `${bpm} BPM` }]
+      : skill === "long-scale"
+        ? [{ text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: `${LONG_SCALE_BEATS} beats a note` }, { text: `at ${level.id}`, focus: "level" }, { text: `${bpm} BPM` }]
       : skill === "tonguing"
         ? [{ text: `${keyName(s.key)} major`, focus: "key" }, { text: `${TONGUING.find((t) => t.id === s.tongue)?.label.toLowerCase()}`, focus: "tongue" }, { text: `${bpm} BPM` }, { text: "eighths" }]
         : skill === "register"
@@ -126,7 +169,13 @@
   async function playDemo() {
     if (demo?.playing) return stopDemo();
     await audio.unlock();
-    const notes = timed
+    const notes = skill === "swing"
+      ? line.map((midi, i) => {
+          const at = Math.floor(i / 2) * beatMs + (i % 2 ? SWING.ideal * beatMs : 0);
+          const next = Math.floor((i + 1) / 2) * beatMs + ((i + 1) % 2 ? SWING.ideal * beatMs : 0);
+          return { midi, time: at / 1000, duration: ((next - at) * (marks[i + 1] === "S" ? 1 : 0.8)) / 1000 };
+        })
+      : timed
       ? line.map((midi, i) => ({ midi, time: (i * stepMs) / 1000, duration: (stepMs * (marks[i + 1] === "S" ? 1 : 0.8)) / 1000 }))
       : skill === "trills"
         ? Array.from({ length: 24 }, (_, i) => ({ midi: trillNotes[i % 2], time: i * 0.125, duration: 0.12 }))
@@ -140,6 +189,7 @@
   }
 
   function onEvent(e: NoteEvent | ControlEvent) {
+    if (e.kind === "cc" && (e as ControlEvent).controller === 2) breathNow = e.value;
     if (e.kind === "noteon") {
       sounding = (e as NoteEvent).midi;
       if (firstAt === null && phase === "running") {
@@ -158,6 +208,7 @@
     summary = null;
     lineResult = null;
     joins = [];
+    breathNow = null;
     firstAt = null;
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
@@ -168,9 +219,17 @@
       capabilities: ["technique"],
       modality: "played",
       assistance: assistanceFor(mode),
-      difficulty: skill === "scales" ? 0.4 + perBeat * 0.05 : skill === "register" ? 0.55 : skill === "trills" ? 0.5 : 0.5,
+      difficulty: skill === "scales" ? 0.4 + perBeat * 0.05 + (octaves - 1) * 0.1 : skill === "register" ? 0.55 : skill === "swing" ? 0.55 : 0.5,
       instrument: "aerophone",
-      params: { skill, bpm, setup: summaryText },
+      params: {
+        skill,
+        bpm,
+        setup: summaryText,
+        ...(keyed && skill !== "tonguing" ? { scale: s.scale, key: s.key } : {}),
+        ...(skill === "scales" ? { perBeat, octaves, pattern } : {}),
+        ...(skill === "long-scale" ? { level: level.id } : {}),
+        ...(skill === "register" ? { pair: s.pair } : {}),
+      },
     });
     cap = capture(timed ? ctx.downbeat - stepMs / 2 : performance.now(), (e) => onEvent(e as NoteEvent | ControlEvent));
     status = timed ? "Play in time with the click." : skill === "trills" ? `Trill ${trillPair.label}: the clock starts on your first note.` : `Hold ${spell(vibNote)} and pulse the bite ${vib.pulses} times a click.`;
@@ -197,7 +256,28 @@
     let headline = "";
     let rows: RunSummary["rows"] = [];
     if (!ons.length) headline = "No note arrived. The line under the stage says whether the Aerophone is connected.";
-    else if (timed) {
+    else if (skill === "swing") {
+      const r = gradeSwing({ line, beatMs, downbeat, notes, breath: controls });
+      joins = r.joins;
+      score = r.score;
+      correct = r.correct;
+      const ratio = r.frac === null ? null : r.frac / (1 - r.frac);
+      rows = [
+        { label: "Notes right", value: r.pitch, text: `${Math.round(r.pitch * line.length)} of ${line.length}` },
+        { label: "Swing (off-beat late in the beat, about 2 to 1)", value: r.swing, text: ratio === null ? "no pairs heard" : `${ratio.toFixed(1)} to 1` },
+        r.articulation === null ? { label: "Doo-DAH (no breath arrived, CC 2)", notMeasured: true } : { label: "Off-beats tongued, beats slurred", value: r.articulation, text: pct(r.articulation) },
+      ];
+      headline =
+        r.pitch < 0.9
+          ? `${Math.round(r.pitch * line.length)} of ${line.length} notes right. Slow down until every fingering lands.`
+          : r.swing < 0.6
+            ? r.frac !== null && r.frac < SWING.full[0]
+              ? `Too straight (${ratio!.toFixed(1)} to 1): lean on the beat and play the off-beat later.`
+              : `Too jerky (${ratio === null ? "uneven" : `${ratio.toFixed(1)} to 1`}): the off-beat sits a triplet late, not a sixteenth.`
+            : r.articulation !== null && r.articulation < 0.8
+              ? "Swung, but tongue each off-beat and slur into the beat: doo-DAH."
+              : `Swung at ${bpm} BPM, doo-DAH.`;
+    } else if (timed) {
       const r = gradeLine({ beats: line.map((m) => [{ midi: m }]), beatMs: stepMs, notes });
       lineResult = r;
       const strays = Math.max(0, ons.length - r.clean);
@@ -214,6 +294,13 @@
         const g = glitches(notes, concert(regPair.notes));
         correct = r.correct && g <= 1;
         rows[2] = { label: "Glitches across the break", text: `${g}${g <= 1 ? "" : ": move the fingers and the thumb together"}` };
+      }
+      if (skill === "long-scale") {
+        const band = heldBand(controls, level.band as [number, number], ons[0].at, ons.at(-1)!.at + stepMs);
+        score = r.score * 0.5 + (band ?? 0) * 0.5;
+        correct = r.pitch >= 0.9 && (band ?? 0) >= 0.8;
+        rows[1] = band === null ? { label: `Breath at ${level.id} (no breath arrived, CC 2)`, notMeasured: true } : { label: `Breath at ${level.id}`, value: band, text: `${pct(band)} in the band` };
+        rows.pop();
       }
       if (skill === "tonguing") {
         const got = joinTypes(notes, controls);
@@ -233,7 +320,11 @@
           ? "The notes were right; the tonguing wasn't as marked. Stop the air (the tongue) only where it says T."
           : skill === "register" && !correct
             ? "Right notes, but the crossing left glitches between them."
-            : `Clean and even at ${bpm} BPM.`;
+            : skill === "long-scale" && !correct
+              ? `Every note right; the breath sat at ${level.id} for only ${rows[1]?.value == null ? "none" : pct(rows[1].value)} of the scale. Aim for the shaded band.`
+              : skill === "long-scale"
+                ? `Every note held at ${level.id}.`
+                : `Clean and even at ${bpm} BPM.`;
     } else if (skill === "trills") {
       const t = gradeTrill(notes, trillNotes);
       score = t.score;
@@ -281,8 +372,10 @@
   function advanceAfter(score: number, correct: boolean) {
     const run = { score, correct };
     const list = <T extends { id: string; label: string }>(xs: readonly T[], at: string) => ({ steps: xs.map((x) => ({ label: x.label })), step: Math.max(0, xs.findIndex((x) => x.id === at)) });
+    if (skill === "swing") return nextRun(`aero.swing.${s.scale}.${s.key}`, { bpm, tempo: { min: 80, goal: 140, max: 200 } }, run);
+    if (skill === "long-scale") return nextRun(`aero.long-scale.${s.scale}.${s.key}`, list(BREATH_LEVELS, s.level), run, ({ step }) => step !== undefined && cfg.set({ level: BREATH_LEVELS[step].id }));
     if (skill === "scales")
-      return nextRun(`aero.scales.${s.scale}.${s.key}`, { bpm, tempo: { min: 40, goal: 120 }, steps: PER_BEAT_STEPS, step: [1, 2, 4].indexOf(perBeat) }, run, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i] })));
+      return nextRun(`aero.scales.${s.scale}.${s.key}${octaves === 2 ? ".2" : ""}${pattern === "straight" ? "" : `.${pattern}`}`, { bpm, tempo: { min: 40, goal: 120 }, steps: PER_BEAT_STEPS, step: [1, 2, 4].indexOf(perBeat) }, run, tempoAnd((i) => cfg.set({ perBeat: [1, 2, 4][i] })));
     if (skill === "tonguing") return nextRun(`aero.tonguing.${s.key}`, { bpm, tempo: { min: 40, goal: 120 }, ...list(TONGUING, s.tongue) }, run, tempoAnd((i) => cfg.set({ tongue: TONGUING[i].id })));
     if (skill === "register") return nextRun("aero.register", { bpm, tempo: { min: 40, goal: 100 }, ...list(REGISTER_PAIRS, s.pair) }, run, tempoAnd((i) => cfg.set({ pair: REGISTER_PAIRS[i].id })));
     if (skill === "trills") return nextRun("aero.trills", list(TRILL_PAIRS, s.trill), run, ({ step }) => step !== undefined && cfg.set({ trill: TRILL_PAIRS[step].id }));
@@ -307,7 +400,7 @@
 <DrillShell
   title="Aerophone"
   hue="aerophone"
-  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time: every fingering, the octave key at the right moment." : skill === "tonguing" ? "Slurred and tongued notes on purpose: a tongued note stops the air, a slurred one changes key with the air still going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
+  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time: every fingering, the octave key at the right moment, in patterns and over two octaves." : skill === "swing" ? "Swing articulation after Niehaus: eighths long-short, each off-beat tongued and slurred into the beat. The swing is read from the timing, the tongue from the breath." : skill === "long-scale" ? "Each note of a scale held four beats at one level: the breath read from CC 2 should stay in the band from the bottom to the top." : skill === "tonguing" ? "Slurred and tongued notes on purpose: a tongued note stops the air, a slurred one changes key with the air still going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
   summary={summaryLine}
   tabs={modes}
   tab={skill}
@@ -326,14 +419,25 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#if skill === "scales" || skill === "tonguing"}
+      {#if keyed}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
           <span class="font-medium">Key</span>
           <KeyPicker label="Key" value={s.key} name={keyName} onchange={(v) => cfg.set({ key: v })} />
         </div>
       {/if}
-      {#if skill === "scales"}
-        <Choice label="Scale" options={AERO_SCALES.map((x) => ({ value: x.id as string, label: x.label }))} value={s.scale} onchange={(v) => cfg.set({ scale: v })} setupKey="scale" />
+      {#if skill === "swing" || skill === "long-scale"}
+        <Choice label="Scale" options={AERO_SCALES.filter((x) => (skill === "swing" ? x.id !== "chromatic" : !x.id.includes("arpeggio") && x.id !== "chromatic")).map((x) => ({ value: x.id, label: x.label }))} value={s.scale} onchange={(v) => cfg.set({ scale: v })} setupKey="scale" />
+        {#if skill === "long-scale"}
+          <Choice label="Level" options={BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={level.id} onchange={(v) => cfg.set({ level: v })} setupKey="level" />
+        {:else}
+          <p class="self-end text-sm text-ws-soft">Swung eighths at the strip's tempo: tongue each off-beat (doo) and slur into the beat (DAH). Written straight; play it long-short.</p>
+        {/if}
+      {:else if skill === "scales"}
+        <div class="flex min-w-0 flex-col gap-3">
+          <Choice label="Scale" options={AERO_SCALES.map((x) => ({ value: x.id, label: x.label }))} value={s.scale} onchange={(v) => cfg.set({ scale: v })} setupKey="scale" />
+          <Choice label="Pattern" options={AERO_PATTERNS.map((x) => ({ value: x.id as string, label: x.label }))} value={pattern} disabled={!patternFits(s.scale)} onchange={(v) => cfg.set({ pattern: v })} setupKey="pattern" />
+          <Choice label="Range" options={[{ value: 1, label: "One octave" }, { value: 2, label: "Two octaves" }]} value={octaves} onchange={(v) => cfg.set({ octaves: v })} setupKey="octaves" />
+        </div>
         <div class="flex min-w-0 flex-col gap-3">
           <Choice label="Notes a click" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={perBeat} onchange={(v) => cfg.set({ perBeat: v })} setupKey="perBeat" />
           <div class="flex min-w-0 flex-col gap-1 text-sm" role="group" aria-label="Grade speeds (NZMEB saxophone)">
@@ -370,12 +474,22 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="grid items-start gap-5 {skill === 'trills' ? '' : 'md:grid-cols-[minmax(0,1fr)_14rem]'}" data-testid="aero-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-line={line.join(",")} data-step-ms={Math.round(stepMs)}>
+    <div class="grid items-start gap-5 {skill === 'trills' ? '' : 'md:grid-cols-[minmax(0,1fr)_14rem]'}" data-testid="aero-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-line={line.join(",")} data-step-ms={Math.round(stepMs)} data-beat-ms={Math.round(beatMs)}>
       <div class="flex min-w-0 flex-col gap-3">
+        {#if skill === "long-scale"}
+          <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-band">
+            <div class="flex items-baseline justify-between text-xs text-ws-stage-soft"><span>Breath, hold it in the {level.id} band</span><span class="tnum">{breathNow === null ? "no breath yet" : pct(breathNow)}</span></div>
+            <div class="relative mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
+              <div class="absolute inset-y-0 bg-instr/30" style:left="{level.band[0] * 100}%" style:width="{(level.band[1] - level.band[0]) * 100}%"></div>
+              {#if breathNow !== null}<div class="absolute inset-y-0 w-1 rounded-full bg-instr" style:left="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
+            </div>
+          </div>
+        {/if}
         {#if timed}
           {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
           {#if mode === "practice" || phase === "results"}
             <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
+            {#if skill === "swing"}<p class="text-xs text-ws-stage-soft">Written straight, as swing charts are: play each pair long-short.</p>{/if}
           {/if}
           <ol class="flex flex-wrap gap-1.5" aria-label="The line">
             {#each line as n, i (i)}
@@ -386,7 +500,7 @@
               </li>
             {/each}
           </ol>
-          {#if marks.length}<p class="text-xs text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.</p>{/if}
+          {#if marks.length}<p class="text-xs text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
         {:else if skill === "trills"}
           <p class="text-sm text-ws-stage-soft">Trill {trillPair.label}{trillPair.detail ? ` (${trillPair.detail})` : ""}: move only the finger that changes.</p>
           {#if mode === "practice"}

@@ -193,4 +193,151 @@ test.describe("aerophone skills", () => {
     await expect(page.locator("article").first()).toContainText("Breath at mf");
     await page.screenshot({ path: `${SHOTS}/long-tone-mf-1280.png`, fullPage: true });
   });
+
+  test("scales: two octaves of C major in thirds", async ({ page }) => {
+    test.setTimeout(60_000);
+    await enableMidi(
+      page,
+      "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&octaves=2&pattern=thirds&bpm=150",
+    );
+    await expect(page.getByTestId("setup-line")).toContainText(
+      "C major scale, in thirds, up and down, 150 BPM, 2 notes a click, two octaves",
+    );
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await playLine(page);
+    await expect(page.getByRole("status")).toContainText("Clean and even at 150 BPM", {
+      timeout: 30_000,
+    });
+  });
+
+  test("swing articulation: long-short, the off-beat tongued, read from the breath", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await enableMidi(page, "/music/aerophone?mode=swing&scale=major&key=7&bpm=120");
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    const stage = page.getByTestId("aero-skills");
+    await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
+    const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
+    const beatMs = Number(await stage.getAttribute("data-beat-ms"));
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    await page.evaluate(
+      ({ line, beatMs, downbeat, port }) => {
+        const send = (bytes: number[], at: number) =>
+          setTimeout(
+            () => (window as any).__midi.send(port, bytes, at),
+            at - 80 - performance.now(),
+          );
+        line.forEach((midi, i) => {
+          const at = downbeat + Math.floor(i / 2) * beatMs + (i % 2 ? beatMs * 0.66 : 0);
+          // Doo on the off-beat: stop the air first; DAH slurs in from it.
+          const tongued = i % 2 === 1;
+          if (i > 0) send([0x80, line[i - 1], 0], tongued ? at - 50 : at + 5);
+          if (tongued) send([0xb0, 2, 10], at - 25);
+          send([0x90, midi, 90], at);
+          send([0xb0, 2, 85], at + 15);
+        });
+        send([0x80, line.at(-1)!, 0], downbeat + Math.ceil(line.length / 2) * beatMs);
+      },
+      { line, beatMs, downbeat, port: PORT },
+    );
+    await expect(page.getByRole("status")).toContainText("Swung at 120 BPM, doo-DAH.", {
+      timeout: 20_000,
+    });
+    await expect(page.locator("article").first()).toContainText("Off-beats tongued, beats slurred");
+    await page.screenshot({ path: `${SHOTS}/swing-1280.png`, fullPage: true });
+  });
+
+  test("long-tone scale: every note four beats at p", async ({ page }) => {
+    test.setTimeout(60_000);
+    await enableMidi(page, "/music/aerophone?mode=long-scale&scale=major&key=0&level=p&bpm=240");
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    const stage = page.getByTestId("aero-skills");
+    await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
+    const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
+    const stepMs = Number(await stage.getAttribute("data-step-ms"));
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    expect(line).toEqual([60, 62, 64, 65, 67, 69, 71, 72]);
+    await page.evaluate(
+      ({ line, stepMs, downbeat, port }) => {
+        const send = (bytes: number[], at: number) =>
+          setTimeout(
+            () => (window as any).__midi.send(port, bytes, at),
+            at - 80 - performance.now(),
+          );
+        line.forEach((midi, i) => {
+          const at = downbeat + i * stepMs;
+          if (i > 0) send([0x80, line[i - 1], 0], at - 40);
+          send([0x90, midi, 60], at);
+          for (let t = 20; t < stepMs - 60; t += 100) send([0xb0, 2, 42], at + t);
+        });
+        send([0x80, line.at(-1)!, 0], downbeat + line.length * stepMs - 40);
+      },
+      { line, stepMs, downbeat, port: PORT },
+    );
+    await expect(page.getByRole("status")).toContainText("Every note held at p.", {
+      timeout: 20_000,
+    });
+    await expect(page.locator("article").first()).toContainText("Breath at p");
+    await page.screenshot({ path: `${SHOTS}/long-scale-1280.png`, fullPage: true });
+  });
+
+  test("set-up check: the key, then softest and loudest", async ({ page }) => {
+    test.setTimeout(60_000);
+    await enableMidi(page, "/music/aerophone?mode=calibrate");
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await expect(page.getByRole("status")).toContainText("Finger a written G4");
+    const hold = (midi: number, value: number) =>
+      page.evaluate(
+        ({ midi, value, port }) =>
+          new Promise<void>((resolve) => {
+            const send = (b: number[]) => (window as any).__midi.send(port, b);
+            send([0x90, midi, 80]);
+            let i = 0;
+            const t = setInterval(() => {
+              send([0xb0, 2, value]);
+              if (++i > 30) {
+                clearInterval(t);
+                send([0x80, midi, 0]);
+                resolve();
+              }
+            }, 100);
+          }),
+        { midi, value, port: PORT },
+      );
+    await hold(67, 70);
+    await expect(page.getByRole("status")).toContainText("softest steady note");
+    await hold(62, 35);
+    await expect(page.getByRole("status")).toContainText("as loud as you can");
+    await hold(62, 105);
+    await expect(page.getByRole("status")).toContainText("Set up: the key matches", {
+      timeout: 10_000,
+    });
+    await page.screenshot({ path: `${SHOTS}/calibrate-1280.png`, fullPage: true });
+  });
+
+  test("palm keys: the chart reaches F#6 and the lesson climbs to F6", async ({ page }) => {
+    test.setTimeout(60_000);
+    await enableMidi(page, "/music/aerophone?mode=fingering&lesson=palm-keys");
+    await expect(page.getByRole("button", { name: "Play F#6" })).toBeVisible();
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await page.getByRole("button", { name: /^Start/ }).click();
+    await expect(page.getByRole("status")).toContainText("Finger C#6");
+    for (const midi of [85, 86, 87, 88, 89, 88, 87, 86, 85]) {
+      await page.evaluate(({ midi, port }) => (window as any).__midi.send(port, [0x90, midi, 80]), {
+        midi,
+        port: PORT,
+      });
+      await page.evaluate(({ midi, port }) => (window as any).__midi.send(port, [0x80, midi, 0]), {
+        midi,
+        port: PORT,
+      });
+    }
+    await expect(page.getByRole("status")).toContainText("every note right on the first try", {
+      timeout: 10_000,
+    });
+    await page.screenshot({ path: `${SHOTS}/palm-keys-1280.png`, fullPage: true });
+  });
 });

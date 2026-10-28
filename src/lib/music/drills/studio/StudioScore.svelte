@@ -13,6 +13,7 @@
   import Waterfall from "$lib/music/notation/Waterfall.svelte";
   import FingeringRow from "$lib/music/notation/FingeringRow.svelte";
   import StudioDrums from "./StudioDrums.svelte";
+  import { hideBefore } from "./studio";
   import { whiteKeyLayout, type BeatRange, type TabTuning } from "$lib/music/notation/groups";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import type { Snap } from "$lib/music/notation/selection.svelte";
@@ -37,6 +38,7 @@
     highlights = [],
     written = 0,
     drums = false,
+    hide = 0,
   }: {
     score: Score;
     voiceIds: string[];
@@ -59,8 +61,11 @@
     written?: number;
     /** A drum part: drawn as a drum grid in every view, with no keyboard. */
     drums?: boolean;
+    /** Played from memory: notes before this score beat are not drawn (the keyboard keeps its range). */
+    hide?: number;
   } = $props();
-  const staffScore = $derived(transposeScore(score, written));
+  const drawn = $derived(hideBefore(score, hide));
+  const staffScore = $derived(transposeScore(drawn, written));
 
   // Whole octaves from C, so both ends are white keys and the grids agree.
   const midis = $derived(score.voices.filter((v) => voiceIds.includes(v.id)).flatMap((v) => v.notes.map((n) => n.midi)));
@@ -88,13 +93,13 @@
 <div bind:this={host} class="flex min-w-0 flex-col gap-3">
   {#if drums}
     <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
-      <StudioDrums {score} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} />
+      <StudioDrums score={drawn} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} />
     </div>
   {:else if view === "waterfall"}
     <div class="overflow-x-auto overscroll-x-contain rounded-xl">
       <div class="lane-dark" style:min-width="{whites * MIN_KEY + 16}px">
         <div class="px-2">
-          <Waterfall {score} {voiceIds} {low} {high} beat={cursorBeat ?? 0} {groupStates} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
+          <Waterfall score={drawn} {voiceIds} {low} {high} beat={cursorBeat ?? 0} {groupStates} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
         </div>
         <Piano {low} {high} {marks} {flashes} minKey={MIN_KEY} label="Piano keyboard under the waterfall" />
       </div>
@@ -102,10 +107,10 @@
   {:else}
     <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
       {#if view === "tab"}
-        <Tab {score} {voiceIds} {tuning} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
+        <Tab score={drawn} {voiceIds} {tuning} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {:else if view === "fingering"}
         <div class="overflow-auto" style:max-height={maxHeight}>
-          <FingeringRow {score} {voiceIds} {groupStates} />
+          <FingeringRow score={drawn} {voiceIds} {groupStates} />
         </div>
       {:else}
         <Staff score={staffScore} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />

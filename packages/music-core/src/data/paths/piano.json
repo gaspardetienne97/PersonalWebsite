@@ -1370,9 +1370,20 @@
         {
           "id": "3.4",
           "title": "Chromatic hands together and contrary motion",
-          "setup": "Chromatic scale and contrary motion in any key, from F sharp, Grade 4.",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=chromatic&tonic=66&span=two-octave&motion=up-down&hands=both&perBeat=2",
+          "setup": "Scales: chromatic from F sharp, hands together, then contrary motion in any key (Hands apart: Contrary motion), Grade 4. Fingers show on the chromatic scale.",
           "done": "3 clean runs.",
-          "needs": "Chromatic and contrary-motion options in Scales (drill 4).",
+          "match": {
+            "kind": "chromatic",
+            "hands": "both"
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Contrary motion",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&apart=contrary&perBeat=2"
+            }
+          ],
           "feeds": "technique"
         },
         {
@@ -2345,9 +2356,24 @@
         {
           "id": "5.4",
           "title": "Staccato and contrary chromatic",
-          "setup": "Staccato Ab major and F minor hands separately; chromatic contrary motion a major third apart.",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=chromatic&tonic=60&span=one-octave&motion=up-down&hands=both&apart=contrary&perBeat=2",
+          "setup": "Scales: chromatic in contrary motion from one note (a major third apart is not in it yet); staccato Ab major and F minor hands separately, the staccato not graded.",
           "done": "3 clean runs, staccato notes under 50% of their value.",
-          "needs": "Staccato and chromatic contrary-motion options in Scales (drill 4).",
+          "match": {
+            "kind": "chromatic",
+            "apart": "contrary"
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Ab major, right hand",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=68&span=two-octave&motion=up-down&hands=right&perBeat=2"
+            },
+            {
+              "label": "F minor, left hand",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=65&span=two-octave&motion=up-down&hands=left&perBeat=2"
+            }
+          ],
           "feeds": "technique"
         },
         {
@@ -2386,13 +2412,27 @@
         {
           "id": "5.6",
           "title": "Slash chords and walking bass lines",
-          "setup": "C, G/B, Am, Am/G, F, C/E, Dm7, G. Until then: Voicings, closest chords.",
+          "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=0&keys=1",
+          "setup": "Voicings, Gospel, Slash chords: C, G/B, Am, Am/G, F, C/E, Dm7, G, the right hand moving least, the bass in the left; in C, G and F. Untimed, so take 72 to Jam once it is clean.",
           "done": "2 clean passes in C, G and F at 72.",
-          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "match": {
+            "variant": "gospel",
+            "progression": "slash-walk"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "7", "5"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
           "links": [
             {
-              "label": "Voicings: closest chords",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
+              "label": "G",
+              "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=7&keys=1"
+            },
+            {
+              "label": "F",
+              "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=5&keys=1"
             }
           ],
           "feeds": "Your Song, Rocket Man"
@@ -2472,8 +2512,11 @@
           "title": "Transpose a lead sheet",
           "setup": "The 5.8 tune in a second key the app names.",
           "done": "One clean pass.",
-          "needs": "A transpose check (drill 11).",
-          "feeds": "charts in any key"
+          "feeds": "charts in any key",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "transpose": "5"
+          }
         },
         {
           "id": "5.13",
@@ -2807,23 +2850,29 @@
         {
           "id": "6.4",
           "title": "4-5-1 passing chord and walk-ups",
-          "setup": "IV, V/IV or IV-V passing, I; bass walk 1-2-3-4.",
+          "href": "/music/voicings?instrument=piano&variant=gospel&progression=four-five-one&key=0&keys=3",
+          "setup": "Voicings, Gospel, Walk-up and the 4-5-1: I, ii7, I/3, IV, V/IV, I/3, IV, V7, I, three keys a run (27 chords).",
           "done": "40 chords at 90% in 4 keys.",
-          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
+          "match": {
+            "variant": "gospel",
+            "progression": "four-five-one"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
           "feeds": "Amazing Grace, Let It Be"
         },
         {
           "id": "6.5",
           "title": "Passing diminished",
-          "setup": "I-#Idim-ii and IV-#IVdim-I/V. Until then: Voicings, closest chords, by ear.",
+          "href": "/music/voicings?instrument=piano&variant=gospel&progression=passing-dim&key=0&keys=3",
+          "setup": "Voicings, Gospel, Passing diminished: I-#Idim7-ii7-V7 and IV-#IVdim7-I/5-V7-I, three keys a run.",
           "done": "40 chords at 90%.",
-          "needs": "Gospel and ballad voicing variants in Voicings (drill 8).",
-          "links": [
-            {
-              "label": "Voicings: closest chords",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=0"
-            }
-          ],
+          "match": {
+            "variant": "gospel",
+            "progression": "passing-dim"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2,
           "feeds": "gospel shelf songs"
         },
         {
@@ -3253,9 +3302,28 @@
         {
           "id": "7.3",
           "title": "Octaves",
-          "setup": "Blocked staccato octave scale in C, G and F.",
+          "href": "/music/scales?instrument=piano&pattern=octaves&kind=major&tonic=60&span=one-octave&motion=up-down&hands=right&perBeat=2&bpm=80",
+          "setup": "Scales, Octaves: C, G and F, one hand at a time or both, two a click at crotchet 80. Play them staccato; the length is not graded.",
           "done": "3 clean runs at crotchet 80, two a click.",
-          "needs": "An octave option in Scales (drill 4).",
+          "match": {
+            "pattern": "octaves"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "65"]
+          },
+          "threshold": 0.9,
+          "minBpm": 80,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=octaves&kind=major&tonic=67&span=one-octave&motion=up-down&hands=right&perBeat=2&bpm=80"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=octaves&kind=major&tonic=65&span=one-octave&motion=up-down&hands=right&perBeat=2&bpm=80"
+            }
+          ],
           "feeds": "Bohemian Rhapsody, Don't Stop Me Now"
         },
         {
@@ -3329,14 +3397,21 @@
           "title": "No-stop run",
           "setup": "A shelf song in performance mode, scored for continuity.",
           "done": "One full run with continuity 100% and no slip longer than a beat.",
-          "needs": "No-stop scoring in Song Studio performance mode (drill 12).",
           "links": [
             {
               "label": "Song Studio",
               "href": "/music/library?tab=songs"
             }
           ],
-          "feeds": "performance"
+          "feeds": "performance",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "no-stop",
+            "kept": "true"
+          },
+          "minAttempts": 1,
+          "minDays": 1,
+          "threshold": 0.8
         },
         {
           "id": "7.10",
@@ -3630,17 +3705,63 @@
         {
           "id": "8.2",
           "title": "Scales a third apart",
-          "setup": "Hands a third apart in C, G, D, F, Grade 7.",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&apart=third&perBeat=4",
+          "setup": "Scales, Hands apart: A third apart, in C, G, D and F, two octaves (Grade 7 asks four; the drill goes to two).",
           "done": "3 clean runs per key.",
-          "needs": "Hands a third apart in Scales (drill 4).",
+          "match": {
+            "apart": "third"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "65"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=67&span=two-octave&motion=up-down&hands=both&apart=third&perBeat=4"
+            },
+            {
+              "label": "D",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=62&span=two-octave&motion=up-down&hands=both&apart=third&perBeat=4"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=65&span=two-octave&motion=up-down&hands=both&apart=third&perBeat=4"
+            }
+          ],
           "feeds": "Grade 7 technique"
         },
         {
           "id": "8.3",
           "title": "First-inversion arpeggios",
-          "setup": "Arpeggios from the third: C, G, F, A minor.",
+          "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&inversion=1&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&bpm=56",
+          "setup": "Scales, Arpeggio, Start on the 3rd: C, G and F major and A minor, hands together, minim 56 (four a click).",
           "done": "3 clean runs per key at minim 56.",
-          "needs": "First-inversion arpeggios in Scales (drill 4).",
+          "match": {
+            "pattern": "arpeggio",
+            "inversion": "1"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "65", "69"]
+          },
+          "threshold": 0.9,
+          "minBpm": 56,
+          "links": [
+            {
+              "label": "G",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&inversion=1&tonic=67&span=two-octave&motion=up-down&hands=both&perBeat=4&bpm=56"
+            },
+            {
+              "label": "F",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=major&inversion=1&tonic=65&span=two-octave&motion=up-down&hands=both&perBeat=4&bpm=56"
+            },
+            {
+              "label": "A minor",
+              "href": "/music/scales?instrument=piano&pattern=arpeggio&chord=minor&inversion=1&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&bpm=56"
+            }
+          ],
           "feeds": "Nocturne Op. 9 No. 2"
         },
         {
@@ -3998,9 +4119,25 @@
         {
           "id": "9.3",
           "title": "Legato thirds",
-          "setup": "Legato thirds in G major, hands separately, minim 46.",
+          "href": "/music/scales?instrument=piano&pattern=thirds&kind=major&tonic=67&span=one-octave&motion=up-down&hands=right&bpm=46",
+          "setup": "Scales, Double thirds: G major, each hand alone, minim 46. Legato is up to you: note lengths are not graded, and the drill shows no fingering for thirds.",
           "done": "3 clean runs per hand.",
-          "needs": "Legato thirds in Scales (drill 4).",
+          "match": {
+            "pattern": "thirds",
+            "tonic": "67"
+          },
+          "each": {
+            "param": "hands",
+            "values": ["right", "left"]
+          },
+          "threshold": 0.9,
+          "minBpm": 46,
+          "links": [
+            {
+              "label": "Left hand",
+              "href": "/music/scales?instrument=piano&pattern=thirds&kind=major&tonic=67&span=one-octave&motion=up-down&hands=left&bpm=46"
+            }
+          ],
           "feeds": "Grade 7 technique"
         },
         {
@@ -4050,15 +4187,25 @@
           "title": "Transpose a whole song",
           "setup": "A passed L5 or L6 shelf song from its lead sheet, a tone away.",
           "done": "One clean pass, chords right on 95% of bars.",
-          "needs": "A transpose check (drill 11).",
-          "feeds": "playing for singers"
+          "feeds": "playing for singers",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "transpose": "5"
+          },
+          "threshold": 0.95
         },
         {
           "id": "9.7",
           "title": "Grand staff Grade 7: 7/8, 8va, tempo changes",
-          "setup": "Grand-staff sight-reading at Grade 7.",
+          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-9&follower=performance",
+          "setup": "Sight-reading, Piano 9 (about ABRSM Grade 7): 7/8 and 5/8, five sharps or flats, triplets, the left hand into the treble clef. 8va and tempo changes are not written yet.",
           "done": "80% on three days.",
-          "needs": "Grand-staff sight-reading at ABRSM Grade 7 (drill 2).",
+          "match": {
+            "level": "piano-9",
+            "follower": "performance"
+          },
+          "threshold": 0.8,
+          "minDays": 3,
           "feeds": "Reading path"
         },
         {
@@ -4066,14 +4213,21 @@
           "title": "Play from memory",
           "setup": "Song Studio performance mode with the score hidden.",
           "done": "One passed shelf song at 90% from memory.",
-          "needs": "A hide-the-score toggle in Song Studio (drill 13).",
           "links": [
             {
               "label": "Song Studio",
               "href": "/music/library?tab=songs"
             }
           ],
-          "feeds": "recital"
+          "feeds": "recital",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "performance",
+            "memory": "look"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1
         },
         {
           "id": "9.9",
@@ -4370,9 +4524,26 @@
         {
           "id": "10.2",
           "title": "Maintenance rotation",
-          "setup": "4 keys a day, all 24 keys at Grade 7 over a week.",
+          "href": "/music/scales?instrument=piano&pattern=scale&kind=major&tonic=60&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&rotate=true",
+          "setup": "Scales, Keys: Round the circle, at Grade 7 speed: each clean check moves on a fifth. Four keys a day; the minors (harmonic) the same way.",
           "done": "One full week with every key clean.",
-          "needs": "A grade-key rotation in Scales (drill 5).",
+          "match": {
+            "pattern": "scale",
+            "hands": "both",
+            "perBeat": "4"
+          },
+          "each": {
+            "param": "tonic",
+            "values": ["60", "67", "62", "69", "64", "71", "66", "61", "68", "63", "70", "65"]
+          },
+          "threshold": 0.9,
+          "minDays": 7,
+          "links": [
+            {
+              "label": "Minors",
+              "href": "/music/scales?instrument=piano&pattern=scale&kind=harmonic-minor&tonic=69&span=two-octave&motion=up-down&hands=both&perBeat=4&grade=Grade%207&rotate=true"
+            }
+          ],
           "feeds": "keeps L9 technique"
         },
         {
@@ -4387,14 +4558,21 @@
           "title": "Programme run-throughs",
           "setup": "Song Studio performance mode, the 5 pieces in order, scored for continuity.",
           "done": "Three run-throughs on three days, each piece at 90% and continuity 100%.",
-          "needs": "No-stop scoring in Song Studio performance mode (drill 12).",
           "links": [
             {
               "label": "Song Studio",
               "href": "/music/library?tab=songs"
             }
           ],
-          "feeds": "recital"
+          "feeds": "recital",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "no-stop",
+            "kept": "true"
+          },
+          "minAttempts": 3,
+          "minDays": 3,
+          "threshold": 0.9
         },
         {
           "id": "10.5",

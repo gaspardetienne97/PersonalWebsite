@@ -206,10 +206,16 @@ export function scaleFingerMap(
   hand: "rh" | "lh",
   octaves: number | "pentascale",
 ): Map<number, number> | null {
+  const out = new Map<number, number>();
+  // Chromatic: the same finger on each pitch class, up and down.
+  if (kind === "chromatic") {
+    const top = octaves === "pentascale" ? low + 4 : low + 12 * octaves;
+    for (let m = low; m <= top; m++) out.set(m, CHROMATIC_FINGERING[hand][((m % 12) + 12) % 12]);
+    return out;
+  }
   const steps = (SCALE_DATA.semitonesByKind as Record<string, number[]>)[kind];
   const f = SCALE_FINGERINGS[kind]?.[((low % 12) + 12) % 12];
   if (!steps) return null;
-  const out = new Map<number, number>();
   if (octaves === "pentascale") {
     steps.slice(0, 5).forEach((st, i) => out.set(low + st, hand === "rh" ? i + 1 : 5 - i));
     return out;

@@ -4,7 +4,7 @@ import { clamp, FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 
-export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal" | "songs";
+export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal" | "songs" | "standards";
 export const JAM_GROUPS: { id: JamGroup; label: string }[] = [
   { id: "pop", label: "Pop" },
   { id: "guitar-uke", label: "Guitar/Uke" },
@@ -12,6 +12,7 @@ export const JAM_GROUPS: { id: JamGroup; label: string }[] = [
   { id: "blues", label: "Blues" },
   { id: "modal", label: "Modal" },
   { id: "songs", label: "Songs" },
+  { id: "standards", label: "Standards" },
 ];
 export const JAM_TEMPO = { min: 40, max: 220 };
 export const JAM_TRANSPOSE = { min: -12, max: 12 };
@@ -32,6 +33,12 @@ export interface Progression {
   chords: JamChord[];
   /** A song's chords to strum along with the record (group "songs"); `note` says what is simplified. */
   song?: { artist: string; note?: string };
+  /** A standard's form (content/tunes): its sections in order, e.g. A A B A, in bars. */
+  sections?: { label: string; bars: number }[];
+  /** Swung or straight eighths; unset, the jazz and blues groups swing. */
+  feel?: "swing" | "straight";
+  /** Who wrote the tune (standards only; the changes are typed from a lead sheet). */
+  composer?: string;
 }
 
 /** "Dm7 D dorian 2" -> chord; a chord with no named scale takes the key's scale. */
@@ -312,3 +319,7 @@ export function jamToneRoles(chord: JamChord): ToneRole[] {
 
 /** Total bars in one chorus. */
 export const chorusBars = (p: Progression) => p.chords.reduce((n, ch) => n + ch.bars, 0);
+
+/** Whether the eighths swing: a standard says so, otherwise the jazz and blues groups do. */
+export const swings = (p: Progression) =>
+  p.feel ? p.feel === "swing" : p.group === "jazz" || p.group === "blues";

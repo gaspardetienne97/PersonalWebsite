@@ -931,11 +931,11 @@ test.describe("note reading and sight-reading", () => {
       "Level climb from Level 1, G major",
     );
     await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByText("Rung").locator("..")).toContainText("3 of 38");
+    await expect(page.getByText("Rung").locator("..")).toContainText("3 of 43");
     // Nothing played: 0%, strike one.
     await expect(page.getByRole("status")).toContainText("strike 1 of 3", { timeout: 30_000 });
     await expect(page.locator("article").first()).toContainText(
-      "rung 3 of 38, 1 of 3 strikes, 1 phrase",
+      "rung 3 of 43, 1 of 3 strikes, 1 phrase",
     );
     await shots(page, "reading-climb-strike");
     // A part phrase cannot count toward the climb.

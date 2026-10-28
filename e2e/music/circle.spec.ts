@@ -113,4 +113,21 @@ test.describe("circle of fifths", () => {
     await expect(page.getByRole("button", { name: "Key: Gb" })).toBeVisible();
     await expect(page.getByText("Setup:").locator("..")).toContainText("Gb");
   });
+
+  test("analysis: spot the borrowed chord, and the rule after a miss", async ({ page }) => {
+    await page.goto("/music/circle?mode=borrowed&band=near");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    const card = prompt(page);
+    await expect(card).toHaveAttribute("data-step", "answer");
+    await expect(card).toContainText(/major: .+\. Which chord is borrowed from [A-G][b#]? minor\?/);
+    const a = (await card.getAttribute("data-answer"))!;
+    const answers = page.getByRole("group", { name: "Answers" }).getByRole("button");
+    // A wrong answer: the key's own chords and its borrowed ones are spelled out.
+    await answers
+      .filter({ hasNotText: new RegExp(`^${a}\\d?$`) })
+      .first()
+      .click();
+    await expect(card).toContainText("Borrowed from");
+    await shots(page, "borrowed");
+  });
 });

@@ -1,9 +1,11 @@
 // Rhythm patterns expanded to timed targets; pulse targets for tap-the-beat.
 
-import { RHYTHM_PATTERNS, type RhythmPatternDef } from "../data";
+import { RHYTHM_PATTERNS as VERIFIED_PATTERNS, type RhythmPatternDef } from "../data";
 import { clamp } from "../theory/notes";
+import { STRUM_PATTERNS } from "./strums";
 
-export { RHYTHM_PATTERNS };
+/** The verified patterns (data/rhythm-patterns.json), then the strums written in strums.ts. */
+export const RHYTHM_PATTERNS: RhythmPatternDef[] = [...VERIFIED_PATTERNS, ...STRUM_PATTERNS];
 export const RHYTHM_DEFAULTS = {
   bpm: 100,
   beats: 4,
@@ -31,6 +33,7 @@ const PATTERN_SKILLS: Record<string, string[]> = {
   "guitar-old-faithful": ["technique.strumming"],
   "ukulele-island-strum": ["technique.strumming"],
   "ukulele-chuck": ["technique.strumming"],
+  ...Object.fromEntries(STRUM_PATTERNS.map((p) => [p.id, ["technique.strumming"]])),
 };
 
 /** Skills a pattern (or "pulse") exercises. */

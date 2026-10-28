@@ -16,7 +16,15 @@ import {
 } from "../theory/circle";
 import { pick, type Rand } from "./random";
 
-export type CircleMode = "order" | "count" | "signature" | "neighbours" | "chords" | "wheel";
+export type CircleMode =
+  | "order"
+  | "count"
+  | "signature"
+  | "neighbours"
+  | "chords"
+  | "wheel"
+  | "borrowed"
+  | "secondary";
 
 export const CIRCLE_MODES: {
   id: CircleMode;
@@ -51,7 +59,61 @@ export const CIRCLE_MODES: {
   },
   { id: "chords", title: "A key's chords", skillId: "theory.circle.chords", targetMs: 5000 },
   { id: "wheel", title: "The blank wheel", skillId: "theory.circle.wheel", targetMs: 3000 },
+  // Analysis: a written progression in a key, spot the chord from outside it.
+  {
+    id: "borrowed",
+    title: "Spot the borrowed chord",
+    skillId: "theory.circle.borrowed",
+    targetMs: 6000,
+  },
+  {
+    id: "secondary",
+    title: "Spot the V of",
+    skillId: "theory.circle.secondary",
+    targetMs: 6000,
+  },
 ];
+
+/**
+ * Chords from outside a major key, by numeral: borrowed from the parallel
+ * minor (iv, bVI, bVII, bIII) and secondary dominants (V/x, a dominant
+ * seventh a fifth above x). `at(fifths)` names the chord in a key.
+ */
+const OUTSIDE: Record<string, { at: (f: number) => string; of?: string }> = {
+  iv: { at: (f) => `${noteAtFifths(f - 1)}m` },
+  bVI: { at: (f) => noteAtFifths(f - 4) },
+  bVII: { at: (f) => noteAtFifths(f - 2) },
+  bIII: { at: (f) => noteAtFifths(f - 3) },
+  "V/V": { at: (f) => `${noteAtFifths(f + 2)}7`, of: "V" },
+  "V/vi": { at: (f) => `${noteAtFifths(f + 4)}7`, of: "vi" },
+  "V/ii": { at: (f) => `${noteAtFifths(f + 3)}7`, of: "ii" },
+  "V/IV": { at: (f) => `${noteAtFifths(f)}7`, of: "IV" },
+};
+/** Progressions as books print them: the outside chord in its usual place. */
+const BORROWED_LOOPS = [
+  ["I", "IV", "iv", "I"],
+  ["I", "bVII", "IV", "I"],
+  ["I", "bVI", "V", "I"],
+  ["I", "bIII", "IV", "I"],
+  ["I", "vi", "iv", "I"],
+  ["I", "iv", "V", "I"],
+  ["vi", "IV", "bVII", "I"],
+];
+const SECONDARY_LOOPS = [
+  ["I", "V/V", "V", "I"],
+  ["I", "V/vi", "vi", "IV"],
+  ["I", "V/ii", "ii", "V"],
+  ["I", "V/IV", "IV", "I"],
+  ["IV", "V/vi", "vi", "V"],
+  ["I", "vi", "V/V", "V"],
+];
+
+/** A numeral's chord in a key, diatonic or from outside it. */
+export function chordIn(fifths: number, numeral: string): string {
+  return (
+    OUTSIDE[numeral]?.at(fifths) ?? diatonicChords(fifths).find((c) => c.numeral === numeral)!.name
+  );
+}
 
 /** Keys by how many sharps or flats, both sides at once, as graded syllabi introduce them. */
 export const KEY_BANDS = [
@@ -237,6 +299,37 @@ export function circlePrompt(
         ask: `Which chord of ${majorName(f)} major is ${c.name}?`,
         answer: c.numeral,
         choices: chords.map((x) => x.numeral),
+        fifths: f,
+      };
+    }
+    case "borrowed":
+    case "secondary": {
+      const f = weighted(keys);
+      const loop = pick(rand, setup.mode === "borrowed" ? BORROWED_LOOPS : SECONDARY_LOOPS);
+      const odd = loop.find((n) => OUTSIDE[n])!;
+      const names = loop.map((n) => chordIn(f, n));
+      const shown = `${majorName(f)} major: ${names.join(" | ")}`;
+      // Borrowed from the parallel minor: the same tonic.
+      const minorKey = `${majorName(f)} minor`;
+      // Half the V-of questions ask what it leads to.
+      if (setup.mode === "secondary" && rand() < 0.5)
+        return {
+          ...base,
+          id: `circle-secondary-of-${f}-${odd}`,
+          ask: `${shown}. ${chordIn(f, odd)} is the V of which chord?`,
+          answer: OUTSIDE[odd].of!,
+          choices: ["ii", "iii", "IV", "V", "vi"],
+          fifths: f,
+        };
+      return {
+        ...base,
+        id: `circle-${setup.mode}-${f}-${loop.join("-")}`,
+        ask:
+          setup.mode === "borrowed"
+            ? `${shown}. Which chord is borrowed from ${minorKey}?`
+            : `${shown}. Which chord is a secondary dominant (a V of another chord)?`,
+        answer: chordIn(f, odd),
+        choices: [...new Set(names)],
         fifths: f,
       };
     }

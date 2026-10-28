@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { Score } from "@repo/music-core";
+import type { ControlEvent, NoteEvent, Score } from "@repo/music-core";
 import {
   buildPass,
+  continuity,
+  gradeExpression,
+  gradeVibrato,
+  hideBefore,
+  noStopVerdict,
+  passMarks,
+  playedLevels,
   firstSlip,
   defaultParts,
   fitToRange,
@@ -283,5 +290,166 @@ describe("defaultParts", () => {
     expect(defaultParts(song(v("kit", true), v("bass")), "guitar")).toBe(false);
     expect(defaultParts(song(v("kit", true), v("bass")), "mpc")).toBe(true);
     expect(defaultParts(song(v("bass")), "mpc")).toBe(false);
+  });
+});
+
+describe("no-stop, memory, dynamics and vibrato", () => {
+  const beat = 500;
+  const on = (midi: number, at: number, velocity = 0.8, measured = true): NoteEvent => ({
+    kind: "noteon",
+    midi,
+    velocity,
+    at,
+    source: "midi",
+    confidence: 1,
+    velocityMeasured: measured,
+  });
+  const off = (midi: number, at: number): NoteEvent => ({
+    kind: "noteoff",
+    midi,
+    velocity: 0,
+    at,
+    source: "midi",
+    confidence: 1,
+  });
+  const pass = buildPass(score, ["p-v1"], [{ label: "Whole score", startBeat: 0, endBeat: 16 }]);
+
+  it("measures continuity: bars played and the longest silent stretch", () => {
+    const all = Array.from({ length: 16 }, (_, i) => i * beat);
+    expect(continuity(pass, all, 0, beat, 4)).toMatchObject({
+      share: 1,
+      longestGapBeats: 0,
+      bars: 4,
+    });
+    // One wrong-but-played note still counts as going on; one missed beat is a one-beat slip.
+    const oneMissed = all.filter((_, i) => i !== 5);
+    const c1 = continuity(pass, oneMissed, 0, beat, 4);
+    expect(c1).toMatchObject({ share: 1, longestGapBeats: 1, gapAt: 5 });
+    expect(noStopVerdict(0.9, c1)).toEqual({ score: 0.9, kept: true });
+    // Stopped for bar 3: three quarters of the bars, a four-beat slip.
+    const stopped = all.filter((_, i) => i < 8 || i >= 12);
+    const c2 = continuity(pass, stopped, 0, beat, 4);
+    expect(c2).toMatchObject({ share: 0.75, longestGapBeats: 4, gapAt: 8, barsPlayed: 3 });
+    expect(noStopVerdict(0.8, c2)).toEqual({ score: 0.6000000000000001, kept: false });
+  });
+
+  it("hides notes before a beat for memory runs", () => {
+    const hidden = hideBefore(score, 8);
+    expect(hidden.voices[0].notes[0].startBeat).toBe(8);
+    expect(hidden.voices[1].notes).toEqual([]);
+    expect(hideBefore(score, 0)).toBe(score);
+  });
+
+  it("grades dynamics and breaths loosely, from velocity or breath", () => {
+    const marked: Score = {
+      ...score,
+      dynamics: [
+        { startBeat: 0, mark: "p" },
+        { startBeat: 8, mark: "f" },
+      ],
+      hairpins: [{ startBeat: 12, endBeat: 16, kind: "diminuendo" }],
+      breaths: [4],
+    };
+    const marks = passMarks(marked, pass);
+    expect(marks).toEqual({
+      dynamics: [
+        { beat: 0, mark: "p" },
+        { beat: 8, mark: "f" },
+      ],
+      hairpins: [{ start: 12, end: 16, kind: "diminuendo" }],
+      breaths: [4],
+    });
+    // Soft, then loud, then dying away; a gap before beat 4.
+    const vel = (i: number) => (i < 8 ? 0.3 : i < 12 ? 0.8 : 0.8 - (i - 12) * 0.15);
+    const notes = Array.from({ length: 16 }, (_, i) => [
+      on(60 + i, i * beat, vel(i)),
+      off(60 + i, i * beat + (i === 3 ? 380 : 495)),
+    ]).flat();
+    const r = gradeExpression({
+      marks,
+      notes,
+      controls: [],
+      startAt: 0,
+      beatMs: beat,
+      lengthBeats: 16,
+    });
+    expect(r).toMatchObject({
+      score: 1,
+      dynamics: { right: 2, total: 2 },
+      breaths: { right: 1, total: 1 },
+    });
+    // Flat velocity and legato through the breath: nothing came out.
+    const flat = Array.from({ length: 16 }, (_, i) => [
+      on(60 + i, i * beat, 0.6),
+      off(60 + i, i * beat + 499),
+    ]).flat();
+    expect(
+      gradeExpression({
+        marks,
+        notes: flat,
+        controls: [],
+        startAt: 0,
+        beatMs: beat,
+        lengthBeats: 16,
+      }).score,
+    ).toBe(0);
+    // On-screen keys measure no loudness: only the breath mark is judged.
+    const taps = flat.map((n) => ({ ...n, velocityMeasured: undefined }));
+    const t = gradeExpression({
+      marks,
+      notes: taps,
+      controls: [],
+      startAt: 0,
+      beatMs: beat,
+      lengthBeats: 16,
+    });
+    expect(t.unmeasured).not.toBeNull();
+    expect(t.dynamics.total).toBe(0);
+    // Breath (CC 2) wins over velocity when it arrives.
+    const cc = (value: number, at: number): ControlEvent => ({
+      kind: "cc",
+      controller: 2,
+      value,
+      at,
+    });
+    expect(playedLevels([on(60, 0, 0.9)], [cc(0.2, 10), cc(0.3, 100)])).toEqual([
+      { at: 0, level: 0.3 },
+    ]);
+  });
+
+  it("finds vibrato on held notes from the bite", () => {
+    const held: Score = {
+      ...score,
+      voices: [
+        {
+          id: "a",
+          name: "Alto",
+          notes: [
+            { midi: 67, startBeat: 0, durationBeats: 2 },
+            { midi: 69, startBeat: 2, durationBeats: 2 },
+          ],
+        },
+      ],
+      lengthBeats: 4,
+    };
+    const p = buildPass(held, ["a"], [{ label: "Whole", startBeat: 0, endBeat: 4 }]);
+    const wobble = (from: number, ms: number, hz: number): ControlEvent[] =>
+      Array.from({ length: ms / 20 }, (_, i) => ({
+        kind: "pitchbend",
+        value: 0.1 * Math.sin((2 * Math.PI * hz * i * 20) / 1000),
+        at: from + i * 20,
+      }));
+    const notes = [on(67, 0), off(67, 990), on(69, 1000), off(69, 1990)];
+    const v = gradeVibrato({
+      pass: p,
+      notes,
+      controls: [...wobble(0, 980, 4.5), ...wobble(1000, 980, 9)],
+      startAt: 0,
+      beatMs: beat,
+    });
+    expect(v).toEqual({ share: 0.5, held: 2, withVibrato: 1 });
+    expect(
+      gradeVibrato({ pass: p, notes, controls: [], startAt: 0, beatMs: beat }).share,
+    ).toBeNull();
   });
 });

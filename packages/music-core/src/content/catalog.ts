@@ -483,6 +483,19 @@ export const CATALOG: CatalogEntry[] = [
       ),
       mode("trills", "Trills", "technique.aerophone.trills", aerophoneSkills("trills")),
       mode("vibrato", "Bite vibrato", "technique.aerophone.vibrato", aerophoneSkills("vibrato")),
+      mode("swing", "Swing articulation", "technique.aerophone.swing", aerophoneSkills("swing")),
+      mode(
+        "long-scale",
+        "Long-tone scale",
+        "technique.aerophone.long-scale",
+        aerophoneSkills("long-scale"),
+      ),
+      mode(
+        "calibrate",
+        "Setup check",
+        "technique.aerophone.calibrate",
+        aerophoneSkills("calibrate"),
+      ),
     ],
   }),
   entry({

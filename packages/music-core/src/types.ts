@@ -246,6 +246,8 @@ export interface ScoreVoice {
   hand?: "left" | "right";
   /** A drum part: each note's `midi` is a General MIDI drum (kick 36, snare 38, closed hat 42). */
   drums?: boolean;
+  /** Clef changes at bar lines, e.g. a left hand reading the treble clef for a bar. */
+  clefChanges?: { startBeat: number; clef: "treble" | "bass" }[];
   notes: ScoreNote[];
 }
 
@@ -269,6 +271,11 @@ export interface Score {
   lengthBeats: number;
   sections?: ScoreSection[];
   chords?: { symbol: string; startBeat: number; durationBeats: number }[];
+  /** Dynamic marks (p, mf, f, sfz), hairpins and breath marks from the score, at score beats. */
+  dynamics?: { startBeat: number; mark: string }[];
+  hairpins?: { startBeat: number; endBeat: number; kind: "crescendo" | "diminuendo" }[];
+  /** A breath after the note ending here. */
+  breaths?: number[];
   source?: {
     kind: "musicxml" | "midi" | "generated" | "transcribed" | "piano-roll" | "take";
     xml?: string;

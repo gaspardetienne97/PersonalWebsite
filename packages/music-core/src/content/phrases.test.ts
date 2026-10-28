@@ -54,3 +54,44 @@ describe("phrases", () => {
     }
   });
 });
+
+describe("campanella and the new licks", () => {
+  it("rings each campanella note on a new string (only D after the open C has no other)", () => {
+    const camp = PHRASES.filter((p) => p.style === "Campanella");
+    expect(camp.map((p) => p.id)).toHaveLength(5);
+    for (const p of camp) {
+      const notes = phraseNotes(p);
+      notes.slice(1).forEach((n, i) => {
+        const prev = notes[i];
+        if (n.midi !== prev.midi && n.string === prev.string)
+          expect([prev.midi, n.midi].sort(), `${p.id} note ${n.index}`).toEqual([60, 62]);
+      });
+    }
+  });
+
+  it("keeps chord melody's tune as the top note of each chord", () => {
+    const p = PHRASES.find((x) => x.id === "ukulele.chord-melody-amazing-grace")!;
+    const tops = p.steps.flatMap(([head]) =>
+      head === null ? [] : Array.isArray(head) ? [Math.max(...head)] : [head],
+    );
+    // G | C E C | E D | C A | G: Amazing Grace's first line.
+    expect(tops).toEqual([67, 72, 76, 72, 76, 74, 72, 69, 67]);
+  });
+
+  it("has six D minor licks and the stock box-1 blues licks", () => {
+    expect(PHRASES.filter((p) => p.id.startsWith("guitar.d-")).length).toBe(6);
+    const dorian = new Set([2, 4, 5, 7, 9, 11, 0]);
+    for (const p of PHRASES.filter((x) => x.id.startsWith("guitar.d-")))
+      for (const n of phraseNotes(p))
+        expect(dorian.has(n.midi % 12), `${p.id} ${n.midi}`).toBe(true);
+    const blues = new Set([9, 0, 2, 3, 4, 7]);
+    for (const id of [
+      "guitar.root-b7-5",
+      "guitar.blues-scale-run",
+      "guitar.minor-third-rub",
+      "ukulele.blues-pentatonic-lick",
+    ])
+      for (const n of phraseNotes(PHRASES.find((p) => p.id === id)!))
+        expect(blues.has(n.midi % 12), `${id} ${n.midi}`).toBe(true);
+  });
+});

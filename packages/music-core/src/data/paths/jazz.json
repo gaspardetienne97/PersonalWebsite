@@ -138,41 +138,59 @@
           "title": "Improv game: three notes",
           "setup": "Jam: blues in F at 100; the right hand uses only F, Ab, C (then Bb, Db, F over a Bb blues).",
           "done": "4 choruses with 90% of notes from the set and at least 6 two-beat rests per chorus.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues in F",
               "href": "/music/jam?progression=blues&transpose=5"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=blues&transpose=5&game=three-notes&choruses=4&bpm=100",
+          "match": {
+            "game": "three-notes",
+            "choruses": "4"
+          },
+          "minBpm": 100,
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "1.7",
           "title": "Improv game: call and response",
           "setup": "Jam: blues; the backing plays 2 bars, you answer 2. Until response windows exist, leave bars 1-2, 5-6 and 9-10 empty.",
           "done": "3 choruses where every answer starts inside its window and ends before the next call.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues",
               "href": "/music/jam?progression=blues"
             }
           ],
-          "feeds": "Bags' Groove, Sonnymoon for Two"
+          "feeds": "Bags' Groove, Sonnymoon for Two",
+          "href": "/music/jam?progression=blues&transpose=5&game=call-response&choruses=3",
+          "match": {
+            "game": "call-response",
+            "choruses": "3"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "1.8",
           "title": "Improv game: one rhythmic motif",
           "setup": "Jam: blues; keep one 1-bar rhythm (the C Jam two-note riff, or the Charleston) and change the pitches to fit each chord.",
           "done": "Same onset pattern in at least 8 of 12 bars, a chord tone on beat 1 in 75% of bars.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues",
               "href": "/music/jam?progression=blues"
             }
           ],
-          "feeds": "C Jam Blues, Now's the Time"
+          "feeds": "C Jam Blues, Now's the Time",
+          "href": "/music/jam?progression=blues&transpose=5&game=motif&choruses=1",
+          "match": {
+            "game": "motif",
+            "progression": "blues"
+          },
+          "threshold": 0.9
         },
         {
           "id": "1.9",
@@ -705,13 +723,19 @@
           "title": "Improv game: guide tones only",
           "setup": "Jam on a shelf tune; the right hand plays only 3rds and 7ths, one per bar, then two per bar.",
           "done": "A 3rd or 7th within a beat of 80% of the changes, two choruses.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: ii-V-I",
               "href": "/music/jam?progression=ii-v-i"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=tune-autumn-leaves&game=guide-tones&choruses=2",
+          "match": {
+            "game": "guide-tones",
+            "choruses": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "2.12",
@@ -1117,14 +1141,28 @@
           "title": "Improv game: approach notes",
           "setup": "Jam on a shelf tune: every chord tone on beat 1 approached by a half step from below, then from above.",
           "done": "80% of bar downbeats are chord tones approached chromatically, one chorus.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+          "href": "/music/jam?progression=tune-autumn-leaves&game=approach&choruses=1",
+          "match": {
+            "game": "approach"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "3.10",
           "title": "Rung e on two shelf tunes",
           "setup": "Jam over the tune, recorded, scored for chord tones and guide-tone landings.",
           "done": "One chorus with chord tones on 75% of strong beats and 70% guide-tone landings.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3)."
+          "href": "/music/jam?progression=tune-autumn-leaves&game=changes&choruses=1",
+          "match": {
+            "game": "changes"
+          },
+          "each": {
+            "param": "progression",
+            "values": ["tune-autumn-leaves", "tune-blue-bossa"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "3.11",
@@ -1468,13 +1506,22 @@
           "title": "Improv game: pentatonics on a dorian chord",
           "setup": "Jam, modal: over Dm7 play D, E, then A minor pentatonic, 4 bars each.",
           "done": "One chorus per pentatonic with 90% inside the set.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: modal vamp",
               "href": "/music/jam?progression=modal"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=modal&game=pentatonic-1&choruses=1",
+          "match": {
+            "progression": "modal"
+          },
+          "each": {
+            "param": "game",
+            "values": ["pentatonic-1", "pentatonic-2", "pentatonic-5"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "4.9",
@@ -1498,13 +1545,19 @@
           "title": "Improv game: space",
           "setup": "Jam: play 2 bars, rest 2 bars for a whole chorus; then 1 on, 1 off.",
           "done": "2 choruses with every rest window silent.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: modal vamp",
               "href": "/music/jam?progression=modal"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=modal&game=space&choruses=2",
+          "match": {
+            "game": "space",
+            "choruses": "2"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1
         },
         {
           "id": "4.11",
@@ -1835,26 +1888,40 @@
           "title": "Improv game: eighth-note lines",
           "setup": "Jam: F blues at 140, continuous eighths for 4 bars, then rest 2 bars.",
           "done": "Two choruses with chord tones on 80% of beats 1 and 3.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues in F",
               "href": "/music/jam?progression=blues&transpose=5"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=blues&transpose=5&game=chord-tones&choruses=2&bpm=140",
+          "match": {
+            "game": "chord-tones",
+            "progression": "blues",
+            "choruses": "2"
+          },
+          "minBpm": 140,
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "5.9",
           "title": "Improv game: start on the and-of-1",
           "setup": "Jam: every phrase starts off the beat (the and-of-1 or the and-of-4).",
           "done": "80% of phrase starts off the beat, two choruses.",
-          "needs": "Improvisation scoring and constraint games in Jam (jazz rank 3).",
           "links": [
             {
               "label": "Jam: 12-bar blues in F",
               "href": "/music/jam?progression=blues&transpose=5"
             }
-          ]
+          ],
+          "href": "/music/jam?progression=blues&transpose=5&game=off-beat&choruses=2",
+          "match": {
+            "game": "off-beat",
+            "choruses": "2"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "5.10",

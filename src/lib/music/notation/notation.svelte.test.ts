@@ -102,14 +102,60 @@ describe("Staff", () => {
     const triplets: Score = {
       ...piano,
       voices: [
-        { id: "a", name: "A", notes: [{ midi: 60, startBeat: 1 / 3, durationBeats: 1 / 3 }] },
+        { id: "a", name: "A", notes: [{ midi: 60, startBeat: 1 / 5, durationBeats: 1 / 5 }] },
       ],
     };
     render(Staff, { score: triplets, onfallback });
     await expect
-      .element(page.getByText(/The staff can't draw this score: it has tuplets/))
+      .element(
+        page.getByText(/The staff can't draw this score: it has tuplets other than triplets/),
+      )
       .toBeVisible();
     expect(onfallback).toHaveBeenCalledOnce();
+  });
+
+  it("engraves eighth triplets with a 3, a left-hand clef change, and hides beams and ties with masked notes", async () => {
+    const score: Score = {
+      ...piano,
+      lengthBeats: 8,
+      voices: [
+        {
+          id: "rh",
+          name: "Right hand",
+          hand: "right",
+          notes: [
+            ...[72, 74, 76].map((midi, i) => ({ midi, startBeat: i / 3, durationBeats: 1 / 3 })),
+            { midi: 77, startBeat: 1, durationBeats: 0.5 },
+            { midi: 79, startBeat: 1.5, durationBeats: 0.5 },
+            { midi: 81, startBeat: 2, durationBeats: 2 + 4 },
+          ],
+        },
+        {
+          id: "lh",
+          name: "Left hand",
+          hand: "left",
+          clefChanges: [{ startBeat: 4, clef: "treble" }],
+          notes: [
+            { midi: 48, startBeat: 0, durationBeats: 4 },
+            { midi: 60, startBeat: 4, durationBeats: 4 },
+          ],
+        },
+      ],
+    };
+    // Groups: 0-2 the triplet, 3 and 4 the beamed eighths, 5 the tied note, 6 the left hand's second bar.
+    const { container, rerender } = render(Staff, { score });
+    const svg = await svgIn(container);
+    expect(svg.querySelectorAll(".vf-tuplet").length).toBe(1);
+    expect(svg.querySelectorAll(".vf-clef").length).toBeGreaterThanOrEqual(3);
+    expect(svg.querySelectorAll(".vf-beam").length).toBe(2);
+    await rerender({ score, groupStates: { 3: "hidden", 5: "hidden" } });
+    // The rerender engraves afresh, so look in the container again.
+    await vi.waitFor(() => {
+      expect(container.querySelectorAll('.vf-beam[data-state="hidden"]').length).toBe(1);
+      expect(
+        container.querySelectorAll('.vf-stavetie[data-state="hidden"]').length,
+      ).toBeGreaterThanOrEqual(1);
+    });
   });
 });
 

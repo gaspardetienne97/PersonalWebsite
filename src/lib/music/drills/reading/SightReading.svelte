@@ -37,6 +37,7 @@
   import Tab from "$lib/music/notation/Tab.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { assignTab } from "$lib/music/notation/groups";
+  import { swingBeat } from "$lib/music/drills/piano/transport.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -60,11 +61,18 @@
   const meter = $derived(levelMeter(levelId, s.meter));
   const rungs = $derived(readingRungs(instrument));
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
-  const clefs = $derived<Clef[]>(fretted || aero ? ["treble"] : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"));
+  // A single-line level tapped on the piano reads its one line too.
+  const clefs = $derived<Clef[]>(
+    fretted || aero || (s.follower === "tap" && !s.climb && readingLevel(readingLevelId(s.level)).reader === "line")
+      ? ["treble"]
+      : s.clefs.split(",").filter((c): c is Clef => c === "treble" || c === "bass"),
+  );
   const [BPM_MIN, BPM_MAX] = READING_DEFAULTS.bpmLimits;
   const bpm = $derived(Math.min(BPM_MAX, Math.max(BPM_MIN, settings.value.bpm)));
   const climbing = $derived(!!s.climb);
-  const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" ? "performance" : "wait");
+  // Tap the rhythm: Keep time with any key, the Tap button or Space; pitch is not graded.
+  const tapping = $derived(!climbing && s.follower === "tap");
+  const follower = $derived<"wait" | "performance">(climbing || s.follower === "performance" || tapping ? "performance" : "wait");
   const measures = $derived(climbing ? CLIMB.measures : Math.min(16, Math.max(1, s.measures)));
   const strictness = $derived<Strictness>((["relaxed", "normal", "strict"] as const).find((x) => x === s.strictness) ?? "normal");
   // Sounding minus written: guitar sounds an octave down, the Aerophone by its reading key.
@@ -97,6 +105,18 @@
   );
   const score = $derived(override && override.from === generated.id ? override.score : generated);
   const groups = $derived(scoreGroups(score));
+  // Jazz lines are written straight and played swung: off-beat eighths land two thirds into the beat.
+  const swing = $derived(!!readingLevel(levelId).swing);
+  const feel = (b: number) => (swing ? swingBeat(b) : b);
+  /** What the follower grades: swung onsets, and in tap mode one pitch a group. */
+  const TAP_MIDI = 60;
+  const followGroups = $derived(
+    groups.map((g) => ({
+      ...g,
+      startBeat: feel(g.startBeat),
+      notes: tapping ? [{ ...g.notes[0], midi: TAP_MIDI }] : g.notes,
+    })),
+  );
   // Fretted: the notes placed in the hand position, so the tab and the fretboard agree with it.
   const sounding = $derived.by(() => {
     const out = soundingScore(score, transpose);
@@ -112,7 +132,7 @@
   let status = $state("");
   let fs = $state.raw<FollowerState | null>(null);
   let live = $state.raw<LiveState | null>(null);
-  let startAt = 0;
+  let startAt = $state(0);
   let now = $state(0);
   let result = $state.raw<WaitResult | PerformanceResult | null>(null);
   let summary = $state<RunSummary | null>(null);
@@ -141,7 +161,7 @@
     const notes = sounding.voices
       .flatMap((v) => v.notes)
       .filter((n) => n.startBeat >= resumeBeat - 1e-6)
-      .map((n) => ({ midi: n.midi, time: ((n.startBeat - resumeBeat) * beatMs) / 1000, duration: (n.durationBeats * beatMs * 0.92) / 1000, beat: n.startBeat }));
+      .map((n) => ({ midi: n.midi, time: ((feel(n.startBeat) - resumeBeat) * beatMs) / 1000, duration: ((feel(n.startBeat + n.durationBeats) - feel(n.startBeat)) * beatMs * 0.92) / 1000, beat: n.startBeat }));
     if (!notes.length) resumeBeat = 0;
     const h = audio.playSequence(notes, {
       onNote: (i) => {
@@ -211,11 +231,11 @@
     }
     const octaveExact = instrument === "piano" || aero;
     startAt = ctx.downbeat;
-    fs = follower === "wait" ? waitStart(groups, octaveExact) : performanceStart(groups, { bpm, startAt, strictness, octaveExact });
+    fs = follower === "wait" ? waitStart(followGroups, octaveExact) : performanceStart(followGroups, { bpm, startAt, strictness, octaveExact });
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: modeDef.exerciseId,
-      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${meter}|${follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}|${range.join("-")}|${s.mask}`,
+      setupKey: `sight|${instrument}|${levelId}|${clefs.join(",")}|${key.name}|${measures}|${meter}|${tapping ? "tap" : follower}|${follower === "performance" ? `${bpm}|${strictness}` : "-"}|${range.join("-")}|${s.mask}`,
       skillIds: sightReadingSkills(score),
       capabilities: ["reading"],
       modality: "read",
@@ -227,7 +247,7 @@
         instrument,
         level: levelId,
         key: key.name,
-        follower,
+        follower: tapping ? "tap" : follower,
         bpm,
         measures,
         meter,
@@ -241,14 +261,36 @@
     });
     // Scored input starts at the downbeat (after any count-in).
     cap = capture(follower === "performance" ? ctx.downbeat - beatMs / 2 : performance.now(), (e) => e.kind === "noteon" && onNote(e));
-    status = follower === "wait" ? "Play what the cursor shows. It waits for you." : "Go.";
+    status = follower === "wait" ? "Play what the cursor shows. It waits for you." : tapping ? "Tap the rhythm: any key, the Tap button or Space." : "Go.";
     loop();
   }
 
   const keyOf = (m: number) => (instrument === "piano" || aero ? m : pc(m));
 
+  // The Tap button and Space, in tap mode: input from the count-in on, as the rhythm drill takes it.
+  let pressed = $state(false);
+  function tap(at: number) {
+    if (!tapping || !fs || (phase !== "running" && phase !== "countin")) return;
+    audio.drum(37, 0.5);
+    pressed = true;
+    setTimeout(() => (pressed = false), 90);
+    fs = followerInput(fs, { kind: "noteon", midi: TAP_MIDI, velocity: 0.8, at, source: "onscreen", confidence: 1 });
+  }
+  function onKey(e: KeyboardEvent) {
+    if (!tapping || e.code !== "Space" || e.repeat) return;
+    const t = e.target as HTMLElement | null;
+    if (t?.closest("input, select, textarea, [contenteditable]")) return;
+    e.preventDefault();
+    tap(e.timeStamp || performance.now());
+  }
+
   function onNote(e: NoteEvent) {
     if (!fs || phase !== "running") return;
+    if (tapping) {
+      if (e.source === "audio") return;
+      fs = followerInput(fs, { ...e, midi: TAP_MIDI });
+      return;
+    }
     if (useMic ? e.source !== "audio" : e.source === "audio") return;
     const written = { ...e, midi: e.midi - transpose };
     const before = liveState(fs, performance.now());
@@ -377,7 +419,7 @@
   function advanceAfter(score: number, correct: boolean) {
     const timed = follower === "performance";
     return nextRun(
-      `reading.sight.${instrument}.${follower}.${measures}.${meter}`,
+      `reading.sight.${instrument}.${tapping ? "tap" : follower}.${measures}.${meter}`,
       { ...(timed ? { bpm, tempo: { min: BPM_MIN, goal: 100, max: BPM_MAX } } : {}), steps: rungs, step: rungOf(levelId, key.name) },
       { score, correct },
       ({ bpm: b, step }) => {
@@ -446,7 +488,7 @@
     return out;
   });
   // The look-ahead mask: played notes hide, and only the next `mask` beats show.
-  // ponytail: beams and ties are drawn outside the note groups and stay visible.
+  // Beams, ties and triplet marks hide with the notes they join (the frame's linked elements).
   const shownStates = $derived.by(() => {
     if (!s.mask || phase === "results") return groupStates;
     const from = phase !== "running" || !live ? 0 : fs?.mode === "performance" ? (cursorBeat ?? 0) : (current?.startBeat ?? 0);
@@ -508,8 +550,8 @@
     { text: `${measures} bar${measures > 1 ? "s" : ""} of ${READING_METERS[meter].label}`, focus: climbing ? "meter" : "measures" },
     ...(s.mask ? [{ text: `${s.mask} beats ahead`, focus: "mask" }] : []),
     ...(position ? [{ text: `${position.label.toLowerCase()} position`, focus: "position" }] : []),
-    follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `keeps time at ${bpm} BPM, ${strictness} window`, focus: "strictness" },
-    { text: `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted ? "input" : undefined },
+    follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `${tapping ? "taps" : "keeps time"} at ${bpm} BPM${swing ? ", swung" : ""}, ${strictness} window`, focus: "strictness" },
+    { text: tapping ? "tapping the rhythm" : `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted && !tapping ? "input" : undefined },
   ]);
   // Wait mode is guided whichever way the shell's switch is set.
   const modeNotes = $derived(
@@ -518,6 +560,8 @@
       : { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   );
 </script>
+
+<svelte:window onkeydown={onKey} />
 
 <DrillShell
   title="Sight-reading"
@@ -558,7 +602,15 @@
   {/snippet}
 
   {#snippet stage()}
-    <div bind:clientWidth={paperW} data-expected={current?.notes.map((n) => n.midi + transpose).join(",") ?? ""} data-group={live?.index ?? -1} class="paper-wrap">
+    <div
+      bind:clientWidth={paperW}
+      data-expected={current?.notes.map((n) => n.midi + transpose).join(",") ?? ""}
+      data-group={live?.index ?? -1}
+      data-downbeat={fs?.mode === "performance" && (phase === "running" || phase === "countin") ? Math.round(startAt) : undefined}
+      data-beat-ms={Math.round(beatMs)}
+      data-onsets={followGroups.map((g) => Math.round(g.startBeat * 1000) / 1000).join(",")}
+      class="paper-wrap"
+    >
       <div style:zoom={zoom}>
         {#key score.id}
           <Staff {score} {cursorBeat} groupStates={shownStates} maxHeight={measures > 4 ? "32rem" : "22rem"} />
@@ -580,7 +632,33 @@
       </div>
     {/if}
     <div class="mt-4">
-      {#if useMic}
+      {#if tapping}
+        <div class="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            class="tap"
+            class:pressed
+            aria-label="Tap"
+            aria-keyshortcuts="Space"
+            disabled={phase !== "running" && phase !== "countin"}
+            onpointerdown={(e) => {
+              if (e.button > 0) return;
+              e.preventDefault();
+              tap(e.timeStamp || performance.now());
+            }}
+            onkeydown={(e) => {
+              if (e.key === "Enter" && !e.repeat) {
+                e.preventDefault();
+                tap(e.timeStamp || performance.now());
+              }
+            }}
+          >
+            <span class="font-display text-2xl font-bold">Tap</span>
+            <span class="text-xs opacity-80">or Space</span>
+          </button>
+          <p class="text-center text-xs text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is graded.</p>
+        </div>
+      {:else if useMic}
         <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
           <p class="text-sm text-ws-stage-soft">The microphone listens while the run is on. Notes are graded by pitch class.</p>
           <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
@@ -613,5 +691,29 @@
 </DrillShell>
 
 <style>
-
+  .tap {
+    display: grid;
+    place-content: center;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, color-mix(in oklch, var(--instr), white 25%), var(--instr) 60%, color-mix(in oklch, var(--instr), black 25%));
+    color: var(--ws-stage);
+    box-shadow: 0 8px 0 color-mix(in oklch, var(--instr), black 45%), 0 12px 26px rgb(0 0 0 / 0.3);
+    transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  .tap:disabled {
+    opacity: 0.55;
+  }
+  .tap.pressed,
+  .tap:not(:disabled):active {
+    transform: translateY(6px);
+    box-shadow: 0 2px 0 color-mix(in oklch, var(--instr), black 45%), 0 4px 12px rgb(0 0 0 / 0.3);
+  }
+  .tap:focus-visible {
+    outline: 3px solid var(--ws-stage-ink);
+    outline-offset: 4px;
+  }
 </style>

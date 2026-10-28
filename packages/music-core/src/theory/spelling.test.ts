@@ -31,6 +31,9 @@ describe("spelling", () => {
       "G minor:-2",
       "C minor:-3",
       "F minor:-4",
+      "B major:5",
+      "Db major:-5",
+      "Bb minor:-5",
     ]);
     expect(CHOICE_NAMES).toEqual([
       "C",

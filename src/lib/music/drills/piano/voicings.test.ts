@@ -79,3 +79,37 @@ describe("gradeItem", () => {
     expect(gradeItem(dm7, [62, 65, 69], opts).note).toBe("missing notes");
   });
 });
+
+describe("gospel and ballad chords", () => {
+  it("voices slash chords with the bass in the left hand and the right hand moving least", () => {
+    const items = voicingItems({ variant: "gospel", keyPc: 0, keys: 1, progression: "slash-walk" });
+    expect(items.map((i) => i.symbol)).toEqual(["C", "G/B", "Am", "Am/G", "F", "C/E", "Dm7", "G"]);
+    const gb = items[1];
+    expect(gb.closest!.leftRootPc).toBe(11);
+    expect(gb.show[0]).toEqual({ midi: 47, hand: "left" });
+    expect(gb.show.slice(1).map((n) => n.midi)).toEqual([59, 62, 67]);
+    // Played as shown, every chord grades right.
+    for (const it of items)
+      expect(
+        gradeItem(
+          it,
+          it.show.map((n) => n.midi),
+          { strict: true, arpeggio: false },
+        ).correct,
+        it.symbol,
+      ).toBe(true);
+  });
+
+  it("spells the passing diminished a half step up, through three keys", () => {
+    const items = voicingItems({
+      variant: "gospel",
+      keyPc: 0,
+      keys: 3,
+      progression: "passing-dim",
+    });
+    expect(items).toHaveLength(27);
+    expect(items[1].symbol).toBe("C#dim7");
+    expect(items[5].symbol).toBe("F#dim7");
+    expect(new Set(items.map((i) => i.group)).size).toBe(3);
+  });
+});
