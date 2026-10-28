@@ -49,6 +49,7 @@
 
   let collapsed = $state(false);
   let moreOpen = $state(false);
+  let moreButton = $state<HTMLButtonElement>();
   const hue = $derived(bench.hue ?? settings.value.activeInstrument);
 
   onMount(() => {
@@ -163,6 +164,11 @@
   {#if !bench.running}
     <nav
       aria-label="Woodshed sections"
+      onkeydown={(e) => {
+        if (e.key !== "Escape" || !moreOpen) return;
+        moreOpen = false;
+        moreButton?.focus();
+      }}
       class="fixed inset-x-0 bottom-0 z-40 border-t border-ws-line bg-ws-surface/95 backdrop-blur lg:hidden"
     >
       <ul class="grid grid-cols-5">
@@ -184,6 +190,7 @@
             class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-xs {utilities.some(current) ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
             aria-expanded={moreOpen}
             aria-controls="woodshed-more"
+            bind:this={moreButton}
             onclick={() => (moreOpen = !moreOpen)}
           >
             <Ellipsis class="size-5" aria-hidden="true" />More

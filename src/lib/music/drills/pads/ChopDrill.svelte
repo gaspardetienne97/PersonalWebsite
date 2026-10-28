@@ -7,7 +7,6 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { encodeWav } from "@repo/music-core/io/wav";
   import { gradeGroove, type GrooveResult } from "@repo/music-core/scoring/pads";
   import {
     CHOP_EDITS,
@@ -18,9 +17,7 @@
     FREE_CHOP,
     chopPiece,
     chopSource,
-    chopSourceNotes,
     gradeFreeChop,
-    sliceSamples,
     slicePad,
     type ChopSource,
   } from "@repo/music-core/content/pads-studio";
@@ -36,13 +33,18 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, input, settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { kits } from "$lib/music/hubs/create/kitStore.svelte";
+  import { decodeLoop, loadSlices, restoreKit } from "./slices";
   import MidiStatus from "./MidiStatus.svelte";
+  import PadHighway, { type HighwayLane, type HighwayNote } from "./PadHighway.svelte";
+  import { judgeHit, laneColor, overdue, type Judgement } from "./lanes";
 
   let { modes, onmode }: { modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
 
-  const cfg = new DrillSetup("pad-chop", { exercise: "order" as string, source: "boom-bap-b" as string, edit: "flip" as string, fileBars: 1 });
+  const cfg = new DrillSetup("pad-chop", { exercise: "order" as string, source: "boom-bap-b" as string, edit: "flip" as string, fileBars: 1, view: "lanes" as string, ahead: 1 });
   const s = $derived(cfg.value);
+  /** The lanes (a slice a lane, each ringing until the next) or the order as a strip; how many bars the lanes read ahead. */
+  const lanesView = $derived(s.view !== "grid");
+  const aheadBars = $derived([1, 2, 4].includes(s.ahead) ? s.ahead : 1);
   const exercise = $derived(CHOP_EXERCISES.find((x) => x.id === s.exercise)?.id ?? "order");
   /** An imported loop, decoded; kept for the visit only. */
   let file = $state.raw<{ name: string; buffer: AudioBuffer } | null>(null);
@@ -86,34 +88,11 @@
   let cutError = $state("");
   const want = $derived(`${source.id}:${source.id === "file" ? `${file?.name}:${s.fileBars}` : bpm}`);
 
-  async function decode(blob: Blob) {
-    return new OfflineAudioContext(2, 1, 44100).decodeAudioData(await blob.arrayBuffer());
-  }
-
   async function cut(key: string) {
     cutting = true;
     cutError = "";
     try {
-      let buffer: AudioBuffer;
-      let length: number;
-      if (source.id === "file" && file) {
-        buffer = file.buffer;
-        length = buffer.length;
-      } else {
-        const sec = 60 / bpm;
-        const notes = chopSourceNotes(source.id).map((n) => ({ midi: n.midi, time: n.beat * sec, duration: n.beats * sec, velocity: n.velocity, voice: n.voice }));
-        buffer = await decode(await audio.renderWav(notes, source.bars * 4 * sec));
-        length = Math.round(source.bars * 4 * sec * buffer.sampleRate);
-      }
-      const left = buffer.getChannelData(0);
-      const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
-      const ls = sliceSamples(left, CHOP_SLICES, length, buffer.sampleRate);
-      const rs = sliceSamples(right, CHOP_SLICES, length, buffer.sampleRate);
-      // Create's kit loads once per visit; wait for it so it cannot land over the slices.
-      await kits.ready;
-      const pads = ls.map((l, i) => ({ midi: slicePad(i), soft: new Blob([encodeWav([l, rs[i]], buffer.sampleRate) as Uint8Array<ArrayBuffer>], { type: "audio/wav" }), chokeGroup: 1 }));
-      const { failed } = await audio.loadKit({ id: "chop", name: "Chop", pads });
-      if (failed.length) throw new Error(`${failed.length} slices could not be read`);
+      await loadSlices(source, bpm, source.id === "file" ? file?.buffer : undefined);
       if (key === want) loaded = key;
     } catch (e) {
       cutError = `The loop could not be cut: ${(e as Error).message}`;
@@ -134,7 +113,7 @@
     const f = (e.currentTarget as HTMLInputElement).files?.[0];
     if (!f) return;
     try {
-      file = { name: f.name.replace(/\.[^.]+$/, ""), buffer: await decode(f) };
+      file = { name: f.name.replace(/\.[^.]+$/, ""), buffer: await decodeLoop(f) };
       cfg.set({ source: "file" });
       status = `${file.name}: ${file.buffer.duration.toFixed(2)} s. Set how many bars it is; the tempo follows.`;
     } catch {
@@ -154,6 +133,19 @@
 
   const stepNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / 4)) : null);
   const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), `Slice ${i + 1}`]));
+  // The lanes: the slices the piece plays, in order, each ringing until the next slice starts.
+  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, color: laneColor(`slice-${n}`), pad: slicePad(n - 1) })));
+  const sliceMs = $derived((source.bars * 4 * beatMs) / CHOP_SLICES);
+  const live = $derived<(HighwayNote & { pad: number })[]>(
+    targets.map((t, i) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.pad === t.pad), kind: "normal", durMs: Math.min(sliceMs, (targets[i + 1]?.atMs ?? lengthMs) - t.atMs) })),
+  );
+  const judgeWindow = $derived({ perfect: Math.min(90, beatMs / 16), good: Math.min(180, beatMs / 8) });
+  let judged = $state<Record<number, Judgement>>({});
+  let flashKey = 0;
+  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
+  const timing = new Flashes<"early" | "late" | "perfect">();
+  const showLanes = $derived(lanesView && !!piece && phase !== "results" && (mode === "practice" || phase === "ready"));
+
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (mode !== "practice" || phase !== "running") return out;
@@ -196,6 +188,14 @@
     if (!piece) return flashes.add(e.midi, "correct", 150);
     const near = targets.some((t) => t.pad === e.midi && Math.abs(t.atMs - at) <= Math.min(180, beatMs / 8));
     flashes.add(e.midi, near ? "correct" : "wrong", 250);
+    const hit = judgeHit(live, judged, e.midi, at, judgeWindow);
+    if (!hit) {
+      flashNote = { judgement: "extra", key: ++flashKey };
+      return;
+    }
+    judged = { ...judged, [hit.index]: hit.judgement };
+    timing.add(e.midi, hit.judgement as "early" | "late" | "perfect", 450);
+    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey };
   }
 
   function start(ctx: RunContext) {
@@ -204,6 +204,9 @@
     grv = null;
     take = [];
     flashes.clear();
+    timing.clear();
+    judged = {};
+    flashNote = null;
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
@@ -221,6 +224,11 @@
     status = exercise === "free" ? `Bars 1 to ${FREE_BARS}: play your own chop. Then play it again.` : exercise === "order" ? "Slice 1 to 16, one after the other: the loop should come back." : "Play the slices as written.";
     const tick = () => {
       now = performance.now();
+      const missed = phase === "running" && mode === "practice" && piece ? overdue(live, judged, now - downbeat, judgeWindow.good) : [];
+      if (missed.length) {
+        judged = { ...judged, ...Object.fromEntries(missed.map((i) => [i, "miss" as const])) };
+        flashNote = { judgement: "miss", key: ++flashKey };
+      }
       if (phase === "running" || phase === "countin") raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -323,8 +331,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     stopDemo();
-    // Put Create's kit back on the pads.
-    void kits.ready.then(() => kits.sync());
+    restoreKit();
   });
 
   /** Each step of the piece as a cell: its slice (0 rings on) and, after a run, how it landed. */
@@ -337,6 +344,10 @@
   const cellNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (every * beatMs)) : null);
   const goodMs = $derived(Math.min(180, beatMs / 8));
 </script>
+
+{#snippet padGrid()}
+  <Pads {marks} {flashes} {timing} {names} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+{/snippet}
 
 <DrillShell
   title="Pads"
@@ -377,6 +388,12 @@
         </label>
         <Choice label="Bars in the loop" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.fileBars} onchange={(v) => cfg.set({ fileBars: v })} setupKey="fileBars" />
       {/if}
+      {#if piece}
+        <Choice label="View" options={[{ value: "lanes", label: "Lanes" }, { value: "grid", label: "Order" }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
+        {#if lanesView}
+          <Choice label="Look ahead" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "1 bar" : `${n} bars` }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
+        {/if}
+      {/if}
     </div>
   {/snippet}
 
@@ -389,9 +406,23 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="flex flex-col gap-4" data-testid="chop-stage" data-loaded={loaded === want || undefined} data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={piece ? JSON.stringify(targets.map((t) => [t.pad, Math.round(t.atMs)])) : undefined}>
+    <div class="flex flex-col gap-4" data-testid="chop-stage" data-view={showLanes ? "lanes" : "grid"} data-loaded={loaded === want || undefined} data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={piece ? JSON.stringify(targets.map((t) => [t.pad, Math.round(t.atMs)])) : undefined}>
       <p class="text-sm"><span class="font-semibold">{source.label}.</span> <span class="text-ws-stage-soft">{source.detail}. Slice 1 is on A01 (bottom left), slice 16 on A16. {cutError}</span></p>
-      {#if piece}
+      {#if showLanes}
+        <PadHighway
+          {lanes}
+          notes={live}
+          now={phase === "running" || phase === "countin" ? now - downbeat : -beatMs}
+          {beatMs}
+          {aheadBars}
+          {lengthMs}
+          {judged}
+          flash={flashNote}
+          countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
+          label="{lanes.length} slices: notes coming up"
+          pads={padGrid}
+        />
+      {:else if piece}
         <!-- The order to play, a cell a step: the slice number, and after a run how it landed. -->
         <ol class="chop-strip" aria-label="The slices to play, in order">
           {#each cells as c, i (i)}
@@ -410,7 +441,7 @@
       {:else}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Bars 1 to {FREE_BARS}: play any slices, in any rhythm, to the click. Bars {FREE_BARS + 1} to {FREE_BARS * 2}: play the same again. Graded on playing it again and on time; hear it back after.</p>
       {/if}
-      <Pads {marks} {flashes} {names} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+      {#if !showLanes}{@render padGrid()}{/if}
     </div>
   {/snippet}
 

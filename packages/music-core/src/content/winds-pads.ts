@@ -536,9 +536,14 @@ export function grooveTargets(grooveId: string, bpm: number) {
 }
 
 /** The same for any groove (the repertoire's too). */
-export function grooveTargetsFor(g: GrooveDef, bpm: number) {
+/** `pads` places voices the kit lacks (a written piece's slices). */
+export function grooveTargetsFor(
+  g: GrooveDef,
+  bpm: number,
+  pads?: Readonly<Record<string, number>>,
+) {
   const beat = 60000 / bpm;
-  const pad = (v: DrumVoiceId) => GROOVE_VOICES.find((x) => x.id === v)!.midi;
+  const pad = (v: DrumVoiceId) => pads?.[v] ?? GROOVE_VOICES.find((x) => x.id === v)!.midi;
   const perBar = g.beatsPerBar ?? 4;
   const targets: GrooveTarget[] = g.targets.map((t, index) => {
     const bar = Math.floor(t.beat / perBar + 1e-9);

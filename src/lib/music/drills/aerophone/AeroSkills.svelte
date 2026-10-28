@@ -38,6 +38,7 @@
     tonguingVerdict,
   } from "@repo/music-core/content/aero-skills";
   import { gradeLine, type LineResult } from "@repo/music-core/scoring/technique";
+  import { attackTiming } from "@repo/music-core/scoring/aerophone";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
@@ -255,6 +256,7 @@
     let correct = false;
     let headline = "";
     let rows: RunSummary["rows"] = [];
+    let lateTongue: string | null = null;
     if (!ons.length) headline = "No note arrived. The line under the stage says whether the Aerophone is connected.";
     else if (skill === "swing") {
       const r = gradeSwing({ line, beatMs, downbeat, notes, breath: controls });
@@ -309,6 +311,13 @@
         const t = tonguingScore(marks, got);
         ({ score, correct } = tonguingVerdict(r, t, breathSeen));
         rows.push(breathSeen ? { label: "Tongued and slurred as marked", value: t, text: pct(t) } : { label: "Tonguing (no breath arrived, CC 2)", notMeasured: true });
+        // Each attack, tongued or slurred, against its click: a fifth of the grade, and three in four must land.
+        const at = attackTiming({ count: line.length, stepMs, downbeat, notes, breath: controls });
+        const drift = at.meanOffsetMs === null || Math.abs(at.meanOffsetMs) < 10 ? "" : `, on average ${Math.round(Math.abs(at.meanOffsetMs))} ms ${at.meanOffsetMs < 0 ? "early" : "late"}`;
+        rows.push({ label: `Attacks on the click (within ${Math.round(at.windowMs)} ms)`, value: at.timing, text: `${at.onTime} of ${line.length}${drift}` });
+        score = score * 0.8 + at.timing * 0.2;
+        lateTongue = at.timing < 0.75 ? `${line.length - at.onTime} of ${line.length} attacks missed the click${drift}. Tongue with the click, not after it.` : null;
+        correct = correct && !lateTongue;
       }
       headline = !r.correct
         ? slips.length
@@ -316,7 +325,9 @@
           : r.pitch < 0.9
             ? `${r.clean} of ${r.total} notes right. Slow down until every fingering lands.`
             : `Every note right; the spacing wandered ${Math.round(r.evennessErrorMs)} ms. Keep it even.`
-        : skill === "tonguing" && !correct
+        : skill === "tonguing" && lateTongue
+          ? `Right notes, but ${lateTongue}`
+          : skill === "tonguing" && !correct
           ? "The notes were right; the tonguing wasn't as marked. Stop the air (the tongue) only where it says T."
           : skill === "register" && !correct
             ? "Right notes, but the crossing left glitches between them."

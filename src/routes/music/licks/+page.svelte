@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
-  import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChordAt, lickChunk, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
+  import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChordAt, lickChunk, lickChunkIn, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -10,6 +10,10 @@
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
+  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
+  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -68,6 +72,15 @@
   const t0 = $derived(all[lo]?.startBeat ?? 0);
   // The lane ends on the beat of the last attack (a held last note doesn't add an empty beat).
   const chunkBeats = $derived(Math.max(1, Math.floor(chunk.reduce((m, n) => Math.max(m, n.startBeat), 0)) + 1));
+  /** The chunk as beats on the written lick: tinted on the staff or tab, which shows the whole lick. */
+  const chunkRange = $derived(whole ? null : { startBeat: t0, endBeat: all[hi + 1]?.startBeat ?? all[hi].startBeat + all[hi].durationBeats });
+  /** Two taps on the staff or tab mark a chunk by its notes. */
+  function tapChunk(range: { startBeat: number; endBeat: number }) {
+    const c = lickChunkIn(all, range);
+    if (!c) return;
+    setChunk(c[0], c[1]);
+    status = `Chunk set to notes ${c[0] + 1} to ${c[1] + 1}. Loop it, then Start.`;
+  }
   /** First and last note of each bar: the chunks offered on the stage. */
   const barChunks = $derived.by(() => {
     const out: [number, number][] = [];
@@ -102,6 +115,10 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let ctxRef: RunContext | null = null;
+  /** The demo's playhead on the whole lick (a loop starts over at the chunk each time). */
+  const demoCursor = $derived(transport.playing && transport.beat !== null ? (transport.beat % (chunkBeats + 1)) + t0 : null);
+  /** Taps choose a chunk only between runs. */
+  const picking = $derived(phase !== "running" && phase !== "countin" && !transport.playing);
 
   const next = $derived<LickNote | undefined>(phase === "running" ? chunk[played] : phase === "ready" || phase === "countin" ? chunk[0] : undefined);
   const lit = $derived(transport.playing ? sounding(timed, transport.beat) : []);
@@ -114,7 +131,7 @@
   /** Tab marks while running: notes played so far, and the one up next. */
   const tabStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
-    if (phase === "running") chunk.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
+    if (phase === "running") chunk.forEach((_, i) => (i < played ? (out[lo + i] = "correct") : i === played && (out[lo + i] = "active")));
     return out;
   });
 
@@ -139,7 +156,11 @@
   const inst = $derived(settings.value.activeInstrument);
   const lift = $derived(fitShift(all.map((n) => n.midi), inst));
   const liftedPos = $derived(linePositions(inst, all.map((n) => n.midi + lift)));
-  const written = $derived(chunk.map((n) => ({ midi: n.midi + lift, startBeat: n.startBeat, durationBeats: n.durationBeats, ...liftedPos.get(n.midi + lift) })));
+  const written = $derived(all.map((n) => ({ midi: n.midi + lift, startBeat: n.startBeat, durationBeats: n.durationBeats, ...liftedPos.get(n.midi + lift) })));
+  /** On the piano the lick can fall onto the keys instead, on the run's clock (the chunk starts at t0). */
+  const lineShown = $derived(!fretted && !hideNotes && inst === "piano" && (mode === "practice" || transport.playing || phase === "results"));
+  const falling = $derived(lineShown && page.url.searchParams.get("view") === "falling");
+  const fallBeat = $derived(transport.beat === null ? null : (demoCursor ?? transport.beat + t0));
 
   const summaryLine = $derived<SetupClause[]>([
     { text: `Lick ${lick.number}, ${CATEGORY_LABEL[lick.category] ?? lick.category}`, focus: "lick" },
@@ -297,6 +318,10 @@
   onstart={start}
   onstop={stop}
 >
+  {#snippet actions()}
+    {#if lineShown}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
+  {/snippet}
+
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <CatalogPicker label="Lick" setupKey="lick" noun="lick" recentKey="licks" items={lickItems} value={lick.number} onchange={(v) => cfg.set({ lick: v, category: LICKS.find((l) => l.number === v)?.category ?? "" })} />
@@ -389,16 +414,21 @@
     {:else if fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
         <LineNotation
-          notes={chunk.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))}
+          notes={all.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret }))}
           tuning={{ openStrings: GUITAR.openStrings, fretCount: GUITAR.fretCount, name: GUITAR.name }}
-          title={setupKey}
-          cursorBeat={transport.playing ? transport.beat : null}
+          title={lickKey}
+          cursorBeat={demoCursor}
           groupStates={tabStates}
+          selection={chunkRange}
+          onselect={picking ? tapChunk : undefined}
+          {bpm}
         />
       </div>
+    {:else if falling}
+      <FallingKeys score={lineScore(written)} low={span.low} high={span.high} beat={fallBeat} rest={t0} groupStates={tabStates} {marks} {flashes} />
     {:else if !fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
-        <LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.playing ? transport.beat : null} groupStates={tabStates} {keyFifths} />
+        <LineNotation notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
       </div>
     {/if}
     {#if fretted}
@@ -407,7 +437,7 @@
         Numbers on the dots are the authored fingers, never graded. Taps on the fretboard also check the string and fret; MIDI and the microphone only know the pitch.
       </p>
     {:else}
-      <InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />
+      {#if !falling}<InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />{/if}
       <p class="mt-3 text-sm text-ws-stage-soft">The licks carry no authored fingering. Any octave counts; the order is what's graded.</p>
     {/if}
     {#if mode === "check" && phase !== "results"}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}

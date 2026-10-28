@@ -14,7 +14,10 @@ import {
   SHARP_ORDER,
   wheelIndex,
 } from "../theory/circle";
+import { pcOf } from "../theory/notes";
+import { analysisSheet, ANALYSIS_TUNES, FUNCTIONS } from "./analysis";
 import { pick, type Rand } from "./random";
+import { TUNES } from "./tunes";
 
 export type CircleMode =
   | "order"
@@ -24,7 +27,8 @@ export type CircleMode =
   | "chords"
   | "wheel"
   | "borrowed"
-  | "secondary";
+  | "secondary"
+  | "analysis";
 
 export const CIRCLE_MODES: {
   id: CircleMode;
@@ -71,6 +75,13 @@ export const CIRCLE_MODES: {
     title: "Spot the V of",
     skillId: "theory.circle.secondary",
     targetMs: 6000,
+  },
+  // A tune's changes, chord by chord: its key centre and its function there (content/analysis).
+  {
+    id: "analysis",
+    title: "Analyse a tune",
+    skillId: "theory.circle.analysis",
+    targetMs: 15000,
   },
 ];
 
@@ -136,6 +147,8 @@ export interface CirclePrompt {
   targetMs: number;
   /** Signature drills: the key signature to draw. */
   staff?: { fifths: number; clef: "treble" | "bass" };
+  /** Analysis: the tune, which of its chords this is, and the key centres to choose from. */
+  analysis?: { tune: string; index: number; keys: string[]; section: string };
 }
 
 export interface CircleSetup {
@@ -333,6 +346,8 @@ export function circlePrompt(
         fifths: f,
       };
     }
+    case "analysis":
+      return pick(rand, analysisPrompts(pick(rand, ANALYSIS_TUNES)));
     case "wheel": {
       // C stays on the wheel as the anchor ("from C at the top"), so it is never asked.
       const f = weighted(keys.length > 1 ? keys.filter((k) => k !== 0) : keys);
@@ -350,8 +365,53 @@ export function circlePrompt(
   }
 }
 
-/** Right within the target: full credit; right but slow: three quarters (still deriving it); wrong: none. */
+/** The functions always on offer, so the buttons never give a tune's analysis away. */
+const CORE_FUNCTIONS = ["I", "ii", "IV", "V", "vi", "V of", "Tritone sub", "Backdoor"];
+/** A key centre's place on the circle ("Ab" is -4; a minor key sits with its relative major). */
+const keyFifths = (key: string) => {
+  const minor = key.endsWith("m");
+  const f = ((pcOf(minor ? key.slice(0, -1) : key)! + (minor ? 3 : 0)) * 7) % 12;
+  return f > 6 ? f - 12 : f;
+};
+
+/**
+ * One prompt per chord of the tune's sections (each section once): the key
+ * centre and the function, answered as "Ab|ii", against the rules in analysis.ts.
+ */
+export function analysisPrompts(tuneId: string): CirclePrompt[] {
+  const tune = TUNES.find((t) => t.id === tuneId) ?? TUNES.find((t) => t.id === ANALYSIS_TUNES[0])!;
+  const sheet = analysisSheet(tune);
+  const keys = [...new Set(sheet.map((c) => c.key))];
+  const used = new Set(sheet.map((c) => c.fn));
+  const choices = FUNCTIONS.filter((f) => CORE_FUNCTIONS.includes(f) || used.has(f));
+  return sheet.map((c, i) => ({
+    id: `circle-analysis-${tune.id}-${i}`,
+    mode: "analysis",
+    ask: `${barLabel(c.bar, c.bars)}: ${c.symbol}`,
+    answer: `${c.key}|${c.fn}`,
+    choices,
+    skillIds: ["theory.circle", "theory.circle.analysis"],
+    fifths: keyFifths(c.key),
+    targetMs: 15000,
+    analysis: { tune: tune.id, index: i, keys, section: c.section },
+  }));
+}
+/** "Bar 6", "Bars 7 and 8", "Bar 6, second half". */
+export function barLabel(bar: number, bars: number) {
+  const b = Math.floor(bar + 1e-9) + 1;
+  if (bar % 1 > 0.25) return `Bar ${b}, second half`;
+  if (bars < 1) return `Bar ${b}, first half`;
+  return bars >= 2 ? `Bars ${b} to ${b + Math.round(bars) - 1}` : `Bar ${b}`;
+}
+
+/** Right within the target: full credit; right but slow: three quarters (still deriving it); wrong: none. An analysis is half key, half function, never slow. */
 export function gradeCircle(p: CirclePrompt, answered: string, ms: number) {
+  if (p.mode === "analysis") {
+    const [k, f] = answered.split("|");
+    const [ek, ef] = p.answer.split("|");
+    const score = ((k === ek ? 1 : 0) + (f === ef ? 1 : 0)) / 2;
+    return { correct: score === 1, slow: false, score };
+  }
   const correct = answered === p.answer;
   const slow = correct && ms > p.targetMs;
   return { correct, slow, score: correct ? (slow ? 0.75 : 1) : 0 };

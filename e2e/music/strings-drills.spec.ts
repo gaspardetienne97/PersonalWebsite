@@ -199,7 +199,7 @@ test.describe("guitar and ukulele path drills", () => {
       "/music/fretboard?mode=legato&pattern=slide-shift&string=3&startFret=5&instrument=guitar&bpm=60&perBeat=2",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
-      "Position shift: 0 2 s4 h5 p4 s2",
+      "Position shift, 5 7/9h10p9\\7",
     );
     await page.getByRole("button", { name: "Start microphone" }).click();
     await expect(page.getByText("Microphone on")).toBeVisible();

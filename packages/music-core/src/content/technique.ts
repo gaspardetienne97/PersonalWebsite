@@ -332,22 +332,26 @@ export interface FretTarget extends FretPosition {
   label?: string;
   /** Its time step when not its index: notes sharing a step sound together (a pinch). */
   slot?: number;
+  /** Outside the hand's four frets: the index reaches back, or the pinky up (a shift when more than a fret). */
+  stretch?: "back" | "up";
 }
 
 // ---------------------------------------------------------------------------
-// Legato: hammer-ons, pull-offs and slides on one string. Only the first note of
-// each group is picked (P); h hammers on, p pulls off, s slides from the note before.
+// Legato: hammer-ons, pull-offs and slides on one string. Each group starts
+// with a picked note; h hammers on, p pulls off, s slides from the note before.
+// On the neck and in the text the marks are tab's: ↓ picked, h, p, / slide up
+// and \ slide down, so the picked note and the pull-off never share a letter.
 
 export interface LegatoPattern {
   id: string;
   label: string;
-  /** Frets above the start fret, how each note sounds, and its finger when not one a fret from the start. */
+  /** Frets above the start fret, how each note sounds (P picked), and its finger when not one a fret from the start. */
   steps: [number, "P" | "h" | "p" | "s", finger?: number][];
 }
 export const LEGATO_PATTERNS: LegatoPattern[] = [
   {
     id: "hammer-pull",
-    label: "Hammer on, pull off: 0 2 0",
+    label: "Hammer on, pull off",
     steps: [
       [0, "P"],
       [2, "h"],
@@ -356,7 +360,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "trill",
-    label: "Trill: 0 2 0 2",
+    label: "Trill",
     steps: [
       [0, "P"],
       [2, "h"],
@@ -366,7 +370,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "three-note",
-    label: "Three notes: 0 2 3 2",
+    label: "Three notes",
     steps: [
       [0, "P"],
       [2, "h"],
@@ -376,7 +380,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "slide",
-    label: "Slide up and back: 0 s2 s0",
+    label: "Slide up and back",
     steps: [
       [0, "P", 3],
       [2, "s", 3],
@@ -385,7 +389,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "slide-shift",
-    label: "Position shift: 0 2 s4 h5 p4 s2",
+    label: "Position shift",
     steps: [
       [0, "P", 1],
       [2, "P", 3],
@@ -397,6 +401,20 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
 ];
 
+/** A step's mark on the neck: ↓ picked, h, p, and a slide's direction (/ up, \ down). */
+const legatoMark = (how: "P" | "h" | "p" | "s", from: number, to: number) =>
+  how === "P" ? "↓" : how === "s" ? (to > from ? "/" : "\\") : how;
+
+/** One pass written as tab writes it from `startFret`: "5h7p5", "5/7\5", a space before each picked note. */
+export const legatoText = (pattern: LegatoPattern, startFret: number) =>
+  pattern.steps
+    .map(([off, how], i) =>
+      i === 0
+        ? String(startFret + off)
+        : `${how === "P" ? " " : legatoMark(how, pattern.steps[i - 1][0], off)}${startFret + off}`,
+    )
+    .join("");
+
 /** The pattern on `string` from `startFret`, `repeats` times. */
 export function legatoTargets(opts: {
   patternId: string;
@@ -407,13 +425,13 @@ export function legatoTargets(opts: {
 }): FretTarget[] {
   const pattern = LEGATO_PATTERNS.find((p) => p.id === opts.patternId) ?? LEGATO_PATTERNS[0];
   return Array.from({ length: opts.repeats ?? 4 }, () => pattern.steps).flatMap((steps) =>
-    steps.map(([off, how, finger]) => {
+    steps.map(([off, how, finger], i) => {
       const fret = opts.startFret + off;
       return {
         string: opts.string,
         fret,
         midi: midiAt(opts.tuning, opts.string, fret),
-        label: how,
+        label: legatoMark(how, steps[(i + steps.length - 1) % steps.length][0], off),
         // One finger per fret from the start (0 the index, 2 the ring), unless a slide carries one finger along.
         finger: finger ?? off + 1,
       };
@@ -1027,24 +1045,38 @@ export interface PositionPattern extends Omit<FretboardPatternDef, "family"> {
   ordered?: boolean;
   /** The fretting finger of each offset, when one finger a fret from the lowest would be wrong. */
   fingers?: number[];
+  /** Notes to a hand position when the pattern moves up the neck (a box of the run, a triad). */
+  segment?: number;
 }
+
+/**
+ * Box 3 spans five frets. The usual fingering puts the index a fret above the
+ * lowest note (fret 10 in A) and reaches back with it on string 3; one finger a
+ * fret from the lowest note would leave the pinky two frets past its reach on string 2.
+ */
+const BOX_FINGERS: Record<string, number[]> = {
+  "minor-pentatonic-box-3": [1, 3, 1, 3, 1, 3, 1, 3, 1, 4, 1, 3],
+};
+const BOXES: PositionPattern[] = FRETBOARD_PATTERNS.map((p) =>
+  BOX_FINGERS[p.id] ? { ...p, fingers: BOX_FINGERS[p.id] } : p,
+);
 
 const offs = (list: [string: number, fret: number][]) =>
   list.map(([stringNumber, fretOffset]) => ({ stringNumber, fretOffset }));
 
 /** Boxes 1 to 5 joined up the neck: box 1 up, box 2 down, box 3 up, and so on (frets 5 to 17 in A). */
 function connectedBoxes(): PositionPattern {
-  const boxes = FRETBOARD_PATTERNS.filter((p) => p.family === "minor-pentatonic");
+  const boxes = BOXES.filter((p) => p.family === "minor-pentatonic");
   const offsets: FretboardPatternDef["offsets"] = [];
   const fingers: number[] = [];
   boxes.forEach((b, k) => {
     const low = Math.min(...b.offsets.map((o) => o.fretOffset));
-    const up = [...b.offsets].sort(
-      (x, y) => y.stringNumber - x.stringNumber || x.fretOffset - y.fretOffset,
-    );
-    for (const o of k % 2 ? up.reverse() : up) {
+    const up = b.offsets
+      .map((o, i) => ({ o, finger: b.fingers?.[i] ?? Math.min(4, o.fretOffset - low + 1) }))
+      .sort((x, y) => y.o.stringNumber - x.o.stringNumber || x.o.fretOffset - y.o.fretOffset);
+    for (const { o, finger } of k % 2 ? up.reverse() : up) {
       offsets.push(o);
-      fingers.push(Math.min(4, o.fretOffset - low + 1));
+      fingers.push(finger);
     }
   });
   return {
@@ -1054,6 +1086,7 @@ function connectedBoxes(): PositionPattern {
     ordered: true,
     offsets,
     fingers,
+    segment: boxes[0].offsets.length,
   };
 }
 
@@ -1068,6 +1101,7 @@ const TRIADS: PositionPattern[] = [
     label: "Major triads, strings 1 to 3",
     family: "triads",
     ordered: true,
+    segment: 3,
     offsets: offs([
       [3, 1],
       [2, 0],
@@ -1086,6 +1120,7 @@ const TRIADS: PositionPattern[] = [
     label: "Major triads, strings 2 to 4",
     family: "triads",
     ordered: true,
+    segment: 3,
     offsets: offs([
       [4, 2],
       [3, 1],
@@ -1104,6 +1139,7 @@ const TRIADS: PositionPattern[] = [
     label: "Minor triads, strings 1 to 3",
     family: "triads",
     ordered: true,
+    segment: 3,
     offsets: offs([
       [3, 0],
       [2, 0],
@@ -1122,6 +1158,7 @@ const TRIADS: PositionPattern[] = [
     label: "Minor triads, strings 2 to 4",
     family: "triads",
     ordered: true,
+    segment: 3,
     offsets: offs([
       [4, 2],
       [3, 0],
@@ -1212,7 +1249,7 @@ const UKE_PENTATONIC: PositionPattern[] = (
 }));
 
 export const POSITION_PATTERNS: PositionPattern[] = [
-  ...FRETBOARD_PATTERNS,
+  ...BOXES,
   connectedBoxes(),
   ...TRIADS,
   BB_BOX,
@@ -1224,13 +1261,44 @@ export const positionPatternsFor = (instrument: "guitar" | "ukulele") =>
 /** Where a shape's lowest fret sits relative to the root fret (E 0, D 2, C 4, A 7, G 9). */
 export const baseOffset = (p: Pick<FretboardPatternDef, "offsets">) =>
   Math.min(...p.offsets.map((o) => o.fretOffset));
-/** Root frets that keep the whole shape on the neck. */
-export const positionRootFretMax = (p: Pick<FretboardPatternDef, "offsets">, t: Tuning) =>
-  t.fretCount - Math.max(...p.offsets.map((o) => o.fretOffset));
+/**
+ * The shapes are written for one tuning: guitar standard, root on string 6, and
+ * ukulele GCEA (high G), root on string 1. On another tuning each note keeps its
+ * string and its pitch against the root string, so its fret moves by that
+ * string's retuning: in drop D string 6 sits two frets higher than the rest.
+ * An octave apart counts as the same (low G plays the high-G frets).
+ */
+function retune(p: Pick<PositionPattern, "instrument" | "rootString">, tuning: Tuning) {
+  const ref = tuningById(p.instrument === "ukulele" ? "ukulele.high-g" : "guitar.standard")!;
+  const near = (d: number) => (((d % 12) + 18) % 12) - 6;
+  const by = (s: number) =>
+    near(ref.openStrings[s - 1] - (tuning.openStrings[s - 1] ?? ref.openStrings[s - 1]));
+  const root = by(p.rootString ?? (p.instrument === "ukulele" ? 1 : 6));
+  return (s: number) => by(s) - root;
+}
+/** Root frets that keep the whole shape on the neck in this tuning. */
+export const positionRootFretMax = (p: PositionPattern, t: Tuning) => {
+  const shift = retune(p, t);
+  return t.fretCount - Math.max(...p.offsets.map((o) => o.fretOffset + shift(o.stringNumber)));
+};
+export const positionRootFretMin = (p: PositionPattern, t: Tuning) => {
+  const shift = retune(p, t);
+  return Math.max(0, ...p.offsets.map((o) => -(o.fretOffset + shift(o.stringNumber))));
+};
+
+/** The most common value, the lowest on a tie. */
+const mode = (xs: number[]) => {
+  const count = new Map<number, number>();
+  for (const x of xs) count.set(x, (count.get(x) ?? 0) + 1);
+  return [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0];
+};
 
 /**
- * A shape at a root fret (on string 6): a box or CAGED shape arpeggiated low
- * string to high, an ordered pattern in its written order.
+ * A shape at a root fret on its root string: a box or CAGED shape arpeggiated
+ * low string to high, an ordered pattern in its written order. Fingering is one
+ * finger a fret from where the hand sits (the index's fret most notes imply);
+ * a note a fret outside is a stretch, further a shift. Chord shapes keep their
+ * authored fingers in their own tuning.
  */
 export function positionTargets(opts: {
   patternId: string;
@@ -1238,11 +1306,14 @@ export function positionTargets(opts: {
   rootFret: number;
 }): FretTarget[] {
   const p = POSITION_PATTERNS.find((x) => x.id === opts.patternId) ?? POSITION_PATTERNS[0];
+  const shift = retune(p, opts.tuning);
   const notes = p.offsets
     .map((o, i) => ({
       string: o.stringNumber,
-      fret: opts.rootFret + o.fretOffset,
-      finger: p.fingers?.[i],
+      fret: opts.rootFret + o.fretOffset + shift(o.stringNumber),
+      written: opts.rootFret + o.fretOffset,
+      authored: p.fingers?.[i],
+      seg: p.segment ? Math.floor(i / p.segment) : 0,
     }))
     .filter(
       (t) =>
@@ -1250,12 +1321,30 @@ export function positionTargets(opts: {
         t.fret >= 0 &&
         t.fret <= opts.tuning.fretCount,
     );
-  if (!p.ordered) notes.sort((a, b) => b.string - a.string || a.fret - b.fret);
-  return notes.map(({ finger, ...t }) => ({
-    ...t,
-    midi: midiAt(opts.tuning, t.string, t.fret),
-    ...(finger ? { finger } : {}),
-  }));
+  const asWritten = notes.every((t) => t.fret === t.written);
+  const keep = asWritten && (p.family === "triads" || p.family === "caged-major") && !!p.fingers;
+  const out = notes.map((t): FretTarget & { seg: number } => {
+    const base = {
+      string: t.string,
+      fret: t.fret,
+      seg: t.seg,
+      midi: midiAt(opts.tuning, t.string, t.fret),
+    };
+    if (keep) return { ...base, finger: t.authored };
+    if (t.fret === 0) return { ...base, finger: 0 };
+    // Where the hand sits: the index fret the written fingering implies, from the nut at the lowest.
+    const own = notes.filter((n) => n.seg === t.seg);
+    const low = Math.max(1, Math.min(...own.map((n) => n.written)));
+    const ref = (n: (typeof notes)[number]) =>
+      n.authored ?? (n.written === 0 ? 0 : Math.min(4, n.written - low + 1));
+    const hand =
+      mode(own.filter((n) => n.fret > 0 && ref(n) > 0).map((n) => n.fret - ref(n) + 1)) ?? 1;
+    if (t.fret < hand) return { ...base, finger: 1, stretch: "back" };
+    if (t.fret > hand + 3) return { ...base, finger: 4, stretch: "up" };
+    return { ...base, finger: t.fret - hand + 1 };
+  });
+  if (!p.ordered) out.sort((a, b) => b.string - a.string || a.fret - b.fret);
+  return out.map(({ seg: _seg, ...t }) => t);
 }
 
 // ---------------------------------------------------------------------------

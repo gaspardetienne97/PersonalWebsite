@@ -11,6 +11,7 @@ import {
   cycleTranspose,
   goToScale,
   lickChunk,
+  lickChunkIn,
   lickNotes,
   lickScore,
   lickWindow,
@@ -227,6 +228,14 @@ describe("licks", () => {
       [3, 0.5],
       [4, 1],
     ]);
+    // Two taps on the written line: notes 3 and 5 (beats 1 and 2) mark notes 3 to 5.
+    expect(
+      lickChunkIn(notes, { startBeat: notes[2].startBeat, endBeat: notes[5].startBeat }),
+    ).toEqual([2, 4]);
+    expect(
+      lickChunkIn(notes, { startBeat: notes[7].startBeat, endBeat: notes[7].startBeat + 0.25 }),
+    ).toEqual([7, 7]);
+    expect(lickChunkIn(notes, { startBeat: 99, endBeat: 100 })).toBeNull();
     expect(lickWindow(notes, 0)).toEqual([0, 3]);
     expect(lickWindow(notes, 10)).toEqual([9, 12]);
     expect(lickWindow(notes, 22)).toEqual([19, 22]);

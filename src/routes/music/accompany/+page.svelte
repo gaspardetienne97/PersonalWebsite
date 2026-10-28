@@ -43,6 +43,9 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
+  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
+  import HubTabs from "$lib/music/components/HubTabs.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
@@ -154,6 +157,8 @@
       : slots.flatMap((sl) => sl.midi.map((midi) => ({ midi, startBeat: sl.beat, durationBeats: sl.dur, hand: sl.hand }))),
   );
   const span = $derived(spanOf(notes.map((n) => n.midi)));
+  const falling = $derived(page.url.searchParams.get("view") === "falling");
+  const fallScore = $derived(lineScore(notes.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.dur, hand: n.hand })), { beats: bpb, beatUnit: 4 }));
   // Written as Jam writes the key: a blues in its mixolydian (C7's Bb reads as a flat).
   const scaleKind = $derived(tab === "lead-sheet" && !genTune ? "major" : minor ? "natural-minor" : /dorian/.test(base.key) ? "dorian" : base.group === "blues" ? "mixolydian" : "major");
   const keyFifths = $derived(signatureFor(keyPc, scaleKind));
@@ -392,6 +397,10 @@
   onstart={start}
   onstop={stop}
 >
+  {#snippet actions()}
+    {#if mode === "practice" || phase === "results"}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
+  {/snippet}
+
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       {#if tab === "patterns"}
@@ -498,10 +507,14 @@
           </li>
         {/each}
       </ol>
-      {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
-        <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></div>
+      {#if falling && (mode === "practice" || transport.playing || phase === "results")}
+        <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      {:else}
+        {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
+          <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></div>
+        {/if}
+        <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
       {/if}
-      <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
         {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check mode: read the melody and the symbols; the keys stay dark." : "Check mode: play the pattern from the chart; the notes are hidden."}</p>{/if}
         <p>Chords need MIDI: on-screen keys play one note at a time, so an on-screen run grades single notes only.</p>

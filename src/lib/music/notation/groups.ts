@@ -187,7 +187,8 @@ export function whiteKeyLayout(low: number, high: number): Record<number, KeyBox
   let whites = 0;
   for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) whites++;
   const w = 1 / whites;
-  const blackW = w * 0.6;
+  // As wide as the keyboard draws a black key (Piano.svelte), so a falling note covers its key exactly.
+  const blackW = w * 0.62;
   const out: Record<number, KeyBox> = {};
   let i = 0;
   for (let m = lo; m <= hi; m++) {

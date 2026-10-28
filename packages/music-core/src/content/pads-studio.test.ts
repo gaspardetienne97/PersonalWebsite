@@ -12,6 +12,11 @@ import {
   gradeBuild,
   gradeFreeChop,
   gradeLiveLoop,
+  gradeWrittenSong,
+  newWrittenSong,
+  setCheck,
+  writtenPiece,
+  WRITTEN_GROOVES,
   nextRepeatAt,
   noteRepeatPiece,
   quantiseBeat,
@@ -233,5 +238,123 @@ describe("Stick Control and feel", () => {
       expect(FEELS.find((f) => f.id === p.feel)!.grooves).toContain(p.groove.value);
     }
     expect(seen.size).toBe(4);
+  });
+});
+
+describe("a piece you write", () => {
+  const song = newWrittenSong("t");
+  const bpm = 90;
+  const beatMs = 60000 / bpm;
+  const pads = { ...CHOP_PADS };
+  const drum: Record<string, number> = { kick: 36, snare: 38, hats: 42, crash: 49, openhat: 46 };
+
+  it("builds the sections in order, the slices as their own voices and the solo's loop under it", () => {
+    const p = writtenPiece(song);
+    expect(p.spans.map((s) => s.label)).toEqual([
+      "intro",
+      "groove 1",
+      "groove 2",
+      "chop",
+      "groove 3",
+      "solo",
+      "end",
+    ]);
+    expect(p.bars).toBe(4 + 16 + 16 + 8 + 16 + 8 + 2);
+    expect(p.sectionLabels).toHaveLength(p.bars);
+    expect(p.dyn[p.spans[2].from]).toBe("loud");
+    const chop = p.spans[3];
+    const inChop = p.targets.filter((t) => t.beat >= chop.from * 4 && t.beat < (chop.from + 8) * 4);
+    expect(inChop.every((t) => t.voice.startsWith("slice-"))).toBe(true);
+    expect(p.chop).toBe("boom-bap-b");
+    const solo = p.spans[5];
+    expect(p.targets.some((t) => t.beat >= solo.from * 4 && t.beat < (solo.from + 8) * 4)).toBe(
+      false,
+    );
+    expect(p.under.length).toBeGreaterThan(0);
+    expect(p.under.every((t) => t.beat >= solo.from * 4 && t.beat < (solo.from + 8) * 4)).toBe(
+      true,
+    );
+    // The end: the fill bar, then crash and kick on the one after it.
+    const end = p.spans[6];
+    expect(
+      p.targets
+        .filter((t) => t.beat === (end.from + 1) * 4)
+        .map((t) => t.voice)
+        .sort(),
+    ).toEqual(["crash", "kick"]);
+    expect(WRITTEN_GROOVES.every((r) => (r.groove.stepsPerBeat ?? 4) === 4)).toBe(true);
+  });
+
+  it("checks the set's shape: three levels, a chop, a solo, an end, 3 to 5 minutes", () => {
+    expect(setCheck(song, bpm)).toMatchObject({ ok: true, missing: [] });
+    expect(setCheck(song, 200).missing).toEqual(["3 to 5 minutes"]);
+    const same = {
+      ...song,
+      sections: song.sections.map((s) => (s.role === "groove" ? { ...s, ref: "basic-rock" } : s)),
+    };
+    expect(setCheck(same, bpm).missing).toEqual(["grooves from three levels (1 now)"]);
+    const bare = { ...song, sections: song.sections.filter((s) => s.role === "groove") };
+    expect(setCheck(bare, bpm).missing).toContain("a chop section");
+  });
+
+  /** Every target played, the solo as steady eighths on the snare, each section at its level. */
+  function take(p: ReturnType<typeof writtenPiece>, skip = new Set<string>()) {
+    const vel = (bar: number) => {
+      const d = p.dyn[bar];
+      return d === "soft" ? 0.3 : d === "loud" ? 0.85 : 0.55;
+    };
+    const hits = p.targets.flatMap((t) => {
+      const bar = Math.min(p.bars - 1, Math.floor(t.beat / 4));
+      if (skip.has(p.sectionLabels[bar])) return [];
+      const midi = t.voice.startsWith("slice-") ? pads[t.voice] : drum[t.voice];
+      return [
+        {
+          kind: "noteon" as const,
+          midi,
+          velocity: vel(bar),
+          at: t.beat * beatMs + 3,
+          source: "midi" as const,
+          confidence: 1,
+          velocityMeasured: true,
+        },
+      ];
+    });
+    const solo = p.spans.find((s) => s.role === "solo")!;
+    for (let k = 0; k < solo.bars * 8; k++)
+      hits.push({
+        kind: "noteon",
+        midi: k % 2 ? 42 : 38,
+        velocity: vel(solo.from),
+        at: (solo.from * 4 + k / 2) * beatMs + 4,
+        source: "midi",
+        confidence: 1,
+        velocityMeasured: true,
+      });
+    return hits.sort((a, b) => a.at - b.at);
+  }
+
+  it("grades every section in one take, the chop on the slices and the solo on time", () => {
+    const p = writtenPiece(song);
+    const g = gradeWrittenSong(p, take(p), 0, beatMs, range);
+    expect(g.sections.map((s) => [s.label, s.pass])).toEqual(p.spans.map((s) => [s.label, true]));
+    expect(g.correct).toBe(true);
+    expect(g.sections.find((s) => s.role === "chop")!.matched).toBeGreaterThan(30);
+    expect(g.sections.find((s) => s.role === "solo")!.solo!.density).toBe(1);
+    expect(g.perTarget.every((e) => e !== null)).toBe(true);
+  });
+
+  it("fails the section left out and the band missed, and passes the rest", () => {
+    const p = writtenPiece(song);
+    const hits = take(p, new Set(["chop"])).map((h) =>
+      h.at >= p.spans[1].from * 4 * beatMs && h.at < p.spans[2].from * 4 * beatMs - 50
+        ? { ...h, velocity: 0.95 }
+        : h,
+    );
+    const g = gradeWrittenSong(p, hits, 0, beatMs, range);
+    expect(g.sections.filter((s) => !s.pass).map((s) => s.label)).toEqual(["groove 1", "chop"]);
+    expect(g.sections[1].dyn?.ok).toBe(false);
+    expect(g.score).toBeCloseTo(5 / 7);
+    // Velocity not measured: the bands are not checked.
+    expect(gradeWrittenSong(p, hits, 0, beatMs, null).sections[1].pass).toBe(true);
   });
 });

@@ -36,7 +36,8 @@
     type VelocityRange,
   } from "@repo/music-core/content/pad-skills";
   import { PAD_REPERTOIRE, repertoireFor } from "@repo/music-core/content/pads-repertoire";
-  import { DYN_BANDS, NOTE_REPEAT_EXERCISES, SONG_FORMS, gradeBuild, noteRepeatPiece, sectionDynamics, sectionPasses, songFormPiece, type Dyn } from "@repo/music-core/content/pads-studio";
+  import { CHOP_PADS, DYN_BANDS, NOTE_REPEAT_EXERCISES, SONG_FORMS, chopSource, gradeBuild, gradeWrittenSong, newWrittenSong, noteRepeatPiece, sectionDynamics, sectionPasses, setCheck, songFormPiece, writtenPiece, type Dyn, type WrittenSong } from "@repo/music-core/content/pads-studio";
+  import type { GrooveDef } from "@repo/music-core/data/index";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -47,13 +48,16 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, getSetting, putSetting, settings } from "$lib/music/runtime";
+  import { audio, getSetting, input, putSetting, settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import GrooveGrid from "./GrooveGrid.svelte";
   import MidiStatus from "./MidiStatus.svelte";
-  import { laneColor } from "./lanes";
+  import { judgeHit, laneColor, orderLanes, overdue, type Judgement } from "./lanes";
+  import PadHighway, { type HighwayLane, type HighwayNote } from "./PadHighway.svelte";
   import { backingFor } from "./backing";
   import { NoteRepeat } from "./note-repeat";
+  import SongBuilder from "./SongBuilder.svelte";
+  import { loadSlices, padSound, restoreKit } from "./slices";
 
   type SkillMode = "dynamics" | "fills" | "echo" | "ostinato" | "orchestrate" | "improvise" | "phrases" | "repeat" | "song";
   let { skill, modes, onmode }: { skill: SkillMode; modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
@@ -75,8 +79,13 @@
     // Note repeat: the build or the roll bars. Song form: the piece.
     rep: "build" as string,
     form: "house-drop" as string,
+    // The lanes (notes sliding onto a hit line, the pads beside) or the step grid; how many bars the lanes read ahead.
+    view: "lanes" as string,
+    ahead: 1,
   });
   const s = $derived(cfg.value);
+  const lanesView = $derived(s.view !== "grid");
+  const aheadBars = $derived([1, 2, 4].includes(s.ahead) ? s.ahead : 1);
   /** The short drum phrases (clave cells, tags, fills, builds), easiest first: the Phrases drill on the MPC. */
   const PAD_PHRASES = PAD_REPERTOIRE.filter((r) => r.topic === "phrases").sort((a, b) => a.level - b.level);
   const padPhrase = $derived(PAD_PHRASES.find((r) => r.groove.value === s.phrase) ?? PAD_PHRASES[0]);
@@ -91,14 +100,60 @@
   const ostinatoDef = $derived(skill === "ostinato" ? ostinatoGroove(s.line, { interp, lines: readLines }) : null);
   const repeatDef = $derived(skill === "repeat" ? noteRepeatPiece(s.rep) : null);
   const songForm = $derived(SONG_FORMS.find((f) => f.id === s.form) ?? SONG_FORMS[0]);
-  const songDef = $derived(skill === "song" ? songFormPiece(songForm) : null);
+  // Song form: the pieces you write ("own-<id>"), kept with the settings.
+  const SONGS_KEY = "pads.written-songs";
+  let written = $state.raw<WrittenSong[] | null>(null);
+  void getSetting<WrittenSong[]>(SONGS_KEY, []).then((x) => (written = Array.isArray(x) ? x : []));
+  const ownWanted = $derived(skill === "song" && s.form.startsWith("own-"));
+  const ownSong = $derived(ownWanted ? (written?.find((w) => `own-${w.id}` === s.form) ?? null) : null);
+  const ownPiece = $derived(ownSong ? writtenPiece(ownSong) : null);
+  const ownSet = $derived(ownSong ? setCheck(ownSong, bpm) : null);
+  const songDef = $derived(skill === "song" ? (ownPiece ?? songFormPiece(songForm)) : null);
+  function saveSongs(next: WrittenSong[]) {
+    written = next;
+    void putSetting(SONGS_KEY, next);
+  }
+  function newPiece() {
+    const song = newWrittenSong(Date.now().toString(36));
+    saveSongs([...(written ?? []), song]);
+    cfg.set({ form: `own-${song.id}` });
+    settings.update({ bpm: song.bpm });
+  }
   /** Reading is the point of a generated line, so it stays on screen in Check. */
   const readingShown = $derived(skill === "ostinato" && s.line === "read");
   // The groove-shaped skills share one path: targets, the grader, a grid.
   const grooveDef = $derived(
     skill === "phrases" ? padPhrase.groove : skill === "fills" ? fillGroove(s.fill) : skill === "orchestrate" ? orchestrationGroove(s.orch) : skill === "ostinato" ? ostinatoDef : skill === "echo" ? echoGroove(s.echo) : skill === "repeat" ? repeatDef : skill === "song" ? songDef : null,
   );
-  const gt = $derived(grooveDef ? grooveTargetsFor(grooveDef, bpm) : null);
+  const gt = $derived(grooveDef ? grooveTargetsFor(grooveDef as GrooveDef, bpm, CHOP_PADS) : null);
+
+  // A written piece's chop: the loop's slices on A01 to A16, played by MIDI hits in the chop bars only.
+  let slicesFor = $state("");
+  let slicing = $state<string | null>(null);
+  const wantSlices = $derived(ownPiece?.chop ? `${ownPiece.chop}@${bpm}` : "");
+  $effect(() => {
+    const key = wantSlices;
+    const source = chopSource(key.split("@")[0]);
+    if (!key || key === slicesFor || !source) return;
+    const t = setTimeout(() => {
+      slicing = "Cutting the chop's loop into slices…";
+      loadSlices(source, bpm)
+        .then(() => (slicesFor = key))
+        .then(() => (slicing = null))
+        .catch((e: Error) => (slicing = `The chop's loop could not be cut: ${e.message}`));
+    }, 250);
+    return () => clearTimeout(t);
+  });
+  const chopSpans = $derived(ownPiece?.spans.filter((x) => x.role === "chop") ?? []);
+  padSound.slicesAt = (at) => (phase === "running" || phase === "countin") && chopSpans.some((x) => at >= downbeat + x.from * barMs - beatMs / 8 && at < downbeat + (x.from + x.bars) * barMs - beatMs / 8);
+  $effect(() =>
+    input.subscribe((e) => {
+      if (e.kind === "noteon" && e.source !== "onscreen" && padSound.slicesAt?.(e.at)) audio.playKitPad(e.midi, e.velocity);
+    }),
+  );
+  /** A target as a note to hear: a drum on the synth kit, a slice on the slices. */
+  const hearTarget = (t: { voice: string; beat: number; accent: string }, lead = 0) =>
+    t.voice.startsWith("slice-") ? { midi: CHOP_PADS[t.voice], time: lead + (t.beat * beatMs) / 1000, duration: 0.2, velocity: 0.9, voice: "kit" as const } : { midi: voicePads[t.voice], time: lead + (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 1 : t.accent === "ghost" ? 0.35 : 0.75, voice: "drum" as const };
   /** Grid steps a beat: sixteenths, or triplets for the shuffle fills. */
   const gridPer = $derived(grooveDef?.stepsPerBeat ?? 4);
   const dyn = $derived(DYNAMICS_EXERCISES.find((d) => d.id === s.dyn) ?? DYNAMICS_EXERCISES[0]);
@@ -125,6 +180,7 @@
   let status = $state("");
   let summary = $state<RunSummary | null>(null);
   let grv = $state.raw<GrooveResult | null>(null);
+  let ownGrade = $state.raw<ReturnType<typeof gradeWrittenSong> | null>(null);
   let levels = $state.raw<(number | null)[]>([]);
   let take = $state.raw<{ at: number; midi: number; velocity: number }[]>([]);
   let downbeat = $state(0);
@@ -205,6 +261,28 @@
     return out;
   });
 
+  // The lanes: one per drum (or slice), the notes judged live as they pass.
+  const lanes = $derived<HighwayLane[]>(
+    gt ? orderLanes(gt.targets.map((t) => t.voice)).map((v) => ({ id: v, label: GROOVE_VOICES.find((x) => x.id === v)?.name ?? v.replace("slice-", "Slice "), color: laneColor(v), pad: gt!.targets.find((t) => t.voice === v)!.pad })) : [],
+  );
+  const live = $derived<(HighwayNote & { pad: number })[]>(gt ? gt.targets.map((t) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.id === t.voice), kind: t.accent ? "accent" : t.ghost ? "ghost" : "normal" })) : []);
+  const judgeWindow = $derived({ perfect: (gt?.matchWindowMs ?? 60) / 2, good: gt?.matchWindowMs ?? 60 });
+  let judged = $state<Record<number, Judgement>>({});
+  let flashKey = 0;
+  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
+  const timing = new Flashes<"early" | "late" | "perfect">();
+  /** The notes show in Practice and after a run (Play it back only after); a generated line stays to read in Check. */
+  const notesShown = $derived(!!gt && !!grooveDef && (skill !== "echo" || phase === "results") && (mode === "practice" || phase === "results" || readingShown));
+  /** The lanes before and while it plays; the results read on the grid, each note marked. */
+  const showLanes = $derived(lanesView && phase !== "results");
+  function sweepMisses() {
+    if (phase !== "running" || !gt || skill === "echo") return;
+    const missed = overdue(live, judged, performance.now() - downbeat, judgeWindow.good);
+    if (!missed.length) return;
+    judged = { ...judged, ...Object.fromEntries(missed.map((i) => [i, "miss" as const])) };
+    flashNote = { judgement: "miss", key: ++flashKey };
+  }
+
   const orch = $derived(ORCHESTRATIONS.find((o) => o.id === s.orch) ?? ORCHESTRATIONS[0]);
   const summaryLine = $derived<SetupClause[]>([
     ...(skill === "phrases"
@@ -222,7 +300,7 @@
             : skill === "repeat"
               ? [{ text: `Note repeat: ${NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.label ?? ""}`, focus: "rep" }]
               : skill === "song"
-                ? [{ text: songForm.label, focus: "form" }, { text: `${songDef?.bars ?? 0} bars in one take` }]
+                ? [{ text: ownSong?.label ?? songForm.label, focus: "form" }, { text: `${songDef?.bars ?? 0} bars in one take${ownSet?.ok ? ", the set" : ""}` }]
             : skill === "echo"
               ? [{ text: `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}`, focus: "echo" }, { text: "four rounds" }]
               : skill === "dynamics"
@@ -248,7 +326,7 @@
     if (demo?.playing) return stopDemo();
     await audio.unlock();
     const notes = gt
-      ? (skill === "echo" ? (grooveDef as ReturnType<typeof echoGroove>).calls : grooveDef!.targets).map((t) => ({ midi: voicePads[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 1 : t.accent === "ghost" ? 0.35 : 0.75, voice: "drum" as const }))
+      ? [...(skill === "echo" ? (grooveDef as ReturnType<typeof echoGroove>).calls : grooveDef!.targets), ...(ownPiece?.under ?? [])].map((t) => hearTarget(t))
       : skill === "dynamics"
         ? dynSlots.map((at, i) => ({ midi: 38, time: at / 1000, duration: 0.1, velocity: s.dyn === "ladder" ? 0.2 + ladderBand(i)[0] * 0.8 : s.dyn === "crescendo" ? 0.15 + (i / 15) * 0.85 : 0.6, voice: "drum" as const }))
         : improBacking();
@@ -265,7 +343,17 @@
     if (!gt) return;
     const at = e.at - downbeat;
     const near = gt.targets.some((t) => t.pad === e.midi && Math.abs(t.atMs - at) <= gt.matchWindowMs);
-    if (mode === "practice") flashes.add(e.midi, near ? "correct" : "wrong", 250);
+    if (mode !== "practice") return;
+    flashes.add(e.midi, near ? "correct" : "wrong", 250);
+    if (skill === "echo") return;
+    const hit = judgeHit(live, judged, e.midi, at, judgeWindow);
+    if (!hit) {
+      flashNote = { judgement: "extra", key: ++flashKey };
+      return;
+    }
+    judged = { ...judged, [hit.index]: hit.judgement };
+    timing.add(e.midi, hit.judgement as "early" | "late" | "perfect", 450);
+    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey };
   }
 
   let readUsed = false;
@@ -276,9 +364,13 @@
     readUsed = readingShown;
     summary = null;
     grv = null;
+    ownGrade = null;
     levels = [];
     take = [];
     flashes.clear();
+    timing.clear();
+    judged = {};
+    flashNote = null;
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
     run = practice.beginRun({
@@ -297,7 +389,7 @@
         ...(skill === "improvise" ? { bars: improBars, fillEvery: fillEvery } : {}),
         ...(skill === "ostinato" ? { line: s.line, ...(s.line === "clave" ? {} : { interp }) } : {}),
         ...(skill === "repeat" ? { exercise: s.rep } : {}),
-        ...(skill === "song" ? { form: songForm.id } : {}),
+        ...(skill === "song" && ownPiece && ownSet ? { form: "own", sections: ownPiece.spans.length, minutes: Math.round(ownSet.minutes * 10) / 10, ...(ownSet.ok ? { set: true } : {}) } : skill === "song" ? { form: songForm.id } : {}),
       },
     });
     repeater.stop();
@@ -313,8 +405,13 @@
     } else if (skill === "dynamics") status = s.dyn === "ladder" ? "Four soft, four a little louder, four louder, four loudest." : s.dyn === "crescendo" ? "Start as soft as you can and grow to your loudest." : "Every hit the same: a steady middle level.";
     else if (skill === "echo") status = "Listen to the bar, then play it back in the next.";
     else if (skill === "repeat") status = "Hold the pad to repeat it; let go to stop. The rate follows the chart.";
+    if (ownPiece?.under.length) {
+      const lead = Math.max(0, (ctx.downbeat - performance.now()) / 1000);
+      band = audio.playSequence(ownPiece.under.map((t) => hearTarget(t, lead)));
+    }
     const tick = () => {
       now = performance.now();
+      if (mode === "practice") sweepMisses();
       if (phase === "running" || phase === "countin") raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -350,7 +447,21 @@
     /** A run whose measure needs velocity the input did not carry is not recorded. */
     let unmeasured = false;
 
-    if (gt && grooveDef) {
+    if (ownPiece) {
+      const measured = ons.length > 1 && ons.every((h) => h.velocityMeasured) && new Set(ons.map((h) => Math.round(h.velocity * 127))).size > 1;
+      const g = gradeWrittenSong(ownPiece, notes, downbeat, beatMs, measured ? (range ?? DEFAULT_RANGE) : null);
+      ownGrade = g;
+      score = g.score;
+      correct = g.correct;
+      rows = g.sections.map((x) => ({
+        label: x.label.charAt(0).toUpperCase() + x.label.slice(1),
+        value: x.solo ? x.solo.score : x.matched / Math.max(1, x.matched + x.missed),
+        text: `${x.solo ? (x.solo.meanAbsMs === null ? "nothing played" : `${Math.round(x.solo.meanAbsMs)} ms from the grid, ${pct(x.solo.density)} of bars kept going${x.solo.driftBpm !== null && Math.abs(x.solo.driftBpm) >= 2 ? `, drifted ${x.solo.driftBpm > 0 ? "+" : ""}${x.solo.driftBpm.toFixed(1)} BPM` : ""}`) : `${x.matched} of ${x.matched + x.missed}${x.extra ? `, ${x.extra} extra` : ""}`}${x.dyn ? `, ${dynWord(x.dyn)}` : ""}${x.pass ? ", passed" : ""}`,
+      }));
+      if (!measured) rows.push({ label: "Dynamics: velocity not measured, so the bands were not checked", notMeasured: true });
+      if (ownSet) rows.push({ label: "The set", text: ownSet.ok ? `in its shape, ${Math.round(ownSet.minutes * 10) / 10} minutes` : `still needs ${ownSet.missing.join(", ")}` });
+      headline = correct ? `Every section passed in one take${measured ? ", each at its level" : ""}.` : `${g.passed} of ${g.sections.length} sections passed. ${g.sections.filter((x) => !x.pass).map((x) => x.label).join(", ")} next time.`;
+    } else if (gt && grooveDef) {
       // Play it back: only the answer bars are scored, so playing along with a call costs nothing.
       const hits = skill === "echo" ? ons.filter((h) => Math.floor((h.at - downbeat + gt.matchWindowMs) / barMs) % 2 === 1) : ons;
       const r = gradeGroove({ targets: grooveDef.targets, voicePads, sectionLabels: grooveDef.sectionLabels, beatsPerBar: 4, beatMs, startAt: downbeat, hits });
@@ -373,7 +484,7 @@
         headline = f.landingMs === null ? "The fill never landed: crash and kick together on the one after it." : f.rushed ? `The fill rushed (${ms(f.fillMeanMs)}): keep its notes the same size as the groove's.` : f.landed ? `Landed on the one (${ms(f.landingMs)}).` : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
       } else if (skill === "ostinato") {
         const voice = ostinatoDef!.ostinato;
-        const o = ostinatoReport(grooveDef, r.perTarget, voice);
+        const o = ostinatoReport(grooveDef as GrooveDef, r.perTarget, voice);
         const name = voice === "rim" ? "The clave" : "The hats";
         correct = r.correct && o.held;
         rows.push({ label: `${name} alone`, value: o.alone, text: pct(o.alone) }, { label: `${name} under the line`, value: o.together, text: pct(o.together) }, { label: "The line", value: o.line, text: pct(o.line) });
@@ -480,9 +591,9 @@
       status = headline;
       return;
     }
-    await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn)}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
+    await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn)}`, correct, partialCredit: score, metrics: grv?.metrics ?? ownGrade?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: skill === "improvise" ? undefined : await advanceAfter(score, correct) };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }
 
@@ -523,8 +634,14 @@
     repeater.stop();
     calStop?.();
     stopDemo();
+    padSound.slicesAt = null;
+    if (slicesFor) restoreKit();
   });
 </script>
+
+{#snippet padGrid()}
+  <Pads marks={marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+{/snippet}
 
 <DrillShell
   title={skill === "phrases" ? "Phrases" : "Pads"}
@@ -544,7 +661,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={skill === "dynamics" && !range ? "Set your soft-to-loud range first: press Calibrate." : null}
+  blocked={skill === "dynamics" && !range ? "Set your soft-to-loud range first: press Calibrate." : ownWanted && !ownSong ? (written ? "That piece is not saved here: pick another, or write a new one." : "Loading your pieces…") : ownPiece?.chop && slicesFor !== wantSlices ? (slicing ?? "Cutting the chop's loop into slices…") : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -566,11 +683,18 @@
       {:else if skill === "repeat"}
         <Choice label="Exercise" options={NOTE_REPEAT_EXERCISES.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail }))} value={s.rep} onchange={(v) => cfg.set({ rep: v })} setupKey="rep" />
       {:else if skill === "song"}
-        <Choice label="Piece" options={SONG_FORMS.map((f) => ({ value: f.id, label: f.label, detail: `Level ${f.level}, ${f.sections.map((x) => `${x.label} ${x.bars}`).join(", ")} bars, ${f.bpm.start} to ${f.bpm.target} BPM` }))} value={songForm.id} setupKey="form" onchange={(v) => {
+        <Choice label="Piece" options={[...SONG_FORMS.map((f) => ({ value: f.id, label: f.label, detail: `Level ${f.level}, ${f.sections.map((x) => `${x.label} ${x.bars}`).join(", ")} bars, ${f.bpm.start} to ${f.bpm.target} BPM` })), ...(written ?? []).map((w) => ({ value: `own-${w.id}`, label: w.label, detail: `Yours, ${w.sections.length} sections, ${w.bpm} BPM` }))]} value={ownSong ? s.form : songForm.id} setupKey="form" onchange={(v) => {
           cfg.set({ form: v });
-          const f = SONG_FORMS.find((x) => x.id === v);
-          if (f) settings.update({ bpm: f.bpm.start });
+          const start = SONG_FORMS.find((x) => x.id === v)?.bpm.start ?? written?.find((w) => `own-${w.id}` === v)?.bpm;
+          if (start) settings.update({ bpm: start });
         }} />
+        <div class="flex items-end"><button type="button" class={btn} onclick={newPiece}>Write a new piece</button></div>
+        {#if ownSong}
+          <SongBuilder song={ownSong} {bpm} onchange={(next) => saveSongs(written!.map((w) => (w.id === next.id ? next : w)))} ondelete={() => {
+            saveSongs(written!.filter((w) => w.id !== ownSong.id));
+            cfg.set({ form: SONG_FORMS[0].id });
+          }} />
+        {/if}
       {:else if skill === "echo"}
         <Choice label="Level" options={ECHO_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={s.echo} onchange={(v) => cfg.set({ echo: v })} setupKey="echo" />
       {:else if skill === "dynamics"}
@@ -579,6 +703,12 @@
         <Choice label="Bars" options={[4, 8, 16, 32].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
         <Choice label="Loop" options={LOOPS.map((id) => ({ value: id, label: loopName(id) }))} value={loopEntry ? s.loop : "funk"} onchange={(v) => cfg.set({ loop: v })} setupKey="loop" />
         <Choice label="A fill every" options={[{ value: 0, label: "No set fills" }, { value: 4, label: "4 bars" }, { value: 8, label: "8 bars" }]} value={fillEvery} onchange={(v) => cfg.set({ fillEvery: v })} setupKey="fillEvery" />
+      {/if}
+      {#if gt && skill !== "echo"}
+        <Choice label="View" options={[{ value: "lanes", label: "Lanes" }, { value: "grid", label: "Grid" }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
+        {#if lanesView}
+          <Choice label="Look ahead" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "1 bar" : `${n} bars` }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
+        {/if}
       {/if}
     </div>
   {/snippet}
@@ -598,14 +728,16 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="flex flex-col gap-4" data-testid="pad-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={gt ? JSON.stringify(gt.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined}>
+    <div class="flex flex-col gap-4" data-testid="pad-skills" data-view={notesShown && showLanes ? "lanes" : "grid"} data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={gt ? JSON.stringify(gt.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined}>
       {#if skill === "phrases"}
         <p class="text-sm"><span class="font-semibold">{padPhrase.groove.label}.</span> <span class="text-ws-stage-soft">{padPhrase.feel} {padPhrase.fingers}</span></p>
       {/if}
       {#if skill === "repeat" && repeatDef}
         <p class="text-sm"><span class="font-semibold">Hold {GROOVE_VOICES.find((v) => v.id === repeatDef.repeatVoice)?.name.toLowerCase()} to repeat it.</span> <span class="text-ws-stage-soft">{NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.detail}. The app sets the rate as the chart changes; {repeater.aftertouch ? "your pads send aftertouch, so pressure sets the level." : "if your pads send aftertouch, pressure sets the level; otherwise each repeat keeps the hit's velocity."}</span></p>
       {/if}
-      {#if skill === "song" && songDef}
+      {#if skill === "song" && ownSong && ownPiece}
+        <p class="text-sm"><span class="font-semibold">{ownSong.label}.</span> <span class="text-ws-stage-soft">{ownPiece.spans.map((x, i) => `${x.label} (${x.bars} bar${x.bars > 1 ? "s" : ""}, ${ownSong.sections[i].dyn})`).join(", ")}. The chop plays the slices on A01 to A16; under a solo the app loops a groove and you play over it. Levels are read against your range from Dynamics{range ? "" : " (not set yet, so a default)"}.</span></p>
+      {:else if skill === "song" && songDef}
         <p class="text-sm"><span class="font-semibold">{songForm.label}.</span> <span class="text-ws-stage-soft">{songForm.sections.map((x) => `${x.label} (${x.bars} bars, ${x.dyn})`).join(", ")}. Levels are read against your range from Dynamics{range ? "" : " (not set yet, so a default)"}.</span></p>
       {/if}
       {#if readingShown}
@@ -614,8 +746,23 @@
       {#if skill === "orchestrate"}
         <p class="text-sm"><span class="font-semibold">Paradiddle, {orch.label.toLowerCase()}.</span> <span class="text-ws-stage-soft">{orch.detail}. Two bars of sixteenths, the accents on each group's first stroke.</span></p>
       {/if}
-      {#if gt && grooveDef && (skill !== "echo" || phase === "results") && (mode === "practice" || phase === "results" || readingShown)}
-        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget} windowMs={gt.matchWindowMs / 2} stepsPerBeat={gridPer} />
+      {#if notesShown && showLanes}
+        <PadHighway
+          {lanes}
+          notes={live}
+          now={phase === "running" || phase === "countin" ? now - downbeat : -beatMs}
+          {beatMs}
+          stepsPerBeat={gridPer}
+          {aheadBars}
+          {lengthMs}
+          {judged}
+          flash={mode === "practice" ? flashNote : null}
+          countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
+          label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+          pads={padGrid}
+        />
+      {:else if notesShown && gt && grooveDef}
+        <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget ?? ownGrade?.perTarget} windowMs={gt.matchWindowMs / 2} stepsPerBeat={gridPer} />
       {:else if skill === "echo"}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm" aria-live="polite">{phase === "running" ? (inCallBar ? "Listen…" : "Your turn: play it back.") : "Each call is a bar on the kit; play it back in the bar after. The grid shows after the run."}</p>
       {:else if skill === "dynamics"}
@@ -639,7 +786,7 @@
       {:else}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. {loopEntry ? `The kit loops ${loopEntry.groove.label} for ${improBars} bars with the band in its style` : `The band plays ${improBars} bars of a funk vamp`}; {fillEvery ? ` A fill in every ${fillEvery}th bar, landing on the next one.` : ""} Graded on time and on keeping every bar going; listen back afterwards, as played and nudged half way to the grid.</p>
       {/if}
-      <Pads marks={marks} {flashes} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+      {#if !(notesShown && showLanes)}{@render padGrid()}{/if}
     </div>
   {/snippet}
 

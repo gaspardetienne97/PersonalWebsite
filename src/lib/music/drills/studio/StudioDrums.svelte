@@ -2,13 +2,18 @@
   // A drum part as a grid, one row per drum the way the pads grooves draw it:
   // sixteenth columns, beat and bar lines, each hit a dot in its drum's colour.
   // Rows name the drum and its pad on the app's kit. Hits off the sixteenth
-  // grid (triplet fills) sit on the nearest sixteenth.
+  // grid (triplet fills) sit on the nearest sixteenth. Or as lanes, the
+  // notes sliding onto a hit line with the pads beside (the pads drills' view).
   import type { Score } from "@repo/music-core";
-  import { GROOVE_VOICES, drumKey, scoreDrumPad, scoreDrumVoice } from "@repo/music-core/content/winds-pads";
+  import { GROOVE_VOICES, drumKey, hitDrumKey, scoreDrumPad, scoreDrumVoice } from "@repo/music-core/content/winds-pads";
   import { barBeats, scoreGroups } from "$lib/music/notation/groups";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import type { Flashes } from "$lib/music/components/feedback.svelte";
-  import { laneColor } from "$lib/music/drills/pads/lanes";
+  import { Flashes } from "$lib/music/components/feedback.svelte";
+  import Pads from "$lib/music/components/Pads.svelte";
+  import { input } from "$lib/music/runtime";
+  import { DrillSetup } from "$lib/music/setup.svelte";
+  import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
+  import { laneColor, orderLanes, padsDue, stepsPerBeatFor, type Judgement } from "$lib/music/drills/pads/lanes";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
 
   let {
@@ -18,6 +23,8 @@
     groupStates = {},
     flashes,
     maxHeight,
+    bpm,
+    timed = false,
   }: {
     score: Score;
     voiceIds: string[];
@@ -25,6 +32,9 @@
     groupStates?: Record<number, GroupState>;
     flashes?: Flashes;
     maxHeight: string;
+    bpm: number;
+    /** A run in time: each hit gets early, late or on time on its pad. */
+    timed?: boolean;
   } = $props();
 
   const CELL = 16;
@@ -48,7 +58,91 @@
   const barSteps = $derived(Math.round(barBeats(score.meter) * 4));
   const steps = $derived(Math.max(barSteps, Math.ceil(score.lengthBeats * 4)));
   const barCount = $derived(Math.ceil(steps / barSteps));
+
+  // The lanes: one per drum, its kit pad named and lit on the pads beside.
+  const view = new DrillSetup("studio-drums", { drums: "grid" as string, ahead: 1 });
+  const lanesOn = $derived(view.value.drums === "lanes");
+  const aheadBars = $derived([1, 2, 4].includes(view.value.ahead) ? view.value.ahead : 1);
+  const beatMs = $derived(60000 / bpm);
+  const lanes = $derived<HighwayLane[]>(orderLanes(rows.map((r) => r.id)).map((id) => ({ id, label: rows.find((r) => r.id === id)!.name, color: laneColor(id), pad: GROOVE_VOICES.find((v) => v.id === id)!.midi })));
+  const live = $derived<(HighwayNote & { pad: number; key: number })[]>(
+    notes.map((n) => {
+      const id = scoreDrumVoice(n.midi);
+      const v = n.velocity ?? 0.7;
+      return { atMs: n.startBeat * beatMs, lane: lanes.findIndex((l) => l.id === id), pad: scoreDrumPad(n.midi), key: drumKey(n.midi), kind: v >= 0.85 ? "accent" : v < 0.45 ? "ghost" : "normal" };
+    }),
+  );
+  const judged = $derived.by(() => {
+    const out: Record<number, Judgement> = {};
+    const byBeat = new Map<number, GroupState>();
+    for (const g of scoreGroups(score, voiceIds)) if (groupStates[g.index]) byBeat.set(Math.round(g.startBeat * 48), groupStates[g.index]);
+    notes.forEach((n, i) => {
+      const st = byBeat.get(Math.round(n.startBeat * 48));
+      if (st === "correct") out[i] = "perfect";
+      else if (st === "missed" || st === "wrong") out[i] = "miss";
+    });
+    return out;
+  });
+  const nowMs = $derived((cursorBeat ?? (notes[0]?.startBeat ?? 0) - 1) * beatMs);
+  const marks = $derived(Object.fromEntries([...padsDue(live, nowMs, Math.min(beatMs / 2, 260))].map((p) => [p, { target: true }])));
+  const names = $derived(Object.fromEntries(lanes.map((l) => [l.pad, l.label])));
+  const colors = $derived(Object.fromEntries(lanes.map((l) => [l.pad, l.color])));
+
+  // Early, late or on time per hit: the hit's beat read from the cursor's clock.
+  const timing = new Flashes<"early" | "late" | "perfect">();
+  let cursorAt = 0;
+  $effect(() => {
+    void cursorBeat;
+    cursorAt = performance.now();
+  });
+  $effect(() =>
+    input.subscribe((e) => {
+      if (e.kind !== "noteon" || !timed || !lanesOn || cursorBeat === null) return;
+      const at = (cursorBeat + (e.at - cursorAt) / beatMs) * beatMs;
+      const key = hitDrumKey(e.midi);
+      let err = Infinity;
+      for (const t of live) if (t.key === key && Math.abs(at - t.atMs) < Math.abs(err)) err = at - t.atMs;
+      if (Math.abs(err) > Math.min(150, beatMs / 4)) return;
+      timing.add(e.midi, Math.abs(err) <= 35 ? "perfect" : err < 0 ? "early" : "late", 450);
+    }),
+  );
 </script>
+
+<div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+  <div class="flex items-center gap-1" role="group" aria-label="Drum view">
+    {#each [["grid", "Grid"], ["lanes", "Lanes"]] as [id, text] (id)}
+      <button type="button" class="chip" aria-pressed={view.value.drums === id} onclick={() => view.set({ drums: id })}>{text}</button>
+    {/each}
+  </div>
+  {#if lanesOn}
+    <div class="flex items-center gap-1" role="group" aria-label="Look ahead">
+      <span class="mr-1 text-ws-stage-soft">Look ahead</span>
+      {#each [1, 2, 4] as n (n)}
+        <button type="button" class="chip" aria-pressed={aheadBars === n} onclick={() => view.set({ ahead: n })}>{n} bar{n > 1 ? "s" : ""}</button>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+{#if lanesOn}
+  <PadHighway
+    {lanes}
+    notes={live}
+    now={nowMs}
+    {beatMs}
+    beatsPerBar={barBeats(score.meter)}
+    stepsPerBeat={stepsPerBeatFor(notes.map((n) => n.startBeat))}
+    {aheadBars}
+    lengthMs={score.lengthBeats * beatMs}
+    {judged}
+    label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+  >
+    {#snippet pads()}
+      <Pads {marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A, the kit's drums. Computer keys Z X C V play the bottom row." />
+    {/snippet}
+  </PadHighway>
+{:else}
+<div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region must be reachable by keyboard -->
 <div class="viewport overflow-auto" style:max-height={maxHeight} role="region" aria-label="Drum part: {rows.map((r) => r.name).join(', ')}. {notes.length} hits over {barCount} bar{barCount === 1 ? '' : 's'}" tabindex="0" data-drum-grid>
@@ -83,8 +177,25 @@
     </div>
   </div>
 </div>
+</div>
+{/if}
 
 <style>
+  .chip {
+    min-height: 2.25rem;
+    padding-inline: 0.85rem;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--ws-stage-ink);
+    background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+  }
+  .chip:hover {
+    background: color-mix(in oklch, var(--ws-stage-ink) 18%, transparent);
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--ws-stage-ink);
+    color: var(--ws-stage);
+  }
   .lane {
     border-radius: 4px;
     background-color: color-mix(in oklch, var(--ws-ink) 4%, transparent);

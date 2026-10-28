@@ -4,6 +4,7 @@
   // shows how it landed with a glyph. Fits 375 px: 16 columns plus a name column.
   import type { GrooveTarget } from "@repo/music-core/content/winds-pads";
   import { GROOVE_VOICES } from "@repo/music-core/content/winds-pads";
+  import { CHOP_SLICES, slicePad, sliceVoice } from "@repo/music-core/content/pads-studio";
   import { padLabel } from "./midi-status";
 
   interface Props {
@@ -29,7 +30,9 @@
   const COUNTS = $derived(COUNT_SETS[per] ?? COUNT_SETS[4]);
   /** The count over step c of a bar. */
   const countAt = (c: number) => (c % per === 0 ? String(c / per + 1) : COUNTS[c % per]);
-  const voices = $derived(GROOVE_VOICES.filter((v) => targets.some((t) => t.voice === v.id)));
+  /** The kit's drums, then any slices (a written piece's chop section). */
+  const SLICES = Array.from({ length: CHOP_SLICES }, (_, i) => ({ id: sliceVoice(i), name: `Slice ${i + 1}`, midi: slicePad(i) }));
+  const voices = $derived([...GROOVE_VOICES, ...SLICES].filter((v) => targets.some((t) => t.voice === v.id)));
   const at = $derived.by(() => {
     const m = new Map<string, number>();
     targets.forEach((t, i) => m.set(`${t.voice}:${Math.round(t.beat * per)}`, i));

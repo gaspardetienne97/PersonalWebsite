@@ -498,9 +498,9 @@ export const LEGATO_ATTACK_MS = 50;
 export type LegatoVerdict = "legato" | "picked" | "missed";
 
 /**
- * For each note marked h, p or s (a slide): "picked" when an onset landed within
- * LEGATO_ATTACK_MS of the note starting, "legato" when none did, "missed"
- * when the note wasn't played. Picked notes (P) get null.
+ * For each note marked h, p, or a slide (/ up, \ down, or s): "picked" when an
+ * onset landed within LEGATO_ATTACK_MS of the note starting, "legato" when none
+ * did, "missed" when the note wasn't played. Picked notes get null.
  */
 export function legatoAttacks(
   labels: readonly (string | undefined)[],
@@ -508,7 +508,7 @@ export function legatoAttacks(
   onsets: readonly { at: number }[],
 ): (LegatoVerdict | null)[] {
   return labels.map((l, i) => {
-    if (l !== "h" && l !== "p" && l !== "s") return null;
+    if (l !== "h" && l !== "p" && l !== "s" && l !== "/" && l !== "\\") return null;
     const at = startedAt[i];
     if (at === undefined) return "missed";
     return onsets.some((o) => Math.abs(o.at - at) <= LEGATO_ATTACK_MS) ? "picked" : "legato";

@@ -75,9 +75,8 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ### Known gaps
 
-- Left from the review (low): Pedal has no Hear it first; licks chunk by bar, not by tapping notes; the tuner's A4 stays on the tuner, not in Settings; Today's Repeat the set does not start a new pass; the phone More sheet does not close on Escape; streak dots and the minutes chart cover different weeks; articulation is not timed; a few legato labels (P and p, 0 2 0) and authored box fingerings; retrying minor-key chord-function misses; Positions stays on standard tuning.
-
-- Phase 1 left out: a weekly split of instruments in Today; the song block uses Phrases until Song Studio can count as a step; no resolution after progressions, bass lines or melody dictation (which still changes key per prompt); the key holds for the whole run with no key-change option; the old paths' broken links (phase 2 replaces those paths).
+- Phase 1 left out: the old paths' broken links (phase 2 replaces those paths).
+- Day keys (the streak, the routine id) are UTC days, so late in the evening west of UTC the streak marks tomorrow as today; the weekly split uses the local weekday.
 
 - The Aerophone fingering e2e (Roland's first lesson) and the fingerpicking Travis taps can fail under full-suite load; both pass alone.
 - Two timing tests flake under full-suite load and pass alone: the runtime's synthetic-microphone A3 test, and Record's "MIDI take survives a reload". Studio ears and the cents drill are checked in headless Chromium for flow only; how they sound needs real ears and headphones.

@@ -4,7 +4,8 @@
 // changes, time against the grid (straight sixteenths, or the triplet grid
 // when swung), rests and phrases, range, and the constraint games the paths
 // name (only three notes, guide tones only, one rhythmic motif, two bars on
-// and two off...). Each game says which measures make its score and the aim
+// and two off...), and, on a tune with its melody, quoting the head or
+// playing it with fills in its rests. Each game says which measures make its score and the aim
 // for each; a chorus scores its weakest part against its aim (or the mean, for
 // the open game), and a run the mean of its choruses.
 
@@ -12,6 +13,7 @@ import { FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 import { barBeats, type Progression } from "../content/jam";
+import type { HeadNote } from "../content/tunes";
 
 /** One played note, in beats from the top of the form (chorus 1, beat 1). */
 export interface ImprovNote {
@@ -44,7 +46,10 @@ export type MetricId =
   | "windows"
   | "displaced"
   | "slips"
-  | "resolved";
+  | "resolved"
+  | "quotes"
+  | "melody"
+  | "fills";
 
 export const METRIC_LABEL: Record<MetricId, string> = {
   strong: "Chord tones on beats 1 and 3",
@@ -61,10 +66,14 @@ export const METRIC_LABEL: Record<MetricId, string> = {
   displaced: "The motif, a beat later each time",
   slips: "Side-slips",
   resolved: "Slips resolved to a chord tone on the beat",
+  quotes: "A sections opened with a fragment of the head",
+  melody: "The head's notes played",
+  fills: "Rests in the head filled with 2 to 4 notes",
 };
 
 /** Measures that count things (rests, slips) rather than give a share. */
-export const isCount = (m: MetricId) => m === "rests" || m === "displaced" || m === "slips";
+export const isCount = (m: MetricId) =>
+  m === "rests" || m === "displaced" || m === "slips" || m === "fills";
 
 /** A key-relative set: semitones above the key's tonic. */
 type KeySet = { key: number[] };
@@ -79,8 +88,10 @@ export interface Game {
   windows?: Windows;
   /** Only the bridge (sections B...) is graded; the A sections are free for the head or rests. */
   only?: "bridge";
-  /** Measures that make the score, with the aim (a share, or a count for rests). */
-  aims: { metric: MetricId; aim: number | ((bars: number) => number) }[];
+  /** Played on a tune's melody: the run needs a head (one of the player's scores). */
+  head?: boolean;
+  /** Measures that make the score, with the aim (a share, or a count for rests); a function gets the chorus's bars and the head's rests. */
+  aims: { metric: MetricId; aim: number | ((bars: number, headRests: number) => number) }[];
   /** The weakest part against its aim (a game's rules), or the mean of the parts (the open game). */
   combine: "min" | "mean";
 }
@@ -266,7 +277,78 @@ export const IMPROV_GAMES: Game[] = [
     ],
     combine: "min",
   },
+  {
+    id: "quote",
+    label: "Quote the head",
+    about:
+      "Open each A section with a fragment of the tune's melody (four notes or more, its pitches in any octave), then develop it. Needs one of your scores with its melody.",
+    head: true,
+    aims: [{ metric: "quotes", aim: 1 }],
+    combine: "min",
+  },
+  {
+    id: "melody-fills",
+    label: "Melody and fills",
+    about:
+      "Play the head, and fill only its rests of two beats or more with two to four notes: 90% of the melody's notes, and a fill in six rests (every rest, when it has fewer). Needs one of your scores with its melody.",
+    head: true,
+    aims: [
+      { metric: "melody", aim: 0.9 },
+      { metric: "fills", aim: (_bars, rests) => Math.min(6, rests) },
+    ],
+    combine: "min",
+  },
 ];
+
+/**
+ * Runs of `min` or more notes in `line` that play consecutive notes of `head`: the same pitch
+ * classes and the same intervals (the fragment in any octave). Repeated notes in a row count once
+ * in both. Each run gives its first and last index in `line`, longest first from each start.
+ */
+export function findQuotes(
+  line: readonly number[],
+  head: readonly number[],
+  min = 4,
+): { from: number; to: number; length: number }[] {
+  const squash = (xs: readonly number[]) =>
+    xs.flatMap((m, i) => (i && xs[i - 1] === m ? [] : [{ m, i }]));
+  const l = squash(line);
+  const h = squash(head).map((x) => x.m);
+  const out: { from: number; to: number; length: number }[] = [];
+  for (let i = 0; i < l.length; ) {
+    let best = 0;
+    for (let j = 0; j < h.length; j++) {
+      if (pc(l[i].m) !== pc(h[j])) continue;
+      let k = 1;
+      while (
+        i + k < l.length &&
+        j + k < h.length &&
+        l[i + k].m - l[i + k - 1].m === h[j + k] - h[j + k - 1]
+      )
+        k++;
+      best = Math.max(best, k);
+    }
+    if (best >= min) {
+      out.push({ from: l[i].i, to: l[i + best - 1].i, length: best });
+      i += best;
+    } else i++;
+  }
+  return out;
+}
+
+/** Bars (from the top of a chorus) where an A section starts; with no sections, every 8 bars past 16. */
+export function aSectionBars(p: Progression): number[] {
+  const bars = Math.round(p.chords.reduce((n, c) => n + c.bars, 0));
+  if (!p.sections?.length)
+    return bars > 16 ? Array.from({ length: Math.ceil(bars / 8) }, (_, k) => k * 8) : [0];
+  const out: number[] = [];
+  let bar = 0;
+  for (const s of p.sections) {
+    if (s.label.startsWith("A")) out.push(bar);
+    bar += s.bars;
+  }
+  return out.length ? out : [0];
+}
 
 export const gameOf = (id: string) => IMPROV_GAMES.find((g) => g.id === id) ?? IMPROV_GAMES[0];
 
@@ -367,6 +449,8 @@ export interface GradeOptions {
   bpm: number;
   /** Trading (a game's own windows win). */
   windows?: Windows;
+  /** The tune's melody, in beats from the top of the chorus (games on the head). */
+  head?: readonly HeadNote[];
 }
 
 const share = (n: number, d: number) => (d ? n / d : null);
@@ -608,6 +692,51 @@ export function gradeImprov(
     };
     put("resolved", resolved, slipEnds.length);
 
+    // The head: quotes opening each A section, its notes played, fills in its rests.
+    const head = opts.head ?? [];
+    let headRests = 0;
+    if (opts.game.head && !head.length) {
+      put("quotes", 0, 1, "no melody to quote");
+      put("melody", 0, 1, "no melody to play");
+    } else if (opts.game.head) {
+      const line = idx.map((i) => all[i]);
+      const opens = aSectionBars(p).map((b) => from + b * bpb);
+      const quoted = findQuotes(
+        line.map((n) => n.midi),
+        head.map((n) => n.midi),
+      ).map((q) => line[q.from].beat);
+      put(
+        "quotes",
+        opens.filter((o) => quoted.some((b) => b >= o - 0.5 && b < o + 2 * bpb)).length,
+        opens.length,
+        `${opens.filter((o) => quoted.some((b) => b >= o - 0.5 && b < o + 2 * bpb)).length} of ${opens.length} A sections`,
+      );
+      put(
+        "melody",
+        head.filter((h) =>
+          line.some((n) => pc(n.midi) === pc(h.midi) && Math.abs(n.beat - from - h.beat) <= 0.5),
+        ).length,
+        head.length,
+        undefined,
+      );
+      // Rests of two beats or more between the head's notes (and before the first, after the last).
+      const gaps: [number, number][] = [];
+      let last = 0;
+      for (const h of head) {
+        if (h.beat - last >= 2 - 1e-6) gaps.push([last, h.beat]);
+        last = Math.max(last, h.end);
+      }
+      if (cb - last >= 2 - 1e-6) gaps.push([last, cb]);
+      headRests = gaps.length;
+      const filled = gaps.filter(([a, b]) => {
+        const n = line.filter((x) => x.beat >= from + a + 0.1 && x.beat < from + b - 0.5).length;
+        return n >= 2 && n <= 4;
+      }).length;
+      m.fills = gaps.length
+        ? { value: filled, detail: `${filled} of ${gaps.length} rests filled` }
+        : { value: null, detail: "the head has no two-beat rests" };
+    }
+
     // Windows: yours has a note in it, the band's has no onset after its first half beat.
     if (windows) {
       let kept = 0;
@@ -627,7 +756,7 @@ export function gradeImprov(
     }
 
     const parts: Part[] = opts.game.aims.map(({ metric, aim }) => {
-      const a = typeof aim === "function" ? aim(bars) : aim;
+      const a = typeof aim === "function" ? aim(bars, headRests) : aim;
       const value = m[metric]?.value ?? null;
       return {
         metric,

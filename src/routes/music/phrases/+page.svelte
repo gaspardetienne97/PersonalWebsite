@@ -13,6 +13,13 @@
   import { listUserLicks, removeUserLick } from "$lib/music/user-licks";
   import { transposeFifths } from "@repo/music-core/theory/transposition";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import NoteHighway, { highway, viewSwitch, type HighwayNote } from "$lib/music/notation/NoteHighway.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
+  import { assignTab } from "$lib/music/notation/groups";
+  import type { Hit } from "$lib/music/notation/highway";
+  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
+  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -76,6 +83,34 @@
   let ctxRef: RunContext | null = null;
   let downbeat = $state(0);
 
+  // The moving views: the highway on guitar and ukulele (every note at its string and fret
+  // on the strip's tuning), falling notes over the keys on piano (?view=falling, as the piano drills).
+  const moving = $derived(fretted ? highway.on : own === "piano" && page.url.searchParams.get("view") === "falling");
+  const tuning = $derived(fretTuning(own));
+  const hwNotes = $derived.by((): HighwayNote[] => {
+    if (!tuning) return [];
+    const at = assignTab(notes, tuning);
+    return notes.flatMap((n, i) => (at[i] ? [{ startBeat: n.startBeat, durationBeats: n.durationBeats, ...at[i]! }] : []));
+  });
+  /** By event: how far from its beat the step's first note came, or wrong. */
+  let eventHits = $state<Record<number, Hit>>({});
+  const noteHits = $derived.by(() => {
+    const out: Record<number, Hit> = {};
+    hwNotes.forEach((n, i) => {
+      const e = events.findIndex((x) => Math.abs(x.startBeat * click - n.startBeat) < 1e-6);
+      if (eventHits[e] !== undefined) out[i] = eventHits[e];
+    });
+    return out;
+  });
+  const pianoLow = $derived(Math.floor((Math.min(...notes.map((n) => n.midi), 60) - 2) / 12) * 12);
+  const pianoHigh = $derived(Math.max(pianoLow + 24, Math.ceil((Math.max(...notes.map((n) => n.midi), 60) + 2) / 12) * 12));
+  const fallScore = $derived(
+    lineScore(
+      notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, ...(phrase?.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) })),
+      { beats: phrase?.beatsPerBar ?? 4, beatUnit: 4 },
+    ),
+  );
+
   const next = $derived(phase === "running" ? events[played] : phase === "ready" || phase === "countin" ? events[0] : undefined);
   const lit = $derived(transport.playing ? sounding(timed, transport.beat) : []);
   const marks = $derived.by(() => {
@@ -127,6 +162,11 @@
     if (want && mode === "practice") flashes.add(fretted && e.string !== undefined ? e.string * 100 + (e.fret ?? 0) : e.midi, want.notes.some((n) => pc(n.midi) === pc(e.midi)) ? "correct" : "wrong");
     // A step is settled once it is complete or has a wrong note in it.
     const m = matchEvents(events, cap?.notes ?? []);
+    const hits: Record<number, Hit> = {};
+    m.forEach((x, i) => {
+      if (x.at !== null && ctxRef) hits[i] = x.right || x.played.length < events[i].notes.length ? x.at - (ctxRef.downbeat + events[i].startBeat * ctxRef.beatMs) : "wrong";
+    });
+    eventHits = hits;
     played = m.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;
     if (played >= events.length) {
       clearTimeout(timer);
@@ -139,6 +179,7 @@
     summary = null;
     result = null;
     played = 0;
+    eventHits = {};
     flashes.clear();
     ctxRef = ctx;
     downbeat = ctx.downbeat;
@@ -271,13 +312,30 @@
           <button type="button" class={btnStage} onclick={() => demo(0.5)}>Half speed</button>
         {/if}
       </div>
-      {#if mode === "practice" || transport.playing || phase === "results"}
+      {#if (fretted || own === "piano") && (mode === "practice" || transport.playing) && phase !== "results"}
+        <div class="mb-2 flex justify-end">
+          {#if fretted}{@render viewSwitch("Tab")}{:else}<HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" />{/if}
+        </div>
+      {/if}
+      {#if moving && (mode === "practice" || transport.playing) && phase !== "results"}
+        {@const beat = transport.beat === null ? null : transport.beat * click}
+        <div class="mb-3">
+          {#if fretted && tuning}
+            <NoteHighway notes={hwNotes} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} {beat} {noteHits} judge={phase === "running"} perfectMs={Math.max(40, Math.round(60000 / bpm / 8))} barBeats={phrase.beatsPerBar} clickBeats={click} />
+          {:else}
+            <!-- Falling notes bring their own keyboard, lined up lane for key. -->
+            <FallingKeys score={fallScore} low={pianoLow} high={pianoHigh} {beat} {marks} {flashes} height="min(34dvh, 16rem)" />
+          {/if}
+        </div>
+      {:else if mode === "practice" || transport.playing || phase === "results"}
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
           meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} /></div>
       {:else}
         <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Hear it, then play it from memory.</p>
       {/if}
-      <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
+      {#if !(moving && !fretted && (mode === "practice" || transport.playing) && phase !== "results")}
+        <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
+      {/if}
     {:else}
       <p class="text-sm text-ws-stage-soft">No phrases for this instrument yet.</p>
     {/if}

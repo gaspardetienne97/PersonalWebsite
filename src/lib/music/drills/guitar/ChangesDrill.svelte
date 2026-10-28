@@ -7,9 +7,9 @@
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import { replaceState } from "$app/navigation";
-  import type { NoteEvent } from "@repo/music-core";
+  import { noteName, type NoteEvent } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { CHANGES_SETUP, shapePcs } from "@repo/music-core/content/technique";
+  import { CHANGES_SETUP, chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { gradeChanges, type ChangesResult } from "@repo/music-core/scoring/technique";
   import { CHANGE_GAP_MS } from "@repo/music-core/scoring/timing";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -31,6 +31,8 @@
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
+  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "$lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "$lib/music/notation/highway";
   import { CHORD_MODES, openMode } from "./modes";
 
   const IDLE_MS = 20_000;
@@ -142,6 +144,37 @@
   const liveGrade = $derived(live ? grade(Math.max(1, now - downbeat)) : null);
   const shown = $derived(shapes[target]);
   const pairRuns = $derived(history[cycleKey] ?? []);
+
+  // Against a clock, the highway: a block per chord over the strings it sounds on, scrolling into the line.
+  const timedView = $derived(beatsPerChord > 0 && highway.on);
+  const blockCount = $derived(s.timed ? Math.ceil((CHANGES_SETUP.timedSeconds * bpm()) / 60 / beatsPerChord) + 1 : trips * n + 1);
+  const blocks = $derived(
+    Array.from({ length: blockCount }, (_, k): HighwayChord => {
+      const i = k % n;
+      return { startBeat: k * beatsPerChord, durationBeats: beatsPerChord, strings: chordPerfectTargets(shapes[i], tuning).map((t) => t.string), name: names[i] };
+    }),
+  );
+  /** Each arrival on its block: how far from the change it landed, or wrong when it lacked a tone. */
+  const blockHits = $derived.by(() => {
+    const out: Record<number, Hit> = {};
+    if (!periodMs || !liveGrade) return out;
+    for (const c of liveGrade.clusters) {
+      if (c.errorMs === undefined) continue;
+      const k = Math.round((c.start - c.errorMs - downbeat) / periodMs);
+      if (out[k] === undefined) out[k] = c.verification.correct ? c.errorMs : "wrong";
+    }
+    return out;
+  });
+  let raf = 0;
+  $effect(() => {
+    if (!live || !timedView) return;
+    const frame = () => {
+      now = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  });
 
   function grade(durationMs: number) {
     return gradeChanges({
@@ -364,10 +397,26 @@
     {#if mode === "practice"}
       <ChordStrip {shapes} {names} current={live ? target : null} />
     {/if}
-    <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-      <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>
-      <p class="text-lg text-ws-stage-soft">then {live ? names[(target + 1) % n] : names[1]}</p>
-    </div>
+    {#if beatsPerChord && phase !== "results"}
+      <div class="mb-2 flex justify-end">{@render viewSwitch("Chord")}</div>
+    {/if}
+    {#if timedView && phase !== "results"}
+      <div class="mb-3">
+        <NoteHighway
+          chords={blocks}
+          strings={tuning.openStrings.map((m) => noteName(m, "flat", false))}
+          beat={live && periodMs ? ((now - downbeat) / periodMs) * beatsPerChord : null}
+          chordHits={blockHits}
+          judge={phase === "running"}
+          perfectMs={Math.round(periodMs / beatsPerChord / 8) || 60}
+        />
+      </div>
+    {:else}
+      <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>
+        <p class="text-lg text-ws-stage-soft">then {live ? names[(target + 1) % n] : names[1]}</p>
+      </div>
+    {/if}
     <ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" />
     {#if phase === "running" && !periodMs && !s.timed}
       <div class="mt-3 flex flex-wrap items-center gap-3">

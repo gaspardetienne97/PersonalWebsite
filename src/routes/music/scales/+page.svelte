@@ -30,6 +30,10 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
+  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
+  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { nearMiss } from "@repo/music-core/signal/pitch";
@@ -45,7 +49,7 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, tuningText, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
+  import { benchFromUrl, Transport } from "$lib/music/drills/piano/transport.svelte";
   import { audio, settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
@@ -141,6 +145,10 @@
   const all = $derived(steps.flatMap((st) => st.notes.map((n) => n.midi)));
   const low = $derived(Math.floor((Math.min(...all) - 2) / 12) * 12);
   const high = $derived(Math.ceil((Math.max(...all) + 2) / 12) * 12);
+  // Falling notes run on their own beat clock, in quarters, from the run's downbeat or the demo's start.
+  const falling = $derived(onPiano && page.url.searchParams.get("view") === "falling");
+  const clock = new Transport();
+  const quarterMs = () => 60000 / bpm() / quartersPerClick;
 
   let phase = $state<Phase>("ready");
   // Path links carry the tempo (and Check): apply them once.
@@ -227,6 +235,7 @@
   ]);
 
   function stopDemo() {
+    clock.stop();
     demo?.stop();
     demo = null;
     demoStep = null;
@@ -244,6 +253,7 @@
       },
     });
     demo = handle;
+    clock.follow(handle.startPerf, quarterMs());
     status = "Listen: the whole line at tempo, lit as it sounds.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
@@ -320,6 +330,7 @@
     });
     // Input is scored only after the count-in, so speakers can't bleed into the take.
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
+    clock.follow(ctx.downbeat, quarterMs());
     timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + steps.length * stepMs() + 4 * beatMs);
     stopClockRef = ctx.stopClock;
   }
@@ -329,6 +340,7 @@
     if (phase !== "running" && phase !== "countin") return;
     clearTimeout(timer);
     stopClockRef?.();
+    clock.stop();
     cap?.stop();
     const notes = cap?.notes ?? [];
     const r = gradeLine({
@@ -431,6 +443,7 @@
 
   function stop() {
     clearTimeout(timer);
+    clock.stop();
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
@@ -472,6 +485,10 @@
   onstart={start}
   onstop={stop}
 >
+  {#snippet actions()}
+    {#if onPiano && (mode === "practice" || phase === "results")}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
+  {/snippet}
+
   {#snippet setup()}
     <div class="flex flex-col gap-5">
       <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -567,12 +584,16 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if mode === "practice" || phase === "results"}
-      <div class="mb-3">
-        <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
-      </div>
+    {#if falling && (mode === "practice" || phase === "results")}
+      <FallingKeys score={lineScore(written, quartersPerClick > 1 ? { beats: 12, beatUnit: 8 } : undefined)} {low} {high} beat={clock.beat} groupStates={lineStates} {marks} {flashes} />
+    {:else}
+      {#if mode === "practice" || phase === "results"}
+        <div class="mb-3">
+          <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
+        </div>
+      {/if}
+      <InstrumentStage line={all} {low} {high} {marks} {flashes} />
     {/if}
-    <InstrumentStage line={all} {low} {high} {marks} {flashes} />
     {#if mode === "check" && phase !== "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>
     {:else if onPiano && pattern === "scale" && phase === "ready"}

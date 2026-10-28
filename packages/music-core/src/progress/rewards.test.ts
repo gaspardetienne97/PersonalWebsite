@@ -52,14 +52,18 @@ describe("streak", () => {
     expect(s.current).toBe(4); // today not yet practised: the streak is still alive
     expect(s.longest).toBe(4);
     expect(s.gap).toEqual([]);
+    // The ISO week, Monday 21 to Sunday 27, as the minutes chart shows it.
+    expect(s.week.map((d) => d.day)).toEqual(
+      [21, 22, 23, 24, 25, 26, 27].map((d) => `2026-09-${d}`),
+    );
     expect(s.week.map((d) => d.state)).toEqual([
-      "missed",
-      "practised",
       "practised",
       "frozen",
       "practised",
       "practised",
       "today",
+      "upcoming",
+      "upcoming",
     ]);
   });
 
@@ -67,7 +71,7 @@ describe("streak", () => {
     const s = computeStreak(["2026-09-21", "2026-09-22", "2026-09-25"], [], "2026-09-25");
     expect(s.current).toBe(1);
     expect(s.gap).toEqual(["2026-09-23", "2026-09-24"]);
-    expect(s.week.at(-1)).toEqual({ day: "2026-09-25", state: "practised" });
+    expect(s.week[4]).toEqual({ day: "2026-09-25", state: "practised" });
   });
 
   it("grants one freeze per practised ISO week, capped at 2, and spends them on a gap", () => {

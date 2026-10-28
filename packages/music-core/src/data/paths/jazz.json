@@ -1588,9 +1588,25 @@
         {
           "id": "4.7",
           "title": "The Cantaloupe Island and Watermelon Man riffs",
-          "setup": "Phrases: the left-hand riff plus the right-hand comp.",
+          "setup": "Song Studio, Performance: the opening bars of each shelf score, the left-hand riff with the right-hand comp. Cantaloupe Island first, then Watermelon Man (linked).",
           "done": "Each riff 4 times through at 110, 90%.",
-          "needs": "Phrases entries for piano: the Cantaloupe Island and Watermelon Man riffs.",
+          "href": "/music/songs/shelf/jazz/cantaloupe-island?bars=1-4",
+          "match": {
+            "shelf": "jazz/*"
+          },
+          "each": {
+            "param": "shelf",
+            "values": ["jazz/cantaloupe-island", "jazz/watermelon-man"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 4,
+          "minBpm": 110,
+          "links": [
+            {
+              "label": "Watermelon Man",
+              "href": "/music/songs/shelf/jazz/watermelon-man?bars=1-4"
+            }
+          ],
           "feeds": "Cantaloupe Island"
         },
         {
@@ -2516,9 +2532,24 @@
         {
           "id": "6.10",
           "title": "Improv game: quote the head",
-          "setup": "Jam: open each A section with a fragment of the head, then develop it.",
+          "setup": "Jam, Quote the head, on one of your scores with chord symbols and its melody (a MuseScore lead sheet, or your Real Book page typed in): open each A section with a fragment of the head, then develop it. Oleo and Rhythm-a-ning from the shelf are linked.",
           "done": "One chorus with the head fragment in all 3 A sections.",
-          "needs": "A quote-the-head game in Jam: its tunes carry changes, not melodies (jazz rank 3)."
+          "href": "/music/jam?game=quote&choruses=1",
+          "match": {
+            "game": "quote"
+          },
+          "threshold": 1,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Oleo",
+              "href": "/music/jam?game=quote&choruses=1&shelf=jazz/oleo"
+            },
+            {
+              "label": "Rhythm-a-ning",
+              "href": "/music/jam?game=quote&choruses=1&shelf=jazz/rhythm-a-ning"
+            }
+          ]
         },
         {
           "id": "6.11",
@@ -2836,9 +2867,24 @@
         {
           "id": "7.7",
           "title": "Melody embellishment and fills",
-          "setup": "Jam over a ballad backing: play the melody and fill only in its rests with 2-to-4-note fills.",
+          "setup": "Jam, Melody and fills, on one of your scores with chord symbols and its melody, at a ballad tempo: play the melody and fill only in its rests with 2-to-4-note fills. Misty and In a Sentimental Mood from the shelf are linked.",
           "done": "One chorus: melody 90% recognisable, a fill in at least 6 rests.",
-          "needs": "A melody-and-fills game in Jam: its tunes carry changes, not melodies (jazz rank 3).",
+          "href": "/music/jam?game=melody-fills&choruses=1",
+          "match": {
+            "game": "melody-fills"
+          },
+          "threshold": 1,
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Misty",
+              "href": "/music/jam?game=melody-fills&choruses=1&shelf=jazz/misty"
+            },
+            {
+              "label": "In a Sentimental Mood",
+              "href": "/music/jam?game=melody-fills&choruses=1&shelf=jazz/in-a-sentimental-mood"
+            }
+          ],
           "feeds": "All ballads"
         },
         {
@@ -3614,21 +3660,30 @@
           "title": "Lead-sheet analysis",
           "setup": "Mark each bar's key centre and function on a shelf tune; the circle of fifths for each key's chords.",
           "done": "All the Things You Are analysed with no errors against the key.",
-          "needs": "An analysis mode: mark each bar's key centre and function on a tune.",
           "links": [
             {
               "label": "Circle: a key's chords",
               "href": "/music/circle?mode=chords"
             }
           ],
-          "feeds": "All the Things You Are, Stella"
+          "feeds": "All the Things You Are, Stella",
+          "href": "/music/circle?mode=analysis&tune=tune-all-the-things-you-are",
+          "match": {
+            "tune": "tune-all-the-things-you-are"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1,
+          "minDays": 1
         },
         {
           "id": "9.2",
           "title": "Hear key changes",
           "setup": "Ear, progressions: a ii-V to a new key (up a 4th, down a 3rd, up a half step).",
           "done": "20 in a row at 85%.",
-          "needs": "Key changes in Progression dictation: a ii-V to a new key."
+          "href": "/music/ear/progressions?answer=choice&changes=key",
+          "skillIds": ["ear.key-changes"],
+          "minAttempts": 20,
+          "threshold": 0.85
         },
         {
           "id": "9.3",
@@ -4044,9 +4099,23 @@
         {
           "id": "10.1",
           "title": "Slash and fourth voicings on non-functional changes",
-          "setup": "The level 4 voicing types on the Dolphin Dance and Speak Like a Child changes.",
-          "done": "The Dolphin Dance A section at 100, 90%.",
-          "needs": "Quartal and slash voicings on a tune's changes, Dolphin Dance among them (jazz ranks 1 and 5).",
+          "setup": "Voicings, Jazz types on a tune's changes: quartal stacks, then slash chords (linked), on Maiden Voyage. Dolphin Dance's changes differ from chart to chart, so the app does not carry them; Maiden Voyage, checked against two sources, stands in. Take both to Dolphin Dance and Speak Like a Child from your book.",
+          "done": "Both types through Maiden Voyage's changes, 90%.",
+          "href": "/music/voicings?variant=quartal-tune&tune=tune-maiden-voyage",
+          "match": {
+            "tune": "tune-maiden-voyage"
+          },
+          "each": {
+            "param": "variant",
+            "values": ["quartal-tune", "slash-tune"]
+          },
+          "threshold": 0.9,
+          "links": [
+            {
+              "label": "Slash chords",
+              "href": "/music/voicings?variant=slash-tune&tune=tune-maiden-voyage"
+            }
+          ],
           "feeds": "Dolphin Dance, Speak Like a Child"
         },
         {

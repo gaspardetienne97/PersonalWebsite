@@ -19,6 +19,8 @@
   import Hint from "$lib/music/components/Hint.svelte";
   import { audio, mic, midi, settings } from "$lib/music/runtime";
   import Picker from "$lib/music/components/Picker.svelte";
+  import { A4_CHOICES } from "$lib/music/hubs/tools/tuner/tuner";
+  import { setDayInstrument, splitOptions, WEEKDAYS } from "$lib/music/today.svelte";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown
@@ -222,6 +224,12 @@
             {/each}
           </div>
         </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="flex items-center gap-1 font-medium">Reference A4<Hint about="Reference A4" text="The pitch A4 is tuned to. The tuner and every drill that listens to the microphone read notes against it." /></p>
+          </div>
+          <Picker class="tnum w-auto" label="Reference A4" value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+        </li>
       </ul>
     </section>
 
@@ -316,6 +324,17 @@
             <span class="tnum w-20 text-center font-display text-xl font-semibold" data-testid="weekly-goal">{s.weeklySessionGoal}<span class="ml-1 text-sm font-normal text-ws-soft">a week</span></span>
             <button type="button" class="{btn} w-11 px-0" aria-label="One more session" disabled={s.weeklySessionGoal >= 14} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal + 1 })}>+</button>
           </div>
+        </li>
+        <li class="px-4 py-3">
+          <p class="flex items-center gap-1 font-medium">Weekly split<Hint about="Weekly split" text="Today builds each day's set for that day's instrument and its path. The strip changes when you open a block." /></p>
+          <ul class="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+            {#each WEEKDAYS as day, i (day)}
+              <li class="flex min-h-11 items-center justify-between gap-3">
+                <span class="text-sm">{day}</span>
+                <Picker class="w-auto" label="Instrument on {day}s" value={s.weeklySplit?.[i] ?? ""} options={splitOptions(s.activeInstrument)} onchange={(v) => setDayInstrument(i, v)} />
+              </li>
+            {/each}
+          </ul>
         </li>
       </ul>
     </section>

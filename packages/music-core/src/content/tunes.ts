@@ -1,10 +1,12 @@
 // Standards for the tune player in Jam: each tune's changes and form, typed
 // from a lead sheet. Chord progressions are not protected, melodies are, so
-// no melody is bundled: the head is read from the player's own Real Book.
+// no melody is bundled: the head is read from the player's own Real Book, or
+// taken from one of their own scores with chord symbols (tuneFromScore).
 
 import { parseChordSymbol } from "../theory/chords";
 import { FLAT_NAMES, pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
+import type { Score } from "../types";
 import type { JamChord, Progression } from "./jam";
 import { goToScale } from "./piano";
 
@@ -457,7 +459,111 @@ export const TUNES: Progression[] = [
       A: "Am7 | Bm7b5 E7 | Am7 | Am7 A7 | Dm7 | F7 | Bm7b5 | E7 | Am7 | Bm7b5 E7 | Am7 | D7 G7 | Cmaj7 Am7 | Bm7b5 E7 | Am7 | Bm7b5 E7",
     },
   }),
+  // Checked against Wikipedia (Am7/D, Cm7/F, Bbm7/Eb, Dbm9, four bars each) and jazzadvice.com
+  // (D and F sus, then Eb sus and C# minor). Dolphin Dance is not here: its charts disagree.
+  tune({
+    id: "maiden-voyage",
+    name: "Maiden Voyage",
+    composer: "Herbie Hancock",
+    key: "D dorian",
+    bpm: 120,
+    feel: "straight",
+    difficulty: "intermediate",
+    form: "A A B A",
+    sections: {
+      A: "D7sus4 | D7sus4 | D7sus4 | D7sus4 | F7sus4 | F7sus4 | F7sus4 | F7sus4",
+      B: "Eb7sus4 | Eb7sus4 | Eb7sus4 | Eb7sus4 | Dbm7 | Dbm7 | Dbm7 | Dbm7",
+    },
+  }),
 ];
+
+/** A melody note of a tune's head, in beats from the top of the chorus. */
+export interface HeadNote {
+  midi: number;
+  beat: number;
+  end: number;
+}
+
+/**
+ * One of the player's scores with chord symbols (MusicXML `<harmony>`) and a melody as a Jam tune:
+ * the form from its chords, from the bar of the first chord to the end of the score, and the head
+ * from its top line (the right hand's when marked; tied notes join). Null without chords or a melody,
+ * or in a meter Jam does not play (it plays bars of three or four quarter notes).
+ */
+export function tuneFromScore(
+  score: Score,
+  id: string,
+  title = score.title,
+): { progression: Progression; head: HeadNote[] } | null {
+  const perBar = (score.meter.beats * 4) / score.meter.beatUnit;
+  const chart = [...(score.chords ?? [])]
+    .filter((c) => parseChordSymbol(c.symbol))
+    .sort((a, b) => a.startBeat - b.startBeat)
+    .filter((c, i, all) => all[i + 1]?.startBeat !== c.startBeat);
+  if ((perBar !== 3 && perBar !== 4) || !chart.length) return null;
+  const top = Math.floor(chart[0].startBeat / perBar + 1e-6) * perBar;
+  const end = top + Math.max(1, Math.ceil((score.lengthBeats - top) / perBar - 1e-6)) * perBar;
+  const chords: JamChord[] = chart.flatMap((c, i) => {
+    const from = i ? c.startBeat : top;
+    const to = Math.min(end, chart[i + 1]?.startBeat ?? end);
+    return to > from
+      ? [{ symbol: c.symbol, bars: (to - from) / perBar, scale: scaleFor(c.symbol) }]
+      : [];
+  });
+  // The top line: the highest note starting at each beat; a tie continues the note before it.
+  const voices = score.voices.filter((v) => !v.drums);
+  const pick = voices.filter((v) => v.hand !== "left");
+  const onsets = new Map<number, HeadNote>();
+  for (const n of (pick.length ? pick : voices).flatMap((v) => v.notes)) {
+    const was = onsets.get(n.startBeat);
+    if (!was || n.midi > was.midi)
+      onsets.set(n.startBeat, {
+        midi: n.midi,
+        beat: n.startBeat,
+        end: n.startBeat + n.durationBeats,
+      });
+  }
+  const tied = new Set(
+    (pick.length ? pick : voices).flatMap((v) =>
+      v.notes.filter((n) => n.tieFrom).map((n) => n.startBeat),
+    ),
+  );
+  const head: HeadNote[] = [];
+  for (const n of [...onsets.values()].sort((a, b) => a.beat - b.beat)) {
+    const last = head.at(-1);
+    if (tied.has(n.beat) && last?.midi === n.midi) last.end = n.end - top;
+    // ponytail: a pickup before the first chord's bar is dropped; the form starts on that bar.
+    else if (n.beat >= top) head.push({ midi: n.midi, beat: n.beat - top, end: n.end - top });
+  }
+  if (!head.length) return null;
+  const majorPc = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5][(((score.keyFifths ?? 0) % 12) + 12) % 12];
+  const minor = score.keyMode === "minor";
+  const keyPc = minor ? pc(majorPc + 9) : majorPc;
+  // The score's sections when they tile the form from its first chord.
+  let at = top;
+  const sections = (score.sections ?? []).map((x) => {
+    const ok = Math.abs(x.startBeat - at) < 1e-6;
+    at = x.endBeat;
+    return ok ? { label: x.label, bars: Math.round((x.endBeat - x.startBeat) / perBar) } : null;
+  });
+  const tiled = sections.length > 0 && sections.every(Boolean) && Math.abs(at - end) < 1e-6;
+  return {
+    progression: {
+      id,
+      name: title,
+      key: `${FLAT_NAMES[keyPc]} ${minor ? "minor" : "major"}`,
+      keyPc,
+      group: "standards",
+      difficulty: "intermediate",
+      bpm: score.bpm,
+      chords,
+      feel: "swing",
+      ...(tiled ? { sections: sections as { label: string; bars: number }[] } : {}),
+      ...(perBar === 3 ? { beatsPerBar: 3 } : {}),
+    },
+    head,
+  };
+}
 
 /** Where each section starts, in bars from the top of the chorus. */
 export function sectionStarts(p: Progression): { label: string; bar: number; bars: number }[] {

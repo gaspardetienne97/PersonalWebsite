@@ -765,6 +765,20 @@ export function lickChunk(notes: LickNote[], first: number, last: number): LickN
   return chunk.map((n) => ({ ...n, startBeat: n.startBeat - t0 }));
 }
 
+/**
+ * The chunk a range of beats marks on the written lick (two taps on the staff or tab):
+ * first and last note whose attack falls inside it, or null when it holds none.
+ */
+export function lickChunkIn(
+  notes: LickNote[],
+  range: { startBeat: number; endBeat: number },
+): [first: number, last: number] | null {
+  const inside = notes.filter(
+    (n) => n.startBeat >= range.startBeat - 1e-6 && n.startBeat < range.endBeat - 1e-6,
+  );
+  return inside.length ? [inside[0].index, inside[inside.length - 1].index] : null;
+}
+
 /** The four-note window around an index (one note before it), clamped to the phrase. */
 export function lickWindow(notes: LickNote[], index: number): [first: number, last: number] {
   const first = Math.max(0, Math.min(index - 1, notes.length - 4));

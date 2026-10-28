@@ -3906,9 +3906,12 @@
           "id": "11.4",
           "title": "Hear a key change",
           "strand": "E",
-          "setup": "Where does it go: up a step, up a half step, to the relative, a third away.",
+          "href": "/music/ear/progressions?answer=choice&changes=key",
+          "setup": "Progression dictation, key changes: the old key is set, then a ii-V (later a plain V7 or a backdoor) takes it somewhere new. Where does it go: up a step, up a half step, to the relative, a third away; then the chords as numerals in the new key.",
           "done": "75%.",
-          "needs": "Key change items in Progression dictation: where does it go (N4).",
+          "skillIds": ["ear.key-changes"],
+          "minAttempts": 10,
+          "threshold": 0.75,
           "feeds": "Bohemian Rhapsody, Wichita Lineman"
         },
         {

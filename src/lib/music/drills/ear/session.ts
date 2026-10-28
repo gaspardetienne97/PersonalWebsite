@@ -18,6 +18,9 @@ import {
   intervalPrompt,
   melodyDictationPrompt,
   progressionPrompt,
+  KEY_CHANGES,
+  keyChangeLabel,
+  keyChangePrompt,
   EAR_SCALES,
   EAR_INVERSIONS,
   inversionPrompt,
@@ -38,6 +41,7 @@ import {
 import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
 import { CHORD_LOOPS, loopPrompt, loopsIn, numeralLabel } from "@repo/music-core/content/loops";
 import { INTERVALS } from "@repo/music-core/theory/intervals";
+import { pc } from "@repo/music-core/theory/notes";
 import { pick, randInt, type Rand } from "@repo/music-core/content/random";
 import type { ScoringEvent, SkillMastery } from "@repo/music-core";
 import {
@@ -59,6 +63,7 @@ export type EarKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "key-change"
   | "loop"
   | "scale"
   | "inversion"
@@ -112,8 +117,10 @@ export interface Focus {
   bassLevel?: string;
   /** Song loops: which set of loops (LOOP_SETS). */
   loops?: string;
-  /** Drills in a key (degrees, chords in a key, progressions, bass lines): the run's tonic pitch class. */
+  /** Drills in a key (degrees, chords in a key, progressions, bass lines, melodies): the run's tonic pitch class. */
   keyPc?: number;
+  /** A new key every this many prompts (the whole run when missing). */
+  keyEvery?: number;
 }
 
 /** How much more often a target is asked: 1 when always right, up to 4 when always wrong; 2 when untried. */
@@ -204,6 +211,8 @@ export function targetsFor(kind: EarKind, level: string, focus?: Focus): EarTarg
         skillId: functionSkill(token),
       }));
     }
+    case "key-change":
+      return KEY_CHANGES.map((k) => ({ kind, token: k.id, skillId: `ear.key-change.${k.id}` }));
     case "loop":
       // One target per loop of the set; every loop when no set is named (a retry).
       return (focus?.loops ? loopsIn(focus.loops) : CHORD_LOOPS).map((l) => ({
@@ -316,6 +325,8 @@ export function promptFor(
         keyPc: focus?.keyPc,
         choices: focusFunctionTokens(focus),
       });
+    case "key-change":
+      return keyChangePrompt(rand, { difficulty, dest: t.token, keyPc: focus?.keyPc });
     case "loop":
       return loopPrompt(rand, {
         loop: CHORD_LOOPS.find((l) => l.id === t.token) ?? CHORD_LOOPS[0],
@@ -325,7 +336,12 @@ export function promptFor(
     case "scale-degree":
       return scaleDegreePrompt(rand, { difficulty, level, degree: t.token, keyPc: focus?.keyPc });
     case "melody-dictation":
-      return melodyDictationPrompt(rand, { difficulty, level, degree: t.token });
+      return melodyDictationPrompt(rand, {
+        difficulty,
+        level,
+        degree: t.token,
+        keyPc: focus?.keyPc,
+      });
   }
 }
 
@@ -378,8 +394,16 @@ export interface SessionInput {
  */
 export function buildSession(inp: SessionInput): EarPrompt[] {
   const length = inp.length ?? EAR_SESSION_LENGTH;
-  // One key for the whole run: the drills in a key keep it, so it is set once.
-  const focus: Focus = { ...inp.focus, keyPc: inp.focus?.keyPc ?? randInt(inp.rand, 0, 11) };
+  // One key for the whole run, or a new one every `keyEvery` prompts: the drills
+  // in a key keep it, so it is set once per block.
+  const keys = [inp.focus?.keyPc ?? randInt(inp.rand, 0, 11)];
+  const keyAt = (i: number) => {
+    const block = inp.focus?.keyEvery ? Math.floor(i / inp.focus.keyEvery) : 0;
+    // Each new key differs from the one before it.
+    while (keys.length <= block) keys.push(pc(keys.at(-1)! + randInt(inp.rand, 1, 11)));
+    return keys[block];
+  };
+  const focusAt = (i: number): Focus => ({ ...inp.focus, keyPc: keyAt(i) });
   // Shuffled so equal priorities (a fresh start) don't always run in table order.
   const targets = shuffle(
     inp.kinds.flatMap((k) => targetsFor(k, inp.level, inp.focus)),
@@ -425,10 +449,10 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
       return pool[pool.length - 1];
     };
     for (const it of shuffle(items, inp.rand).slice(0, length))
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focusAt(out.length)));
     while (out.length < length) {
       const it = pickWeighted(out.at(-1)?.answer);
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focusAt(out.length)));
     }
     return out;
   }
@@ -443,7 +467,7 @@ export function buildSession(inp: SessionInput): EarPrompt[] {
         ? prev.drill === it.target.kind
         : prev.answer === it.target.token);
     if (!repeat || i > items.length * 3)
-      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focus));
+      out.push(promptFor(it.target, it.difficulty, inp.level, inp.rand, focusAt(out.length)));
     i++;
   }
   return out;
@@ -455,13 +479,17 @@ export function targetForSkill(
   kinds: EarKind[],
   level: string,
 ): EarTarget | undefined {
-  for (const k of kinds) {
-    const hit = targetsFor(
-      k,
-      k === "scale-degree" || k === "melody-dictation" ? "full-current" : level,
-    ).find((t) => t.skillId === skillId);
-    if (hit) return hit;
-  }
+  // Chords in a key: minor-key skills are only among the minor targets.
+  const variants: Focus[] = [{}, { minor: true }];
+  for (const k of kinds)
+    for (const v of k === "chord-function" || k === "progression" ? variants : [variants[0]]) {
+      const hit = targetsFor(
+        k,
+        k === "scale-degree" || k === "melody-dictation" ? "full-current" : level,
+        v,
+      ).find((t) => t.skillId === skillId);
+      if (hit) return hit;
+    }
   return undefined;
 }
 
@@ -469,13 +497,24 @@ export function targetForSkill(
 export function retryPrompts(events: ScoringEvent[], kinds: EarKind[], rand: Rand): EarPrompt[] {
   const { stats } = ingestAnalytics({}, [], events);
   const items = retrySchedule(skillSummaries(stats));
-  const focus = { keyPc: randInt(rand, 0, 11) };
+  const keyPc = randInt(rand, 0, 11);
   const seen = new Set<string>();
   const out: EarPrompt[] = [];
   for (const it of items) {
-    const t = targetForSkill(it.skillId, kinds, "full-current");
-    if (!t || seen.has(`${t.kind}:${t.token}`)) continue;
+    const found = targetForSkill(it.skillId, kinds, "full-current");
+    if (!found) continue;
+    // The latest miss: a chord in a key comes back as it was asked (minor, seventh) in its
+    // key, read from the prompt id's last number.
+    const miss = events.filter((e) => !e.correct && e.skillIds.includes(it.skillId)).at(-1);
+    const asked = typeof miss?.target === "string" ? miss.target : undefined;
+    const t =
+      found.kind === "chord-function" && asked && functionSkill(asked) === it.skillId
+        ? { ...found, token: asked }
+        : found;
+    if (seen.has(`${t.kind}:${t.token}`)) continue;
     seen.add(`${t.kind}:${t.token}`);
+    const missKey = Number(/-(\d+)$/.exec(miss?.promptId ?? "")?.[1]);
+    const focus = { keyPc: Number.isFinite(missKey) ? pc(missKey) : keyPc };
     out.push(promptFor(t, it.difficulty, "full-current", rand, focus));
   }
   return out;
@@ -496,6 +535,7 @@ export const KIND_LABEL: Record<EarKind, string> = {
   "pitch-compare": "Fine pitch",
   "error-detect": "Spot the wrong note",
   progression: "Progressions",
+  "key-change": "Key changes",
   loop: "Song loops",
   "scale-degree": "Scale degrees",
   "melody-dictation": "Melody dictation",
@@ -527,6 +567,10 @@ export function tokenLabel(
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
   if (kind === "progression") return token.split(" ").map(functionLabel).join(", ");
   if (kind === "loop") return token.split(" ").map(numeralLabel).join(", ");
+  if (kind === "key-change") {
+    const [dest, ...chords] = token.split(" ");
+    return `${keyChangeLabel(dest).toLowerCase()}, by ${chords.map(numeralLabel).join(", ")}`;
+  }
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))
     return degreeLabel(token, labels);
   if (kind === "melody-dictation" || kind === "repertoire-transfer")

@@ -316,7 +316,7 @@ test.describe("guitar drills", () => {
       "/music/fretboard?mode=legato&pattern=hammer-pull&string=3&startFret=5&instrument=guitar&bpm=60&perBeat=2",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
-      "Hammer on, pull off: 0 2 0, on string 3 from fret 5",
+      "Hammer on, pull off, 5h7p5, on string 3 from fret 5",
     );
     await startMic(page);
     await page.evaluate(() => (window as any).__mic.set(0));

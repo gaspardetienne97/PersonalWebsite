@@ -4,7 +4,7 @@
   // chord, else a generated one ("gen.guitar.11.m7").
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import { chordId, chordLabel, chordRef, COMMON_QUALITIES, qualityLabel, rootName, type ChordRef } from "./chords";
+  import { chordId, chordLabel, chordRef, COMMON_QUALITIES, qualityLabel, rootName, SHELL_QUALITIES, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
 
   let { label, instrument, value, onchange, setupKey }: { label: string; instrument: Fretted; value: string; onchange: (id: string) => void; setupKey?: string } = $props();
@@ -18,6 +18,8 @@
   const common = $derived(COMMON_QUALITIES.includes(ref.quality));
   let more = $state(false);
   const set = (c: ChordRef) => onchange(chordId(instrument, c));
+  /** Guitar 7th chords can be played as shells (root, 3rd and 7th). */
+  const shellable = $derived(instrument === "guitar" && SHELL_QUALITIES.includes(ref.quality));
   const options = (qs: string[]) => qs.map((q) => ({ value: q, label: qualityLabel(q) }));
 </script>
 
@@ -35,6 +37,17 @@
         {/each}
       {:else}
         <Choice label="Quality" options={options(COMMON_QUALITIES)} value={ref.quality} onchange={(quality) => set({ ...ref, quality })} />
+      {/if}
+      {#if shellable}
+        <Choice
+          label="Voicing"
+          options={[
+            { value: "full", label: "Full chord" },
+            { value: "shell", label: "Shell", hint: "Root, 3rd and 7th on three strings, the root on string 6 or 5." },
+          ]}
+          value={ref.shell ? "shell" : "full"}
+          onchange={(v) => set({ ...ref, shell: v === "shell" })}
+        />
       {/if}
       {#if more || common}
         <button type="button" class="self-start text-sm font-medium text-instr-ink underline underline-offset-4" aria-expanded={more} onclick={() => (more = !more)}>{more ? "Fewer qualities" : "More qualities"}</button>

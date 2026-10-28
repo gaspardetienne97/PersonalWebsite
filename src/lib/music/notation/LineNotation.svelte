@@ -12,6 +12,7 @@
   import Tab from "./Tab.svelte";
   import Staff from "./Staff.svelte";
   import type { GroupState } from "./NotationFrame.svelte";
+  import type { BeatRange } from "./groups";
 
   interface Props {
     notes: { midi: number; startBeat: number; durationBeats: number; string?: number; fret?: number; hand?: "left" | "right"; finger?: number }[];
@@ -32,8 +33,13 @@
     oneRow?: boolean;
     /** Chord symbols drawn above the staff at their beats (a lead sheet). */
     chords?: Score["chords"];
+    /** Tap two notes to mark a range: the range shown tinted, and what the taps chose. */
+    selection?: BeatRange | null;
+    onselect?: (sel: BeatRange) => void;
+    /** The tempo the selection's length is read at. */
+    bpm?: number;
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords, selection = null, onselect, bpm }: Props = $props();
   const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
@@ -77,9 +83,9 @@
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>
   <div style:zoom={zoom}>
     {#if tuning}
-      <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} />
+      <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" />
     {:else}
-      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} />
+      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" />
     {/if}
   </div>
 </div>

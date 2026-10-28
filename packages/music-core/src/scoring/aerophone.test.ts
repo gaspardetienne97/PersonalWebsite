@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ControlEvent, NoteEvent } from "../types";
 import {
+  attackTiming,
   gradeArticulation,
   gradeIntervalLanding,
   gradeLongTone,
@@ -167,5 +168,81 @@ describe("articulation", () => {
       correct: false,
     });
     expect(gradeArticulation({ ...base, style: "staccato", notes: [] }).score).toBe(0);
+  });
+});
+
+describe("attack timing", () => {
+  const beatMs = 500;
+  it("times each attack against its click, early negative, late positive", () => {
+    const notes = [0, 510, 960, 1700].flatMap((at) => [
+      note("noteon", 67, 1000 + at),
+      note("noteoff", 67, 1000 + at + 150),
+    ]);
+    const t = attackTiming({ count: 4, stepMs: beatMs, downbeat: 1000, notes });
+    expect(t.offsets).toEqual([0, 10, -40, 200]);
+    // Within a quarter of the step (125 ms here) and never past 100 ms.
+    expect(t.windowMs).toBe(100);
+    expect(t).toMatchObject({ onTime: 3, timing: 0.75 });
+    expect(t.meanOffsetMs).toBeCloseTo(42.5, 6);
+    expect(attackTiming({ count: 4, stepMs: beatMs, downbeat: 1000, notes: [] }).offsets).toEqual([
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+  it("a tongue stop the instrument kept sounding is timed from the breath", () => {
+    // One note-on, then three dips and rises in CC 2 on the next clicks.
+    const notes = [note("noteon", 67, 1000)];
+    const breath = [
+      cc2(1005, 0.8),
+      ...[1, 2, 3].flatMap((i) => [
+        cc2(1000 + i * beatMs - 40, 0.1),
+        cc2(1000 + i * beatMs + 15, 0.8),
+      ]),
+    ];
+    const t = attackTiming({ count: 4, stepMs: beatMs, downbeat: 1000, notes, breath });
+    expect(t.offsets).toEqual([0, 15, 15, 15]);
+    // A breath rise just after a note-on is the same attack.
+    const both = attackTiming({
+      count: 1,
+      stepMs: beatMs,
+      downbeat: 1000,
+      notes,
+      breath: [cc2(990, 0.1), cc2(1020, 0.8)],
+    });
+    expect(both.offsets).toEqual([0]);
+  });
+  it("with a downbeat, articulation needs three in four attacks on the click", () => {
+    const at = (i: number) => 1000 + i * beatMs + (i % 2 ? 150 : 0);
+    const notes = Array.from({ length: 8 }, (_, i) => [
+      note("noteon", 67, at(i)),
+      note("noteoff", 67, at(i) + 0.35 * beatMs),
+    ]).flat();
+    const r = gradeArticulation({
+      targetMidi: 67,
+      count: 8,
+      style: "staccato",
+      beatMs,
+      notes,
+      downbeat: 1000,
+    });
+    expect(r.timing).toMatchObject({ onTime: 4, timing: 0.5 });
+    expect(r.correct).toBe(false);
+    expect(r.score).toBeCloseTo(0.4 + 0.3 + 0.3 * 0.5, 6);
+    const steady = Array.from({ length: 8 }, (_, i) => [
+      note("noteon", 67, 1000 + i * beatMs),
+      note("noteoff", 67, 1000 + i * beatMs + 0.35 * beatMs),
+    ]).flat();
+    expect(
+      gradeArticulation({
+        targetMidi: 67,
+        count: 8,
+        style: "staccato",
+        beatMs,
+        notes: steady,
+        downbeat: 1000,
+      }),
+    ).toMatchObject({ score: 1, correct: true });
   });
 });

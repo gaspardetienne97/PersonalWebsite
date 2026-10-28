@@ -168,10 +168,10 @@ describe("graph", () => {
       T0,
     );
     const reading = rows.find((r) => r.capability === "reading")!;
-    // The seed's 8 reading skills and the app's 9 circle-of-fifths skills.
-    expect(reading.total).toBe(17);
+    // The seed's 8 reading skills and the app's 10 circle-of-fifths skills.
+    expect(reading.total).toBe(18);
     expect(reading.mastered).toBe(1);
     // landmarks 0.9 and the reading.treble umbrella at 0.45
-    expect(reading.average).toBeCloseTo((0.9 + 0.45) / 17, 10);
+    expect(reading.average).toBeCloseTo((0.9 + 0.45) / 18, 10);
   });
 });

@@ -19,7 +19,7 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
-  import { benchFromUrl, spanOf } from "$lib/music/drills/piano/transport.svelte";
+  import { benchFromUrl, sounding, spanOf, Transport, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -47,6 +47,7 @@
   let pedalDown = $state(false);
   let pedalTrace = $state.raw<{ at: number; value: number }[]>([]);
   const flashes = new Flashes();
+  const transport = new Transport();
   let cap: Capture | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let raf = 0;
@@ -55,8 +56,14 @@
 
   const barIndex = $derived(phase === "running" && now >= downbeat ? Math.min(bars.length - 1, Math.floor((now - downbeat) / barMs)) : null);
   const current = $derived(barIndex === null ? (phase === "ready" ? bars[0] : null) : bars[barIndex]);
+  /** The chart as timed notes, for Hear it first: each chord held for its bar. */
+  const demoNotes = $derived<TimedNote[]>(bars.flatMap((b, k) => [b.leftHand, ...b.rightHand].map((midi, i) => ({ midi, beat: k * 4, dur: 4, hand: i === 0 ? ("left" as const) : ("right" as const) }))));
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
+    if (transport.playing) {
+      for (const n of sounding(demoNotes, transport.beat)) out[n.midi] = { demo: true, label: n.hand === "left" ? "L" : "R", role: n.hand };
+      return out;
+    }
     if (mode !== "practice" || phase === "results" || !current) return out;
     out[current.leftHand] = { target: true, label: "L", role: "left" };
     for (const m of current.rightHand) out[m] = { target: true, label: "R", role: "right" };
@@ -79,7 +86,14 @@
     }
   }
 
+  async function playDemo() {
+    if (transport.playing) return transport.stop();
+    status = "Listen: a chord a bar, each ringing into the next. The pedal is yours to add.";
+    await transport.demo(demoNotes, bpm);
+  }
+
   function start(ctx: RunContext) {
+    transport.stop();
     summary = null;
     result = null;
     chordOk = [];
@@ -208,6 +222,7 @@
   }
 
   onDestroy(() => {
+    transport.stop();
     clearTimeout(timer);
     cancelAnimationFrame(raf);
     cap?.stop();
@@ -248,6 +263,8 @@
   clock={{ bpm, beatsPerBar: 4 }}
   onstart={start}
   onstop={stop}
+  ondemo={playDemo}
+  demoPlaying={transport.playing}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
@@ -273,17 +290,18 @@
   {/snippet}
 
   {#snippet stage()}
+    {@const demoBar = transport.playing && transport.beat !== null ? Math.floor(transport.beat / 4) : null}
     <ol class="mb-3 grid grid-cols-4 gap-2" aria-label="Chord chart, a chord a bar">
       {#each bars as b, k (k)}
         {@const v = result?.verdicts[k]}
-        <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k ? "step" : undefined}>
+        <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
           <span class="font-display text-xl font-semibold">{b.symbol}</span>
           <span class="text-xs text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
         </li>
       {/each}
     </ol>
     {#if mode === "practice" || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
+      <div class="mb-3"><LineNotation notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={transport.playing ? transport.beat : barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
     {/if}
     {#if phase !== "ready"}
     <figure class="mb-3">

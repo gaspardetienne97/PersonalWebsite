@@ -5,6 +5,9 @@
   // on the clock for a set number of choruses and grades each one on a game
   // (scoring/improv): chord tones on strong beats, guide-tone landings, time,
   // rests, or a constraint the paths name. Every run is saved as a take.
+  // One of your scores with chord symbols and a melody plays as a tune too
+  // (progression=song-<id>, or ?shelf=<path>/<song> for a shelf song), and its
+  // head is drawn on the lead sheet for the games that need the melody.
   import { onDestroy, onMount } from "svelte";
   import Music from "lucide-svelte/icons/music";
   import SkipForward from "lucide-svelte/icons/skip-forward";
@@ -14,7 +17,9 @@
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
   import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
   import { ACCOMP_PROGRESSIONS } from "@repo/music-core/content/accompany";
-  import { REHARM_DEVICES, TUNES, chorusLabel, formatReharm, parseReharm, reharmDevice, reharmOptions, reharmonise, sectionStarts, type ReharmDevice } from "@repo/music-core/content/tunes";
+  import { REHARM_DEVICES, TUNES, chorusLabel, formatReharm, parseReharm, reharmDevice, reharmOptions, reharmonise, sectionStarts, tuneFromScore, type HeadNote, type ReharmDevice } from "@repo/music-core/content/tunes";
+  import type { Progression } from "@repo/music-core/content/jam";
+  import { LEARNING_PATHS, type PathId } from "@repo/music-core/progress/paths";
   import { rng } from "@repo/music-core/content/random";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { chorusReport, type ChorusReport } from "@repo/music-core/scoring/jam";
@@ -36,7 +41,8 @@
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, settings, type SequenceHandle } from "$lib/music/runtime";
+  import { audio, db, settings, type SequenceHandle } from "$lib/music/runtime";
+  import { addShelfSong, shelfSong, type Song } from "$lib/music/hubs/library/songs";
   import { backingNotes, callNotes, chordVoicing, degreeLabel, positionAt, type BackingMode } from "$lib/music/drills/jam/backing";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
@@ -46,7 +52,11 @@
   const POOL = [...ACCOMP_PROGRESSIONS, ...TUNES];
   const cfg = new DrillSetup("jam", { progression: "ii-v-i", backing: "both", transpose: 0, track: "", game: "free", choruses: 2, trade: 0, meter: 4, reharm: "" });
   const s = $derived(cfg.value);
-  const base = $derived(POOL.find((p) => p.id === s.progression) ?? POOL[0]);
+  /** Your scores with chord symbols and a melody, as tunes with their head. */
+  let library = $state.raw<{ progression: Progression; head: HeadNote[] }[]>([]);
+  let libraryNote = $state("");
+  const pool = $derived([...POOL, ...library.map((l) => l.progression)]);
+  const base = $derived(pool.find((p) => p.id === s.progression) ?? POOL[0]);
   const game = $derived(gameOf(s.game));
   const CHORUS_COUNTS = [1, 2, 3, 4, 6, 8];
   const runChoruses = $derived(CHORUS_COUNTS.includes(s.choruses) ? s.choruses : 2);
@@ -61,12 +71,14 @@
   const swaps = $derived(parseReharm(s.reharm));
   const meter = $derived(s.meter === 3 ? 3 : 4);
   const prog = $derived({ ...reharmonise(writtenProg, swaps), beatsPerBar: meter });
+  /** The tune's melody in the chosen key, when it is one of your scores. */
+  const head = $derived(library.find((l) => l.progression.id === base.id)?.head.map((n) => ({ ...n, midi: n.midi + s.transpose })) ?? null);
   const bpb = $derived(meter);
   // The practice strip owns the tempo; picking a progression sets it to the tune's.
   const bpm = $derived(settings.value.bpm);
   const beatMs = $derived(60000 / bpm);
   function pickProgression(id: string) {
-    const tune = POOL.find((p) => p.id === id);
+    const tune = pool.find((p) => p.id === id);
     cfg.set({ progression: id, reharm: "", meter: tune?.beatsPerBar ?? 4 });
     if (tune) settings.update({ bpm: tune.bpm });
   }
@@ -108,8 +120,30 @@
   let graded = $state.raw<ImprovGrade | null>(null);
   let delta = $state<number | null>(null);
 
+  async function loadLibrary() {
+    const rows = (await db.songs.toArray()) as unknown as Song[];
+    library = rows.flatMap((r) => {
+      const t = r.score ? tuneFromScore(r.score, `song-${r.id}`, r.title) : null;
+      return t ? [t] : [];
+    });
+  }
+
   onMount(async () => {
     tracks = await listTracks().catch(() => []);
+    await loadLibrary().catch(() => {});
+    // A shelf song by its key: the library copy, added from its downloaded score when there is none.
+    const key = page.url.searchParams.get("shelf");
+    if (!key) return;
+    const [path, id] = key.split("/");
+    const entry = LEARNING_PATHS[path as PathId]?.levels?.flatMap((l) => l.shelf).find((x) => x.id === id);
+    try {
+      const song = (await shelfSong(key)) ?? (await addShelfSong(key, entry?.title ?? id, entry?.artist));
+      await loadLibrary();
+      if (!library.some((l) => l.progression.id === `song-${song.id}`)) throw new Error(`${song.title} has no chord symbols, so Jam cannot read its changes.`);
+      pickProgression(`song-${song.id}`);
+    } catch (e) {
+      libraryNote = (e as Error).message;
+    }
   });
 
   const chord = $derived(prog.chords[chordIdx] ?? prog.chords[0]);
@@ -343,7 +377,7 @@
       status = !notes.length ? "Nothing was played, so nothing was recorded." : "Stopped before the first chorus ended, so nothing was graded.";
       return;
     }
-    const g = gradeImprov(prog, notes, { game, choruses: done, swing: swings(prog), bpm, windows: s.trade ? windows : undefined });
+    const g = gradeImprov(prog, notes, { game, choruses: done, swing: swings(prog), bpm, windows: s.trade ? windows : undefined, head: head ?? undefined });
     graded = g;
     const inst = runInstrument(events);
     const take: MidiTake = {
@@ -369,7 +403,7 @@
   }
 
   /** "Head", "Solo 2" in a tune's form; "Chorus 3" otherwise. */
-  const chorusName = (k: number, total: number) => (base.sections ? chorusLabel(k, total) : `Chorus ${k + 1}`);
+  const chorusName = (k: number, total: number) => (base.sections || head ? chorusLabel(k, total) : `Chorus ${k + 1}`);
 
   function stopReview() {
     review?.stop();
@@ -427,16 +461,16 @@
   /** Where the form is now, in beats from the top of the chorus. */
   const formBeat = $derived(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) * bpb + beatInChord);
   const sections = $derived(sectionStarts(prog));
-  /** A tune's lead sheet: the changes over empty bars, read with the player's own melody. */
+  /** A tune's lead sheet: the changes over empty bars, read with the player's own melody, or your score's head. */
   const leadSheet = $derived<Score | null>(
-    base.sections
+    base.sections || head
       ? {
           id: `lead-${prog.id}-${s.transpose}-${meter}-${s.reharm}`,
           title: prog.name,
           bpm,
           meter: { beats: bpb, beatUnit: 4 },
           keyFifths: signatureFor(prog.keyPc, /minor/.test(prog.key) ? "natural-minor" : /dorian/.test(prog.key) ? "dorian" : "major"),
-          voices: [{ id: "line", name: "Melody", notes: [] }],
+          voices: [{ id: "line", name: "Melody", notes: (head ?? []).map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.end - n.beat })) }],
           lengthBeats: barsTotal * bpb,
           chords: prog.chords.map((c, i) => ({ symbol: c.symbol, startBeat: prog.chords.slice(0, i).reduce((n, x) => n + x.bars, 0) * bpb, durationBeats: c.bars * bpb })),
           source: { kind: "generated" },
@@ -489,7 +523,7 @@
   bind:status
   progress={checking ? ((chorus - 1) * barsTotal + formBeat / bpb) / (runChoruses * barsTotal) : formBeat / bpb / barsTotal}
   startLabel="Start jamming"
-  blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : null}
+  blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : game.head && !head ? `${game.label} needs a tune with its melody: pick one of your scores in Progression.` : null}
   onstart={start}
   onstop={stop}
 >
@@ -497,13 +531,23 @@
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="progression">
         <span class="font-medium">Progression</span>
-        <Picker label="Progression" value={s.progression} options={JAM_GROUPS.flatMap((g) => POOL.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label })))} onchange={pickProgression} />
-        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.{base.composer ? ` ${base.composer}: the changes only, read the head from your book.` : ""}</span>
+        <Picker
+          label="Progression"
+          value={base.id}
+          options={[
+            ...JAM_GROUPS.flatMap((g) => POOL.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label }))),
+            ...library.map((l) => ({ value: l.progression.id, label: l.progression.name, group: "Your scores with chords and melody" })),
+          ]}
+          onchange={pickProgression}
+        />
+        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.{base.composer ? ` ${base.composer}: the changes only, read the head from your book.` : head ? " Your score: its chords and its melody." : ""}</span>
+        {#if libraryNote}<p role="alert" class="font-medium text-destructive">{libraryNote} <a class="underline underline-offset-4" href="/music/library?tab=import">Import a score</a></p>{/if}
       </div>
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="game">
         <span class="font-medium">Game</span>
-        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
+        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.head ? "On the head (your scores)" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
         <span class="text-ws-soft">{game.about}</span>
+        {#if game.head && !head}<span class="text-ws-soft">Import a lead sheet with chord symbols (MusicXML from MuseScore) in Library, then pick it in Progression.</span>{/if}
       </div>
       <Choice label="Choruses in Check" setupKey="choruses" options={CHORUS_COUNTS.map((n) => ({ value: n, label: String(n) }))} value={runChoruses} onchange={(v) => cfg.set({ choruses: v })} />
       <Choice

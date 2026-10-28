@@ -190,3 +190,46 @@ describe("chord cycle", () => {
     expect(cycleRefs("guitar", "guitar.c-major,guitar.c-major")).toHaveLength(2);
   });
 });
+
+describe("guitar shells", () => {
+  const std = TUNINGS.guitar[0];
+  it("1-3-7 and 1-7-3 with the root on strings 6 and 5", () => {
+    const g7 = positionsOn(chordId("guitar", { root: 7, quality: "7", shell: true }), std);
+    expect(g7.map((p) => p.positionLabel)).toEqual([
+      "1-3-7, root on 6",
+      "1-7-3, root on 6",
+      "1-3-7, root on 5",
+      "1-7-3, root on 5",
+    ]);
+    // Strings 1 to 6: G7 as 3 2 3 on strings 6 5 4, and 3 x 3 4 on 6 4 3.
+    expect(g7[0].frets).toEqual([null, null, null, 3, 2, 3]);
+    expect(g7[0].fingers).toEqual([null, null, null, 3, 1, 2]);
+    expect(g7[1].frets).toEqual([null, null, 4, 3, null, 3]);
+    // Root on 5: G7 at the 10th fret.
+    expect(g7[2].frets).toEqual([null, null, 10, 9, 10, null]);
+    const cmaj7 = positionsOn("shell.guitar.0.maj7", std);
+    expect(cmaj7[2].frets).toEqual([null, null, 4, 2, 3, null]);
+    expect(cmaj7[3].frets).toEqual([null, 5, 4, null, 3, null]);
+    const dm7 = positionsOn("shell.guitar.2.m7", std);
+    expect(dm7[2].frets).toEqual([null, null, 5, 3, 5, null]);
+    // Every note a chord tone, no 5th, and a finger that reaches.
+    for (const q of ["maj7", "m7", "7"])
+      for (let r = 0; r < 12; r++)
+        for (const p of positionsOn(`shell.guitar.${r}.${q}`, std)) {
+          const low = Math.min(...p.frets.filter((f): f is number => !!f));
+          p.frets.forEach((f, i) => {
+            if (f && p.fingers[i]) expect(f - low, p.id).toBeLessThanOrEqual(p.fingers[i]!);
+          });
+          expect(p.frets.filter((f) => f !== null)).toHaveLength(3);
+        }
+  });
+  it("a shell id names its chord and keeps the shell; the ukulele and other qualities get the full chord", () => {
+    expect(chordRef("shell.guitar.7.7@2")).toEqual({ root: 7, quality: "7", shell: true });
+    expect(chordLabel(chordRef("shell.guitar.7.7")!)).toBe("G7");
+    expect(chordId("guitar", { root: 7, quality: "maj", shell: true })).toBe("guitar.g-major");
+    expect(chordId("ukulele", { root: 7, quality: "7", shell: true })).toBe("ukulele.g7");
+    expect(
+      cycleRefs("guitar", "shell.guitar.2.m7,shell.guitar.7.7").map((r) => chordId("guitar", r)),
+    ).toEqual(["shell.guitar.2.m7", "shell.guitar.7.7"]);
+  });
+});

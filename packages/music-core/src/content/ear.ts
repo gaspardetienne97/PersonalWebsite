@@ -4,6 +4,7 @@ import { CADENCES_AND_QUALITIES, EAR_TRAINING, SCALE_DATA } from "../data";
 import type { Score } from "../types";
 import { clamp01, noteName, pc } from "../theory/notes";
 import { INTERVALS } from "../theory/intervals";
+import { numeralChord, numeralSymbol } from "./loops";
 import { pick, randInt, type Rand } from "./random";
 
 export type EarDrillKind =
@@ -13,6 +14,7 @@ export type EarDrillKind =
   | "cadence"
   | "chord-function"
   | "progression"
+  | "key-change"
   | "loop"
   | "scale"
   | "inversion"
@@ -81,7 +83,8 @@ const CHORD_FUNCTION_DRILLS = [
   {
     slug: "progressions",
     title: "Progression dictation",
-    description: "Three or four chords starting on I: write down the rest.",
+    description:
+      "Three or four chords starting on I: write down the rest. Or a key change: where it goes, and how.",
     drill: "progression",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -958,6 +961,77 @@ export function progressionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Key changes (Progression dictation's second kind): the old key is set, then a
+// few chords take it somewhere else. The answer is where it went, then those
+// chords as numerals in the new key.
+
+/** Where a progression can go from the key it starts in (major). */
+export const KEY_CHANGES = [
+  { id: "up-half", label: "Up a half step", shift: 1, minor: false },
+  { id: "up-step", label: "Up a whole step", shift: 2, minor: false },
+  { id: "up-min3", label: "Up a minor third", shift: 3, minor: false },
+  { id: "down-min3", label: "Down a minor third", shift: 9, minor: false },
+  { id: "down-maj3", label: "Down a major third", shift: 8, minor: false },
+  { id: "up-4th", label: "Up a fourth", shift: 5, minor: false },
+  { id: "relative", label: "To the relative minor", shift: 9, minor: true },
+  { id: "parallel", label: "To the parallel minor", shift: 0, minor: true },
+] as const;
+/** The ways in, as numerals in the new key; the first (a ii-V) is the only one below difficulty 0.5. */
+const KEY_CHANGE_PATHS = {
+  major: ["ii7 V7 Imaj7", "V7 Imaj7", "iv7 bVII7 Imaj7"],
+  minor: ["iiø7 V7 i7", "V7 i7"],
+};
+/** The answer buttons after the first slot: every chord the ways in use. */
+export const KEY_CHANGE_NUMERALS = ["ii7", "iiø7", "iv7", "V7", "bVII7", "Imaj7", "i7"];
+export const keyChangeLabel = (id: string) => KEY_CHANGES.find((k) => k.id === id)?.label ?? id;
+
+/** I, IV, V, I in the old key, then the chords of `answer` in the new one, 0.9 s apart, the arrival held. */
+export function keyChangePlayback(fromPc: number, answer: string): PlaybackEvent[] {
+  const [dest, ...chords] = answer.split(" ");
+  const to = pc(fromPc + (KEY_CHANGES.find((k) => k.id === dest) ?? KEY_CHANGES[0]).shift);
+  const all = [
+    ...["I", "IV", "V", "I"].map((t) => numeralChord(fromPc, t)),
+    ...chords.map((t) => numeralChord(to, t)),
+  ];
+  return all.map((midi, i) => note(midi, i * 0.9, i === all.length - 1 ? 1.6 : 0.8));
+}
+
+/** "C major to A minor, the relative minor: Bø7, E7, Am7": an answer spelled out from its old key. */
+export function keyChangeCaption(fromPc: number, answer: string): string {
+  const [dest, ...chords] = answer.split(" ");
+  const k = KEY_CHANGES.find((x) => x.id === dest) ?? KEY_CHANGES[0];
+  const to = pc(fromPc + k.shift);
+  const name = (p: number, minor: boolean) =>
+    `${noteName(48 + p, "flat", false)} ${minor ? "minor" : "major"}`;
+  const where = k.label.replace(/^To t/, "t").toLowerCase();
+  return `${name(fromPc, false)} to ${name(to, k.minor)}, ${where}: ${chords.map((t) => numeralSymbol(to, t)).join(", ")}`;
+}
+
+/** One key change; `dest` picks where it goes, `keyPc` the key it starts in. */
+export function keyChangePrompt(
+  rand: Rand,
+  opts: { difficulty: number; dest?: string; keyPc?: number },
+): EarPrompt & { fromPc: number } {
+  const k = KEY_CHANGES.find((x) => x.id === opts.dest) ?? pick(rand, KEY_CHANGES);
+  const paths = KEY_CHANGE_PATHS[k.minor ? "minor" : "major"];
+  const path = opts.difficulty < 0.5 ? paths[0] : pick(rand, paths);
+  const fromPc = opts.keyPc ?? randInt(rand, 0, 11);
+  const answer = `${k.id} ${path}`;
+  return {
+    id: `key-change-${k.id}-${path.replaceAll(" ", "_")}-${fromPc}`,
+    drill: "key-change",
+    skillIds: ["ear.key-changes", `ear.key-change.${k.id}`],
+    playback: keyChangePlayback(fromPc, answer),
+    keyEvents: 4,
+    answer,
+    choices: [...KEY_CHANGES.map((x) => x.id), ...KEY_CHANGE_NUMERALS],
+    difficulty: opts.difficulty,
+    caption: keyChangeCaption(fromPc, answer),
+    fromPc,
+  };
+}
+
 /** Tonic for 0.55 s, then the target 0.7 s later for 0.65 s. `keyPc` fixes the tonic (C3 to B3). */
 export function scaleDegreePrompt(
   rand: Rand,
@@ -996,6 +1070,14 @@ export function resolutionToTonic(tonic: number, semitones: number): number[] {
   return [s, ...path].map((x) => tonic + x);
 }
 
+/** After an answer: the note `last` stepping home to the nearest tonic of the key, short notes then a held one. */
+export const stepHome = (keyPc: number, last: number): PlaybackEvent[] => {
+  const tonic = last - pc(last - keyPc);
+  return resolutionToTonic(tonic, last - tonic).map((m, i, all) =>
+    note(m, i * 0.35, i === all.length - 1 ? 0.8 : 0.3),
+  );
+};
+
 const PHRASE_SPACING = 0.55;
 // ponytail: note length inside the 0.55 s spacing is unspecified; 0.5 s leaves a small gap.
 const PHRASE_NOTE = 0.5;
@@ -1011,8 +1093,8 @@ function phrasePlayback(tonic: number, notes: number[]): PlaybackEvent[] {
  */
 export function melodyDictationPrompt(
   rand: Rand,
-  opts: { difficulty: number; level: string; degree?: string },
-): EarPrompt {
+  opts: { difficulty: number; level: string; degree?: string; keyPc?: number },
+): EarPrompt & { keyPc: number; minor: boolean } {
   const degrees = levelDegrees(opts.level);
   const target =
     opts.degree && degrees.includes(opts.degree as DegreeLabel) ? opts.degree : pick(rand, degrees);
@@ -1025,7 +1107,7 @@ export function melodyDictationPrompt(
   } else {
     labels = [target, other(target), target, "1"];
   }
-  const tonic = earRoot(rand);
+  const tonic = opts.keyPc === undefined ? earRoot(rand) : 48 + pc(opts.keyPc);
   const midi = labels.map((l) => tonic + degreeOf(l).semitones);
   return {
     id: `melody-${labels.join("_")}-${tonic}`,
@@ -1036,6 +1118,9 @@ export function melodyDictationPrompt(
     choices: [],
     difficulty: opts.difficulty,
     expectedMidi: midi,
+    keyPc: pc(tonic),
+    // A minor level (b3 and no 3) is heard after a minor cadence.
+    minor: degrees.includes("b3") && !degrees.includes("3"),
   };
 }
 

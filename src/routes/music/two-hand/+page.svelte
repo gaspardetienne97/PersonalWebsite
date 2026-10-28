@@ -8,6 +8,10 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
+  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
+  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { page } from "$app/state";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -73,6 +77,8 @@
   });
   const totalBeats = BARS * 4;
   const span = $derived(spanOf(notes.map((n) => n.midi)));
+  const falling = $derived(page.url.searchParams.get("view") === "falling");
+  const fallScore = $derived(lineScore(notes.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.dur, hand: n.hand, finger: n.finger }))));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -286,6 +292,10 @@
   onstart={start}
   onstop={stop}
 >
+  {#snippet actions()}
+    {#if mode === "practice" || phase === "results"}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
+  {/snippet}
+
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
       <Choice label="Pattern" setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
@@ -320,18 +330,22 @@
         >
       </div>
     </div>
-    {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></div>
+    {#if falling && (mode === "practice" || transport.playing || phase === "results")}
+      <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+    {:else}
+      {#if mode === "practice" || transport.playing || phase === "results"}
+        <div class="mb-3"><LineNotation notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></div>
+      {/if}
+      <BeatLane
+        rows={lanes}
+        beats={totalBeats}
+        beat={transport.beat}
+        {eighths}
+        hidden={mode === "check" && !transport.playing}
+        label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
+      />
+      <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
     {/if}
-    <BeatLane
-      rows={lanes}
-      beats={totalBeats}
-      beat={transport.beat}
-      {eighths}
-      hidden={mode === "check" && !transport.playing}
-      label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
-    />
-    <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
     <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
       {#if mode === "check" && phase !== "results"}<p>Check mode: the lane keeps the rhythm, the notes are hidden.</p>{/if}
       <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is authored only for Mirror hands."}</p>

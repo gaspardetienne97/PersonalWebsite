@@ -5,9 +5,20 @@
 // threshold is a proposal to tune on the owner's MPC.
 
 import type { DrumVoiceId, GrooveDef } from "../data";
+import type { Metric, NoteEvent } from "../types";
+import { gradeGroove, grooveWindowMs } from "../scoring/pads";
 import { gridGroove, type Lanes } from "./pads-grid";
-import { inRange, rankCorrelation, type VelocityRange } from "./pad-skills";
-import { repertoireFor } from "./pads-repertoire";
+import {
+  PAD_FILLS,
+  fillGroove,
+  gradeImprovise,
+  inRange,
+  rankCorrelation,
+  type ImproviseGrade,
+  type VelocityRange,
+} from "./pad-skills";
+import { PAD_REPERTOIRE, repertoireFor } from "./pads-repertoire";
+import { GROOVE_VOICES } from "./winds-pads";
 
 type Target = { voice: string; beat: number; accent: "accent" | "normal" | "ghost" };
 /** A groove whose voices may be slices as well as drums (the grader takes any voice with a pad). */
@@ -664,6 +675,232 @@ export function sectionPasses(
     tally.extra <= Math.max(1, Math.round(total * SECTION_PASS.extraShare)) &&
     dynOk !== false
   );
+}
+
+// ---------------------------------------------------------------------------
+// A piece you write (pads path 11.9, the set): sections in order from the
+// app's grooves at any level, a chop section on the slices, a solo over a
+// loop (graded as Improvise is) and an end, a fill landing on the one or a
+// stop. Each section has its bars and its dynamics band, graded in one take.
+
+export type WrittenRole = "intro" | "groove" | "chop" | "solo" | "end";
+export interface WrittenSection {
+  role: WrittenRole;
+  /** Intro, groove: a repertoire groove. Chop: a chop source. Solo: the groove the app loops under it. End: a fill id or "stop". */
+  ref: string;
+  /** Chop: "order", or an edit id for a written reorder. */
+  edit?: string;
+  /** An end is 1 bar (a stop) or 2 (the fill, then the one), whatever this says. */
+  bars: number;
+  dyn: Dyn;
+}
+export interface WrittenSong {
+  id: string;
+  label: string;
+  bpm: number;
+  sections: WrittenSection[];
+}
+/** Where a section sits in the piece, in bars, under its unique label. */
+export interface WrittenSpan {
+  label: string;
+  role: WrittenRole;
+  from: number;
+  bars: number;
+}
+export type WrittenPiece = PadPiece & {
+  dyn: Dyn[];
+  spans: WrittenSpan[];
+  /** The chop source on the slices (every chop section plays the first one's), or null. */
+  chop: string | null;
+  /** What the app plays under the solos: their loops on the kit. */
+  under: Target[];
+};
+
+/** Grooves a piece can use: 4/4 on the sixteenth grid (a piece is one grid), any level. */
+export const WRITTEN_GROOVES = PAD_REPERTOIRE.filter(
+  (r) =>
+    r.topic !== "phrases" &&
+    (r.groove.beatsPerBar ?? 4) === 4 &&
+    (r.groove.stepsPerBeat ?? 4) === 4,
+).sort((a, b) => a.level - b.level);
+export const WRITTEN_ENDS = [
+  { id: "stop", label: "A stop: crash and kick on the one" },
+  ...PAD_FILLS.filter((f) => !f.groove).map((f) => ({
+    id: f.id,
+    label: `${f.label}, then the one`,
+  })),
+];
+const GROOVE_PADS: Record<string, number> = Object.fromEntries(
+  GROOVE_VOICES.map((v) => [v.id, v.midi]),
+);
+
+/** A new piece in the set's shape: about three minutes at 90. */
+export function newWrittenSong(id: string): WrittenSong {
+  return {
+    id,
+    label: "My set",
+    bpm: 90,
+    sections: [
+      { role: "intro", ref: "eighth-hats", bars: 4, dyn: "soft" },
+      { role: "groove", ref: "boom-bap-b", bars: 16, dyn: "medium" },
+      { role: "groove", ref: "funky-drummer", bars: 16, dyn: "loud" },
+      { role: "chop", ref: "boom-bap-b", edit: "flip", bars: 8, dyn: "medium" },
+      { role: "groove", ref: "dilla", bars: 16, dyn: "medium" },
+      { role: "solo", ref: "boom-bap-b", bars: 8, dyn: "loud" },
+      { role: "end", ref: "snare-eighths", bars: 2, dyn: "loud" },
+    ],
+  };
+}
+
+/** The whole piece as one groove, a label and a band per bar; slices are voices `slice-N`. */
+export function writtenPiece(song: WrittenSong): WrittenPiece {
+  const targets: Target[] = [];
+  const under: Target[] = [];
+  const labels: string[] = [];
+  const dyn: Dyn[] = [];
+  const spans: WrittenSpan[] = [];
+  const seen: Partial<Record<WrittenRole, number>> = {};
+  let chop: string | null = null;
+  let bar = 0;
+  for (const s of song.sections) {
+    seen[s.role] = (seen[s.role] ?? 0) + 1;
+    const label =
+      song.sections.filter((x) => x.role === s.role).length > 1
+        ? `${s.role} ${seen[s.role]}`
+        : s.role;
+    let bars = Math.max(1, Math.round(s.bars));
+    let src: { bars: number; targets: readonly Target[] } | undefined;
+    if (s.role === "chop") {
+      const source: ChopSource = chopSource(chop ?? s.ref) ?? CHOP_SOURCES[0];
+      chop ??= source.id;
+      src = chopPiece(source, s.edit && s.edit !== "order" ? "reorder" : "order", s.edit);
+    } else if (s.role === "end") {
+      bars = s.ref === "stop" ? 1 : 2;
+      src = {
+        bars,
+        targets:
+          s.ref === "stop"
+            ? [
+                { voice: "crash", beat: 0, accent: "accent" },
+                { voice: "kick", beat: 0, accent: "accent" },
+              ]
+            : fillGroove(s.ref)
+                .targets.filter((t) => t.beat >= 12)
+                .map((t) => ({ ...t, beat: t.beat - 12 })),
+      };
+    } else src = repertoireFor(s.ref)?.groove;
+    if (!src) throw new Error(`${song.id}: ${label} has no groove ${s.ref}`);
+    const into = s.role === "solo" ? under : targets;
+    for (let b = 0; b < bars; b++) {
+      const at = b % src.bars;
+      for (const t of src.targets)
+        if (Math.floor(t.beat / 4 + 1e-9) === at)
+          into.push({ ...t, beat: (bar + b) * 4 + t.beat - at * 4 });
+      labels.push(label);
+      dyn.push(s.dyn);
+    }
+    spans.push({ label, role: s.role, from: bar, bars });
+    bar += bars;
+  }
+  targets.sort((a, b) => a.beat - b.beat);
+  return {
+    value: `song-own-${song.id}`,
+    label: song.label,
+    bars: bar,
+    sectionLabels: labels,
+    targets,
+    dyn,
+    spans,
+    chop,
+    under,
+  };
+}
+
+/** The set (pads 11.9): an intro first, grooves from three levels, a chop, a solo, an end last, 3 to 5 minutes. */
+export const THE_SET = { levels: 3, minMinutes: 3, maxMinutes: 5 } as const;
+export function setCheck(song: WrittenSong, bpm: number) {
+  const roles = song.sections.map((s) => s.role);
+  const levels = new Set(
+    song.sections.filter((s) => s.role === "groove").map((s) => repertoireFor(s.ref)?.level),
+  ).size;
+  const minutes = (writtenPiece(song).bars * 4) / bpm;
+  const missing = [
+    ...(roles[0] === "intro" ? [] : ["an intro first"]),
+    ...(levels >= THE_SET.levels ? [] : [`grooves from three levels (${levels} now)`]),
+    ...(roles.includes("chop") ? [] : ["a chop section"]),
+    ...(roles.includes("solo") ? [] : ["a solo"]),
+    ...(roles.at(-1) === "end" ? [] : ["an end last"]),
+    ...(minutes >= THE_SET.minMinutes - 1e-9 && minutes <= THE_SET.maxMinutes + 1e-9
+      ? []
+      : ["3 to 5 minutes"]),
+  ];
+  return { ok: !missing.length, minutes, missing };
+}
+
+export interface WrittenSectionGrade extends WrittenSpan {
+  matched: number;
+  missed: number;
+  extra: number;
+  /** A solo's time and density, as Improvise grades them. */
+  solo: ImproviseGrade | null;
+  dyn: ReturnType<typeof sectionDynamics>[number] | null;
+  pass: boolean;
+}
+
+/**
+ * A written piece in one take, section by section: each section's notes on
+ * its own pads (the slices share A01 to A16 with the kit, so a chop is graded
+ * on its own), a solo on time and density, and every band when velocity was
+ * measured (`range` null when it was not).
+ */
+export function gradeWrittenSong(
+  piece: WrittenPiece,
+  hits: readonly NoteEvent[],
+  startAt: number,
+  beatMs: number,
+  range: VelocityRange | null,
+) {
+  const ons = hits.filter((h) => h.kind === "noteon");
+  const w = grooveWindowMs(beatMs);
+  const dyn = range ? sectionDynamics(piece, ons, startAt, beatMs, range) : null;
+  const perTarget: (number | null)[] = piece.targets.map(() => null);
+  const metrics: Metric[] = [];
+  const sections = piece.spans.map((sp): WrittenSectionGrade => {
+    const from = startAt + sp.from * 4 * beatMs;
+    const mine = ons.filter((h) => h.at >= from - w && h.at < from + sp.bars * 4 * beatMs - w);
+    const d = dyn?.find((x) => x.label === sp.label) ?? null;
+    if (sp.role === "solo") {
+      const g = gradeImprovise(mine, from, beatMs, sp.bars);
+      const base = { ...sp, matched: 0, missed: 0, extra: 0, solo: g, dyn: d };
+      return { ...base, pass: g.correct && d?.ok !== false };
+    }
+    const idx = piece.targets.flatMap((t, i) =>
+      t.beat >= sp.from * 4 - 1e-9 && t.beat < (sp.from + sp.bars) * 4 - 1e-9 ? [i] : [],
+    );
+    const r = gradeGroove({
+      targets: idx.map((i) => piece.targets[i]),
+      voicePads: sp.role === "chop" ? CHOP_PADS : GROOVE_PADS,
+      sectionLabels: [sp.label],
+      beatsPerBar: 4,
+      beatMs,
+      startAt,
+      hits: mine,
+    });
+    if ("error" in r) throw new Error(r.error);
+    idx.forEach((i, k) => (perTarget[i] = r.perTarget[k]));
+    metrics.push(...r.metrics);
+    const tally = { matched: r.matched, missed: r.missed, extra: r.extra };
+    return { ...sp, ...tally, solo: null, dyn: d, pass: sectionPasses(tally, d?.ok ?? null) };
+  });
+  const passed = sections.filter((x) => x.pass).length;
+  return {
+    sections,
+    passed,
+    score: passed / Math.max(1, sections.length),
+    correct: passed === sections.length,
+    perTarget,
+    metrics,
+  };
 }
 
 // ---------------------------------------------------------------------------

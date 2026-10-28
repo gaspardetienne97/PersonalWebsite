@@ -1,14 +1,15 @@
 // Jazz piano voicing types for the Voicings drill, built by rule from a key:
 // diatonic sevenths, So What and quartal stacks, sus slash chords, two-handed
 // rootless, 4-way close and drop-2, Shearing locked hands, Red Garland block
-// chords, Evans spreads, Monk's clusters, and upper structures on a tune's
-// dominants. Every voicing is standard vocabulary; the blues melodies are
+// chords, Evans spreads, Monk's clusters, upper structures on a tune's
+// dominants, and quartal and slash voicings on a tune's changes. Every voicing is standard vocabulary; the blues melodies are
 // written for the drill, and tunes give their changes only.
 
 import { pc, pcOf } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { signatureFor } from "../theory/circle";
 import { diatonicNames, spellInKey } from "../theory/spelling";
+import { scaleSemitones } from "../theory/scales";
 import { TUNES } from "./tunes";
 
 export type JazzVoicingId =
@@ -23,7 +24,9 @@ export type JazzVoicingId =
   | "garland"
   | "evans"
   | "monk"
-  | "upper";
+  | "upper"
+  | "quartal-tune"
+  | "slash-tune";
 
 export interface JazzVoicingType {
   id: JazzVoicingId;
@@ -133,6 +136,22 @@ export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
       "Every dominant in a tune's changes: a 1-3-7 shell in the left hand and a triad on top. The II triad (9 #11 13) on a dominant going to major, the bVI (#9 b13) on one going to minor or marked altered, the VI (b9 13) on one marked b9.",
     skillId: TWO_HANDED,
   },
+  {
+    id: "quartal-tune",
+    label: "Quartal on a tune",
+    key: "tune",
+    about:
+      "Every chord in a tune's changes as a left-hand stack of two 4ths from the chord's scale, with its 3rd or 7th inside: 7-3-6 on a major 7th, 11-b7-b3 on a minor 7th, 5-1-4 on a 7sus.",
+    skillId: QUARTAL,
+  },
+  {
+    id: "slash-tune",
+    label: "Slash chords on a tune",
+    key: "tune",
+    about:
+      "Every chord in a tune's changes as a triad over its root, as Herbie Hancock voices them: the major triad a whole step below the root on a minor 7th (m11), a 7sus or a dominant (9sus), the triad on the 5th over a major 7th (maj9), the minor triad on the b3 over a half-diminished.",
+    skillId: QUARTAL,
+  },
 ];
 
 export interface JazzVoicingChord {
@@ -198,6 +217,18 @@ export function chordSpeller(rootName: string, quality: "7" | "m7") {
     if (diff > 6) diff -= 12;
     return LETTERS[li] + (diff > 0 ? "#".repeat(diff) : "b".repeat(-diff));
   };
+}
+
+/** A triad in whichever inversion sits nearest the last one (the first in root position), from `floor` up. */
+function nearestTriad(triad: number[], floor: number, last: number[]): number[] {
+  const options = [0, 1, 2].map((inv) =>
+    stack([...triad.slice(inv), ...triad.slice(0, inv)], floor),
+  );
+  if (!last.length) return options[0];
+  const centre = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  return options.sort(
+    (a, b) => Math.abs(centre(a) - centre(last)) - Math.abs(centre(b) - centre(last)),
+  )[0];
 }
 
 /** Up the scale's degrees and back: 0..top, then top-1..0. */
@@ -324,15 +355,7 @@ export function jazzVoicingChords(
       const left = stack([r, r + 7], 43);
       const triad = [r + 10, r + 14, r + 17].map(pc);
       // The triad in whichever inversion sits nearest the last one, from Bb3 up.
-      const options = [0, 1, 2].map((inv) =>
-        stack([...triad.slice(inv), ...triad.slice(0, inv)], Math.max(58, left[1] + 1)),
-      );
-      const centre = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
-      rh = rh.length
-        ? options.sort(
-            (a, b) => Math.abs(centre(a) - centre(rh)) - Math.abs(centre(b) - centre(rh)),
-          )[0]
-        : options[0];
+      rh = nearestTriad(triad, Math.max(58, left[1] + 1), rh);
       const symbol = `${nm(r)}7sus`;
       const slash = `${nm(r + 10)}/${nm(r)}`;
       return chord(type, group, i, {
@@ -483,8 +506,10 @@ export function jazzVoicingChords(
     });
   }
 
-  // Upper structures: every dominant in a tune's changes, once each.
   const tune = TUNES.find((t) => t.id === opts.tune) ?? TUNES[0];
+  if (id === "quartal-tune" || id === "slash-tune") return tuneVoicings(type, tune);
+
+  // Upper structures: every dominant in a tune's changes, once each.
   const seen = new Set<string>();
   const out: JazzVoicingChord[] = [];
   tune.chords.forEach((c, i) => {
@@ -521,6 +546,102 @@ export function jazzVoicingChords(
       }),
     );
   });
+  return out;
+}
+
+/** A chord's 3rd (the 4th of a sus chord) and 7th (the 6th of a sixth or diminished chord), above the root. */
+function guideOf(intervals: readonly number[]) {
+  const iv = intervals.map((i) => i % 12);
+  return {
+    // A #9 chord also holds the minor 3rd: the major 3rd wins.
+    third: [4, 3, 5].find((i) => iv.includes(i)),
+    seventh: [10, 11, 9].find((i) => iv.includes(i)),
+  };
+}
+
+/**
+ * A stack of two perfect 4ths inside the chord's scale with a guide tone in it, as semitones above
+ * the root: the lowest note tried on the 7th, the 3rd, the 4th, the 5th, the 9th, the 6th, then the
+ * root. A scale with no such stack (diminished, altered) takes the 7th, the 3rd above it and a 4th on top.
+ */
+export function quartalStack(intervals: readonly number[], scale: readonly number[]): number[] {
+  const { third, seventh } = guideOf(intervals);
+  const guides = [third, seventh].filter((g): g is number => g !== undefined);
+  const inScale = (i: number) => scale.includes(pc(i));
+  for (const b of [seventh, third, 5, 7, 2, 9, 0]) {
+    if (b === undefined) continue;
+    const st = [b, b + 5, b + 10];
+    if (st.every(inScale) && st.some((i) => guides.includes(pc(i)))) return st;
+  }
+  const low = seventh ?? third ?? 0;
+  const mid = low + pc((third ?? 7) - low);
+  return [low, mid, mid + 5];
+}
+
+/** The triad a slash voicing puts over the root: its root above the chord's, and major, minor or diminished. */
+function slashTriad(intervals: readonly number[]): {
+  at: number;
+  kind: "" | "m" | "dim";
+  adds: string;
+} {
+  const iv = intervals.map((i) => i % 12);
+  const has = (i: number) => iv.includes(i);
+  if (has(3) && has(6) && !has(4))
+    return has(9)
+      ? { at: 3, kind: "dim", adds: "b3 b5 6" }
+      : { at: 3, kind: "m", adds: "b3 b5 b7" };
+  if (has(10)) return { at: 10, kind: "", adds: has(3) ? "b7 9 11" : "b7 9 11, a 9sus sound" };
+  if (has(3)) return { at: 5, kind: "", adds: "11 13 1" };
+  return { at: 7, kind: "", adds: "5 7 9" };
+}
+
+/** Quartal or slash voicings on each chord of a tune's changes, once per chord symbol, in order. */
+function tuneVoicings(type: JazzVoicingType, tune: (typeof TUNES)[number]): JazzVoicingChord[] {
+  const seen = new Set<string>();
+  const out: JazzVoicingChord[] = [];
+  let rh: number[] = [];
+  for (const c of tune.chords) {
+    const parsed = parseChordSymbol(c.symbol);
+    if (!parsed || parsed.bassPc !== undefined || seen.has(c.symbol)) continue;
+    seen.add(c.symbol);
+    const r = parsed.rootPc;
+    const minor = parsed.intervals.includes(3);
+    const nm = chordSpeller(parsed.rootName, minor ? "m7" : "7");
+    if (type.id === "quartal-tune") {
+      const scale = (scaleSemitones(c.scale.name) ?? []).map((s) => pc(c.scale.rootPc + s - r));
+      const st = quartalStack(parsed.intervals, scale.length ? scale : parsed.intervals);
+      const left = stack(
+        st.map((i) => r + i),
+        48,
+      );
+      out.push(
+        chord(type, tune.name, out.length, {
+          symbol: c.symbol,
+          left,
+          right: [],
+          name: `${c.symbol}: 4ths from ${nm(r + st[0])}, ${left.map((m) => nm(m)).join(" ")}, in the left hand.`,
+          ask: `${c.symbol}: a left-hand stack of 4ths with its 3rd or 7th inside.`,
+        }),
+      );
+      continue;
+    }
+    const t = slashTriad(parsed.intervals);
+    const third = t.kind === "" ? 4 : 3;
+    const triad = [0, third, t.kind === "dim" ? 6 : 7].map((i) => pc(r + t.at + i));
+    const left = parsed.intervals.includes(7) ? stack([r, r + 7], 43) : [above(r, 43)];
+    rh = nearestTriad(triad, Math.max(58, left[left.length - 1] + 1), rh);
+    const slash = `${nm(r + t.at)}${t.kind}/${parsed.rootName}`;
+    out.push(
+      chord(type, tune.name, out.length, {
+        symbol: c.symbol,
+        left,
+        right: rh,
+        name: `${c.symbol} as ${slash}: ${left.map((m) => nm(m)).join(" and ")} in the left hand, the ${nm(r + t.at)}${t.kind === "" ? " major" : t.kind === "m" ? " minor" : " diminished"} triad in the right (${t.adds}). Any inversion.`,
+        ask: `${c.symbol} as a slash chord, the root lowest.`,
+        order: false,
+      }),
+    );
+  }
   return out;
 }
 

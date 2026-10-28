@@ -7,8 +7,17 @@ import {
   reharmDevice,
   reharmOptions,
   reharmonise,
+  tuneFromScore,
 } from "../content/tunes";
-import { gameOf, gradeImprov, tradeWindows, type ImprovNote } from "./improv";
+import type { Score } from "../types";
+import {
+  aSectionBars,
+  findQuotes,
+  gameOf,
+  gradeImprov,
+  tradeWindows,
+  type ImprovNote,
+} from "./improv";
 
 const blues = PROGRESSIONS.find((p) => p.id === "blues")!; // C7 4, F7 2, C7 2, G7 2, C7 2
 const iiVI = PROGRESSIONS.find((p) => p.id === "ii-v-i")!; // Dm7 2, G7 2, Cmaj7 2, A7 2
@@ -295,5 +304,121 @@ describe("reharmonisation", () => {
     expect(one("passing-dim").slice(0, 2)).toEqual(["G7 0.5", "Bdim7 0.5"]);
     expect(one("chromatic-ii-v")).toEqual(["G7 0.5", "Ebm7 0.25", "Ab7 0.25"]);
     expect(reharmDevice(parseReharm("2:backdoor"))).toBe("backdoor");
+  });
+});
+
+describe("tunes with their melody: quote the head, melody and fills", () => {
+  it("finds fragments of four notes or more, in any octave, repeats counted once", () => {
+    const head = [67, 64, 64, 65, 67, 72, 71, 69];
+    // An octave up, with the repeated E played once, then something else, then the tail.
+    const line = [79, 76, 77, 79, 60, 62, 67, 72, 71, 69];
+    expect(findQuotes(line, head)).toEqual([
+      { from: 0, to: 3, length: 4 },
+      { from: 6, to: 9, length: 4 },
+    ]);
+    // The same notes a step up are not the head; three notes are not enough.
+    expect(findQuotes([69, 66, 67, 69], head)).toEqual([]);
+    expect(findQuotes([67, 64, 65], head)).toEqual([]);
+  });
+
+  // A 16-bar AABA form, four bars a section, with a head that rests in every second bar.
+  const score: Score = {
+    id: "s1",
+    title: "Test tune",
+    bpm: 120,
+    meter: { beats: 4, beatUnit: 4 },
+    keyFifths: 0,
+    lengthBeats: 64,
+    sections: ["A", "A", "B", "A"].map((label, k) => ({
+      label,
+      startBeat: k * 16,
+      endBeat: k * 16 + 16,
+    })),
+    chords: Array.from({ length: 8 }, (_, k) => ({
+      symbol: k % 2 ? "G7" : "Cmaj7",
+      startBeat: k * 8,
+      durationBeats: 8,
+    })),
+    voices: [
+      {
+        id: "m",
+        name: "Melody",
+        notes: Array.from({ length: 8 }, (_, k) =>
+          [67, 64, 65, 67].map((midi, j) => ({ midi, startBeat: k * 8 + j, durationBeats: 1 })),
+        ).flat(),
+      },
+    ],
+  };
+
+  it("reads a score as a tune: the form from its chords, the head from its melody", () => {
+    const t = tuneFromScore(score, "song-s1")!;
+    expect(t.progression.chords.map((c) => `${c.symbol} ${c.bars}`).slice(0, 2)).toEqual([
+      "Cmaj7 2",
+      "G7 2",
+    ]);
+    expect(chorusBars(t.progression)).toBe(16);
+    expect(t.progression.sections?.map((x) => x.label).join(" ")).toBe("A A B A");
+    expect(aSectionBars(t.progression)).toEqual([0, 4, 12]);
+    expect(t.head).toHaveLength(32);
+    expect(tuneFromScore({ ...score, chords: [] }, "x")).toBeNull();
+  });
+
+  it("quote the head: each A section opened with a fragment", () => {
+    const t = tuneFromScore(score, "song-s1")!;
+    const opts = { choruses: 1, swing: false, bpm: 120, head: t.head };
+    // The fragment an octave up at bars 0 and 4, then a scale at bar 12.
+    const at = (bar: number, midis: number[]) =>
+      midis.map((midi, j) => ({
+        midi: midi,
+        beat: bar * 4 + j * 0.5,
+        end: bar * 4 + j * 0.5 + 0.5,
+      }));
+    const quote = [79, 76, 77, 79, 84];
+    const two = gradeImprov(
+      t.progression,
+      [...at(0, quote), ...at(4, quote), ...at(12, [60, 62, 64, 65])],
+      {
+        ...opts,
+        game: gameOf("quote"),
+      },
+    );
+    expect(two.choruses[0].parts[0]).toMatchObject({ value: 2 / 3, detail: "2 of 3 A sections" });
+    const all = gradeImprov(t.progression, [...at(0, quote), ...at(4, quote), ...at(12, quote)], {
+      ...opts,
+      game: gameOf("quote"),
+    });
+    expect(all.passed).toBe(true);
+    // No melody: nothing to quote, so nothing passes.
+    expect(
+      gradeImprov(t.progression, at(0, quote), { ...opts, head: [], game: gameOf("quote") }).score,
+    ).toBe(0);
+  });
+
+  it("melody and fills: the head's notes, and 2 to 4 notes in its rests", () => {
+    const t = tuneFromScore(score, "song-s1")!;
+    const melody = t.head.map((h) => ({ midi: h.midi + 12, beat: h.beat, end: h.end }));
+    // A three-note fill in the rest of each of the first six bars of rest (beats 4 to 8 of each 8).
+    const fills = Array.from({ length: 6 }, (_, k) =>
+      [0, 0.5, 1].map((o) => ({ midi: 72, beat: k * 8 + 4.5 + o, end: k * 8 + 5 + o })),
+    ).flat();
+    const g = gradeImprov(t.progression, [...melody, ...fills], {
+      game: gameOf("melody-fills"),
+      choruses: 1,
+      swing: false,
+      bpm: 120,
+      head: t.head,
+    });
+    expect(g.choruses[0].measures.melody!.value).toBe(1);
+    expect(g.choruses[0].measures.fills).toEqual({ value: 6, detail: "6 of 8 rests filled" });
+    expect(g.passed).toBe(true);
+    // The melody alone fills nothing.
+    const bare = gradeImprov(t.progression, melody, {
+      game: gameOf("melody-fills"),
+      choruses: 1,
+      swing: false,
+      bpm: 120,
+      head: t.head,
+    });
+    expect(bare.passed).toBe(false);
   });
 });

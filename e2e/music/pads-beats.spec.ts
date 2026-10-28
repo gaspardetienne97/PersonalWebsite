@@ -178,6 +178,79 @@ test.describe("beat making on the pads", () => {
     );
   });
 
+  test("a piece you write: grooves, a chop on the slices, a solo and a stop, graded per section", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    await enableMidi(page, "/music/pads?mode=song&bpm=160");
+    // A new piece comes in the set's shape, saved with the settings.
+    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await page.getByRole("button", { name: "Write a new piece" }).click();
+    await expect(page.getByTestId("set-check")).toContainText("In the set's shape");
+    await expect(page.getByTestId("song-builder").getByRole("listitem")).toHaveCount(7);
+
+    // A short piece written straight into the settings, to play in one take.
+    const song = {
+      id: "e2e",
+      label: "Short set",
+      bpm: 160,
+      sections: [
+        { role: "intro", ref: "eighth-hats", bars: 1, dyn: "soft" },
+        { role: "groove", ref: "basic-rock", bars: 2, dyn: "medium" },
+        { role: "groove", ref: "boom-bap-b", bars: 2, dyn: "medium" },
+        { role: "groove", ref: "funky-drummer", bars: 2, dyn: "loud" },
+        { role: "chop", ref: "boom-bap-b", edit: "flip", bars: 2, dyn: "medium" },
+        { role: "solo", ref: "boom-bap-b", bars: 2, dyn: "medium" },
+        { role: "end", ref: "stop", bars: 1, dyn: "loud" },
+      ],
+    };
+    await page.evaluate(
+      (song) =>
+        new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open("woodshed");
+          open.onsuccess = () => {
+            const tx = open.result.transaction("settings", "readwrite");
+            tx.objectStore("settings").put({ id: "pads.written-songs", value: [song] });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          };
+        }),
+      song,
+    );
+    await page.goto("/music/pads?mode=song&form=own-e2e&bpm=160");
+    await expect(page.getByText("Short set.")).toBeVisible({ timeout: 10_000 });
+    const barMs = 1500;
+    // soft, medium, medium, medium, medium, loud, loud, medium (chop), medium (solo), loud (end)
+    const level = (at: number) => {
+      const bar = Math.floor((at + 50) / barMs);
+      return bar < 1 ? 40 : (bar >= 5 && bar < 7) || bar >= 11 ? 115 : 75;
+    };
+    const stage = page.getByTestId("pad-skills");
+    await page.getByRole("button", { name: /^Start/ }).click({ timeout: 20_000 });
+    await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
+    const targets = JSON.parse((await stage.getAttribute("data-targets"))!) as [number, number][];
+    const downbeat = Number(await stage.getAttribute("data-downbeat"));
+    // Slices sit on A01 to A16 in bars 8 and 9, nothing is written for the solo.
+    expect(targets.some(([pad, at]) => at >= 7 * barMs && at < 9 * barMs && pad === 37)).toBe(true);
+    expect(targets.some(([, at]) => at >= 9 * barMs && at < 11 * barMs)).toBe(false);
+    const solo = Array.from(
+      { length: 16 },
+      (_, k) => [k % 2 ? 42 : 38, 9 * barMs + k * 187.5, 75] as [number, number, number],
+    );
+    await send(page, downbeat, [
+      ...targets.map(([pad, at]) => [pad, at, level(at)] as [number, number, number]),
+      ...solo,
+    ]);
+    await expect(page.getByRole("status")).toContainText(
+      "Every section passed in one take, each at its level",
+      { timeout: 40_000 },
+    );
+    const results = page.locator("article").first();
+    await expect(results).toContainText("Chop");
+    await expect(results).toContainText("Solo");
+    await expect(results).toContainText("The set");
+  });
+
   test("Stick Control, the clave and new reading lines", async ({ page }) => {
     test.setTimeout(90_000);
     await enableMidi(page, "/music/pads?mode=rudiment&pattern=stick-rrll&bpm=120");

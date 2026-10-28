@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { chordIn, CIRCLE_MODES, circlePrompt, countLabel, gradeCircle, KEY_BANDS } from "./circle";
+import {
+  analysisPrompts,
+  barLabel,
+  chordIn,
+  CIRCLE_MODES,
+  circlePrompt,
+  countLabel,
+  gradeCircle,
+  KEY_BANDS,
+} from "./circle";
 import { rng } from "./random";
 
 const seeds = (n: number) => Array.from({ length: n }, (_, i) => rng(i + 1));
 
 describe("circle of fifths drills", () => {
   it("always offers the answer, and keeps to the band", () => {
-    for (const m of CIRCLE_MODES)
+    // Analysis answers a key and a function at once: its own test below.
+    for (const m of CIRCLE_MODES.filter((x) => x.id !== "analysis"))
       for (const b of KEY_BANDS)
         for (const r of seeds(25)) {
           const p = circlePrompt(r, {
@@ -88,5 +98,33 @@ describe("circle of fifths drills", () => {
     expect(gradeCircle(p, p.answer, 1200)).toEqual({ correct: true, slow: false, score: 1 });
     expect(gradeCircle(p, p.answer, 4000)).toEqual({ correct: true, slow: true, score: 0.75 });
     expect(gradeCircle(p, "nope", 500).score).toBe(0);
+  });
+});
+
+describe("tune analysis prompts", () => {
+  it("asks every chord once, with the tune's keys and the functions it needs", () => {
+    const ps = analysisPrompts("tune-all-the-things-you-are");
+    expect(ps).toHaveLength(36);
+    expect(ps[0]).toMatchObject({ ask: "Bar 1: Fm7", answer: "Ab|vi", fifths: -4 });
+    expect(ps[5]).toMatchObject({ ask: "Bar 6, first half: Dm7", answer: "C|ii", fifths: 0 });
+    expect(ps[6].ask).toBe("Bar 6, second half: G7");
+    expect(ps[7].ask).toBe("Bars 7 to 8: Cmaj7");
+    expect(ps[0].analysis!.keys).toEqual(["Ab", "C", "Eb", "G", "E"]);
+    for (const p of ps) {
+      const [key, fn] = p.answer.split("|");
+      expect(p.analysis!.keys).toContain(key);
+      expect(p.choices).toContain(fn);
+    }
+    expect(analysisPrompts("tune-autumn-leaves").find((p) => p.answer === "Gm|i")?.fifths).toBe(-2);
+    expect(barLabel(8.5, 0.5)).toBe("Bar 9, second half");
+  });
+
+  it("gives half credit for the key or the function alone, and is never slow", () => {
+    const p = analysisPrompts("tune-autumn-leaves")[0];
+    expect(p.answer).toBe("Bb|ii");
+    expect(gradeCircle(p, "Bb|ii", 60_000)).toEqual({ correct: true, slow: false, score: 1 });
+    expect(gradeCircle(p, "Bb|V", 1000).score).toBe(0.5);
+    expect(gradeCircle(p, "Gm|ii", 1000).score).toBe(0.5);
+    expect(gradeCircle(p, "Gm|i", 1000)).toMatchObject({ correct: false, score: 0 });
   });
 });

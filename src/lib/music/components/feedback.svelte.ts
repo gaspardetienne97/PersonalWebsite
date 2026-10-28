@@ -4,11 +4,11 @@ export type FlashKind = "correct" | "wrong";
 
 export const FLASH_MS = 320;
 
-export class Flashes {
-  #map = $state<Record<number, FlashKind>>({});
+export class Flashes<K extends string = FlashKind> {
+  #map = $state<Record<number, K>>({});
   #timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  add(key: number, kind: FlashKind, ms = FLASH_MS) {
+  add(key: number, kind: K, ms = FLASH_MS) {
     clearTimeout(this.#timers.get(key));
     this.#map[key] = kind;
     this.#timers.set(
@@ -20,7 +20,7 @@ export class Flashes {
     );
   }
 
-  get(key: number): FlashKind | undefined {
+  get(key: number): K | undefined {
     return this.#map[key];
   }
 

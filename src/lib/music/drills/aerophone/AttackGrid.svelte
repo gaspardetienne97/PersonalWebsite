@@ -8,13 +8,15 @@
     played: (number | null)[];
     current?: number | null;
     style: "staccato" | "legato";
+    /** After a run: each attack against its click in ms (negative early), null when none came. */
+    offsets?: (number | null)[];
   }
-  let { count, target, played, current = null, style }: Props = $props();
+  let { count, target, played, current = null, style, offsets }: Props = $props();
 </script>
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
   <figcaption class="mb-2 text-xs text-ws-stage-soft">
-    Attacks: {style}, each note sounds {Math.round(target * 100)}% of its beat
+    Attacks: {style}, each note sounds {Math.round(target * 100)}% of its beat{offsets ? ". Numbers: ms from the click, minus is early" : ""}
   </figcaption>
   <ol class="grid gap-1.5" style:grid-template-columns="repeat({count}, minmax(0, 1fr))">
     {#each Array.from({ length: count }, (_, i) => i) as i (i)}
@@ -22,7 +24,11 @@
       <li class="cell" class:now={current === i}>
         <span class="fill" style:width="{(f ?? 0) * 100}%" data-set={f !== undefined && f !== null ? "" : undefined}></span>
         <span class="mark" style:left="{target * 100}%"></span>
-        <span class="sr-only">Beat {i + 1}{f != null ? `, sounded ${Math.round(f * 100)}%` : ""}</span>
+        {#if offsets}
+          {@const o = offsets[i]}
+          <span class="off" aria-hidden="true">{o == null ? "none" : `${o > 0 ? "+" : ""}${Math.round(o)}`}</span>
+        {/if}
+        <span class="sr-only">Beat {i + 1}{f != null ? `, sounded ${Math.round(f * 100)}%` : ""}{offsets ? (offsets[i] == null ? ", no attack" : `, ${Math.round(offsets[i]!)} ms from the click`) : ""}</span>
       </li>
     {/each}
   </ol>
@@ -44,6 +50,14 @@
     inset: 0 auto 0 0;
     background: var(--instr);
     opacity: 0.85;
+  }
+  .off {
+    position: absolute;
+    right: 0.25rem;
+    bottom: 0.1rem;
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ws-stage-ink);
   }
   .mark {
     position: absolute;

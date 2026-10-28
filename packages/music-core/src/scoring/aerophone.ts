@@ -204,17 +204,100 @@ export function gradeSwell(w: Window & { low?: number; peak?: number }): SwellRe
 
 export const ARTICULATION_TARGET = { staccato: 0.35, legato: 0.95 } as const;
 
+// ---------------------------------------------------------------------------
+// Attack timing: when each tongued note began against the click.
+
+export const ATTACK = {
+  /** On the click: within this many ms of the beat, or a quarter of the step if that is less. A starting value. */
+  windowMs: 100,
+  /** A breath rise and a note-on this close together are one attack. */
+  mergeMs: 60,
+  /** A breath under this share of the run's median is a tongue stop (the dip tonguing reads). */
+  dip: 0.45,
+} as const;
+
+/**
+ * When each attack began: every note-on, and each breath rise back over the dip
+ * line (a tongued note the instrument kept sounding sends no new note-on).
+ * Attacks within `ATTACK.mergeMs` of each other count once, at the earliest.
+ */
+export function attackTimes(
+  notes: readonly NoteEvent[],
+  breath: readonly ControlEvent[] = [],
+): number[] {
+  const b = breathSamples(breath);
+  const sorted = b.map((c) => c.value).sort((x, y) => x - y);
+  const line = (sorted[Math.floor(sorted.length / 2)] ?? 0) * ATTACK.dip;
+  const rises = b.flatMap((c, i) =>
+    i > 0 && line > 0 && b[i - 1].value < line && c.value >= line ? [c.at] : [],
+  );
+  const all = [...noteOns(notes).map((n) => n.at), ...rises].sort((x, y) => x - y);
+  return all.filter((t, i) => i === 0 || t - all[i - 1] > ATTACK.mergeMs);
+}
+
+export interface AttackTiming {
+  /** Per click: the nearest attack's offset in ms (negative early), null when none came within half a step. */
+  offsets: (number | null)[];
+  onTime: number;
+  /** Share of clicks with an attack on time. */
+  timing: number;
+  /** Mean signed offset of the attacks heard, null when none. */
+  meanOffsetMs: number | null;
+  windowMs: number;
+}
+
+/** Each of `count` clicks, `stepMs` apart from `downbeat`, against the nearest unused attack. */
+export function attackTiming(input: {
+  count: number;
+  stepMs: number;
+  downbeat: number;
+  notes: readonly NoteEvent[];
+  breath?: readonly ControlEvent[];
+}): AttackTiming {
+  const attacks = attackTimes(input.notes, input.breath);
+  const used = new Set<number>();
+  const windowMs = Math.min(ATTACK.windowMs, input.stepMs / 4);
+  const offsets = Array.from({ length: input.count }, (_, i) => {
+    const at = input.downbeat + i * input.stepMs;
+    let best = -1;
+    attacks.forEach((t, k) => {
+      if (
+        !used.has(k) &&
+        Math.abs(t - at) < input.stepMs / 2 &&
+        (best < 0 || Math.abs(t - at) < Math.abs(attacks[best] - at))
+      )
+        best = k;
+    });
+    if (best < 0) return null;
+    used.add(best);
+    return attacks[best] - at;
+  });
+  const heard = offsets.filter((o): o is number => o !== null);
+  const onTime = heard.filter((o) => Math.abs(o) <= windowMs).length;
+  return {
+    offsets,
+    onTime,
+    timing: input.count ? onTime / input.count : 0,
+    meanOffsetMs: heard.length ? mean(heard) : null,
+    windowMs,
+  };
+}
+
 export interface ArticulationResult extends Graded {
   pitch: number;
   /** Null when there are no note-offs or the input is on-screen. */
   articulation: number | null;
   meanSoundingFraction: number | null;
+  /** Each attack against the click; null when the run had no downbeat. */
+  timing: AttackTiming | null;
 }
 
 /**
  * Articulation: the first `count` notes. pitch x 0.5 + articulation x 0.5, where
  * articulation = max(0, 1 - |mean sounding fraction of the beat - target| / 0.6).
- * Correct when every pitch is right and articulation >= 0.7.
+ * Correct when every pitch is right and articulation >= 0.7. Given the run's
+ * downbeat the attacks are timed too: pitch 0.4, articulation 0.3, on the click
+ * 0.3, and correct also needs three in four attacks on the click.
  */
 export function gradeArticulation(input: {
   targetMidi: number;
@@ -222,6 +305,8 @@ export function gradeArticulation(input: {
   style: keyof typeof ARTICULATION_TARGET;
   beatMs: number;
   notes: readonly NoteEvent[];
+  downbeat?: number;
+  breath?: readonly ControlEvent[];
 }): ArticulationResult {
   const ons = noteOns(input.notes).slice(0, input.count);
   const pitch = input.count
@@ -243,15 +328,34 @@ export function gradeArticulation(input: {
     : meanSoundingFraction === null
       ? 0
       : Math.max(0, 1 - Math.abs(meanSoundingFraction - ARTICULATION_TARGET[input.style]) / 0.6);
-  const score = ons.length
-    ? blend([
-        [0.5, pitch],
-        [0.5, articulation],
-      ])
-    : 0;
+  const timing =
+    input.downbeat === undefined
+      ? null
+      : attackTiming({
+          count: input.count,
+          stepMs: input.beatMs,
+          downbeat: input.downbeat,
+          notes: input.notes,
+          breath: input.breath,
+        });
+  const score = !ons.length
+    ? 0
+    : timing
+      ? blend([
+          [0.4, pitch],
+          [0.3, articulation],
+          [0.3, timing.timing],
+        ])
+      : blend([
+          [0.5, pitch],
+          [0.5, articulation],
+        ]);
   return {
     score,
-    correct: pitch === 1 && (articulation === null || articulation >= 0.7),
+    correct:
+      pitch === 1 &&
+      (articulation === null || articulation >= 0.7) &&
+      (!timing || timing.timing >= 0.75),
     metrics: ons.map((n) => ({
       kind: "pitch",
       expectedMidi: input.targetMidi,
@@ -261,5 +365,6 @@ export function gradeArticulation(input: {
     pitch,
     articulation,
     meanSoundingFraction,
+    timing,
   };
 }

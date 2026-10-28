@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { T0, ev, run, session } from "./fixtures";
 import type { Instrument } from "../types";
 import { DAY_MS } from "./mastery";
+import { LEARNING_PATHS, pathProgress } from "./paths";
 import {
   BLOCKS,
   BUDGET_OPTIONS,
   buildRoutine,
   completedSteps,
+  currentPass,
+  dayInstrument,
   dueSkills,
+  passId,
+  pickShelfSong,
   roleLabel,
   routineSummary,
   snapBudget,
@@ -284,5 +289,96 @@ describe("routine completion", () => {
       tags: ["ear"],
     });
     expect(s.runs).toHaveLength(3);
+  });
+});
+
+describe("weekly split", () => {
+  const split = ["guitar", "ukulele", null, "piano"] as const;
+  it("gives each weekday its instrument, else the strip's", () => {
+    expect(dayInstrument([...split], 0, "piano")).toBe("guitar");
+    expect(dayInstrument([...split], 1, "piano")).toBe("ukulele");
+    expect(dayInstrument([...split], 2, "mpc")).toBe("mpc");
+    expect(dayInstrument([...split], 6, "aerophone")).toBe("aerophone");
+    expect(dayInstrument(undefined, 3, "guitar")).toBe("guitar");
+  });
+});
+
+describe("the song block", () => {
+  const guitar = LEARNING_PATHS.guitar;
+  const fresh = pathProgress(guitar, [], undefined, []);
+  const shelf = guitar.levels![0].shelf;
+  const key = (i: number) => `guitar/${shelf[i].id}`;
+
+  it("picks an openable song from the current level's shelf, easiest first", () => {
+    expect(pickShelfSong(fresh, new Set())).toBeUndefined();
+    expect(pickShelfSong(fresh, new Set(["guitar/not-on-the-shelf"]))).toBeUndefined();
+    const hard = shelf.findIndex((s) => (s.diff ?? 1) > 1);
+    const easy = shelf.findIndex((s, i) => i > hard && (s.diff ?? 1) === 1);
+    const song = pickShelfSong(fresh, new Set([key(hard), key(easy)]))!;
+    expect(song.shelf).toBe(key(easy));
+    expect(song.href).toBe(`/music/songs/shelf/${key(easy)}`);
+    expect(song.description).toContain("level 1 of the Guitar Path shelf");
+  });
+
+  it("keeps to a song already started over a fresh one, and plays a song not yet played first", () => {
+    const perf = (shelfKey: string, day: number) =>
+      run({
+        exerciseId: "song.studio",
+        score: 0.9,
+        params: { shelf: shelfKey, mode: "performance", bpm: 300 },
+        endedAt: T0 + day * DAY_MS,
+      });
+    const started = pathProgress(guitar, [], undefined, [perf(key(1), 0)]);
+    expect(pickShelfSong(started, new Set([key(0), key(1)]))!.shelf).toBe(key(1));
+    const played = pathProgress(guitar, [], undefined, [perf(key(1), 0), perf(key(1), 1)]);
+    expect(pickShelfSong(played, new Set([key(0), key(1)]))!.shelf).toBe(key(0));
+  });
+
+  it("takes the song slot with Phrases as the fallback, and completes from runs with its shelf key", () => {
+    const song = pickShelfSong(fresh, new Set([key(0)]))!;
+    const r = buildRoutine({ id: "s", instrument: "guitar", budgetMinutes: 30, song });
+    const block = r.steps.find((s) => s.role === "song")!;
+    expect(block).toMatchObject({ id: "song", label: shelf[0].title, shelf: key(0) });
+    expect(route(block.href)).toBe(`/music/songs/shelf/${key(0)}`);
+    expect(block.href).toContain("routine=s");
+    const without = buildRoutine({ id: "s", instrument: "guitar", budgetMinutes: 30 });
+    expect(without.steps.find((s) => s.role === "song")!.id).toBe("phrases");
+    const at = (shelfKey: string) =>
+      completedSteps(r, [
+        session({
+          routineId: "s",
+          runs: [run({ exerciseId: "song.studio", params: { shelf: shelfKey } })],
+        }),
+      ]);
+    expect(at(key(0))).toEqual([block.n]);
+    expect(at(key(1))).toEqual([]);
+  });
+});
+
+describe("a new pass", () => {
+  it("gets its own id, so its blocks start not done", () => {
+    expect(passId("day", 1)).toBe("day");
+    expect(passId("day", 2)).toBe("day-pass2");
+    const first = buildRoutine({ id: passId("day", 1), instrument: "piano" });
+    const sessions = [
+      session({
+        routineId: "day",
+        runs: first.steps.map((s) => run({ params: { routine: "day", step: s.n } })),
+      }),
+    ];
+    expect(completedSteps(first, sessions)).toHaveLength(first.steps.length);
+    expect(currentPass("day", sessions)).toBe(1);
+    const second = buildRoutine({ id: passId("day", 2), instrument: "piano" });
+    expect(completedSteps(second, sessions)).toEqual([]);
+    const later = [
+      ...sessions,
+      session({
+        routineId: "day-pass2",
+        runs: [run({ params: { routine: "day-pass2", step: 1 } })],
+      }),
+      session({ routineId: "other-day-pass7" }),
+    ];
+    expect(currentPass("day", later)).toBe(2);
+    expect(completedSteps(second, later)).toEqual([1]);
   });
 });

@@ -349,7 +349,7 @@
           ? gradeSwell({ ...w, low: SWELL.low, peak: SWELL.peak })
           : m === "interval-landing"
             ? gradeIntervalLanding(w)
-            : gradeArticulation({ targetMidi, count: s.count, style, beatMs, notes });
+            : gradeArticulation({ targetMidi, count: s.count, style, beatMs, notes, downbeat, breath: controls });
     // A level: half the score is the share of breath inside the band, and it must be mostly there (the release after the hold does not count).
     const inHold = controls.filter((c) => c.kind === "cc" && c.controller === 2 && windowStart !== null && c.at >= windowStart && c.at <= windowStart + holdMs).map((c) => c.value);
     levelShare = level && inHold.length ? inBandShare(inHold, level.band) : null;
@@ -387,6 +387,7 @@
     status = summary.headline;
   }
 
+  const signedMs = (o: number) => `${o > 0 ? "+" : ""}${Math.round(o)}`;
   const onScreen = (ons: NoteEvent[]) => ons.some((n) => n.source !== "midi");
   const whyNot = (ons: NoteEvent[]) => (onScreen(ons) ? "the chart and keys have no breath" : "no CC 2 arrived");
 
@@ -400,11 +401,19 @@
           ? { label: `Articulation (${onScreen(ons) ? "taps have no real note length" : "no note-offs arrived"})`, notMeasured: true }
           : { label: `Articulation, target ${Math.round(ARTICULATION_TARGET[style] * 100)}% of the beat`, value: r.articulation, text: `${Math.round((r.meanSoundingFraction ?? 0) * 100)}% sounding` },
       ];
+      const t = r.timing;
+      const drift = t?.meanOffsetMs == null ? "" : Math.abs(t.meanOffsetMs) < 10 ? "on average right on it" : `on average ${Math.round(Math.abs(t.meanOffsetMs))} ms ${t.meanOffsetMs < 0 ? "early" : "late"}`;
+      if (t) {
+        rows.push({ label: `Attacks on the click (within ${Math.round(t.windowMs)} ms)`, value: t.timing, text: `${t.onTime} of ${s.count}${drift ? `, ${drift}` : ""}` });
+        rows.push({ label: "Each attack against its click, in ms", text: t.offsets.map((o) => (o === null ? "none" : signedMs(o))).join(", ") });
+      }
       const headline =
         r.pitch < 1
           ? `${Math.round(r.pitch * s.count)} of ${s.count} notes were ${chartName(targetMidi)}. Keep the fingering still between attacks.`
-          : r.articulation === null
-            ? `Every pitch right. Articulation needs the Aerophone to be measured.`
+          : t && t.timing < 0.75
+            ? `Right notes, but ${s.count - t.onTime} of ${s.count} attacks missed the click${drift ? `, ${drift}` : ""}. Tongue each note with the click.`
+            : r.articulation === null
+            ? `Every pitch right${t ? " and on the click" : ""}. Articulation needs the Aerophone to be measured.`
             : r.correct
               ? `Clean ${style}: every ${chartName(targetMidi)} right, ${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of each beat sounding.`
               : (r.meanSoundingFraction ?? 0) > ARTICULATION_TARGET[style]
@@ -553,7 +562,7 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_16rem]" data-testid="aerophone-stage">
+    <div class="grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_16rem]" data-testid="aerophone-stage" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-beat-ms={beatMs} data-target={targetMidi}>
       <div class="flex min-w-0 flex-col gap-3">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
@@ -591,7 +600,7 @@
           label={m === "swell" ? "Breath over the swell, dashed line is the target shape" : "Breath, last 64 samples"}
         />{/if}
         {#if m === "articulation"}
-          <AttackGrid count={s.count} target={ARTICULATION_TARGET[style]} played={artPlayed} current={artBeat} {style} />
+          <AttackGrid count={s.count} target={ARTICULATION_TARGET[style]} played={artPlayed} current={artBeat} {style} offsets={phase === "results" && result && "timing" in result ? result.timing?.offsets : undefined} />
         {/if}
         <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" name={chartName} />
       </div>

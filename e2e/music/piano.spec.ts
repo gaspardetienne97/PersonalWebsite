@@ -146,6 +146,49 @@ test("two hands: the demo lights both hands in step with the lane", async ({ pag
   await page.getByRole("button", { name: "Stop demo" }).click();
 });
 
+test("falling notes: two hands, scales, licks and accompaniment fall onto the keys", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto("/music/two-hand?pattern=contrary-five&hand=both&tonic=C4&bpm=60");
+  await page
+    .getByRole("navigation", { name: "Notes view" })
+    .getByRole("link", { name: "Falling notes" })
+    .click();
+  await expect(page).toHaveURL(/view=falling/);
+  const falling = page.getByTestId("falling-notes");
+  await expect(falling.locator(".note.left").first()).toBeVisible();
+  await expect(falling.locator(".note.right").first()).toBeVisible();
+  await page.getByRole("button", { name: "Hear it first" }).click();
+  // Keys light in their hand's colour as the bars reach them.
+  await expect(falling.locator("[data-demo][data-role=left]").first()).toBeVisible({
+    timeout: 5000,
+  });
+  await page.waitForTimeout(600);
+  await shoot(page, "two-hand-falling");
+  await page.getByRole("button", { name: "Stop demo" }).click();
+  await page.reload();
+  await expect(page.getByTestId("falling-notes")).toBeVisible();
+
+  // Scales carry their fingering onto the bars.
+  await page.goto(
+    "/music/scales?pattern=scale&kind=major&tonic=60&span=one-octave&motion=up&hands=right&perBeat=1&grade=&view=falling",
+  );
+  await falling.getByRole("button", { name: "Fingers" }).click();
+  await expect(falling.locator(".note").first()).toHaveText("1");
+  await falling.getByRole("button", { name: "Plain" }).click();
+
+  for (const path of ["/music/licks?lick=1&key=C&view=falling", "/music/accompany?view=falling"]) {
+    await page.goto(path);
+    await expect(falling.locator(".note").first()).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  }
+  // Check mode hides the notes, so there is nothing to switch.
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByTestId("falling-notes")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Notes view" })).toHaveCount(0);
+});
+
 test("licks: Check hides the targets and the lane notes", async ({ page }) => {
   await page.goto("/music/licks?lick=1&key=C");
   await expect(page.locator(".piano [data-target]")).toHaveCount(1);

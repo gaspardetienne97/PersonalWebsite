@@ -13,6 +13,8 @@ import {
   intervalRecallPrompt,
   noteFinderPrompt,
   POSITION_PATTERNS,
+  positionRootFretMax,
+  positionRootFretMin,
   positionTargets,
   RECALL_REGIONS,
   scaleDrillTargets,
@@ -20,6 +22,7 @@ import {
   gradeSpeed,
   LEGATO_PATTERNS,
   legatoTargets,
+  legatoText,
   FINGERPICK_PATTERNS,
   FINGERPICK_SONGS,
   fingerpickable,
@@ -289,7 +292,7 @@ describe("positions", () => {
   it("arpeggiates low to high and stays in the scale or chord", () => {
     const box1 = positionTargets({ patternId: "minor-pentatonic-box-1", tuning: std, rootFret: 5 });
     expect(box1).toHaveLength(12);
-    expect(box1[0]).toEqual({ string: 6, fret: 5, midi: 45 });
+    expect(box1[0]).toEqual({ string: 6, fret: 5, midi: 45, finger: 1 });
     expect(box1.map((n) => n.midi)).toEqual(box1.map((n) => n.midi).sort((a, b) => a - b));
     for (const p of POSITION_PATTERNS.filter(
       (x) => x.family === "minor-pentatonic" && !x.instrument,
@@ -555,7 +558,8 @@ describe("legato patterns", () => {
       startFret: 5,
       repeats: 1,
     });
-    expect(t.map((x) => `${x.fret}${x.label}`)).toEqual(["5P", "7h", "8h", "7p"]);
+    // Tab's marks: the picked note never shares a letter with the pull-off.
+    expect(t.map((x) => `${x.fret}${x.label}`)).toEqual(["5↓", "7h", "8h", "7p"]);
     expect(t.map((x) => x.midi)).toEqual([60, 62, 63, 62]);
     expect(LEGATO_PATTERNS).toHaveLength(5);
   });
@@ -569,12 +573,12 @@ describe("legato patterns", () => {
       repeats: 1,
     });
     expect(t.map((x) => `${x.fret}${x.label}${x.finger}`)).toEqual([
-      "5P1",
-      "7P3",
-      "9s3",
+      "5↓1",
+      "7↓3",
+      "9/3",
       "10h4",
       "9p3",
-      "7s3",
+      "7\\3",
     ]);
     const slide = legatoTargets({
       patternId: "slide",
@@ -584,6 +588,18 @@ describe("legato patterns", () => {
       repeats: 1,
     });
     expect(slide.map((x) => x.finger)).toEqual([3, 3, 3]);
+  });
+
+  it("writes each pattern as tab does, from the start fret", () => {
+    const text = Object.fromEntries(LEGATO_PATTERNS.map((p) => [p.id, legatoText(p, 5)]));
+    expect(text).toEqual({
+      "hammer-pull": "5h7p5",
+      trill: "5h7p5h7",
+      "three-note": "5h7h8p7",
+      slide: "5/7\\5",
+      "slide-shift": "5 7/9h10p9\\7",
+    });
+    for (const p of LEGATO_PATTERNS) expect(p.label, p.id).not.toMatch(/\d/);
   });
 });
 
@@ -708,5 +724,183 @@ describe("the B.B. box, ukulele positions and harmonics", () => {
     expect(h.find((t) => t.string === 1 && t.fret === 7)!.midi).toBe(88);
     expect(h.find((t) => t.string === 1 && t.fret === 5)!.midi).toBe(93);
     expect(harmonicTargets(std)).toHaveLength(18);
+  });
+});
+
+describe("box fingerings and other tunings", () => {
+  const at = (t: { string: number; fret: number; finger?: number; stretch?: string }) =>
+    `${t.string}:${t.fret}:${t.finger}${t.stretch === "back" ? "<" : t.stretch === "up" ? ">" : ""}`;
+
+  it("fingers each box one finger a fret from the index, with box 3's stretch back on string 3", () => {
+    const box = (n: number) =>
+      positionTargets({ patternId: `minor-pentatonic-box-${n}`, tuning: std, rootFret: 5 }).map(at);
+    expect(box(1)).toEqual([
+      "6:5:1",
+      "6:8:4",
+      "5:5:1",
+      "5:7:3",
+      "4:5:1",
+      "4:7:3",
+      "3:5:1",
+      "3:7:3",
+      "2:5:1",
+      "2:8:4",
+      "1:5:1",
+      "1:8:4",
+    ]);
+    expect(box(2)).toEqual([
+      "6:8:2",
+      "6:10:4",
+      "5:7:1",
+      "5:10:4",
+      "4:7:1",
+      "4:10:4",
+      "3:7:1",
+      "3:9:3",
+      "2:8:2",
+      "2:10:4",
+      "1:8:2",
+      "1:10:4",
+    ]);
+    // The index sits at fret 10 and reaches back to 9 on string 3; the pinky takes 13.
+    expect(box(3)).toEqual([
+      "6:10:1",
+      "6:12:3",
+      "5:10:1",
+      "5:12:3",
+      "4:10:1",
+      "4:12:3",
+      "3:9:1<",
+      "3:12:3",
+      "2:10:1",
+      "2:13:4",
+      "1:10:1",
+      "1:12:3",
+    ]);
+    expect(box(4)).toEqual([
+      "6:12:1",
+      "6:15:4",
+      "5:12:1",
+      "5:15:4",
+      "4:12:1",
+      "4:14:3",
+      "3:12:1",
+      "3:14:3",
+      "2:13:2",
+      "2:15:4",
+      "1:12:1",
+      "1:15:4",
+    ]);
+    expect(box(5)).toEqual([
+      "6:15:2",
+      "6:17:4",
+      "5:15:2",
+      "5:17:4",
+      "4:14:1",
+      "4:17:4",
+      "3:14:1",
+      "3:17:4",
+      "2:15:2",
+      "2:17:4",
+      "1:15:2",
+      "1:17:4",
+    ]);
+    // Open position (E minor): fingers from the nut, 2 and 3.
+    expect(
+      positionTargets({ patternId: "minor-pentatonic-box-1", tuning: std, rootFret: 0 })
+        .slice(0, 2)
+        .map(at),
+    ).toEqual(["6:0:0", "6:3:3"]);
+    // The connected run fingers box 3 the same way.
+    const run = positionTargets({
+      patternId: "minor-pentatonic-connected",
+      tuning: std,
+      rootFret: 5,
+    });
+    expect(
+      run
+        .slice(24, 36)
+        .filter((t) => t.stretch)
+        .map(at),
+    ).toEqual(["3:9:1<"]);
+    // Every pattern on standard tuning: a finger on each fretted note, at most one stretch a hand position for the boxes.
+    for (const p of POSITION_PATTERNS.filter((x) => !x.instrument)) {
+      const line = positionTargets({ patternId: p.id, tuning: std, rootFret: 5 });
+      for (const t of line) expect(t.finger, p.id).toBeGreaterThanOrEqual(1);
+      if (p.family === "minor-pentatonic")
+        expect(line.filter((t) => t.stretch).length, p.id).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("keeps every note's pitch on its string in drop D, DADGAD and open G", () => {
+    const written = positionTargets({
+      patternId: "minor-pentatonic-box-1",
+      tuning: std,
+      rootFret: 5,
+    });
+    for (const id of ["guitar.drop-d", "guitar.dadgad", "guitar.open-g"]) {
+      const t = tuningById(id)!;
+      // A on string 6 is fret 7 in each of these tunings (string 6 is D).
+      const line = positionTargets({ patternId: "minor-pentatonic-box-1", tuning: t, rootFret: 7 });
+      expect(
+        line.map((n) => [n.string, n.midi]),
+        id,
+      ).toEqual(written.map((n) => [n.string, n.midi]));
+      for (const n of line) expect(n.midi, id).toBe(t.openStrings[n.string - 1] + n.fret);
+    }
+    // Drop D: string 6 two frets higher than the rest, the pinky reaching up for C.
+    const dropD = positionTargets({
+      patternId: "minor-pentatonic-box-1",
+      tuning: tuningById("guitar.drop-d")!,
+      rootFret: 7,
+    });
+    expect(dropD.slice(0, 4).map(at)).toEqual(["6:7:3", "6:10:4>", "5:5:1", "5:7:3"]);
+    // A root at the nut in drop D would put the other strings below it: the lowest root fret is 2.
+    const box1 = POSITION_PATTERNS.find((p) => p.id === "minor-pentatonic-box-1")!;
+    expect(positionRootFretMin(box1, tuningById("guitar.drop-d")!)).toBe(2);
+    expect(positionRootFretMin(box1, std)).toBe(0);
+    expect(positionRootFretMax(box1, std)).toBe(19);
+    // A chord shape keeps its authored fingers only on its own tuning.
+    const triad = positionTargets({
+      patternId: "triads-major-strings-1-3",
+      tuning: tuningById("guitar.dadgad")!,
+      rootFret: 7,
+    });
+    expect(
+      triad
+        .map((n) => pc(n.midi))
+        .slice(0, 3)
+        .sort(),
+    ).toEqual([1, 4, 9]);
+  });
+
+  it("plays the ukulele positions on high G, low G and baritone from their pitches", () => {
+    const high = positionTargets({
+      patternId: "ukulele-minor-pentatonic-1",
+      tuning: uke,
+      rootFret: 3,
+    });
+    const low = positionTargets({
+      patternId: "ukulele-minor-pentatonic-1",
+      tuning: tuningById("ukulele.low-g")!,
+      rootFret: 3,
+    });
+    // Same frets; string 4 an octave lower.
+    expect(low.map(at)).toEqual(high.map(at));
+    expect(low[0].midi).toBe(high[0].midi - 12);
+    // Baritone (DGBE) is GCEA a fourth down on every string: the same shape at the same root fret.
+    const bari = positionTargets({
+      patternId: "ukulele-minor-pentatonic-1",
+      tuning: tuningById("ukulele.baritone")!,
+      rootFret: 3,
+    });
+    expect(bari.map(at)).toEqual(high.map(at));
+    // Position 3 reaches back with the index on string 3.
+    const p3 = positionTargets({
+      patternId: "ukulele-minor-pentatonic-3",
+      tuning: uke,
+      rootFret: 0,
+    });
+    expect(p3.filter((t) => t.stretch).map(at)).toEqual(["3:4:1<"]);
   });
 });

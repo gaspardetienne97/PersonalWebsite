@@ -11,8 +11,8 @@
 
   let { now = Date.now() }: { now?: number } = $props();
 
-  const instrument = $derived(settings.value.activeInstrument);
-  const plan = $derived(todayPlan(instrument, settings.value.routineBudgetMinutes));
+  const plan = $derived(todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes));
+  const instrument = $derived(plan.instrument);
   const budget = $derived(plan.routine.budgetMinutes);
   const rows = $derived(skillRows({ stats: practice.stats, mastery: practice.mastery, instrument, now }));
   const buckets = $derived(nextBuckets(rows));
@@ -68,7 +68,7 @@
           <span class="h-9 w-1.5 shrink-0 rounded-full bg-[color:var(--step-hue)]" aria-hidden="true"></span>
           <div class="min-w-0 flex-1">
             <p class="font-semibold">
-              <span class="sr-only">Step {step.n}: </span><span class="text-ws-soft">{roleLabel(step)}: </span>{step.label}{#if done}<span class="font-normal text-success"> (done)</span>{/if}
+              <span class="sr-only">Step {step.n}: </span><span class="text-ws-soft">{`${roleLabel(step)}: `}</span>{step.label}{#if done}<span class="font-normal text-success"> (done)</span>{/if}
             </p>
             <p class="text-sm text-ws-soft">
               {blockReason(step)}

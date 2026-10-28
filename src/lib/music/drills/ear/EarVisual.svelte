@@ -65,7 +65,7 @@
   // gets one staff per interval.
   const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
   const CADENCES = CADENCES_AND_QUALITIES.cadences;
-  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression", "loop", "inversion", "bass-line"].includes(prompt.drill));
+  const onStaff = $derived(["interval", "interval-compare", "chord-quality", "cadence", "chord-function", "progression", "key-change", "loop", "inversion", "bass-line"].includes(prompt.drill));
   // Chords that only set the key are heard, not drawn.
   const groups = $derived(
     !onStaff

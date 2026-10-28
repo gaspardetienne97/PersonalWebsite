@@ -17,6 +17,7 @@
   import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { gradeItem, isJazzType, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
   import { JAZZ_VOICING_TYPES, UPPER_TUNES } from "@repo/music-core/content/jazz-voicings";
+  import { TUNES } from "@repo/music-core/content/tunes";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -57,7 +58,11 @@
   const variant = $derived((s.variant === "jazz" ? lastJazz : VARIANTS.some((v) => v.value === s.variant) || isJazzType(s.variant) ? s.variant : "major") as Variant);
   const jazzType = $derived(JAZZ_VOICING_TYPES.find((t) => t.id === variant));
   const onTune = $derived(jazzType?.key === "tune");
-  const tune = $derived(UPPER_TUNES.find((t) => t.id === s.tune) ?? UPPER_TUNES[0]);
+  /** Upper structures need a dominant; quartal and slash voicings run on any tune. */
+  const tuneList = $derived(variant === "upper" ? UPPER_TUNES : TUNES);
+  const tune = $derived(tuneList.find((t) => t.id === s.tune) ?? tuneList[0]);
+  /** The voicing picker: the key-based types, then one entry for the types on a tune (a second row picks which). */
+  const TUNE_TYPES = JAZZ_VOICING_TYPES.filter((t) => t.key === "tune");
   /** One key only: the closest chords, and a tune's own changes. */
   const oneKey = $derived(variant === "inversions" || onTune);
   const gospel = $derived(GOSPEL_PROGRESSIONS.find((p) => p.id === s.progression) ?? GOSPEL_PROGRESSIONS[0]);
@@ -306,13 +311,25 @@
   {#snippet setup()}
     {#if jazzType}
       <div class="mb-4">
-        <Choice label="Voicing" setupKey="jazz" options={JAZZ_VOICING_TYPES.map((t) => ({ value: t.id as string, label: t.label }))} value={jazzType.id} onchange={(v) => cfg.set({ variant: v, jazz: v })} />
+        <Choice
+          label="Voicing"
+          setupKey="jazz"
+          options={[...JAZZ_VOICING_TYPES.filter((t) => t.key !== "tune").map((t) => ({ value: t.id as string, label: t.label })), { value: "tune", label: "On a tune's changes" }]}
+          value={onTune ? "tune" : jazzType.id}
+          onchange={(v) => {
+            const id = v === "tune" ? (TUNE_TYPES.find((t) => t.id === s.jazz)?.id ?? "upper") : v;
+            cfg.set({ variant: id, jazz: id });
+          }}
+        />
+        {#if onTune}
+          <div class="mt-2"><Choice label="On the tune" setupKey="tune-voicing" options={TUNE_TYPES.map((t) => ({ value: t.id as string, label: t.label }))} value={jazzType.id} onchange={(v) => cfg.set({ variant: v, jazz: v })} /></div>
+        {/if}
         <p class="mt-2 max-w-prose text-sm text-ws-soft">{jazzType.about}</p>
       </div>
     {/if}
     <div class="grid gap-4 sm:grid-cols-3">
       {#if onTune}
-        <Choice label="Tune" setupKey="tune" options={UPPER_TUNES.map((t) => ({ value: t.id, label: t.name }))} value={tune.id} onchange={(v) => cfg.set({ tune: v })} />
+        <Choice label="Tune" setupKey="tune" options={tuneList.map((t) => ({ value: t.id, label: t.name }))} value={tune.id} onchange={(v) => cfg.set({ tune: v })} />
       {:else}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
           <span class="font-medium">{keyWord}</span>

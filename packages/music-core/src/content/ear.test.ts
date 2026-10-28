@@ -28,6 +28,10 @@ import {
   inversionPrompt,
   inversionVoicing,
   bassLinePrompt,
+  KEY_CHANGES,
+  stepHome,
+  keyChangePlayback,
+  keyChangePrompt,
   CENT_STEPS,
   finePitchPrompt,
   staircase,
@@ -627,5 +631,77 @@ describe("sung answers for bass lines and scales", () => {
     expect(p.expectedMidi!.map((m) => m - tonic)).toEqual([
       0, 2, 3, 5, 7, 9, 10, 12, 10, 9, 7, 5, 3, 2, 0,
     ]);
+  });
+});
+
+describe("key changes", () => {
+  const pcs = (midi: number[]) => [...new Set(midi.map((m) => m % 12))].sort((a, b) => a - b);
+  it("sets the old key, then moves by the named distance on a ii-V while the skill is new", () => {
+    for (const k of KEY_CHANGES) {
+      const p = keyChangePrompt(rng(3), { difficulty: 0.3, dest: k.id, keyPc: 0 });
+      expect(p.drill).toBe("key-change");
+      expect(p.skillIds).toEqual(["ear.key-changes", `ear.key-change.${k.id}`]);
+      expect(p.answer).toBe(`${k.id} ${k.minor ? "iiø7 V7 i7" : "ii7 V7 Imaj7"}`);
+      expect(p.keyEvents).toBe(4);
+      // C major's I, IV, V, I first.
+      expect(p.playback.slice(0, 4).map((e) => pcs(e.midi))).toEqual([
+        [0, 4, 7],
+        [0, 5, 9],
+        [2, 7, 11],
+        [0, 4, 7],
+      ]);
+      // The arrival: the new tonic's seventh chord, root in the bass, held longest.
+      const last = p.playback.at(-1)!;
+      const to = k.shift % 12;
+      expect(last.midi[0] % 12).toBe(to);
+      expect(pcs(last.midi)).toEqual(
+        pcs((k.minor ? [0, 3, 7, 10] : [0, 4, 7, 11]).map((i) => to + i)),
+      );
+      expect(last.duration).toBeGreaterThan(p.playback[0].duration);
+      expect(p.choices.slice(0, KEY_CHANGES.length)).toEqual(KEY_CHANGES.map((x) => x.id));
+    }
+    expect(keyChangePrompt(rng(1), { difficulty: 0.3, dest: "relative", keyPc: 0 }).caption).toBe(
+      "C major to A minor, the relative minor: Bø7, E7, Am7",
+    );
+    expect(keyChangePrompt(rng(1), { difficulty: 0.3, dest: "up-step", keyPc: 7 }).caption).toBe(
+      "G major to A major, up a whole step: Bm7, E7, Amaj7",
+    );
+  });
+
+  it("adds the plain V7 and the backdoor once the skill has grown", () => {
+    const answers = new Set(
+      Array.from(
+        { length: 40 },
+        (_, i) => keyChangePrompt(rng(i), { difficulty: 0.8, dest: "up-4th", keyPc: 0 }).answer,
+      ),
+    );
+    expect([...answers].sort()).toEqual([
+      "up-4th V7 Imaj7",
+      "up-4th ii7 V7 Imaj7",
+      "up-4th iv7 bVII7 Imaj7",
+    ]);
+    // Up a fourth from C by the backdoor: Bbm7, Eb7, Fmaj7.
+    const back = keyChangePlayback(0, "up-4th iv7 bVII7 Imaj7").slice(4);
+    expect(back.map((e) => e.midi[0] % 12)).toEqual([10, 3, 5]);
+  });
+});
+
+describe("resolutions and melodies in a key", () => {
+  it("steps a line's last note home to the nearest tonic, short then held", () => {
+    // Key of D: A3 (5) goes up 5 6 7 8; F#3 (3) down 3 2 1.
+    expect(stepHome(2, 57).map((e) => e.midi[0])).toEqual([57, 59, 61, 62]);
+    expect(stepHome(2, 54).map((e) => e.midi[0])).toEqual([54, 52, 50]);
+    const r = stepHome(2, 54);
+    expect(r.at(-1)!.duration).toBeGreaterThan(r[0].duration);
+  });
+
+  it("puts a melody in the run's key, minor on a minor level", () => {
+    const p = melodyDictationPrompt(rng(2), { difficulty: 0.3, level: "major-diatonic", keyPc: 7 });
+    expect(p.keyPc).toBe(7);
+    expect(p.playback[0].midi[0] % 12).toBe(7);
+    expect(p.minor).toBe(false);
+    expect(
+      melodyDictationPrompt(rng(2), { difficulty: 0.3, level: "minor-diatonic", keyPc: 9 }).minor,
+    ).toBe(true);
   });
 });

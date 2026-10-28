@@ -312,11 +312,11 @@ test.describe("library and song studio", () => {
     ).toHaveAttribute("aria-current", "page");
     await page
       .getByRole("navigation", { name: "Score view" })
-      .getByRole("link", { name: "Waterfall" })
+      .getByRole("link", { name: "Falling notes" })
       .click();
     await expect(page).toHaveURL(/view=waterfall/);
     await expect(
-      page.getByRole("group", { name: "Piano keyboard under the waterfall" }),
+      page.getByRole("group", { name: "Piano keyboard under the falling notes" }),
     ).toBeVisible();
     await shoot(page, "studio-waterfall");
     await page.goBack();
@@ -325,6 +325,41 @@ test.describe("library and song studio", () => {
       page.getByRole("navigation", { name: "Score view" }).getByRole("link", { name: "Tab" }),
     ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
+  });
+
+  test("song studio falling notes: lanes over the keys, bar numbers, right and wrong keys", async ({
+    page,
+  }) => {
+    await importOde(page);
+    await openOde(page, "?view=waterfall&mode=wait");
+    const falling = page.getByTestId("falling-notes");
+    // Each bar sits centred over its own key, the keyboard right under the hit line.
+    const bar = (await falling.locator('.note[data-midi="64"]').first().boundingBox())!;
+    const key = (await falling.locator('button[data-midi="64"]').boundingBox())!;
+    expect(Math.abs(bar.x + bar.width / 2 - (key.x + key.width / 2))).toBeLessThan(2);
+    expect(bar.width).toBeLessThan(key.width);
+    expect(Math.abs(bar.y + bar.height - key.y)).toBeLessThan(16);
+    await expect(falling.locator(".barline").first()).toContainText("1");
+    // The look ahead and the labels are the player's choice.
+    await falling.getByRole("button", { name: "Names" }).click();
+    await expect(falling.locator('.note[data-midi="64"]').first()).toHaveText("E");
+    await falling.getByRole("button", { name: "4 bars" }).click();
+    await expect(falling.getByRole("button", { name: "4 bars" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await falling.getByRole("button", { name: "Plain" }).click();
+
+    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await expect(page.getByRole("status")).toContainText("Wait mode");
+    await play(page, [{ at: 0, notes: [70] }]);
+    await expect(falling.locator(".burst.wrong")).toBeAttached();
+    await play(page, [{ at: 0, notes: [64] }]);
+    await expect(
+      falling.locator('.note[data-midi="64"][data-state="correct"]').first(),
+    ).toBeAttached();
+    await expect(falling.locator(".note[data-state=active]").first()).toBeAttached();
+    await shoot(page, "studio-falling-run");
   });
 
   test("song studio review: back, metronome, steady tab, sections, fitting, hand colours, delete", async ({
@@ -362,8 +397,8 @@ test.describe("library and song studio", () => {
     await expect(page.locator(".tint-label").first()).toBeVisible();
     await page.getByRole("button", { name: "Hide setup" }).click();
 
-    // Waterfall: beat lines, and the sounding key takes its hand's colour.
-    await views.getByRole("link", { name: "Waterfall" }).click();
+    // Falling notes: beat lines, and the sounding key takes its hand's colour.
+    await views.getByRole("link", { name: "Falling notes" }).click();
     await expect(page.locator(".beatline").first()).toBeAttached();
     await page.getByRole("button", { name: "Hear it" }).click();
     await expect(page.locator("[data-demo][data-role=right]").first()).toBeVisible({

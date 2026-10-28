@@ -1,20 +1,23 @@
 <script lang="ts" module>
-  export type View = "staff" | "tab" | "fingering" | "waterfall";
+  export type View = "staff" | "tab" | "fingering" | "waterfall" | "highway";
 </script>
 
 <script lang="ts">
   // The score in its own scrolling viewport, in one of four views, with the
-  // one keyboard under it. In Waterfall the keyboard is laid out from the same
-  // white-key grid (whiteKeyLayout) so every falling note lands on its key.
+  // one keyboard under it. In Falling notes the keyboard is laid out from the
+  // same white-key grid (whiteKeyLayout) so every falling note lands on its key.
   import type { Score } from "@repo/music-core";
   import { transposeScore } from "@repo/music-core/theory/transposition";
   import Staff from "$lib/music/notation/Staff.svelte";
   import Tab from "$lib/music/notation/Tab.svelte";
-  import Waterfall from "$lib/music/notation/Waterfall.svelte";
+  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
   import FingeringRow from "$lib/music/notation/FingeringRow.svelte";
   import StudioDrums from "./StudioDrums.svelte";
+  import NoteHighway, { type HighwayNote } from "$lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "$lib/music/notation/highway";
+  import { noteName } from "@repo/music-core";
   import { hideBefore } from "./studio";
-  import { whiteKeyLayout, type BeatRange, type TabTuning } from "$lib/music/notation/groups";
+  import { assignTab, barBeats, scoreGroups, type BeatRange, type TabTuning } from "$lib/music/notation/groups";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import type { Snap } from "$lib/music/notation/selection.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
@@ -39,6 +42,7 @@
     written = 0,
     drums = false,
     hide = 0,
+    timed = false,
   }: {
     score: Score;
     voiceIds: string[];
@@ -63,6 +67,8 @@
     drums?: boolean;
     /** Played from memory: notes before this score beat are not drawn (the keyboard keeps its range). */
     hide?: number;
+    /** A run in time (not wait mode): the drum lanes mark each hit early, late or on time. */
+    timed?: boolean;
   } = $props();
   const drawn = $derived(hideBefore(score, hide));
   const staffScore = $derived(transposeScore(drawn, written));
@@ -71,8 +77,6 @@
   const midis = $derived(score.voices.filter((v) => voiceIds.includes(v.id)).flatMap((v) => v.notes.map((n) => n.midi)));
   const low = $derived(Math.floor((Math.min(...midis, 60) - 0) / 12) * 12);
   const high = $derived(Math.max(low + 12, Math.ceil((Math.max(...midis, 60) + 1) / 12) * 12));
-  const whites = $derived(Object.values(whiteKeyLayout(low, high)).filter((k) => !k.black).length);
-  const MIN_KEY = 30;
 
   let host = $state<HTMLDivElement>();
   // Keep the cursor inside the score's own viewport (never scroll the page).
@@ -87,23 +91,33 @@
     if (r.left < v.left || r.right > v.right) vp.scrollLeft += r.left - v.left - v.width / 3;
   });
 
+  // The highway (guitar and ukulele): every note at its string and fret on the chosen tuning, judged by its group.
+  const highway = $derived.by(() => {
+    const notes: HighwayNote[] = [];
+    const hits: Record<number, Hit> = {};
+    if (view !== "highway") return { notes, hits };
+    const flat = scoreGroups(drawn, voiceIds).flatMap((g) => g.notes.map((n) => ({ ...n, group: g.index })));
+    const at = assignTab(flat, tuning);
+    flat.forEach((n, i) => {
+      if (!at[i]) return;
+      const st = groupStates[n.group];
+      if (st === "correct") hits[notes.length] = "hit";
+      else if (st === "wrong" || st === "missed") hits[notes.length] = st;
+      notes.push({ startBeat: n.startBeat, durationBeats: n.durationBeats, string: at[i]!.string, fret: at[i]!.fret });
+    });
+    return { notes, hits };
+  });
+
   const maxHeight = $derived(compact ? "min(36dvh, 20rem)" : "min(52dvh, 30rem)");
 </script>
 
 <div bind:this={host} class="flex min-w-0 flex-col gap-3">
   {#if drums}
-    <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
-      <StudioDrums score={drawn} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} />
-    </div>
+    <StudioDrums score={drawn} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} {bpm} {timed} />
+  {:else if view === "highway"}
+    <NoteHighway notes={highway.notes} noteHits={highway.hits} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={cursorBeat} barBeats={barBeats(score.meter)} />
   {:else if view === "waterfall"}
-    <div class="overflow-x-auto overscroll-x-contain rounded-xl">
-      <div class="lane-dark" style:min-width="{whites * MIN_KEY + 16}px">
-        <div class="px-2">
-          <Waterfall score={drawn} {voiceIds} {low} {high} beat={cursorBeat ?? 0} {groupStates} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
-        </div>
-        <Piano {low} {high} {marks} {flashes} minKey={MIN_KEY} label="Piano keyboard under the waterfall" />
-      </div>
-    </div>
+    <FallingKeys score={drawn} {voiceIds} {low} {high} beat={cursorBeat} {groupStates} {marks} {flashes} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
   {:else}
     <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
       {#if view === "tab"}
@@ -119,12 +133,3 @@
     <Piano {low} {high} {marks} {flashes} label="Piano keyboard" />
   {/if}
 </div>
-
-<style>
-  /* The waterfall lane sits on the stage, so it takes the stage's colours. */
-  .lane-dark {
-    --ws-surface: var(--ws-stage-2);
-    --ws-line: oklch(1 0 0 / 0.12);
-    --ws-ink: var(--ws-stage-ink);
-  }
-</style>

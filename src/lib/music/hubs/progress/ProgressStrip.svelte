@@ -21,7 +21,7 @@
   const weekday = (d: string) =>
     new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
   const letter = (d: string) => LETTER[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7];
-  const dotLabel = { practised: "practised", frozen: "covered by a freeze", missed: "no practice", today: "today, not yet" };
+  const dotLabel = { practised: "practised", frozen: "covered by a freeze", missed: "no practice", today: "today, not yet", upcoming: "still to come" };
 </script>
 
 <section
@@ -45,7 +45,9 @@
                 ? 'border-2 border-dashed border-info text-info'
                 : d.state === 'today'
                   ? 'border-2 border-instr-ink'
-                  : 'bg-ws-raised'}"
+                  : d.state === 'upcoming'
+                    ? 'border border-dashed border-ws-line'
+                    : 'bg-ws-raised'}"
             title="{weekday(d.day)}: {dotLabel[d.state]}"
             aria-hidden="true"
           >

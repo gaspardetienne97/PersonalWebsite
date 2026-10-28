@@ -28,10 +28,15 @@
     functionToken,
     parseFunction,
     functionPlayback,
+    KEY_CHANGES,
+    KEY_CHANGE_NUMERALS,
+    keyChangeCaption,
+    keyChangeLabel,
+    keyChangePlayback,
     keyCadence,
     chordResolution,
     promptKey,
-    resolutionToTonic,
+    stepHome,
     SCALE_DEGREE_LEVELS,
     SCALE_DEGREES,
     phrasesFromScore,
@@ -101,7 +106,7 @@
   const slug = untrack(() => slugProp);
 
   type AnswerMode = "choice" | "play-back" | "voice" | "listen" | "listen-along";
-  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number; written?: string[]; songTitle?: string; minor?: boolean; beat?: number };
+  type Prompt = EarPrompt & { direction?: "ascending" | "descending" | "harmonic" | "both"; phrase?: RankedPhrase; keyPc?: number; written?: string[]; songTitle?: string; minor?: boolean; beat?: number; fromPc?: number };
 
   const def = EAR_DRILLS.find((d) => d.slug === slug)!;
   const entry = catalogEntry(`ear-${slug}`)!;
@@ -157,6 +162,10 @@
     keyMode: "major" as string,
     // Song loops: which set of loops.
     loops: "songs" as string,
+    // Progressions: in one key ("none"), or key changes ("key").
+    changes: "none" as string,
+    // Drills in a key: "run" keeps one key, or a new key every 5 or 3 prompts.
+    keyEvery: "run" as string,
     chordSize: "triads" as string,
     direction: "auto" as string,
     root: "random" as string,
@@ -168,12 +177,15 @@
   /** Chords in a key and progressions: which key and chord size the picked numerals are heard in. */
   const chordKind = $derived({ minor: s.keyMode === "minor", seventh: s.chordSize === "sevenths" });
   const kindLabel = (t: string) => functionLabel(functionToken(t, chordKind));
-  const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) ? (s.answer as AnswerMode) : modes[0]);
+  /** Progressions that change key: where it goes is a word, not a chord, so the answer is chosen, never played. */
+  const keyChanges = $derived(slug === "progressions" && s.changes === "key");
+  const answer = $derived<AnswerMode>(modes.includes(s.answer as AnswerMode) && !(keyChanges && s.answer === "play-back") ? (s.answer as AnswerMode) : modes[0]);
   const labels = $derived<LabelMode>(labelPref.value.labels === "solfege" ? "solfege" : "degree");
   /** The levels offered (the full set is the chromatic one, kept for old links). */
   const LEVELS = SCALE_DEGREE_LEVELS.filter((l) => l.id !== "full-current");
   const level = $derived(s.level === "full-current" ? "chromatic-color" : LEVELS.some((l) => l.id === s.level) ? s.level : "anchor");
   const kinds = $derived.by((): EarKind[] => {
+    if (keyChanges) return ["key-change"];
     if (slug !== "mixed") return KIND_OF[slug] ? [KIND_OF[slug]] : [];
     return mixKinds(s.drill, answer);
   });
@@ -370,9 +382,13 @@
     for (const [id, sum] of Object.entries(skillSummaries(practice.stats))) if (sum.attempts) out[id] = sum.accuracy;
     return out;
   });
+  /** Drills heard in a key: the key can change every few prompts. */
+  const inKey = $derived(["scale-degrees", "chord-functions", "bass-lines", "melody-dictation"].includes(slug) || (slug === "progressions" && !keyChanges));
+  const keyEvery = $derived(inKey && ["5", "3"].includes(s.keyEvery) ? Number(s.keyEvery) : undefined);
   const focus = $derived(
-    SETS || slug === "bass-lines" || slug === "song-loops"
+    SETS || slug === "bass-lines" || slug === "song-loops" || keyEvery
       ? {
+          keyEvery,
           loops: slug === "song-loops" ? s.loops : undefined,
           tokens: SETS ? picked : undefined,
           bassLevel: slug === "bass-lines" ? s.bassLevel : undefined,
@@ -448,6 +464,7 @@
       return [...p.playback.slice(0, -1), { ...last, midi: functionChord(p.keyPc, token) }];
     }
     if (p.drill === "progression" && p.keyPc !== undefined) return functionPlayback(p.keyPc, token.split(" "));
+    if (p.drill === "key-change" && p.fromPc !== undefined) return keyChangePlayback(p.fromPc, token);
     if (p.drill === "loop" && p.keyPc !== undefined) {
       const chosen = token.split(" ");
       return chosen.includes("?") ? null : p.playback.map((e, i) => ({ ...e, midi: numeralChord(p.keyPc!, chosen[i]) }));
@@ -474,7 +491,7 @@
     const t0 = tail[0]?.time ?? 0;
     mistake = {
       token,
-      chosen: { ...p, id: `${p.id}-chose-${token}`, answer: token, playback: chosen },
+      chosen: { ...p, id: `${p.id}-chose-${token}`, answer: token, playback: chosen, ...(p.drill === "key-change" ? { caption: keyChangeCaption(p.fromPc ?? 0, token) } : {}) },
       both: { ...p, id: `${p.id}-vs-${token}`, playback: [...p.playback, ...tail.map((e) => ({ ...e, time: e.time - t0 + after }))] },
     };
     setTimeout(() => mistake && playPrompt(mistake.both), 500);
@@ -532,6 +549,7 @@
           : `${key}, set once with ${cadence}: one chord a question`
         : `${key}, ${p.answer.split(" ").length} chords from ${one}`;
     }
+    if (p.drill === "key-change") return `Key of ${noteName(48 + (p.fromPc ?? 0), "flat", false)} major, set with I, IV, V, I: then it moves`;
     if (p.drill === "loop") {
       const key = `Key of ${noteName(48 + (p.keyPc ?? 0), "flat", false)} ${p.minor ? "minor" : "major"}`;
       return `${key}, set with ${p.minor ? "i, iv, V, i" : "I, IV, V, I"}: a loop of ${p.answer.split(" ").length} chords`;
@@ -594,6 +612,8 @@
             : isPlayback
             ? "Play the bass notes after the 1, one at a time."
             : "Which bass notes came after the 1?"
+        : p.drill === "key-change"
+          ? "Where does it go, and which chords take it there?"
         : p.drill === "loop"
           ? isPlayback
             ? "Play the loop's chords back, one at a time."
@@ -799,14 +819,14 @@
         ? null
         : practice.beginRun({
             exerciseId: entry.exerciseId,
-            setupKey: `${slug}|${answer}|${def.usesScaleDegreeLevel ? level : "-"}|${slug === "mixed" ? kinds.join(",") : "-"}`,
+            setupKey: `${slug}${keyChanges ? "-key" : ""}|${answer}|${def.usesScaleDegreeLevel ? level : "-"}|${slug === "mixed" ? kinds.join(",") : "-"}`,
             skillIds: entry.skillIds,
             capabilities: ["ear"],
             modality,
             assistance: runAssistance,
             difficulty: prompts.reduce((a, p) => a + p.difficulty, 0) / prompts.length,
             instrument: answer === "voice" ? "voice" : undefined,
-            params: { answer, level, labels, drill: s.drill, ...(slug === "song-loops" ? { loops: s.loops } : {}), ...(slug === "scales" ? { scales: s.scales } : {}), ...(answer === "voice" ? { tune } : {}) },
+            params: { answer, level, labels, drill: s.drill, ...(slug === "song-loops" ? { loops: s.loops } : {}), ...(keyChanges ? { changes: "key" } : {}), ...(keyEvery ? { keyEvery } : {}), ...(slug === "scales" ? { scales: s.scales } : {}), ...(answer === "voice" ? { tune } : {}) },
           });
     cap = capture(performance.now(), (e) => {
       if (e.kind === "noteon") onNote(e);
@@ -856,17 +876,22 @@
     });
   }
 
-  /** After an answer: the degree steps home to the tonic, or the chord goes to I. Silent when muted. */
+  /**
+   * After an answer: the degree, or a line's last note, steps home to the tonic; the chord, or
+   * a progression's last chord, goes to I. Silent when muted (and never in Check, where it is not called).
+   */
   function resolve(p: Prompt, then?: () => void) {
     const k = promptKey(p);
     const home =
       !k || settings.value.muted
         ? null
         : p.drill === "scale-degree"
-          ? resolutionToTonic(tonicOf(p), p.expectedMidi![0] - tonicOf(p)).map((m, i, all) => ({ midi: [m], time: i * 0.35, duration: i === all.length - 1 ? 0.8 : 0.3 }))
-          : p.drill === "chord-function"
-            ? chordResolution(k.keyPc, p.answer)
-            : null;
+          ? stepHome(k.keyPc, p.expectedMidi![0])
+          : p.drill === "bass-line" || p.drill === "melody-dictation"
+            ? stepHome(k.keyPc, p.expectedMidi!.at(-1)!)
+            : p.drill === "chord-function" || p.drill === "progression"
+              ? chordResolution(k.keyPc, p.answer.split(" ").at(-1)!)
+              : null;
     if (!home) return then?.();
     playPrompt({ ...p, id: `${p.id}-home`, playback: home }, { onend: then });
   }
@@ -1015,9 +1040,13 @@
   }
 
   /** Chords shown before the slots: a progression's opening I; a loop asks every chord. */
-  const givenOf = (p: Prompt) => (p.drill === "loop" ? 0 : 1);
+  const givenOf = (p: Prompt) => (p.drill === "loop" || p.drill === "key-change" ? 0 : 1);
   /** A chord token as a button or slot shows it. */
-  const chordLabel = (p: Prompt, t: string) => (p.drill === "loop" ? numeralLabel(t) : functionLabel(t));
+  const chordLabel = (p: Prompt, t: string) =>
+    p.drill === "key-change" ? (KEY_CHANGES.some((k) => k.id === t) ? keyChangeLabel(t) : numeralLabel(t)) : p.drill === "loop" ? numeralLabel(t) : functionLabel(t);
+  /** The buttons for the next slot: a key change asks where it goes first, then the chords. */
+  const slotChoices = (p: Prompt) =>
+    p.drill !== "key-change" ? p.choices : slots.length ? KEY_CHANGE_NUMERALS : KEY_CHANGES.map((k) => k.id);
 
   /** One chord into the next slot of a progression; the last slot answers it. */
   function tapChord(token: string, notes: NoteEvent[] = []) {
@@ -1162,7 +1191,7 @@
       void putSetting(STAIR_KEY, stair.at);
     }
     status = summary.headline;
-    if ((SETS || levelSteps) && !pocket) summary.advance = await checkUnlock(done);
+    if ((SETS || levelSteps) && !pocket && !keyChanges) summary.advance = await checkUnlock(done);
   }
 
   /** Fine pitch: one row per cent step asked, widest first. */
@@ -1180,7 +1209,7 @@
 
   /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
   function itemRows(done: AnswerRecord[]) {
-    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "loop" || kinds[0] === "bass-line" || kinds[0] === "error-detect") return null;
+    if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "key-change" || kinds[0] === "loop" || kinds[0] === "bass-line" || kinds[0] === "error-detect") return null;
     const kind = kinds[0];
     const targets = targetsFor(kind, level, focus);
     const order = (t: string) => {
@@ -1228,14 +1257,14 @@
   }
 
   function retry() {
-    const r = retryPrompts(lastEvents, slug === "mixed" ? kinds : [KIND_OF[slug] ?? "scale-degree"], rand);
+    const r = retryPrompts(lastEvents, slug === "mixed" || keyChanges ? kinds : [KIND_OF[slug] ?? "scale-degree"], rand);
     if (!r.length) return;
     queued = r;
     phase = "running";
     void start({ mode, downbeat: performance.now(), beatMs: 0, bpm: 0, stopClock() {} });
   }
   let lastEvents = $state.raw<ScoringEvent[]>([]);
-  const retryCount = $derived(phase === "results" ? retryPrompts(lastEvents, slug === "mixed" ? kinds : [KIND_OF[slug] ?? "scale-degree"], rand).length : 0);
+  const retryCount = $derived(phase === "results" ? retryPrompts(lastEvents, slug === "mixed" || keyChanges ? kinds : [KIND_OF[slug] ?? "scale-degree"], rand).length : 0);
 
   onDestroy(() => {
     teardown();
@@ -1268,18 +1297,20 @@
       slug === "mixed" && answer !== "voice"
         ? { text: kinds.length === MIX_KINDS.length ? "all nine drills" : kinds.length > 3 ? `${kinds.length} drills` : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", "), focus: "mix" }
         : null,
-      SETS
+      slug === "progressions" ? { text: keyChanges ? "key changes" : "in one key", focus: "changes" } : null,
+      SETS && !keyChanges
         ? { text: SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" "), focus: "items" }
         : null,
       slug === "intervals" && s.direction !== "auto" ? { text: DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase() ?? "", focus: "direction" } : null,
       slug === "scales" && s.scaleDirection !== "auto" ? { text: SCALE_DIRECTIONS.find((d) => d.value === s.scaleDirection)?.label.toLowerCase() ?? "", focus: "scaleDirection" } : null,
       slug === "bass-lines" ? { text: BASS_LEVELS.find((l) => l.id === s.bassLevel)?.title.toLowerCase() ?? "", focus: "bass" } : null,
       slug === "song-loops" ? { text: (LOOP_SETS.find((l) => l.id === s.loops) ?? LOOP_SETS[0]).label.toLowerCase(), focus: "loops" } : null,
-      chordDrill ? { text: `${chordKind.minor ? "minor" : "major"} key`, focus: "key" } : null,
-      chordDrill ? { text: chordKind.seventh ? "sevenths" : "triads", focus: "size" } : null,
+      chordDrill && !keyChanges ? { text: `${chordKind.minor ? "minor" : "major"} key`, focus: "key" } : null,
+      chordDrill && !keyChanges ? { text: chordKind.seventh ? "sevenths" : "triads", focus: "size" } : null,
       fromSongs ? { text: "from my songs", focus: "source" } : null,
       showLevel ? { text: LEVELS.find((l) => l.id === level)?.title ?? "", focus: "level" } : null,
       def.usesLabels && usesDegrees ? { text: labels === "solfege" ? "solfège labels" : "degree labels", focus: "labels" } : null,
+      inKey ? { text: keyEvery ? `a new key every ${keyEvery}` : "one key a run", focus: "keyEvery" } : null,
       { text: "10 prompts" },
     ].filter((c): c is SetupClause => !!c),
   );
@@ -1330,7 +1361,7 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       {#if modes.length > 1}
-        <Choice label="Answer by" setupKey="answer" options={SCORED.map((m) => ({ value: m as AnswerMode, label: MODE_LABEL[m] }))} value={answer} onchange={(v) => cfg.set({ answer: v })} />
+        <Choice label="Answer by" setupKey="answer" options={SCORED.filter((m) => !(keyChanges && m === "play-back")).map((m) => ({ value: m as AnswerMode, label: MODE_LABEL[m] }))} value={answer} onchange={(v) => cfg.set({ answer: v })} />
       {/if}
       {#if LISTEN.length}
         <Choice
@@ -1364,7 +1395,22 @@
           {#if isPlayback}<span class="text-ws-soft">Cadences and scales have no play-back answer, so they sit out.</span>{/if}
         </div>
       {/if}
-      {#if SETS}
+      {#if slug === "progressions"}
+        <div class="sm:col-span-2">
+          <Choice
+            label="Changes"
+            setupKey="changes"
+            options={[
+              { value: "none", label: "In one key", hint: "Chords of the key, from I." },
+              { value: "key", label: "Key changes", hint: "The key is set, then a ii-V, a V7 or a backdoor takes it somewhere new." },
+            ]}
+            value={keyChanges ? "key" : "none"}
+            onchange={(v) => cfg.set({ changes: v })}
+          />
+          {#if keyChanges}<p class="mt-1 text-sm text-ws-soft">Name where it goes ({KEY_CHANGES.map((k) => k.label.toLowerCase()).join(", ")}), then the chords as numerals in the new key.</p>{/if}
+        </div>
+      {/if}
+      {#if SETS && !keyChanges}
         {@const custom = !SETS.sets.some((x) => sameSet(x.tokens, picked))}
         <div class="flex min-w-0 flex-col gap-2 text-sm sm:col-span-2" role="group" aria-labelledby="items-label" data-setup="items">
           <span id="items-label" class="font-medium">{SETS.title}</span>
@@ -1417,6 +1463,19 @@
           </span>
         </div>
       {/if}
+      {#if inKey}
+        <Choice
+          label="Change key"
+          setupKey="keyEvery"
+          options={[
+            { value: "run", label: "One key a run" },
+            { value: "5", label: "New key every 5", hint: "I, IV, V, I plays again at each change." },
+            { value: "3", label: "New key every 3" },
+          ]}
+          value={keyEvery ? String(keyEvery) : "run"}
+          onchange={(v) => cfg.set({ keyEvery: v })}
+        />
+      {/if}
       {#if answer === "voice"}
         <Choice
           label="Singing tolerance"
@@ -1462,7 +1521,7 @@
       {#if slug === "scales"}
         <Choice label="Direction" setupKey="scaleDirection" options={SCALE_DIRECTIONS} value={s.scaleDirection} onchange={(v) => cfg.set({ scaleDirection: v })} />
       {/if}
-      {#if chordDrill}
+      {#if chordDrill && !keyChanges}
         <Choice label="Key" setupKey="key" options={[{ value: "major", label: "Major" }, { value: "minor", label: "Minor" }]} value={s.keyMode} onchange={(v) => cfg.set({ keyMode: v })} />
         <Choice label="Chord size" setupKey="size" options={[{ value: "triads", label: "Triads" }, { value: "sevenths", label: "Sevenths" }]} value={s.chordSize} onchange={(v) => cfg.set({ chordSize: v })} />
       {/if}
@@ -1615,11 +1674,11 @@
                 <li><button type="button" class="choice min-h-12 rounded-xl px-3 text-sm font-semibold" disabled={step === "feedback"} onclick={() => choose("none")}>No wrong note</button></li>
               {/if}
             </ol>
-          {:else if answer === "choice" && (p.drill === "progression" || p.drill === "loop" || p.drill === "bass-line")}
+          {:else if answer === "choice" && (p.drill === "progression" || p.drill === "key-change" || p.drill === "loop" || p.drill === "bass-line")}
             {@render progressionSlots(p)}
-            <div class="grid grid-cols-4 gap-2 sm:grid-cols-8">
-              {#each p.choices as t (t)}
-                <button type="button" class="choice min-h-12 rounded-xl px-3 font-display text-lg font-semibold" disabled={step === "feedback"} onclick={() => tapChord(t)}>{chordLabel(p, t)}</button>
+            <div class="grid gap-2 {p.drill === 'key-change' && !slots.length ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-4 sm:grid-cols-8'}">
+              {#each slotChoices(p) as t (t)}
+                <button type="button" class="choice min-h-12 rounded-xl px-3 font-display font-semibold {p.drill === 'key-change' && !slots.length ? 'text-base' : 'text-lg'}" disabled={step === "feedback"} onclick={() => tapChord(t)}>{chordLabel(p, t)}</button>
               {/each}
               <button type="button" class="choice min-h-12 rounded-xl px-3 text-sm" disabled={step === "feedback" || !slots.length} onclick={() => (slots = slots.slice(0, -1))}>Undo</button>
             </div>

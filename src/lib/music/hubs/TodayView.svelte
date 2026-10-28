@@ -7,11 +7,13 @@
   import { hueForRoute, hueVar } from "../hues";
   import { practice } from "../practice.svelte";
   import { settings } from "../runtime";
-  import { blockReason, todayChallenges, todayPlan } from "../today.svelte";
+  import { blockReason, localWeekday, setDayInstrument, splitOptions, todayChallenges, todayPlan, WEEKDAYS } from "../today.svelte";
   import { btnPrimary, panel } from "../components/ui";
+  import Picker from "../components/Picker.svelte";
 
-  const instrument = $derived(settings.value.activeInstrument);
-  const plan = $derived(todayPlan(instrument, settings.value.routineBudgetMinutes));
+  const plan = $derived(todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes));
+  const instrument = $derived(plan.instrument);
+  const weekday = localWeekday();
   const budget = $derived(plan.routine.budgetMinutes);
   const challenges = $derived(todayChallenges(plan.advice));
   const nextStep = $derived(plan.routine.steps.find((s) => !plan.done.includes(s.n)));
@@ -22,7 +24,7 @@
 
   const DAY = ["M", "T", "W", "T", "F", "S", "S"];
   const dayLetter = (d: string) => DAY[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7];
-  const dotLabel = { practised: "practised", frozen: "covered by a freeze", missed: "no practice", today: "today, not yet" };
+  const dotLabel = { practised: "practised", frozen: "covered by a freeze", missed: "no practice", today: "today, not yet", upcoming: "still to come" };
   const greeting = () => {
     const h = new Date().getHours();
     return h < 12 ? "Morning session" : h < 18 ? "Afternoon session" : "Evening session";
@@ -33,10 +35,20 @@
   <section aria-labelledby="set-title" class="min-w-0">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument].toLowerCase()}</p>
+        <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument].toLowerCase()}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
         <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
           {#if allDone}Set complete. Nice work.{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
         </h2>
+      </div>
+      <div class="flex items-center gap-2 text-sm text-ws-soft">
+        <span aria-hidden="true">{WEEKDAYS[weekday]}s</span>
+        <Picker
+          class="w-auto"
+          label="Instrument on {WEEKDAYS[weekday]}s"
+          value={settings.value.weeklySplit?.[weekday] ?? ""}
+          options={splitOptions(settings.value.activeInstrument)}
+          onchange={(v) => setDayInstrument(weekday, v)}
+        />
       </div>
       <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Time available">
         {#each BUDGET_OPTIONS as m (m)}
@@ -115,7 +127,7 @@
           {plan.summary.completedSteps} of {plan.summary.totalSteps} blocks, +{plan.summary.xp} XP{#if plan.summary.accuracy !== undefined},
             {Math.round(plan.summary.accuracy * 100)}% correct{/if}, {Math.round(plan.summary.durationMs / 60000)} min.
         </p>
-        <a class={btnPrimary} href={plan.routine.steps[0].href}>Repeat the set</a>
+        <a class={btnPrimary} href={plan.repeatHref}>Repeat the set</a>
         <a class="text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/journal">Open journal</a>
       {/if}
     </div>
@@ -136,7 +148,9 @@
                   ? 'border-2 border-dashed border-info text-info'
                   : d.state === 'today'
                     ? 'border-2 border-instr-ink'
-                    : 'bg-ws-raised'}"
+                    : d.state === 'upcoming'
+                      ? 'border border-dashed border-ws-line'
+                      : 'bg-ws-raised'}"
               title="{d.day}: {dotLabel[d.state]}"
             >
               {#if d.state === "practised"}<Check class="size-4" aria-hidden="true" />{:else if d.state === "frozen"}<span aria-hidden="true">❄</span>{/if}

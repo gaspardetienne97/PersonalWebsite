@@ -126,6 +126,8 @@ describe("jazz voicing types", () => {
       "garland",
       "monk",
       "upper",
+      "quartal-tune",
+      "slash-tune",
     ] as const)
       for (const it of voicingItems({ variant, keyPc: 2, keys: 1 })) {
         const shown = it.show.map((n) => n.midi);

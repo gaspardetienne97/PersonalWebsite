@@ -347,6 +347,8 @@ export interface Settings {
   /** What the Aerophone reads: C (written is concert), alto Eb or tenor Bb sax. */
   aerophoneKey: AerophoneReadingKey;
   routineBudgetMinutes: number;
+  /** Today's instrument per weekday, Monday first; null or missing plays the strip's. */
+  weeklySplit: (Instrument | null)[];
   weeklySessionGoal: number;
   preferredSource: Partial<Record<Instrument, InputSource>>;
   preferredSurface: Partial<Record<Instrument, PreferredSurface>>;
@@ -380,6 +382,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ukuleleTuningId: "ukulele.high-g",
   aerophoneKey: "C",
   routineBudgetMinutes: 20,
+  weeklySplit: [],
   weeklySessionGoal: 4,
   preferredSource: {},
   preferredSurface: {},

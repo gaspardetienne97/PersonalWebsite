@@ -89,7 +89,8 @@ const EAR_BLURB: Record<string, string> = {
   "chord-qualities": "Hear a chord and say whether it is major, minor or another quality.",
   cadences: "Hear two chords that end a phrase and name the cadence.",
   "chord-functions": "Hear a chord after the key is set and name its place in the key, I to vii°.",
-  progressions: "Hear three or four chords starting on I and write down the rest.",
+  progressions:
+    "Hear three or four chords starting on I and write down the rest, or hear where a key change goes.",
   "song-loops": "Hear a song's chord loop as a groove after the key is set and name every chord.",
   scales: "Hear a scale over its tonic and name it, from major and minor to the modes.",
   inversions: "Hear a chord and say which of its notes is in the bass.",

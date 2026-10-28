@@ -569,6 +569,35 @@ APP_SKILLS.push(
     version: 1,
   },
 );
+// Key changes in Progression dictation: one skill per destination (content/ear.ts KEY_CHANGES).
+const KEY_CHANGE_NAMES: [string, string][] = [
+  ["up-half", "A key change up a half step"],
+  ["up-step", "A key change up a whole step"],
+  ["up-min3", "A key change up a minor third"],
+  ["down-min3", "A key change down a minor third"],
+  ["down-maj3", "A key change down a major third"],
+  ["up-4th", "A key change up a fourth"],
+  ["relative", "A key change to the relative minor"],
+  ["parallel", "A key change to the parallel minor"],
+];
+APP_SKILLS.push(
+  {
+    id: "ear.key-changes",
+    name: "Key changes by ear",
+    capability: "harmony",
+    level: "advanced",
+    tags: ["ear", "function", "progression"],
+    version: 1,
+  },
+  ...KEY_CHANGE_NAMES.map(([t, name]) => ({
+    id: `ear.key-change.${t}`,
+    name,
+    capability: "harmony" as const,
+    level: "advanced" as const,
+    tags: ["ear", "function", "progression"],
+    version: 1,
+  })),
+);
 const LOOP_NAMES: [string, string][] = [
   ["songs", "Song loops by ear"],
   ["pop", "Pop loops by ear"],
@@ -782,6 +811,7 @@ const CIRCLE_NAMES: [string, string][] = [
   ["wheel", "The circle from memory"],
   ["borrowed", "Spotting borrowed chords"],
   ["secondary", "Spotting secondary dominants"],
+  ["analysis", "Analysing a tune's key centres and functions"],
 ];
 APP_SKILLS.push(
   {
@@ -976,6 +1006,11 @@ const APP_RELATIONSHIPS: SkillRelationship[] = [
   ...MINOR_NAMES.map(([t]) => ({
     from: "ear.chord-functions.minor",
     to: `ear.chord-function.minor.${t}`,
+    kind: "component" as const,
+  })),
+  ...KEY_CHANGE_NAMES.map(([t]) => ({
+    from: "ear.key-changes",
+    to: `ear.key-change.${t}`,
     kind: "component" as const,
   })),
 ];

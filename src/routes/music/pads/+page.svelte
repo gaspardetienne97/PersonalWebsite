@@ -34,12 +34,13 @@
   import GrooveGrid from "$lib/music/drills/pads/GrooveGrid.svelte";
   import StickingLane from "$lib/music/drills/pads/StickingLane.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
-  import NoteHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/NoteHighway.svelte";
-  import { laneColor, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
+  import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
+  import { judgeHit, laneColor, orderLanes, overdue, padsDue, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
   import ChopDrill from "$lib/music/drills/pads/ChopDrill.svelte";
+  import { padSound } from "$lib/music/drills/pads/slices";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("pads", {
@@ -62,6 +63,9 @@
     swing: 0,
     // Check, faded: the notes and live judgements for the first two plays, then the guide fades and only the rest counts.
     fade: false as boolean,
+    // The lanes (notes sliding onto a hit line, the pads beside) or the step grid; how many bars the lanes read ahead.
+    view: "lanes" as string,
+    ahead: 1,
   });
   const s = $derived(cfg.value);
   // Path steps carry their tempo (?bpm=); the practice strip owns it from then on.
@@ -150,8 +154,13 @@
   /** The guide shows: in Practice, or a faded run before the fade. */
   const guided = $derived(mode === "practice" || (faded && (phase === "countin" || now - downbeat < fadeMs)));
   let demo = $state<{ stop(): void; playing: boolean; startPerf: number } | null>(null);
+  const playing = $derived(phase === "running" || phase === "countin" || !!demo?.playing);
   let demoLit = $state<Record<number, boolean>>({});
   const flashes = new Flashes();
+  /** How each hit landed, on its pad. */
+  const timing = new Flashes<"early" | "late" | "perfect">();
+  const lanesView = $derived(s.view !== "grid");
+  const aheadBars = $derived([1, 2, 4].includes(s.ahead) ? s.ahead : 1);
   let cap: Capture | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let clickTimer: ReturnType<typeof setTimeout> | undefined;
@@ -176,6 +185,10 @@
     return () => cancelAnimationFrame(raf);
   });
   const base = $derived(demo?.playing ? demo.startPerf : phase === "running" ? downbeat : null);
+  /** The notes show in Practice, while a guide or the demo plays, and after a run; Check otherwise plays from memory. */
+  const notesShown = $derived(playing ? guided || !!demo?.playing : mode === "practice" || phase === "results");
+  /** The lanes while it plays and before; the results read on the grid, each note marked. */
+  const showLanes = $derived(lanesView && phase !== "results");
   /** The stroke due now: the one whose half-gap window holds the clock (a pyramid's gaps vary). */
   const strokeNow = $derived.by(() => {
     if (base === null) return null;
@@ -191,7 +204,7 @@
   // taps already sound through the input layer.
   $effect(() =>
     input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound && cfg.value.mode !== "chop") audio.drum(e.midi, e.velocity);
+      if (e.kind === "noteon" && e.source !== "onscreen" && cfg.value.sound && cfg.value.mode !== "chop" && !padSound.slicesAt?.(e.at)) audio.drum(e.midi, e.velocity);
     }),
   );
 
@@ -223,15 +236,14 @@
   // The highway: lanes, notes, live judgements, streak.
 
   /** Top to bottom as drum notation reads: cymbals, hats, toms, snare, kick. */
-  const LANE_ORDER = ["crash", "ride", "cowbell", "openhat", "hats", "pedalhat", "tom-high", "tom-mid", "perc", "rim", "snare", "tom-low", "kick", "808"];
   const lanes = $derived<HighwayLane[]>(
     isGroove
-      ? LANE_ORDER.filter((v) => groove.targets.some((t) => t.voice === v)).map((v) => ({ id: v, label: voiceName(v), color: laneColor(v) }))
+      ? orderLanes(groove.targets.map((t) => t.voice)).map((v) => ({ id: v, label: voiceName(v), color: laneColor(v), pad: groove.targets.find((t) => t.voice === v)!.pad }))
       : pattern.onePad
-        ? [{ id: "both", label: "Both", color: laneColor("both") }]
+        ? [{ id: "both", label: "Both", color: laneColor("both"), pad: pads[1] }]
         : [
-            { id: "right", label: "Right", color: laneColor("right") },
-            { id: "left", label: "Left", color: laneColor("left") },
+            { id: "right", label: "Right", color: laneColor("right"), pad: pads[1] },
+            { id: "left", label: "Left", color: laneColor("left"), pad: pads[0] },
           ],
   );
   /** What is judged live, in order: the groove's targets or the rudiment's strokes. */
@@ -264,41 +276,25 @@
   );
   /** A hit, judged against the nearest unjudged note on its pad inside the good window. */
   function judge(e: NoteEvent) {
-    const at = e.at - downbeat;
-    let best = -1;
-    let err = Infinity;
-    live.forEach((t, i) => {
-      if (judged[i] || t.pad !== e.midi) return;
-      const d = at - t.atMs;
-      if (Math.abs(d) <= judgeWindow.good && Math.abs(d) < Math.abs(err)) [best, err] = [i, d];
-    });
-    if (best < 0) {
+    const hit = judgeHit(live, judged, e.midi, e.at - downbeat, judgeWindow);
+    if (!hit) {
       flashNote = { judgement: "extra", key: ++flashKey };
       return;
     }
-    const j: Judgement = Math.abs(err) <= judgeWindow.perfect ? "perfect" : err < 0 ? "early" : "late";
-    judged = { ...judged, [best]: j };
+    judged = { ...judged, [hit.index]: hit.judgement };
+    if (hit.judgement !== "miss") timing.add(e.midi, hit.judgement, 450);
     streak++;
     bestStreak = Math.max(bestStreak, streak);
-    flashNote = { judgement: j, ms: err, key: ++flashKey };
+    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey };
   }
   /** Notes gone past the good window unhit: missed, and the streak resets. */
   function sweepMisses() {
     if (phase !== "running" || waitMode) return;
-    const rel = performance.now() - downbeat;
-    let missed = false;
-    const next = { ...judged };
-    live.forEach((t, i) => {
-      if (!next[i] && t.atMs + judgeWindow.good < rel) {
-        next[i] = "miss";
-        missed = true;
-      }
-    });
-    if (missed) {
-      judged = next;
-      streak = 0;
-      flashNote = { judgement: "miss", key: ++flashKey };
-    }
+    const missed = overdue(live, judged, performance.now() - downbeat, judgeWindow.good);
+    if (!missed.length) return;
+    judged = { ...judged, ...Object.fromEntries(missed.map((i) => [i, "miss" as const])) };
+    streak = 0;
+    flashNote = { judgement: "miss", key: ++flashKey };
   }
 
   // Wait mode: the notes stop at each group until its pads are hit.
@@ -366,9 +362,7 @@
     }
     if (phase === "running") {
       // A pad glows in its lane's colour as its note comes up (half a beat ahead).
-      const rel = now - downbeat;
-      const ahead = Math.min(beatMs / 2, 260);
-      for (const t of live) if (t.atMs >= rel - 40 && t.atMs <= rel + ahead) out[t.pad] = { target: true };
+      for (const p of padsDue(live, now - downbeat, Math.min(beatMs / 2, 260))) out[p] = { target: true };
       return out;
     }
     if (!isGroove)
@@ -454,6 +448,7 @@
     grv = null;
     extra = null;
     flashes.clear();
+    timing.clear();
     downbeat = ctx.downbeat;
     stopClockRef = ctx.stopClock;
     judged = {};
@@ -769,6 +764,10 @@
 
 <svelte:head><title>Pads | Woodshed</title></svelte:head>
 
+{#snippet padGrid()}
+  <Pads {marks} {flashes} {timing} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+{/snippet}
+
 {#if s.mode === "chop"}
   <ChopDrill modes={MODES} onmode={setMode} />
 {:else if skillMode}
@@ -854,6 +853,10 @@
           />
         {/if}
       {/if}
+      <Choice label="View" options={[{ value: "lanes", label: "Lanes" }, { value: "grid", label: isGroove ? "Grid" : "Sticking" }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
+      {#if lanesView}
+        <Choice label="Look ahead" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "1 bar" : `${n} bars` }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
+      {/if}
     </div>
     {#if !isGroove}<p class="mt-3 text-sm text-ws-soft">The pads: tap one on the stage to set the {pattern.onePad ? "pad" : "left hand, then the right"}.</p>{/if}
   {/snippet}
@@ -879,61 +882,62 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="flex flex-col gap-4" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-targets={isGroove ? JSON.stringify(groove.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined} data-testid="pads-stage">
-      <!-- The notes on top, the pads under them, as play-along apps stack them. -->
-      <div class="grid grid-cols-[minmax(0,1fr)] items-start gap-5">
-        <div class="min-w-0">
-          {#if (phase === "running" || phase === "countin" || demo?.playing) && (guided || demo?.playing)}
-            <!-- While it plays: the notes come at you, judged as they pass. -->
-            <NoteHighway
-              {lanes}
-              notes={live}
-              now={waitMode && phase === "running" ? waitShown : demo?.playing ? now - demo.startPerf : now - downbeat}
-              {beatMs}
-              lengthMs={isGroove ? groove.lengthMs : strokes[strokes.length - 1].atMs + stepMs}
-              {judged}
-              flash={flashNote}
-              countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
-              label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
-            />
-            {#if waitMode}<p class="mt-2 text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
-          {:else if mode === "check" && phase !== "results"}
-            <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
-              {#if faded}{phase === "running" ? "The guide has faded: keep it going. " : `Check, faded: the notes and judgements for ${FADE_PLAYS} plays, then summary only; the plays after the fade count. `}{/if}
-              Check: from memory, no grid.
-              {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else if pattern.onePad}{pattern.label} on {padLabel(pads[1])}.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
+    <div class="flex flex-col gap-4" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-targets={isGroove ? JSON.stringify(groove.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined} data-testid="pads-stage" data-view={notesShown && showLanes ? "lanes" : "grid"}>
+      {#if !notesShown}
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
+          {#if faded}{phase === "running" ? "The guide has faded: keep it going. " : `Check, faded: the notes and judgements for ${FADE_PLAYS} plays, then summary only; the plays after the fade count. `}{/if}
+          Check: from memory, no grid.
+          {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else if pattern.onePad}{pattern.label} on {padLabel(pads[1])}.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
+        </p>
+      {:else}
+        {#if isGroove && !playing}
+          <div class="rounded-xl bg-ws-stage-ink/8 p-3 text-sm" aria-label="About this groove">
+            <p class="font-semibold">
+              {entry.groove.label} <span class="font-normal text-ws-stage-soft">· {entry.style}, level {entry.level} ({levelOf.tier}: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms){grooveMeter(entry.groove) !== "4/4" ? ` · ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? ` · swing ${swing}%` : ""}</span>
             </p>
-          {:else if isGroove}
-            {#if phase !== "running" && phase !== "countin"}
-              <div class="mb-3 rounded-xl bg-ws-stage-ink/8 p-3 text-sm" aria-label="About this groove">
-                <p class="font-semibold">
-                  {entry.groove.label} <span class="font-normal text-ws-stage-soft">· {entry.style}, level {entry.level} ({levelOf.tier}: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms){grooveMeter(entry.groove) !== "4/4" ? ` · ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? ` · swing ${swing}%` : ""}</span>
-                </p>
-                <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
-                <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
-                <p class="mt-1 text-ws-stage-soft">
-                  {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; two clean runs in a row move it up. Now {bpm}.{/if}
-                </p>
-              </div>
-            {/if}
-            <GrooveGrid
-              targets={groove.targets}
-              bars={groove.groove.bars}
-              sectionLabels={groove.groove.sectionLabels}
-              playhead={stepNow}
-              outcomes={grv?.perTarget}
-              windowMs={judgeWindow.good}
-              stepsPerBeat={perBeatStep}
-              beatsPerBar={perBar}
-            />
-          {:else}
-            <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
-            {#if hits.some((h) => h.grace)}<p class="mt-2 text-xs text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
-            {#if phase === "ready"}<p class="mt-2 text-xs text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
-          {/if}
-        </div>
-        <Pads {marks} {flashes} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
-      </div>
+            <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
+            <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
+            <p class="mt-1 text-ws-stage-soft">
+              {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; two clean runs in a row move it up. Now {bpm}.{/if}
+            </p>
+          </div>
+        {/if}
+        {#if showLanes}
+          <!-- The notes slide onto the hit line, judged as they pass; the pads beside light the next hit. -->
+          <PadHighway
+            {lanes}
+            notes={live}
+            now={waitMode && phase === "running" ? waitShown : demo?.playing ? now - demo.startPerf : playing ? now - downbeat : -beatMs}
+            {beatMs}
+            beatsPerBar={isGroove ? perBar : 4}
+            stepsPerBeat={isGroove ? perBeatStep : perBeat}
+            {aheadBars}
+            lengthMs={isGroove ? groove.lengthMs : strokes[strokes.length - 1].atMs + stepMs}
+            {judged}
+            flash={flashNote}
+            countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
+            label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+            pads={padGrid}
+          />
+          {#if waitMode}<p class="text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
+        {:else if isGroove}
+          <GrooveGrid
+            targets={groove.targets}
+            bars={groove.groove.bars}
+            sectionLabels={groove.groove.sectionLabels}
+            playhead={stepNow}
+            outcomes={grv?.perTarget}
+            windowMs={judgeWindow.good}
+            stepsPerBeat={perBeatStep}
+            beatsPerBar={perBar}
+          />
+        {:else}
+          <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
+        {/if}
+        {#if !isGroove && hits.some((h) => h.grace)}<p class="text-xs text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
+        {#if !isGroove && phase === "ready"}<p class="text-xs text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
+      {/if}
+      {#if !(notesShown && showLanes)}{@render padGrid()}{/if}
     </div>
   {/snippet}
 

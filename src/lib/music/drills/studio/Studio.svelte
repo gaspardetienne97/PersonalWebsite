@@ -122,12 +122,14 @@
   const others = $derived(choices.filter((c) => !picked.includes(c.id)));
   const partner = $derived(perfMode && s.partner && others.length > 0);
 
-  const VIEWS = [
+  // On guitar and ukulele, the note highway too.
+  const VIEWS = $derived([
     { id: "staff", label: "Staff" },
     { id: "tab", label: "Tab" },
     { id: "fingering", label: "Fingering" },
-    { id: "waterfall", label: "Waterfall" },
-  ] as const;
+    { id: "waterfall", label: "Falling notes" },
+    ...(["guitar", "ukulele"].includes(settings.value.activeInstrument) ? [{ id: "highway", label: "Highway" }] : []),
+  ]);
   const view = $derived((VIEWS.find((v) => v.id === page.url.searchParams.get("view"))?.id ?? "staff") as View);
 
   // On guitar or ukulele (or in Tab) the score moves by octaves into the
@@ -243,7 +245,7 @@
     const out: Record<number, CellMarks> = {};
     if (preview?.playing && previewPass && previewBeat !== null) {
       for (const g of viewGroups)
-        if (g.startBeat <= previewBeat + 1e-6 && previewBeat < g.startBeat + g.durationBeats) for (const n of g.notes) out[n.midi] = { demo: true, role: sides[n.voiceId] };
+        if (g.startBeat <= previewBeat + 1e-6 && previewBeat < g.startBeat + g.durationBeats) for (const n of g.notes) if (previewBeat < g.startBeat + n.durationBeats) out[n.midi] = { demo: true, role: sides[n.voiceId] };
       return out;
     }
     // From memory the keys don't show what comes next.
@@ -1156,7 +1158,7 @@
     {/if}
     {#if staffFailed && view === "staff"}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/10 p-3 text-sm">
-        Staff preview unavailable for this score. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open the Waterfall</a>, which shows every note.
+        Staff preview unavailable for this score. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open Falling notes</a>, which shows every note.
       </p>
     {/if}
     {#if (view === "tab" || fretted) && !live}
@@ -1195,6 +1197,7 @@
       {highlights}
       {written}
       {drums}
+      timed={perfMode && live}
       onfallback={(r) => (staffFailed = r)}
     />
     {#if unseen}

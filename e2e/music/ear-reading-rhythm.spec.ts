@@ -750,6 +750,8 @@ test.describe("ear training", () => {
   test("intervals and melodies sung back through the synthetic mic, in any octave", async ({
     page,
   }) => {
+    // The melody's key is set with I, IV, V, I first, as in the other drills in a key.
+    test.setTimeout(60_000);
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/intervals?answer=voice&intervals=M3,P5,P8&direction=ascending");
     await page.getByRole("button", { name: "Check", exact: true }).click();

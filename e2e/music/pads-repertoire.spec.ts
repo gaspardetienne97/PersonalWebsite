@@ -195,7 +195,7 @@ test.describe("finger-drumming repertoire", () => {
   }) => {
     test.setTimeout(60_000);
     await installFakeMidi(page, [PORTS.keys]);
-    await enableMidi(page, "/music/pads?mode=groove&groove=amen&bpm=110&backing=true");
+    await enableMidi(page, "/music/pads?mode=groove&groove=amen&bpm=110&backing=true&view=grid");
     const preview = page.getByRole("region", { name: "The groove, 4 bars, scroll sideways" });
     await expect(preview).toBeVisible();
     const { scroll, client } = await preview.evaluate((el) => ({

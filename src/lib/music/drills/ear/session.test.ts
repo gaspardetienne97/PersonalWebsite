@@ -257,3 +257,104 @@ describe("ear sessions", () => {
     expect(dirs).toEqual(new Set(["ascending", "descending", "harmonic"]));
   });
 });
+
+describe("key change sessions", () => {
+  it("asks every destination from one starting key and labels the answer", () => {
+    const p = buildSession({ ...base, kinds: ["key-change"], mode: "balanced", rand: rng(2) });
+    expect(p).toHaveLength(10);
+    expect(p.every((x) => x.drill === "key-change")).toBe(true);
+    expect(new Set(p.map((x) => x.answer.split(" ")[0])).size).toBe(8);
+    expect(new Set(p.map((x) => (x as { fromPc?: number }).fromPc)).size).toBe(1);
+    expect(tokenLabel("key-change", "up-step ii7 V7 Imaj7")).toBe(
+      "up a whole step, by ii7, V7, Imaj7",
+    );
+    expect(targetForSkill("ear.key-change.relative", ["key-change"], "anchor")?.token).toBe(
+      "relative",
+    );
+  });
+});
+
+describe("keys in a run", () => {
+  const keysOf = (p: unknown[]) => p.map((x) => (x as { keyPc: number }).keyPc);
+  it("keeps one key for a melody dictation run", () => {
+    const p = buildSession({
+      ...base,
+      kinds: ["melody-dictation"],
+      mode: "balanced",
+      rand: rng(5),
+    });
+    expect(new Set(keysOf(p)).size).toBe(1);
+  });
+
+  it("changes key every N prompts, never to the same key", () => {
+    for (const seed of [1, 2, 3]) {
+      const k = keysOf(
+        buildSession({
+          ...base,
+          kinds: ["chord-function"],
+          mode: "balanced",
+          rand: rng(seed),
+          focus: { keyEvery: 3 },
+        }),
+      );
+      expect(k).toHaveLength(10);
+      for (const b of [0, 3, 6]) expect(new Set(k.slice(b, b + 3)).size).toBe(1);
+      for (const b of [3, 6, 9]) expect(k[b]).not.toBe(k[b - 1]);
+    }
+    const five = keysOf(
+      buildSession({
+        ...base,
+        kinds: ["scale-degree"],
+        mode: "balanced",
+        rand: rng(4),
+        focus: { keyEvery: 5 },
+      }),
+    );
+    expect(new Set(five.slice(0, 5)).size).toBe(1);
+    expect(new Set(five.slice(5)).size).toBe(1);
+    expect(five[5]).not.toBe(five[4]);
+  });
+});
+
+describe("retrying chords in a key", () => {
+  const miss = (target: string, promptId: string, skillIds: string[]): ScoringEvent => ({
+    id: Math.random().toString(36),
+    sessionId: "s",
+    exerciseId: "ear.chord-functions",
+    promptId,
+    at: 1,
+    skillIds,
+    capabilities: ["ear"],
+    correct: false,
+    partialCredit: 0,
+    difficulty: 0.3,
+    modality: "heard",
+    source: "click",
+    assistance: "independent",
+    target,
+    metrics: [{ kind: "choice", expected: target, actual: "I" }],
+  });
+  it("asks a minor or seventh miss again as it was asked, in its key", () => {
+    const r = retryPrompts(
+      [
+        miss("m:IV", "chord-function-m:IV-5", [
+          "ear.chord-functions.minor",
+          "ear.chord-function.minor.IV",
+        ]),
+        miss("V7", "chord-function-V7-10", [
+          "ear.chord-functions",
+          "ear.chord-function.V",
+          "ear.chord-function.sevenths",
+        ]),
+      ],
+      ["chord-function"],
+      rng(1),
+    ) as (ReturnType<typeof retryPrompts>[number] & { keyPc: number })[];
+    const minor = r.find((x) => x.answer === "m:IV")!;
+    expect(minor.keyPc).toBe(5);
+    expect(minor.choices).toContain("m:V");
+    const seventh = r.find((x) => x.answer === "V7")!;
+    expect(seventh.keyPc).toBe(10);
+    expect(r.map((x) => x.answer).sort()).toEqual(["V7", "m:IV"]);
+  });
+});

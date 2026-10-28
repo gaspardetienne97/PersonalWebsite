@@ -34,6 +34,8 @@ export const rootName = (root: number, quality = "maj") =>
 export interface ChordRef {
   root: number;
   quality: string;
+  /** A guitar shell (root, 3rd and 7th on three strings) rather than the full chord. */
+  shell?: boolean;
 }
 const suffixOf = (quality: string) =>
   VOICING_QUALITIES.find((q) => q.quality === quality)?.suffix ?? quality;
@@ -78,6 +80,9 @@ const curatedRefs = new Map(
 
 /** What a shape id names: a generated id ("gen.guitar.0.maj"), or what a curated shape sounds. */
 export function chordRef(id: string): ChordRef | null {
+  const sh = SHELL_ID.exec(id.replace(/@\d+$/, ""));
+  if (sh && SHELL_QUALITIES.includes(sh[2]))
+    return { root: Number(sh[1]) % 12, quality: sh[2], shell: true };
   const g = parseGeneratedId(id.replace(/@\d+$/, ""));
   if (g) return { root: g.rootPc, quality: g.quality.quality };
   return curatedRefs.get(id) ?? null;
@@ -85,6 +90,8 @@ export function chordRef(id: string): ChordRef | null {
 
 /** The curated shape for a chord when there is one (the first: no duplicate F), else the generated id. */
 export function chordId(instrument: Fretted, c: ChordRef): string {
+  if (c.shell && instrument === "guitar" && SHELL_QUALITIES.includes(c.quality))
+    return `shell.guitar.${pc(c.root)}.${c.quality}`;
   const curated = shapesFor(instrument).find((s) => {
     const r = curatedRefs.get(s.id);
     return r?.root === pc(c.root) && r.quality === c.quality;
@@ -97,6 +104,8 @@ export function chordId(instrument: Fretted, c: ChordRef): string {
  * written for (position 0 the curated open shape), else voiced for this tuning.
  */
 export function positionsOn(id: string, tuning: Tuning): ChordPosition[] {
+  const sh = chordRef(id);
+  if (sh?.shell) return shellPositions(sh, tuning);
   const own = chordPositions(id);
   if (own.length && own[0].tuningId === tuning.id) return own;
   const c = chordRef(id);
@@ -104,6 +113,70 @@ export function positionsOn(id: string, tuning: Tuning): ChordPosition[] {
     ? generatedPositions(generatedChordId(tuning.instrument, c.root, c.quality), tuning)
     : [];
   return gen.length ? gen : own;
+}
+
+// ---------------------------------------------------------------------------
+// Guitar shells: the root on string 6 or 5 with the 3rd and 7th, the 5th left out.
+
+export const SHELL_QUALITIES = ["maj7", "m7", "7"];
+const SHELL_ID = /^shell\.guitar\.(\d+)\.(.+)$/;
+/** Each form: the strings (root first) and the chord tones on them, as 3 for the 3rd and 7 for the 7th. */
+const SHELL_FORMS: { strings: number[]; tones: (1 | 3 | 7)[]; label: string }[] = [
+  { strings: [6, 5, 4], tones: [1, 3, 7], label: "1-3-7, root on 6" },
+  { strings: [6, 4, 3], tones: [1, 7, 3], label: "1-7-3, root on 6" },
+  { strings: [5, 4, 3], tones: [1, 3, 7], label: "1-3-7, root on 5" },
+  { strings: [5, 3, 2], tones: [1, 7, 3], label: "1-7-3, root on 5" },
+];
+
+/** A shell chord's four forms on a tuning, as positions 0 to 3; each note the closest fret to the root's. */
+export function shellPositions(c: ChordRef, tuning: Tuning): ChordPosition[] {
+  const third = c.quality === "m7" ? 3 : 4;
+  const seventh = c.quality === "maj7" ? 11 : 10;
+  const id = `shell.guitar.${pc(c.root)}.${c.quality}`;
+  const name = `${chordLabel(c)} shell`;
+  return SHELL_FORMS.map((form, i): ChordPosition => {
+    const open = (s: number) => tuning.openStrings[s - 1];
+    const r = pc(c.root - open(form.strings[0]));
+    let frets = form.tones.map((t, k) => {
+      if (t === 1) return r;
+      const f = pc(c.root + (t === 3 ? third : seventh) - open(form.strings[k]));
+      return [f - 12, f, f + 12].sort((a, b) => Math.abs(a - r) - Math.abs(b - r))[0];
+    });
+    if (Math.min(...frets) < 0) frets = frets.map((f) => f + 12);
+    const all: (number | null)[] = tuning.openStrings.map(() => null);
+    form.strings.forEach((s, k) => (all[s - 1] = frets[k]));
+    // Fingers by fret from the lowest fretted note, one finger a fret; a shared fret takes the next free finger.
+    const fingers: (number | null)[] = all.map(() => null);
+    const fretted = form.strings.map((s, k) => ({ s, f: frets[k] })).filter((x) => x.f > 0);
+    const low = Math.min(...fretted.map((x) => x.f));
+    const used = new Set<number>();
+    for (const x of [...fretted].sort((a, b) => a.f - b.f || b.s - a.s)) {
+      let finger = Math.min(4, x.f - low + 1);
+      while (used.has(finger) && finger < 4) finger++;
+      used.add(finger);
+      fingers[x.s - 1] = finger;
+    }
+    const base = fretted.length ? low : 0;
+    const start = base > 0 ? base - 1 : 0;
+    return {
+      id: i === 0 ? id : `${id}@${i}`,
+      name,
+      instrument: "guitar",
+      tuningId: tuning.id,
+      difficulty: 3,
+      frets: all,
+      fingers,
+      mutedStrings: all.flatMap((f, k) => (f === null ? [k + 1] : [])),
+      openStrings: all.flatMap((f, k) => (f === 0 ? [k + 1] : [])),
+      commonTransitions: [],
+      shapeId: id,
+      positionIndex: i,
+      positionLabel: form.label,
+      kind: "closed",
+      baseFret: base,
+      fretWindow: { start, end: Math.max(start + 4, ...frets) },
+    };
+  });
 }
 
 /** A chart symbol as a chord the voicer can shape, or null ("G7alt", slash chords). */
@@ -204,7 +277,9 @@ export function hardestPairs(
   n = 5,
 ): HardPair[] {
   const own = (id: string) =>
-    id.startsWith(`${instrument}.`) || id.startsWith(`gen.${instrument}.`);
+    id.startsWith(`${instrument}.`) ||
+    id.startsWith(`gen.${instrument}.`) ||
+    id.startsWith(`shell.${instrument}.`);
   return Object.entries(history)
     .map(([key, runs]) => ({ key, ids: key.split(">"), recent: runs.slice(-3) }))
     .filter(

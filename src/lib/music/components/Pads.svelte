@@ -18,9 +18,12 @@
     colors?: Record<number, string>;
     interactive?: boolean;
     label?: string;
+    /** How each hit landed against the note it was for: early, late or on time. */
+    timing?: Flashes<"early" | "late" | "perfect">;
   }
 
-  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A" }: Props = $props();
+  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing }: Props = $props();
+  const TIMING_TEXT = { early: "Early", late: "Late", perfect: "On time" } as const;
 
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const ROWS = [12, 8, 4, 0];
@@ -63,6 +66,7 @@
       {@const mk = marks[midi] ?? {}}
       {@const flash = flashes?.get(midi)}
       {@const held = input.held.has(midi)}
+      {@const when = timing?.get(midi)}
       <button
         type="button"
         class="pad"
@@ -87,7 +91,10 @@
           {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
         </span>
         <span class="name">{names[midi] ?? ""}</span>
-        {#if flash}
+        {#if when}
+          <span class="when" data-kind={when} aria-hidden="true">{TIMING_TEXT[when]}</span>
+        {/if}
+        {#if flash && !when}
           <span class="glyph" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
         {:else if mk.label}
           <span class="glyph" aria-hidden="true">{mk.label}</span>
@@ -209,6 +216,38 @@
     font-weight: 800;
     background: var(--instr);
     color: #140a10;
+  }
+  /* How the hit landed: a pill across the pad's middle, gone in a moment. */
+  .when {
+    position: absolute;
+    inset-inline: 0.3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.1rem 0;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #140a10;
+    background: var(--success);
+    animation: when-in 140ms ease-out both;
+    z-index: 1;
+  }
+  .when[data-kind="early"],
+  .when[data-kind="late"] {
+    background: var(--warn);
+  }
+  @keyframes when-in {
+    from {
+      opacity: 0;
+      transform: translateY(-30%) scale(0.85);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .when {
+      animation: none;
+    }
   }
   .glyph[data-kind="correct"] {
     background: var(--success);

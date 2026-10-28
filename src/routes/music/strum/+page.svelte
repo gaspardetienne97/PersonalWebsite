@@ -4,7 +4,7 @@
   // is recorded with no skill mastery: real-strum following is unverified on a
   // physical guitar, so it must not claim a skill.
   import { onDestroy, onMount } from "svelte";
-  import { FLAT_NAMES } from "@repo/music-core";
+  import { FLAT_NAMES, noteName } from "@repo/music-core";
   import type { Strictness } from "@repo/music-core";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { PROGRESSIONS } from "@repo/music-core/content/jam";
@@ -29,6 +29,8 @@
   import MicPanel from "$lib/music/drills/guitar/MicPanel.svelte";
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
   import ToneMap from "$lib/music/drills/guitar/ToneMap.svelte";
+  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "$lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "$lib/music/notation/highway";
 
   // seed: the generated charts' draw; New chart moves it on.
   const cfg = new DrillSetup("strum-progression", { progression: "guitar-g-d-em-c", strictness: "relaxed", choruses: 1, pattern: "" as string, seed: 1 });
@@ -88,6 +90,7 @@
   let summary = $state<RunSummary | null>(null);
   let demo: { stop(): void; playing: boolean } | null = $state(null);
   let demoIndex = $state<number | null>(null);
+  let demoAt = $state<number | null>(null);
   const listener = new ChordListener();
   let downbeat = $state(0);
   let beatMs = $state(0);
@@ -115,6 +118,7 @@
     demo?.stop();
     demo = null;
     demoIndex = null;
+    demoAt = null;
   }
 
   async function playDemo() {
@@ -138,6 +142,7 @@
     });
     const handle = audio.playSequence(notes, { onNote: (i: number) => (demoIndex = notes[i].chord) });
     demo = handle;
+    demoAt = handle.startPerf;
     status = `Listen: one chorus, ${strum ? strumName(strum) : "strummed on beats one and three"}. The microphone is not listening to this.`;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
@@ -239,6 +244,44 @@
     halt();
     stopDemo();
     mic.stop();
+  });
+
+  // The highway: a block per strum (the pattern's arrows), or per chord with any strum, over the chord's strings.
+  const allStrings = $derived(tuning.openStrings.map((_, i) => i + 1));
+  const blocks = $derived(
+    chart.flatMap((c): HighwayChord[] => {
+      const shape = shapeOf(c.symbol);
+      const strings = shape ? chordPerfectTargets(shape, tuning).map((t) => t.string) : allStrings;
+      if (!strum) return [{ startBeat: c.startBeat, durationBeats: c.durationBeats, strings, name: c.symbol }];
+      return Array.from({ length: c.bars }, (_, bar) => strokesIn(c.startBeat / 4 + bar).map((e) => ({ beat: c.startBeat + bar * 4 + e.beat, e })))
+        .flat()
+        .map(({ beat, e }, k) => ({ startBeat: beat, durationBeats: e.durationBeats ?? 0.5, strings, name: k === 0 ? c.symbol : undefined, strum: e.stroke, accent: e.accent === "accent" }));
+    }),
+  );
+  /** Each strum heard on the nearest block within half a beat: its offset, or wrong when none of the chord's tones rang. */
+  const blockHits = $derived.by(() => {
+    const out: Record<number, Hit> = {};
+    if (!beatMs || !blocks.length) return out;
+    for (const h of observed) {
+      const off = (k: number) => h.at - (downbeat + blocks[k].startBeat * beatMs);
+      let best = 0;
+      for (let k = 1; k < blocks.length; k++) if (Math.abs(off(k)) < Math.abs(off(best))) best = k;
+      if (Math.abs(off(best)) >= beatMs / 2 || out[best] !== undefined) continue;
+      const pcs = chart.findLast((c) => c.startBeat <= blocks[best].startBeat + 1e-6)?.pcs ?? [];
+      out[best] = h.pcs.some((p) => pcs.includes(p)) ? off(best) : "wrong";
+    }
+    return out;
+  });
+  const hwBeat = $derived(demoAt !== null ? (now - demoAt) / (60000 / bpm()) : live && beatMs ? (now - downbeat) / beatMs : null);
+  let raf = 0;
+  $effect(() => {
+    if (!highway.on || (!live && !demo)) return;
+    const frame = () => {
+      now = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
   });
 
   const shownIndex = $derived(current >= 0 ? current : 0);
@@ -351,6 +394,12 @@
   {/snippet}
 
   {#snippet stage()}
+    {#if phase !== "results"}
+      <div class="mb-2 flex justify-end">{@render viewSwitch("Chart")}</div>
+    {/if}
+    {#if highway.on && phase !== "results"}
+      <NoteHighway chords={blocks} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={hwBeat} chordHits={blockHits} judge={phase === "running"} perfectMs={Math.max(40, Math.round(60000 / bpm() / 8))} />
+    {:else}
     <ol class="flex flex-wrap gap-1.5" aria-label="Chord chart">
       {#each chart as c, i (i)}
         {@const graded = result?.chords[i]}
@@ -376,6 +425,7 @@
       <div class="mt-4 max-w-md" data-pattern={strum.id}>
         <RhythmGrid bars={1} perBar={4} events={strokesIn(Math.max(0, chart[shownIndex]?.startBeat ?? 0) / 4).map((e) => ({ beat: e.beat, accent: e.accent === "accent", stroke: e.stroke, duration: e.durationBeats }))} label="{strumName(strum)}, one bar" />
       </div>
+    {/if}
     {/if}
     {#if shownShape}
       <div class="mt-4"><ShapeBoard shape={shownShape} {tuning} interactive={false} label="{chart[shownIndex].symbol} on the {instr} neck" /></div>

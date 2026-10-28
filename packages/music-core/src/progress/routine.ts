@@ -3,6 +3,7 @@ import type { Instrument, PracticeSession, RunRecord, ScoringEvent, SkillMastery
 import { DAY_MS, decayMastery, isDueForReview } from "./mastery";
 import routineData from "../data/daily-routine.json";
 import { CATALOG } from "../content/catalog";
+import type { PathProgress } from "./paths";
 
 export type StepId =
   | "ear"
@@ -141,8 +142,8 @@ export type Role = "review" | "focus" | "ear" | "variety" | "song" | "create";
 export interface RoutineStep {
   /** 1-based position, also the `step` query parameter. */
   n: number;
-  /** "path" for a focus block from the learning path. */
-  id: StepId | "path";
+  /** "path" for a focus block from the learning path, "song" for a shelf song. */
+  id: StepId | "path" | "song";
   role: Role;
   label: string;
   description: string;
@@ -152,6 +153,8 @@ export interface RoutineStep {
   skillId?: string;
   /** A path block's skills, so an unlinked run on them still completes it. */
   skillIds?: string[];
+  /** A song block's shelf key, so a Song Studio run on that song completes it. */
+  shelf?: string;
 }
 
 export interface Routine {
@@ -168,6 +171,58 @@ export interface PathFocus {
   summary: string;
   href: string;
   skillIds: string[];
+}
+
+/** The path's shelf song, as the song block takes it. */
+export interface SongFocus {
+  title: string;
+  description: string;
+  href: string;
+  shelf: string;
+}
+
+/**
+ * The song block's song: from the current level's shelf, one you can open (`available`: in your
+ * songs or downloaded). Not yet played first, then the one with the most days, then the easiest.
+ */
+export function pickShelfSong(
+  progress: PathProgress,
+  available: ReadonlySet<string>,
+): SongFocus | undefined {
+  const level = progress.levels?.find((l) => l.level.id === progress.currentLevel);
+  const pick = level?.songs
+    .filter((s) => available.has(s.key))
+    .sort(
+      (a, b) => +a.played - +b.played || b.days - a.days || (a.song.diff ?? 9) - (b.song.diff ?? 9),
+    )[0];
+  return (
+    pick && {
+      title: pick.song.title,
+      description: `${pick.song.artist}, from level ${level!.level.id} of the ${progress.path.title} shelf.`,
+      href: `/music/songs/shelf/${pick.key}`,
+      shelf: pick.key,
+    }
+  );
+}
+
+/** The instrument a weekly split (Monday first) gives a weekday (0 is Monday), else the strip's. */
+export const dayInstrument = (
+  split: readonly (Instrument | null | undefined)[] | undefined,
+  weekday: number,
+  strip: Instrument,
+): Instrument => split?.[weekday] ?? strip;
+
+/** A routine's id for a pass of the set: the first pass keeps the plain id. */
+export const passId = (id: string, pass: number) => (pass > 1 ? `${id}-pass${pass}` : id);
+
+/** The latest pass of the set with a session of its own, 1 when none has started. */
+export function currentPass(id: string, sessions: PracticeSession[]): number {
+  let pass = 1;
+  for (const s of sessions) {
+    const m = s.routineId?.match(/-pass(\d+)$/);
+    if (m && s.routineId === passId(id, Number(m[1]))) pass = Math.max(pass, Number(m[1]));
+  }
+  return pass;
 }
 
 export const BUDGET_OPTIONS = [10, 20, 30, 45, 60, 90] as const;
@@ -284,6 +339,8 @@ export function buildRoutine(input: {
   weakSkillIds?: string[];
   dueSkillIds?: string[];
   pathFocus?: PathFocus;
+  /** The path's shelf song for the song block; Phrases when missing. */
+  song?: SongFocus;
   /** dayKey (YYYY-MM-DD); odd days put reading in the ear slot. */
   day?: string;
 }): Routine {
@@ -341,7 +398,17 @@ export function buildRoutine(input: {
         "due",
       ) ?? choose(steps(playing), "warm-up", true),
     ear: () => choose(steps(odd ? ["reading", "ear"] : ["ear", "reading"]), "default"),
-    song: () => choose(steps(["phrases"]), "default"),
+    song: () =>
+      input.song
+        ? {
+            id: "song",
+            label: input.song.title,
+            description: input.song.description,
+            href: input.song.href,
+            reason: "path",
+            shelf: input.song.shelf,
+          }
+        : choose(steps(["phrases"]), "default"),
     variety: () => choose(steps([...defaults, ...DRILL_STEPS]), "default"),
     create: () => choose(steps(["jam"]), "default"),
   };
@@ -380,6 +447,7 @@ export function buildRoutine(input: {
 /** The step a finished run belongs to: its routine params, else the ear prefix, else its skills. */
 function runMatchesStep(run: RunRecord, routine: Routine, step: RoutineStep): boolean {
   if (run.params.routine === routine.id) return Number(run.params.step) === step.n;
+  if (step.shelf) return run.params.shelf === step.shelf;
   if (step.skillIds?.length)
     return run.skillIds.some((s) => step.skillIds!.some((k) => s === k || s.startsWith(`${k}.`)));
   if (step.id === "ear") return run.exerciseId.startsWith("ear.");

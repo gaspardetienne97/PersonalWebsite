@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { SKILL_IDS } from "../data";
 import { pc } from "../theory/notes";
-import { JAZZ_VOICING_TYPES, chordSpeller, jazzVoicingChords, UPPER_TUNES } from "./jazz-voicings";
+import {
+  JAZZ_VOICING_TYPES,
+  chordSpeller,
+  jazzVoicingChords,
+  quartalStack,
+  UPPER_TUNES,
+} from "./jazz-voicings";
 import { TUNES } from "./tunes";
 
 const pcs = (ms: number[]) => ms.map(pc);
@@ -125,6 +131,39 @@ describe("jazz voicing types", () => {
     expect(pcs(d7.left)).toEqual([2, 6, 0]);
     expect(UPPER_TUNES.length).toBeGreaterThan(1);
     expect(UPPER_TUNES.length).toBeLessThanOrEqual(TUNES.length);
+  });
+
+  it("quartal on a tune: two 4ths in the chord's scale with a 3rd or 7th inside", () => {
+    const mv = jazzVoicingChords("quartal-tune", 0, { tune: "tune-maiden-voyage" });
+    expect(mv.map((c) => c.symbol)).toEqual(["D7sus4", "F7sus4", "Eb7sus4", "Dbm7"]);
+    // D7sus4: A D G (5-1-4); Dbm7: Gb Cb Fb (11-b7-b3).
+    expect(pcs(mv[0].left)).toEqual([9, 2, 7]);
+    expect(pcs(mv[3].left)).toEqual([6, 11, 4]);
+    for (const c of mv) expect(c.left[1] - c.left[0]).toBe(5);
+    // Cmaj7 7-3-6, G7 3-6-9 (7-3 is a tritone), Dm7 11-b7-b3.
+    const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+    expect(quartalStack([0, 4, 7, 11], MAJOR)).toEqual([11, 16, 21]);
+    expect(quartalStack([0, 4, 7, 10], [0, 2, 4, 5, 7, 9, 10])).toEqual([4, 9, 14]);
+    expect(quartalStack([0, 3, 7, 10], [0, 2, 3, 5, 7, 9, 10])).toEqual([5, 10, 15]);
+    // Altered: b7 #9 b13. Diminished has no stack of perfect 4ths, so 7-3 and a 4th on top.
+    expect(quartalStack([0, 4, 10, 13, 15, 18, 20], [0, 1, 3, 4, 6, 8, 10])).toEqual([10, 15, 20]);
+    expect(quartalStack([0, 3, 6, 9], [0, 2, 3, 5, 6, 8, 9, 11])).toEqual([9, 15, 20]);
+  });
+
+  it("slash chords on a tune: a triad over the root", () => {
+    const mv = jazzVoicingChords("slash-tune", 0, { tune: "tune-maiden-voyage" });
+    // D7sus4 as C/D, Dbm7 as Cb/Db (a minor 11th).
+    expect(pcs(mv[0].left)).toEqual([2, 9]);
+    expect(new Set(pcs(mv[0].right))).toEqual(new Set([0, 4, 7]));
+    expect(mv[0].name).toContain("C/D");
+    expect(new Set(pcs(mv[3].right))).toEqual(new Set([11, 3, 6]));
+    expect(mv[3].name).toContain("Cb/Db");
+    const blues = jazzVoicingChords("slash-tune", 0, { tune: "tune-summertime" });
+    const half = blues.find((c) => c.symbol === "Bm7b5")!;
+    expect(half.name).toContain("Dm/B");
+    expect(new Set(pcs(half.right))).toEqual(new Set([2, 5, 9]));
+    const cmaj = blues.find((c) => c.symbol === "Cmaj7")!;
+    expect(new Set(pcs(cmaj.right))).toEqual(new Set([7, 11, 2]));
   });
 
   it("spells chord tones letter by letter", () => {

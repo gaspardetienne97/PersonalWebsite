@@ -43,13 +43,13 @@ export const practicedDays = (sessions: PracticeSession[]) => [
 // ---------------------------------------------------------------------------
 // Streak
 
-export type DotState = "practised" | "frozen" | "missed" | "today";
+export type DotState = "practised" | "frozen" | "missed" | "today" | "upcoming";
 
 export interface Streak {
   /** Practised days in the unbroken chain ending today (or yesterday); frozen days bridge but do not count. */
   current: number;
   longest: number;
-  /** The last 7 days, oldest first, ending today. */
+  /** The ISO week holding today, Monday to Sunday, as the minutes chart shows it. */
   week: { day: string; state: DotState }[];
   /** Uncovered days between the last practised or frozen day and today: what a freeze would cover. */
   gap: string[];
@@ -82,14 +82,16 @@ export function computeStreak(practiced: string[], frozen: string[], today: stri
   if (lastCovered) for (let d = addDays(lastCovered, 1); d < today; d = addDays(d, 1)) gap.push(d);
 
   const week = Array.from({ length: 7 }, (_, i) => {
-    const day = addDays(today, i - 6);
+    const day = addDays(weekStart(today), i);
     const state: DotState = P.has(day)
       ? "practised"
       : F.has(day)
         ? "frozen"
         : day === today
           ? "today"
-          : "missed";
+          : day > today
+            ? "upcoming"
+            : "missed";
     return { day, state };
   });
 

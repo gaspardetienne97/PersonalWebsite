@@ -75,7 +75,7 @@ test.describe("shuffles, odd meters and swing", () => {
     page,
   }) => {
     test.setTimeout(60_000);
-    await enableMidi(page, "/music/pads?mode=groove&groove=blues-shuffle&bpm=120");
+    await enableMidi(page, "/music/pads?mode=groove&groove=blues-shuffle&bpm=120&view=grid");
     await expect(page.getByText("Setup:").locator("..")).toContainText("on triplets");
     const grid = page.getByRole("region", { name: /The groove, 1 bar/ });
     // Twelve steps a bar, counted 1 & a.
@@ -100,7 +100,7 @@ test.describe("shuffles, odd meters and swing", () => {
 
   test("7/8 clicks seven eighths and grades a seven-beat bar", async ({ page }) => {
     test.setTimeout(60_000);
-    await enableMidi(page, "/music/pads?mode=groove&groove=seven-eight&bpm=120");
+    await enableMidi(page, "/music/pads?mode=groove&groove=seven-eight&bpm=120&view=grid");
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "Rock in 7/8, 1 bar, 120 BPM",
     );
