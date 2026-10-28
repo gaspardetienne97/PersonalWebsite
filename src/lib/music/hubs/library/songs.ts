@@ -88,7 +88,8 @@ export function scoreFacts(score: Score): ScoreFacts {
     low: midis.length ? Math.min(...midis) : null,
     high: midis.length ? Math.max(...midis) : null,
     seconds: Math.round((score.lengthBeats * 60) / score.bpm),
-    key: keyName(score),
+    // A drum part has no key.
+    key: score.voices.every((v) => v.drums) ? null : keyName(score),
     meter: `${score.meter.beats}/${score.meter.beatUnit}`,
   };
 }
