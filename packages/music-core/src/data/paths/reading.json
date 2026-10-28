@@ -153,7 +153,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: one scored pass at 70% of the marked tempo.",
           "done": "3 different shelf pieces at 80% or better on the first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P1.10",
@@ -490,7 +490,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 different shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P2.9",
@@ -1074,7 +1074,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P4.8",
@@ -1391,7 +1391,7 @@
           "title": "A hymn a day",
           "setup": "Song Studio, sight-read: one new hymn or chorale each practice day.",
           "done": "10 hymns or chorales at 80% first pass over 2 weeks.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P5.8",
@@ -1591,17 +1591,33 @@
         {
           "id": "P6.1",
           "title": "Shells",
-          "setup": "Root-3-7 shells for maj7, m7 and 7 in 12 keys.",
+          "setup": "Accompaniment, Comping: root-3-7 shells for m7, 7 and maj7 through the ii-V-I, one chord a bar, moving round the keys. The symbols come in ii-V-I order, not at random.",
           "done": "Any symbol to shell within 2 s, 90% of 40.",
-          "needs": "Shell voicings (root, 3, 7) from a chord symbol and through ii-V-I in Voicings."
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shell-137&rhythm=whole&progression=ii-v-i",
+          "match": {
+            "voicing": "shell-137"
+          },
+          "threshold": 0.9,
+          "minAttempts": 5
         },
         {
           "id": "P6.2",
           "title": "ii-V-I shells round the circle",
-          "setup": "ii-V-I shells round the circle, 12 keys, at 100.",
+          "setup": "Accompaniment, Comping: ii-V-I shells round the circle, 12 keys, at 100; the key picker moves the key.",
           "done": "All 12 at 100 bpm, 90%, on two days.",
-          "needs": "Shell voicings (root, 3, 7) from a chord symbol and through ii-V-I in Voicings.",
-          "feeds": "Autumn Leaves, Satin Doll"
+          "feeds": "Autumn Leaves, Satin Doll",
+          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i",
+          "match": {
+            "voicing": "shells",
+            "progression": "ii-v-i"
+          },
+          "each": {
+            "param": "key",
+            "values": ["0", "5", "10", "3", "8", "1", "6", "11", "4", "9", "2", "7"]
+          },
+          "threshold": 0.9,
+          "minBpm": 100,
+          "minAttempts": 1
         },
         {
           "id": "P6.3",
@@ -1657,7 +1673,7 @@
           "title": "Standards at sight",
           "setup": "Song Studio, sight-read: shelf lead sheets at 100.",
           "done": "4 shelf tunes at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P6.8",
@@ -1846,10 +1862,20 @@
         {
           "id": "P7.2",
           "title": "Odd meters",
-          "setup": "Rhythm reading 8, odd meters.",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone in 5/8, 7/8 and 5/4 (rhythm reading 8).",
           "done": "Rhythm reading 8 passed.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
-          "feeds": "Take Five"
+          "feeds": "Take Five",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8",
+          "match": {
+            "level": "piano-9",
+            "follower": "tap"
+          },
+          "each": {
+            "param": "meter",
+            "values": ["5/8", "7/8", "5/4"]
+          },
+          "threshold": 0.9,
+          "minAttempts": 8
         },
         {
           "id": "P7.3",
@@ -1926,7 +1952,7 @@
           "title": "A page a day",
           "setup": "Song Studio, sight-read: one shelf or IMSLP piece of this grade a day.",
           "done": "15 pieces at 80% first pass over 3 weeks.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "P7.9",
@@ -2190,7 +2216,7 @@
           "title": "Riff a day",
           "setup": "Song Studio, sight-read: one riff a day at 70% of the tempo.",
           "done": "6 shelf riffs at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G1.5",
@@ -2425,7 +2451,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "4 shelf pieces at 80% first pass at 70% tempo.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G2.6",
@@ -2662,7 +2688,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G3.6",
@@ -2892,7 +2918,7 @@
           "title": "Bass and melody",
           "setup": "Song Studio, sight-read: Sagreras First Lessons 1 to 16, one a day.",
           "done": "10 lessons at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass.",
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run.",
           "feeds": "Sagreras"
         },
         {
@@ -2900,7 +2926,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G4.6",
@@ -3168,7 +3194,7 @@
           "title": "A tune a day",
           "setup": "Song Studio, sight-read: a tune a day at 70% of the tempo.",
           "done": "8 shelf tunes at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G5.6",
@@ -3432,7 +3458,7 @@
           "title": "Violin and flute parts",
           "setup": "Song Studio, sight-read: shelf violin and flute parts in fifth position (they sound an octave lower on guitar).",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G6.6",
@@ -3629,7 +3655,7 @@
           "title": "Generated charts",
           "setup": "Generated charts on guitar, chart-1 and chart-2.",
           "done": "80% first pass on 5 of 6.",
-          "needs": "Chord-chart reading in Sight-reading (chart-1 to chart-3), graded by pitch classes per beat."
+          "needs": "Chord-chart reading on guitar: the generated charts chart-1 to chart-3 are piano-only, in Accompaniment."
         },
         {
           "id": "G7.4",
@@ -3680,7 +3706,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: chords only, then the melody.",
           "done": "4 charts at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         }
       ],
       "shelf": [
@@ -3880,7 +3906,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 60% of the tempo.",
           "done": "4 shelf studies at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "G8.5",
@@ -4156,7 +4182,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "U1.5",
@@ -4402,7 +4428,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         }
       ],
       "shelf": [
@@ -4585,7 +4611,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "U3.6",
@@ -4771,7 +4797,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "U4.5",
@@ -4984,7 +5010,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 60% of the tempo.",
           "done": "4 shelf solos at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "U5.5",
@@ -5178,7 +5204,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "U6.5",
@@ -5194,10 +5220,19 @@
         {
           "id": "U6.6",
           "title": "Hear the secondary dominants",
-          "setup": "Ear: chromatic colour and borrowed chords.",
+          "setup": "Ear, Song loops: secondary dominants, then borrowed chords, named by numeral.",
           "done": "80% on secondary dominants and borrowed chords.",
-          "needs": "Secondary dominants and borrowed chords in the ear drill Chords in a key.",
-          "feeds": "Five Foot Two, Ain't She Sweet"
+          "feeds": "Five Foot Two, Ain't She Sweet",
+          "href": "/music/ear/song-loops?answer=choice&loops=secondary",
+          "skillIds": ["ear.loops.secondary", "ear.loops.borrowed"],
+          "threshold": 0.8,
+          "minAttempts": 10,
+          "links": [
+            {
+              "label": "Song loops, borrowed chords",
+              "href": "/music/ear/song-loops?answer=choice&loops=borrowed"
+            }
+          ]
         }
       ],
       "shelf": [
@@ -5427,7 +5462,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A1.6",
@@ -5664,7 +5699,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A2.6",
@@ -5867,7 +5902,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A3.5",
@@ -6092,7 +6127,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read at 70% of the tempo.",
           "done": "5 shelf solos at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A4.5",
@@ -6259,7 +6294,7 @@
         {
           "id": "A5.2",
           "title": "Jazz lines",
-          "href": "/music/reading?activity=sight-reading&instrument=aerophone&level=line-jazz&key=F%20major&follower=performance",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=aerophone&level=line-jazz&key=F%20major&follower=performance",
           "setup": "Sight-reading, Jazz lines (written F, C, G and Bb; Eb and D too): written straight, played and graded swung. Keep time.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
@@ -6287,23 +6322,24 @@
           "id": "A5.3",
           "title": "Blues form",
           "href": "/music/jam?progression=blues&instrument=aerophone",
-          "setup": "Jam: 12-bar blues backing, a shelf head twice through. Jam is not scored, so this one is a self-check.",
+          "setup": "Jam: 12-bar blues backing, a shelf head twice through. Jam's Check grades improvised lines, not a written head, so this one is a self-check.",
           "done": "Form kept without getting lost, 90%.",
           "exerciseIds": []
         },
         {
           "id": "A5.4",
           "title": "Transcribe one",
-          "setup": "Transcribe one shelf head from its recording, then compare with the score.",
+          "setup": "Learn by ear: transcribe one shelf head from its recording, looped and slowed, then compare with the score in Song Studio. Learn runs are self-rated, so this step is not judged.",
           "done": "Transcription matches the score at 80%.",
-          "needs": "Transcribing a melody from a recording, checked against the score."
+          "href": "/music/by-ear?mode=learn",
+          "exerciseIds": []
         },
         {
           "id": "A5.5",
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "5 heads at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A5.6",
@@ -6496,7 +6532,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 standards at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A6.4",
@@ -6518,17 +6554,21 @@
         {
           "id": "A6.5",
           "title": "Improvise on one",
-          "href": "/music/jam?progression=ii-v-i&instrument=aerophone",
-          "setup": "Jam with the tune's changes, guide tones from the jazz path. Jam is not scored, so its chord-tone report is the check.",
+          "href": "/music/jam?progression=ii-v-i&instrument=aerophone&game=chord-tones&choruses=1",
+          "setup": "Jam in Check with the tune's changes (the ii-V-I, or a standard such as Autumn Leaves), Chord tones on 1 and 3, guide tones from the jazz path.",
           "done": "One chorus kept, chord tones on beats 1 and 3 at 60%.",
-          "exerciseIds": []
+          "match": {
+            "game": "chord-tones"
+          },
+          "threshold": 0.6,
+          "minAttempts": 1
         },
         {
           "id": "A6.6",
           "title": "Read a concert-pitch lead sheet",
           "setup": "Song Studio, sight-read: a C lead sheet from the piano level 6 shelf, read a minor third down (written = concert + 9).",
           "done": "One tune at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass.",
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run.",
           "feeds": "Autumn Leaves, Blue Bossa"
         }
       ],
@@ -6709,7 +6749,7 @@
           "title": "Sight-read the shelf",
           "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
-          "needs": "Sight-read mode in Song Studio: a 30 second look, then one scored pass."
+          "needs": "A sight-read setting in Song Studio: a 30 second look, then one scored pass counted only on a song's first run."
         },
         {
           "id": "A7.6",
@@ -6932,16 +6972,30 @@
         {
           "id": "R1.3",
           "title": "Generated, quarters and eighths",
-          "setup": "Generated read-and-tap at quarters-eighths, 80.",
+          "setup": "Sight-reading, Tap the rhythm, Level 1 at 80: quarters and eighths, with halves mixed in.",
           "done": "90% on 8 of 10 at 80, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-1&bpm=80",
+          "match": {
+            "level": "level-1",
+            "follower": "tap"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "minBpm": 80
         },
         {
           "id": "R1.4",
           "title": "Add rests and halves",
-          "setup": "Generated read-and-tap at rests-halves.",
+          "setup": "Sight-reading, Tap the rhythm, Line 4 in 4/4: rests and halves, with ties and dotted quarters mixed in.",
           "done": "90% on 8 of 10.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&meter=simple",
+          "match": {
+            "level": "line-4",
+            "follower": "tap",
+            "meter": "simple"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8
         },
         {
           "id": "R1.5",
@@ -6975,7 +7029,7 @@
           "title": "Read a real line",
           "setup": "Tap the rhythm of shelf pieces at sight, then play them on any instrument.",
           "done": "5 shelf pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         }
       ],
       "shelf": [
@@ -7131,15 +7185,22 @@
         {
           "id": "R2.2",
           "title": "Ties",
-          "setup": "Read and tap, ties inside the bar.",
+          "setup": "Sight-reading, Tap the rhythm, Line 4, 8 bars: the generator ties notes over the bar line, not yet inside the bar.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
-          "feeds": "Ode to Joy"
+          "feeds": "Ode to Joy",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&meter=simple&measures=8",
+          "match": {
+            "level": "line-4",
+            "follower": "tap",
+            "measures": "8"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8
         },
         {
           "id": "R2.3",
           "title": "3/4 and 2/4",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-4&meter=3%2F4",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&meter=3%2F4",
           "setup": "Sight-reading, Tap the rhythm, Line 4 in 3/4 and 2/4: any key, the Tap button or Space.",
           "done": "90% on 8 of 10.",
           "match": {
@@ -7183,14 +7244,14 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R2.6",
           "title": "Sing it on one pitch",
           "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped.",
           "done": "10 lessons tapped at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only.",
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight.",
           "feeds": "Bona"
         }
       ],
@@ -7319,9 +7380,17 @@
         {
           "id": "R3.1",
           "title": "Compound pulse",
-          "setup": "Generated read-and-tap at compound, dotted quarter = 60.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8: dotted quarter = 60 is 90 on the strip's quarter-note tempo.",
           "done": "90% on 8 of 10, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=90",
+          "match": {
+            "level": "level-2",
+            "follower": "tap",
+            "meter": "compound"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "minBpm": 90
         },
         {
           "id": "R3.2",
@@ -7344,17 +7413,24 @@
         {
           "id": "R3.3",
           "title": "Count in two",
-          "setup": "Compound, counting \"1 and a 2 and a\", then dotted quarter = 80.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8, counting \"1 and a 2 and a\"; dotted quarter = 80 is 120 on the strip's quarter-note tempo.",
           "done": "90% at 80.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing).",
-          "feeds": "jigs"
+          "feeds": "jigs",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=120",
+          "match": {
+            "level": "level-2",
+            "follower": "tap",
+            "meter": "compound"
+          },
+          "threshold": 0.9,
+          "minBpm": 120
         },
         {
           "id": "R3.4",
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R3.5",
@@ -7371,9 +7447,16 @@
         {
           "id": "R3.6",
           "title": "Slow and fast 6/8",
-          "setup": "Compound at dotted quarter = 50 and 100.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8 at dotted quarter = 50 and 100: 75 and 150 on the strip's quarter-note tempo. The step counts the runs at 150; the slow ones are yours to check.",
           "done": "90% at both, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=75",
+          "match": {
+            "level": "level-2",
+            "follower": "tap",
+            "meter": "compound"
+          },
+          "threshold": 0.9,
+          "minBpm": 150
         }
       ],
       "shelf": [
@@ -7529,9 +7612,17 @@
         {
           "id": "R4.2",
           "title": "Generated",
-          "setup": "Generated read-and-tap at sixteenths, 70 then 90.",
+          "setup": "Sight-reading, Tap the rhythm, Line 5 in 4/4: sixteenths at 70, then 90 on the strip.",
           "done": "90% on 8 of 10 at 70, then 90, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-5&meter=simple&bpm=70",
+          "match": {
+            "level": "line-5",
+            "follower": "tap",
+            "meter": "simple"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "minBpm": 90
         },
         {
           "id": "R4.3",
@@ -7580,15 +7671,21 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R4.6",
           "title": "Sixteenths on the pads",
-          "setup": "Pads path groove levels with sixteenth hats.",
+          "setup": "Pads, Grooves: funk sixteenths, the pads path's sixteenth-hat groove (level 4), 80 to 96.",
           "done": "As that path sets.",
-          "needs": "Sixteenth-hat and swing grooves in Pads (the pads path's groove levels).",
-          "feeds": "Superstition, Billie Jean"
+          "feeds": "Superstition, Billie Jean",
+          "href": "/music/pads?mode=groove&groove=funk-sixteenths&bpm=80",
+          "match": {
+            "groove": "funk-sixteenths"
+          },
+          "threshold": 0.9,
+          "minBpm": 96,
+          "minDays": 1
         }
       ],
       "shelf": [
@@ -7730,14 +7827,21 @@
         {
           "id": "R5.2",
           "title": "Generated syncopation",
-          "setup": "Generated read-and-tap at syncopation, 80.",
+          "setup": "Sight-reading, Tap the rhythm, Piano 7 on the treble clef alone at 80: syncopation over the beat, with dotted eighths and sixteenths mixed in.",
           "done": "90% on 8 of 10 at 80, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing)."
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-7&clefs=treble&meter=simple&bpm=80",
+          "match": {
+            "level": "piano-7",
+            "follower": "tap"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8,
+          "minBpm": 80
         },
         {
           "id": "R5.3",
           "title": "Ties over the bar",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-5&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-5&measures=8",
           "setup": "Sight-reading, Tap the rhythm, Line 5: notes tied over the bar line, pickups and sixteenths.",
           "done": "90% on 8 of 10.",
           "match": {
@@ -7751,7 +7855,7 @@
         {
           "id": "R5.4",
           "title": "Reed-style lines",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-4&measures=8&bpm=80",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&measures=8&bpm=80",
           "setup": "Sight-reading, Tap the rhythm, Line 4, 8 bars (eighths, quarters, dotted quarters, ties) at 80, then 100, then 120.",
           "done": "85% at 120, on two days.",
           "match": {
@@ -7768,13 +7872,13 @@
           "title": "With a foot",
           "setup": "Reed lines with a kick-quarters lane.",
           "done": "85% at 100.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "needs": "A kick-quarters lane under Tap the rhythm in Sight-reading.",
           "feeds": "pads path"
         },
         {
           "id": "R5.6",
           "title": "Sixteenth syncopation",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-6&bpm=80",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-6&bpm=80",
           "setup": "Sight-reading, Tap the rhythm, Line 6: sixteenth syncopation (sixteenth, eighth, sixteenth and dotted eighth, sixteenth) among the other figures, at 80.",
           "done": "90% on 8 of 10 at 80.",
           "match": {
@@ -7791,7 +7895,7 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         }
       ],
       "shelf": [
@@ -7937,18 +8041,31 @@
         {
           "id": "R6.2",
           "title": "Dotted eighth-sixteenth",
-          "setup": "Generated read-and-tap at dotted-sixteenths.",
+          "setup": "Sight-reading, Tap the rhythm, Piano 7 on the treble clef alone: dotted eighth and sixteenth, with syncopation mixed in.",
           "done": "90% on 8 of 10, on two days.",
-          "needs": "Generated read-and-tap in Rhythm at the ear-rhythm levels (quarters-eighths to swing).",
-          "feeds": "marches"
+          "feeds": "marches",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-7&clefs=treble&meter=simple",
+          "match": {
+            "level": "piano-7",
+            "follower": "tap"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8
         },
         {
           "id": "R6.3",
           "title": "Quarter-note triplets",
-          "setup": "Read and tap, quarter-note triplets.",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone in 4/4: quarter-note triplets, mixed with eighth triplets and sixteenth syncopation.",
           "done": "90% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
-          "feeds": "Hedwig, Ave Maria"
+          "feeds": "Hedwig, Ave Maria",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=simple",
+          "match": {
+            "level": "piano-9",
+            "follower": "tap",
+            "meter": "simple"
+          },
+          "threshold": 0.9,
+          "minAttempts": 8
         },
         {
           "id": "R6.4",
@@ -7982,12 +8099,12 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R6.6",
           "title": "Switch figures",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-6",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-6",
           "setup": "Sight-reading, Tap the rhythm, Line 6: triplets and dotted eighth-sixteenths in the same bars.",
           "done": "85% on 8 of 10.",
           "match": {
@@ -8158,7 +8275,7 @@
         {
           "id": "R7.3",
           "title": "Swing with anticipations",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=line-jazz&measures=8&bpm=120",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-jazz&measures=8&bpm=120",
           "setup": "Sight-reading, Tap the rhythm, Jazz lines: swung eighths and anticipations tied over the beat, 8 bars at 120.",
           "done": "85% at 120.",
           "match": {
@@ -8172,16 +8289,28 @@
         {
           "id": "R7.4",
           "title": "Pads link",
-          "setup": "Pads path swing levels.",
+          "setup": "Pads, Grooves: swing 56 (pads level 3), then the swing ride on the triplet grid (pads level 8).",
           "done": "As that path sets.",
-          "needs": "Sixteenth-hat and swing grooves in Pads (the pads path's groove levels)."
+          "href": "/music/pads?mode=groove&groove=swing-56&bpm=80",
+          "each": {
+            "param": "groove",
+            "values": ["swing-56", "swing-ride"]
+          },
+          "threshold": 0.9,
+          "minDays": 1,
+          "links": [
+            {
+              "label": "Swing ride",
+              "href": "/music/pads?mode=groove&groove=swing-ride&bpm=100"
+            }
+          ]
         },
         {
           "id": "R7.5",
           "title": "Read real lines",
           "setup": "Tap or play shelf heads at sight, swung.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R7.6",
@@ -8347,7 +8476,7 @@
         {
           "id": "R8.1",
           "title": "Groupings",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=5%2F8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=5%2F8",
           "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 5/8 (2+3) and 5/4.",
           "done": "90% on 8 of 10, on two days.",
           "match": {
@@ -8371,7 +8500,7 @@
         {
           "id": "R8.2",
           "title": "Sevens",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8",
           "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 7/8 (2+2+3). 7/4 is not in it yet.",
           "done": "90% on 8 of 10.",
           "match": {
@@ -8386,7 +8515,7 @@
         {
           "id": "R8.3",
           "title": "Nine and hemiola",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=9%2F8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=9%2F8",
           "setup": "Sight-reading, Tap the rhythm, 9/8 on the treble clef. It groups 3+3+3; the 2+2+2+3 grouping and 6/8 to 3/4 switches are not in it yet.",
           "done": "85% on 8 of 10.",
           "match": {
@@ -8402,12 +8531,12 @@
           "title": "Read real lines",
           "setup": "Tap the shelf rhythms at sight.",
           "done": "5 pieces at 80% first pass.",
-          "needs": "Tap a shelf piece's rhythm at sight in Song Studio: one scored pass, rhythm only."
+          "needs": "A Tap the rhythm setting in Song Studio: one scored pass of a shelf piece's rhythm at sight."
         },
         {
           "id": "R8.5",
           "title": "Count the groups aloud",
-          "href": "/music/reading?activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8&bpm=100",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8&bpm=100",
           "setup": "Sight-reading, Tap the rhythm, 5/8 and 7/8 at 100, counting the groups aloud.",
           "done": "90% on 8 of 10.",
           "match": {
@@ -8433,7 +8562,7 @@
           "title": "Meter changes",
           "setup": "Read and tap with a meter change every 2 bars (4/4, 3/4, 5/8).",
           "done": "85% on 8 of 10.",
-          "needs": "New read-and-tap levels in Rhythm: ties, 3/4, sixteenth syncopation, quarter-note triplets, odd meters and Reed lines.",
+          "needs": "Meter changes every 2 bars in the sight-reading generator, for Tap the rhythm.",
           "feeds": "America"
         }
       ],

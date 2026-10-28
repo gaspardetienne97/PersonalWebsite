@@ -1282,7 +1282,7 @@
         {
           "id": "4.11",
           "title": "Read eighths at sight",
-          "href": "/music/reading?activity=sight-reading&level=level-1",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&level=level-1",
           "setup": "Reading, sight-reading on the Aerophone: Level 1, with simple eighths.",
           "done": "80% first try on 3 lines.",
           "minAttempts": 3,
@@ -1623,19 +1623,31 @@
         {
           "id": "5.7",
           "title": "Call and response",
-          "setup": "The app plays 2 bars of blues; you echo them.",
+          "setup": "Call and response, Echo: the app plays 2 bars of blues; you echo them. A run is six calls, about two choruses.",
           "done": "80% of echoes right over 2 choruses.",
-          "needs": "Blues call and response on Jam.",
-          "feeds": "Improvising"
+          "feeds": "Improvising",
+          "href": "/music/call-response?mode=echo&groove=blues&bars=2",
+          "match": {
+            "groove": "blues",
+            "bars": "2"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "5.8",
           "title": "First choruses",
-          "href": "/music/jam?progression=blues&transpose=2",
-          "setup": "Jam: blues with the backing in D (alto D), 100 BPM, 3 choruses. Stay in the scale, land on the root at bars 1, 5 and 9. A chorus grader is coming; check the take yourself for now.",
+          "href": "/music/jam?progression=blues&transpose=2&bpm=100&game=blues-scale&choruses=3",
+          "setup": "Jam in Check, Only the blues scale: blues with the backing in D (alto D), 100 BPM, 3 choruses. Stay in the scale, land on the root at bars 1, 5 and 9; the game grades the scale, the roots are yours to hear.",
           "done": "A recorded take with no lost bars, 3 choruses.",
-          "exerciseIds": [],
-          "feeds": "Level test"
+          "feeds": "Level test",
+          "match": {
+            "game": "blues-scale",
+            "choruses": "3"
+          },
+          "minBpm": 100,
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "5.9",
@@ -2046,11 +2058,15 @@
         {
           "id": "6.7",
           "title": "Dorian over a vamp",
-          "href": "/music/jam?progression=modal",
-          "setup": "Jam: the modal vamp, 2 minutes, D Dorian as written.",
+          "href": "/music/jam?progression=modal&game=free&choruses=4",
+          "setup": "Jam in Check, Over the changes: the modal vamp, about 2 minutes, D Dorian as written.",
           "done": "A recorded take with no lost bars.",
-          "exerciseIds": [],
-          "feeds": "So What (Level 10)"
+          "feeds": "So What (Level 10)",
+          "match": {
+            "game": "free",
+            "progression": "modal"
+          },
+          "minAttempts": 1
         },
         {
           "id": "6.8",
@@ -3695,7 +3711,7 @@
         {
           "id": "9.11",
           "title": "Sight-reading",
-          "href": "/music/reading?activity=sight-reading&level=level-3",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&level=level-3",
           "setup": "Reading, sight-reading on the Aerophone: Level 3, keys to 4 sharps and flats.",
           "done": "80% first try on 5 lines.",
           "minAttempts": 5,
@@ -3927,10 +3943,16 @@
         {
           "id": "10.3",
           "title": "Guide tones",
-          "setup": "On Jam, the 3rd and 7th of each chord, one per bar.",
+          "setup": "Jam in Check, Guide tones only: the 3rd and 7th of each chord, one per bar.",
           "done": "85% correct guide tones over 2 choruses.",
-          "needs": "A guide-tone line on Jam (3rd or 7th per bar).",
-          "feeds": "Improvising"
+          "feeds": "Improvising",
+          "href": "/music/jam?progression=blues&game=guide-tones&choruses=2",
+          "match": {
+            "game": "guide-tones",
+            "choruses": "2"
+          },
+          "threshold": 0.85,
+          "minAttempts": 1
         },
         {
           "id": "10.4",
@@ -3958,34 +3980,62 @@
         {
           "id": "10.6",
           "title": "Blues improvisation, two keys",
-          "href": "/music/jam?progression=blues&transpose=2",
-          "setup": "Jam: blues in alto D, then G, 120 swing, 3 choruses. A chorus grader is coming; check the take yourself for now.",
+          "href": "/music/jam?progression=blues&transpose=2&bpm=120&game=free&choruses=3",
+          "setup": "Jam in Check, Over the changes: blues in alto D, then G, 120 swing, 3 choruses. The lick in each chorus is yours to check.",
           "done": "A recorded take with no lost bars and a lick in each chorus.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "Alto G",
-              "href": "/music/jam?progression=blues&transpose=7"
+              "href": "/music/jam?progression=blues&transpose=7&bpm=120&game=free&choruses=3"
             }
           ],
-          "feeds": "Level test"
+          "feeds": "Level test",
+          "each": {
+            "param": "transpose",
+            "values": ["2", "7"]
+          },
+          "match": {
+            "game": "free"
+          },
+          "minBpm": 120,
+          "minAttempts": 1
         },
         {
           "id": "10.7",
           "title": "Modal and minor",
-          "href": "/music/jam?progression=modal",
-          "setup": "Jam: the modal vamp, for So What and Mr. P.C.",
+          "href": "/music/jam?progression=tune-so-what&game=free&choruses=3",
+          "setup": "Jam in Check, Over the changes: the So What form, then the minor blues for Mr. P.C.",
           "done": "3 choruses, no lost bars.",
-          "exerciseIds": [],
-          "feeds": "So What"
+          "feeds": "So What",
+          "each": {
+            "param": "progression",
+            "values": ["tune-so-what", "tune-minor-blues"]
+          },
+          "match": {
+            "game": "free",
+            "choruses": "3"
+          },
+          "minAttempts": 1,
+          "links": [
+            {
+              "label": "Minor blues (Mr. P.C.)",
+              "href": "/music/jam?progression=tune-minor-blues&game=free&choruses=3"
+            }
+          ]
         },
         {
           "id": "10.8",
           "title": "Trading fours",
-          "setup": "Four bars from the app, four from you.",
+          "setup": "Jam in Check, trading fours: four bars from you, four from the drums, two choruses of So What (8 trades).",
           "done": "8 trades in time.",
-          "needs": "Trading fours on Jam.",
-          "feeds": "Improvising"
+          "feeds": "Improvising",
+          "href": "/music/jam?progression=tune-so-what&trade=4&choruses=2",
+          "match": {
+            "trade": "4",
+            "choruses": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "10.9",
@@ -4283,7 +4333,7 @@
         {
           "id": "11.6",
           "title": "Sight-reading",
-          "href": "/music/reading?activity=sight-reading&level=level-3",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&level=level-3",
           "setup": "Reading, sight-reading: Level 3, grade 4 to 5 lines.",
           "done": "80% first try on 5 new lines.",
           "minAttempts": 5,

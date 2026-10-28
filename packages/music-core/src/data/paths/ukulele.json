@@ -199,7 +199,7 @@
           "strand": "S",
           "setup": "Strum a progression with a shelf song's chords and strum pattern.",
           "done": "One shelf song start to end, 3 runs at 80% (chords and timing), no stops.",
-          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument.",
+          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
           "feeds": "shelf"
         }
       ],
@@ -616,7 +616,7 @@
           "strand": "S",
           "setup": "Strum a progression: I'm Yours or Three Little Birds.",
           "done": "3 full runs at 80%.",
-          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument.",
+          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
           "feeds": "I'm Yours, Three Little Birds"
         },
         {
@@ -1736,7 +1736,7 @@
           "strand": "S",
           "setup": "Strum a progression: Jam's blues progression with a shuffle strum.",
           "done": "3 choruses at 90, 80% on timing and chords.",
-          "needs": "A blues preset with a shuffle strum in Strum a progression, and runs that count there (rec 2).",
+          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
           "feeds": "Sweet Home Chicago"
         },
         {
@@ -2236,11 +2236,16 @@
           "id": "6.11",
           "title": "Memorise a solo",
           "strand": "F",
-          "href": "/music/lab?instrument=ukulele",
-          "setup": "Practice Lab: one shelf solo from memory.",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, Performance with Memory set to After a look: one shelf solo from memory.",
           "done": "2 clean takes on two days.",
-          "exerciseIds": [],
-          "feeds": "boss"
+          "feeds": "boss",
+          "match": {
+            "mode": "performance",
+            "memory": "look"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2
         }
       ],
       "shelf": [
@@ -2541,10 +2546,28 @@
           "id": "7.5",
           "title": "Chord melody, 8 bars",
           "strand": "F",
-          "setup": "Chord-melody phrases: Fly Me to the Moon and Autumn Leaves, bars 1 to 8.",
+          "setup": "Song Studio, Performance on bars 1 to 8 of the shelf's Fly Me to the Moon chord melody and Autumn Leaves. Every note of each chord is graded, not only the top note.",
           "done": "3 runs at 80%.",
-          "needs": "Chord-melody phrases graded on the top note: Fly Me to the Moon and Autumn Leaves, bars 1 to 8 (rec 6).",
-          "feeds": "Fly Me to the Moon"
+          "feeds": "Fly Me to the Moon",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "performance"
+          },
+          "each": {
+            "param": "shelf",
+            "values": ["ukulele/fly-me-to-the-moon-chord-melody", "ukulele/autumn-leaves"]
+          },
+          "threshold": 0.8,
+          "links": [
+            {
+              "label": "Fly Me to the Moon, bars 1 to 8",
+              "href": "/music/songs/shelf/ukulele/fly-me-to-the-moon-chord-melody?bars=1-8"
+            },
+            {
+              "label": "Autumn Leaves, bars 1 to 8",
+              "href": "/music/songs/shelf/ukulele/autumn-leaves?bars=1-8"
+            }
+          ]
         },
         {
           "id": "7.6",
@@ -3218,7 +3241,7 @@
           "strand": "L",
           "setup": "Ukulele positions 1 to 5 in A and C.",
           "done": "Each position 3 runs at 95% at 90.",
-          "needs": "Ukulele scale positions: minor pentatonic in five positions (rec 4).",
+          "needs": "Ukulele patterns in Fretboard, Positions (guitar only now): minor pentatonic in five positions (rec 4).",
           "feeds": "blues"
         },
         {
@@ -3375,7 +3398,7 @@
           "strand": "L",
           "setup": "Jam on a progression taken from a song's chord chart.",
           "done": "2 choruses on Summertime at 80%.",
-          "needs": "A Jam progression from a song's chord chart, with a pass rule on the chorus report (rec 9).",
+          "needs": "Summertime's changes in Jam (rec 9); Jam's Check already grades choruses on its other songs and tunes.",
           "feeds": "Summertime"
         },
         {
@@ -3392,9 +3415,13 @@
           "id": "9.9",
           "title": "Transcribe four bars",
           "strand": "T",
-          "setup": "Song Studio transcription of one melody line from a recorded solo, corrected in the note editor.",
+          "setup": "Song Studio, Performance on your own transcription of one melody line from a recorded solo, corrected in the note editor. Any song counts, so play the transcription.",
           "done": "4 bars played back at 80% in performance mode.",
-          "needs": "Song Studio runs on your own transcription counted for a path step (rec 1)."
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "performance"
+          },
+          "threshold": 0.8
         },
         {
           "id": "9.10",
@@ -3585,10 +3612,15 @@
           "id": "10.2",
           "title": "Fix the hard spots",
           "strand": "F",
-          "setup": "Song Studio fix-the-spot loops on each piece's three hardest bars.",
+          "setup": "Song Studio fix-the-spot loops (a custom range in Performance) on each piece's three hardest bars. The app counts clean loops on any spot, not per spot.",
           "done": "3 clean loops at tempo per spot.",
-          "needs": "Song Studio fix-the-spot loops counted per spot for a path step (rec 1).",
-          "feeds": "all"
+          "feeds": "all",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "mode": "performance",
+            "range": "custom"
+          },
+          "threshold": 0.9
         },
         {
           "id": "10.3",
@@ -3608,20 +3640,29 @@
           "id": "10.4",
           "title": "Dynamics",
           "strand": "F",
-          "setup": "A loudness contour on a take: louder or softer where the score says (experimental).",
+          "setup": "Song Studio, Performance with Grade set to Dynamics: louder or softer where the score says, on a score with dynamics marked (experimental).",
           "done": "Two marked contrasts heard in the take.",
-          "needs": "A loudness contour on a take (rec 15).",
-          "feeds": "all"
+          "feeds": "all",
+          "href": "/music/library?tab=songs",
+          "match": {
+            "grade": "dynamics"
+          },
+          "minAttempts": 1
         },
         {
           "id": "10.5",
           "title": "Memory",
           "strand": "F",
-          "href": "/music/lab?instrument=ukulele",
-          "setup": "Practice Lab: each piece from memory.",
+          "href": "/music/library?tab=songs",
+          "setup": "Song Studio, No-stop with Memory set to After a look: each piece from memory.",
           "done": "2 takes per piece without a stop.",
-          "exerciseIds": [],
-          "feeds": "boss"
+          "feeds": "boss",
+          "match": {
+            "mode": "no-stop",
+            "memory": "look"
+          },
+          "threshold": 0.8,
+          "minAttempts": 2
         },
         {
           "id": "10.6",
@@ -3661,7 +3702,7 @@
           "strand": "S",
           "setup": "Strum a progression with an unseen chart from Jam (LCM unprepared accompaniment).",
           "done": "16 bars at 80% on the first try.",
-          "needs": "Runs that count in Strum a progression (rec 2). It has song presets and strum patterns now; its runs stay practice only until chord following is checked on a real instrument."
+          "needs": "Runs that count in Strum a progression, and unseen generated charts there."
         },
         {
           "id": "10.10",

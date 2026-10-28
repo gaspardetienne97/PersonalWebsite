@@ -145,7 +145,7 @@
           "strand": "S",
           "setup": "Strum a song: Three Little Birds or Wild Thing, downstrokes, 70% of the record's tempo.",
           "done": "Two clean passes of the song form at 70%, then at 100%.",
-          "needs": "Song presets in Strum a progression (phase 2, stage 4)."
+          "needs": "Runs that count in Strum a progression, and Three Little Birds and Wild Thing among its song presets."
         },
         {
           "id": "1.8",
@@ -1309,7 +1309,7 @@
           "title": "12-bar with sevenths",
           "strand": "S",
           "href": "/music/jam?progression=blues&transpose=-3&bpm=90",
-          "setup": "Jam: 12-bar blues in A, strum A7 D7 E7 in swing eighths at 90. Jam is practice only, so this step opens it and is not judged.",
+          "setup": "Jam: 12-bar blues in A, strum A7 D7 E7 in swing eighths at 90. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
           "done": "Two choruses with no missed change.",
           "exerciseIds": [],
           "feeds": "Sweet Home Chicago"
@@ -2284,16 +2284,21 @@
           "id": "6.6",
           "title": "Call and response over the 12-bar",
           "strand": "L",
-          "setup": "Jam: 12-bar blues in A; the app plays a bar, you answer from box 1.",
+          "setup": "Call and response, Answer: the app plays a bar of 12-bar blues, you answer from box 1. The groove is in C, not A, and an answer is graded on landing on a chord tone in time.",
           "done": "12 answers, in time and in the scale, 80%.",
-          "needs": "Call and response over Jam, graded on scale and timing (Ear R7).",
           "links": [
             {
               "label": "Jam, 12-bar in A",
               "href": "/music/jam?progression=blues&transpose=-3"
             }
           ],
-          "feeds": "blues improvising"
+          "feeds": "blues improvising",
+          "href": "/music/call-response?mode=answer&groove=blues&bars=1",
+          "match": {
+            "groove": "blues"
+          },
+          "threshold": 0.8,
+          "minAttempts": 2
         },
         {
           "id": "6.7",
@@ -2875,21 +2880,30 @@
           "id": "7.11",
           "title": "Improvise two choruses",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=4",
-          "setup": "Jam: 12-bar in E and in A, and a minor vamp, with boxes 1 and 2. Jam is practice only, so this step opens it and is not judged.",
+          "href": "/music/jam?progression=blues&transpose=4&game=pentatonic-1&choruses=2",
+          "setup": "Jam in Check, Minor pentatonic on the 1st: 12-bar in E and in A, and a minor vamp, with boxes 1 and 2.",
           "done": "Two choruses, no stops, in time.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "12-bar in A",
-              "href": "/music/jam?progression=blues&transpose=-3"
+              "href": "/music/jam?progression=blues&transpose=-3&game=pentatonic-1&choruses=2"
             },
             {
               "label": "A minor vamp",
-              "href": "/music/jam?progression=modal&transpose=-5"
+              "href": "/music/jam?progression=modal&transpose=-5&game=pentatonic-1&choruses=2"
             }
           ],
-          "feeds": "Level 8"
+          "feeds": "Level 8",
+          "each": {
+            "param": "transpose",
+            "values": ["4", "-3", "-5"]
+          },
+          "match": {
+            "game": "pentatonic-1",
+            "choruses": "2"
+          },
+          "threshold": 0.9,
+          "minAttempts": 1
         },
         {
           "id": "7.12",
@@ -3223,17 +3237,22 @@
           "id": "8.3",
           "title": "Major pentatonic",
           "strand": "L",
-          "href": "/music/jam?progression=pop-axis&transpose=7",
-          "setup": "Fretboard, Positions: box 1 at the nut, read from G as the G major pentatonic (a major pentatonic label is still to come); then Jam: I-V-vi-IV in G. Jam is practice only, so this step opens it and is not judged.",
+          "href": "/music/jam?progression=pop-axis&transpose=7&game=chord-tones&choruses=2",
+          "setup": "Fretboard, Positions: box 1 at the nut, read from G as the G major pentatonic (a major pentatonic label is still to come); then Jam in Check, Chord tones on 1 and 3, over I-V-vi-IV in G.",
           "done": "Two choruses over I-V-vi-IV, landing on chord tones on the 1.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "Box 1 at the nut",
               "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-box-1&rootFret=0&bpm=80"
             }
           ],
-          "feeds": "Johnny B. Goode, country and pop solos"
+          "feeds": "Johnny B. Goode, country and pop solos",
+          "match": {
+            "game": "chord-tones",
+            "progression": "pop-axis"
+          },
+          "threshold": 0.75,
+          "minAttempts": 1
         },
         {
           "id": "8.4",
@@ -3367,9 +3386,16 @@
           "id": "8.12",
           "title": "Learn a lick by ear",
           "strand": "T, L",
-          "setup": "Learn it by ear: 4 bars of a shelf solo, slowed down.",
+          "setup": "Learn by ear: 4 bars of a shelf solo, looped and slowed down with the pitch kept. Learn runs are self-rated, so this step is not judged; Licks, By ear, grades the app's own lines.",
           "done": "Played matching the record at 75%.",
-          "needs": "The learn-it-by-ear player (Ear R2: loop, slow down, pitch kept)."
+          "href": "/music/by-ear?mode=learn",
+          "links": [
+            {
+              "label": "Licks, by ear",
+              "href": "/music/licks?instrument=guitar&category=guitar-pentatonic&ear=1"
+            }
+          ],
+          "exerciseIds": []
         }
       ],
       "shelf": [
@@ -3667,7 +3693,7 @@
           "strand": "S",
           "setup": "Voicings, guitar shells: 1-3-7 and 1-7-3 with roots on strings 6 and 5.",
           "done": "maj7, m7 and 7 in 12 keys at 60 changes a minute.",
-          "needs": "Guitar shell voicings (1-3-7 and 1-7-3, roots on strings 6 and 5).",
+          "needs": "Guitar shell voicings in Voicings or Chords: 1-3-7 and 1-7-3 with roots on strings 6 and 5.",
           "feeds": "Autumn Leaves, Blue Bossa"
         },
         {
@@ -3675,7 +3701,7 @@
           "title": "ii-V-I",
           "strand": "S, T",
           "href": "/music/jam?progression=ii-v-i",
-          "setup": "Jam: ii-V-I and minor ii-V-i, comping; then Chord scales. Jam is practice only, so this step opens it and is not judged.",
+          "setup": "Jam: ii-V-I and minor ii-V-i, comping; then Chord scales. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
           "done": "Comp 4 choruses with no missed change.",
           "exerciseIds": [],
           "links": [
@@ -3695,7 +3721,7 @@
           "title": "Dorian",
           "strand": "L",
           "href": "/music/jam?progression=modal",
-          "setup": "Jam: the D Dorian vamp, with Scales for D Dorian. A Dorian position pattern is still to come. Jam is practice only, so this step opens it and is not judged.",
+          "setup": "Jam: the D Dorian vamp, with Scales for D Dorian. A Dorian position pattern is still to come. Jam's Check does not grade the 6th as a colour, so this step opens it and is not judged.",
           "done": "Two choruses, landing on the 6th as colour.",
           "exerciseIds": [],
           "links": [
@@ -3710,17 +3736,22 @@
           "id": "9.7",
           "title": "Mixolydian and the blues mix",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=-3",
-          "setup": "Jam: 12-bar in A, mixing minor and major pentatonic; Scales for A Mixolydian. A Mixolydian position pattern is still to come. Jam is practice only, so this step opens it and is not judged.",
+          "href": "/music/jam?progression=blues&transpose=-3&game=thirds&choruses=2",
+          "setup": "Jam in Check, Land on the 3rd: 12-bar in A, mixing minor and major pentatonic; Scales for A Mixolydian. A Mixolydian position pattern is still to come, and the game asks for the 3rd of every chord, not only the I.",
           "done": "Two choruses, 3rds on the I chord.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "Scales, A Mixolydian",
               "href": "/music/scales?instrument=guitar&kind=mixolydian&tonic=69&perBeat=2&bpm=80"
             }
           ],
-          "feeds": "Sultans of Swing, Johnny B. Goode"
+          "feeds": "Sultans of Swing, Johnny B. Goode",
+          "match": {
+            "game": "thirds",
+            "choruses": "2"
+          },
+          "threshold": 0.8,
+          "minAttempts": 1
         },
         {
           "id": "9.8",
@@ -4084,11 +4115,16 @@
           "id": "10.3",
           "title": "Unseen backing improvisation",
           "strand": "L",
-          "href": "/music/jam",
-          "setup": "Jam: a progression and key you did not choose (a surprise-me setting is still to come). Jam is practice only, so this step opens it and is not judged.",
+          "href": "/music/jam?game=chord-tones&choruses=2",
+          "setup": "Jam in Check, Chord tones on 1 and 3: a progression and key you did not choose (a surprise-me setting is still to come).",
           "done": "Two choruses in time, chord tones on the downbeats 70% of the time.",
-          "exerciseIds": [],
-          "feeds": "the exam"
+          "feeds": "the exam",
+          "match": {
+            "game": "chord-tones",
+            "choruses": "2"
+          },
+          "threshold": 0.7,
+          "minAttempts": 1
         },
         {
           "id": "10.4",
@@ -4096,7 +4132,7 @@
           "strand": "S",
           "setup": "Strum a progression: an unseen 8-bar chart with a written rhythm.",
           "done": "90% on the first try.",
-          "needs": "Generated 8-bar charts with a written rhythm in Strum a progression (from the Ear R8 rhythm levels).",
+          "needs": "Generated 8-bar charts with a written rhythm in Strum a progression, with runs that count there.",
           "feeds": "the exam"
         },
         {
@@ -4104,20 +4140,31 @@
           "title": "A full fingerstyle piece from memory",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode with the score hidden (a hide-score setting is still to come). Song Studio is practice only, so this step opens it and is not judged.",
+          "setup": "Song Studio, Performance with Memory set to After a look: the whole piece with the score hidden.",
           "done": "The whole piece, 90% of notes, on two days.",
-          "exerciseIds": [],
-          "feeds": "Classical Gas, Blackbird"
+          "feeds": "Classical Gas, Blackbird",
+          "match": {
+            "mode": "performance",
+            "memory": "look",
+            "range": "whole"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2
         },
         {
           "id": "10.6",
           "title": "A full learned solo",
           "strand": "L",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a solo from the shelf. Song Studio is practice only, so this step opens it and is not judged.",
+          "setup": "Song Studio, Performance: a solo from the shelf at the record's tempo. The app checks the tempo against the record only for the level's shelf songs.",
           "done": "At 100% tempo, on two days.",
-          "exerciseIds": [],
-          "feeds": "shelf L songs"
+          "feeds": "shelf L songs",
+          "match": {
+            "mode": "performance",
+            "range": "whole"
+          },
+          "threshold": 0.9,
+          "minAttempts": 2
         },
         {
           "id": "10.7",

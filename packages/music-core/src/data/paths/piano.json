@@ -1009,7 +1009,7 @@
             }
           ],
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-5",
@@ -1970,7 +1970,7 @@
           "title": "Turnaround and ending",
           "setup": "The I-I7-IV-#IVdim-I-VI7-ii-V7 turnaround and a chromatic ending, in C and F.",
           "done": "3 clean runs per key.",
-          "needs": "A blues turnaround and ending in Phrases.",
+          "needs": "A piano blues turnaround (I-I7-IV-#IVdim-I-VI7-ii-V7) and chromatic ending in Phrases.",
           "feeds": "every blues"
         },
         {
@@ -1999,7 +1999,7 @@
           "setup": "Sight-reading, grand staff at Grade 4 (piano-6), keeping time.",
           "done": "80% on three days.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-6",
@@ -2475,7 +2475,7 @@
           "title": "Melody balance in a ballad",
           "setup": "Voicing balance scored on a shelf ballad in Song Studio.",
           "done": "Melody above the accompaniment on 80% of beats.",
-          "needs": "Voicing balance in Song Studio (drill 9).",
+          "needs": "Voicing balance in Song Studio: the melody graded louder than the accompaniment (drill 9).",
           "feeds": "Your Song, Married Life"
         },
         {
@@ -2484,7 +2484,7 @@
           "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time.",
           "done": "80% on three days.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-7",
@@ -2880,7 +2880,7 @@
           "title": "Amen ending and the 7-3-6-2-5-1 turnaround",
           "setup": "Both in C and F.",
           "done": "3 clean runs per key.",
-          "needs": "A riffs and fills set in Phrases (drill 10).",
+          "needs": "A gospel riffs set in Phrases: the Amen ending and the 7-3-6-2-5-1 turnaround (drill 10).",
           "feeds": "every gospel song"
         },
         {
@@ -2917,7 +2917,7 @@
           "title": "Rock and roll RH triplets and glissando",
           "setup": "Repeated-chord triplets over a boogie LH.",
           "done": "3 clean runs at 140.",
-          "needs": "A rock and roll triplet item in Phrases (drill 7).",
+          "needs": "A rock and roll item in Phrases: right-hand triplets over a boogie left hand (drill 7).",
           "feeds": "Great Balls of Fire"
         },
         {
@@ -2963,7 +2963,7 @@
           "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time.",
           "done": "80% on three days.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-7",
@@ -3373,7 +3373,7 @@
           "title": "Melody balance in a full arrangement",
           "setup": "Voicing balance on the shelf song in progress.",
           "done": "Melody above the accompaniment on 85% of beats.",
-          "needs": "Voicing balance in Song Studio (drill 9).",
+          "needs": "Voicing balance in Song Studio: the melody graded louder than the accompaniment (drill 9).",
           "feeds": "every ballad"
         },
         {
@@ -3382,7 +3382,7 @@
           "setup": "Sight-reading, grand staff at Grade 6 (piano-8), keeping time. Triplets and clef changes are not in the generator yet.",
           "done": "80% on three days.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-8",
@@ -3781,11 +3781,12 @@
         {
           "id": "8.5",
           "title": "Ragtime A strain",
-          "href": "/music/library?tab=songs",
-          "setup": "Song Studio, fix-the-spot on Maple Leaf Rag, bars 1 to 16.",
+          "href": "/music/songs/shelf/piano/maple-leaf-rag?bars=1-16",
+          "setup": "Song Studio, fix-the-spot on Maple Leaf Rag, bars 1 to 16, in Performance.",
           "done": "3 clean loops at crotchet 80.",
-          "exerciseIds": [],
-          "feeds": "Maple Leaf Rag"
+          "feeds": "Maple Leaf Rag",
+          "threshold": 0.9,
+          "minBpm": 80
         },
         {
           "id": "8.6",
@@ -3798,16 +3799,22 @@
         {
           "id": "8.7",
           "title": "Own arrangement from a chart",
-          "setup": "A shelf song from its lead sheet with 3 patterns, an intro and an ending; record it.",
+          "setup": "Accompaniment, Lead sheet: a shelf song from its imported score with chord symbols, the left hand on chords; then 3 patterns, an intro and an ending, recorded. The app grades the melody and the chords, not the patterns or the form.",
           "done": "One take with chords right on 95% of bars.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
           "links": [
             {
               "label": "Record",
               "href": "/music/record"
             }
           ],
-          "feeds": "arranging, L10 recital"
+          "feeds": "arranging, L10 recital",
+          "href": "/music/accompany?mode=lead-sheet&lh=chords",
+          "match": {
+            "lh": "chords"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1,
+          "minDays": 1
         },
         {
           "id": "8.8",
@@ -3815,7 +3822,7 @@
           "setup": "Sight-reading, grand staff at Grade 6 (piano-8), keeping time.",
           "done": "80% on three days.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-8",
@@ -4197,7 +4204,7 @@
         {
           "id": "9.7",
           "title": "Grand staff Grade 7: 7/8, 8va, tempo changes",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-9&follower=performance",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-9&follower=performance",
           "setup": "Sight-reading, Piano 9 (about ABRSM Grade 7): 7/8 and 5/8, five sharps or flats, triplets, the left hand into the treble clef. 8va and tempo changes are not written yet.",
           "done": "80% on three days.",
           "match": {
@@ -4232,11 +4239,12 @@
         {
           "id": "9.9",
           "title": "Fugue voices",
-          "href": "/music/library?tab=songs",
-          "setup": "Song Studio, Fugue in C minor: voice-by-voice loops (the subject in each entry, then two voices, then three).",
+          "href": "/music/songs/shelf/piano/prelude-and-fugue-in-c-minor-bwv-847",
+          "setup": "Song Studio, Fugue in C minor: voice-by-voice loops (the subject in each entry, then two voices, then three), then the full piece in Performance. The app does not tell the pairings apart; it counts clean Performance runs at half tempo or faster.",
           "done": "Each pairing 3 clean loops at half tempo, then the full piece.",
-          "exerciseIds": [],
-          "feeds": "BWV 847"
+          "feeds": "BWV 847",
+          "threshold": 0.9,
+          "minBpm": 60
         },
         {
           "id": "9.10",
@@ -4577,9 +4585,8 @@
         {
           "id": "10.5",
           "title": "Own arrangement",
-          "setup": "A lead sheet below: intro, a verse with one pattern, a chorus with another, a gospel or boogie bridge, an ending; record it.",
+          "setup": "A lead sheet below: intro, a verse with one pattern, a chorus with another, a gospel or boogie bridge, an ending; record it. Accompaniment, Lead sheet, grades the melody and the chords of an imported score with chord symbols, not the patterns or the form.",
           "done": "One recorded take, chords right on 95% of bars.",
-          "needs": "Chord-chart and lead-sheet mode in Song Studio (drill 3).",
           "links": [
             {
               "label": "Someone Like You in A, DecPlay",
@@ -4610,7 +4617,14 @@
               "href": "/music/record"
             }
           ],
-          "feeds": "recital (can be the fifth piece)"
+          "feeds": "recital (can be the fifth piece)",
+          "href": "/music/accompany?mode=lead-sheet&lh=chords",
+          "match": {
+            "lh": "chords"
+          },
+          "threshold": 0.95,
+          "minAttempts": 1,
+          "minDays": 1
         },
         {
           "id": "10.6",
@@ -4618,7 +4632,7 @@
           "setup": "Sight-reading, grand staff at Grade 5 (piano-7), keeping time. Use the 30 second look before each piece.",
           "done": "80% on three unseen pieces.",
           "feeds": "Reading path",
-          "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
+          "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&measures=8",
           "match": {
             "instrument": "piano",
             "level": "piano-7",

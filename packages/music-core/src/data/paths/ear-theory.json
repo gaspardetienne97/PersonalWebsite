@@ -912,10 +912,15 @@
           "id": "3.8",
           "title": "Two-bar melodies with rhythm",
           "strand": "E",
-          "setup": "Two-bar phrases: sing first, then play back.",
+          "setup": "Call and response, Echo: two-bar calls; sing first, then play back. The calls are made up over a groove, not taken from real tunes.",
           "done": "75% per note and onset.",
-          "needs": "Melodies with rhythm from real tunes (N5), at 2 bars.",
-          "feeds": "Choruses"
+          "feeds": "Choruses",
+          "href": "/music/call-response?mode=echo&groove=pop-axis&bars=2",
+          "match": {
+            "bars": "2"
+          },
+          "threshold": 0.75,
+          "minAttempts": 2
         },
         {
           "id": "3.9",
@@ -974,7 +979,7 @@
           "strand": "S",
           "setup": "Play the loop on your instrument and sing the bass roots.",
           "done": "Two choruses, roots in tune within 50 cents, 75%.",
-          "needs": "Voice answers for bass lines (N12).",
+          "needs": "Voice answers in Bass lines: sing the roots while you play (N12).",
           "links": [
             {
               "label": "Pop axis in Jam",
@@ -1222,29 +1227,35 @@
           "id": "4.1",
           "title": "H6 The 12-bar blues",
           "strand": "H",
-          "href": "/music/jam?progression=blues",
-          "setup": "Library reference, then Jam, blues: A and E (guitar, ukulele), C and F (piano), Bb and F concert (Aerophone).",
+          "href": "/music/jam?progression=blues&game=changes&choruses=3",
+          "setup": "Library reference, then Jam in Check, Make the changes, blues: A and E (guitar, ukulele), C and F (piano), Bb and F concert (Aerophone).",
           "done": "Three choruses along Jam without losing the form.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "In A",
-              "href": "/music/jam?progression=blues&transpose=-3"
+              "href": "/music/jam?progression=blues&transpose=-3&game=changes&choruses=3"
             },
             {
               "label": "In E",
-              "href": "/music/jam?progression=blues&transpose=4"
+              "href": "/music/jam?progression=blues&transpose=4&game=changes&choruses=3"
             },
             {
               "label": "In F",
-              "href": "/music/jam?progression=blues&transpose=5"
+              "href": "/music/jam?progression=blues&transpose=5&game=changes&choruses=3"
             },
             {
               "label": "In Bb",
-              "href": "/music/jam?progression=blues&transpose=-2"
+              "href": "/music/jam?progression=blues&transpose=-2&game=changes&choruses=3"
             }
           ],
-          "feeds": "Every shelf song"
+          "feeds": "Every shelf song",
+          "match": {
+            "game": "changes",
+            "progression": "blues",
+            "choruses": "3"
+          },
+          "threshold": 0.7,
+          "minAttempts": 1
         },
         {
           "id": "4.2",
@@ -2829,7 +2840,7 @@
           "strand": "E",
           "setup": "The tuner's drone; sing the scale up and down.",
           "done": "Dorian and Mixolydian up and down, 75% within 35 cents.",
-          "needs": "Sung scale steps over a drone, graded (N12).",
+          "needs": "Voice answers in Scales: sung scale steps over a drone, graded (N12).",
           "links": [
             {
               "label": "Drone",
@@ -2864,16 +2875,22 @@
           "id": "8.7",
           "title": "Improvise on a modal vamp",
           "strand": "E",
-          "href": "/music/jam?progression=modal",
-          "setup": "Jam, modal, with the tone roles lit: chord tones on strong beats. Call and response, Answer, judges landing on a chord tone.",
+          "href": "/music/jam?progression=modal&game=chord-tones&choruses=3",
+          "setup": "Jam in Check, modal, Chord tones on 1 and 3 (the game counts chord tones only). Call and response, Answer, judges landing on a chord tone.",
           "done": "Three choruses, 75% of strong-beat notes chord or scale tones.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "Call and response, Answer",
               "href": "/music/call-response?mode=answer&groove=modal&bars=1"
             }
-          ]
+          ],
+          "match": {
+            "game": "chord-tones",
+            "progression": "modal",
+            "choruses": "3"
+          },
+          "threshold": 0.75,
+          "minAttempts": 1
         },
         {
           "id": "8.8",
@@ -3141,21 +3158,30 @@
           "id": "9.3",
           "title": "H15 ii-V chains and turnarounds",
           "strand": "H",
-          "href": "/music/jam?progression=ii-v-i",
-          "setup": "Library reference; Jam with the ii-V-I and the minor ii-V-i in 4 keys.",
+          "href": "/music/jam?progression=ii-v-i&game=changes&choruses=2",
+          "setup": "Library reference; Jam in Check, Make the changes, with the ii-V-I and the minor ii-V-i in 4 keys, one run per key.",
           "done": "Two choruses each, no lost place.",
-          "exerciseIds": [],
           "links": [
             {
               "label": "Minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i"
+              "href": "/music/jam?progression=minor-ii-v-i&game=changes&choruses=2"
             },
             {
               "label": "Reference",
               "href": "/music/library?tab=reference&section=cycle"
             }
           ],
-          "feeds": "Autumn Leaves, Blue Bossa"
+          "feeds": "Autumn Leaves, Blue Bossa",
+          "each": {
+            "param": "progression",
+            "values": ["ii-v-i", "minor-ii-v-i"]
+          },
+          "match": {
+            "game": "changes",
+            "choruses": "2"
+          },
+          "threshold": 0.7,
+          "minAttempts": 4
         },
         {
           "id": "9.4",
@@ -3242,7 +3268,7 @@
           "strand": "E",
           "setup": "Sing over the recording: the head, then its roots.",
           "done": "Head and roots each in tune, 75%.",
-          "needs": "Voice answers graded over a recording (N12)."
+          "needs": "Voice answers graded over a recording in Learn by ear: the head, then its roots (N12)."
         },
         {
           "id": "9.11",
@@ -3590,9 +3616,13 @@
           "id": "10.8",
           "title": "Jazz phrases by ear",
           "strand": "E",
-          "setup": "Four-bar phrases with chromatic approach notes.",
+          "setup": "Licks, By ear: jazz lines looped at 50, 75 or 100%, notes hidden until the results. The lines run one to four bars and are not picked for their approach notes.",
           "done": "75% per note.",
-          "needs": "Melodies with rhythm from real tunes (N5), at 4 bars with chromatic approach notes."
+          "href": "/music/licks?ear=1",
+          "match": {
+            "byEar": "true"
+          },
+          "threshold": 0.75
         },
         {
           "id": "10.9",
@@ -3864,7 +3894,7 @@
           "strand": "E",
           "setup": "Where does it go: up a step, up a half step, to the relative, a third away.",
           "done": "75%.",
-          "needs": "Key change items, where does it go (N4).",
+          "needs": "Key change items in Progression dictation: where does it go (N4).",
           "feeds": "Bohemian Rhapsody, Wichita Lineman"
         },
         {
