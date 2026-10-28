@@ -8,7 +8,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## In progress
 
-- **Curriculum plan, phase 2**: built (see Done). Shelf scores downloaded so far (41 in `.music-scores/`): guitar levels 1 and 2 have 7 of 8 each, ukulele 6 of 8 and 4 of 9, piano levels 1 to 3 have 4, 3 and 4 of 12, the Aerophone 3 of 8 and 2 of 9, the pads none. MuseScore allows 20 downloads a day per account on every plan, so a run fetches 20 at most and stops on three blocked pages in a row; run `node scripts/fetch-scores.mjs --path <path> --levels <ids>` once a day. Phases 3 to 5 and the last buildable steps are built (see Done). 7 steps still wait, all on Strum a progression's runs counting (guitar 1.7 and 10.4, reading G7.3, ukulele 1.11, 2.12, 5.4 and 10.9): strum a few songs on a real guitar first (Needs hardware). Shelf scores: 60 downloaded; MuseScore allows 20 a day, so run `node scripts/fetch-scores.mjs --path <path> --levels <ids>` once a day.
+- **Curriculum plan, phase 2**: built (see Done). Phases 3 to 5 and the last buildable steps are built (see Done). 7 steps still wait, all on Strum a progression's runs counting (guitar 1.7 and 10.4, reading G7.3, ukulele 1.11, 2.12, 5.4 and 10.9): strum a few songs on a real guitar first (Needs hardware). Shelf scores: 60 downloaded, 754 to go. A launchd job (`~/Library/LaunchAgents/com.woodshed.fetch-scores.plist`) runs `scripts/fetch-daily.sh` at 22:15 for 20 a day across the paths, guitar first; the log is `.music-scores/fetch.log`. MuseScore states 20 a day but let 59 through on 2026-10-27 before limiting the account.
 
 ## Done
 
