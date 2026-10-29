@@ -27,6 +27,45 @@ describe("fretboard lessons", () => {
     const [l] = fretboardLessons("note-finder", "guitar", [64, 59, 55, 50, 45, 38]); // drop D
     expect(l.screens[0].text).toContain("D A D G B E");
     expect(lessonProblems(l)).toEqual([]);
+    const [iv] = fretboardLessons("interval-recall", "guitar", [64, 59, 55, 50, 45, 38]);
+    const text = JSON.stringify(iv);
+    expect(text).not.toContain("0 frets");
+    const shift = iv.screens.find((s) => s.title === "The shift")!;
+    expect(shift.text).toContain("D and A");
+    expect(shift.text).toContain("G and B");
+    expect(lessonProblems(iv)).toEqual([]);
+    // each octave step names its own offset
+    const oct = iv.screens.find((s) => s.title === "The octave")!;
+    expect(oct.steps!.map((x) => x.text.split(": ")[1])).toEqual([
+      "the same fret.",
+      "2 frets higher.",
+      "3 frets higher.",
+      "3 frets higher.",
+    ]);
+  });
+
+  it("every step on every curated tuning has both marks inside frets 0 to 5, and its text matches", () => {
+    for (const [instrument, tunings] of [
+      ["guitar", TUNINGS.guitar],
+      ["ukulele", TUNINGS.ukulele],
+    ] as const) {
+      for (const t of tunings) {
+        for (const mode of ["note-finder", "interval-recall"] as const) {
+          const [l] = fretboardLessons(mode, instrument, t.openStrings);
+          expect(lessonProblems(l), `${t.id} ${mode}`).toEqual([]);
+          for (const sc of l.screens) {
+            for (const f of [sc.figure, ...(sc.steps ?? []).map((x) => x.figure)]) {
+              for (const m of marks(f)) {
+                expect(m.fret, `${t.id} ${sc.title}`).toBeGreaterThanOrEqual(0);
+                expect(m.fret, `${t.id} ${sc.title}`).toBeLessThanOrEqual(5);
+              }
+            }
+            for (const st of sc.steps ?? [])
+              expect(marks(st.figure), `${t.id} ${sc.title}`).toHaveLength(2);
+          }
+        }
+      }
+    }
   });
 
   it("guitar 5th is two frets up on strings 6 to 3, one more onto the B string", () => {

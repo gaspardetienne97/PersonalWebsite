@@ -10,6 +10,9 @@ const frets = (n: number) => `${n} ${n === 1 ? "fret" : "frets"}`;
 const rel = (d: number) =>
   d === 0 ? "the same fret" : d > 0 ? `${frets(d)} higher` : `${frets(-d)} lower`;
 const ROOT = 1;
+/** "a", "a and b", "a, b and c". */
+const list = (a: string[]) =>
+  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
 
 /**
  * Lessons for the fretboard drills. Everything is worked out from the open strings
@@ -27,7 +30,7 @@ export function fretboardLessons(
     kind: "fretboard",
     instrument,
     openStrings: open,
-    marks: marks.filter((m) => m.fret >= 0 && m.fret <= 5), // the figure shows frets 0 to 5
+    marks, // callers keep every mark inside frets 0 to 5, the window the figure shows
   });
 
   // Strings that climb in pitch as the string number falls, ending at string 1.
@@ -43,43 +46,76 @@ export function fretboardLessons(
   const odd = pairs.filter((p) => p.gap !== common);
   const first = pairs.find((p) => p.gap === common) ?? pairs[0]; // the typical pair, for single examples
 
-  /** The note n half steps up from `fret` on string `lo`, found on the next string up. */
-  const up = (p: (typeof pairs)[number], n: number, label: string, rootFret = ROOT): Mark[] => [
-    { string: p.lo, fret: rootFret, label: "R" },
-    { string: p.hi, fret: rootFret + n - p.gap, label },
-  ];
-  const pairSteps = (n: number, label: string, rootFret = ROOT): LessonStep[] =>
-    pairs.map((p) => ({
-      text: `From the ${name(p.lo)} string to the ${name(p.hi)}: ${rel(n - p.gap)}.`,
-      figure: fig(up(p, n, label, rootFret)),
-    }));
+  /**
+   * The root on string `lo` and the note n half steps up on string `hi`. The root starts at
+   * `pref`, or the lowest fret that keeps both marks in the window; null when none does.
+   */
+  const upMarks = (
+    lo: number,
+    hi: number,
+    n: number,
+    label: string,
+    pref = ROOT,
+  ): Mark[] | null => {
+    const off = n - (open[hi - 1] - open[lo - 1]);
+    const root = [pref, 0, 1, 2, 3, 4, 5].find((r) => r <= 5 && r + off >= 0 && r + off <= 5);
+    return root === undefined
+      ? null
+      : [
+          { string: lo, fret: root, label: "R" },
+          { string: hi, fret: root + off, label },
+        ];
+  };
+  /** One step per pair of strings that fits the window, each with its own offset in words. */
+  const stepsFor = (
+    pairList: { lo: number; hi: number }[],
+    n: number,
+    label: string,
+    text: (lo: string, hi: string, off: number) => string,
+    pref = ROOT,
+  ): LessonStep[] =>
+    pairList.flatMap(({ lo, hi }) => {
+      const m = upMarks(lo, hi, n, label, pref);
+      const off = n - (open[hi - 1] - open[lo - 1]);
+      return m ? [{ text: text(name(lo), name(hi), off), figure: fig(m) }] : [];
+    });
+  const fromTo = () => (lo: string, hi: string, off: number) =>
+    `From the ${lo} string to the ${hi}: ${rel(off)}.`;
+  const skip2 = run.slice(0, -2).map((lo, i) => ({ lo, hi: run[i + 2] }));
+  const octaveSteps = (pref: number) => stepsFor(skip2, 12, "8", fromTo(), pref);
+  /** The offset most steps share (the first, on a tie), in words. */
+  const commonOctave = (steps: LessonStep[]) => {
+    const offs = steps.map((x) => x.text.split(": ")[1].slice(0, -1));
+    return offs.sort(
+      (a, b) => offs.filter((o) => o === b).length - offs.filter((o) => o === a).length,
+    )[0];
+  };
+  /** Octave shapes change by a fret where they cross a shift, so say so when a step differs. */
+  const octaveVaries = (steps: LessonStep[]) =>
+    new Set(steps.map((x) => x.text.split(": ")[1])).size > 1;
 
   const highG = reentrant.length
     ? ` The ${reentrant.map(name).join(" and ")} string is tuned high, above the string next to it, so it sits apart from the rest.`
     : "";
-  const oct = pairs.length > 1 ? 12 - (pairs[0].gap + pairs[1].gap) : null;
-  const octMarks = (a: number, b: number, root: number): Mark[] => [
-    { string: run[a], fret: root, label: "R" },
-    { string: run[b], fret: root + 12 - (open[run[b] - 1] - open[run[a] - 1]), label: "8" },
-  ];
-
   if (mode === "note-finder") {
     const low = run[0];
     const naturals = [0, 1, 2, 3, 4, 5]
       .map((f) => ({ string: low, fret: f, label: nameOf(open[low - 1] + f) }))
       .filter((m) => !m.label.includes("#"));
-    const matchSteps: LessonStep[] = pairs
-      .filter((p) => p.gap <= 5)
-      .map((p) => ({
-        text: `Fret ${p.gap} on the ${name(p.lo)} string is the open ${name(p.hi)} string.`,
-        figure: fig([
-          { string: p.lo, fret: p.gap, label: name(p.hi) },
-          { string: p.hi, fret: 0, label: name(p.hi) },
-        ]),
-      }));
-    const exception = odd.length
-      ? ` The exception is onto the ${odd.map((p) => name(p.hi)).join(" and ")} string, where it is fret ${odd.map((p) => p.gap).join(" and ")}.`
+    const shown = pairs.filter((p) => p.gap <= 5); // a longer gap runs off the figure
+    const matchSteps: LessonStep[] = shown.map((p) => ({
+      text: `Fret ${p.gap} on the ${name(p.lo)} string is the open ${name(p.hi)} string.`,
+      figure: fig([
+        { string: p.lo, fret: p.gap, label: name(p.hi) },
+        { string: p.hi, fret: 0, label: name(p.hi) },
+      ]),
+    }));
+    const exceptions = shown.filter((p) => p.gap !== common);
+    const exception = exceptions.length
+      ? ` The exception is onto the ${list(exceptions.map((p) => name(p.hi)))} ${exceptions.length > 1 ? "strings" : "string"}, where it takes ${list(exceptions.map((p) => `fret ${p.gap}`))}.`
       : "";
+    const oc = skip2[0] && upMarks(skip2[0].lo, skip2[0].hi, 12, name(skip2[0].lo), 0);
+    const ocOff = skip2[0] ? 12 - (open[skip2[0].hi - 1] - open[skip2[0].lo - 1]) : 0;
     return [
       {
         id: `fretboard.notes.${instrument}`,
@@ -102,8 +138,11 @@ export function fretboardLessons(
           },
           {
             title: "The fret markers",
-            text: "The dots sit at frets 3, 5, 7, 9 and 12, with two dots at 12. They help you find your place. Fret 12 is the open string's note an octave higher.",
-            figure: fig([]),
+            text:
+              instrument === "guitar"
+                ? "The figure shows the dots at frets 3 and 5. Higher up there are dots at 7 and 9, and two at 12. Fret 12 is the open string's note an octave higher."
+                : "Ukuleles usually have dots at frets 5, 7, 10 and 12, with two at 12. They help you find your place. Fret 12 is the open string's note an octave higher.",
+            ...(instrument === "guitar" ? { figure: fig([]) } : {}),
           },
           {
             title: "Fret 5 is the next string",
@@ -111,12 +150,12 @@ export function fretboardLessons(
             figure: fig([]),
             steps: matchSteps,
           },
-          ...(first && oct !== null && oct >= 0 && oct <= 5
+          ...(oc
             ? [
                 {
                   title: "Octave shapes",
-                  text: `An octave is 12 half steps, which is 12 frets on one string. Two strings up and ${rel(oct)} is the same note an octave higher.`,
-                  figure: fig(octMarks(0, 2, 0).map((m) => ({ ...m, label: name(run[0]) }))),
+                  text: `An octave is 12 half steps, which is 12 frets on one string. Two strings up and ${rel(ocOff)} is the same note an octave higher.${octaveVaries(octaveSteps(0)) ? " The shape changes where it crosses a shift." : ""}`,
+                  figure: fig(oc),
                 },
               ]
             : []),
@@ -137,13 +176,13 @@ export function fretboardLessons(
         {
           title: "The 4th",
           text: `A 4th is 5 half steps, and neighbouring strings are mostly ${common} frets apart. So a 4th is the next string up, ${rel(5 - common)}.${highG}`,
-          figure: fig(first ? up(first, 5, "4", ROOT) : []),
+          figure: fig((first && upMarks(first.lo, first.hi, 5, "4")) || []),
         },
         {
           title: "The 5th",
           text: `A 5th is 7 half steps: the next string up, ${rel(7 - common)}. Tap Next to see each pair of strings.`,
           figure: fig([]),
-          steps: pairSteps(7, "5"),
+          steps: stepsFor(pairs, 7, "5", fromTo()),
         },
         {
           title: "The 3rds",
@@ -151,21 +190,24 @@ export function fretboardLessons(
           figure: fig([]),
           steps: first
             ? [
-                { text: `Major 3rd: ${rel(4 - first.gap)}.`, figure: fig(up(first, 4, "3", 2)) },
-                { text: `Minor 3rd: ${rel(3 - first.gap)}.`, figure: fig(up(first, 3, "m3", 2)) },
+                {
+                  text: `Major 3rd: ${rel(4 - first.gap)}.`,
+                  figure: fig(upMarks(first.lo, first.hi, 4, "3", 2) ?? []),
+                },
+                {
+                  text: `Minor 3rd: ${rel(3 - first.gap)}.`,
+                  figure: fig(upMarks(first.lo, first.hi, 3, "m3", 2) ?? []),
+                },
               ]
             : [],
         },
-        ...(oct !== null && oct >= 0
+        ...(octaveSteps(ROOT).length
           ? [
               {
                 title: "The octave",
-                text: `An octave is 12 half steps. Go two strings up and ${rel(oct)}. Tap Next to see each pair.`,
+                text: `An octave is 12 half steps, so go two strings up and ${commonOctave(octaveSteps(ROOT))}.${octaveVaries(octaveSteps(ROOT)) ? " The shape changes where it crosses a shift." : ""} Tap Next to see each pair.`,
                 figure: fig([]),
-                steps: run.slice(0, -2).map((lo, i) => ({
-                  text: `From the ${name(lo)} string to the ${name(run[i + 2])}.`,
-                  figure: fig(octMarks(i, i + 2, ROOT)),
-                })),
+                steps: octaveSteps(ROOT),
               },
             ]
           : []),
@@ -173,8 +215,9 @@ export function fretboardLessons(
           ? [
               {
                 title: "The shift",
-                text: `Between the ${name(odd[0].lo)} and ${name(odd[0].hi)} strings the gap is ${frets(odd[0].gap)}, not ${common}. A shape that crosses it moves ${rel(common - odd[0].gap)}. So the 5th from ${name(odd[0].lo)} is ${frets(7 - odd[0].gap)} up, not ${7 - common}.`,
-                figure: fig(up(odd[0], 7, "5")),
+                text: `The gap is ${list(odd.map((p) => `${frets(p.gap)} between ${name(p.lo)} and ${name(p.hi)}`))} instead of ${common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across ${odd.length > 1 ? "each" : "it"}.`,
+                figure: fig([]),
+                steps: stepsFor(odd, 7, "5", fromTo()),
               },
             ]
           : []),
