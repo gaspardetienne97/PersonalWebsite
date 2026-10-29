@@ -128,7 +128,7 @@
 
   {#if figure?.kind === "groove"}
     {@const g = figure}
-    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Groove grid, {g.bars} bar, {GROOVE_LANES.filter((l) => g.lanes[l.id]).map((l) => l.label).join(', ')}">
+    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Groove grid, {g.bars} {g.bars === 1 ? 'bar' : 'bars'}, {GROOVE_LANES.filter((l) => g.lanes[l.id]).map((l) => l.label).join(', ')}">
       <DictationGrid
         bars={g.bars}
         rows={GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label }))}

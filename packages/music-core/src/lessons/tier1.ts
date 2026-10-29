@@ -9,6 +9,7 @@ import {
 import { GROOVE_LANES, GROOVE_LEVELS, earGroove, type GrooveLane } from "../content/rhythm";
 import { functionChord, functionSymbol, keyCadence, scaleRun } from "../content/ear";
 import { VIBRATO, VIBRATO_SETS } from "../content/aero-skills";
+import { GROOVE_VOICES } from "../content/winds-pads";
 import { fillGroove } from "../content/pad-skills";
 import { parseChordSymbol } from "../theory/chords";
 import { isBlackKey, noteName, pc } from "../theory/notes";
@@ -426,7 +427,7 @@ export function biteVibratoLesson(): Lesson {
     screens: [
       {
         title: "Vibrato from the bite",
-        text: "Hold a note and pulse your bite on the mouthpiece. The Aerophone sends the bite as pitch bend, and the drill reads those values. If it says no bite arrived, set the bite to send pitch bend (E-Wind bite mode gives vibrato).",
+        text: "Hold a note and pulse your bite by wiggling your jaw lightly on the mouthpiece, with no hard squeeze. The Aerophone sends the bite as pitch bend, and the drill reads those values. If it says no bite arrived, set the bite to send pitch bend (E-Wind bite mode gives vibrato).",
       },
       {
         title: "Pulses a beat",
@@ -442,7 +443,7 @@ export function biteVibratoLesson(): Lesson {
       },
       {
         title: "What the drill checks",
-        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are as a share of the bend range but does not score the depth.`,
+        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are but does not score that: aim for a small, even wobble around the note, not a slide between notes.`,
       },
     ],
   };
@@ -466,7 +467,9 @@ const PAD_BARS = () => {
     for (const k of GROOVE_LANES) lanes[k.id].sort((a, c) => a - c);
     return lanes;
   };
-  return { groove: bar(0), fill: bar(3) };
+  const groove = bar(0);
+  // The fill keeps the groove's hats under it, so it has more hits than a groove bar.
+  return { groove, fill: { ...bar(3), hat: groove.hat } };
 };
 
 /** Bars of drum hits one after the other, `at` in beats within each bar; extra hits are `[midi, beat]`. */
@@ -515,7 +518,7 @@ export function padImproviseLesson(): Lesson {
   const { groove, fill } = PAD_BARS();
   const varied = variedBar();
   const bare = { ...groove, hat: [] };
-  const CRASH = 49;
+  const CRASH = GROOVE_VOICES.find((v) => v.id === "crash")!.midi;
   const KICK = GROOVE_LANES.find((l) => l.id === "kick")!.midi;
   return {
     id: "pads.improvise",
@@ -527,7 +530,8 @@ export function padImproviseLesson(): Lesson {
       },
       {
         title: "Vary the groove",
-        text: "Keep a groove going and change a little each time round. Tap Plain to hear one bar twice, or Varied to hear it then the same bar with one more kick on the and of 4. The grid shows the second bar.",
+        text: "Keep a groove going and change a little each time round. Tap Plain to hear one bar twice, or Varied to hear it then the same bar with one more kick on the & of 4. The grid shows the plain bar until you tap one.",
+        figure: padGrid([groove]),
         options: [
           { label: "Plain", sound: padSound([groove, groove]), figure: padGrid([groove]) },
           { label: "Varied", sound: padSound([groove, varied]), figure: padGrid([varied]) },
@@ -535,7 +539,7 @@ export function padImproviseLesson(): Lesson {
       },
       {
         title: "Add a fill",
-        text: "The grid shows a groove bar, then a fill bar where the hi-hat drops out after the & of 2 and the snare plays eighths on 3 and 4. Hear it adds the crash and kick on the next bar's one. In the drill, with A fill every 4 or 8 bars set, the fill bar needs more hits than your usual bar, so keep the hi-hat going, and a hit on the next bar's one.",
+        text: "The grid shows a groove bar, then a fill bar with the same hi-hat and the snare playing eighths on 3 and 4. Hear it adds the crash and kick on the next bar's one. In the drill, with A fill every 4 or 8 bars set, the fill bar needs more hits than your usual bar and a hit on the next bar's one.",
         figure: padGrid([groove, fill]),
         sound: padSound(
           [groove, fill],

@@ -13,6 +13,7 @@ import { isBlackKey } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { lessonProblems } from "./check";
+import { gradeImprovise } from "../content/pad-skills";
 import { VIBRATO_SETS } from "../content/aero-skills";
 import {
   biteVibratoLesson,
@@ -465,6 +466,26 @@ describe("pads improvise lesson", () => {
     expect(l.id).toBe("pads.improvise");
     expect(lessonProblems(l)).toEqual([]);
   });
+  it("the example fill bar passes the drill's fill rule", () => {
+    const fig = l.screens[2].figure;
+    if (fig?.kind !== "groove") throw new Error("groove figure");
+    const beatMs = 600;
+    const hits = (bar: number, midi = 38) =>
+      Object.values(fig.lanes)
+        .flat()
+        .filter((b) => Math.floor(b! / 4) === bar)
+        .map((b) => ({ at: (bar * 4 + (b % 4)) * beatMs, midi }));
+    // three groove bars, the example fill bar, then a hit on the next one
+    const take = [
+      ...hits(0),
+      ...hits(0).map((h) => ({ ...h, at: h.at + 4 * beatMs })),
+      ...hits(0).map((h) => ({ ...h, at: h.at + 8 * beatMs })),
+      ...hits(1).map((h) => ({ ...h, at: h.at + 8 * beatMs })),
+      { at: 16 * beatMs, midi: 49 },
+    ];
+    const g = gradeImprovise(take, 0, beatMs, 4, { fillEvery: 4 });
+    expect(g.fills).toEqual({ expected: 1, landed: 1 });
+  });
   it("the varied bar is the groove bar plus one kick", () => {
     const [plain, varied] = l.screens[1].options!.map((o) => o.figure);
     if (plain?.kind !== "groove" || varied?.kind !== "groove") throw new Error("groove figures");
@@ -481,11 +502,14 @@ describe("pads improvise lesson", () => {
         .filter((b) => Math.floor(b / 4) === bar).length;
     };
     const fig = l.screens[2].figure;
-    // the text: snare eighths on 3 and 4 in the fill; the hat stops after beat 2
+    // the text: the same hi-hat in the fill bar, snare eighths on 3 and 4
     expect(count(fig, 1, "snare")).toBeGreaterThan(count(fig, 0, "snare"));
-    expect(
-      Math.max(...(fig as { lanes: { hat: number[] } }).lanes.hat.filter((b) => b >= 4)) - 4,
-    ).toBe(1.5);
+    const hats = (bar: number) =>
+      (fig as { lanes: { hat: number[] } }).lanes.hat
+        .filter((b) => Math.floor(b / 4) === bar)
+        .map((b) => b % 4);
+    expect(hats(1)).toEqual(hats(0));
+    expect(count(fig, 1)).toBe(14);
     const space = l.screens[3].figure;
     if (space?.kind !== "groove") throw new Error("groove figure");
     expect(space.lanes.hat).toEqual([]);
