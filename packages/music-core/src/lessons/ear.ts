@@ -182,13 +182,27 @@ const hasElement = (token: string, c: CueElement) =>
 export function qualityCue(token: string, set: readonly string[]): CueElement[] {
   const own = elementsOf(token);
   const others = set.filter((t) => t !== token && QUALITIES.some((q) => q.token === t));
+  // Always at least one interval the chord has; "no 7th" only comes with one.
   const subsets = [1, 2, 3].flatMap((size) =>
     [[0], [1], [2], [0, 1], [0, 2], [1, 2], [0, 1, 2]]
       .filter((x) => x.length === size)
-      .map((x) => x.map((i) => own[i])),
+      .map((x) => x.map((i) => own[i]))
+      .filter((sub) => sub.some((c) => c.kind !== "none7")),
   );
   return subsets.find((sub) => !others.some((t) => sub.every((c) => hasElement(t, c)))) ?? own;
 }
+const CUE_CODE = {
+  third: { 3: "m3", 4: "M3" },
+  fifth: { 6: "d5", 7: "P5", 8: "A5" },
+  seventh: { 9: "d7", 10: "m7", 11: "M7" },
+} as const;
+/** The cue as an id part: "M3|P5|no7". */
+const cueCode = (cue: CueElement[]) =>
+  cue
+    .map((c) => (c.kind === "none7" ? "no7" : (CUE_CODE[c.kind] as Record<number, string>)[c.n]))
+    .join("|");
+const plainList = (xs: (string | number)[]) =>
+  xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : `${xs[0]}`;
 const qualities = {
   intro: () =>
     card("ear.chord-qualities", "Chord qualities", {
@@ -205,12 +219,13 @@ const qualities = {
     const words = heard.map(
       (c) => ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n],
     );
+    // The cue is part of the id: a set that needs another cue shows the item again.
     const no7 = cue.some((c) => c.kind === "none7");
     const chord = q.intervals.map((i) => 60 + i);
     const title = q.label.charAt(0) + q.label.slice(1).toLowerCase();
-    return card(`ear.chord-qualities:${token}`, title, {
+    return card(`ear.chord-qualities:${token}|${cueCode(cue)}`, title, {
       title,
-      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${words.join(" with the ")}, ${heard.map((c) => c.n).join(" and ")} half steps above the root${no7 ? ", and no 7th" : ""}.`,
+      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${plainList(words)}: ${plainList(heard.map((c) => c.n))} half steps above the root${no7 ? ", with no 7th on top" : ""}.`,
       figure: keys(marksOf(chord)),
       sound: { notes: [{ midi: chord, at: 0, dur: 0.9 }] },
     });

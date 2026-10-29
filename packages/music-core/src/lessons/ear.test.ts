@@ -85,7 +85,10 @@ describe("ear lessons", () => {
         expect(JSON.stringify(l), l.id).not.toMatch(/undefined|NaN/);
         if (i > 0) {
           expect(l.screens.length, l.id).toBe(1);
-          expect(l.id).toBe(`ear.${drill}:${items[i - 1]}`);
+          const want = `ear.${drill}:${items[i - 1]}`;
+          // A chord quality's id also carries the cue that separates it within the set.
+          if (drill === "chord-qualities") expect(l.id.startsWith(`${want}|`)).toBe(true);
+          else expect(l.id).toBe(want);
           expect(l.screens[0].sound?.notes.length, l.id).toBeGreaterThan(0);
         }
       });
@@ -116,44 +119,72 @@ describe("ear lessons", () => {
       "Half-diminished 7th",
     );
   });
-  it("each quality's cue tells it from every other quality in the same set", () => {
+  it("every cue, in every subset of the nine qualities, is a clear sentence that separates the quality", () => {
     const tokens = QUALITIES.map((q) => q.token);
-    const sets = [
-      ["major", "minor"],
-      QUALITIES.filter((q) => q.level === "triad").map((q) => q.token),
-      QUALITIES.filter((q) => q.level === "seventh").map((q) => q.token),
-      tokens,
-      ...tokens.flatMap((a, i) => tokens.slice(i + 1).map((b) => [a, b])),
-    ];
-    const has = (t: string, c: CueElement) => {
+    const NAMES: Record<string, ["third" | "fifth" | "seventh", number]> = {
+      "minor 3rd": ["third", 3],
+      "major 3rd": ["third", 4],
+      "diminished 5th": ["fifth", 6],
+      "perfect 5th": ["fifth", 7],
+      "augmented 5th": ["fifth", 8],
+      "diminished 7th": ["seventh", 9],
+      "minor 7th": ["seventh", 10],
+      "major 7th": ["seventh", 11],
+    };
+    const has = (t: string, kind: string, n: number) => {
       const [, third, fifth, seventh] = QUALITIES.find((q) => q.token === t)!.intervals;
-      return c.kind === "third"
-        ? c.n === third
-        : c.kind === "fifth"
-          ? c.n === fifth
-          : c.kind === "seventh"
-            ? c.n === seventh
+      return kind === "third"
+        ? n === third
+        : kind === "fifth"
+          ? n === fifth
+          : kind === "seventh"
+            ? n === seventh
             : !seventh;
     };
-    for (const set of sets)
+    for (let m = 1; m < 1 << tokens.length; m++) {
+      const set = tokens.filter((_, i) => m & (1 << i));
+      const ls = earLessons("chord-qualities", set);
       for (const t of set) {
-        const cue = qualityCue(t, set);
-        expect(cue.length, `${t} in ${set}`).toBeGreaterThan(0);
+        const l = ls.find((x) => x.id.startsWith(`ear.chord-qualities:${t}|`))!;
+        const cue = /Listen for (.*)$/.exec(text(l))![1];
+        const named = Object.entries(NAMES)
+          .filter(([w]) => cue.includes(w))
+          .map(([, v]) => v);
+        const where = `${t} in [${set}]: ${cue}`;
+        expect(named.length, where).toBeGreaterThan(0);
+        expect(cue, where).not.toMatch(/the ,|, ,|for the :/);
+        const nums = /: ([\d, and]+) half steps/
+          .exec(cue)![1]
+          .split(/, | and /)
+          .map(Number);
+        expect(nums, where).toEqual(named.map(([, n]) => n));
+        const no7 = cue.includes("no 7th");
+        const all = [...named, ...(no7 ? [["none7", 0] as [string, number]] : [])];
         expect(
-          cue.every((c) => has(t, c)),
-          `${t} in ${set}`,
+          all.every(([k, n]) => has(t, k, n)),
+          where,
         ).toBe(true);
-        for (const other of set.filter((x) => x !== t))
+        for (const o of set.filter((x) => x !== t))
           expect(
-            cue.every((c) => has(other, c)),
-            `${t} vs ${other}`,
+            all.every(([k, n]) => has(o, k, n)),
+            `${where} also fits ${o}`,
           ).toBe(false);
-        const text0 = text(
-          earLessons("chord-qualities", set).find((l) => l.id.endsWith(`:${t}`)!)!,
-        );
-        for (const c of cue)
-          expect(text0, `${t} in ${set}`).toContain(c.kind === "none7" ? "no 7th" : `${c.n}`);
+        expect(
+          qualityCue(t, set).some((c) => c.kind !== "none7"),
+          where,
+        ).toBe(true);
       }
+    }
+  });
+  it("the cue is in the id: the same quality gets two ids when the set needs another cue", () => {
+    const id = (t: string, set: string[]) =>
+      earLessons("chord-qualities", set).find((l) => l.id.includes(`:${t}|`))!.id;
+    expect(id("major", ["major", "minor"])).toBe("ear.chord-qualities:major|M3");
+    expect(id("major", ["major", "augmented"])).not.toBe(id("major", ["major", "minor"]));
+    expect(id("major", ["major", "major-7"])).toContain("no7");
+    expect(id("major", ["major", "minor", "minor-7"])).toBe(
+      id("major", ["major", "minor", "diminished-7"]),
+    );
   });
   it("cadences: the four progressions from the data, played as the data has them", () => {
     const ls = earLessons(
