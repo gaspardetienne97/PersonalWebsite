@@ -12,6 +12,7 @@
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
   import { timingVerdict } from "@repo/music-core/scoring/timing";
   import { chroma, chromaToPcs } from "@repo/music-core/signal/chroma";
+  import { grooveDictationLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -522,6 +523,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
+  lesson={groove ? { lessons: [grooveDictationLesson()] } : null}
   title="Rhythm"
   hue="rhythm"
   blurb={echo

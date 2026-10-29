@@ -4,6 +4,7 @@
   import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
   import { GOSPEL_PROGRESSIONS, KEY_CYCLE } from "@repo/music-core/content/piano";
   import { signatureFor } from "@repo/music-core/theory/circle";
+  import { jazzVoicingLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
@@ -292,6 +293,7 @@
 <svelte:head><title>Voicings | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={jazzType ? { lessons: jazzVoicingLesson(jazzType.id) } : null}
   title="Voicings"
   hue="piano"
   blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, guide-tone voice leading, and jazz piano voicing types from So What chords to locked hands. Untimed: take the time to find each chord."

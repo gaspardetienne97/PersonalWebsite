@@ -176,3 +176,32 @@ test.describe("fretboard lessons", () => {
     }
   });
 });
+
+test.describe("tier 1 lessons", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
+  });
+
+  const cases: [string, string, string][] = [
+    ["jazz voicing types", "/music/voicings?variant=so-what", "So What"],
+    ["groove dictation", "/music/rhythm?mode=groove", "The kick"],
+    ["find home", "/music/by-ear?mode=home", "Home is one note"],
+    ["call and response answer", "/music/call-response?mode=answer", "The chord's tones"],
+  ];
+  for (const [name, url, heading] of cases) {
+    test(`${name} shows its lesson on the first visit`, async ({ page }) => {
+      await page.goto(url);
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    });
+  }
+
+  test("drop-2 shows 4-way close first", async ({ page }) => {
+    await page.goto("/music/voicings?variant=drop2");
+    await expect(page.getByRole("heading", { name: "4-way close", exact: true })).toBeVisible();
+    for (let i = 0; i < 2 + 5; i++) {
+      await page.getByRole("button", { name: /^Next/ }).click();
+      if (await page.getByRole("heading", { name: "Drop-2", exact: true }).isVisible()) break;
+    }
+    await expect(page.getByRole("heading", { name: "Drop-2", exact: true })).toBeVisible();
+  });
+});

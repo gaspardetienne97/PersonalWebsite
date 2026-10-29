@@ -21,6 +21,7 @@
     type CallNote,
   } from "@repo/music-core/content/call-response";
   import { gradePhrase, phraseEvents } from "@repo/music-core/scoring/phrases";
+  import { chordTonesLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -209,6 +210,7 @@
 <svelte:head><title>Call and response | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={callMode === "answer" ? { lessons: [chordTonesLesson(chordAtBar(groove, 0).symbol)] } : null}
   title="Call and response"
   hue="ear"
   blurb="The band plays; a short call comes in, then the same number of bars are yours. Echo it back in time, or answer it with your own phrase that ends on a chord tone."

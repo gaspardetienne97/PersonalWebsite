@@ -13,6 +13,7 @@
   import { homeTonics, rankKeys, regionChroma, type KeyGuess } from "@repo/music-core/signal/key";
   import { toMono } from "@repo/music-core/signal/chroma";
   import { gradeSingAlong, MIN_SUNG, type SingAlongResult, type SingPart } from "@repo/music-core/signal/sing-along";
+  import { findHomeLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type Phase } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -379,6 +380,7 @@
 <svelte:head><title>Learn by ear | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={mode === "home" ? { lessons: [findHomeLesson()] } : null}
   title="Learn by ear"
   hue="ear"
   blurb="Load a recording you own, loop a stretch, slow it down without changing its pitch and play the part back. Find home names the note the music rests on."

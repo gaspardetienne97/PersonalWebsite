@@ -12,7 +12,8 @@ export type LessonFigure =
 
 /** Times in seconds. */
 export interface LessonSound {
-  notes: { midi: number[]; at: number; dur: number }[];
+  /** `drum` plays the note as a drum hit (General MIDI number); `velocity` is 0 to 1. */
+  notes: { midi: number[]; at: number; dur: number; drum?: boolean; velocity?: number }[];
 }
 
 export interface LessonStep {

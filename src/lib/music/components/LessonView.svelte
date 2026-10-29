@@ -33,7 +33,7 @@
   function play(s: LessonSound) {
     audio.stopSequence();
     void audio.unlock().then(() =>
-      audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur })))),
+      audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur, ...(n.drum ? { voice: "drum" as const } : {}), ...(n.velocity ? { velocity: n.velocity } : {}) })))),
     );
   }
 
@@ -135,7 +135,7 @@
       {:else if figure.kind === "wheel"}
         <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label="The circle of fifths" />
       {:else if figure.kind === "keys"}
-        <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" label="Piano keys" />
+        <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label="Piano keys" />
       {:else}
         {@const t = tuningFor(figure.instrument)}
         <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
