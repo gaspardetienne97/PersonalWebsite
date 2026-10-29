@@ -584,7 +584,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, grand: instrument === "piano" && clefs.length > 1 }) }}
+  lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, piano: instrument === "piano", grand: instrument === "piano" && clefs.length > 1 }) }}
   title="Sight-reading"
   hue="reading"
   blurb="Read a short generated phrase and play it. Wait for me holds the cursor; Keep time follows the click."

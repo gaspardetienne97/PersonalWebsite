@@ -694,7 +694,7 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
  * What a level's phrases can contain that a player may not have met, read from the generator's own
  * configuration for the level and meter (not from its one-line description). Durations are judged
  * in the note values of the meter: a 1.5 in a simple meter is a dotted quarter, but in x/8 it is the beat.
- * `grand` is a piano reading both clefs, the only case with an accompanied left hand.
+ * `piano` is the instrument; `grand` is a piano reading both clefs, the only case with an accompanied left hand.
  */
 export type SightItem =
   | "ties"
@@ -703,6 +703,8 @@ export type SightItem =
   | "sixteenths"
   | "dotted-eighth"
   | "triplets"
+  | "half-rest"
+  | "eighth-rest"
   | "pickup"
   | "accidentals"
   | "chords"
@@ -711,7 +713,7 @@ export type SightItem =
 export function sightReadingItems(
   levelId: ReadingLevelId,
   meter: string,
-  grand = false,
+  who: { piano?: boolean; grand?: boolean } = {},
 ): SightItem[] {
   const level = readingLevel(levelId);
   const gen = GEN[level.id];
@@ -727,6 +729,8 @@ export function sightReadingItems(
       let at = 0;
       for (const d of cell) {
         const v = Math.abs(d);
+        if (d < 0 && v === 2) found.add("half-rest");
+        if (d < 0 && v === 0.5) found.add("eighth-rest");
         if (v === 0.25) found.add("sixteenths");
         if (v === 0.75) found.add("dotted-eighth");
         if (Math.abs(v - 1 / 3) < 1e-9 || Math.abs(v - 2 / 3) < 1e-9) found.add("triplets");
@@ -739,9 +743,10 @@ export function sightReadingItems(
   if (gen.ties) found.add("ties");
   if (gen.pickup && meterId !== "changing") found.add("pickup");
   if (gen.chromatic || gen.jazz) found.add("accidentals");
-  if (grand && gen.lh && gen.rhChords) found.add("chords");
+  // Chord tones are added to any piano line of a level that has them (the generator checks `piano && rhChords && chords`).
+  if (who.piano && gen.rhChords && (gen.lh || gen.jazz)) found.add("chords");
   // A changing-meter phrase is built from 2-bar parts, too short for a clef change.
-  if (grand && gen.lh && gen.clefChange && meterId !== "changing") found.add("clef-change");
+  if (who.grand && gen.lh && gen.clefChange && meterId !== "changing") found.add("clef-change");
   if (level.swing) found.add("swing");
   return [...found];
 }

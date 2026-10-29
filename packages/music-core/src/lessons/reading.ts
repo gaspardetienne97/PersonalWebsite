@@ -163,6 +163,8 @@ const ITEM_ORDER: SightItem[] = [
   "sixteenths",
   "dotted-eighth",
   "triplets",
+  "half-rest",
+  "eighth-rest",
   "pickup",
   "accidentals",
   "chords",
@@ -170,8 +172,12 @@ const ITEM_ORDER: SightItem[] = [
   "swing",
 ];
 /** What a sight-reading level and meter can write, in teaching order; from the generator's configuration. */
-export function levelItems(levelId: string, meter: string, grand = false): SightItem[] {
-  const found = sightReadingItems(readingLevelId(levelId), meter, grand);
+export function levelItems(
+  levelId: string,
+  meter: string,
+  who: { piano?: boolean; grand?: boolean } = {},
+): SightItem[] {
+  const found = sightReadingItems(readingLevelId(levelId), meter, who);
   return ITEM_ORDER.filter((i) => found.includes(i));
 }
 
@@ -185,6 +191,8 @@ export interface ReadingOptions {
   /** Sight-reading: the level and the meter its phrase is written in. */
   level?: string;
   meter?: string;
+  /** The instrument is the piano. */
+  piano?: boolean;
   /** A piano reading both clefs (the left hand then accompanies). */
   grand?: boolean;
 }
@@ -203,7 +211,9 @@ export function readingLessons(
       ...(opts.accidentals ? [accidentalsLesson()] : []),
       ...(opts.stack ? [stackedLesson(opts.stack)] : []),
     ];
-  const items = opts.level ? levelItems(opts.level, opts.meter ?? "simple", opts.grand) : [];
+  const items = opts.level
+    ? levelItems(opts.level, opts.meter ?? "simple", { piano: opts.piano, grand: opts.grand })
+    : [];
   const meter =
     opts.meter && VALUE_METERS[opts.meter as ReadingMeter]
       ? [meterLesson(opts.meter as ReadingMeter)]
@@ -211,7 +221,7 @@ export function readingLessons(
   return [
     ...clefs.map(linesSpaces),
     valuesLesson(clefs[0]),
-    ...items.map((i) => (i === "accidentals" ? accidentalsLesson() : valueItemLesson(i))),
+    ...items.map((i) => (i === "accidentals" ? accidentalsLesson() : valueItemLesson(i, clefs[0]))),
     ...meter,
     ...sig,
   ];
@@ -393,6 +403,10 @@ function meterLesson(m: ReadingMeter): Lesson {
   };
 }
 
+const BASS_CHORDS: { title: string; text: string; bar?: { beats: number; notes: number[] } } = {
+  title: "Chords in the left hand",
+  text: "On some strong beats the left hand plays the melody note with one or two lower notes. Play them together.",
+};
 const ITEM_TEXT: Record<
   string,
   { title: string; text: string; bar?: { beats: number; notes: number[] } }
@@ -408,7 +422,7 @@ const ITEM_TEXT: Record<
   },
   syncopation: {
     title: "Syncopation",
-    text: "Syncopation puts a long note off the beat and holds it over the next beat. That beat then has no note starting on it, so keep counting through it.",
+    text: "In syncopation a long note starts halfway between two quarter-note pulses and is held across the next pulse. No note starts on that pulse, so keep counting through it.",
     bar: { beats: 2, notes: [0.5, 1, 0.5] },
   },
   sixteenths: {
@@ -425,9 +439,19 @@ const ITEM_TEXT: Record<
     title: "Triplets",
     text: "A triplet puts three even notes in the time of two of the same kind. Three eighth note triplets take the time of one quarter note.",
   },
+  "half-rest": {
+    title: "Half rests",
+    text: "A half rest is silent for as long as a half note. It sits on top of the middle line of the staff.",
+    bar: { beats: 4, notes: [2, -2] },
+  },
+  "eighth-rest": {
+    title: "Eighth rests",
+    text: "An eighth rest is silent for as long as an eighth note. It looks like a slanted stroke with a flag.",
+    bar: { beats: 1, notes: [-0.5, 0.5] },
+  },
   pickup: {
     title: "Pickup bar",
-    text: "The first bar opens with rests, and only its last note is played. Count the rests silently and come in on that note.",
+    text: "Some phrases open with a pickup: the first bar opens with rests, and only its last note is played. Count the rests silently and come in on that note.",
   },
   chords: {
     title: "Chords in the right hand",
@@ -442,8 +466,8 @@ const ITEM_TEXT: Record<
     text: "Swing eighths are written straight but played long and short, about two to one. Lean on the first of each pair.",
   },
 };
-function valueItemLesson(id: string): Lesson {
-  const t = ITEM_TEXT[id];
+function valueItemLesson(id: string, clef: Clef): Lesson {
+  const t = id === "chords" && clef === "bass" ? BASS_CHORDS : ITEM_TEXT[id];
   return {
     id: `reading.values.${id}`,
     title: t.title,
@@ -455,7 +479,10 @@ function valueItemLesson(id: string): Lesson {
           ? {
               figure: staff(
                 "treble",
-                t.bar.notes.map((beats) => ({ midi: staffNote("treble", 4), beats })),
+                t.bar.notes.map((beats) => ({
+                  midi: beats < 0 ? null : staffNote("treble", 4),
+                  beats: Math.abs(beats),
+                })),
                 { meter: { beats: t.bar.beats, beatUnit: 4 } },
               ),
             }
@@ -653,11 +680,11 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
   const card = (id: string, title: string, text: string, extra: Partial<LessonScreen> = {}) =>
     out.push({ id: `rhythm.${id}`, title, screens: [{ title, text, ...extra }] });
   if (has("rest") || has("half")) {
-    const e = ex(g, g === "compound" ? ["quarter", "rest"] : ["quarter", "rest", "half"]);
+    const e = ex(g, g === "compound" ? ["half"] : ["quarter", "rest", "half"]);
     card(
       "rests-halves",
       "Rests and half notes",
-      `A rest is a silent beat, and ${g === "compound" ? "a dotted half note is held through both beats of the bar" : "a half note is held through two beats"}. In this bar a note starts on ${e.names}.`,
+      `A rest is a silent beat, and ${g === "compound" ? "a dotted half note is held through both beats of the bar" : "a half note is held through two beats"}. ${g === "compound" ? `In this bar one note starts on ${e.names} and is held to the end.` : `In this bar a note starts on ${e.names}.`}`,
       { figure: e.fig, sound: e.sound },
     );
   }
