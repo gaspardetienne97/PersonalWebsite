@@ -29,6 +29,7 @@
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { clampRange, comparisonScore, flashcardScore, keyboardSpan, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
+  import { readingLessons } from "@repo/music-core/lessons/reading";
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
@@ -278,6 +279,7 @@
 </script>
 
 <DrillShell
+  lesson={{ lessons: readingLessons("flashcards", crossed || kind === "satb" || clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { accidentals }) }}
   title="Note reading"
   hue="reading"
   blurb="Read the note on the staff, then name it or play it."

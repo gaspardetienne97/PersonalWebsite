@@ -46,6 +46,7 @@
   import { clampRange, combineLanes, fretPosition, handLabel, kickGroups, KICK_MIDI, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
   import { hitDrumKey } from "@repo/music-core/content/winds-pads";
   import SetupFields from "./SetupFields.svelte";
+  import { readingLessons } from "@repo/music-core/lessons/reading";
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
@@ -583,6 +584,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
+  lesson={{ lessons: readingLessons("sight-reading", clefs[0] ?? "treble", { fifths: key.fifths }) }}
   title="Sight-reading"
   hue="reading"
   blurb="Read a short generated phrase and play it. Wait for me holds the cursor; Keep time follows the click."

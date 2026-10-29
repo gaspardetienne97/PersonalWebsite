@@ -9,7 +9,9 @@
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
+  import { countName } from "@repo/music-core/lessons/reading";
   import Staff from "../notation/Staff.svelte";
+  import { noteName } from "@repo/music-core";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
   import { btnStage as btn, btnPrimary } from "./ui";
   import Volume2 from "lucide-svelte/icons/volume-2";
@@ -32,15 +34,38 @@
   const isLast = $derived(li === lessons.length - 1 && si === lesson.screens.length - 1 && shown >= steps.length);
   const total = $derived(lesson.screens.length);
 
-  function play(s: LessonSound) {
+  /** The studio loop an effect sound plays through, the quiz's own audio graph. */
+  let studioLoop: ReturnType<typeof audio.studio.loop> | null = null;
+  let studioTimer: ReturnType<typeof setTimeout> | undefined;
+  function halt() {
     audio.stopSequence();
+    clearTimeout(studioTimer);
+    studioLoop?.stop();
+    studioLoop = null;
+  }
+
+  async function playEffect(e: NonNullable<LessonSound["effect"]>) {
+    await audio.unlock();
+    const buffer = await audio.studio.material(e.material);
+    // Matched, as in the quiz: Changed is trimmed back to Flat's loudness.
+    const trim = e.matched ? (await audio.studio.loudness(buffer, {})) - (await audio.studio.loudness(buffer, e.change)) : 0;
+    halt();
+    studioLoop = audio.studio.loop(buffer);
+    studioLoop.set(e.change, trim);
+    studioLoop.show(true);
+    studioTimer = setTimeout(halt, 4000);
+  }
+
+  function play(s: LessonSound) {
+    halt();
+    if (s.effect) return void playEffect(s.effect);
     void audio.unlock().then(() =>
       audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur, ...(n.drum ? { voice: "drum" as const } : {}), ...(n.velocity ? { velocity: n.velocity } : {}) })))),
     );
   }
 
   async function moved() {
-    audio.stopSequence();
+    halt();
     picked = null;
     await tick();
     heading?.focus();
@@ -58,7 +83,7 @@
       shown = 0;
       void moved();
     } else return onfinish();
-    audio.stopSequence();
+    halt();
     picked = null;
   }
 
@@ -74,7 +99,7 @@
       shown = 0;
       void moved();
     }
-    audio.stopSequence();
+    halt();
     picked = null;
   }
 
@@ -89,7 +114,7 @@
     }
   }
 
-  onDestroy(() => audio.stopSequence());
+  onDestroy(halt);
 
   /** A key signature of N accidentals on an empty staff; `reveal` is how many show. */
   function sigScore(f: Extract<LessonFigure, { kind: "signature" }>): Score {
@@ -108,6 +133,26 @@
     const n = f.reveal ?? Math.abs(f.fifths);
     return `${f.clef} clef key signature with ${n} ${f.fifths < 0 ? "flat" : "sharp"}${n === 1 ? "" : "s"}`;
   };
+  /** The staff figure as a one-bar score: its notes one after another, a rest where `midi` is null. */
+  function staffScore(f: Extract<LessonFigure, { kind: "staff" }>): Score {
+    let at = 0;
+    const notes = f.notes.flatMap((n) => {
+      const out = n.midi === null ? [] : [{ midi: n.midi, startBeat: at, durationBeats: n.beats }];
+      at += n.beats;
+      return out;
+    });
+    return {
+      id: `lesson-staff-${f.clef}-${f.fifths ?? 0}-${f.notes.map((n) => `${n.midi}x${n.beats}`).join("_")}`,
+      title: "Lesson",
+      bpm: 60,
+      keyFifths: f.fifths ?? 0,
+      meter: f.meter ?? { beats: at, beatUnit: 4 },
+      voices: [{ id: "v", name: "Notes", clef: f.clef, notes }],
+      lengthBeats: at,
+    };
+  }
+  const staffLabel = (f: Extract<LessonFigure, { kind: "staff" }>) =>
+    `${f.clef} clef${f.fifths ? ` with ${Math.abs(f.fifths)} ${f.fifths < 0 ? "flat" : "sharp"}${Math.abs(f.fifths) === 1 ? "" : "s"}` : ""}: ${f.notes.map((n) => (n.midi === null ? "rest" : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", ")}`;
   const pianoMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
   const fretMarks = (m: { string: number; fret: number; label: string }[]): FretMark[] => m.map((x) => ({ ...x, role: "scale" }));
 </script>
@@ -137,6 +182,17 @@
         marks={Object.fromEntries(GROOVE_LANES.map((l) => [l.id, Array.from({ length: g.bars * 4 * g.perBeat }, (_, i) => (g.lanes[l.id] ?? []).some((b) => Math.abs(b * g.perBeat - i) < 1e-6))]))}
       />
     </div>
+  {:else if figure?.kind === "rhythm"}
+    {@const r = figure}
+    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Rhythm grid, {r.bars} {r.bars === 1 ? 'bar' : 'bars'}, notes on {r.onsets.length ? r.onsets.map((b) => countName(b, r.perBeat, r.beatsPerBar)).join(', ') : 'no counts yet'}">
+      <DictationGrid
+        bars={r.bars}
+        rows={[{ id: "hit", label: "" }]}
+        perBeat={r.perBeat}
+        beatsPerBar={r.beatsPerBar}
+        marks={{ hit: Array.from({ length: r.bars * r.beatsPerBar * r.perBeat }, (_, i) => r.onsets.some((b) => Math.abs(b * r.perBeat - i) < 1e-6)) }}
+      />
+    </div>
   {:else if figure}
     <div class="mx-auto w-full max-w-md rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
       {#if figure.kind === "signature"}
@@ -145,6 +201,11 @@
           <Staff score={sigScore(figure)} maxHeight="14rem" time={false} fill="center" />
         </div>
         <p class="sr-only">{sigLabel(figure)}</p>
+      {:else if figure.kind === "staff"}
+        <div class="notes">
+          <Staff score={staffScore(figure)} maxHeight="14rem" time={!!figure.meter} fill="center" revealLabels />
+        </div>
+        <p class="sr-only">{staffLabel(figure)}</p>
       {:else if figure.kind === "wheel"}
         <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label="The circle of fifths" />
       {:else if figure.kind === "keys"}
@@ -183,6 +244,9 @@
     display: none;
   }
   .sig {
+    zoom: 1.5;
+  }
+  .notes {
     zoom: 1.5;
   }
 </style>

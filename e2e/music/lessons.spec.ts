@@ -189,6 +189,11 @@ test.describe("tier 1 lessons", () => {
     ["call and response answer", "/music/call-response?mode=answer", "The chord's tones"],
     ["aerophone bite vibrato", "/music/aerophone?mode=vibrato", "Vibrato from the bite"],
     ["pads improvise", "/music/pads?mode=improvise", "Play over the band"],
+    ["flashcards", "/music/reading?activity=flashcards", "Five lines"],
+    ["sight-reading", "/music/reading?activity=sight-reading", "How long a note lasts"],
+    ["rhythm echo", "/music/rhythm?mode=echo", "Counting the beat"],
+    ["rhythm dictation", "/music/rhythm?mode=dictation", "Counting the beat"],
+    ["mixing ear", "/music/listening", "Flat, then Changed"],
   ];
   for (const [name, url, heading] of cases) {
     test(`${name} shows its lesson on the first visit`, async ({ page }) => {
@@ -255,5 +260,21 @@ test.describe("ear lessons", () => {
     await next(page);
     await expect(heading(page, "First inversion")).toBeVisible();
     await expectNoHorizontalOverflow(page);
+  });
+
+  test("reading and rhythm lessons fit at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const url of [
+      "/music/reading?activity=flashcards",
+      "/music/reading?activity=sight-reading",
+      "/music/rhythm?mode=dictation",
+    ]) {
+      await page.goto(url);
+      await expect(page.getByTestId("lesson")).toBeVisible();
+      for (let i = 0; i < 4; i++) {
+        await page.keyboard.press("ArrowRight");
+        await expectNoHorizontalOverflow(page);
+      }
+    }
   });
 });

@@ -33,6 +33,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio } from "$lib/music/runtime";
+  import { listeningLessons } from "@repo/music-core/lessons/reading";
 
   const LENGTH = 10;
   const entry = catalogEntry("listening")!;
@@ -310,6 +311,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
+  lesson={{ lessons: listeningLessons(exercise, { material, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays }) }}
   title="Studio ears"
   hue="ear"
   blurb="Hear a loop flat and changed, and name the change. Keep the volume comfortable and the same throughout."

@@ -13,6 +13,7 @@
   import { timingVerdict } from "@repo/music-core/scoring/timing";
   import { chroma, chromaToPcs } from "@repo/music-core/signal/chroma";
   import { grooveDictationLesson } from "@repo/music-core/lessons/tier1";
+  import { rhythmLessons } from "@repo/music-core/lessons/reading";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -518,7 +519,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  lesson={groove ? { lessons: [grooveDictationLesson()] } : null}
+  lesson={groove ? { lessons: [grooveDictationLesson()] } : echo || dictation ? { lessons: rhythmLessons(echo ? "echo" : "dictation", earLevel.id) } : null}
   title="Rhythm"
   hue="rhythm"
   blurb={echo

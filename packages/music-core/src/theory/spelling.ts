@@ -65,8 +65,8 @@ export const CHOICE_NAMES = [
 ] as const;
 
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
-const SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
-const FLAT_ORDER = ["B", "E", "A", "D", "G", "C", "F"];
+export const SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
+export const FLAT_ORDER = ["B", "E", "A", "D", "G", "C", "F"];
 
 /** The seven diatonic names of a key, letter by letter, with the signature's accidentals. */
 export function diatonicNames(k: KeySignature): string[] {
