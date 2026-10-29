@@ -117,7 +117,17 @@ test.describe("intro lessons", () => {
     await expect(lessonHeading(page)).toBeVisible();
     await page.getByRole("button", { name: "Signatures", exact: true }).click();
     await expect(lessonHeading(page)).toHaveCount(0);
-    await expect(start(page)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
+  });
+
+  test("signature shows count first, then signature", async ({ page }) => {
+    await page.goto(URL);
+    await page.getByRole("button", { name: "Read it", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
+    const second = page.getByRole("heading", { name: "Sharps and flats on the staff" });
+    for (let i = 0; i < 30 && !(await second.isVisible()); i++)
+      await page.getByRole("button", { name: /^Next/ }).click();
+    await expect(second).toBeVisible();
   });
 
   test("the Lesson button shows as pressed while its lesson is open", async ({ page }) => {
