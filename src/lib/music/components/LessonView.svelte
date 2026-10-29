@@ -11,7 +11,7 @@
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
   import Staff from "../notation/Staff.svelte";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
-  import { btn, btnPrimary } from "./ui";
+  import { btnStage as btn, btnPrimary } from "./ui";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
   let { lessons, onfinish, onskip }: { lessons: Lesson[]; onfinish: () => void; onskip: () => void } = $props();

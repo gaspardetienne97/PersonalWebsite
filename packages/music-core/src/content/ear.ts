@@ -978,7 +978,7 @@ export const KEY_CHANGES = [
   { id: "parallel", label: "To the parallel minor", shift: 0, minor: true },
 ] as const;
 /** The ways in, as numerals in the new key; the first (a ii-V) is the only one below difficulty 0.5. */
-const KEY_CHANGE_PATHS = {
+export const KEY_CHANGE_PATHS = {
   major: ["ii7 V7 Imaj7", "V7 Imaj7", "iv7 bVII7 Imaj7"],
   minor: ["iiø7 V7 i7", "V7 i7"],
 };

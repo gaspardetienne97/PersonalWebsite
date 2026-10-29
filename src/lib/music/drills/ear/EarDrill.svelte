@@ -47,6 +47,7 @@
     type RankedPhrase,
   } from "@repo/music-core/content/ear";
   import { catalogEntry } from "@repo/music-core/content/catalog";
+  import { earLessons } from "@repo/music-core/lessons/ear";
   import { LOOP_SETS, loopGroove, loopPalette, numeralChord, numeralLabel, numeralOfNotes } from "@repo/music-core/content/loops";
   import { rng } from "@repo/music-core/content/random";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
@@ -529,6 +530,17 @@
   }
   if (usesSongs) void loadSongs();
   const fromSongs = $derived(slug === "wrong-note" && s.source === "songs");
+
+  /** What the quiz asks, taught first: the drill and its level (never the answer mode), item by item. */
+  const lessonRef = $derived.by(() => {
+    let items: string[] = [];
+    if (SETS) items = chordDrill ? picked.map((t) => functionToken(t, chordKind)) : picked;
+    else if (slug === "song-loops") items = loopPalette(s.loops);
+    else if (slug === "bass-lines") items = [...(BASS_LEVELS.find((l) => l.id === s.bassLevel) ?? BASS_LEVELS[0]).degrees];
+    else if (slug === "scale-degrees" || slug === "melody-dictation" || (slug === "wrong-note" && !fromSongs)) items = levelDegrees(level);
+    const lessons = earLessons(keyChanges ? "key-changes" : slug, keyChanges ? [] : items);
+    return lessons.length ? { lessons } : null;
+  });
 
   // ---------------------------------------------------------------------------
   // Prompt helpers
@@ -1353,6 +1365,7 @@
   checkable={answer !== "listen" && answer !== "listen-along"}
   progress={prompts.length ? (qi + (rec ? 1 : 0)) / prompts.length : 0}
   ondemo={answer === "listen-along" ? undefined : playDemo}
+  lesson={lessonRef}
   {demoPlaying}
   onstart={start}
   onstop={stop}

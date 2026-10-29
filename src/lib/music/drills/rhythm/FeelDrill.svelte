@@ -6,6 +6,7 @@
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import { FEELS, feelPrompt, type FeelId } from "@repo/music-core/content/pads-studio";
+  import { earLessons } from "@repo/music-core/lessons/ear";
   import { grooveTargetsFor } from "@repo/music-core/content/winds-pads";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -156,6 +157,7 @@
   bind:mode
   bind:status
   progress={(qi + (step === "feedback" ? 1 : 0)) / LENGTH}
+  lesson={{ lessons: earLessons("feel", FEELS.map((f) => f.id)) }}
   onstart={start}
   onstop={stop}
 >

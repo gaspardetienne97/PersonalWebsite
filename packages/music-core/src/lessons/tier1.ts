@@ -19,7 +19,7 @@ import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
  * The keys figure; `span` is every note the screen's steps will show, so the keyboard keeps its size
  * from step to step. It starts and ends on a white key, which Piano draws whole.
  */
-const keys = (
+export const keys = (
   marks: Record<number, string>,
   span: number[] = Object.keys(marks).map(Number),
 ): LessonFigure => {

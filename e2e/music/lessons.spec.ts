@@ -207,3 +207,53 @@ test.describe("tier 1 lessons", () => {
     await expect(page.getByRole("heading", { name: "Drop-2", exact: true })).toBeVisible();
   });
 });
+
+test.describe("ear lessons", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
+  });
+  const heading = (page: Page, name: string) => page.getByRole("heading", { name, exact: true });
+  const next = (page: Page) => page.getByRole("button", { name: "Next", exact: true }).click();
+
+  test("intervals: the intro, then each interval; a bigger level teaches only the new one", async ({
+    page,
+  }) => {
+    await page.goto("/music/ear/intervals?intervals=P5,P8");
+    await expect(heading(page, "Distance in half steps")).toBeVisible();
+    await next(page);
+    await expect(heading(page, "Perfect 5th")).toBeVisible();
+    await next(page);
+    await expect(heading(page, "Octave")).toBeVisible();
+    await (await toEnd(page)).click();
+    await expect(start(page)).toBeVisible();
+
+    await page.goto("/music/ear/intervals?intervals=P5,P8,M3");
+    await expect(heading(page, "Major 3rd")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Start the quiz" })).toBeVisible();
+  });
+
+  test("the lesson follows the level, not the answer mode", async ({ page }) => {
+    await page.goto("/music/ear/chord-qualities?qualities=minor&answer=play-back");
+    await expect(heading(page, "One chord, all notes together")).toBeVisible();
+    await next(page);
+    await expect(heading(page, "Minor")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start the quiz" })).toBeVisible();
+  });
+
+  test("the feel drill teaches each feel", async ({ page }) => {
+    await page.goto("/music/ear/feel");
+    await expect(heading(page, "How the beat is divided")).toBeVisible();
+    await next(page);
+    await expect(heading(page, "Straight")).toBeVisible();
+  });
+
+  test("an ear lesson fits at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/music/ear/inversions?inversions=first");
+    await expect(heading(page, "Which note is lowest")).toBeVisible();
+    await next(page);
+    await expect(heading(page, "First inversion")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+});
