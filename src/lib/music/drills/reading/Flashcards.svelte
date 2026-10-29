@@ -279,7 +279,7 @@
 </script>
 
 <DrillShell
-  lesson={{ lessons: readingLessons("flashcards", crossed || kind === "satb" || clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { accidentals }) }}
+  lesson={{ lessons: readingLessons("flashcards", crossed || kind === "satb" || clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { accidentals, fifths: key.fifths, ...(kind === "note" ? {} : { stack: kind }) }) }}
   title="Note reading"
   hue="reading"
   blurb="Read the note on the staff, then name it or play it."

@@ -190,7 +190,7 @@ test.describe("tier 1 lessons", () => {
     ["aerophone bite vibrato", "/music/aerophone?mode=vibrato", "Vibrato from the bite"],
     ["pads improvise", "/music/pads?mode=improvise", "Play over the band"],
     ["flashcards", "/music/reading?activity=flashcards", "Five lines"],
-    ["sight-reading", "/music/reading?activity=sight-reading", "How long a note lasts"],
+    ["sight-reading", "/music/reading?activity=sight-reading", "Five lines"],
     ["rhythm echo", "/music/rhythm?mode=echo", "Counting the beat"],
     ["rhythm dictation", "/music/rhythm?mode=dictation", "Counting the beat"],
     ["mixing ear", "/music/listening", "Flat, then Changed"],

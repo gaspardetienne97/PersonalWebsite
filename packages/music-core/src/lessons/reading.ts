@@ -5,6 +5,7 @@ import { EAR_RHYTHM_LEVELS, RHYTHM_CELLS, type RhythmCell } from "../content/rhy
 import {
   BAND_SETS,
   DELAY_SETS,
+  LOOP_BPM,
   PAN_SETS,
   bandLabel,
   compLabel,
@@ -16,7 +17,15 @@ import {
   type StudioMaterial,
 } from "../content/studio";
 import { noteName, octaveOf, parseNote, pc } from "../theory/notes";
-import { FLAT_ORDER, SHARP_ORDER } from "../theory/spelling";
+import { FLAT_ORDER, SHARP_ORDER } from "../theory/circle";
+import {
+  READING_LEVELS,
+  READING_METERS,
+  CHANGING_METERS,
+  readingLevel,
+  readingLevelId,
+  type ReadingMeter,
+} from "../content/reading";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
 type Clef = "treble" | "bass";
@@ -76,7 +85,7 @@ function linesSpaces(clef: Clef): Lesson {
   const Name = clef === "treble" ? "Treble" : "Bass";
   const lines = staffLines(clef);
   const spaces = staffSpaces(clef);
-  const landmark = clef === "treble" ? staffNote(clef, 1) : staffNote(clef, 6);
+  const landmark = clef === "treble" ? staffNote(clef, 2) : staffNote(clef, 6);
   const below = staffNote(clef, -2);
   const above = staffNote(clef, 10);
   const other = clef === "treble" ? above : below;
@@ -146,18 +155,81 @@ function accidentalsLesson(): Lesson {
   };
 }
 
+/** What a sight-reading level asks for, from its rhythm text and that of the levels before it on the same path. */
+const VALUE_ITEMS: { id: string; test: RegExp }[] = [
+  { id: "ties", test: /\btie/ },
+  { id: "dotted-quarter", test: /dotted quarter|dotted rhythms/ },
+  { id: "syncopation", test: /syncopation/ },
+  { id: "sixteenths", test: /sixteenth/ },
+  { id: "dotted-eighth", test: /dotted eighth/ },
+  { id: "triplets", test: /triplet/ },
+  { id: "pickup", test: /pickup/ },
+  { id: "swing", test: /swing/ },
+];
+export function levelItems(levelId: string): string[] {
+  const level = readingLevel(readingLevelId(levelId));
+  const path = READING_LEVELS.filter((l) => l.reader === "any" || l.reader === level.reader);
+  const upto = path.slice(0, path.findIndex((l) => l.id === level.id) + 1);
+  const text = upto.map((l) => l.rhythm.toLowerCase()).join(" | ");
+  return VALUE_ITEMS.filter((i) => i.test.test(text)).map((i) => i.id);
+}
+
+export interface ReadingOptions {
+  /** Key signature of the run (circle-of-fifths position). */
+  fifths?: number;
+  /** Flashcards with accidentals on. */
+  accidentals?: boolean;
+  /** Flashcards of triads or four-part chords. */
+  stack?: "chord" | "satb";
+  /** Sight-reading: the level and the meter its phrase is written in. */
+  level?: string;
+  meter?: string;
+}
+
 export function readingLessons(
   kind: "flashcards" | "sight-reading",
   clef: Clef | "both",
-  opts: { fifths?: number; accidentals?: boolean } = {},
+  opts: ReadingOptions = {},
 ): Lesson[] {
   const clefs: Clef[] = clef === "both" ? ["treble", "bass"] : [clef];
+  const sig = opts.fifths ? keySignatureLessons(clefs, opts.fifths) : [];
   if (kind === "flashcards")
-    return [...clefs.map(linesSpaces), ...(opts.accidentals ? [accidentalsLesson()] : [])];
+    return [
+      ...clefs.map(linesSpaces),
+      ...sig,
+      ...(opts.accidentals ? [accidentalsLesson()] : []),
+      ...(opts.stack ? [stackedLesson(opts.stack)] : []),
+    ];
+  const items = opts.level ? levelItems(opts.level) : [];
+  const meter =
+    opts.meter && VALUE_METERS[opts.meter as ReadingMeter]
+      ? [meterLesson(opts.meter as ReadingMeter)]
+      : [];
   return [
+    ...clefs.map(linesSpaces),
     valuesLesson(clefs[0]),
-    ...(opts.fifths ? [keySignatureLesson(clefs[0], opts.fifths)] : []),
+    ...items.map(valueItemLesson),
+    ...meter,
+    ...sig,
   ];
+}
+
+function stackedLesson(kind: "chord" | "satb"): Lesson {
+  return {
+    id: `reading.stacked.${kind === "chord" ? "triad" : "satb"}`,
+    title: kind === "chord" ? "Reading a triad" : "Reading four notes",
+    screens: [
+      kind === "chord"
+        ? {
+            title: "Three notes stacked",
+            text: "A triad is three notes stacked in thirds, so they sit on three lines in a row or three spaces in a row. Name it by its three notes from the bottom, like C-E-G.",
+          }
+        : {
+            title: "Four notes, one triad",
+            text: "Four notes are stacked across the grand staff, and the lowest is the root of the chord. The root is doubled above it. Name the triad by its three notes from the root up, like C-E-G, with the doubled note once.",
+          },
+    ],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -234,44 +306,146 @@ function valuesLesson(clef: Clef): Lesson {
   };
 }
 
-function keySignatureLesson(clef: Clef, fifths: number): Lesson {
+/** An intro that applies to every key, then one card for the accidentals this key adds. */
+function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
+  const clef = clefs[0];
   const n = Math.abs(fifths);
   const sharp = fifths > 0;
   const word = sharp ? "sharp" : "flat";
   const order = (sharp ? SHARP_ORDER : FLAT_ORDER).slice(0, n);
-  const first = order[0];
-  // The first accidental's letter on a line or space of the staff, with the signature's accidental.
-  const step = [0, 1, 2, 3, 4, 5, 6, 7, 8].find((s) => letter(staffNote(clef, s)) === first)!;
-  const shown = staffNote(clef, step) + (sharp ? 1 : -1);
   const sig = (reveal?: number): LessonFigure => ({
     kind: "signature",
     clef,
     fifths,
     ...(reveal === undefined ? {} : { reveal }),
   });
+  // The last accidental's letter on a line or space of each clef, with the signature's accidental.
+  const onStaff = (c: Clef, l: string) => {
+    const step = [0, 1, 2, 3, 4, 5, 6, 7, 8].find((s) => letter(staffNote(c, s)) === l)!;
+    return staffNote(c, step) + (sharp ? 1 : -1);
+  };
+  const last = order[n - 1];
+  return [
+    {
+      id: "reading.key-signature",
+      title: "The key signature",
+      screens: [
+        {
+          title: "Signs at the start of the staff",
+          text: "The sharps or flats right after the clef are the key signature. They hold for every bar, so no sign is written beside each note.",
+          figure: sig(),
+        },
+      ],
+    },
+    {
+      id: `reading.key-signature.${fifths}`,
+      title: `${plural(n, word)} in the signature`,
+      screens: [
+        {
+          title: `This key has ${plural(n, word)}`,
+          text: `Tap Next to add the ${plural(n, word)} one at a time, in the order they are written.`,
+          figure: sig(0),
+          steps: order.map((l, i) => ({
+            text: `${l} ${word}: every ${l}, in every octave, is played a half step ${sharp ? "higher" : "lower"}.`,
+            figure: sig(i + 1),
+          })),
+        },
+        ...clefs.map((c) => ({
+          title: clefs.length > 1 ? `On the ${c} staff` : "On the staff",
+          text: `With this key signature the note shown is ${last} ${word}, though no sign is written beside it. Every ${last} in the piece is played the same way, unless a sign beside a note says otherwise.`,
+          figure: staff(c, [{ midi: onStaff(c, last), beats: 1 }], { fifths }),
+          sound: run([onStaff(c, last)]),
+        })),
+      ],
+    },
+  ];
+}
+
+const VALUE_METERS: Partial<Record<ReadingMeter, string>> = {
+  compound:
+    "In 6/8 the beat is a dotted quarter, so a bar has two beats of three eighth notes, counted 1 & a 2 & a.",
+  "3/8": "3/8 has three eighth notes in a bar, counted 1 2 3.",
+  "9/8": "9/8 has nine eighth notes in a bar, in three beats of three, counted 1 & a 2 & a 3 & a.",
+  "2/2":
+    "2/2 has two half-note beats in a bar, so a half note is one beat and a quarter note is half a beat.",
+  "5/4": "5/4 has five quarter notes in a bar, grouped as three and two or as two and three.",
+  "7/8": "7/8 has seven eighth notes in a bar, grouped in twos and threes.",
+  "5/8": "5/8 has five eighth notes in a bar, grouped as two and three or as three and two.",
+  changing: `The time signature changes every 2 bars, through ${CHANGING_METERS.map((m) => READING_METERS[m].label).join(", ")} in turn.`,
+};
+function meterLesson(m: ReadingMeter): Lesson {
+  const label = READING_METERS[m].label;
   return {
-    id: "reading.key-signature",
-    title: "The key signature",
+    id: `reading.meter.${m.replace("/", "-")}`,
+    title: m === "changing" ? "Changing meters" : `${label} time`,
     screens: [
       {
-        title: "Signs at the start of the staff",
-        text: "The sharps or flats right after the clef are the key signature. They hold for every bar, so no sign is written beside each note.",
-        figure: sig(),
+        title: m === "changing" ? "The meter changes" : `Counting ${label}`,
+        text: `${VALUE_METERS[m]} Check the time signature before you start, and at every bar where it changes.`,
       },
+    ],
+  };
+}
+
+const ITEM_TEXT: Record<
+  string,
+  { title: string; text: string; bar?: { beats: number; notes: number[] } }
+> = {
+  ties: {
+    title: "Ties",
+    text: "A tie is a curved line joining two notes of the same pitch. Play the first, hold through the second, and do not play it again.",
+  },
+  "dotted-quarter": {
+    title: "Dotted quarter notes",
+    text: "A dotted quarter note lasts one and a half beats. It is often followed by an eighth note, which makes up the other half beat.",
+    bar: { beats: 2, notes: [1.5, 0.5] },
+  },
+  syncopation: {
+    title: "Syncopation",
+    text: "Syncopation puts a note on a weak part of the beat and holds it over the next beat. That next beat then has no note starting on it, so keep counting through it.",
+    bar: { beats: 2, notes: [0.5, 1, 0.5] },
+  },
+  sixteenths: {
+    title: "Sixteenth notes",
+    text: "A sixteenth note lasts a quarter of a beat, so four fit in one beat. Count them 1 e & a.",
+    bar: { beats: 1, notes: [0.25, 0.25, 0.25, 0.25] },
+  },
+  "dotted-eighth": {
+    title: "Dotted eighth and sixteenth",
+    text: "A dotted eighth note lasts three quarters of a beat, and the sixteenth after it fills the last quarter. Together they make one beat.",
+    bar: { beats: 1, notes: [0.75, 0.25] },
+  },
+  triplets: {
+    title: "Triplets",
+    text: "A triplet puts three even notes in the time of two of the same kind. An eighth note triplet fits three notes in one beat.",
+  },
+  pickup: {
+    title: "Pickup notes",
+    text: "A pickup is a short first bar: the music starts partway through the bar, on one of its last counts. Count the missing beats silently before you start.",
+  },
+  swing: {
+    title: "Swing",
+    text: "Swing eighths are written straight but played long and short, about two to one. Lean on the first of each pair.",
+  },
+};
+function valueItemLesson(id: string): Lesson {
+  const t = ITEM_TEXT[id];
+  return {
+    id: `reading.values.${id}`,
+    title: t.title,
+    screens: [
       {
-        title: `This key has ${plural(n, word)}`,
-        text: `Tap Next to add the ${plural(n, word)} one at a time, in the order they are written.`,
-        figure: sig(0),
-        steps: order.map((l, i) => ({
-          text: `${l} ${word}: every ${l}, in every octave, is played a half step ${sharp ? "higher" : "lower"}.`,
-          figure: sig(i + 1),
-        })),
-      },
-      {
-        title: "On the staff",
-        text: `With this key signature the note shown is ${first} ${word}, though no sign is written beside it. Every ${first} in the piece is played the same way, unless a sign beside a note says otherwise.`,
-        figure: staff(clef, [{ midi: shown, beats: 1 }], { fifths }),
-        sound: run([shown]),
+        title: t.title,
+        text: t.text,
+        ...(t.bar
+          ? {
+              figure: staff(
+                "treble",
+                t.bar.notes.map((beats) => ({ midi: staffNote("treble", 4), beats })),
+                { meter: { beats: t.bar.beats, beatUnit: 4 } },
+              ),
+            }
+          : {}),
       },
     ],
   };
@@ -322,6 +496,16 @@ const tick = (onsets: number[], spacing: number): LessonSound => ({
     velocity: Number.isInteger(b) ? 0.8 : 0.5,
   })),
 });
+
+/** A click on each beat (the side stick the rhythm drill taps with), `bars` bars of `beatsPerBar`. */
+const click = (beatsPerBar: number, spacing: number): LessonSound["notes"] =>
+  Array.from({ length: beatsPerBar }, (_, b) => ({
+    midi: [37],
+    at: b * spacing,
+    dur: 0.1,
+    drum: true,
+    velocity: b === 0 ? 0.8 : 0.5,
+  }));
 
 interface Group {
   perBeat: PerBeat;
@@ -382,7 +566,12 @@ function countingLesson(g: keyof typeof GROUPS): Lesson {
     id: t.id,
     title: t.title,
     screens: [
-      { title: t.title, text: t.text, figure: fig(every), sound: tick(every, spacing) },
+      {
+        title: t.title,
+        text: t.text,
+        figure: fig(every),
+        sound: { notes: click(beatsPerBar, spacing) },
+      },
       {
         title: "One bar of notes",
         text: `${t.ex} In this bar the notes fall on ${exNames.join(", ")}.`,
@@ -392,6 +581,7 @@ function countingLesson(g: keyof typeof GROUPS): Lesson {
       {
         title: "Count while you listen",
         text: "Count the beats out loud while the rhythm plays over the click. Notice which counts get a note, and which stay silent.",
+        sound: { notes: [...click(beatsPerBar, spacing), ...tick(ex.onsets, spacing).notes] },
       },
     ],
   };
@@ -434,15 +624,91 @@ function gridLesson(g: keyof typeof GROUPS): Lesson {
   };
 }
 
+const ex = (g: keyof typeof GROUPS, cells: RhythmCell[]) => {
+  const { perBeat, beatsPerBar } = GROUPS[g];
+  const { onsets } = cellOnsets(cells);
+  const names = onsets.map((b) => countName(b, perBeat, beatsPerBar));
+  const fig: LessonFigure = { kind: "rhythm", bars: 1, perBeat, beatsPerBar, onsets };
+  return { names: names.join(", "), fig, sound: tick(onsets, 60 / 90) };
+};
+
+/** The cells a level adds that need their own explaining, in the order they are met. */
+function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
+  const has = (c: string) => cells.includes(c);
+  const out: Lesson[] = [];
+  const card = (id: string, title: string, text: string, extra: Partial<LessonScreen> = {}) =>
+    out.push({ id: `rhythm.${id}`, title, screens: [{ title, text, ...extra }] });
+  if (has("rest") || has("half")) {
+    const e = ex(g, g === "compound" ? ["quarter", "rest"] : ["quarter", "rest", "half"]);
+    card(
+      "rests-halves",
+      "Rests and half notes",
+      `A rest is a silent count, and a half note is held through two counts. In this bar a note starts on ${e.names}.`,
+      { figure: e.fig, sound: e.sound },
+    );
+  }
+  if (has("dotted-quarter")) {
+    const e = ex(g, ["dotted-quarter", "half"]);
+    card(
+      "dotted-quarter",
+      "Dotted quarters",
+      `A dotted quarter note lasts one and a half counts, so the next note falls on an &. In this bar notes start on ${e.names}.`,
+      { figure: e.fig, sound: e.sound },
+    );
+  }
+  if (has("syncopation")) {
+    const e = ex(g, ["syncopation", "rest", "quarter"]);
+    card(
+      "syncopation",
+      "Syncopation",
+      `Syncopation puts a note on an & and holds it over the next number, so that number has no note starting on it. In this bar notes start on ${e.names}.`,
+      { figure: e.fig, sound: e.sound },
+    );
+  }
+  if (has("dotted-eighth")) {
+    const e = ex(g, ["dotted-eighth", "quarter", "half"]);
+    card(
+      "dotted-eighth",
+      "Dotted eighths",
+      `A dotted eighth note lasts three sixteenths, so the note after it falls on the a of the same beat. In this bar notes start on ${e.names}.`,
+      { figure: e.fig, sound: e.sound },
+    );
+  }
+  if (has("triplet") && g !== "compound")
+    card(
+      "triplets",
+      "Triplets",
+      "A triplet fits three even notes into one beat. They fall between the counts of the e, & and a grid, so tap them evenly across the beat.",
+      { sound: tick([0, 1 / 3, 2 / 3], 60 / 90) },
+    );
+  if (has("swing")) {
+    card(
+      "swing",
+      "Swung eighths",
+      "Swung eighths are played long and short, about two to one, but counted and written as straight eighths 1 &. The second note of each pair comes late.",
+      { sound: tick([0, 2 / 3, 1, 1 + 2 / 3, 2, 2 + 2 / 3], 60 / 90) },
+    );
+  }
+  return out;
+}
+
 export function rhythmLessons(
   mode: "echo" | "dictation",
   levelId = EAR_RHYTHM_LEVELS[0].id,
 ): Lesson[] {
-  const g = groupOf(levelId);
+  const level = EAR_RHYTHM_LEVELS.find((l) => l.id === levelId) ?? EAR_RHYTHM_LEVELS[0];
+  const g = groupOf(level.id);
+  // Dictation leaves out the cells its grid cannot write (triplets on a sixteenth grid).
+  const onGrid = (c: string) =>
+    (RHYTHM_CELLS[c].written ?? RHYTHM_CELLS[c].onsets).every(
+      (o) => Math.abs(o * level.perBeat - Math.round(o * level.perBeat)) < 1e-6,
+    );
+  const cells = level.cells.filter((c) => mode === "echo" || onGrid(c));
   return [
     ...(g === "sixteenths" ? [countingLesson("eighths")] : []),
     countingLesson(g),
     ...(mode === "dictation" ? [gridLesson(g)] : []),
+    ...cellItems(g, cells),
   ];
 }
 
@@ -466,9 +732,22 @@ const DEFAULT_SETUP: ListeningSetup = {
   delays: "3",
 };
 
-const orList = (xs: string[]) =>
-  xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} or ${xs.at(-1)}`;
+/** What a band sounds like, in a few words true of every boost or cut there. */
+const bandWord = (hz: number) =>
+  hz <= 125
+    ? "the weight and rumble"
+    : hz <= 500
+      ? "the body and warmth"
+      : hz <= 2000
+        ? "the presence in the middle"
+        : hz <= 8000
+          ? "the bite and brightness"
+          : "the air and sparkle";
 
+/**
+ * The intro for a mixing-ear drill, then one card for each item its current set uses (a band, a gain,
+ * a level step, a pan position or an echo time), so a bigger set teaches only what is new.
+ */
 export function listeningLessons(drill: string, setup: Partial<ListeningSetup> = {}): Lesson[] {
   const s = { ...DEFAULT_SETUP, ...setup };
   const hear = (label: string, change: StudioChange, matched = false) => ({
@@ -479,147 +758,159 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
     } as LessonSound,
   });
   const flat = hear("Flat", {});
-  const bands = [...BAND_SETS[drill === "boost-or-cut" ? "5" : s.bands]];
-  const eq = (gainDb: number, matched = false) =>
-    bands.map((freq) =>
-      hear(
-        `${bandLabel(freq)} ${gainDb > 0 ? "boosted" : "cut"}`,
-        { eq: { freq, gainDb, q: 1.41 } },
-        matched,
-      ),
-    );
-  const lesson = (title: string, screens: LessonScreen[]): Lesson[] => [
-    { id: `listening.${drill}`, title, screens },
-  ];
   const g = s.gainDb;
+  const bands = [...BAND_SETS[drill === "boost-or-cut" ? "5" : s.bands]];
+  const eqOption = (freq: number, gainDb: number, matched = false) =>
+    hear(
+      `${bandLabel(freq)} ${gainDb > 0 ? "boosted" : "cut"}`,
+      { eq: { freq, gainDb, q: 1.41 } },
+      matched,
+    );
+  const lesson = (id: string, title: string, screens: LessonScreen[]): Lesson => ({
+    id,
+    title,
+    screens,
+  });
+  const card = (
+    id: string,
+    title: string,
+    text: string,
+    options: LessonScreen["options"],
+  ): Lesson => lesson(`listening.${drill}.${id}`, title, [{ title, text, options }]);
+  const intro = (title: string, text: string, tip: string) =>
+    lesson(`listening.${drill}`, title, [
+      { title: "Flat, then Changed", text },
+      { title: "What to listen for", text: tip },
+    ]);
   switch (drill as StudioExercise) {
     case "peak":
-      return lesson("Hearing a boosted band", [
-        {
-          title: "Flat, then Changed",
-          text: `Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band boosted by ${g} dB. Flip between them as often as you like, then name the band.`,
-        },
-        {
-          title: "Hear each band",
-          text: `Tap Flat, then each band in turn, and listen for what gets louder. Every boost here is ${g} dB and about one octave wide.`,
-          options: [flat, ...eq(g)],
-        },
-        {
-          title: "What to listen for",
-          text: "Boosting a low band makes the sound heavier or boomier, and boosting a high band makes it brighter or hissier. A band you miss comes back more often.",
-        },
-      ]);
-    case "cut":
-      return lesson("Hearing a cut band", [
-        {
-          title: "Flat, then Changed",
-          text: `Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band cut by ${g} dB. Flip between them as often as you like, then name the band.`,
-        },
-        {
-          title: "Hear each band",
-          text: `Tap Flat, then each band in turn, and listen for what goes missing. Every cut here is ${g} dB and about one octave wide.`,
-          options: [flat, ...eq(-g)],
-        },
-        {
-          title: "What to listen for",
-          text: "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you are listening for what has gone.",
-        },
-      ]);
+    case "cut": {
+      const sign = drill === "peak" ? 1 : -1;
+      const verb = drill === "peak" ? "boosted" : "cut";
+      return [
+        drill === "peak"
+          ? intro(
+              "Hearing a boosted band",
+              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band boosted. Flip between them as often as you like, then name the band.",
+              "Boosting a low band makes the sound heavier or boomier, and boosting a high band makes it brighter or hissier. A band you miss comes back more often.",
+            )
+          : intro(
+              "Hearing a cut band",
+              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band cut. Flip between them as often as you like, then name the band.",
+              "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you are listening for what has gone.",
+            ),
+        card(
+          `gain.${g}`,
+          `A ${g} dB ${drill === "peak" ? "boost" : "cut"}`,
+          `Here every band is ${verb} by ${g} dB, about one octave wide. Tap Flat, then the 1 kHz band at that size.`,
+          [flat, eqOption(1000, sign * g)],
+        ),
+        ...bands.map((hz) =>
+          card(
+            `band.${hz}`,
+            `${bandLabel(hz)}`,
+            `Tap Flat, then ${bandLabel(hz)} ${verb} by ${g} dB. Listen for ${bandWord(hz)}.`,
+            [flat, eqOption(hz, sign * g)],
+          ),
+        ),
+      ];
+    }
     case "boost-or-cut":
-      return lesson("Boost or cut", [
-        {
-          title: "Flat, then Changed",
-          text: `Changed has one band either boosted or cut by ${g} dB. You decide which, and the band does not matter for the answer.`,
-        },
-        {
-          title: "Boosts",
-          text: `Tap Flat, then each band boosted by ${g} dB, and notice that the sound gains something.`,
-          options: [flat, ...eq(g, true)],
-        },
-        {
-          title: "Cuts",
-          text: `Now each band cut by ${g} dB. The sound loses something, and each cut sounds different from the boost at the same band.`,
-          options: [flat, ...eq(-g, true)],
-        },
-        {
-          title: "Matched loudness",
-          text: "Changed is turned up or down to match Flat's loudness, so a louder sound is not the clue. Listen to the tone instead.",
-        },
-      ]);
+      return [
+        lesson("listening.boost-or-cut", "Boost or cut", [
+          {
+            title: "Flat, then Changed",
+            text: "Changed has one band either boosted or cut. You decide which, and the band does not matter for the answer. Changed is turned up or down to match Flat's loudness, so a louder sound is not the clue.",
+          },
+          {
+            title: "Boosts",
+            text: `Tap Flat, then each band boosted by ${g} dB, and notice that the sound gains something.`,
+            options: [flat, ...bands.map((hz) => eqOption(hz, g, true))],
+          },
+          {
+            title: "Cuts",
+            text: `Now each band cut by ${g} dB. The sound loses something, and each cut sounds different from the boost at the same band.`,
+            options: [flat, ...bands.map((hz) => eqOption(hz, -g, true))],
+          },
+        ]),
+        card(
+          `gain.${g}`,
+          `A ${g} dB change`,
+          `Here every change is ${g} dB. Tap Flat, then the 1 kHz band boosted and cut by that much.`,
+          [flat, eqOption(1000, g, true), eqOption(1000, -g, true)],
+        ),
+      ];
     case "level": {
-      const steps = s.levels.map((db) => `${db} dB`);
-      return lesson("How many dB", [
-        {
-          title: "Flat, then Changed",
-          text: `Changed is Flat made louder by ${orList(steps)}. You name how much.`,
-        },
-        {
-          title: "Hear each step",
-          text: "Tap Flat, then each step, and notice how the size of the jump changes.",
-          options: [flat, ...s.levels.map((db) => hear(`Louder by ${db} dB`, { levelDb: db }))],
-        },
-        {
-          title: "What to listen for",
-          text: "The smaller the step, the harder it is to tell from Flat. Flip back and forth quickly, because a level is easier to compare in a moment than from memory.",
-        },
-      ]);
+      return [
+        intro(
+          "How many dB",
+          "Changed is Flat made louder by a few dB. You name how much.",
+          "The smaller the step, the harder it is to tell from Flat. Flip back and forth quickly, because a level is easier to compare in a moment than from memory.",
+        ),
+        ...s.levels.map((db) =>
+          card(
+            `${db}`,
+            `Louder by ${db} dB`,
+            `Tap Flat, then a step of ${db} dB, and notice the size of the jump.`,
+            [flat, hear(`Louder by ${db} dB`, { levelDb: db })],
+          ),
+        ),
+      ];
     }
-    case "pan": {
-      const spots = PAN_SETS[s.pans];
-      return lesson("Where is it panned", [
-        {
-          title: "Flat, then Changed",
-          text: "Changed is Flat moved to one place between the left and the right speaker. Centre is an answer too, and then Changed sounds in the same place as Flat.",
-        },
-        {
-          title: "Hear each position",
-          text: "Tap Flat, then each position, and notice where the sound sits.",
-          options: [flat, ...spots.map((p) => hear(panLabel(p), { pan: p }))],
-        },
-        {
-          title: "What to listen for",
-          text: "Headphones or two speakers both work, but headphones make the position clearest. Left means the sound sits more in your left ear.",
-        },
-      ]);
-    }
+    case "pan":
+      return [
+        intro(
+          "Where is it panned",
+          "Changed is Flat moved to one place between the left and the right speaker. Centre is an answer too, and then Changed sounds in the same place as Flat.",
+          "Headphones or two speakers both work, but headphones make the position clearest. Left means the sound sits more in your left ear.",
+        ),
+        ...PAN_SETS[s.pans].map((p) =>
+          card(
+            `${p}`,
+            panLabel(p),
+            `Tap Flat, then ${panLabel(p)}, and notice where the sound sits.`,
+            [flat, hear(panLabel(p), { pan: p })],
+          ),
+        ),
+      ];
     case "compression":
-      return lesson("How compressed", [
-        {
-          title: "Flat, then Changed",
-          text: "A compressor turns down the loudest parts so the sound is more even. Changed is Flat with light compression, heavy compression, or none, and you name which.",
-        },
-        {
-          title: "Hear each setting",
-          text: `Tap Flat, then ${compLabel("light")} and ${compLabel("heavy")}. The levels are matched, so each is as loud as Flat overall.`,
-          options: [
-            flat,
-            hear(compLabel("light"), { comp: "light" }, true),
-            hear(compLabel("heavy"), { comp: "heavy" }, true),
-          ],
-        },
-        {
-          title: "What to listen for",
-          text: "Listen to the hits. Heavy compression flattens them more than light compression does, so the loop sounds smaller and more even.",
-        },
-      ]);
-    case "delay": {
-      const times = DELAY_SETS[s.delays];
-      return lesson("Delay time", [
-        {
-          title: "Flat, then Changed",
-          text: `Changed has an echo, a repeat of the sound a short time later. The loop runs at 90 BPM, so the times are note values: ${times.map((ms) => delayLabel(ms)).join("; ")}.`,
-        },
-        {
-          title: "Hear each time",
-          text: "Tap Flat, then each echo time, and listen for how long after a hit the repeat lands.",
-          options: [flat, ...times.map((ms) => hear(delayLabel(ms), { delayMs: ms }))],
-        },
-        {
-          title: "What to listen for",
-          text: "The longer the delay, the further the echo lands from the hit. Listen for where the repeat falls against the beat.",
-        },
-      ]);
-    }
+      return [
+        lesson("listening.compression", "How compressed", [
+          {
+            title: "Flat, then Changed",
+            text: "A compressor turns down the loudest parts so the sound is more even. Changed is Flat with light compression, heavy compression, or none, and you name which.",
+          },
+          {
+            title: "Hear each setting",
+            text: `Tap Flat, then ${compLabel("light")} and ${compLabel("heavy")}. The levels are matched, so each is as loud as Flat overall.`,
+            options: [
+              flat,
+              hear(compLabel("light"), { comp: "light" }, true),
+              hear(compLabel("heavy"), { comp: "heavy" }, true),
+            ],
+          },
+          {
+            title: "What to listen for",
+            text: "Listen to the hits. Heavy compression flattens them more than light compression does, so the loop sounds smaller and more even.",
+          },
+        ]),
+      ];
+    case "delay":
+      return [
+        intro(
+          "Delay time",
+          `Changed has an echo, a repeat of the sound a short time later. The loop runs at ${LOOP_BPM} BPM, so the times are note values.`,
+          "The longer the delay, the further the echo lands from the hit. Listen for where the repeat falls against the beat.",
+        ),
+        ...DELAY_SETS[s.delays].map((ms) =>
+          card(
+            `${Math.round(ms)}`,
+            delayLabel(ms),
+            `Tap Flat, then an echo of ${delayLabel(ms)}, and listen for how long after a hit the repeat lands.`,
+            [flat, hear(delayLabel(ms), { delayMs: ms })],
+          ),
+        ),
+      ];
   }
   return [];
 }

@@ -37,7 +37,11 @@
   /** The studio loop an effect sound plays through, the quiz's own audio graph. */
   let studioLoop: ReturnType<typeof audio.studio.loop> | null = null;
   let studioTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Bumped by every halt: a tap whose renders finish after a later tap, a move or the unmount is dropped. */
+  let generation = 0;
+  let destroyed = false;
   function halt() {
+    generation++;
     audio.stopSequence();
     clearTimeout(studioTimer);
     studioLoop?.stop();
@@ -45,15 +49,20 @@
   }
 
   async function playEffect(e: NonNullable<LessonSound["effect"]>) {
-    await audio.unlock();
-    const buffer = await audio.studio.material(e.material);
-    // Matched, as in the quiz: Changed is trimmed back to Flat's loudness.
-    const trim = e.matched ? (await audio.studio.loudness(buffer, {})) - (await audio.studio.loudness(buffer, e.change)) : 0;
-    halt();
-    studioLoop = audio.studio.loop(buffer);
-    studioLoop.set(e.change, trim);
-    studioLoop.show(true);
-    studioTimer = setTimeout(halt, 4000);
+    const mine = generation;
+    try {
+      await audio.unlock();
+      const buffer = await audio.studio.material(e.material);
+      // Matched, as in the quiz: Changed is trimmed back to Flat's loudness.
+      const trim = e.matched ? (await audio.studio.loudness(buffer, {})) - (await audio.studio.loudness(buffer, e.change)) : 0;
+      if (destroyed || mine !== generation) return;
+      studioLoop = audio.studio.loop(buffer);
+      studioLoop.set(e.change, trim);
+      studioLoop.show(true);
+      studioTimer = setTimeout(halt, 4000);
+    } catch {
+      // Audio that cannot start leaves the lesson silent, as a sequence would.
+    }
   }
 
   function play(s: LessonSound) {
@@ -114,7 +123,10 @@
     }
   }
 
-  onDestroy(halt);
+  onDestroy(() => {
+    destroyed = true;
+    halt();
+  });
 
   /** A key signature of N accidentals on an empty staff; `reveal` is how many show. */
   function sigScore(f: Extract<LessonFigure, { kind: "signature" }>): Score {
