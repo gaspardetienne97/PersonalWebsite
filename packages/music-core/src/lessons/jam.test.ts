@@ -93,17 +93,13 @@ describe("Jam game lessons", () => {
     expect(text("blues-scale")).toContain("C, Eb, F, Gb, G and Bb");
     expect(text("pentatonic-1")).toContain("C, Eb, F, G and Bb");
     expect(text("pentatonic-2")).toContain("D, F, G, A and C");
-    expect(text("pentatonic-5")).toContain("D, F, G, Bb and C");
+    expect(text("pentatonic-5")).toContain("G, Bb, C, D and F");
   });
 });
 
 describe("worked examples pass the game's own grader over the ii-V-I", () => {
   const passes = (game: string, notes: ImprovNote[], more = {}) => {
     const g = grade(game, notes, more);
-    expect(
-      g.choruses[0].parts.map((x) => `${x.metric} ${x.value}`),
-      game,
-    ).toBeDefined();
     expect(g.passed, `${game}: ${g.headline}`).toBe(true);
   };
 

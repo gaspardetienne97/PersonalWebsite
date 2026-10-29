@@ -156,10 +156,14 @@ export const guideLine = (p: Progression = JAM_EXAMPLE) =>
 export const thirdLine = (p: Progression = JAM_EXAMPLE) =>
   slotsOf(p).map((s) => note(near(guideTones(s.symbol).third!, 66), s.bar * bpbOf(p), 2));
 
-/** `set` (semitones above the key) up and back down from the key's tonic, a beat each. */
+/** `set` (semitones above the key, root first) up from its own root and back down, a beat each. */
 const setNotes = (set: number[], keyPc: number) => {
-  const up = set.map((s) => 60 + pc(keyPc + s - 60));
-  const asc = up.map((m, i) => (i && m <= up[i - 1] ? m + 12 : m)).sort((x, y) => x - y);
+  // From the set's own root (its first note), each note the next one up.
+  const asc: number[] = [];
+  for (const s of set) {
+    const prev = asc.length ? asc[asc.length - 1] : 59;
+    asc.push(prev + ((((pc(keyPc + s) - prev - 1) % 12) + 12) % 12) + 1);
+  }
   return [...asc, ...asc.slice(0, -1).reverse()];
 };
 export const setLine = (set: number[], p: Progression = JAM_EXAMPLE) =>
@@ -399,8 +403,8 @@ const toneCard = (id: "changes" | "chord-tones"): Lesson => {
       {
         title: both ? "Two things to hit" : "A chord tone on 1 and 3",
         text: both
-          ? `A note that starts on beat 1 or 3 (within a quarter of a beat) should be a tone of the chord sounding, for ${pct(id, "strong")}% of them. A 3rd or 7th should land ${WINDOW} for ${pct(id, "landings")}% of the changes. Your weakest of the two sets the score, and in a waltz only beat 1 counts.`
-          : `Every note that starts on beat 1 or 3 (within a quarter of a beat) must be a tone of the chord sounding. The score is the share that are, and the aim is ${pct(id, "strong")}%. Notes on the other beats are free, and in a waltz only beat 1 counts.`,
+          ? `A note that starts on beat 1 or 3 (within a quarter of a beat) should be a tone of the chord sounding, for ${pct(id, "strong")}% of them. A 3rd or 7th (lit here on ${chord}) should land ${WINDOW} for ${pct(id, "landings")}% of the changes. Your weakest of the two sets the score, and in a waltz only beat 1 counts.`
+          : `Every note that starts on beat 1 or 3 (within a quarter of a beat) must be a tone of the chord sounding (lit here on ${chord}). The score is the share that are, and the aim is ${pct(id, "strong")}%. Notes on the other beats are free, and in a waltz only beat 1 counts.`,
         figure: toneFigure(chord, both ? isGuide : () => true),
       },
       {
@@ -486,7 +490,7 @@ function motifLesson(): Lesson {
     screens: [
       {
         title: "Keep one rhythm",
-        text: `Pick the rhythm of one bar and repeat it as the chords change. Check compares where your notes start, to the nearest eighth note, so only the start times matter. Use the same rhythm in at least two thirds of your bars, with a chord tone on beat 1 in ${pct("motif", "downbeats")}% of them.`,
+        text: `Pick the rhythm of one bar and repeat it as the chords change. Check compares where your notes start, to the nearest eighth note, so only the start times matter. Use the same rhythm in at least ${pct("motif", "motif")}% of your bars, with a chord tone on beat 1 in ${pct("motif", "downbeats")}% of them.`,
       },
       {
         title: "The Charleston",
@@ -523,7 +527,7 @@ function approachLesson(): Lesson {
     screens: [
       {
         title: "Lean in from a half step",
-        text: `An approach note is a half step above or below the note you are heading for. Check wants a chord tone on beat 1 of every bar, with the note played just before it a half step away. The score is the share of your bars that do, so an empty bar of yours counts as a miss.`,
+        text: `An approach note is a half step above or below the note you are heading for. Check wants a chord tone on beat 1 of your bars, with the note played just before it a half step away. The score is the share of your bars that do, and the aim is ${pct("approach", "approach")}%, so an empty bar of yours counts as a miss.`,
       },
       {
         title: "One target, two ways in",
@@ -545,7 +549,7 @@ function approachLesson(): Lesson {
       },
       {
         title: "When to play it",
-        text: "The approach note should start in the beat before beat 1, such as on beat 4 or the and of 4, and it is the last note you play before the target. Either side works, so mix them up.",
+        text: "The approach note should start in the beat before beat 1, such as on the last beat of the bar before or the and of that beat, and it is the last note you play before the target. Either side works, so mix them up.",
       },
       {
         title: "A line that passes",
@@ -588,12 +592,12 @@ function windowsCard(id: "space" | "space-1" | "call-response"): Lesson {
       {
         title: call ? "Listen, then answer" : "Play, then leave space",
         text: call
-          ? `The band plays a call for ${n(w.band)}, then you answer for ${n(w.you)}. Your answer needs a note in it, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`
-          : `You play for ${n(w.you)}, then the band has ${n(w.band)} to itself, all chorus. Your bars need a note in them, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`,
-        figure: rhythm(call ? [2, 3] : id === "space" ? [0, 1] : [0, 2]),
+          ? `The band plays a call for ${n(w.band)}, then you answer for ${n(w.you)}. A note must start in your answer, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`
+          : `You play for ${n(w.you)}, then the band has ${n(w.band)} to itself, all chorus. A note must start in each of your stretches, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`,
       },
       {
         title: "A line that passes",
+        figure: rhythm(call ? [2, 3] : id === "space" ? [0, 1] : [0, 2]),
         text: call
           ? "The picture shows only your answers: nothing in the band's bars, then two notes in each of yours. The sound plays your answers too, and the band plays the calls in the drill."
           : "The picture and the sound show your part: two notes in each of your bars and nothing in the band's.",
@@ -657,7 +661,7 @@ function displacementLesson(): Lesson {
     screens: [
       {
         title: "The same idea, a beat later",
-        text: "Play a short motif of 2 to 6 notes, then play it again with the same rhythm, starting one beat later in its bar. A repeat counts when it comes no more than two bars after the last one. The pitches are free to change.",
+        text: "Play a short motif of 2 to 6 notes, then play it again with the same rhythm, starting one beat later in its bar. A repeat counts when it comes no more than two bars after the last one. The pitches are free to change, but leave at least half a beat of silence between motifs.",
       },
       {
         title: "Beat 1, beat 2, beat 3",
@@ -667,7 +671,7 @@ function displacementLesson(): Lesson {
       },
       {
         title: "How many",
-        text: `The aim is a displaced motif in two bars of every three. In the ${bars} bars of ${JAM_EXAMPLE.name} that is ${aim} displaced repeats, and it counts repeats, not bars. The sound runs a three-note motif through all ${bars} bars, ${displacementLine().length / 3 - 1} displaced repeats on the root, 3rd and 5th of the chord sounding.`,
+        text: `The aim grows with the form and counts repeats, not bars: ${aim} displaced repeats in the ${bars} bars of ${JAM_EXAMPLE.name}, and ${aimOf("displacement", "displaced", 12)} in a 12-bar form. The sound runs a three-note motif through all ${bars} bars, ${displacementLine().length / 3 - 1} displaced repeats, each on the root, 3rd and 5th of the chord where that motif starts.`,
         sound: soundOf(displacementLine()),
       },
     ],
@@ -686,7 +690,7 @@ function sideSlipLesson(): Lesson {
     screens: [
       {
         title: "Step outside, then come back",
-        text: `A side-slip is a phrase of three or more notes that are neither chord tones nor in the chord's scale, played within a beat of each other with no two inside notes in a row. It ends by resolving to a chord tone on the next beat, no more than a beat and a half after the last slip note. The aim is ${aimOf("side-slip", "slips")} slips a chorus, every one resolved.`,
+        text: `A side-slip is a phrase of three or more notes that are neither chord tones nor in the chord's scale, played within a beat of each other with no two inside notes in a row. It ends by resolving to a chord tone on the next beat, no more than a beat and a half after the last slip note. The aim is ${aimOf("side-slip", "slips")} slips a chorus, with ${pct("side-slip", "resolved")}% of them resolved.`,
       },
       {
         title: "Slide a phrase up",
@@ -718,7 +722,7 @@ function quoteCard(): Lesson {
     screens: [
       {
         title: "Start from the tune",
-        text: `Open each A section with a run of at least four notes from the head: the same pitch names and the same steps between them, in any octave. A repeated note counts once. The run must start from half a beat before the section up to two bars into it, and the aim is every A section.`,
+        text: `Open each A section with a run of at least four notes from the head: the same pitch names and the same steps between them, in any octave. A repeated note counts once. The run must start from half a beat before the section up to two bars into it, and the aim is ${pct("quote", "quotes")}% of the A sections.`,
       },
       {
         title: "An example",
