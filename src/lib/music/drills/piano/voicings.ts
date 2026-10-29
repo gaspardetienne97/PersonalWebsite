@@ -3,10 +3,10 @@
 // leading through the 12-key cycle. Each item says what to show and how to grade it.
 import { pc, pcOf, type Metric } from "@repo/music-core";
 import {
-  DOMINANT_VOICING,
+  DOMINANT_VOICING as DOM,
   GOSPEL_PROGRESSIONS,
-  UPPER_STRUCTURE_II,
-  stripJt,
+  UPPER_STRUCTURE_II as US_II,
+  stripJt as strip,
   KEY_CYCLE,
   cadenceChords,
   gospelChords,
@@ -77,9 +77,6 @@ function joinHints(...hints: (string | undefined)[]) {
   const parts = hints.flatMap((h) => (h ? [h.trim().replace(/\.+$/, "")] : []));
   return parts.length ? `${parts.join(". ")}.` : undefined;
 }
-const strip = stripJt;
-const DOM = DOMINANT_VOICING;
-const US_II = UPPER_STRUCTURE_II;
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);

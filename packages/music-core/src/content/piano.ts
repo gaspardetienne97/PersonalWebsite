@@ -190,7 +190,7 @@ const TONES: Record<string, number[]> = {
   "7": [4, 7, 10],
   maj7: [4, 7, 11],
 };
-const dominant = (id: string) => JAZZ.DOMINANT_VOICINGS.find((v) => v.id === id)!.offsets;
+const dominant = (id: string) => DOMINANT_VOICING[id].offsets;
 
 function voicingTarget(
   key: string,
@@ -287,7 +287,7 @@ export function voicingTargets(opts: {
         t(`${name(v)}7alt`, v, dominant("altered")),
         t(`${key}m7`, tonic, rootless(TONES.m7, "B")),
       ];
-    const us = JAZZ.UPPER_STRUCTURES.find((u) => u.id === "us-II")!;
+    const us = UPPER_STRUCTURE_II;
     const triad = (us.quality === "maj" ? [0, 4, 7] : [0, 3, 7]).map((o) => 12 + us.triadRoot + o);
     return [
       t(`${name(v)}7b9`, v, dominant("rootlessB9")),

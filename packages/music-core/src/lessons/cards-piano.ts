@@ -147,7 +147,7 @@ export function guideTones(): Lesson {
       },
       {
         title: "The 7th falls to the next 3rd",
-        text: `In a ii-V-I the 7th of each chord falls a half step to the 3rd of the next: ${flat(info[0].seventh)} to ${flat(info[1].third)}, then ${flat(info[1].seventh)} to ${flat(info[2].third)} in C. The 3rd of each chord stays put as the 7th of the next. In Check the keys stay dark, so find each pair from the chord before.`,
+        text: `In a ii-V-I the 7th of each chord falls a half step to the 3rd of the next: ${flat(info[0].seventh)} to ${flat(info[1].third)}, then ${flat(info[1].seventh)} to ${flat(info[2].third)} in C. The drill keeps every pair between F3 and C5, so in a low key a falling note may jump up an octave. In Check the keys stay dark, so find each pair from the chord before.`,
       },
     ],
   };

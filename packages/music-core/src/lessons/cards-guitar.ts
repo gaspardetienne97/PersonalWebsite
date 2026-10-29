@@ -242,7 +242,7 @@ export function bbBox(o: CardOpts): Lesson {
       },
       {
         title: "Find it in Check",
-        text: "Check hides the notes. Find the box's root, put the index finger on it, then find the other notes by their roles around it.",
+        text: "Check hides the notes. Find the box's root, then find the other notes by their roles around it.",
       },
     ],
   };

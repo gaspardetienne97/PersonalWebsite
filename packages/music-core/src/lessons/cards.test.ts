@@ -253,7 +253,7 @@ describe("concept cards", () => {
         const mean = (k: number) =>
           x.targets.slice(k * 3, k * 3 + 3).reduce((a, n) => a + n.fret, 0) / 3;
         expect(mean(0) < mean(1) && mean(1) < mean(2), `${p.id} ${tu.id}`).toBe(true);
-        const steps = conceptCard(positionsCard(p), { tuning: tu })[0].screens[0].steps!;
+        const steps = conceptCard(positionsCard(p)!, { tuning: tu })[0].screens[0].steps!;
         expect(new Set(steps.map((s) => s.text.split(":")[0])).size, `${p.id} ${tu.id}`).toBe(3);
       }
     expect(conceptCard("positions.triads-major-strings-1-3")[0].screens[0].text).toContain(
@@ -418,6 +418,14 @@ describe("concept cards", () => {
     expect(midi(1).sort()).toEqual([...vt[0].targetMidi].sort());
     expect(midi(2).sort()).toEqual([...vt[1].targetMidi].sort());
     expect(Math.min(...midi(0)) - Math.min(...midi(1))).toBeLessThanOrEqual(1);
+    // The register the card names: every pair of every key sits between F3 (53) and C5 (72).
+    for (const v of vt) {
+      expect(Math.min(...v.targetMidi), v.symbol).toBeGreaterThanOrEqual(53);
+      expect(Math.max(...v.targetMidi), v.symbol).toBeLessThanOrEqual(72);
+    }
+    // ...and that is why a falling note can jump: some pair moves by more than a half step.
+    expect(vt.some((v) => v.minimumSemitones > 1)).toBe(true);
+    expect(text("voicings.guide-tones")).toContain("between F3 and C5");
     expect(text("voicings.guide-tones")).toContain("C to B, then F to E");
     expect(text("voicings.guide-tones")).toContain("as many keys as the Keys setting says");
   });
