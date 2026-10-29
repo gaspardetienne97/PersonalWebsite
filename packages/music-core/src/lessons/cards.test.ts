@@ -11,8 +11,10 @@ import {
   GOSPEL_PROGRESSIONS,
   KEY_CYCLE,
   cadenceChords,
+  chordPatternLine,
   chordScaleTargets,
   closestChords,
+  voiceLeadingTargets,
   voicingTargets,
 } from "../content/piano";
 import { SCALE_FINGERINGS } from "../content/piano-fingering";
@@ -46,8 +48,8 @@ describe("concept cards", () => {
     for (const id of CARD_IDS) {
       for (const o of [
         {},
-        ...guitars.map((tuning) => ({ tuning })),
-        ...ukes.map((tuning) => ({ tuning })),
+        // Position cards are for the instrument they name.
+        ...(id === "positions.boxes-ukulele" ? ukes : guitars).map((tuning) => ({ tuning })),
         { arpeggio: true },
       ]) {
         const ls = conceptCard(id, o);
@@ -55,7 +57,15 @@ describe("concept cards", () => {
         expect(
           ls.map((l) => l.id),
           id,
-        ).toEqual([arp ? `${id}.arp` : id]);
+        ).toEqual([
+          arp
+            ? `${id}.arp`
+            : id.startsWith("positions.") &&
+                "tuning" in o &&
+                !["guitar.standard", "ukulele.high-g"].includes((o.tuning as { id: string }).id)
+              ? `${id}@${(o.tuning as { id: string }).id}`
+              : id,
+        ]);
         expect(lessonProblems(ls[0], "card"), id).toEqual([]);
       }
     }
@@ -166,7 +176,7 @@ describe("concept cards", () => {
     expect(new Set(fig.marks.map((m) => m.label))).toEqual(new Set(["E", "G", "A", "B", "D"]));
     expect(l.screens[0].text).toContain("two notes on each of the 6 strings");
     expect(l.screens[1].text).toContain(
-      "box 1 is 0, box 2 is 2, box 3 is 4, box 4 is 7 and box 5 is 9",
+      "box 1 is on it, box 2 is 2 above it, box 3 is 4 above it, box 4 is 7 above it and box 5 is 9 above it",
     );
   });
 
@@ -209,6 +219,31 @@ describe("concept cards", () => {
 
   it("every Positions shape has a card that exists", () => {
     for (const p of POSITION_PATTERNS) expect(CARD_IDS, p.id).toContain(positionsCard(p));
+    expect(positionsCard({ id: "x", family: "something-new" as never })).toBeNull();
+  });
+
+  it("a retuned position card is its own card, and words offsets below the root fret", () => {
+    const drop = guitars.find((tu) => tu.id === "guitar.drop-d")!;
+    expect(conceptCard("positions.caged")[0].id).toBe("positions.caged");
+    expect(conceptCard("positions.caged", { tuning: guitars[0] })[0].id).toBe("positions.caged");
+    expect(conceptCard("positions.caged", { tuning: drop })[0].id).toBe(
+      "positions.caged@guitar.drop-d",
+    );
+    expect(conceptCard("positions.boxes-ukulele", { tuning: ukes[1] })[0].id).toBe(
+      "positions.boxes-ukulele@ukulele.low-g",
+    );
+    for (const tu of guitars.filter((x) => x.id !== "guitar.standard"))
+      for (const id of [
+        "positions.caged",
+        "positions.boxes",
+        "positions.connected",
+        "positions.bb-box",
+      ]) {
+        const tx = JSON.stringify(conceptCard(id, { tuning: tu }));
+        expect(tx, `${id} ${tu.id}`).not.toMatch(/ -\d|is -\d/);
+      }
+    expect(text("positions.caged", { tuning: drop })).toContain("2 frets below the root fret");
+    expect(text("positions.boxes", { tuning: drop })).toContain("box 1 is 2 below it");
   });
 
   it("the triads card gives three inversions, each higher up the neck, on every guitar tuning", () => {
@@ -226,14 +261,17 @@ describe("concept cards", () => {
     );
   });
 
-  it("the B.B. box roles are the same on every guitar tuning", () => {
-    const lines = (t: (typeof guitars)[number]) =>
-      conceptCard("positions.bb-box", { tuning: t })[0].screens[0].text;
-    for (const t of guitars)
-      expect(lines(t), t.id).toContain(
-        "string 3 has the 6th; string 2 has the root, 2nd and flat 3rd; string 1 has the 4th and 5th",
-      );
-    expect(placed("bb-box", guitars[0]).targets).toHaveLength(6);
+  it("the B.B. box is the six notes the data gives, with its own root placed as the drill does", () => {
+    for (const tu of guitars) {
+      const x = placed("bb-box", tu);
+      expect(x.targets, tu.id).toHaveLength(6);
+      const tx = conceptCard("positions.bb-box", { tuning: tu })[0].screens[0].text;
+      expect(tx, tu.id).toContain("the 6th, root, 2nd, flat 3rd, 4th and 5th");
+      expect(tx, tu.id).not.toContain("pentatonic");
+    }
+    const std = conceptCard("positions.bb-box")[0].screens[0].text;
+    expect(std).toContain("the box's own root is on string 2, 5 frets above the root fret");
+    expect(std).toContain("root fret is the root note on string 6");
   });
 
   it("every Charleston pattern has the rhythm and the shell the card describes", () => {
@@ -342,12 +380,15 @@ describe("concept cards", () => {
     expect(m.screens[0].steps![0].text).toContain("Dm7b5: b3 b5 b7 1 is F Ab C D");
     expect(m.screens[0].text).toContain("root on top");
     expect(m.screens[0].steps![1].text).toContain("G7alt: 7 b9 3 b13");
+    expect(m.screens[1].text).toContain("altered tones are the b9 (Ab) and b13 (Eb)");
+    expect(m.screens[0].text).toContain("in C minor");
+    expect(JSON.stringify(m)).not.toContain("Altered means");
     const a = conceptCard("voicings.altered")[0];
     expect(a.screens[0].steps![0].text).toContain("G7b9: 3 7 b9 5");
     expect(a.screens[0].steps![2].text).toContain("G13#11: 3 7 9 #11 13");
   });
 
-  it("guide tones: the 7th falls a half step to the next 3rd in every key", () => {
+  it("guide tones: the 7th falls a half step to the next 3rd in every key, in the drill's own pairs", () => {
     for (const k of keysPc) {
       const sym = [
         `${FLAT_NAMES[pc(k + 2)]}m7`,
@@ -361,7 +402,24 @@ describe("concept cards", () => {
       expect(pc(seventh(c[0]) - 1), `${k} ii`).toBe(third(c[1]));
       expect(pc(seventh(c[1]) - 1), `${k} V`).toBe(third(c[2]));
     }
+    // The drill's first V and I move one half step in all (later keys can wrap around its register).
+    const vt = voiceLeadingTargets();
+    expect([vt[0].symbol, vt[0].minimumSemitones, vt[1].symbol, vt[1].minimumSemitones]).toEqual([
+      "G7",
+      1,
+      "Cmaj7",
+      1,
+    ]);
+    const steps = conceptCard("voicings.guide-tones")[0].screens[0].steps!;
+    const midi = (i: number) =>
+      Object.keys((steps[i].figure as { marks: Record<number, string> }).marks).map(Number);
+    // Figures hold the drill's pairs: C falls to B and F stays, then F falls to E and B stays.
+    expect(midi(0).sort()).toEqual([...vt[0].fromMidi].sort());
+    expect(midi(1).sort()).toEqual([...vt[0].targetMidi].sort());
+    expect(midi(2).sort()).toEqual([...vt[1].targetMidi].sort());
+    expect(Math.min(...midi(0)) - Math.min(...midi(1))).toBeLessThanOrEqual(1);
     expect(text("voicings.guide-tones")).toContain("C to B, then F to E");
+    expect(text("voicings.guide-tones")).toContain("as many keys as the Keys setting says");
   });
 
   it("each gospel progression has a card with its bass line", () => {
@@ -404,12 +462,17 @@ describe("concept cards", () => {
       "Dm7: 1-2-3-5 is D E F A, and 3-5-7-9 is F A C E",
     );
     expect(p.screens[1].steps![1].text).toContain("G7alt: 1-2-3-5 is G Ab B Eb");
+    // The sound is the drill's own line: up and back with the top note twice.
+    const snd = p.screens[0].steps![0].sound!.notes.map((n) => n.midi[0]);
+    expect(snd.slice(0, 8)).toEqual(chordPatternLine(["Dm7"], "1235").map((n) => n.midi));
+    expect(snd.slice(0, 8)).toEqual([62, 64, 65, 69, 69, 65, 64, 62]);
   });
 
   it("the chord symbol card covers every kind of chord the lead-sheet charts use", () => {
     const covered = new Set(SYMBOL_KINDS.map((k) => k.suffix));
+    // What the lead-sheet tab reaches: whole-bar progressions, the charts and the written sheets.
     const progs = [
-      ...ACCOMP_PROGRESSIONS,
+      ...ACCOMP_PROGRESSIONS.filter((p) => wholeBars(p)),
       ...["chart-1", "chart-2", "chart-3"].flatMap((l) =>
         [1, 2, 3, 4, 5, 6, 7, 8].map((sd) => chartProgression(l, sd)),
       ),
@@ -433,6 +496,6 @@ describe("concept cards", () => {
     expect(steps.find((s) => s.startsWith("C7alt"))).toContain("Db, D#, F# and Ab");
     expect(steps.find((s) => s.startsWith("Cadd9"))).toContain("9th, D");
     expect(steps.find((s) => s.startsWith("Csus4"))).toContain("4th, F");
-    expect(steps.find((s) => s.startsWith("C6"))).toContain("6th, A");
+    expect(steps.some((s) => s.startsWith("C6") || s.startsWith("Cdim"))).toBe(false);
   });
 });

@@ -173,6 +173,11 @@ export function compingScore(id: string, bpm?: number): Score {
 // ii-V-I voicings
 
 export const KEY_CYCLE = JAZZ.TWELVE_KEY_CYCLE;
+
+/** The dominant voicings by id (rootlessB9, altered), the II upper structure, and the "(JT10)" tag stripped from a hint: the words the voicing drill and its cards share. */
+export const DOMINANT_VOICING = Object.fromEntries(JAZZ.DOMINANT_VOICINGS.map((v) => [v.id, v]));
+export const UPPER_STRUCTURE_II = JAZZ.UPPER_STRUCTURES.find((u) => u.id === "us-II")!;
+export const stripJt = (t?: string) => t?.replace(/\s*\(JT\d+\)/g, "").trim();
 export type VoicingVariant = "major" | "minor" | "altered";
 type Position = "A" | "B";
 

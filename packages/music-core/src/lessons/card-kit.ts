@@ -1,5 +1,6 @@
 // Small helpers the concept cards share.
 
+import { voicingTargets, type VoicingVariant } from "../content/piano";
 import { parseChordSymbol } from "../theory/chords";
 import { noteName, pc } from "../theory/notes";
 import type { Tuning } from "../theory/fretboard";
@@ -32,3 +33,9 @@ export function degreeOf(symbol: string, midi: number): string {
   const i = pc(midi - c.rootPc);
   return i === 2 ? "9" : ["1", "3", "5", "7"][c.intervals.indexOf(i)];
 }
+
+/** The voicing drill's targets in the key of C (ids start "C-"). */
+export const voicingInC = (variant: VoicingVariant, start: "A" | "B" = "A") =>
+  voicingTargets({ variant, startPosition: start, mode: "chord" }).filter((t) =>
+    t.id.startsWith("C-"),
+  );

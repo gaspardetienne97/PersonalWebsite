@@ -2,29 +2,27 @@
 // guide tones, the gospel progressions, the thumb passing under, and the chord-scale tabs.
 
 import {
+  DOMINANT_VOICING as DOM,
   GOSPEL_PROGRESSIONS,
+  UPPER_STRUCTURE_II as US_II,
   chordPattern,
+  chordPatternLine,
   chordScaleTargets,
   gospelChords,
-  voicingTargets,
+  stripJt as strip,
+  voiceLeadingTargets,
   type ChordPattern,
 } from "../content/piano";
 import { SCALE_FINGERINGS } from "../content/piano-fingering";
-import { JAZZ } from "../data";
-import { noteName, pc, pcOf } from "../theory/notes";
+import { parseChordSymbol } from "../theory/chords";
+import { noteName, pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
-import { degreeOf, flat, join, run, sharp, tones } from "./card-kit";
-
-const flatName = flat;
-import { chordTones, keys } from "./tier1";
-import type { Lesson, LessonFigure, LessonStep } from "./types";
+import { degreeOf, flat, join, run, sharp, tones, voicingInC } from "./card-kit";
+import { keys } from "./tier1";
+import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 
 // ---------------------------------------------------------------------------
 // Voicings: minor, altered
-
-const DOM = Object.fromEntries(JAZZ.DOMINANT_VOICINGS.map((v) => [v.id, v]));
-const US_II = JAZZ.UPPER_STRUCTURES.find((u) => u.id === "us-II")!;
-const strip = (t?: string) => (t ?? "").replace(/\s*\(JT\d+\)/g, "").trim();
 
 /** A tone's name against the chord: the drill's own words for the half-diminished ii and the altered V. */
 const HALF_DIM: Record<number, string> = { 0: "1", 3: "b3", 6: "b5", 10: "b7" };
@@ -40,16 +38,12 @@ const DOMINANT: Record<number, string> = {
   10: "7",
 };
 export function tag(symbol: string, midi: number): string {
-  const root = pc(parseRoot(symbol));
+  const root = parseChordSymbol(symbol)!.rootPc;
   const i = pc(midi - root);
   if (/m7b5/.test(symbol)) return HALF_DIM[i] ?? String(i);
   if (/alt|b9|13/.test(symbol)) return DOMINANT[i] ?? String(i);
   return degreeOf(symbol, midi);
 }
-const parseRoot = (symbol: string) => {
-  const m = /^[A-G][b#]?/.exec(symbol)![0];
-  return pcOf(m)!;
-};
 /** The right hand of a voicing target from the bottom, as tags: "b3 b5 b7 1". */
 export const tagsOf = (symbol: string, displayMidi: number[]) =>
   displayMidi
@@ -58,18 +52,13 @@ export const tagsOf = (symbol: string, displayMidi: number[]) =>
     .map((m) => tag(symbol, m))
     .join(" ");
 
-const inC = (variant: "minor" | "altered") =>
-  voicingTargets({ variant, startPosition: "A", mode: "chord" }).filter((t) =>
-    t.id.startsWith("C-"),
-  );
-
-function voicingSteps(ts: ReturnType<typeof inC>): LessonStep[] {
+function voicingSteps(ts: ReturnType<typeof voicingInC>): LessonStep[] {
   const span = ts.flatMap((t) => t.displayMidi);
   return ts.map((t) => {
-    const flat = /#11/.test(t.symbol) ? sharp : flatName;
+    const name = /#11/.test(t.symbol) ? sharp : flat;
     const rh = t.displayMidi.slice(1).sort((a, b) => a - b);
     return {
-      text: `${t.symbol}: ${tagsOf(t.symbol, t.displayMidi)} is ${rh.map(flat).join(" ")}, with ${flat(t.displayMidi[0])} below.`,
+      text: `${t.symbol}: ${tagsOf(t.symbol, t.displayMidi)} is ${rh.map(name).join(" ")}, with ${name(t.displayMidi[0])} below.`,
       figure: keys(
         Object.fromEntries([[t.displayMidi[0], "root"], ...rh.map((m) => [m, tag(t.symbol, m)])]),
         span,
@@ -80,27 +69,32 @@ function voicingSteps(ts: ReturnType<typeof inC>): LessonStep[] {
 }
 
 export function minorVoicings(): Lesson {
-  const ts = inC("minor");
+  const ts = voicingInC("minor");
   const top = pc(Math.max(...ts[0].displayMidi)) === pc(ts[0].displayMidi[0]);
+  const altered = ts[1].displayMidi
+    .slice(1)
+    .sort((a, b) => a - b)
+    .map((midi) => ({ midi, tag: tag(ts[1].symbol, midi) }))
+    .filter((x) => /[b#]/.test(x.tag) && x.tag !== "b3");
   return {
     id: "voicings.minor",
     title: "Minor ii-V-i voicings",
     screens: [
       {
         title: "Half-diminished, altered, minor",
-        text: `The minor ii-V-i is ${join(ts.map((t) => t.symbol))} in C. The ii is half-diminished (m7b5: flat 3rd, flat 5th, flat 7th)${top ? ", voiced with the root on top" : ""}. The V is altered, and the i is a rootless minor 7th.`,
+        text: `The minor ii-V-i is ${join(ts.map((t) => t.symbol))} in C minor. The ii is half-diminished (m7b5: flat 3rd, flat 5th, flat 7th)${top ? ", voiced with the root on top" : ""}. The V is altered, and the i is a rootless minor 7th.`,
         steps: voicingSteps(ts),
       },
       {
         title: "The altered V",
-        text: `${ts[1].symbol} uses the voicing "${DOM.altered.label}". Altered means the 9th and 13th are lowered, here the b9 and b13. ${strip(DOM.altered.hint)}`,
+        text: `${ts[1].symbol} uses the voicing "${DOM.altered.label}". Its altered tones are the ${join(altered.map((a) => `${a.tag} (${flat(a.midi)})`))}. ${strip(DOM.altered.hint)}`,
       },
     ],
   };
 }
 
 export function alteredVoicings(): Lesson {
-  const ts = inC("altered");
+  const ts = voicingInC("altered");
   return {
     id: "voicings.altered",
     title: "Altered dominant voicings",
@@ -122,35 +116,38 @@ export function alteredVoicings(): Lesson {
 // Voicings: guide tones, gospel
 
 export function guideTones(): Lesson {
-  const chords = ["Dm7", "G7", "Cmaj7"];
-  const info = chords.map((s) => {
-    const t = chordTones(s);
-    return {
-      s,
-      third: t.find((x) => x.label.endsWith("3"))!,
-      seventh: t.find((x) => x.label.endsWith("7"))!,
-    };
+  // The drill's own pairs: Dm7 is given, then each chord's pair nearest the one before.
+  const vt = voiceLeadingTargets();
+  const seq = [
+    { s: "Dm7", midi: vt[0].fromMidi },
+    { s: vt[0].symbol, midi: vt[0].targetMidi },
+    { s: vt[1].symbol, midi: vt[1].targetMidi },
+  ];
+  const info = seq.map(({ s, midi }) => {
+    const c = parseChordSymbol(s)!;
+    const at = (...is: number[]) => midi.find((m) => is.some((i) => pc(m) === pc(c.rootPc + i)))!;
+    return { s, third: at(3, 4), seventh: at(10, 11) };
   });
-  const span = info.flatMap((x) => [x.third.midi, x.seventh.midi]);
+  const span = info.flatMap((x) => [x.third, x.seventh]);
   return {
     id: "voicings.guide-tones",
     title: "Guide tones",
     screens: [
       {
         title: "The 3rd and the 7th",
-        text: "A chord's 3rd and 7th say what kind of chord it is. The drill asks for just those two notes of each chord, in turn, through all twelve keys. Each time it asks for the pair nearest the one before.",
+        text: "A chord's 3rd and 7th say what kind of chord it is. The drill asks for just those two notes of each chord, in turn, through as many keys as the Keys setting says. Each time it asks for the pair nearest the one before.",
         steps: info.map((x) => ({
-          text: `${x.s}: the 3rd is ${x.third.name} and the 7th is ${x.seventh.name}.`,
+          text: `${x.s}: the 3rd is ${flat(x.third)} and the 7th is ${flat(x.seventh)}.`,
           figure: keys(
-            { [x.third.midi]: `3 ${x.third.name}`, [x.seventh.midi]: `7 ${x.seventh.name}` },
+            { [x.third]: `3 ${flat(x.third)}`, [x.seventh]: `7 ${flat(x.seventh)}` },
             span,
           ),
-          sound: tones([x.third.midi, x.seventh.midi]),
+          sound: tones([x.third, x.seventh]),
         })),
       },
       {
         title: "The 7th falls to the next 3rd",
-        text: `In a ii-V-I the 7th of each chord falls a half step to the 3rd of the next: ${info[0].seventh.name} to ${info[1].third.name}, then ${info[1].seventh.name} to ${info[2].third.name} in C. That is why the pairs barely move. In Check the keys stay dark, so find each pair from the chord before.`,
+        text: `In a ii-V-I the 7th of each chord falls a half step to the 3rd of the next: ${flat(info[0].seventh)} to ${flat(info[1].third)}, then ${flat(info[1].seventh)} to ${flat(info[2].third)} in C. The 3rd of each chord stays put as the 7th of the next. In Check the keys stay dark, so find each pair from the chord before.`,
       },
     ],
   };
@@ -268,17 +265,29 @@ export function chordScalesMinor(): Lesson {
   };
 }
 
+/** Both patterns as the drill plays them (up and back, the top note twice), 1-2-3-5 then 3-5-7-9. */
+const lineSound = (symbol: string): LessonSound => {
+  const notes = (["1235", "3579"] as ChordPattern[]).flatMap((p, k) =>
+    chordPatternLine([symbol], p).map((n) => ({
+      midi: [n.midi],
+      at: k * 2.8 + n.startBeat * 0.6,
+      dur: 0.5,
+    })),
+  );
+  return { notes };
+};
+
 export function chordPatterns(): Lesson {
   const make = (changes: "major" | "minor") => chordScaleTargets(changes, 0);
   const step = (symbol: string): LessonStep => {
-    const root = 60 + pc(parseRoot(symbol));
+    const root = 60 + parseChordSymbol(symbol)!.rootPc;
     const line = (p: ChordPattern) => chordPattern(symbol, p).map((s) => root + s);
     const a = line("1235");
     const b = line("3579");
     return {
       text: `${symbol}: 1-2-3-5 is ${a.map(flat).join(" ")}, and 3-5-7-9 is ${b.map(flat).join(" ")}.`,
       figure: keys(Object.fromEntries([...a, ...b].map((m) => [m, flat(m)])), [...a, ...b]),
-      sound: run([...a, ...a.slice(0, -1).reverse()], 0.3),
+      sound: lineSound(symbol),
     };
   };
   return {

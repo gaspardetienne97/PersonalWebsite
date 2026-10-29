@@ -3,7 +3,10 @@
 // leading through the 12-key cycle. Each item says what to show and how to grade it.
 import { pc, pcOf, type Metric } from "@repo/music-core";
 import {
+  DOMINANT_VOICING,
   GOSPEL_PROGRESSIONS,
+  UPPER_STRUCTURE_II,
+  stripJt,
   KEY_CYCLE,
   cadenceChords,
   gospelChords,
@@ -13,7 +16,7 @@ import {
   voicingTargets,
   type VoicingVariant,
 } from "@repo/music-core/content/piano";
-import { JAZZ, type VoicingTarget } from "@repo/music-core/data/index";
+import type { VoicingTarget } from "@repo/music-core/data/index";
 import { gradeVoiceLeading, gradeVoicing } from "@repo/music-core/scoring/piano";
 import {
   JAZZ_VOICING_TYPES,
@@ -69,14 +72,14 @@ export interface VoicingItem {
 
 export const CLOSEST_REGISTER: [number, number] = [55, 76];
 const CLOSEST_SPLIT = 55;
-const strip = (t?: string) => t?.replace(/\s*\(JT\d+\)/g, "").trim();
 /** Hints as one text, each sentence ending in a single period. */
 function joinHints(...hints: (string | undefined)[]) {
   const parts = hints.flatMap((h) => (h ? [h.trim().replace(/\.+$/, "")] : []));
   return parts.length ? `${parts.join(". ")}.` : undefined;
 }
-const DOM = Object.fromEntries(JAZZ.DOMINANT_VOICINGS.map((v) => [v.id, v]));
-const US_II = JAZZ.UPPER_STRUCTURES.find((u) => u.id === "us-II")!;
+const strip = stripJt;
+const DOM = DOMINANT_VOICING;
+const US_II = UPPER_STRUCTURE_II;
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);

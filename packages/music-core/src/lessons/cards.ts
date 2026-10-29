@@ -9,7 +9,6 @@ import {
   chordScaleTargets,
   cadenceChords,
   closestChords,
-  voicingTargets,
 } from "../content/piano";
 import { pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
@@ -33,7 +32,17 @@ import {
   thumbUnder,
 } from "./cards-piano";
 import { chordTones, keys } from "./tier1";
-import { degreeOf, flat, join, plural, run, sharp, tones, type CardOpts } from "./card-kit";
+import {
+  degreeOf,
+  voicingInC,
+  flat,
+  join,
+  plural,
+  run,
+  sharp,
+  tones,
+  type CardOpts,
+} from "./card-kit";
 import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -168,12 +177,6 @@ function charleston(): Lesson {
 // ---------------------------------------------------------------------------
 // Voicings
 
-/** The key of C's targets from the voicing data, grouped by chord. */
-const inC = (variant: "major", start: "A" | "B" = "A") =>
-  voicingTargets({ variant, startPosition: start, mode: "chord" }).filter((t) =>
-    t.id.startsWith("C-"),
-  );
-
 /** "3 5 7 9" or "7 9 3 5": the right hand from the bottom. */
 export const degreesOf = (symbol: string, right: number[]) =>
   [...right]
@@ -183,7 +186,7 @@ export const degreesOf = (symbol: string, right: number[]) =>
 
 function rootless(o: CardOpts): Lesson {
   const arp = !!o.arpeggio;
-  const ts = inC("major");
+  const ts = voicingInC("major");
   const shape = (t: (typeof ts)[number]) => {
     const rh = t.displayMidi.slice(1);
     const d = degreesOf(t.symbol, rh);
@@ -254,7 +257,7 @@ function inversions(o: CardOpts): Lesson {
     screens: [
       {
         title: "Move as little as you can",
-        text: `I IV V I in one key: a triad ${arp ? "played one note at a time, above its root" : "in the right hand over its root in the left"}. Aim to move the notes as little as you can from the chord before, keeping the notes the two chords share. In some keys the range of the keyboard forces a bigger move.`,
+        text: `I IV V I in one key: a triad ${arp ? "played one note at a time, above its root" : "in the right hand over its root in the left"}. Aim to move the notes as little as you can from the chord before, keeping the notes the two chords share. In some keys ${arp ? "the range the drill uses" : "the range of the keyboard"} forces a bigger move.`,
       },
       {
         title: "I IV V I in C",
@@ -329,8 +332,6 @@ export const SYMBOL_KINDS: { suffix: string; gloss: (names: Record<string, strin
     { suffix: "7", gloss: () => "A 7 adds the flat 7th." },
     { suffix: "m7", gloss: () => "Minor, with the flat 7th added." },
     { suffix: "maj7", gloss: () => "Maj7 adds the major 7th." },
-    { suffix: "6", gloss: (n) => `A 6 adds the 6th, ${n["6"]}.` },
-    { suffix: "dim", gloss: () => "Dim is minor with the 5th lowered." },
     {
       suffix: "m7b5",
       gloss: () => "Minor with a flat 5th and a flat 7th, also called half-diminished.",
@@ -518,12 +519,16 @@ export const ARPEGGIO_IDS = ["voicings.rootless", "voicings.inversions"];
 /**
  * A tier 3 concept card by id, as the lessons a drill passes with `trigger: "check"`; none for an
  * unknown id. `opts` carries what the setup chooses (the tuning for position cards, one note at a
- * time for voicings); a card that changes with it has a different id, so each is seen once.
+ * time for voicings); a card that changes with it has a different id (`.arp`, or `@tuning-id` when the tuning is not standard), so each is seen once.
  */
 export function conceptCard(id: string, opts: CardOpts = {}): Lesson[] {
   const make = CARDS[id];
   if (!make) return [];
   const arp = !!opts.arpeggio && ARPEGGIO_IDS.includes(id);
   const l = make({ ...opts, arpeggio: arp });
-  return [arp ? { ...l, id: `${id}.arp` } : l];
+  // A position card placed on another tuning has other frets, so it is its own card.
+  const t = opts.tuning;
+  const retuned =
+    id.startsWith("positions.") && t && !["guitar.standard", "ukulele.high-g"].includes(t.id);
+  return [arp ? { ...l, id: `${id}.arp` } : retuned ? { ...l, id: `${id}@${t.id}` } : l];
 }

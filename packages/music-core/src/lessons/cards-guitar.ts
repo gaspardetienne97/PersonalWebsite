@@ -48,7 +48,14 @@ export function placed(id: string, tuning: Tuning) {
 type Placed = ReturnType<typeof placed>;
 
 const place = (off: number) =>
-  off === 0 ? "at the root fret" : `${plural(off, "fret")} above the root fret`;
+  off === 0
+    ? "at the root fret"
+    : off > 0
+      ? `${plural(off, "fret")} above the root fret`
+      : `${plural(-off, "fret")} below the root fret`;
+/** A fret against the root fret, short: "on it", "2 above it", "2 below it". */
+const against = (off: number) =>
+  off === 0 ? "on it" : off > 0 ? `${off} above it` : `${-off} below it`;
 
 const figure = (
   x: Placed,
@@ -90,14 +97,25 @@ export const ukulelePositions = (tuning: Tuning = HIGH_G) =>
     .map((p) => placed(p.id, tuning))
     .sort((a, b) => a.low - b.low);
 
-/** The card a Positions setup gets, by the shape it is on (null for none). */
-export function positionsCard(p: Pick<PositionPattern, "id" | "family" | "instrument">): string {
+/** The card a Positions setup gets, by the shape it is on; null for a shape with none. */
+export function positionsCard(
+  p: Pick<PositionPattern, "id" | "family" | "instrument">,
+): string | null {
   if (p.instrument === "ukulele") return "positions.boxes-ukulele";
-  if (p.family === "caged-major") return "positions.caged";
-  if (p.family === "minor-pentatonic") return "positions.boxes";
-  if (p.family === "connected") return "positions.connected";
-  if (p.family === "triads") return `positions.${p.id}`;
-  return "positions.bb-box";
+  switch (p.family) {
+    case "caged-major":
+      return "positions.caged";
+    case "minor-pentatonic":
+      return "positions.boxes";
+    case "connected":
+      return "positions.connected";
+    case "triads":
+      return `positions.${p.id}`;
+    case "blues-box":
+      return "positions.bb-box";
+    default:
+      return null;
+  }
 }
 
 export function caged(o: CardOpts): Lesson {
@@ -142,7 +160,7 @@ export function pentatonicBoxes(o: CardOpts): Lesson {
       },
       {
         title: "Five boxes up the neck",
-        text: `The five boxes climb the neck. Counted from the root fret on string 6${tuningText(t)}, the lowest fret of ${join(bx.map((b, i) => `box ${i + 1} is ${b.low}`))}. In Check the notes stay hidden, so know where each box starts.`,
+        text: `The five boxes climb the neck. Counted from the root fret on string 6${tuningText(t)}, the lowest fret of ${join(bx.map((b, i) => `box ${i + 1} is ${against(b.low)}`))}. In Check the notes stay hidden, so know where each box starts.`,
       },
     ],
   };
@@ -186,13 +204,13 @@ export function ukuleBoxes(o: CardOpts): Lesson {
       },
       {
         title: "Five positions up the neck",
-        text: `The five positions climb the neck. Counted from the root fret on string 1${tuningText(t)}, the lowest fret of ${join(ps.map((b, i) => `position ${i + 1} is ${b.low}`))}. In Check the notes stay hidden, so know where each position starts.`,
+        text: `The five positions climb the neck. Counted from the root fret on string 1${tuningText(t)}, the lowest fret of ${join(ps.map((b, i) => `position ${i + 1} is ${against(b.low)}`))}. In Check the notes stay hidden, so know where each position starts.`,
       },
     ],
   };
 }
 
-/** A note's role against the root, for the B.B. box and the triads. */
+/** A note's role against the root, for the B.B. box. */
 const DEGREE: Record<number, string> = {
   0: "root",
   2: "2nd",
@@ -210,24 +228,21 @@ const role = (rootPc: number, midi: number) =>
 export function bbBox(o: CardOpts): Lesson {
   const t = o.tuning ?? STANDARD;
   const x = placed("bb-box", t);
-  const byString = [...new Set(x.targets.map((n) => n.string))].sort((a, b) => b - a);
-  const lines = byString.map((s) => {
-    const ns = x.targets.filter((n) => n.string === s).sort((a, b) => a.fret - b.fret);
-    return `string ${s} has the ${join(ns.map((n) => role(x.rootPc, n.midi)))}`;
-  });
+  const own = x.targets.find((n) => role(x.rootPc, n.midi) === "root")!;
+  const roles = [...x.targets].sort((a, b) => a.midi - b.midi).map((n) => role(x.rootPc, n.midi));
   return {
     id: "positions.bb-box",
     title: "The B.B. box",
     screens: [
       {
         title: "Six notes around the root",
-        text: `The box is six notes of the minor pentatonic around one root, played with the index finger on that root. Counting from the root: ${lines.join("; ")}. Tap Hear it for the box low string to high.`,
+        text: `This box is six notes around one root: the ${join(roles)}. The drill's root fret is the root note on string 6, and the box's own root is on string ${own.string}, ${place(own.fret - x.rootFret)}${tuningText(t)}. Tap Hear it for the box low string to high.`,
         figure: figure(x, t, (m) => role(x.rootPc, m)),
         sound: run(lowToHigh(x), 0.25),
       },
       {
         title: "Find it in Check",
-        text: "Check hides the notes. Put the index finger on the root fret the box is set to, then find the notes by their roles around it.",
+        text: "Check hides the notes. Find the box's root, put the index finger on it, then find the other notes by their roles around it.",
       },
     ],
   };
