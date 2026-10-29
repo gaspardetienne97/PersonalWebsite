@@ -23,6 +23,7 @@
   import { accidentalCount, diatonicChords, keyAt, wheelIndex } from "@repo/music-core/theory/circle";
   import { analysisSheet, ANALYSIS_TUNES, functionRule } from "@repo/music-core/content/analysis";
   import { TUNES } from "@repo/music-core/content/tunes";
+  import { circleLessons } from "@repo/music-core/lessons/circle";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import type { Score } from "@repo/music-core";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -292,6 +293,7 @@
   summary={summaryLine}
   tabs={CIRCLE_MODES.map((m) => ({ id: m.id, label: TAB[m.id] }))}
   tab={modeId}
+  lesson={{ lessons: circleLessons(modeId) }}
   ontab={(id) => cfg.set({ mode: id })}
   modeNotes={{ practice: "The wheel and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
   bind:phase

@@ -36,6 +36,10 @@
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Headphones from "lucide-svelte/icons/headphones";
+  import BookOpen from "lucide-svelte/icons/book-open";
+  import LessonView from "./LessonView.svelte";
+  import { lessonsAuto } from "../lessons.svelte";
+  import { pendingLessons, type LessonRef } from "@repo/music-core/lessons/types";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
   import { bench, INSTRUMENT_LABEL, type Hue } from "../bench.svelte";
   import { audio, input, settings } from "../runtime";
@@ -75,6 +79,8 @@
     modeNotes?: { practice: string; check: string };
     /** Disable Start with a reason (e.g. microphone needed). */
     blocked?: string | null;
+    /** Intro lessons for the current setup; unseen ones show in place of the stage. */
+    lesson?: LessonRef | null;
   }
 
   let {
@@ -102,6 +108,7 @@
     tabs,
     tab,
     ontab,
+    lesson = null,
     modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
@@ -117,6 +124,29 @@
     const el = document.querySelector<HTMLElement>(`#drill-setup [data-setup="${focus}"]`);
     el?.scrollIntoView({ block: "nearest" });
     el?.querySelector<HTMLElement>("button, input, select, [tabindex]")?.focus();
+  }
+  // Intro lessons: decided only after the stored settings arrive (no flash for a returning player).
+  let ready = $state(false);
+  void settings.ready.then(() => (ready = true));
+  /** The Lesson button was pressed for this `lesson` value. */
+  let revisit = $state(false);
+  $effect(() => {
+    void lesson;
+    revisit = false;
+  });
+  const pending = $derived(pendingLessons(lesson, settings.value.lessonsSeen));
+  const showing = $derived(
+    phase === "ready" &&
+      (revisit || (ready && lessonsAuto() && pending.length > 0 && (lesson?.trigger === "check" ? mode === "check" : true))),
+  );
+  /** What the lesson view plays: the pending ones, or all of them when asked for again. */
+  const shownLessons = $derived(revisit ? (lesson?.lessons ?? []) : pending);
+  function endLesson() {
+    const seen = settings.value.lessonsSeen ?? [];
+    const ids = shownLessons.map((l) => l.id).filter((id) => !seen.includes(id));
+    revisit = false;
+    if (ids.length) void settings.update({ lessonsSeen: [...seen, ...ids] });
+    if (lesson?.trigger !== "check") mode = "practice";
   }
   let clockHandle: { stop(): void } | null = null;
   let goTimer: ReturnType<typeof setTimeout> | undefined;
@@ -240,6 +270,7 @@
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     const onControl = t?.closest("button, a, input, select, textarea, [contenteditable], [role=slider]");
+    if (showing) return;
     if (e.code === "Space" && !onControl && !e.repeat) {
       if (phase === "ready" || phase === "results") {
         e.preventDefault();
@@ -281,6 +312,16 @@
                 >
               {/each}
             </div>
+          {/if}
+          {#if lesson?.lessons.length && !live}
+            <button
+              type="button"
+              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
+              aria-pressed={showing}
+              onclick={() => (revisit = true)}
+            >
+              <BookOpen class="size-4" aria-hidden="true" />Lesson
+            </button>
           {/if}
           {#if ondemo && (mode !== "check" || demoPlaying)}
             <button
@@ -363,7 +404,11 @@
 
     {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
     {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}
-    {@render stage(phase)}
+    {#if showing}
+      <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
+    {:else}
+      {@render stage(phase)}
+    {/if}
     {#if counting && (phase === "countin" || phase === "running")}
       <!-- The count-in over the stage (nothing shifts when it goes), counted as a player would:
            the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
@@ -383,7 +428,7 @@
   </div>
 
   <div class="flex flex-wrap items-center gap-3">
-    {#if !live}
+    {#if !live && !showing}
       <button
         type="button"
         class="flex min-h-12 items-center gap-2 rounded-full bg-instr px-6 font-display text-base font-semibold text-ws-stage shadow-sm hover:brightness-105 disabled:opacity-50"
