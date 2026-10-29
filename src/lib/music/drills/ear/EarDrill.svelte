@@ -47,7 +47,7 @@
     type RankedPhrase,
   } from "@repo/music-core/content/ear";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { earLessons } from "@repo/music-core/lessons/ear";
+  import { earLessons, loopLessonItems } from "@repo/music-core/lessons/ear";
   import { LOOP_SETS, loopGroove, loopPalette, numeralChord, numeralLabel, numeralOfNotes } from "@repo/music-core/content/loops";
   import { rng } from "@repo/music-core/content/random";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
@@ -535,10 +535,11 @@
   const lessonRef = $derived.by(() => {
     let items: string[] = [];
     if (SETS) items = chordDrill ? picked.map((t) => functionToken(t, chordKind)) : picked;
-    else if (slug === "song-loops") items = loopPalette(s.loops);
+    else if (slug === "song-loops") items = loopLessonItems(s.loops);
     else if (slug === "bass-lines") items = [...(BASS_LEVELS.find((l) => l.id === s.bassLevel) ?? BASS_LEVELS[0]).degrees];
     else if (slug === "scale-degrees" || slug === "melody-dictation" || (slug === "wrong-note" && !fromSongs)) items = levelDegrees(level);
-    const lessons = earLessons(keyChanges ? "key-changes" : slug, keyChanges ? [] : items);
+    const degs = levelDegrees(level);
+    const lessons = earLessons(keyChanges ? "key-changes" : slug, keyChanges ? [] : items, { direction: slug === "intervals" ? s.direction : undefined, minor: degs.includes("b3") && !degs.includes("3") });
     return lessons.length ? { lessons } : null;
   });
 

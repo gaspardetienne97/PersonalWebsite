@@ -22,7 +22,14 @@ import {
   scalePlayback,
   type PlaybackEvent,
 } from "../content/ear";
-import { numeralChord, numeralLabel, numeralSymbol, parseNumeral } from "../content/loops";
+import {
+  loopPalette,
+  loopsIn,
+  numeralChord,
+  numeralLabel,
+  numeralSymbol,
+  parseNumeral,
+} from "../content/loops";
 import { FEELS } from "../content/pads-studio";
 import { repertoireFor } from "../content/pads-repertoire";
 import { grooveTargetsFor } from "../content/winds-pads";
@@ -38,7 +45,11 @@ const MAJOR = SCALE_DATA.semitonesByKind.major;
 const hs = (n: number) => (n === 1 ? "1 half step" : `${n} half steps`);
 const name = (m: number) => noteName(m, "flat", false);
 const sound = (events: PlaybackEvent[], shift = 0): LessonSound => ({
-  notes: events.map((e) => ({ midi: e.midi, at: e.time + shift, dur: e.duration })),
+  notes: events.map((e) => ({
+    midi: e.midi,
+    at: e.time + shift,
+    dur: e.duration,
+  })),
 });
 /** The key set with I, IV, V, I, then the chord, as the drill plays them (the chord 0.6 s after the last). */
 const afterSetup = (minor: boolean, chord: PlaybackEvent[]): LessonSound => {
@@ -67,8 +78,12 @@ const rootAbove = (n: number) =>
 // ---------------------------------------------------------------------------
 // Intervals
 
-const intervalSound = (token: string, root = 60) =>
-  sound(intervalPrompt(rng(1), { difficulty: 0.3, token, direction: "ascending", root }).playback);
+/** The direction the quiz will use: a fixed setting, else up (the quiz also plays others, which the text says). */
+type Direction = "ascending" | "descending" | "harmonic";
+const fixedDirection = (setting?: string): Direction | null =>
+  setting === "ascending" || setting === "descending" || setting === "harmonic" ? setting : null;
+const intervalSound = (token: string, direction: Direction = "ascending", root = 60) =>
+  sound(intervalPrompt(rng(1), { difficulty: 0.3, token, direction, root }).playback);
 
 const intervals = {
   intro: () =>
@@ -84,16 +99,26 @@ const intervals = {
         };
       }),
     }),
-  item: (token: string) => {
+  item: (token: string, o: EarOptions = {}) => {
     const i = EAR_INTERVALS.find((x) => x.token === token);
     if (!i) return null;
+    const dir = fixedDirection(o.direction);
+    const n = hs(i.semitones);
+    const text = !i.semitones
+      ? "The same note twice, 0 half steps apart. Nothing moves between the two."
+      : dir === "descending"
+        ? `The second note is ${n} below the first, as the quiz plays it.`
+        : dir === "harmonic"
+          ? `The two notes sound together, ${n} apart, as the quiz plays them.`
+          : dir === "ascending"
+            ? `The second note is ${n} above the first, as the quiz plays it.`
+            : `The second note is ${n} above the first. The quiz can also play it coming down or together, with the same ${n}.`;
+    const second = 60 + (dir === "descending" ? -i.semitones : i.semitones);
     return card(`ear.intervals:${token}`, i.name, {
       title: i.name,
-      text: i.semitones
-        ? `The second note is ${hs(i.semitones)} above the first. The quiz can also play it coming down or together, with the same ${hs(i.semitones)}.`
-        : "The same note twice, 0 half steps apart. Nothing moves between the two.",
-      figure: keys({ 60: "1st", [60 + i.semitones]: "2nd" }),
-      sound: intervalSound(token),
+      text,
+      figure: keys({ 60: "1st", [second]: "2nd" }),
+      sound: intervalSound(token, dir ?? "ascending"),
     });
   },
 };
@@ -127,7 +152,11 @@ const FIFTHS: Record<number, string> = {
   7: "perfect 5th",
   8: "augmented 5th",
 };
-const SEVENTHS: Record<number, string> = { 9: "diminished 7th", 10: "minor 7th", 11: "major 7th" };
+const SEVENTHS: Record<number, string> = {
+  9: "diminished 7th",
+  10: "minor 7th",
+  11: "major 7th",
+};
 const qualities = {
   intro: () =>
     card("ear.chord-qualities", "Chord qualities", {
@@ -139,16 +168,27 @@ const qualities = {
     if (!q) return null;
     const [, third, fifth, seventh] = q.intervals;
     const parts = ["root", THIRDS[third], FIFTHS[fifth], ...(seventh ? [SEVENTHS[seventh]] : [])];
-    // Major and minor are told by the 3rd, the other triads by the 5th, the sevenths by the 7th.
-    const [what, n] = seventh
-      ? [SEVENTHS[seventh], seventh]
-      : token === "major" || token === "minor"
-        ? [THIRDS[third], third]
-        : [FIFTHS[fifth], fifth];
+    // What tells it from the others: the 3rd for major and minor, the 5th for the other triads, and for a
+    // seventh chord the 7th together with the 3rd or 5th that the sevenths share.
+    const cue: [string, number][] =
+      token === "major" || token === "minor"
+        ? [[THIRDS[third], third]]
+        : !seventh
+          ? [[FIFTHS[fifth], fifth]]
+          : token === "diminished-7" || token === "half-diminished-7"
+            ? [
+                [FIFTHS[fifth], fifth],
+                [SEVENTHS[seventh], seventh],
+              ]
+            : [
+                [THIRDS[third], third],
+                [SEVENTHS[seventh], seventh],
+              ];
     const chord = q.intervals.map((i) => 60 + i);
-    return card(`ear.chord-qualities:${token}`, q.label, {
-      title: q.label,
-      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${what}, ${hs(n)} above the root.`,
+    const title = q.label.charAt(0) + q.label.slice(1).toLowerCase();
+    return card(`ear.chord-qualities:${token}`, title, {
+      title,
+      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${cue.map(([w]) => w).join(" with the ")}, ${cue.map(([, n]) => n).join(" and ")} half steps above the root.`,
       figure: keys(marksOf(chord)),
       sound: { notes: [{ midi: chord, at: 0, dur: 0.9 }] },
     });
@@ -195,7 +235,13 @@ const CALL = "I, IV, V, I";
 function chordItem(
   id: string,
   title: string,
-  o: { minor: boolean; chord: number[]; intervals: number[]; label: string; symbol: string },
+  o: {
+    minor: boolean;
+    chord: number[];
+    intervals: number[];
+    label: string;
+    symbol: string;
+  },
 ) {
   const rootPc = pc(o.chord[0]);
   const key = o.minor ? "C minor" : "C major";
@@ -241,18 +287,36 @@ const loops = {
       title: "A loop of chords",
       text: "The key is set, then a loop of chords plays as a groove, and you name every chord as a numeral. A flat sign, as in bVII, means the chord's root is a half step lower than that degree in the major scale. Each chord is next.",
     }),
-  item: (numeral: string) => {
+  item: (id: string) => {
+    // "min:V" is the numeral heard after a minor setup, "V" after a major one.
+    const minor = id.startsWith("min:");
+    const numeral = minor ? id.slice(4) : id;
     const n = parseNumeral(numeral);
     if (!n) return null;
-    return chordItem(`ear.song-loops:${numeral}`, numeralLabel(numeral), {
-      minor: false,
-      chord: numeralChord(0, numeral),
-      intervals: n.intervals,
-      label: numeralLabel(numeral),
-      symbol: numeralSymbol(0, numeral),
-    });
+    return chordItem(
+      `ear.song-loops:${id}`,
+      `${numeralLabel(numeral)}${minor ? " in a minor key" : ""}`,
+      {
+        minor,
+        chord: numeralChord(0, numeral),
+        intervals: n.intervals,
+        label: numeralLabel(numeral),
+        symbol: numeralSymbol(0, numeral),
+      },
+    );
   },
 };
+
+/** The lesson items of a loop set: each numeral in each kind of key its loops use. */
+export function loopLessonItems(set: string): string[] {
+  const ids = new Set<string>();
+  const loops = loopsIn(set);
+  for (const numeral of loopPalette(set))
+    for (const minor of [false, true])
+      if (loops.some((l) => !!l.minor === minor && l.numerals.includes(numeral)))
+        ids.add(minor ? `min:${numeral}` : numeral);
+  return [...ids];
+}
 
 // ---------------------------------------------------------------------------
 // Key changes
@@ -398,7 +462,7 @@ const finePitch = {
     });
     return card("ear.fine-pitch", "Fine pitch", {
       title: "Smaller than a half step",
-      text: `A cent is a hundredth of a half step. The quiz plays a note, then the same note a few cents higher or lower, and you say which. The widest step is ${cents} cents, and the steps run down to ${CENT_STEPS.at(-1)}.`,
+      text: `A cent is a hundredth of a half step. The quiz plays a note, then the same note a few cents higher or lower, or sometimes in tune, and you say which. The widest step is ${cents} cents, and the steps run down to ${CENT_STEPS.at(-1)}.`,
       options: [
         { label: `Higher by ${cents} cents`, sound: two(69 + cents / 100) },
         { label: `Lower by ${cents} cents`, sound: two(69 - cents / 100) },
@@ -410,32 +474,39 @@ const finePitch = {
 // ---------------------------------------------------------------------------
 // Degrees: scale degrees, wrong note, melody dictation
 
-const degreeItem = (drill: string) => (label: string) => {
-  const d = SCALE_DEGREES.find((x) => x.label === label);
-  if (!d) return null;
-  const p = scaleDegreePrompt(rng(1), {
-    difficulty: 0.3,
-    level: "chromatic-color",
-    degree: label,
-    keyPc: 0,
-  });
-  const [tonic, target] = p.playback.map((e) => e.midi[0]);
-  return card(`ear.${drill}:${label}`, `Degree ${label}`, {
-    title: `Degree ${label}`,
-    text: d.semitones
-      ? `Degree ${label} (${d.solfege}) is ${hs(d.semitones)} above the tonic. The tonic plays first, then this note.`
-      : `Degree 1 (${d.solfege}) is the tonic itself. The tonic plays first, then the same note again.`,
-    figure: keys({ [tonic]: "1", [target]: label === "1" ? "1" : label }),
-    sound: sound(p.playback),
-  });
-};
+/** Scale degrees and melody dictation set the key first (promptKey); the wrong note drill has no key setup. */
+const degreeItem =
+  (drill: string, keyed: boolean) =>
+  (label: string, o: EarOptions = {}) => {
+    const d = SCALE_DEGREES.find((x) => x.label === label);
+    if (!d) return null;
+    const p = scaleDegreePrompt(rng(1), {
+      difficulty: 0.3,
+      level: "chromatic-color",
+      degree: label,
+      keyPc: 0,
+    });
+    const [tonic, target] = p.playback.map((e) => e.midi[0]);
+    const minor = !!o.minor;
+    const setup = keyed ? ` The key is set first with ${minor ? "i, iv, V, i" : CALL}.` : "";
+    return card(`ear.${drill}:${label}`, `Degree ${label}`, {
+      title: `Degree ${label}`,
+      text: `${
+        d.semitones
+          ? `Degree ${label} (${d.solfege}) is ${hs(d.semitones)} above the tonic.`
+          : `Degree 1 (${d.solfege}) is the tonic itself.`
+      }${setup} The tonic plays ${keyed ? "next" : "first"}, then ${d.semitones ? "this note" : "the same note again"}.`,
+      figure: keys({ [tonic]: "1", [target]: label === "1" ? "1" : label }),
+      sound: keyed ? afterSetup(minor, p.playback) : sound(p.playback),
+    });
+  };
 const scaleDegrees = {
   intro: () =>
     card("ear.scale-degrees", "Scale degrees", {
       title: "Every note has a number",
       text: "In a key, each note has a degree: 1 is the tonic, home, and the rest count up the scale. The quiz plays the tonic, then one more note, and you name its degree. Each degree is next.",
     }),
-  item: degreeItem("scale-degrees"),
+  item: degreeItem("scale-degrees", true),
 };
 const melodyDictation = {
   intro: () => {
@@ -446,15 +517,18 @@ const melodyDictation = {
     });
     return card("ear.melody-dictation", "Melody dictation", {
       title: "Write down the degrees",
-      text: `The tonic plays first, then a short phrase, and you write down its degrees. This one is ${p.answer}.`,
-      sound: sound(p.playback),
+      text: `The key is set first, then the tonic plays and a short phrase follows, and you write down its degrees. This one is ${p.answer}.`,
+      sound: afterSetup(false, p.playback),
     });
   },
-  item: degreeItem("melody-dictation"),
+  item: degreeItem("melody-dictation", true),
 };
 const wrongNote = {
   intro: () => {
-    const p = errorDetectPrompt(rng(7), { difficulty: 0.3, level: "major-pentachord" });
+    const p = errorDetectPrompt(rng(7), {
+      difficulty: 0.3,
+      level: "major-pentachord",
+    });
     const at = Number(p.answer);
     const written = p.playback.map((e, i) =>
       i === 0 ? e : { ...e, midi: [p.expectedMidi![i - 1]] },
@@ -468,7 +542,7 @@ const wrongNote = {
       ],
     });
   },
-  item: degreeItem("wrong-note"),
+  item: degreeItem("wrong-note", false),
 };
 
 // ---------------------------------------------------------------------------
@@ -513,7 +587,15 @@ const feel = {
 
 // ---------------------------------------------------------------------------
 
-type Builder = { intro: () => Lesson; item?: (item: string) => Lesson | null };
+/** What the drill's setup changes about its items: the intervals' direction, a minor level's key setup. */
+export interface EarOptions {
+  direction?: string;
+  minor?: boolean;
+}
+type Builder = {
+  intro: () => Lesson;
+  item?: (item: string, o?: EarOptions) => Lesson | null;
+};
 const BUILDERS: Record<string, Builder> = {
   intervals,
   "interval-compare": compare,
@@ -539,8 +621,12 @@ const BUILDERS: Record<string, Builder> = {
  * each played with the drill's own sound. Items a drill has no lesson for are left out. The lesson
  * follows the drill and its level, never the answer mode.
  */
-export function earLessons(drillId: string, items: readonly string[]): Lesson[] {
+export function earLessons(
+  drillId: string,
+  items: readonly string[],
+  o: EarOptions = {},
+): Lesson[] {
   const b = BUILDERS[drillId];
   if (!b) return [];
-  return [b.intro(), ...items.flatMap((i) => b.item?.(i) ?? [])];
+  return [b.intro(), ...items.flatMap((i) => b.item?.(i, o) ?? [])];
 }

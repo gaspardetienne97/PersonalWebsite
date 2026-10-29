@@ -8,7 +8,6 @@ import {
   EAR_INVERSIONS,
   EAR_SCALES,
   SCALE_DEGREES,
-  SCALE_DEGREE_LEVELS,
   functionChord,
   functionToken,
   intervalPrompt,
@@ -18,11 +17,11 @@ import {
   KEY_CHANGE_PATHS,
 } from "../content/ear";
 import { FEELS } from "../content/pads-studio";
-import { CHORD_LOOPS, loopPalette, numeralChord, parseNumeral } from "../content/loops";
+import { CHORD_LOOPS, loopsIn, numeralChord, parseNumeral } from "../content/loops";
 import { rng } from "../content/random";
 import { pc } from "../theory/notes";
 import { lessonProblems } from "./check";
-import { earLessons } from "./ear";
+import { earLessons, loopLessonItems } from "./ear";
 import { pendingLessons, type Lesson } from "./types";
 
 const sounds = (l: Lesson) =>
@@ -47,7 +46,7 @@ const ALL: Record<string, string[]> = {
   ],
   progressions: CHORD_FUNCTIONS.map((f) => f.token),
   "key-changes": [],
-  "song-loops": [...new Set(loopSets.flatMap((s) => loopPalette(s)))],
+  "song-loops": [...new Set(loopSets.flatMap((s) => loopLessonItems(s)))],
   scales: EAR_SCALES.map((s) => s.token),
   inversions: EAR_INVERSIONS.map((i) => i.token),
   "bass-lines": ["1", "2", "3", "4", "5", "6", "7"],
@@ -111,13 +110,30 @@ describe("ear lessons", () => {
       const l = earLessons("chord-qualities", [q.token])[1];
       const root = Math.min(...midis(l).flat());
       expect(midis(l)).toEqual([q.intervals.map((i) => root + i)]);
-      const defining =
-        q.intervals[q.level === "seventh" ? 3 : q.token === "major" || q.token === "minor" ? 1 : 2];
-      expect(text(l), q.token).toContain(`${defining} half steps`);
+      const [, third, fifth, seventh] = q.intervals;
+      const cue =
+        q.token === "major" || q.token === "minor"
+          ? [third]
+          : !seventh
+            ? [fifth]
+            : q.token.endsWith("diminished-7")
+              ? [fifth, seventh]
+              : [third, seventh];
+      expect(text(l), q.token).toContain(`${cue.join(" and ")} half steps`);
     }
     const dim = text(earLessons("chord-qualities", ["diminished"])[1]);
     expect(dim).toContain("diminished 5th");
-    expect(text(earLessons("chord-qualities", ["dominant-7"])[1])).toContain("minor 7th");
+    // The sevenths that share a 7th are told apart by their 3rd or 5th.
+    const cues = ["dominant-7", "minor-7", "half-diminished-7", "major-7", "diminished-7"].map(
+      (t) => /Listen for (.*)\./.exec(text(earLessons("chord-qualities", [t])[1]))![1],
+    );
+    expect(new Set(cues).size).toBe(cues.length);
+    expect(text(earLessons("chord-qualities", ["dominant-7"])[1])).toContain(
+      "major 3rd with the minor 7th, 4 and 10",
+    );
+    expect(earLessons("chord-qualities", ["half-diminished-7"])[1].title).toBe(
+      "Half-diminished 7th",
+    );
   });
   it("cadences: the four progressions from the data, played as the data has them", () => {
     const ls = earLessons(
@@ -150,15 +166,41 @@ describe("ear lessons", () => {
     expect(text(earLessons("chord-functions", ["IV"])[1])).toContain("F");
     expect(text(earLessons("chord-functions", ["m:IV"])[1])).toContain("Fm");
   });
-  it("song loops: each numeral is its chord in C, with its root distance", () => {
-    for (const n of ALL["song-loops"]) {
-      const l = earLessons("song-loops", [n])[1];
-      expect(l.screens[0].sound!.notes.at(-1)!.midi).toEqual(numeralChord(0, n));
+  it("song loops: each numeral is its chord in C after the setup of its kind of key", () => {
+    for (const id of ALL["song-loops"]) {
+      const minor = id.startsWith("min:");
+      const n = minor ? id.slice(4) : id;
+      const l = earLessons("song-loops", [id])[1];
+      const notes = l.screens[0].sound!.notes;
+      expect(l.id).toBe(`ear.song-loops:${id}`);
+      expect(
+        notes.slice(0, 4).map((x) => x.midi),
+        id,
+      ).toEqual(keyCadence(0, minor).map((e) => e.midi));
+      expect(notes.at(-1)!.midi).toEqual(numeralChord(0, n));
+      expect(text(l)).toContain(minor ? "i, iv, V, i" : "I, IV, V, I");
+      expect(text(l)).toContain(minor ? "C minor" : "C major");
       const root = parseNumeral(n)!.root;
-      expect(text(l), n).toContain(
+      expect(text(l), id).toContain(
         root === 0 ? "the tonic" : root === 1 ? "1 half step" : `${root} half steps`,
       );
     }
+  });
+  it("a numeral only minor loops use is taught after the minor setup; one used in both kinds is taught twice", () => {
+    expect(loopLessonItems("minor")).toContain("min:bIII");
+    expect(loopLessonItems("minor")).not.toContain("bIII");
+    const both = loopLessonItems("rock");
+    expect(both).toContain("bVII");
+    expect(both).toContain("min:bVII");
+    for (const set of ["songs", "pop", "rock", "minor", "modal"])
+      for (const id of loopLessonItems(set)) {
+        const minor = id.startsWith("min:");
+        const n = minor ? id.slice(4) : id;
+        expect(
+          loopsIn(set).some((l) => !!l.minor === minor && l.numerals.includes(n)),
+          `${set} ${id}`,
+        ).toBe(true);
+      }
   });
   it("scales: the scale up from the tonic, with a true colour note", () => {
     for (const s of EAR_SCALES) {
@@ -215,16 +257,37 @@ describe("ear lessons", () => {
       "the V chord has its 3rd in the bass",
     );
   });
-  it("degrees: the tonic, then the degree, in half steps", () => {
+  it("degrees: the key is set first where the quiz sets it, then the tonic, then the degree", () => {
     for (const drill of ["scale-degrees", "wrong-note", "melody-dictation"])
-      for (const level of SCALE_DEGREE_LEVELS)
-        for (const d of level.degrees) {
-          const l = earLessons(drill, [d])[1];
+      for (const minor of [false, true])
+        for (const d of SCALE_DEGREES.map((x) => x.label)) {
+          const l = earLessons(drill, [d], { minor })[1];
           const semis = SCALE_DEGREES.find((x) => x.label === d)!.semitones;
-          const [t, n] = midis(l);
+          const notes = l.screens[0].sound!.notes;
+          const keyed = drill !== "wrong-note";
+          if (keyed) {
+            expect(notes.slice(0, 4).map((x) => x.midi)).toEqual(
+              keyCadence(0, minor).map((e) => e.midi),
+            );
+            expect(text(l)).toContain(minor ? "i, iv, V, i" : "I, IV, V, I");
+          } else expect(notes.length).toBe(2);
+          const [t, n] = notes.slice(-2).map((x) => x.midi);
           expect(n[0] - t[0], `${drill} ${d}`).toBe(semis);
           expect(text(l)).toContain(semis === 0 ? "tonic" : `${semis} half step`);
         }
+  });
+  it("interval direction follows the drill's setting", () => {
+    const l = (direction: string) => earLessons("intervals", ["P5"], { direction })[1];
+    const m = (direction: string) => l(direction).screens[0].sound!.notes.map((n) => n.midi[0]);
+    expect(m("descending")).toEqual([60, 53]);
+    expect(text(l("descending"))).toContain("below");
+    expect(text(l("descending"))).not.toContain("also play");
+    const together = l("harmonic").screens[0].sound!.notes;
+    expect(together.length).toBe(1);
+    expect(together[0].midi).toEqual([60, 67]);
+    expect(m("ascending")).toEqual([60, 67]);
+    expect(text(l("ascending"))).not.toContain("also play");
+    for (const d of ["auto", "mixed"]) expect(text(l(d))).toContain("also play");
   });
   it("fine pitch: one wide example of cents, higher and lower", () => {
     const [intro] = earLessons("fine-pitch", []);
@@ -235,6 +298,7 @@ describe("ear lessons", () => {
       expect(Math.abs(b - a)).toBeCloseTo(CENT_STEPS[0] / 100);
     }
     expect(text(intro)).toContain(`${CENT_STEPS[0]} cents`);
+    expect(text(intro)).toContain("in tune");
   });
   it("key changes: the ways in come from the drill's paths", () => {
     const [intro] = earLessons("key-changes", []);
