@@ -91,7 +91,10 @@ export interface Game {
   /** Played on a tune's melody: the run needs a head (one of the player's scores). */
   head?: boolean;
   /** Measures that make the score, with the aim (a share, or a count for rests); a function gets the chorus's bars and the head's rests. */
-  aims: { metric: MetricId; aim: number | ((bars: number, headRests: number) => number) }[];
+  aims: {
+    metric: MetricId;
+    aim: number | ((bars: number, headRests: number) => number);
+  }[];
   /** The weakest part against its aim (a game's rules), or the mean of the parts (the open game). */
   combine: "min" | "mean";
 }
@@ -263,7 +266,12 @@ export const IMPROV_GAMES: Game[] = [
     label: "Displace a motif",
     about:
       "One short motif of two to six notes, each time a beat later in the bar (the Straight, No Chaser idea). The aim is a displaced motif in two bars of every three.",
-    aims: [{ metric: "displaced", aim: (bars) => Math.max(1, Math.round((bars * 2) / 3)) }],
+    aims: [
+      {
+        metric: "displaced",
+        aim: (bars) => Math.max(1, Math.round((bars * 2) / 3)),
+      },
+    ],
     combine: "min",
   },
   {
@@ -378,16 +386,31 @@ interface Slot {
   inside: number[];
 }
 
+/**
+ * A chord's 3rd (the 4th of a sus chord) and its guide tones as pitch classes: the 3rd and the 7th,
+ * or the 6th of a sixth or diminished chord.
+ */
+export function guideTones(symbol: string): {
+  third?: number;
+  guide: number[];
+} {
+  const c = parseChordSymbol(symbol);
+  const iv = (c?.intervals ?? []).map((i) => i % 12);
+  const rel = (i: number) => pc((c?.rootPc ?? 0) + i);
+  const third = iv.find((i) => i === 3 || i === 4) ?? iv.find((i) => i === 5);
+  const seventh = iv.find((i) => i === 10 || i === 11) ?? iv.find((i) => i === 9);
+  return {
+    third: third === undefined ? undefined : rel(third),
+    guide: [third, seventh].flatMap((i) => (i === undefined ? [] : [rel(i)])),
+  };
+}
+
 function timeline(p: Progression): { slots: Slot[]; beats: number } {
   const bpb = barBeats(p);
   let at = 0;
   const slots = p.chords.map((ch) => {
     const c = parseChordSymbol(ch.symbol);
-    const iv = (c?.intervals ?? []).map((i) => i % 12);
-    const rel = (i: number) => pc((c?.rootPc ?? 0) + i);
-    // The 3rd (the 4th of a sus chord); the 7th, or the 6th of a sixth or diminished chord.
-    const third = iv.find((i) => i === 3 || i === 4) ?? iv.find((i) => i === 5);
-    const seventh = iv.find((i) => i === 10 || i === 11) ?? iv.find((i) => i === 9);
+    const g = guideTones(ch.symbol);
     const slot: Slot = {
       symbol: ch.symbol,
       start: at,
@@ -397,8 +420,8 @@ function timeline(p: Progression): { slots: Slot[]; beats: number } {
         ...(c?.pcs ?? []),
         ...(scaleSemitones(ch.scale.name) ?? []).map((s) => pc(ch.scale.rootPc + s)),
       ],
-      third: third === undefined ? undefined : rel(third),
-      guide: [third, seventh].flatMap((i) => (i === undefined ? [] : [rel(i)])),
+      third: g.third,
+      guide: g.guide,
     };
     at += slot.beats;
     return slot;
@@ -519,7 +542,10 @@ export function gradeImprov(
     const ns = mine.map((i) => all[i]);
     const m: ChorusGrade["measures"] = {};
     const put = (id: MetricId, n: number, d: number, detail = `${n} of ${d}`) =>
-      (m[id] = { value: share(n, d), detail: d ? detail : "nothing to judge" });
+      (m[id] = {
+        value: share(n, d),
+        detail: d ? detail : "nothing to judge",
+      });
 
     // Chord tones on beats 1 and 3 (beat 1 in 3/4).
     const strong = ns.filter((n) => {
@@ -585,7 +611,10 @@ export function gradeImprov(
     }
     if (phraseStart >= 0) phraseBeats += lastEnd - phraseStart;
     if (to - lastEnd >= 2 - 1e-6) rests++;
-    m.rests = { value: rests, detail: `${rests} rest${rests === 1 ? "" : "s"}` };
+    m.rests = {
+      value: rests,
+      detail: `${rests} rest${rests === 1 ? "" : "s"}`,
+    };
     const phrases = {
       count: phraseCount,
       meanBars: phraseCount ? Math.round((phraseBeats / phraseCount / bpb) * 10) / 10 : 0,
@@ -733,7 +762,10 @@ export function gradeImprov(
         return n >= 2 && n <= 4;
       }).length;
       m.fills = gaps.length
-        ? { value: filled, detail: `${filled} of ${gaps.length} rests filled` }
+        ? {
+            value: filled,
+            detail: `${filled} of ${gaps.length} rests filled`,
+          }
         : { value: null, detail: "the head has no two-beat rests" };
     }
 
@@ -801,7 +833,12 @@ export function gradeImprov(
 
   const score = choruses.reduce((a, c) => a + c.score, 0) / choruses.length;
   const passed = choruses.every((c) => c.passed);
-  return { choruses, score, passed, headline: headline(opts.game, choruses, passed) };
+  return {
+    choruses,
+    score,
+    passed,
+    headline: headline(opts.game, choruses, passed),
+  };
 }
 
 function headline(game: Game, choruses: ChorusGrade[], passed: boolean): string {

@@ -124,7 +124,9 @@ test.describe("intro lessons", () => {
     await page.goto(URL);
     await page.getByRole("button", { name: "Read it", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
-    const second = page.getByRole("heading", { name: "Sharps and flats on the staff" });
+    const second = page.getByRole("heading", {
+      name: "Sharps and flats on the staff",
+    });
     for (let i = 0; i < 30 && !(await second.isVisible()); i++)
       await page.getByRole("button", { name: /^Next/ }).click();
     await expect(second).toBeVisible();
@@ -247,14 +249,23 @@ test.describe("tier 1 lessons", () => {
   }) => {
     await page.goto("/music/aerophone?mode=long-tone&level=mf");
     await expect(
-      page.getByRole("heading", { name: "One note, one even breath", exact: true }),
+      page.getByRole("heading", {
+        name: "One note, one even breath",
+        exact: true,
+      }),
     ).toBeVisible();
-    const levels = page.getByRole("heading", { name: "Hold at a loudness", exact: true });
+    const levels = page.getByRole("heading", {
+      name: "Hold at a loudness",
+      exact: true,
+    });
     for (let i = 0; i < 6 && !(await levels.isVisible()); i++)
       await page.getByRole("button", { name: /^Next/ }).click();
     await expect(levels).toBeVisible();
     await page.goto("/music/aerophone?mode=register&pair=d6-f6");
-    const palm = page.getByRole("heading", { name: "Reaching for the palm keys", exact: true });
+    const palm = page.getByRole("heading", {
+      name: "Reaching for the palm keys",
+      exact: true,
+    });
     for (let i = 0; i < 8 && !(await palm.isVisible()); i++)
       await page.getByRole("button", { name: /^Next/ }).click();
     await expect(palm).toBeVisible();
@@ -340,6 +351,52 @@ test.describe("ear lessons", () => {
       "/music/rhythm?mode=dictation",
     ]) {
       await page.goto(url);
+      await expect(page.getByTestId("lesson")).toBeVisible();
+      for (let i = 0; i < 4; i++) {
+        await page.keyboard.press("ArrowRight");
+        await expectNoHorizontalOverflow(page);
+      }
+    }
+  });
+});
+
+test.describe("jam game lessons", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+  const check = (page: Page) => page.getByRole("button", { name: "Check", exact: true });
+
+  test("Practice shows no lesson; Check shows the game's, and finishing stays in Check", async ({
+    page,
+  }) => {
+    await page.goto("/music/jam?game=guide-tones&backing=none");
+    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await check(page).click();
+    await expect(page.getByTestId("lesson")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The notes that name a chord" })).toBeVisible();
+    await (await toEnd(page)).click();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await expect(page.locator("#mode-note")).toContainText("Tone roles hidden");
+    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+  });
+
+  test("the open game has no lesson, and another game has its own", async ({ page }) => {
+    await page.goto("/music/jam?game=free&backing=none");
+    await check(page).click();
+    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await page.goto("/music/jam?game=approach&backing=none");
+    await check(page).click();
+    await expect(page.getByRole("heading", { name: "Lean in from a half step" })).toBeVisible();
+  });
+
+  test("a Jam lesson fits at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const game of ["side-slip", "motif", "space"]) {
+      await page.goto(`/music/jam?game=${game}&backing=none`);
+      await check(page).click();
       await expect(page.getByTestId("lesson")).toBeVisible();
       for (let i = 0; i < 4; i++) {
         await page.keyboard.press("ArrowRight");

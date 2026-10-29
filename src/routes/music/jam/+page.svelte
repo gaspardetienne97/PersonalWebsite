@@ -30,6 +30,7 @@
   import Staff from "$lib/music/notation/Staff.svelte";
   import type { ToneRole } from "@repo/music-core/theory/chords";
   import { TUNINGS } from "@repo/music-core/data/index";
+  import { jamGameLesson } from "@repo/music-core/lessons/jam";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
@@ -523,6 +524,7 @@
   bind:status
   progress={checking ? ((chorus - 1) * barsTotal + formBeat / bpb) / (runChoruses * barsTotal) : formBeat / bpb / barsTotal}
   startLabel="Start jamming"
+  lesson={{ lessons: jamGameLesson(game.id), trigger: "check" }}
   blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : game.head && !head ? `${game.label} needs a tune with its melody: pick one of your scores in Progression.` : null}
   onstart={start}
   onstop={stop}
