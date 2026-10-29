@@ -189,6 +189,12 @@ test.describe("tier 1 lessons", () => {
     ["call and response answer", "/music/call-response?mode=answer", "The chord's tones"],
     ["aerophone bite vibrato", "/music/aerophone?mode=vibrato", "Vibrato from the bite"],
     ["pads improvise", "/music/pads?mode=improvise", "Play over the band"],
+    ["pads rudiments", "/music/pads", "Two hands, two pads"],
+    [
+      "pads grooves level 3",
+      "/music/pads?mode=groove&groove=funk-sixteenths",
+      "Counting sixteenths",
+    ],
     ["flashcards", "/music/reading?activity=flashcards", "Five lines"],
     ["sight-reading", "/music/reading?activity=sight-reading", "Five lines"],
     ["rhythm echo", "/music/rhythm?mode=echo", "Counting the beat"],
@@ -201,6 +207,30 @@ test.describe("tier 1 lessons", () => {
       await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     });
   }
+
+  test("pads rudiments: the intro, then the rudiment's own card, with the pads figure at 375", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/music/pads?pattern=flam");
+    await expect(
+      page.getByRole("heading", { name: "Two hands, two pads", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("lesson").getByRole("group", { name: /MPC pads/ })).toBeVisible();
+    const flam = page.getByRole("heading", { name: "Flam", exact: true });
+    for (let i = 0; i < 12 && !(await flam.isVisible()); i++) {
+      await page.getByRole("button", { name: "Next", exact: true }).click();
+      await expectNoHorizontalOverflow(page);
+    }
+    await expect(flam).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start the quiz" })).toBeVisible();
+  });
+
+  test("pads grooves below level 3 have no lesson", async ({ page }) => {
+    await page.goto("/music/pads?mode=groove&groove=basic-rock");
+    await expect(start(page)).toBeVisible();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+  });
 
   test("drop-2 shows 4-way close first", async ({ page }) => {
     await page.goto("/music/voicings?variant=drop2");

@@ -11,6 +11,7 @@
   import { gradeGroove, type GrooveResult } from "@repo/music-core/scoring/pads";
   import {
     DYNAMICS,
+    DEFAULT_RANGE,
     DYNAMICS_EXERCISES,
     ECHO_LEVELS,
     ECHO_PASS,
@@ -39,6 +40,7 @@
   import { CHOP_PADS, DYN_BANDS, NOTE_REPEAT_EXERCISES, SONG_FORMS, chopSource, gradeBuild, gradeWrittenSong, newWrittenSong, noteRepeatPiece, sectionDynamics, sectionPasses, setCheck, songFormPiece, writtenPiece, type Dyn, type WrittenSong } from "@repo/music-core/content/pads-studio";
   import type { GrooveDef } from "@repo/music-core/data/index";
   import { padImproviseLesson } from "@repo/music-core/lessons/tier1";
+  import { padLessons, repeatRates } from "@repo/music-core/lessons/pads";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -175,6 +177,14 @@
   }
   const loopName = (id: string) => (id === "funk" ? "Funk vamp, band only" : (repertoireFor(id)?.groove.label ?? id));
   const lengthMs = $derived(gt ? gt.lengthMs + (grooveDef!.targets.some((t) => t.beat >= grooveDef!.bars * 4) ? beatMs : 0) : skill === "dynamics" ? dyn.notes * (beatMs / dyn.perBeat) : improBars * barMs);
+
+  /** Intro lessons: the mode's, then a card for each item the setup picked (a fill, a line, a repeat rate...). */
+  const lessonRef = $derived.by(() => {
+    if (skill === "improvise") return { lessons: [padImproviseLesson()] };
+    const items = skill === "fills" ? [s.fill] : skill === "echo" ? [s.echo] : skill === "ostinato" ? [s.line] : skill === "orchestrate" ? [s.orch] : skill === "repeat" ? repeatRates(s.rep) : skill === "song" ? [s.form] : [];
+    const lessons = padLessons(skill, undefined, items);
+    return lessons.length ? { lessons } : null;
+  });
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -420,7 +430,6 @@
   }
 
   /** The calibrated range when there is one; else most of the MPC's velocity (Full Level off). */
-  const DEFAULT_RANGE: VelocityRange = { soft: 0.2, loud: 0.9 };
   function dynWord(d: { dyn: Dyn; level: number | null; ok: boolean | null }) {
     if (d.ok === null) return `${d.dyn}: nothing played`;
     if (d.ok) return `${d.dyn}, right`;
@@ -658,7 +667,7 @@
   bind:status
   progress={phase === "running" && now >= downbeat ? clamp((now - downbeat) / lengthMs, 0, 1) : 0}
   clock={{ bpm, beatsPerBar: 4 }}
-  lesson={skill === "improvise" ? { lessons: [padImproviseLesson()] } : null}
+  lesson={lessonRef}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}

@@ -21,6 +21,7 @@
     slicePad,
     type ChopSource,
   } from "@repo/music-core/content/pads-studio";
+  import { padLessons } from "@repo/music-core/lessons/pads";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -357,6 +358,7 @@
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab="chop"
   ontab={onmode}
+  lesson={{ lessons: padLessons("chop", undefined, [exercise, ...(exercise === "reorder" ? [`edit:${edit.id}`] : [])]) }}
   modeNotes={{ practice: "The slices due light up. Practice, not a test.", check: "The order stays written, the pads stay dark. Counts toward mastery." }}
   bind:phase
   bind:mode

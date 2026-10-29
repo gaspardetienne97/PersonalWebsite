@@ -30,6 +30,12 @@ export type LessonFigure =
       onsets: number[];
     }
   | {
+      /** The MPC pads, bank A: the pads in `marks` lit with a short label, `names` under the pads. Keys are MIDI notes 36 to 51. */
+      kind: "pads";
+      marks: Record<number, string>;
+      names?: Record<number, string>;
+    }
+  | {
       kind: "fretboard";
       instrument: "guitar" | "ukulele";
       /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */

@@ -7,6 +7,7 @@
   import CircleOfFifths from "./CircleOfFifths.svelte";
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
+  import Pads from "./Pads.svelte";
   import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
   import { countName } from "@repo/music-core/lessons/reading";
@@ -172,6 +173,9 @@
   const staffLabel = (f: Extract<LessonFigure, { kind: "staff" }>) =>
     `${f.clef} clef${f.fifths ? ` with ${Math.abs(f.fifths)} ${f.fifths < 0 ? "flat" : "sharp"}${Math.abs(f.fifths) === 1 ? "" : "s"}` : ""}: ${f.notes.map((n) => (n.midi === null ? "rest" : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", ")}`;
   const pianoMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
+  const padMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
+  const padLabel = (f: Extract<LessonFigure, { kind: "pads" }>) =>
+    `MPC pads: ${Object.entries(f.marks).map(([k, label]) => `A${String(+k - 35).padStart(2, "0")}${f.names?.[+k] ? ` ${f.names[+k]}` : ""}${label ? `, ${label}` : ""}`).join("; ")}`;
   const fretMarks = (m: { string: number; fret: number; label: string }[]): FretMark[] => m.map((x) => ({ ...x, role: "scale" }));
 </script>
 
@@ -228,6 +232,8 @@
         <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label="The circle of fifths" />
       {:else if figure.kind === "keys"}
         <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label="Piano keys" />
+      {:else if figure.kind === "pads"}
+        <Pads marks={padMarks(figure.marks)} names={figure.names ?? {}} keyHints={false} interactive={false} label={padLabel(figure)} />
       {:else}
         {@const t = tuningFor(figure.instrument)}
         <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />

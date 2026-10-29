@@ -18,6 +18,7 @@
   import { gradeGroove, gradeRudiment, grooveCaptureEnd, tempoDrift, type GrooveResult, type RudimentResult } from "@repo/music-core/scoring/pads";
   import { closestGapMs, gradeTier, measuredSwing, PAD_LEVELS, PAD_REPERTOIRE, repertoireFor, TIERS, topicSkill } from "@repo/music-core/content/pads-repertoire";
   import { canSwing, grooveMeter, reswing } from "@repo/music-core/content/pads-grid";
+  import { grooveLessonItems, padLessons, rudimentItem } from "@repo/music-core/lessons/pads";
   import { getSetting, putSetting } from "$lib/music/runtime";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -785,6 +786,7 @@
   tabs={MODES.map(([id, label]) => ({ id, label }))}
   tab={s.mode}
   ontab={setMode}
+  lesson={{ lessons: isGroove ? padLessons("grooves", entry.level, grooveLessonItems(entry)) : padLessons("rudiments", undefined, [rudimentItem(pattern.id)]) }}
   modeNotes={{ practice: "The notes come at you, judged as they pass. Practice, not a test.", check: "From memory, no notes shown. Counts toward mastery." }}
   bind:phase
   bind:mode

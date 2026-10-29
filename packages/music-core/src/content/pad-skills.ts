@@ -135,8 +135,9 @@ export const FILL = { rushMs: 15, landMs: 40 } as const;
 // ---------------------------------------------------------------------------
 // Rudiments on the kit: a paradiddle spread across the pads (Quest for Groove).
 
-type Stroke = "R" | "L";
-const PARADIDDLE: Stroke[] = ["R", "L", "R", "R", "L", "R", "L", "L"];
+export type Stroke = "R" | "L";
+/** The paradiddle the orchestrate drill spreads over the kit: two groups of four, the right hand leading. */
+export const PARADIDDLE: Stroke[] = ["R", "L", "R", "R", "L", "R", "L", "L"];
 
 export const ORCHESTRATIONS = [
   {
@@ -375,6 +376,8 @@ export interface VelocityRange {
   soft: number;
   loud: number;
 }
+/** The range a drill assumes until the player has set their own on Dynamics. */
+export const DEFAULT_RANGE: VelocityRange = { soft: 0.2, loud: 0.9 };
 /** Where a velocity sits in the player's range, 0 (softest) to 1 (loudest). */
 export const inRange = (v: number, r: VelocityRange) =>
   Math.max(0, Math.min(1, (v - r.soft) / Math.max(0.05, r.loud - r.soft)));
