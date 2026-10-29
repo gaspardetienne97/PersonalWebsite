@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Score } from "@repo/music-core";
+import {
+  READING_LEVELS,
+  levelMeter,
+  sightReadingScore,
+  type Clef,
+} from "@repo/music-core/content/reading";
+import { rng } from "@repo/music-core/content/random";
+import { REST_VALUES, readingLessons } from "@repo/music-core/lessons/reading";
+import type { LessonFigure } from "@repo/music-core/lessons/types";
 import { assignTab, bars, beatToMs, scoreGroups, whiteKeyLayout } from "./groups";
 import { lineTicks, spell, staffRows } from "./engrave";
 import { readout, type Target } from "./selection.svelte";
@@ -183,5 +192,101 @@ describe("bars with meter changes", () => {
       [3, 7, 9.5, "5/8"],
       [4, 9.5, 12, "5/8"],
     ]);
+  });
+});
+
+describe("the rests card against the engraver", () => {
+  /** The rest symbols the engraver draws for these staff rows, like "h." or "8". */
+  const restsDrawn = (score: Score) => {
+    const out = new Set<string>();
+    for (const row of staffRows(score))
+      for (const bar of lineTicks(row.notes, bars(score), scoreGroups(score)))
+        for (const t of bar) if (!t.midis.length) out.add(t.vf + (t.dots ? "." : ""));
+    return out;
+  };
+  /** A lesson staff figure as LessonView draws it: notes one after another, a bar as long as them. */
+  const figureScore = (f: Extract<LessonFigure, { kind: "staff" }>): Score => {
+    let at = 0;
+    const notes = f.notes.flatMap((n) => {
+      const out = n.midi === null ? [] : [{ midi: n.midi, startBeat: at, durationBeats: n.beats }];
+      at += n.beats;
+      return out;
+    });
+    return {
+      id: "fig",
+      title: "Fig",
+      bpm: 60,
+      meter: f.meter ?? { beats: at, beatUnit: 4 },
+      voices: [{ id: "v", name: "Notes", clef: f.clef, notes }],
+      lengthBeats: at,
+    };
+  };
+  const card = readingLessons("sight-reading", "treble", { level: "piano-9", piano: true }).find(
+    (l) => l.id === "reading.values.rests",
+  )!;
+  const shown = new Set<string>();
+  const steps = card.screens.flatMap((s) => s.steps ?? []);
+  steps.forEach((step, i) => {
+    const drawn = restsDrawn(figureScore(step.figure as Extract<LessonFigure, { kind: "staff" }>));
+    // Each step draws one rest, the one its text names.
+    expect([...drawn], step.text).toHaveLength(1);
+    expect(step.text).toContain(`${REST_VALUES.flat()[i].name} rest`);
+    for (const r of drawn) shown.add(r);
+  });
+
+  it("shows every rest the engraver can draw", () => {
+    expect([...shown].sort()).toEqual(["16", "16.", "32", "8", "8.", "h", "h.", "q", "q.", "w"]);
+  });
+
+  it("every rest drawn in a generated phrase is on the card, and the card shows whenever a phrase can rest", () => {
+    const meters = [
+      "simple",
+      "3/4",
+      "2/4",
+      "compound",
+      "3/8",
+      "9/8",
+      "2/2",
+      "5/4",
+      "7/8",
+      "5/8",
+      "changing",
+    ];
+    for (const level of READING_LEVELS)
+      for (const meter of meters) {
+        if (levelMeter(level.id, meter) !== meter) continue;
+        const variants =
+          level.reader === "piano" ? [["treble", "bass"], ["treble"], ["bass"]] : [["treble"]];
+        for (const clefs of variants)
+          for (const measures of [1, 4, 8]) {
+            const piano = level.reader === "piano";
+            const grand = clefs.length > 1;
+            const listed = readingLessons("sight-reading", grand ? "both" : (clefs[0] as Clef), {
+              level: level.id,
+              meter,
+              measures,
+              piano,
+              grand,
+            }).some((l) => l.id === "reading.values.rests");
+            let rested = false;
+            for (let seed = 1; seed <= 60; seed++) {
+              const score = sightReadingScore(rng(seed), {
+                level: level.id,
+                instrument: piano ? "piano" : "guitar",
+                clefs: clefs as Clef[],
+                measures,
+                meter,
+                bpm: 90,
+              });
+              const drawn = restsDrawn(score);
+              const label = `${level.id} ${meter} ${clefs.join("+")} ${measures} bars`;
+              for (const r of drawn) expect(shown.has(r), `${label} drew a ${r} rest`).toBe(true);
+              if (drawn.size) expect(listed, `${label} drew a rest without the card`).toBe(true);
+              rested ||= drawn.size > 0;
+            }
+            if (listed)
+              expect(rested, `${level.id} ${meter} ${clefs} ${measures}: card, no rest`).toBe(true);
+          }
+      }
   });
 });

@@ -12,6 +12,7 @@ import { EAR_RHYTHM_LEVELS, RHYTHM_CELLS } from "../content/rhythm";
 import { KEY_SIGNATURES, diatonicNames, keyByName } from "../theory/spelling";
 import {
   READING_LEVELS,
+  changingMeterParts,
   levelMeter,
   sightReadingItems,
   sightReadingScore,
@@ -131,7 +132,7 @@ describe("reading lessons", () => {
     expect(extra("piano-4")).toEqual([
       "reading.values.ties",
       "reading.values.dotted-quarter",
-      "reading.values.half-rest",
+      "reading.values.rests",
     ]);
     expect(extra("piano-5", "3/8")).toContain("reading.meter.3-8");
     expect(extra("piano-5", "3/8")).not.toContain("reading.values.dotted-quarter");
@@ -144,10 +145,9 @@ describe("reading lessons", () => {
     expect(extra("piano-7", "simple", true)).toContain("reading.values.chords");
     expect(extra("piano-7", "simple", false, true)).toContain("reading.values.chords");
     expect(extra("piano-7", "simple", false, false)).not.toContain("reading.values.chords");
-    expect(extra("piano-4")).toContain("reading.values.half-rest");
-    expect(extra("line-4")).toContain("reading.values.eighth-rest");
-    expect(extra("piano-6", "compound")).toContain("reading.values.eighth-rest");
-    expect(extra("primer")).not.toContain("reading.values.eighth-rest");
+    expect(extra("line-4")).toContain("reading.values.rests");
+    expect(extra("piano-6", "compound")).toContain("reading.values.rests");
+    expect(extra("level-3")).not.toContain("reading.values.rests");
     expect(extra("piano-8", "simple", true)).toContain("reading.values.clef-change");
     expect(extra("piano-8", "5/4")).toContain("reading.meter.5-4");
     expect(extra("piano-6", "compound")).toContain("reading.meter.compound");
@@ -161,6 +161,26 @@ describe("reading lessons", () => {
     for (const never of ["sixteenths", "dotted-eighth", "triplets"])
       expect(jazz).not.toContain(`reading.values.${never}`);
     expect(extra("piano-5", "3/4")).not.toContain("reading.meter.3-4");
+  });
+  it("a changing-meter phrase lists only the parts its length reaches", () => {
+    const text = (measures: number) =>
+      readingLessons("sight-reading", "treble", {
+        level: "piano-9",
+        meter: "changing",
+        measures,
+      }).find((l) => l.id === "reading.meter.changing")?.screens[0].text;
+    expect(changingMeterParts(4)).toEqual(["simple", "3/4"]);
+    expect(changingMeterParts(8)).toEqual(["simple", "3/4", "5/8", "simple"]);
+    expect(text(4)).toContain("through 4/4 and 3/4 in turn");
+    expect(text(8)).toContain("through 4/4, 3/4 and 5/8 in turn");
+    expect(text(2)).toBeUndefined();
+  });
+  it("short phrases list no ties, pickup or clef change", () => {
+    const one = sightReadingItems("piano-9", "simple", { piano: true, grand: true, measures: 1 });
+    for (const item of ["ties", "pickup", "clef-change"] as const) expect(one).not.toContain(item);
+    expect(
+      sightReadingItems("piano-8", "simple", { piano: true, grand: true, measures: 3 }),
+    ).not.toContain("clef-change");
   });
   it("the items match generated phrases: every item a phrase contains has its id, and every id shows up", () => {
     const meters = [
@@ -188,74 +208,74 @@ describe("reading lessons", () => {
                 { piano: true, grand: false, clefs: ["bass"] },
               ] as const)
             : ([{ piano: false, grand: false, clefs: ["treble"] }] as const);
-        for (const variant of variants) {
-          const { grand } = variant;
-          const expected = new Set(sightReadingItems(level.id, meter, variant));
-          const seen = new Set<string>();
-          for (let seed = 1; seed <= 200; seed++) {
-            const score = sightReadingScore(rng(seed), {
-              level: level.id,
-              instrument: variant.piano ? "piano" : "guitar",
-              clefs: [...variant.clefs],
-              key: level.recommendedKeys[0],
-              measures: 8,
-              meter,
-              bpm: 90,
-            });
-            const key = keyByName(level.recommendedKeys[0])!;
-            const inKey = new Set(diatonicNames(key).map((n) => pcOf(n)));
-            const compound = (m: { beatUnit: number }) => m.beatUnit === 8;
-            for (const v of score.voices) {
-              if (v.clefChanges?.length) seen.add("clef-change");
-              // With both hands the left hand is the accompaniment, not the line.
-              const line = !grand || v.id !== "lh";
-              const starts = v.notes.map((n) => n.startBeat);
-              if (line && new Set(starts).size < starts.length) seen.add("chords");
-              let end = 0;
-              for (const n of [...v.notes].sort((x, y) => x.startBeat - y.startBeat)) {
-                if (line && Math.abs(n.startBeat - end - 0.5) < 1e-3) seen.add("eighth-rest");
-                if (line && Math.abs(n.startBeat - end - 2) < 1e-3) seen.add("half-rest");
-                end = Math.max(end, n.startBeat + n.durationBeats);
-                // The meter at this note: the last change at or before it.
-                const m =
-                  [...(score.meterChanges ?? [])]
-                    .reverse()
-                    .find((c) => c.startBeat <= n.startBeat + 1e-6) ?? score.meter;
-                const bar = (m.beats * 4) / m.beatUnit;
-                const barStart =
-                  (score.meterChanges ?? []).filter((c) => c.startBeat <= n.startBeat + 1e-6).at(-1)
-                    ?.startBeat ?? 0;
-                const into = n.startBeat - barStart;
-                const crosses =
-                  Math.floor((into + 1e-6) / bar) !==
-                  Math.floor((into + n.durationBeats - 1e-6) / bar);
-                if (crosses) seen.add("ties");
-                else {
-                  const d = n.durationBeats;
-                  if (Math.abs(d - 0.25) < 1e-3) seen.add("sixteenths");
-                  if (Math.abs(d - 0.75) < 1e-3) seen.add("dotted-eighth");
-                  if (Math.abs(d - 1 / 3) < 1e-3 || Math.abs(d - 2 / 3) < 1e-3)
-                    seen.add("triplets");
-                  if (!compound(m) && Math.abs(d - 1.5) < 1e-3) seen.add("dotted-quarter");
-                  if (!compound(m) && d >= 1 - 1e-6 && Math.abs((into % 1) - 0.5) < 1e-3)
-                    seen.add("syncopation");
+        // A changing meter reaches its third part only past 4 bars.
+        for (const measures of meter === "changing" ? [4, 8] : [8])
+          for (const variant of variants) {
+            const { grand } = variant;
+            const expected = new Set(sightReadingItems(level.id, meter, { ...variant, measures }));
+            const seen = new Set<string>();
+            for (let seed = 1; seed <= 200; seed++) {
+              const score = sightReadingScore(rng(seed), {
+                level: level.id,
+                instrument: variant.piano ? "piano" : "guitar",
+                clefs: [...variant.clefs],
+                key: level.recommendedKeys[0],
+                measures,
+                meter,
+                bpm: 90,
+              });
+              const key = keyByName(level.recommendedKeys[0])!;
+              const inKey = new Set(diatonicNames(key).map((n) => pcOf(n)));
+              const compound = (m: { beatUnit: number }) => m.beatUnit === 8;
+              for (const v of score.voices) {
+                if (v.clefChanges?.length) seen.add("clef-change");
+                // With both hands the left hand is the accompaniment, not the line.
+                const line = !grand || v.id !== "lh";
+                const starts = v.notes.map((n) => n.startBeat);
+                if (line && new Set(starts).size < starts.length) seen.add("chords");
+                for (const n of [...v.notes].sort((x, y) => x.startBeat - y.startBeat)) {
+                  // The meter at this note: the last change at or before it.
+                  const m =
+                    [...(score.meterChanges ?? [])]
+                      .reverse()
+                      .find((c) => c.startBeat <= n.startBeat + 1e-6) ?? score.meter;
+                  const bar = (m.beats * 4) / m.beatUnit;
+                  const barStart =
+                    (score.meterChanges ?? [])
+                      .filter((c) => c.startBeat <= n.startBeat + 1e-6)
+                      .at(-1)?.startBeat ?? 0;
+                  const into = n.startBeat - barStart;
+                  const crosses =
+                    Math.floor((into + 1e-6) / bar) !==
+                    Math.floor((into + n.durationBeats - 1e-6) / bar);
+                  if (crosses) seen.add("ties");
+                  else {
+                    const d = n.durationBeats;
+                    if (Math.abs(d - 0.25) < 1e-3) seen.add("sixteenths");
+                    if (Math.abs(d - 0.75) < 1e-3) seen.add("dotted-eighth");
+                    if (Math.abs(d - 1 / 3) < 1e-3 || Math.abs(d - 2 / 3) < 1e-3)
+                      seen.add("triplets");
+                    if (!compound(m) && Math.abs(d - 1.5) < 1e-3) seen.add("dotted-quarter");
+                    if (!compound(m) && d >= 1 - 1e-6 && Math.abs((into % 1) - 0.5) < 1e-3)
+                      seen.add("syncopation");
+                  }
+                  if (line && !inKey.has(((n.midi % 12) + 12) % 12)) seen.add("accidentals");
                 }
-                if (line && !inKey.has(((n.midi % 12) + 12) % 12)) seen.add("accidentals");
               }
+              const first = score.voices.find((v) => v.id !== "lh") ?? score.voices[0];
+              if (first.notes.length && first.notes[0].startBeat > 0.5) seen.add("pickup");
             }
-            const first = score.voices.find((v) => v.id !== "lh") ?? score.voices[0];
-            if (first.notes.length && first.notes[0].startBeat > 0.5) seen.add("pickup");
+            const label = `${level.id} ${meter} ${variant.clefs.join("+")} ${measures} bars`;
+            // Leading rests can open a phrase without a pickup, so a pickup is only checked the other way.
+            // Rests are checked against the engraver in src/lib/music/notation/groups.test.ts.
+            for (const item of seen)
+              if (item !== "accidentals" && item !== "pickup")
+                expect(expected.has(item as never), `${label} wrote ${item}`).toBe(true);
+            for (const item of expected)
+              if (item !== "swing" && item !== "rests")
+                expect(seen.has(item), `${label} lists ${item} but never wrote it`).toBe(true);
+            if (seen.has("accidentals")) expect(expected.has("accidentals"), label).toBe(true);
           }
-          const label = `${level.id} ${meter} ${variant.clefs.join("+")}`;
-          // Leading rests make a pickup and a half rest ambiguous (two quarter rests), so those are only checked the other way.
-          for (const item of seen)
-            if (item !== "accidentals" && item !== "pickup" && item !== "half-rest")
-              expect(expected.has(item as never), `${label} wrote ${item}`).toBe(true);
-          for (const item of expected)
-            if (item !== "swing")
-              expect(seen.has(item), `${label} lists ${item} but never wrote it`).toBe(true);
-          if (seen.has("accidentals")) expect(expected.has("accidentals"), label).toBe(true);
-        }
       }
     }
   });
@@ -529,12 +549,7 @@ describe("listening lessons", () => {
         .screens[0];
       expect(rests.figure).toMatchObject({ kind: "rhythm", onsets: [0] });
       expect(rests.text).toContain("dotted half");
-      expect(
-        card("half-rest", readingLessons("sight-reading", "treble", { level: "piano-4" })).figure,
-      ).toMatchObject({ kind: "staff", notes: [{ beats: 2 }, { midi: null, beats: 2 }] });
-      expect(
-        card("eighth-rest", readingLessons("sight-reading", "treble", { level: "line-4" })).figure,
-      ).toMatchObject({ kind: "staff", notes: [{ midi: null, beats: 0.5 }, { beats: 0.5 }] });
+      expect(card("syncopation").text).toContain("Nothing new starts in that line on that pulse");
     });
     it("a mid-sentence delay label is lower-cased, and one flat is singular", () => {
       const d = listeningLessons("delay", { delays: "4" }).find(

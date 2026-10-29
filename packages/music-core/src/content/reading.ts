@@ -50,6 +50,12 @@ export const READING_METERS: Record<
 };
 /** The "changing" meter: a change every 2 bars, through these in turn. */
 export const CHANGING_METERS: ReadingMeter[] = ["simple", "3/4", "5/8"];
+/** The meter of each 2-bar part of a changing-meter phrase this many bars long. */
+export const changingMeterParts = (measures: number): ReadingMeter[] =>
+  Array.from(
+    { length: Math.ceil(measures / 2) },
+    (_, i) => CHANGING_METERS[i % CHANGING_METERS.length],
+  );
 
 export interface ReadingLevel extends ReadingLevelDef {
   /** Who reads it: both hands at the piano, one line (guitar, ukulele, Aerophone), or either. */
@@ -703,8 +709,7 @@ export type SightItem =
   | "sixteenths"
   | "dotted-eighth"
   | "triplets"
-  | "half-rest"
-  | "eighth-rest"
+  | "rests"
   | "pickup"
   | "accidentals"
   | "chords"
@@ -713,12 +718,14 @@ export type SightItem =
 export function sightReadingItems(
   levelId: ReadingLevelId,
   meter: string,
-  who: { piano?: boolean; grand?: boolean } = {},
+  who: { piano?: boolean; grand?: boolean; measures?: number } = {},
 ): SightItem[] {
   const level = readingLevel(levelId);
   const gen = GEN[level.id];
   const meterId = levelMeter(level.id, meter);
-  const ids = meterId === "changing" ? CHANGING_METERS : [meterId];
+  // The phrase length, as the generator clamps it; without one, the longest phrase.
+  const measures = Math.min(16, Math.max(1, Math.round(who.measures ?? 16)));
+  const ids = meterId === "changing" ? [...new Set(changingMeterParts(measures))] : [meterId];
   const found = new Set<SightItem>();
   for (const id of ids) {
     const { beats, beatUnit } = READING_METERS[id];
@@ -729,8 +736,7 @@ export function sightReadingItems(
       let at = 0;
       for (const d of cell) {
         const v = Math.abs(d);
-        if (d < 0 && v === 2) found.add("half-rest");
-        if (d < 0 && v === 0.5) found.add("eighth-rest");
+        if (d < 0) found.add("rests");
         if (v === 0.25) found.add("sixteenths");
         if (v === 0.75) found.add("dotted-eighth");
         if (Math.abs(v - 1 / 3) < 1e-9 || Math.abs(v - 2 / 3) < 1e-9) found.add("triplets");
@@ -740,13 +746,15 @@ export function sightReadingItems(
       }
     }
   }
-  if (gen.ties) found.add("ties");
-  if (gen.pickup && meterId !== "changing") found.add("pickup");
+  // Ties cross a bar line; a pickup bar rests until its last note (both need a second bar).
+  if (gen.ties && measures > 1) found.add("ties");
+  if (gen.pickup && meterId !== "changing" && measures > 1) found.add("pickup").add("rests");
   if (gen.chromatic || gen.jazz) found.add("accidentals");
   // Chord tones are added to any piano line of a level that has them (the generator checks `piano && rhChords && chords`).
   if (who.piano && gen.rhChords && (gen.lh || gen.jazz)) found.add("chords");
-  // A changing-meter phrase is built from 2-bar parts, too short for a clef change.
-  if (who.grand && gen.lh && gen.clefChange && meterId !== "changing") found.add("clef-change");
+  // A clef change needs 4 bars; a changing-meter phrase is built from 2-bar parts, too short for one.
+  if (who.grand && gen.lh && gen.clefChange && meterId !== "changing" && measures >= 4)
+    found.add("clef-change");
   if (level.swing) found.add("swing");
   return [...found];
 }
@@ -1188,8 +1196,9 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
 /** A phrase whose meter changes every 2 bars (CHANGING_METERS in turn): 2-bar phrases joined. */
 function changingMeters(rand: Rand, opts: SightReadingOptions, measures: number): Score {
   const parts: { score: Score; at: number }[] = [];
+  const meters = changingMeterParts(measures);
   for (let b = 0, at = 0; b < measures; b += 2) {
-    const meter = CHANGING_METERS[(b / 2) % CHANGING_METERS.length];
+    const meter = meters[b / 2];
     const score = sightReadingScore(rand, {
       ...opts,
       meter,

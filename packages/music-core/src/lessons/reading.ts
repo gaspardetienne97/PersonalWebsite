@@ -20,7 +20,7 @@ import { noteName, octaveOf, parseNote, pc } from "../theory/notes";
 import { FLAT_ORDER, SHARP_ORDER } from "../theory/circle";
 import {
   READING_METERS,
-  CHANGING_METERS,
+  changingMeterParts,
   readingLevelId,
   sightReadingItems,
   type ReadingMeter,
@@ -163,8 +163,7 @@ const ITEM_ORDER: SightItem[] = [
   "sixteenths",
   "dotted-eighth",
   "triplets",
-  "half-rest",
-  "eighth-rest",
+  "rests",
   "pickup",
   "accidentals",
   "chords",
@@ -175,7 +174,7 @@ const ITEM_ORDER: SightItem[] = [
 export function levelItems(
   levelId: string,
   meter: string,
-  who: { piano?: boolean; grand?: boolean } = {},
+  who: { piano?: boolean; grand?: boolean; measures?: number } = {},
 ): SightItem[] {
   const found = sightReadingItems(readingLevelId(levelId), meter, who);
   return ITEM_ORDER.filter((i) => found.includes(i));
@@ -195,6 +194,8 @@ export interface ReadingOptions {
   piano?: boolean;
   /** A piano reading both clefs (the left hand then accompanies). */
   grand?: boolean;
+  /** Sight-reading: the phrase length in bars (without one, the longest phrase). */
+  measures?: number;
 }
 
 export function readingLessons(
@@ -212,16 +213,32 @@ export function readingLessons(
       ...(opts.stack ? [stackedLesson(opts.stack)] : []),
     ];
   const items = opts.level
-    ? levelItems(opts.level, opts.meter ?? "simple", { piano: opts.piano, grand: opts.grand })
+    ? levelItems(opts.level, opts.meter ?? "simple", {
+        piano: opts.piano,
+        grand: opts.grand,
+        measures: opts.measures,
+      })
     : [];
+  // A changing-meter phrase of 2 bars or fewer is one part in one meter.
+  const parts = [...new Set(changingMeterParts(opts.measures ?? 16))];
   const meter =
-    opts.meter && VALUE_METERS[opts.meter as ReadingMeter]
-      ? [meterLesson(opts.meter as ReadingMeter)]
-      : [];
+    opts.meter === "changing"
+      ? parts.length > 1
+        ? [changingMeterLesson(parts)]
+        : []
+      : opts.meter && VALUE_METERS[opts.meter as ReadingMeter]
+        ? [meterLesson(opts.meter as ReadingMeter)]
+        : [];
   return [
     ...clefs.map(linesSpaces),
     valuesLesson(clefs[0]),
-    ...items.map((i) => (i === "accidentals" ? accidentalsLesson() : valueItemLesson(i, clefs[0]))),
+    ...items.map((i) =>
+      i === "accidentals"
+        ? accidentalsLesson()
+        : i === "rests"
+          ? restsLesson(clefs[0])
+          : valueItemLesson(i, clefs[0]),
+    ),
     ...meter,
     ...sig,
   ];
@@ -387,17 +404,26 @@ const VALUE_METERS: Partial<Record<ReadingMeter, string>> = {
   "5/4": "5/4 has five quarter notes in a bar, grouped as three and two or as two and three.",
   "7/8": "7/8 has seven eighth notes in a bar, grouped in twos and threes.",
   "5/8": "5/8 has five eighth notes in a bar, grouped as two and three or as three and two.",
-  changing: `The time signature changes every 2 bars, through ${CHANGING_METERS.map((m) => READING_METERS[m].label).join(", ")} in turn.`,
 };
+const CHECK_METER = "Check the time signature before you start, and at every bar where it changes.";
 function meterLesson(m: ReadingMeter): Lesson {
   const label = READING_METERS[m].label;
   return {
     id: `reading.meter.${m.replace("/", "-")}`,
-    title: m === "changing" ? "Changing meters" : `${label} time`,
+    title: `${label} time`,
+    screens: [{ title: `Counting ${label}`, text: `${VALUE_METERS[m]} ${CHECK_METER}` }],
+  };
+}
+/** The meters a changing-meter phrase of the chosen length goes through, in order. */
+function changingMeterLesson(parts: ReadingMeter[]): Lesson {
+  const labels = parts.map((m) => READING_METERS[m].label);
+  return {
+    id: "reading.meter.changing",
+    title: "Changing meters",
     screens: [
       {
-        title: m === "changing" ? "The meter changes" : `Counting ${label}`,
-        text: `${VALUE_METERS[m]} Check the time signature before you start, and at every bar where it changes.`,
+        title: "The meter changes",
+        text: `The time signature changes every 2 bars, through ${labels.slice(0, -1).join(", ")} and ${labels.at(-1)} in turn. ${CHECK_METER}`,
       },
     ],
   };
@@ -422,7 +448,7 @@ const ITEM_TEXT: Record<
   },
   syncopation: {
     title: "Syncopation",
-    text: "In syncopation a long note starts halfway between two quarter-note pulses and is held across the next pulse. No note starts on that pulse, so keep counting through it.",
+    text: "In syncopation a long note starts halfway between two quarter-note pulses and is held across the next pulse. Nothing new starts in that line on that pulse, so keep counting through the held note.",
     bar: { beats: 2, notes: [0.5, 1, 0.5] },
   },
   sixteenths: {
@@ -438,16 +464,6 @@ const ITEM_TEXT: Record<
   triplets: {
     title: "Triplets",
     text: "A triplet puts three even notes in the time of two of the same kind. Three eighth note triplets take the time of one quarter note.",
-  },
-  "half-rest": {
-    title: "Half rests",
-    text: "A half rest is silent for as long as a half note. It sits on top of the middle line of the staff.",
-    bar: { beats: 4, notes: [2, -2] },
-  },
-  "eighth-rest": {
-    title: "Eighth rests",
-    text: "An eighth rest is silent for as long as an eighth note. It looks like a slanted stroke with a flag.",
-    bar: { beats: 1, notes: [-0.5, 0.5] },
   },
   pickup: {
     title: "Pickup bar",
@@ -489,6 +505,66 @@ function valueItemLesson(id: string, clef: Clef): Lesson {
           : {}),
       },
     ],
+  };
+}
+
+/**
+ * Every rest the staff can draw (the engraver writes each silence as the longest of these that
+ * fits), longest first, with its length in shorter notes, three screens of steps.
+ */
+export const REST_VALUES: { name: string; beats: number; length: string }[][] = [
+  [
+    { name: "whole", beats: 4, length: "four quarter notes" },
+    { name: "dotted half", beats: 3, length: "three quarter notes" },
+    { name: "half", beats: 2, length: "two quarter notes" },
+  ],
+  [
+    { name: "dotted quarter", beats: 1.5, length: "three eighth notes" },
+    { name: "quarter", beats: 1, length: "two eighth notes" },
+    { name: "eighth", beats: 0.5, length: "two sixteenth notes" },
+  ],
+  [
+    { name: "dotted eighth", beats: 0.75, length: "three sixteenth notes" },
+    { name: "sixteenth", beats: 0.25, length: "two thirty-second notes" },
+    { name: "dotted sixteenth", beats: 0.375, length: "three thirty-second notes" },
+    { name: "thirty-second", beats: 0.125, length: "half a sixteenth note" },
+  ],
+];
+/** "an eighth", "a half". */
+const an = (name: string, a: "A" | "a") => `${/^[aeiou]/.test(name) ? `${a}n` : a} ${name}`;
+function restsLesson(clef: Clef): Lesson {
+  const pitch = staffNote(clef, 4);
+  /** The note, then its rest. */
+  const pair = (beats: number) =>
+    staff(clef, [
+      { midi: pitch, beats },
+      { midi: null, beats },
+    ]);
+  const SCREENS = [
+    {
+      title: "Long rests",
+      text: "A rest is a silence as long as the note it is named after. The whole rest hangs below a line and the half rest sits on top of one. Tap Next to see each rest after its note.",
+    },
+    {
+      title: "Shorter rests",
+      text: "A dot after a rest adds half its length, as it does after a note. Tap Next to see each one.",
+    },
+    {
+      title: "The shortest rests",
+      text: "More flags make a shorter rest. Tap Next to see each one.",
+    },
+  ];
+  return {
+    id: "reading.values.rests",
+    title: "Rests",
+    screens: REST_VALUES.map((group, i) => ({
+      ...SCREENS[i],
+      figure: pair(group[0].beats),
+      steps: group.map((r) => ({
+        text: `${an(r.name, "A")} rest is silent as long as ${an(r.name, "a")} note, ${r.length}.`,
+        figure: pair(r.beats),
+      })),
+    })),
   };
 }
 
