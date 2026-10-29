@@ -44,6 +44,11 @@ describe("fretboard lessons", () => {
     ]);
   });
 
+  const offset = (w: string) =>
+    w === "the same fret" ? 0 : Number(w.split(" ")[0]) * (w.endsWith("lower") ? -1 : 1);
+  const text2 = (t: number[], mode: "note-finder" | "interval-recall", title: string) =>
+    fretboardLessons(mode, "guitar", t)[0].screens.find((s) => s.title === title)!.text;
+
   it("the fret rule names every exception pair, and the octave rule is the common one", () => {
     const notes = (t: number[]) => fretboardLessons("note-finder", "guitar", t)[0].screens;
     const text = (t: number[], title: string) => notes(t).find((s) => s.title === title)!.text;
@@ -61,18 +66,43 @@ describe("fretboard lessons", () => {
     expect(text(openG, "Fret 5 is the next string")).toContain(
       "from the G string (string 5) to the D string (string 4) it is fret 7",
     );
-    for (const t of [dropD, dadgad, openG]) {
-      const oct = text(t, "Octave shapes");
-      // open G: the same fret really is the offset most pairs share (D to D, G to G)
-      if (t === openG) expect(oct).toContain("the same fret");
-      else expect(oct).not.toContain("the same fret");
-      expect(oct).toContain("irregular pair");
+    const words = (t: string) =>
+      [...t.matchAll(/it is (the same fret|\d+ frets? (?:higher|lower))/g)].map((m) =>
+        offset(m[1]),
+      );
+    for (const t of [GUITAR, dropD, dadgad, openG]) {
+      const steps = fretboardLessons("interval-recall", "guitar", t)[0].screens.find(
+        (s) => s.title === "The octave",
+      )!.steps!;
+      // each step's words match the frets its marks show
+      const shown = steps.map((st) => {
+        const [r, top] = marks(st.figure);
+        expect(offset(st.text.split(": ")[1].slice(0, -1)), st.text).toBe(top.fret - r.fret);
+        return top.fret - r.fret;
+      });
+      // the screens name every pair that is not the regular 2 frets, each with its own offset
+      const named = shown.filter((o) => o !== 2);
+      expect(words(text2(t, "interval-recall", "The octave"))).toEqual(named);
+      expect(words(text(t, "Octave shapes"))).toEqual(named);
       const octave = notes(t).find((s) => s.title === "Octave shapes")!;
       const [a, b] = marks(octave.figure);
       expect(a.label).toBe(b.label);
       expect(a.label).not.toBe("R");
+      if (shown.includes(2))
+        expect(b.fret - a.fret).toBe(2); // the figure shows a pair that follows the regular case
+      else expect(text(t, "Octave shapes")).toContain("No pair of strings here follows");
     }
-    expect(text(GUITAR, "Octave shapes")).toContain("2 frets higher");
+    expect(text(GUITAR, "Octave shapes")).toContain("is 2 frets higher");
+    // the fret-5 rule skips the high G on the ukulele
+    expect(
+      fretboardLessons("note-finder", "ukulele", UKE)[0].screens.find(
+        (s) => s.title === "Fret 5 is the next string",
+      )!.text,
+    ).toContain("tuned high and does not follow this");
+    // the usual gap is not called "mostly" on open G
+    expect(JSON.stringify(fretboardLessons("interval-recall", "guitar", openG))).not.toContain(
+      "mostly",
+    );
   });
 
   it("every step on every curated tuning has both marks inside frets 0 to 5, and its text matches", () => {

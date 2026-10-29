@@ -88,17 +88,18 @@ export function fretboardLessons(
     `From the ${lo} to the ${hi}: ${rel(off)}.`;
   const skip2 = run.slice(0, -2).map((lo, i) => ({ lo, hi: run[i + 2] }));
   const octaveSteps = (pref: number) => stepsFor(skip2, 12, "8", fromTo(), pref);
-  /** The offset most steps share (the first, on a tie), in words. */
-  const commonOctave = (steps: LessonStep[]) => {
-    const offs = steps.map((x) => x.text.split(": ")[1].slice(0, -1));
-    return offs.sort(
-      (a, b) => offs.filter((o) => o === b).length - offs.filter((o) => o === a).length,
-    )[0];
-  };
-  /** Octave shapes change by a fret where they cross a shift, so say so when a step differs. */
-  const octaveVaries = (steps: LessonStep[]) =>
-    new Set(steps.map((x) => x.text.split(": ")[1])).size > 1;
-
+  /** Octave pairs (two strings up), with the frets higher each one takes. */
+  const ocPairs = skip2.map((q) => ({ ...q, off: 12 - (open[q.hi - 1] - open[q.lo - 1]) }));
+  /** The regular case: both gaps are the usual one. */
+  const regular = 12 - 2 * common;
+  const ocOdd = ocPairs.filter((q) => q.off !== regular);
+  const ocRule = (): string =>
+    (ocPairs.some((q) => q.off === regular)
+      ? `When both gaps are ${common} frets, the octave two strings up is ${rel(regular)}.`
+      : `No pair of strings here follows the usual ${common} fret gaps, so each pair has its own shape.`) +
+    (ocOdd.length
+      ? ` ${ocPairs.some((q) => q.off === regular) ? "Different" : "The pairs"} here: ${ocOdd.map((q) => `from the ${sn(q.lo)} to the ${sn(q.hi)} it is ${rel(q.off)}`).join("; ")}.`
+      : "");
   const highG = reentrant.length
     ? ` The ${reentrant.map(name).join(" and ")} string is tuned high, above the string next to it, so it sits apart from the rest.`
     : "";
@@ -118,15 +119,7 @@ export function fretboardLessons(
     const exception = odd.length
       ? ` Irregular ${odd.length > 1 ? "pairs" : "pair"}: ${odd.map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is fret ${p.gap}${p.gap > 5 ? " (past this figure)" : ""}`).join("; ")}.`
       : "";
-    // The octave rule most pairs share, shown on a pair that follows it.
-    const ocPairs = skip2.map((q) => ({ ...q, off: 12 - (open[q.hi - 1] - open[q.lo - 1]) }));
-    const ocMode = ocPairs
-      .map((q) => q.off)
-      .sort(
-        (a, b) =>
-          ocPairs.filter((q) => q.off === b).length - ocPairs.filter((q) => q.off === a).length,
-      )[0];
-    const ocPair = ocPairs.find((q) => q.off === ocMode);
+    const ocPair = ocPairs.find((q) => q.off === regular) ?? ocPairs[0];
     const oc =
       ocPair &&
       (upMarks(ocPair.lo, ocPair.hi, 12, name(ocPair.lo), 0)?.map((m) => ({
@@ -164,7 +157,7 @@ export function fretboardLessons(
           },
           {
             title: "Fret 5 is the next string",
-            text: `Fret ${common} on a string is the open note of the next string up.${exception} Tap Next to see each pair.`,
+            text: `Fret ${common} on a string is the open note of the next string up in pitch${reentrant.length ? `, counting from the ${sn(run[0])} (the ${reentrant.map(name).join(" and ")} string is tuned high and does not follow this)` : ""}.${exception} Tap Next to see each pair.`,
             figure: fig([]),
             steps: matchSteps,
           },
@@ -172,7 +165,7 @@ export function fretboardLessons(
             ? [
                 {
                   title: "Octave shapes",
-                  text: `An octave is 12 half steps, which is 12 frets on one string. Two strings up and ${rel(ocMode)} is the same note an octave higher.${ocPairs.some((q) => q.off !== ocMode) ? " The shape changes across an irregular pair." : ""}`,
+                  text: `An octave is 12 half steps, which is 12 frets on one string. ${ocRule()}`,
                   figure: fig(oc),
                 },
               ]
@@ -193,7 +186,7 @@ export function fretboardLessons(
         },
         {
           title: "The 4th",
-          text: `A 4th is 5 half steps, and neighbouring strings are mostly ${common} frets apart. So a 4th is the next string up, ${rel(5 - common)}.${highG}`,
+          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up, ${rel(5 - common)}${odd.length ? `, except ${odd.map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is ${rel(5 - p.gap)}`).join("; ")}` : ""}.${highG}`,
           figure: fig((first && upMarks(first.lo, first.hi, 5, "4")) || []),
         },
         {
@@ -223,7 +216,7 @@ export function fretboardLessons(
           ? [
               {
                 title: "The octave",
-                text: `An octave is 12 half steps, so go two strings up and ${commonOctave(octaveSteps(ROOT))}.${octaveVaries(octaveSteps(ROOT)) ? " The shape changes across an irregular pair." : ""} Tap Next to see each pair.`,
+                text: `An octave is 12 half steps. ${ocRule()}${ocOdd.length ? "" : " Tap Next to see each pair."}`,
                 figure: fig([]),
                 steps: octaveSteps(ROOT),
               },
