@@ -25,10 +25,8 @@ const worked = (fifths: number): LessonStep => {
   const n = Math.abs(fifths);
   const kind = fifths > 0 ? "sharp" : "flat";
   const first = k.accidentals.slice(0, n);
-  const text =
-    fifths > 0
-      ? `${k.major} major has ${n} ${kind}s: the first ${n}, ${first.join(" and ")}.`
-      : `${k.major} major has ${n} ${kind}s: ${first.join(" and ")}.`;
+  const names = n === 2 ? first.join(" and ") : first.join(", ");
+  const text = `${k.major} major has ${n} ${kind}s: ${names}.`;
   return { text, figure: sig(fifths, n) };
 };
 
@@ -39,11 +37,13 @@ const ORDER: Lesson = {
     {
       title: "The order of sharps",
       text: `Sharps always join a key signature in the same order: ${list(SHARP_ORDER)}. Remember it as Father Charles Goes Down And Ends Battle. Tap Next to add them one at a time.`,
+      figure: sig(0, 0),
       steps: growing(SHARP_ORDER, 1, "#"),
     },
     {
       title: "Flats run backwards",
       text: `Flats use the same letters in reverse: ${list(FLAT_ORDER)}. Read the sharps sentence from the end and you have the flats. Tap Next to add them one at a time.`,
+      figure: sig(0, 0),
       steps: growing(FLAT_ORDER, -1, "b"),
     },
     {

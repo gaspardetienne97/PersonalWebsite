@@ -125,9 +125,12 @@
   <p class="max-w-prose text-base">{screen.text}</p>
 
   {#if figure}
-    <div class="mx-auto w-full max-w-sm rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
+    <div class="mx-auto w-full max-w-md rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
       {#if figure.kind === "signature"}
-        <Staff score={sigScore(figure)} maxHeight="9rem" time={false} />
+        <!-- Key signature only: the empty bar's rest is hidden, the staff enlarged and centred. -->
+        <div class="sig">
+          <Staff score={sigScore(figure)} maxHeight="14rem" time={false} fill="center" />
+        </div>
         <p class="sr-only">{sigLabel(figure)}</p>
       {:else if figure.kind === "wheel"}
         <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label="The circle of fifths" />
@@ -161,3 +164,12 @@
     <span class="ml-auto hidden text-xs text-ws-stage-ink/70 sm:inline">Arrow keys move.</span>
   </div>
 </div>
+
+<style>
+  .sig :global(.vf-stavenote) {
+    display: none;
+  }
+  .sig {
+    zoom: 1.5;
+  }
+</style>

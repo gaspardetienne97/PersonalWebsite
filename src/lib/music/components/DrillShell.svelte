@@ -313,7 +313,7 @@
               {/each}
             </div>
           {/if}
-          {#if lesson?.lessons.length && !live}
+          {#if lesson?.lessons.length && phase === "ready"}
             <button
               type="button"
               class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
@@ -405,7 +405,9 @@
     {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
     {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}
     {#if showing}
-      <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
+      {#key shownLessons.map((l) => l.id).join()}
+        <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
+      {/key}
     {:else}
       {@render stage(phase)}
     {/if}
