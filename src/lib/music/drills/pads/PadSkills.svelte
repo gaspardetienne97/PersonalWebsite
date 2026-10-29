@@ -38,6 +38,7 @@
   import { PAD_REPERTOIRE, repertoireFor } from "@repo/music-core/content/pads-repertoire";
   import { CHOP_PADS, DYN_BANDS, NOTE_REPEAT_EXERCISES, SONG_FORMS, chopSource, gradeBuild, gradeWrittenSong, newWrittenSong, noteRepeatPiece, sectionDynamics, sectionPasses, setCheck, songFormPiece, writtenPiece, type Dyn, type WrittenSong } from "@repo/music-core/content/pads-studio";
   import type { GrooveDef } from "@repo/music-core/data/index";
+  import { padImproviseLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -657,6 +658,7 @@
   bind:status
   progress={phase === "running" && now >= downbeat ? clamp((now - downbeat) / lengthMs, 0, 1) : 0}
   clock={{ bpm, beatsPerBar: 4 }}
+  lesson={skill === "improvise" ? { lessons: [padImproviseLesson()] } : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}

@@ -8,6 +8,8 @@ import {
 } from "../content/jazz-voicings";
 import { GROOVE_LANES, GROOVE_LEVELS, earGroove, type GrooveLane } from "../content/rhythm";
 import { functionChord, functionSymbol, keyCadence, scaleRun } from "../content/ear";
+import { VIBRATO, VIBRATO_SETS } from "../content/aero-skills";
+import { fillGroove } from "../content/pad-skills";
 import { parseChordSymbol } from "../theory/chords";
 import { isBlackKey, noteName, pc } from "../theory/notes";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
@@ -387,6 +389,167 @@ export function chordTonesLesson(chord: string): Lesson {
         title: "Land on one",
         text: "End your phrase on one of these tones and it sounds settled. Notes outside the chord are fine on the way there. The chord changes as the groove goes round, and the tones change with it.",
         figure: upTo(tones.length),
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Aerophone: bite vibrato
+
+/** Cycles a second the drill asks for, as the drill works it out. */
+export const vibratoRate = (set: (typeof VIBRATO_SETS)[number]) => (set.pulses * set.bpm) / 60;
+
+/**
+ * The audio runtime has no pitch bend, so a pulse is heard as the note and the note a semitone below,
+ * one cycle each. Real vibrato is far narrower than that: this gives the rate only.
+ */
+const pulses = (rate: number, seconds: number, top = 67): LessonSound => ({
+  notes: Array.from({ length: Math.round(seconds * rate * 2) }, (_, i) => ({
+    midi: [top - (i % 2)],
+    at: i / (rate * 2),
+    dur: 1 / (rate * 2),
+  })),
+});
+
+const rateText = (set: (typeof VIBRATO_SETS)[number]) => {
+  const r = vibratoRate(set);
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+};
+
+export function biteVibratoLesson(): Lesson {
+  const going = VIBRATO_SETS.find((v) => v.bpm === 80)!;
+  const slowest = VIBRATO_SETS[0];
+  return {
+    id: "aerophone.vibrato",
+    title: "Bite vibrato",
+    screens: [
+      {
+        title: "Vibrato from the bite",
+        text: "Hold a note and pulse your bite on the mouthpiece. The Aerophone sends the bite as pitch bend, and the drill reads those values. If it says no bite arrived, set the bite to send pitch bend (E-Wind bite mode gives vibrato).",
+      },
+      {
+        title: "Pulses a beat",
+        text: `The drill sets a tempo and a number of pulses a beat, so ${slowest.pulses} a beat at ${slowest.bpm} is ${rateText(slowest)} pulses a second. The top setting, ${going.pulses} a beat at ${going.bpm}, is ${rateText(going)} a second, the going rate from Larry Teal. Tap each rate to hear it.`,
+        options: VIBRATO_SETS.map((v) => ({
+          label: `${v.pulses} a beat at ${v.bpm}`,
+          sound: pulses(vibratoRate(v), 2),
+        })),
+      },
+      {
+        title: "What you hear here",
+        text: "Each tap above alternates a note with the note a semitone below, one pair per pulse. The app cannot bend a pitch, and real vibrato is much narrower than a semitone. So this shows the rate only, not the width.",
+      },
+      {
+        title: "What the drill checks",
+        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are as a share of the bend range but does not score the depth.`,
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pads: improvise
+
+const BEAT = 0.6;
+/** The drill's fill and the rock groove under it, as onsets in beats within one bar. */
+const PAD_BARS = () => {
+  const g = fillGroove("snare-eighths");
+  const bar = (n: number) => {
+    const lanes: Record<GrooveLane, number[]> = { hat: [], snare: [], kick: [] };
+    for (const t of g.targets) {
+      const b = t.beat - n * 4;
+      if (b < 0 || b >= 4) continue;
+      if (t.voice === "hats") lanes.hat.push(b);
+      else if (t.voice === "snare" || t.voice === "kick") lanes[t.voice].push(b);
+    }
+    for (const k of GROOVE_LANES) lanes[k.id].sort((a, c) => a - c);
+    return lanes;
+  };
+  return { groove: bar(0), fill: bar(3) };
+};
+
+/** Bars of drum hits one after the other, `at` in beats within each bar; extra hits are `[midi, beat]`. */
+const padSound = (
+  bars: Record<GrooveLane, number[]>[],
+  extra: [number, number][] = [],
+): LessonSound => ({
+  notes: [
+    ...bars.flatMap((g, i) =>
+      GROOVE_LANES.flatMap((l) =>
+        g[l.id].map((b) => ({
+          midi: [l.midi],
+          at: (i * 4 + b) * BEAT,
+          dur: 0.1,
+          drum: true,
+          velocity: l.id === "hat" ? 0.5 : 0.9,
+        })),
+      ),
+    ),
+    ...extra.map(([midi, beat]) => ({
+      midi: [midi],
+      at: beat * BEAT,
+      dur: 0.4,
+      drum: true,
+      velocity: 0.9,
+    })),
+  ],
+});
+
+const padGrid = (bars: Record<GrooveLane, number[]>[]): LessonFigure => ({
+  kind: "groove",
+  bars: bars.length,
+  perBeat: 2,
+  lanes: Object.fromEntries(
+    GROOVE_LANES.map((l) => [l.id, bars.flatMap((g, i) => g[l.id].map((b) => i * 4 + b))]),
+  ),
+});
+
+/** The groove bar with one more kick, on the "and" of 4. */
+export const variedBar = () => {
+  const { groove } = PAD_BARS();
+  return { ...groove, kick: [...groove.kick, 3.5] };
+};
+
+export function padImproviseLesson(): Lesson {
+  const { groove, fill } = PAD_BARS();
+  const varied = variedBar();
+  const bare = { ...groove, hat: [] };
+  const CRASH = 49;
+  const KICK = GROOVE_LANES.find((l) => l.id === "kick")!.midi;
+  return {
+    id: "pads.improvise",
+    title: "Improvising on the pads",
+    screens: [
+      {
+        title: "Play over the band",
+        text: "In this drill the band plays a loop and you play any pads and any rhythm over it. It is graded on time, meaning how close your hits sit to the sixteenth grid, and on keeping every bar going. A bar counts as kept going when it has at least two hits.",
+      },
+      {
+        title: "Vary the groove",
+        text: "Keep a groove going and change a little each time round. Tap Plain to hear one bar twice, or Varied to hear it then the same bar with one more kick on the and of 4. The grid shows the second bar.",
+        options: [
+          { label: "Plain", sound: padSound([groove, groove]), figure: padGrid([groove]) },
+          { label: "Varied", sound: padSound([groove, varied]), figure: padGrid([varied]) },
+        ],
+      },
+      {
+        title: "Add a fill",
+        text: "The grid shows a groove bar, then a fill bar where the hi-hat drops out after the & of 2 and the snare plays eighths on 3 and 4. Hear it adds the crash and kick on the next bar's one. In the drill, with A fill every 4 or 8 bars set, the fill bar needs more hits than your usual bar, so keep the hi-hat going, and a hit on the next bar's one.",
+        figure: padGrid([groove, fill]),
+        sound: padSound(
+          [groove, fill],
+          [
+            [CRASH, 8],
+            [KICK, 8],
+          ],
+        ),
+      },
+      {
+        title: "Leave space",
+        text: "You do not have to fill every beat. This bar is only the kick and snare, with no hi-hat, and it still counts as kept going. Only a bar with no hits, or one hit, loses that part of the score.",
+        figure: padGrid([bare]),
+        sound: padSound([bare, bare]),
       },
     ],
   };

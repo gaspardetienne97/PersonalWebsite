@@ -187,6 +187,8 @@ test.describe("tier 1 lessons", () => {
     ["groove dictation", "/music/rhythm?mode=groove", "The kick"],
     ["find home", "/music/by-ear?mode=home", "Home is one note"],
     ["call and response answer", "/music/call-response?mode=answer", "The chord's tones"],
+    ["aerophone bite vibrato", "/music/aerophone?mode=vibrato", "Vibrato from the bite"],
+    ["pads improvise", "/music/pads?mode=improvise", "Play over the band"],
   ];
   for (const [name, url, heading] of cases) {
     test(`${name} shows its lesson on the first visit`, async ({ page }) => {

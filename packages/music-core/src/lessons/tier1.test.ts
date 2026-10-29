@@ -13,7 +13,12 @@ import { isBlackKey } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { lessonProblems } from "./check";
+import { VIBRATO_SETS } from "../content/aero-skills";
 import {
+  biteVibratoLesson,
+  padImproviseLesson,
+  variedBar,
+  vibratoRate,
   chordTones,
   chordTonesLesson,
   exampleVoicing,
@@ -431,5 +436,59 @@ describe("fix round 1", () => {
         ).toBe(true);
       }
     }
+  });
+});
+
+describe("bite vibrato lesson", () => {
+  const l = biteVibratoLesson();
+  it("is valid", () => {
+    expect(l.id).toBe("aerophone.vibrato");
+    expect(lessonProblems(l)).toEqual([]);
+  });
+  it("plays each of the drill's rates, as cycles a second", () => {
+    const opts = l.screens[1].options!;
+    expect(opts).toHaveLength(VIBRATO_SETS.length);
+    VIBRATO_SETS.forEach((v, i) => {
+      const n = opts[i].sound.notes;
+      // two notes a cycle over two seconds
+      expect(n.length).toBe(Math.round(2 * vibratoRate(v) * 2));
+      expect(n[2].at - n[0].at).toBeCloseTo(1 / vibratoRate(v), 6);
+    });
+    expect(vibratoRate(VIBRATO_SETS[3])).toBeCloseTo(16 / 3, 6);
+    expect(l.screens[1].text).toContain("is 5.3 a second");
+  });
+});
+
+describe("pads improvise lesson", () => {
+  const l = padImproviseLesson();
+  it("is valid", () => {
+    expect(l.id).toBe("pads.improvise");
+    expect(lessonProblems(l)).toEqual([]);
+  });
+  it("the varied bar is the groove bar plus one kick", () => {
+    const [plain, varied] = l.screens[1].options!.map((o) => o.figure);
+    if (plain?.kind !== "groove" || varied?.kind !== "groove") throw new Error("groove figures");
+    expect(varied.lanes.kick).toEqual([...plain.lanes.kick!, 3.5]);
+    expect(varied.lanes.snare).toEqual(plain.lanes.snare);
+    expect(variedBar().kick).toEqual(varied.lanes.kick);
+  });
+  it("the fill bar's snare and hat match the text, and the leave-space bar has no hat", () => {
+    const count = (f: LessonFigure | undefined, bar: number, lane?: "snare" | "hat") => {
+      if (f?.kind !== "groove") throw new Error("groove figure");
+      return Object.entries(f.lanes)
+        .filter(([k]) => !lane || k === lane)
+        .flatMap(([, v]) => v!)
+        .filter((b) => Math.floor(b / 4) === bar).length;
+    };
+    const fig = l.screens[2].figure;
+    // the text: snare eighths on 3 and 4 in the fill; the hat stops after beat 2
+    expect(count(fig, 1, "snare")).toBeGreaterThan(count(fig, 0, "snare"));
+    expect(
+      Math.max(...(fig as { lanes: { hat: number[] } }).lanes.hat.filter((b) => b >= 4)) - 4,
+    ).toBe(1.5);
+    const space = l.screens[3].figure;
+    if (space?.kind !== "groove") throw new Error("groove figure");
+    expect(space.lanes.hat).toEqual([]);
+    expect(count(space, 0)).toBeGreaterThanOrEqual(2);
   });
 });

@@ -40,6 +40,7 @@
   import { gradeLine, type LineResult } from "@repo/music-core/scoring/technique";
   import { attackTiming } from "@repo/music-core/scoring/aerophone";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
+  import { biteVibratoLesson } from "@repo/music-core/lessons/tier1";
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
@@ -422,6 +423,7 @@
   bind:status
   progress={timed && stepNow !== null ? (stepNow + 1) / line.length : 0}
   clock={timed || skill === "vibrato" ? { bpm, beatsPerBar: 4 } : null}
+  lesson={skill === "vibrato" ? { lessons: [biteVibratoLesson()] } : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
