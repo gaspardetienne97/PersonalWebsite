@@ -358,6 +358,8 @@ export interface Settings {
   onscreenSound: boolean;
   /** Gain applied to microphone recordings before encoding (dB, 0..24). */
   recordBoostDb: number;
+  /** Ids of intro lessons already shown. */
+  lessonsSeen: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -390,4 +392,5 @@ export const DEFAULT_SETTINGS: Settings = {
   feedbackStyle: "every-note",
   onscreenSound: true,
   recordBoostDb: 0,
+  lessonsSeen: [],
 };
