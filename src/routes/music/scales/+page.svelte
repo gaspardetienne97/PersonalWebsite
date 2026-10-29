@@ -3,6 +3,7 @@
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
   import { SCALE_GROUPS } from "@repo/music-core/theory/scales";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import {
     ABRSM_SPEEDS,
     CHORD_KINDS,
@@ -111,6 +112,10 @@
     return shift ? raw.map((st) => ({ ...st, notes: st.notes.map((n) => ({ ...n, midi: n.midi + shift })) })) : raw;
   });
   const key = $derived(scaleSetupKey(scaleSetup));
+  // The formula card for a scale line in a major or minor scale, shown the first time Check is chosen.
+  const card = $derived(
+    !isScaleLine(pattern) ? null : s.kind === "major" ? "scales.major-formula" : ["natural-minor", "harmonic-minor", "melodic-minor"].includes(s.kind) ? "scales.minor-forms" : null,
+  );
 
   function bpm() {
     return Math.min(SCALE_TEMPO.max, Math.max(SCALE_TEMPO.min, settings.value.bpm));
@@ -471,6 +476,7 @@
 <svelte:head><title>Scales | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={card ? { lessons: conceptCard(card), trigger: "check" } : null}
   title="Scales"
   hue="piano"
   blurb="Scales, arpeggios and chords through their inversions, evenly at the click. Clean checks climb the tempo ladder, or aim for an ABRSM grade's speed."

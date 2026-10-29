@@ -4,6 +4,7 @@
   import { noteName, pc, pcOf } from "@repo/music-core";
   import { CHORD_PATTERNS, KEY_CYCLE, chordPatternLine, chordScaleTargets, cycleTranspose, goToScale } from "@repo/music-core/content/piano";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import { gradeChordScales, gradeLick, type ChordScaleResult, type LickResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
@@ -306,6 +307,7 @@
 <svelte:head><title>Chord scales | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={changes === "major" && !pattern ? { lessons: conceptCard("chord-scales.why"), trigger: "check" } : null}
   title="Chord scales"
   hue="piano"
   blurb="As the ii-V-I moves, play the go-to scale for the chord you're on, every note judged against that chord's scale; or play 1-2-3-5 or 3-5-7-9 on each chord through the keys."

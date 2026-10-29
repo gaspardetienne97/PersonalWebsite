@@ -2,6 +2,7 @@
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import type { HandMode, TwoHandPatternId } from "@repo/music-core/data/index";
   import { TWO_HAND_MODES, TWO_HAND_PATTERNS, TWO_HAND_TONICS, twoHandPattern, twoHandSkills } from "@repo/music-core/content/piano";
   import { gradeTwoHand, type TwoHandResult } from "@repo/music-core/scoring/piano";
@@ -278,6 +279,7 @@
 <svelte:head><title>Two hands | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={{ lessons: conceptCard("tips.two-hand"), trigger: "check" }}
   title="Two hands"
   hue="piano"
   blurb="Each hand plays its own part on the click. Mirror hands asks them to strike together."

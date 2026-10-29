@@ -6,6 +6,7 @@
   // Input: on-screen frets (which also carry the string), MIDI, or the microphone.
   // Before a run, Spider and Legato take their string and start fret from a tap on the neck.
   import { onDestroy } from "svelte";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -167,6 +168,10 @@
   const spiderPattern = $derived(SPIDER_PATTERNS.find((p) => p.id === s.pattern) ?? SPIDER_PATTERNS[0]);
   const shapes = $derived(positionPatternsFor(instr));
   const box = $derived(shapes.find((p) => p.id === s.pattern) ?? shapes[0]);
+  // Check-mode cards: spider technique, and on guitar the CAGED shapes or the pentatonic boxes the setup is on (the ukulele's positions and the triads and B.B. box have none).
+  const card = $derived(
+    isSpider ? "tips.spider" : kind === "positions" && instr === "guitar" ? (box.family === "caged-major" ? "positions.caged" : box.family === "minor-pentatonic" || box.family === "connected" ? "positions.boxes" : null) : null,
+  );
   /** The open note of the string the root fret is on (6 on guitar, 1 on ukulele). */
   const rootOpen = $derived(tuning.openStrings[(box.rootString ?? 6) - 1]);
   const stringCount = $derived(tuning.openStrings.length);
@@ -620,6 +625,7 @@
 </script>
 
 <DrillShell
+  lesson={card ? { lessons: conceptCard(card), trigger: "check" } : null}
   title={isPick ? "Fingerpicking" : isHarm ? "Harmonics" : isLegato ? "Hammer-ons and pull-offs" : isSpider ? "Spider" : "Positions"}
   hue={instr}
   blurb={isHarm

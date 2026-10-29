@@ -5,6 +5,7 @@
   import { GOSPEL_PROGRESSIONS, KEY_CYCLE } from "@repo/music-core/content/piano";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { jazzVoicingLesson } from "@repo/music-core/lessons/tier1";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
@@ -59,6 +60,9 @@
   const variant = $derived((s.variant === "jazz" ? lastJazz : VARIANTS.some((v) => v.value === s.variant) || isJazzType(s.variant) ? s.variant : "major") as Variant);
   const jazzType = $derived(JAZZ_VOICING_TYPES.find((t) => t.id === variant));
   const onTune = $derived(jazzType?.key === "tune");
+  // The jazz types tab keeps its lesson on open; rootless, closest chords and the cadences get a card on the first Check.
+  const CARDS: Partial<Record<string, string>> = { major: "voicings.rootless", inversions: "voicings.inversions", cadence: "voicings.cadence", "cadence-minor": "voicings.cadence-minor" };
+  const lessonRef = $derived(jazzType ? { lessons: jazzVoicingLesson(jazzType.id) } : CARDS[variant] ? { lessons: conceptCard(CARDS[variant]!), trigger: "check" as const } : null);
   /** Upper structures need a dominant; quartal and slash voicings run on any tune. */
   const tuneList = $derived(variant === "upper" ? UPPER_TUNES : TUNES);
   const tune = $derived(tuneList.find((t) => t.id === s.tune) ?? tuneList[0]);
@@ -293,7 +297,7 @@
 <svelte:head><title>Voicings | Woodshed</title></svelte:head>
 
 <DrillShell
-  lesson={jazzType ? { lessons: jazzVoicingLesson(jazzType.id) } : null}
+  lesson={lessonRef}
   title="Voicings"
   hue="piano"
   blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, guide-tone voice leading, and jazz piano voicing types from So What chords to locked hands. Untimed: take the time to find each chord."

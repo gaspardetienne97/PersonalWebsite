@@ -3,6 +3,7 @@
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
   import { COMPING_PATTERNS } from "@repo/music-core/content/piano";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { JAZZ } from "@repo/music-core/data/index";
@@ -257,6 +258,7 @@
 <svelte:head><title>Comping | Woodshed</title></svelte:head>
 
 <DrillShell
+  lesson={{ lessons: conceptCard("comping.charleston"), trigger: "check" }}
   title="Comping"
   hue="piano"
   blurb="A blues line in the right hand over a Charleston shell in the left: one, and-of-two, nothing else."

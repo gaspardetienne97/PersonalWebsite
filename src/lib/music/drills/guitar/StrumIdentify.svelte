@@ -4,6 +4,7 @@
   // chord templates on 12 roots, and the reading is checked against the shape.
   // score = confidence x 0.35 + verification x 0.65 (gradeStrumIdentify).
   import { onDestroy } from "svelte";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import { FLAT_NAMES } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
@@ -190,6 +191,7 @@
 </script>
 
 <DrillShell
+  lesson={{ lessons: conceptCard("tips.strum"), trigger: "check" }}
   title="Strum and identify"
   hue={instr}
   blurb="Strum the chord once into the microphone. The app names what it heard and checks each chord tone."

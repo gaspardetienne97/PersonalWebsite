@@ -7,6 +7,7 @@
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { gradeChordStrings, gradeLine } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
@@ -235,6 +236,7 @@
 </script>
 
 <DrillShell
+  lesson={{ lessons: conceptCard("tips.chords"), trigger: "check" }}
   title={isPick ? "Pick it clean" : "Build the chord"}
   hue={instr}
   blurb={isPick

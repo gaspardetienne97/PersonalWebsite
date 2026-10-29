@@ -405,3 +405,50 @@ test.describe("jam game lessons", () => {
     }
   });
 });
+
+test.describe("concept cards", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+  const check = (page: Page) => page.getByRole("button", { name: "Check", exact: true });
+
+  test("Scales shows no card in Practice, the formula card on first Check, and stays in Check", async ({
+    page,
+  }) => {
+    await page.goto("/music/scales?instrument=piano");
+    await expect(page.getByRole("button", { name: /^Start/ }).first()).toBeVisible();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await check(page).click();
+    await expect(page.getByTestId("lesson")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Whole steps and half steps" })).toBeVisible();
+    await (await toEnd(page)).click();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Start/ }).first()).toBeVisible();
+    await expect(check(page)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("a technique tip shows on first Check", async ({ page }) => {
+    await page.goto("/music/two-hand");
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await check(page).click();
+    await expect(page.getByRole("heading", { name: "One hand at a time" })).toBeVisible();
+  });
+
+  test("cards fit at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const url of [
+      "/music/scales?instrument=piano",
+      "/music/voicings?variant=major",
+      "/music/chord-scales",
+    ]) {
+      await page.goto(url);
+      await check(page).click();
+      await expect(page.getByTestId("lesson")).toBeVisible();
+      for (let i = 0; i < 4; i++) {
+        await page.keyboard.press("ArrowRight");
+        await expectNoHorizontalOverflow(page);
+      }
+    }
+  });
+});

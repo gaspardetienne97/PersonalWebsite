@@ -5,6 +5,7 @@
   // Round trips or a timed minute, optionally against a clock (BPM and beats per chord). Taps and MIDI
   // give notes; with the microphone on, each strum is read as chroma instead.
   import { onDestroy } from "svelte";
+  import { conceptCard } from "@repo/music-core/lessons/cards";
   import { page } from "$app/state";
   import { replaceState } from "$app/navigation";
   import { noteName, type NoteEvent } from "@repo/music-core";
@@ -332,6 +333,7 @@
 </script>
 
 <DrillShell
+  lesson={{ lessons: conceptCard("tips.changes"), trigger: "check" }}
   title="Chord changes"
   hue={instr}
   blurb="Move through two or more chords and back to the first. Each arrival counts when its target notes are there, and each set of chords keeps a history of changes per minute."
