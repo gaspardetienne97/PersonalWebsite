@@ -86,7 +86,7 @@ const intervalSound = (token: string, direction: Direction = "ascending", root =
   sound(intervalPrompt(rng(1), { difficulty: 0.3, token, direction, root }).playback);
 
 const intervals = {
-  intro: () =>
+  intro: (o: EarOptions) =>
     card("ear.intervals", "Intervals", {
       title: "Distance in half steps",
       text: "An interval is the distance between two notes, counted in half steps: one piano key to the next. The quiz plays two notes and you name the distance. Tap a distance to hear it.",
@@ -94,8 +94,12 @@ const intervals = {
         const i = EAR_INTERVALS.find((x) => x.token === t)!;
         return {
           label: hs(i.semitones),
-          sound: intervalSound(t),
-          figure: keys({ 60: "1st", [60 + i.semitones]: "2nd" }),
+          sound: intervalSound(t, fixedDirection(o.direction) ?? "ascending"),
+          figure: keys({
+            60: "1st",
+            [60 + (fixedDirection(o.direction) === "descending" ? -i.semitones : i.semitones)]:
+              "2nd",
+          }),
         };
       }),
     }),
@@ -157,38 +161,56 @@ const SEVENTHS: Record<number, string> = {
   10: "minor 7th",
   11: "major 7th",
 };
+/** What a cue can name: a chord's 3rd, 5th or 7th (its half steps above the root), or the lack of a 7th. */
+export type CueElement =
+  | { kind: "third" | "fifth" | "seventh"; n: number }
+  | { kind: "none7"; n: 0 };
+const elementsOf = (token: string): CueElement[] => {
+  const [, third, fifth, seventh] = QUALITIES.find((x) => x.token === token)!.intervals;
+  return [
+    { kind: "third", n: third },
+    { kind: "fifth", n: fifth },
+    seventh ? { kind: "seventh", n: seventh } : { kind: "none7", n: 0 },
+  ];
+};
+const hasElement = (token: string, c: CueElement) =>
+  elementsOf(token).some((e) => e.kind === c.kind && e.n === c.n);
+/**
+ * The fewest of a quality's own intervals (3rd, 5th, 7th, or no 7th) that no other quality in `set` has all of,
+ * so the cue tells it from every other quality the quiz can ask in that set.
+ */
+export function qualityCue(token: string, set: readonly string[]): CueElement[] {
+  const own = elementsOf(token);
+  const others = set.filter((t) => t !== token && QUALITIES.some((q) => q.token === t));
+  const subsets = [1, 2, 3].flatMap((size) =>
+    [[0], [1], [2], [0, 1], [0, 2], [1, 2], [0, 1, 2]]
+      .filter((x) => x.length === size)
+      .map((x) => x.map((i) => own[i])),
+  );
+  return subsets.find((sub) => !others.some((t) => sub.every((c) => hasElement(t, c)))) ?? own;
+}
 const qualities = {
   intro: () =>
     card("ear.chord-qualities", "Chord qualities", {
       title: "One chord, all notes together",
       text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Each quality is next.",
     }),
-  item: (token: string) => {
+  item: (token: string, o: EarOptions = {}) => {
     const q = QUALITIES.find((x) => x.token === token);
     if (!q) return null;
     const [, third, fifth, seventh] = q.intervals;
     const parts = ["root", THIRDS[third], FIFTHS[fifth], ...(seventh ? [SEVENTHS[seventh]] : [])];
-    // What tells it from the others: the 3rd for major and minor, the 5th for the other triads, and for a
-    // seventh chord the 7th together with the 3rd or 5th that the sevenths share.
-    const cue: [string, number][] =
-      token === "major" || token === "minor"
-        ? [[THIRDS[third], third]]
-        : !seventh
-          ? [[FIFTHS[fifth], fifth]]
-          : token === "diminished-7" || token === "half-diminished-7"
-            ? [
-                [FIFTHS[fifth], fifth],
-                [SEVENTHS[seventh], seventh],
-              ]
-            : [
-                [THIRDS[third], third],
-                [SEVENTHS[seventh], seventh],
-              ];
+    const cue = qualityCue(token, o.items ?? [token]);
+    const heard = cue.filter((c) => c.kind !== "none7");
+    const words = heard.map(
+      (c) => ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n],
+    );
+    const no7 = cue.some((c) => c.kind === "none7");
     const chord = q.intervals.map((i) => 60 + i);
     const title = q.label.charAt(0) + q.label.slice(1).toLowerCase();
     return card(`ear.chord-qualities:${token}`, title, {
       title,
-      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${cue.map(([w]) => w).join(" with the ")}, ${cue.map(([, n]) => n).join(" and ")} half steps above the root.`,
+      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${words.join(" with the ")}, ${heard.map((c) => c.n).join(" and ")} half steps above the root${no7 ? ", and no 7th" : ""}.`,
       figure: keys(marksOf(chord)),
       sound: { notes: [{ midi: chord, at: 0, dur: 0.9 }] },
     });
@@ -509,25 +531,25 @@ const scaleDegrees = {
   item: degreeItem("scale-degrees", true),
 };
 const melodyDictation = {
-  intro: () => {
+  intro: (o: EarOptions) => {
     const p = melodyDictationPrompt(rng(3), {
       difficulty: 0.3,
-      level: "major-pentachord",
+      level: o.level ?? "major-pentachord",
       keyPc: 0,
     });
     return card("ear.melody-dictation", "Melody dictation", {
       title: "Write down the degrees",
       text: `The key is set first, then the tonic plays and a short phrase follows, and you write down its degrees. This one is ${p.answer}.`,
-      sound: afterSetup(false, p.playback),
+      sound: afterSetup(p.minor, p.playback),
     });
   },
   item: degreeItem("melody-dictation", true),
 };
 const wrongNote = {
-  intro: () => {
+  intro: (o: EarOptions) => {
     const p = errorDetectPrompt(rng(7), {
       difficulty: 0.3,
-      level: "major-pentachord",
+      level: o.level ?? "major-pentachord",
     });
     const at = Number(p.answer);
     const written = p.playback.map((e, i) =>
@@ -591,9 +613,13 @@ const feel = {
 export interface EarOptions {
   direction?: string;
   minor?: boolean;
+  /** The degree level (melody dictation, wrong note): the intro's example uses its degrees. */
+  level?: string;
+  /** The items asked, so a cue can be told apart within the set. */
+  items?: readonly string[];
 }
 type Builder = {
-  intro: () => Lesson;
+  intro: (o: EarOptions) => Lesson;
   item?: (item: string, o?: EarOptions) => Lesson | null;
 };
 const BUILDERS: Record<string, Builder> = {
@@ -628,5 +654,6 @@ export function earLessons(
 ): Lesson[] {
   const b = BUILDERS[drillId];
   if (!b) return [];
-  return [b.intro(), ...items.flatMap((i) => b.item?.(i, o) ?? [])];
+  const all = { ...o, items };
+  return [b.intro(all), ...items.flatMap((i) => b.item?.(i, all) ?? [])];
 }

@@ -539,7 +539,7 @@
     else if (slug === "bass-lines") items = [...(BASS_LEVELS.find((l) => l.id === s.bassLevel) ?? BASS_LEVELS[0]).degrees];
     else if (slug === "scale-degrees" || slug === "melody-dictation" || (slug === "wrong-note" && !fromSongs)) items = levelDegrees(level);
     const degs = levelDegrees(level);
-    const lessons = earLessons(keyChanges ? "key-changes" : slug, keyChanges ? [] : items, { direction: slug === "intervals" ? s.direction : undefined, minor: degs.includes("b3") && !degs.includes("3") });
+    const lessons = earLessons(keyChanges ? "key-changes" : slug, keyChanges ? [] : items, { direction: slug === "intervals" ? s.direction : undefined, level, minor: degs.includes("b3") && !degs.includes("3") });
     return lessons.length ? { lessons } : null;
   });
 
