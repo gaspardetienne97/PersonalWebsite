@@ -19,12 +19,12 @@ import {
 import { noteName, octaveOf, parseNote, pc } from "../theory/notes";
 import { FLAT_ORDER, SHARP_ORDER } from "../theory/circle";
 import {
-  READING_LEVELS,
   READING_METERS,
   CHANGING_METERS,
-  readingLevel,
   readingLevelId,
+  sightReadingItems,
   type ReadingMeter,
+  type SightItem,
 } from "../content/reading";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
@@ -155,23 +155,24 @@ function accidentalsLesson(): Lesson {
   };
 }
 
-/** What a sight-reading level asks for, from its rhythm text and that of the levels before it on the same path. */
-const VALUE_ITEMS: { id: string; test: RegExp }[] = [
-  { id: "ties", test: /\btie/ },
-  { id: "dotted-quarter", test: /dotted quarter|dotted rhythms/ },
-  { id: "syncopation", test: /syncopation/ },
-  { id: "sixteenths", test: /sixteenth/ },
-  { id: "dotted-eighth", test: /dotted eighth/ },
-  { id: "triplets", test: /triplet/ },
-  { id: "pickup", test: /pickup/ },
-  { id: "swing", test: /swing/ },
+/** The order item cards are taught in. */
+const ITEM_ORDER: SightItem[] = [
+  "ties",
+  "dotted-quarter",
+  "syncopation",
+  "sixteenths",
+  "dotted-eighth",
+  "triplets",
+  "pickup",
+  "accidentals",
+  "chords",
+  "clef-change",
+  "swing",
 ];
-export function levelItems(levelId: string): string[] {
-  const level = readingLevel(readingLevelId(levelId));
-  const path = READING_LEVELS.filter((l) => l.reader === "any" || l.reader === level.reader);
-  const upto = path.slice(0, path.findIndex((l) => l.id === level.id) + 1);
-  const text = upto.map((l) => l.rhythm.toLowerCase()).join(" | ");
-  return VALUE_ITEMS.filter((i) => i.test.test(text)).map((i) => i.id);
+/** What a sight-reading level and meter can write, in teaching order; from the generator's configuration. */
+export function levelItems(levelId: string, meter: string, grand = false): SightItem[] {
+  const found = sightReadingItems(readingLevelId(levelId), meter, grand);
+  return ITEM_ORDER.filter((i) => found.includes(i));
 }
 
 export interface ReadingOptions {
@@ -184,6 +185,8 @@ export interface ReadingOptions {
   /** Sight-reading: the level and the meter its phrase is written in. */
   level?: string;
   meter?: string;
+  /** A piano reading both clefs (the left hand then accompanies). */
+  grand?: boolean;
 }
 
 export function readingLessons(
@@ -200,7 +203,7 @@ export function readingLessons(
       ...(opts.accidentals ? [accidentalsLesson()] : []),
       ...(opts.stack ? [stackedLesson(opts.stack)] : []),
     ];
-  const items = opts.level ? levelItems(opts.level) : [];
+  const items = opts.level ? levelItems(opts.level, opts.meter ?? "simple", opts.grand) : [];
   const meter =
     opts.meter && VALUE_METERS[opts.meter as ReadingMeter]
       ? [meterLesson(opts.meter as ReadingMeter)]
@@ -208,7 +211,7 @@ export function readingLessons(
   return [
     ...clefs.map(linesSpaces),
     valuesLesson(clefs[0]),
-    ...items.map(valueItemLesson),
+    ...items.map((i) => (i === "accidentals" ? accidentalsLesson() : valueItemLesson(i))),
     ...meter,
     ...sig,
   ];
@@ -343,7 +346,10 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
       screens: [
         {
           title: `This key has ${plural(n, word)}`,
-          text: `Tap Next to add the ${plural(n, word)} one at a time, in the order they are written.`,
+          text:
+            n === 1
+              ? `Tap Next to add the ${word}.`
+              : `Tap Next to add the ${plural(n, word)} one at a time, in the order they are written.`,
           figure: sig(0),
           steps: order.map((l, i) => ({
             text: `${l} ${word}: every ${l}, in every octave, is played a half step ${sharp ? "higher" : "lower"}.`,
@@ -397,31 +403,39 @@ const ITEM_TEXT: Record<
   },
   "dotted-quarter": {
     title: "Dotted quarter notes",
-    text: "A dotted quarter note lasts one and a half beats. It is often followed by an eighth note, which makes up the other half beat.",
+    text: "A dotted quarter note is a quarter note plus an eighth note, so it is as long as three eighth notes. A dot always adds half of the note's own length.",
     bar: { beats: 2, notes: [1.5, 0.5] },
   },
   syncopation: {
     title: "Syncopation",
-    text: "Syncopation puts a note on a weak part of the beat and holds it over the next beat. That next beat then has no note starting on it, so keep counting through it.",
+    text: "Syncopation puts a long note off the beat and holds it over the next beat. That beat then has no note starting on it, so keep counting through it.",
     bar: { beats: 2, notes: [0.5, 1, 0.5] },
   },
   sixteenths: {
     title: "Sixteenth notes",
-    text: "A sixteenth note lasts a quarter of a beat, so four fit in one beat. Count them 1 e & a.",
+    text: "Four sixteenth notes make one quarter note, and two make an eighth note. Sixteenths are written with two beams or two flags.",
     bar: { beats: 1, notes: [0.25, 0.25, 0.25, 0.25] },
   },
   "dotted-eighth": {
     title: "Dotted eighth and sixteenth",
-    text: "A dotted eighth note lasts three quarters of a beat, and the sixteenth after it fills the last quarter. Together they make one beat.",
+    text: "A dotted eighth note is an eighth note plus a sixteenth note. A dotted eighth and a sixteenth together are as long as a quarter note.",
     bar: { beats: 1, notes: [0.75, 0.25] },
   },
   triplets: {
     title: "Triplets",
-    text: "A triplet puts three even notes in the time of two of the same kind. An eighth note triplet fits three notes in one beat.",
+    text: "A triplet puts three even notes in the time of two of the same kind. Three eighth note triplets take the time of one quarter note.",
   },
   pickup: {
-    title: "Pickup notes",
-    text: "A pickup is a short first bar: the music starts partway through the bar, on one of its last counts. Count the missing beats silently before you start.",
+    title: "Pickup bar",
+    text: "The first bar opens with rests, and only its last note is played. Count the rests silently and come in on that note.",
+  },
+  chords: {
+    title: "Chords in the right hand",
+    text: "On some strong beats the right hand plays the melody note with one or two lower notes. Play them together.",
+  },
+  "clef-change": {
+    title: "Clef changes",
+    text: "For a bar or two the left hand may read in the treble clef, and a small clef sign on the staff marks the change. A bass clef sign marks the return.",
   },
   swing: {
     title: "Swing",
@@ -643,7 +657,7 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     card(
       "rests-halves",
       "Rests and half notes",
-      `A rest is a silent count, and a half note is held through two counts. In this bar a note starts on ${e.names}.`,
+      `A rest is a silent beat, and ${g === "compound" ? "a dotted half note is held through both beats of the bar" : "a half note is held through two beats"}. In this bar a note starts on ${e.names}.`,
       { figure: e.fig, sound: e.sound },
     );
   }
@@ -652,7 +666,7 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     card(
       "dotted-quarter",
       "Dotted quarters",
-      `A dotted quarter note lasts one and a half counts, so the next note falls on an &. In this bar notes start on ${e.names}.`,
+      `A dotted quarter note lasts one and a half beats, so the next note falls on an &. In this bar notes start on ${e.names}.`,
       { figure: e.fig, sound: e.sound },
     );
   }
@@ -906,7 +920,7 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
           card(
             `${Math.round(ms)}`,
             delayLabel(ms),
-            `Tap Flat, then an echo of ${delayLabel(ms)}, and listen for how long after a hit the repeat lands.`,
+            `Tap Flat, then an echo of ${delayLabel(ms).replace(/^D/, "d")}, and listen for how long after a hit the repeat lands.`,
             [flat, hear(delayLabel(ms), { delayMs: ms })],
           ),
         ),

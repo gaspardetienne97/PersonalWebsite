@@ -9,7 +9,15 @@ import {
   type BandSet,
 } from "../content/studio";
 import { EAR_RHYTHM_LEVELS, RHYTHM_CELLS } from "../content/rhythm";
-import { KEY_SIGNATURES } from "../theory/spelling";
+import { KEY_SIGNATURES, diatonicNames, keyByName } from "../theory/spelling";
+import {
+  READING_LEVELS,
+  levelMeter,
+  sightReadingItems,
+  sightReadingScore,
+} from "../content/reading";
+import { rng } from "../content/random";
+import { pcOf } from "../theory/notes";
 import { lessonProblems } from "./check";
 import {
   cellOnsets,
@@ -110,33 +118,119 @@ describe("reading lessons", () => {
       "reading.values",
     ]);
   });
-  it("sight-reading ids follow the level's items and the meter in use", () => {
-    const extra = (level: string, meter = "simple") =>
-      ids(readingLessons("sight-reading", "treble", { level, meter })).filter(
-        (i) => i.startsWith("reading.values.") || i.startsWith("reading.meter."),
+  it("sight-reading ids follow what the generator writes for the level and meter", () => {
+    const extra = (level: string, meter = "simple", grand = false) =>
+      ids(readingLessons("sight-reading", "treble", { level, meter, grand })).filter((i) =>
+        /^reading\.(values\.|meter|chords|clef-change|accidentals)/.test(i),
       );
     expect(extra("primer")).toEqual([]);
-    expect(extra("level-3")).toEqual(["reading.values.syncopation"]);
-    expect(extra("piano-4")).toEqual([
-      "reading.values.ties",
+    expect(extra("level-3")).toEqual([
       "reading.values.dotted-quarter",
       "reading.values.syncopation",
     ]);
-    expect(extra("piano-5", "3/8")).toEqual([
-      "reading.values.ties",
-      "reading.values.dotted-quarter",
-      "reading.values.syncopation",
-      "reading.values.sixteenths",
-      "reading.meter.3-8",
-    ]);
-    expect(extra("piano-8", "5/4")).toContain("reading.values.triplets");
+    expect(extra("piano-4")).toEqual(["reading.values.ties", "reading.values.dotted-quarter"]);
+    expect(extra("piano-5", "3/8")).toContain("reading.meter.3-8");
+    expect(extra("piano-5", "3/8")).not.toContain("reading.values.dotted-quarter");
+    expect(extra("line-5")).toEqual(
+      expect.arrayContaining(["reading.values.pickup", "reading.accidentals"]),
+    );
+    expect(extra("piano-6", "simple", true)).toEqual(
+      expect.arrayContaining(["reading.accidentals", "reading.values.pickup"]),
+    );
+    expect(extra("piano-7", "simple", true)).toContain("reading.values.chords");
+    expect(extra("piano-7", "simple", false)).not.toContain("reading.values.chords");
+    expect(extra("piano-8", "simple", true)).toContain("reading.values.clef-change");
     expect(extra("piano-8", "5/4")).toContain("reading.meter.5-4");
     expect(extra("piano-6", "compound")).toContain("reading.meter.compound");
-    expect(extra("piano-9", "changing")).toEqual(
+    expect(extra("piano-9", "changing", true)).toEqual(
       expect.arrayContaining(["reading.values.dotted-eighth", "reading.meter.changing"]),
     );
-    expect(extra("line-jazz")).toContain("reading.values.swing");
+    expect(extra("piano-9", "changing", true)).not.toContain("reading.values.pickup");
+    expect(extra("piano-9", "changing", true)).not.toContain("reading.values.clef-change");
+    const jazz = extra("line-jazz");
+    expect(jazz).toContain("reading.values.swing");
+    for (const never of ["sixteenths", "dotted-eighth", "triplets"])
+      expect(jazz).not.toContain(`reading.values.${never}`);
     expect(extra("piano-5", "3/4")).not.toContain("reading.meter.3-4");
+  });
+  it("the items match generated phrases: every item a phrase contains has its id, and every id shows up", () => {
+    const meters = [
+      "simple",
+      "3/4",
+      "2/4",
+      "compound",
+      "3/8",
+      "9/8",
+      "2/2",
+      "5/4",
+      "7/8",
+      "5/8",
+      "changing",
+    ] as const;
+    for (const level of READING_LEVELS) {
+      for (const meter of meters) {
+        if (levelMeter(level.id, meter) !== meter) continue;
+        const grand = level.reader === "piano";
+        const expected = new Set(sightReadingItems(level.id, meter, grand));
+        const seen = new Set<string>();
+        for (let seed = 1; seed <= 200; seed++) {
+          const score = sightReadingScore(rng(seed), {
+            level: level.id,
+            instrument: level.reader === "piano" ? "piano" : "guitar",
+            clefs: grand ? ["treble", "bass"] : ["treble"],
+            key: level.recommendedKeys[0],
+            measures: 8,
+            meter,
+            bpm: 90,
+          });
+          const key = keyByName(level.recommendedKeys[0])!;
+          const inKey = new Set(diatonicNames(key).map((n) => pcOf(n)));
+          const compound = (m: { beatUnit: number }) => m.beatUnit === 8;
+          for (const v of score.voices) {
+            if (v.clefChanges?.length) seen.add("clef-change");
+            const starts = v.notes.map((n) => n.startBeat);
+            if (new Set(starts).size < starts.length && v.id === "rh") seen.add("chords");
+            for (const n of v.notes) {
+              // The meter at this note: the last change at or before it.
+              const m =
+                [...(score.meterChanges ?? [])]
+                  .reverse()
+                  .find((c) => c.startBeat <= n.startBeat + 1e-6) ?? score.meter;
+              const bar = (m.beats * 4) / m.beatUnit;
+              const barStart =
+                (score.meterChanges ?? []).filter((c) => c.startBeat <= n.startBeat + 1e-6).at(-1)
+                  ?.startBeat ?? 0;
+              const into = n.startBeat - barStart;
+              const crosses =
+                Math.floor((into + 1e-6) / bar) !==
+                Math.floor((into + n.durationBeats - 1e-6) / bar);
+              if (crosses) seen.add("ties");
+              else {
+                const d = n.durationBeats;
+                if (Math.abs(d - 0.25) < 1e-3) seen.add("sixteenths");
+                if (Math.abs(d - 0.75) < 1e-3) seen.add("dotted-eighth");
+                if (Math.abs(d - 1 / 3) < 1e-3 || Math.abs(d - 2 / 3) < 1e-3) seen.add("triplets");
+                if (!compound(m) && Math.abs(d - 1.5) < 1e-3) seen.add("dotted-quarter");
+                if (!compound(m) && d >= 1 - 1e-6 && Math.abs((into % 1) - 0.5) < 1e-3)
+                  seen.add("syncopation");
+              }
+              if (v.id !== "lh" && !inKey.has(((n.midi % 12) + 12) % 12)) seen.add("accidentals");
+            }
+          }
+          const first = score.voices.find((v) => v.id !== "lh") ?? score.voices[0];
+          if (first.notes.length && first.notes[0].startBeat > 0.5) seen.add("pickup");
+        }
+        const label = `${level.id} ${meter}`;
+        // A level with no pickup can still open with rests, so a pickup is only checked the other way.
+        for (const item of seen)
+          if (item !== "accidentals" && item !== "pickup")
+            expect(expected.has(item as never), `${label} wrote ${item}`).toBe(true);
+        for (const item of expected)
+          if (item !== "swing")
+            expect(seen.has(item), `${label} lists ${item} but never wrote it`).toBe(true);
+        if (seen.has("accidentals")) expect(expected.has("accidentals"), label).toBe(true);
+      }
+    }
   });
   it("the ledger lines screen draws middle C and names the other side's ledger note", () => {
     const [t] = readingLessons("flashcards", "treble");
@@ -375,5 +469,38 @@ describe("listening lessons", () => {
       expect(all(ls), e.id).toEqual([]);
     }
     expect(listeningLessons("nope")).toEqual([]);
+  });
+
+  describe("copy that depends on the case", () => {
+    it("the compound rests card names the dotted half, the others the half note; beats, not counts", () => {
+      const text = (level: string) =>
+        rhythmLessons("echo", level).find((l) => l.id === "rhythm.rests-halves")!.screens[0].text;
+      expect(text("compound")).toContain(
+        "a dotted half note is held through both beats of the bar",
+      );
+      expect(text("rests-halves")).toContain("a half note is held through two beats");
+      expect(
+        rhythmLessons("echo", "dotted").find((l) => l.id === "rhythm.dotted-quarter")!.screens[0]
+          .text,
+      ).toContain("one and a half beats");
+    });
+    it("a mid-sentence delay label is lower-cased, and one flat is singular", () => {
+      const d = listeningLessons("delay", { delays: "4" }).find(
+        (l) => l.id === "listening.delay.500",
+      )!;
+      expect(d.screens[0].text).toContain("an echo of dotted 1/8, 500 ms");
+      const sig = readingLessons("sight-reading", "treble", { fifths: -1 }).find(
+        (l) => l.id === "reading.key-signature.-1",
+      )!;
+      expect(sig.screens[0].text).toBe("Tap Next to add the flat.");
+      expect(sig.screens[0].steps).toHaveLength(1);
+    });
+    it("value cards use note values, true in every meter", () => {
+      const t = readingLessons("sight-reading", "treble", { level: "line-6", meter: "simple" });
+      const card = (id: string) => t.find((l) => l.id === `reading.values.${id}`)!.screens[0].text;
+      expect(card("sixteenths")).toContain("Four sixteenth notes make one quarter note");
+      expect(card("dotted-eighth")).toContain("as long as a quarter note");
+      expect(card("dotted-quarter")).toContain("a quarter note plus an eighth note");
+    });
   });
 });

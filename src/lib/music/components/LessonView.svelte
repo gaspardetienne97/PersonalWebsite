@@ -68,9 +68,15 @@
   function play(s: LessonSound) {
     halt();
     if (s.effect) return void playEffect(s.effect);
-    void audio.unlock().then(() =>
-      audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur, ...(n.drum ? { voice: "drum" as const } : {}), ...(n.velocity ? { velocity: n.velocity } : {}) })))),
-    );
+    const mine = generation;
+    void audio
+      .unlock()
+      .then(() => {
+        // A move, another tap or the unmount before the audio was ready drops this tap.
+        if (destroyed || mine !== generation) return;
+        audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur, ...(n.drum ? { voice: "drum" as const } : {}), ...(n.velocity ? { velocity: n.velocity } : {}) }))));
+      })
+      .catch(() => {});
   }
 
   async function moved() {

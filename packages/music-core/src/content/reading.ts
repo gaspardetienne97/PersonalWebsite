@@ -690,6 +690,62 @@ const GEN: Record<ReadingLevelId, LevelGen> = {
   },
 };
 
+/**
+ * What a level's phrases can contain that a player may not have met, read from the generator's own
+ * configuration for the level and meter (not from its one-line description). Durations are judged
+ * in the note values of the meter: a 1.5 in a simple meter is a dotted quarter, but in x/8 it is the beat.
+ * `grand` is a piano reading both clefs, the only case with an accompanied left hand.
+ */
+export type SightItem =
+  | "ties"
+  | "dotted-quarter"
+  | "syncopation"
+  | "sixteenths"
+  | "dotted-eighth"
+  | "triplets"
+  | "pickup"
+  | "accidentals"
+  | "chords"
+  | "clef-change"
+  | "swing";
+export function sightReadingItems(
+  levelId: ReadingLevelId,
+  meter: string,
+  grand = false,
+): SightItem[] {
+  const level = readingLevel(levelId);
+  const gen = GEN[level.id];
+  const meterId = levelMeter(level.id, meter);
+  const ids = meterId === "changing" ? CHANGING_METERS : [meterId];
+  const found = new Set<SightItem>();
+  for (const id of ids) {
+    const { beats, beatUnit } = READING_METERS[id];
+    const compound = beatUnit === 8;
+    const odd = ODD_GROUPS[`${beats}/${beatUnit}`];
+    const cells = compound ? [...gen.compound, ...(odd ? TWO_EIGHTHS : [])] : gen.simple;
+    for (const cell of cells) {
+      let at = 0;
+      for (const d of cell) {
+        const v = Math.abs(d);
+        if (v === 0.25) found.add("sixteenths");
+        if (v === 0.75) found.add("dotted-eighth");
+        if (Math.abs(v - 1 / 3) < 1e-9 || Math.abs(v - 2 / 3) < 1e-9) found.add("triplets");
+        if (!compound && v === 1.5) found.add("dotted-quarter");
+        if (!compound && d > 0 && v >= 1 && at % 1 === 0.5) found.add("syncopation");
+        at += v;
+      }
+    }
+  }
+  if (gen.ties) found.add("ties");
+  if (gen.pickup && meterId !== "changing") found.add("pickup");
+  if (gen.chromatic || gen.jazz) found.add("accidentals");
+  if (grand && gen.lh && gen.rhChords) found.add("chords");
+  // A changing-meter phrase is built from 2-bar parts, too short for a clef change.
+  if (grand && gen.lh && gen.clefChange && meterId !== "changing") found.add("clef-change");
+  if (level.swing) found.add("swing");
+  return [...found];
+}
+
 export interface SightReadingOptions {
   level: ReadingLevelId;
   instrument: "piano" | "guitar" | "ukulele" | "aerophone";
