@@ -80,7 +80,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ### Known gaps
 
-- Intro lessons, open (2026-10-29): from Results, "Move on" in the ear drills starts the next run while the new item's lesson is showing (`DrillShell.start()` does not check `showing`), so that run quizzes the untaught item and the lesson then covers its results; a one-line guard in `start()` plus an e2e fixes it. Pads setups with no lesson yet: the Dynamics and Phrases tabs, Latin, dance, Dilla and swing grooves (the rest of pads is taught).
+- Intro lessons, open: pads setups with no lesson yet: the Dynamics and Phrases tabs, Latin, dance, Dilla and swing grooves (the rest of pads is taught). Fixed 2026-10-29: "Move on" from Results no longer starts a run while the new item's lesson shows; the lesson comes first and Again then starts the run.
 - Phase 1 left out: the old paths' broken links (phase 2 replaces those paths).
 - Day keys (the streak, the routine id) are UTC days, so late in the evening west of UTC the streak marks tomorrow as today; the weekly split uses the local weekday.
 

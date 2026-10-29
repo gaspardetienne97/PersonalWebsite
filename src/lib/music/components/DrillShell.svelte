@@ -216,7 +216,7 @@
   }
 
   async function start() {
-    if (blocked || phase === "running" || phase === "countin") return;
+    if (blocked || showing || live) return;
     await audio.unlock();
     setupOpen = false;
     const bars = settings.value.countInBars;

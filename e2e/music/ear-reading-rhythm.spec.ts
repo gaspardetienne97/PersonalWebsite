@@ -270,6 +270,33 @@ test.describe("ear training", () => {
     await expect(page.locator("button.choice", { hasText: /^Perfect 4th/ })).toBeVisible();
   });
 
+  test.describe("with lessons on", () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
+
+    test("Move on to a new interval shows its lesson before the run", async ({ page }) => {
+      await seedRecent(page, "intervals", "M3,P5,P8", 18);
+      await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
+      await page.getByRole("button", { name: "Skip, I know this" }).click();
+      await page.getByRole("button", { name: "Check", exact: true }).click();
+      await page.getByRole("button", { name: "Start", exact: true }).click();
+      for (let i = 0; i < 10; i++) {
+        const card = prompt(page);
+        await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`);
+        const answer = (await card.getAttribute("data-answer"))!;
+        const name = { M3: "Major 3rd", P5: "Perfect 5th", P8: "Octave" }[answer]!;
+        await page.locator("button.choice", { hasText: new RegExp(`^${name}`) }).click();
+      }
+      await page.getByRole("button", { name: "Move on: the perfect 4th" }).click();
+      await expect(page.getByRole("heading", { name: "Perfect 4th", exact: true })).toBeVisible();
+      await expect(prompt(page)).toHaveCount(0);
+      await page.getByRole("button", { name: "Start the quiz" }).click();
+      // The results come back, with the set already moved on.
+      await page.getByRole("button", { name: "Again", exact: true }).click();
+      await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
+      await expect(page.locator("button.choice", { hasText: /^Perfect 4th/ })).toBeVisible();
+    });
+  });
+
   test("chords, cadences and degrees: a wrong answer is shown and played beside the right one", async ({
     page,
   }) => {
