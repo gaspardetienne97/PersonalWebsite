@@ -22,7 +22,7 @@ import { CHORD_LOOPS, loopsIn, numeralChord, parseNumeral } from "../content/loo
 import { rng } from "../content/random";
 import { pc } from "../theory/notes";
 import { lessonProblems } from "./check";
-import { earLessons, loopLessonItems, qualityCue, type CueElement } from "./ear";
+import { earLessons, loopLessonItems, qualityCue } from "./ear";
 import { pendingLessons, type Lesson } from "./types";
 
 const sounds = (l: Lesson) =>
