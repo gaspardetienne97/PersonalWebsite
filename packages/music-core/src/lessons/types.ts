@@ -3,6 +3,13 @@ export type LessonFigure =
   | { kind: "signature"; clef: "treble" | "bass"; fifths: number; reveal?: number } // first `reveal` accidentals
   | { kind: "keys"; low: number; high: number; marks: Record<number, string> } // midi -> label, as Piano
   | {
+      /** The groove dictation grid, read-only: kick, snare and hat rows, `perBeat` cells a beat, onsets in beats. */
+      kind: "groove";
+      bars: number;
+      perBeat: 2 | 4;
+      lanes: Partial<Record<"hat" | "snare" | "kick", number[]>>;
+    }
+  | {
       kind: "fretboard";
       instrument: "guitar" | "ukulele";
       /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */

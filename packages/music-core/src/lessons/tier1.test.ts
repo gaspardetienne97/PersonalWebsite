@@ -8,6 +8,8 @@ import { CALL_GROOVES, grooveOf } from "../content/call-response";
 import { GROOVE_LANES, GROOVE_LEVELS, earGroove } from "../content/rhythm";
 import { functionChord, keyCadence } from "../content/ear";
 import { rng } from "../content/random";
+import { TUNES } from "../content/tunes";
+import { isBlackKey } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { lessonProblems } from "./check";
@@ -291,5 +293,143 @@ describe("chord tones lesson", () => {
       "#11",
       "b13",
     ]);
+  });
+});
+
+describe("fix round 1", () => {
+  const sub = (symbol: string) => parseChordSymbol(symbol)!;
+  const rel = (m: number, root: number) => pc(m - root);
+  const sorted = (xs: number[]) => [...xs].sort((a, b) => a - b);
+
+  it("the groove lesson shows the drill's grid with the example's own onsets", () => {
+    const l = grooveDictationLesson();
+    const g = earGroove(() => 0, "rock");
+    const fig = (f: LessonFigure | undefined) => {
+      if (f?.kind !== "groove") throw new Error("expected a groove figure");
+      return f;
+    };
+    expect(fig(l.screens[0].figure).lanes).toEqual({ kick: g.lanes.kick });
+    expect(fig(l.screens[1].figure).lanes).toEqual({ snare: g.lanes.snare });
+    expect(fig(l.screens[2].figure).lanes).toEqual({ hat: g.lanes.hat });
+    expect(fig(l.screens[3].figure).lanes).toEqual({});
+    const steps = l.screens[3].steps!.map((s) => fig(s.figure).lanes);
+    expect(steps.map((x) => Object.keys(x))).toEqual([
+      ["hat"],
+      ["hat", "snare"],
+      ["hat", "snare", "kick"],
+    ]);
+    expect(fig(l.screens[4].figure).lanes).toEqual(g.lanes);
+    for (const s of [0, 1, 2, 3, 4]) {
+      expect(fig(l.screens[s].figure).bars).toBe(g.bars);
+      expect(fig(l.screens[s].figure).perBeat).toBe(g.perBeat);
+    }
+  });
+
+  it("keys figures start and end on a white key", () => {
+    const figs: LessonFigure[] = [];
+    for (const id of JAZZ_VOICING_TYPES.map((t) => t.id))
+      for (const lesson of jazzVoicingLesson(id))
+        for (const sc of lesson.screens) {
+          if (sc.figure) figs.push(sc.figure);
+          for (const st of sc.steps ?? []) if (st.figure) figs.push(st.figure);
+        }
+    for (const l of [findHomeLesson(), chordTonesLesson("C7"), chordTonesLesson("G7alt")])
+      for (const sc of l.screens) {
+        if (sc.figure) figs.push(sc.figure);
+        for (const st of sc.steps ?? []) if (st.figure) figs.push(st.figure);
+      }
+    const keysFigs = figs.filter((f) => f.kind === "keys");
+    expect(keysFigs.length).toBeGreaterThan(50);
+    for (const f of keysFigs) {
+      expect(isBlackKey(f.low)).toBe(false);
+      expect(isBlackKey(f.high)).toBe(false);
+      for (const m of Object.keys(f.marks).map(Number)) {
+        expect(m).toBeGreaterThanOrEqual(f.low);
+        expect(m).toBeLessThanOrEqual(f.high);
+      }
+    }
+  });
+
+  it("the sus example and its sentence name the pictured chord", () => {
+    const [l] = jazzVoicingLesson("sus");
+    const c = exampleVoicing("sus");
+    expect(c.symbol).toBe("C7sus");
+    expect(l.screens[0].text).toContain("For C7sus that triad is Bb major, written Bb/C.");
+    expect(c.right.map(pc).sort((a, b) => a - b)).toEqual([2, 5, 10]); // D F Bb
+    expect(sorted(c.left.map(pc))).toEqual([0, 7]);
+  });
+
+  it("the Monk picture is a chord with the cluster on top", () => {
+    const c = exampleVoicing("monk");
+    const [l] = jazzVoicingLesson("monk");
+    expect(c.right.length).toBe(4);
+    const top = c.right.slice(-2);
+    expect(top[1] - top[0]).toBe(1); // the root and b9 a half step apart
+    expect(l.screens[1].text).toContain(c.symbol);
+    expect(l.screens[1].steps!.length).toBe(c.left.length + c.right.length);
+  });
+
+  it("So What names the real exceptions", () => {
+    expect(jazzVoicingLesson("so-what")[0].screens[0].text).toContain(
+      "a 4th can grow to an augmented 4th and the top 3rd can shrink to a minor 3rd",
+    );
+  });
+
+  it("the sus about text matches the Maiden Voyage roots", () => {
+    const roots = jazzVoicingChords("sus", 2).map((c) => pc(c.left[0]));
+    expect(roots).toEqual([2, 5, 3, 1]);
+    const sus = JAZZ_VOICING_TYPES.find((t) => t.id === "sus")!;
+    expect(sus.about).toContain("up a minor 3rd, then down a whole step twice");
+  });
+
+  it("every chord in every tune keeps the tune-type sentences", () => {
+    for (const tune of TUNES) {
+      for (const c of jazzVoicingChords("quartal-tune", 0, { tune: tune.id })) {
+        const p = sub(c.symbol);
+        const root = p.rootPc;
+        expect(c.right, c.symbol).toEqual([]);
+        expect(c.left.length, c.symbol).toBe(3);
+        // two 4ths, except the diminished-scale chords (b9 dominants, diminished 7ths): a tritone under a 4th
+        const gaps = [c.left[1] - c.left[0], c.left[2] - c.left[1]];
+        expect(gaps, c.symbol).toEqual(/b9|dim7/.test(c.symbol) ? [6, 5] : [5, 5]);
+        const iv = p.intervals.map((i) => i % 12);
+        const has = (i: number) => iv.includes(i);
+        // the guide tones the sentence names
+        const guides = [
+          ...[3, 4].filter(has),
+          ...[10, 11].filter(has),
+          ...(has(5) && !has(3) && !has(4) ? [5] : []),
+          ...(has(9) ? [9] : []),
+        ];
+        expect(
+          c.left.some((m) => guides.includes(rel(m, root))),
+          `${tune.id} ${c.symbol} has no guide tone in ${c.left.map((m) => rel(m, root))}`,
+        ).toBe(true);
+      }
+      for (const c of jazzVoicingChords("slash-tune", 0, { tune: tune.id })) {
+        const p = sub(c.symbol);
+        const root = p.rootPc;
+        const has = (i: number) => p.intervals.map((x) => x % 12).includes(i);
+        const triad = sorted(c.right.map(pc));
+        const major = (r: number) => sorted([r, r + 4, r + 7].map(pc));
+        if (has(3) && has(6) && !has(4) && !has(9))
+          expect(triad, c.symbol).toEqual(sorted([3, 6, 10].map((i) => pc(root + i))));
+        else if (has(10)) expect(triad, c.symbol).toEqual(major(root + 10));
+        else if (!has(3)) expect(triad, c.symbol).toEqual(major(root + 7));
+      }
+      for (const c of jazzVoicingChords("upper", 0, { tune: tune.id })) {
+        const p = sub(c.symbol);
+        const root = p.rootPc;
+        expect(sorted(c.left.map(pc)), c.symbol).toEqual(
+          sorted([0, 4, 10].map((i) => pc(root + i))),
+        );
+        const tri = sorted(c.right.map(pc));
+        const kinds = [2, 8, 9].map((o) => sorted([o, o + 4, o + 7].map((i) => pc(root + i))));
+        expect(
+          kinds.some((k) => k.join() === tri.join()),
+          c.symbol,
+        ).toBe(true);
+      }
+    }
   });
 });

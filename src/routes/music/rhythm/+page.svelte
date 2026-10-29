@@ -23,6 +23,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import Pads from "$lib/music/components/Pads.svelte";
+  import DictationGrid from "$lib/music/drills/rhythm/DictationGrid.svelte";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
   import { demoNotes, readPatterns, RHYTHM_TABS, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -352,12 +353,6 @@
   let dictationResult = $state.raw<ReturnType<typeof gradeOnsets> | null>(null);
   const grid = $derived(groove ? { perBeat: grooveLevel.perBeat, beatsPerBar: 4 } : earLevel);
   const rows = $derived(groove ? GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label })) : [{ id: "notes", label: "" }]);
-  const cellsPerBar = $derived(grid.beatsPerBar * grid.perBeat);
-  const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
-  const cellLabel = (i: number) => {
-    const sub = i % grid.perBeat;
-    return sub ? COUNTS[grid.perBeat][sub] : String((Math.floor(i / grid.perBeat) % grid.beatsPerBar) + 1);
-  };
   // Where the notes are written (swing is written straight), which is what a dictation marks.
   const heardBeats = $derived(byEar && earDef ? earDef.written : def.events.map((e) => e.beat));
   const heardIn = (row: string) => (grooveDef ? grooveDef.lanes[row as keyof Groove["lanes"]] : heardBeats);
@@ -627,35 +622,20 @@
         {/if}
         {#if writes && (writing || dictationResult)}
           <div class="mt-3 space-y-3" role="group" aria-label={groove ? "Your groove" : "Your rhythm"}>
-            {#each Array.from({ length: plan.bars }, (_, b) => b) as bar (bar)}
-              <div class="space-y-1">
-                {#each rows as row (row.id)}
-                  <div class="flex items-center gap-2">
-                    {#if row.label}<span class="w-14 shrink-0 text-xs font-semibold text-ws-stage-soft">{row.label}</span>{/if}
-                    <div class="grid min-w-0 flex-1 gap-1" style:grid-template-columns="repeat({cellsPerBar}, minmax(0, 1fr))">
-                      {#each Array.from({ length: cellsPerBar }, (_, k) => bar * cellsPerBar + k) as i (i)}
-                        {@const on = !!marks[row.id]?.[i]}
-                        <button
-                          type="button"
-                          class="cell"
-                          class:beat={i % grid.perBeat === 0}
-                          data-row={row.id}
-                          data-state={dictationResult ? (on && isHeard(row.id, i) ? "right" : on ? "extra" : isHeard(row.id, i) ? "missed" : null) : null}
-                          aria-pressed={on}
-                          aria-label="{row.label ? `${row.label}, b` : "B"}ar {bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / grid.perBeat) + 1}"
-                          disabled={!writing}
-                          onclick={() => {
-                            const r = [...(marks[row.id] ?? [])];
-                            r[i] = !on;
-                            marks = { ...marks, [row.id]: r };
-                          }}
-                        >{cellLabel(i)}</button>
-                      {/each}
-                    </div>
-                  </div>
-                {/each}
-              </div>
-            {/each}
+            <DictationGrid
+              bars={plan.bars}
+              {rows}
+              perBeat={grid.perBeat}
+              beatsPerBar={grid.beatsPerBar}
+              {marks}
+              state={(row, i) => (dictationResult ? (marks[row]?.[i] && isHeard(row, i) ? "right" : marks[row]?.[i] ? "extra" : isHeard(row, i) ? "missed" : null) : null)}
+              disabled={!writing}
+              ontoggle={(row, i) => {
+                const r = [...(marks[row] ?? [])];
+                r[i] = !r[i];
+                marks = { ...marks, [row]: r };
+              }}
+            />
             {#if writing}
               <div class="flex flex-wrap gap-2 pt-1">
                 <button type="button" class={btnPrimary} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
@@ -747,31 +727,6 @@
   .tap:focus-visible {
     outline: 3px solid var(--ws-stage-ink);
     outline-offset: 4px;
-  }
-  .cell {
-    min-height: 2.6rem;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
-    border: 2px solid transparent;
-  }
-  .cell.beat {
-    background: color-mix(in oklch, var(--ws-stage-ink) 14%, transparent);
-    font-weight: 700;
-  }
-  .cell[aria-pressed="true"] {
-    background: var(--instr);
-    color: var(--ws-stage);
-  }
-  .cell[data-state="right"] {
-    border-color: var(--success);
-  }
-  .cell[data-state="extra"] {
-    border-color: var(--destructive);
-  }
-  .cell[data-state="missed"] {
-    border-color: var(--destructive);
-    border-style: dashed;
   }
   .chip {
     display: inline-flex;

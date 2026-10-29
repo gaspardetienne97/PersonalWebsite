@@ -7,6 +7,8 @@
   import CircleOfFifths from "./CircleOfFifths.svelte";
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
+  import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
+  import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
   import Staff from "../notation/Staff.svelte";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
   import { btn, btnPrimary } from "./ui";
@@ -124,7 +126,18 @@
   <h2 bind:this={heading} tabindex="-1" class="font-display text-2xl font-semibold outline-none sm:text-3xl">{screen.title}</h2>
   <p class="max-w-prose text-base">{screen.text}</p>
 
-  {#if figure}
+  {#if figure?.kind === "groove"}
+    {@const g = figure}
+    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Groove grid, {g.bars} bar, {GROOVE_LANES.filter((l) => g.lanes[l.id]).map((l) => l.label).join(', ')}">
+      <DictationGrid
+        bars={g.bars}
+        rows={GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label }))}
+        perBeat={g.perBeat}
+        beatsPerBar={4}
+        marks={Object.fromEntries(GROOVE_LANES.map((l) => [l.id, Array.from({ length: g.bars * 4 * g.perBeat }, (_, i) => (g.lanes[l.id] ?? []).some((b) => Math.abs(b * g.perBeat - i) < 1e-6))]))}
+      />
+    </div>
+  {:else if figure}
     <div class="mx-auto w-full max-w-md rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
       {#if figure.kind === "signature"}
         <!-- Key signature only: the empty bar's rest is hidden, the staff enlarged and centred. -->

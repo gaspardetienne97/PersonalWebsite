@@ -70,7 +70,7 @@ export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
     label: "Sus and slash",
     key: "dorian",
     about:
-      "Each 7sus as a slash chord: the root and 5th in the left hand, the major triad a whole step below the root in the right (C/D for D7sus). The Maiden Voyage set: up a minor 3rd, down a half step, down a whole step.",
+      "Each 7sus as a slash chord: the root and 5th in the left hand, the major triad a whole step below the root in the right (C/D for D7sus). The Maiden Voyage set: up a minor 3rd, then down a whole step twice.",
     skillId: QUARTAL,
   },
   {
@@ -207,15 +207,19 @@ const DEGREE: Record<"7" | "m7", number[]> = {
   "7": [1, 2, 2, 2, 3, 4, 4, 5, 6, 6, 7, 7],
   m7: [1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7, 7],
 };
+/** The note `semis` above a root, spelled as the letter `degree` (1 to 7) steps up from the root's letter (D, 4 semis, degree 3 is F#). */
+export function spellAbove(rootName: string, semis: number, degree: number): string {
+  const li = (LETTERS.indexOf(rootName[0]) + degree - 1) % 7;
+  let diff = pc(pcOf(rootName)! + semis - NATURAL[li]);
+  if (diff > 6) diff -= 12;
+  return LETTERS[li] + (diff > 0 ? "#".repeat(diff) : "b".repeat(-diff));
+}
 /** A chord's tones spelled letter by letter from its root's name (Bb7's b9 is Cb, D7's 3rd F#). */
 export function chordSpeller(rootName: string, quality: "7" | "m7") {
   const root = pcOf(rootName)!;
   return (p: number) => {
     const semis = pc(p - root);
-    const li = (LETTERS.indexOf(rootName[0]) + DEGREE[quality][semis] - 1) % 7;
-    let diff = pc(root + semis - NATURAL[li]);
-    if (diff > 6) diff -= 12;
-    return LETTERS[li] + (diff > 0 ? "#".repeat(diff) : "b".repeat(-diff));
+    return spellAbove(rootName, semis, DEGREE[quality][semis]);
   };
 }
 
@@ -346,7 +350,7 @@ export function jazzVoicingChords(
   }
 
   if (id === "sus") {
-    // The Maiden Voyage set from its first chord: up a minor 3rd, then down a half step twice.
+    // The Maiden Voyage set from its first chord: up a minor 3rd, then down a whole step twice.
     const roots = [0, 3, 1, -1].map((r) => pc(k + r));
     const group = `${keyName}7sus set`;
     let rh: number[] = [];

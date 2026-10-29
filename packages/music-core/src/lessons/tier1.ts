@@ -2,22 +2,29 @@ import {
   JAZZ_VOICING_TYPES,
   UPPER_TUNES,
   chordSpeller,
+  spellAbove,
   jazzVoicingChords,
   type JazzVoicingId,
 } from "../content/jazz-voicings";
 import { GROOVE_LANES, GROOVE_LEVELS, earGroove, type GrooveLane } from "../content/rhythm";
 import { functionChord, functionSymbol, keyCadence, scaleRun } from "../content/ear";
 import { parseChordSymbol } from "../theory/chords";
-import { noteName, pc, pcOf } from "../theory/notes";
+import { isBlackKey, noteName, pc } from "../theory/notes";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 
-/** The keys figure; `span` is every note the screen's steps will show, so the keyboard keeps its size from step to step. */
+/**
+ * The keys figure; `span` is every note the screen's steps will show, so the keyboard keeps its size
+ * from step to step. It starts and ends on a white key, which Piano draws whole.
+ */
 const keys = (
   marks: Record<number, string>,
   span: number[] = Object.keys(marks).map(Number),
 ): LessonFigure => {
-  const low = Math.min(...span) - 1;
-  return { kind: "keys", low, high: Math.max(...span) + 1, marks };
+  let low = Math.min(...span) - 1;
+  let high = Math.max(...span) + 1;
+  while (isBlackKey(low)) low--;
+  while (isBlackKey(high)) high++;
+  return { kind: "keys", low, high, marks };
 };
 /** One block chord, or several one after the other. */
 const chords = (...sets: number[][]): LessonSound => ({
@@ -54,10 +61,10 @@ const IDEAS: Record<JazzVoicingId, string> = {
   sevenths:
     "A seventh chord stacks the root, 3rd, 5th and 7th, all from the notes of the key. The chord on each degree gets its quality from the key: maj7 on the I and IV, m7 on the ii, iii and vi, 7 on the V and m7b5 on the vii. The drill plays them in root position, up the key and back.",
   "so-what":
-    "The So What chord is a stack of 4ths with a 3rd on top, all from the dorian mode. The two lowest notes go in the left hand and the other three in the right. To stay in the mode, a 4th or the top 3rd sometimes shrinks or grows by a half step.",
+    "The So What chord is a stack of 4ths with a 3rd on top, all from the dorian mode. The two lowest notes go in the left hand and the other three in the right. To stay in the mode, a 4th can grow to an augmented 4th and the top 3rd can shrink to a minor 3rd.",
   quartal:
     "A quartal stack is three notes a 4th apart, all in the left hand. The drill moves it up the dorian mode for two octaves. To stay in the mode, one of its 4ths is sometimes an augmented 4th.",
-  sus: "A 7sus chord voiced as a slash chord: the root and 5th in the left hand, and the major triad a whole step below the root in the right. For D7sus that triad is C major, written C/D. The right hand can use any inversion of the triad.",
+  sus: "A 7sus chord voiced as a slash chord: the root and 5th in the left hand, and the major triad a whole step below the root in the right. For C7sus that triad is Bb major, written Bb/C. The right hand can use any inversion of the triad.",
   "two-hand":
     "A rootless voicing leaves the root to the bass. In a ii-V-I the left hand plays the 3rd and 7th (the 7th and 3rd on the V), and the right hand adds the 9th, 5th and 13th.",
   close:
@@ -74,7 +81,7 @@ const IDEAS: Record<JazzVoicingId, string> = {
   upper:
     "Each dominant in a tune gets a 1-3-7 shell in the left hand and a triad on top that adds colour tones. A b9 mark takes the VI triad (b9 13). Otherwise a dominant that resolves to a minor chord, or is marked alt, #9 or b13, takes the bVI triad (#9 b13), and any other takes the II triad (9 #11 13).",
   "quartal-tune":
-    "Every chord in a tune's changes gets a left-hand stack of two 4ths taken from the chord's scale, with the chord's 3rd or 7th inside it. Which tones the stack uses depends on the chord and its scale. The picture shows the first chord.",
+    "Every chord in a tune's changes gets a left-hand stack of two 4ths taken from the chord's scale, with one of the chord's guide tones inside it: the 3rd or 7th, the 4th on a sus chord, or the 6th on a sixth or diminished chord. A chord on a diminished scale, such as a b9 dominant or a diminished 7th, has no such stack, so it gets a tritone under a 4th. The picture shows the first chord.",
   "slash-tune":
     "Every chord in a tune's changes becomes a triad over its root, chosen by the chord type. A minor 7th, 7sus or dominant takes the major triad a whole step below the root. A major 7th takes the triad on its 5th, and a half-diminished chord the minor triad on its b3.",
 };
@@ -90,15 +97,16 @@ function voicingNamer(symbol: string): (midi: number) => string {
   return speller;
 }
 
-/** The first chord the drill gives a voicing type (the default key, and the default tune on a tune). */
+/** The first chord the drill gives a voicing type (default key, default tune); for Monk the first with a cluster on top. */
 export function exampleVoicing(id: JazzVoicingId) {
-  return jazzVoicingChords(id, 0, { tune: UPPER_TUNES[0].id })[0];
+  const all = jazzVoicingChords(id, 0, { tune: UPPER_TUNES[0].id });
+  return (id === "monk" && all.find((x) => x.right.length === 4)) || all[0];
 }
 
 function voicingCard(id: JazzVoicingId, lessonId: string): Lesson {
   const type = JAZZ_VOICING_TYPES.find((t) => t.id === id)!;
   const all = jazzVoicingChords(id, 0, { tune: UPPER_TUNES[0].id });
-  const c = all[0];
+  const c = exampleVoicing(id);
   const name = voicingNamer(c.symbol);
   const notes = [...c.left, ...c.right].sort((a, b) => a - b);
   const marks = (ms: number[]) => keys(Object.fromEntries(ms.map((m) => [m, name(m)])), notes);
@@ -118,11 +126,13 @@ function voicingCard(id: JazzVoicingId, lessonId: string): Lesson {
         title: type.label,
         text: IDEAS[id],
         figure: marks(notes),
-        sound: chords(...all.slice(0, 2).map((x) => [...x.left, ...x.right])),
+        sound: chords(
+          ...[c, all[all.indexOf(c) + 1]].filter(Boolean).map((x) => [...x.left, ...x.right]),
+        ),
       },
       {
         title: "How it is stacked",
-        text: `Here is the first one the drill gives, ${c.symbol}. Tap Next to add its notes from the bottom up.`,
+        text: `Here is ${id === "monk" ? "the first chord with a cluster" : "the first one the drill gives"}, ${c.symbol}. Tap Next to add its notes from the bottom up.`,
         figure: marks([notes[0]]),
         steps,
       },
@@ -166,6 +176,14 @@ const drums = (g: Record<GrooveLane, number[]>, lanes: GrooveLane[], bpm = 100):
 /** The first rock groove the drill can give: its first kick pattern, snare on 2 and 4, eighth-note hats. */
 export const EXAMPLE_GROOVE = () => earGroove(() => 0, "rock").lanes;
 
+/** The drill's grid with only these drums marked. */
+const grid = (g: Record<GrooveLane, number[]>, lanes: GrooveLane[]): LessonFigure => ({
+  kind: "groove",
+  bars: 1,
+  perBeat: 2,
+  lanes: Object.fromEntries(lanes.map((l) => [l, g[l]])),
+});
+
 export function grooveDictationLesson(): Lesson {
   const g = EXAMPLE_GROOVE();
   const levels = GROOVE_LEVELS.map((l) => l.title.toLowerCase());
@@ -177,38 +195,46 @@ export function grooveDictationLesson(): Lesson {
         title: "The kick",
         text: "The kick is the low drum, and it lands on beat 1 of every bar in every groove here. The other kick hits move around from groove to groove. Tap Hear it for a kick on beats 1 and 3.",
         sound: drums(g, ["kick"]),
+        figure: grid(g, ["kick"]),
       },
       {
         title: "The snare",
         text: "The snare is the sharp crack on beats 2 and 4. The sixteenths level can add extra snare hits around it, and in trap the main snare moves to beat 3.",
         sound: drums(g, ["snare"]),
+        figure: grid(g, ["snare"]),
       },
       {
         title: "The hi-hat",
         text: "The hi-hat keeps time with a steady run of hits. The first two levels play every eighth note, and the sixteenths and trap levels sometimes play every sixteenth.",
         sound: drums(g, ["hat"]),
+        figure: grid(g, ["hat"]),
       },
       {
         title: "All three together",
         text: "Here is one bar of the simplest groove, counted 1 & 2 & 3 & 4 &, where & is the half beat. Tap Next to add the drums one at a time.",
+        figure: grid(g, []),
         steps: [
           {
             text: `The hi-hat plays on ${countList(g.hat)}.`,
             sound: drums(g, ["hat"]),
+            figure: grid(g, ["hat"]),
           },
           {
             text: `The snare joins on ${countList(g.snare)}.`,
             sound: drums(g, ["hat", "snare"]),
+            figure: grid(g, ["hat", "snare"]),
           },
           {
             text: `The kick lands on ${countList(g.kick)}.`,
             sound: drums(g, ["hat", "snare", "kick"]),
+            figure: grid(g, ["hat", "snare", "kick"]),
           },
         ],
       },
       {
         title: "Writing it on the grid",
-        text: `In the drill, each drum is a row and each column is a count. Mark the squares where you heard a hit, then check. The levels go ${levels.join(", then ")}.`,
+        text: `In the drill, each drum is a row and each column is a count, and the picture shows the example filled in. Mark the squares where you heard a hit, then check. The levels go ${levels.join(", then ")}.`,
+        figure: grid(g, ["hat", "snare", "kick"]),
       },
     ],
   };
@@ -296,15 +322,9 @@ const TONES: Record<number, [label: string, degree: number]> = {
   20: ["b13", 6],
   21: ["13", 6],
 };
-const LETTERS = "CDEFGAB";
-const NATURAL = [0, 2, 4, 5, 7, 9, 11];
 /** A chord tone's name, spelled from the root's letter (D7 has F#, Dm7b5 has Ab). */
-function spellTone(rootName: string, interval: number): string {
-  const li = (LETTERS.indexOf(rootName[0]) + TONES[interval][1] - 1) % 7;
-  let diff = pc(pcOf(rootName)! + interval - NATURAL[li]);
-  if (diff > 6) diff -= 12;
-  return LETTERS[li] + (diff > 0 ? "#".repeat(diff) : "b".repeat(-diff));
-}
+const spellTone = (rootName: string, interval: number) =>
+  spellAbove(rootName, interval, TONES[interval][1]);
 const ROLES: Record<string, string> = {
   R: "the root, the note the chord is named for",
   "3": "the 3rd, which makes the chord major",
