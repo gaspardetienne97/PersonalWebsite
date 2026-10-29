@@ -171,7 +171,7 @@ function rudimentSound(id: string): LessonSound {
     hits: 64,
     bpm: RUDIMENT_BPM,
     pads: [LEFT_PAD, RIGHT_PAD],
-  }).filter((h) => h.atMs < 4 * beatMs - 1e-6);
+  }).filter((h) => (h.grace ? h.atMs + MPC_RUDIMENTS.flamGraceMs : h.atMs) < 4 * beatMs - 1e-6);
   return {
     notes: hits.map((h) => ({
       midi: [h.pad],
@@ -189,8 +189,10 @@ function rudimentSound(id: string): LessonSound {
   };
 }
 /** Which pads the two hands play, labelled L and R (one pad for a roll). */
-const handPads = (id: string): LessonFigure =>
-  padsFigure(rudiment(id).onePad ? { [RIGHT_PAD]: "R L" } : { [LEFT_PAD]: "L", [RIGHT_PAD]: "R" });
+const handPads = (id: string): LessonFigure => ({
+  kind: "pads",
+  marks: rudiment(id).onePad ? { [RIGHT_PAD]: "R L" } : { [LEFT_PAD]: "L", [RIGHT_PAD]: "R" },
+});
 /** Four beats of single strokes on a grid of 2, 3 or 4 a beat. */
 const gridBeats = (perBeat: 2 | 3 | 4): LessonFigure => ({
   kind: "rhythm",
@@ -349,8 +351,21 @@ export const CARD_TOPICS = ["independence", "fills", "breaks", "shuffle", "meter
 /** The cards a groove adds on top of the sixteenths lesson: its topic's idea, and rolls. */
 export function grooveLessonItems(r: RepertoireGroove): string[] {
   if (r.level < 3) return [];
-  return [...(CARD_TOPICS.includes(r.topic) ? [r.topic] : []), ...(hasRolls(r) ? ["rolls"] : [])];
+  const topic =
+    r.topic === "independence"
+      ? isLinear(r.groove)
+        ? "linear"
+        : "independence"
+      : r.topic === "breaks" && r.groove.bars < 2
+        ? null
+        : CARD_TOPICS.includes(r.topic)
+          ? r.topic
+          : null;
+  return [...(topic ? [topic] : []), ...(hasRolls(r) ? ["rolls"] : [])];
 }
+/** A linear groove never has two drums on the same onset. */
+export const isLinear = (g: GrooveDef) =>
+  new Set(g.targets.map((t) => Math.round(t.beat * 1000))).size === g.targets.length;
 
 function sixteenthsLesson(): Lesson {
   const r = SIXTEENTH_GROOVE();
@@ -435,6 +450,16 @@ function grooveCard(item: string): Lesson | null {
       sound: soundOf(hits),
     });
   }
+  if (item === "linear") {
+    const g = GROOVE_OF("linear-singles");
+    const hits: Hit[] = firstBar(g);
+    return card(id, "Linear grooves", {
+      title: "Linear grooves",
+      text: `In a linear groove no two drums play at the same time, so the hands and the foot take turns. In "${g.label}" the hats, snare and kick pass the bar round without overlapping. The grid shows its bar.`,
+      figure: gridOf(hits, 0, 1),
+      sound: soundOf(hits),
+    });
+  }
   if (item === "fills") {
     const g = GROOVE_OF("fill-one-beat");
     const hits: Hit[] = g.targets.filter((t) => t.beat >= 8 && t.beat < 16);
@@ -457,10 +482,12 @@ function grooveCard(item: string): Lesson | null {
   }
   if (item === "breaks") {
     const g = GROOVE_OF("amen");
-    const hits: Hit[] = g.targets.filter((t) => t.beat < 8);
+    const hits: Hit[] = g.targets
+      .filter((t) => t.beat < 4 || (t.beat >= 12 && t.beat < 16))
+      .map((t) => (t.beat >= 12 ? { ...t, beat: t.beat - 8 } : t));
     return card(id, "Breaks", {
       title: "Breaks",
-      text: `A break is a short drum part lifted from a record, written out for you to play. The ${g.label} runs for ${g.bars} bars and the bars differ, so keep count of where you are. The grid shows its kick and snare in the first two bars.`,
+      text: `A break is a short drum part lifted from a record, written out for you to play. The ${g.label} runs for ${g.bars} bars and the bars differ, so keep count of where you are. The grid shows its kick and snare in bars 1 and 4.`,
       figure: gridOf(hits, 0, 2, ["kick", "snare"]),
       sound: soundOf(hits),
     });
@@ -716,7 +743,7 @@ function ostinatoCard(id: string): Lesson | null {
   const hits = lineBar(id);
   return card(cid, line.label, {
     title: line.label,
-    text: `${line.label}: the snare plays on ${list(countsOf(beatsOf(hits, "snare")))}. The hats play eighths under it.`,
+    text: `The snare plays on ${list(countsOf(beatsOf(hits, "snare")))}. The hats play eighths under it.`,
     figure: gridOf(hits, 0, 1),
     sound: soundOf(hits),
   });
@@ -767,7 +794,7 @@ function orchestrateIntro(): Lesson {
           sound: soundOf(group(1), { bpm: 90, from: 1 }),
         },
         {
-          text: "Together they make the bar, and the drill plays it twice.",
+          text: "Four groups make one bar of sixteenths, the paradiddle twice through.",
           sound: soundOf(bar, { bpm: 90 }),
         },
       ],
@@ -830,11 +857,11 @@ function repeatCard(rate: string): Lesson | null {
   const hits: Hit[] = Array.from({ length: r.perBeat * 2 }, (_, i) => ({
     voice: "snare",
     beat: i / r.perBeat,
-    accent: i === 0 ? "accent" : "normal",
+    accent: "normal",
   }));
   return card(`pads.repeat:${rate}`, `Rate ${rate}`, {
     title: `Rate ${rate}`,
-    text: `At ${rate} a held pad repeats ${r.perBeat} times a beat, which is ${SUBDIVISION_NAMES[r.perBeat]}. Hear two beats of it. The first hit is louder, as your own hit is.`,
+    text: `At ${rate} a held pad repeats ${r.perBeat} times a beat, which is ${SUBDIVISION_NAMES[r.perBeat]}. Hear two beats of it. Each repeat keeps your hit's level unless your pads send aftertouch.`,
     sound: soundOf(hits),
   });
 }
@@ -952,10 +979,11 @@ function chopCard(item: string): Lesson | null {
     if (!e) return null;
     const src = e.source ? CHOP_SOURCES.find((s) => s.id === e.source) : null;
     const step = e.every === 0.25 ? "a sixteenth" : e.every === 0.5 ? "an eighth" : "a beat";
-    const name = e.label.split(":")[0];
+    const [name, ...rest] = e.label.split(":");
+    const desc = rest.join(":").trim();
     return card(`pads.chop:${item}`, name, {
       title: name,
-      text: `${e.label}. It plays ${step} a step: slices ${slices(e.steps)}${e.steps.includes(0) ? " (a gap lets the slice before it ring)" : ""}.${src ? ` It is written for the ${src.label.toLowerCase()} loop.` : ""}`,
+      text: `${desc ? `${desc[0].toUpperCase()}${desc.slice(1)}. ` : ""}It plays ${step} a step: slices ${slices(e.steps)}${e.steps.includes(0) ? " (a gap lets the slice before it ring)" : ""}.${src ? ` It is written for the ${src.label.toLowerCase()} loop.` : ""}`,
     });
   }
   const x = CHOP_EXERCISES.find((y) => y.id === item);

@@ -96,7 +96,7 @@ const ALL_ITEMS: Record<string, string[]> = {
   repeat: REPEAT_RATES.map((r) => r.id),
   song: SONG_FORMS.map((f) => f.id),
   chop: [...CHOP_EXERCISES.map((x) => x.id), ...CHOP_EDITS.map((e) => `edit:${e.id}`)],
-  grooves: [...CARD_TOPICS, "rolls"],
+  grooves: [...CARD_TOPICS, "linear", "rolls"],
 };
 
 describe("pads lessons: copy and shape", () => {
@@ -300,22 +300,40 @@ describe("grooves from level 3", () => {
     expect(grooveLessonItems(PAD_REPERTOIRE.find((r) => r.level < 3)!)).toEqual([]);
   });
 
-  it("each card's claim holds for every groove that earns it", () => {
-    for (const r of byTopic("independence").filter((r) => r.groove.value === "independence")) {
-      expect(new Set(barsOf(r, "hats")).size).toBe(1);
-      expect(new Set(barsOf(r, "kick")).size).toBeGreaterThan(1);
+  it("each card's claim holds for every groove that earns it, derived from the data", () => {
+    const earns = (item: string) => level3Up.filter((r) => grooveLessonItems(r).includes(item));
+    const onsets = (r: (typeof level3Up)[number]) =>
+      r.groove.targets.map((t) => Math.round(t.beat * 1000));
+    // independence: voices layer (two drums share an onset)
+    expect(earns("independence").length).toBeGreaterThan(0);
+    for (const r of earns("independence"))
+      expect(new Set(onsets(r)).size).toBeLessThan(onsets(r).length);
+    // linear: never two drums at once
+    expect(
+      earns("linear")
+        .map((r) => r.groove.value)
+        .sort(),
+    ).toEqual(["linear-doubles", "linear-inverted", "linear-paradiddle", "linear-singles"]);
+    for (const r of earns("linear")) expect(new Set(onsets(r)).size).toBe(onsets(r).length);
+    const ind = text(padLessons("grooves", 4, ["independence"])[1]);
+    const g = PAD_REPERTOIRE.find((r) => r.groove.value === "independence")!;
+    expect(new Set(barsOf(g, "hats")).size).toBe(1);
+    expect(new Set(barsOf(g, "kick")).size).toBeGreaterThan(1);
+    expect(ind).toContain("takes a new pattern each bar");
+    for (const r of earns("fills")) expect(r.groove.bars).toBe(4);
+    // breaks: more than one bar, and the two bars shown (1 and 4) differ
+    expect(earns("breaks").map((r) => r.groove.value)).toEqual(["amen"]);
+    for (const r of earns("breaks")) {
+      expect(r.groove.bars).toBe(4);
+      expect(barsOf(r, "snare")[0]).not.toBe(barsOf(r, "snare")[3]);
+      expect(text(padLessons("grooves", 6, ["breaks"])[1])).toContain(
+        `runs for ${r.groove.bars} bars`,
+      );
     }
-    expect(byTopic("independence").length).toBeGreaterThan(0);
-    for (const r of byTopic("fills")) expect(r.groove.bars).toBe(4);
-    const amen = byTopic("breaks").find((r) => r.groove.value === "amen")!;
-    expect(amen.groove.bars).toBe(4);
-    expect(new Set(barsOf(amen, "snare")).size).toBeGreaterThan(1);
-    expect(text(padLessons("grooves", 6, ["breaks"])[1])).toContain(
-      `The ${amen.groove.label} runs for 4 bars`,
-    );
-    for (const r of byTopic("shuffle")) expect([3, 6]).toContain(r.groove.stepsPerBeat);
-    for (const r of byTopic("meter")) expect([5, 7]).toContain(r.groove.beatsPerBar);
-    const seven8 = byTopic("meter").find((r) => r.groove.value === "seven-eight")!;
+    expect(grooveLessonItems(PAD_REPERTOIRE.find((r) => r.groove.value === "apache")!)).toEqual([]);
+    for (const r of earns("shuffle")) expect([3, 6]).toContain(r.groove.stepsPerBeat);
+    for (const r of earns("meter")) expect([5, 7]).toContain(r.groove.beatsPerBar);
+    const seven8 = earns("meter").find((r) => r.groove.value === "seven-eight")!;
     expect(seven8.groove.stepsPerBeat).toBe(2);
   });
 
@@ -508,7 +526,7 @@ describe("ostinato", () => {
           .filter((h) => h.voice === "snare")
           .map((h) => h.beat),
       ).toEqual(beats);
-      expect(c.screens[0].text).toContain("the snare plays on");
+      expect(c.screens[0].text).toContain("snare plays on");
     }
     const clave = ls.find((x) => x.id === "pads.ostinato:clave")!;
     const rim = lineBar("clave").filter((h) => h.voice === "rim");
@@ -685,9 +703,49 @@ describe("chop", () => {
   it("edit cards list their steps and the loop they are written for", () => {
     for (const e of CHOP_EDITS) {
       const c = padLessons("chop", undefined, [`edit:${e.id}`])[1];
-      expect(c.screens[0].text).toContain(e.label);
+      const desc = e.label.split(":").slice(1).join(":").trim();
+      if (desc) expect(c.screens[0].text.toLowerCase()).toContain(desc.toLowerCase());
       expect(c.screens[0].text.includes("lets the slice before")).toBe(e.steps.includes(0));
       expect(c.screens[0].text.includes("written for")).toBe(!!e.source);
+    }
+  });
+});
+
+describe("review fixes", () => {
+  it("repeat rate cards play every hit at one velocity", () => {
+    for (const r of REPEAT_RATES) {
+      const [, c] = padLessons("repeat", undefined, [r.id]);
+      expect(new Set(c.screens[0].sound!.notes.map((n) => n.velocity)).size).toBe(1);
+      expect(c.screens[0].text).not.toContain("louder");
+    }
+  });
+
+  it("the paradiddle bar text matches the sound: 16 strokes, four groups", () => {
+    const step = padLessons("orchestrate")[0].screens[2].steps![2];
+    const kick = padOf("kick");
+    expect(step.sound!.notes.filter((n) => n.midi[0] !== kick).length).toBe(16);
+    expect(step.text).toContain("Four groups");
+  });
+
+  it("every rudiment clip ends on a main stroke, never a lone grace note", () => {
+    const [, c] = padLessons("rudiments", undefined, ["flam"]);
+    const n = c.screens[0].sound!.notes;
+    const mains = n.filter((x) => x.velocity !== 0.4);
+    const graces = n.filter((x) => x.velocity === 0.4);
+    expect(graces.length).toBe(mains.length);
+    expect(Math.max(...n.map((x) => x.at))).toBe(Math.max(...mains.map((x) => x.at)));
+  });
+
+  it("cards do not repeat their title, and sticking figures name pads by hand only", () => {
+    for (const [mode, items] of Object.entries(ALL_ITEMS))
+      for (const l of padLessons(mode, 8, items).slice(1))
+        for (const sc of l.screens) {
+          expect(sc.text.startsWith(`${sc.title}:`)).toBe(false);
+          expect(sc.text.startsWith(`${sc.title}.`)).toBe(false);
+        }
+    for (const k of RUDIMENT_ITEMS) {
+      const f = padLessons("rudiments", undefined, [k])[1].screens[0].figure!;
+      expect(f.kind === "pads" && f.names).toBeFalsy();
     }
   });
 });
