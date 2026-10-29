@@ -164,6 +164,8 @@ export const AEROPHONE_MODES = [
   { id: "calibrate", label: "Setup check" },
 ] as const;
 /** Target sounding fraction of each beat. */
+/** How long a landing is held, in ms. */
+export const LANDING_HOLD_MS = 3000;
 export const ARTICULATION_TARGET = { staccato: 0.35, legato: 0.95 } as const;
 export const LANDING_INTERVALS = [
   { semitones: 5, label: "Perfect fourth" },

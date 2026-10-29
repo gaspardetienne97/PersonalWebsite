@@ -10,6 +10,7 @@
     fingeringSlip,
     lessonLine,
     ARTICULATION_TARGET,
+    LANDING_HOLD_MS,
     LANDING_INTERVALS,
     aerophoneSkills,
     fingeringFor,
@@ -31,6 +32,7 @@
   } from "@repo/music-core/scoring/aerophone";
   import { BREATH_LEVELS, inBandShare } from "@repo/music-core/content/aero-skills";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
+  import { aeroLessons } from "@repo/music-core/lessons/technique";
   import AeroSkills from "$lib/music/drills/aerophone/AeroSkills.svelte";
   import AeroCalibrate from "$lib/music/drills/aerophone/AeroCalibrate.svelte";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -49,7 +51,6 @@
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
-  const LANDING_HOLD_MS = 3000;
   const NO_NOTE_MS = 15000;
   const cfg = new DrillSetup("aerophone", {
     mode: "fingering" as string,
@@ -510,6 +511,7 @@
   title="Aerophone"
   hue="aerophone"
   blurb={BLURB[m]}
+  lesson={m === "long-tone" ? { lessons: aeroLessons(m, s.level) } : m === "articulation" || m === "interval-landing" ? { lessons: aeroLessons(m) } : null}
   summary={summaryLine}
   tabs={AEROPHONE_MODES}
   tab={s.mode}

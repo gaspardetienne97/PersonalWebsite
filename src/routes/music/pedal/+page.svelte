@@ -9,6 +9,7 @@
   import { PEDAL_PROGRESSIONS, pedalChords } from "@repo/music-core/content/piano";
   import { gradePedal, PEDAL, type PedalResult, type PedalVerdict } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import { pedalLesson } from "@repo/music-core/lessons/technique";
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
@@ -253,6 +254,7 @@
 
 <DrillShell
   title="Pedal"
+  lesson={{ lessons: [pedalLesson()] }}
   hue="piano"
   blurb="Legato pedalling: play the chord, then lift the sustain pedal and press it straight back down, so each chord rings into the next without blurring."
   summary={summaryLine}

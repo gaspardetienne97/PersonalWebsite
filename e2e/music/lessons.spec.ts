@@ -200,6 +200,16 @@ test.describe("tier 1 lessons", () => {
     ["rhythm echo", "/music/rhythm?mode=echo", "Counting the beat"],
     ["rhythm dictation", "/music/rhythm?mode=dictation", "Counting the beat"],
     ["mixing ear", "/music/listening", "Flat, then Changed"],
+    ["aerophone long tone", "/music/aerophone?mode=long-tone", "One note, one even breath"],
+    ["aerophone articulation", "/music/aerophone?mode=articulation", "One tongue a beat"],
+    [
+      "aerophone interval landing",
+      "/music/aerophone?mode=interval-landing",
+      "Land on the interval",
+    ],
+    ["aerophone register", "/music/aerophone?mode=register", "Across the break"],
+    ["guitar bends", "/music/fretboard?mode=bends", "A whole step is two frets"],
+    ["piano pedal", "/music/pedal", "Pedal after the chord"],
   ];
   for (const [name, url, heading] of cases) {
     test(`${name} shows its lesson on the first visit`, async ({ page }) => {
@@ -230,6 +240,36 @@ test.describe("tier 1 lessons", () => {
     await page.goto("/music/pads?mode=groove&groove=basic-rock");
     await expect(start(page)).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
+  });
+
+  test("long tone with a level adds the levels lesson, a palm crossing its own", async ({
+    page,
+  }) => {
+    await page.goto("/music/aerophone?mode=long-tone&level=mf");
+    await expect(
+      page.getByRole("heading", { name: "One note, one even breath", exact: true }),
+    ).toBeVisible();
+    const levels = page.getByRole("heading", { name: "Hold at a loudness", exact: true });
+    for (let i = 0; i < 6 && !(await levels.isVisible()); i++)
+      await page.getByRole("button", { name: /^Next/ }).click();
+    await expect(levels).toBeVisible();
+    await page.goto("/music/aerophone?mode=register&pair=d6-f6");
+    const palm = page.getByRole("heading", { name: "Reaching for the palm keys", exact: true });
+    for (let i = 0; i < 8 && !(await palm.isVisible()); i++)
+      await page.getByRole("button", { name: /^Next/ }).click();
+    await expect(palm).toBeVisible();
+  });
+
+  test("the bends and pedal lessons fit at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const url of ["/music/fretboard?mode=bends", "/music/pedal"]) {
+      await page.goto(url);
+      await expect(page.getByTestId("lesson")).toBeVisible();
+      for (let i = 0; i < 4; i++) {
+        await page.keyboard.press("ArrowRight");
+        await expectNoHorizontalOverflow(page);
+      }
+    }
   });
 
   test("drop-2 shows 4-way close first", async ({ page }) => {

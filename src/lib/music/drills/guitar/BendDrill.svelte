@@ -8,6 +8,7 @@
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { midiAt } from "@repo/music-core/theory/fretboard";
   import { analyseBend, analyseVibrato, BEND, type BendResult, type PitchPoint, type VibratoResult } from "@repo/music-core/scoring/bends";
+  import { bendLesson } from "@repo/music-core/lessons/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -240,6 +241,7 @@
 
 <DrillShell
   title="Bends and vibrato"
+  lesson={{ lessons: [bendLesson(instr, tuning.openStrings)] }}
   hue={instr}
   blurb="Bend to pitch and hold it, judged in cents where it settles; or hold a note with vibrato, its rate and width measured. Needs the microphone."
   summary={summaryLine}
