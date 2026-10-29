@@ -219,7 +219,7 @@ const NEIGHBOURS: Lesson = {
     },
     {
       title: "Relative minor and opposite",
-      text: "The relative minor sits on the inner ring, 3 half steps below the major tonic. The key across the wheel is a tritone away.",
+      text: "The relative minor sits on the middle ring, 3 half steps below the major tonic. The key across the wheel is a tritone away.",
       steps: [
         {
           text: `${keyAt(0).major} major has ${keyAt(0).minor} minor as its relative.`,
@@ -309,7 +309,7 @@ const WHEEL: Lesson = {
     },
     {
       title: "Where the two sides meet",
-      text: "At the bottom the sharp and flat names meet: B and Cb, F# and Gb, C# and Db. The wheel shows the name with fewer accidentals first.",
+      text: "At the bottom the sharp and flat names meet: B or Cb, F# or Gb, Db or C#. The wheel shows B, F# and Db.",
       figure: wheel(6),
     },
   ],
@@ -332,7 +332,7 @@ const BORROWED: Lesson = {
     },
     {
       title: "Four borrowed chords in C",
-      text: "Tap each to hear the borrowed chord, then C. Each one is darker than its plain major-key relative.",
+      text: "Tap each to hear the borrowed chord, then C. Each one takes a note from C minor.",
       options: [
         { label: `iv ${noteAtFifths(-1)}m`, chord: `${noteAtFifths(-1)}m` },
         { label: `bVI ${noteAtFifths(-4)}`, chord: noteAtFifths(-4) },
@@ -385,7 +385,7 @@ const SECONDARY: Lesson = {
     },
     {
       title: "Finding the dominant",
-      text: "Name the target chord, go up a fifth, and add the seventh.",
+      text: "Name the target chord and go up a fifth. Make that a major chord with a flat seventh, even when the target is minor: E7 before Am, not Em7.",
       steps: SECONDARY_IN_C.slice(1).map((s) => ({
         text: `${s.name}: the target is ${s.target}, a fifth above is ${s.dom.slice(0, -1)}, so ${s.dom}.`,
       })),
@@ -394,43 +394,49 @@ const SECONDARY: Lesson = {
 };
 
 const ANALYSIS_TUNE = "tune-fly-me-to-the-moon";
-const sheet = analysisSheet(TUNES.find((t) => t.id === ANALYSIS_TUNE)!);
-const chordStep = (i: number): LessonStep => {
-  const c = sheet[i];
-  return {
-    text:
-      c.fn === "V of"
-        ? `${c.symbol} is a V of. It leads to ${sheet[i + 1].symbol}, which is not the I.`
-        : `${c.symbol} is ${c.fn} in ${c.key}.`,
-    sound: play(c.symbol),
-  };
-};
 
-const ANALYSIS: Lesson = {
-  id: "circle.analysis",
-  title: "Analysing a tune",
-  screens: [
-    {
-      title: "Key and function",
-      text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. Fly Me to the Moon is our example. It starts in C.",
-      steps: [0, 3, 4].map(chordStep),
-    },
-    {
-      title: "ii, V, I",
-      text: "A minor chord a fourth below a dominant is its ii, and the dominant resolves to the I.",
-      steps: [1, 2, 3].map(chordStep),
-    },
-    {
-      title: "V of",
-      text: "A dominant that resolves to a chord that is not a key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
-      steps: [5, 6, 7].map(chordStep),
-    },
-    {
-      title: "Tritone subs and backdoors",
-      text: "A dominant a half step above the I it resolves to is a tritone sub, like Db7 to C. A dominant a whole step below is a backdoor, like Bb7 to C.",
-    },
-  ],
-};
+/** Built on demand, so a change to the tune data cannot break the other circle lessons. */
+function analysisLesson(): Lesson {
+  const sheet = analysisSheet(TUNES.find((t) => t.id === ANALYSIS_TUNE)!);
+  const chordStep = (i: number): LessonStep => {
+    const c = sheet[i];
+    const next = sheet[i + 1]?.symbol;
+    return {
+      text:
+        c.fn === "V of"
+          ? `${c.symbol} is V of ${next}, written V/vi.`
+          : c.fn === "Related ii"
+            ? `${c.symbol} is the related ii before ${next}.`
+            : `${c.symbol} is ${c.fn} in ${c.key}.`,
+      sound: play(c.symbol),
+    };
+  };
+  return {
+    id: "circle.analysis",
+    title: "Analysing a tune",
+    screens: [
+      {
+        title: "Key and function",
+        text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. Fly Me to the Moon is our example. It starts in C.",
+        steps: [0, 3, 4].map(chordStep),
+      },
+      {
+        title: "ii, V, I",
+        text: "A minor chord a fourth below a dominant is its ii, and the dominant resolves to the I.",
+        steps: [1, 2, 3].map(chordStep),
+      },
+      {
+        title: "V of",
+        text: "A dominant that resolves to a chord that is not the home key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
+        steps: [5, 6, 7].map(chordStep),
+      },
+      {
+        title: "Tritone subs and backdoors",
+        text: "A dominant a half step above the I it resolves to is a tritone sub, like Db7 to C. A dominant a whole step below is a backdoor, like Bb7 to C.",
+      },
+    ],
+  };
+}
 
 export function circleLessons(mode: CircleMode): Lesson[] {
   switch (mode) {
@@ -451,6 +457,6 @@ export function circleLessons(mode: CircleMode): Lesson[] {
     case "secondary":
       return [SECONDARY];
     case "analysis":
-      return [ANALYSIS];
+      return [analysisLesson()];
   }
 }
