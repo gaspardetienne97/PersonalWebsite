@@ -38,6 +38,11 @@ export type LessonFigure =
       names?: Record<number, string>;
     }
   | {
+      /** The AE-20's fingering for a note, drawn by AerophoneKeys; `midi` is concert pitch, as the drill passes it. */
+      kind: "aerophone";
+      midi: number;
+    }
+  | {
       kind: "fretboard";
       instrument: "guitar" | "ukulele";
       /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */

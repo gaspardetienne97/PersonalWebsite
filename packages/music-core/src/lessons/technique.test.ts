@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { BREATH_LEVELS, REGISTER_PAIRS } from "../content/aero-skills";
 import {
-  ARTICULATION_TARGET,
+  ARTICULATION_TARGET as WINDS_TARGET,
   LANDING_HOLD_MS,
   LANDING_INTERVALS,
   fingeringFor,
 } from "../content/winds-pads";
 import { TUNINGS } from "../data";
-import { BEND } from "../scoring/bends";
-import { ATTACK } from "../scoring/aerophone";
+import { BEND, BEND_PROMPT_MS, BEND_SETTLE_MS } from "../scoring/bends";
+import { ARTICULATION_TARGET, ATTACK } from "../scoring/aerophone";
 import { PEDAL, gradePedal } from "../scoring/piano";
 import { lessonProblems } from "./check";
 import {
@@ -71,9 +71,6 @@ describe("aerophone lessons", () => {
 
   it("the levels lesson states the drill's bands and plays one note a level, louder going up", () => {
     const l = aeroLessons("long-tone", "mf")[1];
-    expect(l.screens[0].text).toContain(
-      "pp 0.1 to 0.28, p 0.25 to 0.42, mf 0.45 to 0.65, f 0.65 to 0.85",
-    );
     for (const lv of BREATH_LEVELS)
       expect(l.screens[0].text).toContain(`${lv.id} ${lv.band[0]} to ${lv.band[1]}`);
     const opts = l.screens[1].options!;
@@ -94,18 +91,46 @@ describe("aerophone lessons", () => {
     expect(l.screens[3].text).toContain(`${ATTACK.windowMs} ms`);
   });
 
-  it("the landing lesson plays each interval the drill offers, above a C drone, and says the hold", () => {
-    const l = aeroLessons("interval-landing")[0];
-    const opts = l.screens[1].options!;
-    expect(opts.map((o) => o.label)).toEqual(LANDING_INTERVALS.map((i) => i.label));
-    LANDING_INTERVALS.forEach((i, k) => {
-      const [drone, target] = opts[k].sound.notes;
-      expect(target.midi[0] - drone.midi[0]).toBe(i.semitones);
-      expect(opts[k].figure).toMatchObject({ kind: "keys" });
-      // the landing note is on the chart, so the drill could ask for it
-      expect(fingeringFor(target.midi[0])).toBeDefined();
-    });
-    expect(l.screens[3].text).toContain(`${LANDING_HOLD_MS / 1000} seconds`);
+  it("the landing lesson plays the drill's own notes in the reading key, up and down", () => {
+    for (const shift of [0, 3, -2]) {
+      const l = aeroLessons("interval-landing", undefined, shift)[0];
+      const opts = l.screens[1].options!;
+      const labels = opts.map((o) => o.label);
+      for (const i of LANDING_INTERVALS) expect(labels).toContain(`${i.label} up`);
+      expect(labels.some((x) => x.endsWith("down"))).toBe(true);
+      for (const o of opts) {
+        const [drone, target] = o.sound.notes;
+        const [i, dir] = [
+          LANDING_INTERVALS.find((x) => o.label.startsWith(x.label))!,
+          o.label.endsWith("up") ? 1 : -1,
+        ];
+        // the drill plays (written drone - shift) and (landing target - shift)
+        expect(drone.midi[0] + shift).toBe(72);
+        expect(target.midi[0] - drone.midi[0]).toBe(dir * i.semitones);
+        expect(fingeringFor(target.midi[0] + shift)).toBeDefined();
+        expect(o.figure).toMatchObject({ kind: "keys" });
+      }
+    }
+    expect(aeroLessons("interval-landing")[0].screens[3].text).toContain(
+      `${LANDING_HOLD_MS / 1000} seconds`,
+    );
+  });
+
+  it("one table of note lengths, and the register figures show the crossing's own fingerings", () => {
+    expect(WINDS_TARGET).toBe(ARTICULATION_TARGET);
+    const ls = aeroLessons("register", "d6-f6", 3);
+    expect(ls.map((l) => l.id)).toEqual(["aerophone.register", "aerophone.register.palm"]);
+    for (const l of ls) {
+      const steps = l.screens.find((s) => s.steps)!.steps!;
+      const figs = steps.flatMap((x) =>
+        x.figure?.kind === "aerophone" ? [x.figure.midi + 3] : [],
+      );
+      expect(figs).toEqual([86, 89]);
+      expect(steps[0].text).toContain("D6");
+      expect(steps[2].text).toContain("Keys that change");
+    }
+    expect(JSON.stringify(ls[1])).toContain("C2, C3, C4 and C5");
+    for (const l of aeroLessons("register", "cs4-b3")) expect(lessonProblems(l)).toEqual([]);
   });
 
   it("the register lesson's octave and palm claims match the chart", () => {
@@ -178,11 +203,15 @@ describe("bend lesson", () => {
   });
 
   it("states the drill's cent bands", () => {
-    const t = l.screens[3].text;
+    const t = l.screens[4].text;
     expect(t).toContain(`${BEND.inTune} cents`);
     expect(t).toContain(`${BEND.close}`);
-    expect(t).toContain(`${BEND.holdMs} ms`);
     expect(t).toContain("200 cents");
+    const w = l.screens[3].text;
+    expect(w).toContain(`${BEND_SETTLE_MS} ms`);
+    expect(w).toContain(`${BEND_PROMPT_MS / 1000} seconds`);
+    expect(w).toContain(`${BEND.holdMs} ms`);
+    expect(BEND_SETTLE_MS).toBe(600);
   });
 });
 

@@ -424,7 +424,7 @@
   bind:status
   progress={timed && stepNow !== null ? (stepNow + 1) / line.length : 0}
   clock={timed || skill === "vibrato" ? { bpm, beatsPerBar: 4 } : null}
-  lesson={skill === "vibrato" ? { lessons: [biteVibratoLesson()] } : skill === "register" ? { lessons: aeroLessons("register", s.pair) } : null}
+  lesson={skill === "vibrato" ? { lessons: [biteVibratoLesson()] } : skill === "register" ? { lessons: aeroLessons("register", s.pair, shift) } : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}

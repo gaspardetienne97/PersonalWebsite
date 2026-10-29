@@ -20,6 +20,10 @@ export const BEND = {
   steadyCents: 20,
 } as const;
 
+/** BendDrill judges a bend once it has held this long, or at the prompt's timeout if it never does. */
+export const BEND_SETTLE_MS = BEND.holdMs + 350;
+export const BEND_PROMPT_MS = 8000;
+
 const hzOf = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 const centsFrom = (hz: number, midi: number) => 1200 * Math.log2(hz / hzOf(midi));
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);

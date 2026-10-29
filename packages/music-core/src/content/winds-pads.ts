@@ -8,6 +8,7 @@ import {
   type GrooveDef,
   type RudimentDef,
 } from "../data";
+import { ARTICULATION_TARGET } from "../scoring/aerophone";
 import { clamp, octaveOf, pc, SHARP_NAMES } from "../theory/notes";
 
 // ---------------------------------------------------------------------------
@@ -163,10 +164,10 @@ export const AEROPHONE_MODES = [
   { id: "long-scale", label: "Long-tone scale" },
   { id: "calibrate", label: "Setup check" },
 ] as const;
-/** Target sounding fraction of each beat. */
+/** Target sounding fraction of each beat: the grader's own table. */
+export { ARTICULATION_TARGET };
 /** How long a landing is held, in ms. */
 export const LANDING_HOLD_MS = 3000;
-export const ARTICULATION_TARGET = { staccato: 0.35, legato: 0.95 } as const;
 export const LANDING_INTERVALS = [
   { semitones: 5, label: "Perfect fourth" },
   { semitones: 7, label: "Perfect fifth" },

@@ -165,7 +165,7 @@
           ? [{ text: `Swell on ${chartName(targetMidi)}` }, { text: `over ${s.swellSeconds} s`, focus: "swellSeconds" }]
           : m === "articulation"
             ? [{ text: `Articulation: ${s.count} ${style} ${chartName(targetMidi)}s`, focus: "style" }, { text: `${bpm} BPM` }]
-            : [{ text: `Land a ${intervalLabel.toLowerCase()} ${s.direction}`, focus: "interval" }, { text: `from a ${chartName(drone)} drone`, focus: "drone" }, { text: "hold 3 s" }],
+            : [{ text: `Land a ${intervalLabel.toLowerCase()} ${s.direction}`, focus: "interval" }, { text: `from a ${chartName(drone)} drone`, focus: "drone" }, { text: `hold ${LANDING_HOLD_MS / 1000} s` }],
   );
   const summaryText = $derived(summaryLine.map((c) => c.text).join(", "));
   const blocked = $derived(m === "interval-landing" && landing === undefined ? `That interval leaves the fingering chart (${chartName(AEROPHONE_RANGE.lowestMidi - shift)} to ${chartName(AEROPHONE_RANGE.highestMidi - shift)}). Pick another drone or direction.` : null);
@@ -496,7 +496,7 @@
     "long-tone": "Hold one note steady: the breath read from CC 2 should sit still, at a level if you set one.",
     swell: "One note from soft to loud and back: the breath should rise and fall in a smooth arc.",
     articulation: "Repeated attacks on one note at the strip's tempo: staccato sounds a third of each beat, legato nearly all of it.",
-    "interval-landing": "A drone sounds; land the interval on it and hold it in tune for three seconds.",
+    "interval-landing": `A drone sounds; land the interval on it and hold it steady for ${LANDING_HOLD_MS / 1000} seconds.`,
   };
 </script>
 
@@ -511,7 +511,7 @@
   title="Aerophone"
   hue="aerophone"
   blurb={BLURB[m]}
-  lesson={m === "long-tone" ? { lessons: aeroLessons(m, s.level) } : m === "articulation" || m === "interval-landing" ? { lessons: aeroLessons(m) } : null}
+  lesson={m === "long-tone" ? { lessons: aeroLessons(m, s.level) } : m === "articulation" || m === "interval-landing" ? { lessons: aeroLessons(m, undefined, shift) } : null}
   summary={summaryLine}
   tabs={AEROPHONE_MODES}
   tab={s.mode}

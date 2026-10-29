@@ -8,6 +8,7 @@
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import Pads from "./Pads.svelte";
+  import AerophoneKeys from "./AerophoneKeys.svelte";
   import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
   import { countName } from "@repo/music-core/lessons/reading";
@@ -235,6 +236,8 @@
         <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label="Piano keys" />
       {:else if figure.kind === "pads"}
         <Pads marks={padMarks(figure.marks)} names={figure.names ?? {}} keyHints={false} interactive={false} label={padLabel(figure)} />
+      {:else if figure.kind === "aerophone"}
+        <AerophoneKeys midi={figure.midi} compact />
       {:else}
         {@const t = tuningFor(figure.instrument)}
         <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />

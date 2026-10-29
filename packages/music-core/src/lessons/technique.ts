@@ -1,16 +1,18 @@
 import { BREATH_LEVELS, REGISTER_PAIRS } from "../content/aero-skills";
 import {
+  AEROPHONE_CHART,
   AEROPHONE_MODES,
-  ARTICULATION_TARGET,
   LANDING_HOLD_MS,
   LANDING_INTERVALS,
+  PALM_FINGERINGS,
+  aerophoneKeyLabel,
   fingeringFor,
   landingTarget,
 } from "../content/winds-pads";
 import { PEDAL_PROGRESSIONS, pedalChords } from "../content/piano";
 import { TUNINGS } from "../data";
-import { BEND } from "../scoring/bends";
-import { ATTACK } from "../scoring/aerophone";
+import { BEND, BEND_PROMPT_MS, BEND_SETTLE_MS } from "../scoring/bends";
+import { ARTICULATION_TARGET, ATTACK } from "../scoring/aerophone";
 import { PEDAL } from "../scoring/piano";
 import { noteName } from "../theory/notes";
 import { keys } from "./tier1";
@@ -41,12 +43,40 @@ const registerGroup = (pairId: string) =>
       : null;
 
 /** The lowest chart note that needs the +1 octave key, and the lowest that needs a palm key. */
-const chartNotes = Array.from({ length: 40 }, (_, i) => 58 + i).flatMap((m) => {
-  const f = fingeringFor(m);
-  return f ? [f] : [];
-});
-export const firstOctaveNote = () => chartNotes.find((f) => f.octave)!;
-export const firstPalmNote = () => chartNotes.find((f) => f.keys.includes("C1"))!;
+export const firstOctaveNote = () => AEROPHONE_CHART.find((f) => f.octave)!;
+export const firstPalmNote = () => AEROPHONE_CHART.find((f) => f.keys.includes("C1"))!;
+/** Every key the chart's palm fingerings use, in the order they first appear. */
+const palmKeys = () => [...new Set(Object.values(PALM_FINGERINGS).flatMap((f) => f.keys))];
+const andList = (a: string[]) =>
+  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a.at(-1)}`;
+
+/** The key names of a written note's chart fingering, as the drill's labels have them. */
+const fingerKeys = (written: number) => {
+  const f = fingeringFor(written)!;
+  const ids = [...(f.octave ? ["octave"] : []), ...f.keys];
+  return ids.length ? ids.map(aerophoneKeyLabel).join(", ") : "all keys open";
+};
+
+/**
+ * The two notes of a crossing as steps, each with the AE-20's fingering drawn and its keys named,
+ * then the keys that change. Written notes, as the chart has them; the picture takes concert pitch.
+ */
+const crossingSteps = (pairId: string | undefined, shift: number) => {
+  const pair = REGISTER_PAIRS.find((p) => p.id === pairId) ?? REGISTER_PAIRS[0];
+  const [a, b] = pair.notes.map((m) => fingeringFor(m)!);
+  const idsOf = (f: typeof a) => new Set([...(f.octave ? ["octave"] : []), ...f.keys]);
+  const [ia, ib] = [idsOf(a), idsOf(b)];
+  const changes = [...new Set([...ia, ...ib])].filter((id) => ia.has(id) !== ib.has(id));
+  const step = (f: typeof a) => ({
+    text: `${f.name}${f.verified ? "" : " (best-effort)"}: ${fingerKeys(f.midi)}.`,
+    figure: { kind: "aerophone", midi: f.midi - shift } as LessonFigure,
+  });
+  return [
+    step(a),
+    step(b),
+    { text: `Keys that change: ${changes.map(aerophoneKeyLabel).join(", ")}.` },
+  ];
+};
 
 const longTone = (): Lesson => ({
   id: "aerophone.long-tone",
@@ -63,10 +93,15 @@ const longTone = (): Lesson => ({
     },
     {
       title: "What the drill checks",
-      text: `Tap the note on the chart, pick a hold of ${(AEROPHONE_MODES[1].seconds as readonly number[]).join(", ")} seconds, and play. The hold starts at your first target note and passes with the right pitch, the full length and a steady breath, where drifting up or down counts against you as much as shaking. Without the Aerophone's breath, only the pitch and the length are measured.`,
+      text: `Tap the note on the chart, pick a hold of ${andList2(holdSeconds())} seconds, and play. The hold starts at your first target note and passes with the right pitch, the full length and a steady breath, where drifting up or down counts against you as much as shaking. Without the Aerophone's breath, only the pitch and the length are measured.`,
     },
   ],
 });
+
+const holdSeconds = () =>
+  (AEROPHONE_MODES.find((m) => m.id === "long-tone")!.seconds as readonly number[]).map(String);
+const andList2 = (a: string[]) =>
+  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} or ${a.at(-1)}`;
 
 /** The drill's level bands as "pp 0.1 to 0.28". */
 const bandText = (l: (typeof BREATH_LEVELS)[number]) => `${l.id} ${l.band[0]} to ${l.band[1]}`;
@@ -134,48 +169,61 @@ const articulation = (): Lesson => {
   };
 };
 
-const DRONE = 60;
-const landing = (): Lesson => ({
-  id: "aerophone.interval-landing",
-  title: "Interval landing",
-  screens: [
-    {
-      title: "Land on the interval",
-      text: `A drone sounds, and you land the note an interval above or below it: ${LANDING_INTERVALS.map((i) => i.label.toLowerCase()).join(", ")}. You set the interval, the direction and the drone.`,
-    },
-    {
-      title: "Hear it on a C drone",
-      text: "Tap an interval to hear the drone alone, then the landing note joining it. The picture shows both notes.",
-      options: LANDING_INTERVALS.map((i) => {
-        const target = landingTarget(DRONE, i.semitones, "up")!;
-        return {
-          label: i.label,
-          sound: {
-            notes: [
-              { midi: [DRONE], at: 0, dur: 3.5 },
-              { midi: [target], at: 1, dur: 2.5 },
-            ],
-          },
-          figure: keys({ [DRONE]: "drone", [target]: "land" }),
-        };
-      }),
-    },
-    {
-      title: "Hearing it against the drone",
-      text: "Listen to the drone, think of the note an interval away, then finger it and play. The Aerophone's pitch comes from its keys, so there is no sharp or flat to nudge: the check is that the right note arrives.",
-    },
-    {
-      title: "What the drill checks",
-      text: `Play the target and hold it for ${secs(LANDING_HOLD_MS)} seconds. The hold starts at your first target note, so a wrong fingering first costs nothing. It passes with the right pitch, the full hold and a steady breath, and an interval that would leave the chart's range asks you for another drone or direction.`,
-    },
-  ],
-});
+/** The drill's drones are written notes; the example uses the highest, so both directions stay on the chart. */
+const WRITTEN_DRONE = 72;
+const landing = (shift: number): Lesson => {
+  const concert = (written: number) => written - shift;
+  const drone = fingeringFor(WRITTEN_DRONE)!.name;
+  return {
+    id: "aerophone.interval-landing",
+    title: "Interval landing",
+    screens: [
+      {
+        title: "Land on the interval",
+        text: `A drone sounds, and you land the note an interval above or below it: ${LANDING_INTERVALS.map((i) => i.label.toLowerCase()).join(", ")}. You set the interval, the direction and the drone.`,
+      },
+      {
+        title: `Hear it on a ${drone} drone`,
+        text: "Tap an interval and direction to hear the drone alone, then the landing note joining it. Notes are named as written, in your reading key, and the picture shows both notes.",
+        options: LANDING_INTERVALS.flatMap((i) =>
+          (["up", "down"] as const).flatMap((dir) => {
+            const target = landingTarget(WRITTEN_DRONE, i.semitones, dir);
+            if (target === undefined) return [];
+            return [
+              {
+                label: `${i.label} ${dir}`,
+                sound: {
+                  notes: [
+                    { midi: [concert(WRITTEN_DRONE)], at: 0, dur: 3.5 },
+                    { midi: [concert(target)], at: 1, dur: 2.5 },
+                  ],
+                },
+                figure: keys({
+                  [concert(WRITTEN_DRONE)]: "drone",
+                  [concert(target)]: "land",
+                }),
+              },
+            ];
+          }),
+        ),
+      },
+      {
+        title: "Hearing it against the drone",
+        text: "Listen to the drone, think of the note an interval away, then finger it and play. The drill checks that the note your keys send is the target, not fine tuning, and the bite can bend pitch without changing the note.",
+      },
+      {
+        title: "What the drill checks",
+        text: `Play the target and hold it for ${secs(LANDING_HOLD_MS)} seconds. The hold starts at your first target note, so a wrong fingering first costs nothing. It passes with the right pitch, the full hold and a steady breath, and an interval that would leave the chart's range asks you for another drone or direction.`,
+      },
+    ],
+  };
+};
 
 const palmName = () => firstPalmNote().name;
 const octaveName = () => firstOctaveNote().name;
 const pairLabels = (ps: readonly { label: string }[]) => ps.map((p) => p.label).join(", ");
 
-const register = (): Lesson => ({
+const register = (pairId: string | undefined, shift: number): Lesson => ({
   id: "aerophone.register",
   title: "Register crossings",
   screens: [
@@ -185,7 +233,8 @@ const register = (): Lesson => ({
     },
     {
       title: "Move everything together",
-      text: "The common slip is a stray note between the two, because the keys did not all change at the same moment. Compare the two fingerings and change only the keys that differ, all at once.",
+      text: "The common slip is a stray note between the two, because the keys did not all change at the same moment. Step through this crossing's two fingerings and change only the keys that differ, all at once.",
+      steps: crossingSteps(pairId, shift),
     },
     {
       title: "What the drill checks",
@@ -198,7 +247,7 @@ const register = (): Lesson => ({
   ],
 });
 
-const registerPinky = (): Lesson => ({
+const registerPinky = (pairId: string, shift: number): Lesson => ({
   id: "aerophone.register.pinky",
   title: "Pinky keys",
   screens: [
@@ -209,6 +258,7 @@ const registerPinky = (): Lesson => ({
     {
       title: "Change together",
       text: "Change the pinky key at the same moment as any other key that differs. A key that moves early or late sounds as a stray note between the two.",
+      steps: crossingSteps(pairId, shift),
     },
     {
       title: "What the drill counts",
@@ -217,17 +267,18 @@ const registerPinky = (): Lesson => ({
   ],
 });
 
-const registerPalm = (): Lesson => ({
+const registerPalm = (pairId: string, shift: number): Lesson => ({
   id: "aerophone.register.palm",
   title: "Palm keys",
   screens: [
     {
       title: "Reaching for the palm keys",
-      text: `The chart starts the palm keys at ${palmName()}, with the C1 key, and higher notes add C2, C3 and C4. These crossings are ${pairLabels(palmPairs())}.`,
+      text: `The chart starts the palm keys at ${palmName()}, with the ${palmKeys()[0]} key, and higher notes add ${andList(palmKeys().slice(1))}. These crossings are ${pairLabels(palmPairs())}.`,
     },
     {
       title: "Change together",
       text: "Where a fingering adds palm keys, press them at the same moment as the other keys change. A key that moves early or late sounds as a stray note between the two.",
+      steps: crossingSteps(pairId, shift),
     },
     {
       title: "What the drill counts",
@@ -240,15 +291,19 @@ const registerPalm = (): Lesson => ({
  * Lessons for the Aerophone drills, in the order they show. `item` is the setup's own choice that
  * can add one: the long tone's level id, or the register crossing's id.
  */
-export function aeroLessons(mode: AeroLessonMode, item?: string): Lesson[] {
+export function aeroLessons(mode: AeroLessonMode, item?: string, shift = 0): Lesson[] {
   if (mode === "long-tone")
     return [longTone(), ...(BREATH_LEVELS.some((l) => l.id === item) ? [breathLevels()] : [])];
   if (mode === "articulation") return [articulation()];
-  if (mode === "interval-landing") return [landing()];
+  if (mode === "interval-landing") return [landing(shift)];
   const group = item ? registerGroup(item) : null;
   return [
-    register(),
-    ...(group === "pinky" ? [registerPinky()] : group === "palm" ? [registerPalm()] : []),
+    register(item, shift),
+    ...(item && group === "pinky"
+      ? [registerPinky(item, shift)]
+      : item && group === "palm"
+        ? [registerPalm(item, shift)]
+        : []),
   ];
 }
 
@@ -317,8 +372,12 @@ export function bendLesson(
         text: "Bend with the ring finger, and put the first and second fingers on the same string behind it when the fret leaves room, so all three push together. Turn the wrist and forearm to push the string across the neck, not just the fingertip.",
       },
       {
+        title: "When it judges",
+        text: `The microphone judges where the bend settles. It does so once you have held it steady for ${BEND_SETTLE_MS} ms, or after ${secs(BEND_PROMPT_MS)} seconds if you never do, and a bend counts as held after ${BEND.holdMs} ms steady.`,
+      },
+      {
         title: "What the drill checks",
-        text: `The microphone judges where the bend settles, once it has held for ${BEND.holdMs} ms. A whole step is 200 cents and a half step 100: in tune is within ${BEND.inTune} cents of the target and close within ${BEND.close}. Past that it says flat, so push further, or sharp, so ease off.`,
+        text: `A whole step is 200 cents and a half step 100. In tune is within ${BEND.inTune} cents of the target and close within ${BEND.close}, and past that it says flat, so push further, or sharp, so ease off.`,
       },
       {
         title: "Even vibrato",

@@ -7,7 +7,7 @@
   import { noteName } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { midiAt } from "@repo/music-core/theory/fretboard";
-  import { analyseBend, analyseVibrato, BEND, type BendResult, type PitchPoint, type VibratoResult } from "@repo/music-core/scoring/bends";
+  import { analyseBend, analyseVibrato, BEND, BEND_PROMPT_MS, BEND_SETTLE_MS, type BendResult, type PitchPoint, type VibratoResult } from "@repo/music-core/scoring/bends";
   import { bendLesson } from "@repo/music-core/lessons/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
@@ -32,11 +32,11 @@
   /** Easy to hard, for the next run. */
   const LADDER = ["half", "vibrato", "whole"];
   /** Give up on a prompt after this long, judging what was heard. */
-  const PROMPT_MS = 8000;
+  const PROMPT_MS = BEND_PROMPT_MS;
   /** Vibrato: this long from the first pitched frame. */
   const VIBRATO_MS = 3000;
   /** Judge a bend once it has been held this long. */
-  const SETTLED_MS = BEND.holdMs + 350;
+  const SETTLED_MS = BEND_SETTLE_MS;
 
   const cfg = new DrillSetup("fretboard-bends", { exercise: "whole" as string, string: 3, fret: 7, reps: 4 });
   const s = $derived(cfg.value);
