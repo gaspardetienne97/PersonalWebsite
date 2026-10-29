@@ -10,6 +10,8 @@ export type LessonFigure =
       bars: number;
       perBeat: 2 | 4;
       lanes: Partial<Record<"hat" | "snare" | "kick", number[]>>;
+      /** The real bar number of each bar shown, when they are not 1, 2, 3 (read aloud by the grid). */
+      barNumbers?: number[];
     }
   | {
       /** Notes on one staff, one after another; `midi: null` is a rest. A bar as long as the notes. */

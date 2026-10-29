@@ -117,7 +117,13 @@ const LANE: Record<string, "hat" | "snare" | "kick"> = {
   kick: "kick",
 };
 /** The lesson grid for hits from a beat on: kick, snare and hats only (the grid has no other rows). */
-function gridOf(hits: readonly Hit[], from: number, bars: number, only?: string[]): LessonFigure {
+function gridOf(
+  hits: readonly Hit[],
+  from: number,
+  bars: number,
+  only?: string[],
+  barNumbers?: number[],
+): LessonFigure {
   const lanes: Partial<Record<"hat" | "snare" | "kick", number[]>> = {};
   for (const h of hits) {
     const lane = LANE[h.voice];
@@ -127,7 +133,7 @@ function gridOf(hits: readonly Hit[], from: number, bars: number, only?: string[
     (lanes[lane] ??= []).push(b);
   }
   for (const k of Object.keys(lanes) as (keyof typeof lanes)[]) lanes[k]!.sort((a, b) => a - b);
-  return { kind: "groove", bars, perBeat: 4, lanes };
+  return { kind: "groove", bars, perBeat: 4, lanes, ...(barNumbers ? { barNumbers } : {}) };
 }
 const barHits = (g: GrooveDef, bar: number): Hit[] =>
   g.targets.filter((t) => Math.floor(t.beat / 4 + 1e-9) === bar);
@@ -445,7 +451,7 @@ function grooveCard(item: string): Lesson | null {
     const hits: Hit[] = g.targets.filter((t) => t.beat < 8);
     return card(id, "Independence", {
       title: "Independence",
-      text: `In an independence groove each hand or foot keeps its own part going while the others change. In "${g.label}" the hats play the same in every bar while the kick takes a new pattern each bar. The grid shows its first two bars.`,
+      text: `In an independence groove each hand or foot plays a part of its own and holds it whatever the others do. In "${g.label}" the hats play the same in every bar while the kick takes a new pattern each bar. The grid shows its first two bars.`,
       figure: gridOf(hits, 0, 2),
       sound: soundOf(hits),
     });
@@ -488,7 +494,7 @@ function grooveCard(item: string): Lesson | null {
     return card(id, "Breaks", {
       title: "Breaks",
       text: `A break is a short drum part lifted from a record, written out for you to play. The ${g.label} runs for ${g.bars} bars and the bars differ, so keep count of where you are. The grid shows its kick and snare in bars 1 and 4.`,
-      figure: gridOf(hits, 0, 2, ["kick", "snare"]),
+      figure: gridOf(hits, 0, 2, ["kick", "snare"], [1, 4]),
       sound: soundOf(hits),
     });
   }
@@ -808,7 +814,7 @@ function orchestrateCard(id: string): Lesson | null {
   const kick = orchestrationGroove(id).targets.some((t) => t.voice === "kick");
   return card(`pads.orchestrate:${id}`, o.label, {
     title: o.label,
-    text: `${o.detail}. It is two bars of sixteenth paradiddles with the first stroke of each group of four accented.${kick ? "" : " This one has no kick."}`,
+    text: `${o.detail}. The drill plays two bars of sixteenth paradiddles with the first stroke of each group of four accented, and the example plays one.${kick ? "" : " This one has no kick."}`,
     figure: padsFigure(orchestraPads(id)),
     sound: soundOf(orchestraBar(id), { bpm: 90 }),
   });

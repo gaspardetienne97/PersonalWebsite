@@ -11,8 +11,10 @@
     state?: (row: string, i: number) => string | null;
     disabled?: boolean;
     ontoggle?: (row: string, i: number) => void;
+    /** The number each bar is called, when the bars shown are not 1, 2, 3 in order. */
+    barNumbers?: number[];
   }
-  let { bars, rows, perBeat, beatsPerBar, marks, state, disabled = true, ontoggle }: Props = $props();
+  let { bars, rows, perBeat, beatsPerBar, marks, state, disabled = true, ontoggle, barNumbers }: Props = $props();
 
   const cellsPerBar = $derived(beatsPerBar * perBeat);
   const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
@@ -37,7 +39,7 @@
               data-row={row.id}
               data-state={state?.(row.id, i) ?? null}
               aria-pressed={on}
-              aria-label="{row.label ? `${row.label}, b` : "B"}ar {bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}"
+              aria-label="{row.label ? `${row.label}, b` : "B"}ar {barNumbers?.[bar] ?? bar + 1}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}"
               {disabled}
               onclick={() => ontoggle?.(row.id, i)}
             >{cellLabel(i)}</button>

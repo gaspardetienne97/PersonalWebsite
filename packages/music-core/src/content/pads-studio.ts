@@ -172,7 +172,7 @@ export const CHOP_EDITS: ChopEdit[] = [
   },
   {
     id: "stutter",
-    label: "Stutter: repeat the start of each beat",
+    label: "Stutter: some beats repeat their opening slices",
     every: 0.25,
     steps: [
       1, 1, 2, 3, 5, 5, 6, 7, 9, 10, 9, 10, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 13,

@@ -201,6 +201,7 @@
         rows={GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label }))}
         perBeat={g.perBeat}
         beatsPerBar={4}
+        barNumbers={g.barNumbers}
         marks={Object.fromEntries(GROOVE_LANES.map((l) => [l.id, Array.from({ length: g.bars * 4 * g.perBeat }, (_, i) => (g.lanes[l.id] ?? []).some((b) => Math.abs(b * g.perBeat - i) < 1e-6))]))}
       />
     </div>

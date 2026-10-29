@@ -749,3 +749,49 @@ describe("review fixes", () => {
     }
   });
 });
+
+describe("review fixes, round 2", () => {
+  it("the stutter claim holds for its steps: some beats, not all, repeat their opening slices", () => {
+    const e = CHOP_EDITS.find((x) => x.id === "stutter")!;
+    expect(e.label).toContain("some beats repeat their opening slices");
+    const beats = Array.from({ length: e.steps.length / 4 }, (_, b) =>
+      e.steps.slice(b * 4, b * 4 + 4),
+    );
+    const repeats = beats.filter((b) => b.slice(1).includes(b[0]));
+    expect(repeats.length).toBeGreaterThan(0);
+    expect(repeats.length).toBeLessThan(beats.length);
+    expect(
+      padLessons("chop", undefined, ["edit:stutter"])[1].screens[0].text.toLowerCase(),
+    ).toContain("some beats");
+  });
+
+  it("every independence earner layers three or more drums, as the card says", () => {
+    const earners = PAD_REPERTOIRE.filter(
+      (r) => r.level >= 3 && grooveLessonItems(r).includes("independence"),
+    );
+    expect(earners.map((r) => r.groove.value)).toContain("tony-allen");
+    for (const r of earners) {
+      expect(new Set(r.groove.targets.map((t) => t.voice)).size).toBeGreaterThanOrEqual(3);
+      const at = r.groove.targets.map((t) => Math.round(t.beat * 1000));
+      expect(new Set(at).size).toBeLessThan(at.length);
+    }
+    expect(text(padLessons("grooves", 4, ["independence"])[1])).toContain(
+      "holds it whatever the others do",
+    );
+  });
+
+  it("the breaks grid carries its real bar numbers", () => {
+    const f = padLessons("grooves", 6, ["breaks"])[1].screens[0].figure!;
+    expect(f.kind === "groove" && f.barNumbers).toEqual([1, 4]);
+  });
+
+  it("orchestrate cards say the drill plays two bars and the example one", () => {
+    for (const o of ORCHESTRATIONS) {
+      const c = padLessons("orchestrate", undefined, [o.id])[1];
+      expect(c.screens[0].text).toContain("plays two bars");
+      expect(c.screens[0].text).toContain("the example plays one");
+      expect(orchestrationGroove(o.id).bars).toBe(2);
+      expect(c.screens[0].sound!.notes.filter((n) => n.midi[0] !== padOf("kick")).length).toBe(16);
+    }
+  });
+});
