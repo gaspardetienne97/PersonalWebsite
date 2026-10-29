@@ -88,18 +88,38 @@ export function fretboardLessons(
     `From the ${lo} to the ${hi}: ${rel(off)}.`;
   const skip2 = run.slice(0, -2).map((lo, i) => ({ lo, hi: run[i + 2] }));
   const octaveSteps = (pref: number) => stepsFor(skip2, 12, "8", fromTo(), pref);
-  /** Octave pairs (two strings up), with the frets higher each one takes. */
-  const ocPairs = skip2.map((q) => ({ ...q, off: 12 - (open[q.hi - 1] - open[q.lo - 1]) }));
+  type Pair = { lo: number; hi: number };
+  /** Half steps between the open strings of a pair. */
+  const span = (p: Pair) => open[p.hi - 1] - open[p.lo - 1];
+  /** Frets higher from string lo to the note n half steps up on string hi. */
+  const shift = (n: number) => (p: Pair) => n - span(p);
+  /**
+   * Every rule sentence names its exceptions through this, so it holds on any tuning: each pair
+   * whose value is not the usual one, as "from the X to the Y it is <value>".
+   */
+  const differing = (ps: Pair[], value: (p: Pair) => number, usual: number, say = rel) =>
+    ps
+      .filter((p) => value(p) !== usual)
+      .map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is ${say(value(p))}`)
+      .join("; ");
+  /** ", except ..." for an interval of n half steps on the next string up. */
+  const except = (n: number) => {
+    const d = differing(pairs, shift(n), n - common);
+    return d ? `, except ${d}` : "";
+  };
+  /** The re-entrant string is left out of every shape rule. */
+  const notHigh = reentrant.length
+    ? `, leaving out the high ${reentrant.map(name).join(" and ")} string,`
+    : "";
   /** The regular case: both gaps are the usual one. */
   const regular = 12 - 2 * common;
-  const ocOdd = ocPairs.filter((q) => q.off !== regular);
+  const ocFollows = skip2.some((p) => shift(12)(p) === regular);
+  const ocDiff = differing(skip2, shift(12), regular);
   const ocRule = (): string =>
-    (ocPairs.some((q) => q.off === regular)
-      ? `When both gaps are ${common} frets, the octave two strings up is ${rel(regular)}.`
-      : `No pair of strings here follows the usual ${common} fret gaps, so each pair has its own shape.`) +
-    (ocOdd.length
-      ? ` ${ocPairs.some((q) => q.off === regular) ? "Different" : "The pairs"} here: ${ocOdd.map((q) => `from the ${sn(q.lo)} to the ${sn(q.hi)} it is ${rel(q.off)}`).join("; ")}.`
-      : "");
+    (ocFollows
+      ? `When both gaps are ${common} frets, the octave two strings up${notHigh} is ${rel(regular)}.`
+      : `No two strings two apart here${notHigh} have both gaps of ${common} frets.`) +
+    (ocDiff ? ` ${ocFollows ? "Different" : "The pairs"} here: ${ocDiff}.` : "");
   const highG = reentrant.length
     ? ` The ${reentrant.map(name).join(" and ")} string is tuned high, above the string next to it, so it sits apart from the rest.`
     : "";
@@ -117,9 +137,9 @@ export function fretboardLessons(
       ]),
     }));
     const exception = odd.length
-      ? ` Irregular ${odd.length > 1 ? "pairs" : "pair"}: ${odd.map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is fret ${p.gap}${p.gap > 5 ? " (past this figure)" : ""}`).join("; ")}.`
+      ? ` Irregular ${odd.length > 1 ? "pairs" : "pair"}: ${differing(pairs, span, common, (f) => `fret ${f}${f > 5 ? " (past this figure)" : ""}`)}.`
       : "";
-    const ocPair = ocPairs.find((q) => q.off === regular) ?? ocPairs[0];
+    const ocPair = skip2.find((p) => shift(12)(p) === regular) ?? skip2[0];
     const oc =
       ocPair &&
       (upMarks(ocPair.lo, ocPair.hi, 12, name(ocPair.lo), 0)?.map((m) => ({
@@ -157,7 +177,7 @@ export function fretboardLessons(
           },
           {
             title: "Fret 5 is the next string",
-            text: `Fret ${common} on a string is the open note of the next string up in pitch${reentrant.length ? `, counting from the ${sn(run[0])} (the ${reentrant.map(name).join(" and ")} string is tuned high and does not follow this)` : ""}.${exception} Tap Next to see each pair.`,
+            text: `Fret ${common} on a string is the open note of the next string up${reentrant.length ? `, counting from the ${sn(run[0])} and skipping the high ${reentrant.map(name).join(" and ")} string` : " in pitch"}.${exception} Tap Next to see each pair.`,
             figure: fig([]),
             steps: matchSteps,
           },
@@ -186,18 +206,18 @@ export function fretboardLessons(
         },
         {
           title: "The 4th",
-          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up, ${rel(5 - common)}${odd.length ? `, except ${odd.map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is ${rel(5 - p.gap)}`).join("; ")}` : ""}.${highG}`,
+          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up, ${rel(5 - common)}${except(5)}.${highG}`,
           figure: fig((first && upMarks(first.lo, first.hi, 5, "4")) || []),
         },
         {
           title: "The 5th",
-          text: `A 5th is 7 half steps: the next string up, ${rel(7 - common)}. Tap Next to see each pair of strings.`,
+          text: `A 5th is 7 half steps: the next string up${notHigh || ","} ${rel(7 - common)}${except(7)}. Tap Next to see each pair of strings.`,
           figure: fig([]),
           steps: stepsFor(pairs, 7, "5", fromTo()),
         },
         {
           title: "The 3rds",
-          text: `A major 3rd is 4 half steps: the next string up, ${rel(4 - common)}. A minor 3rd is 3 half steps, ${rel(3 - common)}.`,
+          text: `A major 3rd is 4 half steps: the next string up${notHigh || ","} ${rel(4 - common)}${except(4)}. A minor 3rd is 3 half steps, always one fret lower than the major 3rd.`,
           figure: fig([]),
           steps: first
             ? [
@@ -216,7 +236,7 @@ export function fretboardLessons(
           ? [
               {
                 title: "The octave",
-                text: `An octave is 12 half steps. ${ocRule()}${ocOdd.length ? "" : " Tap Next to see each pair."}`,
+                text: `An octave is 12 half steps. ${ocRule()}${ocDiff ? "" : " Tap Next to see each pair."}`,
                 figure: fig([]),
                 steps: octaveSteps(ROOT),
               },
