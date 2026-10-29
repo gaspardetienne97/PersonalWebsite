@@ -3,34 +3,38 @@
 // code (scale formulas, CAGED forms, voicings), so a card cannot drift from what the drill plays.
 // A drill passes the card that matches its current setup (see cards.test.ts for what each holds).
 
-import { FRETBOARD_PATTERNS } from "../data";
 import {
   COMPING_PATTERNS,
+  GOSPEL_PROGRESSIONS,
   chordScaleTargets,
   cadenceChords,
   closestChords,
   voicingTargets,
 } from "../content/piano";
-import { baseOffset } from "../content/technique";
-import { parseChordSymbol } from "../theory/chords";
-import { noteName, pc } from "../theory/notes";
-import { tuningById } from "../theory/fretboard";
+import { pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
+import { SCALE_FINGERINGS } from "../content/piano-fingering";
+import {
+  bbBox,
+  caged,
+  connectedBoxes,
+  pentatonicBoxes,
+  triadIds,
+  triads,
+  ukuleBoxes,
+} from "./cards-guitar";
+import {
+  alteredVoicings,
+  chordPatterns,
+  chordScalesMinor,
+  gospel,
+  guideTones,
+  minorVoicings,
+  thumbUnder,
+} from "./cards-piano";
 import { chordTones, keys } from "./tier1";
-import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
-
-const join = (a: string[]) =>
-  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
-const flat = (m: number) => noteName(m, "flat", false);
-const sharp = (m: number) => noteName(m, "sharp", false);
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const tones = (ms: number[], at = 0, dur = 1.4): LessonSound => ({
-  notes: [{ midi: ms, at, dur }],
-});
-/** The notes one after another. */
-const run = (ms: number[], gap = 0.35): LessonSound => ({
-  notes: ms.map((m, i) => ({ midi: [m], at: i * gap, dur: gap * 1.4 })),
-});
+import { degreeOf, flat, join, plural, run, sharp, tones, type CardOpts } from "./card-kit";
+import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
 
 // ---------------------------------------------------------------------------
 // Scales
@@ -121,89 +125,6 @@ function minorForms(): Lesson {
 }
 
 // ---------------------------------------------------------------------------
-// Positions
-
-const strings = (p: { offsets: { stringNumber: number }[] }) => {
-  const s = p.offsets.map((o) => o.stringNumber);
-  return [Math.max(...s), Math.min(...s)];
-};
-const place = (off: number) =>
-  off === 0 ? "at the root fret" : `${plural(off, "fret")} above the root fret`;
-
-/** The CAGED forms from the data, lowest on the neck first. */
-export const cagedForms = () =>
-  FRETBOARD_PATTERNS.filter((p) => p.family === "caged-major")
-    .map((p) => ({
-      letter: p.id.split("-")[2].toUpperCase(),
-      base: baseOffset(p),
-      strings: strings(p),
-    }))
-    .sort((a, b) => a.base - b.base);
-/** The pentatonic boxes from the data, lowest on the neck first. */
-export const boxes = () =>
-  FRETBOARD_PATTERNS.filter((p) => p.family === "minor-pentatonic")
-    .map((p) => ({ ...p, base: baseOffset(p) }))
-    .sort((a, b) => a.base - b.base);
-
-function caged(): Lesson {
-  const forms = cagedForms();
-  return {
-    id: "positions.caged",
-    title: "The five CAGED shapes",
-    screens: [
-      {
-        title: "Five shapes for one chord",
-        text: "CAGED names five shapes for a major chord, after the open chords C, A, G, E and D. The same chord can be played with each of them, in five places along the neck. Tap Next for where each sits, counted from the root fret on string 6 in standard tuning.",
-        steps: forms.map((f) => ({
-          text: `The ${f.letter} shape uses strings ${f.strings[0]} to ${f.strings[1]}, and its lowest fret is ${place(f.base)}.`,
-        })),
-      },
-      {
-        title: "Find it in Check",
-        text: "Check hides the notes of the shape. Know which shape it is, which strings it uses and where it sits, then play it from its lowest string up.",
-      },
-    ],
-  };
-}
-
-function pentatonicBoxes(): Lesson {
-  const std = tuningById("guitar.standard")!;
-  const bx = boxes();
-  const box1 = bx[0];
-  // Box 1 with the root fret at 0: the open strings, so E minor pentatonic, inside frets 0 to 3.
-  const marks = [...box1.offsets]
-    .sort((a, b) => b.stringNumber - a.stringNumber || a.fretOffset - b.fretOffset)
-    .map((o) => ({
-      string: o.stringNumber,
-      fret: o.fretOffset,
-      midi: std.openStrings[o.stringNumber - 1] + o.fretOffset,
-    }));
-  return {
-    id: "positions.boxes",
-    title: "The five pentatonic boxes",
-    screens: [
-      {
-        title: "A box is a hand position",
-        text: "A box of the minor pentatonic is one hand position with two notes on each of the six strings. Here is box 1 of E minor pentatonic, from the open strings. The drill plays a box from the low string to the high.",
-        figure: {
-          kind: "fretboard",
-          instrument: "guitar",
-          marks: marks.map((m) => ({ string: m.string, fret: m.fret, label: sharp(m.midi) })),
-        },
-        sound: run(
-          marks.map((m) => m.midi),
-          0.25,
-        ),
-      },
-      {
-        title: "Five boxes up the neck",
-        text: `The five boxes climb the neck. Counted from the root fret on string 6 in standard tuning, the lowest fret of ${join(bx.map((b, i) => `box ${i + 1} is ${b.base}`))}. In Check the notes stay hidden, so know where each box starts.`,
-      },
-    ],
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Comping
 
 /** A beat as a player counts it: 0 is "1", 1.5 is "2 and". */
@@ -253,12 +174,6 @@ const inC = (variant: "major", start: "A" | "B" = "A") =>
     t.id.startsWith("C-"),
   );
 
-/** A chord note's name in the chord's own terms: 1, 3, 5, 7 from its symbol, 9 for the step above the root. */
-export function degreeOf(symbol: string, midi: number): string {
-  const c = parseChordSymbol(symbol)!;
-  const i = pc(midi - c.rootPc);
-  return i === 2 ? "9" : ["1", "3", "5", "7"][c.intervals.indexOf(i)];
-}
 /** "3 5 7 9" or "7 9 3 5": the right hand from the bottom. */
 export const degreesOf = (symbol: string, right: number[]) =>
   [...right]
@@ -266,7 +181,8 @@ export const degreesOf = (symbol: string, right: number[]) =>
     .map((m) => degreeOf(symbol, m))
     .join(" ");
 
-function rootless(): Lesson {
+function rootless(o: CardOpts): Lesson {
+  const arp = !!o.arpeggio;
   const ts = inC("major");
   const shape = (t: (typeof ts)[number]) => {
     const rh = t.displayMidi.slice(1);
@@ -288,23 +204,25 @@ function rootless(): Lesson {
     screens: [
       {
         title: "Leave the root out",
-        text: "A rootless voicing leaves the chord's root to the bass. Here the left hand plays the root alone and the right hand plays four chord notes above it. Position A puts the 3rd lowest and position B the 7th, so they read 3 5 7 9 and 7 9 3 5.",
+        text: `A rootless voicing leaves the chord's root to the bass. ${arp ? "Here you play the root, then the four chord notes above it, one note at a time." : "Here the left hand plays the root alone and the right hand plays four chord notes above it."} Position A puts the 3rd lowest and position B the 7th, so they read 3 5 7 9 and 7 9 3 5.`,
       },
       {
         title: "A ii-V-I in C",
         text: "Tap Next for each chord. The drill can start on position B instead, which swaps A and B.",
         steps: ex.map((x) => ({
-          text: `${x.t.symbol}: position ${x.pos}, ${x.d} in the right hand (${[...x.rh]
+          text: `${x.t.symbol}: position ${x.pos}, ${x.d} (${[...x.rh]
             .sort((a, b) => a - b)
             .map(flat)
-            .join(" ")}) over ${flat(x.t.displayMidi[0])} in the left.`,
+            .join(
+              " ",
+            )}) ${arp ? "above" : "in the right hand over"} ${flat(x.t.displayMidi[0])}${arp ? "" : " in the left"}.`,
           figure: fig(x),
           sound: tones(x.t.displayMidi),
         })),
       },
       {
         title: "The voices barely move",
-        text: "Between one chord and the next in the same key, each right-hand note moves a whole step at most, counting note names and ignoring which octave the keys show. Some do not move at all. In Check the keys stay dark, so work out each chord's notes from its position.",
+        text: `Between one chord and the next in the same key, each of the four upper notes moves a whole step at most, counting note names and ignoring which octave the keys show. Some do not move at all. In Check the keys stay dark, so work out each chord's notes from its position.`,
       },
     ],
   };
@@ -313,7 +231,8 @@ function rootless(): Lesson {
 const INVERSION = ["root position", "first inversion", "second inversion"];
 const bars = (key = 0) => closestChords(key, [55, 76]);
 
-function inversions(): Lesson {
+function inversions(o: CardOpts): Lesson {
+  const arp = !!o.arpeggio;
   const bs = bars();
   const stay = (i: number) => bs[i].rightHand.filter((m) => bs[i - 1].rightHand.includes(m));
   const fig = (i: number): LessonFigure =>
@@ -324,7 +243,7 @@ function inversions(): Lesson {
   const steps: LessonStep[] = bs.map((b, i) => {
     const kept = i ? stay(i) : [];
     return {
-      text: `${b.symbol}: ${INVERSION[b.inversion]}, ${b.rightHand.map(flat).join(" ")}${i ? `, moving ${plural(b.movement, "half step")} in all. ${kept.length ? `${join(kept.map(flat))} ${kept.length > 1 ? "stay" : "stays"} where ${kept.length > 1 ? "they were" : "it was"}` : "No note stays"}.` : ", over its root in the left hand."}`,
+      text: `${b.symbol}: ${INVERSION[b.inversion]}, ${b.rightHand.map(flat).join(" ")}${i ? `, moving ${plural(b.movement, "half step")} in all. ${kept.length ? `${join(kept.map(flat))} ${kept.length > 1 ? "stay" : "stays"} where ${kept.length > 1 ? "they were" : "it was"}` : "No note stays"}.` : arp ? ", above its root." : ", over its root in the left hand."}`,
       figure: fig(i),
       sound: tones([b.leftHand, ...b.rightHand]),
     };
@@ -335,7 +254,7 @@ function inversions(): Lesson {
     screens: [
       {
         title: "Move as little as you can",
-        text: "I IV V I in one key: a triad in the right hand over its root in the left. Aim to move the right hand as little as you can from the chord before, keeping the notes the two chords share. In some keys the range of the keyboard forces a bigger move.",
+        text: `I IV V I in one key: a triad ${arp ? "played one note at a time, above its root" : "in the right hand over its root in the left"}. Aim to move the notes as little as you can from the chord before, keeping the notes the two chords share. In some keys the range of the keyboard forces a bigger move.`,
       },
       {
         title: "I IV V I in C",
@@ -365,7 +284,6 @@ function cadence(minor: boolean): Lesson {
   }));
   const raised = (scaleSemitones("harmonic-minor")![6] + 60) % 12;
   const natural = (scaleSemitones("natural-minor")![6] + 60) % 12;
-  const letters = (m: number) => flat(m);
   return {
     id: minor ? "voicings.cadence-minor" : "voicings.cadence",
     title: minor ? "Minor cadences" : "Cadences",
@@ -380,14 +298,14 @@ function cadence(minor: boolean): Lesson {
       minor
         ? {
             title: "The raised 7th",
-            text: `The V7 chord needs the 7th note raised by a half step: ${letters(60 + raised)} instead of ${letters(60 + natural)} in ${tonic}. That raised note is the 3rd of V7 and leads up to the tonic. Tap each to hear it.`,
+            text: `The V7 chord needs the 7th note raised by a half step: ${flat(60 + raised)} instead of ${flat(60 + natural)} in ${tonic}. That raised note is the 3rd of V7 and leads up to the tonic. Tap each to hear it.`,
             options: [
               {
-                label: `Natural 7th, ${letters(60 + natural)}`,
+                label: `Natural 7th, ${flat(60 + natural)}`,
                 sound: run([60 + natural - 12, 60], 0.5),
               },
               {
-                label: `Raised 7th, ${letters(60 + raised)}`,
+                label: `Raised 7th, ${flat(60 + raised)}`,
                 sound: run([60 + raised - 12, 60], 0.5),
               },
             ],
@@ -403,35 +321,54 @@ function cadence(minor: boolean): Lesson {
 // ---------------------------------------------------------------------------
 // Accompany
 
+/** The chord kinds the lead-sheet charts use, each with what its suffix adds (cards.test.ts checks the charts use no other). */
+export const SYMBOL_KINDS: { suffix: string; gloss: (names: Record<string, string>) => string }[] =
+  [
+    { suffix: "", gloss: () => "A root alone means a major triad." },
+    { suffix: "m", gloss: () => "The m makes the 3rd minor." },
+    { suffix: "7", gloss: () => "A 7 adds the flat 7th." },
+    { suffix: "m7", gloss: () => "Minor, with the flat 7th added." },
+    { suffix: "maj7", gloss: () => "Maj7 adds the major 7th." },
+    { suffix: "6", gloss: (n) => `A 6 adds the 6th, ${n["6"]}.` },
+    { suffix: "dim", gloss: () => "Dim is minor with the 5th lowered." },
+    {
+      suffix: "m7b5",
+      gloss: () => "Minor with a flat 5th and a flat 7th, also called half-diminished.",
+    },
+    {
+      suffix: "7alt",
+      gloss: (n) =>
+        `Alt is a dominant with altered tones in place of the 5th: ${n.b9}, ${n["#9"]}, ${n["#11"]} and ${n.b13}.`,
+    },
+    { suffix: "add9", gloss: (n) => `Add9 adds the 9th, ${n["9"]}, with no 7th.` },
+    { suffix: "sus2", gloss: (n) => `Sus2 swaps the 3rd for the 2nd, ${n["2"]}.` },
+    { suffix: "sus4", gloss: (n) => `Sus4 swaps the 3rd for the 4th, ${n["4"]}.` },
+  ];
+
 function chordSymbols(): Lesson {
-  const sym = (s: string, gloss: string): LessonStep => {
-    const t = chordTones(s);
+  const all = SYMBOL_KINDS.map((k) => chordTones(`C${k.suffix}`));
+  const span = all.flat().map((x) => x.midi);
+  const steps = SYMBOL_KINDS.map((k, i): LessonStep => {
+    const t = all[i];
+    const names = Object.fromEntries(t.map((x) => [x.label, x.name]));
     return {
-      text: `${s} is ${join(t.map((x) => x.name))}. ${gloss}`,
-      figure: keys(
-        Object.fromEntries(t.map((x) => [x.midi, x.name])),
-        chordTones("Cmaj7").map((x) => x.midi),
-      ),
+      text: `C${k.suffix} is ${join(t.map((x) => x.name))}. ${k.gloss(names)}`,
+      figure: keys(Object.fromEntries(t.map((x) => [x.midi, x.name])), span),
       sound: tones(t.map((x) => x.midi)),
     };
-  };
+  });
   return {
     id: "accompany.chord-symbols",
     title: "Reading chord symbols",
     screens: [
       {
         title: "Root, then the kind",
-        text: "A chord symbol starts with the root note. What follows says which chord it is. Tap Next to build the chords on C.",
-        steps: [
-          sym("C", "A root alone means a major triad."),
-          sym("Cm", "The m makes the 3rd minor."),
-          sym("C7", "A 7 adds the flat 7th."),
-          sym("Cmaj7", "Maj7 adds the major 7th."),
-        ],
+        text: "A chord symbol starts with the root note. What follows says which chord it is. Tap Next to build each kind on C.",
+        steps,
       },
       {
-        title: "Slashes and numbers",
-        text: "A note after a slash is the lowest note: C/E is a C chord with E in the bass. A number such as 9 or 13 adds that tone to a seventh chord. You choose how to place the notes.",
+        title: "Slashes",
+        text: "A note after a slash is the lowest note: C/E is a C chord with E in the bass, and Am/G is A minor with G in the bass. You choose how to place the notes.",
       },
     ],
   };
@@ -510,7 +447,7 @@ const TIPS: Record<string, () => Lesson> = {
     tip("tips.changes", "Changing chords", [
       {
         title: "Move as one shape",
-        text: "Lift all your fingers together and put them down together, rather than one at a time. Picture the next shape before the change. Go slowly enough that every change lands on the beat, then speed up.",
+        text: "Lift all your fingers together and put them down together, rather than one at a time. Picture the next shape before the change. Go slowly enough that every change is clean, then speed up, landing on the beat when a clock runs.",
       },
       {
         title: "Look for a guide finger",
@@ -525,7 +462,7 @@ const TIPS: Record<string, () => Lesson> = {
       },
       {
         title: "Even and relaxed",
-        text: "Press just hard enough for a clear note, and lift a finger only as far as it needs. Aim for each note the same length and loudness, one a click. Start at a tempo where it feels easy, then raise it.",
+        text: "Press just hard enough for a clear note, and lift a finger only as far as it needs. Aim for each note the same length and loudness, evenly on the click. Start at a tempo where it feels easy, then raise it.",
       },
     ]),
   "tips.two-hand": () =>
@@ -541,25 +478,52 @@ const TIPS: Record<string, () => Lesson> = {
     ]),
 };
 
-const CARDS: Record<string, () => Lesson> = {
+const CARDS: Record<string, (o: CardOpts) => Lesson> = {
   "scales.major-formula": majorFormula,
   "scales.minor-forms": minorForms,
+  "scales.thumb-under": thumbUnder,
   "positions.caged": caged,
   "positions.boxes": pentatonicBoxes,
+  "positions.connected": connectedBoxes,
+  "positions.boxes-ukulele": ukuleBoxes,
+  "positions.bb-box": bbBox,
   "comping.charleston": charleston,
   "voicings.rootless": rootless,
+  "voicings.minor": minorVoicings,
+  "voicings.altered": alteredVoicings,
   "voicings.inversions": inversions,
+  "voicings.guide-tones": guideTones,
   "voicings.cadence": () => cadence(false),
   "voicings.cadence-minor": () => cadence(true),
   "accompany.chord-symbols": chordSymbols,
   "chord-scales.why": whyDorian,
-  ...TIPS,
+  "chord-scales.minor": chordScalesMinor,
+  "chord-scales.patterns": chordPatterns,
+  ...Object.fromEntries(
+    triadIds().map((id) => [`positions.${id}`, (o: CardOpts) => triads(id, o)]),
+  ),
+  ...Object.fromEntries(
+    GOSPEL_PROGRESSIONS.map((g) => [`voicings.gospel.${g.id}`, () => gospel(g.id)]),
+  ),
+  ...Object.fromEntries(Object.entries(TIPS).map(([id, f]) => [id, () => f()])),
 };
 
 export const CARD_IDS = Object.keys(CARDS);
+/** The scale kinds that have a standard piano fingering (so the thumb card applies). */
+export const hasThumbUnder = (kind: string) => !!SCALE_FINGERINGS[kind];
+export { positionsCard } from "./cards-guitar";
+/** Cards whose wording changes when the instrument plays one note at a time; the arpeggio version has `.arp` added to its id. */
+export const ARPEGGIO_IDS = ["voicings.rootless", "voicings.inversions"];
 
-/** A tier 3 concept card by id, as the lessons a drill passes with `trigger: "check"`; none for an unknown id. */
-export function conceptCard(id: string): Lesson[] {
+/**
+ * A tier 3 concept card by id, as the lessons a drill passes with `trigger: "check"`; none for an
+ * unknown id. `opts` carries what the setup chooses (the tuning for position cards, one note at a
+ * time for voicings); a card that changes with it has a different id, so each is seen once.
+ */
+export function conceptCard(id: string, opts: CardOpts = {}): Lesson[] {
   const make = CARDS[id];
-  return make ? [make()] : [];
+  if (!make) return [];
+  const arp = !!opts.arpeggio && ARPEGGIO_IDS.includes(id);
+  const l = make({ ...opts, arpeggio: arp });
+  return [arp ? { ...l, id: `${id}.arp` } : l];
 }

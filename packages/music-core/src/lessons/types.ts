@@ -48,6 +48,9 @@ export type LessonFigure =
       /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */
       openStrings?: number[];
       marks: { string: number; fret: number; label: string }[];
+      /** The frets drawn (default 0 to 5), for a shape higher up the neck. */
+      from?: number;
+      to?: number;
     };
 
 /** Times in seconds. */

@@ -307,7 +307,7 @@
 <svelte:head><title>Chord scales | Woodshed</title></svelte:head>
 
 <DrillShell
-  lesson={changes === "major" && !pattern ? { lessons: conceptCard("chord-scales.why"), trigger: "check" } : null}
+  lesson={{ lessons: conceptCard(pattern ? "chord-scales.patterns" : changes === "major" ? "chord-scales.why" : "chord-scales.minor"), trigger: "check" }}
   title="Chord scales"
   hue="piano"
   blurb="As the ii-V-I moves, play the go-to scale for the chord you're on, every note judged against that chord's scale; or play 1-2-3-5 or 3-5-7-9 on each chord through the keys."

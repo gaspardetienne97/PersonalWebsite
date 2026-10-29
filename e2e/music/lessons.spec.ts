@@ -435,6 +435,20 @@ test.describe("concept cards", () => {
     await expect(page.getByRole("heading", { name: "One hand at a time" })).toBeVisible();
   });
 
+  test("each tab gets the card for its own setup", async ({ page }) => {
+    await page.goto("/music/voicings?variant=minor");
+    await check(page).click();
+    await expect(
+      page.getByRole("heading", { name: "Half-diminished, altered, minor" }),
+    ).toBeVisible();
+    await page.goto("/music/voicings?variant=voice-leading");
+    await check(page).click();
+    await expect(page.getByRole("heading", { name: "The 3rd and the 7th" })).toBeVisible();
+    await page.goto("/music/chord-scales?changes=minor");
+    await check(page).click();
+    await expect(page.getByTestId("lesson")).toContainText("Scales for a minor ii-V-i");
+  });
+
   test("cards fit at 375", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     for (const url of [

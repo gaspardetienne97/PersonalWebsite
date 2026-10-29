@@ -60,9 +60,8 @@
   const variant = $derived((s.variant === "jazz" ? lastJazz : VARIANTS.some((v) => v.value === s.variant) || isJazzType(s.variant) ? s.variant : "major") as Variant);
   const jazzType = $derived(JAZZ_VOICING_TYPES.find((t) => t.id === variant));
   const onTune = $derived(jazzType?.key === "tune");
-  // The jazz types tab keeps its lesson on open; rootless, closest chords and the cadences get a card on the first Check.
-  const CARDS: Partial<Record<string, string>> = { major: "voicings.rootless", inversions: "voicings.inversions", cadence: "voicings.cadence", "cadence-minor": "voicings.cadence-minor" };
-  const lessonRef = $derived(jazzType ? { lessons: jazzVoicingLesson(jazzType.id) } : CARDS[variant] ? { lessons: conceptCard(CARDS[variant]!), trigger: "check" as const } : null);
+  // The jazz types tab keeps its lesson on open; every other tab gets a card on the first Check.
+  const CARDS: Partial<Record<string, string>> = { major: "voicings.rootless", minor: "voicings.minor", altered: "voicings.altered", inversions: "voicings.inversions", "voice-leading": "voicings.guide-tones", cadence: "voicings.cadence", "cadence-minor": "voicings.cadence-minor" };
   /** Upper structures need a dominant; quartal and slash voicings run on any tune. */
   const tuneList = $derived(variant === "upper" ? UPPER_TUNES : TUNES);
   const tune = $derived(tuneList.find((t) => t.id === s.tune) ?? tuneList[0]);
@@ -72,6 +71,8 @@
   const oneKey = $derived(variant === "inversions" || onTune);
   const gospel = $derived(GOSPEL_PROGRESSIONS.find((p) => p.id === s.progression) ?? GOSPEL_PROGRESSIONS[0]);
   const monophonic = $derived(settings.value.activeInstrument === "aerophone" || settings.value.activeInstrument === "voice");
+  const cardId = $derived(variant === "gospel" ? `voicings.gospel.${gospel.id}` : CARDS[variant]);
+  const lessonRef = $derived(jazzType ? { lessons: jazzVoicingLesson(jazzType.id) } : cardId ? { lessons: conceptCard(cardId, { arpeggio: monophonic }), trigger: "check" as const } : null);
   const items = $derived(
     voicingItems({ variant, keyPc: pc(s.key), keys: oneKey ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic, progression: gospel.id, tune: tune.id }),
   );

@@ -240,7 +240,7 @@
         <AerophoneKeys midi={figure.midi} compact />
       {:else}
         {@const t = tuningFor(figure.instrument)}
-        <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
+        <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={figure.from ?? 0} to={figure.to ?? 5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
       {/if}
     </div>
   {/if}
