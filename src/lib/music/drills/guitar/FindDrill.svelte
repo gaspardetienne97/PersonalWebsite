@@ -15,6 +15,7 @@
   } from "@repo/music-core/content/technique";
   import { midiAt } from "@repo/music-core/theory/fretboard";
   import { gradeFretFind } from "@repo/music-core/scoring/technique";
+  import { fretboardLessons } from "@repo/music-core/lessons/fretboard";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -251,6 +252,7 @@
 </script>
 
 <DrillShell
+  lesson={{ lessons: fretboardLessons(kind, instr, tuning.openStrings) }}
   title={isRecall ? "Interval recall" : "Note finder"}
   hue={instr}
   blurb={isRecall

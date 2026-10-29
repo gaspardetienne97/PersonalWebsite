@@ -5,6 +5,8 @@ export type LessonFigure =
   | {
       kind: "fretboard";
       instrument: "guitar" | "ukulele";
+      /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */
+      openStrings?: number[];
       marks: { string: number; fret: number; label: string }[];
     };
 

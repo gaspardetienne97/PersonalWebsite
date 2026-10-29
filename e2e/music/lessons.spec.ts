@@ -157,3 +157,22 @@ test.describe("intro lessons", () => {
     }
   });
 });
+
+test.describe("fretboard lessons", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
+  });
+
+  test("the note finder lesson shows a fretboard and fits at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/music/fretboard?mode=note-finder");
+    await expect(page.getByRole("heading", { name: "The open strings" })).toBeVisible();
+    await expect(
+      page.getByTestId("lesson").getByRole("group", { name: /fretboard/i }),
+    ).toBeVisible();
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("ArrowRight");
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+});

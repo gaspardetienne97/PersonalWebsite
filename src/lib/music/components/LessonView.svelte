@@ -138,7 +138,7 @@
         <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" label="Piano keys" />
       {:else}
         {@const t = tuningFor(figure.instrument)}
-        <Fretboard openStrings={t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
+        <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={0} to={5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
       {/if}
     </div>
   {/if}
