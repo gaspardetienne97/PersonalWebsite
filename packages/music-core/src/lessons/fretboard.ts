@@ -26,6 +26,11 @@ export function fretboardLessons(
 ): Lesson[] {
   const open = [...tuning];
   const name = (s: number) => nameOf(open[s - 1]);
+  /** "E string", or "E string (string 6)" when another string has the same note name. */
+  const sn = (s: number) =>
+    open.filter((_, i) => name(i + 1) === name(s)).length > 1
+      ? `${name(s)} string (string ${s})`
+      : `${name(s)} string`;
   const fig = (marks: Mark[]): LessonFigure => ({
     kind: "fretboard",
     instrument,
@@ -77,10 +82,10 @@ export function fretboardLessons(
     pairList.flatMap(({ lo, hi }) => {
       const m = upMarks(lo, hi, n, label, pref);
       const off = n - (open[hi - 1] - open[lo - 1]);
-      return m ? [{ text: text(name(lo), name(hi), off), figure: fig(m) }] : [];
+      return m ? [{ text: text(sn(lo), sn(hi), off), figure: fig(m) }] : [];
     });
   const fromTo = () => (lo: string, hi: string, off: number) =>
-    `From the ${lo} string to the ${hi}: ${rel(off)}.`;
+    `From the ${lo} to the ${hi}: ${rel(off)}.`;
   const skip2 = run.slice(0, -2).map((lo, i) => ({ lo, hi: run[i + 2] }));
   const octaveSteps = (pref: number) => stepsFor(skip2, 12, "8", fromTo(), pref);
   /** The offset most steps share (the first, on a tie), in words. */
@@ -104,18 +109,31 @@ export function fretboardLessons(
       .filter((m) => !m.label.includes("#"));
     const shown = pairs.filter((p) => p.gap <= 5); // a longer gap runs off the figure
     const matchSteps: LessonStep[] = shown.map((p) => ({
-      text: `Fret ${p.gap} on the ${name(p.lo)} string is the open ${name(p.hi)} string.`,
+      text: `Fret ${p.gap} on the ${sn(p.lo)} is the open ${sn(p.hi)}.`,
       figure: fig([
         { string: p.lo, fret: p.gap, label: name(p.hi) },
         { string: p.hi, fret: 0, label: name(p.hi) },
       ]),
     }));
-    const exceptions = shown.filter((p) => p.gap !== common);
-    const exception = exceptions.length
-      ? ` The exception is onto the ${list(exceptions.map((p) => name(p.hi)))} ${exceptions.length > 1 ? "strings" : "string"}, where it takes ${list(exceptions.map((p) => `fret ${p.gap}`))}.`
+    const exception = odd.length
+      ? ` Irregular ${odd.length > 1 ? "pairs" : "pair"}: ${odd.map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is fret ${p.gap}${p.gap > 5 ? " (past this figure)" : ""}`).join("; ")}.`
       : "";
-    const oc = skip2[0] && upMarks(skip2[0].lo, skip2[0].hi, 12, name(skip2[0].lo), 0);
-    const ocOff = skip2[0] ? 12 - (open[skip2[0].hi - 1] - open[skip2[0].lo - 1]) : 0;
+    // The octave rule most pairs share, shown on a pair that follows it.
+    const ocPairs = skip2.map((q) => ({ ...q, off: 12 - (open[q.hi - 1] - open[q.lo - 1]) }));
+    const ocMode = ocPairs
+      .map((q) => q.off)
+      .sort(
+        (a, b) =>
+          ocPairs.filter((q) => q.off === b).length - ocPairs.filter((q) => q.off === a).length,
+      )[0];
+    const ocPair = ocPairs.find((q) => q.off === ocMode);
+    const oc =
+      ocPair &&
+      (upMarks(ocPair.lo, ocPair.hi, 12, name(ocPair.lo), 0)?.map((m) => ({
+        ...m,
+        label: name(ocPair.lo),
+      })) ??
+        null);
     return [
       {
         id: `fretboard.notes.${instrument}`,
@@ -154,7 +172,7 @@ export function fretboardLessons(
             ? [
                 {
                   title: "Octave shapes",
-                  text: `An octave is 12 half steps, which is 12 frets on one string. Two strings up and ${rel(ocOff)} is the same note an octave higher.${octaveVaries(octaveSteps(0)) ? " The shape changes where it crosses a shift." : ""}`,
+                  text: `An octave is 12 half steps, which is 12 frets on one string. Two strings up and ${rel(ocMode)} is the same note an octave higher.${ocPairs.some((q) => q.off !== ocMode) ? " The shape changes across an irregular pair." : ""}`,
                   figure: fig(oc),
                 },
               ]
@@ -205,7 +223,7 @@ export function fretboardLessons(
           ? [
               {
                 title: "The octave",
-                text: `An octave is 12 half steps, so go two strings up and ${commonOctave(octaveSteps(ROOT))}.${octaveVaries(octaveSteps(ROOT)) ? " The shape changes where it crosses a shift." : ""} Tap Next to see each pair.`,
+                text: `An octave is 12 half steps, so go two strings up and ${commonOctave(octaveSteps(ROOT))}.${octaveVaries(octaveSteps(ROOT)) ? " The shape changes across an irregular pair." : ""} Tap Next to see each pair.`,
                 figure: fig([]),
                 steps: octaveSteps(ROOT),
               },
@@ -214,8 +232,8 @@ export function fretboardLessons(
         ...(odd.length
           ? [
               {
-                title: "The shift",
-                text: `The gap is ${list(odd.map((p) => `${frets(p.gap)} between ${name(p.lo)} and ${name(p.hi)}`))} instead of ${common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across ${odd.length > 1 ? "each" : "it"}.`,
+                title: "Irregular pairs",
+                text: `The irregular ${odd.length > 1 ? "pairs have gaps" : "pair has a gap"} of ${list(odd.map((p) => `${frets(p.gap)} from the ${sn(p.lo)} to the ${sn(p.hi)}`))} instead of ${common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across ${odd.length > 1 ? "each" : "it"}.`,
                 figure: fig([]),
                 steps: stepsFor(odd, 7, "5", fromTo()),
               },

@@ -30,9 +30,9 @@ describe("fretboard lessons", () => {
     const [iv] = fretboardLessons("interval-recall", "guitar", [64, 59, 55, 50, 45, 38]);
     const text = JSON.stringify(iv);
     expect(text).not.toContain("0 frets");
-    const shift = iv.screens.find((s) => s.title === "The shift")!;
-    expect(shift.text).toContain("D and A");
-    expect(shift.text).toContain("G and B");
+    const shift = iv.screens.find((s) => s.title === "Irregular pairs")!;
+    expect(shift.text).toContain("D string (string 6) to the A string");
+    expect(shift.text).toContain("G string to the B string");
     expect(lessonProblems(iv)).toEqual([]);
     // each octave step names its own offset
     const oct = iv.screens.find((s) => s.title === "The octave")!;
@@ -42,6 +42,37 @@ describe("fretboard lessons", () => {
       "3 frets higher.",
       "3 frets higher.",
     ]);
+  });
+
+  it("the fret rule names every exception pair, and the octave rule is the common one", () => {
+    const notes = (t: number[]) => fretboardLessons("note-finder", "guitar", t)[0].screens;
+    const text = (t: number[], title: string) => notes(t).find((s) => s.title === title)!.text;
+    const dropD = [64, 59, 55, 50, 45, 38];
+    const dadgad = [62, 57, 55, 50, 45, 38];
+    const openG = [62, 59, 55, 50, 43, 38];
+    expect(text(dropD, "Fret 5 is the next string")).toContain(
+      "from the D string (string 6) to the A string it is fret 7 (past this figure)",
+    );
+    expect(text(dropD, "Fret 5 is the next string")).toContain("to the B string it is fret 4");
+    expect(text(dadgad, "Fret 5 is the next string")).toContain("fret 7 (past this figure)");
+    expect(text(dadgad, "Fret 5 is the next string")).toContain(
+      "to the A string (string 2) it is fret 2",
+    );
+    expect(text(openG, "Fret 5 is the next string")).toContain(
+      "from the G string (string 5) to the D string (string 4) it is fret 7",
+    );
+    for (const t of [dropD, dadgad, openG]) {
+      const oct = text(t, "Octave shapes");
+      // open G: the same fret really is the offset most pairs share (D to D, G to G)
+      if (t === openG) expect(oct).toContain("the same fret");
+      else expect(oct).not.toContain("the same fret");
+      expect(oct).toContain("irregular pair");
+      const octave = notes(t).find((s) => s.title === "Octave shapes")!;
+      const [a, b] = marks(octave.figure);
+      expect(a.label).toBe(b.label);
+      expect(a.label).not.toBe("R");
+    }
+    expect(text(GUITAR, "Octave shapes")).toContain("2 frets higher");
   });
 
   it("every step on every curated tuning has both marks inside frets 0 to 5, and its text matches", () => {
@@ -83,7 +114,9 @@ describe("fretboard lessons", () => {
       [3, 2, 3],
       [2, 1, 2],
     ]);
-    expect(l.screens.find((s) => s.title === "The shift")!.text).toContain("G and B");
+    expect(l.screens.find((s) => s.title === "Irregular pairs")!.text).toContain(
+      "G string to the B string",
+    );
     expect(lessonProblems(l)).toEqual([]);
   });
 
@@ -100,7 +133,9 @@ describe("fretboard lessons", () => {
       [2, 2],
       [1, 1],
     ]);
-    expect(l.screens.find((s) => s.title === "The shift")!.text).toContain("C and E");
+    expect(l.screens.find((s) => s.title === "Irregular pairs")!.text).toContain(
+      "C string to the E string",
+    );
     expect(JSON.stringify(l)).toContain("tuned high");
     expect(lessonProblems(l)).toEqual([]);
   });
