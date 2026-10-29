@@ -11,7 +11,7 @@
   import AerophoneKeys from "./AerophoneKeys.svelte";
   import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
-  import { countName } from "@repo/music-core/lessons/reading";
+  import { countName } from "@repo/music-core/lessons/count";
   import Staff from "../notation/Staff.svelte";
   import { noteName } from "@repo/music-core";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
@@ -34,7 +34,9 @@
   const figure = $derived(picked ?? (shown > 0 ? (steps[shown - 1].figure ?? screen.figure) : screen.figure));
   const isFirst = $derived(li === 0 && si === 0 && shown === 0);
   const isLast = $derived(li === lessons.length - 1 && si === lesson.screens.length - 1 && shown >= steps.length);
-  const total = $derived(lesson.screens.length);
+  /** The screens of every lesson in the sequence, and this one's place among them (from 1). */
+  const total = $derived(lessons.reduce((n, l) => n + l.screens.length, 0));
+  const at = $derived(lessons.slice(0, li).reduce((n, l) => n + l.screens.length, 0) + si + 1);
 
   /** The studio loop an effect sound plays through, the quiz's own audio graph. */
   let studioLoop: ReturnType<typeof audio.studio.loop> | null = null;
@@ -121,7 +123,7 @@
   }
 
   function onKey(e: KeyboardEvent) {
-    if (e.target instanceof HTMLElement && e.target.closest("input, select, textarea")) return;
+    if (e.target instanceof HTMLElement && e.target.closest("input, select, textarea, [role=slider], [role=listbox], [role=option], [role=combobox]")) return;
     if (e.key === "ArrowRight") {
       e.preventDefault();
       next();
@@ -184,11 +186,12 @@
 
 <div class="mx-auto flex w-full max-w-2xl flex-col gap-4 py-2 text-ws-stage-ink" data-testid="lesson">
   <div class="flex items-center justify-between gap-3 text-sm text-ws-stage-ink/80">
-    <p>{lesson.title}</p>
-    <p aria-label="Screen {si + 1} of {total}">{si + 1} / {total}</p>
+    <p>{lessons[0].title}</p>
+    <p><span aria-hidden="true">{at} / {total}</span><span class="sr-only">Screen {at} of {total}</span></p>
   </div>
-  <div class="flex gap-1.5" aria-hidden="true">
-    {#each lesson.screens as _, i (i)}<span class="h-1.5 flex-1 rounded-full {i <= si ? 'bg-instr' : 'bg-ws-stage-ink/20'}"></span>{/each}
+  <!-- One bar for the whole sequence: chained item cards can run to dozens of screens. -->
+  <div class="h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/20" aria-hidden="true">
+    <div class="h-full rounded-full bg-instr" style:width="{(at / total) * 100}%"></div>
   </div>
 
   <h2 bind:this={heading} tabindex="-1" class="font-display text-2xl font-semibold outline-none sm:text-3xl">{screen.title}</h2>

@@ -141,7 +141,7 @@ describe("fretboard lessons", () => {
           ],
           [
             screen("interval-recall", "The 4th"),
-            new RegExp(`a 4th is the next string up, (${OFF})`),
+            new RegExp(`a 4th is the next string up${HIGH},? (${OFF})`),
             next,
             (p) => 5 - span(p),
           ],
@@ -187,7 +187,8 @@ describe("fretboard lessons", () => {
               `${id} ${keys[i]}: ${text}`,
             ).toBe(value(p)),
           );
-          if (run.length < t.length) expect(text, id).toMatch(/high G string|tuned high/);
+          if (run.length < t.length)
+            expect(text, id).toMatch(/(?:leaving out|skipping) the high G string/);
         }
         // "no two strings two apart have both gaps of 5" is true
         const none = screen("interval-recall", "The octave").match(/have both gaps of (\d+) frets/);

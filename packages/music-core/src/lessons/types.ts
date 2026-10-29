@@ -1,7 +1,12 @@
 import type { StudioChange, StudioMaterial } from "../content/studio";
 
 export type LessonFigure =
-  | { kind: "wheel"; selected?: number | null; marks?: Record<number, string> } // fifths -7..7, as CircleOfFifths
+  | {
+      /** The circle of fifths, as CircleOfFifths: `selected` is a key by its fifths (-7..7), `marks` light wheel slots 0..11 (0 = C, clockwise). */
+      kind: "wheel";
+      selected?: number | null;
+      marks?: Record<number, string>;
+    }
   | { kind: "signature"; clef: "treble" | "bass"; fifths: number; reveal?: number } // first `reveal` accidentals
   | { kind: "keys"; low: number; high: number; marks: Record<number, string> } // midi -> label, as Piano
   | {
@@ -82,6 +87,14 @@ export interface LessonScreen {
 }
 
 export interface Lesson {
+  /**
+   * The key in `Settings.lessonsSeen`. Area first, then:
+   * - setup variants after `.` (`reading.key-signature.3`, `listening.peak.band.250`),
+   * - items after `:` (`ear.intervals:M3`),
+   * - a non-standard tuning after `@` (`positions.caged@guitar.drop-d`),
+   * - `.arp` for the arpeggio wording on one-note instruments (`voicings.rootless.arp`).
+   * Changing an id shows that lesson again to everyone who has seen it.
+   */
   id: string;
   title: string;
   screens: LessonScreen[];

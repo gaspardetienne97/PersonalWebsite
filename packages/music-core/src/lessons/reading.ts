@@ -26,6 +26,7 @@ import {
   type ReadingMeter,
   type SightItem,
 } from "../content/reading";
+import { SUBS, countName, type PerBeat } from "./count";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
 type Clef = "treble" | "bass";
@@ -571,10 +572,6 @@ function restsLesson(clef: Clef): Lesson {
 // ---------------------------------------------------------------------------
 // Rhythm: echo and dictation
 
-/** The count names on the grid: a number on the beat, then these. */
-const SUBS = { 2: ["&"], 3: ["&", "a"], 4: ["e", "&", "a"] } as const;
-type PerBeat = 2 | 3 | 4;
-
 /** Where cells put their notes (as written), in beats, one after another. */
 export function cellOnsets(cells: RhythmCell[]): { onsets: number[]; beats: number } {
   let at = 0;
@@ -585,13 +582,6 @@ export function cellOnsets(cells: RhythmCell[]): { onsets: number[]; beats: numb
     at += cell.beats;
   }
   return { onsets, beats: at };
-}
-/** "1", "2 &", "3 e": the count a note at `beat` falls on. */
-export function countName(beat: number, perBeat: PerBeat, beatsPerBar: number): string {
-  const i = Math.round(beat * perBeat);
-  const sub = i % perBeat;
-  const num = (Math.floor(i / perBeat) % beatsPerBar) + 1;
-  return sub ? `${num} ${SUBS[perBeat][sub - 1]}` : String(num);
 }
 /** A bar as it is said: "1 e & a 2 e & a". */
 const allCounts = (perBeat: PerBeat, beatsPerBar: number) =>

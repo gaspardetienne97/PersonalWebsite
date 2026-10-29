@@ -50,7 +50,7 @@ import {
   rudimentPerBeat,
 } from "../content/winds-pads";
 import { RUDIMENT_BANDS, inAccentBand, type Accent } from "../scoring/pads";
-import { countName } from "./reading";
+import { countName } from "./count";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
 // ---------------------------------------------------------------------------

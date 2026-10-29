@@ -132,16 +132,62 @@ test.describe("intro lessons", () => {
     await expect(second).toBeVisible();
   });
 
-  test("the Lesson button shows as pressed while its lesson is open", async ({ page }) => {
+  test("the Lesson button is a plain button, and ending a lesson puts focus on Start", async ({
+    page,
+  }) => {
     await page.goto(URL);
     await expect(lessonHeading(page)).toBeVisible();
     await page.getByRole("button", { name: "Skip, I know this" }).click();
-    await page.getByRole("button", { name: "Lesson", exact: true }).click();
+    await expect(start(page)).toBeFocused();
+    const lesson = page.getByRole("button", { name: "Lesson", exact: true });
+    await expect(lesson).not.toHaveAttribute("aria-pressed");
+    await lesson.click();
     await expect(lessonHeading(page)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Lesson", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await (await toEnd(page)).click();
+    await expect(start(page)).toBeFocused();
+  });
+
+  test("Lesson, then a tab with no lesson, shows the stage", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/music/rhythm?mode=groove");
+    await page.getByRole("button", { name: "Skip, I know this" }).click();
+    await page.getByRole("button", { name: "Lesson", exact: true }).click();
+    await expect(page.getByTestId("lesson")).toBeVisible();
+    await page.getByRole("button", { name: "Pulse", exact: true }).click();
+    await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await expect(start(page)).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("after a run: the Lesson button shows, and a new tab's lesson replaces the results", async ({
+    page,
+  }) => {
+    await page.goto(URL);
+    await page.getByRole("button", { name: "Skip, I know this" }).click();
+    await start(page).click();
+    const again = page.getByRole("button", { name: "Again", exact: true });
+    for (let i = 0; i < 20; i++) {
+      await page.keyboard.press("1");
+      await page.keyboard.press("Enter");
+    }
+    await expect(again).toBeVisible();
+    await expect(page.getByRole("button", { name: "Lesson", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Signatures", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
+    await expect(again).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Results" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Skip, I know this" }).click();
+    await expect(again).toBeVisible();
+  });
+
+  test("the progress row counts every screen of a chained lesson", async ({ page }) => {
+    await page.goto("/music/ear/intervals?intervals=P5,P8");
+    const lesson = page.getByTestId("lesson");
+    await expect(lesson).toContainText("Screen 1 of 3");
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(lesson).toContainText("Screen 2 of 3");
+    await expect(lesson.getByRole("heading", { name: "Perfect 5th" })).toBeVisible();
   });
 
   test("screen 1 shows a staff before the first Next", async ({ page }) => {
@@ -425,6 +471,23 @@ test.describe("concept cards", () => {
     await (await toEnd(page)).click();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Start/ }).first()).toBeVisible();
+    await expect(check(page)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("Practice results, then Check, shows the Check card; finishing brings the results back", async ({
+    page,
+  }) => {
+    await page.goto("/music/chords?mode=build");
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await page.getByRole("button", { name: "Finish now" }).click();
+    const again = page.getByRole("button", { name: "Again", exact: true });
+    await expect(again).toBeVisible();
+    await expect(page.getByRole("button", { name: "Lesson", exact: true })).toBeVisible();
+    await check(page).click();
+    await expect(page.getByRole("heading", { name: "Shape the hand" })).toBeVisible();
+    await expect(again).toHaveCount(0);
+    await (await toEnd(page)).click();
+    await expect(again).toBeVisible();
     await expect(check(page)).toHaveAttribute("aria-pressed", "true");
   });
 

@@ -20,9 +20,9 @@ import {
 import { rng } from "../content/random";
 import { pcOf } from "../theory/notes";
 import { lessonProblems } from "./check";
+import { countName } from "./count";
 import {
   cellOnsets,
-  countName,
   initials,
   listeningLessons,
   readingLessons,
@@ -35,9 +35,11 @@ import type { Lesson } from "./types";
 
 const names = (ms: number[]) =>
   ms.map((m) => "C C# D D# E F F# G G# A A# B".split(" ")[m % 12]).join(" ");
-/** Copy problems; a lesson with fewer than three screens is a card. */
+/** The full lessons (3 to 6 screens); every other id here is a card (1 to 3): intros of item lessons, items, key signatures. */
+const FULL = /^(reading\.(lines-spaces\.|accidentals$|values$)|rhythm\.(counting|grid))/;
+/** Copy problems, each lesson checked as the kind it is meant to be. */
 const all = (ls: Lesson[]) =>
-  ls.flatMap((l) => lessonProblems(l, l.screens.length < 3 ? "card" : "lesson"));
+  ls.flatMap((l) => lessonProblems(l, FULL.test(l.id) ? "lesson" : "card"));
 
 describe("the staff", () => {
   it("treble lines are E G B D F and spaces F A C E, bass lines G B D F A and spaces A C E G", () => {

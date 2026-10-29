@@ -128,25 +128,29 @@
   // Intro lessons: decided only after the stored settings arrive (no flash for a returning player).
   let ready = $state(false);
   void settings.ready.then(() => (ready = true));
-  /** The Lesson button was pressed for this `lesson` value. */
-  let revisit = $state(false);
-  $effect(() => {
-    void lesson;
-    revisit = false;
-  });
+  const live = $derived(phase === "running" || phase === "countin");
+  /** The current setup's lessons, as one key. */
+  const lessonIds = $derived(lesson?.lessons.map((l) => l.id).join() ?? "");
+  /** The lessons the Lesson button was pressed for; a setup with other lessons is not a revisit. */
+  let revisitFor = $state<string | null>(null);
+  const revisit = $derived(revisitFor === lessonIds);
   const pending = $derived(pendingLessons(lesson, settings.value.lessonsSeen));
-  const showing = $derived(
-    phase === "ready" &&
-      (revisit || (ready && lessonsAuto() && pending.length > 0 && (lesson?.trigger === "check" ? mode === "check" : true))),
-  );
   /** What the lesson view plays: the pending ones, or all of them when asked for again. */
   const shownLessons = $derived(revisit ? (lesson?.lessons ?? []) : pending);
-  function endLesson() {
+  // Between runs (ready or results), never during one.
+  const showing = $derived(
+    !live && shownLessons.length > 0 && (revisit || (ready && lessonsAuto() && (lesson?.trigger === "check" ? mode === "check" : true))),
+  );
+  let startButton: HTMLButtonElement | undefined = $state();
+  async function endLesson() {
     const seen = settings.value.lessonsSeen ?? [];
     const ids = shownLessons.map((l) => l.id).filter((id) => !seen.includes(id));
-    revisit = false;
+    revisitFor = null;
     if (ids.length) void settings.update({ lessonsSeen: [...seen, ...ids] });
     if (lesson?.trigger !== "check") mode = "practice";
+    // The lesson's buttons are gone: focus moves on to Start (or the title when Start is blocked).
+    await tick();
+    (startButton && !startButton.disabled ? startButton : heading)?.focus();
   }
   let clockHandle: { stop(): void } | null = null;
   let goTimer: ReturnType<typeof setTimeout> | undefined;
@@ -282,7 +286,6 @@
     }
   }
 
-  const live = $derived(phase === "running" || phase === "countin");
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -313,12 +316,11 @@
               {/each}
             </div>
           {/if}
-          {#if lesson?.lessons.length && phase === "ready"}
+          {#if lesson?.lessons.length}
             <button
               type="button"
               class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
-              aria-pressed={showing}
-              onclick={() => (revisit = true)}
+              onclick={() => (revisitFor = lessonIds)}
             >
               <BookOpen class="size-4" aria-hidden="true" />Lesson
             </button>
@@ -377,14 +379,14 @@
     <h1 bind:this={heading} tabindex="-1" class="sr-only">{title}, running</h1>
   {/if}
 
-  {#if phase === "results" && results}
+  {#if phase === "results" && results && !showing}
     <div class="results-enter">
       <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
       {@render results()}
     </div>
   {/if}
 
-  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"} class:demo={demoPlaying}>
+  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results" && !showing} class:demo={demoPlaying}>
     {#if live}
       <div class="mb-3 flex items-center gap-3">
         <button
@@ -432,6 +434,7 @@
   <div class="flex flex-wrap items-center gap-3">
     {#if !live && !showing}
       <button
+        bind:this={startButton}
         type="button"
         class="flex min-h-12 items-center gap-2 rounded-full bg-instr px-6 font-display text-base font-semibold text-ws-stage shadow-sm hover:brightness-105 disabled:opacity-50"
         disabled={!!blocked}

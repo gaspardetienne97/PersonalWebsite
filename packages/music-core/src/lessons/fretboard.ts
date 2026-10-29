@@ -206,7 +206,7 @@ export function fretboardLessons(
         },
         {
           title: "The 4th",
-          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up, ${rel(5 - common)}${except(5)}.${highG}`,
+          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up${notHigh || ","} ${rel(5 - common)}${except(5)}.${highG}`,
           figure: fig((first && upMarks(first.lo, first.hi, 5, "4")) || []),
         },
         {
