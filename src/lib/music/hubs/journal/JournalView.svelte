@@ -47,6 +47,18 @@
       to: to || undefined,
     }).sort((a, b) => b.startTime - a.startTime),
   );
+  // Tapping a practised day on the heatmap shows just that day; tapping it again shows all.
+  const pickedDay = $derived(from && from === to ? from : undefined);
+  function pickDay(day: string) {
+    if (pickedDay === day) {
+      from = to = "";
+      announce("Showing every day.");
+    } else {
+      from = to = day;
+      announce(`Showing ${new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}.`);
+    }
+    document.getElementById("sessions-title")?.scrollIntoView({ block: "nearest" });
+  }
   function clearFilters() {
     skill = "";
     instrument = "";
@@ -146,7 +158,8 @@
 
       <section aria-labelledby="heat-title">
         <h2 id="heat-title" class="font-display text-xl font-semibold">Last 12 weeks</h2>
-        <div class="mt-3"><Heatmap {cells} /></div>
+        <p class="text-sm text-ws-soft">Tap a day to see its sessions.</p>
+        <div class="mt-3"><Heatmap {cells} selected={pickedDay} onpick={pickDay} /></div>
       </section>
 
       <section aria-labelledby="goals-title">
@@ -240,7 +253,7 @@
         {/if}
 
         {#if shown.length}
-          <ul class="mt-2 divide-y divide-ws-line border-y border-ws-line">
+          <ul class="mt-3 flex flex-col gap-3">
             {#each shown as s (s.id)}
               <li><SessionEntry session={s} {announce} /></li>
             {/each}

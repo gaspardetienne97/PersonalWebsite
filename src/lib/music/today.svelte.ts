@@ -15,9 +15,8 @@ import {
   type PathFocus,
   type RoutineStep,
 } from "@repo/music-core/progress/routine";
-import { skillName } from "@repo/music-core/progress/graph";
 import { LEARNING_PATHS, PATH_FOR_INSTRUMENT, pathProgress } from "@repo/music-core/progress/paths";
-import { coach } from "@repo/music-core/progress/coach";
+import { coach, practiceName } from "@repo/music-core/progress/coach";
 import {
   computeStreak,
   dailyChallenges,
@@ -26,7 +25,6 @@ import {
   practicedDays,
 } from "@repo/music-core/progress/rewards";
 import { weakestSkills } from "@repo/music-core/progress/analytics";
-import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
 import { practice } from "./practice.svelte";
 import { INSTRUMENT_LABEL } from "./bench.svelte";
 import { db, settings } from "./runtime";
@@ -68,18 +66,30 @@ export function todayPlan(strip: Instrument, minutes: number) {
   const instrument = dayInstrument(settings.value.weeklySplit, localWeekday(now), strip);
   const budget = snapBudget(minutes);
   const today = dayKey(now);
-  const independentAttempts = Object.values(practice.stats)
-    .filter((s) => s.instrument === instrument && s.independent)
-    .reduce((n, s) => n + s.attempts, 0);
-  const weak =
-    independentAttempts >= COACH_MIN_ATTEMPTS
-      ? weakestSkills(practice.stats, { instrument, independentOnly: true, minAttempts: 3 })
-          .slice(0, 2)
-          .map((s) => s.skillId)
-      : [];
   const { focus, song } = pathPlan(instrument);
   const base = `routine-${today}-${instrument}-${budget}`;
   const pass = currentPass(base, practice.sessions);
+  const days = practicedDays(practice.sessions);
+  const streak = computeStreak(days, settings.value.frozenDays, today);
+  const advice = coach({
+    instrument,
+    instrumentName: INSTRUMENT_LABEL[instrument],
+    stats: practice.stats,
+    mastery: practice.mastery,
+    sessions: practice.sessions,
+    streak: streak.current,
+    now,
+    // Each checked answer once, however many skills it touches.
+    checkedAnswers: practice.events.filter(
+      (e) => e.instrument === instrument && e.assistance === "independent",
+    ).length,
+  });
+  // The weak spots wait for the coach's own bar, so the set and the coach agree.
+  const weak = advice.measured
+    ? weakestSkills(practice.stats, { instrument, independentOnly: true, minAttempts: 3 })
+        .slice(0, 2)
+        .map((s) => s.skillId)
+    : [];
   const input = {
     instrument,
     budgetMinutes: budget,
@@ -93,17 +103,7 @@ export function todayPlan(strip: Instrument, minutes: number) {
   // Repeat the set opens the next pass, with its own id, so its blocks start not done.
   const repeatHref = buildRoutine({ ...input, id: passId(base, pass + 1) }).steps[0]?.href;
   const done = completedSteps(routine, practice.sessions);
-  const days = practicedDays(practice.sessions);
-  const streak = computeStreak(days, settings.value.frozenDays, today);
   const freezes = freezesEarned(days, settings.value.frozenDays);
-  const advice = coach({
-    instrument,
-    stats: practice.stats,
-    mastery: practice.mastery,
-    sessions: practice.sessions,
-    streak: streak.current,
-    now,
-  });
   const summary = routineSummary(routine, practice.sessions, practice.events);
   return { today, instrument, pass, routine, repeatHref, done, streak, freezes, advice, summary };
 }
@@ -121,7 +121,7 @@ const SPLIT_ORDER: Instrument[] = ["guitar", "ukulele", "piano", "aerophone", "m
 
 /** Choices for a weekday in the split: "" plays the strip's instrument. */
 export const splitOptions = (strip: Instrument) => [
-  { value: "", label: `The strip's (${INSTRUMENT_LABEL[strip].toLowerCase()})` },
+  { value: "", label: `The strip's (${INSTRUMENT_LABEL[strip]})` },
   ...SPLIT_ORDER.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] })),
 ];
 
@@ -131,12 +131,13 @@ export function setDayInstrument(weekday: number, value: string) {
   return settings.update({ weeklySplit: split });
 }
 
-/** The line under a block: why it is in the set. */
+/** The line under a block: why it is in the set. The skill is left out when the block already names it. */
 export function blockReason(step: RoutineStep): string {
-  if (step.reason === "due" && step.skillId) return `Due for review: ${skillName(step.skillId)}.`;
-  if (step.reason === "weak-spot" && step.skillId)
-    return `Your weak spot: ${skillName(step.skillId)}.`;
-  return step.description;
+  if (!step.skillId || (step.reason !== "due" && step.reason !== "weak-spot"))
+    return step.description;
+  const name = practiceName(step.skillId);
+  const why = step.reason === "due" ? "Due for review" : "Your weak spot";
+  return name === step.label ? `${why}.` : `${why}: ${name}.`;
 }
 
 export function todayChallenges(advice: ReturnType<typeof coach>) {

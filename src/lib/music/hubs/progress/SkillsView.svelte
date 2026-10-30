@@ -60,12 +60,12 @@
   </div>
   <p class="-mt-3 max-w-prose text-sm text-ws-soft">
     Only checked attempts move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
-    every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope].toLowerCase()}.
+    every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
   </p>
 
   {#if touchedCount === 0 && !showAll}
     <div class="rounded-2xl border border-dashed border-ws-line p-6">
-      <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope].toLowerCase()} yet`}.</p>
+      <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]} yet`}.</p>
       <p class="text-sm text-ws-soft">Every graded attempt lands here, grouped by what it trains.</p>
       <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
         >Start today's set</a
@@ -149,7 +149,7 @@
             </table>
           </div>
         {:else}
-          <p class="py-3 text-sm text-ws-soft">None touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope].toLowerCase()}`}.</p>
+          <p class="py-3 text-sm text-ws-soft">None touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]}`}.</p>
         {/if}
       </section>
     {/each}

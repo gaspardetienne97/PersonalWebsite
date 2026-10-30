@@ -7,7 +7,9 @@
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { blockReason, todayPlan } from "../../today.svelte";
-  import { fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
+  import { practiceName } from "@repo/music-core/progress/coach";
+  import { CAPABILITY_LABEL, fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
+  import Ring from "./Ring.svelte";
 
   let { now = Date.now() }: { now?: number } = $props();
 
@@ -30,13 +32,36 @@
     return parts.join(" ");
   });
 
+  type Trend = "falling" | "holding" | "new";
+  // The skill map: one tile per drill skill (twins of one drill share a tile), grouped by area,
+  // lowest estimate first within each area.
+  const map = $derived.by(() => {
+    const tiles: { r: SkillRow; trend: Trend; name: string }[] = [];
+    const seen = new Set<string>();
+    const add = (list: SkillRow[], trend: Trend) => {
+      for (const r of list) {
+        const name = practiceName(r.skill.id);
+        if (seen.has(name)) continue;
+        seen.add(name);
+        tiles.push({ r, trend, name });
+      }
+    };
+    add(buckets.falling, "falling");
+    add(buckets.holding, "holding");
+    add(buckets.unmeasured.slice(0, 8), "new");
+    const areas = new Map<keyof typeof CAPABILITY_LABEL, typeof tiles>();
+    for (const t of tiles) areas.set(t.r.skill.capability, [...(areas.get(t.r.skill.capability) ?? []), t]);
+    return [...areas];
+  });
+  const TONE: Record<Trend, string> = { falling: "var(--warn)", holding: "var(--success)", new: "var(--ws-soft)" };
+
   const drop = (r: SkillRow) => Math.round(((r.lastMeasured ?? 0) - (r.estimate ?? 0)) * 100);
 </script>
 
 <div class="flex flex-col gap-10">
   <section aria-labelledby="next-title" class="grid min-w-0 gap-x-10 gap-y-4 lg:grid-cols-2">
     <div class="min-w-0">
-    <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument].toLowerCase()}</p>
+    <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument]}</p>
     <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{plan.advice.headline}</h2>
     <p class="mt-2 max-w-prose">{reasoning}</p>
 
@@ -91,16 +116,51 @@
     <h2 id="picks-title" class="font-display text-xl font-semibold">Where your skills stand</h2>
     {#if anything}
       <p class="text-sm text-ws-soft">
-        Lowest estimates first, up to eight, from checked attempts on {INSTRUMENT_LABEL[instrument].toLowerCase()}.
+        From checked attempts on {INSTRUMENT_LABEL[instrument]}, by area. The ring is today's estimate.
       </p>
-      <div class="mt-4 grid gap-6 sm:grid-cols-3">
-        {@render column("Falling", "Dropped ten points or more since last measured.", buckets.falling, "falling")}
-        {@render column("Holding", "Measured and not slipping.", buckets.holding, "holding")}
-        {@render column("Not measured yet", `Under ${MIN_EVIDENCE} checked attempts, or practice only.`, buckets.unmeasured.slice(0, 8), "new")}
+      <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ws-soft" aria-label="Key">
+        <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-warn" aria-hidden="true"></span>Falling: down ten points or more since last measured</li>
+        <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>Holding</li>
+        <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border border-dashed border-ws-soft" aria-hidden="true"></span>Not measured yet: under {MIN_EVIDENCE} checked attempts</li>
+      </ul>
+      <div class="mt-4 flex flex-col gap-5">
+        {#each map as [area, tiles] (area)}
+          <div class="min-w-0">
+            <h3 class="text-sm font-semibold text-ws-soft">{CAPABILITY_LABEL[area]}</h3>
+            <ul class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {#each tiles as { r, trend, name } (r.skill.id)}
+                <li class="min-w-0">
+                  <a
+                    href={r.href}
+                    class="flex min-h-11 items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface p-2.5 hover:bg-ws-raised"
+                  >
+                    <Ring value={trend === "new" ? undefined : r.estimate} stroke={TONE[trend]} class="size-12">
+                      <span class="tnum text-xs font-semibold" aria-hidden="true">{trend === "new" ? r.checked : pct(r.estimate ?? 0)}</span>
+                    </Ring>
+                    <span class="flex min-w-0 flex-col">
+                      <span class="font-medium">{name}</span>
+                      <span class="tnum text-sm text-ws-soft">
+                        {#if trend === "falling"}
+                          <span class="sr-only">Falling: </span>{pct(r.estimate ?? 0)} now, down {drop(r)} points, last practised {relativeDay(r.lastPracticed ?? now, now)}
+                        {:else if trend === "holding"}
+                          <span class="sr-only">Holding: </span>{pct(r.estimate ?? 0)}, {plural(r.checked, "checked attempt")}
+                        {:else}
+                          <span class="sr-only">Not measured yet: </span>{r.checked
+                            ? `${plural(r.checked, "checked attempt")} so far`
+                            : `${plural(r.attempts, "practice attempt")}, none checked`}
+                        {/if}
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/each}
       </div>
     {:else}
       <p class="mt-2">
-        Nothing touched on {INSTRUMENT_LABEL[instrument].toLowerCase()} yet. Five checked attempts on a skill give it an estimate.
+        Nothing touched on {INSTRUMENT_LABEL[instrument]} yet. Five checked attempts on a skill give it an estimate.
       </p>
       {#if plan.routine.steps[0]}
         <a
@@ -111,43 +171,3 @@
     {/if}
   </section>
 </div>
-
-{#snippet column(title: string, hint: string, list: SkillRow[], kind: "falling" | "holding" | "new")}
-  <div class="min-w-0">
-    <h3 class="flex items-center gap-2 font-semibold">
-      <span
-        class="size-2.5 rounded-full {kind === 'falling'
-          ? 'bg-warn'
-          : kind === 'holding'
-            ? 'bg-success'
-            : 'border-2 border-ws-soft'}"
-        aria-hidden="true"
-      ></span>{title}
-    </h3>
-    <p class="text-xs text-ws-soft">{hint}</p>
-    {#if list.length}
-      <ul class="mt-2 flex flex-col">
-        {#each list as r (r.skill.id)}
-          <li>
-            <a href={r.href} class="flex min-h-11 flex-col justify-center rounded-lg px-2 py-1.5 -mx-2 hover:bg-ws-raised">
-              <span class="font-medium">{r.skill.name}</span>
-              <span class="tnum text-sm text-ws-soft">
-                {#if kind === "falling"}
-                  {pct(r.estimate ?? 0)} now, down {drop(r)} points, last practised {relativeDay(r.lastPracticed ?? now, now)}
-                {:else if kind === "holding"}
-                  {pct(r.estimate ?? 0)}, {plural(r.checked, "checked attempt")}
-                {:else}
-                  {r.checked
-                    ? `${plural(r.checked, "checked attempt")} so far`
-                    : `${plural(r.attempts, "practice attempt")}, none checked`}
-                {/if}
-              </span>
-            </a>
-          </li>
-        {/each}
-      </ul>
-    {:else}
-      <p class="mt-2 text-sm text-ws-soft">None right now.</p>
-    {/if}
-  </div>
-{/snippet}

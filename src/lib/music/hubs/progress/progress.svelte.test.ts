@@ -144,7 +144,7 @@ describe("Journal", () => {
       .toHaveAttribute("aria-expanded", "true");
     const detail = document.getElementById("s1-detail")!;
     const text = detail.textContent!;
-    expect(text).toContain("Ear intervals");
+    expect(text).toContain("Intervals");
     expect(text).toContain("Reading flashcards");
     // Assistance in words, input source, instrument, credit and target.
     for (const word of [
@@ -160,5 +160,15 @@ describe("Journal", () => {
     ])
       expect(text).toContain(word);
     expect(detail.querySelectorAll("tbody tr")).toHaveLength(8);
+    // Named for what was practised, and Delete only from the edit view.
+    expect(document.getElementById("s1-title")!.textContent).toBe(
+      "Intervals and Reading flashcards",
+    );
+    expect(page.getByRole("button", { name: "Delete session" }).elements()).toHaveLength(0);
+    await page.getByRole("button", { name: "Edit note and tags" }).click();
+    await page.getByRole("button", { name: "Delete session" }).click();
+    await expect
+      .poll(() => page.getByRole("group", { name: "Confirm delete" }).elements().length)
+      .toBe(1);
   });
 });

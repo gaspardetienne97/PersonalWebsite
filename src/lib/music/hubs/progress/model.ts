@@ -23,6 +23,7 @@ import { STEPS, stepForSkill } from "@repo/music-core/progress/routine";
 import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
 import { addDays, dayKey, weekStart } from "@repo/music-core/progress/rewards";
 import { sessionMinutes } from "@repo/music-core/progress/journal";
+import { CATALOG, type CatalogEntry } from "@repo/music-core/content/catalog";
 
 /** Checked attempts a skill needs before its estimate gets a verdict (same bar as the coach). */
 export const MIN_EVIDENCE = COACH_MIN_ATTEMPTS;
@@ -83,11 +84,56 @@ export function relativeDay(ms: number, now: number): string {
 export const formatLabel = (l: Label | undefined) =>
   l === undefined ? "" : Array.isArray(l) ? l.join(", ") : String(l);
 
-/** "ear.chord-quality" -> "Ear chord quality" until drills register display names. */
+/**
+ * The catalog drill that records `id`, and its mode's label when the drill's modes record
+ * different exercises. Ukulele runs record the guitar ids' twins; read-and-tap runs record
+ * one id per pattern.
+ */
+export function exerciseDrill(id: string): { entry: CatalogEntry; mode?: string } | undefined {
+  const key = id.replace(/^technique\.ukulele\./, "technique.guitar.");
+  const same = (x: string) =>
+    x === key || (x.startsWith("rhythm.pattern.") && key.startsWith("rhythm.pattern."));
+  for (const entry of CATALOG) {
+    const m = entry.modes.find((m) => same(m.exerciseId));
+    if (m) {
+      const distinct = new Set(entry.modes.map((x) => x.exerciseId)).size > 1;
+      return { entry, mode: distinct ? m.label : undefined };
+    }
+    if (same(entry.exerciseId)) return { entry };
+  }
+}
+
+/** A run's drill as the Drills tab names it ("Fretboard: Note finder"); a tidied id otherwise. */
 export const exerciseTitle = (id: string) => {
+  const d = exerciseDrill(id);
+  if (d) return d.mode ? `${d.entry.title}: ${d.mode}` : d.entry.title;
   const s = id.replace(/[._-]+/g, " ").trim();
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
+
+/** A session named for what was practised: its drills in order, two named, then a count. */
+export function sessionTitle(session: PracticeSession): string {
+  const titles = [...new Set(session.runs.map((r) => exerciseTitle(r.exerciseId)))];
+  if (!titles.length) return SOURCE_LABEL[session.source];
+  if (titles.length === 1) return titles[0];
+  if (titles.length === 2) return `${titles[0]} and ${titles[1]}`;
+  return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`;
+}
+
+/** The last `n` scores of one exercise, up to and including the run ending at `until`. */
+export function scoreHistory(
+  sessions: PracticeSession[],
+  exerciseId: string,
+  until: number,
+  n = 8,
+) {
+  return sessions
+    .flatMap((s) => s.runs)
+    .filter((r) => r.exerciseId === exerciseId && r.score !== undefined && r.endedAt <= until)
+    .sort((a, b) => a.endedAt - b.endedAt)
+    .slice(-n)
+    .map((r) => r.score!);
+}
 
 /**
  * Stats slices for one instrument. Attempts recorded with no instrument (answer buttons,

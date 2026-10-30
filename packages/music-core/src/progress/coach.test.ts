@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ScoringEvent } from "../types";
 import { T0, ev, session } from "./fixtures";
 import { ingestAnalytics } from "./analytics";
-import { coach } from "./coach";
+import { coach, practiceName } from "./coach";
 
 let n = 0;
 const reps = (count: number, over: Partial<ScoringEvent>) =>
@@ -51,7 +51,8 @@ describe("coach", () => {
     expect(a.summary).toBe(
       "The coach needs 5 checked attempts on piano before it names a weak spot. You have 4.",
     );
-    expect(a.insights).toContain("0% correct across 4 checked attempts on piano.");
+    // No instrument-wide percentage: it read as a second score for the focus skill.
+    expect(a.insights.some((l) => l.includes("%"))).toBe(false);
   });
 
   it("never frames a single attempt as a diagnosis", () => {
@@ -100,5 +101,35 @@ describe("coach", () => {
     expect(guitar.focus?.skillId).toBe("technique.guitar.spider");
     expect(guitar.action.href).toBe("/music/fretboard?instrument=guitar");
     expect(guitar.insights).toContain("0 saved sessions on guitar.");
+  });
+
+  it("names a drill's umbrella and instrument twins once, by the drill", () => {
+    expect(practiceName("technique.strings.note-finder")).toBe("Note finder");
+    expect(practiceName("technique.guitar.note-finder")).toBe("Note finder");
+    expect(practiceName("technique.strings.spider.permutations")).toBe("Spider Permutations");
+    expect(practiceName("reading.treble.landmarks")).toBe("Treble Landmark Notes");
+    // One answer tagged with the umbrella and the guitar skill: one name, one count.
+    const a = coach({
+      instrument: "guitar",
+      instrumentName: "Guitar",
+      stats: ingestAnalytics(
+        {},
+        [],
+        [
+          ...reps(4, {
+            instrument: "guitar",
+            skillIds: ["technique.strings.note-finder", "technique.guitar.note-finder"],
+            correct: true,
+          }),
+        ],
+      ).stats,
+      mastery: {},
+      sessions: [],
+      now: T0,
+      checkedAnswers: 4,
+    });
+    expect(a.summary).toBe(
+      "The coach needs 5 checked attempts on Guitar before it names a weak spot. You have 4.",
+    );
   });
 });

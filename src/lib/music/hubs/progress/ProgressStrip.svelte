@@ -15,7 +15,8 @@
   const week = $derived(weekMinutes(practice.sessions, today));
   // Same rounding as the journal rollup, so both pages agree.
   const total = $derived(weekRollups(practice.sessions, today).thisWeek.minutes);
-  const scale = $derived(Math.max(10, ...week.map((d) => d.minutes)));
+  // The busiest day fills the chart, so a light week still reads as bars, not hairlines.
+  const scale = $derived(Math.max(1, ...week.map((d) => d.minutes)));
 
   const LETTER = ["M", "T", "W", "T", "F", "S", "S"];
   const weekday = (d: string) =>
@@ -67,7 +68,7 @@
     <p class="text-sm text-ws-soft">Minutes of saved practice, Monday to Sunday.</p>
     <ol class="mt-3 flex max-w-xs gap-1.5">
       {#each week as d (d.day)}
-        {@const h = d.minutes ? Math.max(8, (d.minutes / scale) * 80) : 6}
+        {@const h = d.minutes ? Math.max(16, (d.minutes / scale) * 78) : 5}
         <li class="flex min-w-0 flex-1 flex-col items-center gap-1">
           <div class="relative h-20 w-full" aria-hidden="true">
             {#if d.minutes}

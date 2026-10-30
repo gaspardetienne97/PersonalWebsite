@@ -15,7 +15,7 @@ test.describe("today", () => {
     await page.goto("/music");
     await page.getByRole("button", { name: "30 min" }).click();
     await choose(page, page.getByLabel(/^Instrument on \w+s$/), "Guitar");
-    await expect(page.getByText(/session, guitar$/)).toBeVisible();
+    await expect(page.getByText(/session, Guitar$/)).toBeVisible();
 
     const song = page.locator("ol li").filter({ has: page.getByText("Song", { exact: true }) });
     const start = song.getByRole("link", { name: /^Start/ });
