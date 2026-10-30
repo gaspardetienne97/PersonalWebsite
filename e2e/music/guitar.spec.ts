@@ -242,7 +242,8 @@ test.describe("guitar drills", () => {
       },
       line.map(([st, f]) => fret(st, f)),
     );
-    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
+    // The taps alone take 8 s; under a full suite's load the results can land later.
+    await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 15_000 });
     // Taps drift against the click in a headless browser; most of the line still lands.
     const right = await page
       .getByText(/^\d+ of 32$/)

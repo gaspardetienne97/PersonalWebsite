@@ -135,7 +135,7 @@
                     class="flex min-h-11 items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface p-2.5 hover:bg-ws-raised"
                   >
                     <Ring value={trend === "new" ? undefined : r.estimate} stroke={TONE[trend]} class="size-12">
-                      <span class="tnum text-xs font-semibold" aria-hidden="true">{trend === "new" ? r.checked : pct(r.estimate ?? 0)}</span>
+                      <span class="tnum text-xs font-semibold" aria-hidden="true">{trend === "new" ? `${r.checked}/${MIN_EVIDENCE}` : pct(r.estimate ?? 0)}</span>
                     </Ring>
                     <span class="flex min-w-0 flex-col">
                       <span class="font-medium">{name}</span>

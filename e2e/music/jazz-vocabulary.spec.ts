@@ -131,6 +131,8 @@ test("voicings: drop-2 through a ii-V-I, and the wrong order named in Check", as
 test("voicings: So What up D dorian, the type picked from the Jazz types tab", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/music/voicings?variant=major&key=2&keys=1");
+  // A long exercise row keeps its first few; the rest sit behind More exercises.
+  await page.getByRole("button", { name: "More exercises" }).click();
   await page.getByRole("button", { name: "Jazz types" }).click();
   await page.getByTestId("setup-line").getByRole("button").first().click();
   await page.getByRole("button", { name: "So What", exact: true }).click();

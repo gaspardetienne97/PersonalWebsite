@@ -4,10 +4,12 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs the owner
 
+- **Test runs in the practice data (2026-10-30).** The UX walkthrough drove real drills in the owner's browser: it added 5 sessions on Oct 30 between 2:07 and 2:12 PM (about 228 XP), completed three of that day's challenges, spent both held streak freezes, and marked the Intervals, Circle of fifths and Pads intro lessons as seen. Nothing was deleted. Remove those sessions in the Journal and reset those lessons if the owner wants; the freezes may not come back.
 - **Official MuseScore scores.** MuseScore's Official scores can be viewed and played but never downloaded, on any plan (PRO+ only adds viewing them). An agent found community scores for 112 shelf songs that had only official ones; 97 still have none (mostly licensed songs such as the Beatles, Einaudi, Hotel California and Stairway). Each shelf has other songs to pick.
 
 ## In progress
 
+- **UX review and fixes (2026-10-30)**: a walkthrough in the Orca browser (26 findings, 12 flat screens) and research on Yousician, Melodics, Simply Piano, Duolingo Music, EarMaster and others, then two waves of fixes (see the catalog, 8.25). Left on purpose: a drill still switches the strip to an instrument it serves (BRIEF rule); Jam and Rhythm have no lesson or Hear it first; "Listen for a strum" and the Lab's "Start recording" keep their own Start labels.
 - **Intro lessons** (spec and plan in local `docs/superpowers/`): a lesson before a drill tests an idea for the first time, then a Lesson button. All three tiers are built. The rudiment paradiddle in the drill data leads with the left hand (L R L L R L R R) while the usual form leads right; the lesson teaches both as mirrors, and the owner chose to keep it left-lead (2026-10-30).
 - **Curriculum plan, phase 2**: built (see Done). Phases 3 to 5 and the last buildable steps are built (see Done). 7 steps still wait, all on Strum a progression's runs counting (guitar 1.7 and 10.4, reading G7.3, ukulele 1.11, 2.12, 5.4 and 10.9): strum a few songs on a real guitar first (Needs hardware). Shelf scores: 60 downloaded, 754 to go. A launchd job (`~/Library/LaunchAgents/com.woodshed.fetch-scores.plist`) runs `scripts/fetch-daily.sh` at 22:15 for 20 a day across the paths, guitar first; the log is `.music-scores/fetch.log`. MuseScore states 20 a day but let 59 through on 2026-10-27 before limiting the account.
 
@@ -108,6 +110,9 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 ## Needs hardware
 
 The owner's checks, grouped by instrument. Everything below passed in the browser with fake MIDI or synthetic audio; none of it has been heard or played on the real thing.
+
+**Microphone, silent runs**
+- With the microphone on and the click coming out of the speakers, the click itself can count as "heard", so a run where nothing was played may still be scored. Check with the real mic and speakers; headphones avoid it.
 
 **MPC One+**
 - Connect: pick the Private output, press "Keep linked (init + heartbeat)", then check pads arrive on every drill page and still arrive after a full reload.
