@@ -8,6 +8,7 @@
     ABRSM_SPEEDS,
     CHORD_KINDS,
     HANDS_APART,
+    SCALE_PATTERNS,
     HANDS_TOGETHER_PRESET,
     SCALE_TEMPO,
     isScaleLine,
@@ -74,15 +75,7 @@
     /** After a clean checked run, move the tonic up a fifth round the circle. */
     rotate: false as boolean,
   });
-  const PATTERNS: { value: ScalePattern; label: string; hint?: string }[] = [
-    { value: "scale", label: "Scale" },
-    { value: "thirds", label: "Double thirds", hint: "The scale in thirds in one hand" },
-    { value: "octaves", label: "Octaves", hint: "The scale in octaves in each hand" },
-    { value: "arpeggio", label: "Arpeggio" },
-    { value: "broken", label: "Broken", hint: "Broken chords through the inversions" },
-    { value: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
-    { value: "triad-pairs", label: "Triad pairs", hint: "The tonic's triad, then the one a whole step up, in turn" },
-  ];
+  const PATTERNS = SCALE_PATTERNS.map((p) => ({ value: p.id, label: p.label, hint: p.hint }));
   const s = $derived(cfg.value);
   const pattern = $derived((PATTERNS.some((p) => p.value === s.pattern) ? s.pattern : "scale") as ScalePattern);
   const perBeat = $derived(([1, 2, 3, 4, 6].includes(s.perBeat) ? s.perBeat : 1) as 1 | 2 | 3 | 4 | 6);

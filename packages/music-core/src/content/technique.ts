@@ -47,6 +47,19 @@ export type ScalePattern =
   | "broken"
   | "blocked"
   | "triad-pairs";
+export const SCALE_PATTERNS: { id: ScalePattern; label: string; hint?: string }[] = [
+  { id: "scale", label: "Scale" },
+  { id: "thirds", label: "Double thirds", hint: "The scale in thirds in one hand" },
+  { id: "octaves", label: "Octaves", hint: "The scale in octaves in each hand" },
+  { id: "arpeggio", label: "Arpeggio" },
+  { id: "broken", label: "Broken", hint: "Broken chords through the inversions" },
+  { id: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
+  {
+    id: "triad-pairs",
+    label: "Triad pairs",
+    hint: "The tonic's triad, then the one a whole step up, in turn",
+  },
+];
 /** Scale-like patterns walk the scale's degrees; the others walk the chord. */
 export const isScaleLine = (p: ScalePattern) => p === "scale" || p === "thirds" || p === "octaves";
 /** The scale drill's kinds: the scale data's, plus the chromatic scale. */

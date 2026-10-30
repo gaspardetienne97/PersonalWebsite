@@ -127,5 +127,15 @@ test.describe("studio ears", () => {
     );
     await page.getByRole("link", { name: "Aerophone breath and tongue: Bite vibrato" }).click();
     await expect(page).toHaveURL(/\/music\/aerophone\?mode=vibrato$/);
+    // Ear drills chip their answer styles; Scales chips what it plays.
+    await page.goto("/music?tab=drills");
+    await page.getByRole("button", { name: "Everything" }).click();
+    await page.locator('a[href="/music/ear/intervals?answer=play-back"]').click();
+    await expect(page.getByText("Answer on the keys or your MIDI keyboard.")).toBeVisible();
+    await page.goto("/music?tab=drills");
+    await page.getByRole("button", { name: "Everything" }).click();
+    await page.getByRole("link", { name: "Scales: Arpeggio" }).click();
+    await expect(page).toHaveURL(/\/music\/scales\?pattern=arpeggio$/);
+    await expect(page.locator("p", { hasText: "Setup:" })).toContainText(/arpeggio/i);
   });
 });

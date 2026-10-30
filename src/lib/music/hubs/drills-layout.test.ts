@@ -13,7 +13,9 @@ describe("drills layout", () => {
       const shown = rows
         .filter((r) => r.entry.id === id)
         .flatMap((r) =>
-          r.modes.length ? r.modes : [new URL(r.href, "http://x").searchParams.get("mode")!],
+          r.modes.length
+            ? r.modes.map((m) => m.id)
+            : [new URL(r.href, "http://x").searchParams.get("mode")!],
         );
       expect([...shown].sort(), id).toEqual(
         CATALOG.find((e) => e.id === id)!
@@ -22,6 +24,22 @@ describe("drills layout", () => {
       );
     }
     expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+  });
+
+  it("gives the ear drills and Scales chips that open each mode", () => {
+    const intervals = rows.find((r) => r.key === "ear-intervals")!;
+    expect(intervals.modes.find((m) => m.id === "voice")).toEqual({
+      id: "voice",
+      label: "Sing it",
+      href: "/music/ear/intervals?answer=voice",
+    });
+    // One answer style: no chips, the row opens it.
+    expect(rows.find((r) => r.key === "ear-fine-pitch")!.modes).toEqual([]);
+    const scales = rows.find((r) => r.key === "scales")!;
+    expect(scales.modes.map((m) => m.label)).toContain("Arpeggio");
+    expect(scales.modes.find((m) => m.id === "arpeggio")!.href).toBe(
+      "/music/scales?pattern=arpeggio",
+    );
   });
 
   it("carries the filter's instrument on a row link, after any mode query", () => {

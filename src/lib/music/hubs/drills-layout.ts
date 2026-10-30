@@ -2,6 +2,13 @@
 // narrowing. Most rows are a catalog entry; Pads and the Aerophone are split
 // by mode into the groups their modes belong to.
 import { CATALOG, type CatalogEntry } from "@repo/music-core/content/catalog";
+import { SCALE_PATTERNS } from "@repo/music-core/content/technique";
+
+export interface ModeChip {
+  id: string;
+  label: string;
+  href: string;
+}
 
 export interface DrillRow {
   /** Unique within the page. */
@@ -11,8 +18,8 @@ export interface DrillRow {
   href: string;
   title: string;
   blurb: string;
-  /** Mode ids shown as chips (a subset for a split row); none for the ear drills. */
-  modes: string[];
+  /** Modes shown as chips, each opening that mode (a subset for a split row). */
+  modes: ModeChip[];
 }
 
 export interface DrillGroup {
@@ -43,6 +50,22 @@ export const modeHref = (e: CatalogEntry, mode: string) => {
     ? `${e.route}${e.route.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(mode)}`
     : e.route;
 };
+const chips = (e: CatalogEntry, ids: string[]): ModeChip[] =>
+  ids.length < 2
+    ? []
+    : ids.map((id) => ({
+        id,
+        label: e.modes.find((m) => m.id === id)?.label ?? id,
+        href: modeHref(e, id),
+      }));
+/** Drills with no catalog modes whose main setup choice still deserves a chip. */
+const SETUP_CHIPS: Record<string, ModeChip[]> = {
+  scales: SCALE_PATTERNS.map((p) => ({
+    id: p.id,
+    label: p.label,
+    href: `/music/scales?pattern=${p.id}`,
+  })),
+};
 
 /** The filter's instrument rides along, so the drill opens on the instrument the list was filtered for. */
 export const withInstrument = (href: string, instrument?: string) =>
@@ -53,7 +76,7 @@ const byId = (id: string) => {
   if (!e) throw new Error(`No catalog entry ${id}`);
   return e;
 };
-const row = (id: string, opts: { chips?: boolean } = {}): DrillRow => {
+const row = (id: string): DrillRow => {
   const e = byId(id);
   return {
     key: id,
@@ -61,7 +84,12 @@ const row = (id: string, opts: { chips?: boolean } = {}): DrillRow => {
     href: e.route,
     title: e.title,
     blurb: e.blurb,
-    modes: opts.chips === false || e.modes.length < 2 ? [] : e.modes.map((m) => m.id),
+    modes:
+      SETUP_CHIPS[id] ??
+      chips(
+        e,
+        e.modes.map((m) => m.id),
+      ),
   };
 };
 const part = (id: string, key: string, title: string, blurb: string, modes: string[]): DrillRow => {
@@ -72,10 +100,10 @@ const part = (id: string, key: string, title: string, blurb: string, modes: stri
     href: modeHref(e, modes[0]),
     title,
     blurb,
-    modes: modes.length > 1 ? modes : [],
+    modes: chips(e, modes),
   };
 };
-const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`, { chips: false }));
+const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`));
 
 const EAR = "Ear training";
 
@@ -84,7 +112,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
     id: "ear-notes",
     section: EAR,
     title: "Notes and melody",
-    note: "Answer by choosing, playing it back, singing, from memory (pocket recall) or just listening along: pick inside each drill.",
+    note: "Answer by choosing, playing it back, singing, from memory (pocket recall) or just listening along.",
     rows: ear(
       "intervals",
       "interval-compare",

@@ -6,7 +6,7 @@
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { hueForRoute, hueVar } from "../hues";
   import { settings } from "../runtime";
-  import { DRILL_GROUPS, modeHref, withInstrument, type DrillRow } from "./drills-layout";
+  import { DRILL_GROUPS, withInstrument, type DrillRow } from "./drills-layout";
 
   let filter = $state<Instrument | "all">("all");
   // The strip's instrument, once the saved settings are in (not the default).
@@ -24,7 +24,6 @@
       return out;
     }, []),
   );
-  const modeLabel = (r: DrillRow, id: string) => r.entry.modes.find((m) => m.id === id)?.label ?? id;
 </script>
 
 <div class="flex flex-col gap-6">
@@ -68,8 +67,8 @@
               <span class="block text-sm text-ws-soft">{r.blurb}</span>
               {#if r.modes.length}
                 <span class="relative mt-1 flex flex-wrap gap-1">
-                  {#each r.modes as m (m)}
-                    <a href={withInstrument(modeHref(r.entry, m), forFilter)} class="rounded-md bg-ws-raised px-2 py-0.5 text-xs hover:bg-ws-line" aria-label="{r.title}: {modeLabel(r, m)}">{modeLabel(r, m)}</a>
+                  {#each r.modes as m (m.id)}
+                    <a href={withInstrument(m.href, forFilter)} class="rounded-md bg-ws-raised px-2 py-0.5 text-xs hover:bg-ws-line" aria-label="{r.title}: {m.label}">{m.label}</a>
                   {/each}
                 </span>
               {/if}
