@@ -1,11 +1,14 @@
 // The flat index behind the command palette: pages, every drill, every path.
 import { CATALOG } from "@repo/music-core/content/catalog";
 import { LEARNING_PATHS } from "@repo/music-core/progress/paths";
+import { DRILL_GROUPS } from "./hubs/drills-layout";
 export interface SearchItem {
   label: string;
   href: string;
   hint?: string;
   keywords?: string;
+  /** Drills rank above pages that match as well. */
+  drill?: boolean;
 }
 
 const PAGES: SearchItem[] = [
@@ -56,12 +59,21 @@ const PAGES: SearchItem[] = [
   { label: "Guide", href: "/music/guide", hint: "How it works", keywords: "help" },
 ];
 
-const DRILLS: SearchItem[] = CATALOG.map((e) => ({
-  label: e.title,
-  href: e.route,
-  hint: "Drill",
-  keywords: e.blurb,
-}));
+/** The Drills tab section a drill sits in, so "Scales" and "Scales and modes" read apart. */
+const area = (id: string) => {
+  const g = DRILL_GROUPS.find((x) => x.rows.some((r) => r.entry.id === id));
+  return g ? (g.section ?? g.title) : undefined;
+};
+const DRILLS: SearchItem[] = CATALOG.map((e) => {
+  const where = area(e.id);
+  return {
+    label: e.title,
+    href: e.route,
+    hint: where ? `${where} drill` : "Drill",
+    keywords: e.blurb,
+    drill: true,
+  };
+});
 const PATHS: SearchItem[] = Object.values(LEARNING_PATHS).map((p) => ({
   label: p.title,
   href: "/music?tab=paths",
@@ -80,3 +92,32 @@ export function registerSearchItems(items: SearchItem[]) {
 }
 
 export const searchIndex = (): SearchItem[] => [...PAGES, ...DRILLS, ...PATHS, ...extra];
+
+/**
+ * The palette's results: label matches before keyword-only ones, an exact label first, then
+ * drills before pages, then a label that starts with the query before a word in it.
+ */
+export function searchItems(query: string, all = searchIndex()): SearchItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return all.slice(0, 12);
+  const score = (item: SearchItem) => {
+    const label = item.label.toLowerCase();
+    const at = label.startsWith(q)
+      ? 0
+      : label.split(/\s+/).some((w) => w.startsWith(q))
+        ? 1
+        : label.includes(q)
+          ? 2
+          : `${item.hint ?? ""} ${item.keywords ?? ""}`.toLowerCase().includes(q)
+            ? 1000
+            : -1;
+    return at < 0 ? -1 : at + (label === q ? 0 : 100) + (item.drill ? 0 : 10);
+  };
+  // The sort is stable, so equal scores keep the index order.
+  return all
+    .map((item) => ({ item, s: score(item) }))
+    .filter((r) => r.s >= 0)
+    .sort((a, b) => a.s - b.s)
+    .slice(0, 20)
+    .map((r) => r.item);
+}

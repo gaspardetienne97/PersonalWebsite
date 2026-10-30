@@ -3,16 +3,11 @@
   import * as Dialog from "@repo/ui/dialog";
   import { goto } from "$app/navigation";
   import { palette } from "./palette.svelte";
-  import { searchIndex } from "../search";
+  import { searchItems } from "../search";
 
   let query = $state("");
   let active = $state(0);
-  const items = $derived.by(() => {
-    const q = query.trim().toLowerCase();
-    const all = searchIndex();
-    if (!q) return all.slice(0, 12);
-    return all.filter((i) => `${i.label} ${i.hint ?? ""} ${i.keywords ?? ""}`.toLowerCase().includes(q)).slice(0, 20);
-  });
+  const items = $derived(searchItems(query));
 
   $effect(() => {
     void query;

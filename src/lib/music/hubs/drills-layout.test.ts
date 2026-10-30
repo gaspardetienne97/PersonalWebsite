@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "@repo/music-core/content/catalog";
-import { DRILL_GROUPS, withInstrument } from "./drills-layout";
+import { DRILL_GROUPS, rowMastery, withInstrument } from "./drills-layout";
 
 describe("drills layout", () => {
   const rows = DRILL_GROUPS.flatMap((g) => g.rows);
@@ -48,5 +48,29 @@ describe("drills layout", () => {
       "/music/pads?mode=rudiments&instrument=mpc",
     );
     expect(withInstrument("/music/scales")).toBe("/music/scales");
+  });
+
+  it("gives a split row only its modes' skills", () => {
+    expect(rows.filter((r) => r.key.includes(":") && !r.skillIds.length)).toEqual([]);
+    const grooves = rows.find((r) => r.key === "pads:grooves")!;
+    const pads = CATALOG.find((e) => e.id === "pads")!;
+    expect(grooves.skillIds.length).toBeLessThan(pads.skillIds.length);
+  });
+
+  it("shows no mastery number until the coach's bar of checked attempts", () => {
+    const now = Date.now();
+    const m = (skillId: string, mastery: number, observations: number) => ({
+      skillId,
+      mastery,
+      confidence: 0.5,
+      decayRate: 0,
+      lastPracticed: now,
+      observations,
+    });
+    const r = { skillIds: ["a", "b"] };
+    expect(rowMastery(r, {}, now)).toEqual({ checked: 0 });
+    expect(rowMastery(r, { a: m("a", 0.9, 4) }, now)).toEqual({ checked: 4 });
+    // Untouched skills count as zero, so half the drill at 0.8 reads 0.4.
+    expect(rowMastery(r, { a: m("a", 0.8, 5) }, now).value).toBeCloseTo(0.4);
   });
 });

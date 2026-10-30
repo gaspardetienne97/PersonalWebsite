@@ -3,6 +3,9 @@
 // by mode into the groups their modes belong to.
 import { CATALOG, type CatalogEntry } from "@repo/music-core/content/catalog";
 import { SCALE_PATTERNS } from "@repo/music-core/content/technique";
+import type { SkillMastery } from "@repo/music-core";
+import { SKILL_GRAPH, aggregateMastery } from "@repo/music-core/progress/graph";
+import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
 
 export interface ModeChip {
   id: string;
@@ -20,6 +23,8 @@ export interface DrillRow {
   blurb: string;
   /** Modes shown as chips, each opening that mode (a subset for a split row). */
   modes: ModeChip[];
+  /** What the row trains, for its mastery ring (a split row: its modes' skills). */
+  skillIds: string[];
 }
 
 export interface DrillGroup {
@@ -90,6 +95,7 @@ const row = (id: string): DrillRow => {
         e,
         e.modes.map((m) => m.id),
       ),
+    skillIds: e.skillIds,
   };
 };
 const part = (id: string, key: string, title: string, blurb: string, modes: string[]): DrillRow => {
@@ -101,8 +107,24 @@ const part = (id: string, key: string, title: string, blurb: string, modes: stri
     title,
     blurb,
     modes: chips(e, modes),
+    skillIds: [...new Set(e.modes.filter((m) => modes.includes(m.id)).flatMap((m) => m.skillIds))],
   };
 };
+/**
+ * A row's ring: the mean decayed estimate of its skills, untouched ones as zero. Honest
+ * evidence: no number until its skills hold the coach's bar of checked attempts.
+ */
+export function rowMastery(
+  r: Pick<DrillRow, "skillIds">,
+  state: Record<string, SkillMastery>,
+  now: number,
+): { checked: number; value?: number } {
+  const parts = r.skillIds.map((id) => aggregateMastery(id, state, SKILL_GRAPH, now));
+  const checked = parts.reduce((n, p) => n + (p?.observations ?? 0), 0);
+  if (checked < COACH_MIN_ATTEMPTS) return { checked };
+  return { checked, value: parts.reduce((n, p) => n + (p?.mastery ?? 0), 0) / parts.length };
+}
+
 const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`));
 
 const EAR = "Ear training";
