@@ -119,7 +119,7 @@ test("Jam in 3/4 over a reharmonised ii-V-I: the 3rd of each chord, graded and r
   await page.getByRole("button", { name: "1 chord reharmonised" }).click();
   await expect(page.getByTestId("jam-reharm")).toContainText("Dm7 Db7 Cmaj7 A7");
   await page.getByRole("button", { name: "Check", exact: true }).click();
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   // Dm7 two bars of 3 (F), Db7 (F), Cmaj7 (E), A7 (C#): a change every six beats.
   await playBeats(page, [
     [65, 0],
@@ -145,7 +145,7 @@ test("Jam's displacement game: a motif a beat later each bar over the blues", as
   );
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByTestId("jam-game")).toContainText("Displace a motif");
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   // Three eighths every five beats, released before the next.
   await playBeats(
     page,

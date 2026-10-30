@@ -9,6 +9,7 @@
   // (progression=song-<id>, or ?shelf=<path>/<song> for a shelf song), and its
   // head is drawn on the lead sheet for the games that need the melody.
   import { onDestroy, onMount } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import Music from "lucide-svelte/icons/music";
   import SkipForward from "lucide-svelte/icons/skip-forward";
   import Play from "lucide-svelte/icons/play";
@@ -46,6 +47,7 @@
   import { addShelfSong, shelfSong, type Song } from "$lib/music/hubs/library/songs";
   import { backingNotes, callNotes, chordVoicing, degreeLabel, positionAt, type BackingMode } from "$lib/music/drills/jam/backing";
   import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
+  import { chordToneNames, formPosition, laneBlocks, laneScale } from "$lib/music/drills/jam/lane";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
@@ -108,6 +110,8 @@
   let cap: Capture | null = null;
   let seq: SequenceHandle | null = null;
   let ticker: ReturnType<typeof setInterval> | undefined;
+  /** True while the form runs on the clock (`seg`), so the lane can glide with it. */
+  let clockOn = $state(false);
   let seg = { startPerf: 0, fromChord: 0, chorusBase: 1 };
   let runStart = 0;
   let chorusStart = 0;
@@ -206,11 +210,13 @@
     seg = { startPerf: checking ? downbeat : seq.playing ? seq.startPerf : performance.now(), fromChord: chordIdx, chorusBase: chorus };
     backingOn = true;
     ticker = setInterval(tick, 40);
+    clockOn = true;
     status = backingMode === "track" ? "Backing track playing. Chords follow the tempo you set." : `Backing playing at ${bpm} BPM.`;
   }
 
   function stopBacking() {
     clearInterval(ticker);
+    clockOn = false;
     seq?.stop();
     seq = null;
     if (backingOn) status = "Backing stopped. Move through the chords with Next chord.";
@@ -291,6 +297,7 @@
         seg = { startPerf: ctx.downbeat, fromChord: 0, chorusBase: 1 };
         clearInterval(ticker);
         ticker = setInterval(tick, 40);
+        clockOn = true;
       } else await startBacking();
       endTimer = setTimeout(() => void stop(), ctx.downbeat + runChoruses * barsTotal * bpb * beatMs + beatMs / 2 - performance.now());
       return;
@@ -305,6 +312,7 @@
     stopClockRef?.();
     stopBacking();
     clearInterval(ticker);
+    clockOn = false;
     cap?.stop();
     const endAt = performance.now();
     if (played.some((n) => n.chorus === chorus)) closeChorus();
@@ -507,6 +515,31 @@
   }
   const compHref = $derived(`/music/accompany?mode=comping&progression=${base.id}&transpose=${s.transpose}${s.reharm ? `&reharm=${s.reharm}` : ""}`);
   const pctOf = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
+
+  // ---- Form lane ----------------------------------------------------------
+  const chordBeats = $derived(prog.chords.map((c) => c.bars * bpb));
+  /** Beats from the top of the run, read off the form clock every frame while it runs. */
+  let clockBeat = $state(0);
+  $effect(() => {
+    if (!clockOn) return;
+    const lengths = chordBeats;
+    let raf = 0;
+    const frame = () => {
+      clockBeat = formPosition(lengths, seg.chorusBase, seg.fromChord) + (performance.now() - seg.startPerf) / beatMs;
+      raf = requestAnimationFrame(frame);
+    };
+    frame();
+    return () => cancelAnimationFrame(raf);
+  });
+  const reduceQuery = new MediaQuery("(prefers-reduced-motion: reduce)");
+  const still = $derived(reduceQuery.current || settings.value.reduceMotion);
+  const laneBeat = $derived(clockOn ? clockBeat : formPosition(chordBeats, chorus, chordIdx) + beatInChord);
+  /** Reduced motion: the lane steps a beat at a time instead of gliding. */
+  const laneAt = $derived(still ? Math.floor(laneBeat + 1e-6) : laneBeat);
+  let laneW = $state(0);
+  const scale = $derived(laneScale(laneW));
+  const lane = $derived(laneBlocks(chordBeats, laneAt, scale.playheadX / scale.pxPerBeat + 1, (laneW - scale.playheadX) / scale.pxPerBeat + 1));
+  const tones = $derived(chordToneNames(chord.symbol));
 </script>
 
 <svelte:head><title>Jam | Woodshed</title></svelte:head>
@@ -515,7 +548,7 @@
 <DrillShell
   title="Jam"
   hue={instrument}
-  blurb="Solo over a progression or a standard's form. Practice lights every note as a chord tone, a scale tone or an avoid note; Check grades each chorus on a game."
+  blurb="Solo over a progression or a standard's form as the changes slide by."
   summary={summaryLine}
   modeNotes={{ practice: "Tone roles lit, each chorus described. Nothing is graded.", check: "Tone roles hidden. The form runs for the choruses you set, each graded on the game." }}
   clock={{ bpm, beatsPerBar: bpb }}
@@ -523,7 +556,6 @@
   bind:mode
   bind:status
   progress={checking ? ((chorus - 1) * barsTotal + formBeat / bpb) / (runChoruses * barsTotal) : formBeat / bpb / barsTotal}
-  startLabel="Start jamming"
   lesson={{ lessons: jamGameLesson(game.id), trigger: "check" }}
   blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : game.head && !head ? `${game.label} needs a tune with its melody: pick one of your scores in Progression.` : null}
   onstart={start}
@@ -657,24 +689,47 @@
         <Staff score={leadSheet} cursorBeat={phase === "running" ? formBeat : null} highlights={sections.map((x) => ({ startBeat: x.bar * bpb, endBeat: (x.bar + x.bars) * bpb, label: x.label }))} maxHeight="24rem" />
       </div>
     {/if}
-    <ol class="mb-4 flex flex-wrap gap-1.5" class:sr-only={!!leadSheet} aria-label="The form, {prog.name}">
+    <ol class="sr-only" aria-label="The form, {prog.name}">
       {#each prog.chords as c, i (i)}
-        <li
-          class="chord-cell flex min-h-11 items-center justify-center rounded-lg px-3 font-display font-semibold"
-          class:now={i === chordIdx}
-          style:flex-grow={c.bars}
-          aria-current={i === chordIdx ? "step" : undefined}
-        >
-          {c.symbol}<span class="sr-only">, {c.bars} bar{c.bars > 1 ? "s" : ""}{i === chordIdx ? ", now" : ""}</span>
-        </li>
+        <li aria-current={i === chordIdx ? "step" : undefined}>{c.symbol}, {c.bars} bar{c.bars > 1 ? "s" : ""}{i === chordIdx ? ", now" : ""}</li>
       {/each}
     </ol>
+    <!-- The form lane: chords as wide as their beats slide left past a fixed playhead, so the next one is always arriving. -->
+    <div class="lane mb-4" class:glide={!clockOn && !still} bind:clientWidth={laneW} aria-hidden="true" data-testid="jam-lane">
+      <div class="track" style:transform="translateX({scale.playheadX - laneAt * scale.pxPerBeat}px)">
+        {#each lane as b (b.key)}
+          {@const sym = prog.chords[b.index].symbol}
+          <div class="block" data-state={b.state} style:left="{b.start * scale.pxPerBeat}px" style:width="{b.beats * scale.pxPerBeat - 4}px">
+            {#if b.state === "next"}<span class="next-tag">Next</span>{/if}
+            <span class="sym font-display">{sym}</span>
+            <!-- A dot in the middle of each beat, lit once the playhead is in it; a bar's first beat is a dash. -->
+            <span class="ticks">
+              {#each Array.from({ length: Math.ceil(b.beats - 1e-6) }, (_, k) => k) as k (k)}
+                <span class="tick" class:bar={(b.start + k) % bpb === 0} class:on={b.state === "past" || (b.state === "now" && b.start + k <= laneAt + 1e-6)} style:left="{(k + 0.5) * scale.pxPerBeat}px"></span>
+              {/each}
+            </span>
+          </div>
+        {/each}
+      </div>
+      <div class="playhead" style:left="{scale.playheadX}px"></div>
+    </div>
 
     <div class="mb-4 flex flex-wrap items-end gap-x-6 gap-y-3">
       <div class="min-w-0">
         <p class="text-sm text-ws-stage-soft">Now</p>
-        <p class="font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chord.symbol}</p>
-        <p class="mt-1 text-ws-stage-soft">{showRoles ? `${scaleName(chord)} fits. ` : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
+          {#key chord.symbol}
+            <p class="now-chord font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chord.symbol}</p>
+          {/key}
+          {#if showRoles && tones.length}
+            <ul class="flex flex-wrap gap-1.5" aria-label="Chord tones of {chord.symbol}">
+              {#each tones as t (t.label)}
+                <li class="tone-chip"><span class="text-xs opacity-75">{t.label}</span>{t.name}</li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+        <p class="mt-2 text-ws-stage-soft">{showRoles ? `${scaleName(chord)} fits. ` : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
@@ -806,14 +861,141 @@
 </DrillShell>
 
 <style>
-  .chord-cell {
-    flex-basis: 3.5rem;
-    background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
-    color: var(--ws-stage-soft);
+  .lane {
+    position: relative;
+    height: 4.75rem;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--ws-stage-ink) 5%, transparent);
   }
-  .chord-cell.now {
+  /* The past fades out behind the playhead. */
+  .lane::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 1;
+    width: 22%;
+    background: linear-gradient(90deg, var(--ws-stage), transparent);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .track {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+  .lane.glide .track {
+    transition: transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .block {
+    position: absolute;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0 0.6rem;
+    border-radius: 0.6rem;
+    white-space: nowrap;
+    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
+    color: var(--ws-stage-soft);
+    transition:
+      background-color 150ms,
+      color 150ms;
+  }
+  .block .sym {
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+  .block[data-state="now"] {
     background: var(--instr);
     color: var(--ws-stage);
+    box-shadow: 0 0 1.25rem color-mix(in oklch, var(--instr) 45%, transparent);
+  }
+  .block[data-state="now"] .sym {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .block[data-state="next"] {
+    color: var(--ws-stage-ink);
+    box-shadow: inset 0 0 0 2px var(--instr);
+  }
+  .block[data-state="past"] {
+    opacity: 0.5;
+  }
+  .next-tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--instr);
+  }
+  .ticks {
+    position: absolute;
+    inset: auto 0 0.3rem 0;
+    height: 0.4rem;
+  }
+  .tick {
+    position: absolute;
+    bottom: 0;
+    width: 0.3rem;
+    height: 0.3rem;
+    translate: -50% 0;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.3;
+  }
+  .tick.bar {
+    width: 0.6rem;
+    border-radius: 2px;
+  }
+  .tick.on {
+    opacity: 0.9;
+  }
+  .playhead {
+    position: absolute;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    z-index: 2;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 999px;
+    background: var(--ws-stage-ink);
+    box-shadow: 0 0 0.5rem color-mix(in oklch, var(--ws-stage-ink) 60%, transparent);
+  }
+  .now-chord {
+    color: var(--instr);
+    animation: chord-in 220ms ease-out;
+  }
+  @keyframes chord-in {
+    from {
+      transform: translateX(0.75rem);
+      opacity: 0.4;
+    }
+  }
+  .tone-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+    background: var(--tone-chord);
+    color: var(--ws-stage);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .now-chord,
+    .block {
+      animation: none;
+      transition: none;
+    }
+  }
+  :global([data-reduce-motion]) .now-chord,
+  :global([data-reduce-motion]) .block {
+    animation: none;
+    transition: none;
   }
   .legend {
     display: inline-block;

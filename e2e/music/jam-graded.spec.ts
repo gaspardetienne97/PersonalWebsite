@@ -91,7 +91,7 @@ test("three notes over the blues: a chorus graded and recorded as checked", asyn
   await expect(page.getByTestId("jam-game")).toContainText("Three notes");
   // Tone roles are hidden in Check.
   await expect(page.locator('[data-role="chord"]')).toHaveCount(0);
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   // C and Eb on beats 1 and 2 of every bar, then two beats of rest.
   await playBeats(
     page,
@@ -127,7 +127,7 @@ test("trading fours over a standard: the lead sheet, and the band's bars left al
   await expect(page.getByTestId("jam-lead-sheet").locator("svg")).toBeVisible();
   await expect(page.getByTestId("jam-lead-sheet")).toContainText("Jazz blues in F");
   await page.getByRole("button", { name: "Check", exact: true }).click();
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByTestId("jam-game")).toContainText("Your bars: play");
   // The 3rd of each bar's chord on 1 and 3 in bars 1 to 4 and 9 to 12 (F7 Bb7 F7 Cm7-F7, Gm7 C7 F7-D7 Gm7-C7).
   const thirds: Record<number, [number, number]> = {

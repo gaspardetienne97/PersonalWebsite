@@ -456,7 +456,7 @@ test.describe("jam and lab", () => {
     await expect(page.locator('[data-midi="62"][data-role="scale"]')).toHaveCount(1);
     await expect(page.locator('[data-midi="66"][data-role="avoid"]')).toHaveCount(1);
     await shoot(page, "jam");
-    await page.getByRole("button", { name: /^Start jamming/ }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Next chord");
     await play(page, [{ at: 0, notes: [64] }]);
     await expect(page.getByTestId("jam-last")).toContainText("chord tone");

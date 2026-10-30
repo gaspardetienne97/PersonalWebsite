@@ -126,7 +126,7 @@ test("Jam on your own score: its head on the lead sheet, quoted to open each A s
   await expect(page.getByTestId("jam-lead-sheet")).toContainText("Test tune, A A B A (8 bars)");
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByTestId("jam-game")).toContainText("Quote the head");
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   // The head's first four notes an octave up (then a note off the head) at bars 1, 3 and 7.
   const quote = (bar: number) =>
     [79, 76, 77, 79, 84].map((m, j) => [m, bar * 4 + j * 0.5] as [number, number]);
@@ -146,8 +146,8 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
     "/music/jam?progression=song-e2e-tune&game=melody-fills&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
   );
   await page.getByRole("button", { name: "Check", exact: true }).click();
-  await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeEnabled();
-  await page.getByRole("button", { name: /^Start jamming/ }).click();
+  await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   const head = [0, 2, 4, 6].flatMap((bar) =>
     [67, 64, 65, 67].map((m, j) => [m + 12, bar * 4 + j, 0.8] as [number, number, number]),
   );
