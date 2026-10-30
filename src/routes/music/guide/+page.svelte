@@ -162,7 +162,7 @@
         <div class={prose}>
         <p><strong>MIDI</strong> works in Chromium browsers. Plug in the keyboard, MPC or Aerophone and enable MIDI once on <a class={link} href="/music/connect">Connect</a>; after that Woodshed reopens it on every visit. Name each device and tell it which instrument it is.</p>
         <p><strong>The MPC One+</strong> only sends pad notes while a computer keeps talking to it. Turn on the controller link on Connect and Woodshed keeps that conversation going on every page, not just that one. If your pads send the Akai Classic notes, pick that pad map there, or use Learn pads and hit each pad once.</p>
-        <p><strong>The microphone</strong> is for guitar, ukulele and voice. It only starts when you press something that needs it, and it stops when the drill ends. Pick the input and echo cancellation in <a class={link} href="/music/settings#input">Settings</a>; the <a class={link} href="/music/tuner">Tuner</a> is the quickest way to check it hears you.</p>
+        <p><strong>The microphone</strong> is for guitar, ukulele and voice. It only starts when you press something that needs it, and it stops when the drill ends. Pick the input and echo cancellation on <a class={link} href="/music/connect#mic">Connect</a>; the <a class={link} href="/music/tuner">Tuner</a> is the quickest way to check it hears you.</p>
         <p>If notes feel late, run a latency calibration in <a class={link} href="/music/settings#latency">Settings</a>.</p>
       </div>
         {@render devicesPicture()}

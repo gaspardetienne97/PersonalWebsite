@@ -1,7 +1,8 @@
 <script lang="ts">
   // Settings (catalog 5.15): grouped rows, labels left, controls right. Every
-  // control here is read by something: the audio graph, getUserMedia, the
-  // router offsets, the root attributes for motion and hue.
+  // control here is read by something: the audio graph, the pitch detector, the
+  // router offsets, the root attributes for motion and hue. Devices are chosen
+  // on Connect only; the Instruments row shows the same stored values.
   import { onMount } from "svelte";
   import { SectionSpy } from "$lib/music/section-spy.svelte";
   import { page } from "$app/state";
@@ -48,7 +49,7 @@
   ] as const;
   const SECTIONS = [
     { id: "audio", label: "Audio", icon: Volume2, hue: "piano" },
-    { id: "input", label: "Input", icon: Mic, hue: "guitar" },
+    { id: "input", label: "Instruments", icon: Mic, hue: "guitar" },
     { id: "latency", label: "Latency", icon: Timer, hue: "rhythm" },
     { id: "appearance", label: "Appearance", icon: Palette, hue: "ear" },
     { id: "goals", label: "Goals", icon: Target, hue: "mpc" },
@@ -63,7 +64,6 @@
 
   onMount(() => spy.watch());
   onMount(() => {
-    mic.refreshDevices().catch(() => {});
     const restored = page.url.searchParams.get("restored");
     if (restored !== null) {
       const files = Number(page.url.searchParams.get("files") ?? 0);
@@ -97,12 +97,6 @@
     say("audio", audio.unlocked ? "Sound is on." : "Sound is on, but the browser is still holding it back. Tap Play test sound.");
   }
 
-  function pickDevice(id: string) {
-    const d = mic.devices.find((x) => x.deviceId === id);
-    settings.update({ audioInputDeviceId: id || undefined, audioInputLabel: d?.label ?? "Default input" });
-    say("input", `Input set to ${d?.label ?? "the default input"}. It applies the next time the microphone starts.`);
-  }
-
   const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)} ms`;
   const sampleNote = $derived(
     s.preferredPlaybackSound !== "salamander-piano"
@@ -122,7 +116,7 @@
 <div class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
   <header class="lg:col-span-2">
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Sound, input, timing and your data. Everything is saved in this browser as you change it.</p>
+    <p class="mt-1 max-w-prose text-ws-soft">Sound, pitch, timing and your data. Everything is saved in this browser as you change it. Devices live on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
@@ -198,21 +192,18 @@
     </section>
 
     <section id="input" aria-labelledby="input-h" class="scroll-mt-42 lg:scroll-mt-32">
-      {@render heading("input-h", "Input", Mic)}
+      {@render heading("input-h", "Instruments", Mic, "Which microphone and MIDI devices to use is set on Connect, with a live test for each. These rows are about reading and pitch.")}
       {@render note("input")}
       <ul class={listCls}>
         <li class={rowCls}>
-          <div class="flex min-w-0 flex-1 basis-48 items-center gap-1">
-            <span class="font-medium">Audio input</span>
-            <Hint about="audio input" text="Device names appear once you have allowed the microphone for this site." />
-          </div>
-          <Picker class="sm:w-64" label="Audio input" value={s.audioInputDeviceId ?? ""} options={[{ value: "", label: "Default input" }, ...mic.devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d) => ({ value: d.deviceId, label: d.label })), ...(s.audioInputDeviceId && !mic.devices.some((d) => d.deviceId === s.audioInputDeviceId) ? [{ value: s.audioInputDeviceId, label: `${s.audioInputLabel} (not connected)` }] : [])]} onchange={pickDevice} />
-        </li>
-        <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="echo-l">Echo cancellation</span><Hint about="Echo cancellation" text="Off is better for pitch and timing. Turn it on if the speakers bleed into the mic. Applies the next time the microphone starts." /></p>
+            <p class="font-medium">Devices</p>
+            <p class="text-sm text-ws-soft" data-testid="settings-devices">
+              Microphone: <span class="font-medium text-ws-ink">{s.audioInputLabel}</span>{mic.state === "on" ? ", listening" : ""}{s.echoCancellation ? ", echo cancellation on" : ""}.
+              MIDI: <span class="font-medium text-ws-ink">{!midi.enabled ? "off" : `${midi.inputs.length} input${midi.inputs.length === 1 ? "" : "s"}`}</span>.
+            </p>
           </div>
-          {@render toggle("echo-l", s.echoCancellation, (v) => settings.update({ echoCancellation: v }))}
+          <a class={btn} href="/music/connect">Choose in Connect</a>
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
@@ -226,7 +217,7 @@
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium">Reference A4<Hint about="Reference A4" text="The pitch A4 is tuned to. The tuner and every drill that listens to the microphone read notes against it." /></p>
+            <p class="flex items-center gap-1 font-medium">Reference A4<Hint about="Reference A4" text="The pitch A4 is tuned to. The tuner and every drill that listens to the microphone read notes against it. The Tuner's A4 picker changes this same setting." /></p>
           </div>
           <Picker class="tnum w-auto" label="Reference A4" value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
         </li>

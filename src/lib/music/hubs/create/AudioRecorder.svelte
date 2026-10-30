@@ -11,6 +11,7 @@
   import Trash from "lucide-svelte/icons/trash-2";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "$lib/music/components/ui";
+  import { micOptions } from "$lib/music/hubs/connect/rig";
   import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "$lib/music/runtime";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
@@ -239,7 +240,7 @@
         label="Input"
         value={deviceId}
         disabled={live}
-        options={[{ value: "", label: "Default input" }, ...mic.devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d) => ({ value: d.deviceId, label: d.label }))]}
+        options={micOptions(mic.devices, settings.value.audioInputDeviceId, settings.value.audioInputLabel)}
         onchange={(v) => {
           deviceId = v;
           const d = mic.devices.find((x) => x.deviceId === v);
