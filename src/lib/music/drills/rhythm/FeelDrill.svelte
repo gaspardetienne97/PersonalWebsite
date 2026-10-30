@@ -128,7 +128,7 @@
     clearTimeout(nextTimer);
     playing?.stop();
     phase = "ready";
-    status = `Stopped after ${records.length} answers.`;
+    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
   }
 
   onDestroy(() => {

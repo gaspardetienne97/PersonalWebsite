@@ -94,6 +94,10 @@ describe("a run with input", () => {
     const silent = practice.beginRun(spec);
     await silent.attempt({ ...miss, source: "audio", response: "0 of 8", heard: false });
     expect((await silent.finish()).heard).toBe(false);
+    const rated = practice.beginRun(spec);
+    const fin = await rated.finish({ score: 1, correct: true, rated: true });
+    expect(fin.heard).toBe(true);
+    expect(fin.run.score).toBe(1);
   });
 });
 

@@ -264,7 +264,7 @@
   function stop() {
     teardown();
     phase = "ready";
-    status = `Stopped after ${records.length} answers.`;
+    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
   }
 
   function onKey(e: KeyboardEvent) {

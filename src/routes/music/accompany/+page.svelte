@@ -51,10 +51,9 @@
   import Picker from "$lib/music/components/Picker.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
+    import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -308,6 +307,11 @@
       response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const chordsOff = r.notMeasured.includes("chords");
     const weak = r.hands.slice().sort((a, b) => a.matched / a.total - b.matched / b.total)[0];
     const rows: ResultRow[] = r.hands.map((h) => ({
@@ -315,16 +319,19 @@
       value: h.matched / h.total,
       text: `${h.matched} of ${h.total}`,
     }));
-    rows.push({ label: "Timing", value: r.meanAbsErrorMs ? Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs) : null, text: `${Math.round(r.meanAbsErrorMs)} ms off on average` });
+    // No hits means no timing to average: say so instead of "0 ms off".
+    rows.push(
+      r.hands.some((h) => h.matched)
+        ? { label: "Timing", value: r.meanAbsErrorMs ? Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs) : null, text: `${Math.round(r.meanAbsErrorMs)} ms off on average` }
+        : { label: "Timing", notMeasured: true },
+    );
     if (chordsOff) rows.push({ label: "Chords (on-screen input)", notMeasured: true });
     summary = {
-      headline: !played.length
-        ? "Nothing landed. Come in on the first beat after the count-in."
-        : r.correct
-          ? `Clean at ${bpm} BPM: ${r.hands.map((h) => `${h.matched} of ${h.total} ${h.hand}-hand`).join(", ")}.`
-          : r.weakBar !== null && weak && weak.matched < weak.total
-            ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most. Loop it slower.`
-            : `Every chord landed, but the timing wandered. Keep the hands on the click.`,
+      headline: r.correct
+        ? `Clean at ${bpm} BPM: ${r.hands.map((h) => `${h.matched} of ${h.total} ${h.hand}-hand`).join(", ")}.`
+        : r.weakBar !== null && weak && weak.matched < weak.total
+          ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most. Loop it slower.`
+          : `Every chord landed, but the timing wandered. Keep the hands on the click.`,
       metric: pct(r.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -333,7 +340,7 @@
       xp: fin.xp,
       assistance: chordsOff ? `${assistanceText(mode)} On-screen keys play one note at a time, so this run graded single notes only.` : assistanceText(mode),
       rows,
-      advance: played.some((n) => n.kind === "noteon") ? await nextRun(`accompany.${tab}.${tab === "patterns" ? pattern.id : tab === "comping" ? voicing.id : lh}`, { bpm, tempo: { min: 50, goal: 100, max: TEMPO.max } }, r) : undefined,
+      advance: await nextRun(`accompany.${tab}.${tab === "patterns" ? pattern.id : tab === "comping" ? voicing.id : lh}`, { bpm, tempo: { min: 50, goal: 100, max: TEMPO.max } }, r),
     };
     status = summary.headline;
   }
@@ -345,12 +352,6 @@
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
-  }
-
-  function retempo(delta: number) {
-    void settings.update({ bpm: Math.min(TEMPO.max, Math.max(TEMPO.min, bpm + delta)) });
-    phase = "ready";
-    summary = null;
   }
 
   onDestroy(() => {
@@ -526,12 +527,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(6)}>Faster by 6</button>
-          <button type="button" class={btn} onclick={() => retempo(-6)}>Slower</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

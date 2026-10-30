@@ -15,6 +15,7 @@
   import { gradeSingAlong, MIN_SUNG, type SingAlongResult, type SingPart } from "@repo/music-core/signal/sing-along";
   import { findHomeLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type Phase } from "$lib/music/components/DrillShell.svelte";
+  import Results, { NOT_HEARD, silentRun } from "$lib/music/components/Results.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -277,7 +278,7 @@
   async function finishSing() {
     phase = "results";
     if (sung.length < MIN_SUNG) {
-      status = `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing recorded.`;
+      status = !sung.length ? NOT_HEARD : `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing recorded.`;
       return;
     }
     const b = player!.buffer;
@@ -332,7 +333,7 @@
         sections: sections.length,
       },
     });
-    await run.finish({ score: got ? 1 : 0, correct: got, headline: got ? "Got the part by ear" : "Still learning the part" });
+    await run.finish({ score: got ? 1 : 0, correct: got, rated: true, headline: got ? "Got the part by ear" : "Still learning the part" });
     status = got ? "Saved: you rated it got. Try it at a faster speed next." : "Saved as still learning. Loop a shorter stretch or slow it down.";
   }
 
@@ -520,6 +521,9 @@
   {/snippet}
 
   {#snippet results()}
+    {#if mode === "sing" && !sing && !sung.length}
+      <Results summary={silentRun()} />
+    {:else}
     <article class="{panel} flex flex-col gap-3" aria-label="This run">
       {#if mode === "home" && home}
         {@const right = home.tonics.includes(home.answer)}
@@ -557,6 +561,7 @@
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {/if}
     </article>
+    {/if}
   {/snippet}
 </DrillShell>
 

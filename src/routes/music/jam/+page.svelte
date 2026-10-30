@@ -33,6 +33,7 @@
   import { TUNINGS } from "@repo/music-core/data/index";
   import { jamGameLesson } from "@repo/music-core/lessons/jam";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import Results, { silentRun } from "$lib/music/components/Results.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -811,12 +812,14 @@
           {/each}
         </ol>
       </article>
+    {:else if !played.length}
+      <Results summary={silentRun()} />
     {:else}
     <article class="{panel} flex flex-col gap-4">
       <div class="flex flex-wrap items-start gap-4">
         <div class="min-w-0 flex-1 basis-72">
           <p class="font-display text-2xl font-semibold leading-snug">
-            {played.length ? `${played.length} notes over ${choruses.length} chorus${choruses.length === 1 ? "" : "es"}.` : "Nothing was played this time."}
+            {played.length} notes over {choruses.length} chorus{choruses.length === 1 ? "" : "es"}.
           </p>
           <p class="mt-1 text-sm text-ws-soft">Jam is not scored. The reports below describe where your notes landed, chorus by chorus.</p>
           {#if savedTake}<p class="mt-2 text-sm">Saved as a take. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Open it in Record</a></p>{/if}

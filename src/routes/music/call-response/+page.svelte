@@ -25,7 +25,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -156,6 +156,11 @@
     }
     const right = turns.filter((t) => t.correct).length;
     const fin = await ctxRun.finish({ headline: `${right} of ${turns.length} ${callMode === "echo" ? "echoes" : "answers"} right` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     if (all.length) {
       await saveTake({
         id: crypto.randomUUID(),

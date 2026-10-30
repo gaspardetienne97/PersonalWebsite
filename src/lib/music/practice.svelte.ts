@@ -78,6 +78,8 @@ export interface FinishInput {
   correct?: boolean;
   headline?: string;
   params?: Record<string, string | number | boolean>;
+  /** A self-rated run: the rating is the evidence, so it counts without any input. */
+  rated?: boolean;
 }
 
 export interface FinishResult {
@@ -370,7 +372,7 @@ export class Run {
   }
 
   async finish(f: FinishInput = {}): Promise<FinishResult> {
-    const heard = this.#heard;
+    const heard = this.#heard || !!f.rated;
     this.#unsub?.();
     this.#unsub = null;
     const score =

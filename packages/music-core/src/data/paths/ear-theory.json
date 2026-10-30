@@ -2430,7 +2430,7 @@
           "title": "H10 Secondary dominants",
           "strand": "H",
           "href": "/music/circle?mode=secondary&band=two",
-          "setup": "Library reference, then Circle of fifths, Spot the V of: pick the secondary dominant (II7, III7, VI7, I7) in a written progression, or name the chord it leads to. A run is 20 progressions.",
+          "setup": "Library reference, then Circle of fifths, Spot the secondary dominant: pick the secondary dominant (II7, III7, VI7, I7) in a written progression, or name the chord it leads to. A run is 20 progressions.",
           "done": "90% on 20.",
           "minAttempts": 1,
           "minDays": 1,
