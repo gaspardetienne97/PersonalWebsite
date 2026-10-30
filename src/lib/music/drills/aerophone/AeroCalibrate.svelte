@@ -10,7 +10,7 @@
   import { BREATH_LEVELS, gradeCalibration, type CalibrationResult } from "@repo/music-core/content/aero-skills";
   import { AEROPHONE_READING_KEYS, writtenOffset } from "@repo/music-core/theory/transposition";
   import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import { btn } from "$lib/music/components/ui";
   import { capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -143,6 +143,11 @@
       headline,
       params: { ...(received !== null ? { received } : {}), ...(r.floor !== null ? { floor: Math.round(r.floor * 100) / 100 } : {}), ...(r.ceiling !== null ? { ceiling: Math.round(r.ceiling * 100) / 100 } : {}) },
     });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = {
       headline,
       metric: pct(r.score),

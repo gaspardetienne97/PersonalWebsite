@@ -30,7 +30,7 @@
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import Staff from "$lib/music/notation/Staff.svelte";
@@ -369,6 +369,11 @@
       instrument: runInstrument(st.mode === "performance" ? st.notes : notes, instrument) ?? null,
     });
     const fin = await run!.finish({ score: lanes.score, correct: lanes.correct, headline: pct(lanes.score) });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const perf = "groupVerdicts" in r ? r : null;
     const wait = "cleanGroups" in r ? r : null;
     summary = {
@@ -459,13 +464,6 @@
     status = "Stopped. Nothing was recorded.";
   }
 
-  function retempo(d: number) {
-    const next = Math.min(BPM_MAX, Math.max(BPM_MIN, bpm + d));
-    settings.update({ bpm: next });
-    phase = "ready";
-    summary = null;
-    status = `Tempo ${next} BPM. Press Start.`;
-  }
   function practiceMissed() {
     if (!missed.length) return;
     override = { from: generated.id, score: practiceMissedScore(score, missed) };
@@ -584,6 +582,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
+  listens
   lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, measures, piano: instrument === "piano", grand: instrument === "piano" && clefs.length > 1 }) }}
   title="Sight-reading"
   hue="reading"
@@ -728,8 +727,6 @@
           {#if climbing && climb}
             {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>Climb again</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>Next phrase</button>{/if}
           {/if}
-          <button type="button" class={btn} onclick={() => retempo(10)}>Faster</button>
-          <button type="button" class={btn} onclick={() => retempo(-10)}>Slower</button>
           {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>Practice the notes you missed ({missed.length})</button>{/if}
           <button type="button" class={btn} onclick={newPhrase}>New phrase</button>
         {/snippet}

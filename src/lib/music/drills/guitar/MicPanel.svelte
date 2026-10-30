@@ -7,6 +7,7 @@
   import { mic } from "$lib/music/runtime";
   import { btnStage } from "$lib/music/components/ui";
 
+  /** `disabled` locks Stop during a run; Start is always allowed. */
   let { hint = "Sit close to the sound hole, about a hand's width away.", disabled = false }: { hint?: string; disabled?: boolean } = $props();
 
   const fill = $derived(Math.max(0, Math.min(1, (mic.peak + 60) / 60)));
@@ -33,7 +34,8 @@
     </div>
     <button type="button" class={btnStage} {disabled} onclick={() => mic.stop({ unpin: true })}><MicOff class="size-4" aria-hidden="true" />Stop microphone</button>
   {:else}
-    <button type="button" class={btnStage} disabled={disabled || mic.state === "starting"} onclick={() => void mic.start()}>
+    <!-- Starting stays open mid-run: the player can fix a silent run without stopping it. -->
+    <button type="button" class={btnStage} disabled={mic.state === "starting"} onclick={() => void mic.start()}>
       <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Start microphone"}
     </button>
     <p class="min-w-48 flex-1 text-sm text-ws-stage-soft">{mic.error || hint}</p>

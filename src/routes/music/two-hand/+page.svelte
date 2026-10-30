@@ -17,9 +17,8 @@
   import Choice from "$lib/music/components/Choice.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
   import { FINGERING_NOTE, Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -201,6 +200,11 @@
       response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const advance = played.some((n) => n.kind === "noteon")
       ? await nextRun(`two-hand.${s.tonic}.${hand}.${s.dynamics ? "dyn" : "flat"}`, { bpm, tempo: { min: TEMPO.min, goal: 100, max: TEMPO.max }, steps: LADDER.map((p) => ({ label: p.label })), step: Math.max(0, LADDER.findIndex((p) => p.id === pattern)) }, r, tempoAnd((i) => cfg.set({ pattern: LADDER[i].id })))
       : undefined;
@@ -261,12 +265,6 @@
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
-  }
-
-  function retempo(delta: number) {
-    void settings.update({ bpm: Math.min(TEMPO.max, Math.max(TEMPO.min, bpm + delta)) });
-    phase = "ready";
-    summary = null;
   }
 
   onDestroy(() => {
@@ -358,12 +356,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(mirror ? 6 : 10)}>Faster by {mirror ? 6 : 10}</button>
-          <button type="button" class={btn} onclick={() => retempo(mirror ? -6 : -10)}>Slower</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

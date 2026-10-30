@@ -17,9 +17,8 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import { benchFromUrl, sounding, spanOf, Transport, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -172,6 +171,11 @@
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score, correct, headline: `${r.clean} of ${bars.length} pedal changes clean` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const count = (v: PedalVerdict) => r.verdicts.filter((x) => x === v).length;
     const lifts = r.liftMs.filter((x): x is number => x !== null).sort((a, b) => a - b);
     const worst = (["early", "blurred", "late"] as const).map((v) => [v, count(v)] as const).sort((a, b) => b[1] - a[1])[0];
@@ -323,12 +327,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => { settings.update({ bpm: Math.max(TEMPO.min, bpm - 10) }); phase = "ready"; summary = null; }}>Slower</button>
-          <button type="button" class={btn} onclick={() => { settings.update({ bpm: Math.min(TEMPO.max, bpm + 10) }); phase = "ready"; summary = null; }}>Faster</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

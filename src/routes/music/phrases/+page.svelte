@@ -24,7 +24,7 @@
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
@@ -214,6 +214,11 @@
     const chords = events.some((e) => e.notes.length > 1);
     const what = chords ? "steps" : "notes";
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} ${what}` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const rows: ResultRow[] = [
       { label: chords ? "Notes and chords in order" : "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
       { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },

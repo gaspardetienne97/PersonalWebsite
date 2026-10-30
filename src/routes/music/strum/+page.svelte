@@ -16,7 +16,7 @@
   import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { pct } from "$lib/music/drill.svelte";
@@ -202,8 +202,15 @@
       skillIds: [],
       target: chart.map((c) => c.symbol).join(" "),
       response: `${r.matched} of ${r.total}`,
+      // The strum listener has its own path from the microphone.
+      heard: observed.length > 0,
     });
     const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} chords followed` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const timed = r.chords.filter((c) => c.errorMs !== undefined);
     summary = {
       headline: !observed.length
@@ -310,7 +317,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={mic.state === "on" ? null : "Start the microphone on the stage first."}
+  blocked={mic.state === "on" ? null : "Turn on the microphone first."}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

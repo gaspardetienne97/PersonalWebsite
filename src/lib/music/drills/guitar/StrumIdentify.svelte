@@ -12,7 +12,7 @@
   import { gradeStrumIdentify } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
@@ -147,8 +147,15 @@
       instrument: instr,
       target: symbol,
       response: g.identified ?? "",
+      // A strum was heard (grade only runs on one), even when no chord could be named.
+      heard: true,
     });
     const fin = await run.finish({ score: g.score, correct: g.correct, headline: `Heard ${g.identified ?? "nothing"} for ${symbol}` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const v = g.verification;
     summary = {
       headline: g.correct
@@ -207,7 +214,7 @@
   onstart={start}
   onstop={stop}
   startLabel="Listen for a strum"
-  blocked={mic.state === "on" ? null : "Start the microphone on the stage first."}
+  blocked={mic.state === "on" ? null : "Turn on the microphone first."}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">

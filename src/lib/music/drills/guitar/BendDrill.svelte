@@ -13,7 +13,7 @@
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { pct } from "$lib/music/drill.svelte";
@@ -100,12 +100,12 @@
       const first = trace.find((p) => p.hz);
       const v = analyseVibrato(first ? trace.filter((p) => p.at >= first.at && p.at <= first.at + VIBRATO_MS) : []);
       vibratos = [...vibratos, v];
-      await run!.attempt({ promptId: `vibrato:${fromMidi}`, correct: v.rateHz !== null, partialCredit: v.rateHz !== null ? 1 : 0, metrics: [], source: "audio" });
+      await run!.attempt({ promptId: `vibrato:${fromMidi}`, correct: v.rateHz !== null, partialCredit: v.rateHz !== null ? 1 : 0, metrics: [], source: "audio", heard: trace.some((p) => p.hz) });
       status = v.rateHz === null ? "No vibrato heard: the pitch stayed still, or the note was too short." : `Vibrato at ${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide.`;
     } else {
       const b = analyseBend(trace, fromMidi, toMidi);
       bends = [...bends, b];
-      await run!.attempt({ promptId: `bend:${fromMidi}>${toMidi}`, correct: b.correct, partialCredit: b.score, metrics: b.metrics, source: "audio", target: toMidi });
+      await run!.attempt({ promptId: `bend:${fromMidi}>${toMidi}`, correct: b.correct, partialCredit: b.score, metrics: b.metrics, source: "audio", target: toMidi, heard: trace.some((p) => p.hz) });
       status = bendLine(b);
     }
     rep += 1;
@@ -156,6 +156,11 @@
       const avg = (f: (v: VibratoResult) => number) => heard.reduce((a, v) => a + f(v), 0) / Math.max(1, heard.length);
       const score = heard.length / vibratos.length;
       const fin = await run!.finish({ score, correct: heard.length === vibratos.length, headline: `vibrato heard ${heard.length} of ${vibratos.length}` });
+      if (!fin.heard) {
+        summary = silentRun();
+        status = summary.headline;
+        return;
+      }
       summary = {
         headline: heard.length
           ? `Vibrato at about ${avg((v) => v.rateHz!).toFixed(1)} a second, ${Math.round(avg((v) => v.widthCents!))} cents wide. Players use roughly 4 to 7 a second; keep it even.`
@@ -179,6 +184,11 @@
       const meanErr = held.reduce((a, b) => a + b.errorCents!, 0) / Math.max(1, held.length);
       const correct = inTune === bends.length;
       const fin = await run!.finish({ score, correct, headline: `${inTune} of ${bends.length} bends in tune` });
+      if (!fin.heard) {
+        summary = silentRun();
+        status = summary.headline;
+        return;
+      }
       summary = {
         headline: correct
           ? `Every bend in tune: within ${BEND.inTune} cents of ${noteName(toMidi)}.`

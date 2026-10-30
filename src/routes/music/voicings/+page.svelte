@@ -13,7 +13,7 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
@@ -239,6 +239,11 @@
     const correct = right === items.length && items.length > 0;
     phase = "results";
     const fin = await run!.finish({ score, correct, headline: `${right} of ${items.length} chords right` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const worst = items.find((_, i) => !grades[i]?.correct);
     const notes = cap?.notes ?? [];
     const onScreen = notes.some((n) => n.source !== "midi");

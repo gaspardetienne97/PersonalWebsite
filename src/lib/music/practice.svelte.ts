@@ -1,9 +1,12 @@
 // The practice recorder: the one path from a graded attempt to storage,
 // mastery, analytics, XP and the journal. Drills call `practice.beginRun()`,
 // `run.attempt()` per graded item and `run.finish()` once. Demos never call it.
+// A run where nothing was heard (no note, tap, onset or answer) writes nothing:
+// no session, no XP, no streak day. Its attempts wait until input arrives.
 import { page } from "$app/state";
 import type {
   Assistance,
+  InputEvent,
   Capability,
   InputSource,
   Instrument,
@@ -26,7 +29,7 @@ import {
   xpForAttempt,
 } from "@repo/music-core/progress/rewards";
 import { lastRunForSetup, personalBest } from "@repo/music-core/progress/journal";
-import { db, getSetting, putSetting, settings } from "./runtime";
+import { db, getSetting, input, putSetting, settings } from "./runtime";
 
 const SESSION_IDLE_MS = 30 * 60_000;
 const PROCESSED_KEY = "skills.processed-events.v1";
@@ -63,6 +66,11 @@ export interface AttemptInput {
   difficulty?: number;
   assistance?: Assistance;
   instrument?: Instrument | null;
+  /**
+   * Whether this attempt had input behind it. Drills with their own input path
+   * (the big Tap button, the strum and bend listeners) say so; `answered()` otherwise.
+   */
+  heard?: boolean;
 }
 
 export interface FinishInput {
@@ -79,6 +87,23 @@ export interface FinishResult {
   delta: number | null;
   best: boolean;
   previous?: RunRecord;
+  /** False when nothing was heard: the run was not scored or saved. */
+  heard: boolean;
+}
+
+/** An instrument event that shows the player did something. */
+export const isPlayed = (e: InputEvent) =>
+  e.kind === "noteon" || e.kind === "onset" || (e.kind === "cc" && e.value > 0);
+
+/**
+ * An attempt that carries its own evidence: a non-empty response, or with none
+ * an answer clicked or notes from hardware (`runSource` says "onscreen" when
+ * nothing arrived).
+ */
+export function answered(a: Pick<AttemptInput, "response" | "source">) {
+  if (a.response !== undefined)
+    return Array.isArray(a.response) ? a.response.length > 0 : a.response !== "";
+  return a.source !== "onscreen";
 }
 
 class Practice {
@@ -265,23 +290,55 @@ export class Run {
   readonly startedAt = Date.now();
   events: ScoringEvent[] = [];
   xp = 0;
-  #sessionP: Promise<PracticeSession>;
+  #sessionP: Promise<PracticeSession> | null = null;
   #finished = false;
+  #heard = false;
+  /** Attempts made before anything was heard, with their XP; saved once input arrives. */
+  #pending: { event: ScoringEvent; xp: number }[] = [];
+  #unsub: (() => void) | null;
 
   constructor(
     private practice: Practice,
     readonly spec: RunSpec,
   ) {
-    this.#sessionP = practice.session(spec.source ?? "drill", spec.instrument);
+    // Listen until the first played event; an abandoned silent run lets go on the next one.
+    this.#unsub = input.subscribe((e) => {
+      if (isPlayed(e)) this.#hear();
+    });
+  }
+
+  #hear() {
+    this.#heard = true;
+    this.#unsub?.();
+    this.#unsub = null;
+  }
+
+  /** The session opens with the first saved attempt, so a silent run never makes one. */
+  #session() {
+    return (this.#sessionP ??= this.practice.session(
+      this.spec.source ?? "drill",
+      this.spec.instrument,
+    ));
+  }
+
+  async #flush() {
+    const pending = this.#pending;
+    this.#pending = [];
+    if (!pending.length) return;
+    const session = await this.#session();
+    for (const { event, xp } of pending) {
+      event.sessionId = session.id;
+      this.xp += xp;
+      await this.practice.record(session, event, xp);
+    }
   }
 
   async attempt(a: AttemptInput): Promise<ScoringEvent> {
-    const session = await this.#sessionP;
     const skillIds = a.skillIds ?? this.spec.skillIds;
     const difficulty = a.difficulty ?? this.spec.difficulty;
     const event: ScoringEvent = {
       id: uid("ev"),
-      sessionId: session.id,
+      sessionId: "",
       runId: this.id,
       exerciseId: this.spec.exerciseId,
       promptId: a.promptId,
@@ -305,15 +362,17 @@ export class Run {
       event.partialCredit,
       this.practice.previousScores(skillIds),
     );
-    const xp = xpForAttempt(event.partialCredit, difficulty, improvement);
-    this.xp += xp;
     this.events.push(event);
-    await this.practice.record(session, event, xp);
+    this.#pending.push({ event, xp: xpForAttempt(event.partialCredit, difficulty, improvement) });
+    if (a.heard ?? answered(a)) this.#hear();
+    if (this.#heard) await this.#flush();
     return event;
   }
 
   async finish(f: FinishInput = {}): Promise<FinishResult> {
-    const session = await this.#sessionP;
+    const heard = this.#heard;
+    this.#unsub?.();
+    this.#unsub = null;
     const score =
       f.score ??
       (this.events.length
@@ -330,17 +389,25 @@ export class Run {
       params: { ...this.spec.params, ...routineParams(), ...f.params },
       startedAt: this.startedAt,
       endedAt: Date.now(),
-      score,
-      correct: f.correct ?? this.events.every((e) => e.correct),
+      score: heard ? score : undefined,
+      correct: heard && (f.correct ?? this.events.every((e) => e.correct)),
       assistance: this.spec.assistance,
-      xp: this.xp,
+      xp: 0,
       headline: f.headline,
     };
+    // Nothing heard: nothing scored, nothing saved, no XP (honest evidence).
+    if (!heard) {
+      this.#pending = [];
+      return { run, xp: 0, delta: null, best: false, heard };
+    }
+    await this.#flush();
+    run.xp = this.xp;
     const sessions = this.practice.sessions;
     const previous = lastRunForSetup(sessions, run.exerciseId, run.setupKey, run.startedAt);
     const bestBefore = personalBest(sessions, run.exerciseId, run.setupKey);
     if (!this.#finished) {
       this.#finished = true;
+      const session = await this.#session();
       session.runs.push(run);
       await this.practice.saveSession(session);
     }
@@ -351,7 +418,7 @@ export class Run {
       !!bestBefore &&
       bestBefore.score !== undefined &&
       score > bestBefore.score;
-    return { run, xp: this.xp, delta, best, previous };
+    return { run, xp: this.xp, delta, best, previous, heard };
   }
 }
 

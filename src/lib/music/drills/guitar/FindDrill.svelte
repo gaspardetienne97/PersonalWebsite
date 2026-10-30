@@ -20,7 +20,7 @@
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, runInstrument, tuningText, type Capture } from "$lib/music/drill.svelte";
@@ -195,6 +195,11 @@
     const score = answers.length ? right / answers.length : 0;
     const correct = right === answers.length && answers.length > 0;
     const fin = await run!.finish({ score, correct, headline: `${right} of ${answers.length} found` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const taps = answers.filter((a) => a.positionVerified !== null);
     const meanMs = answers.length ? answers.reduce((n, a) => n + a.ms, 0) / answers.length : 0;
     const perInterval = isRecall && !s.interval

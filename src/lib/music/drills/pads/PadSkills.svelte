@@ -45,7 +45,7 @@
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -601,6 +601,11 @@
     }
     await run!.attempt({ promptId: `${skill}:${grooveDef?.value ?? (skill === "improvise" ? s.loop : s.dyn)}`, correct, partialCredit: score, metrics: grv?.metrics ?? ownGrade?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }

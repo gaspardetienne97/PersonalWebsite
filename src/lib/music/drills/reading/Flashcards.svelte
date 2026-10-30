@@ -17,7 +17,7 @@
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import Staff from "$lib/music/notation/Staff.svelte";
@@ -208,6 +208,11 @@
     const right = answers.filter((r) => r.correct).length;
     const score = answers.length ? right / answers.length : 0;
     const fin = await run!.finish({ score, correct: right === answers.length, headline: `${right} of ${answers.length}` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const byClef = (c: Clef) => answers.filter((r) => r.prompt.clef === c);
     summary = {
       headline:

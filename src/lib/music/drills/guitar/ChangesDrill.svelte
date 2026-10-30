@@ -16,7 +16,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -278,9 +278,15 @@
       instrument: runInstrument(src, instr) ?? null,
       target: names.join(" "),
       response: `${r.completed} changes`,
+      heard: notes.length > 0,
     });
     const perMinute = Math.round(r.changesPerMinute * 10) / 10;
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${perMinute} changes per minute, ${r.clean} of ${r.completed} with every note` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const hk = cycleKey;
     const bestBefore = Math.max(0, ...(history[hk] ?? []).map((x) => x.perMinute));
     if (r.completed) history = await writeKeyed<PairRun[]>(PAIR_HISTORY_KEY, hk, [{ date: new Date().toISOString(), perMinute, clean: r.clean, completed: r.completed }], mergePairRuns);

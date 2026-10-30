@@ -50,7 +50,7 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import { btn } from "$lib/music/components/ui";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -372,6 +372,11 @@
     }
     await run!.attempt({ promptId: `aero:${skill}`, correct, partialCredit: score, metrics: lineResult?.metrics ?? [], source: runSource(notes), instrument: runInstrument(notes, "aerophone") ?? null });
     const fin = await run!.finish({ score, correct, headline });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
   }

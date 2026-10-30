@@ -38,7 +38,7 @@
   import HubTabs from "$lib/music/components/HubTabs.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -578,6 +578,10 @@
         ...(measured ? { grade } : {}),
       },
     });
+    if (!fin.heard) {
+      summary = silentRun();
+      return settle(all);
+    }
 
     if (perf.length && agg) {
       const matched = sum(perf.map((r) => r.matched));
@@ -656,7 +660,12 @@
       memBars += 1;
       summary.headline += ` Next run hides bars 1 to ${memBars}.`;
     }
-    status = summary.headline;
+    await settle(all);
+  }
+
+  /** The stage rests on the last take, and focus moves to the results. */
+  async function settle(all: Done[]) {
+    status = summary!.headline;
     fstate = all.at(-1)?.state ?? null;
     active = all.at(-1) ? passes[all.at(-1)!.pass] : null;
     now = performance.now() + 1e7;

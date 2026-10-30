@@ -20,7 +20,7 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
   import BeatLane from "$lib/music/drills/piano/BeatLane.svelte";
@@ -239,6 +239,11 @@
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} notes` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const rows: ResultRow[] = [
       { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
       { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },

@@ -21,6 +21,8 @@
   export const SHELL_KEY = Symbol("drill-shell");
   export interface ShellApi {
     start(): Promise<void>;
+    /** Results shows a next-run button, so Again steps back to a secondary action. */
+    offer(on: boolean): void;
   }
 </script>
 
@@ -38,6 +40,7 @@
   import Headphones from "lucide-svelte/icons/headphones";
   import BookOpen from "lucide-svelte/icons/book-open";
   import LessonView from "./LessonView.svelte";
+  import InputCheck from "./InputCheck.svelte";
   import { lessonsAuto } from "../lessons.svelte";
   import { pendingLessons, type LessonRef } from "@repo/music-core/lessons/types";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
@@ -81,6 +84,8 @@
     blocked?: string | null;
     /** Intro lessons for the current setup; unseen ones show in place of the stage. */
     lesson?: LessonRef | null;
+    /** Whether the drill listens to the instrument (warns when its input is off); the catalog's modality otherwise. */
+    listens?: boolean;
   }
 
   let {
@@ -109,11 +114,14 @@
     tab,
     ontab,
     lesson = null,
+    listens,
     modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
   const back = $derived(backFor(page.url.pathname));
+  const entry = $derived(CATALOG.find((e) => page.url.pathname === e.route.split("?")[0]));
+  const played = $derived(listens ?? (!!entry && ["played", "tapped", "sung"].includes(entry.modality)));
   let setupOpen = $state(false);
   const clauses = $derived<readonly SetupClause[]>(typeof summary === "string" ? [{ text: summary }] : summary);
   /** Open the panel on one control: the clause's setupKey. */
@@ -166,7 +174,6 @@
   // the strip, the stage and the recorded instrument agree (Pads shows MPC).
   // It runs again when the strip changes, and says so when it switches.
   $effect(() => {
-    const entry = CATALOG.find((e) => page.url.pathname === e.route.split("?")[0]);
     const ok = entry?.instruments;
     void settings.value.activeInstrument;
     void settings.ready.then(() => {
@@ -261,7 +268,8 @@
     await onstart({ mode, downbeat: handle.downbeatPerf, beatMs, bpm: clock.bpm, stopClock });
   }
 
-  setContext<ShellApi>(SHELL_KEY, { start });
+  let offered = $state(false);
+  setContext<ShellApi>(SHELL_KEY, { start, offer: (on) => (offered = on) });
 
   function stop() {
     clearTimeout(goTimer);
@@ -379,6 +387,8 @@
     <h1 bind:this={heading} tabindex="-1" class="sr-only">{title}, running</h1>
   {/if}
 
+  {#if phase === "ready" && played && !showing}<InputCheck required={!!blocked} />{/if}
+
   {#if phase === "results" && results && !showing}
     <div class="results-enter">
       <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
@@ -436,7 +446,7 @@
       <button
         bind:this={startButton}
         type="button"
-        class="flex min-h-12 items-center gap-2 rounded-full bg-instr px-6 font-display text-base font-semibold text-ws-stage shadow-sm hover:brightness-105 disabled:opacity-50"
+        class="flex min-h-12 items-center gap-2 rounded-full px-6 font-display text-base font-semibold disabled:opacity-50 {offered && phase === 'results' ? 'border border-ws-line bg-ws-surface hover:bg-ws-raised' : 'bg-instr text-ws-stage shadow-sm hover:brightness-105'}"
         disabled={!!blocked}
         onclick={start}
       >

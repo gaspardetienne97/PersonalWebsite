@@ -45,9 +45,8 @@
   import Picker from "$lib/music/components/Picker.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, readKeyed, runInstrument, runSource, tuningText, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -367,6 +366,11 @@
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm()} BPM` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     // The tempo ladder climbs one note a click; faster subdivisions are judged against the grade speed instead.
     const laddered = perBeat === 1;
     const before = ladders[key];
@@ -421,7 +425,7 @@
             ]
           : []),
       ],
-      advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
+      advance: await advanceAfter(r.score, r.correct),
       ladder: proj?.rungs.map((rg) => ({ bpm: rg.bpm, state: rg.status === "next" ? ("next" as const) : rg.status })),
     };
     // Round the circle: a clean check moves on to the key a fifth up.
@@ -450,12 +454,6 @@
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
-  }
-
-  function retempo(delta: number) {
-    settings.update({ bpm: Math.min(SCALE_TEMPO.max, Math.max(SCALE_TEMPO.min, bpm() + delta)) });
-    phase = "ready";
-    summary = null;
   }
 
   onDestroy(() => {
@@ -609,11 +607,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(-10)}>Slower</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

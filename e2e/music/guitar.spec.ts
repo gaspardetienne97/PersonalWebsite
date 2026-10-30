@@ -654,12 +654,14 @@ test.describe("guitar drills", () => {
     await expect(
       page
         .getByRole("article")
-        .getByText(/chords followed|No strums were heard/)
+        .getByText(/chords followed|Nothing was heard/)
         .first(),
     ).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.getByRole("article").getByText(/does not count toward any skill/),
-    ).toBeVisible();
+    // A run where the listener heard no strum is not scored, so it has no note on skills.
+    if (!(await page.getByTestId("not-heard").count()))
+      await expect(
+        page.getByRole("article").getByText(/does not count toward any skill/),
+      ).toBeVisible();
     await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "strum-results", 1280);
   });

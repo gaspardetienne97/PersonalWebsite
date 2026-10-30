@@ -12,7 +12,7 @@
   import { gradeChordStrings, gradeLine } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -180,6 +180,11 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${symbol}: ${r.matched} of ${r.total} target notes` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     missedStrings = targets.filter((t) => !r.strings.some((x) => x.midi === t.midi && x.matched)).map((t) => `string ${t.string} (${toneName(t.midi, ref)})`);
     summary = {
       headline: !ons.length

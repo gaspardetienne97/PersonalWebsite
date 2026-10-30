@@ -39,7 +39,7 @@
   import AerophoneKeys from "$lib/music/components/AerophoneKeys.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { capturePointer } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -300,6 +300,11 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score, correct, headline: `${pct(score)} ${summaryText}` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = {
       headline: correct
         ? `${lesson.label}: every note right on the first try.`
@@ -369,6 +374,11 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} ${summaryText}` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const told = describe(r, ons);
     if (level && levelShare !== null) {
       told.rows = [...(told.rows ?? []), { label: `Breath at ${level.id}`, value: levelShare, text: `${pct(levelShare)} of the hold in the band` }];

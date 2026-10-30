@@ -17,8 +17,8 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
+  import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -267,8 +267,10 @@
         beatMs,
       );
       pulseResult = r;
-      await run!.attempt({ promptId: `pulse-${beats}`, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null });
+      // The Tap button does not go through the input router, so the taps say whether anything was played.
+      await run!.attempt({ promptId: `pulse-${beats}`, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null, heard: taken.length > 0 });
       const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)}, ${r.direction}` });
+      if (!fin.heard) return silent();
       summary = {
         headline: !r.matched
           ? "No taps landed on the beats. Tap the big button, press Space, or play any key."
@@ -290,14 +292,15 @@
           { label: "Jitter", text: r.matched > 1 ? `${Math.round(r.jitterMs)} ms` : "Needs two taps" },
           { label: "Extra taps", text: String(r.extra) },
         ],
-        advance: taken.length ? await advanceAfter(r.score, r.correct) : undefined,
+        advance: await advanceAfter(r.score, r.correct),
         routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       };
     } else {
       const r = gradePattern(def, taken, { startAt: downbeat, beatMs });
       patternResult = r;
-      await run!.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null });
+      await run!.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: src, instrument: instrument ?? null, heard: taken.length > 0 });
       const fin = await run!.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
+      if (!fin.heard) return silent();
       const total = r.grid.length;
       summary = {
         headline:
@@ -312,7 +315,7 @@
         xp: fin.xp,
         assistance: assistanceText(mode),
         rows: [
-          { label: "Timing", value: r.timingScore, text: `${pct(r.timingScore)}, ${Math.round(r.meanAbsErrorMs)} ms off` },
+          r.matched ? { label: "Timing", value: r.timingScore, text: `${pct(r.timingScore)}, ${Math.round(r.meanAbsErrorMs)} ms off` } : { label: "Timing", notMeasured: true },
           { label: "Missed strokes", text: String(r.missed) },
           { label: "Taps in rests", text: String(r.restHits) },
           { label: "Extra taps", text: String(r.extra) },
@@ -324,10 +327,15 @@
               ]
             : []),
         ],
-        advance: taken.length ? await advanceAfter(r.score, r.correct) : undefined,
+        advance: await advanceAfter(r.score, r.correct),
         routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       };
     }
+    status = summary.headline;
+  }
+
+  function silent() {
+    summary = silentRun();
     status = summary.headline;
   }
 
@@ -387,7 +395,7 @@
     const r = gradeOnsets(expected, answered);
     dictationResult = r;
     phase = "results";
-    await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: expected.join(" "), response: answered.join(" "), instrument: null });
+    await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: expected.join(" "), response: answered.join(" "), instrument: null, heard: true });
     const fin = await run.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
     const right = answered.filter((b) => expected.some((h) => Math.abs(h - b) < 1e-6)).length;
     const what = groove ? "hits" : "notes";
@@ -545,6 +553,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
+  listens={!writes}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -682,13 +691,8 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm + 8, RHYTHM_LIMITS.bpm[0], RHYTHM_LIMITS.bpm[1]) })}>Faster</button>
-          <button type="button" class={btn} onclick={() => settings.update({ bpm: clamp(bpm - 8, RHYTHM_LIMITS.bpm[0], RHYTHM_LIMITS.bpm[1]) })}>Slower</button>
-        {/snippet}
-      </Results>
-        {#if perHit.length}
+      <Results {summary} />
+      {#if perHit.length && summary.heard !== false}
         <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Every hit">
           {#each perHit as h, i (i)}
             {@const v = h.error === null ? "missed" : timingVerdict(h.error)}

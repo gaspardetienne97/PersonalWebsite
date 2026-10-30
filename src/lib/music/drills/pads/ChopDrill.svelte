@@ -26,7 +26,7 @@
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -299,6 +299,11 @@
     }
     await run!.attempt({ promptId: `chop:${exercise}:${source.id}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = {
       headline,
       metric: pct(score),

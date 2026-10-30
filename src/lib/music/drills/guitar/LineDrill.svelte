@@ -41,7 +41,7 @@
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -502,6 +502,11 @@
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm()} BPM` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     // The string is only known for on-screen taps; MIDI and the microphone carry pitch.
     const ons = notes.filter((n) => n.kind === "noteon");
     const taps = ons.filter((n) => n.source === "onscreen" && n.string !== undefined);
@@ -573,13 +578,11 @@
     status = "Stopped. Nothing was recorded.";
   }
 
-  function again(patch: { bpm?: number; next?: boolean }) {
-    if (patch.bpm) settings.update({ bpm: Math.min(200, Math.max(40, patch.bpm)) });
-    if (patch.next) {
-      const list = isPick ? FINGERPICK_PATTERNS.filter((p) => p.instrument === instr) : isLegato ? LEGATO_PATTERNS : isSpider ? SPIDER_PATTERNS : shapes;
-      const i = list.findIndex((p) => p.id === (isPick ? pickPattern.id : isLegato ? legatoPattern.id : isSpider ? spiderPattern.id : box.id));
-      cfg.set({ pattern: list[(i + 1) % list.length].id });
-    }
+  /** The next shape or pattern in the list. */
+  function nextPattern() {
+    const list = isPick ? FINGERPICK_PATTERNS.filter((p) => p.instrument === instr) : isLegato ? LEGATO_PATTERNS : isSpider ? SPIDER_PATTERNS : shapes;
+    const i = list.findIndex((p) => p.id === (isPick ? pickPattern.id : isLegato ? legatoPattern.id : isSpider ? spiderPattern.id : box.id));
+    cfg.set({ pattern: list[(i + 1) % list.length].id });
     phase = "ready";
     summary = null;
   }
@@ -840,8 +843,7 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          <button type="button" class={btn} onclick={() => again({ bpm: bpm() - 10 })}>Slower</button>
-          {#if !isHarm}<button type="button" class={btn} onclick={() => again({ next: true })}>Next {kind === "positions" ? "shape" : "pattern"}</button>{/if}
+          {#if !isHarm}<button type="button" class={btn} onclick={nextPattern}>Next {kind === "positions" ? "shape" : "pattern"}</button>{/if}
         {/snippet}
       </Results>
     {/if}

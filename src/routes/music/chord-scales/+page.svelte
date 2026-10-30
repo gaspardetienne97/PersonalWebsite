@@ -14,7 +14,7 @@
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { toneLabel } from "$lib/music/drills/piano/tones";
@@ -218,6 +218,11 @@
         response: byChord[i],
       });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} inside the scales` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const outside = r.chords.reduce((a, c) => a + c.avoid, 0);
     const worst = [...r.chords].sort((a, b) => b.avoid - a.avoid)[0];
     summary = {
@@ -264,6 +269,11 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} notes` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const slip = r.firstWrong === null ? null : targets[patternLine[r.firstWrong].chord];
     summary = {
       headline: !r.matched

@@ -25,9 +25,8 @@
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -575,6 +574,13 @@
       response: ons.map((n) => n.midi),
     });
     const fin = await run!.finish({ score: graded.score, correct: graded.correct, headline: `${pct(graded.score)} at ${bpm} BPM` });
+    if (!fin.heard) {
+      // Nothing measured: no marks, stars or timing from zero hits.
+      rud = grv = null;
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     summary = {
       ...(isGroove ? grooveSummary(grv!, ons) : rudimentSummary(rud!, ons)),
       delta: fin.delta,
@@ -582,7 +588,7 @@
       xp: fin.xp,
       clean: graded.correct && mode === "check",
       assistance: assistanceText(mode),
-      advance: ons.length ? await advanceAfter(graded.score, graded.correct) : undefined,
+      advance: await advanceAfter(graded.score, graded.correct),
     };
     // The tempo this groove starts at next time it is picked: where the Next run offer leaves it.
     const nx = summary.advance;
@@ -635,7 +641,7 @@
       metricLabel: r.velocity === null ? "score, velocity not measured" : "score",
       rows: [
         { label: "Right pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
-        { label: "Timing vs the click", value: r.timing, text: `${ms} ms off` },
+        r.matched ? { label: "Timing vs the click", value: r.timing, text: `${ms} ms off` } : { label: "Timing vs the click", notMeasured: true },
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
           : { label: hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness", value: r.velocity },
@@ -689,7 +695,7 @@
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
         { label: "Extra hits", value: r.extra ? Math.max(0, 1 - r.extra / total) : 1, text: String(r.extra) },
-        { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${ms} ms off` },
+        r.matched ? { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${ms} ms off` } : { label: "Timing", notMeasured: true },
         r.inBand === null
           ? { label: `Accents: ${velocityWhy(ons)}`, notMeasured: true }
           : { label: "Accents in band", value: r.inBand / total, text: `${r.inBand} of ${total}` },
@@ -705,12 +711,6 @@
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
-  }
-
-  function retempo(delta: number) {
-    void settings.update({ bpm: clamp(bpm + delta, 30, 240) });
-    phase = "ready";
-    summary = null;
   }
 
   function setMode(m: string) {
@@ -876,7 +876,7 @@
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
     {:else if rud}
       <Stat label="Landed" value="{rud.matched}/{rud.total}" tone={rud.completion === 1 ? "success" : "warn"} />
-      <Stat label="Mean error" value="{Math.round(rud.meanAbsErrorMs)} ms" tone={rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
+      <Stat label="Mean error" value={rud.matched ? `${Math.round(rud.meanAbsErrorMs)} ms` : "Not measured"} tone={rud.matched && rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
     {:else if grv}
       <Stat label="Matched" value="{grv.matched}/{groove.targets.length}" tone={grv.missed ? "warn" : "success"} />
       <Stat label="Extra" value={grv.extra} tone={grv.extra ? "warn" : "success"} />
@@ -955,12 +955,7 @@
       </div>
     {/if}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(isGroove ? 5 : 6)}>Faster</button>
-          <button type="button" class={btn} onclick={() => retempo(isGroove ? -5 : -6)}>Slower</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
       {#if grv}
         <div class="grid gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:grid-cols-2 sm:p-5">
           <div class="min-w-0 overflow-x-auto">

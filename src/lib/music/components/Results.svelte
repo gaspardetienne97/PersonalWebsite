@@ -27,7 +27,13 @@
     advance?: NextRun;
     /** False for runs that write nothing (listen-along, unrecorded strums). */
     recorded?: boolean;
+    /** False when nothing was heard: the card says so and offers to turn the input on. */
+    heard?: boolean;
   }
+
+  export const NOT_HEARD = "Nothing was heard, so this run was not scored.";
+  /** The results of a run where nothing was heard (`FinishResult.heard` false): nothing scored or saved. */
+  export const silentRun = (): RunSummary => ({ headline: NOT_HEARD, metric: "Not measured", metricLabel: "nothing was heard", heard: false, recorded: false });
 </script>
 
 <script lang="ts">
@@ -36,6 +42,7 @@
   import { btnPrimary } from "./ui";
   import { gradeTone } from "@repo/music-core";
   import { audio } from "../runtime";
+  import InputCheck from "./InputCheck.svelte";
 
   let { summary, actions }: { summary: RunSummary; actions?: Snippet } = $props();
 
@@ -46,6 +53,10 @@
 
   const shell = getContext<ShellApi | undefined>(SHELL_KEY);
   const moves = $derived(!!summary.advance && summary.advance.kind !== "same" && summary.advance.kind !== "top");
+  $effect(() => {
+    shell?.offer(moves && summary.heard !== false);
+    return () => shell?.offer(false);
+  });
   const VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow down to", harder: "Move on:", easier: "Step back:" };
   async function goNext() {
     summary.advance?.go();
@@ -56,6 +67,13 @@
   const toneClass = { success: "bg-success", warn: "bg-warn", error: "bg-destructive" } as const;
 </script>
 
+{#if summary.heard === false}
+  <article class="rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6" data-testid="not-heard">
+    <p class="font-display text-xl font-semibold leading-snug sm:text-2xl">{summary.headline}</p>
+    <p class="mt-1 text-sm text-ws-soft">Not measured and not recorded: no XP, nothing added to your progress.</p>
+    <div class="mt-4"><InputCheck after /></div>
+  </article>
+{:else}
 <article class="relative overflow-hidden rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6">
   {#if celebrate}<span class="bloom" aria-hidden="true"></span>{/if}
   <div class="relative flex flex-wrap items-start gap-x-8 gap-y-4">
@@ -149,6 +167,7 @@
     {/if}
   </div>
 </article>
+{/if}
 
 <style>
   .bloom {

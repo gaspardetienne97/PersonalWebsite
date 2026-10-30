@@ -14,9 +14,8 @@
   import Choice from "$lib/music/components/Choice.svelte";
   import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
   import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -190,6 +189,11 @@
       response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
+    if (!fin.heard) {
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     const rows: ResultRow[] = [
       { label: "Right hand line", value: r.lick.matched / r.lick.total, text: `${r.lick.matched} of ${r.lick.total}` },
       lhMeasured
@@ -199,7 +203,9 @@
             text: `${r.comp.matched} of ${r.comp.total}${r.comp.extra ? `, ${r.comp.extra} extra` : ""}`,
           }
         : { label: "Left hand Charleston (on-screen input)", notMeasured: true },
-      { label: "Timing", value: r.meanAbsErrorMs ? Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs) : null, text: `${Math.round(r.meanAbsErrorMs)} ms off on average` },
+      r.lick.matched + r.comp.matched
+        ? { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs), text: `${Math.round(r.meanAbsErrorMs)} ms off on average` }
+        : { label: "Timing", notMeasured: true },
     ];
     const idx = COMPING_PATTERNS.findIndex((x) => x.id === p.id);
     const nextPattern = COMPING_PATTERNS[idx + 1];
@@ -240,12 +246,6 @@
     cap?.stop();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
-  }
-
-  function retempo(delta: number) {
-    void settings.update({ bpm: Math.min(TEMPO.max, Math.max(TEMPO.min, bpm + delta)) });
-    phase = "ready";
-    summary = null;
   }
 
   onDestroy(() => {
@@ -343,12 +343,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          <button type="button" class={btn} onclick={() => retempo(6)}>Faster by 6</button>
-          <button type="button" class={btn} onclick={() => retempo(-6)}>Slower</button>
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>
