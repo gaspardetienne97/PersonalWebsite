@@ -237,6 +237,8 @@ class Practice {
     const s = this.sessions.find((x) => x.id === id);
     if (!s) return;
     Object.assign(s, patch);
+    // The open session is a separate object: patch it too, or the next run's save writes the old fields back.
+    if (this.#current?.id === id) Object.assign(this.#current, patch);
     await db.sessions.put(s);
     this.touch(s);
   }

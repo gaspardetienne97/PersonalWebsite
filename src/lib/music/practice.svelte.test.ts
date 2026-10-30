@@ -101,6 +101,34 @@ describe("a run with input", () => {
   });
 });
 
+describe("editing a session", () => {
+  beforeEach(fresh);
+
+  it("keeps a journal note when the next run joins the same session", async () => {
+    const click = {
+      promptId: "q",
+      correct: true,
+      partialCredit: 1,
+      source: "click" as const,
+      response: "P5",
+    };
+    const first = practice.beginRun(spec);
+    await first.attempt(click);
+    await first.finish();
+    const id = practice.sessions[0].id;
+    await practice.editSession(id, { note: "slow the shifts", nextTime: "C major at 80" });
+    const second = practice.beginRun(spec);
+    await second.attempt(click);
+    await second.finish();
+    expect(practice.sessions).toHaveLength(1);
+    expect(practice.sessions[0]).toMatchObject({
+      note: "slow the shifts",
+      nextTime: "C major at 80",
+    });
+    expect(await db.sessions.get(id)).toMatchObject({ note: "slow the shifts" });
+  });
+});
+
 describe("answered", () => {
   it("reads evidence from the response, or the source when there is none", () => {
     expect(answered({ source: "onscreen", response: [] })).toBe(false);

@@ -168,6 +168,8 @@
     // Listen from half a beat before the first downbeat (the response bar in an echo),
     // before the microphone starts, so a first tap is never missed.
     if (byEar && !writes) downbeat = ctx.downbeat + plan.lengthMs;
+    // A dictation run never reaches finish(), so drop any listener it left behind.
+    cap?.stop();
     cap = capture(downbeat - windowMs, onInput);
     if (listens) {
       const ok = await mic.start();
@@ -390,10 +392,17 @@
 
   async function checkDictation() {
     if (!run || !writing) return;
-    writing = false;
-    call?.stop();
     const expected = grooveDef ? grooveKeys(grooveDef.lanes) : heardBeats;
     const answered = grooveDef ? grooveKeys(Object.fromEntries(rows.map((r) => [r.id, markedIn(r.id)]))) : markedIn("notes");
+    // An empty grid is not an answer: nothing to grade or save yet.
+    if (!answered.length) {
+      status = "Mark the notes you heard on the grid first.";
+      return;
+    }
+    writing = false;
+    call?.stop();
+    cap?.stop();
+    cap = null;
     const r = gradeOnsets(expected, answered);
     dictationResult = r;
     phase = "results";
@@ -420,7 +429,7 @@
           : [{ label: "Notes found", value: expected.length ? right / expected.length : 0, text: `${right} of ${expected.length}` }]),
         { label: "Extra marks", text: String(answered.length - right) },
       ],
-      advance: answered.length ? await advanceAfter(r.score, r.correct) : undefined,
+      advance: await advanceAfter(r.score, r.correct),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
     status = summary.headline;

@@ -548,8 +548,6 @@
         instrument,
         skillIds: [],
       });
-    // "Pick up where you left off" in Songs follows the last song practised.
-    void db.songs.update(song.id, { updatedAt: Date.now() });
     const perf = all.filter((d) => isPerf(d.result)).map((d) => d.result as PerformanceResult);
     const mean = sum(extras.map((x) => x.score)) / Math.max(1, all.length);
     const agg = perf.length ? aggregateTakes(perf) : null;
@@ -582,6 +580,8 @@
       summary = silentRun();
       return settle(all);
     }
+    // "Pick up where you left off" in Songs follows the last song practised.
+    void db.songs.update(song.id, { updatedAt: Date.now() });
 
     if (perf.length && agg) {
       const matched = sum(perf.map((r) => r.matched));
