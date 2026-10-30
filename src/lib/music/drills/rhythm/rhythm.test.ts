@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "@repo/music-core";
-import { expandRhythm, rhythmPattern } from "@repo/music-core/content/rhythm";
+import { expandRhythm, RHYTHM_PATTERNS, rhythmPattern } from "@repo/music-core/content/rhythm";
 import { gradePattern } from "@repo/music-core/scoring/rhythm";
 import { demoNotes, midiHits, readPatterns, voicing } from "./rhythm";
+import { rhythmLine } from "./notation";
 
 const on = (at: number, midi: number, instrument?: NoteEvent["instrument"]): NoteEvent => ({
   kind: "noteon",
@@ -68,5 +69,64 @@ describe("rhythm helpers", () => {
       plan.events.length,
     );
     expect(notes.filter((n) => n.voice === "click").every((n) => n.time < 2)).toBe(true);
+  });
+});
+
+describe("rhythm notation", () => {
+  const VALUE: Record<string, number> = { w: 4, h: 2, q: 1, "8": 0.5, "16": 0.25, "32": 0.125 };
+  /** A tick's length from its written value: dots, and three in the time of two in a triplet. */
+  const length = (t: { vf: string; dots: number; tuplet?: number }) =>
+    VALUE[t.vf] * (t.dots ? 1.5 : 1) * (t.tuplet === undefined ? 1 : 2 / 3);
+
+  it.each(RHYTHM_PATTERNS.map((p) => [p.id, p] as const))("%s engraves bar by bar", (_, p) => {
+    const line = rhythmLine(p);
+    expect(line.bars).toHaveLength(p.defaultBars);
+    expect(line.notes).toHaveLength(p.events.length);
+    const barLen = (line.meter.beats * 4) / line.meter.beatUnit;
+    for (const bar of line.ticks) {
+      // Every value is a real note value, and the bar adds up to the time signature.
+      for (const t of bar) expect(VALUE[t.vf], t.vf).toBeDefined();
+      expect(bar.reduce((a, t) => a + length(t), 0)).toBeCloseTo(barLen, 6);
+    }
+    const ticks = line.ticks.flat();
+    // One attack per event, in order, at its written place; tied pieces add up to its length.
+    const attacks = ticks.filter((t) => t.attack);
+    expect(attacks.map((t) => t.group)).toEqual(p.events.map((_, i) => i));
+    line.notes.forEach((n, i) => {
+      const at = ticks.findIndex((t) => t.group === i);
+      expect(ticks[at].start).toBeCloseTo(n.startBeat, 6);
+      let held = 0;
+      for (let k = at; k < ticks.length; k++) {
+        held += length(ticks[k]);
+        if (!ticks[k].tieNext) break;
+      }
+      expect(held).toBeCloseTo(n.durationBeats, 6);
+    });
+    // A written rest is silent on the staff.
+    for (const r of p.rests) {
+      const from = line.written(r.startBeat);
+      expect(ticks.some((t) => !t.midis.length && Math.abs(t.start - from) < 1e-6)).toBe(true);
+    }
+  });
+
+  it("writes 6/8 in eighths, swing as straight eighths, and 4/4 triplets as triplets", () => {
+    const six = rhythmLine(rhythmPattern("ukulele-six-eight")!);
+    expect(six.meter).toEqual({ beats: 6, beatUnit: 8 });
+    expect(six.ticks[0].map((t) => t.vf)).toEqual(["8", "8", "8", "8", "8", "8"]);
+    expect(six.ticks[0].some((t) => t.tuplet !== undefined)).toBe(false);
+    const swing = rhythmLine(rhythmPattern("swing-eighths")!);
+    expect(swing.swing).toBe(true);
+    expect(swing.notes.map((n) => n.startBeat)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);
+    expect(swing.written(2 / 3)).toBeCloseTo(0.5, 6);
+    const triplets = rhythmLine(rhythmPattern("triplets")!);
+    expect(triplets.meter).toEqual({ beats: 4, beatUnit: 4 });
+    expect(triplets.ticks[0].every((t) => t.tuplet !== undefined)).toBe(true);
+  });
+
+  it("ties a dotted quarter over the bar line", () => {
+    const line = rhythmLine(rhythmPattern("dotted-quarters")!);
+    const last = line.ticks[0].at(-1)!;
+    expect([last.vf, last.tieNext]).toEqual(["q", true]);
+    expect(line.ticks[1][0]).toMatchObject({ vf: "8", attack: false });
   });
 });

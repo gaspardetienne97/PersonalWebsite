@@ -99,8 +99,10 @@ test.describe("guitar and ukulele path drills", () => {
       await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({
         timeout: 30_000,
       });
-      await expect(page.locator('g.note[data-verdict="missed"]')).toHaveCount(0);
-      expect(await page.locator("g.note[data-verdict]").count()).toBe(beats.length);
+      // Every written note is green: none red (missed), one per stroke.
+      const staff = page.getByTestId("rhythm-notation");
+      await expect(staff.locator('[data-event][data-state="wrong"]')).toHaveCount(0);
+      await expect(staff.locator('[data-event][data-state="correct"]')).toHaveCount(beats.length);
       await page.screenshot({ path: `${SHOTS}/rhythm-${pattern}-1280.png`, fullPage: true });
     });
 

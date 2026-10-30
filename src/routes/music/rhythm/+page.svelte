@@ -26,6 +26,8 @@
   import Pads from "$lib/music/components/Pads.svelte";
   import DictationGrid from "$lib/music/drills/rhythm/DictationGrid.svelte";
   import RhythmGrid, { type GridHit, type GridVerdict } from "$lib/music/drills/rhythm/RhythmGrid.svelte";
+  import RhythmNotation from "$lib/music/drills/rhythm/RhythmNotation.svelte";
+  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { demoNotes, readPatterns, RHYTHM_TABS, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
@@ -512,6 +514,25 @@
     if (patternResult) return patternResult.grid.map((g, i) => ({ label: `${i + 1}${g.stroke ? ` ${g.stroke}` : ""}`, error: g.errorMs ?? null }));
     return [];
   });
+  /**
+   * Read and tap colours each written note: lit as the demo plays it; in
+   * Practice green once a tap lands in its window and red once the window
+   * passes without one; after a run, every note by the grade. Check shows
+   * nothing until the end.
+   */
+  const noteStates = $derived.by((): Record<number, GroupState> => {
+    if (phase === "results" && patternResult) return Object.fromEntries(patternResult.grid.map((g, i) => [i, g.verdict === "missed" ? "wrong" : "correct"]));
+    if (demo?.playing && lit !== null) return { [lit]: "active" };
+    if (phase !== "running" || mode !== "practice") return {};
+    const out: Record<number, GroupState> = {};
+    plan.events.forEach((e, i) => {
+      if (hits.some((h) => Math.abs(h.at - downbeat - e.atMs) <= windowMs)) out[i] = "correct";
+      else if (now - downbeat > e.atMs + windowMs) out[i] = "wrong";
+    });
+    return out;
+  });
+  /** The pattern the staff could not engrave falls back to the beat line. */
+  let unwritten = $state<string | null>(null);
   const playhead = $derived(demo?.playing && lit !== null ? gridEvents[lit]?.beat ?? null : phase === "running" && mode === "practice" && now >= downbeat ? toBeat(now) : null);
 
   const summaryLine = $derived<SetupClause[]>([
@@ -616,6 +637,15 @@
           {#if !(writing || dictationResult)}
             <p class="text-sm text-ws-stage-soft">{plan.bars} bar{plan.bars > 1 ? "s" : ""} of drums over the click. Then write the kick, snare and hats on the grid.</p>
           {/if}
+        {:else if !pulse && !byEar && unwritten !== def.id}
+          <RhythmNotation
+            pattern={def}
+            cursorBeat={playhead}
+            states={noteStates}
+            hits={gridHits}
+            label={`${def.label} in rhythm notation, ${plan.bars} bar${plan.bars > 1 ? "s" : ""}, ${plan.events.length} strokes and ${def.rests.length} rests`}
+            onfallback={() => (unwritten = def.id)}
+          />
         {:else}
         <RhythmGrid
           {bars}

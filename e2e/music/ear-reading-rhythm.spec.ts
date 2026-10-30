@@ -952,7 +952,9 @@ test.describe("note reading and sight-reading", () => {
     page,
   }) => {
     test.setTimeout(60_000);
-    await page.goto(
+    await installFakeMidi(page, [PORTS.keys]);
+    await enableMidi(
+      page,
       "/music/reading?activity=sight-reading&instrument=piano&climb=1&follower=performance&measures=4&level=level-1&key=G%20major&clefs=treble",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
@@ -960,7 +962,9 @@ test.describe("note reading and sight-reading", () => {
     );
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByText("Rung").locator("..")).toContainText("3 of 43");
-    // Nothing played: 0%, strike one.
+    // One wrong note and nothing else: heard, 0%, strike one (a silent run is not scored).
+    await page.waitForTimeout(1500);
+    await midiNote(page, PORTS.keys.id, 30);
     await expect(page.getByRole("status")).toContainText("strike 1 of 3", { timeout: 30_000 });
     await expect(page.locator("article").first()).toContainText(
       "rung 3 of 43, 1 of 3 strikes, 1 phrase",
@@ -982,6 +986,8 @@ test.describe("rhythm", () => {
     await shots(page, "rhythm-pulse-ready");
     await page.goto("/music/rhythm?mode=read-and-tap&pattern=guitar-island-strum&bpm=84");
     await expect(page.getByText("Setup:").locator("..")).toContainText("Guitar: island strum");
+    // Read and tap writes the pattern out: one engraved note per stroke, four bars of seven.
+    await expect(page.getByTestId("rhythm-notation").locator("[data-event]")).toHaveCount(28);
     await shots(page, "rhythm-strum-ready");
   });
 
