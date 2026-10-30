@@ -290,6 +290,37 @@ test.describe("tier 1 lessons", () => {
     await expect(page.getByTestId("lesson")).toHaveCount(0);
   });
 
+  test("a level 2 Latin groove teaches the tresillo; a picked swing adds the swing card", async ({
+    page,
+  }) => {
+    await page.goto("/music/pads?mode=groove&groove=reggaeton");
+    await expect(
+      page.getByRole("heading", { name: "Three, three, two", exact: true }),
+    ).toBeVisible();
+    await page.goto("/music/pads?mode=groove&groove=basic-rock&swing=62");
+    await expect(
+      page.getByRole("heading", { name: "Late every other sixteenth", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("pads dynamics and phrases: the intro, then the item's card, at 375", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const [url, first, item] of [
+      ["/music/pads?mode=dynamics", "Velocity", "Four levels"],
+      ["/music/phrases?instrument=mpc", "Rhythms with names", "Son clave 3-2"],
+    ]) {
+      await page.goto(url);
+      await expect(page.getByRole("heading", { name: first, exact: true })).toBeVisible();
+      const card = page.getByRole("heading", { name: item, exact: true });
+      for (let i = 0; i < 6 && !(await card.isVisible()); i++) {
+        await page.getByRole("button", { name: "Next", exact: true }).click();
+        await expectNoHorizontalOverflow(page);
+      }
+      await expect(card).toBeVisible();
+      await expect(page.getByRole("button", { name: "Start the quiz" })).toBeVisible();
+    }
+  });
+
   test("long tone with a level adds the levels lesson, a palm crossing its own", async ({
     page,
   }) => {

@@ -8,7 +8,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## In progress
 
-- **Intro lessons** (spec and plan in local `docs/superpowers/`): a lesson before a drill tests an idea for the first time, then a Lesson button. All three tiers are built. The rudiment paradiddle in the drill data leads with the left hand (L R L L R L R R) while the usual form leads right; the lesson teaches both as mirrors until the owner decides.
+- **Intro lessons** (spec and plan in local `docs/superpowers/`): a lesson before a drill tests an idea for the first time, then a Lesson button. All three tiers are built. The rudiment paradiddle in the drill data leads with the left hand (L R L L R L R R) while the usual form leads right; the lesson teaches both as mirrors, and the owner chose to keep it left-lead (2026-10-30).
 - **Curriculum plan, phase 2**: built (see Done). Phases 3 to 5 and the last buildable steps are built (see Done). 7 steps still wait, all on Strum a progression's runs counting (guitar 1.7 and 10.4, reading G7.3, ukulele 1.11, 2.12, 5.4 and 10.9): strum a few songs on a real guitar first (Needs hardware). Shelf scores: 60 downloaded, 754 to go. A launchd job (`~/Library/LaunchAgents/com.woodshed.fetch-scores.plist`) runs `scripts/fetch-daily.sh` at 22:15 for 20 a day across the paths, guitar first; the log is `.music-scores/fetch.log`. MuseScore states 20 a day but let 59 through on 2026-10-27 before limiting the account.
 
 ## Done
@@ -80,7 +80,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ### Known gaps
 
-- Intro lessons, open: pads setups with no lesson yet: the Dynamics and Phrases tabs, Latin, dance, Dilla and swing grooves (the rest of pads is taught). Fixed 2026-10-29: "Move on" from Results no longer starts a run while the new item's lesson shows; the lesson comes first and Again then starts the run.
+- Intro lessons: every pads setup is taught (2026-10-30: Dynamics, Phrases, and the Latin, dance, swing and Dilla grooves). Fixed 2026-10-29: "Move on" from Results no longer starts a run while the new item's lesson shows; the lesson comes first and Again then starts the run.
 - Phase 1 left out: the old paths' broken links (phase 2 replaces those paths).
 - Day keys (the streak, the routine id) are UTC days, so late in the evening west of UTC the streak marks tomorrow as today; the weekly split uses the local weekday.
 

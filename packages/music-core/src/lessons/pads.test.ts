@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "../types";
 import {
   DEFAULT_RANGE,
+  DYNAMICS,
+  DYNAMICS_EXERCISES,
   ECHO_LEVELS,
   ECHO_PASS,
   FILL,
@@ -13,12 +15,14 @@ import {
   echoGroove,
   fillGroove,
   fillReport,
+  gradeDynamics,
   inRange,
   orchestrationGroove,
   ostinatoGroove,
   ostinatoReport,
 } from "../content/pad-skills";
-import { PAD_REPERTOIRE } from "../content/pads-repertoire";
+import { PAD_REPERTOIRE, repertoireFor } from "../content/pads-repertoire";
+import { canSwing } from "../content/pads-grid";
 import {
   BUILD,
   CHOP_EDITS,
@@ -37,9 +41,16 @@ import {
   CARD_TOPICS,
   FILL_DEMO_MS,
   GROOVE_VEL,
+  PAD_PHRASES,
   RUDIMENT_ITEMS,
   RUDIMENT_VEL,
   bandEdges,
+  SWING_CHOICES,
+  TRESILLO,
+  TRESILLO_ALSO,
+  TRESILLO_GROOVE,
+  dynamicsExerciseSound,
+  dynamicsLevel,
   dynamicsSound,
   echoRound,
   echoVoices,
@@ -96,7 +107,9 @@ const ALL_ITEMS: Record<string, string[]> = {
   repeat: REPEAT_RATES.map((r) => r.id),
   song: SONG_FORMS.map((f) => f.id),
   chop: [...CHOP_EXERCISES.map((x) => x.id), ...CHOP_EDITS.map((e) => `edit:${e.id}`)],
-  grooves: [...CARD_TOPICS, "linear", "rolls"],
+  grooves: [...CARD_TOPICS, "linear", "dilla", "rolls"],
+  dynamics: DYNAMICS_EXERCISES.map((x) => x.id),
+  phrases: PAD_PHRASES.map((r) => r.groove.value),
 };
 
 describe("pads lessons: copy and shape", () => {
@@ -223,9 +236,14 @@ describe("rudiments", () => {
 });
 
 describe("grooves from level 3", () => {
-  it("below level 3 there is no lesson", () => {
+  it("below level 3 there is no lesson but the Latin card and, with a swing picked, the swing card", () => {
     for (const level of [undefined, 0, 1, 2]) expect(padLessons("grooves", level)).toEqual([]);
-    expect(padLessons("grooves", 2, ["independence"])).toEqual([]);
+    for (const r of PAD_REPERTOIRE.filter((x) => x.level < 3 && x.topic !== "phrases")) {
+      expect(grooveLessonItems(r)).toEqual(r.topic === "latin" ? ["latin"] : []);
+      expect(grooveLessonItems(r, 62)).toContain("swing");
+    }
+    const ls = padLessons("grooves", 2, ["latin", "swing"]);
+    expect(ls.map((l) => l.id)).toEqual(["pads.grooves:latin", "pads.grooves:swing"]);
   });
 
   it("level 3 and up has the sixteenths lesson", () => {
@@ -793,5 +811,117 @@ describe("review fixes, round 2", () => {
       expect(orchestrationGroove(o.id).bars).toBe(2);
       expect(c.screens[0].sound!.notes.filter((n) => n.midi[0] !== padOf("kick")).length).toBe(16);
     }
+  });
+});
+
+describe("Latin, dance, swing and the Dilla push", () => {
+  const card = (item: string) => padLessons("grooves", 5, [item])[1];
+  const steps = (v: string, voices: string[]) =>
+    repertoireFor(v)!
+      .groove.targets.filter((t) => voices.includes(t.voice))
+      .map((t) => Math.round(t.beat * 4));
+  const tres = TRESILLO.map((b) => b * 4);
+
+  it("the tresillo is 3 + 3 + 2, and the grooves the card names play it as it says", () => {
+    expect(tres).toEqual([0, 3, 6]);
+    const t = text(card("latin"));
+    expect(t).toContain("on 1, 1 a and 2 &");
+    expect(t).toContain("again on 3, 3 a and 4 &");
+    // Dancehall: kick on the first two of each half bar, snare on the third.
+    const kick = steps(TRESILLO_GROOVE, ["kick"]);
+    const snare = steps(TRESILLO_GROOVE, ["snare"]);
+    expect(kick).toEqual([0, 3, 8, 11]);
+    expect(snare).toEqual([6, 14]);
+    for (const v of TRESILLO_ALSO) {
+      expect(steps(v, ["kick"])).toEqual(expect.arrayContaining([0, 4, 8, 12]));
+      expect(steps(v, ["snare"])).toEqual(expect.arrayContaining([3, 6, 11, 14]));
+      expect(t).toContain(repertoireFor(v)!.style);
+    }
+  });
+
+  it("the dance card's claims hold: four on the floor, open hats on the &, trap's clap, the drum and bass kick", () => {
+    for (const v of ["house", "disco"]) {
+      expect(steps(v, ["kick"])).toEqual([0, 4, 8, 12]);
+      expect(steps(v, ["openhat"])).toEqual([2, 6, 10, 14]);
+    }
+    expect(steps("trap-32", ["perc"])).toEqual([8]);
+    expect(steps("dnb", ["kick"])).toEqual([0, 10]);
+    const t = text(card("dance"));
+    expect(t).toContain("clap only on 3");
+    expect(t).toContain("kick on 1 and 3 &");
+    expect(t).toContain(`up to ${repertoireFor("dnb")!.bpm.target} BPM`);
+  });
+
+  it("the swing card's choices are the page's, and its swung hats land at the percent", () => {
+    expect([SWING_CHOICES[0], SWING_CHOICES[SWING_CHOICES.length - 1]]).toEqual([50, 75]);
+    const [first] = card("swing").screens;
+    for (const o of first.options!) {
+      const w = o.label === "Straight" ? 50 : Number(o.label.replace("Swing ", ""));
+      expect(o.sound.notes[1].at / (60 / BPM)).toBeCloseTo((w / 100) * 0.5, 5);
+    }
+    expect(first.options!.map((o) => o.label)).toEqual(["Straight", "Swing 56", "Swing 62"]);
+  });
+
+  it("the Dilla card's push is the groove's, and the drill can't reswing it", () => {
+    const r = repertoireFor("dilla")!;
+    const snare = r.groove.targets.filter((t) => t.voice === "snare").map((t) => t.beat);
+    const ms = ((Math.ceil(snare[0]) - snare[0]) * 60000) / r.bpm.target;
+    expect(ms).toBeCloseTo(20, 5);
+    expect(text(card("dilla"))).toContain("about 20 ms early at 88 BPM");
+    expect(canSwing(r.groove, r.swing)).toBe(false);
+    const [pushed, onBeat] = card("dilla").screens[0].options!;
+    const snareAt = (o: typeof pushed) =>
+      o.sound.notes.filter((n) => n.midi[0] === padOf("snare")).map((n) => n.at);
+    snareAt(pushed).forEach((at, i) => expect(at).toBeLessThan(snareAt(onBeat)[i]));
+  });
+});
+
+describe("dynamics lessons", () => {
+  it("each exercise's example passes the drill's own grade, read on the default range", () => {
+    for (const x of DYNAMICS_EXERCISES) {
+      const levels = dynamicsExerciseSound(x.id).notes.map((n) =>
+        inRange(n.velocity!, DEFAULT_RANGE),
+      );
+      expect(levels.length).toBe(x.notes);
+      levels.forEach((v, i) => expect(v).toBeCloseTo(dynamicsLevel(x.id, i), 5));
+      expect(gradeDynamics(x.id, levels).correct).toBe(true);
+    }
+  });
+
+  it("the cards' numbers are the grader's", () => {
+    const t = (id: string) => text(padLessons("dynamics", undefined, [id])[1]);
+    expect(t("ladder")).toContain(`at least ${DYNAMICS.inBandPass * 100} percent`);
+    expect(t("crescendo")).toContain(`${DYNAMICS.crescendoRho} or more`);
+    expect(t("crescendo")).toContain(`${DYNAMICS.crescendoSpan * 100} percent of your range`);
+    expect(t("even")).toContain(`less than ${DYNAMICS.evenSpread * 100} percent`);
+    for (const x of DYNAMICS_EXERCISES) expect(x.notes).toBe(16);
+  });
+});
+
+describe("phrases lessons", () => {
+  it("lists the phrases easiest first, the drill's order", () => {
+    const levels = PAD_PHRASES.map((r) => r.level);
+    expect(levels).toEqual([...levels].sort((a, b) => a - b));
+    expect(PAD_PHRASES.every((r) => r.topic === "phrases")).toBe(true);
+  });
+
+  it("the clave example is counted from the data", () => {
+    expect(text(padLessons("phrases")[0])).toContain("plays on 1, 1 a, 2 &, 3 & and 4");
+  });
+
+  it("each phrase card plays the whole phrase, and a one-bar phrase counts each pad", () => {
+    for (const r of PAD_PHRASES) {
+      const c = padLessons("phrases", undefined, [r.groove.value])[1];
+      const [scr] = c.screens;
+      const last = scr.steps?.at(-1)?.sound ?? scr.sound!;
+      expect(last.notes.length).toBe(r.groove.targets.length);
+      expect(scr.text).toContain(r.feel);
+      if (r.groove.bars > 1) expect(scr.text).toContain(`It runs ${r.groove.bars} bars`);
+      else
+        for (const v of new Set(r.groove.targets.map((t) => t.voice)))
+          expect(text(c)).toContain(GROOVE_VOICES.find((x) => x.id === v)!.name);
+    }
+    const lin = text(padLessons("phrases", undefined, ["linear-3-over-4"])[1]);
+    expect(lin).toContain("The Hats pad plays on 1, 1 a, 2 &, 3 e, 4 and 4 a.");
   });
 });

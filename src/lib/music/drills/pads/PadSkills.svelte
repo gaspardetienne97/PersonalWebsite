@@ -36,11 +36,11 @@
     type DynamicsId,
     type VelocityRange,
   } from "@repo/music-core/content/pad-skills";
-  import { PAD_REPERTOIRE, repertoireFor } from "@repo/music-core/content/pads-repertoire";
+  import { repertoireFor } from "@repo/music-core/content/pads-repertoire";
   import { CHOP_PADS, DYN_BANDS, NOTE_REPEAT_EXERCISES, SONG_FORMS, chopSource, gradeBuild, gradeWrittenSong, newWrittenSong, noteRepeatPiece, sectionDynamics, sectionPasses, setCheck, songFormPiece, writtenPiece, type Dyn, type WrittenSong } from "@repo/music-core/content/pads-studio";
   import type { GrooveDef } from "@repo/music-core/data/index";
   import { padImproviseLesson } from "@repo/music-core/lessons/tier1";
-  import { padLessons, repeatRates } from "@repo/music-core/lessons/pads";
+  import { PAD_PHRASES, padLessons, repeatRates } from "@repo/music-core/lessons/pads";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -89,8 +89,6 @@
   const s = $derived(cfg.value);
   const lanesView = $derived(s.view !== "grid");
   const aheadBars = $derived([1, 2, 4].includes(s.ahead) ? s.ahead : 1);
-  /** The short drum phrases (clave cells, tags, fills, builds), easiest first: the Phrases drill on the MPC. */
-  const PAD_PHRASES = PAD_REPERTOIRE.filter((r) => r.topic === "phrases").sort((a, b) => a.level - b.level);
   const padPhrase = $derived(PAD_PHRASES.find((r) => r.groove.value === s.phrase) ?? PAD_PHRASES[0]);
   const bpm = $derived(clamp(settings.value.bpm, 30, 240));
   const beatMs = $derived(60000 / bpm);
@@ -181,7 +179,7 @@
   /** Intro lessons: the mode's, then a card for each item the setup picked (a fill, a line, a repeat rate...). */
   const lessonRef = $derived.by(() => {
     if (skill === "improvise") return { lessons: [padImproviseLesson()] };
-    const items = skill === "fills" ? [s.fill] : skill === "echo" ? [s.echo] : skill === "ostinato" ? [s.line] : skill === "orchestrate" ? [s.orch] : skill === "repeat" ? repeatRates(s.rep) : skill === "song" ? [s.form] : [];
+    const items = skill === "dynamics" ? [s.dyn] : skill === "phrases" ? [padPhrase.groove.value] : skill === "fills" ? [s.fill] : skill === "echo" ? [s.echo] : skill === "ostinato" ? [s.line] : skill === "orchestrate" ? [s.orch] : skill === "repeat" ? repeatRates(s.rep) : skill === "song" ? [s.form] : [];
     const lessons = padLessons(skill, undefined, items);
     return lessons.length ? { lessons } : null;
   });
