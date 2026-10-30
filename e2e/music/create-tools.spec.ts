@@ -197,9 +197,10 @@ test.describe("Create", () => {
     await expect(page.getByRole("status")).toContainText("Added D4");
     await page.keyboard.press("Shift+ArrowRight");
     await expect(page.getByRole("status")).toContainText("D4 is 3 sixteenths long");
-    // Pointer path: click a cell.
+    // Pointer path: click a cell. A short song stretches its cells to fill the view.
+    const sw = async () => Number(await grid.getAttribute("data-step-w"));
     const c4 = (await page.locator('.note[data-note="60"]').boundingBox())!;
-    await page.mouse.click(c4.x + 22 * 6 + 4, c4.y + c4.height / 2);
+    await page.mouse.click(c4.x + (await sw()) * 6 + 4, c4.y + c4.height / 2);
     await expect(page.getByRole("status")).toContainText("Added");
     await expect(roll.locator(".note[data-note]")).toHaveCount(3);
 
@@ -207,7 +208,7 @@ test.describe("Create", () => {
     await song.getByRole("button", { name: "Add a bar to the song" }).click();
     await expect(song.getByText("3 bars")).toBeVisible();
     const box = (await grid.boundingBox())!;
-    await page.mouse.click(box.x + 22 * 33 + 4, c4.y + c4.height / 2);
+    await page.mouse.click(box.x + (await sw()) * 33 + 4, c4.y + c4.height / 2);
     await expect(roll.locator(".note[data-note]")).toHaveCount(4);
     await song.getByRole("button", { name: "Remove the song's last bar" }).click();
     await expect(page.getByRole("status")).toContainText("1 note past the end went with the bar");
@@ -227,11 +228,11 @@ test.describe("Create", () => {
     await roll.locator(".repeats").scrollIntoViewIfNeeded();
     const g = (await grid.boundingBox())!;
     const row = (await roll.locator('.note[data-note="60"]').first().boundingBox())!;
-    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, row.y + row.height / 2);
+    await page.mouse.click(g.x + (await sw()) * 26 + 4, row.y + row.height / 2);
     await expect(page.getByRole("status")).toContainText("in the loop, so every repeat changes");
     await expect(roll.locator(".note[data-note]")).toHaveCount(4);
     await expect(roll.locator(".note.repeat")).toHaveCount(4);
-    await page.mouse.click(g.x + 22 * 16 + 22 * 10 + 4, row.y + row.height / 2); // and off again
+    await page.mouse.click(g.x + (await sw()) * 26 + 4, row.y + row.height / 2); // and off again
     await expect(roll.locator(".note[data-note]")).toHaveCount(3);
     await choose(page, page.getByLabel("Melody 1 loop"), "No loop");
     await expect(roll.locator(".note.repeat")).toHaveCount(0);

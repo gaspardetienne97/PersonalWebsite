@@ -277,6 +277,7 @@
             class:resize={tool === "resize"}
             style:width="{steps * stepW}px"
             style:background-image={lineBg}
+            data-step-w={stepW}
             tabindex="0"
             role="application"
             aria-label="Note grid for {active.name}. Arrow keys move the cursor, Enter adds or removes a note, Shift with Left or Right changes its length, [ and ] change its velocity."
