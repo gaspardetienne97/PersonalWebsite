@@ -6,7 +6,7 @@
   // answer with the rule that gets there; in Check it stays hidden, so the
   // circle is recalled, not read. Analyse a tune is the exception: a whole
   // tune's changes, chord by chord, its key centre and function, untimed.
-  import { onDestroy } from "svelte";
+  import { onDestroy, tick } from "svelte";
   import { page } from "$app/state";
   import {
     analysisPrompts,
@@ -22,6 +22,7 @@
   } from "@repo/music-core/content/circle";
   import { accidentalCount, diatonicChords, keyAt, wheelIndex } from "@repo/music-core/theory/circle";
   import { analysisSheet, ANALYSIS_TUNES, functionRule } from "@repo/music-core/content/analysis";
+  import { functionChord } from "@repo/music-core/content/ear";
   import { TUNES } from "@repo/music-core/content/tunes";
   import { circleLessons } from "@repo/music-core/lessons/circle";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -37,6 +38,7 @@
   import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
+  import { audio } from "$lib/music/runtime";
 
   const LENGTH = 20;
   const tuneName = (id: string) => TUNES.find((t) => t.id === id)?.name ?? id;
@@ -64,8 +66,34 @@
     else pickedFn = v;
     if (pickedKey && pickedFn) void choose(`${pickedKey}|${pickedFn}`);
   }
-  /** Short names for the tab row. */
-  const TAB: Record<CircleMode, string> = { order: "Order", count: "Signatures", signature: "Read it", neighbours: "Neighbours", chords: "Chords", wheel: "Blank wheel", borrowed: "Borrowed", secondary: "V of", analysis: "Analyse" };
+  /** The tab row, first steps first; the rest wait behind "More exercises". */
+  const TAB: Record<CircleMode, string> = {
+    count: "Key signatures",
+    order: "Sharp and flat order",
+    signature: "Read a signature",
+    neighbours: "Neighbour keys",
+    wheel: "Fill in the wheel",
+    chords: "Chords in a key",
+    borrowed: "Borrowed chords",
+    secondary: "Secondary dominants",
+    analysis: "Analyse a tune",
+  };
+  const FIRST_STEPS = 4;
+  const TAB_ORDER = Object.keys(TAB) as CircleMode[];
+  let showAll = $state(false);
+  // An advanced exercise opened by a link or a saved setup shows the whole row.
+  const allTabs = $derived(showAll || TAB_ORDER.indexOf(modeId) >= FIRST_STEPS);
+  const tabs = $derived([
+    ...(allTabs ? TAB_ORDER : TAB_ORDER.slice(0, FIRST_STEPS)).map((id) => ({ id, label: TAB[id] })),
+    ...(allTabs ? [] : [{ id: "more", label: "More exercises" }]),
+  ]);
+  async function onTab(id: string) {
+    if (id !== "more") return cfg.set({ mode: id });
+    showAll = true;
+    // The More button is gone: keep keyboard focus on the first exercise it showed.
+    await tick();
+    document.querySelectorAll<HTMLButtonElement>('[aria-label="Exercise"] button')[FIRST_STEPS]?.focus();
+  }
   /** Each key band as the "Up to" button reads it, and as the setup sentence says it. */
   const BAND_TEXT: Record<KeyBand, { label: string; clause: string }> = {
     near: { label: "C, G and F", clause: "keys C, G and F" },
@@ -216,7 +244,20 @@
   function stop() {
     clearTimeout(nextTimer);
     phase = "ready";
-    status = `Stopped after ${records.length} answers.`;
+    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
+  }
+
+  /** A major key's place on the circle by name ("Eb" is -3), or undefined for anything else. */
+  const majorFifths = (name: string) => [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7].find((f) => keyAt(f).major === name);
+  /** Practice: a prompt whose answer is a major key is answered on the wheel too (Check keeps the wheel hidden). */
+  const onWheel = (p: CirclePrompt) => mode === "practice" && (p.mode === "count" || p.mode === "signature" || p.mode === "neighbours") && majorFifths(p.answer) !== undefined;
+  /** A tapped key sounds its tonic chord. */
+  const hearKey = (f: number) => void audio.unlock().then(() => audio.playChord(functionChord(keyAt(f).pc, "I"), 1));
+  /** A tap on the wheel: hear the key, and answer with it. */
+  function tapKey(p: CirclePrompt, f: number) {
+    hearKey(f);
+    // One segment holds both spellings (Db and C#): the place is what a tap can say.
+    choose(wheelIndex(majorFifths(p.answer)!) === wheelIndex(f) ? p.answer : keyAt(f).major);
   }
 
   onDestroy(() => clearTimeout(nextTimer));
@@ -284,6 +325,22 @@
 </script>
 
 <svelte:head><title>Circle of fifths | Woodshed</title></svelte:head>
+
+{#snippet verdict(p: CirclePrompt, r: (typeof records)[number], wheel: boolean)}
+  <p class="mt-3 text-lg font-semibold">
+    {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> Right: {shown(p, p.answer)}.
+    {:else if r.correct}<span class="verdict" class:slow={r.slow} aria-hidden="true">✓</span> {r.slow ? "Right, but slow" : "Right"}: {shown(p, p.answer)}, {(r.ms / 1000).toFixed(1)} s.
+    {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{/if}
+  </p>
+  {#if mode === "practice"}
+    <p class="mt-1 text-sm text-ws-stage-soft">{rule(p)}</p>
+    {#if wheel}
+      <div class="mt-3 max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
+    {/if}
+    <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70">Enter</kbd></button>
+  {/if}
+{/snippet}
+
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
@@ -291,11 +348,11 @@
   hue="reading"
   blurb="Key signatures and their order, at speed. Fast and right is fluent; right but slow means you are still working it out."
   summary={summaryLine}
-  tabs={CIRCLE_MODES.map((m) => ({ id: m.id, label: TAB[m.id] }))}
+  {tabs}
   tab={modeId}
   lesson={{ lessons: circleLessons(modeId) }}
-  ontab={(id) => cfg.set({ mode: id })}
-  modeNotes={{ practice: "The wheel and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
+  ontab={onTab}
+  modeNotes={{ practice: "The wheel to tap, and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -352,7 +409,7 @@
             <CircleOfFifths
               blank={(slot) => step === "answer" && slot !== 0}
               numerals={false}
-              onpick={step === "answer" ? (f) => choose(String(wheelIndex(f))) : undefined}
+              onpick={step === "answer" ? (f) => (hearKey(f), choose(String(wheelIndex(f)))) : undefined}
               marks={r ? { [Number(p.answer)]: "right", ...(r.correct ? {} : { [Number(r.answered)]: "wrong" }) } : {}}
               label="A blank circle of fifths: tap where the key goes"
             />
@@ -373,19 +430,21 @@
             {/each}
           </ol>
         {/if}
-        {#if r}
-          <p class="mt-3 text-lg font-semibold">
-            {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> Right: {shown(p, p.answer)}.
-            {:else if r.correct}<span class="verdict" class:slow={r.slow} aria-hidden="true">✓</span> {r.slow ? "Right, but slow" : "Right"}: {shown(p, p.answer)}, {(r.ms / 1000).toFixed(1)} s.
-            {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{/if}
-          </p>
-          {#if mode === "practice"}
-            <p class="mt-1 text-sm text-ws-stage-soft">{rule(p)}</p>
-            {#if p.mode !== "wheel"}
-              <div class="mt-3 max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
-            {/if}
-            <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70">Enter</kbd></button>
-          {/if}
+        {#if onWheel(p)}
+          {@const af = majorFifths(p.answer)!}
+          {@const tapped = r && !r.correct ? majorFifths(r.answered) : undefined}
+          <!-- The wheel is the answer pad: it stays put, and the verdict comes up beside it. -->
+          <div class="mt-3 grid items-start gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            <CircleOfFifths
+              selected={r ? af : null}
+              onpick={step === "answer" ? (f) => tapKey(p, f) : undefined}
+              marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
+              label={r ? "The circle, with the key of this prompt" : "The circle of fifths: tap the key"}
+            />
+            {#if r}<div>{@render verdict(p, r, false)}</div>{/if}
+          </div>
+        {:else if r}
+          {@render verdict(p, r, p.mode !== "wheel")}
         {/if}
       </article>
       {#if p.analysis}

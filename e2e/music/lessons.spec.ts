@@ -115,14 +115,14 @@ test.describe("intro lessons", () => {
   test("changing tab swaps the lesson", async ({ page }) => {
     await page.goto(URL);
     await expect(lessonHeading(page)).toBeVisible();
-    await page.getByRole("button", { name: "Signatures", exact: true }).click();
+    await page.getByRole("button", { name: "Key signatures", exact: true }).click();
     await expect(lessonHeading(page)).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
   });
 
   test("signature shows count first, then signature", async ({ page }) => {
     await page.goto(URL);
-    await page.getByRole("button", { name: "Read it", exact: true }).click();
+    await page.getByRole("button", { name: "Read a signature", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
     const second = page.getByRole("heading", {
       name: "Sharps and flats on the staff",
@@ -173,7 +173,7 @@ test.describe("intro lessons", () => {
     }
     await expect(again).toBeVisible();
     await expect(page.getByRole("button", { name: "Lesson", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Signatures", exact: true }).click();
+    await page.getByRole("button", { name: "Key signatures", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
     await expect(again).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Results" })).toHaveCount(0);
@@ -448,7 +448,7 @@ test.describe("jam game lessons", () => {
     page,
   }) => {
     await page.goto("/music/jam?game=guide-tones&backing=none");
-    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await check(page).click();
     await expect(page.getByTestId("lesson")).toBeVisible();
@@ -456,13 +456,13 @@ test.describe("jam game lessons", () => {
     await (await toEnd(page)).click();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(page.locator("#mode-note")).toContainText("Tone roles hidden");
-    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
   });
 
   test("the open game has no lesson, and another game has its own", async ({ page }) => {
     await page.goto("/music/jam?game=free&backing=none");
     await check(page).click();
-    await expect(page.getByRole("button", { name: /^Start jamming/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await page.goto("/music/jam?game=approach&backing=none");
     await check(page).click();

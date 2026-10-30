@@ -31,7 +31,8 @@
 
   const S = 360;
   const C = S / 2;
-  const R = $derived(compact ? { outer: 172, major: 78, minor: 78, dim: 78 } : { outer: 172, major: 122, minor: 82, dim: 50 });
+  // The outer ring is the deepest: at 375 px wide a key is still a 44 px tap.
+  const R = $derived(compact ? { outer: 172, major: 78, minor: 78, dim: 78 } : { outer: 172, major: 114, minor: 78, dim: 44 });
   /** Each position its own hue, round the colour wheel the way keys go round the circle. */
   const hue = (i: number) => (i * 30 + 25) % 360;
   const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
@@ -90,22 +91,22 @@
     >
       <path class="ring major" class:in={roleOf("major", i) !== null} class:tonic={roleOf("major", i) === "I"} d={wedge(i, R.major, R.outer)} />
       <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : k.major}</text>
-      {#if k.enharmonic && !hidden && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 14} class="enh">{k.enharmonic.major}</text>{/if}
-      {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 12} class="numeral">{roleOf("major", i)}</text>{/if}
+      {#if k.enharmonic && !hidden && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{k.enharmonic.major}</text>{/if}
+      {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 14} class="numeral">{roleOf("major", i)}</text>{/if}
     </g>
     {#if !compact}
       <!-- Middle ring: its relative minor. -->
       <path style:--h={hue(i)} class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
-      <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 5 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
-      {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 10} class="numeral">{roleOf("minor", i)}</text>{/if}
+      <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
+      {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 9} class="numeral">{roleOf("minor", i)}</text>{/if}
       <!-- Inner ring: the key's diminished chord (its vii°). -->
       <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
-      <text x={d.x} y={d.y + 4} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+      <text x={d.x} y={d.y} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
     {/if}
   {/each}
   <circle class="hub" cx={C} cy={C} r={R.dim - 2} />
   {#if picked}
-    <text x={C} y={C - 6} class="hub-key">{picked.major}</text>
+    <text x={C} y={C - 7} class="hub-key">{picked.major}</text>
     <text x={C} y={C + 12} class="hub-sig">{picked.fifths === 0 ? "no ♯ or ♭" : `${Math.abs(picked.fifths)}${picked.fifths > 0 ? "♯" : "♭"}`}</text>
   {:else}
     <text x={C} y={C + 5} class="hub-sig">♯ clockwise</text>
@@ -190,6 +191,15 @@
   }
   .slot[data-mark="right"] .ring.major {
     fill: var(--success);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: found 500ms ease-out;
+  }
+  /* The right key swells once when it is shown. */
+  @keyframes found {
+    40% {
+      transform: scale(1.12);
+    }
   }
   .slot[data-mark="wrong"] .ring.major {
     fill: var(--destructive);
@@ -197,6 +207,8 @@
   .slot[data-mark="lit"] .ring.major {
     fill: oklch(var(--l-in) 0.2 var(--h));
   }
+  /* Sizes are in wheel units: a phone draws the wheel at about 0.8 of them, so
+     nothing goes under 13 (about 11 to 12 px there). */
   text {
     text-anchor: middle;
     dominant-baseline: middle;
@@ -217,22 +229,22 @@
     fill: var(--ink-tonic);
   }
   .enh {
-    font-size: 10px;
+    font-size: 13px;
     fill: var(--ink-soft);
   }
   .compact .enh {
     font-size: 13px;
   }
   .minor-name {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
   }
   .dim-name {
-    font-size: 9.5px;
+    font-size: 14px;
     fill: var(--ink-soft);
   }
   .numeral {
-    font-size: 10.5px;
+    font-size: 13px;
     font-weight: 700;
   }
   .hub {
@@ -246,7 +258,7 @@
     font-size: 30px;
   }
   .hub-sig {
-    font-size: 11px;
+    font-size: 13px;
     fill: var(--ink-soft);
   }
   .compact .hub-sig {
@@ -255,6 +267,9 @@
   @media (prefers-reduced-motion: reduce) {
     .ring {
       transition: none;
+    }
+    .slot[data-mark="right"] .ring.major {
+      animation: none;
     }
   }
 </style>

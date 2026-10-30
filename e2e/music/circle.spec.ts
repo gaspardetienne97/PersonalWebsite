@@ -42,6 +42,12 @@ test.describe("circle of fifths", () => {
 
   test("keys and counts, with the rule and the wheel after a miss", async ({ page }) => {
     await page.goto("/music/circle?mode=count&band=two");
+    // First steps show; the advanced exercises wait behind one button.
+    const exercises = page.getByRole("group", { name: "Exercise" });
+    await expect(exercises.getByRole("button", { name: "Borrowed chords" })).toHaveCount(0);
+    await exercises.getByRole("button", { name: "More exercises" }).click();
+    await expect(exercises.getByRole("button", { name: "Fill in the wheel" })).toBeFocused();
+    await expect(exercises.getByRole("button", { name: "Secondary dominants" })).toBeVisible();
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toHaveAttribute("data-step", "answer");
@@ -82,6 +88,20 @@ test.describe("circle of fifths", () => {
       .click();
     await expect(card).toContainText(/Right/);
     await shots(page, "drill-signature");
+    // In Practice a key can be tapped on the wheel: the right segment is marked.
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("article", { name: "Prompt 2" })).toHaveAttribute(
+      "data-step",
+      "answer",
+    );
+    const b = (await card.getAttribute("data-answer"))!;
+    await card
+      .getByRole("group", { name: "The circle of fifths: tap the key" })
+      .getByRole("button", { name: new RegExp(`^${b.replace("#", "\\#")} major[ ,]`) })
+      .click();
+    await expect(card).toContainText(/Right/);
+    await expect(card.locator('[data-mark="right"]')).toHaveCount(1);
+    await shots(page, "drill-signature-wheel");
 
     await page.goto("/music/circle?mode=wheel&band=all");
     await page.getByRole("button", { name: "Start", exact: true }).click();

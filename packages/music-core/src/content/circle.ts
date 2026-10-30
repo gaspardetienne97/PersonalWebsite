@@ -62,7 +62,7 @@ export const CIRCLE_MODES: {
     targetMs: 2500,
   },
   { id: "chords", title: "A key's chords", skillId: "theory.circle.chords", targetMs: 5000 },
-  { id: "wheel", title: "The blank wheel", skillId: "theory.circle.wheel", targetMs: 3000 },
+  { id: "wheel", title: "Fill in the wheel", skillId: "theory.circle.wheel", targetMs: 3000 },
   // Analysis: a written progression in a key, spot the chord from outside it.
   {
     id: "borrowed",
@@ -72,7 +72,7 @@ export const CIRCLE_MODES: {
   },
   {
     id: "secondary",
-    title: "Spot the V of",
+    title: "Spot the secondary dominant",
     skillId: "theory.circle.secondary",
     targetMs: 6000,
   },
