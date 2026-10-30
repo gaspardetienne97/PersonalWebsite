@@ -62,7 +62,9 @@
   const doc = $derived(host.doc);
   let tool = $state<"draw" | "resize">("draw");
   let noteLen = $state(0.5);
-  let stepW = $state(22);
+  // The zoom slider's width of a sixteenth; a short song stretches to fill the view instead.
+  let zoom = $state(22);
+  let viewW = $state(0);
   let cursor = $state({ midi: 60, step: 0 });
   const playing = $derived(host.playing);
   const playBeat = $derived(host.rollBeat);
@@ -98,6 +100,7 @@
   const range = $derived(rollRange(doc));
   const rows = $derived(Array.from({ length: range.high - range.low + 1 }, (_, i) => range.high - i));
   const steps = $derived(Math.round(doc.lengthBeats / STEP_BEATS));
+  const stepW = $derived(Math.max(zoom, steps ? Math.floor((viewW - KEY_W) / steps) : 0));
   const activeIndex = $derived(Math.max(0, doc.voices.findIndex((v) => v.id === host.selected)));
   const active = $derived(doc.voices[activeIndex]);
   const x = (beat: number) => (beat / STEP_BEATS) * stepW;
@@ -249,11 +252,11 @@
       </div>
       <label class="flex items-center gap-2 text-sm">
         <span class="text-ws-stage-soft">Zoom</span>
-        <input type="range" min="12" max="48" step="2" bind:value={stepW} class="w-24 accent-[var(--instr)]" aria-valuetext="{stepW} pixels per sixteenth" />
+        <input type="range" min="12" max="48" step="2" bind:value={zoom} class="w-24 accent-[var(--instr)]" aria-valuetext="{zoom} pixels per sixteenth" />
       </label>
     </div>
 
-    <div bind:this={scroller} class="roll relative max-h-[30rem] overflow-auto rounded-xl">
+    <div bind:this={scroller} bind:clientWidth={viewW} class="roll relative max-h-[30rem] overflow-auto rounded-xl">
       <div class="relative" style:width="{KEY_W + steps * stepW}px">
         <div class="ruler sticky top-0 z-20 flex h-7" aria-hidden="true">
           <div class="sticky left-0 z-10 shrink-0 bg-ws-stage" style:width="{KEY_W}px"></div>

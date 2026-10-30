@@ -5,6 +5,7 @@
   import { db } from "$lib/music/runtime";
   import { registerSearchItems } from "$lib/music/search";
   import { btnPrimary } from "$lib/music/components/ui";
+  import Play from "lucide-svelte/icons/play";
   import Trash from "lucide-svelte/icons/trash-2";
   import RollThumb from "./RollThumb.svelte";
   import { barsText, durationText, rangeText, scoreFacts, type Song } from "./songs";
@@ -52,19 +53,18 @@
   <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Saved songs">
     {#each songs as song, i (song.id)}
       {@const f = scoreFacts(song.score)}
-      <li class="relative {i === 0 ? 'sm:col-span-2' : ''}">
-        <a
-          href="/music/songs/{song.id}"
-          class="group flex h-full flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface hover:border-instr-ink focus-visible:border-instr-ink"
-          class:lead={i === 0}
-        >
+      <li
+        class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface hover:border-instr-ink focus-within:border-instr-ink {i === 0 ? 'sm:col-span-2' : ''}"
+        class:lead={i === 0}
+      >
+        <a href="/music/songs/{song.id}" class="group flex flex-1 flex-col focus-visible:outline-offset-[-2px]">
           <div class="stage relative px-3 pb-2 pt-3">
             <RollThumb score={song.score} height={i === 0 ? 120 : 64} />
             <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-xs text-ws-stage-soft">{sourceLabel(song)}</span>
           </div>
-          <div class="flex flex-1 flex-col gap-2 p-4">
+          <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
             {#if i === 0}<p class="text-sm font-medium text-instr-ink">Pick up where you left off</p>{/if}
-            <h3 class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
+            <h3 id="song-{song.id}" class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
             {#if song.composer}<p class="-mt-1 text-sm text-ws-soft">{song.composer}</p>{/if}
             <dl class="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 text-sm {i === 0 ? 'sm:grid-cols-4' : ''}">
               <div><dt class="text-ws-soft">Tempo</dt><dd class="tnum font-medium">{song.score.bpm} BPM</dd></div>
@@ -74,16 +74,19 @@
             </dl>
           </div>
         </a>
-        <!-- Outside the card's link, over its top-left corner. -->
-        <button
-          type="button"
-          class="absolute left-2 top-2 flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold {confirming === song.id ? 'bg-destructive text-white' : 'bg-ws-stage-ink/10 text-ws-stage-soft hover:bg-ws-stage-ink/20 hover:text-ws-stage-ink'}"
-          aria-label={confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}
-          onblur={() => confirming === song.id && (confirming = null)}
-          onclick={() => remove(song)}
-        >
-          <Trash class="size-3.5" aria-hidden="true" />{#if confirming === song.id}Delete?{/if}
-        </button>
+        <!-- Outside the cover's link: the action first, Delete small and apart. -->
+        <div class="flex items-center justify-between gap-2 border-t border-ws-line px-3 py-2">
+          <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
+          <button
+            type="button"
+            class="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold {confirming === song.id ? 'bg-destructive text-white' : 'text-ws-soft hover:bg-ws-raised hover:text-destructive'}"
+            aria-label={confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}
+            onblur={() => confirming === song.id && (confirming = null)}
+            onclick={() => remove(song)}
+          >
+            <Trash class="size-4" aria-hidden="true" />{#if confirming === song.id}Delete?{/if}
+          </button>
+        </div>
       </li>
     {/each}
   </ul>
