@@ -37,27 +37,41 @@
 </script>
 
 <script lang="ts">
-  import { getContext, onMount, tick, type Snippet } from "svelte";
-  import { SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
+  import { getContext, tick, type Snippet } from "svelte";
+  import { NEXT_VERB, SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
   import { btnPrimary } from "./ui";
   import { gradeTone } from "@repo/music-core";
   import { audio } from "../runtime";
   import InputCheck from "./InputCheck.svelte";
+  import Star from "lucide-svelte/icons/star";
+  import { practice } from "../practice.svelte";
+  import { setupTrend, sparkPoints } from "./trend";
 
   let { summary, actions }: { summary: RunSummary; actions?: Snippet } = $props();
 
-  const celebrate = $derived(!!summary.clean || !!summary.best);
-  onMount(() => {
-    if (celebrate) audio.celebrate?.(summary.best ? "best" : "clean");
+  // "Since last time": the runs with this setup, read from the saved sessions (this run is the newest).
+  const shownAt = Date.now();
+  const trend = $derived(summary.recorded === false || summary.heard === false ? [] : setupTrend(practice.sessions, shownAt));
+  const delta = $derived(summary.delta !== undefined ? summary.delta : trend.length > 1 ? (trend[trend.length - 1] - trend[trend.length - 2]) * 100 : null);
+  const clean = $derived(summary.clean ?? trend[trend.length - 1] === 1);
+  const celebrate = $derived(clean || !!summary.best);
+  const SPARK = { w: 88, h: 24 };
+  const spark = $derived(sparkPoints(trend, SPARK.w, SPARK.h));
+  // Fires once, when the card first shows: the run's verdict does not change after.
+  let cheered = false;
+  $effect(() => {
+    if (!celebrate || cheered) return;
+    cheered = true;
+    audio.celebrate?.(summary.best ? "best" : "clean");
   });
 
   const shell = getContext<ShellApi | undefined>(SHELL_KEY);
   const moves = $derived(!!summary.advance && summary.advance.kind !== "same" && summary.advance.kind !== "top");
+  // Inside a drill the shell's action bar draws the next-run button; on its own the card does.
   $effect(() => {
-    shell?.offer(moves && summary.heard !== false);
-    return () => shell?.offer(false);
+    shell?.offer(moves && summary.heard !== false ? summary.advance! : null);
+    return () => shell?.offer(null);
   });
-  const VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow down to", harder: "Move on:", easier: "Step back:" };
   async function goNext() {
     summary.advance?.go();
     await tick();
@@ -93,19 +107,44 @@
         </p>
       {/if}
     </div>
-    <div class="text-right">
-      <p class="tnum font-display text-5xl font-bold leading-none sm:text-6xl">{summary.metric}</p>
+    <div class="flex flex-col items-end text-right">
+      {#if clean}
+        <p class="mb-2 flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+          <Star class="size-3.5 fill-current" aria-hidden="true" />Clean run
+        </p>
+      {/if}
+      <p class="relative tnum font-display text-5xl font-bold leading-none sm:text-6xl">
+        {summary.metric}
+        {#if celebrate}
+          <!-- A short burst of stars from the number; left out when motion is reduced. -->
+          <span class="burst" aria-hidden="true">{#each Array.from({ length: 8 }, (_, i) => i) as i (i)}<span style:--a="{i * 45}deg" style:--d="{(i % 3) * 40}ms"></span>{/each}</span>
+        {/if}
+      </p>
       <p class="mt-1 text-sm text-ws-soft">{summary.metricLabel}</p>
       <p class="mt-2 text-sm font-medium">
-        {#if summary.best}<span class="text-success">Personal best</span>{:else if summary.delta != null && Math.round(summary.delta) === 0}
+        {#if summary.best}<span class="text-success">Personal best</span>{:else if delta != null && Math.round(delta) === 0}
           <span class="text-ws-soft">Same as last time</span>
-        {:else if summary.delta != null}
-          <span class={summary.delta > 0 ? "text-success" : "text-ws-soft"}>
-            {summary.delta > 0 ? "+" : ""}{Math.round(summary.delta)} vs last time
+        {:else if delta != null}
+          <span class={delta > 0 ? "text-success" : "text-ws-soft"}>
+            {delta > 0 ? "+" : ""}{Math.round(delta)} vs last time
           </span>
         {:else if summary.recorded === false}<span class="text-ws-soft">Not recorded</span>{:else}<span class="text-ws-soft">First run with this setup</span>{/if}
         {#if summary.xp}<span class="ml-2 text-ws-soft">+{summary.xp} XP</span>{/if}
       </p>
+      {#if trend.length > 1}
+        <svg
+          class="mt-2 overflow-visible text-instr-ink"
+          width={SPARK.w}
+          height={SPARK.h}
+          viewBox="0 0 {SPARK.w} {SPARK.h}"
+          role="img"
+          aria-label="Your last {trend.length} runs with this setup: {trend.map((v) => `${Math.round(v * 100)}%`).join(', ')}"
+        >
+          <line x1="0" x2={SPARK.w} y1={SPARK.h} y2={SPARK.h} class="stroke-ws-line" stroke-width="1" />
+          <polyline points={spark.map((p) => p.join(",")).join(" ")} fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7" />
+          {#each spark as [x, y], i (i)}<circle cx={x} cy={y} r={i === spark.length - 1 ? 3.5 : 2} fill={i === spark.length - 1 ? "currentColor" : "var(--ws-surface)"} stroke="currentColor" stroke-width="1.25" />{/each}
+        </svg>
+      {/if}
     </div>
   </div>
 
@@ -151,10 +190,10 @@
   {/if}
 
   <div class="relative mt-5 flex flex-wrap gap-2">
-    {#if moves && summary.advance}
+    {#if moves && summary.advance && !shell}
       {@const a = summary.advance}
       <div class="flex basis-full flex-wrap items-center gap-x-3 gap-y-1" data-testid="next-run" data-kind={a.kind}>
-        <button type="button" class={btnPrimary} onclick={goNext}>{VERB[a.kind]} {a.label}</button>
+        <button type="button" class={btnPrimary} onclick={goNext}>{NEXT_VERB[a.kind]} {a.label}</button>
         <span class="text-sm text-ws-soft">{a.reason[0].toUpperCase()}{a.reason.slice(1)}.</span>
       </div>
     {/if}
@@ -170,6 +209,38 @@
 {/if}
 
 <style>
+  .burst {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+  }
+  .burst span {
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin: -0.35rem;
+    background: var(--instr);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    opacity: 0;
+    animation: star-burst 900ms ease-out var(--d) both;
+  }
+  @keyframes star-burst {
+    0% {
+      transform: rotate(var(--a)) translateY(0) scale(0.4);
+      opacity: 1;
+    }
+    100% {
+      transform: rotate(var(--a)) translateY(-4.5rem) scale(1);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .burst,
+    .bloom {
+      display: none;
+    }
+  }
   .bloom {
     position: absolute;
     right: 3rem;

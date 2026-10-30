@@ -6,7 +6,7 @@
   // answer with the rule that gets there; in Check it stays hidden, so the
   // circle is recalled, not read. Analyse a tune is the exception: a whole
   // tune's changes, chord by chord, its key centre and function, untimed.
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import {
     analysisPrompts,
@@ -66,7 +66,7 @@
     else pickedFn = v;
     if (pickedKey && pickedFn) void choose(`${pickedKey}|${pickedFn}`);
   }
-  /** The tab row, first steps first; the rest wait behind "More exercises". */
+  /** The tab row, first steps first; the shell keeps the rest behind "More exercises". */
   const TAB: Record<CircleMode, string> = {
     count: "Key signatures",
     order: "Sharp and flat order",
@@ -78,22 +78,7 @@
     secondary: "Secondary dominants",
     analysis: "Analyse a tune",
   };
-  const FIRST_STEPS = 4;
-  const TAB_ORDER = Object.keys(TAB) as CircleMode[];
-  let showAll = $state(false);
-  // An advanced exercise opened by a link or a saved setup shows the whole row.
-  const allTabs = $derived(showAll || TAB_ORDER.indexOf(modeId) >= FIRST_STEPS);
-  const tabs = $derived([
-    ...(allTabs ? TAB_ORDER : TAB_ORDER.slice(0, FIRST_STEPS)).map((id) => ({ id, label: TAB[id] })),
-    ...(allTabs ? [] : [{ id: "more", label: "More exercises" }]),
-  ]);
-  async function onTab(id: string) {
-    if (id !== "more") return cfg.set({ mode: id });
-    showAll = true;
-    // The More button is gone: keep keyboard focus on the first exercise it showed.
-    await tick();
-    document.querySelectorAll<HTMLButtonElement>('[aria-label="Exercise"] button')[FIRST_STEPS]?.focus();
-  }
+  const tabs = (Object.keys(TAB) as CircleMode[]).map((id) => ({ id, label: TAB[id] }));
   /** Each key band as the "Up to" button reads it, and as the setup sentence says it. */
   const BAND_TEXT: Record<KeyBand, { label: string; clause: string }> = {
     near: { label: "C, G and F", clause: "keys C, G and F" },
@@ -349,9 +334,10 @@
   blurb="Key signatures and their order, at speed. Fast and right is fluent; right but slow means you are still working it out."
   summary={summaryLine}
   {tabs}
+  firstTabs={4}
   tab={modeId}
   lesson={{ lessons: circleLessons(modeId) }}
-  ontab={onTab}
+  ontab={(id) => cfg.set({ mode: id })}
   modeNotes={{ practice: "The wheel to tap, and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
   bind:phase
   bind:mode

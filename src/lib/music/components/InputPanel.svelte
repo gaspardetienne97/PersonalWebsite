@@ -10,6 +10,7 @@
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { btn, btnPrimary } from "./ui";
+  import { micOptions } from "$lib/music/hubs/connect/rig";
 
   const INSTRUMENTS = instrumentOptions((i) => INSTRUMENT_LABEL[i]);
 
@@ -22,8 +23,10 @@
     void midi.saveProfile({ ...(midi.profile(id) ?? { id }), ...patch, id });
   }
 
-  // Before permission the browser lists inputs with no ids or names.
-  const mics = $derived(mic.devices.filter((d) => d.deviceId && d.deviceId !== "default"));
+  // The same choices as Connect: before permission the browser names no inputs,
+  // so the saved one stays listed under its saved name.
+  const mics = $derived(micOptions(mic.devices, settings.value.audioInputDeviceId, settings.value.audioInputLabel));
+  const named = $derived(mic.devices.some((d) => d.deviceId && d.deviceId !== "default"));
   const chosen = $derived(settings.value.audioInputDeviceId ?? "");
   $effect(() => void mic.refreshDevices().catch(() => {}));
 
@@ -31,8 +34,8 @@
     note = (await mic.start({ deviceId, pin: true })) ? "" : mic.error || "The microphone did not start.";
   }
   async function pickMic(deviceId: string) {
-    const d = mics.find((x) => x.deviceId === deviceId);
-    await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label || "Default input" });
+    const label = mic.devices.find((x) => x.deviceId === deviceId)?.label ?? (deviceId ? settings.value.audioInputLabel : "Default input");
+    await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: label });
     if (mic.state === "on") await micOn(deviceId || undefined);
   }
 
@@ -40,7 +43,7 @@
   const levelPct = $derived(Math.max(0, Math.min(100, ((mic.level + 60) / 60) * 100)));
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-4" data-testid="input-panel">
   <section class="flex flex-col gap-2" aria-labelledby="input-sound">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-sound" class="text-sm font-semibold">Sound</h2>
@@ -118,16 +121,16 @@
     {/if}
     <p class="text-xs text-ws-soft">Input device</p>
     <ul class="flex flex-col gap-1.5" aria-label="Microphone input device">
-      {#each [{ deviceId: "", label: "Default input" }, ...mics] as d (d.deviceId)}
+      {#each mics as d (d.value)}
         <li>
-          <button type="button" class={row} aria-pressed={chosen === d.deviceId} onclick={() => void pickMic(d.deviceId)}>
-            <span class="size-4 shrink-0 rounded-full border-2 {chosen === d.deviceId ? 'border-instr bg-instr' : 'border-ws-line'}" aria-hidden="true"></span>
+          <button type="button" class={row} aria-pressed={chosen === d.value} onclick={() => void pickMic(d.value)}>
+            <span class="size-4 shrink-0 rounded-full border-2 {chosen === d.value ? 'border-instr bg-instr' : 'border-ws-line'}" aria-hidden="true"></span>
             <span class="min-w-0 flex-1 truncate">{d.label}</span>
           </button>
         </li>
       {/each}
     </ul>
-    {#if !mics.length}<p class="text-xs text-ws-soft">Turn the microphone on once and the browser names each device.</p>{/if}
+    {#if !named}<p class="text-xs text-ws-soft">Turn the microphone on once and the browser names each device.</p>{/if}
     {#if mic.state === "on"}
       <button type="button" class="{btn} self-start" onclick={() => mic.stop({ unpin: true })}>Turn off the microphone</button>
     {/if}

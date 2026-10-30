@@ -303,7 +303,7 @@ test("the strip's input pop-up turns MIDI on and chooses its devices", async ({ 
   await page.goto("/music/scales");
   await page.getByRole("button", { name: /^Sound and input: .*MIDI off, microphone off/ }).click();
   // The pop-up only: the drill's own input notice has a "Turn on" button too.
-  const panel = page.locator("[data-popover-content]");
+  const panel = page.getByTestId("input-panel");
   await expect(panel.getByRole("button", { name: "Turn on the microphone" })).toBeVisible();
   await panel.getByRole("button", { name: "Turn on MIDI" }).click();
   const keys = panel.getByRole("button", { name: /Digital Piano/ });

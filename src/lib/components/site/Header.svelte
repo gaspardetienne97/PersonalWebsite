@@ -17,10 +17,13 @@
 		{ href: '/gallery', label: 'Gallery' }, { href: '/blog', label: 'Blog' }, { href: '/music', label: 'Music' },
 		{ href: '/pdf', label: 'Narrator' }
 	] as const;
+	// Inside the music app a phone keeps the screen for practice: the header scrolls
+	// away and the menu is an icon (its name stays "Site menu").
+	const music = $derived(currentPath === '/music' || currentPath.startsWith('/music/'));
 	const isCurrent = (href: string) => currentPath === href || (href !== '/' && currentPath.startsWith(`${href}/`));
 </script>
 
-<header class="border-blue sticky top-0 flex min-w-0 items-center justify-between border-b bg-background">
+<header class="border-blue sticky top-0 {music ? 'max-sm:static' : ''} flex min-w-0 items-center justify-between border-b bg-background">
 	<div class="h-12 w-12 shrink-0 p-2">
 		<a href={resolve('/')}>
 			<img src={logo} alt="SvelteKit" width="100%" />
@@ -37,7 +40,7 @@
 		{#if narrow.current}
 			<DropdownMenu.Root modal={false}>
 				<DropdownMenu.Trigger class={buttonVariants({ variant: 'ghost' })}>
-					<Menu class="size-4" aria-hidden="true" />Site menu
+					<Menu class="size-4" aria-hidden="true" /><span class={music ? 'sr-only' : ''}>Site menu</span>
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end">
 					{#each links as link (link.href)}

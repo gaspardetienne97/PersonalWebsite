@@ -26,7 +26,7 @@
       href={hrefFor(t.id)}
       aria-current={current === t.id ? "page" : undefined}
       data-sveltekit-noscroll
-      class="flex min-h-10 items-center rounded-full px-4 text-sm font-medium {current === t.id
+      class="flex min-h-11 items-center rounded-full px-4 text-sm font-medium {current === t.id
         ? 'bg-ws-ink text-ws-bg'
         : 'text-ws-soft hover:text-ws-ink'}">{t.label}</a
     >

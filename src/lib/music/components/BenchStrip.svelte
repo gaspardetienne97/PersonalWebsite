@@ -1,3 +1,17 @@
+<script lang="ts" module>
+  export type StripPill = "metronome" | "tempo" | "count-in";
+  let unused = $state.raw<readonly StripPill[]>([]);
+  /** Call from a page's script: the strip leaves out these pills while the page is open (Create has its own tempo). */
+  export function stripUnused(...pills: StripPill[]) {
+    $effect(() => {
+      unused = pills;
+      return () => {
+        if (unused === pills) unused = [];
+      };
+    });
+  }
+</script>
+
 <script lang="ts">
   // The practice controls: instrument, metronome, tempo, count-in, tuning and
   // the live input source. One row that wraps; on a phone the secondary
@@ -93,12 +107,12 @@
   const extra = $derived(more ? "" : "max-sm:hidden");
 </script>
 
-<div bind:this={root} class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12'}">
+<div bind:this={root} class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12 max-sm:top-0'}">
   <!-- One row from sm up (scrolling only if it must), so pills that come and go never change the strip's height mid-click. -->
   <div class="flex flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
-    <div class="{pill.replace('border-ws-line', 'border-instr border-2')} relative pr-2">
+    <div class="{pill.replace('border-ws-line', 'border-instr ring-1 ring-inset ring-instr')} relative pr-2">
       <Picker
-        class="w-auto min-w-28 pr-1"
+        class="-my-px min-h-11 w-auto min-w-28 pr-1"
         tone="bare"
         label="Instrument"
         value={s.activeInstrument}
@@ -108,7 +122,7 @@
       />
     </div>
 
-    <button
+    {#if !unused.includes("metronome")}<button
       type="button"
       class={pill}
       aria-pressed={bench.clickDuringRun}
@@ -120,9 +134,9 @@
       <span class="hidden sm:inline">Metronome</span>
       <span class="text-ws-soft">{bench.clickDuringRun ? "On" : "Off"}</span>
       <span class="size-2 rounded-full {bench.clickDuringRun ? 'bg-instr' : 'bg-ws-line'}" aria-hidden="true"></span>
-    </button>
+    </button>{/if}
 
-    <Popover.Root>
+    {#if !unused.includes("tempo")}<Popover.Root>
       <Popover.Trigger
         class={pill}
         disabled={bench.locked || untimed}
@@ -156,9 +170,9 @@
           <Timer class="size-4" aria-hidden="true" />{previewing ? "Stop the click" : "Hear the click"}
         </button>
       </Popover.Content>
-    </Popover.Root>
+    </Popover.Root>{/if}
 
-    <Popover.Root>
+    {#if !unused.includes("count-in")}<Popover.Root>
       <Popover.Trigger class="{pill} {extra}" disabled={bench.locked || untimed} title={untimed ? "Not used here" : undefined}>
         <span>Count-in</span>
         <span class="font-semibold">{s.countInBars === 0 ? "Off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span>
@@ -175,7 +189,7 @@
           {/each}
         </div>
       </Popover.Content>
-    </Popover.Root>
+    </Popover.Root>{/if}
 
     {#if fretted}
       <Popover.Root>

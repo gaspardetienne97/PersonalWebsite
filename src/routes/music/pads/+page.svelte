@@ -784,6 +784,7 @@
       : "Finger technique on the click: strokes, rolls, accents and ghosts."}
   summary={summaryLine}
   tabs={MODES.map(([id, label]) => ({ id, label }))}
+  firstTabs={4}
   tab={s.mode}
   ontab={setMode}
   lesson={{ lessons: isGroove ? padLessons("grooves", entry.level, grooveLessonItems(entry, swing)) : padLessons("rudiments", undefined, [rudimentItem(pattern.id)]) }}

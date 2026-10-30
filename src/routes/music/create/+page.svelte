@@ -30,6 +30,7 @@
   import Trash from "lucide-svelte/icons/trash-2";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import Picker from "$lib/music/components/Picker.svelte";
+  import { stripUnused } from "$lib/music/components/BenchStrip.svelte";
 
   let status = $state("");
   const announce = (msg: string) => (status = msg);
@@ -43,6 +44,9 @@
   let pending = $state<{ kind: "new" } | { kind: "open"; id: string } | null>(null);
 
   const bars = (n: number) => `${n} ${n === 1 ? "bar" : "bars"}`;
+
+  // The song has its own tempo and plays no click: the strip leaves those pills out.
+  stripUnused("metronome", "tempo", "count-in");
 
   $effect(() => {
     bench.hue = "create";

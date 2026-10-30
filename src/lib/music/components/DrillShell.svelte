@@ -1,4 +1,7 @@
 <script lang="ts" module>
+  import type { NextRun } from "../advance.svelte";
+  /** The next-run button's verb, by the kind of move. */
+  export const NEXT_VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow down to", harder: "Move on:", easier: "Step back:" };
   export type Phase = "ready" | "countin" | "running" | "results";
   export type DrillMode = "practice" | "check";
 
@@ -17,12 +20,12 @@
     focus?: string;
   }
 
-  /** Lets Results start the next run (the "Next run" button) without a prop through every drill. */
+  /** Lets Results hand the next run to the shell's action bar without a prop through every drill. */
   export const SHELL_KEY = Symbol("drill-shell");
   export interface ShellApi {
     start(): Promise<void>;
-    /** Results shows a next-run button, so Again steps back to a secondary action. */
-    offer(on: boolean): void;
+    /** The next run by the shared rule, drawn as the bar's primary button (Again steps back); null for none. */
+    offer(next: NextRun | null): void;
   }
 </script>
 
@@ -57,6 +60,8 @@
     summary: string | readonly SetupClause[];
     /** The drill's exercises as a tab row under the title (one place for "which exercise"). */
     tabs?: readonly { id: string; label: string }[];
+    /** How many tabs stay in view; the rest wait behind "More exercises". Rows over 8 keep 4 by default. */
+    firstTabs?: number;
     tab?: string;
     ontab?: (id: string) => void;
     phase?: Phase;
@@ -111,6 +116,7 @@
     startLabel = "Start",
     blocked = null,
     tabs,
+    firstTabs,
     tab,
     ontab,
     lesson = null,
@@ -122,7 +128,23 @@
   const back = $derived(backFor(page.url.pathname));
   const entry = $derived(CATALOG.find((e) => page.url.pathname === e.route.split("?")[0]));
   const played = $derived(listens ?? (!!entry && ["played", "tapped", "sung"].includes(entry.modality)));
+  const ghost = "flex min-h-11 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised";
+  const primary =
+    "flex min-h-12 items-center justify-center gap-2 rounded-full bg-instr px-6 font-display text-base font-semibold text-ws-stage shadow-sm hover:brightness-105 disabled:opacity-50";
   let setupOpen = $state(false);
+  let blurbOpen = $state(false);
+  // Long exercise rows: the first few, plus the open one, until "More exercises".
+  let allTabs = $state(false);
+  const keep = $derived(firstTabs ?? ((tabs?.length ?? 0) > 8 ? 4 : Infinity));
+  const hiddenTabs = $derived(Math.max(0, (tabs?.length ?? 0) - keep));
+  const shownTabs = $derived(allTabs || !hiddenTabs ? (tabs ?? []) : (tabs ?? []).filter((x, i) => i < keep || x.id === tab));
+  async function toggleTabs() {
+    allTabs = !allTabs;
+    if (!allTabs) return;
+    // Keyboard focus moves to the first exercise the button showed.
+    await tick();
+    document.querySelectorAll<HTMLButtonElement>("#drill-exercises [data-tab]")[keep]?.focus();
+  }
   const clauses = $derived<readonly SetupClause[]>(typeof summary === "string" ? [{ text: summary }] : summary);
   /** Open the panel on one control: the clause's setupKey. */
   async function openAt(focus?: string) {
@@ -268,8 +290,13 @@
     await onstart({ mode, downbeat: handle.downbeatPerf, beatMs, bpm: clock.bpm, stopClock });
   }
 
-  let offered = $state(false);
-  setContext<ShellApi>(SHELL_KEY, { start, offer: (on) => (offered = on) });
+  let offered = $state.raw<NextRun | null>(null);
+  setContext<ShellApi>(SHELL_KEY, { start, offer: (next) => (offered = next) });
+  async function goNext() {
+    offered?.go();
+    await tick();
+    await start();
+  }
 
   function stop() {
     clearTimeout(goTimer);
@@ -300,7 +327,7 @@
 
 <section class="mx-auto flex w-full max-w-6xl flex-col gap-4" aria-labelledby="drill-title">
   {#if !live}
-    <header class="flex flex-wrap items-end justify-between gap-3">
+    <header class="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <div class="min-w-0">
         <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href={back.href}>
           <ArrowLeft class="size-4" aria-hidden="true" />Back to {back.label}
@@ -308,16 +335,27 @@
         <h1 id="drill-title" bind:this={heading} tabindex="-1" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           {title}
         </h1>
-        {#if blurb}<p class="mt-1 max-w-prose text-ws-soft">{blurb}</p>{/if}
+        {#if blurb}
+          <!-- One line on a phone, so Start stays near; "more" opens the rest. -->
+          <div class="mt-1 flex items-start gap-1">
+            <p id="drill-blurb" class="min-w-0 max-w-prose flex-1 text-ws-soft {blurbOpen ? '' : 'max-sm:line-clamp-1'}">{blurb}</p>
+            {#if blurb.length > 40}
+              <button type="button" class="-my-2.5 min-h-11 shrink-0 rounded-lg px-2 text-sm font-medium text-instr-ink sm:hidden" aria-expanded={blurbOpen} aria-controls="drill-blurb" onclick={() => (blurbOpen = !blurbOpen)}>
+                {blurbOpen ? "less" : "more"}
+              </button>
+            {/if}
+          </div>
+        {/if}
       </div>
+      <!-- The same controls in the same order on every drill: Practice, Check, Lesson, Hear it first. -->
       <div class="flex flex-col items-start gap-1 sm:items-end">
         <div class="flex flex-wrap items-center gap-2">
           {#if checkable}
-            <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="Mode" aria-describedby="mode-note">
+            <div class="flex rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note">
               {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
                 <button
                   type="button"
-                  class="min-h-10 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-instr text-ws-stage' : 'text-ws-soft hover:text-ws-ink'}"
+                  class="min-h-11 rounded-full px-3 text-sm font-medium sm:px-4 {mode === id ? 'bg-instr text-ws-stage' : 'text-ws-soft hover:text-ws-ink'}"
                   aria-pressed={mode === id}
                   onclick={() => (mode = id)}>{label}</button
                 >
@@ -325,39 +363,41 @@
             </div>
           {/if}
           {#if lesson?.lessons.length}
-            <button
-              type="button"
-              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
-              onclick={() => (revisitFor = lessonIds)}
-            >
-              <BookOpen class="size-4" aria-hidden="true" />Lesson
+            <button type="button" class="{ghost} max-sm:w-11 max-sm:px-0" title="Lesson" onclick={() => (revisitFor = lessonIds)}>
+              <BookOpen class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Lesson</span>
             </button>
           {/if}
           {#if ondemo && (mode !== "check" || demoPlaying)}
-            <button
-              type="button"
-              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised"
-              aria-pressed={demoPlaying}
-              onclick={ondemo}
-            >
-              <Headphones class="size-4" aria-hidden="true" />{demoPlaying ? "Stop demo" : "Hear it first"}
+            <button type="button" class="{ghost} max-sm:w-11 max-sm:px-0 aria-pressed:bg-instr-wash" title={demoPlaying ? "Stop demo" : "Hear it first"} aria-pressed={demoPlaying} onclick={ondemo}>
+              <Headphones class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">{demoPlaying ? "Stop demo" : "Hear it first"}</span>
             </button>
           {/if}
         </div>
-        {#if checkable}<p id="mode-note" class="max-w-80 text-xs text-ws-soft sm:text-right">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>{/if}
+        {#if checkable}<p id="mode-note" class="max-w-80 text-xs text-ws-soft max-sm:sr-only sm:text-right">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>{/if}
       </div>
     </header>
 
     {#if tabs && tabs.length > 1}
-      <div class="-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible" role="group" aria-label="Exercise">
-        {#each tabs as x (x.id)}
+      <div id="drill-exercises" class="-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible" role="group" aria-label="Exercise">
+        {#each shownTabs as x (x.id)}
           <button
             type="button"
-            class="min-h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium {tab === x.id ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+            data-tab={x.id}
+            class="min-h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium {tab === x.id ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
             aria-pressed={tab === x.id}
             onclick={() => ontab?.(x.id)}>{x.label}</button
           >
         {/each}
+        {#if hiddenTabs}
+          <button
+            type="button"
+            class="flex min-h-11 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-ws-line px-4 text-sm font-medium text-instr-ink hover:bg-instr-wash"
+            aria-expanded={allTabs}
+            aria-controls="drill-exercises"
+            onclick={toggleTabs}
+            >{allTabs ? "Fewer exercises" : "More exercises"}{#if !allTabs}<span class="tnum text-xs text-ws-soft" aria-hidden="true">+{hiddenTabs}</span>{/if}</button
+          >
+        {/if}
       </div>
     {/if}
 
@@ -394,14 +434,17 @@
       <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
       {@render results()}
     </div>
+    <!-- After a run the next action comes straight after the results, before the stage. -->
+    {@render bar()}
   {/if}
 
-  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results" && !showing} class:demo={demoPlaying}>
+  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:demo={demoPlaying}>
     {#if live}
       <div class="mb-3 flex items-center gap-3">
+        <!-- On a phone Stop sits in the bar at the bottom of the screen instead. -->
         <button
           type="button"
-          class="flex min-h-11 items-center gap-2 rounded-full bg-ws-stage-ink/10 px-4 text-sm font-semibold hover:bg-ws-stage-ink/20"
+          class="flex min-h-11 items-center gap-2 rounded-full bg-ws-stage-ink/10 px-4 text-sm font-semibold hover:bg-ws-stage-ink/20 max-lg:hidden"
           onclick={stop}
         >
           <Square class="size-4" aria-hidden="true" />Stop <kbd class="text-xs opacity-60">Esc</kbd>
@@ -441,24 +484,47 @@
     {/if}
   </div>
 
-  <div class="flex flex-wrap items-center gap-3">
-    {#if !live && !showing}
-      <button
-        bind:this={startButton}
-        type="button"
-        class="flex min-h-12 items-center gap-2 rounded-full px-6 font-display text-base font-semibold disabled:opacity-50 {offered && phase === 'results' ? 'border border-ws-line bg-ws-surface hover:bg-ws-raised' : 'bg-instr text-ws-stage shadow-sm hover:brightness-105'}"
-        disabled={!!blocked}
-        onclick={start}
-      >
-        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : startLabel}
-      </button>
-      <span class="text-sm text-ws-soft">{blocked ?? "Space starts, Esc stops."}</span>
-    {/if}
-    {#if actions}{@render actions()}{/if}
-  </div>
+  {#if !(phase === "results" && results && !showing)}{@render bar()}{/if}
+  {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
 
-  <p role="status" class="min-h-6 text-sm font-medium">{status}</p>
+  <!-- Announced, not shown: the stage and the results already say it on screen. -->
+  <p role="status" class="sr-only">{status}</p>
 </section>
+
+<!-- The run's one action: Start, Stop, or after results the next run and Again. On a
+     phone it sticks to the bottom of the screen, above the tab bar, so it never needs a scroll. -->
+{#snippet bar()}
+  {#if live || !showing}
+    <div
+      class="flex flex-wrap items-center gap-x-3 gap-y-2 max-lg:sticky max-lg:z-20 max-lg:rounded-2xl max-lg:border max-lg:border-ws-line max-lg:bg-ws-surface/95 max-lg:p-2 max-lg:shadow-lg max-lg:backdrop-blur {live ? 'max-lg:bottom-2 lg:hidden' : 'max-lg:bottom-16'}"
+      data-testid="drill-bar"
+    >
+      {#if live}
+        <button type="button" class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-ws-ink px-6 font-display text-base font-semibold text-ws-bg" onclick={stop}>
+          <Square class="size-4" aria-hidden="true" />Stop <kbd class="text-xs opacity-60">Esc</kbd>
+        </button>
+      {:else}
+        {@const next = phase === "results" ? offered : null}
+        {#if next}
+          <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 max-sm:basis-full" data-testid="next-run" data-kind={next.kind}>
+            <button type="button" class="{primary} max-sm:flex-1" onclick={goNext}>{NEXT_VERB[next.kind]} {next.label}</button>
+            <span class="text-sm text-ws-soft max-sm:text-xs">{next.reason[0].toUpperCase()}{next.reason.slice(1)}.</span>
+          </div>
+        {/if}
+        <button
+          bind:this={startButton}
+          type="button"
+          class="{next ? 'flex min-h-12 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-6 font-display text-base font-semibold hover:bg-ws-raised disabled:opacity-50' : primary} {next ? '' : 'max-lg:flex-1'}"
+          disabled={!!blocked}
+          onclick={start}
+        >
+          <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : startLabel}
+        </button>
+        {#if blocked}<span class="text-sm text-ws-soft max-lg:basis-full">{blocked}</span>{:else}<span class="text-sm text-ws-soft max-lg:hidden">Space starts, Esc stops.</span>{/if}
+      {/if}
+    </div>
+  {/if}
+{/snippet}
 
 <style>
   .countin {
@@ -490,12 +556,17 @@
     text-underline-offset: 3px;
     text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
   }
+  /* A full-size tap target on a phone. */
+  @media (max-width: 39.99rem) {
+    .clause {
+      display: inline-flex;
+      min-height: 2.75rem;
+      align-items: center;
+    }
+  }
   .clause:hover {
     color: var(--instr-ink);
     text-decoration-style: solid;
-  }
-  .stage.dim {
-    opacity: 0.55;
   }
   .stage.demo {
     outline: 2px dashed color-mix(in oklch, var(--instr) 70%, transparent);
