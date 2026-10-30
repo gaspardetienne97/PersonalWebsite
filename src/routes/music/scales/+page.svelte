@@ -31,6 +31,8 @@
   } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
+  import Fretboard from "$lib/music/components/Fretboard.svelte";
+  import { scaleFretMarks, type Outcome } from "./fret-marks";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
   import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
@@ -157,6 +159,10 @@
   let mode = $state<DrillMode>(benchFromUrl(SCALE_TEMPO));
   let status = $state("");
   let stepIndex = $state(0);
+  /** How each step went this run, as it is played. */
+  let played = $state<Outcome[]>([]);
+  /** A wrong note was heard on the current step. */
+  let slipped = false;
   let demoStep = $state<number | null>(null);
   let demo: { stop(): void; playing: boolean } | null = $state(null);
   let summary = $state<RunSummary | null>(null);
@@ -270,12 +276,9 @@
     if (expected.includes(e.midi)) {
       if (mode === "practice") flashes.add(e.midi, "correct");
       const hit = new Set(cap!.notes.filter((n) => n.kind === "noteon" && n.at >= stepStart).map((n) => n.midi));
-      if (expected.every((m) => hit.has(m))) {
-        stepIndex += 1;
-        stepStart = e.at - 60;
-        if (stepIndex >= steps.length) void finish();
-      }
+      if (expected.every((m) => hit.has(m))) advance(e.at);
     } else {
+      slipped = true;
       if (mode === "practice") flashes.add(e.midi, "wrong");
       // A quarter tone off rounds to the next note: say it is the tuning, not the playing.
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
@@ -283,13 +286,17 @@
         detuned = [...detuned, miss];
         status = tuningText(miss, e.midi, inst);
         // Practice moves on past a single out-of-tune note (it still scores as missed); Check waits.
-        if (mode === "practice" && expected.length === 1) {
-          stepIndex += 1;
-          stepStart = e.at - 60;
-          if (stepIndex >= steps.length) void finish();
-        }
+        if (mode === "practice" && expected.length === 1) advance(e.at);
       }
     }
+  }
+  /** On to the next step, the one just left green when no wrong note came first. */
+  function advance(at: number) {
+    played[stepIndex] = slipped ? "wrong" : "correct";
+    slipped = false;
+    stepIndex += 1;
+    stepStart = at - 60;
+    if (stepIndex >= steps.length) void finish();
   }
   let stepStart = 0;
   /** Notes heard close to the target but out of tune, this run. */
@@ -302,19 +309,36 @@
   const signature = $derived(pattern === "triad-pairs" ? signatureFor((s.tonic + (s.chord === "minor" ? 10 : 5)) % 12, "major") : isScaleLine(pattern) ? signatureFor(s.tonic % 12, s.kind === "chromatic" ? "major" : s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
   const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
   const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
+  /** Each step's take: as played during a run, and after it the steps never reached are missed. */
+  const outcomes = $derived(phase === "running" ? played : phase === "results" ? steps.map((_, i) => played[i] ?? "missed") : []);
   const lineStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
-    if (phase !== "running") return out;
-    for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[i] = "correct";
-    if (stepIndex < steps.length) out[stepIndex] = "active";
+    outcomes.forEach((o, i) => o && (out[i] = o));
+    if (phase === "running" && stepIndex < steps.length) out[stepIndex] = "active";
     return out;
   });
+
+  // Guitar and ukulele draw the neck here: fingers, the root, and the run as it is played.
+  const tuning = $derived(fretTuning(inst));
+  const fretWindow = $derived.by(() => {
+    const fs = [...frets.values()].map((p) => p.fret);
+    const from = fs.length ? Math.max(0, Math.min(...fs) - 1) : 0;
+    return { from, to: Math.max(from + 4, (fs.length ? Math.max(...fs) : 0) + 1) };
+  });
+  const fretMarks = $derived(
+    mode === "check" && phase === "running"
+      ? []
+      : scaleFretMarks({ steps, at: frets, tonic: s.tonic, all: mode === "practice" || phase === "results", outcomes, now: phase === "running" ? stepIndex : null, demo: demoStep }),
+  );
+  const unplayable = $derived(tuning ? [...new Set(all.filter((m) => !frets.has(m)))] : []);
 
   async function start(ctx: RunContext) {
     stopDemo();
     summary = null;
     result = null;
     stepIndex = 0;
+    played = [];
+    slipped = false;
     detuned = [];
     flashes.clear();
     const beatMs = ctx.beatMs;
@@ -594,10 +618,23 @@
           <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
         </div>
       {/if}
-      <InstrumentStage line={all} {low} {high} {marks} {flashes} />
+      {#if tuning}
+        <div style:--instr="var(--hue-{inst})">
+          <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings label="{inst} fretboard" />
+        </div>
+        {#if unplayable.length}
+          <p class="mt-1 text-xs text-ws-stage-soft">{unplayable.map((m) => noteName(m)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+        {/if}
+      {:else}
+        <InstrumentStage line={all} {low} {high} {marks} {flashes} />
+      {/if}
     {/if}
     {#if mode === "check" && phase !== "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>
+    {:else if tuning && phase === "results"}
+      <p class="mt-3 text-sm text-ws-stage-soft">Your run on the neck: green notes came clean, red ones slipped or were missed.</p>
+    {:else if tuning && phase === "ready" && mode === "practice"}
+      <p class="mt-3 text-sm text-ws-stage-soft">Numbers are fretting fingers, 1 index to 4 little finger. The filled square is the root.</p>
     {:else if onPiano && pattern === "scale" && phase === "ready"}
       <p class="mt-3 text-sm text-ws-stage-soft">
         {fingerOf.size ? "Numbers are fingers, 1 thumb to 5 little finger, as the scale books print them." : "No standard fingering for this scale here: keep the thumb off the black keys and cross it under after 3 or 4."}

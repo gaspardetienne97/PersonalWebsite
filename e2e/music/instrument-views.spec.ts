@@ -34,9 +34,10 @@ test.describe("instrument views", () => {
     await page.screenshot({ path: `${SHOTS}/scales-piano-1280.png`, fullPage: true });
     await pick(page, "Guitar");
     await expect(page.getByLabel(/^guitar fretboard/)).toBeVisible();
-    await expect(page.getByLabel(/^guitar fretboard/).locator('[data-role="scale"]')).toHaveCount(
-      8,
-    );
+    // C major up one octave: eight targets, each with its finger, the two Cs marked as the root.
+    const neck = page.getByLabel(/^guitar fretboard/);
+    await expect(neck.locator("[data-target][data-finger]")).toHaveCount(8);
+    await expect(neck.locator('[data-role="root"]')).toHaveCount(2);
     await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
     await expect(page.getByText("Setup:").locator("..")).toContainText("on guitar");
     await page.screenshot({ path: `${SHOTS}/scales-guitar-1280.png`, fullPage: true });

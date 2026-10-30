@@ -20,6 +20,8 @@
     demo?: boolean;
     /** The fretting finger (1 index to 4 pinky): the dot takes that finger's colour. */
     finger?: number;
+    /** A run on the neck: the note to play now, or how a played one went. */
+    state?: "now" | "correct" | "wrong";
   }
 
   interface Props {
@@ -41,6 +43,10 @@
     onpick?: (string: number, fret: number) => void;
     /** Chord shapes: one finger on one fret across strings is drawn as a single bar. */
     barres?: boolean;
+    /** Each string's open note beside the neck (E A D G B E). */
+    stringNames?: boolean;
+    /** Fingered dots as a ring in the finger's colour, the root filled in the instrument's hue. */
+    fingerRings?: boolean;
   }
 
   let {
@@ -56,6 +62,8 @@
     flashByPitch = false,
     onpick,
     barres = false,
+    stringNames = false,
+    fingerRings = false,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -138,7 +146,7 @@
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
+<div class="neck-wrap" class:rings={fingerRings} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
@@ -155,7 +163,7 @@
     {#each strings as s (s)}
       <div class="string-row" class:ringing={ringing(s)} style:--gauge="{gauge(s)}px" style:grid-template-columns={cols}>
         <span class="string-line" aria-hidden="true"></span>
-        {#if muted.includes(s)}<span class="muted-x" aria-hidden="true">✕</span>{/if}
+        {#if muted.includes(s)}<span class="muted-x" aria-hidden="true">✕</span>{:else if stringNames}<span class="string-name" aria-hidden="true">{noteName(openStrings[s - 1], "flat", false)}</span>{/if}
         {#each frets as f (f)}
           {@const mk = markAt(s, f)}
           {@const flash = flashAt(s, f)}
@@ -168,6 +176,7 @@
             data-role={mk?.role}
             data-finger={mk?.finger || undefined}
             data-demo={mk?.demo || undefined}
+            data-state={mk?.state}
             data-target={mk ? "" : undefined}
             data-flash={flash}
             data-cell={s * 100 + f}
@@ -320,6 +329,18 @@
     color: var(--ws-stage-soft);
     font-size: 0.8rem;
   }
+  .string-name {
+    position: absolute;
+    z-index: 3;
+    left: -1.5rem;
+    width: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    color: var(--ws-stage-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
   .cell {
     position: relative;
     min-height: 2.75rem;
@@ -424,6 +445,57 @@
   .flash[data-kind="wrong"] {
     background: var(--destructive);
     color: white;
+  }
+  /* Finger rings: the finger in its colour round a dark dot, the root filled in the instrument's hue. */
+  .rings [data-finger]:not([data-held]) .dot {
+    background: #1b120bcc;
+    color: var(--ws-stage-ink);
+    box-shadow:
+      inset 0 0 0 3px var(--finger),
+      0 2px 4px #0008;
+  }
+  .rings [data-role="root"]:not([data-held]) .dot {
+    background: var(--instr);
+    color: #1b120b;
+  }
+  .rings [data-finger][data-demo]:not([data-held]) .dot {
+    background: var(--finger);
+    color: #1b120b;
+  }
+  .rings .dot {
+    transition:
+      transform 160ms ease-out,
+      background-color 160ms ease-out;
+  }
+  /* A run: the note to play now stands out and pulses; played notes turn green or red. */
+  .cell[data-state="now"]:not([data-held]) .dot {
+    transform: scale(1.18);
+    box-shadow:
+      inset 0 0 0 3px var(--finger, var(--instr)),
+      0 0 0 3px var(--ws-stage-ink),
+      0 0 14px var(--instr);
+    animation: now-pulse 1s ease-in-out infinite alternate;
+  }
+  .cell[data-state="correct"]:not([data-held]) .dot {
+    background: var(--success);
+    color: white;
+  }
+  .cell[data-state="wrong"]:not([data-held]) .dot {
+    background: var(--destructive);
+    color: white;
+  }
+  @keyframes now-pulse {
+    to {
+      transform: scale(1.3);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rings .dot {
+      transition: none;
+    }
+    .cell[data-state="now"] .dot {
+      animation: none;
+    }
   }
   .inlays {
     position: absolute;
