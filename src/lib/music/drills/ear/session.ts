@@ -612,6 +612,26 @@ export function perKind(records: AnswerRecord[]) {
   return [...out].map(([kind, v]) => ({ kind, ...v }));
 }
 
+/**
+ * A set's place on its ladder for the shared next-run rule: one item fewer (the
+ * latest on the ladder, never below two), this set, and the next item added.
+ */
+export function setLadder(picked: string[], ladder: string[], phrase: (t: string) => string) {
+  const add = ladder.find((t) => !picked.includes(t));
+  const drop =
+    picked.length > 2
+      ? [...picked].sort((a, b) => ladder.indexOf(b) - ladder.indexOf(a))[0]
+      : undefined;
+  const steps = [
+    ...(drop
+      ? [{ label: `without ${phrase(drop)}`, tokens: picked.filter((t) => t !== drop) }]
+      : []),
+    { label: "this set", tokens: picked },
+    ...(add ? [{ label: phrase(add), tokens: [...picked, add] }] : []),
+  ];
+  return { steps, step: drop ? 1 : 0 };
+}
+
 /** "expected m6, answered P5" with counts, most frequent first. */
 export function confusions(records: AnswerRecord[]) {
   const counts = new Map<

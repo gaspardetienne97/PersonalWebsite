@@ -11,6 +11,7 @@ import {
   FRESH_DIFFICULTY,
   perKind,
   retryPrompts,
+  setLadder,
   targetForSkill,
   tokenLabel,
   weaknessWeight,
@@ -356,5 +357,27 @@ describe("retrying chords in a key", () => {
     const seventh = r.find((x) => x.answer === "V7")!;
     expect(seventh.keyPc).toBe(10);
     expect(r.map((x) => x.answer).sort()).toEqual(["V7", "m:IV"]);
+  });
+});
+
+describe("setLadder", () => {
+  const ladder = ["P8", "P5", "M3", "P4"];
+  const phrase = (t: string) => `the ${t}`;
+  it("steps back by the latest item added and on by the next one", () => {
+    const { steps, step } = setLadder(["M3", "P5", "P8"], ladder, phrase);
+    expect(step).toBe(1);
+    expect(steps.map((s) => s.label)).toEqual(["without the M3", "this set", "the P4"]);
+    expect(steps[0].tokens).toEqual(["P5", "P8"]);
+    expect(steps[2].tokens).toEqual(["M3", "P5", "P8", "P4"]);
+  });
+  it("never drops below two items, and stops at the top", () => {
+    expect(setLadder(["P5", "P8"], ladder, phrase).steps.map((s) => s.label)).toEqual([
+      "this set",
+      "the M3",
+    ]);
+    expect(setLadder(ladder, ladder, phrase)).toMatchObject({
+      step: 1,
+      steps: [{ label: "without the P4" }, { label: "this set" }],
+    });
   });
 });

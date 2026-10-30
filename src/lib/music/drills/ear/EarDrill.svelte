@@ -80,8 +80,10 @@
   import { audio, db, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
+  import EarReveal, { ON_INSTRUMENT } from "./EarReveal.svelte";
+  import ConfusionGrid from "./ConfusionGrid.svelte";
   import { degreeColor } from "./degrees";
-  import type { NextRun } from "$lib/music/advance.svelte";
+  import { nextRun, type NextRun } from "$lib/music/advance.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import {
     buildSession,
@@ -94,7 +96,7 @@
     NO_PLAYBACK,
     perKind,
     retryPrompts,
-    shortLabel,
+    setLadder,
     targetsFor,
     tokenLabel,
     type AnswerRecord,
@@ -422,6 +424,8 @@
   let summary = $state<RunSummary | null>(null);
   let listened = $state(0);
   let queued: Prompt[] | null = null;
+  /** A retry asks the mix-ups, not the set: it never moves the set on or back. */
+  let retrying = false;
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let cap: Capture | null = null;
   let openAt = Infinity;
@@ -483,19 +487,24 @@
     }
     return null;
   }
-  function showMistake(p: Prompt, token: string) {
+  /** What was played and what `token` would have been, and the two back to back; null when the drill can't build it. */
+  function versus(p: Prompt, token: string): { token: string; chosen: Prompt; both: Prompt } | null {
     const chosen = asChosen(p, token);
-    if (!chosen) return;
+    if (!chosen) return null;
     const after = Math.max(...p.playback.map((e) => e.time + e.duration)) + 0.9;
     // The key is set once: the chosen version follows without its key-setting chords.
     const tail = chosen.slice(p.keyEvents ?? 0);
     const t0 = tail[0]?.time ?? 0;
-    mistake = {
+    return {
       token,
       chosen: { ...p, id: `${p.id}-chose-${token}`, answer: token, playback: chosen, ...(p.drill === "key-change" ? { caption: keyChangeCaption(p.fromPc ?? 0, token) } : {}) },
       both: { ...p, id: `${p.id}-vs-${token}`, playback: [...p.playback, ...tail.map((e) => ({ ...e, time: e.time - t0 + after }))] },
     };
-    setTimeout(() => mistake && playPrompt(mistake.both), 500);
+  }
+  function showMistake(p: Prompt, token: string) {
+    mistake = versus(p, token);
+    // Lit as it sounds: the instrument shows the played notes, then the chosen ones.
+    setTimeout(() => mistake && playPrompt(mistake.both, { light: true }), 500);
   }
   let demo = $state<{ answer: string; kind: string } | null>(null);
   let demoPlaying = $state(false);
@@ -808,6 +817,7 @@
     summary = null;
     listened = 0;
     await practice.ready;
+    retrying = !!queued;
     prompts = queued ?? makeSession();
     queued = null;
     records = [];
@@ -915,7 +925,8 @@
     openAt = Infinity;
     if (step === "answer") step = "playing";
     playPrompt(p, {
-      light: answer === "listen-along",
+      // Once answered (or in listen along) the notes light as they sound.
+      light: answer === "listen-along" || step === "feedback",
       onend: () => {
         if (prompts[qi] !== p || phase !== "running") return;
         // A short tail so the last note's release can't answer for the player.
@@ -1182,7 +1193,7 @@
             ? `You heard all ${prompts.length}. Try Choice to check it.`
             : `All ${prompts.length} right.`
           : top
-            ? `${right} of ${prompts.length} ${pocket ? "heard" : "right"}. You heard ${shortLabel(top.kind, top.expected, labels)} as ${shortLabel(top.kind, top.answered, labels)}${top.count > 1 ? ` ${top.count} times` : ""}.`
+            ? `${right} of ${prompts.length} ${pocket ? "heard" : "right"}. You heard ${tokenLabel(top.kind, top.expected, labels)} as ${tokenLabel(top.kind, top.answered, labels)}${top.count > 1 ? ` ${top.count} times` : ""}.`
             : `${right} of ${prompts.length} ${pocket ? "heard" : "right"}.`,
       metric: pct(score),
       metricLabel: pocket ? "heard, self-rated" : "accuracy",
@@ -1204,7 +1215,7 @@
       void putSetting(STAIR_KEY, stair.at);
     }
     status = summary.headline;
-    if ((SETS || levelSteps) && !pocket && !keyChanges) summary.advance = await checkUnlock(done);
+    if ((SETS || levelSteps) && !pocket && !keyChanges && !retrying) summary.advance = await advanceAfter(score);
   }
 
   /** Fine pitch: one row per cent step asked, widest first. */
@@ -1220,7 +1231,7 @@
       });
   }
 
-  /** One results row per answer asked (an interval, a quality, a degree): this run and overall. */
+  /** One results row per answer asked (an interval, a quality, a degree), this run only. */
   function itemRows(done: AnswerRecord[]) {
     if (kinds.length !== 1 || slug === "repertoire-transfer" || kinds[0] === "melody-dictation" || kinds[0] === "progression" || kinds[0] === "key-change" || kinds[0] === "loop" || kinds[0] === "bass-line" || kinds[0] === "error-detect") return null;
     const kind = kinds[0];
@@ -1234,39 +1245,32 @@
       .map((t) => {
         const here = done.filter((r) => r.expected === t);
         const ok = here.filter((r) => r.correct).length;
-        const skill = targets.find((x) => x.token === t)?.skillId ?? targets[0]?.skillId;
-        const all = skill ? accuracy[skill] : undefined;
-        return { label: tokenLabel(kind, t, labels), value: ok / here.length, text: `${ok} of ${here.length}${all !== undefined ? `, ${Math.round(all * 100)}% overall` : ""}` };
+        return { label: tokenLabel(kind, t, labels), value: ok / here.length, text: `${ok} of ${here.length}` };
       });
   }
 
-  // Once what you practise feels easy (about 90% of the last 20 answers), offer
-  // the next step as the next run: one more item in a set, or the next degree level.
-  const RECENT_KEY = `music.ear-${slug}.recent`;
+  // The next run by the shared rule: a set grows by the next item on its ladder, or
+  // drops the last one added; degree drills move through the levels. A run of 9 of
+  // 10 or better counts as clean.
   const LEVEL_LADDER = ["anchor", "major-pentachord", "major-diatonic", "minor-diatonic", "chromatic-color"];
   const levelSteps = $derived(def.usesScaleDegreeLevel && slug !== "mixed" && slug !== "repertoire-transfer" && !fromSongs);
-  async function checkUnlock(done: AnswerRecord[]): Promise<NextRun | undefined> {
-    const set = SETS ? picked.join(",") : `level:${level}`;
-    const saved = await getSetting<{ set: string; results: boolean[] }>(RECENT_KEY, { set, results: [] });
-    const results = [...(saved.set === set ? saved.results : []), ...done.map((r) => r.correct)].slice(-20);
-    await putSetting(RECENT_KEY, { set, results });
-    const easy = results.length >= 20 && results.filter(Boolean).length / results.length >= 0.9;
-    if (!easy) return;
-    const reason = "90% of the last 20 answers";
+  function advanceAfter(score: number): Promise<NextRun> | undefined {
+    const run = { score, correct: score >= 0.9 };
     if (SETS) {
-      const next = SETS.ladder.find((t) => !picked.includes(t));
-      if (!next) return;
-      return { kind: "harder", label: SETS.phrase(next), reason, go: () => setItems([...picked, next]) };
+      const { steps, step } = setLadder(picked, SETS.ladder, SETS.phrase);
+      return nextRun(`ear.${slug}.${picked.join(",")}`, { steps, step }, run, ({ step }) => step !== undefined && setItems(steps[step].tokens));
     }
-    const next = SCALE_DEGREE_LEVELS.find((l) => l.id === LEVEL_LADDER[LEVEL_LADDER.indexOf(level) + 1]);
-    if (!next) return;
-    return { kind: "harder", label: next.title, reason, go: () => cfg.set({ level: next.id }) };
+    const at = LEVEL_LADDER.indexOf(level);
+    if (at < 0) return;
+    const steps = LEVEL_LADDER.map((id) => ({ label: SCALE_DEGREE_LEVELS.find((l) => l.id === id)?.title ?? id }));
+    return nextRun(`ear.${slug}.level`, { steps, step: at }, run, ({ step }) => step !== undefined && cfg.set({ level: LEVEL_LADDER[step] }));
   }
 
   function stop() {
     teardown();
     phase = "ready";
-    status = answer === "listen-along" ? "Stopped." : `Stopped after ${records.filter(Boolean).length} answers. Answers already given are saved.`;
+    const n = records.filter(Boolean).length;
+    status = answer === "listen-along" ? "Stopped." : `Stopped after ${n} answer${n === 1 ? "" : "s"}. Answers already given are saved.`;
   }
 
   function retry() {
@@ -1283,6 +1287,22 @@
     teardown();
     stopWarmup();
   });
+
+  /** One-item drills get a played-vs-answered grid: every item in teaching order. */
+  const gridOrder = $derived.by(() => {
+    // Progressions answer several chords at once: no single square for them.
+    if (slug === "mixed" || slug === "progressions" || answer === "listen") return null;
+    if (SETS) return slug === "chord-functions" ? SETS.items.map((i) => functionToken(i.token, chordKind)) : SETS.items.map((i) => i.token);
+    if (slug === "scale-degrees") return SCALE_DEGREES.map((d) => d.label);
+    return slug === "fine-pitch" ? ["higher", "lower", "same"] : slug === "interval-compare" ? ["first", "second", "same"] : null;
+  });
+  /** A grid square: the item played, then the answer given, from the same starting point. */
+  async function playPair(asked: string, said: string) {
+    const p = prompts[records.findIndex((r) => r?.expected === asked)];
+    if (!p) return;
+    await audio.unlock();
+    playPrompt((said !== asked && versus(p, said)?.both) || p);
+  }
 
   // ---------------------------------------------------------------------------
   // Surfaces
@@ -1303,6 +1323,8 @@
   const choiceTokens = $derived(current?.choices ?? []);
   const degreeChoices = $derived(current?.drill === "scale-degree" && answer === "choice");
   const isPhrase = (p: Prompt) => p.drill === "melody-dictation" || p.drill === "repertoire-transfer";
+  /** Answered by ear (not played back): the answer is drawn on the strip's instrument. */
+  const onInstrument = (p: Prompt) => ON_INSTRUMENT.includes(p.drill) && !isPlayback;
   const showAnswer = $derived(answer === "listen-along" || step === "revealed" || (step === "feedback" && (mode === "practice" || (!!current && isPhrase(current)))));
   const summaryLine = $derived<SetupClause[]>(
     [
@@ -1603,17 +1625,22 @@
         </div>
 
         <div class="mt-3">
-          {#if mistake && step === "feedback"}
+          {#if onInstrument(p) && (showAnswer || hinted)}
+            <!-- The notes on the strip's instrument, with a wrong choice dashed beside them. -->
+            <EarReveal prompt={p} chosen={step === "feedback" ? mistake?.chosen : null} {lit} />
+          {:else if mistake && step === "feedback"}
             <!-- What was played beside what you chose, from the same starting point. -->
             <div class="grid gap-3 sm:grid-cols-2">
               <EarVisual prompt={p} revealed prefix="Played" labels={labels === "solfege" ? "solfege" : "numbers"} />
               <EarVisual prompt={mistake.chosen} revealed prefix="You chose" labels={labels === "solfege" ? "solfege" : "numbers"} />
             </div>
-            <button type="button" class="{btnStage} mt-2" onclick={() => mistake && playPrompt(mistake.both)}>
-              Hear both again: {tokenLabel(p.drill, p.answer, labels)}, then {tokenLabel(p.drill, mistake.token, labels)}
-            </button>
           {:else}
             <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} />
+          {/if}
+          {#if mistake && step === "feedback"}
+            <button type="button" class="{btnStage} mt-2" onclick={() => mistake && playPrompt(mistake.both, { light: true })}>
+              Hear both again: {tokenLabel(p.drill, p.answer, labels)}, then {tokenLabel(p.drill, mistake.token, labels)}
+            </button>
           {/if}
         </div>
 
@@ -1713,7 +1740,7 @@
               {/each}
             </div>
           {/if}
-          {#if answer === "listen-along" && p.drill !== "scale-degree"}
+          {#if answer === "listen-along" && p.drill !== "scale-degree" && !onInstrument(p)}
             <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} interactive={false} />
           {/if}
         {:else if answer === "listen"}
@@ -1841,12 +1868,14 @@
       {#if confused.length}
         <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
           <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>
-          <ul class="mt-2 grid gap-1 sm:grid-cols-2">
+          {#if gridOrder}
+            <p class="mt-1 text-sm text-ws-soft">Tap a square to hear the two back to back.</p>
+            <ConfusionGrid records={records.filter(Boolean)} order={gridOrder} name={(t) => tokenLabel(KIND_OF[slug], t, labels)} onplay={playPair} />
+          {/if}
+          <!-- The same mix-ups in words: the list when there is no grid, for screen readers beside it. -->
+          <ul class="mt-2 grid gap-1 text-sm {gridOrder ? 'sr-only' : ''}">
             {#each confused as c (c.kind + c.expected + c.answered)}
-              <li class="flex items-baseline justify-between gap-3 text-sm">
-                <span>Expected <strong>{shortLabel(c.kind, c.expected, labels)}</strong>, answered <strong>{shortLabel(c.kind, c.answered, labels)}</strong></span>
-                <span class="tnum text-ws-soft">{c.count}×</span>
-              </li>
+              <li><span class="tnum font-semibold">{c.count}×</span> {tokenLabel(c.kind, c.expected, labels)}, heard as {tokenLabel(c.kind, c.answered, labels)}</li>
             {/each}
           </ul>
         </section>

@@ -61,7 +61,8 @@ async function shots(page: Page, name: string) {
 const prompt = (page: Page) => page.locator("article[data-drill]");
 
 /** Put a recent-answers history in place, once the app has made its database. */
-async function seedRecent(page: Page, slug: string, set: string, right: number) {
+/** One clean run already behind ladder `id` at `step`: the next clean run moves on (progress/advance). */
+async function seedAdvance(page: Page, id: string, step: number) {
   await page.goto("/music");
   await page.waitForLoadState("networkidle");
   await expect(async () => {
@@ -83,10 +84,7 @@ async function seedRecent(page: Page, slug: string, set: string, right: number) 
             }
           };
         }),
-      [
-        `music.ear-${slug}.recent`,
-        { set, results: Array.from({ length: 20 }, (_, i) => i < right) },
-      ] as const,
+      ["advance.v1", { [id]: { at: `-|${step}`, passes: 1, fails: 0 } }] as const,
     );
   }).toPass({ timeout: 10_000 });
 }
@@ -199,11 +197,12 @@ test.describe("ear training", () => {
       await page.locator("button.choice", { hasText: new RegExp(`^${pick}`) }).click();
       await waitStep(page, "feedback");
       if (i === 0) {
-        // A wrong answer: what was played and what you chose, each on its staff, and heard back to back.
-        const captions = card.locator("figure.staff-card figcaption");
-        await expect(captions).toHaveCount(2);
-        await expect(captions.nth(0)).toContainText(`Played: ${names[answer]}, `);
-        await expect(captions.nth(1)).toContainText(`You chose: ${pick}, `);
+        // A wrong answer: both notes on the strip's instrument, the half steps counted, and the
+        // chosen answer beside them, heard back to back.
+        const reveal = card.getByTestId("ear-reveal");
+        await expect(reveal).toContainText(`Played: ${names[answer]}, `);
+        await expect(reveal).toContainText(" half steps");
+        await expect(reveal).toContainText(`You chose: ${pick}, `);
         await expect(
           card.getByRole("button", { name: `Hear both again: ${names[answer]}, then ${pick}` }),
         ).toBeVisible();
@@ -214,6 +213,10 @@ test.describe("ear training", () => {
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 right");
     await expect(page.getByText("What you mixed up")).toBeVisible();
+    // The mix-up as a square of the grid: played (row) against what was said (column).
+    await expect(
+      page.getByRole("button", { name: /^Played .*, you said .*, once\. Play both\.$/ }),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: /Retry my confusions/ })).toBeVisible();
     await shots(page, "ear-intervals-results");
   });
@@ -247,8 +250,8 @@ test.describe("ear training", () => {
   });
 
   test("intervals: a set that feels easy offers the next interval", async ({ page }) => {
-    // 18 of the last 20 already right on the First steps set.
-    await seedRecent(page, "intervals", "M3,P5,P8", 18);
+    // One clean run already on the First steps set.
+    await seedAdvance(page, "ear.intervals.M3,P5,P8", 1);
     await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
     await page.getByRole("button", { name: "Check", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -261,9 +264,9 @@ test.describe("ear training", () => {
     }
     const next = page.getByTestId("next-run");
     await expect(next).toHaveAttribute("data-kind", "harder");
-    await expect(next).toContainText("90% of the last 20 answers");
-    // Results: a row per interval, this run and the overall accuracy.
-    await expect(page.getByText(/^\d+ of \d+, \d+% overall$/).first()).toBeVisible();
+    await expect(next).toContainText("2 clean runs");
+    // Results: a row per interval, this run only.
+    await expect(page.getByText(/^\d+ of \d+$/).first()).toBeVisible();
     await next.getByRole("button", { name: "Move on: the perfect 4th" }).click();
     // The next run starts with the 4th added.
     await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
@@ -274,7 +277,7 @@ test.describe("ear training", () => {
     test.use({ storageState: { cookies: [], origins: [] } });
 
     test("Move on to a new interval shows its lesson before the run", async ({ page }) => {
-      await seedRecent(page, "intervals", "M3,P5,P8", 18);
+      await seedAdvance(page, "ear.intervals.M3,P5,P8", 1);
       await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
       await page.getByRole("button", { name: "Skip, I know this" }).click();
       await page.getByRole("button", { name: "Check", exact: true }).click();
@@ -324,14 +327,10 @@ test.describe("ear training", () => {
     const wrongChord = chord === "major" ? "Minor" : "Major";
     await page.locator("button.choice", { hasText: new RegExp(`^${wrongChord}`) }).click();
     await waitStep(page, "feedback");
-    let captions = card.locator("figure.staff-card figcaption");
-    await expect(captions).toHaveCount(2);
-    await expect(captions.nth(0)).toContainText(
-      `Played: ${chord === "major" ? "Major: M3, m3" : "Minor: m3, M3"}`,
-    );
-    await expect(captions.nth(1)).toContainText(
-      `You chose: ${wrongChord === "Major" ? "Major: M3, m3" : "Minor: m3, M3"}`,
-    );
+    // On the strip's instrument: the chord played, the chosen one's other note dashed.
+    const reveal = card.getByTestId("ear-reveal");
+    await expect(reveal).toContainText(`Played: ${chord === "major" ? "Major" : "Minor"}: `);
+    await expect(reveal).toContainText(`You chose: ${wrongChord}: `);
     await expect(card.getByRole("button", { name: /^Hear both again: / })).toBeVisible();
     await shots(page, "ear-chord-mistake");
 
@@ -343,7 +342,7 @@ test.describe("ear training", () => {
     const other = cadence === "authentic" ? "Plagal" : "Authentic";
     await page.locator("button.choice", { hasText: new RegExp(`^${other}`) }).click();
     await waitStep(page, "feedback");
-    captions = card.locator("figure.staff-card figcaption");
+    const captions = card.locator("figure.staff-card figcaption");
     await expect(captions.nth(1)).toContainText(
       `You chose: ${other}, ${other === "Plagal" ? "IV to I" : "V to I"}`,
     );
@@ -506,13 +505,13 @@ test.describe("ear training", () => {
     const wrong = inv === "root" ? "First inversion" : "Root position";
     await page.locator("button.choice", { hasText: new RegExp(`^\\s*${wrong}\\s*$`) }).click();
     await waitStep(page, "feedback");
-    const captions = card.locator("figure.staff-card figcaption");
-    await expect(captions.nth(0)).toContainText(
+    const reveal = card.getByTestId("ear-reveal");
+    await expect(reveal).toContainText(
       new RegExp(
-        `^Played: .*${inv === "root" ? "root position" : "first inversion"}: \\S+ in the bass`,
+        `Played: ${inv === "root" ? "Root position" : "First inversion"}: .*, \\S+ in the bass`,
       ),
     );
-    await expect(captions.nth(1)).toContainText(new RegExp(`^You chose: .*${wrong.toLowerCase()}`));
+    await expect(reveal).toContainText(new RegExp(`You chose: ${wrong}: `));
     await shots(page, "ear-inversion-mistake");
 
     await installFakeMidi(page, [PORTS.keys]);
@@ -623,7 +622,7 @@ test.describe("ear training", () => {
   });
 
   test("scale degrees: an easy level offers the next one", async ({ page }) => {
-    await seedRecent(page, "scale-degrees", "level:anchor", 18);
+    await seedAdvance(page, "ear.scale-degrees.level", 0);
     await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
     await page.getByRole("button", { name: "Check", exact: true }).click();
     await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -944,7 +943,7 @@ test.describe("note reading and sight-reading", () => {
       await page.waitForTimeout(120);
     }
     await expect(page.getByRole("status")).toContainText(/groups clean/, { timeout: 8000 });
-    await expect(page.getByRole("button", { name: "Faster" })).toBeVisible();
+    await expect(page.getByTestId("next-run")).toBeVisible();
     await expect(page.getByRole("button", { name: /Practice the notes you missed/ })).toBeVisible();
     await shots(page, "reading-sight-results");
   });
