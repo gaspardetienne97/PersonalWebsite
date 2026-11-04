@@ -44,9 +44,9 @@
     { value: "saw", label: "Saw" },
   ];
   const LEVELS = [
+    { key: "masterLevel", label: "Master", blurb: "Everything at once." },
     { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
     { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
-    { key: "masterLevel", label: "Master", blurb: "Everything at once." },
   ] as const;
   const SECTIONS = [
     { id: "audio", label: "Audio", icon: Volume2, hue: "piano" },
@@ -166,10 +166,10 @@
         {#each LEVELS as l (l.key)}
           <li class={rowCls}>
             <div class="min-w-0 flex-1 basis-40">
-              <label for={l.key} class="flex items-baseline gap-2 font-medium">{l.label}<span class="tnum text-sm font-semibold text-instr-ink">{Math.round(s[l.key] * 100)}%</span></label>
+              <label for={l.key} class="font-medium">{l.label}</label>
               <p class="text-sm text-ws-soft">{l.blurb}</p>
             </div>
-            <div class="flex w-full items-center sm:w-64">
+            <div class="flex w-full items-center gap-2 sm:w-72">
               <input
                 id={l.key}
                 type="range"
@@ -180,6 +180,7 @@
                 value={s[l.key]}
                 oninput={(e) => settings.update({ [l.key]: Number(e.currentTarget.value) })}
               />
+              <span class="tnum w-14 shrink-0 text-right font-display text-lg font-semibold" aria-hidden="true">{Math.round(s[l.key] * 100)}%</span>
             </div>
           </li>
         {/each}

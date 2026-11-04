@@ -159,6 +159,7 @@
         </div>
         {@render setPicture()}
       </div>
+      {@render nextTopic("session")}
     </section>
 
     <section id="check" aria-labelledby="check-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -171,6 +172,7 @@
       </div>
         {@render checkPicture()}
       </div>
+      {@render nextTopic("check")}
     </section>
 
     <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -182,6 +184,7 @@
       </div>
         {@render resultPicture()}
       </div>
+      {@render nextTopic("not-measured")}
     </section>
 
     <section id="connect" aria-labelledby="connect-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -195,6 +198,7 @@
       </div>
         {@render devicesPicture()}
       </div>
+      {@render nextTopic("connect")}
     </section>
 
     <section id="keys" aria-labelledby="keys-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -239,6 +243,7 @@
           <p class="mt-2 max-w-60 text-sm text-ws-soft">Pad 1 is bottom left, the same as A01 on the MPC.</p>
         </figure>
       </div>
+      {@render nextTopic("keys")}
     </section>
 
     <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -251,6 +256,7 @@
         <dt><span class="flex gap-1"><kbd class="kbd">⌘</kbd><kbd class="kbd">K</kbd></span></dt>
         <dd>Search every drill, path, song and page. <kbd class="kbd">Ctrl</kbd> <kbd class="kbd">K</kbd> on Windows and Linux. Arrow keys move, Enter goes.</dd>
       </dl>
+      {@render nextTopic("shortcuts")}
     </section>
 
     <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -263,6 +269,7 @@
       </div>
         {@render weekPicture()}
       </div>
+      {@render nextTopic("streaks")}
     </section>
 
     <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
@@ -274,9 +281,20 @@
       </div>
         {@render privacyPicture()}
       </div>
+      {@render nextTopic("privacy")}
     </section>
   </div>
 </div>
+
+<!-- The end of each topic leads to the next, so the guide reads straight through without the topic list. -->
+{#snippet nextTopic(id: string)}
+  {@const i = TOPICS.findIndex((t) => t.id === id)}
+  {@const next = TOPICS[i + 1]}
+  <p class="mt-6 flex items-center justify-between gap-3 border-t border-ws-line pt-3 text-sm">
+    <span class="tnum text-ws-soft">Topic {i + 1} of {TOPICS.length}</span>
+    {#if next}<a class="{link} inline-flex min-h-11 items-center" href="#{next.id}" onclick={(e) => (e.preventDefault(), jump(next.id))}>Next: {next.label}</a>{/if}
+  </p>
+{/snippet}
 
 {#snippet heading(id: string, label: string, topicId: string)}
   {@const t = topic(topicId)}

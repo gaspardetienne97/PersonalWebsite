@@ -7,9 +7,10 @@
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Volume from "lucide-svelte/icons/volume-2";
+  import Drum from "lucide-svelte/icons/drum";
   import type { Snippet } from "svelte";
   import { audio } from "$lib/music/runtime";
-  import { btnPrimary, btnStage } from "$lib/music/components/ui";
+  import { btnStage } from "$lib/music/components/ui";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
@@ -120,8 +121,9 @@
 
 <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
     <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-      <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playGroove}>
-        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play groove{/if}
+      <!-- The song bar's Play is the main transport; this plays the beat alone. -->
+      <button type="button" class={btnStage} aria-pressed={soloing} onclick={playGroove}>
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play beat{/if}
       </button>
       <h2 class="min-w-0 flex-1 basis-0 truncate font-display text-xl font-semibold sm:basis-24">{pattern.name}</h2>
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
@@ -130,17 +132,18 @@
         <button type="button" class="{btnStage} w-11 px-0 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add a bar to the beat" disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" /></button>
       </div>
       {@render extra?.()}
+      <a class={btnStage} href="/music/create/kits"><Drum class="size-4" aria-hidden="true" />Kits</a>
       <Picker class="w-auto min-w-36 max-sm:flex-1 border-ws-stage-ink/30 bg-ws-stage-ink/15 dark:bg-ws-stage-ink/15 data-[placeholder]:text-ws-stage-ink [&_.truncate]:opacity-100" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
     </div>
 
-    <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" data-grid>
+    <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" data-grid aria-describedby="beat-keys">
       <table class="grid-table">
         <thead>
           <tr>
             <th scope="col" class="rowhead"><span class="sr-only">Voice</span></th>
             {#each Array.from({ length: total }, (_, i) => i) as s (s)}
               <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-step={s} data-now={playhead === s || undefined}>
-                <span aria-hidden="true">{s % STEPS === 0 ? `${s / STEPS + 1}.1` : s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}</span>
+                <span aria-hidden="true">{s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}{#if s % STEPS === 0 && total > STEPS}<span class="barnum">bar {s / STEPS + 1}</span>{/if}</span>
                 <span class="sr-only">Bar {Math.floor(s / STEPS) + 1}, step {(s % STEPS) + 1}</span>
               </th>
             {/each}
@@ -152,7 +155,7 @@
               <th scope="row" class="rowhead">
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
                   <span class="flex max-w-full items-center gap-1"><span class="truncate font-semibold">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60" aria-hidden="true" /></span>
-                  <span class="text-[0.7rem] text-ws-stage-soft">{row.sample ? `Sample on ${padLabel(row.midi)}` : "Synth"}</span>
+                  {#if row.sample}<span class="text-[0.7rem] text-ws-stage-soft">Sample on {padLabel(row.midi)}</span>{/if}
                 </button>
               </th>
               {#each Array.from({ length: total }, (_, i) => i) as s (s)}
@@ -179,9 +182,10 @@
         </tbody>
       </table>
     </div>
-    <p class="mt-3 text-xs text-ws-stage-soft" data-playhead={playhead}>
-      {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. <a class="font-semibold text-ws-stage-ink underline underline-offset-4" href="/music/create/kits">Edit sample kits</a>. Arrow keys move around the grid, Enter or Space toggles a step.
+    <p class="mt-3 text-sm text-ws-stage-ink/85" data-playhead={playhead}>
+      {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. Tap a step to add or remove a hit.
     </p>
+    <p id="beat-keys" class="sr-only">Arrow keys move around the grid, Enter or Space toggles a step.</p>
   </section>
 
 <style>
@@ -241,6 +245,11 @@
   }
   .stephead.bar {
     color: var(--ws-stage-ink);
+  }
+  .barnum {
+    margin-left: 0.3rem;
+    font-weight: 500;
+    color: var(--ws-stage-soft);
   }
   .step {
     display: block;

@@ -9,6 +9,9 @@
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import { INSTRUMENT_ICON, instrumentOptions } from "$lib/music/components/instrument-icons";
   import Cable from "lucide-svelte/icons/cable";
+  import Check from "lucide-svelte/icons/check";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import { noteName } from "@repo/music-core";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { port, announce }: { port: PortInfo; announce: (text: string) => void } = $props();
@@ -62,7 +65,7 @@
 </script>
 
 <article
-  class="device flex min-w-0 flex-col gap-4 rounded-2xl p-4 sm:p-5"
+  class="device flex min-w-0 scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-4 rounded-2xl p-4 sm:p-5"
   data-inactive={inactive || undefined}
   style:--instr={instrument ? `var(--hue-${instrument})` : "var(--hue-create)"}
   data-testid="device-{port.id}"
@@ -97,7 +100,27 @@
   </header>
 
   {#if open}
-  <div class="grid gap-3 sm:grid-cols-3">
+  <div class="max-w-sm">
+    <div class="flex min-w-0 flex-col gap-1 text-sm">
+      <span class="font-medium">Instrument</span>
+      <Picker
+        label="Instrument"
+        value={profile?.instrument ?? "auto"}
+        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]}
+        onchange={(v) => {
+          void save({ instrument: v === "auto" ? undefined : (v as Instrument) });
+          announce(`${title} plays ${v === "auto" ? "whatever its name suggests" : INSTRUMENT_LABEL[v as Instrument]}.`);
+        }}
+      />
+    </div>
+  </div>
+
+  <details class="group text-sm">
+    <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
+      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Advanced
+      <span class="font-normal text-ws-soft">Alias, MIDI channel, latency</span>
+    </summary>
+    <div class="mt-2 grid gap-3 pl-6 sm:grid-cols-2">
     <label class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">Alias</span>
       <input
@@ -111,18 +134,6 @@
       />
     </label>
     <div class="flex min-w-0 flex-col gap-1 text-sm">
-      <span class="font-medium">Instrument</span>
-      <Picker
-        label="Instrument"
-        value={profile?.instrument ?? "auto"}
-        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]}
-        onchange={(v) => {
-          void save({ instrument: v === "auto" ? undefined : (v as Instrument) });
-          announce(`${title} plays ${v === "auto" ? "whatever its name suggests" : INSTRUMENT_LABEL[v as Instrument]}.`);
-        }}
-      />
-    </div>
-    <div class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">MIDI channel</span>
       <Picker
         label="MIDI channel"
@@ -135,17 +146,17 @@
         }}
       />
     </div>
-  </div>
-
-  <p class="text-sm">
-    <span class="text-ws-soft">Latency offset:</span>
-    {#if offset !== undefined}
-      <span class="tnum font-medium">{offset > 0 ? "+" : ""}{offset} ms</span> for this device ({offset >= 0 ? "notes arrive late and are pulled earlier" : "notes arrive early"}).
-    {:else}
-      none for this device, so the global MIDI offset of <span class="tnum font-medium">{settings.value.midiOffsetMs} ms</span> applies.
-    {/if}
-    <a href="/music/settings" class="font-medium text-instr-ink underline underline-offset-4">Calibrate in Settings</a>
-  </p>
+    <p class="text-sm sm:col-span-2">
+      <span class="font-medium">Latency:</span>
+      {#if offset !== undefined}
+        <span class="tnum">{offset > 0 ? "+" : ""}{offset} ms</span> for this device.
+      {:else}
+        default (<span class="tnum">{settings.value.midiOffsetMs} ms</span>).
+      {/if}
+      <a href="/music/settings" class="font-medium text-instr-ink underline underline-offset-4">Calibrate in Settings</a>
+    </p>
+    </div>
+  </details>
 
   {#if instrument === "mpc"}
     <section class="flex flex-col gap-3 rounded-xl bg-ws-raised/60 p-3" aria-label="Pad notes for {title}">
@@ -173,6 +184,7 @@
             {@const i = row + col}
             {@const note = learning ? learning[i] : profile?.padNotes?.[i]}
             <li
+              title={note !== undefined ? `Pad ${padLabel(36 + i)} hears MIDI note ${note}` : undefined}
               class="flex min-h-11 flex-col items-center justify-center rounded-md border text-xs {learning && i === learning.length
                 ? 'target border-2 border-ws-ink bg-instr font-semibold text-ws-stage'
                 : note !== undefined
@@ -180,13 +192,13 @@
                   : 'border-dashed border-ws-soft/60'}"
               aria-current={learning && i === learning.length ? "step" : undefined}
             >
-              <span>{padLabel(36 + i)}</span>
-              <span class="tnum font-semibold">{note ?? (profile?.padNotes || learning ? "" : 36 + i)}</span>
+              <span class="flex items-center gap-0.5 font-semibold">{#if note !== undefined}<Check class="size-3" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
+              <span class="tnum">{note !== undefined ? noteName(note) : profile?.padNotes || learning ? "" : noteName(36 + i)}</span>
             </li>
           {/each}
         {/each}
       </ol>
-      <p class="text-xs text-ws-soft">Each hardware note is rewritten to its bank A pad once, as it enters the app, so every drill reads A01 to A16.</p>
+      <p class="text-xs text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Hover a pad for its MIDI note.</p>
     </section>
   {/if}
 

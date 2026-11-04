@@ -27,7 +27,7 @@
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
   import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
+  import Pointer from "lucide-svelte/icons/pointer";
   import InputPanel from "./InputPanel.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
@@ -45,16 +45,17 @@
   let more = $state(false);
 
   const s = $derived(settings.value);
-  const sourceLabel = $derived.by(() => {
+  const soundLabel = $derived(s.muted ? "Sound off" : !audio.unlocked ? "Enable sound" : "");
+  const midiPort = $derived(midi.enabled ? midi.inputs.find((p) => p.state === "connected" && !midi.profile(p.id)?.ignored) : undefined);
+  const midiLive = $derived(!!midiPort);
+  /** The input in words: the one last played, else what is ready (mic, then MIDI), else the screen. */
+  const source = $derived.by(() => {
     const src = input.activeSource;
-    if (src === "midi") return "MIDI";
-    if (src === "audio") return "Microphone";
-    if (src === "onscreen") return "On-screen";
-    if (mic.state === "on") return "Microphone";
-    return midi.enabled && midi.inputs.length ? "MIDI ready" : "On-screen";
+    const midiWord = `MIDI: ${(midiPort && (midi.profile(midiPort.id)?.alias || midiPort.name)) || "on"}`;
+    if (src === "audio" || (src !== "midi" && src !== "onscreen" && mic.state === "on")) return { kind: "mic", word: "Mic on" } as const;
+    if (src === "midi" || (src !== "onscreen" && midiLive)) return { kind: "midi", word: midiWord } as const;
+    return { kind: "screen", word: "On-screen keys" } as const;
   });
-  const soundLabel = $derived(s.muted ? "Sound off" : !audio.unlocked ? "Tap for sound" : "");
-  const midiLive = $derived(midi.enabled && midi.inputs.some((p) => p.state === "connected" && !midi.profile(p.id)?.ignored));
   const fretted = $derived(s.activeInstrument === "guitar" || s.activeInstrument === "ukulele" ? s.activeInstrument : null);
   const tuningId = $derived(fretted === "ukulele" ? s.ukuleleTuningId : s.guitarTuningId);
   const tuningName = $derived(fretted ? tunings.pick(tuningId, fretted).name : "");
@@ -131,7 +132,9 @@
 <div bind:this={root} bind:offsetHeight={bench.stripH} class="sticky top-0 z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur">
   <!-- One row from sm up (scrolling only if it must), so pills that come and go never change the strip's height mid-click. -->
   <div class="flex flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
-    <div class="{pill.replace('border-ws-line', 'border-instr ring-1 ring-inset ring-instr')} {idle} relative min-w-0 pr-2">
+    {#if bench.instrumentFree}
+      <span class="{pill} {idle} text-ws-soft" title="This page draws no instrument, so any one can play it. The picker comes back on the next page.">Any instrument</span>
+    {:else}<div class="{pill.replace('border-ws-line bg-ws-surface', 'border-instr bg-instr-wash')} {idle} relative min-w-0 pr-2">
       <Picker
         class="-my-px min-h-11 w-auto min-w-0 pr-1 sm:min-w-28"
         tone="bare"
@@ -141,7 +144,7 @@
         options={instrumentOptions((i) => INSTRUMENT_LABEL[i])}
         onchange={(v) => settings.update({ activeInstrument: v as Instrument })}
       />
-    </div>
+    </div>{/if}
 
     {#if showMetronome}<button
       type="button"
@@ -151,10 +154,8 @@
       title={bench.clickDuringRun ? "Runs click. Tap to mute the click." : "Runs are silent. Tap to hear the click."}
       onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
     >
-      <Timer class="size-4" aria-hidden="true" />
-      <span class="hidden lg:inline">Metronome</span>
-      <span class="text-ws-soft">{bench.clickDuringRun ? "On" : "Off"}</span>
-      <span class="size-2 rounded-full {bench.clickDuringRun ? 'bg-instr' : 'bg-ws-line'}" aria-hidden="true"></span>
+      <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
+      <span class="whitespace-nowrap">{bench.clickDuringRun ? "Click on" : "Click off"}</span>
     </button>{/if}
 
     {#if showTempo}<Popover.Root>
@@ -243,18 +244,27 @@
       </Popover.Root>
     {/if}
 
-    <span class="min-h-11 shrink-0 items-center gap-1 px-1 {locked && clock ? 'flex' : 'hidden'}" aria-hidden="true" title="Beat">
+    <!-- The beat: the current one numbered inside its dot, so the count reads without colour. -->
+    <span
+      class="min-h-11 shrink-0 items-center gap-1 px-1 {locked && clock ? 'flex' : 'hidden'}"
+      role="img"
+      aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}"
+    >
+      <!-- A phone row has no room for the word; the stage's count-in says it there, and the dots turn amber. -->
+      {#if bench.countingIn}<span class="mr-1 text-sm font-medium text-ws-soft max-sm:hidden" aria-hidden="true">Count-in</span>{/if}
       {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
-        <span
-          class="size-2.5 rounded-full transition-transform {bench.beat === b
-            ? 'scale-125 ' + (bench.countingIn ? 'bg-warn' : 'bg-instr')
-            : 'bg-ws-line'}"
-        ></span>
+        <span class="grid size-5 place-items-center" aria-hidden="true">
+          {#if bench.beat === b}
+            <span
+              class="ws-pulse grid size-5 place-items-center rounded-full text-[0.6875rem] leading-none font-bold text-ws-stage tnum {bench.countingIn ? 'bg-warn' : 'bg-instr'}"
+              data-beat={b}>{b}</span
+            >
+          {:else}
+            <span class="size-2 rounded-full bg-ws-line"></span>
+          {/if}
+        </span>
       {/each}
     </span>
-    {#if bench.beat > 0}
-      <span class="sr-only">Beat {bench.beat} of {bench.beatsPerBar}</span>
-    {/if}
 
     <span class="ml-auto max-sm:hidden"></span>
 
@@ -263,19 +273,18 @@
     <Popover.Root>
       <Popover.Trigger
         class="{pill} {s.muted ? 'border-warn' : ''} max-sm:ml-auto {roomy ? '' : 'max-sm:w-11 max-sm:justify-center max-sm:px-0'}"
-        aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}"
+        aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}, playing from {source.word}"
       >
         <!-- Children stay mounted: the first tap unlocks sound, and swapping nodes mid-click would swallow the click that opens the pop-up. -->
         <VolumeOff class="size-4 {s.muted || !audio.unlocked ? '' : 'hidden'}" aria-hidden="true" /><Volume class="size-4 {s.muted || !audio.unlocked ? 'hidden' : ''}" aria-hidden="true" />
         <span class="whitespace-nowrap {soundLabel ? '' : 'hidden'} {roomy ? '' : 'max-sm:hidden'}">{soundLabel}</span>
-        <!-- MIDI and microphone at a glance from sm up; a phone keeps them in the pop-up. -->
-        <span class="hidden items-center gap-1 sm:flex {midiLive ? '' : 'text-ws-soft'}" title="MIDI {midiLive ? 'on' : 'off'}">
-          <KeyboardMusic class="size-4" aria-hidden="true" /><span class="size-2 rounded-full {midiLive ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
+        <!-- The input in words. A live device (MIDI, the mic) sits in a filled disc, the screen in an outlined one. -->
+        <span class="items-center gap-1.5 {roomy && !soundLabel ? 'flex' : 'hidden sm:flex'} {soundLabel ? 'max-lg:hidden' : ''}">
+          <span class="grid size-6 shrink-0 place-items-center rounded-full {source.kind === 'screen' ? 'border border-ws-line text-ws-soft' : 'bg-instr text-ws-stage'}" aria-hidden="true">
+            {#if source.kind === "mic"}<Mic class="size-3.5" />{:else if source.kind === "midi"}<KeyboardMusic class="size-3.5" />{:else}<Pointer class="size-3.5" />{/if}
+          </span>
+          <span class="max-w-40 truncate whitespace-nowrap">{source.word}</span>
         </span>
-        <span class="hidden items-center gap-1 sm:flex {mic.state === 'on' ? '' : 'text-ws-soft'}" title="Microphone {mic.state === 'on' ? 'on' : 'off'}">
-          {#if mic.state === "on"}<Mic class="size-4" aria-hidden="true" />{:else}<MicOff class="size-4" aria-hidden="true" />{/if}<span class="size-2 rounded-full {mic.state === 'on' ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
-        </span>
-        {#if !soundLabel}<span class="hidden lg:inline">{sourceLabel}</span>{/if}
         <ChevronDown class="hidden size-4 text-ws-soft sm:block" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="max-h-[80vh] w-80 overflow-y-auto border-ws-line bg-ws-surface text-ws-ink">

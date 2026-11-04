@@ -33,7 +33,7 @@
   import Square from "lucide-svelte/icons/square";
   import { isBlackKey, noteName } from "@repo/music-core";
   import { audio } from "$lib/music/runtime";
-  import { btnPrimary, btnStage } from "$lib/music/components/ui";
+  import { btnStage } from "$lib/music/components/ui";
   import { loopBeats, voiceNotes, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
   import { STEP_BEATS } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -220,7 +220,7 @@
 
 <section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playMelodies}>
+      <button type="button" class={btnStage} aria-pressed={soloing} onclick={playMelodies}>
         {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play {noun}{/if}
       </button>
       <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="{Noun} to hear and see">
@@ -256,7 +256,7 @@
       </label>
     </div>
 
-    <div bind:this={scroller} bind:clientWidth={viewW} class="roll relative max-h-[30rem] overflow-auto rounded-xl">
+    <div bind:this={scroller} bind:clientWidth={viewW} class="roll relative max-h-[30rem] overflow-auto rounded-xl max-sm:h-[55dvh]">
       <div class="relative" style:width="{KEY_W + steps * stepW}px">
         <div class="ruler sticky top-0 z-20 flex h-7" aria-hidden="true">
           <div class="sticky left-0 z-10 shrink-0 bg-ws-stage" style:width="{KEY_W}px"></div>

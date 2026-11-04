@@ -13,7 +13,7 @@
   import { audio, input } from "$lib/music/runtime";
   import { capturePointer } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { BANK_IDS, bankNotes, padLabel, sampleName } from "./kits";
+  import { BANK_IDS, BUILT_IN_DRUM, bankNotes, padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { canPickFolder, download, writeToFolder } from "./files";
   import Picker from "$lib/music/components/Picker.svelte";
@@ -200,7 +200,7 @@
               >
             {/each}
           </div>
-          <p class="text-xs text-ws-soft">Laid out like the MPC: A01 bottom left. Keys <kbd class="rounded border border-ws-line px-1">Z</kbd> to <kbd class="rounded border border-ws-line px-1">4</kbd> play bank A.</p>
+          <p class="text-sm text-ws-soft">Tap a pad to hear it. Empty pads play the built-in drum named on them. Keys <kbd class="rounded border border-ws-line px-1">Z</kbd> to <kbd class="rounded border border-ws-line px-1">4</kbd> play bank A, laid out like the MPC.</p>
         </div>
 
         {#if assigning}
@@ -225,7 +225,7 @@
                 data-assigning={assigning ? "" : undefined}
                 data-midi={note}
                 aria-pressed={held}
-                aria-label="Pad {padLabel(note)}, {name ?? 'empty'}{p?.hard && p.soft && p.hard !== p.soft ? ', two velocity layers' : ''}{p?.chokeGroup ? `, choke group ${p.chokeGroup}` : ''}{assigning ? ', assign here' : ''}"
+                aria-label="Pad {padLabel(note)}, {name ?? `empty, plays the built-in ${BUILT_IN_DRUM[note] ?? 'drum'}`}{p?.hard && p.soft && p.hard !== p.soft ? ', two velocity layers' : ''}{p?.chokeGroup ? `, choke group ${p.chokeGroup}` : ''}{assigning ? ', assign here' : ''}"
                 onpointerdown={(e) => press(e, note)}
                 onpointerup={release}
                 onpointercancel={release}
@@ -234,11 +234,11 @@
                 onkeyup={(e) => key(e, note, false)}
               >
                 <span class="led" aria-hidden="true"></span>
-                <span class="flex items-start justify-between gap-1 text-[0.7rem] opacity-80">
-                  <span>{padLabel(note)}</span>
+                <span class="truncate text-sm font-semibold">{name ?? (kits.broken.includes(note) ? "Missing file" : (BUILT_IN_DRUM[note] ?? "Synth"))}</span>
+                <span class="flex items-start justify-between gap-1 text-[0.7rem] opacity-70">
+                  <span>{padLabel(note)}{name ? "" : ", built in"}</span>
                   {#if p?.chokeGroup}<span aria-hidden="true">M{p.chokeGroup}</span>{/if}
                 </span>
-                <span class="truncate text-xs font-semibold">{name ?? (kits.broken.includes(note) ? "Missing file" : "")}</span>
               </button>
               {#if kit.samples.length}<Picker class="min-h-11 rounded-md px-2 text-xs" tone="stage" label="Sample on pad {padLabel(note)}" value={p?.soft ?? ""} options={[{ value: "", label: "Empty" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(note, "soft", v)} />{/if}
             </div>

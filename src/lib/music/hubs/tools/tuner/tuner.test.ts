@@ -9,6 +9,7 @@ import {
   tracePath,
   centsToTarget,
   scopePath,
+  intonationVerdict,
 } from "./tuner";
 
 describe("tuner helpers", () => {
@@ -71,5 +72,21 @@ describe("target notes and the scope", () => {
     const buf = new Float32Array(2048).map((_, i) => Math.sin((2 * Math.PI * (i - 100)) / 200));
     const d = scopePath(buf, { width: 100, height: 100, samples: 200 });
     expect(d.startsWith("M0.0 50.0")).toBe(true);
+  });
+
+  it("reads the intonation stats as one verdict", () => {
+    expect(intonationVerdict({ inTunePct: 0, steadinessPct: 100, avgDriftCents: 18 })).toEqual({
+      tone: "close",
+      text: "Steady, but 18 cents sharp. Tune down, then hold it again.",
+    });
+    expect(
+      intonationVerdict({ inTunePct: 10, steadinessPct: 90, avgDriftCents: -9 }).text,
+    ).toContain("9 cents flat. Tune up");
+    expect(intonationVerdict({ inTunePct: 95, steadinessPct: 98, avgDriftCents: 1 }).tone).toBe(
+      "good",
+    );
+    expect(intonationVerdict({ inTunePct: 30, steadinessPct: 40, avgDriftCents: 2 }).text).toBe(
+      "The pitch wanders. Hold one even note, a little softer.",
+    );
   });
 });

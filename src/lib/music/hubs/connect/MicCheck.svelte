@@ -64,7 +64,8 @@
     {#if mic.state === "on"}
       <button type="button" class={btn} onclick={stop}>Stop microphone</button>
     {:else}
-      <button type="button" class={btnPrimary} onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting" : "Start microphone"}</button>
+      <!-- Neutral, not the tile's hue: guitar's coral read as a warning here. -->
+      <button type="button" class={btnPrimary.replace("bg-instr", "bg-ws-ink").replace("text-ws-stage", "text-ws-bg")} onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting" : "Start microphone"}</button>
     {/if}
   </div>
   {#if !named}<p class="text-sm text-ws-soft">Start the microphone once and the browser shows each device's name.</p>{/if}

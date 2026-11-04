@@ -7,6 +7,8 @@
   import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
   import ListChecks from "lucide-svelte/icons/list-checks";
   import Activity from "lucide-svelte/icons/activity";
+  import CircleCheck from "lucide-svelte/icons/circle-check";
+  import X from "lucide-svelte/icons/x";
   import { noteName } from "@repo/music-core";
   import { btn, btnPrimary, panel } from "$lib/music/components/ui";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
@@ -15,7 +17,7 @@
   import Pads from "$lib/music/components/Pads.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import { bench } from "$lib/music/bench.svelte";
-  import { audio, mic, midi, settings } from "$lib/music/runtime";
+  import { audio, input, mic, midi, settings } from "$lib/music/runtime";
   import { defaultSurface } from "@repo/music-core/io/devices";
   import DeviceCard from "$lib/music/hubs/connect/DeviceCard.svelte";
   import MpcPanel from "$lib/music/hubs/connect/MpcPanel.svelte";
@@ -24,6 +26,13 @@
 
   let status = $state("");
   const announce = (t: string) => (status = t);
+  // Pad notes arriving from an MPC prove it is connected, link or not.
+  let padsHeard = $state(false);
+  $effect(() =>
+    input.subscribe((e) => {
+      if (e.kind === "noteon" && e.source === "midi" && e.instrument === "mpc") padsHeard = true;
+    }),
+  );
 
   $effect(() => {
     bench.hue = "create";
@@ -57,7 +66,12 @@
     ...(hasMpc
       ? [
           { done: mpcInputs.some((p) => midi.profile(p.id)?.padNotes), label: "MPC pad map saved", hint: "Pick the map for your drum program, or learn the pads.", act: { label: "Choose a pad map", href: "#devices-title" } },
-          { done: midi.mpcLink.state === "linked", label: "MPC connected to the app", hint: "Without the link the MPC sends no pad notes.", act: { label: "Link the MPC", href: "#mpc-title" } },
+          {
+            done: midi.mpcLink.state === "linked" || padsHeard,
+            label: "MPC sends pad notes",
+            hint: "Linking puts the MPC in controller mode, so its pads send notes here. It takes a second.",
+            act: { label: "Link the MPC", href: "#mpc-title" },
+          },
         ]
       : []),
     { done: mic.state === "on", label: "Microphone tried", hint: "For guitar, ukulele and voice.", act: { label: "Go to the microphone", href: "#mic" } },
@@ -89,7 +103,16 @@
     <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Connect</h1>
     <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone. What you set here applies on every page.</p>
   </header>
-  <p role="status" class="-mt-3 min-h-6 text-sm font-medium">{status}</p>
+  <!-- What the last action did, as a banner you can dismiss. The live region stays mounted. -->
+  <div role="status" class="-mt-3 {status ? '' : 'sr-only'}">
+    {#if status}
+      <p class="flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 py-1 pr-1 pl-3 text-sm font-medium">
+        <CircleCheck class="size-5 shrink-0 text-success" aria-hidden="true" />
+        <span class="min-w-0 flex-1">{status}</span>
+        <button type="button" class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised" aria-label="Dismiss" onclick={() => (status = "")}><X class="size-4" aria-hidden="true" /></button>
+      </p>
+    {/if}
+  </div>
 
   <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
     <div class="flex min-w-0 flex-col gap-6">
@@ -122,7 +145,7 @@
       </Rig>
 
       {#if midi.enabled}
-        <section class="flex flex-col gap-3" aria-labelledby="devices-title">
+        <section class="flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3" aria-labelledby="devices-title">
           {@render heading("devices-title", "Device settings", Usb, "piano")}
           {#if !midi.inputs.length && !offline.length}
             <p class="text-sm text-ws-soft">No MIDI inputs yet. Plug a device in; it appears here without a reload.</p>
@@ -201,7 +224,7 @@
 </div>
 
 {#snippet heading(id: string, label: string, Icon: typeof Cable, hue: string)}
-  <h2 {id} class="flex items-center gap-2.5 font-display text-xl font-semibold">
+  <h2 {id} class="flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] items-center gap-2.5 font-display text-xl font-semibold">
     <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-{hue})" aria-hidden="true"><Icon class="size-5" /></span>
     {label}
   </h2>

@@ -29,13 +29,13 @@
   const litCount = $derived(TILES.filter((t) => portsOn(t.id).length).length + (mic.state === "on" ? 1 : 0));
 
   // The last note each tile received; `n` replays the flash on every hit.
-  let last = $state<Partial<Record<RigTile, { label: string; port: string; n: number }>>>({});
+  let last = $state<Partial<Record<RigTile, { label: string; port: string; n: number; midi: number }>>>({});
   $effect(() =>
     input.subscribe((e) => {
       if (e.kind !== "noteon" || e.source !== "midi") return;
       const t = tileFor(e.instrument);
       const port = live.find((p) => p.id === e.deviceId);
-      last[t] = { label: hitLabel(t, e.midi), port: port ? (midi.profile(port.id)?.alias ?? port.name) : "", n: (last[t]?.n ?? 0) + 1 };
+      last[t] = { label: hitLabel(t, e.midi), port: port ? (midi.profile(port.id)?.alias ?? port.name) : "", n: (last[t]?.n ?? 0) + 1, midi: e.midi };
     }),
   );
 
@@ -70,7 +70,7 @@
     {#if !midi.supported}
       <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
     {:else if !midi.enabled}
-      <p class="text-ws-soft">The browser asks twice: allow MIDI, and allow pad lights (SysEx) for the MPC. After that MIDI turns on by itself.</p>
+      <p class="text-ws-soft">Turn on MIDI to connect keyboards, pads and the Aerophone. The browser asks twice: allow both.</p>
     {:else}
       <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? "" : ". Pad lights were not allowed, so the MPC link and lights are off"}. Plug devices in any time.</p>
     {/if}
@@ -95,6 +95,7 @@
           {#if hit && lit}
             <span class="flex items-center gap-1 text-xs font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
             <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{hit.label}</span>
+            {#if t.id !== "mpc"}{@render octave(hit.midi)}{/if}
           {:else if lit}
             <span class="text-sm text-ws-soft">{t.prompt}</span>
           {/if}
@@ -119,7 +120,34 @@
   {@render fallback?.(litCount > 0)}
 </section>
 
+<!-- One octave from C, the key just played lit and marked: the note is seen on a keyboard, not only named. -->
+{#snippet octave(m: number)}
+  {@const pc = ((m % 12) + 12) % 12}
+  {@const WHITE = [0, 2, 4, 5, 7, 9, 11]}
+  {@const BLACK = [[1, 1], [3, 2], [6, 4], [8, 5], [10, 6]]}
+  <svg viewBox="0 0 70 26" class="mt-1.5 h-7 w-[4.5rem]" aria-hidden="true">
+    {#each WHITE as w, i (w)}
+      <rect x={i * 10 + 0.5} y="0.5" width="9" height="25" rx="1.5" class={w === pc ? "k-on" : "k-white"} />
+    {/each}
+    {#each BLACK as [b, at] (b)}
+      <rect x={at * 10 - 3} y="0.5" width="6" height="15" rx="1" class={b === pc ? "k-on" : "k-black"} />
+    {/each}
+  </svg>
+{/snippet}
+
 <style>
+  .k-white {
+    fill: var(--ws-surface);
+    stroke: var(--ws-line);
+  }
+  .k-black {
+    fill: var(--ws-ink);
+  }
+  .k-on {
+    fill: var(--instr);
+    stroke: var(--ws-ink);
+    stroke-width: 1;
+  }
   .tile {
     border: 2px dashed var(--ws-line);
     transition:

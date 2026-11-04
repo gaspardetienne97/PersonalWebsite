@@ -12,7 +12,7 @@
   const BLURB = {
     tune: "Play one note. The needle shows how far off it is and which way to turn.",
     intonation: "Hold notes steadily and see how well you stay on pitch over ten seconds.",
-    drone: "A sustained reference pitch to play scales and long tones against.",
+    drone: "A held home note to play scales and long tones against. Press Play, then play along.",
   };
   type Mode = (typeof TABS)[number]["id"];
   const mode = $derived<Mode>(
@@ -21,12 +21,12 @@
   let status = $state("");
 </script>
 
-<svelte:head><title>Tuner | Woodshed</title></svelte:head>
+<svelte:head><title>{mode === "drone" ? "Drone" : "Tuner"} | Woodshed</title></svelte:head>
 
 <div class="mx-auto flex max-w-4xl flex-col gap-4">
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div class="min-w-0">
-      <h1 class="font-display text-4xl font-semibold tracking-tight">Tuner</h1>
+      <h1 class="font-display text-4xl font-semibold tracking-tight">{mode === "drone" ? "Drone" : "Tuner"}</h1>
       <p class="mt-1 max-w-prose text-ws-soft">{BLURB[mode]}</p>
     </div>
     <HubTabs param="mode" tabs={TABS} label="Tuner modes" />

@@ -51,6 +51,30 @@ export function padLabel(note: number): string {
   return `${bank}${String(note - BANKS[bank][0] + 1).padStart(2, "0")}`;
 }
 
+/**
+ * What a pad plays with no sample on it: the built-in drum the audio runtime
+ * synthesises for that note (its drumHit cases). The starter kit every pad has.
+ */
+export const BUILT_IN_DRUM: Record<number, string> = {
+  35: "808",
+  36: "Kick",
+  37: "Rim",
+  38: "Snare",
+  39: "Clap",
+  40: "Snare 2",
+  41: "Low tom",
+  42: "Hats",
+  43: "Floor tom",
+  44: "Pedal hat",
+  45: "Mid tom",
+  46: "Open hat",
+  47: "Cowbell",
+  48: "High tom",
+  49: "Crash",
+  50: "Top tom",
+  51: "Ride",
+};
+
 export function samplePath(kitId: string, sampleId: string, fileName: string): string {
   const dot = fileName.lastIndexOf(".");
   const stem = dot > 0 ? fileName.slice(0, dot) : fileName;

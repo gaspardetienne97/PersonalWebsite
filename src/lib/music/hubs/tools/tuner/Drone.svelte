@@ -3,6 +3,8 @@
   import { onDestroy } from "svelte";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
+  import Minus from "lucide-svelte/icons/minus";
+  import Plus from "lucide-svelte/icons/plus";
   import { noteName } from "@repo/music-core";
   import Choice from "$lib/music/components/Choice.svelte";
   import { audio, type DroneTimbre } from "$lib/music/runtime";
@@ -24,13 +26,13 @@
     { value: "cello", label: "Cello", hint: "A bowed, filtered tone with some body." },
     { value: "shruti", label: "Shruti", hint: "Stacks the fifth and the octave, like a tanpura." },
   ] as const;
-  const OCTAVES = [
-    { value: 2, label: "Low" },
-    { value: 3, label: "Middle" },
-    { value: 4, label: "High" },
-  ] as const;
-  // Each register names the note it sounds: "Middle, A3".
-  const registers = $derived(OCTAVES.map((o) => ({ ...o, label: `${o.label}, ${pretty(noteName((o.value + 1) * 12 + tonic))}` })));
+  const LOW_OCTAVE = 2;
+  const HIGH_OCTAVE = 4;
+  function shift(by: number) {
+    octave = Math.max(LOW_OCTAVE, Math.min(HIGH_OCTAVE, octave + by));
+    changed();
+  }
+  const tonicName = $derived(pretty(noteName(tonic, "flat", false)));
 
   const describe = () => `${noteName(midi)}, ${timbre}`;
 
@@ -56,22 +58,18 @@
   onDestroy(() => audio.drone.stop());
 </script>
 
-<section class="stage rounded-2xl p-4 sm:p-5" aria-label="Drone">
-  <NotePads
-    label="Tonic"
-    selected={tonic}
-    tonic={tonic}
-    onselect={(p) => {
-      if (p === null) return;
-      tonic = p;
-      changed();
-    }}
-  />
-
-  <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-    <p class="font-display text-xl font-semibold">
-      {playing ? "Sounding" : "Tonic"} <span class="tnum">{pretty(noteName(midi))}</span>
-    </p>
+<section class="stage ws-on-stage rounded-2xl p-4 sm:p-5" aria-label="Drone">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <p class="font-display text-xl font-semibold">
+        {playing ? "Sounding" : "Tonic"} <span class="tnum">{pretty(noteName(midi))}</span>
+      </p>
+      <div class="flex items-center rounded-full border border-ws-line" role="group" aria-label="Octave">
+        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label="Octave down" disabled={octave <= LOW_OCTAVE} onclick={() => shift(-1)}><Minus class="size-4" aria-hidden="true" /></button>
+        <span class="tnum px-1 text-sm text-ws-stage-soft">Octave {octave}</span>
+        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label="Octave up" disabled={octave >= HIGH_OCTAVE} onclick={() => shift(1)}><Plus class="size-4" aria-hidden="true" /></button>
+      </div>
+    </div>
     <button
       type="button"
       class="flex min-h-12 items-center gap-2 rounded-full px-6 font-display text-base font-semibold {playing
@@ -80,28 +78,57 @@
       aria-pressed={playing}
       onclick={toggle}
     >
-      {#if playing}<Square class="size-5" aria-hidden="true" />Stop drone{:else}<Play class="size-5" aria-hidden="true" />Play drone{/if}
+      {#if playing}<Square class="size-4" fill="currentColor" aria-hidden="true" />Stop drone{:else}<Play class="size-5" fill="currentColor" aria-hidden="true" />Play drone{/if}
     </button>
+  </div>
+
+  <div class="mt-4">
+    <p class="mb-2 text-sm text-ws-stage-soft">
+      Pick the home note. Numbers are degrees from {tonicName}; <span class="key key-scale" aria-hidden="true"></span> tinted notes are in {tonicName} major,
+      <span class="key key-fifth" aria-hidden="true"></span> the brightest is the fifth.
+    </p>
+    <NotePads
+      label="Tonic"
+      selected={tonic}
+      tonic={tonic}
+      onselect={(p) => {
+        if (p === null) return;
+        tonic = p;
+        changed();
+      }}
+    />
+  </div>
+
+  <div class="mt-4">
+    <Choice label="Timbre" options={TIMBRES} bind:value={timbre} onchange={changed} />
+    <p class="mt-1 text-sm text-ws-stage-soft">{TIMBRES.find((t) => t.value === timbre)?.hint}</p>
   </div>
 
   <div class="mt-3">
     <DroneScope {midi} {timbre} {playing} />
   </div>
-</section>
 
-<div class="grid gap-4 sm:grid-cols-2">
-  <div class="flex flex-col gap-1.5">
-    <Choice label="Timbre" options={TIMBRES} bind:value={timbre} onchange={changed} />
-    <p class="text-sm text-ws-soft">{TIMBRES.find((t) => t.value === timbre)?.hint}</p>
-  </div>
-  <Choice label="Register" options={registers} bind:value={octave} onchange={changed} />
-  <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-    <span class="font-medium">Volume <span class="tnum text-ws-soft">{Math.round(volume * 100)}%</span></span>
+  <label class="mt-3 flex flex-col gap-1 text-sm">
+    <span class="font-medium">Volume <span class="tnum text-ws-stage-soft">{Math.round(volume * 100)}%</span></span>
     <input type="range" min="0.05" max="1" step="0.05" bind:value={volume} onchange={changed} class="volume w-full" style:--v={(volume - 0.05) / 0.95} />
   </label>
-</div>
+</section>
 
 <style>
+  .key {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.2rem;
+    vertical-align: -0.05em;
+  }
+  .key-scale {
+    background: color-mix(in oklch, var(--instr) 18%, transparent);
+    outline: 1px solid color-mix(in oklch, var(--instr) 50%, transparent);
+  }
+  .key-fifth {
+    background: color-mix(in oklch, var(--instr) 40%, transparent);
+  }
   .volume {
     appearance: none;
     height: 2.75rem;
@@ -130,7 +157,7 @@
     margin-top: -0.625rem;
     border-radius: 999px;
     background: var(--instr);
-    border: 3px solid var(--ws-surface);
+    border: 3px solid var(--ws-stage);
     box-shadow: 0 0 0 1px var(--ws-line);
   }
   .volume::-moz-range-thumb {
@@ -138,6 +165,6 @@
     height: 1.75rem;
     border-radius: 999px;
     background: var(--instr);
-    border: 3px solid var(--ws-surface);
+    border: 3px solid var(--ws-stage);
   }
 </style>

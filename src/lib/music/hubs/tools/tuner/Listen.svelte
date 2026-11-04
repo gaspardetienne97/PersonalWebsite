@@ -10,6 +10,8 @@
   import ArrowDown from "lucide-svelte/icons/arrow-down";
   import Check from "lucide-svelte/icons/check";
   import Volume from "lucide-svelte/icons/volume-2";
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+  import Piano from "$lib/music/components/Piano.svelte";
   import { hzToMidiFloat, midiToHz, noteName } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import {
@@ -26,8 +28,9 @@
     A4_CHOICES,
     centsToTarget,
     direction,
+    HOLD_GOAL_S,
     IN_TUNE_CENTS,
-    INTONATION_BAND_CENTS,
+    intonationVerdict,
     nearestString,
     pretty,
     signedCents,
@@ -37,7 +40,7 @@
   let { mode, onstatus }: { mode: "tune" | "intonation"; onstatus: (s: string) => void } = $props();
 
   const reader = createTunerReader({ clarityFloor: 0.6, staleMs: 1500, toleranceCents: IN_TUNE_CENTS });
-  const intonation = createIntonationStats({ windowMs: 10000, toleranceCents: INTONATION_BAND_CENTS });
+  const intonation = createIntonationStats({ windowMs: 10000, toleranceCents: IN_TUNE_CENTS });
 
   let reading = $state.raw<TunerState | null>(null);
   let stats = $state.raw<IntonationStats | null>(null);
@@ -80,6 +83,9 @@
   // Fretted instruments get a string strip.
   const instrument = $derived(settings.value.activeInstrument);
   const fretted = $derived(instrument === "guitar" || instrument === "ukulele");
+  /** Keyboard instruments see the note on a keyboard, one stable octave at a time. */
+  const keyed = $derived(instrument === "piano" || instrument === "aerophone" || instrument === "voice");
+  const octaveC = $derived(shown ? shown.midi - (((shown.midi % 12) + 12) % 12) : 60);
   const tuningKey = $derived(instrument === "ukulele" ? "ukuleleTuningId" : "guitarTuningId");
   const tunings = $derived(instrument === "ukulele" ? TUNINGS.ukulele : TUNINGS.guitar);
   const tuning = $derived(tunings.find((t) => t.id === settings.value[tuningKey]) ?? tunings[0]);
@@ -114,6 +120,14 @@
     onstatus("Listening. Play one note and let it ring.");
   }
 
+  /** Intonation: clear the window and hold the note again. */
+  function holdAgain() {
+    intonation.reset();
+    stats = null;
+    inTuneSince = null;
+    onstatus("Cleared. Hold the note again.");
+  }
+
   function stop() {
     unsub?.();
     unsub = null;
@@ -146,9 +160,15 @@
   const tickIn = (t: number) => R - (t === 0 ? 20 : t % 50 === 0 ? 14 : 8);
   const arc = (from: number, to: number, r = R) => `M${at(from, r)} A${r} ${r} 0 0 1 ${at(to, r)}`;
   const TICKS = [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50];
-  const faceScale = $derived(0.8 + Math.min(held, 4) * 0.1);
+  const LABELED = [-50, -10, 10, 50];
+  const NONE = new Set<number>();
   const voiced = $derived(stats?.trace.some((s) => s.cents !== null) ?? false);
-  const bandTop = 80 - (INTONATION_BAND_CENTS / 50) * 80;
+  const bandTop = 80 - (IN_TUNE_CENTS / 50) * 80;
+  const verdict = $derived(stats && voiced ? intonationVerdict(stats) : null);
+  // The hold ring: fills over HOLD_GOAL_S while the note stays in tune, then closes with a check.
+  const RING = 2 * Math.PI * 46;
+  const holdFrac = $derived(shown?.inTune ? Math.min(held / HOLD_GOAL_S, 1) : 0);
+  const holdDone = $derived(holdFrac >= 1);
 </script>
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -192,7 +212,7 @@
 
   {#if mode === "tune"}
     <div class="readout mx-auto mt-2 grid w-full max-w-lg" data-state={word ?? "none"}>
-      <svg viewBox="0 0 300 172" class="w-full" aria-hidden="true">
+      <svg viewBox="-12 -6 324 178" class="w-full" aria-hidden="true">
         <path d={arc(-70, 70)} class="track" />
         <path d={arc(angle(-IN_TUNE_CENTS), angle(IN_TUNE_CENTS))} class="zone" />
         {#each TICKS as t (t)}
@@ -201,6 +221,10 @@
           <line {x1} {y1} {x2} {y2} class="tick" />
         {/each}
         <text x={CX} y="12" class="scale" text-anchor="middle">0</text>
+        {#each LABELED as t (t)}
+          {@const [lx, ly] = pt(angle(t), R + 18)}
+          <text x={lx} y={ly + 4} class="scale" text-anchor="middle">{t > 0 ? `+${t}` : `−${-t}`}</text>
+        {/each}
         {#if shown}
           <text x="18" y="168" class="nb">{pretty(noteName(shown.midi - 1, "flat", false))}</text>
           <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(shown.midi + 1, "flat", false))}</text>
@@ -215,8 +239,14 @@
       </svg>
 
       <div class="face-wrap">
-        <div class="face" style:transform="scale({shown?.inTune ? faceScale : 0.8})" aria-hidden="true"></div>
+        <svg viewBox="0 0 100 100" class="hold" data-done={holdDone || undefined} aria-hidden="true">
+          <circle cx="50" cy="50" r="46" class="hold-track" />
+          <circle cx="50" cy="50" r="46" class="hold-fill" stroke-dasharray={RING} stroke-dashoffset={RING * (1 - holdFrac)} />
+        </svg>
         {@render note()}
+        {#if holdDone}
+          <span class="hold-check ws-pop" aria-hidden="true"><Check class="size-5" strokeWidth={3} /></span>
+        {/if}
       </div>
     </div>
   {:else}
@@ -253,28 +283,52 @@
     </ul>
   {/if}
 
+  {#if keyed}
+    <div class="mx-auto mt-4 w-full max-w-lg" data-testid="tuner-keys">
+      <Piano
+        fit={{ low: octaveC, high: octaveC + 12 }}
+        low={octaveC - 5}
+        high={octaveC + 17}
+        held={NONE}
+        marks={shown ? { [shown.midi]: { target: true, label: pretty(noteName(shown.midi, "flat", false)) } } : {}}
+        interactive={false}
+        names="c"
+        minKey={28}
+        label="Keyboard with the note heard marked"
+      />
+    </div>
+  {/if}
+
   {#if mode === "intonation"}
     <figure class="mt-4">
       <div class="flex gap-2">
         <div class="flex flex-col justify-between py-1 text-xs text-ws-stage-soft" aria-hidden="true"><span>sharp</span><span>0</span><span>flat</span></div>
-        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-44 min-w-0 flex-1 rounded-lg sm:h-56" role="img" aria-label="Pitch over the last 10 seconds, with the ±{INTONATION_BAND_CENTS} cent band">
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-44 min-w-0 flex-1 rounded-lg sm:h-56" role="img" aria-label="Pitch over the last 10 seconds, with the in-tune band of ±{IN_TUNE_CENTS} cents">
           <rect x="0" y={bandTop} width="600" height={160 - 2 * bandTop} class="band" />
           <line x1="0" x2="600" y1="80" y2="80" class="mid" vector-effect="non-scaling-stroke" />
           {#if stats}<path d={tracePath(stats.trace, frameAt)} class="line" vector-effect="non-scaling-stroke" />{/if}
         </svg>
       </div>
       <figcaption class="mt-1 flex flex-wrap justify-between gap-2 text-xs text-ws-stage-soft">
-        <span><span class="band-key" aria-hidden="true"></span> Green band: within ±{INTONATION_BAND_CENTS} cents</span>
+        <span><span class="band-key" aria-hidden="true"></span> Green band: in tune, within ±{IN_TUNE_CENTS} cents</span>
         <span>last 10 seconds, now at the right</span>
       </figcaption>
     </figure>
     <div class="mt-4">
       {#if voiced && stats}
+        {#if verdict}
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p class="verdict font-display text-lg font-semibold" data-tone={verdict.tone} data-testid="intonation-verdict">
+              {#if verdict.tone === "good"}<Check class="mr-1 inline size-5 align-[-0.15em]" aria-hidden="true" />{/if}{verdict.text}
+            </p>
+            <button type="button" class={btnStage} onclick={holdAgain}><RotateCcw class="size-4" aria-hidden="true" />Hold again</button>
+          </div>
+        {/if}
         <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="intonation-stats">
-          <div class="stat"><dt>In tune</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
-          <div class="stat"><dt>Hold</dt><dd class="tnum font-display">{stats.holdSeconds.toFixed(1)} s</dd></div>
-          <div class="stat"><dt>Steadiness</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
-          <div class="stat"><dt>Avg drift</dt><dd class="tnum font-display">{signedCents(stats.avgDriftCents)} ¢</dd></div>
+          <div class="stat" title="Share of the last 10 seconds within ±{IN_TUNE_CENTS} cents"><dt>In tune</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
+          <div class="stat" title="The longest stretch in tune without a break"><dt>Hold</dt><dd class="tnum font-display">{stats.holdSeconds.toFixed(1)} s</dd></div>
+          <div class="stat" title="How little the pitch wobbles, wherever it sits"><dt>Steadiness</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
+          <div class="stat" title="Average distance from the note: plus is sharp, minus is flat"><dt>Avg drift</dt><dd class="tnum font-display">{signedCents(stats.avgDriftCents)} ¢</dd></div>
         </dl>
       {:else}
         <p class="text-sm text-ws-stage-soft">Hold one note steadily. In tune %, hold, steadiness and drift fill in as you play.</p>
@@ -284,9 +338,9 @@
 </section>
 
 <p class="text-sm text-ws-soft">
-  In tune means within {IN_TUNE_CENTS} cents. {mode === "intonation"
-    ? `The trace shows the last 10 seconds; the band is ±${INTONATION_BAND_CENTS} cents.`
-    : "Weak or noisy sound holds the last reading instead of flickering."}
+  In tune means within {IN_TUNE_CENTS} cents, everywhere on this page. {mode === "intonation"
+    ? "The trace shows the last 10 seconds."
+    : `Hold a note in tune for ${HOLD_GOAL_S} second and the ring closes. Weak or noisy sound holds the last reading instead of flickering.`}
 </p>
 
 {#snippet readline()}
@@ -373,18 +427,45 @@
   .face-wrap > * {
     grid-area: 1 / 1;
   }
-  .face {
-    width: 10rem;
-    height: 10rem;
-    border-radius: 999px;
-    background: radial-gradient(circle, color-mix(in oklch, var(--success) 45%, transparent), transparent 70%);
+  .hold {
+    width: clamp(8rem, 30vw, 11rem);
+    height: clamp(8rem, 30vw, 11rem);
+    transform: rotate(-90deg);
     opacity: 0;
-    transition:
-      transform 400ms ease-out,
-      opacity 200ms;
+    transition: opacity 200ms;
   }
-  [data-state="in tune"] .face {
+  [data-state="in tune"] .hold {
     opacity: 1;
+  }
+  .hold-track {
+    fill: color-mix(in oklch, var(--success) 10%, transparent);
+    stroke: color-mix(in oklch, var(--success) 25%, transparent);
+    stroke-width: 4;
+  }
+  .hold-fill {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 120ms linear;
+  }
+  .hold[data-done] .hold-track {
+    fill: color-mix(in oklch, var(--success) 22%, transparent);
+  }
+  .hold-check {
+    align-self: start;
+    justify-self: end;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin-right: calc(50% - clamp(8rem, 30vw, 11rem) / 2 - 0.25rem);
+    border-radius: 999px;
+    background: var(--success);
+    color: var(--ws-stage);
+  }
+  .verdict[data-tone="good"] {
+    color: var(--success);
   }
   .note {
     position: relative;

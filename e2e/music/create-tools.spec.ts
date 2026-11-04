@@ -101,7 +101,7 @@ test.describe("Create", () => {
     await page.getByRole("button", { name: "Stop Beat alone" }).click();
     await expect(page.getByRole("status")).toHaveText("Stopped.");
     // The beat grid's own play button plays the groove alone.
-    await beat.getByRole("button", { name: "Play groove" }).click();
+    await beat.getByRole("button", { name: "Play beat" }).click();
     await expect(page.getByRole("status")).toContainText("Playing the beat on its own");
     // Only the beat grid's playhead runs; the roll stays still.
     await expect
@@ -312,7 +312,7 @@ test.describe("Create", () => {
     const beatGrid = page.locator("[data-grid]");
     await page
       .getByRole("region", { name: "Beat editor" })
-      .getByRole("button", { name: "Play groove" })
+      .getByRole("button", { name: "Play beat" })
       .click();
     await expect
       .poll(() => beatGrid.evaluate((el) => el.scrollLeft), { timeout: 15_000 })

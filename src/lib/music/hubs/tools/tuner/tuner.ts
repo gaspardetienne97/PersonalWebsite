@@ -1,8 +1,10 @@
 // Small pure helpers behind the Tuner views.
 import { hzToMidiFloat } from "@repo/music-core";
 
+/** One tolerance for the gauge's zone, the intonation band, the In tune stat and the words. */
 export const IN_TUNE_CENTS = 5;
-export const INTONATION_BAND_CENTS = 10;
+/** How long a note must stay in tune before the hold ring closes with a check. */
+export const HOLD_GOAL_S = 1;
 export const A4_CHOICES = [
   415, 430, 432, 435, 438, 439, 440, 441, 442, 443, 444, 445, 446,
 ] as const;
@@ -104,4 +106,35 @@ export function scopePath(
     d += `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
   }
   return d;
+}
+
+/**
+ * One line that reads the four intonation stats together, so "Steadiness 100%"
+ * beside "In tune 0%" says what to do: steady but off is a tuning fix, wandering
+ * is a steadiness fix.
+ */
+export function intonationVerdict(
+  st: { inTunePct: number; steadinessPct: number; avgDriftCents: number },
+  tol = IN_TUNE_CENTS,
+): { tone: "good" | "close" | "off"; text: string } {
+  const drift = Math.round(st.avgDriftCents);
+  const off = Math.abs(drift) > tol;
+  const way = drift > 0 ? "sharp" : "flat";
+  const fix = drift > 0 ? "Tune down" : "Tune up";
+  if (st.inTunePct >= 80)
+    return { tone: "good", text: `In tune ${st.inTunePct}% of the time. Centred and steady.` };
+  if (st.steadinessPct >= 70 && off)
+    return {
+      tone: "close",
+      text: `Steady, but ${Math.abs(drift)} cents ${way}. ${fix}, then hold it again.`,
+    };
+  if (st.steadinessPct < 70)
+    return {
+      tone: "off",
+      text: `The pitch wanders${off ? `, ${Math.abs(drift)} cents ${way} on average` : ""}. Hold one even note, a little softer.`,
+    };
+  return {
+    tone: "close",
+    text: `In tune ${st.inTunePct}% of the time. Hold it longer in the green band.`,
+  };
 }

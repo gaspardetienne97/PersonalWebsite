@@ -25,6 +25,9 @@ class Bench {
   timed = $state(true);
   /** Hubs and tools: the strip shows only the instrument, sound and input, and search. */
   compact = $state(false);
+  /** The page draws no instrument (its catalogue entry lists none), so the strip
+   * shows "Any instrument" instead of the picker. Set by DrillShell. */
+  instrumentFree = $state(false);
   /** The strip's rendered height in px, written to --ws-strip-h on the app root. */
   stripH = $state(0);
   /** Page-level hue override (ear, reading…); null follows the instrument. */

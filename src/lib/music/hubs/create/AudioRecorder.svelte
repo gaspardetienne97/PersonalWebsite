@@ -141,8 +141,7 @@
     unsaved = null;
     takes = [take, ...takes];
     latest = take.id;
-    const lift = take.gainDb ?? 0;
-    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.${lift ? ` Playback lifted ${signedDb(lift)} so it is easy to hear; the recording is unchanged.` : ""}`);
+    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.`);
   }
 
   function stopPlayback() {
@@ -327,6 +326,9 @@
         <span class="flex items-center gap-1 font-semibold"><Check class="size-4 text-success" aria-hidden="true" />Saved {latestTake.name}</span>
         <span class="tnum text-ws-stage-soft">{takeLength(latestTake.durationMs)}. It is in your takes below.</span>
       </p>
+      {#if latestTake.gainDb}
+        <span class="tnum rounded-full bg-ws-stage-ink/10 px-2.5 py-1 text-xs" title="Quiet takes play back louder here. The recording itself is unchanged.">Plays at {signedDb(latestTake.gainDb)}</span>
+      {/if}
     </div>
   {/if}
 </section>
@@ -424,11 +426,21 @@
     </ul>
     <p class="text-sm text-ws-soft">Gain changes only how a take plays back here; the recording itself is never changed.</p>
   {:else}
-    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
+    {#if recording}
+      <p class="flex items-center gap-2 rounded-2xl border border-dashed border-ws-line p-5 font-medium"><span class="rec-dot" aria-hidden="true"></span>Recording take 1, <span class="tnum">{clock(elapsed)}</span></p>
+    {:else}
+      <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
+    {/if}
   {/if}
 </section>
 
 <style>
+  .rec-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 999px;
+    background: var(--destructive);
+  }
   .wave {
     background: var(--ws-stage);
   }
