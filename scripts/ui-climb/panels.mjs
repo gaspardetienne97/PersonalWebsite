@@ -31,6 +31,14 @@ const STATE_WORDS = {
   "home-full": "home screen, whole page",
   celebration: "daily goal celebration",
   empty: "empty state, nothing practised yet",
+  "finder-ready": "note finder, set up before starting",
+  "finder-running": "note finder in progress, just after a wrong answer",
+  "finder-results": "note finder results after a good run",
+  "finder-check": "note finder in test mode, targets hidden",
+  "changes-ready": "chord changes, set up before starting",
+  "changes-running": "chord changes in progress",
+  "changes-results": "chord changes results",
+  playing: "the beat playing",
 };
 
 function scan(dir) {
@@ -77,7 +85,7 @@ for (const flow of FLOWS) {
     key: "woodshed",
     images: picks.map((p) => ({
       path: p.path,
-      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")} exercise, ` : ""}${p.width === "phone" ? "phone, 390 px wide" : "laptop, 1280 px wide"}, ${p.theme} theme, ${
+      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")}${flow.alternate ? " exercise" : ""}, ` : ""}${p.width === "phone" ? "phone, 390 px wide" : "laptop, 1280 px wide"}, ${p.theme} theme, ${
         STATE_WORDS[p.state] ?? p.state.replaceAll("-", " ")
       }`,
     })),

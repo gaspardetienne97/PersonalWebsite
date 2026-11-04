@@ -116,6 +116,82 @@ async function spiderFlow(
   await shot(page, F, "silent", width);
 }
 
+// ---- Note finder: a named note, found by tapping the neck (untimed, one tap per question).
+
+/**
+ * Answer question `n` by tapping the neck: right taps a fret that sounds the asked note,
+ * wrong taps one that does not. The note comes from the drill's status line and each
+ * fret's own label, so it works in Check too, where nothing is lit.
+ */
+async function finderAnswer(page: Page, n: number, right: boolean) {
+  await expect(page.locator('[role="status"]', { hasText: `Question ${n}: find` })).toBeAttached({
+    timeout: 10_000,
+  });
+  const at = await page.evaluate((right) => {
+    const pcOf = (name: string) =>
+      ({ C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 })[name[0]]! +
+      (name[1] === "#" ? 1 : name[1] === "b" ? -1 : 0) +
+      12;
+    const status = [...document.querySelectorAll('[role="status"]')]
+      .map((s) => s.textContent ?? "")
+      .find((t) => /Question \d+: find/.test(t))!;
+    const want = pcOf(/find ([A-G]#?)\./.exec(status)![1]) % 12;
+    for (const b of document.querySelectorAll<HTMLElement>("button[aria-label^='String ']")) {
+      const m = /^String (\d+) fret (\d+), ([A-G]b?)/.exec(b.getAttribute("aria-label")!);
+      if (m && b.offsetParent && (pcOf(m[3]) % 12 === want) === right) return [+m[1], +m[2]];
+    }
+    return null;
+  }, right);
+  await tapChord(page, [at as Fret]);
+}
+
+async function finderFlow(page: Page, width: Width, F: string, instrument: string) {
+  const url = `/music/fretboard?mode=note-finder&region=1&questions=5&instrument=${instrument}`;
+  await open(page, url);
+  await shot(page, F, "finder-ready", width);
+  await mode(page, "Practice");
+
+  // Run A: right, wrong (light shot in its reveal), right, wrong (dark shot), right.
+  await startButton(page).click();
+  if (width === "desktop") await top(page);
+  for (const [n, right] of [
+    [1, true],
+    [2, false],
+    [3, true],
+    [4, false],
+    [5, true],
+  ] as const) {
+    await finderAnswer(page, n, right);
+    if (!right) {
+      await page.waitForTimeout(80);
+      await shot(page, F, "finder-running", width, { themes: [n === 2 ? "light" : "dark"] });
+    }
+  }
+  await waitResults(page);
+
+  // Clean runs until the next region is offered.
+  for (let i = 0; i < 2; i++) {
+    await startButton(page).click();
+    for (let n = 1; n <= 5; n++) await finderAnswer(page, n, true);
+    await waitResults(page);
+    if (await nextRunButton(page).isVisible()) break;
+  }
+  await shot(page, F, "finder-results", width);
+
+  // Check: nothing lit, the first note found, the second asked.
+  await mode(page, "Check");
+  await page
+    .getByRole("button", { name: "Skip, I know this" })
+    .click({ timeout: 1500 })
+    .catch(() => {});
+  await startButton(page).click();
+  if (width === "desktop") await top(page);
+  await finderAnswer(page, 1, true);
+  await expect(page.locator('[role="status"]', { hasText: "Question 2: find" })).toBeAttached();
+  await page.waitForTimeout(200);
+  await shot(page, F, "finder-check", width);
+}
+
 // ---- Chord shapes (Build): untimed, tapped on the neck.
 
 async function buildFlow(
@@ -321,6 +397,13 @@ for (const width of WIDTHS) {
       [2, 9],
     );
   });
+
+  for (const instrument of ["guitar", "ukulele"] as const)
+    test(`fretboard-${instrument} finder ${width}`, async ({ page }) => {
+      test.setTimeout(240_000);
+      await prep(page, width, { instrument });
+      await finderFlow(page, width, `fretboard-${instrument}`, instrument);
+    });
 
   test(`chords-guitar ${width}`, async ({ page }) => {
     test.setTimeout(240_000);

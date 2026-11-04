@@ -7,7 +7,8 @@ const base = process.env.UI_CLIMB_BASE ?? "http://localhost:5180";
 
 export default defineConfig({
   testDir: "capture",
-  outputDir: "../../.ui-climb/pw-results",
+  // Per round, so a scratch run does not wipe a real round's results mid-run.
+  outputDir: `../../.ui-climb/pw-results/${process.env.UI_CLIMB_ROUND ?? "0"}`,
   timeout: 240_000,
   workers: Number(process.env.UI_CLIMB_WORKERS ?? 4),
   retries: 1,

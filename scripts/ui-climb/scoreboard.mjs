@@ -84,7 +84,7 @@ const lines = [
   "",
   "Done means every judge gives Woodshed at least 9 overall on every flow, and Woodshed's mean is at least the bar.",
   "",
-  "Harness notes: from round 1, panels that mix two drills caption each screen with its drill name (round 0 did not), so part of a round 1 gain on those panels may come from the caption, not the app. GPT (astra) is limited by the account's Codex quota and is missing where shown as '-'.",
+  "Harness notes: from round 1, panels that mix two drills caption each screen with its drill name (round 0 did not), so part of a round 1 gain on those panels may come from the caption, not the app. From round 2, drill panels take their two drills or instruments in turn with balanced widths and themes, and the captures add fretboard Note finder, chord Changes and the Create beat playing (features that existed but were never shown), so part of a round 2 gain on those flows may come from the panel, not the app. GPT (astra) is limited by the account's Codex quota and runs at medium effort from round 1; it is missing where shown as '-'.",
   "",
 ];
 

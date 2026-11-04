@@ -3,7 +3,15 @@
 //   id: panel id; flow: the name judges see; job: what the screens are for (no app names);
 //   shots: capture flow dirs under .ui-climb/shots/<round>/; comp: competitor flow ids.
 
-const drill = (id, flow, job, shots, comp, states) => ({ id, flow, job, shots, comp, states });
+const drill = (id, flow, job, shots, comp, states) => ({
+  id,
+  flow,
+  job,
+  shots,
+  comp,
+  states,
+  alternate: true,
+});
 const DRILL_STATES = [
   "ready",
   "lesson",
@@ -99,7 +107,7 @@ export const FLOWS = [
     job: "Making music: a drum beat grid, a piano roll, drum kits, and recording yourself.",
     shots: ["create", "record"],
     comp: ["create"],
-    states: ["beat-grid", "roll", "kits", "recording", "ready"],
+    states: ["beat-grid", "playing", "roll", "kits", "recording", "ready"],
   },
   // Ear training
   drill(
@@ -222,7 +230,17 @@ export const FLOWS = [
     "Changing between chord shapes on guitar or ukulele, with chord diagrams and the fretboard.",
     ["chords-guitar", "chords-ukulele"],
     ["fretboard", "drill-running"],
-    DRILL_STATES,
+    [
+      "ready",
+      "lesson",
+      "running",
+      "changes-running",
+      "results",
+      "changes-results",
+      "check",
+      "silent",
+      ...DRILL_STATES,
+    ],
   ),
   drill(
     "fretboard",
@@ -230,7 +248,17 @@ export const FLOWS = [
     "Finding notes on the guitar or ukulele neck.",
     ["fretboard-guitar", "fretboard-ukulele"],
     ["fretboard"],
-    DRILL_STATES,
+    [
+      "finder-ready",
+      "lesson",
+      "finder-running",
+      "running",
+      "finder-results",
+      "results",
+      "finder-check",
+      "silent",
+      ...DRILL_STATES,
+    ],
   ),
   drill(
     "strum",
@@ -347,38 +375,57 @@ export function pickShots(available, flow, max = 8) {
     ["desktop", "dark"],
     ["phone", "light"],
   ];
-  const picks = [];
-  let k = 0;
-  const order = flow.states.flatMap((st) => flow.shots.map((sf) => [sf, st]));
-  const extra = available.filter(
-    (a) => !flow.states.includes(a.state) && flow.shots.includes(a.shotFlow) && !a.full,
-  );
-  const states = [...order];
-  for (const a of extra)
-    if (!states.some(([sf, st]) => sf === a.shotFlow && st === a.state))
-      states.push([a.shotFlow, a.state]);
-  for (const [sf, st] of states) {
-    const here = available.filter((a) => a.shotFlow === sf && a.state === st && !a.full);
-    if (!here.length) continue;
-    let pick;
-    for (let t = 0; t < combos.length && !pick; t++) {
-      const [w, th] = combos[(k + t) % combos.length];
-      pick = here.find((a) => a.width === w && a.theme === th);
+  const n = flow.shots.length;
+  const pool = available.filter((a) => !a.full && flow.shots.includes(a.shotFlow));
+  const states = [...flow.states];
+  for (const a of pool) if (!states.includes(a.state)) states.push(a.state);
+  const take = (sf, st, c) => {
+    const here = pool.filter((a) => a.shotFlow === sf && a.state === st);
+    if (!here.length) return null;
+    for (let t = 0; t < combos.length; t++) {
+      const [w, th] = combos[(c + t) % combos.length];
+      const hit = here.find((a) => a.width === w && a.theme === th);
+      if (hit) return hit;
     }
-    pick ??= here[0];
-    k++;
-    picks.push(pick);
+    return here[0];
+  };
+  const picks = [];
+  if (flow.alternate && n > 1) {
+    // Drill panels: one shot per state, taking the drills (or instruments) in turn, and
+    // rotating width and theme so each drill gets both widths and both themes.
+    let i = 0;
+    for (const st of states) {
+      let pick = null;
+      for (let t = 0; t < n && !pick; t++)
+        pick = take(flow.shots[(i + t) % n], st, (i + Math.floor(i / n)) % 4);
+      if (!pick) continue;
+      picks.push(pick);
+      i++;
+    }
+  } else {
+    // Hub panels: every shot flow's version of each state (fresh and with history, say).
+    let i = 0;
+    for (const st of states) {
+      let any = false;
+      flow.shots.forEach((sf, k) => {
+        const pick = take(sf, st, (i + k) % 4);
+        if (pick) {
+          picks.push(pick);
+          any = true;
+        }
+      });
+      if (any) i++;
+    }
   }
   // Make sure there are at least two phone shots and both themes.
   const sel = picks.slice(0, max);
-  const need = (pred, pool) => {
+  const need = (pred) => {
     if (sel.some(pred)) return;
     const add = pool.find(pred);
     if (add) sel.length >= max ? sel.splice(sel.length - 1, 1, add) : sel.push(add);
   };
-  const pool = available.filter((a) => !a.full && flow.shots.includes(a.shotFlow));
-  need((a) => a.width === "phone", pool);
-  need((a) => a.theme === "dark", pool);
-  need((a) => a.theme === "light", pool);
+  need((a) => a.width === "phone");
+  need((a) => a.theme === "dark");
+  need((a) => a.theme === "light");
   return sel;
 }

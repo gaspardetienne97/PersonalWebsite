@@ -418,7 +418,7 @@ export async function captureLesson(page: Page, F: string, url: string, width: W
 
 /** Hear it first, shot after `ms` of the demo. */
 export async function captureDemo(page: Page, F: string, width: Width, ms = 2500) {
-  const demo = page.getByRole("button", { name: "Hear it first" });
+  const demo = page.getByRole("button", { name: /^Hear it( first)?$/ });
   if (!(await demo.count())) return false;
   await demo.click();
   await expect(page.getByText("Listening, not scored.")).toBeVisible({ timeout: 10_000 });
@@ -596,7 +596,10 @@ export async function installChordMic(page: Page) {
 
 /** Turn the microphone on from the drill's own panel. */
 export async function startMic(page: Page) {
-  await page.getByRole("button", { name: "Start microphone" }).first().click();
+  await page
+    .getByRole("button", { name: /^(Start microphone|Turn on the microphone)$/ })
+    .first()
+    .click();
   await expect(page.getByText("Microphone on").first()).toBeVisible({ timeout: 10_000 });
 }
 

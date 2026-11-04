@@ -157,7 +157,7 @@ for (const width of WIDTHS)
       await expect(card).toHaveAttribute("data-step", "feedback");
       if (i === 0 || i === 3) {
         await page.waitForTimeout(400);
-        await toStage(page, "article[data-exercise] > button:last-child");
+        await toStage(page, 'article[data-exercise] [data-dock="answers"]');
         await shot(page, flow, i === 0 ? "feedback" : "feedback-wrong", width);
       }
       await page.getByRole("button", { name: /^(Continue|See results)$/ }).click();

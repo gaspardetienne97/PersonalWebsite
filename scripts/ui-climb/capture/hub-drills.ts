@@ -67,8 +67,15 @@ export const startBtn = (page: Page) =>
   page.getByRole("button", { name: /^(Start|Again)$/, exact: false });
 
 export async function pickMode(page: Page, mode: "Practice" | "Check") {
-  const b = page.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode });
-  if (await b.count()) await b.click();
+  // Click until the mode shows as pressed: a click before the page hydrates is lost,
+  // and a run started then would go out in the wrong mode.
+  const inGroup = page.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode });
+  const plain = page.getByRole("button", { name: mode, exact: true });
+  await expect(async () => {
+    const b = ((await inGroup.count()) ? inGroup : plain).first();
+    if ((await b.getAttribute("aria-pressed", { timeout: 2000 })) !== "true") await b.click();
+    await expect(b).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
+  }).toPass({ timeout: 20_000 });
 }
 
 /** Skip the intro lesson if it shows (it is marked seen, as a user would). */
@@ -205,8 +212,10 @@ export async function earQuestion(page: Page, n: number) {
 
 /** In Practice: after feedback, Continue (or See results on the last). */
 export async function earContinue(page: Page) {
-  const b = page.getByRole("button", { name: /^(Continue|See results)$/ });
+  const b = page.getByRole("button", { name: /^(Continue|See results)/ }).first();
   if (await b.isVisible().catch(() => false)) await b.click();
+  // Round 2 docks Continue under the answers on a phone; Enter continues wherever it sits.
+  else await page.keyboard.press("Enter");
 }
 
 // ---------------------------------------------------------------------------

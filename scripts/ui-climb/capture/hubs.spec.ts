@@ -7,6 +7,7 @@ import { choose, installSyntheticMic } from "../../../e2e/music/fixtures";
 import { open, shot, type Width } from "./lib";
 import {
   answerEar,
+  earContinue,
   earQuestion,
   hz,
   installFakeMidi,
@@ -29,9 +30,17 @@ const ODE_NOTES = [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62];
 async function earRun(page: Page, wrong: number[] = []) {
   await pickMode(page, "Check");
   await startBtn(page).click();
+  const card = page.locator("article[data-drill]");
   for (let i = 1; i <= 10; i++) {
     await earQuestion(page, i);
     await answerEar(page, !wrong.includes(i));
+    if (i === 10) break;
+    // Check moves on by itself; if feedback lingers, Continue does it.
+    await expect(async () => {
+      if ((await card.getAttribute("data-step", { timeout: 1000 })) === "feedback")
+        await earContinue(page);
+      await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`, { timeout: 1500 });
+    }).toPass({ timeout: 20_000 });
   }
   await toResults(page);
 }
@@ -56,24 +65,40 @@ async function pulseRun(page: Page) {
  * done block by block from Today, plus an intervals check. `afterFirst` runs on Today
  * once the first block is done, `onDone` the moment the finished set is first seen.
  */
+/** Today block `n` (1-based): its row opens to its details, where its Start link sits. */
+async function startBlock(page: Page, n: number) {
+  const row = page.locator(`button[aria-controls="block-${n}"]`);
+  const start = page.locator(`#block-${n}`).getByRole("link", { name: /^(Start|Play again)/ });
+  await expect(async () => {
+    if ((await row.getAttribute("aria-expanded", { timeout: 2000 })) !== "true") await row.click();
+    await expect(start).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 30_000 });
+  await start.click();
+}
+
 async function makeHistory(
   page: Page,
   hooks: { afterFirst?: () => Promise<void>; onDone?: () => Promise<void> } = {},
 ) {
   await openWithMidi(page, "/music", { countInBars: 1 });
-  // Length and routine sit behind "Adjust" from round 1 on.
+  // Length and routine sit behind "Adjust" (a toggle: open it once, never click it shut).
   const adjust = page.getByRole("button", { name: "Adjust" });
-  if (await adjust.isVisible().catch(() => false)) await adjust.click();
-  await page.getByRole("button", { name: "10 min" }).click();
+  const ten = page
+    .getByRole("group", { name: "Length of the set" })
+    .getByRole("button", { name: "10 min", exact: true });
+  await expect(async () => {
+    if ((await adjust.getAttribute("aria-expanded", { timeout: 2000 })) !== "true")
+      await adjust.click();
+    await expect(ten).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 30_000 });
+  await ten.click();
+  await expect(ten).toHaveAttribute("aria-pressed", "true");
   await choose(page, page.getByLabel(/^Instrument on \w+s$/), "Voice");
   await expect(page.getByText(/session, Voice$/)).toBeVisible();
+  await expect(page.locator('button[aria-controls^="block-"]')).toHaveCount(2);
 
   // Block 1: the warm-up.
-  await page
-    .locator("main ol li")
-    .first()
-    .getByRole("link", { name: /^Start/ })
-    .click();
+  await startBlock(page, 1);
   await expect(page).toHaveURL(/\/music\/rhythm/);
   await expect(page.locator("h1").first()).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(500);
@@ -90,11 +115,7 @@ async function makeHistory(
 
   // Block 2: scale degrees, which finishes the set.
   await open(page, "/music");
-  await page
-    .locator("main ol li")
-    .nth(1)
-    .getByRole("link", { name: /^Start/ })
-    .click();
+  await startBlock(page, 2);
   await expect(page.locator("h1").first()).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(500);
   await earRun(page, [6]);
@@ -150,11 +171,17 @@ for (const width of WIDTHS) {
     await shot(page, "journal", "list", width, { full: true });
     // One session opened, then its note and tags in the edit view.
     const entry = page.locator("article[data-session]").first();
-    await entry.getByRole("button", { expanded: false }).first().click();
+    // Retry until it opens: a click that lands before the page hydrates does nothing.
+    const answers = entry.getByRole("button", { name: /every answer|Hide answers/ }).first();
+    await expect(async () => {
+      if ((await answers.getAttribute("aria-expanded", { timeout: 2000 })) !== "true")
+        await answers.click();
+      await expect(answers).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
+    }).toPass({ timeout: 20_000 });
     await page.waitForTimeout(400);
     await entry.scrollIntoViewIfNeeded();
     await shot(page, "journal", "entry", width);
-    await entry.getByRole("button", { name: "Edit note and tags" }).click();
+    await entry.getByRole("button", { name: /^Edit note/ }).click();
     const note = entry.getByRole("textbox").first();
     await note.fill("Pulse rushed on beat 3. Degrees felt solid, 6 still slips.");
     await page.waitForTimeout(300);
@@ -174,10 +201,15 @@ for (const width of WIDTHS) {
     await setup(page, width);
     await open(page, "/music?tab=drills");
     await shot(page, "drills-tab", "list", width, { full: true });
-    await page
-      .getByRole("group", { name: "Show drills for" })
-      .getByRole("button", { name: "Guitar" })
-      .click();
+    // The chip row, or (once it is gone, round 2 WP3) the strip's instrument the list follows.
+    const chips = page.getByRole("group", { name: "Show drills for" });
+    if (await chips.count()) await chips.getByRole("button", { name: "Guitar" }).click();
+    else
+      await choose(
+        page,
+        page.getByRole("group", { name: "Practice controls" }).getByLabel("Instrument"),
+        "Guitar",
+      );
     await page.waitForTimeout(500);
     await shot(page, "drills-tab", "filtered", width, { full: true });
   });
@@ -205,7 +237,9 @@ for (const width of WIDTHS) {
     // Another path, one of its steps opened.
     await page.getByRole("button", { name: /^Ear and Harmony Path/ }).click();
     await page.waitForTimeout(400);
-    const step = page.getByRole("button", { name: /^Step \S+: .*Not started/ }).first();
+    const step = page
+      .getByRole("button", { name: /^Step \S+: .*(Not started|not played yet)/ })
+      .first();
     await step.click();
     await page.waitForTimeout(400);
     await step.scrollIntoViewIfNeeded();
@@ -343,6 +377,12 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(300);
     await toTop(page);
     await shot(page, "create", "beat-grid", width, { full: true });
+    // The same beat playing on its own: the playhead column lit as it goes.
+    await beat.getByRole("button", { name: /^Play (groove|beat)$/ }).click();
+    await expect(beat.locator("[data-now]").first()).toBeAttached({ timeout: 10_000 });
+    await page.waitForTimeout(1200);
+    await shot(page, "create", "playing", width);
+    await beat.getByRole("button", { name: "Stop", exact: true }).click();
     await open(page, "/music/create?mode=roll");
     await shot(page, "create", "roll", width, { full: true });
     await open(page, "/music/create/kits");
