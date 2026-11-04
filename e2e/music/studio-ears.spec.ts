@@ -131,7 +131,9 @@ test.describe("studio ears", () => {
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "Everything" }).click();
     await page.locator('a[href="/music/ear/intervals?answer=play-back"]').click();
-    await expect(page.getByText("Answer on the keys or your MIDI keyboard.")).toBeVisible();
+    await expect(
+      page.getByText("Play on the keys below or your MIDI keyboard.", { exact: false }),
+    ).toBeVisible();
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "Everything" }).click();
     await page.getByRole("link", { name: "Scales: Arpeggio" }).click();

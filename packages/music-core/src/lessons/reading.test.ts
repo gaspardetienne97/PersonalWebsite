@@ -326,6 +326,34 @@ describe("reading lessons", () => {
   });
 });
 
+describe("every reading and rhythm lesson opens on a picture", () => {
+  it("the first screen of each lesson has a figure", () => {
+    const ls: Lesson[] = [
+      ...(["chord", "satb"] as const).flatMap((stack) =>
+        readingLessons("flashcards", "both", { accidentals: true, fifths: -2, stack }),
+      ),
+      ...READING_LEVELS.flatMap((level) =>
+        level.meters.flatMap((meter) =>
+          [{}, { piano: true, grand: true }].flatMap((who) =>
+            readingLessons("sight-reading", "both", { level: level.id, meter, fifths: 1, ...who }),
+          ),
+        ),
+      ),
+      ...EAR_RHYTHM_LEVELS.flatMap((level) =>
+        (["echo", "dictation"] as const).flatMap((mode) => rhythmLessons(mode, level.id)),
+      ),
+    ];
+    const bare = [...new Set(ls.filter((l) => !l.screens[0].figure).map((l) => l.id))];
+    expect(bare).toEqual([]);
+  });
+  it("a meter lesson draws one bar of its meter", () => {
+    const l = readingLessons("sight-reading", "treble", { level: "piano-6", meter: "compound" });
+    const fig = l.find((x) => x.id === "reading.meter.compound")?.screens[0].figure;
+    expect(fig).toMatchObject({ kind: "staff", meter: { beats: 6, beatUnit: 8 } });
+    if (fig?.kind === "staff") expect(fig.notes.reduce((a, n) => a + n.beats, 0)).toBe(3);
+  });
+});
+
 describe("rhythm lessons", () => {
   it("counting names follow the grid: 1 & for eighths, 1 e & a for sixteenths, 1 & a in 6/8", () => {
     expect([0, 0.5, 1, 1.5].map((b) => countName(b, 2, 4))).toEqual(["1", "1 &", "2", "2 &"]);

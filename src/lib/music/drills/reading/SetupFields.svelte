@@ -6,7 +6,7 @@
   import { noteName } from "@repo/music-core";
   import Choice from "$lib/music/components/Choice.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
-  import { FRET_POSITIONS, type ReadingSetup } from "./reading";
+  import { FOLLOWER_NAME, FRET_POSITIONS, type ReadingSetup } from "./reading";
 
   /** `oneLine`: one treble staff (fretted instruments and the Aerophone). `limits`: the written range the instrument reads. */
   let {
@@ -114,12 +114,12 @@
     />
     {#if !climbing}
       <Choice
-        label="Follower"
+        label="Pace"
         setupKey="follower"
         options={[
-          { value: "wait", label: "Wait for me", hint: "The cursor holds until you play the right notes. Guided, so it does not count toward mastery." },
-          { value: "performance", label: "Keep time", hint: "The cursor runs with the click and grades your timing." },
-          { value: "tap", label: "Tap the rhythm", hint: "Keep time with any key, the Tap button or Space. Only the rhythm is graded." },
+          { value: "wait", label: FOLLOWER_NAME.wait, hint: "The cursor holds until you play the right notes. Guided, so it never counts toward mastery." },
+          { value: "performance", label: FOLLOWER_NAME.performance, hint: "The cursor moves with the click and grades your timing." },
+          { value: "tap", label: FOLLOWER_NAME.tap, hint: "Keep time with any key, the Tap button or Space. Only the rhythm is graded." },
         ]}
         value={s.follower}
         onchange={(v) => cfg.set({ follower: v })}
@@ -170,12 +170,12 @@
     />
     {#if climbing || s.follower === "performance"}
       <Choice
-        label="Timing window"
+        label="Timing"
         setupKey="strictness"
         options={[
-          { value: "relaxed", label: "Relaxed" },
+          { value: "relaxed", label: "Relaxed", hint: "A note a little early or late still counts as on time." },
           { value: "normal", label: "Normal" },
-          { value: "strict", label: "Strict" },
+          { value: "strict", label: "Strict", hint: "Only a note close to the beat counts as on time." },
         ]}
         value={s.strictness}
         onchange={(v) => cfg.set({ strictness: v })}

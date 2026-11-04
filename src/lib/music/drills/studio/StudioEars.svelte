@@ -368,10 +368,9 @@
         <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Listen to">
           <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>Flat <kbd>A</kbd></button>
           <button type="button" class="flip" aria-pressed={changed} onclick={() => show(true)}>Changed <kbd>B</kbd></button>
-          <label class="ml-auto flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" class="size-4 accent-[var(--instr)]" checked={s.flip === "auto"} onchange={(e) => setAutoFlip(e.currentTarget.checked)} />
-            Flip every 2 s
-          </label>
+          <button type="button" class="auto ml-auto" aria-pressed={s.flip === "auto"} onclick={() => setAutoFlip(s.flip !== "auto")}>
+            <span class="dot" aria-hidden="true"></span>Flip every 2 s
+          </button>
         </div>
         {#if eqTask}
           <svg class="mt-3 w-full" viewBox="0 0 {W} {H}" role="img" aria-label={step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer"}>
@@ -410,8 +409,9 @@
       <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready.</p>
     {:else}
       <div class="space-y-2 py-2">
-        <p class="font-display text-xl font-semibold">{entry.blurb}</p>
-        <p class="text-sm text-ws-stage-soft">{meta.title}: {meta.ask} Each prompt plays Flat, then Changed; flip with the buttons or A and B.</p>
+        <!-- What a run is, not the subtitle again. -->
+        <p class="font-display text-xl font-semibold">{meta.title}: {meta.ask}</p>
+        <p class="text-sm text-ws-stage-soft">{LENGTH} questions. Each plays Flat, then Changed; flip between them with the buttons or A and B, then pick the answer.</p>
       </div>
     {/if}
   {/snippet}
@@ -444,19 +444,46 @@
     font-size: 0.75rem;
     opacity: 0.7;
   }
+  .auto {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
+  }
+  .auto .dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+  }
+  .auto[aria-pressed="true"] {
+    border-color: var(--instr);
+  }
+  .auto[aria-pressed="true"] .dot {
+    background: var(--instr);
+    border-color: var(--instr);
+  }
   .choice {
-    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
-    border: 2px solid transparent;
+    background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
   .choice:not(:disabled):hover {
     background: color-mix(in oklch, var(--instr) 22%, transparent);
+    border-color: var(--instr);
   }
+  /* Answered: a tinted fill, with the check or cross in the verdict line above. */
   .choice[data-state="expected"] {
     border-color: var(--success);
+    background: color-mix(in oklch, var(--success) 24%, transparent);
   }
   .choice[data-state="answered"] {
     border-color: var(--destructive);
-    border-style: dashed;
+    background: color-mix(in oklch, var(--destructive) 22%, transparent);
   }
   .axis {
     stroke: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
@@ -475,6 +502,16 @@
   .hz.asked {
     fill: var(--ws-stage-ink);
     font-weight: 700;
+  }
+  /* A phone draws the 600-wide graph at about half size: only the answer bands are named, larger. */
+  @media (max-width: 639px) {
+    .hz {
+      display: none;
+    }
+    .hz.asked {
+      display: inline;
+      font-size: 24px;
+    }
   }
   .curve {
     fill: none;

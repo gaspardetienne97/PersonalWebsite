@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Sight-reading: a generated phrase on the staff with one cursor. Wait mode
+  // Sight-reading: a generated phrase on the staff with one cursor. Wait for me
   // holds the cursor until the group is played (guided); Keep time runs the
   // follower against the click. Wrong notes flash on the staff and the keys for
   // a moment and then clear; the group verdicts land on the staff at the end.
@@ -39,11 +39,11 @@
   import { assignTab } from "$lib/music/notation/groups";
   import { swingBeat } from "$lib/music/drills/piano/transport.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
-  import { clampRange, combineLanes, fretPosition, handLabel, kickGroups, KICK_MIDI, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, type ReadingSetup } from "./reading";
+  import { clampRange, combineLanes, FOLLOWER_NAME, followerModeNotes, fretPosition, handLabel, kickGroups, KICK_MIDI, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, stepWords, waitHeadline, type ReadingSetup } from "./reading";
   import { hitDrumKey } from "@repo/music-core/content/winds-pads";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
@@ -110,6 +110,8 @@
   );
   const score = $derived(override && override.from === generated.id ? override.score : generated);
   const groups = $derived(scoreGroups(score));
+  // A group in plain words: a note, or a note or chord when some notes start together.
+  const words = $derived(stepWords(groups));
   // Jazz lines are written straight and played swung: off-beat eighths land two thirds into the beat.
   const swing = $derived(!!readingLevel(levelId).swing);
   const feel = (b: number) => (swing ? swingBeat(b) : b);
@@ -381,21 +383,15 @@
         ? perf.correct
           ? `Read and played in time: ${perf.matched} of ${perf.expected} notes.`
           : `${perf.matched} of ${perf.expected} notes, ${perf.onTime} on time${perf.extra ? `, ${perf.extra} extra` : ""}.`
-        : wait!.cleanGroups === wait!.total
-          ? `Every group clean, ${wait!.total} of ${wait!.total}.`
-          : `${wait!.cleanGroups} of ${wait!.total} groups clean, ${wait!.wrongNotes} wrong note${wait!.wrongNotes === 1 ? "" : "s"} on the way.`,
+        : waitHeadline(wait!, words),
       metric: pct(lanes.score),
-      metricLabel: perf ? "score" : "groups clean",
+      metricLabel: perf ? "score" : "right first time",
       delta: fin.delta,
       best: fin.best,
       clean: lanes.correct && follower === "performance" && mode === "check",
       xp: fin.xp,
-      assistance:
-        follower === "wait"
-          ? "Wait mode is guided: the cursor waited for you. Keep time in Check counts toward mastery."
-          : mode === "check"
-            ? "Checked run: no targets on the keys, so it counts toward mastery."
-            : "Practice run: targets were lit. Switch to Check to count it.",
+      // Wait for me is guided whichever way the switch is set; the shell's sentence covers the rest.
+      assistance: follower === "wait" ? "Wait for me is guided: the cursor waited for you, so it is saved as practice. Keep time in Check counts toward mastery." : assistanceText(mode),
       rows: perf
         ? [
             { label: "Notes matched", value: perf.pitchCompletion, text: `${perf.matched} of ${perf.expected}` },
@@ -405,7 +401,7 @@
             ...(kr ? [{ label: "Kick on every beat", value: kr.score, text: `${kr.matched} of ${kr.expected}, ${kr.onTime} on time` }] : []),
           ]
         : [
-            { label: "Groups clean", value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
+            { label: `${words.one === "Note" ? "Notes" : "Notes and chords"} right first time`, value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
             { label: "Wrong notes", text: String(wait!.wrongNotes) },
             { label: "Timing", notMeasured: true },
           ],
@@ -469,7 +465,7 @@
     override = { from: generated.id, score: practiceMissedScore(score, missed) };
     phase = "ready";
     summary = null;
-    status = `Loaded the ${missed.length} group${missed.length === 1 ? "" : "s"} you missed. Press Start.`;
+    status = `Loaded the ${missed.length === 1 ? `1 ${words.one.toLowerCase()}` : `${missed.length} ${words.many}`} you missed. Press Start.`;
   }
   function newPhrase() {
     override = null;
@@ -562,21 +558,20 @@
   const hand = $derived(both ? handLabel(current ?? groups[0]) : null);
 
   const summaryLine = $derived<SetupClause[]>([
-    { text: `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}`, focus: climbing ? "session" : "level" },
+    { text: `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}${!climbing && levelId === "primer" ? " level" : ""}`, focus: climbing ? "session" : "level" },
     { text: key.name, focus: "key" },
     { text: `${clefs.join(" and ")} clef`, focus: fretted || aero || climbing ? undefined : "clefs" },
     { text: `${measures} bar${measures > 1 ? "s" : ""} of ${READING_METERS[meter].label}`, focus: climbing ? "meter" : "measures" },
     ...(s.mask ? [{ text: `${s.mask} beats ahead`, focus: "mask" }] : []),
     ...(position ? [{ text: `${position.label.toLowerCase()} position`, focus: "position" }] : []),
-    follower === "wait" ? { text: "waits for you", focus: "follower" } : { text: `${tapping ? "taps" : "keeps time"} at ${bpm} BPM${swing ? ", swung" : ""}, ${strictness} window`, focus: "strictness" },
-    { text: tapping ? `tapping the rhythm${kick ? ", kick on every beat" : ""}` : `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted && !tapping ? "input" : undefined },
-  ]);
-  // Wait mode is guided whichever way the shell's switch is set.
-  const modeNotes = $derived(
+    // The follower by the same name as its choice and the mode note.
     follower === "wait"
-      ? { practice: "Targets shown. Wait mode is guided: practice, not a test.", check: "Targets hidden. Wait mode is still guided and does not count; Keep time counts." }
-      : { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
-  );
+      ? { text: FOLLOWER_NAME.wait, focus: "follower" }
+      : { text: `${tapping ? "tapping the rhythm" : FOLLOWER_NAME.performance} at ${bpm} BPM${swing ? ", swung" : ""}, ${strictness} timing`, focus: "strictness" },
+    ...(tapping ? (kick ? [{ text: "kick on every beat", focus: "kick" }] : []) : [{ text: `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted ? "input" : undefined }]),
+  ]);
+  // From the same follower as the setup line, so one state always reads the same.
+  const modeNotes = $derived(followerModeNotes(tapping ? "tap" : follower));
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -586,7 +581,7 @@
   lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, measures, piano: instrument === "piano", grand: instrument === "piano" && clefs.length > 1 }) }}
   title="Sight-reading"
   hue="reading"
-  blurb="Read a short generated phrase and play it. Wait for me holds the cursor; Keep time follows the click."
+  blurb="Read a short phrase and play it, at your own pace or in time with the click."
   summary={summaryLine}
   tabs={READING_TABS}
   tab="sight-reading"
@@ -613,7 +608,7 @@
       <Stat label="Strikes" value={`${climb.strikes} of ${CLIMB.strikes}`} />
     {/if}
     {#if phase === "running" && live}
-      <Stat label="Group" value="{Math.min(live.index + 1, groups.length)} of {groups.length}" />
+      <Stat label={tapping ? "Tap" : words.one} value="{Math.min(live.index + 1, groups.length)} of {groups.length}" />
       {#if hand}<Stat label="Now" value={hand} />{/if}
       {#if mode === "practice" && current}<Stat label="Next" value={current.notes.map((n) => noteName(n.midi)).join(" + ")} />{/if}
     {:else if hand && phase === "ready"}

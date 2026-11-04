@@ -16,6 +16,11 @@ import {
   keyboardSpan,
   playableWrittenRange,
   soundingScore,
+  stepWords,
+  waitHeadline,
+  followerModeNotes,
+  FOLLOWER_NAME,
+  missMarks,
 } from "./reading";
 
 describe("reading helpers", () => {
@@ -134,5 +139,53 @@ describe("the kick lane", () => {
     );
     expect(both.score).toBeCloseTo(0.875);
     expect(both.correct).toBe(false);
+  });
+});
+
+describe("plain words for the cursor's steps and the follower", () => {
+  const g = (...sizes: number[]) =>
+    sizes.map((n, i) => ({
+      index: i,
+      startBeat: i,
+      durationBeats: 1,
+      notes: Array.from({ length: n }, (_, j) => ({
+        midi: 60 + j,
+        startBeat: i,
+        durationBeats: 1,
+        voiceId: "rh",
+      })),
+    }));
+
+  it("a step is a note when every group is one note, else a note or chord", () => {
+    expect(stepWords(g(1, 1, 1))).toEqual({ one: "Note", many: "notes" });
+    expect(stepWords(g(1, 2, 1))).toEqual({ one: "Note or chord", many: "notes and chords" });
+  });
+  it("the wait headline counts steps right first time, and the wrong notes on the way", () => {
+    expect(waitHeadline({ cleanGroups: 6, total: 6, wrongNotes: 0 }, stepWords(g(1)))).toBe(
+      "All 6 notes right first time.",
+    );
+    expect(waitHeadline({ cleanGroups: 5, total: 6, wrongNotes: 1 }, stepWords(g(1)))).toBe(
+      "5 of 6 notes right first time, 1 wrong note on the way.",
+    );
+    expect(waitHeadline({ cleanGroups: 2, total: 4, wrongNotes: 3 }, stepWords(g(2)))).toBe(
+      "2 of 4 notes and chords right first time, 3 wrong notes on the way.",
+    );
+  });
+  it("each mode note opens with the follower's own name, and Wait for me never counts", () => {
+    for (const f of ["wait", "performance", "tap"] as const) {
+      const n = followerModeNotes(f);
+      expect(n.practice.startsWith(`${FOLLOWER_NAME[f]}:`)).toBe(true);
+      expect(n.check.startsWith(`${FOLLOWER_NAME[f]}:`)).toBe(true);
+    }
+    expect(followerModeNotes("wait").check).toContain("does not count");
+    expect(followerModeNotes("performance").check).toContain("This run counts");
+  });
+  it("after a miss the right keys carry a check and the played ones a cross; a shared key keeps the check", () => {
+    expect(missMarks([67], [69])).toEqual({ 67: { target: true, label: "✓" }, 69: { label: "✕" } });
+    expect(missMarks([60, 64], [60, 65])).toEqual({
+      60: { target: true, label: "✓" },
+      64: { target: true, label: "✓" },
+      65: { label: "✕" },
+    });
   });
 });

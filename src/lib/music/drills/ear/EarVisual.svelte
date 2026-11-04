@@ -41,15 +41,26 @@
   const lo = $derived(Math.min(...all) - 1);
   const hi = $derived(Math.max(...all) + 1);
   const row = $derived(Math.max(5, Math.min(12, 150 / Math.max(1, hi - lo))));
-  const H = $derived(PAD.top + PAD.bottom + Math.max(90, (hi - lo) * row));
+  // Before the answer only the timing shows, so the picture stays short and the answers stay in view.
+  // Side by side with what you chose (a prefix), each picture stays short so both fit with the answers.
+  const H = $derived(revealed ? PAD.top + PAD.bottom + (prefix ? Math.min(70, Math.max(50, (hi - lo) * row)) : Math.max(90, (hi - lo) * row)) : 62);
   const x = (t: number) => PAD.left + (t / end) * (W - PAD.left - PAD.right);
   const yOf = (m: number) => PAD.top + ((hi - m) / Math.max(1, hi - lo)) * (H - PAD.top - PAD.bottom);
-  const mid = $derived((H - PAD.bottom + PAD.top) / 2);
+  const mid = $derived(revealed ? (H - PAD.bottom + PAD.top) / 2 : 20);
   const noteH = $derived(Math.max(10, Math.min(16, row * 1.6)));
 
   const tonic = $derived(events[0]?.midi[0] ?? 60);
   const degreeOf = (m: number) => SCALE_DEGREES[pc(m - tonic)].label;
   const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer", "scale", "error-detect"].includes(prompt.drill));
+  /** Played before the answer: the tonic in the degree drills, the key-setting chords in a key. */
+  const isTonic = (ei: number) => usesDegrees && ei === 0;
+  /** What each timing bar is, without giving the answer away: the tonic, the key, then a question mark per note. */
+  function shapeLabel(ei: number): string {
+    if (isTonic(ei)) return "Tonic";
+    if (ei < (prompt.keyEvents ?? 0)) return "Key";
+    if (events.length === 1) return prompt.drill === "pitch-compare" ? "Note" : "All at once";
+    return usesDegrees ? "?" : String(ei + 1 - (prompt.keyEvents ?? 0));
+  }
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
   const contour = $derived(
@@ -156,7 +167,7 @@
 {:else}
 <div bind:clientWidth={W} class="w-full">
 <svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? "What you heard, note by note" : "What is playing, in time"}>
-  <line class="base" x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom + 6} y2={H - PAD.bottom + 6} />
+  {#if revealed}<line class="base" x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom + 6} y2={H - PAD.bottom + 6} />{/if}
 
   {#if revealed && contour}
     <polyline class="contour" points={contour} />
@@ -174,17 +185,24 @@
             width={Math.max(8, x(e.time + e.duration) - x(e.time) - 3)}
             height={noteH}
             rx={noteH / 2}
-            fill={colour}
+            fill={isTonic(ei) ? "none" : colour}
+            stroke={isTonic(ei) ? colour : "none"}
+            stroke-width="2"
+            stroke-dasharray={isTonic(ei) ? "4 3" : undefined}
             class:on
           />
           {#if usesDegrees}
-            <text class="tag" x={x(e.time) + 4} y={yOf(m) - noteH / 2 - 4}>{degreeText(m)}</text>
+            <text class="tag" x={x(e.time) + 4} y={yOf(m) - noteH / 2 - 4}>{isTonic(ei) ? `Tonic, ${degreeText(m)}` : degreeText(m)}</text>
           {/if}
         </g>
       {/each}
     {:else}
       <!-- One bar per event, whatever it holds: the shape in time, not the notes. -->
-      <rect class="shape" class:on x={x(e.time)} y={mid - 9} width={Math.max(8, x(e.time + e.duration) - x(e.time) - 3)} height="18" rx="9" />
+      {@const w = Math.max(8, x(e.time + e.duration) - x(e.time) - 3)}
+      <rect class="shape" class:on class:tonic={isTonic(ei)} x={x(e.time)} y={mid - 9} width={w} height="18" rx="9" />
+      {#if w >= 18 || events.length <= 8}
+        <text class="shape-tag" class:on x={x(e.time) + w / 2} y={mid + 28} text-anchor="middle">{shapeLabel(ei)}</text>
+      {/if}
     {/if}
   {/each}
 
@@ -212,9 +230,30 @@
     fill: color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
     transition: fill 120ms;
   }
+  .shape.tonic {
+    fill: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
+  }
   .shape.on {
     fill: var(--instr);
     filter: drop-shadow(0 0 8px color-mix(in oklch, var(--instr) 70%, transparent));
+    animation: pulse 500ms ease-out;
+  }
+  @keyframes pulse {
+    from {
+      transform: scaleY(1.5);
+    }
+  }
+  .shape {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .shape-tag {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--ws-stage-soft);
+  }
+  .shape-tag.on {
+    fill: var(--ws-stage-ink);
   }
   /* Revealed: each note rises into place, one after another. */
   .note {
@@ -250,10 +289,12 @@
   @media (prefers-reduced-motion: reduce) {
     .note,
     .contour,
-    .staff-card {
+    .staff-card,
+    .shape.on {
       animation: none;
     }
   }
+  :global(html[data-reduce-motion]) .shape.on,
   :global(html[data-reduce-motion]) .note,
   :global(html[data-reduce-motion]) .contour,
   :global(html[data-reduce-motion]) .staff-card {

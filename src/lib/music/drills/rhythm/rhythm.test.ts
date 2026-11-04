@@ -2,7 +2,17 @@ import { describe, expect, it } from "vitest";
 import type { NoteEvent } from "@repo/music-core";
 import { expandRhythm, RHYTHM_PATTERNS, rhythmPattern } from "@repo/music-core/content/rhythm";
 import { gradePattern } from "@repo/music-core/scoring/rhythm";
-import { demoNotes, midiHits, readPatterns, voicing } from "./rhythm";
+import {
+  beatsPerRow,
+  cellVerdict,
+  countInText,
+  demoNotes,
+  lengthText,
+  midiHits,
+  readPatterns,
+  signedMs,
+  voicing,
+} from "./rhythm";
 import { rhythmLine } from "./notation";
 
 const on = (at: number, midi: number, instrument?: NoteEvent["instrument"]): NoteEvent => ({
@@ -69,6 +79,43 @@ describe("rhythm helpers", () => {
       plan.events.length,
     );
     expect(notes.filter((n) => n.voice === "click").every((n) => n.time < 2)).toBe(true);
+  });
+});
+
+describe("rhythm copy and layout", () => {
+  it("signs each offset, and says 0 only when it rounds to 0", () => {
+    expect(signedMs(4.4)).toBe("+4 ms");
+    expect(signedMs(-7)).toBe("−7 ms");
+    expect(signedMs(0.3)).toBe("0 ms");
+    expect(signedMs(-0.4)).toBe("0 ms");
+  });
+
+  it("says the length as the grid draws it, and the count-in apart", () => {
+    expect(lengthText(16, 4)).toBe("4 bars of 4");
+    expect(lengthText(4, 4)).toBe("1 bar of 4");
+    expect(lengthText(6, 4)).toBe("6 beats");
+    expect(countInText(1)).toBe("1 bar count-in");
+    expect(countInText(2)).toBe("2 bars count-in");
+    expect(countInText(0)).toBe("no count-in");
+  });
+
+  it("grades a written cell", () => {
+    expect(cellVerdict(true, true)).toBe("right");
+    expect(cellVerdict(false, true)).toBe("extra");
+    expect(cellVerdict(true, false)).toBe("missed");
+    expect(cellVerdict(false, false)).toBeNull();
+  });
+
+  it("keeps dictation cells 44 px wide: a whole bar on a laptop, half a bar on a phone", () => {
+    expect(beatsPerRow(0, 2, 4)).toBe(4);
+    expect(beatsPerRow(1000, 2, 4, 64)).toBe(4);
+    expect(beatsPerRow(334, 2, 4)).toBe(2);
+    expect(beatsPerRow(334, 2, 4, 64)).toBe(2);
+    expect(beatsPerRow(334, 3, 4)).toBe(2);
+    expect(beatsPerRow(334, 4, 4, 64)).toBe(1);
+    // Three beats a bar never splits into a share that leaves a beat over.
+    expect(beatsPerRow(334, 2, 3)).toBe(3);
+    expect(beatsPerRow(200, 2, 3)).toBe(1);
   });
 });
 

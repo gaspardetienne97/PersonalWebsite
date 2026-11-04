@@ -60,6 +60,11 @@ const afterSetup = (minor: boolean, chord: PlaybackEvent[]): LessonSound => {
   ]);
 };
 const marksOf = (midis: number[]) => Object.fromEntries(midis.map((m) => [m, name(m)]));
+/** C major from middle C, each key marked with its degree or with the chord built on it. */
+const C_DEGREES = keys(Object.fromEntries(MAJOR.map((s, i) => [60 + s, String(i + 1)])));
+const C_NUMERALS = keys(
+  Object.fromEntries(MAJOR.map((s, i) => [60 + s, ["I", "ii", "iii", "IV", "V", "vi", "vii°"][i]])),
+);
 const card = (id: string, title: string, ...screens: LessonScreen[]): Lesson => ({
   id,
   title,
@@ -140,6 +145,7 @@ const compare = {
     card("ear.interval-compare", "Interval comparison", {
       title: "Which is bigger?",
       text: "Two intervals play one after the other, and you say which one is bigger. Compare the distance between the notes in each, not how high they sound. Later the second interval can start on a different note.",
+      figure: keys({ 60: "Start", 64: "4 up", 67: "7 up" }),
       options: [
         { label: "First is bigger", sound: pair(7, 4) },
         { label: "Second is bigger", sound: pair(4, 7) },
@@ -207,7 +213,20 @@ const qualities = {
   intro: () =>
     card("ear.chord-qualities", "Chord qualities", {
       title: "One chord, all notes together",
-      text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Each quality is next.",
+      text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Hear major and minor: only the 3rd moves.",
+      figure: keys({ 60: "Root", 63: "m3", 64: "M3", 67: "5th" }),
+      options: [
+        {
+          label: "Major: C, E, G",
+          sound: { notes: [{ midi: [60, 64, 67], at: 0, dur: 0.9 }] },
+          figure: keys({ 60: "Root", 64: "M3", 67: "5th" }),
+        },
+        {
+          label: "Minor: C, Eb, G",
+          sound: { notes: [{ midi: [60, 63, 67], at: 0, dur: 0.9 }] },
+          figure: keys({ 60: "Root", 63: "m3", 67: "5th" }),
+        },
+      ],
     }),
   item: (token: string, o: EarOptions = {}) => {
     const q = QUALITIES.find((x) => x.token === token);
@@ -245,7 +264,14 @@ const cadences = {
   intro: () =>
     card("ear.cadences", "Cadences", {
       title: "Two chords that close a phrase",
-      text: "A cadence is two chords that end a phrase, like punctuation. The quiz plays two chords and you name the cadence by where they go. Each one is next.",
+      text: "A cadence is two chords that end a phrase, like punctuation. The quiz plays two chords and you name the cadence by where they go. Here V goes to I, the cadence that sounds most finished.",
+      figure: keys({ 55: "V", 59: "V", 62: "V", 60: "I", 64: "I", 67: "I" }),
+      sound: {
+        notes: [
+          { midi: [55, 59, 62], at: 0, dur: 0.9 },
+          { midi: [60, 64, 67], at: 1, dur: 1.2 },
+        ],
+      },
     }),
   item: (token: string) => {
     const c = CADENCES.find((x) => x.token === token);
@@ -306,7 +332,8 @@ const functions = {
   intro: () =>
     card("ear.chord-functions", "Chords in a key", {
       title: "Each chord has a place in the key",
-      text: "The key is set with I, IV, V, I, then one chord plays and you name its numeral. The numeral is the chord's place in the key: I is built on the tonic, V on the 5th degree. Each chord is next.",
+      text: "The key is set with I, IV, V, I, then one chord plays and you name its numeral. The numeral is the chord's place in the key: I is built on the tonic, V on the 5th degree. The keys below show the chord built on each note of C major.",
+      figure: C_NUMERALS,
     }),
   item: functionItem("chord-functions"),
 };
@@ -314,7 +341,8 @@ const progressions = {
   intro: () =>
     card("ear.progressions", "Progression dictation", {
       title: "Write down the chords",
-      text: "A progression of three or four chords plays, always starting on I, and you write down the rest as numerals. Hearing where each chord sits in the key tells you which numeral it is. Each chord is next.",
+      text: "A progression of three or four chords plays, always starting on I, and you write down the rest as numerals. Hearing where each chord sits in the key tells you which numeral it is. The keys below show each numeral's root in C major.",
+      figure: C_NUMERALS,
     }),
   item: functionItem("progressions"),
 };
@@ -322,7 +350,8 @@ const loops = {
   intro: () =>
     card("ear.song-loops", "Song loops", {
       title: "A loop of chords",
-      text: "The key is set, then a loop of chords plays as a groove, and you name every chord as a numeral. A flat sign, as in bVII, means the chord's root is a half step lower than that degree in the major scale. Each chord is next.",
+      text: "The key is set, then a loop of chords plays as a groove, and you name every chord as a numeral. A flat sign, as in bVII, means the chord's root is a half step lower than that degree in the major scale. The keys below show each numeral's root in C major.",
+      figure: C_NUMERALS,
     }),
   item: (id: string) => {
     // "min:V" is the numeral heard after a minor setup, "V" after a major one.
@@ -370,7 +399,8 @@ const keyChanges = {
       "Key changes",
       {
         title: "The key moves",
-        text: "The old key is set with I, IV, V, I, then a few chords take the music to a new key. You answer where it went, then name the chords as numerals in the new key. The last chord is the new tonic.",
+        text: "The old key is set with I, IV, V, I, then a few chords take the music to a new key. You answer where it went, then name the chords as numerals in the new key. The last chord is the new tonic: here C moves up a whole step to D.",
+        figure: keys({ 60: "C", 64: "E", 67: "G", 62: "D", 66: "F#", 69: "A" }),
       },
       {
         title: "Ways in",
@@ -390,7 +420,16 @@ const bassLines = {
   intro: () =>
     card("ear.bass-lines", "Bass lines", {
       title: "The lowest note of each chord",
-      text: "Chords play from I with their bass, and you write down the bass note of each as a scale degree. The bass is the chord's root, and at a higher level it can be another chord tone. Each degree is next.",
+      text: "Chords play from I with their bass, and you write down the bass note of each as a scale degree. The bass is the chord's root, and at a higher level it can be another chord tone. Here the bass walks 1, 4, 5 under I, IV and V in C.",
+      figure: keys({ 48: "1", 53: "4", 55: "5" }),
+      sound: {
+        notes: [
+          { midi: [48, 64, 67], at: 0, dur: 0.8 },
+          { midi: [53, 65, 69], at: 0.9, dur: 0.8 },
+          { midi: [55, 62, 67], at: 1.8, dur: 0.8 },
+          { midi: [48, 64, 67], at: 2.7, dur: 1.1 },
+        ],
+      },
     }),
   item: (degree: string) => {
     const d = Number(degree);
@@ -436,7 +475,9 @@ const scales = {
   intro: () =>
     card("ear.scales", "Scales and modes", {
       title: "A scale from its tonic",
-      text: "The quiz holds the tonic low and plays a scale from it, and you name the scale. Each scale is a set of steps from the tonic, and one or two notes give it its colour. Each scale is next.",
+      text: "The quiz holds the tonic low and plays a scale from it, and you name the scale. Each scale is a set of steps from the tonic, and one or two notes give it its colour. Here is C major, counted up from its tonic.",
+      figure: C_DEGREES,
+      sound: sound(scalePlayback(60, "major", "ascending")),
     }),
   item: (token: string) => {
     const s = EAR_SCALES.find((x) => x.token === token);
@@ -463,7 +504,9 @@ const inversions = {
   intro: () =>
     card("ear.inversions", "Inversions", {
       title: "Which note is lowest",
-      text: "An inversion is which note of the chord sits lowest. The quiz plays one chord, and you name the inversion by the note in the bass. Each position is next.",
+      text: "An inversion is which note of the chord sits lowest. The quiz plays one chord, and you name the inversion by the note in the bass. Here C major has its 3rd, E, at the bottom: first inversion.",
+      figure: keys({ 64: "3rd", 67: "5th", 72: "Root" }),
+      sound: { notes: [{ midi: [64, 67, 72], at: 0, dur: 1.2 }] },
     }),
   item: (token: string) => {
     const inv = EAR_INVERSIONS.find((x) => x.token === token);
@@ -500,6 +543,7 @@ const finePitch = {
     return card("ear.fine-pitch", "Fine pitch", {
       title: "Smaller than a half step",
       text: `A cent is a hundredth of a half step. The quiz plays a note, then the same note a few cents higher or lower, or sometimes in tune, and you say which. The widest step is ${cents} cents, and the steps run down to ${CENT_STEPS.at(-1)}.`,
+      figure: keys({ 69: "A" }),
       options: [
         { label: `Higher by ${cents} cents`, sound: two(69 + cents / 100) },
         { label: `Lower by ${cents} cents`, sound: two(69 - cents / 100) },
@@ -541,7 +585,9 @@ const scaleDegrees = {
   intro: () =>
     card("ear.scale-degrees", "Scale degrees", {
       title: "Every note has a number",
-      text: "In a key, each note has a degree: 1 is the tonic, home, and the rest count up the scale. The quiz plays the tonic, then one more note, and you name its degree. Each degree is next.",
+      text: "In a key, each note has a degree: 1 is the tonic, home, and the rest count up the scale. The quiz plays the tonic, then one more note, and you name its degree. Here are the degrees of C major.",
+      figure: C_DEGREES,
+      sound: sound(scalePlayback(60, "major", "ascending")),
     }),
   item: degreeItem("scale-degrees", true),
 };
@@ -552,9 +598,15 @@ const melodyDictation = {
       level: o.level ?? "major-pentachord",
       keyPc: 0,
     });
+    const tonic = p.playback[0].midi[0];
+    const degrees = p.answer.split(" ");
     return card("ear.melody-dictation", "Melody dictation", {
-      title: "Write down the degrees",
-      text: `The key is set first, then the tonic plays and a short phrase follows, and you write down its degrees. This one is ${p.answer}.`,
+      title: "A phrase in degrees",
+      text: `The key is set first, then the tonic plays and a short phrase follows. You answer with its degrees in order, by playing or singing them back. This one is ${p.answer}.`,
+      figure: keys({
+        ...Object.fromEntries(p.expectedMidi!.map((m, i) => [m, degrees[i]])),
+        [tonic]: "Tonic",
+      }),
       sound: afterSetup(p.minor, p.playback),
     });
   },
@@ -573,6 +625,7 @@ const wrongNote = {
     return card("ear.wrong-note", "Spot the wrong note", {
       title: "One note is changed",
       text: `A melody is written as degrees, here ${p.written!.join(" ")}. It plays after its tonic with one note changed, here note ${at}, and you say which place. Later it can also play exactly as written.`,
+      figure: keys(Object.fromEntries(p.expectedMidi!.map((m, i) => [m, p.written![i]]))),
       options: [
         { label: "As written", sound: sound(written) },
         { label: "One note changed", sound: sound(p.playback) },
@@ -608,7 +661,14 @@ const feel = {
   intro: () =>
     card("ear.feel", "Feel", {
       title: "How the beat is divided",
-      text: "A groove's feel is how it divides each beat. The quiz plays a groove and you name its feel from where the notes between the beats fall. Each feel is next.",
+      text: "A groove's feel is how it divides each beat. The quiz plays a groove and you name its feel from where the notes between the beats fall. Below, each beat split straight in two.",
+      figure: {
+        kind: "rhythm",
+        bars: 1,
+        perBeat: 2,
+        beatsPerBar: 4,
+        onsets: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5],
+      },
     }),
   item: (id: string) => {
     const f = FEELS.find((x) => x.id === id);

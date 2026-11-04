@@ -1,6 +1,7 @@
 <script lang="ts">
   // The twelve degrees around the tonic, each in its fixed colour with its label.
-  // Degrees outside the level stay visible but are not answers. Answered states
+  // Degrees outside the level stay visible (dimmed, "not in this set") but are not
+  // answers; in a level with no chromatic degree the chromatic ones are left out. Answered states
   // carry a glyph and words, never colour alone.
   import { SCALE_DEGREES, degreeLabel } from "@repo/music-core/content/ear";
   import { DEGREE_ROLE, degreeColor } from "./degrees";
@@ -21,6 +22,8 @@
   let { available, labels, onpick, lit = null, expected = null, answered = null, disabled = false, center = "" }: Props = $props();
 
   const R = 42; // % of the box, to button centres
+  const chromatic = (l: string) => /^[b#]/.test(l);
+  const shown = $derived(available.some(chromatic) ? SCALE_DEGREES : SCALE_DEGREES.filter((d) => !chromatic(d.label) || available.includes(d.label)));
   const pos = (s: number) => {
     const a = (s / 12) * 2 * Math.PI - Math.PI / 2;
     return { left: 50 + R * Math.cos(a), top: 50 + R * Math.sin(a) };
@@ -32,7 +35,7 @@
     <span class="font-display text-lg font-semibold">{center}</span>
     <span class="text-xs text-ws-stage-soft">tonic</span>
   </div>
-  {#each SCALE_DEGREES as d (d.label)}
+  {#each shown as d (d.label)}
     {@const p = pos(d.semitones)}
     {@const open = available.includes(d.label)}
     {@const state = expected === d.label ? "expected" : answered === d.label ? "answered" : null}
@@ -47,11 +50,11 @@
       style:top="{p.top}%"
       style:--deg={degreeColor(d.label)}
       disabled={disabled || !open || !onpick}
-      aria-label="{degreeLabel(d.label, 'degree')}, {DEGREE_ROLE[d.label]}{state === 'expected' ? ', the answer' : state === 'answered' ? ', your answer' : ''}"
+      aria-label="{degreeLabel(d.label, 'degree')}, {DEGREE_ROLE[d.label]}{!open ? ', not in this set' : ''}{state === 'expected' ? ', the answer' : state === 'answered' ? ', your answer' : ''}"
       onclick={() => onpick?.(d.label)}
     >
       <span class="text-base font-semibold leading-none">{labels === "solfege" ? d.solfege : d.label}</span>
-      {#if labels === "degree"}<span class="text-[0.7rem] leading-none opacity-80">{d.solfege}</span>{/if}
+      {#if labels === "degree"}<span class="text-xs leading-none">{d.solfege}</span>{/if}
       {#if state}<span class="glyph" aria-hidden="true">{state === "expected" ? "✓" : "✕"}</span>{/if}
     </button>
   {/each}
@@ -97,7 +100,8 @@
     outline-offset: 2px;
   }
   .deg.off {
-    background: color-mix(in oklch, var(--deg) 22%, var(--ws-stage-2));
+    background: transparent;
+    border: 2px dashed color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
     color: var(--ws-stage-soft);
   }
   .deg.lit {

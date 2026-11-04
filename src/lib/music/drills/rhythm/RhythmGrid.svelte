@@ -9,14 +9,16 @@
   export type GridVerdict = "early" | "pocket" | "late" | "missed";
   export interface GridHit {
     beat: number;
-    kind: "early" | "pocket" | "late" | "extra" | "rest";
+    /** Missed: a note with no tap, drawn hollow where its tap should have been. */
+    kind: "early" | "pocket" | "late" | "extra" | "rest" | "missed";
   }
 </script>
 
 <script lang="ts">
   // One line of rhythm per bar: noteheads on a single line, accents, strum
   // strokes, drawn rests, chord symbols, counting underneath, and the taps
-  // that landed (shape and colour both say early, in the pocket, late or extra).
+  // that landed (shape and colour both say early, on time, late or extra; a
+  // missed note is a hollow head, explained by the TapKey under the stage).
   interface Props {
     bars: number;
     perBar: number;
@@ -43,18 +45,22 @@
   );
   const barList = $derived(Array.from({ length: bars }, (_, i) => i));
   const inBar = <T extends { beat: number }>(xs: T[], bar: number) => xs.map((e, i) => ({ e, i })).filter(({ e }) => e.beat >= bar * perBar - 1e-6 && e.beat < (bar + 1) * perBar - 1e-6);
+  /** A tap a hair before a bar's first beat belongs to that bar, not drawn at the end of the one before. */
+  const hitsIn = (bar: number) => hits.map((e, i) => ({ e, i })).filter(({ e }) => Math.floor((e.beat + 0.25) / perBar) === bar);
   const glyph = { down: "↓", up: "↑", mute: "✕" } as const;
+  /** With no chord symbols or strum arrows the space above the accents is empty: leave it out, so a phone shows more bars. */
+  const top = $derived(chords.length || events.some((e) => e.stroke) ? 0 : 36);
 </script>
 
 <div class="grid gap-2 {bars > 1 ? 'sm:grid-cols-2' : ''}" role="img" aria-label={label}>
   {#each barList as bar (bar)}
-    <svg viewBox="0 0 {W} 128" class="w-full" aria-hidden="true">
+    <svg viewBox="0 {top} {W} {128 - top}" class="w-full" aria-hidden="true">
       <defs>
         <pattern id="{uid}-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" class="hatch" />
         </pattern>
       </defs>
-      <text x="4" y="14" class="bar-no">{bar + 1}</text>
+      <text x="4" y={top + 14} class="bar-no">{bar + 1}</text>
       {#each chords.filter((c) => c.startBeat >= bar * perBar && c.startBeat < (bar + 1) * perBar) as c (c.startBeat)}
         <text x={x(c.startBeat - bar * perBar)} y="16" class="chord">{c.symbol}</text>
       {/each}
@@ -82,23 +88,23 @@
           {:else}
             <ellipse {cx} cy="70" rx={e.accent ? 9 : 7.5} ry={e.accent ? 7 : 6} class="head" />
           {/if}
-          {#if v === "missed"}<text x={cx} y="92" class="miss">missed</text>{/if}
         </g>
       {/each}
       {#each counts as c (c.b)}
         <text x={x(c.b)} y="104" class="count" class:beat={c.text !== "&"}>{c.text}</text>
       {/each}
-      {#each inBar(hits, bar) as { e: h, i } (i)}
+      {#each hitsIn(bar) as { e: h, i } (i)}
         {@const hx = x(h.beat - bar * perBar)}
         <g class="hit" data-kind={h.kind} transform="translate({hx} 118)">
           {#if h.kind === "early"}<path d="M5 -5 L-5 0 L5 5 Z" />
           {:else if h.kind === "late"}<path d="M-5 -5 L5 0 L-5 5 Z" />
           {:else if h.kind === "pocket"}<circle r="5" />
+          {:else if h.kind === "missed"}<circle r="4.5" class="hollow" />
           {:else}<path d="M-5 -5 L5 5 M5 -5 L-5 5" class="cross" />{/if}
         </g>
       {/each}
       {#if playhead !== null && playhead >= bar * perBar && playhead < (bar + 1) * perBar}
-        <line x1={x(playhead - bar * perBar)} x2={x(playhead - bar * perBar)} y1="24" y2="124" class="playhead" />
+        <line x1={x(playhead - bar * perBar)} x2={x(playhead - bar * perBar)} y1={top + 8} y2="90" class="playhead" />
       {/if}
     </svg>
   {/each}
@@ -134,7 +140,7 @@
   }
   .bar-no {
     fill: var(--ws-stage-soft);
-    font-size: 11px;
+    font-size: 13px;
   }
   .chord {
     fill: var(--instr);
@@ -184,14 +190,9 @@
     stroke: var(--destructive);
     stroke-width: 2;
   }
-  .miss {
-    fill: var(--destructive);
-    font-size: 10px;
-    text-anchor: middle;
-  }
   .count {
     fill: var(--ws-stage-soft);
-    font-size: 11px;
+    font-size: 13px;
     text-anchor: middle;
   }
   .count.beat {
@@ -204,6 +205,11 @@
   }
   .hit[data-kind="pocket"] circle {
     fill: var(--success);
+  }
+  .hit .hollow {
+    fill: none;
+    stroke: var(--destructive);
+    stroke-width: 2;
   }
   .hit .cross {
     fill: none;

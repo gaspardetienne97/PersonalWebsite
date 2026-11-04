@@ -387,6 +387,7 @@
   blurb="Load a recording you own, loop a stretch, slow it down without changing its pitch and play the part back. Find home names the note the music rests on."
   summary={summaryLine}
   checkable={false}
+  blocked={s.source ? null : "Pick or import a recording first."}
   bind:phase
   bind:status
   onstart={start}

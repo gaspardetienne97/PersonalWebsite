@@ -15,6 +15,7 @@
   import { settings } from "$lib/music/runtime";
   import EarVisual from "./EarVisual.svelte";
   import { tokenLabel } from "./session";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
 
   let {
     prompt,
@@ -120,8 +121,12 @@
     </figcaption>
   </figure>
   {#if onKeys}
-    <details class="mt-2">
-      <summary class="flex min-h-11 w-fit cursor-pointer items-center text-sm text-ws-stage-soft">On the staff</summary>
+    <!-- Closed by default to keep the answers in view; a button with a chevron, so it never reads as an empty heading. -->
+    <details class="staff mt-2">
+      <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 text-sm font-medium hover:bg-ws-stage-ink/8">
+        <ChevronDown class="chev size-4" aria-hidden="true" />
+        <span class="closed-label">Show it on the staff</span><span class="open-label">Hide the staff</span>
+      </summary>
       <EarVisual {prompt} revealed />
     </details>
   {/if}
@@ -154,6 +159,22 @@
     vertical-align: -0.1rem;
     border-radius: 999px;
     border: 2px dashed var(--tone-avoid);
+  }
+  .staff summary::-webkit-details-marker {
+    display: none;
+  }
+  .staff :global(.chev) {
+    transition: rotate 150ms;
+  }
+  .staff[open] :global(.chev) {
+    rotate: 180deg;
+  }
+  .staff .open-label,
+  .staff[open] .closed-label {
+    display: none;
+  }
+  .staff[open] .open-label {
+    display: inline;
   }
   @keyframes fade {
     from {

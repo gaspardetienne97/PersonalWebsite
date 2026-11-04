@@ -230,3 +230,68 @@ export function combineLanes(
     correct: taps.correct && kicks.correct,
   };
 }
+
+/**
+ * What one step of the cursor is, in plain words. The follower moves by groups (the notes
+ * that start together), so a group is a note when every one is a single note.
+ */
+export function stepWords(groups: readonly ScoreGroup[]): { one: string; many: string } {
+  return groups.every((g) => g.notes.length === 1)
+    ? { one: "Note", many: "notes" }
+    : { one: "Note or chord", many: "notes and chords" };
+}
+
+/** The wait-mode result in those words: how many steps were played with no wrong note first. */
+export function waitHeadline(
+  r: { cleanGroups: number; total: number; wrongNotes: number },
+  words: { many: string },
+): string {
+  if (r.cleanGroups === r.total) return `All ${r.total} ${words.many} right first time.`;
+  return `${r.cleanGroups} of ${r.total} ${words.many} right first time, ${r.wrongNotes} wrong note${r.wrongNotes === 1 ? "" : "s"} on the way.`;
+}
+
+export type Follower = "wait" | "performance" | "tap";
+/** The follower's one name, used by the Follower choice, the setup line and the mode note alike. */
+export const FOLLOWER_NAME: Record<Follower, string> = {
+  wait: "Wait for me",
+  performance: "Keep time",
+  tap: "Tap the rhythm",
+};
+
+/**
+ * What Practice and Check mean for the chosen follower, in the follower's own name. Wait for me
+ * is guided whichever way the switch is set (scoring rules 1), so it never counts.
+ */
+export function followerModeNotes(f: Follower): { practice: string; check: string } {
+  if (f === "wait")
+    return {
+      practice:
+        "Wait for me: the cursor waits for each note, and each note is lit for you. Practice only.",
+      check:
+        "Wait for me: nothing is lit, but the cursor still waits, so it does not count. Keep time in Check counts.",
+    };
+  if (f === "tap")
+    return {
+      practice: "Tap the rhythm: the cursor moves with the click. Practice, so it does not count.",
+      check: "Tap the rhythm: the cursor moves with the click. This run counts.",
+    };
+  return {
+    practice:
+      "Keep time: the cursor moves with the click, and each note is lit for you. Practice, so it does not count.",
+    check: "Keep time: the cursor moves with the click, and nothing is lit. This run counts.",
+  };
+}
+
+/**
+ * Keyboard marks after a missed card: each right key a check, each played key a cross. A key that
+ * is both (a chord with one note right) keeps the check.
+ */
+export function missMarks(
+  target: readonly number[],
+  played: readonly number[],
+): Record<number, { target?: boolean; label: string }> {
+  return {
+    ...Object.fromEntries(played.map((m) => [m, { label: "✕" }])),
+    ...Object.fromEntries(target.map((m) => [m, { target: true, label: "✓" }])),
+  };
+}

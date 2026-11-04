@@ -428,6 +428,8 @@ export function biteVibratoLesson(): Lesson {
       {
         title: "Vibrato from the bite",
         text: "Hold a note and pulse your bite by wiggling your jaw lightly on the mouthpiece, with no hard squeeze. The Aerophone sends the bite as pitch bend, and the drill reads those values. If it says no bite arrived, set the bite to send pitch bend (E-Wind bite mode gives vibrato).",
+        // A held G to pulse on: the fingering stays put, only the bite moves.
+        figure: { kind: "aerophone", midi: 67 },
       },
       {
         title: "Pulses a beat",
@@ -527,6 +529,7 @@ export function padImproviseLesson(): Lesson {
       {
         title: "Play over the band",
         text: "In this drill the band plays a loop and you play any pads and any rhythm over it. It is graded on time, meaning how close your hits sit to the sixteenth grid, and on keeping every bar going. A bar counts as kept going when it has at least two hits.",
+        figure: padGrid([groove]),
       },
       {
         title: "Vary the groove",

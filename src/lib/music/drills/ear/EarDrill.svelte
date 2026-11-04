@@ -75,14 +75,14 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
   import EarReveal, { ON_INSTRUMENT } from "./EarReveal.svelte";
   import ConfusionGrid from "./ConfusionGrid.svelte";
-  import { degreeColor } from "./degrees";
+  import { degreeColor, spellDegree } from "./degrees";
   import { nextRun, type NextRun } from "$lib/music/advance.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import {
@@ -1151,6 +1151,23 @@
     status = `The answer is ${tokenLabel(current.drill, current.answer, labels)}. Listen for it, then answer: this one counts as hinted.`;
   }
 
+  /** Number keys answer the buttons in order (a degree by its own number), and Enter continues. */
+  function onKey(e: KeyboardEvent) {
+    if (phase !== "running" || e.repeat || e.metaKey || e.ctrlKey || e.altKey || !current) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.("input, select, textarea, [contenteditable]")) return;
+    // A focused button takes Enter itself.
+    if (step === "feedback" && e.key === "Enter" && mode === "practice" && !target?.closest?.("button, a")) return next();
+    const n = "123456789".indexOf(e.key);
+    if (n < 0 || answer !== "choice" || (step !== "answer" && step !== "playing")) return;
+    const p = current;
+    if (p.drill === "scale-degree") {
+      if (p.choices.includes(e.key)) choose(e.key);
+    } else if (p.drill === "error-detect") {
+      if (p.written && n < p.written.length) choose(String(n + 1));
+    } else if (!["progression", "key-change", "loop", "bass-line"].includes(p.drill) && p.choices[n] !== undefined) choose(p.choices[n]);
+  }
+
   function next() {
     clearTimeout(advanceTimer);
     if (phase !== "running") return;
@@ -1203,9 +1220,7 @@
       xp: fin.xp,
       assistance: pocket
         ? "Pocket recall: you rated yourself, so this doesn't move mastery."
-        : mode === "check"
-          ? "Test run: no feedback during the run, so it counts toward mastery."
-          : "Practice run with feedback after each answer. Switch to Check to count it.",
+        : assistanceText(mode),
       rows: centsRows(done) ?? itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
@@ -1326,16 +1341,25 @@
   /** Answered by ear (not played back): the answer is drawn on the strip's instrument. */
   const onInstrument = (p: Prompt) => ON_INSTRUMENT.includes(p.drill) && !isPlayback;
   const showAnswer = $derived(answer === "listen-along" || step === "revealed" || (step === "feedback" && (mode === "practice" || (!!current && isPhrase(current)))));
+  /** Items in plain words: a range of intervals, a set's own name, or the names themselves. */
+  const andList = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
+  const itemsText = $derived.by(() => {
+    if (!SETS) return "";
+    if (chordDrill) return picked.map(kindLabel).join(" ");
+    const names = picked.map(itemName);
+    if (slug === "intervals") return names.length > 2 ? `${names.length} intervals, ${names[0]} to ${names.at(-1)}` : names.join(" and ");
+    const preset = SETS.sets.find((x) => sameSet(x.tokens, picked));
+    if (preset) return preset.label.toLowerCase();
+    return names.length > 3 ? `${names.length} ${SETS.unit}` : andList(names.map((n) => n.toLowerCase()));
+  });
   const summaryLine = $derived<SetupClause[]>(
     [
-      { text: MODE_LABEL[answer], focus: (LISTEN as readonly string[]).includes(answer) ? "listen" : "answer" },
+      { text: answer === "choice" ? "Answer with buttons" : MODE_LABEL[answer], focus: (LISTEN as readonly string[]).includes(answer) ? "listen" : "answer" },
       slug === "mixed" && answer !== "voice"
-        ? { text: kinds.length === MIX_KINDS.length ? "all nine drills" : kinds.length > 3 ? `${kinds.length} drills` : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", "), focus: "mix" }
+        ? { text: kinds.length === MIX_KINDS.length ? "all nine drills" : kinds.length > 3 ? `${kinds.length} of ${MIX_KINDS.length} drills` : kinds.map((k) => KIND_LABEL[k].toLowerCase()).join(", "), focus: "mix" }
         : null,
       slug === "progressions" ? { text: keyChanges ? "key changes" : "in one key", focus: "changes" } : null,
-      SETS && !keyChanges
-        ? { text: SETS.sets.find((x) => sameSet(x.tokens, picked))?.label.toLowerCase() ?? picked.map((t) => (chordDrill ? kindLabel(t) : (SETS.items.find((i) => i.token === t)?.short ?? t))).join(" "), focus: "items" }
-        : null,
+      SETS && !keyChanges ? { text: itemsText, focus: "items" } : null,
       slug === "intervals" && s.direction !== "auto" ? { text: DIRECTIONS.find((d) => d.value === s.direction)?.label.toLowerCase() ?? "", focus: "direction" } : null,
       slug === "scales" && s.scaleDirection !== "auto" ? { text: SCALE_DIRECTIONS.find((d) => d.value === s.scaleDirection)?.label.toLowerCase() ?? "", focus: "scaleDirection" } : null,
       slug === "bass-lines" ? { text: BASS_LEVELS.find((l) => l.id === s.bassLevel)?.title.toLowerCase() ?? "", focus: "bass" } : null,
@@ -1345,8 +1369,8 @@
       fromSongs ? { text: "from my songs", focus: "source" } : null,
       showLevel ? { text: LEVELS.find((l) => l.id === level)?.title ?? "", focus: "level" } : null,
       def.usesLabels && usesDegrees ? { text: labels === "solfege" ? "solfège labels" : "degree labels", focus: "labels" } : null,
-      inKey ? { text: keyEvery ? `a new key every ${keyEvery}` : "one key a run", focus: "keyEvery" } : null,
-      { text: "10 prompts" },
+      inKey ? { text: keyEvery ? `a new key every ${keyEvery}` : "same key all run", focus: "keyEvery" } : null,
+      { text: "10 questions" },
     ].filter((c): c is SetupClause => !!c),
   );
   const blocked = $derived(
@@ -1599,6 +1623,8 @@
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const p = current}
+      <!-- The degree wheel sits beside the question on a laptop, so every answer is in view. -->
+      <div class={degreeChoices ? "lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5" : ""}>
       <article
         class="prompt rounded-2xl p-4 sm:p-5"
         aria-label="Question {qi + 1}"
@@ -1624,6 +1650,26 @@
           </div>
         </div>
 
+        <!-- The verdict first, then the picture that explains it. -->
+        {#if showAnswer || hinted}
+          <p class="answer mt-3 text-lg font-semibold">
+            {#if rec && !rec.correct && step === "feedback" && mistake}
+              <!-- The comparison below says what was played and what you chose: said once, there. -->
+              <span class="verdict wrong" aria-hidden="true">✕</span> Not quite. Compare the two.
+            {:else if rec && !rec.correct && step === "feedback"}
+              <span class="verdict wrong" aria-hidden="true">✕</span>
+              {#if p.drill === "interval-compare"}
+                {tokenLabel(p.drill, p.answer)}.{#if rec.answered} You chose: {tokenLabel(p.drill, rec.answered).toLowerCase()}.{/if}
+              {:else}
+                It was {tokenLabel(p.drill, p.answer, labels)}{#if rec.answered}. You answered {tokenLabel(p.drill, rec.answered, labels)}{/if}.
+              {/if}
+            {:else if rec?.correct && step === "feedback"}
+              <span class="verdict right" aria-hidden="true">✓</span> Right: {tokenLabel(p.drill, p.answer, labels)}.
+            {:else}
+              {#if p.drill === "interval-compare"}{tokenLabel(p.drill, p.answer)}.{:else}{hinted && !showAnswer ? "Listen for" : "It is"} {tokenLabel(p.drill, p.answer, labels)}.{/if}
+            {/if}
+          </p>
+        {/if}
         <div class="mt-3">
           {#if onInstrument(p) && (showAnswer || hinted)}
             <!-- The notes on the strip's instrument, with a wrong choice dashed beside them. -->
@@ -1645,27 +1691,13 @@
         </div>
 
         {#if showAnswer || hinted}
-          <p class="answer mt-1 text-lg font-semibold">
-            {#if rec && !rec.correct && step === "feedback"}
-              <span class="verdict wrong" aria-hidden="true">✕</span>
-              {#if p.drill === "interval-compare"}
-                {tokenLabel(p.drill, p.answer)}.{#if rec.answered} You chose: {tokenLabel(p.drill, rec.answered).toLowerCase()}.{/if}
-              {:else}
-                It was {tokenLabel(p.drill, p.answer, labels)}{#if rec.answered}. You answered {tokenLabel(p.drill, rec.answered, labels)}{/if}.
-              {/if}
-            {:else if rec?.correct && step === "feedback"}
-              <span class="verdict right" aria-hidden="true">✓</span> Right: {tokenLabel(p.drill, p.answer, labels)}.
-            {:else}
-              {#if p.drill === "interval-compare"}{tokenLabel(p.drill, p.answer)}.{:else}{hinted && !showAnswer ? "Listen for" : "It is"} {tokenLabel(p.drill, p.answer, labels)}.{/if}
-            {/if}
-          </p>
           {#if (p.drill === "melody-dictation" || p.drill === "repertoire-transfer") && (step === "feedback" || answer === "listen-along")}
             <ol class="mt-3 flex flex-wrap gap-2" aria-label="The phrase">
               {#each p.answer.split(" ") as d, i (i)}
                 {@const got = rec?.answered?.split(" ")[i]}
                 <li class="phrase-note" style:--deg={degreeColor(d)}>
                   <span class="font-semibold">{labels === "solfege" ? tokenLabel("scale-degree", d, "solfege") : d}</span>
-                  <span class="text-xs">{noteName(p.expectedMidi![i], "flat")}</span>
+                  <span class="text-xs">{spellDegree(p.expectedMidi![i], tonicOf(p), d)}</span>
                   {#if got !== undefined && step === "feedback"}<span class="text-xs">{got === d ? "✓" : `✕ ${got}`}</span>{/if}
                 </li>
               {/each}
@@ -1678,7 +1710,7 @@
         {/if}
       </article>
 
-      <div class="mt-4">
+      <div class="mt-4 {degreeChoices ? 'lg:mt-0' : ''}">
         {#if answer === "choice" || answer === "listen-along"}
           {#if degreeChoices || (answer === "listen-along" && p.drill === "scale-degree")}
             <DegreeWheel
@@ -1725,10 +1757,11 @@
             </div>
           {:else if answer === "choice"}
             <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {#each choiceTokens as t (t)}
+              {#each choiceTokens as t, i (t)}
                 <button
                   type="button"
-                  class="choice min-h-12 rounded-xl px-3 text-left text-sm font-semibold"
+                  class="choice min-h-12 rounded-xl px-3 text-sm font-semibold"
+                  data-key={i < 9 ? i + 1 : null}
                   data-state={showAnswer && t === p.answer ? "expected" : showAnswer && rec && !rec.correct && rec.answered === t ? "answered" : null}
                   disabled={step === "feedback"}
                   onclick={() => choose(t)}
@@ -1799,6 +1832,7 @@
           </div>
         {/if}
       </div>
+      </div>
     {:else if phase === "results" && answer === "listen-along"}
       <p class="font-display text-xl font-semibold">You listened to {listened} prompts.</p>
       <p class="text-ws-stage-soft">Listening along is never scored. Switch to Choice or Pocket recall when you want to answer.</p>
@@ -1828,7 +1862,10 @@
           </div>
         {:else}
           <div class="space-y-2">
-            <p class="font-display text-xl font-semibold">{entry.blurb}</p>
+            <!-- What a run is, not the subtitle again. -->
+            <p class="font-display text-xl font-semibold">
+              {answer === "listen-along" ? "Ten prompts, answers shown." : `Ten questions. Listen, then ${answer === "choice" ? "tap the answer" : answer === "play-back" ? "play it back" : answer === "voice" ? "sing it" : "answer in your head"}.`}
+            </p>
             {#if slug === "repertoire-transfer"}
               <ul class="mt-2 grid gap-2 sm:grid-cols-2">
                 {#each [["Warm-up", plan.warmup], ["Review", plan.review], ["New", plan.new], ["Stretch", plan.stretch]] as const as [name, list] (name)}
@@ -1844,8 +1881,8 @@
               </ul>
             {:else}
               <p class="text-sm text-ws-stage-soft">
-                {answer === "choice" ? "Answer with the buttons." : answer === "play-back" ? "Answer on the keys or your MIDI keyboard." : answer === "voice" ? "Answer by singing the note." : answer === "listen" ? "Answer in your head, then rate yourself." : "Just listen."}
-                Press Hear it first for an example.
+                {answer === "choice" ? "Tap a button or press its number key." : answer === "play-back" ? "Play on the keys below or your MIDI keyboard." : answer === "voice" ? "The microphone listens once each prompt ends." : answer === "listen" ? "Reveal the answer, then say whether you heard it." : "The prompts move on by themselves."}
+                Hear it first plays an example, lit as it sounds.
               </p>
             {/if}
             {#if demo}<p class="font-semibold">That was {tokenLabel(demo.kind, demo.answer, labels)}.</p>{/if}
@@ -1861,7 +1898,7 @@
       <Results {summary}>
         {#snippet actions()}
           {#if retryCount}
-            <button type="button" class={btn} onclick={retry}>Retry my confusions ({retryCount})</button>
+            <button type="button" class={btn} onclick={retry}>Retry my confusions ({retryCount} {retryCount === 1 ? "question" : "questions"})</button>
           {/if}
         {/snippet}
       </Results>
@@ -1884,24 +1921,45 @@
   {/snippet}
 </DrillShell>
 
+<svelte:window onkeydown={onKey} />
+
 <style>
   .prompt {
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
     border: 1px solid color-mix(in oklch, var(--instr) 30%, transparent);
   }
   .choice {
-    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
-    border: 2px solid transparent;
+    position: relative;
+    background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
   .choice:not(:disabled):hover {
     background: color-mix(in oklch, var(--instr) 22%, transparent);
+    border-color: var(--instr);
   }
+  /* Answered: a tinted fill with the check or cross the label carries, the same on every width. */
   .choice[data-state="expected"] {
     border-color: var(--success);
+    background: color-mix(in oklch, var(--success) 24%, transparent);
   }
   .choice[data-state="answered"] {
     border-color: var(--destructive);
-    border-style: dashed;
+    background: color-mix(in oklch, var(--destructive) 22%, transparent);
+  }
+  .choice:disabled:not([data-state]) {
+    opacity: 0.6;
+  }
+  /* The number key that picks it, where there is a keyboard. Generated text, so the button's name stays the answer. */
+  @media (pointer: fine) {
+    .choice[data-key]::after {
+      content: attr(data-key);
+      position: absolute;
+      top: 0.25rem;
+      left: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ws-stage-soft);
+    }
   }
   .verdict {
     display: inline-grid;

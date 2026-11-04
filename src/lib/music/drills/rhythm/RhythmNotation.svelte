@@ -2,7 +2,8 @@
   // The pattern as rhythm notation: a one-line staff with note values, beams,
   // rests, ties and accents, a cursor that runs with the click, each note lit
   // by its state, and under the staff the count and the taps that landed
-  // (shape and colour say early, in the pocket, late, extra or in a rest).
+  // (shape and colour say early, on time, late, extra or in a rest; a missed
+  // note gets a hollow ring where its tap should have been).
   import { onMount } from "svelte";
   import type { RhythmPatternDef } from "@repo/music-core/data/index";
   import { loadVexFlow, NotationError, type Layout } from "$lib/music/notation/engrave";
@@ -82,6 +83,7 @@
             {#if h.kind === "early"}<path d="M5 -5 L-5 0 L5 5 Z" />
             {:else if h.kind === "late"}<path d="M-5 -5 L5 0 L-5 5 Z" />
             {:else if h.kind === "pocket"}<circle r="5" />
+            {:else if h.kind === "missed"}<circle r="4.5" class="hollow" />
             {:else}<path d="M-4.5 -4.5 L4.5 4.5 M4.5 -4.5 L-4.5 4.5" class="cross" />{/if}
           </svg>
         {/if}
@@ -167,6 +169,11 @@
   }
   .hit[data-kind="pocket"] circle {
     fill: var(--success);
+  }
+  .hit .hollow {
+    fill: none;
+    stroke: var(--destructive);
+    stroke-width: 2;
   }
   .hit .cross {
     fill: none;

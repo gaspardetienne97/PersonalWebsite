@@ -1,7 +1,7 @@
 <script lang="ts">
   // Note-reading flashcards: a note (or triad) on the staff, named by choice or
   // played. Enharmonic spellings are both right. A wrong answer is drawn beside
-  // the right one on the staff and stays until Next.
+  // the right one on the staff (marked with a cross) and stays until Next.
   import { onDestroy } from "svelte";
   import type { Assistance, InputSource, NoteEvent } from "@repo/music-core";
   import { noteName, parseNote, pc } from "@repo/music-core";
@@ -18,7 +18,7 @@
   import Fretboard from "$lib/music/components/Fretboard.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes } from "$lib/music/components/feedback.svelte";
+  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import Staff from "$lib/music/notation/Staff.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
@@ -27,7 +27,7 @@
   import { nextRun } from "$lib/music/advance.svelte";
   import { mic, settings } from "$lib/music/runtime";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { clampRange, comparisonScore, flashcardScore, keyboardSpan, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
+  import { clampRange, comparisonScore, flashcardScore, keyboardSpan, missMarks, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
 
@@ -86,7 +86,8 @@
 
   const preview = $derived(flashcardPrompt(rng(7), cardOpts));
   const card = $derived(phase === "running" ? cards[qi] : preview);
-  const staffScore = $derived(card ? (answered && !answered.correct ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
+  const missedCard = $derived(!!answered && !answered.correct);
+  const staffScore = $derived(card ? (missedCard && answered ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
   // The card's own choices: the twelve names spelled for the key, or the key's triads.
   const choices = $derived(card?.choices ?? []);
   // Written-to-sounding for the surfaces (guitar reads an octave up).
@@ -264,7 +265,7 @@
   onDestroy(teardown);
 
   const summaryLine = $derived<SetupClause[]>([
-    { text: level.label, focus: "level" },
+    { text: level.id === "primer" ? `${level.label} level` : level.label, focus: "level" },
     { text: kind === "note" ? (accidentals ? "single notes with accidentals" : "single notes") : kind === "satb" ? "four-part chords" : "triads", focus: "kind" },
     { text: crossed ? "crossed clefs" : `${clefs.join(" and ")} clef`, focus: fretted || aero ? undefined : "clefs" },
     { text: key.name, focus: "key" },
@@ -279,8 +280,17 @@
         )
       : [],
   );
-  // A hint, or a wrong answer, lights the right key(s).
-  const pianoMarks = $derived(card && ((mode === "practice" && hinted) || (answered && !answered.correct)) ? Object.fromEntries(card.midi.map((m) => [m + transpose, { target: true }])) : {});
+  // A hint lights the right key(s). After a miss the right keys carry a check and the
+  // played ones a cross, so the two read apart without colour.
+  const pianoMarks = $derived<Record<number, CellMarks>>(
+    !card
+      ? {}
+      : missedCard
+        ? missMarks(card.midi.map((m) => m + transpose), byPlay ? answered!.submitted.map((m) => m + transpose) : [])
+        : mode === "practice" && hinted
+          ? Object.fromEntries(card.midi.map((m) => [m + transpose, { target: true }]))
+          : {},
+  );
 </script>
 
 <DrillShell
@@ -288,6 +298,7 @@
   title="Note reading"
   hue="reading"
   blurb="Read the note on the staff, then name it or play it."
+  modeNotes={{ practice: "Practice: a Hint is there when you need one, so it does not count.", check: "Check: no hints. This run counts." }}
   summary={summaryLine}
   tabs={READING_TABS}
   tab="flashcards"
@@ -317,19 +328,22 @@
           <!-- One bar engraves at its natural size; zoom makes the card readable at arm's length. -->
           <div class="zoom">
             {#key staffScore.id}
-              <Staff score={staffScore} fill="center" time={false} revealLabels={!!answered && !answered.correct} maxHeight="12rem" />
+              <!-- After a miss: the card's note (group 0) and what was played (group 1), told apart by a cross, not colour alone. -->
+              <Staff score={staffScore} fill="center" time={false} groupStates={missedCard ? { 0: "correct", 1: "wrong" } : {}} maxHeight="12rem" />
             {/key}
           </div>
         {/if}
-        <p class="min-h-7 px-1 text-base font-semibold" aria-live="polite">
-          {#if answered && !answered.correct}
-            <span class="glyph wrong" aria-hidden="true">✕</span> You {byPlay ? "played" : "answered"} {answered.name}, it was {expectedName}
+        <p class="flex min-h-7 flex-wrap items-center justify-center gap-x-6 gap-y-1 px-1 text-base font-semibold" aria-live="polite">
+          {#if missedCard && answered}
+            <!-- In the staff's order: the card's note first, then what was played. -->
+            <span class="inline-flex items-center gap-1.5"><span class="glyph right" aria-hidden="true">✓</span>It was {expectedName}.</span>
+            <span class="inline-flex items-center gap-1.5"><span class="glyph wrong" aria-hidden="true">✕</span>You {byPlay ? "played" : "answered"} {answered.name}.</span>
           {:else if answered}
             <span class="glyph right" aria-hidden="true">✓</span> {card?.answer}
           {:else if hinted}
             Hint: {card?.answer}
           {:else if phase !== "running"}
-            <span class="font-normal text-ws-stage-soft">An example card. Start for ten.</span>
+            <span class="font-normal text-ws-stage-soft">A sample card. A run is {LENGTH} cards.</span>
           {/if}
         </p>
         {#if phase === "running" && answered && !answered.correct}

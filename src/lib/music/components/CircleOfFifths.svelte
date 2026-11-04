@@ -93,6 +93,8 @@
       <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : k.major}</text>
       {#if k.enharmonic && !hidden && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{k.enharmonic.major}</text>{/if}
       {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 14} class="numeral">{roleOf("major", i)}</text>{/if}
+      <!-- A marked answer carries a glyph, not colour alone. -->
+      {#if mark === "right" || mark === "wrong"}<text x={p.x} y={p.y - 22} class="glyph" aria-hidden="true">{mark === "right" ? "✓" : "✕"}</text>{/if}
     </g>
     {#if !compact}
       <!-- Middle ring: its relative minor. -->
@@ -240,8 +242,14 @@
     font-weight: 600;
   }
   .dim-name {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
     fill: var(--ink-soft);
+  }
+  .glyph {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--ink-tonic);
   }
   .numeral {
     font-size: 13px;

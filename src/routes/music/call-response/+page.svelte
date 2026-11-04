@@ -4,6 +4,7 @@
   // graded like Phrases (notes in order, in time); Answer on landing on a chord
   // tone and staying on the eighth-note grid. The whole run is kept as a take.
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import { noteName, pc, type NoteEvent } from "@repo/music-core";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { chorusBars } from "@repo/music-core/content/jam";
@@ -30,6 +31,8 @@
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, settings, type SequenceHandle, type SequenceNote } from "$lib/music/runtime";
   import { backingNotes } from "$lib/music/drills/jam/backing";
@@ -58,6 +61,11 @@
   let timers: ReturnType<typeof setTimeout>[] = [];
   let ticker: ReturnType<typeof setInterval> | undefined;
   const flashes = new Flashes();
+  /** Call notes sounding now (Practice only: in Check the call is heard, never shown). */
+  let lit = $state<number[]>([]);
+  const litMarks = $derived(Object.fromEntries(lit.map((m) => [m, { target: true, demo: true } satisfies CellMarks])));
+  // On a phone the keys fit the calls' range (they stay between C4 and E5), so the whole call is in view.
+  const phone = new MediaQuery("max-width: 639px");
   const barMs = () => beatMs * BEATS_PER_BAR;
   const answerStart = (k: number) => downbeat + (turnBar(k, bars) + bars) * barMs();
 
@@ -86,7 +94,15 @@
       .filter((n) => n.time < total * BEATS_PER_BAR * sec)
       .map((n) => ({ ...n, velocity: (n.velocity ?? 0.6) * 0.7 }));
     const lead: SequenceNote[] = calls.flatMap((c, k) => c.map((n) => ({ midi: n.midi, time: (turnBar(k, bars) * BEATS_PER_BAR + n.startBeat) * sec, duration: n.durationBeats * sec * 0.9, velocity: 0.9 })));
-    seq = audio.playSequence([...band, ...lead], { startPerf: ctx.downbeat });
+    seq = audio.playSequence([...band, ...lead], {
+      startPerf: ctx.downbeat,
+      onNote: (i) => {
+        if (i < band.length || mode !== "practice" || phase !== "running") return;
+        const n = lead[i - band.length];
+        lit = [...lit.filter((m) => m !== n.midi), n.midi];
+        timers.push(setTimeout(() => (lit = lit.filter((m) => m !== n.midi)), n.duration * 1000));
+      },
+    });
     for (let k = 0; k < CALL_TURNS; k++) timers.push(setTimeout(() => void grade(k), answerStart(k) + bars * barMs() - beatMs / 4 + 30 - performance.now()));
     ticker = setInterval(() => {
       const bar = (performance.now() - downbeat) / barMs();
@@ -139,6 +155,7 @@
     seq?.stop();
     seq = null;
     now = null;
+    lit = [];
   }
 
   async function finish() {
@@ -182,6 +199,13 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows: turns.map((t, i) => ({ label: `Turn ${i + 1}`, value: t.score, text: t.text })),
+      // The next run by the shared rule: faster, then two-bar calls.
+      advance: await nextRun(
+        `ear.call-response.${callMode}.${groove.id}`,
+        { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max }, steps: [{ label: "One-bar calls" }, { label: "Two-bar calls" }], step: bars - 1 },
+        { score, correct: right === turns.length },
+        tempoAnd((i) => cfg.set({ bars: String(i + 1) })),
+      ),
     };
     status = summary.headline;
   }
@@ -278,7 +302,8 @@
           {/each}
         </ol>
       {/if}
-      <InstrumentStage line={[60, 76]} {flashes} />
+      <InstrumentStage line={[60, 76]} low={phone.current ? 60 : undefined} high={phone.current ? 76 : undefined} marks={litMarks} {flashes} />
+      {#if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
     </div>
   {/snippet}
 

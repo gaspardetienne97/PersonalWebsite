@@ -253,6 +253,7 @@ const CHORDS: Lesson = {
         .join(" ")}. In C they are ${diatonicChords(0)
         .map((c) => c.name)
         .join(", ")}. Tap Next to hear them.`,
+      figure: wheel(0, [-1, 0, 1]),
       steps: diatonicChords(0).map((c) => ({
         text: `${c.numeral} is ${c.name}.`,
         sound: play(c.name),
@@ -418,6 +419,7 @@ function analysisLesson(): Lesson {
       {
         title: "Key and function",
         text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. Fly Me to the Moon is our example. It starts in C.",
+        figure: wheel(0),
         steps: [0, 3, 4].map(chordStep),
       },
       {

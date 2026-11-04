@@ -267,9 +267,9 @@
       case "count":
       case "signature":
         return p.fifths > 0
-          ? `${k.major} major has ${accidentalCount(p.fifths)}: the last sharp, ${k.accidentals.at(-1)}, is a half step below ${k.major}. Its relative minor is ${k.minor}.`
+          ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the last sharp, ${k.accidentals.at(-1)}, is a half step below ${k.major}. Its relative minor is ${k.minor}.`
           : p.fifths < -1
-            ? `${k.major} major has ${accidentalCount(p.fifths)}: the second-to-last flat, ${k.accidentals.at(-2)}, names the key. Its relative minor is ${k.minor}.`
+            ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the second-to-last flat, ${k.accidentals.at(-2)}, names the key. Its relative minor is ${k.minor}.`
             : `${k.major} major has ${accidentalCount(p.fifths)}; its relative minor is ${k.minor}.`;
       case "neighbours":
         return "Clockwise adds a sharp (a fifth up); counter-clockwise adds a flat (a fourth up). The relative minor is a minor third below.";
@@ -286,15 +286,18 @@
     }
   }
 
-  const signatureScore = (p: CirclePrompt): Score => ({
-    id: p.id,
+  const signatureScore = (p: CirclePrompt): Score => sigScore(p.id, p.staff!.fifths, p.staff!.clef);
+  const sigScore = (id: string, fifths: number, clef: "treble" | "bass" = "treble"): Score => ({
+    id,
     title: "Key signature",
     bpm: 60,
-    keyFifths: p.staff!.fifths,
+    keyFifths: fifths,
     meter: { beats: 4, beatUnit: 4 },
-    voices: [{ id: "v", name: "Signature", clef: p.staff!.clef, notes: [] }],
+    voices: [{ id: "v", name: "Signature", clef, notes: [] }],
     lengthBeats: 4,
   });
+  /** After an answer in Practice, the key's signature on a staff: the answer key when it is one, else the prompt's. */
+  const SIG_MODES = ["count", "neighbours", "chords", "borrowed", "secondary"];
   const chordCount = $derived(analysing ? analysisSheet(TUNES.find((t) => t.id === tuneId)!).length : 0);
   const summaryLine = $derived<SetupClause[]>(
     analysing
@@ -303,7 +306,7 @@
       modeId !== "order" ? { text: BAND_TEXT[band].clause, focus: "band" } : null,
       usesMinor ? { text: s.minor === "both" ? "major and minor" : "major only", focus: "minor" } : null,
       modeId === "signature" ? { text: s.clefs === "both" ? "treble and bass" : `${s.clefs} clef`, focus: "clefs" } : null,
-      { text: `${length} prompts` },
+      { text: `${length} questions` },
       { text: `aim for ${meta.targetMs / 1000} s` },
     ].filter((c): c is SetupClause => !!c),
   );
@@ -315,13 +318,23 @@
   <p class="mt-3 text-lg font-semibold">
     {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> Right: {shown(p, p.answer)}.
     {:else if r.correct}<span class="verdict" class:slow={r.slow} aria-hidden="true">✓</span> {r.slow ? "Right, but slow" : "Right"}: {shown(p, p.answer)}, {(r.ms / 1000).toFixed(1)} s.
-    {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{/if}
+    {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{#if r.answered}{" "}You said {shown(p, r.answered)}.{/if}{/if}
   </p>
   {#if mode === "practice"}
     <p class="mt-1 text-sm text-ws-stage-soft">{rule(p)}</p>
-    {#if wheel}
-      <div class="mt-3 max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
-    {/if}
+    <!-- The key's signature on a staff beside the wheel, so both sit in view with the answers. -->
+    <div class="mt-3 flex flex-wrap items-start gap-4">
+      {#if SIG_MODES.includes(p.mode)}
+        {@const f = majorFifths(p.answer) ?? p.fifths}
+        <figure class="w-fit rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
+          <div class="w-48"><Staff score={sigScore(`${p.id}-sig`, f)} maxHeight="6rem" /></div>
+          <figcaption class="pb-1 text-center text-sm font-semibold">{keyAt(f).major} major{keyAt(f).accidentals.length ? `: ${keyAt(f).accidentals.join(" ")}` : ", no sharps or flats"}</figcaption>
+        </figure>
+      {/if}
+      {#if wheel}
+        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
+      {/if}
+    </div>
     <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70">Enter</kbd></button>
   {/if}
 {/snippet}
@@ -423,6 +436,7 @@
           <div class="mt-3 grid items-start gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
             <CircleOfFifths
               selected={r ? af : null}
+              numerals={false}
               onpick={step === "answer" ? (f) => tapKey(p, f) : undefined}
               marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
               label={r ? "The circle, with the key of this prompt" : "The circle of fifths: tap the key"}
@@ -489,8 +503,8 @@
   }
   .choice {
     position: relative;
-    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
-    border: 2px solid transparent;
+    background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
   .choice:not(:disabled):hover {
     background: color-mix(in oklch, var(--instr) 22%, transparent);
@@ -512,19 +526,27 @@
     border-color: var(--destructive);
     border-style: dashed;
   }
+  /* Answered: a tinted fill, with the check or cross in the verdict and on the wheel. */
   .choice[data-state="expected"] {
     border-color: var(--success);
+    background: color-mix(in oklch, var(--success) 24%, transparent);
   }
   .choice[data-state="answered"] {
     border-color: var(--destructive);
-    border-style: dashed;
+    background: color-mix(in oklch, var(--destructive) 22%, transparent);
   }
   .key {
     position: absolute;
     top: 0.2rem;
     right: 0.4rem;
-    font-size: 0.65rem;
-    opacity: 0.55;
+    font-size: 0.75rem;
+    color: var(--ws-stage-soft);
+  }
+  /* A number key means nothing on a touch screen. */
+  @media (pointer: coarse) {
+    .key {
+      display: none;
+    }
   }
   .verdict {
     display: inline-grid;

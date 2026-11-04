@@ -27,6 +27,7 @@ import {
   type SightItem,
 } from "../content/reading";
 import { SUBS, countName, type PerBeat } from "./count";
+import { keys } from "./tier1";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
 type Clef = "treble" | "bass";
@@ -254,10 +255,12 @@ function stackedLesson(kind: "chord" | "satb"): Lesson {
         ? {
             title: "Three notes stacked",
             text: "A triad is three notes stacked in thirds, so they sit on three lines in a row or three spaces in a row. Name it by its three notes from the bottom, like C-E-G.",
+            figure: keys({ 60: "C", 64: "E", 67: "G" }),
           }
         : {
             title: "Four notes, one triad",
             text: "Four notes are stacked across the grand staff, and the lowest is the root of the chord. The root is doubled above it. Name the triad by its three notes from the root up, like C-E-G, with the doubled note once.",
+            figure: keys({ 48: "C", 55: "G", 64: "E", 72: "C" }),
           },
     ],
   };
@@ -407,12 +410,27 @@ const VALUE_METERS: Partial<Record<ReadingMeter, string>> = {
   "5/8": "5/8 has five eighth notes in a bar, grouped as two and three or as three and two.",
 };
 const CHECK_METER = "Check the time signature before you start, and at every bar where it changes.";
+/** One bar of the meter, a note on every count of its bottom number (beats in quarters). */
+export function meterBar(m: ReadingMeter): LessonFigure {
+  const { beats, beatUnit } = READING_METERS[m];
+  return staff(
+    "treble",
+    Array.from({ length: beats }, () => ({ midi: staffNote("treble", 4), beats: 4 / beatUnit })),
+    { meter: { beats, beatUnit } },
+  );
+}
 function meterLesson(m: ReadingMeter): Lesson {
   const label = READING_METERS[m].label;
   return {
     id: `reading.meter.${m.replace("/", "-")}`,
     title: `${label} time`,
-    screens: [{ title: `Counting ${label}`, text: `${VALUE_METERS[m]} ${CHECK_METER}` }],
+    screens: [
+      {
+        title: `Counting ${label}`,
+        text: `${VALUE_METERS[m]} ${CHECK_METER}`,
+        figure: meterBar(m),
+      },
+    ],
   };
 }
 /** The meters a changing-meter phrase of the chosen length goes through, in order. */
@@ -425,22 +443,30 @@ function changingMeterLesson(parts: ReadingMeter[]): Lesson {
       {
         title: "The meter changes",
         text: `The time signature changes every 2 bars, through ${labels.slice(0, -1).join(", ")} and ${labels.at(-1)} in turn. ${CHECK_METER}`,
+        figure: meterBar(parts[0]),
       },
     ],
   };
 }
 
-const BASS_CHORDS: { title: string; text: string; bar?: { beats: number; notes: number[] } } = {
+/** An item card: its words, and a bar of 1 to `beats` quarters (`notes` are lengths, negative a rest) or its own figure. */
+interface ItemText {
+  title: string;
+  text: string;
+  bar?: { beats: number; notes: number[] };
+  figure?: LessonFigure;
+}
+const BASS_CHORDS: ItemText = {
   title: "Chords in the left hand",
   text: "On some strong beats the left hand plays the melody note with one or two lower notes. Play them together.",
+  figure: keys({ 43: "G", 48: "C" }),
 };
-const ITEM_TEXT: Record<
-  string,
-  { title: string; text: string; bar?: { beats: number; notes: number[] } }
-> = {
+const ITEM_TEXT: Record<string, ItemText> = {
   ties: {
     title: "Ties",
     text: "A tie is a curved line joining two notes of the same pitch. Play the first, hold through the second, and do not play it again.",
+    // The middle half note crosses the bar line, so it is written as two tied quarters.
+    bar: { beats: 2, notes: [1, 2, 1] },
   },
   "dotted-quarter": {
     title: "Dotted quarter notes",
@@ -465,22 +491,28 @@ const ITEM_TEXT: Record<
   triplets: {
     title: "Triplets",
     text: "A triplet puts three even notes in the time of two of the same kind. Three eighth note triplets take the time of one quarter note.",
+    bar: { beats: 2, notes: [1 / 3, 1 / 3, 1 / 3, 1] },
   },
   pickup: {
     title: "Pickup bar",
     text: "Some phrases open with a pickup: the first bar opens with rests, and only its last note is played. Count the rests silently and come in on that note.",
+    bar: { beats: 4, notes: [-3, 1] },
   },
   chords: {
     title: "Chords in the right hand",
     text: "On some strong beats the right hand plays the melody note with one or two lower notes. Play them together.",
+    figure: keys({ 67: "G", 72: "C", 76: "E" }),
   },
   "clef-change": {
     title: "Clef changes",
     text: "For a bar or two the left hand may read in the treble clef, and a small clef sign on the staff marks the change. A bass clef sign marks the return.",
+    // Notes around middle C as the left hand reads them in the treble clef.
+    figure: quarters("treble", [60, 62, 64, 65]),
   },
   swing: {
     title: "Swing",
     text: "Swing eighths are written straight but played long and short, about two to one. Lean on the first of each pair.",
+    bar: { beats: 2, notes: [0.5, 0.5, 0.5, 0.5] },
   },
 };
 function valueItemLesson(id: string, clef: Clef): Lesson {
@@ -503,7 +535,9 @@ function valueItemLesson(id: string, clef: Clef): Lesson {
                 { meter: { beats: t.bar.beats, beatUnit: 4 } },
               ),
             }
-          : {}),
+          : t.figure
+            ? { figure: t.figure }
+            : {}),
       },
     ],
   };
@@ -786,14 +820,27 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
       "triplets",
       "Triplets",
       "A triplet fits three even notes into one beat. They fall between the counts of the e, & and a grid, so tap them evenly across the beat.",
-      { sound: tick([0, 1 / 3, 2 / 3], 60 / 90) },
+      {
+        // Written as a triplet: the drill's grid has no place for them.
+        figure: staff(
+          "treble",
+          [1 / 3, 1 / 3, 1 / 3, 1].map((beats) => ({ midi: staffNote("treble", 4), beats })),
+          { meter: { beats: 2, beatUnit: 4 } },
+        ),
+        sound: tick([0, 1 / 3, 2 / 3], 60 / 90),
+      },
     );
   if (has("swing")) {
+    const e = ex(g, ["eighths", "eighths", "eighths", "eighths"]);
     card(
       "swing",
       "Swung eighths",
       "Swung eighths are played long and short, about two to one, but counted and written as straight eighths 1 &. The second note of each pair comes late.",
-      { sound: tick([0, 2 / 3, 1, 1 + 2 / 3, 2, 2 + 2 / 3], 60 / 90) },
+      {
+        // Written straight on the grid; the sound plays them swung.
+        figure: e.fig,
+        sound: tick([0, 2 / 3, 1, 1 + 2 / 3, 2, 2 + 2 / 3], 60 / 90),
+      },
     );
   }
   return out;
