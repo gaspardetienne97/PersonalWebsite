@@ -77,7 +77,7 @@ for (const flow of FLOWS) {
     key: "woodshed",
     images: picks.map((p) => ({
       path: p.path,
-      caption: `${p.width === "phone" ? "phone, 390 px wide" : "laptop, 1280 px wide"}, ${p.theme} theme, ${
+      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")} exercise, ` : ""}${p.width === "phone" ? "phone, 390 px wide" : "laptop, 1280 px wide"}, ${p.theme} theme, ${
         STATE_WORDS[p.state] ?? p.state.replaceAll("-", " ")
       }`,
     })),

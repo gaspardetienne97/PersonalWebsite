@@ -84,6 +84,8 @@ const lines = [
   "",
   "Done means every judge gives Woodshed at least 9 overall on every flow, and Woodshed's mean is at least the bar.",
   "",
+  "Harness notes: from round 1, panels that mix two drills caption each screen with its drill name (round 0 did not), so part of a round 1 gain on those panels may come from the caption, not the app. GPT (astra) is limited by the account's Codex quota and is missing where shown as '-'.",
+  "",
 ];
 
 const last = rounds.at(-1);
