@@ -593,9 +593,17 @@
                 ? `${Math.round((1 - g.density) * improBars)} bars went quiet: keep the groove going between ideas.`
                 : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25.`;
     }
+    // Nothing played: the standard not-heard card, no score or bars from zero hits.
+    if (!ons.length) {
+      grv = null;
+      ownGrade = null;
+      summary = silentRun();
+      status = summary.headline;
+      return;
+    }
     // Dynamics the app could not measure are not a fail, so they are not recorded.
     if (!graded(ons.length) || unmeasured) {
-      summary = { headline, metric: pct(score), metricLabel: "score", assistance: "Nothing to measure, so nothing is recorded.", rows, recorded: false };
+      summary = { headline, metric: "Not measured", metricLabel: "not scored", assistance: "Nothing to measure, so nothing is recorded.", rows, recorded: false };
       status = headline;
       return;
     }

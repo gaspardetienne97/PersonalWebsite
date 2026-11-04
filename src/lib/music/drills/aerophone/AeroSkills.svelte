@@ -133,11 +133,22 @@
   let joins = $state<("T" | "S")[]>([]);
   let breathNow = $state<number | null>(null);
   let lineResult = $state.raw<LineResult | null>(null);
+  /** The note heard on each step this run (Practice marks the chips with it as the run goes). */
+  let heardOn = $state<Record<number, number>>({});
 
   /** The line's note at `t` ms after the downbeat: swung eighths split the beat late, long tones change on the beat. */
   const stepAt = (t: number) =>
     skill === "swing" ? Math.floor(t / beatMs) * 2 + ((t % beatMs) / beatMs >= SWING.ideal - 0.25 ? 1 : 0) : skill === "long-scale" ? Math.floor(t / stepMs) : Math.floor(t / stepMs + 0.5);
   const stepNow = $derived(timed && phase === "running" && now >= downbeat ? Math.min(line.length - 1, stepAt(now - downbeat)) : null);
+  /** Notes in a bar of four clicks. */
+  const barNotes = $derived(Math.max(1, Math.round(4 * perBeat)));
+  /** Each chip's verdict: as the run goes in Practice (a step once passed), after it from the grade in both modes. */
+  const chipOut = $derived.by((): ("ok" | "miss" | undefined)[] => {
+    if (phase === "results" && lineResult)
+      return lineResult.metrics.filter((mt) => mt.kind === "pitch").map((mt) => (mt.kind === "pitch" && mt.actualMidi === mt.expectedMidi ? "ok" : "miss"));
+    if (phase !== "running" || mode !== "practice" || stepNow === null) return [];
+    return line.map((m, i) => (heardOn[i] === m ? "ok" : i < stepNow ? "miss" : undefined));
+  });
   const target = $derived(timed ? line[stepNow ?? 0] : skill === "trills" ? trillNotes[0] : skill === "vibrato" ? vibNote : null);
 
   const patternLabel = $derived(AERO_PATTERNS.find((p) => p.id === pattern)!.label.toLowerCase());
@@ -195,6 +206,11 @@
     if (e.kind === "cc" && (e as ControlEvent).controller === 2) breathNow = e.value;
     if (e.kind === "noteon") {
       sounding = (e as NoteEvent).midi;
+      if (timed && phase === "running" && e.at >= downbeat - stepMs / 2) {
+        const i = Math.max(0, stepAt(e.at - downbeat));
+        // A step keeps its right note once heard; a wrong one shows until the right one comes.
+        if (i < line.length && heardOn[i] !== line[i]) heardOn = { ...heardOn, [i]: sounding };
+      }
       if (firstAt === null && phase === "running") {
         firstAt = e.at;
         // Trills and vibrato are timed from the first note.
@@ -210,6 +226,7 @@
     stopDemo();
     summary = null;
     lineResult = null;
+    heardOn = {};
     joins = [];
     breathNow = null;
     firstAt = null;
@@ -510,12 +527,20 @@
             <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
             {#if skill === "swing"}<p class="text-xs text-ws-stage-soft">Written straight, as swing charts are: play each pair long-short.</p>{/if}
           {/if}
-          <ol class="flex flex-wrap gap-1.5" aria-label="The line">
-            {#each line as n, i (i)}
-              {@const nowHere = stepNow === i}
-              <li class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
-                {#if marks.length}<span class="text-[10px] font-bold opacity-70" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
-                {spell(n)}
+          <!-- A bar a group, so a wrap falls between bars and never leaves one note alone on a row. -->
+          <ol class="flex flex-wrap gap-x-3 gap-y-1.5" aria-label="The line">
+            {#each Array.from({ length: Math.ceil(line.length / barNotes) }, (_, b) => b) as b (b)}
+              <li class="flex flex-wrap gap-1.5" aria-label="Bar {b + 1}">
+                {#each line.slice(b * barNotes, (b + 1) * barNotes) as n, k (k)}
+                  {@const i = b * barNotes + k}
+                  {@const nowHere = stepNow === i}
+                  {@const out = chipOut[i]}
+                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr text-ws-stage' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
+                    {#if marks.length}<span class="text-[10px] font-bold opacity-70" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
+                    {spell(n)}
+                    {#if out && !nowHere}<span class="text-[11px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
+                  </span>
+                {/each}
               </li>
             {/each}
           </ol>

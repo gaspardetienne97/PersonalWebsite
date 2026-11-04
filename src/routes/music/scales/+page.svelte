@@ -22,6 +22,7 @@
     type ScalePattern,
   } from "@repo/music-core/content/technique";
   import {
+    LADDER,
     gradeLine,
     ladderAfterRun,
     ladderProjection,
@@ -400,7 +401,9 @@
     const before = ladders[key];
     const after = laddered ? ladderAfterRun(before, { bpm: bpm(), correct: r.correct && mode === "check" }) : before;
     if (laddered && after) ladders = await writeKeyed(LADDER_KEY, key, after, (a, b) => mergeLadders({ k: a }, { k: b }).k);
-    const proj = laddered && after ? ladderProjection(after, bpm()) : null;
+    // Below the ladder's first rung the run never touched it: say so, rather than draw rungs from 100 the player has not played.
+    const onLadder = laddered && !!after && bpm() >= LADDER.baseBpm;
+    const proj = onLadder ? ladderProjection(after, bpm()) : null;
     const promoted = !!after && after.unlockedBpm > (before?.unlockedBpm ?? 100);
     const atSpeed = target ? bpm() * perBeat >= target[0] * target[1] : null;
     summary = {
@@ -441,6 +444,7 @@
             ]
           : []),
         ...(target ? [{ label: `${s.grade} speed (ABRSM, ${target[0]} with ${PER[target[1]]})`, value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? "reached" : `${Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100)}% of it` }] : []),
+        ...(laddered && !onLadder ? [{ label: "Tempo ladder", text: `starts at ${LADDER.baseBpm} BPM; this run was at ${bpm()}` }] : []),
         ...(scaleSetup.hands === "both"
           ? [
               r.together
@@ -630,7 +634,25 @@
       {/if}
     {/if}
     {#if mode === "check" && phase !== "results"}
-      <p class="mt-3 text-sm text-ws-stage-soft">Check mode: no targets. Held keys still light.</p>
+      <!-- Check: no targets, only where you are in the line (the step count advances on the right note anyway). -->
+      <div class="mt-4 flex flex-col gap-2" data-testid="check-progress">
+        <ol class="flex flex-wrap gap-1.5" aria-hidden="true">
+          {#each steps as _, i (i)}
+            <li class="size-3 rounded-full border-2 {phase === 'running' && i < stepIndex ? 'border-ws-stage-ink bg-ws-stage-ink' : phase === 'running' && i === stepIndex ? 'border-instr bg-instr/40' : 'border-ws-stage-soft/50'}"></li>
+          {/each}
+        </ol>
+        <p class="text-sm text-ws-stage-soft">
+          Check: play the {what} from memory, {steps.length} steps. No targets; the {tuning ? "frets" : "keys"} you play still light.
+        </p>
+      </div>
+    {:else if tuning && (phase === "running" || phase === "results") && mode === "practice"}
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="What the marks on the neck mean">
+        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-ws-stage-ink/15 ring-2 ring-ws-stage-ink" aria-hidden="true"></span>Play next</li>
+        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-xs font-bold text-white" aria-hidden="true">✓</span>Played right</li>
+        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-xs font-bold text-white" aria-hidden="true">✕</span>Slipped or missed</li>
+        <li class="flex items-center gap-1.5"><span class="size-5 rounded-md bg-instr" aria-hidden="true"></span>The root</li>
+        <li>Ring colours are fingers, 1 index to 4 little finger</li>
+      </ul>
     {:else if tuning && phase === "results"}
       <p class="mt-3 text-sm text-ws-stage-soft">Your run on the neck: green notes came clean, red ones slipped or were missed.</p>
     {:else if tuning && phase === "ready" && mode === "practice"}

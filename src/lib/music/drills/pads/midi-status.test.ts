@@ -10,7 +10,7 @@ const classic = [...PAD_PRESETS["akai-classic"].notes];
 describe("explainNote", () => {
   it("names the pad a mapped hardware note became", () => {
     expect(explainNote([0x99, 37, 100], priv, { id: "priv", padNotes: classic })?.text).toBe(
-      "Last note 37 from MPC One+ Private, mapped to pad A01.",
+      "Hearing MPC One+ Private. Last hit: pad A01.",
     );
     expect(explainNote([0x99, 38, 100], priv, { id: "priv", padNotes: classic })?.text).toContain(
       "pad A06",
@@ -19,8 +19,9 @@ describe("explainNote", () => {
 
   it("says when the port is ignored or the channel is wrong", () => {
     expect(explainNote([0x99, 37, 100], pub, { id: "pub", ignored: true })).toEqual({
-      text: "Last note 37 from MPC One+ Public was dropped: that port is ignored in Connect.",
+      text: "A note from MPC One+ Public was dropped: that port is ignored in Connect.",
       used: false,
+      midi: 37,
     });
     expect(explainNote([0x90, 37, 100], priv, { id: "priv", channel: 10 })?.used).toBe(false);
   });
@@ -32,9 +33,7 @@ describe("explainNote", () => {
 
   it("ignores note-offs and names wind notes", () => {
     expect(explainNote([0x89, 37, 0], priv)).toBeNull();
-    expect(explainNote([0x90, 67, 80], ae)?.text).toBe(
-      "Last note 67 from Aerophone AE-10, played as G4.",
-    );
+    expect(explainNote([0x90, 67, 80], ae)?.text).toBe("Hearing Aerophone AE-10. Last note: G4.");
   });
 });
 

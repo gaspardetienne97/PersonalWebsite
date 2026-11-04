@@ -19,36 +19,41 @@ const inBankA = (midi: number) => midi >= 36 && midi <= 51;
 export const instrumentOf = (port: PortLike, profile?: DeviceProfile): Instrument | undefined =>
   profile?.instrument ?? detectInstrument(port.name, port.manufacturer);
 
-/** One sentence about a raw note-on, or null for anything that is not a note-on. */
+/**
+ * One plain sentence about a raw note-on, or null for anything that is not a
+ * note-on. The raw note number stays out of the sentence (a learner cannot act
+ * on it) and comes back as `midi`, for a tooltip.
+ */
 export function explainNote(
   data: ArrayLike<number>,
   port: PortLike,
   profile?: DeviceProfile,
-): { text: string; used: boolean } | null {
+): { text: string; used: boolean; midi: number } | null {
   const e = parseMidiMessage(data, 0, port.id);
   if (!e || e.kind !== "noteon") return null;
-  const from = `Last note ${e.midi} from ${profile?.alias ?? port.name}`;
+  const name = profile?.alias ?? port.name;
+  const said = (text: string, used: boolean) => ({ text, used, midi: e.midi });
   if (profile?.ignored)
-    return { text: `${from} was dropped: that port is ignored in Connect.`, used: false };
+    return said(`A note from ${name} was dropped: that port is ignored in Connect.`, false);
   if (profile?.channel && e.channel && e.channel !== profile.channel)
-    return {
-      text: `${from} was dropped: it came on channel ${e.channel}, the device is pinned to ${profile.channel}.`,
-      used: false,
-    };
+    return said(
+      `A note from ${name} was dropped: it came on channel ${e.channel}, and Connect pins the device to channel ${profile.channel}.`,
+      false,
+    );
   if (instrumentOf(port, profile) !== "mpc")
-    return { text: `${from}, played as ${noteName(e.midi)}.`, used: true };
+    return said(`Hearing ${name}. Last note: ${noteName(e.midi)}.`, true);
   const mapped = rewritePadNote(e.midi, profile?.padNotes);
   if (profile?.padNotes && profile.padNotes.includes(e.midi))
-    return { text: `${from}, mapped to pad ${padLabel(mapped)}.`, used: true };
+    return said(`Hearing ${name}. Last hit: pad ${padLabel(mapped)}.`, true);
   if (inBankA(mapped))
-    return {
-      text: `${from}, read as pad ${padLabel(mapped)}${profile?.padNotes ? " (not in the saved map)" : " (no pad map saved, so chromatic from 36)"}.`,
-      used: true,
-    };
-  return {
-    text: `${from} is outside bank A, so no pad lights. Save the pad map that matches your drum program in Connect.`,
-    used: true,
-  };
+    return said(
+      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : " (no pad map saved, so the pads are read in order)"}.`,
+      true,
+    );
+  return said(
+    `${name} sent a pad outside bank A, so no pad lights. Save the pad map for your drum program in Connect.`,
+    true,
+  );
 }
 
 /** Why nothing is arriving yet, in the order the owner actually hit these. */

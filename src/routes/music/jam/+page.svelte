@@ -167,14 +167,15 @@
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (!showRoles) return out;
-    for (let m = 48; m <= 84; m++) out[m] = { label: degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)] };
+    // Degrees only on the notes that fit (chord and scale tones); an avoid note keeps its dashed ring, unlabelled.
+    for (let m = 48; m <= 84; m++) out[m] = { label: roles[pc(m)] === "avoid" ? undefined : degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)] };
     return out;
   });
   const fretMarks = $derived.by(() => {
     const out: FretMark[] = [];
     if (!showRoles) return out;
     tuning.openStrings.forEach((open, i) => {
-      for (let f = 0; f <= 12; f++) out.push({ string: i + 1, fret: f, label: degreeLabel(chord.symbol, pc(open + f)), role: roles[pc(open + f)] });
+      for (let f = 0; f <= 12; f++) out.push({ string: i + 1, fret: f, label: roles[pc(open + f)] === "avoid" ? undefined : degreeLabel(chord.symbol, pc(open + f)), role: roles[pc(open + f)] });
     });
     return out;
   });
@@ -220,7 +221,7 @@
     clockOn = false;
     seq?.stop();
     seq = null;
-    if (backingOn) status = "Backing stopped. Move through the chords with Next chord.";
+    if (backingOn) status = "Backing paused. Move through the chords with Next chord.";
     backingOn = false;
     beatInChord = 0;
   }
@@ -735,10 +736,10 @@
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
         {#if phase === "running"}
-          {#if !checking}<button type="button" class={btnStage} disabled={backingOn} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>{/if}
+          {#if !checking && !backingOn}<button type="button" class={btnStage} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>{/if}
           {#if backingMode !== "none" && !checking}
             <button type="button" class={btnStage} aria-pressed={backingOn} onclick={() => (backingOn ? stopBacking() : startBacking())}>
-              {#if backingOn}<Square class="size-4" aria-hidden="true" />Stop the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
+              {#if backingOn}<Square class="size-4" aria-hidden="true" />Pause the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
             </button>
           {/if}
         {/if}
@@ -755,7 +756,7 @@
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone (filled gold)</span>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone (filled blue)</span>
       <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid (dashed ring)</span>
-      <span class="text-ws-stage-soft">Labels are degrees over the chord.</span>
+      <span class="text-ws-stage-soft">Labels are degrees over the chord, on the notes that fit.</span>
     </div>
 
     {#if lastNote && showRoles}

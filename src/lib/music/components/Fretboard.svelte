@@ -43,7 +43,7 @@
     onpick?: (string: number, fret: number) => void;
     /** Chord shapes: one finger on one fret across strings is drawn as a single bar. */
     barres?: boolean;
-    /** Each string's open note beside the neck (E A D G B E). */
+    /** Each string's open note beside the neck (E A D G B E); on by default, so a string is never read by position alone. */
     stringNames?: boolean;
     /** Fingered dots as a ring in the finger's colour, the root filled in the instrument's hue. */
     fingerRings?: boolean;
@@ -62,7 +62,7 @@
     flashByPitch = false,
     onpick,
     barres = false,
-    stringNames = false,
+    stringNames = true,
     fingerRings = false,
   }: Props = $props();
 

@@ -2,6 +2,8 @@
   export interface HighwayLane {
     id: string;
     label: string;
+    /** A shorter label for a narrow stage (a slice number), when the label would be cut. */
+    short?: string;
     color: string;
     /** The pad that plays the lane (bank A note): named, and shown on a small map of the 16 pads. */
     pad?: number;
@@ -76,7 +78,7 @@
 
 <div class="wrap">
   <div class="view" class:with-pads={!!pads}>
-    <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane="{laneRem}rem">
+    <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
       <div class="labels" aria-hidden="true">
         {#each lanes as l (l.id)}
           {@const cell = l.pad === undefined ? null : padCell(l.pad)}
@@ -88,7 +90,7 @@
             {:else}
               <span class="dot"></span>
             {/if}
-            <span class="name">{l.label}</span>
+            <span class="name" class:has-short={!!l.short}><span class="long">{l.label}</span>{#if l.short}<span class="short">{l.short}</span>{/if}</span>
             {#if l.pad !== undefined && lanes.length <= 8}<span class="pad">{padLabel(l.pad)}</span>{/if}
           </span>
         {/each}
@@ -113,7 +115,7 @@
         {#if flash}
           {#key flash.key}
             <span class="flash" data-kind={flash.judgement} style:left="{scale.hitX + 6}px" aria-live="polite">
-              {flash.judgement === "extra" ? "Extra" : JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
+              <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" || flash.judgement === "extra" ? "✕ " : ""}</span>{flash.judgement === "extra" ? "Extra" : JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
             </span>
           {/key}
         {/if}
@@ -158,9 +160,16 @@
       grid-template-columns: 4.6rem minmax(0, 1fr);
     }
     .map,
-    .pad {
+    .pad,
+    .has-short .long {
       display: none;
     }
+    .has-short .short {
+      display: inline;
+    }
+  }
+  .short {
+    display: none;
   }
   .labels {
     display: grid;
@@ -178,13 +187,17 @@
     font-size: 0.75rem;
     line-height: 1.1;
   }
+  /* Two lines when the lane is tall enough ("Mid tom" whole, not "Mid..."), else one. */
   .name {
     flex: 1;
     min-width: 0;
     font-weight: 700;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--name-lines, 1);
+    line-clamp: var(--name-lines, 1);
+    overflow-wrap: anywhere;
   }
   .pad {
     font-size: 0.65rem;
@@ -331,16 +344,23 @@
     font-size: 0.7rem;
     font-weight: 600;
   }
+  /* A solid pill in the judgement's colour, lifted toward the stage ink so it reads on the dark stage in both themes. */
+  .flash {
+    --k: var(--ws-stage-ink);
+    color: color-mix(in oklch, var(--k) 55%, var(--ws-stage-ink));
+    background: color-mix(in oklch, var(--k) 28%, var(--ws-stage));
+    box-shadow: inset 0 0 0 1.5px var(--k);
+  }
   .flash[data-kind="perfect"] {
-    color: var(--success);
+    --k: var(--success);
   }
   .flash[data-kind="early"],
   .flash[data-kind="late"] {
-    color: var(--warn);
+    --k: var(--warn);
   }
   .flash[data-kind="miss"],
   .flash[data-kind="extra"] {
-    color: var(--destructive);
+    --k: var(--destructive);
   }
   .count {
     position: absolute;

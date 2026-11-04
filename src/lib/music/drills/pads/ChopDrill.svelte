@@ -135,7 +135,7 @@
   const stepNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / 4)) : null);
   const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), `Slice ${i + 1}`]));
   // The lanes: the slices the piece plays, in order, each ringing until the next slice starts.
-  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, color: laneColor(`slice-${n}`), pad: slicePad(n - 1) })));
+  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1) })));
   const sliceMs = $derived((source.bars * 4 * beatMs) / CHOP_SLICES);
   const live = $derived<(HighwayNote & { pad: number })[]>(
     targets.map((t, i) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.pad === t.pad), kind: "normal", durMs: Math.min(sliceMs, (targets[i + 1]?.atMs ?? lengthMs) - t.atMs) })),
@@ -293,13 +293,16 @@
               : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25.`;
     }
     if (!ons.length) {
-      summary = { headline, metric: pct(0), metricLabel: "score", rows, recorded: false, assistance: "Nothing was played, so nothing is recorded." };
-      status = headline;
+      // Nothing played: the standard not-heard card, no 0% and no bars measured from zero hits.
+      grv = null;
+      summary = silentRun();
+      status = summary.headline;
       return;
     }
     await run!.attempt({ promptId: `chop:${exercise}:${source.id}`, correct, partialCredit: score, metrics: grv?.metrics ?? [], source: runSource(notes), instrument: "mpc" });
     const fin = await run!.finish({ score, correct, headline });
     if (!fin.heard) {
+      grv = null;
       summary = silentRun();
       status = summary.headline;
       return;
@@ -436,7 +439,7 @@
             <li
               class="cell"
               class:rest={!c.slice}
-              data-now={cellNow === i || undefined}
+              data-now={(mode === "practice" && cellNow === i) || undefined}
               data-result={c.outcome === undefined ? undefined : c.outcome === null ? "miss" : Math.abs(c.outcome) <= goodMs ? "ok" : "off"}
               title={c.outcome === undefined ? undefined : c.outcome === null ? "missed" : `${c.outcome > 0 ? "late" : "early"} by ${Math.abs(Math.round(c.outcome))} ms`}
             >

@@ -14,14 +14,14 @@
     {#each positions as p, i (p.id)}
       <button
         type="button"
-        class="flex w-20 shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl bg-ws-surface p-1.5 text-ws-ink {i === at ? 'ring-3 ring-instr' : 'opacity-80 hover:opacity-100'}"
+        class="flex w-24 shrink-0 sm:w-28 snap-start flex-col items-center gap-0.5 rounded-xl bg-ws-surface p-1.5 text-ws-ink {i === at ? 'ring-3 ring-instr' : 'opacity-80 hover:opacity-100'}"
         aria-pressed={i === at}
         aria-label="{symbol}, {p.positionLabel}"
         {disabled}
         onclick={() => onchange(i)}
       >
-        <ChordDiagram frets={p.frets} fingers={p.fingers} barre={p.barre} label="" />
-        <span class="text-xs font-semibold leading-tight">{shortPosition(p.positionLabel)}</span>
+        <ChordDiagram frets={p.frets} fingers={p.fingers} barre={p.barre} label="" numbers={i === at} />
+        <span class="text-sm font-semibold leading-tight">{shortPosition(p.positionLabel)}</span>
       </button>
     {/each}
   </div>

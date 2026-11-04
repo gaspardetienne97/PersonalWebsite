@@ -79,8 +79,9 @@ test.describe("finger-drumming repertoire", () => {
     await enableMidi(page, "/music/pads?mode=groove&groove=funky-drummer&bpm=80");
     const card = page.getByLabel("About this groove");
     await expect(card).toContainText("Funky Drummer");
+    await expect(card).toContainText("level 3");
     await expect(card).toContainText(
-      "level 3 (intermediate: perfect within 25 ms, good within 50 ms)",
+      "Intermediate timing: perfect within 25 ms, good within 50 ms.",
     );
     await expect(card).toContainText("Starts at 80 BPM, aims for 100");
     await shots(page, "funky-drummer-ready");

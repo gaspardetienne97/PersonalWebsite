@@ -5,7 +5,8 @@
   // sounded, not which string they came from or how clean they rang.
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName } from "@repo/music-core";
+  import { noteName, pc } from "@repo/music-core";
+  import { nearMiss } from "@repo/music-core/signal/pitch";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
@@ -56,6 +57,8 @@
   let status = $state("");
   let matched = $state<boolean[]>([]);
   let heard = $state<number | null>(null);
+  /** What was wrong with the last note heard, in words; null when it matched. */
+  let miss = $state<string | null>(null);
   let beat = $state(-1);
   let demoMidi = $state<number | null>(null);
   let demo: { stop(): void; playing: boolean } | null = $state(null);
@@ -105,15 +108,29 @@
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
     heard = e.midi;
+    const want = targets[Math.max(0, cursor)];
     // Pitch only: the first unmatched string with this note, the next one in order first.
     const order = [...targets.keys()].sort((a, b) => Math.abs(a - Math.max(0, cursor)) - Math.abs(b - Math.max(0, cursor)));
     const k = order.find((i) => !matched[i] && targets[i].midi === e.midi);
     if (k !== undefined) {
+      miss = null;
       matched[k] = true;
       if (mode === "practice") flashes.add(targets[k].string * 100 + targets[k].fret, "correct");
       if (matched.every(Boolean)) return void setTimeout(() => void finish(), 250);
-    } else if (mode === "practice" && e.string !== undefined && e.fret !== undefined) {
-      flashes.add(e.string * 100 + e.fret, "wrong");
+    } else {
+      // Say what is really wrong: the tuning (a quarter tone off), the octave, or the note. Check never names the target.
+      const near = e.source === "audio" ? nearMiss(e.midi, e.cents, targets.filter((_, i) => !matched[i]).map((t) => t.midi)) : null;
+      const heardName = noteName(e.midi);
+      miss = near
+        ? `${heardName} is ${Math.abs(near.cents)} cents ${near.cents > 0 ? "sharp" : "flat"} of a chord note: check your tuning.`
+        : mode === "check"
+          ? `${heardName} is not one of the notes still to play.`
+          : want && pc(want.midi) === pc(e.midi)
+            ? `Heard ${heardName}, want ${noteName(want.midi)}: the right note in the wrong octave, so the wrong string.`
+            : want
+              ? `Heard ${heardName}, want ${noteName(want.midi)} on string ${want.string}.`
+              : `${heardName} is not in the chord.`;
+      if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
     }
     if (!isPick) idle();
   }
@@ -123,6 +140,7 @@
     summary = null;
     missedStrings = [];
     heard = null;
+    miss = null;
     matched = targets.map(() => false);
     flashes.clear();
     run = practice.beginRun({
@@ -271,7 +289,7 @@
     {#if phase === "running"}
       <Stat label="Chord" value={symbol} />
       <Stat label="Target notes" value="{matched.filter(Boolean).length} of {targets.length}" />
-      {#if heard !== null}<Stat label="Heard" value={noteName(heard)} />{/if}
+      {#if heard !== null}<Stat label={miss ? "Heard, not a match" : "Heard"} value={noteName(heard)} tone={miss ? "warn" : undefined} />{/if}
     {/if}
   {/snippet}
 
@@ -298,9 +316,11 @@
         <li
           class="tnum flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm {done
             ? 'border-transparent bg-success/90 font-semibold text-white'
-            : live && i === cursor
-              ? 'border-instr text-ws-stage-ink ring-2 ring-instr'
-              : 'border-ws-stage-ink/25 text-ws-stage-soft'}"
+            : live && i === cursor && miss && mode === 'practice'
+              ? 'border-warn text-ws-stage-ink ring-2 ring-warn'
+              : live && i === cursor
+                ? 'border-instr text-ws-stage-ink ring-2 ring-instr'
+                : 'border-ws-stage-ink/25 text-ws-stage-soft'}"
         >
           <span>String {t.string}</span>
           <span class="font-semibold">{showShape || done ? toneName(t.midi, ref) : "?"}</span>
@@ -308,6 +328,9 @@
         </li>
       {/each}
     </ol>
+    {#if phase === "running" && miss}
+      <p class="mt-3 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
+    {/if}
     {#if phase === "running" && !isPick}
       <div class="mt-3"><button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button></div>
     {/if}

@@ -266,10 +266,10 @@
         { label: "Score", value: score, text: pct(score) },
         { label: "Right notes", value: done.length ? done.filter((g) => g.missing.length === 0).length / items.length : 0, text: `${done.filter((g) => g.missing.length === 0).length} of ${items.length} chords` },
         monophonic
-          ? { label: "Held together (arpeggio mode)", notMeasured: true }
+          ? { label: "Notes sounding at once (arpeggio mode)", notMeasured: true }
           : onScreen
-            ? { label: "Held together (on-screen keys)", notMeasured: true }
-            : { label: "Held together", text: "Strict: graded on the held chord" },
+            ? { label: "Notes sounding at once (on-screen keys)", notMeasured: true }
+            : { label: "Notes sounding at once", text: "graded on the chord while all its notes were held down together" },
       ],
       // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
       advance:
@@ -428,6 +428,8 @@
           Arpeggio mode: {settings.value.activeInstrument === "aerophone" ? "the Aerophone" : "your voice"} plays one note at a time, so each voicing is graded as an arpeggio. Play the root first, then the other tones in any order.
         {:else if phase === "running" && collectedMode}
           Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. On-screen keys play one at a time, so held together is not measured.
+        {:else if mode === "check" && phase === "running"}
+          The voicing is hidden: keys light only where you play.
         {:else}
           Keys show L for the {jazzType ? "left hand" : "left-hand root"} and R for the right hand. Voicings carry no authored fingering.
         {/if}
@@ -445,6 +447,8 @@
           {/if}
         {/snippet}
       </Results>
+      <!-- Nothing heard: no per-chord verdicts, so silence never reads as a row of wrong chords. -->
+      {#if summary.heard !== false}
       <ol class="mt-3 grid gap-2 sm:grid-cols-3" aria-label="Chord by chord">
         {#each items as it, i (it.id)}
           {@const g = grades[i]}
@@ -456,6 +460,7 @@
           </li>
         {/each}
       </ol>
+      {/if}
     {/if}
   {/snippet}
 </DrillShell>

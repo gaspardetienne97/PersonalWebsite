@@ -52,6 +52,7 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
+  import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
     import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
@@ -158,6 +159,12 @@
   );
   const span = $derived(spanOf(notes.map((n) => n.midi)));
   const falling = $derived(page.url.searchParams.get("view") === "falling");
+  /** Check's rhythm guide, the same R/L lane Comping draws: one chip a slot, the notes hidden. */
+  const checkLanes = $derived<LaneRow[]>(
+    (["right", "left"] as const)
+      .map((h) => ({ id: h, mark: h === "left" ? "L" : "R", label: h === "left" ? "Left hand" : "Right hand", hand: h, notes: slots.filter((sl) => sl.hand === h).map((sl) => ({ beat: feel(sl.beat), dur: sl.dur, text: "" })) }))
+      .filter((r) => r.notes.length),
+  );
   const fallScore = $derived(lineScore(notes.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.dur, hand: n.hand })), { beats: bpb, beatUnit: 4 }));
   // Written as Jam writes the key: a blues in its mixolydian (C7's Bb reads as a flat).
   const scaleKind = $derived(tab === "lead-sheet" && !genTune ? "major" : minor ? "natural-minor" : /dorian/.test(base.key) ? "dorian" : base.group === "blues" ? "mixolydian" : "major");
@@ -513,6 +520,9 @@
       {#if falling && (mode === "practice" || transport.playing || phase === "results")}
         <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
       {:else}
+        {#if mode === "check" && tab !== "lead-sheet" && !transport.playing && phase !== "results"}
+          <BeatLane rows={checkLanes} beats={totalBeats} beat={transport.beat} beatsPerBar={bpb} chords={rendering.chart.map((c, i) => ({ beat: rendering.chart.slice(0, i).reduce((t, x) => t + x.durationBeats, 0), symbol: c.symbol }))} hidden label="Beat lane: when each hand plays, the notes hidden." />
+        {/if}
         {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
           <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></div>
         {/if}

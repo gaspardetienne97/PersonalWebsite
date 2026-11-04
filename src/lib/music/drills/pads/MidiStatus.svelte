@@ -13,7 +13,7 @@
   }
   let { instrument, sound }: Props = $props();
 
-  let last = $state<{ text: string; used: boolean } | null>(null);
+  let last = $state<{ text: string; used: boolean; midi: number } | null>(null);
 
   $effect(() =>
     midi.subscribeRaw((m) => {
@@ -39,7 +39,7 @@
   <Cable class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
   <p class="min-w-0 flex-1 basis-60">
     {#if last && midi.enabled}
-      <span class={last.used ? "" : "font-medium"}>{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{last.text}</span>
+      <span class={last.used ? "" : "font-medium"} title="MIDI note {last.midi}">{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{last.text}</span>
     {:else}
       <span class="text-ws-soft">{waiting}</span>
     {/if}

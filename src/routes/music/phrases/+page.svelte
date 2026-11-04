@@ -300,9 +300,6 @@
     {#if phase === "running"}
       <Stat label="Step" value="{Math.min(played + 1, events.length)} of {events.length}" />
       {#if mode === "practice" && next}<Stat label="Next" value={spell(next.notes.map((n) => n.midi))} />{/if}
-    {:else if result}
-      <Stat label="In order" value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
-      <Stat label="On time" value="{result.onTime}/{result.total}" />
     {/if}
   {/snippet}
 
@@ -336,7 +333,22 @@
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
           meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} /></div>
       {:else}
-        <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Hear it, then play it from memory.</p>
+        <!-- Check: the notes stay hidden; a slot a note shows how many are left, and the phrase can be heard again before a run. -->
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3" data-testid="check-progress">
+          <div class="flex min-w-0 flex-col gap-2">
+            <ol class="flex flex-wrap gap-1.5" aria-hidden="true">
+              {#each events as _, i (i)}
+                <li class="size-3 rounded-full border-2 {phase === 'running' && i < played ? 'border-ws-stage-ink bg-ws-stage-ink' : phase === 'running' && i === played ? 'border-instr bg-instr/40' : 'border-ws-stage-soft/50'}"></li>
+              {/each}
+            </ol>
+            <p class="text-sm text-ws-stage-soft">
+              {phase === "running" ? `${Math.max(0, events.length - played)} of ${events.length} notes left. Play it from memory.` : `Check: the notes are hidden. ${events.length} notes: hear it, then play it from memory.`}
+            </p>
+          </div>
+          {#if phase !== "running" && phase !== "countin"}
+            <button type="button" class={btnStage} onclick={() => demo(1)}>Hear it again</button>
+          {/if}
+        </div>
       {/if}
       {#if !(moving && !fretted && (mode === "practice" || transport.playing) && phase !== "results")}
         <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />

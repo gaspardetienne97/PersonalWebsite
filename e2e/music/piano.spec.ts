@@ -321,7 +321,9 @@ test.describe("piano drills over fake MIDI", () => {
       chords.map((notes, i) => ({ at: i * 1100, notes, hold: 400 })),
     );
     await expect(page.getByRole("status")).toContainText("All 3 chords right.", { timeout: 5000 });
-    await expect(page.getByText("Strict: graded on the held chord")).toBeVisible();
+    await expect(
+      page.getByText("graded on the chord while all its notes were held down together"),
+    ).toBeVisible();
     await shoot(page, "voicings-results");
   });
 

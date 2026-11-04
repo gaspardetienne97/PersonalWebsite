@@ -358,9 +358,6 @@
     {#if phase === "running"}
       <Stat label="Note" value="{Math.min(played + 1, chunk.length)} of {chunk.length}" />
       {#if mode === "practice" && next}<Stat label="Next" value={spell(next.midi)} />{/if}
-    {:else if result}
-      <Stat label="In order" value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
-      <Stat label="On time" value="{result.onTime}/{result.total}" />
     {/if}
   {/snippet}
 
@@ -369,11 +366,14 @@
     <div class="mb-3 flex flex-wrap gap-3 text-sm">
       <div class="min-w-0 flex-[1_1_20rem]">
         <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
-        <p class="text-ws-stage-soft">Scales: {lick.scales.map(tx).join(", ")}.</p>
-        <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
-        {#each techniques as t (t.id)}
-          <p class="text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
-        {/each}
+        <!-- The reading text steps aside while the line runs, so the lane and the keys stay in view. -->
+        {#if phase !== "running" && phase !== "countin"}
+          <p class="text-ws-stage-soft">Scales: {lick.scales.map(tx).join(", ")}.</p>
+          <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
+          {#each techniques as t (t.id)}
+            <p class="text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
+          {/each}
+        {/if}
       </div>
       {#if phase !== "running" && phase !== "countin"}
         <div class="flex flex-wrap items-end gap-2 lg:justify-end">
@@ -395,7 +395,11 @@
             {/if}
           {:else if mode === "practice"}
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(0.5)}>Half speed</button>
-            <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10 disabled:opacity-50" disabled={whole} onclick={() => demo(1, 3)}>Loop chunk 3 times</button>
+            {#if whole}
+              <span class="text-sm text-ws-stage-soft">{barChunks.length > 1 ? "Pick a bar, or tap two notes on the staff, to loop a chunk." : "Tap two notes on the staff to loop a chunk."}</span>
+            {:else}
+              <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(1, 3)}>Loop chunk 3 times</button>
+            {/if}
           {/if}
         </div>
       {/if}
@@ -406,7 +410,7 @@
       </p>
     {:else}
     <BeatLane
-      rows={[{ id: "line", mark: fretted ? "♪" : "R", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
+      rows={[{ id: "line", mark: "♪", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
       beats={chunkBeats}
       beat={transport.beat}
       chords={laneChords}

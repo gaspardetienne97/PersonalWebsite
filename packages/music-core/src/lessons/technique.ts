@@ -84,7 +84,8 @@ const longTone = (): Lesson => ({
   screens: [
     {
       title: "One note, one even breath",
-      text: "A long tone is a single note held for the whole time with the air as even as you can keep it. The Aerophone sends your breath as CC 2, a number from 0 for no air to 1 for full. The drill reads that number and scores how still it stays.",
+      figure: { kind: "aerophone", midi: 67 },
+      text: "A long tone is a single note held for the whole time with the air as even as you can keep it. The Aerophone's breath sensor sends the app a number from 0 for no air to 1 for full (MIDI CC 2). The drill reads that number and scores how still it stays.",
     },
     {
       title: "What you hear here",
@@ -147,6 +148,8 @@ const articulation = (): Lesson => {
     screens: [
       {
         title: "One tongue a beat",
+        figure: { kind: "aerophone", midi: 67 },
+        sound: run((STACCATO + LEGATO) / 2),
         text: "The drill plays a click at the practice strip's tempo. You tongue the same note once on each click, for as many notes as you set.",
       },
       {
@@ -180,6 +183,7 @@ const landing = (shift: number): Lesson => {
     screens: [
       {
         title: "Land on the interval",
+        figure: keys({ [concert(WRITTEN_DRONE)]: "drone", [concert(WRITTEN_DRONE - 7)]: "land" }),
         text: `A drone sounds, and you land the note an interval above or below it: ${LANDING_INTERVALS.map((i) => i.label.toLowerCase()).join(", ")}. You set the interval, the direction and the drone.`,
       },
       {
@@ -229,6 +233,7 @@ const register = (pairId: string | undefined, shift: number): Lesson => ({
   screens: [
     {
       title: "Across the break",
+      figure: { kind: "aerophone", midi: firstOctaveNote().midi - shift },
       text: `A crossing goes back and forth between two notes whose fingerings differ, in eighths, with no stray note in between. On the chart, each note from ${octaveName()} up to the top of the octave uses the fingering of the note an octave below with the +1 key under the left thumb added.`,
     },
     {

@@ -24,7 +24,7 @@
   import { audio, mic, settings } from "$lib/music/runtime";
   import { exerciseFor } from "$lib/music/drills/guitar/fretted";
   import { applyBenchParams, fretted, tuningFor } from "$lib/music/drills/guitar/instrument.svelte";
-  import { chordId, positionsOn, symbolRef } from "$lib/music/drills/guitar/chords";
+  import { chordId, positionsOn, symbolRef, toneName } from "$lib/music/drills/guitar/chords";
   import { ChordListener, type Heard } from "$lib/music/drills/guitar/strum.svelte";
   import MicPanel from "$lib/music/drills/guitar/MicPanel.svelte";
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
@@ -293,6 +293,9 @@
 
   const shownIndex = $derived(current >= 0 ? current : 0);
   const tones = $derived(chart[shownIndex]?.pcs ?? []);
+  /** The shown chord's tones spelled from its root (F# in D major); flats when the symbol has no root to spell from. */
+  const shownRef = $derived(chart[shownIndex] ? symbolRef(chart[shownIndex].symbol) : null);
+  const spell = (p: number) => (shownRef ? toneName(p, shownRef, false) : FLAT_NAMES[p]);
   const shownShape = $derived(chart[shownIndex] ? shapeOf(chart[shownIndex].symbol) : undefined);
 </script>
 
@@ -401,8 +404,13 @@
   {/snippet}
 
   {#snippet stage()}
+    <!-- The microphone gates Start, so it sits first: turning it on needs no scroll, and the page below it does not jump. -->
+    <div class="mb-3"><MicPanel disabled={live} /></div>
     {#if phase !== "results"}
-      <div class="mb-2 flex justify-end">{@render viewSwitch("Chart")}</div>
+      <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+        <p class="text-sm text-ws-stage-soft">{highway.on ? "Highway: each chord slides to the line as it is due." : "Chart: the whole progression, a box a chord."}</p>
+        {@render viewSwitch("Chart")}
+      </div>
     {/if}
     {#if highway.on && phase !== "results"}
       <NoteHighway chords={blocks} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={hwBeat} chordHits={blockHits} judge={phase === "running"} perfectMs={Math.max(40, Math.round(60000 / bpm() / 8))} />
@@ -432,6 +440,8 @@
       <div class="mt-4 max-w-md" data-pattern={strum.id}>
         <RhythmGrid bars={1} perBar={4} events={strokesIn(Math.max(0, chart[shownIndex]?.startBeat ?? 0) / 4).map((e) => ({ beat: e.beat, accent: e.accent === "accent", stroke: e.stroke, duration: e.durationBeats }))} label="{strumName(strum)}, one bar" />
       </div>
+    {:else}
+      <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">Any strum: down, up or both, in any rhythm. What counts is each chord ringing on its bar. Pick a pattern in Setup to practise one.</p>
     {/if}
     {/if}
     {#if shownShape}
@@ -439,13 +449,12 @@
     {/if}
     <div class="mt-4 grid gap-2">
       <p class="text-sm font-medium">Tones of {chart[shownIndex]?.symbol}{live ? ", against what the microphone hears" : ""}</p>
-      <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" />
-      {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map((p) => FLAT_NAMES[p]).join(" ") : "nothing"}</p>{/if}
+      <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" name={spell} />
+      {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map(spell).join(" ") : "nothing"}</p>{/if}
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
       The microphone reads which notes ring after each strum, not which strings rang them. This drill is still unverified on a real guitar, so it records the run without claiming a skill.
     </p>
-    <div class="mt-3"><MicPanel disabled={live} /></div>
   {/snippet}
 
   {#snippet results()}

@@ -207,6 +207,7 @@ function rootless(o: CardOpts): Lesson {
     screens: [
       {
         title: "Leave the root out",
+        figure: fig(ex[0]),
         text: `A rootless voicing leaves the chord's root to the bass. ${arp ? "Here you play the root, then the four chord notes above it, one note at a time." : "Here the left hand plays the root alone and the right hand plays four chord notes above it."} Position A puts the 3rd lowest and position B the 7th, so they read 3 5 7 9 and 7 9 3 5.`,
       },
       {
@@ -257,6 +258,7 @@ function inversions(o: CardOpts): Lesson {
     screens: [
       {
         title: "Move as little as you can",
+        figure: fig(1),
         text: `I IV V I in one key: a triad ${arp ? "played one note at a time, above its root" : "in the right hand over its root in the left"}. Aim to move the notes as little as you can from the chord before, keeping the notes the two chords share. In some keys ${arp ? "the range the drill uses" : "the range of the keyboard"} forces a bigger move.`,
       },
       {
@@ -421,11 +423,30 @@ const tip = (id: string, title: string, screens: LessonScreen[]): Lesson => ({
   screens,
 });
 
+/** Open C on the guitar, fingertips just behind the frets: the shape the chord tips draw. */
+const C_SHAPE: LessonFigure = {
+  kind: "fretboard",
+  instrument: "guitar",
+  marks: [
+    { string: 5, fret: 3, label: "3" },
+    { string: 4, fret: 2, label: "2" },
+    { string: 2, fret: 1, label: "1" },
+  ],
+};
+/** One finger a fret: index to little finger on frets 1 to 4 of the low string. */
+const SPIDER: LessonFigure = {
+  kind: "fretboard",
+  instrument: "guitar",
+  marks: [1, 2, 3, 4].map((f) => ({ string: 6, fret: f, label: String(f) })),
+};
+
 const TIPS: Record<string, () => Lesson> = {
   "tips.strum": () =>
     tip("tips.strum", "Strumming to be heard", [
       {
         title: "Fret first, then strum",
+        figure: C_SHAPE,
+        sound: tones([48, 52, 55, 60, 64], 0, 1.6),
         text: "Put every finger down before you strum, so all the strings are ready. Strum once, in one smooth downward motion across the strings the shape uses. Let it ring until the app has named it.",
       },
       {
@@ -437,6 +458,7 @@ const TIPS: Record<string, () => Lesson> = {
     tip("tips.chords", "Fretting a clean chord", [
       {
         title: "Shape the hand",
+        figure: C_SHAPE,
         text: "Press with the tips of your fingers, close behind the fret. Keep the fingers arched so none of them touches the string next to its own.",
       },
       {
@@ -448,6 +470,7 @@ const TIPS: Record<string, () => Lesson> = {
     tip("tips.changes", "Changing chords", [
       {
         title: "Move as one shape",
+        figure: C_SHAPE,
         text: "Lift all your fingers together and put them down together, rather than one at a time. Picture the next shape before the change. Go slowly enough that every change is clean, then speed up, landing on the beat when a clock runs.",
       },
       {
@@ -459,6 +482,8 @@ const TIPS: Record<string, () => Lesson> = {
     tip("tips.spider", "Spider technique", [
       {
         title: "One finger a fret",
+        figure: SPIDER,
+        sound: run([41, 42, 43, 44]),
         text: "Each finger has its own fret: the index the first, the middle the second, the ring the third and the little finger the fourth. The pattern says which finger plays next. Keep the hand where it is and move only the fingers.",
       },
       {
@@ -470,6 +495,8 @@ const TIPS: Record<string, () => Lesson> = {
     tip("tips.two-hand", "Keeping two hands together", [
       {
         title: "One hand at a time",
+        figure: keys({ 48: "L", 50: "L", 52: "L", 60: "R", 62: "R", 64: "R" }),
+        sound: run([48, 50, 52, 60, 62, 64]),
         text: "The Practise setting can ask for Left only or Right only. Learn each part that way first, then play Both hands.",
       },
       {

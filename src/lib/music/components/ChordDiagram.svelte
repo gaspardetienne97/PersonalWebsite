@@ -10,8 +10,10 @@
     barre?: { fret: number; fromString: number; toString: number };
     /** Empty when a parent (a button) names the chord. */
     label: string;
+    /** Finger numbers in the dots; off on a small thumbnail, where only the colours show. */
+    numbers?: boolean;
   }
-  let { frets, fingers = [], barre, label }: Props = $props();
+  let { frets, fingers = [], barre, label, numbers = true }: Props = $props();
 
   const n = $derived(frets.length);
   const fretted = $derived(frets.filter((f): f is number => f !== null && f > 0));
@@ -55,10 +57,10 @@
   {#each frets as f, i (i)}
     {#if f !== null && f > 0 && !(barre && f === barre.fret && i + 1 >= barre.fromString && i + 1 <= barre.toString)}
       <circle cx={xOf(i + 1)} cy={yOf(f)} r="7" class="dot" style:fill={fill(fingers[i])} />
-      {#if fingers[i]}<text x={xOf(i + 1)} y={yOf(f) + 3.5} class="finger" class:on-colour={!!fill(fingers[i])} text-anchor="middle">{fingers[i]}</text>{/if}
+      {#if numbers && fingers[i]}<text x={xOf(i + 1)} y={yOf(f) + 3.5} class="finger" class:on-colour={!!fill(fingers[i])} text-anchor="middle">{fingers[i]}</text>{/if}
     {/if}
   {/each}
-  {#if barre}
+  {#if barre && numbers}
     <text x={(xOf(barre.toString) + xOf(barre.fromString)) / 2} y={yOf(barre.fret) + 3.5} class="finger" class:on-colour={!!fill(barreFinger)} text-anchor="middle">{barreFinger}</text>
   {/if}
 </svg>

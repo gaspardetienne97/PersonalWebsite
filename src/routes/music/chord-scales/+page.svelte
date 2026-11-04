@@ -110,6 +110,13 @@
     }),
   );
 
+  /** The data's scale hints in plain words: no dashes or plus signs, no internal lesson codes, and why Lydian over a major 7th. */
+  const plainHint = (h: string | undefined) =>
+    !h
+      ? ""
+      : h.startsWith("Brighter than major")
+        ? "Brighter than major: the 4th is raised (#11), so it never rubs against the chord's 3rd."
+        : h.replace(/\s+\u2014\s+/g, ": ").replace(/\s\+\s/g, " plus ").replace(/\s*\(JT\d+\)/g, "").replace(/\s*\/\s*/g, ", ");
   // The colour key sits on the keys you play: every key of the current chord's octave, by role.
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
@@ -410,7 +417,7 @@
     {#if mode === "practice" && current}
       <p class="mb-3 text-sm text-ws-stage-soft">
         <span class="font-semibold text-ws-stage-ink">{current.symbol}: {current.scaleLabel}.</span>
-        {current.hint ?? ""}{current.others.length ? ` Also works, and graded as inside: ${current.others.join(", ")}.` : ""}
+        {plainHint(current.hint)}{current.others.length ? ` These also count as inside: ${current.others.join(", ")}.` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}
       <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
@@ -419,11 +426,14 @@
       <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} /></div>
     {/if}
     <InstrumentStage line={current ? [...current.midi, current.midi[0] + 12] : stageLine} {low} {high} {marks} {flashes} fit />
+    <!-- The colour key goes with the colours on the keys: Check (and the results) hide both. -->
+    {#if transport.playing || (mode === "practice" && phase !== "results")}
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (dashed ring)</li>
     </ul>
+    {/if}
   {/snippet}
 
   {#snippet results()}

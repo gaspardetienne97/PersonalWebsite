@@ -310,7 +310,8 @@
     <div class="mb-3 flex flex-wrap items-start justify-between gap-3 text-sm">
       <div class="min-w-0 max-w-prose">
         <p class="font-display text-2xl font-semibold">{p.chord}</p>
-        {#if mode === "practice"}
+        <!-- The theory steps aside while the line runs, so the lane and the keys stay in view. -->
+        {#if mode === "practice" && phase !== "running" && phase !== "countin"}
           <p class="text-ws-stage-soft">
             Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
             The rest of the line stays in {root.rootName} mixolydian.
@@ -334,10 +335,21 @@
       label="Beat lane: right hand lick of {p.lick.length} notes; left hand shell on one and the and-of-two in each bar."
     />
     <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
-    <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
-      {#if mode === "check" && phase !== "results"}<p>Check mode: the lane keeps the rhythm, the notes are hidden.</p>{/if}
-      <p>{FINGERING_NOTE}</p>
-      <p>Together is not measured on on-screen keys: they play one note at a time, so an on-screen run grades the right-hand line and reads the left hand as not measured.</p>
+    <div class="mt-3 text-sm text-ws-stage-soft">
+      {#if mode === "check" && (phase === "running" || phase === "countin")}
+        <p>Notes hidden. Keep the rhythm on the lane; keys light only where you play.</p>
+      {:else if phase === "running" || phase === "countin"}
+        <p>Shell on one and the and-of-two; the line on top.</p>
+      {:else}
+        {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
+        <details>
+          <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
+          <div class="flex flex-col gap-1 pb-1">
+            <p>{FINGERING_NOTE}</p>
+            <p>The left hand needs MIDI: on-screen keys play one note at a time, so an on-screen run grades the right-hand line and shows the left hand as not measured.</p>
+          </div>
+        </details>
+      {/if}
     </div>
   {/snippet}
 

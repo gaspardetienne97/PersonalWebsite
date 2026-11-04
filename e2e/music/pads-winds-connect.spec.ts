@@ -109,7 +109,7 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
     "true",
   );
   await expect(page.getByTestId("midi-status")).toContainText(
-    "Last note 37 from MPC One+ Private, mapped to pad A01.",
+    "Hearing MPC One+ Private. Last hit: pad A01.",
   );
   await page.evaluate((id) => (window as any).__midi.send(id, [0x89, 37, 0]), PORTS.mpcPrivate.id);
   await expect(page.getByRole("button", { name: /^Pad A01/ })).toHaveAttribute(

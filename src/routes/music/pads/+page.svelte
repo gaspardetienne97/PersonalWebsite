@@ -267,6 +267,7 @@
   });
   let judged = $state<Record<number, Judgement>>({});
   let streak = $state(0);
+  let liveExtra = $state(0);
   let bestStreak = $state(0);
   let flashKey = 0;
   let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
@@ -278,6 +279,7 @@
   function judge(e: NoteEvent) {
     const hit = judgeHit(live, judged, e.midi, e.at - downbeat, judgeWindow);
     if (!hit) {
+      liveExtra++;
       flashNote = { judgement: "extra", key: ++flashKey };
       return;
     }
@@ -453,6 +455,7 @@
     stopClockRef = ctx.stopClock;
     judged = {};
     streak = 0;
+    liveExtra = 0;
     bestStreak = 0;
     flashNote = null;
     stars = null;
@@ -867,7 +870,9 @@
   {#snippet hud()}
     {#if phase === "running" && guided}
       <Stat label="Streak" value={streak} tone={streak >= 8 ? "success" : undefined} />
-      {#if liveScore !== null}<Stat label="Score so far" value="{Math.round(liveScore * 100)}%" />{/if}
+      <!-- The notes judged so far; extras are counted beside it and cost points in the final score. -->
+      {#if liveScore !== null}<Stat label="Notes so far" value="{Math.round(liveScore * 100)}%" />{/if}
+      {#if liveExtra}<Stat label="Extra hits" value={liveExtra} tone="warn" />{/if}
     {/if}
     {#if phase === "running" && waitMode}
       <Stat label="Notes" value="{Object.keys(judged).length} of {live.length}" />
@@ -896,7 +901,7 @@
         {#if isGroove && !playing}
           <div class="rounded-xl bg-ws-stage-ink/8 p-3 text-sm" aria-label="About this groove">
             <p class="font-semibold">
-              {entry.groove.label} <span class="font-normal text-ws-stage-soft">· {entry.style}, level {entry.level} ({levelOf.tier}: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms){grooveMeter(entry.groove) !== "4/4" ? ` · ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? ` · swing ${swing}%` : ""}</span>
+              {entry.groove.label}. <span class="font-normal text-ws-stage-soft">{entry.style}, level {entry.level}{grooveMeter(entry.groove) !== "4/4" ? `, in ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? `, swing ${swing}%` : ""}. {levelOf.tier.charAt(0).toUpperCase() + levelOf.tier.slice(1)} timing: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms.</span>
             </p>
             <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
             <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>

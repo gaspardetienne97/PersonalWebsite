@@ -894,6 +894,7 @@ function orchestrateIntro(): Lesson {
     "Rudiments on the kit",
     {
       title: "Sticking on the kit",
+      figure: padsFigure(orchestraPads(o.id)),
       text: `The paradiddle is ${PARADIDDLE.join(" ")}, two groups of four. In this drill each hand gets its own drum, so the sticking becomes a groove: two bars of sixteenths with the first stroke of each group accented.`,
     },
     {
@@ -1211,6 +1212,7 @@ function phrasesIntro(): Lesson {
     "Phrases",
     {
       title: "Rhythms with names",
+      figure: { kind: "rhythm", bars: 1, perBeat: 4, beatsPerBar: 4, onsets: rim },
       text: `A phrase is a short rhythm drummers know by name: clave cells, a tag ending, a fill and its landing, a build. They run ${Math.min(...bars)} to ${Math.max(...bars)} bars, and the setup lists them easiest first.`,
     },
     {

@@ -35,4 +35,4 @@
   const muted = $derived(show ? shape.frets.flatMap((f, i) => (f === null ? [i + 1] : [])) : []);
 </script>
 
-<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} barres />
+<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} barres stringNames />

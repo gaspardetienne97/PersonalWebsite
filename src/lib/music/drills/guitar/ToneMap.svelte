@@ -5,7 +5,20 @@
   // the target tones with no verdict.
   import { FLAT_NAMES } from "@repo/music-core";
 
-  let { expected = [], heard = [], label = "Tones", plain = false }: { expected?: readonly number[]; heard?: readonly number[]; label?: string; plain?: boolean } = $props();
+  let {
+    expected = [],
+    heard = [],
+    label = "Tones",
+    plain = false,
+    name = (pc: number) => FLAT_NAMES[pc],
+  }: {
+    expected?: readonly number[];
+    heard?: readonly number[];
+    label?: string;
+    plain?: boolean;
+    /** Spell a pitch class; give the chord's own speller so D major reads D F# A, not Gb. */
+    name?: (pc: number) => string;
+  } = $props();
   const chips = $derived([
     ...expected.map((pc) => ({ pc, state: plain ? ("tone" as const) : heard.includes(pc) ? ("hit" as const) : ("missing" as const) })),
     ...heard.filter((pc) => !expected.includes(pc)).map((pc) => ({ pc, state: "extra" as const })),
@@ -24,7 +37,7 @@
             ? 'border-2 border-ws-stage-ink/25 text-ws-stage-ink'
             : 'border-2 border-warn text-ws-stage-ink'}"
     >
-      <span class="font-display text-base font-semibold">{FLAT_NAMES[c.pc]}</span>
+      <span class="font-display text-base font-semibold">{name(c.pc)}</span>
       {#if c.state !== "tone"}<span class="text-xs">{c.state === "hit" ? "✓" : word[c.state]}</span>{/if}
       {#if c.state === "hit"}<span class="sr-only">heard</span>{/if}
     </li>

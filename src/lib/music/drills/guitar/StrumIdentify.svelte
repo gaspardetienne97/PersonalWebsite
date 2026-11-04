@@ -5,7 +5,6 @@
   // score = confidence x 0.35 + verification x 0.65 (gradeStrumIdentify).
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
-  import { FLAT_NAMES } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { identifyChord } from "@repo/music-core/theory/chords";
@@ -20,7 +19,7 @@
   import { audio, mic } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, positionsOn, shapesFor } from "./chords";
+  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
   import { ChordListener, type Heard } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
@@ -44,6 +43,8 @@
   const posIndex = $derived(Math.min(s.position, Math.max(0, positions.length - 1)));
   const shape = $derived(positions[posIndex] ?? positions[0] ?? shapesFor(instr)[0]);
   const symbol = $derived(chordLabel(ref));
+  /** Tones spelled from the chord's root: F# in D major, not Gb. */
+  const spell = (p: number) => toneName(p, ref, false);
   const expected = $derived(shapePcs(shape, tuning).sort((a, b) => a - b));
   /** Tones a strum must show before it is named: three, or two for a power chord. */
   const need = $derived(Math.min(3, expected.length));
@@ -120,7 +121,7 @@
         ? "No strum was heard in eight seconds. Strum a little harder, close to the microphone."
         : n === 0
           ? "The strum was too quiet to read any tones. Nothing was recorded; move closer and strum again."
-          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map((p) => FLAT_NAMES[p]).join(", ")}). ${symbol} needs ${need}, so nothing was recorded.`;
+          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map(spell).join(", ")}). ${symbol} needs ${need}, so nothing was recorded.`;
       status = ungraded;
       return;
     }
@@ -161,8 +162,8 @@
       headline: g.correct
         ? `That rang as ${symbol}: every target tone, nothing extra.`
         : g.identified && g.identified !== symbol
-          ? `That read as ${g.identified}, not ${symbol}. ${v.missing.length ? `Missing ${v.missing.map((p) => FLAT_NAMES[p]).join(", ")}.` : ""} ${v.extra.length ? `Extra ${v.extra.map((p) => FLAT_NAMES[p]).join(", ")}.` : ""}`.trim()
-          : `Named ${symbol}, but ${v.missing.length ? `${v.missing.map((p) => FLAT_NAMES[p]).join(", ")} did not come through` : `${v.extra.map((p) => FLAT_NAMES[p]).join(", ")} rang as well`}.`,
+          ? `That read as ${g.identified}, not ${symbol}. ${v.missing.length ? `Missing ${v.missing.map(spell).join(", ")}.` : ""} ${v.extra.length ? `Extra ${v.extra.map(spell).join(", ")}.` : ""}`.trim()
+          : `Named ${symbol}, but ${v.missing.length ? `${v.missing.map(spell).join(", ")} did not come through` : `${v.extra.map(spell).join(", ")} rang as well`}.`,
       metric: pct(g.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -173,7 +174,7 @@
       rows: [
         { label: "Chord named", value: g.identified === symbol ? 1 : 0, text: g.identified ?? "None" },
         { label: "Target tones heard", value: v.coverage, text: `${expected.length - v.missing.length} of ${expected.length}` },
-        { label: "Extra tones", text: v.extra.length ? v.extra.map((p) => FLAT_NAMES[p]).join(", ") : "None" },
+        { label: "Extra tones", text: v.extra.length ? v.extra.map(spell).join(", ") : "None" },
         { label: "Identifier confidence", value: g.confidence },
         { label: "Which strings rang", notMeasured: true },
         { label: "Tone cleanliness", notMeasured: true },
@@ -225,7 +226,7 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Strum" value={symbol} />
-      <Stat label="Hearing" value={listener.live.length ? listener.live.map((p) => FLAT_NAMES[p]).join(" ") : "Nothing yet"} />
+      <Stat label="Hearing" value={listener.live.length ? listener.live.map(spell).join(" ") : "Nothing yet"} />
     {:else if phase === "results" && identified}
       <Stat label="Heard as" value={identified} tone={identified === symbol ? "success" : "warn"} />
     {/if}
@@ -237,7 +238,7 @@
     <ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} />
     <div class="mt-4 grid gap-2">
       <p class="text-sm font-medium">{phase === "results" ? "What the strum held" : "Chord tones"}</p>
-      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label="Chord tones of {symbol}" />
+      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label="Chord tones of {symbol}" name={spell} />
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
       The microphone hears which notes ring, not which string rang them or how clean each one was. Inversions read as the same chord.

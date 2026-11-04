@@ -196,12 +196,16 @@
     padding: 0 0.2rem;
     opacity: 0.7;
   }
+  /* Up to two lines, so "Slice 10" or "Mid tom" is read whole on a small pad. */
   .name {
     font-size: 0.78rem;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1.1;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   .glyph {
     position: absolute;
@@ -217,12 +221,11 @@
     background: var(--instr);
     color: #140a10;
   }
-  /* How the hit landed: a pill across the pad's middle, gone in a moment. */
+  /* How the hit landed: a pill over the pad number at the top, clear of the name, gone in a moment. */
   .when {
     position: absolute;
     inset-inline: 0.3rem;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0.3rem;
     padding: 0.1rem 0;
     border-radius: 999px;
     text-align: center;
@@ -241,7 +244,7 @@
   @keyframes when-in {
     from {
       opacity: 0;
-      transform: translateY(-30%) scale(0.85);
+      transform: translateY(-20%) scale(0.85);
     }
   }
   @media (prefers-reduced-motion: reduce) {

@@ -20,6 +20,7 @@
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
+  import { laneOutcomes } from "$lib/music/drills/piano/lane-outcomes";
   import { FINGERING_NOTE, Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -90,6 +91,9 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let stopClock: (() => void) | null = null;
+  /** Note-ons this run, in beats from the downbeat: the lane marks each note as it lands. */
+  let heard = $state<{ midi: number; beat: number }[]>([]);
+  let clock0 = { downbeat: 0, beatMs: 500 };
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
     [demo ? "demo" : "target"]: true,
@@ -124,6 +128,13 @@
       .reverse(),
   );
   const eighths = $derived(notes.some((n) => n.beat % 1 !== 0));
+  // Live in Practice, after the run in both modes; never while Check hides the notes, never from nothing heard.
+  const outcomes = $derived.by(() => {
+    const live = phase === "running" && mode === "practice";
+    if (!(live || (phase === "results" && heard.length))) return {};
+    const now = phase === "results" ? null : (transport.beat ?? 0);
+    return Object.fromEntries((["left", "right"] as const).map((h) => [h, laneOutcomes(notes.filter((n) => n.hand === h), heard, now)]));
+  });
 
   const patternLabel = $derived(TWO_HAND_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern);
   const tonicName = $derived(noteName(tonic, "flat", false));
@@ -142,7 +153,9 @@
   }
 
   function onNote(e: NoteEvent) {
-    if (e.kind !== "noteon" || phase !== "running" || mode !== "practice") return;
+    if (e.kind !== "noteon" || phase !== "running") return;
+    heard = [...heard, { midi: e.midi, beat: (e.at - clock0.downbeat) / clock0.beatMs }];
+    if (mode !== "practice") return;
     const b = transport.beat ?? 0;
     flashes.add(e.midi, due(b).some((n) => n.midi === e.midi) ? "correct" : "wrong");
   }
@@ -152,6 +165,8 @@
     summary = null;
     result = null;
     flashes.clear();
+    heard = [];
+    clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     stopClock = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: "technique.piano.two-hand-independence",
@@ -308,11 +323,6 @@
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <Stat label="Beat" value="{Math.min(totalBeats, Math.floor(Math.max(0, transport.beat)) + 1)} of {totalBeats}" />
-    {:else if result}
-      {#each result.hands as h (h.hand)}
-        <Stat label="{h.hand === 'left' ? 'Left' : 'Right'} hand" value="{h.matched}/{h.total}" tone={h.pitch >= 0.9 ? "success" : "warn"} />
-      {/each}
-      {#if result.together}<Stat label="Together" value="{result.together.count}/{result.together.beats}" />{/if}
     {/if}
   {/snippet}
 
@@ -343,14 +353,26 @@
         {eighths}
         hidden={mode === "check" && !transport.playing}
         label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
+        {outcomes}
       />
-      <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      <Piano low={span.low} high={span.high} {marks} {flashes} minKey={26} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
     {/if}
-    <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
-      {#if mode === "check" && phase !== "results"}<p>Check mode: the lane keeps the rhythm, the notes are hidden.</p>{/if}
-      <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is authored only for Mirror hands."}</p>
-      {#if measuresTogether}<p>Together is measured over MIDI only (both hands within 40 ms). On-screen keys play one note at a time, so an on-screen run reads Together: not measured.</p>{/if}
-      {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI; on-screen keys can't measure it.</p>{/if}
+    <div class="mt-3 text-sm text-ws-stage-soft">
+      {#if mode === "check" && (phase === "running" || phase === "countin")}
+        <p>Notes hidden. Keep the rhythm; keys light only where you play.</p>
+      {:else if phase === "running" || phase === "countin" || phase === "results"}
+        <p>On the lane: ✓ on time, − early, + late, ✕ missed.{s.dynamics ? ` Play the ${rendering.melodyHand} hand louder.` : ""}</p>
+      {:else}
+        <details>
+          <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
+          <div class="flex flex-col gap-1 pb-1">
+            <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is written only for Mirror hands."}</p>
+            {#if measuresTogether}<p>Hands together needs MIDI: both hands within 40 ms. On-screen keys play one note at a time, so an on-screen run shows Together as not measured.</p>{/if}
+            {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI; on-screen keys can't measure it.</p>{/if}
+            {#if mode === "check"}<p>Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
+          </div>
+        </details>
+      {/if}
     </div>
   {/snippet}
 
