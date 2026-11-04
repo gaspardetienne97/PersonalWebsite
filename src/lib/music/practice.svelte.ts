@@ -429,11 +429,13 @@ export class Run {
     }
     const delta =
       previous?.score !== undefined && score !== undefined ? (score - previous.score) * 100 : null;
+    // A best beats the old one in whole percents, the unit the results show, so a
+    // "Personal best" never sits beside "Same as last time".
     const best =
       score !== undefined &&
       !!bestBefore &&
       bestBefore.score !== undefined &&
-      score > bestBefore.score;
+      Math.round(score * 100) > Math.round(bestBefore.score * 100);
     return { run, xp: this.xp, delta, best, previous, heard };
   }
 }

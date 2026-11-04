@@ -6,7 +6,8 @@
 
 <script lang="ts">
   // One line on the instrument's input, with one button to fix it. Before a run
-  // it shows only when that input is off; after a silent run it says why
+  // (`inline`) it is a clause of the setup sentence, shown only when that input
+  // is off, and the clause is its own fix; after a silent run it says why
   // nothing was heard. On-screen play always works, so it never blocks Start.
   import Mic from "lucide-svelte/icons/mic";
   import MicOff from "lucide-svelte/icons/mic-off";
@@ -14,8 +15,9 @@
   import { midi, mic, settings } from "../runtime";
   import { btn, btnPrimary } from "./ui";
 
-  /** `required`: the drill cannot be played on screen (Start waits for the input). */
-  let { after = false, required = false }: { after?: boolean; required?: boolean } = $props();
+  /** `required`: the drill cannot be played on screen (Start waits for the input).
+   *  `inline`: a setup clause on the ready screen (contract K2) instead of a banner. */
+  let { after = false, required = false, inline = false }: { after?: boolean; required?: boolean; inline?: boolean } = $props();
   const orScreen = $derived(required ? "" : ", or play on screen");
 
   const kind = $derived(inputFor(settings.value.activeInstrument));
@@ -44,7 +46,16 @@
   );
 </script>
 
-{#if after || off}
+{#if inline}
+  {#if kind === "midi" && !midi.supported}
+    <span class="whitespace-normal font-medium" title={text} data-testid="input-check" data-input={kind}>no MIDI in this browser, play on screen</span>
+  {:else if off}
+    <!-- The clause is the fix. Its name stays the action ("Turn on the microphone"); the full sentence is its title. -->
+    <button type="button" class="input-clause relative z-10 inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-md px-1 font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title={error || text} disabled={busy} aria-busy={busy} onclick={turnOn} data-testid="input-check" data-input={kind}>
+      {#if kind === "mic"}<MicOff class="size-4 shrink-0" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />Turn on MIDI{/if}
+    </button>{#if error}<span class="text-destructive">{" "}({error})</span>{/if}
+  {/if}
+{:else if after || off}
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2 {after ? '' : 'rounded-xl border border-warn/50 bg-warn/10 px-4 py-2'}" data-testid="input-check" data-input={kind}>
     {#if !after}
       {#if kind === "mic"}<MicOff class="size-4 shrink-0" aria-hidden="true" />{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />{/if}

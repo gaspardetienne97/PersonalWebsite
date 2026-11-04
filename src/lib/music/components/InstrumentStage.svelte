@@ -73,7 +73,9 @@
   const shift = $derived(fit ? fitShift(given, inst) : 0);
   const line = $derived(shift ? given.map((m) => m + shift) : given);
   const marks = $derived(shift ? Object.fromEntries(Object.entries(givenMarks).map(([m, mk]) => [Number(m) + shift, mk])) : givenMarks);
-  const span = $derived(line.length ? { lo: Math.min(...line), hi: Math.max(...line) } : { lo: 60, hi: 72 });
+  // The span holds the line and every marked key, so a mark is never left off the keyboard (a call that runs past the line).
+  const spanNotes = $derived([...line, ...Object.keys(marks).map(Number)]);
+  const span = $derived(spanNotes.length ? { lo: Math.min(...spanNotes), hi: Math.max(...spanNotes) } : { lo: 60, hi: 72 });
   const pianoLow = $derived(low ?? Math.floor((span.lo - 2) / 12) * 12);
   const pianoHigh = $derived(high ?? Math.max(pianoLow + 24, Math.ceil((span.hi + 2) / 12) * 12));
   // Every key the run marks must be on screen: the keys shrink to the stage before any is cut off (a phone).

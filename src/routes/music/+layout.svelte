@@ -66,9 +66,12 @@
     const unlock = () => {
       if (!audio.unlocked) void audio.unlock();
     };
+    // Any first gesture starts sound, a key press as well as a tap, so Settings' "Sound on" holds.
     window.addEventListener("pointerdown", unlock, { capture: true });
+    window.addEventListener("keydown", unlock, { capture: true });
     return () => {
       window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
       audio.stopAll();
       input.router.releaseAll();
       bench.setFocus(false);
@@ -121,6 +124,16 @@
     bench.compact = COMPACT.includes(path);
   });
 
+  /** A run (or a drill session: lesson, run, results) owns the screen: no sidebar and no tab bar.
+   *  A session leaves out the strip too; its HUD carries the beat and the click. */
+  const away = $derived(bench.running || bench.session);
+
+  // One state: whether runs click. The session HUD and the strip both flip the saved setting, and the
+  // metronome reads bench.clickDuringRun on every beat (here, since a session leaves the strip out).
+  $effect(() => {
+    bench.clickDuringRun = settings.value.metronomeEnabled;
+  });
+
   // Route-owned playback stops on navigation.
   let lastPath = "";
   $effect(() => {
@@ -138,9 +151,10 @@
   style:--instr={`var(--hue-${hue})`}
   style:--ws-strip-h={bench.stripH ? `${bench.stripH}px` : undefined}
   data-hue={settings.value.instrumentColorCoding ? "on" : "off"}
-  data-running={bench.running ? "" : undefined}
+  data-running={away ? "" : undefined}
+  data-session={bench.session ? "" : undefined}
 >
-  {#if !bench.running}
+  {#if !away}
     <nav
       aria-label="Woodshed"
       class="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-y-auto border-r border-ws-line bg-ws-surface lg:flex {collapsed ? 'w-16' : 'w-56'}"
@@ -175,13 +189,13 @@
   {/if}
 
   <div class="flex min-w-0 flex-1 flex-col">
-    <BenchStrip />
-    <main class="min-w-0 flex-1 px-4 pb-[calc(var(--ws-dock-h)+3rem)] pt-4 sm:px-6 lg:px-8 lg:pb-10">
+    {#if !bench.session}<BenchStrip />{/if}
+    <main class="min-w-0 flex-1 {bench.session ? '' : 'px-4 pb-[calc(var(--ws-dock-h)+3rem)] pt-4 sm:px-6 lg:px-8 lg:pb-10'}">
       {@render children()}
     </main>
   </div>
 
-  {#if !bench.running}
+  {#if !away}
     <nav
       aria-label="Woodshed sections"
       onkeydown={(e) => {

@@ -20,6 +20,13 @@
     focus?: string;
   }
 
+  /** A setup clause that names an input caveat and is its own fix (contract K2): "left hand on MIDI"
+   *  opening Connect. Drawn after the setup clauses on the ready screen. */
+  export interface Requirement {
+    text: string;
+    action: { label: string; run: () => void };
+  }
+
   /** Lets Results hand the next run to the shell's action bar without a prop through every drill. */
   export const SHELL_KEY = Symbol("drill-shell");
   export interface ShellApi {
@@ -32,9 +39,15 @@
 </script>
 
 <script lang="ts">
-  // The three-phase frame every drill uses. Setup collapses to one line; the
-  // stage shows the target before Start; a run owns the screen; results lead
-  // with the metric. One route-owned status line (role=status) per page.
+  // The frame every drill uses. The ready screen is the instrument and one Start:
+  // title, exercise tabs, one action bar (the setup sentence, Practice or Check,
+  // Hear it, Start), then the stage. From the first lesson step or Start until
+  // the player leaves the results, the drill is a session that owns the screen
+  // (contract K1): no navs, no strip, a HUD on top (Stop or Close, the title,
+  // the mode, two counters, the beat and the click), the stage filling the
+  // height, and a dock at the bottom (Stop on a phone; Again and the next run on
+  // results). Esc, Stop, Close and Done always lead out. One route-owned status
+  // line (role=status) per page.
   import type { Snippet } from "svelte";
   import { onDestroy, setContext, tick } from "svelte";
   import { fade } from "svelte/transition";
@@ -45,12 +58,18 @@
   import Headphones from "lucide-svelte/icons/headphones";
   import BookOpen from "lucide-svelte/icons/book-open";
   import LessonView from "./LessonView.svelte";
-  import InputCheck from "./InputCheck.svelte";
+  import InputCheck, { inputFor } from "./InputCheck.svelte";
   import { lessonsAuto } from "../lessons.svelte";
   import { pendingLessons, type LessonRef } from "@repo/music-core/lessons/types";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
+  import Eye from "lucide-svelte/icons/eye";
+  import EyeOff from "lucide-svelte/icons/eye-off";
+  import X from "lucide-svelte/icons/x";
+  import Timer from "lucide-svelte/icons/timer";
+  import TimerOff from "lucide-svelte/icons/timer-off";
+  import Alert from "lucide-svelte/icons/circle-alert";
   import { bench, INSTRUMENT_LABEL, type Hue } from "../bench.svelte";
-  import { audio, input, settings } from "../runtime";
+  import { audio, input, midi, mic, settings } from "../runtime";
   import { page } from "$app/state";
   import { CATALOG } from "@repo/music-core/content/catalog";
 
@@ -102,6 +121,8 @@
      *  "Any instrument". Heard and recognised drills from the catalogue by default; drills whose answer mode
      *  plays the instrument pass false. */
     instrumentFree?: boolean;
+    /** Setup clauses that fix an input caveat (contract K2), e.g. "left hand on MIDI" opening Connect. */
+    requires?: readonly Requirement[];
   }
 
   let {
@@ -135,6 +156,7 @@
     unblock = null,
     checkRun = true,
     instrumentFree,
+    requires = [],
     modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
   }: Props = $props();
 
@@ -153,6 +175,10 @@
   });
   /** Blocked by something one tap fixes: that tap is the primary, in Start's place. */
   const unblocking = $derived(!!blocked && !!unblock);
+  /** The instrument's input is off: the setup sentence gets a clause that turns it on (InputCheck inline). */
+  const needsInput = $derived(
+    played && !unblocking && (inputFor(settings.value.activeInstrument) === "mic" ? mic.state !== "on" : !midi.supported || !midi.enabled),
+  );
   let unblockBusy = $state(false);
   async function runUnblock() {
     if (!unblock || unblockBusy) return;
@@ -169,13 +195,16 @@
     const b = visibleStart();
     if (b && !b.disabled) b.focus();
   }
-  const ghost = "flex min-h-11 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised";
+  const ghost = "flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised";
+  // K5: the primary fill and its text, per hue (a deep fill with light text for the pale hues in light theme).
+  const fill = "bg-instr-strong text-on-instr";
   const secondary =
     "flex min-h-12 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-6 font-display text-base font-semibold hover:bg-ws-raised disabled:opacity-50";
-  const primary =
-    "flex min-h-12 items-center justify-center gap-2 rounded-full bg-instr px-6 font-display text-base font-semibold text-ws-stage shadow-sm hover:brightness-105 disabled:opacity-50";
+  const primary = `flex min-h-12 items-center justify-center gap-2 rounded-full ${fill} px-6 font-display text-base font-semibold shadow-sm hover:brightness-105 disabled:opacity-50`;
+  /** The session's own buttons, on the dark stage. */
+  const onStage =
+    "flex min-h-12 items-center justify-center gap-2 rounded-full bg-ws-stage-ink/12 px-5 font-display text-base font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20 disabled:opacity-50";
   let setupOpen = $state(false);
-  let blurbOpen = $state(false);
   // Long exercise rows: the first few, plus the open one, until "More exercises".
   let allTabs = $state(false);
   const keep = $derived(firstTabs ?? ((tabs?.length ?? 0) > 8 ? 4 : Infinity));
@@ -207,17 +236,34 @@
   /** The lessons the Lesson button was pressed for; a setup with other lessons is not a revisit. */
   let revisitFor = $state<string | null>(null);
   const revisit = $derived(revisitFor === lessonIds);
+  /** The lessons closed (not skipped) on this visit: they stay unseen, so they come back next time. */
+  let closedFor = $state<string | null>(null);
   const pending = $derived(pendingLessons(lesson, settings.value.lessonsSeen));
   /** What the lesson view plays: the pending ones, or all of them when asked for again. */
   const shownLessons = $derived(revisit ? (lesson?.lessons ?? []) : pending);
   // Between runs (ready or results), never during one.
   const showing = $derived(
-    !live && shownLessons.length > 0 && (revisit || (ready && lessonsAuto() && (lesson?.trigger === "check" ? mode === "check" : true))),
+    !live &&
+      shownLessons.length > 0 &&
+      (revisit || (ready && closedFor !== lessonIds && lessonsAuto() && (lesson?.trigger === "check" ? mode === "check" : true))),
   );
+  /** The session view (K1): a lesson, a run or its results own the screen. */
+  const session = $derived(live || showing || phase === "results");
+  $effect(() => {
+    bench.session = session;
+  });
   /** After a run, with its results on screen: the header keeps only the title and mode, the setup moves below the results. */
   const afterRun = $derived(phase === "results" && !showing);
-  /** Start is drawn twice (the setup row on a laptop, the dock on a phone); CSS shows one. */
+  /** Start is drawn twice (the action bar on a laptop, the dock on a phone); CSS shows one. */
   const visibleStart = () => [...document.querySelectorAll<HTMLButtonElement>("[data-start]")].find((b) => b.getClientRects().length);
+  /** Back on the ready screen from a lesson or results: the top of the page, focus on Start (or the title). */
+  async function toReady(onStart = true) {
+    await tick();
+    scrollTo({ top: 0 });
+    const startButton = onStart ? visibleStart() : undefined;
+    // A lesson that ends over results stays in the session: focus its title there.
+    (startButton && !startButton.disabled ? startButton : heading?.isConnected ? heading : hudHeading)?.focus();
+  }
   async function endLesson() {
     const seen = settings.value.lessonsSeen ?? [];
     const ids = shownLessons.map((l) => l.id).filter((id) => !seen.includes(id));
@@ -225,12 +271,21 @@
     if (ids.length) void settings.update({ lessonsSeen: [...seen, ...ids] });
     if (lesson?.trigger !== "check") mode = "practice";
     // The lesson's buttons are gone: focus moves on to Start (or the title when Start is blocked).
-    await tick();
-    const startButton = visibleStart();
-    (startButton && !startButton.disabled ? startButton : heading)?.focus();
+    await toReady();
   }
-  /** Start, or a lesson's Next, docks at the bottom of a phone screen; the section pads for it. */
-  const docked = $derived(!live && (showing || phase === "ready"));
+  /** Close: out of a lesson (unseen, so it comes back next visit) or the results, to the ready screen. */
+  function close() {
+    if (showing) {
+      revisitFor = null;
+      closedFor = lessonIds;
+    } else if (phase === "results") {
+      phase = "ready";
+      silent = false;
+    } else return;
+    void toReady(false);
+  }
+  /** Start docks at the bottom of a phone screen on the ready screen; the section pads for it. */
+  const docked = $derived(!session && phase === "ready" && !demoPlaying);
   let clockHandle: { stop(): void } | null = null;
   let goTimer: ReturnType<typeof setTimeout> | undefined;
   /** Count-in clicks so far, and how many bars it lasts (for the count-in panel). */
@@ -239,9 +294,10 @@
   /** The count-in on screen: until the downbeat itself, though input is live half a beat before it. */
   let counting = $state(false);
   let heading: HTMLElement | undefined = $state();
+  /** The session HUD's title (a separate element from the ready screen's). */
+  let hudHeading: HTMLElement | undefined = $state();
   let resultsHeading: HTMLElement | undefined = $state();
-  let resultsBox: HTMLElement | undefined = $state();
-  let stageBox: HTMLElement | undefined = $state();
+
   /** Set by Results: nothing was heard, so the stage is left out (its targets were never played). */
   let silent = $state(false);
 
@@ -276,6 +332,14 @@
     });
   });
 
+  // The strip shows Metronome, Tempo and Count-in only when this drill's runs use the click.
+  $effect(() => {
+    bench.clocked = !!clock;
+    return () => {
+      bench.clocked = null;
+    };
+  });
+
   $effect(() => {
     bench.hue = hue;
     return () => {
@@ -290,16 +354,21 @@
     bench.setFocus(live);
   });
 
-  // The results lead the screen: scrolled to the top (under the strip), focus on their heading.
+  // The results lead the screen: from the top, focus on their heading.
   $effect(() => {
     if (phase !== "results") return;
     void tick().then(() => {
       resultsHeading?.focus({ preventScroll: true });
-      pin(resultsBox);
+      scrollTo({ top: 0 });
     });
+  });
+  // A lesson opens at its top too (the ready screen above it is gone).
+  $effect(() => {
+    if (showing) void tick().then(() => scrollTo({ top: 0 }));
   });
 
   onDestroy(() => {
+    bench.session = false;
     clockHandle?.stop();
     bench.running = false;
     bench.countingIn = false;
@@ -319,23 +388,10 @@
     bench.beat = 0;
   }
 
-  /** The setup header collapses on Start: bring the stage's top into view (it was left scrolled). */
+  /** The session opens at the top: the HUD, then the stage under it. */
   function toStage() {
-    heading?.focus({ preventScroll: true });
-    pin(stageBox);
-  }
-  /** Scroll `el` to the top of the view (under the strip, by its scroll margin). The page can still be
-   *  growing (a stage drawn after its data), so it pins again twice, unless the player has scrolled. */
-  function pin(el?: HTMLElement) {
-    if (!el) return;
-    el.scrollIntoView({ block: "start" });
-    let y = scrollY;
-    for (const ms of [120, 400])
-      setTimeout(() => {
-        if (Math.abs(scrollY - y) > 2 || !el.isConnected) return;
-        el.scrollIntoView({ block: "start" });
-        y = scrollY;
-      }, ms);
+    hudHeading?.focus({ preventScroll: true });
+    scrollTo({ top: 0 });
   }
 
   async function start() {
@@ -410,15 +466,22 @@
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     const onControl = t?.closest("button, a, input, select, textarea, [contenteditable], [role=slider]");
-    if (showing) return;
-    if (e.code === "Space" && !onControl && !e.repeat) {
-      if (phase === "ready" || phase === "results") {
+    if (e.key === "Escape") {
+      // A pop-up, menu or dialog takes its own Esc first.
+      if (e.defaultPrevented || t?.closest("[role=dialog], [role=menu], [role=listbox], [data-popover-content]")) return;
+      if (live) {
         e.preventDefault();
-        void start();
+        stop();
+      } else if (session) {
+        e.preventDefault();
+        close();
       }
-    } else if (e.key === "Escape" && (phase === "running" || phase === "countin")) {
+      return;
+    }
+    if (showing) return;
+    if (e.code === "Space" && !onControl && !e.repeat && (phase === "ready" || phase === "results")) {
       e.preventDefault();
-      stop();
+      void start();
     }
   }
 
@@ -426,111 +489,71 @@
 
 <svelte:window onkeydown={onKey} onresize={edges} />
 
-<section class="mx-auto flex w-full max-w-6xl flex-col gap-4 {docked ? 'max-lg:pb-20' : ''}" aria-labelledby="drill-title">
-  {#if !live}
-    <header class="flex flex-col gap-3">
-      <div class="min-w-0">
-        <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href={back.href}>
-          <ArrowLeft class="size-4" aria-hidden="true" />Back to {back.label}
-        </a>
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 id="drill-title" bind:this={heading} tabindex="-1" class="font-display font-semibold tracking-tight {afterRun ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'}">
-            {title}
-          </h1>
-          {#if afterRun && checkable}<span class="rounded-full border border-ws-line px-3 py-1 text-xs font-medium text-ws-soft">{mode === "check" ? "Check" : "Practice"}</span>{/if}
-        </div>
-        {#if blurb && !afterRun}
-          <!-- Two lines on a phone, so Start stays near; a long one opens with "more". -->
-          <div class="mt-1 flex items-start gap-1">
-            <p id="drill-blurb" class="min-w-0 max-w-prose flex-1 text-ws-soft {blurbOpen ? '' : 'max-sm:line-clamp-2'}">{blurb}</p>
-            {#if blurb.length > 90}
-              <button type="button" class="-my-2.5 min-h-11 shrink-0 self-end rounded-lg px-2 text-sm font-medium text-instr-ink sm:hidden" aria-expanded={blurbOpen} aria-controls="drill-blurb" onclick={() => (blurbOpen = !blurbOpen)}>
-                {blurbOpen ? "less" : "more"}
-              </button>
-            {/if}
-          </div>
-        {/if}
-      </div>
-      {#if !afterRun}{@render controls()}{/if}
-    </header>
-    {#if !afterRun}{@render exercises()}{/if}
+<!-- One section in both views, so the stage below stays mounted from the ready screen into the run. -->
+<section
+  class={session ? "session stage relative flex min-h-dvh w-full flex-col" : `mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? "max-lg:pb-20" : ""}`}
+  aria-labelledby="drill-title"
+  data-session={session ? "" : undefined}
+>
+  {#if session}
+    {@render hudBar()}
   {:else}
-    <h1 bind:this={heading} tabindex="-1" class="sr-only">{title}, running</h1>
+    {@render readyHeader()}
   {/if}
 
-  {#if phase === "ready" && played && !showing && !unblocking}<InputCheck required={!!blocked} />{/if}
-
-  {#if afterRun && results}
-    <div class="results-enter scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]" bind:this={resultsBox}>
-      <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
-      {@render results()}
-    </div>
-    <!-- After a run the next action comes straight after the results, before the stage, in the page's flow.
-         The setup (mode, exercise, settings) follows, for a change before the next run. -->
-    {@render bar()}
-  {/if}
-  {#if afterRun}
-    <div class="flex flex-col gap-3">
-      {@render controls()}
-      {@render exercises()}
-    </div>
-  {/if}
-
-  <!-- A silent run leaves the stage out: its targets were never played, so nothing on it is a result. -->
-  <div
-    bind:this={stageBox}
-    class="stage relative scroll-mt-[calc(var(--ws-strip-h,3.75rem)+0.5rem)] overflow-hidden rounded-2xl p-3 sm:p-5"
-    class:hidden={phase === "results" && silent && !showing}
-    class:demo={demoPlaying}
-    data-live={live ? "" : undefined}
-  >
-    {#if live}
-      <!-- The run's own header: Stop, the drill, the mode. Stop stays here on every width, so the
-           bottom of a phone screen is the instrument's. -->
-      <div class="mb-3 flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-stage-ink/12 px-3.5 text-sm font-semibold hover:bg-ws-stage-ink/20 sm:px-4"
-          onclick={stop}
-        >
-          <Square class="size-3.5 fill-current" aria-hidden="true" />Stop <kbd class="text-xs font-normal opacity-60 max-sm:hidden pointer-coarse:hidden">Esc</kbd>
-        </button>
-        <p class="min-w-0 flex-1 font-display text-base font-semibold leading-tight sm:truncate sm:text-lg">{title}</p>
-        {#if checkable}<span class="shrink-0 rounded-full border border-ws-stage-ink/20 px-3 py-1 text-xs">{mode === "check" ? "Check" : "Practice"}</span>{/if}
+  <div class={session ? "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 pt-3 sm:px-6 lg:px-8" : "contents"}>
+    {#if afterRun && results}
+      <!-- On the session's dark stage the results read in the stage's own tokens. -->
+      <div class="results-enter ws-on-stage">
+        <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
+        {@render results()}
       </div>
-      {#if progress !== null}<div class="mb-3 h-1.5 shrink-0 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
-        <div class="h-full rounded-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
-      </div>{/if}
     {/if}
 
-    {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
-    {#if hud}<div class="mb-3 flex flex-wrap gap-2">{@render hud()}</div>{/if}
-    {#if showing}
-      {#key shownLessons.map((l) => l.id).join()}
-        <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
-      {/key}
-    {:else}
-      {@render stage(phase)}
-    {/if}
-    {#if counting && (phase === "countin" || phase === "running")}
-      <!-- The count-in over the stage (nothing shifts when it goes), counted as a player would:
-           the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
-      <div class="countin pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden="true" out:fade={{ duration: 150 }}>
-        <div class="flex flex-col items-center gap-3 text-center">
-          <span class="text-sm font-semibold tracking-wide text-ws-stage-ink/80">Count-in{countBars > 1 && countBeats ? `, bar ${Math.min(countBars, Math.ceil(countBeats / bench.beatsPerBar))} of ${countBars}` : ""}</span>
-          {#key countBeats}<span class="count font-display text-8xl font-bold leading-none tnum">{bench.beat || ""}</span>{/key}
-          <span class="flex items-center gap-2.5">
-            {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
-              <span class="size-4 rounded-full {bench.beat >= b && countBeats ? 'bg-warn' : 'bg-ws-stage-ink/25'}"></span>
-            {/each}
-          </span>
-          <span class="text-sm text-ws-stage-ink/80">Play on the next 1.</span>
+    <!-- A silent run leaves the stage out: its targets were never played, so nothing on it is a result. -->
+    <div
+      class="stage-box relative {phase === 'results' && silent && !showing ? 'hidden' : session ? 'flex flex-1 flex-col' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
+      class:demo={demoPlaying}
+      data-live={live ? "" : undefined}
+    >
+      {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
+      <!-- Before a run a drill's counters (if any) sit on the stage; in a session they are in the HUD. -->
+      {#if hud && !session}<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 empty:hidden">{@render hud()}</div>{/if}
+      {#if showing}
+        {#key shownLessons.map((l) => l.id).join()}
+          <LessonView lessons={shownLessons} onfinish={endLesson} />
+        {/key}
+      {:else}
+        {@render stage(phase)}
+      {/if}
+      {#if counting && (phase === "countin" || phase === "running")}
+        <!-- The count-in over the stage (nothing shifts when it goes), counted as a player would:
+             the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
+        <div class="countin pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden="true" out:fade={{ duration: 150 }}>
+          <div class="flex flex-col items-center gap-3 text-center">
+            <span class="text-sm font-semibold tracking-wide text-ws-stage-ink/80">Count-in{countBars > 1 && countBeats ? `, bar ${Math.min(countBars, Math.ceil(countBeats / bench.beatsPerBar))} of ${countBars}` : ""}</span>
+            {#key countBeats}<span class="count font-display text-8xl font-bold leading-none tnum">{bench.beat || ""}</span>{/key}
+            <span class="flex items-center gap-2.5">
+              {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
+                <span class="size-4 rounded-full {bench.beat >= b && countBeats ? 'bg-warn' : 'bg-ws-stage-ink/25'}"></span>
+              {/each}
+            </span>
+            <span class="text-sm text-ws-stage-ink/80">Play on the next 1.</span>
+          </div>
         </div>
-      </div>
+      {/if}
+    </div>
+
+    {#if afterRun && checkable && checkRun && mode === "practice" && !silent}
+      <!-- On a phone the dock holds Again and the next run; the checked version of this run waits here. -->
+      <button type="button" class="{onStage} sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Run it in Check</button>
     {/if}
+    {#if actions}<div class="flex flex-wrap items-center gap-3 {session ? 'ws-on-stage' : ''}">{@render actions()}</div>{/if}
   </div>
 
-  {#if phase === "ready" && !showing}
+  {#if session}
+    {@render dock()}
+  {:else if docked}
     <!-- On a phone (and up to lg) Start docks above the tab bar: chrome, like the tab bar, never over the stage
          (the section's bottom padding lets the stage scroll clear of it). -->
     <div class="fixed inset-x-0 bottom-[var(--ws-dock-h,3.5rem)] z-30 border-t border-ws-line bg-ws-surface px-4 py-2 lg:hidden" data-testid="drill-bar">
@@ -540,53 +563,41 @@
       </div>
     </div>
   {/if}
-  {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
 
   <!-- Announced, not shown: the stage and the results already say it on screen. -->
   <p role="status" class="sr-only">{status}</p>
 </section>
 
-<!-- The same controls in the same order and the same place on every drill and in every phase:
-     Practice, Check, Lesson, Hear it, then what the mode means. -->
-{#snippet controls()}
-  <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-    <div class="flex items-center gap-2">
-      {#if checkable}
-        <div class="flex rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note">
-          {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
-            <button
-              type="button"
-              class="min-h-11 rounded-full px-3.5 text-sm font-medium sm:px-4 {mode === id ? 'bg-instr font-semibold text-ws-stage' : 'text-ws-soft hover:text-ws-ink'}"
-              aria-pressed={mode === id}
-              onclick={() => (mode = id)}>{label}</button
-            >
-          {/each}
-        </div>
-      {/if}
+<!-- Ready screen, row 1: back, the title and the Lesson; then one line of blurb (the lesson has the rest). -->
+{#snippet readyHeader()}
+  <header class="flex flex-col gap-1">
+    <div class="flex items-center gap-1 sm:gap-2">
+      <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title="Back to {back.label}">
+        <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">Back to {back.label}</span>
+      </a>
+      <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 flex-1 font-display font-semibold tracking-tight">
+        {title}
+      </h1>
       {#if lesson?.lessons.length}
-        <button type="button" class="{ghost} max-sm:w-11 max-sm:px-0" title="Lesson" onclick={() => (revisitFor = lessonIds)}>
-          <BookOpen class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Lesson</span>
-        </button>
-      {/if}
-      {#if ondemo && (mode !== "check" || demoPlaying)}
-        <button type="button" class="{ghost} aria-pressed:bg-instr-wash" aria-pressed={demoPlaying} onclick={ondemo}>
-          <Headphones class="size-4" aria-hidden="true" />{demoPlaying ? "Stop demo" : "Hear it"}
+        <button type="button" class={ghost} onclick={() => (revisitFor = lessonIds)}>
+          <BookOpen class="size-4" aria-hidden="true" />Lesson
         </button>
       {/if}
     </div>
-    {#if checkable}<p id="mode-note" class="min-w-0 text-sm text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>{/if}
-  </div>
+    {#if blurb}<p id="drill-blurb" class="max-w-prose text-sm text-ws-soft max-sm:line-clamp-2 sm:line-clamp-1 sm:text-base" title={blurb}>{blurb}</p>{/if}
+  </header>
+  {@render exercises()}
+  {@render actionBar()}
 {/snippet}
 
-<!-- The exercise row, then the setup as one line. -->
+<!-- Row 2: the exercises as underline tabs (navigation, not more choices). -->
 {#snippet exercises()}
   {#if tabs && tabs.length > 1}
-    <!-- Hidden on a phone while a lesson shows, so the lesson starts near the top; Skip brings it back. -->
     <div
       id="drill-exercises"
       bind:this={tabRow}
       onscroll={edges}
-      class="-mx-1 flex snap-x scroll-px-1 gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible {showing ? 'max-lg:hidden' : ''}"
+      class="-mx-1 flex snap-x scroll-px-1 overflow-x-auto border-b border-ws-line px-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible"
       style:mask-image={fadeL || fadeR ? `linear-gradient(to right, ${fadeL ? "transparent" : "black"}, black 2.5rem, black calc(100% - 2.5rem), ${fadeR ? "transparent" : "black"})` : undefined}
       role="group"
       aria-label="Exercise"
@@ -595,7 +606,7 @@
         <button
           type="button"
           data-tab={x.id}
-          class="min-h-11 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium {tab === x.id ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+          class="tab relative -mb-px min-h-11 shrink-0 snap-start whitespace-nowrap px-3 text-sm sm:text-base {tab === x.id ? 'font-semibold text-ws-ink' : 'font-medium text-ws-soft hover:text-ws-ink'}"
           aria-pressed={tab === x.id}
           onclick={() => ontab?.(x.id)}>{x.label}</button
         >
@@ -603,7 +614,7 @@
       {#if hiddenTabs}
         <button
           type="button"
-          class="flex min-h-11 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-ws-line px-4 text-sm font-medium text-instr-ink hover:bg-instr-wash"
+          class="flex min-h-11 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium text-instr-ink hover:underline"
           aria-expanded={allTabs}
           aria-controls="drill-exercises"
           onclick={toggleTabs}
@@ -612,31 +623,60 @@
       {/if}
     </div>
   {/if}
+{/snippet}
 
-  <!-- The setup as one line. On a phone the whole card is the Setup button; from sm up each
-       clause opens its own control. On a laptop Start sits at the row's end, above the stage. -->
-  <div class="relative flex items-center gap-x-3 gap-y-2 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 {showing ? 'max-lg:hidden' : ''}">
-    <p class="min-w-0 flex-1 py-1 text-sm leading-6" data-testid="setup-line">
-      <span class="text-ws-soft">Setup:</span>
-      {#each clauses as c, i (i)}<span class="whitespace-nowrap">{#if setup && c.focus}<button type="button" class="clause whitespace-normal text-left font-medium max-sm:contents" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="whitespace-normal font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1}<span class="text-ws-soft">,</span>{/if}</span>{" "}{/each}
-    </p>
-    {#if setup}
-      <button
-        type="button"
-        class="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash max-sm:after:absolute max-sm:after:inset-0 max-sm:after:rounded-xl"
-        aria-expanded={setupOpen}
-        aria-controls="drill-setup"
-        onclick={() => (setupOpen = !setupOpen)}
-      >
-        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
-      </button>
-    {/if}
-    {#if phase === "ready" && !showing}
-      <div class="flex shrink-0 items-center gap-3 border-l border-ws-line pl-3 max-lg:hidden">
-        {#if !unblocking}<span class="max-w-48 text-right text-xs text-ws-soft">{blocked ?? "Space starts, Esc stops."}</span>{/if}
-        {@render startButton("")}
-      </div>
-    {/if}
+<!-- Row 3, the action bar: the setup sentence (its caveats as clauses that fix themselves), then Practice or
+     Check, Hear it and Start. On a laptop one bar; below lg the setup line is its own card and Start docks. -->
+{#snippet actionBar()}
+  <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3 lg:rounded-2xl lg:border lg:border-ws-line lg:bg-ws-surface lg:py-1.5 lg:pl-4 lg:pr-1.5">
+    <div class="relative flex min-w-0 flex-1 items-center gap-x-3 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
+      <p class="min-w-0 flex-1 py-1 text-sm leading-7" data-testid="setup-line">
+        <span class="text-ws-soft">Setup:</span>
+        {#each clauses as c, i (i)}<span class="whitespace-nowrap">{#if setup && c.focus}<button type="button" class="clause whitespace-normal text-left font-medium max-sm:contents" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="whitespace-normal font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1 || requires.length || needsInput}<span class="text-ws-soft">,</span>{/if}</span>{" "}{/each}
+        {#each requires as r, i (r.text)}<span class="whitespace-nowrap"><button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="text-ws-soft">,</span>{/if}</span>{" "}{/each}
+        {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
+      </p>
+      {#if setup}
+        <button
+          type="button"
+          class="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-instr-ink hover:bg-instr-wash max-sm:after:absolute max-sm:after:inset-0 max-sm:after:rounded-xl"
+          aria-expanded={setupOpen}
+          aria-controls="drill-setup"
+          onclick={() => (setupOpen = !setupOpen)}
+        >
+          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
+        </button>
+      {/if}
+    </div>
+    <div class="flex shrink-0 items-center gap-2 lg:border-l lg:border-ws-line lg:pl-3">
+      {#if checkable}
+        <!-- One two-state switch with its effect under each word; the names stay "Practice" and "Check". -->
+        <div class="flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note" title={mode === "check" ? modeNotes.check : modeNotes.practice}>
+          {#each [["practice", "Practice", "with help"], ["check", "Check", "from memory"]] as const as [id, label, effect] (id)}
+            <button
+              type="button"
+              class="flex min-h-11 flex-col items-center justify-center rounded-full px-3 leading-tight sm:px-3.5 {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
+              aria-pressed={mode === id}
+              onclick={() => (mode = id)}
+            >
+              <span class="text-sm">{label}</span><span class="text-xs font-normal opacity-85" aria-hidden="true">{effect}</span>
+            </button>
+          {/each}
+        </div>
+        <p id="mode-note" class="sr-only">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
+      {/if}
+      {#if ondemo && (mode !== "check" || demoPlaying)}
+        <button type="button" class="{ghost} aria-pressed:bg-instr-wash" aria-pressed={demoPlaying} onclick={ondemo}>
+          {#if demoPlaying}<Square class="size-3.5 fill-current" aria-hidden="true" />Stop demo{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
+        </button>
+      {/if}
+      {#if phase === "ready" && !demoPlaying}
+        <div class="ml-auto flex shrink-0 items-center gap-3 max-lg:hidden">
+          {#if blocked && !unblocking}<span class="max-w-48 text-right text-xs text-ws-soft">{blocked}</span>{/if}
+          {@render startButton("")}
+        </div>
+      {/if}
+    </div>
   </div>
   {#if setup && setupOpen}
     <div id="drill-setup" class="rounded-xl border border-ws-line bg-ws-surface p-4">
@@ -652,28 +692,113 @@
       {unblock.label}
     </button>
   {:else}
-    <button type="button" data-start class="{primary} {cls}" disabled={!!blocked} onclick={start}>
+    <button type="button" data-start class="{primary} {cls}" disabled={!!blocked} onclick={start} title="Start (Space)" aria-keyshortcuts="Space">
       <Play class="size-5 fill-current" aria-hidden="true" />{startLabel}
     </button>
   {/if}
 {/snippet}
 
-<!-- After a run: Again, and Run it in Check after a Practice run. The next run by the shared rule is the
-     results card's own button (under the score, in the first screen on a phone); Again steps back for it. -->
-{#snippet bar()}
-  {@const next = silent ? null : offered}
-  <div class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="drill-bar">
-    {#if unblocking && unblock}
-      <button type="button" class="{primary} max-sm:flex-1" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
+<!-- The session HUD: the way out, the drill, the mode, then the live counters, the beat and the click.
+     A thin run-progress bar runs under the whole HUD. -->
+{#snippet hudBar()}
+  <header class="hud sticky top-0 z-30 border-b border-ws-stage-ink/10">
+    <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1.5 sm:flex-nowrap sm:px-6 lg:px-8">
+      {#if live}
+        <!-- On a phone Stop sits in the dock, in the thumb zone. -->
+        <button type="button" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-stage-ink/12 px-4 text-sm font-semibold hover:bg-ws-stage-ink/20 max-sm:hidden" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
+          <Square class="size-3.5 fill-current" aria-hidden="true" />Stop
+        </button>
+      {:else}
+        <button type="button" class="-ml-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-stage-ink/12" aria-label="Close and back to setup" title="Close and back to setup (Esc)" aria-keyshortcuts="Escape" onclick={close}>
+          <X class="size-5" aria-hidden="true" />
+        </button>
+      {/if}
+      <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud min-w-0 flex-1 font-display font-semibold leading-tight sm:flex-none">{title}</h1>
+      {#if checkable && !showing}
+        <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-stage-soft sm:order-last">
+          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check{:else}<Eye class="size-4" aria-hidden="true" />Practice{/if}
+        </span>
+      {/if}
+      {#if live && clock}
+        <button
+          type="button"
+          class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-stage-ink/12 sm:order-last {bench.clickDuringRun ? '' : 'text-ws-stage-soft'}"
+          aria-pressed={bench.clickDuringRun}
+          aria-label="Metronome click in runs"
+          title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
+          onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
+        >
+          {#if bench.clickDuringRun}<Timer class="size-5" aria-hidden="true" />{:else}<TimerOff class="size-5" aria-hidden="true" />{/if}
+        </button>
+      {/if}
+      {#if showing}
+        <button type="button" class="min-h-11 shrink-0 rounded-full px-3 text-sm font-medium text-ws-stage-ink/85 underline underline-offset-4 hover:text-ws-stage-ink sm:order-last" onclick={endLesson}>Skip, I know this</button>
+      {/if}
+      <!-- At most two counters from the drill, then the beat. A second line on a phone; it wraps rather than cut a value. -->
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-0.5 max-sm:basis-full sm:justify-end empty:hidden">
+        {#if hud}{@render hud()}{/if}
+        {#if live && clock}{@render beatReadout()}{/if}
+      </div>
+    </div>
+    {#if live && progress !== null}
+      <div class="absolute inset-x-0 bottom-0 h-1 bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
+        <div class="h-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
+      </div>
     {/if}
-    <button type="button" class="{next || silent || unblocking ? secondary : primary} max-sm:flex-1" disabled={!!blocked} onclick={start}>
-      <Play class="size-5" aria-hidden="true" />Again
-    </button>
-    {#if checkable && checkRun && mode === "practice" && !silent}
-      <button type="button" class="{secondary} max-sm:flex-1" disabled={!!blocked} onclick={runInCheck}>Run it in Check</button>
-    {/if}
-    {#if blocked && !unblocking}<span class="text-sm text-ws-soft max-sm:basis-full">{blocked}</span>{:else if !blocked}<span class="text-sm text-ws-soft max-lg:hidden">Space for Again.</span>{/if}
-  </div>
+  </header>
+{/snippet}
+
+<!-- The beat, labelled: the word, then one dot a beat with the current one filled and numbered. -->
+{#snippet beatReadout()}
+  <span class="flex shrink-0 items-center gap-1.5" role="img" aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}">
+    <span class="ws-hud text-ws-stage-soft" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
+    {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
+      <span class="grid size-6 place-items-center" aria-hidden="true">
+        {#if bench.beat === b}
+          <span class="ws-pulse grid size-6 place-items-center rounded-full text-xs font-bold leading-none text-ws-stage tnum {bench.countingIn ? 'bg-warn' : 'bg-instr'}" data-beat={b}>{b}</span>
+        {:else}
+          <span class="size-2 rounded-full bg-ws-stage-ink/30"></span>
+        {/if}
+      </span>
+    {/each}
+  </span>
+{/snippet}
+
+<!-- The session dock, at the bottom of the screen. Running (phone): Stop and the latest verdict. Results:
+     Again and the next run by the shared rule (or Done when the rule says same again). -->
+{#snippet dock()}
+  {#if live}
+    <div class="dock sticky bottom-0 z-30 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
+      <div class="flex items-center gap-3">
+        <button type="button" class="{onStage} shrink-0" onclick={stop} aria-keyshortcuts="Escape"><Square class="size-4 fill-current" aria-hidden="true" />Stop</button>
+        <p class="line-clamp-2 min-w-0 flex-1 text-sm text-ws-stage-soft" aria-hidden="true">{status}</p>
+      </div>
+    </div>
+  {:else if afterRun}
+    {@const next = silent ? null : offered}
+    <div class="dock sticky bottom-0 z-30 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
+        {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-stage-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
+        {#if next}
+          <button type="button" class="{onStage} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+        {:else}
+          <button type="button" class="{onStage} max-sm:flex-1" onclick={close}>Done</button>
+        {/if}
+        {#if checkable && checkRun && mode === "practice" && !silent}
+          <button type="button" class="{onStage} max-sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Run it in Check</button>
+        {/if}
+        <span class="flex-1 max-sm:hidden"></span>
+        {#if unblocking && unblock}
+          <button type="button" class="{primary} max-sm:flex-1" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
+        {/if}
+        {#if next}
+          <button type="button" class="{primary} max-sm:flex-[2]" disabled={!!blocked} onclick={goNext}>{NEXT_VERB[next.kind]} {next.label}</button>
+        {:else}
+          <button type="button" class="{silent || unblocking ? onStage : primary} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+        {/if}
+      </div>
+    </div>
+  {/if}
 {/snippet}
 
 <style>
@@ -700,6 +825,26 @@
       animation: none;
     }
   }
+  /* The HUD and the dock are the stage's own glass, over the stage as it scrolls. */
+  .hud,
+  .dock {
+    background: color-mix(in oklch, var(--ws-stage) 94%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  /* The session is full-bleed: the stage's spotlight sits behind the HUD. */
+  .session {
+    background-attachment: fixed;
+  }
+  /* The current exercise: an underline in the hue, so the row reads as navigation. */
+  .tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0.5rem;
+    bottom: 0;
+    height: 3px;
+    border-radius: 9999px;
+    background: var(--instr);
+  }
   /* From sm up each clause is a small tappable chip; on a phone the card is one button and clauses read as text. */
   @media (min-width: 40rem) {
     .clause {
@@ -712,35 +857,62 @@
       background: var(--instr-wash);
     }
   }
-  .stage.demo {
+  .stage-box.demo {
     outline: 2px dashed color-mix(in oklch, var(--instr) 70%, transparent);
     outline-offset: -6px;
   }
   .results-enter {
     animation: ws-rise 220ms ease-out;
   }
-  /* The dock contract (drills mark their own markup): while a run is live below lg the stage fills the
-     screen under the strip, the element marked data-dock="answers" (answer buttons, tap pads) sits at its
-     bottom where a thumb is, and data-dock="instrument" grows into the free height. Every wrapper between
-     the stage and a marked element becomes a growing column; wrappers that are already a flex row or a
-     grid keep their layout. Outside a live phone run the markers do nothing. Normal flow, never fixed,
-     so results and long stages still scroll. */
+  /* The dock contract (K1, drills mark their own markup): while a run is live the stage fills the height
+     between the HUD and the dock. data-dock="music" (lane, staff, highway, question visual) grows into the
+     free height; data-dock="instrument" and data-dock="answers" sit at the bottom, where a thumb is. Every
+     wrapper between the stage and a marked element becomes a growing column, unless it already lays out
+     as a row or a grid. From lg up a wrapper that changes layout at a breakpoint keeps it; a grid that holds
+     the music (a question beside its answers) grows instead and stretches its row, so the music cell fills.
+     Without a music region the instrument grows, as before. Normal flow, never fixed, so long stages scroll. */
   @media (max-width: 63.999rem) {
-    .stage[data-live] {
-      display: flex;
-      flex-direction: column;
-      min-height: calc(100dvh - var(--ws-strip-h, 3.75rem) - 1rem);
-    }
-    .stage[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents), .flex-col):has([data-dock])) {
+    .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-dock])) {
       display: flex;
       flex-direction: column;
       flex: 1 1 auto;
+      min-height: 0;
     }
-    .stage[data-live] :global([data-dock="answers"]) {
-      margin-top: auto;
+  }
+  @media (min-width: 64rem) {
+    .stage-box[data-live]
+      :global(
+        :is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not(
+            [class*=":grid"],
+            [class*=":flex"],
+            [class*=":block"],
+            [class*=":hidden"],
+            [class*=":contents"]
+          ):has([data-dock])
+      ) {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
     }
-    .stage[data-live] :global([data-dock="instrument"]) {
-      flex: 1 0 auto;
+    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]):has(> [data-dock="music"])) {
+      flex: 1 1 auto;
+      align-items: stretch;
     }
+    /* Beside the music in that grid, the answers stay at the top of their column. */
+    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]) > :is([data-dock="answers"], [data-dock="instrument"])) {
+      margin-top: 0;
+      align-self: start;
+    }
+  }
+  .stage-box[data-live] :global([data-dock="music"]) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .stage-box[data-live] :global(:is([data-dock="answers"], [data-dock="instrument"])) {
+    margin-top: auto;
+  }
+  .stage-box[data-live]:not(:has([data-dock="music"])) :global([data-dock="instrument"]) {
+    flex: 1 0 auto;
   }
 </style>

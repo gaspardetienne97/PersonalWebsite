@@ -60,23 +60,30 @@ export const assistanceFor = (mode: DrillMode, hinted = false) =>
   hinted ? ("hinted" as const) : mode === "check" ? ("independent" as const) : ("guided" as const);
 
 /**
- * What the run counts as, said once on the results. `shown: false` is for drills whose
- * Practice keeps the target hidden until you check (rhythm echo and dictation): the
- * run is still practice, but not because the targets were on screen.
+ * What the run counts as, said once on the results (Results builds it from the
+ * summary's `mode`). Practice runs still count for the next-run rule (`moves`:
+ * "tempo" when it climbs a tempo, "steps" when it moves through variations);
+ * only Check runs count toward the skill scores.
+ */
+export function modeText(
+  mode: DrillMode,
+  { hinted = false, moves = null }: { hinted?: boolean; moves?: "tempo" | "steps" | null } = {},
+): string {
+  if (hinted) return "You used a hint: practice, not a check.";
+  if (mode === "check") return "Check run: it counts toward your skill scores.";
+  if (moves === "tempo") return "Practice run: it moves your tempo on, not your skill scores.";
+  if (moves === "steps") return "Practice run: it counts toward moving on, not your skill scores.";
+  return "Practice run: it does not count toward your skill scores.";
+}
+
+/**
+ * @deprecated Pass `mode` (and `hinted`) in the RunSummary; Results words the line.
+ * Kept so drills that still pass `assistance` read the same sentences.
  */
 export const assistanceText = (
   mode: DrillMode,
   opts: boolean | { hinted?: boolean; shown?: boolean } = false,
-) => {
-  const { hinted = false, shown = true } = typeof opts === "boolean" ? { hinted: opts } : opts;
-  return hinted
-    ? "You used a hint, so this run is practice, not a check."
-    : mode === "check"
-      ? "Checked run: targets were hidden, so it counts toward mastery."
-      : shown
-        ? "Practice run: targets were shown, so it is saved as practice."
-        : "Practice run: saved as practice, not counted.";
-};
+) => modeText(mode, { hinted: typeof opts === "boolean" ? opts : !!opts.hinted });
 
 /** A persisted map keyed by setup (tempo ladders, chord-pair history). */
 export async function readKeyed<T>(key: string): Promise<Record<string, T>> {

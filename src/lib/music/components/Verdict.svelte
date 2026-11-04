@@ -16,7 +16,9 @@
   import ChevronsRight from "lucide-svelte/icons/chevrons-right";
   import { FLASH_MS } from "./feedback.svelte";
 
-  let { kind, text, key, class: cls = "" }: { kind?: VerdictKind | null; text?: string; key: number; class?: string } = $props();
+  // `compact` (a narrow pad or key, under about 72 px) draws the glyph alone: the word stays in
+  // the live region and the chip's title, so it is never cut to "On ti".
+  let { kind, text, key, compact = false, class: cls = "" }: { kind?: VerdictKind | null; text?: string; key: number; compact?: boolean; class?: string } = $props();
 
   let shown = $state(false);
   $effect(() => {
@@ -28,8 +30,9 @@
   });
 
   const tone = $derived(
-    kind === "ontime" || kind === "right" ? "bg-success text-success-foreground" : kind === "early" || kind === "late" ? "bg-warn text-warn-foreground" : "bg-destructive text-white",
+    kind === "ontime" || kind === "right" ? "bg-success text-success-foreground" : kind === "early" ? "bg-early" : kind === "late" ? "bg-late" : "bg-destructive text-[color:var(--on-destructive)]",
   );
+  const word = $derived(kind ? (text ?? VERDICT_WORD[kind]) : "");
   const Icon = $derived(kind === "early" ? ChevronsLeft : kind === "late" ? ChevronsRight : kind === "ontime" || kind === "right" ? Check : X);
 </script>
 
@@ -38,8 +41,12 @@
     {#key key}
       <!-- The fade sits on a wrapper: the pop's fill would hold the word at full opacity. -->
       <span class="inline-block {shown ? '' : 'opacity-0 transition-opacity duration-300'}">
-        <span class="ws-pop inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-display text-sm font-semibold shadow-sm {tone}" data-kind={kind}>
-          <Icon class="size-4" strokeWidth={3} aria-hidden="true" />{text ?? VERDICT_WORD[kind]}
+        <span
+          class="ws-pop inline-flex items-center rounded-full font-display text-sm font-semibold shadow-sm {compact ? 'size-7 justify-center' : 'gap-1.5 px-3 py-1'} {tone}"
+          data-kind={kind}
+          title={compact ? word : undefined}
+        >
+          <Icon class="size-4" strokeWidth={3} aria-hidden="true" />{#if compact}<span class="sr-only">{word}</span>{:else}{word}{/if}
         </span>
       </span>
     {/key}

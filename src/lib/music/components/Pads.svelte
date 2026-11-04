@@ -5,6 +5,10 @@
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
   import type { CellMarks, Flashes } from "./feedback.svelte";
+  import Check from "lucide-svelte/icons/check";
+  import X from "lucide-svelte/icons/x";
+  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
+  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
 
   interface Props {
     base?: number;
@@ -23,8 +27,22 @@
   }
 
   let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing }: Props = $props();
-  // A word and a glyph per verdict, so colour is never the only cue.
-  const TIMING_TEXT = { early: "« Early", late: "Late »", perfect: "✓ On time" } as const;
+  // A glyph and a word per verdict, so colour is never the only cue. A pad under 72 px wide shows the
+  // glyph alone (the word is its title and is said in the live region), so a word is never cut short.
+  const VERDICT = {
+    early: { word: "Early", said: "Early", icon: ChevronsLeft },
+    late: { word: "Late", said: "Late", icon: ChevronsRight },
+    perfect: { word: "On time", said: "On time", icon: Check },
+    wrong: { word: "Wrong", said: "Wrong pad", icon: X },
+  } as const;
+  /** The last verdict, for screen readers. */
+  const said = $derived.by(() => {
+    for (let i = 0; i < 16; i++) {
+      const w = timing?.get(base + i) ?? (flashes?.get(base + i) === "wrong" ? "wrong" : undefined);
+      if (w) return `Pad A${String(i + 1).padStart(2, "0")}: ${VERDICT[w].said}`;
+    }
+    return "";
+  });
 
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const ROWS = [12, 8, 4, 0];
@@ -89,10 +107,9 @@
         <span class="led" aria-hidden="true"></span>
         <!-- The top row holds the pad's id, or, for a moment, how the hit landed: one slot, never stacked. -->
         <span class="top">
-          {#if when}
-            <span class="when ws-pop" data-kind={when} aria-hidden="true">{TIMING_TEXT[when]}</span>
-          {:else if flash === "wrong"}
-            <span class="when ws-pop" data-kind="wrong" aria-hidden="true">✕ Wrong pad</span>
+          {#if when || flash === "wrong"}
+            {@const v = VERDICT[when ?? "wrong"]}
+            <span class="when ws-pop" data-kind={when ?? "wrong"} title={v.said} aria-hidden="true"><v.icon class="size-3.5 shrink-0" strokeWidth={3} /><span class="word">{v.word}</span></span>
           {:else}
             <span class="num">A{String(i + 1).padStart(2, "0")}</span>
             {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
@@ -108,6 +125,7 @@
     {/each}
   {/each}
 </div>
+<p class="sr-only" aria-live="polite">{said}</p>
 
 <style>
   .panel {
@@ -144,6 +162,7 @@
       box-shadow 80ms;
     -webkit-tap-highlight-color: transparent;
     overflow: hidden;
+    container-type: inline-size;
   }
   .pad:focus-visible {
     outline: 2px solid var(--instr);
@@ -239,19 +258,33 @@
   /* How the hit landed: a pill over the pad number at the top, clear of the name, gone in a moment. */
   .when {
     flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
     padding: 0.1rem 0.2rem;
     border-radius: 999px;
-    text-align: center;
     white-space: nowrap;
     overflow: hidden;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 800;
     color: #140a10;
     background: var(--success);
   }
-  .when[data-kind="early"],
+  /* 60 px of content is a 72 px pad less its padding. */
+  @container (max-width: 60px) {
+    .when .word {
+      display: none;
+    }
+  }
+  /* --early and --late are dark in the light theme and light in the dark one, as --destructive is: its ink fits. */
+  .when[data-kind="early"] {
+    background: var(--early, var(--warn));
+    color: var(--on-destructive, #140a10);
+  }
   .when[data-kind="late"] {
-    background: var(--warn);
+    background: var(--late, var(--warn));
+    color: var(--on-destructive, #140a10);
   }
   .when[data-kind="wrong"] {
     background: var(--destructive);

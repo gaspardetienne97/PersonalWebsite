@@ -46,6 +46,39 @@
   --finger-3: oklch(0.88 0.15 95);
   --finger-4: oklch(0.76 0.16 350);
 
+  /* Timing has its own hues, never the warn amber: early is blue, late is violet
+     (as Melodics keeps them apart), each with its own glyph (chevrons left and
+     right). --on-* is the text on a fill of that colour. */
+  --early: oklch(0.52 0.15 250);
+  --late: oklch(0.5 0.19 305);
+  --on-early: oklch(1 0 0);
+  --on-late: oklch(1 0 0);
+  --on-destructive: oklch(1 0 0);
+
+  /* Primary buttons: bg-instr-strong text-on-instr. The bright hue with dark
+     ink by default; pale hues (pink, lavender, periwinkle, sky) switch to a deep
+     fill with white text in the light theme below, where a light fill read as
+     disabled. Every pair is 4.5:1 or better (hues.test.ts). */
+  --instr-strong: var(--instr);
+  --on-instr: oklch(0.2 0.045 288);
+  --on-strong: oklch(1 0 0);
+  --hue-mpc-strong: oklch(0.55 0.2 352);
+  --hue-voice-strong: oklch(0.5 0.18 305);
+  --hue-ear-strong: oklch(0.5 0.18 300);
+  --hue-reading-strong: oklch(0.5 0.13 242);
+  --hue-create-strong: oklch(0.5 0.17 262);
+
+  /* Type scale: drill title 22 px on a phone and 28 px from sm, the results
+     verdict 32 px, the run's HUD 16 px, legends 14 px (nothing on the stage
+     under 13 px). Radii: cards 16 px (rounded-2xl), controls 12 px
+     (rounded-xl), chips full. */
+  --ws-text-title: 1.375rem;
+  --ws-text-hero: 2rem;
+  --ws-text-hud: 1rem;
+  --ws-text-legend: 0.875rem;
+  --ws-radius-card: 1rem;
+  --ws-radius-control: 0.75rem;
+
   /* Layout contract for sticky and docked children. The layout overrides
      --ws-strip-h with the strip's measured height; --ws-dock-h is the phone
      tab bar (with the safe area), 0 at lg and while a run hides the bar. */
@@ -54,6 +87,12 @@
 
   background: var(--ws-bg);
   color: var(--ws-ink);
+}
+
+@media (min-width: 40rem) {
+  .woodshed {
+    --ws-text-title: 1.75rem;
+  }
 }
 
 @media (min-width: 64rem) {
@@ -77,6 +116,89 @@
   --ws-stage-2: oklch(0.2 0.04 288);
   --instr-ink: var(--instr);
   --instr-wash: color-mix(in oklch, var(--instr) 14%, transparent);
+  --early: oklch(0.76 0.12 245);
+  --late: oklch(0.74 0.15 305);
+  --on-early: oklch(0.145 0.03 286);
+  --on-late: oklch(0.145 0.03 286);
+  --on-destructive: oklch(0.145 0.03 286);
+}
+
+/* The stage is dark in both themes (and a session puts results on it): the
+   judgement tones on it take the dark theme's brighter values, so a green
+   "Pass" or an amber mark never sits dim on the dark panel in the light theme. */
+.woodshed .stage {
+  --success: oklch(0.72 0.16 152);
+  --success-foreground: oklch(0.18 0.04 152);
+  --warn: oklch(0.78 0.15 80);
+  --warn-foreground: oklch(0.2 0.05 80);
+  --destructive: oklch(0.704 0.191 22.216);
+  --on-destructive: oklch(0.145 0.03 286);
+  --early: oklch(0.76 0.12 245);
+  --late: oklch(0.74 0.15 305);
+  --on-early: oklch(0.145 0.03 286);
+  --on-late: oklch(0.145 0.03 286);
+}
+
+/* Deep primary fills for the pale hues, light theme only. The layout sets
+   --instr inline, so its style attribute names the hue. */
+:root:not(.dark) .woodshed[style*="var(--hue-mpc)"] {
+  --instr-strong: var(--hue-mpc-strong);
+  --on-instr: var(--on-strong);
+}
+:root:not(.dark) .woodshed[style*="var(--hue-voice)"] {
+  --instr-strong: var(--hue-voice-strong);
+  --on-instr: var(--on-strong);
+}
+:root:not(.dark) .woodshed[style*="var(--hue-ear)"] {
+  --instr-strong: var(--hue-ear-strong);
+  --on-instr: var(--on-strong);
+}
+:root:not(.dark) .woodshed[style*="var(--hue-reading)"] {
+  --instr-strong: var(--hue-reading-strong);
+  --on-instr: var(--on-strong);
+}
+:root:not(.dark) .woodshed:is([style*="var(--hue-create)"], [data-hue="off"]) {
+  --instr-strong: var(--hue-create-strong);
+  --on-instr: var(--on-strong);
+}
+
+/* Utilities for the tokens above (plain classes: this file is not a Tailwind
+   entry, so it cannot add theme colours). */
+.woodshed .bg-instr-strong {
+  background-color: var(--instr-strong);
+}
+.woodshed .text-on-instr {
+  color: var(--on-instr);
+}
+.woodshed .text-early {
+  color: var(--early);
+}
+.woodshed .bg-early {
+  background-color: var(--early);
+  color: var(--on-early);
+}
+.woodshed .text-late {
+  color: var(--late);
+}
+.woodshed .bg-late {
+  background-color: var(--late);
+  color: var(--on-late);
+}
+.woodshed .ws-title {
+  font-size: var(--ws-text-title);
+  line-height: 1.15;
+}
+.woodshed .ws-hero {
+  font-size: var(--ws-text-hero);
+  line-height: 1.1;
+}
+.woodshed .ws-hud {
+  font-size: var(--ws-text-hud);
+  line-height: 1.4;
+}
+.woodshed .ws-legend {
+  font-size: var(--ws-text-legend);
+  line-height: 1.35;
 }
 
 /* Prepared, switched off: a light stage for the light theme. The owner keeps

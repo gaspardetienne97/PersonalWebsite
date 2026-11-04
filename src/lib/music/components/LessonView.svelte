@@ -1,5 +1,7 @@
 <script lang="ts">
-  // One lesson screen at a time, in place of the drill's stage. Sounds play on tap only.
+  // One lesson screen at a time, in place of the drill's stage, inside the drill session (the session's HUD
+  // carries Close and "Skip, I know this"). The figure leads, then the words; Back and Next dock at the
+  // bottom of the screen, outside the text, so nothing reads under a bar. Sounds play on tap only.
   import { onDestroy, tick } from "svelte";
   import type { Score } from "@repo/music-core";
   import type { Lesson, LessonFigure, LessonSound } from "@repo/music-core/lessons/types";
@@ -18,7 +20,7 @@
   import { btnStage as btn, btnPrimary } from "./ui";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
-  let { lessons, onfinish, onskip }: { lessons: Lesson[]; onfinish: () => void; onskip: () => void } = $props();
+  let { lessons, onfinish }: { lessons: Lesson[]; onfinish: () => void } = $props();
 
   let li = $state(0);
   let si = $state(0);
@@ -163,8 +165,10 @@
       at += n.beats;
       return out;
     });
+    const chords = f.chords?.map((c, i, all) => ({ symbol: c.symbol, startBeat: c.beat, durationBeats: (all[i + 1]?.beat ?? at) - c.beat }));
     return {
-      id: `lesson-staff-${f.clef}-${f.fifths ?? 0}-${f.notes.map((n) => `${n.midi}x${n.beats}`).join("_")}`,
+      id: `lesson-staff-${f.clef}-${f.fifths ?? 0}-${f.notes.map((n) => `${n.midi}x${n.beats}`).join("_")}${f.chords?.map((c) => `-${c.symbol}@${c.beat}`).join("") ?? ""}`,
+      ...(chords ? { chords } : {}),
       title: "Lesson",
       bpm: 60,
       keyFifths: f.fifths ?? 0,
@@ -174,7 +178,7 @@
     };
   }
   const staffLabel = (f: Extract<LessonFigure, { kind: "staff" }>) =>
-    `${f.clef} clef${f.fifths ? ` with ${Math.abs(f.fifths)} ${f.fifths < 0 ? "flat" : "sharp"}${Math.abs(f.fifths) === 1 ? "" : "s"}` : ""}: ${f.notes.map((n) => (n.midi === null ? "rest" : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", ")}`;
+    `${f.chords?.length ? `Over ${[...new Set(f.chords.map((c) => c.symbol))].join(", ")}, ` : ""}${f.clef} clef${f.fifths ? ` with ${Math.abs(f.fifths)} ${f.fifths < 0 ? "flat" : "sharp"}${Math.abs(f.fifths) === 1 ? "" : "s"}` : ""}: ${f.notes.map((n) => (n.midi === null ? "rest" : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", ")}`;
   const pianoMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
   const padMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
   const padLabel = (f: Extract<LessonFigure, { kind: "pads" }>) =>
@@ -199,7 +203,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="mx-auto flex w-full max-w-2xl flex-col gap-4 py-2 text-ws-stage-ink" data-testid="lesson">
+<div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 pt-2 text-ws-stage-ink" data-testid="lesson">
   <div class="flex items-center justify-between gap-3 text-sm text-ws-stage-ink/80">
     <p>{lessons[0].title}</p>
     <p><span aria-hidden="true">{at} / {total}</span><span class="sr-only">Screen {at} of {total}</span></p>
@@ -210,8 +214,6 @@
   </div>
 
   <h2 bind:this={heading} tabindex="-1" class="font-display text-2xl font-semibold outline-none sm:text-3xl">{screen.title}</h2>
-  <!-- On a phone the figure comes before the words (everything after it is order 1). -->
-  <p class="max-w-prose text-base max-sm:order-1">{screen.text}</p>
 
   {#if figure?.kind === "groove"}
     {@const g = figure}
@@ -237,7 +239,9 @@
       />
     </div>
   {:else if figure}
-    <div class="mx-auto w-full max-w-md rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
+    <!-- A long line (two bars of eighths) gets the column's full width at its own size, and room for a second system on a phone. -->
+    {@const wide = figure.kind === "staff" && figure.notes.length > 8}
+    <div class="mx-auto w-full {wide ? '' : 'max-w-md'} rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
       {#if figure.kind === "signature"}
         <!-- Key signature only: the empty bar's rest is hidden, the staff enlarged and centred. -->
         <div class="sig">
@@ -245,8 +249,8 @@
         </div>
         <p class="sr-only">{sigLabel(figure)}</p>
       {:else if figure.kind === "staff"}
-        <div class="notes">
-          <Staff score={staffScore(figure)} maxHeight="14rem" time={!!figure.meter} fill="center" revealLabels />
+        <div class="notes" class:wide>
+          <Staff score={staffScore(figure)} maxHeight={wide ? "20rem" : "14rem"} time={!!figure.meter} fill={wide ? true : "center"} revealLabels />
         </div>
         <p class="sr-only">{staffLabel(figure)}</p>
       {:else if figure.kind === "wheel"}
@@ -278,13 +282,16 @@
     </div>
   {/if}
 
+  <!-- The words after the figure, as a player reads a diagram and then its caption. -->
+  <p class="max-w-prose text-base leading-relaxed">{screen.text}</p>
+
   {#if steps.length}
-    <ol class="flex flex-col gap-1 text-base max-sm:order-1" aria-live="polite">
+    <ol class="flex flex-col gap-1 text-base" aria-live="polite">
       {#each steps.slice(0, shown) as st, i (i)}<li class={i === shown - 1 ? "font-semibold" : "text-ws-stage-ink/80"}>{st.text}</li>{/each}
     </ol>
   {/if}
 
-  <div class="flex flex-wrap gap-2 max-sm:order-1">
+  <div class="flex flex-wrap gap-2">
     {#if screen.sound}<button type="button" class={btn} onclick={() => play(screen.sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear it</button>{/if}
     {#if shown > 0 && steps[shown - 1].sound}<button type="button" class={btn} onclick={() => play(steps[shown - 1].sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear this step</button>{/if}
     {#each screen.options ?? [] as o (o.label)}
@@ -292,14 +299,12 @@
     {/each}
   </div>
 
-  <!-- Below lg the lesson's moves dock above the tab bar, where Start sits, so Next never hides under it. -->
-  <div
-    class="flex flex-wrap items-center gap-2 pt-2 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--ws-dock-h,3.5rem)] max-lg:z-30 max-lg:flex-nowrap max-lg:border-t max-lg:border-ws-line max-lg:bg-ws-surface max-lg:px-4 max-lg:py-2 max-lg:text-ws-ink"
-  >
-    {#if !isFirst}<button type="button" class="{btn} max-lg:border max-lg:border-ws-line max-lg:bg-ws-surface max-lg:text-ws-ink" onclick={back}>Back</button>{/if}
-    <button type="button" class="{btnPrimary} max-lg:min-h-12 max-lg:flex-1 max-lg:text-base" onclick={next}>{isLast ? "Start the quiz" : "Next"}</button>
-    {#if li === 0 && si === 0}<button type="button" class="min-h-11 shrink-0 rounded-full px-3 text-sm font-medium text-ws-soft underline underline-offset-4 hover:text-ws-ink lg:px-4 lg:text-ws-stage-ink/80 lg:hover:text-ws-stage-ink" onclick={onskip}>Skip, I know this</button>{/if}
-    <span class="ml-auto hidden text-xs text-ws-stage-ink/70 lg:inline">Arrow keys move.</span>
+  <!-- The moves dock at the bottom of the screen (the session's dock), so Next sits in the thumb zone and
+       the text scrolls clear of it. -->
+  <div class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
+    {#if !isFirst}<button type="button" class="{btn} min-h-12 px-5 text-base" onclick={back}>Back</button>{/if}
+    <button type="button" class="{btnPrimary} min-h-12 flex-1 text-base sm:flex-none sm:px-8" onclick={next} aria-keyshortcuts="ArrowRight">{isLast ? "Start the quiz" : "Next"}</button>
+    <span class="ml-auto hidden text-sm text-ws-stage-soft lg:inline">Arrow keys move.</span>
   </div>
 </div>
 
@@ -312,5 +317,12 @@
   }
   .notes {
     zoom: 1.5;
+  }
+  .notes.wide {
+    zoom: 1;
+  }
+  .lesson-dock {
+    background: color-mix(in oklch, var(--ws-stage) 94%, transparent);
+    backdrop-filter: blur(6px);
   }
 </style>

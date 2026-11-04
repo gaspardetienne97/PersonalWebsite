@@ -53,6 +53,8 @@
     fit?: { low: number; high: number };
     /** Short keys, for a small picture of a chord (results rows, previews). */
     compact?: boolean;
+    /** Keys a run left out: a solid red ring with the note's name on the key. */
+    missing?: readonly number[];
   }
 
   let {
@@ -67,6 +69,7 @@
     minKey = 36,
     fit,
     compact = false,
+    missing = [],
   }: Props = $props();
 
   let width = $state(0);
@@ -140,7 +143,7 @@
           data-demo={mk.demo || undefined}
           data-flash={flash}
           data-role={mk.role}
-          aria-label={noteName(m, "flat") + (mk.target ? ", target" : "")}
+          aria-label={noteName(m, "flat") + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
@@ -150,7 +153,7 @@
           onkeydown={(e) => key(e, m, true)}
           onkeyup={(e) => key(e, m, false)}
         >
-          {@render glyphs(mk, flash)}
+          {@render glyphs(mk, flash, m)}
           <span class="name">{nameFor(m)}</span>
         </button>
       {/each}
@@ -168,7 +171,7 @@
           data-demo={mk.demo || undefined}
           data-flash={flash}
           data-role={mk.role}
-          aria-label={noteName(m, "flat") + (mk.target ? ", target" : "")}
+          aria-label={noteName(m, "flat") + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
@@ -178,15 +181,17 @@
           onkeydown={(e) => key(e, m, true)}
           onkeyup={(e) => key(e, m, false)}
         >
-          {@render glyphs(mk, flash)}
+          {@render glyphs(mk, flash, m)}
         </button>
       {/each}
     </div>
   </div>
 </div>
 
-{#snippet glyphs(mk: CellMarks, flash: string | undefined)}
-  {#if flash}
+{#snippet glyphs(mk: CellMarks, flash: string | undefined, m: number)}
+  {#if missing.includes(m)}
+    <span class="missed" aria-hidden="true">{noteName(m, "flat", false)}</span>
+  {:else if flash}
     <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
   {:else if mk.label}
     <span class="mark-label" aria-hidden="true">{mk.label}</span>
@@ -204,6 +209,16 @@
   }
   .compact .black {
     height: 2.9rem;
+  }
+  /* Short keys: the marks shrink and the empty name row goes, so a mark on a white key clears the black keys. */
+  .compact .name:empty {
+    display: none;
+  }
+  .compact .missed {
+    min-width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.68rem;
+    box-shadow: inset 0 0 0 2.5px var(--destructive);
   }
   .felt {
     height: 6px;
@@ -346,6 +361,20 @@
     font-weight: 700;
     color: #17120c;
     background: var(--instr);
+  }
+  /* A note the run left out: named, in a solid ring (not dashed, not colour alone). */
+  .missed {
+    min-width: 1.6rem;
+    height: 1.6rem;
+    padding: 0 0.2rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--destructive);
+    background: #fffdf8;
+    box-shadow: inset 0 0 0 3px var(--destructive);
   }
   .name {
     font-size: 0.72rem;
