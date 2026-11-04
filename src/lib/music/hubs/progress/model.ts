@@ -317,3 +317,34 @@ export const parseTags = (raw: string) => [
       .filter(Boolean),
   ),
 ];
+
+/**
+ * Practice time as a person reads it: seconds under a minute ("40 sec"), minutes under an hour,
+ * then hours and minutes. Today, the journal and Sessions all use this, so a short set never
+ * reads "0 min" next to blocks that clearly took time.
+ */
+export function formatDuration(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s} sec`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+}
+
+/**
+ * Path copy without the curriculum's working codes: "waits for N1" (an app feature still to
+ * build), "Circle T-2", "Studio S-3" and the "H1 " numbering on harmony steps. The data keeps
+ * the codes; the page says what they mean.
+ */
+export function plainPathText(text: string): string {
+  return text
+    .replace(/\bwait(s?) for N\d+(?: \([^)]*\))?/g, "come$1 in a later update")
+    .replace(/ until N\d+\b/g, " for now")
+    .replace(/,? \(?N\d+\)?,?(?= is still to come)/g, "")
+    .replace(/ \(N\d+\)/g, "")
+    .replace(/\bCircle T-(\d+)/g, "Circle of fifths step $1")
+    .replace(/\bStudio S-(\d+)/g, "Studio ears step $1")
+    .replace(/\b[TS]-(\d+)\b/g, "step $1")
+    .replace(/^H\d+ /, "");
+}

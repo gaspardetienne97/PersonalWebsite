@@ -251,7 +251,7 @@ export function dailyChallenges(input: {
         })
       : challenge({
           id: "weak-spot-reps",
-          title: "Three checked reps",
+          title: "Three answers in Check mode",
           description: "Answer three in Check mode so the coach can find your weak spot.",
           href: "/music",
           target: 3,

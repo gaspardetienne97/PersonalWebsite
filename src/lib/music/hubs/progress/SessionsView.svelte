@@ -14,7 +14,11 @@
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { todayChallenges, todayPlan } from "../../today.svelte";
-  import { pct, plural, relativeDay, setupTrends, signed } from "./model";
+  import { INSTRUMENT_LABEL } from "../../bench.svelte";
+  import { hueForRoute, hueVar } from "../../hues";
+  import { HUE_ICON } from "../hue-icons";
+  import { exerciseDrill, formatDuration, pct, plural, relativeDay, sessionTitle, setupTrends } from "./model";
+  import WeekCompare from "./WeekCompare.svelte";
 
   let { now = Date.now() }: { now?: number } = $props();
 
@@ -40,12 +44,22 @@
     }),
   );
 
-  const ROWS = [
-    { key: "minutes", label: "Minutes" },
-    { key: "sessions", label: "Sessions" },
-    { key: "attempts", label: "Attempts" },
-    { key: "xp", label: "XP" },
-  ] as const;
+  // The latest sessions first, as a dated list: what, on what, how long, and how it went.
+  const RECENT = 8;
+  const recent = $derived(
+    [...practice.sessions]
+      .sort((a, b) => b.startTime - a.startTime)
+      .slice(0, RECENT)
+      .map((s) => {
+        const lead = s.runs.find((r) => r.score !== undefined) ?? s.runs[0];
+        const hue = hueForRoute((lead && exerciseDrill(lead.exerciseId)?.entry.route) ?? "/music", lead?.instrument ?? s.instrument);
+        const end = s.endTime ?? Math.max(s.startTime, ...s.runs.map((r) => r.endedAt));
+        return { s, lead, hue, ms: end - s.startTime };
+      }),
+  );
+  const when = (ms: number) =>
+    `${relativeDay(ms, now)}, ${new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+
 
   const trendWords = (first: number, last: number) => {
     const d = Math.round((last - first) * 100);
@@ -62,6 +76,32 @@
     >
   </div>
 {:else}
+  <section aria-labelledby="recent-title" class="mb-8">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="recent-title" class="font-display text-xl font-semibold">Recent sessions</h2>
+      <a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/journal"
+        >All {plural(practice.sessions.length, "session")} in the journal</a
+      >
+    </div>
+    <ul class="mt-2 flex flex-col divide-y divide-ws-line border-y border-ws-line">
+      {#each recent as { s, lead, hue, ms } (s.id)}
+        {@const Icon = HUE_ICON[hue]}
+        <li class="flex min-w-0 items-center gap-3 py-2.5" style:--h={hueVar(hue)}>
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-[color:var(--h)] text-ws-stage" aria-hidden="true"><Icon class="size-5" /></span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-semibold">{sessionTitle(s)}</p>
+            <p class="text-sm text-ws-soft">
+              {when(s.startTime)}. {s.instrument ? INSTRUMENT_LABEL[s.instrument] : "Several instruments"}, {formatDuration(ms)}
+            </p>
+          </div>
+          <span class="tnum shrink-0 text-right">
+            {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span>{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
+          </span>
+        </li>
+      {/each}
+    </ul>
+  </section>
+
   <div class="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
     <div class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="totals-title">
@@ -70,36 +110,17 @@
           <span class="tnum">{plural(days.length, "day")}</span> practised
         </p>
         <p class="mt-1 text-ws-soft">
-          <span class="tnum font-semibold text-ws-ink">{xp} XP</span> in total, level {level}, {toNext} XP to level {level + 1}.
-          XP rewards showing up; it never moves a skill estimate.
+          Level {level}, {toNext} XP to level {level + 1}. <span class="tnum font-semibold text-ws-ink">{xp} XP</span> in total.
         </p>
         <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
           <div class="h-full rounded-full bg-instr" style:width="{((250 - toNext) / 250) * 100}%"></div>
         </div>
+        <p class="mt-2 text-sm text-ws-soft">XP counts showing up. Skill estimates come only from answers in Check mode.</p>
       </section>
 
       <section aria-labelledby="weeks-title">
         <h2 id="weeks-title" class="font-display text-xl font-semibold">This week and last</h2>
-        <table class="mt-2 w-full max-w-md text-sm">
-          <thead class="text-left text-ws-soft">
-            <tr>
-              <th scope="col" class="py-1.5 font-medium"><span class="sr-only">Measure</span></th>
-              <th scope="col" class="py-1.5 text-right font-medium">This week</th>
-              <th scope="col" class="py-1.5 text-right font-medium">Last week</th>
-              <th scope="col" class="py-1.5 text-right font-medium">Change</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-ws-line border-t border-ws-line">
-            {#each ROWS as row (row.key)}
-              <tr>
-                <th scope="row" class="py-2 text-left font-medium">{row.label}</th>
-                <td class="tnum py-2 text-right">{weeks.thisWeek[row.key]}</td>
-                <td class="tnum py-2 text-right text-ws-soft">{weeks.lastWeek[row.key]}</td>
-                <td class="tnum py-2 text-right">{signed(weeks.delta[row.key])}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+        <div class="max-w-md"><WeekCompare {weeks} /></div>
       </section>
 
       <section aria-labelledby="setups-title">

@@ -12,6 +12,17 @@
 
   const weeks = $derived(cells.length / 7);
   const ROWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // A month's name over the first week column that holds its 1st (and over the first column).
+  const months = $derived(
+    Array.from({ length: weeks }, (_, w) => {
+      const days = cells.slice(w * 7, w * 7 + 7).map((c) => c.day);
+      const first = days.find((d) => d.endsWith("-01"));
+      const day = first ?? (w === 0 ? days[0] : undefined);
+      return day
+        ? new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })
+        : "";
+    }),
+  );
   const SHADE = [0, 30, 55, 80, 100];
   const fill = (level: number) =>
     level === 0 ? "var(--ws-raised)" : `color-mix(in oklab, var(--instr) ${SHADE[level]}%, var(--ws-raised))`;
@@ -34,10 +45,18 @@
 <div class="relative overflow-x-auto" role="region" aria-label="Practice heatmap" tabindex="0">
   <table class="border-separate border-spacing-0.5">
     <caption class="sr-only">Practice over the last {weeks} weeks, one row per weekday</caption>
+    <thead aria-hidden="true">
+      <tr>
+        <td></td>
+        {#each months as m, w (w)}
+          <td class="relative h-4 p-0"><span class="absolute bottom-0 left-0 whitespace-nowrap text-xs text-ws-soft">{m}</span></td>
+        {/each}
+      </tr>
+    </thead>
     <tbody>
       {#each ROWS as name, r (name)}
         <tr>
-          <th scope="row" class="pr-1 text-left text-xs font-normal text-ws-soft">{r % 2 === 0 ? name : ""}<span class="sr-only">{r % 2 ? name : ""}</span></th>
+          <th scope="row" class="pr-1 text-left text-xs font-normal text-ws-soft">{name}</th>
           {#each Array.from({ length: weeks }, (_, w) => cells[w * 7 + r]) as c (c.day)}
             <td class="p-0">
               {#if c.sessions && onpick}
@@ -63,10 +82,12 @@
     </tbody>
   </table>
 </div>
-<div class="mt-2 flex items-center gap-1.5 text-xs text-ws-soft" aria-hidden="true">
-  Less
+<div class="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ws-soft" aria-hidden="true">
+  <span class="mr-1">Minutes played per day:</span>
+  none
   {#each SHADE as _, level (level)}
     <span class="size-3.5 rounded-[4px]" style:background={fill(level)}></span>
   {/each}
-  More
+  most
+  <span class="ml-2 inline-flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-line"></span>still to come</span>
 </div>

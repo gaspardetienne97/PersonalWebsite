@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { PracticeSession } from "@repo/music-core";
-import { exerciseTitle, fallingSentence, scoreHistory, sessionTitle, type SkillRow } from "./model";
+import {
+  exerciseTitle,
+  fallingSentence,
+  formatDuration,
+  plainPathText,
+  scoreHistory,
+  sessionTitle,
+  type SkillRow,
+} from "./model";
 
 const row = (id: string, name: string) => ({ skill: { id, name } }) as unknown as SkillRow;
 
@@ -51,5 +59,45 @@ describe("Journal names", () => {
       session([run("ear.intervals", 1, 0.5), run("ear.intervals", 5, 1)]),
     ];
     expect(scoreHistory(sessions, "ear.intervals", 3)).toEqual([0.5, 0.9]);
+  });
+});
+
+describe("Durations", () => {
+  it("reads seconds under a minute, minutes under an hour, then hours", () => {
+    expect(formatDuration(0)).toBe("0 sec");
+    expect(formatDuration(42_400)).toBe("42 sec");
+    expect(formatDuration(59_600)).toBe("1 min");
+    expect(formatDuration(6 * 60_000 + 20_000)).toBe("6 min");
+    expect(formatDuration(60 * 60_000)).toBe("1 h");
+    expect(formatDuration(95 * 60_000)).toBe("1 h 35 min");
+  });
+});
+
+describe("Path copy", () => {
+  it("says what the curriculum codes mean instead of printing them", () => {
+    expect(plainPathText("The cadence that keeps the key waits for N1.")).toBe(
+      "The cadence that keeps the key comes in a later update.",
+    );
+    expect(plainPathText("Narrowing the set waits for N1 (chosen degrees).")).toBe(
+      "Narrowing the set comes in a later update.",
+    );
+    expect(plainPathText("The cadence and key context wait for N1.")).toBe(
+      "The cadence and key context come in a later update.",
+    );
+    expect(plainPathText("The check against the score (N3) is still to come.")).toBe(
+      "The check against the score is still to come.",
+    );
+    expect(plainPathText("(the reharmonisation sandbox, N10, is still to come)")).toBe(
+      "(the reharmonisation sandbox is still to come)",
+    );
+    expect(plainPathText("a chord tone (a self-check until N10).")).toBe(
+      "a chord tone (a self-check for now).",
+    );
+    expect(plainPathText("Circle T-1 and T-2")).toBe("Circle of fifths step 1 and step 2");
+    expect(plainPathText("Hear the low band (Studio S-1, S-2)")).toBe(
+      "Hear the low band (Studio ears step 1, step 2)",
+    );
+    expect(plainPathText("H1 The major scale")).toBe("The major scale");
+    expect(plainPathText("Degrees 1 to 5")).toBe("Degrees 1 to 5");
   });
 });

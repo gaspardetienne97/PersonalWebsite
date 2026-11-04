@@ -49,7 +49,7 @@ describe("coach", () => {
     expect(a.focus).toBeUndefined();
     expect(a.headline).toBe("Not measured yet");
     expect(a.summary).toBe(
-      "The coach needs 5 checked attempts on piano before it names a weak spot. You have 4.",
+      "The coach names a weak spot after 5 answers in Check mode on piano. You have 4 so far.",
     );
     // No instrument-wide percentage: it read as a second score for the focus skill.
     expect(a.insights.some((l) => l.includes("%"))).toBe(false);
@@ -94,7 +94,7 @@ describe("coach", () => {
       attempts: 3,
     });
     expect(piano.summary).toBe(
-      "Treble Landmark Notes is at 0% across 3 checked attempts on piano, the lowest you have measured.",
+      "Treble Landmark Notes is at 0% across 3 answers in Check mode on piano, the lowest you have measured.",
     );
     expect(piano.action.href).toBe("/music/reading?instrument=piano");
     const guitar = advise(events, "guitar");
@@ -129,7 +129,7 @@ describe("coach", () => {
       checkedAnswers: 4,
     });
     expect(a.summary).toBe(
-      "The coach needs 5 checked attempts on Guitar before it names a weak spot. You have 4.",
+      "The coach names a weak spot after 5 answers in Check mode on Guitar. You have 4 so far.",
     );
   });
 });

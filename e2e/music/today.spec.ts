@@ -13,6 +13,7 @@ test.describe("today", () => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/music");
+    await page.getByRole("button", { name: "Adjust" }).click();
     await page.getByRole("button", { name: "30 min" }).click();
     await choose(page, page.getByLabel(/^Instrument on \w+s$/), "Guitar");
     await expect(page.getByText(/session, Guitar$/)).toBeVisible();

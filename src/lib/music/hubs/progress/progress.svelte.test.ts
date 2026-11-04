@@ -109,12 +109,12 @@ describe("Progress", () => {
     render(SkillsView, { now });
     await expect.element(page.getByRole("rowheader", { name: "Minor 3rd" })).toBeVisible();
     const m3 = document.querySelector('tr[data-skill="pitch.interval.m3"]')!;
-    expect(m3.textContent).toContain("6 checked");
+    expect(m3.textContent).toContain("6 in Check");
     expect(m3.textContent).toContain("83%"); // accuracy, 5 of 6
     expect(m3.textContent).toContain("Estimate");
     // Practice-mode answers count as attempts but never move the estimate.
     const landmarks = document.querySelector('tr[data-skill="reading.treble.landmarks"]')!;
-    expect(landmarks.textContent).toContain("0 checked");
+    expect(landmarks.textContent).toContain("0 in Check");
     expect(landmarks.textContent).toContain("No estimate yet");
     // Untouched skills stay hidden until asked for.
     expect(document.querySelector('tr[data-skill="pitch.interval.P5"]')).toBeNull();
@@ -129,18 +129,18 @@ describe("Progress", () => {
       .toBeVisible();
     await expect.element(page.getByRole("link", { name: /Minor 3rd/ })).toBeVisible();
     await expect.element(page.getByRole("link", { name: /Treble Landmark Notes/ })).toBeVisible();
-    expect(document.body.textContent).toContain("2 practice attempts, none checked");
+    expect(document.body.textContent).toContain("2 tries in Practice, none in Check mode");
   });
 });
 
 describe("Journal", () => {
   it("expands a session to its runs and attempt evidence", async () => {
     render(JournalView, { now });
-    const toggle = page.getByRole("button", { name: "Show 2 runs and evidence" });
+    const toggle = page.getByRole("button", { name: "Show every answer" });
     await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
     await toggle.click();
     await expect
-      .element(page.getByRole("button", { name: "Hide runs and evidence" }))
+      .element(page.getByRole("button", { name: "Hide answers" }))
       .toHaveAttribute("aria-expanded", "true");
     const detail = document.getElementById("s1-detail")!;
     const text = detail.textContent!;
@@ -159,7 +159,9 @@ describe("Journal", () => {
       "E4",
     ])
       expect(text).toContain(word);
-    expect(detail.querySelectorAll("tbody tr")).toHaveLength(8);
+    // One line per attempt behind each run's details, and the misses spelled out up front.
+    expect(detail.querySelectorAll("details li")).toHaveLength(8);
+    expect(detail.querySelectorAll('[aria-label="Missed"] li').length).toBeGreaterThan(0);
     // Named for what was practised, and Delete only from the edit view.
     expect(document.getElementById("s1-title")!.textContent).toBe(
       "Intervals and Reading flashcards",

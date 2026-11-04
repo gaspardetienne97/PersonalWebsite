@@ -61,6 +61,9 @@ async function makeHistory(
   hooks: { afterFirst?: () => Promise<void>; onDone?: () => Promise<void> } = {},
 ) {
   await openWithMidi(page, "/music", { countInBars: 1 });
+  // Length and routine sit behind "Adjust" from round 1 on.
+  const adjust = page.getByRole("button", { name: "Adjust" });
+  if (await adjust.isVisible().catch(() => false)) await adjust.click();
   await page.getByRole("button", { name: "10 min" }).click();
   await choose(page, page.getByLabel(/^Instrument on \w+s$/), "Voice");
   await expect(page.getByText(/session, Voice$/)).toBeVisible();

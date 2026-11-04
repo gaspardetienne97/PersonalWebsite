@@ -3,6 +3,7 @@
   // sparkline; on demand its runs and attempt evidence. Delete lives in the edit view,
   // behind a confirm, so it is never one tap from the main actions.
   import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import Trash from "lucide-svelte/icons/trash-2";
   import { tick } from "svelte";
   import type { PracticeSession, ScoringEvent } from "@repo/music-core";
   import { sessionMinutes } from "@repo/music-core/progress/journal";
@@ -17,6 +18,7 @@
     SOURCE_LABEL,
     exerciseDrill,
     exerciseTitle,
+    formatDuration,
     formatLabel,
     parseTags,
     pct,
@@ -42,7 +44,7 @@
     session.runs.map((r) => ({ run: r, events: events.filter((e) => e.runId === r.id) })),
   );
   const orphans = $derived(events.filter((e) => !session.runs.some((r) => r.id === e.runId)));
-  const minutes = $derived(Math.round(sessionMinutes(session)));
+  const duration = $derived(formatDuration(sessionMinutes(session) * 60_000));
   const instrument = $derived(session.instrument ? INSTRUMENT_LABEL[session.instrument] : "several instruments");
   const title = $derived(sessionTitle(session));
   // The first run sets the card's hue and icon, and its drill's recent scores the sparkline.
@@ -96,38 +98,51 @@
 
 {#snippet evidence(list: ScoringEvent[])}
   {#if list.length}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <div class="relative mt-2 overflow-x-auto" role="region" aria-label="Attempt evidence" tabindex="0">
-      <table class="w-full min-w-[32rem] text-left text-sm">
-        <thead class="text-ws-soft">
-          <tr>
-            <th scope="col" class="py-1.5 pr-3 font-medium">Target</th>
-            <th scope="col" class="py-1.5 pr-3 font-medium">Result</th>
-            <th scope="col" class="py-1.5 pr-3 text-right font-medium">Credit</th>
-            <th scope="col" class="py-1.5 pr-3 font-medium">Assistance</th>
-            <th scope="col" class="py-1.5 pr-3 font-medium">Input</th>
-            <th scope="col" class="py-1.5 font-medium">Instrument</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-ws-line">
-          {#each list as e (e.id)}
-            <tr>
-              <td class="py-1.5 pr-3">{formatLabel(e.target) || e.promptId}</td>
-              <td class="py-1.5 pr-3">
-                {#if e.correct}<span class="text-success" aria-hidden="true">✓</span> Right{:else}<span
-                    class="text-destructive"
-                    aria-hidden="true">✗</span
-                  > Missed{#if e.response !== undefined}, answered {formatLabel(e.response)}{/if}{/if}
-              </td>
-              <td class="tnum py-1.5 pr-3 text-right">{pct(e.partialCredit)}</td>
-              <td class="py-1.5 pr-3">{e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Not recorded"}</td>
-              <td class="py-1.5 pr-3">{INPUT_LABEL[e.source]}</td>
-              <td class="py-1.5">{e.instrument ? INSTRUMENT_LABEL[e.instrument] : "Not recorded"}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    {@const misses = list.filter((e) => !e.correct)}
+    <!-- Every attempt as a dot (glyph and colour), then the misses spelled out; the rest on demand. -->
+    <ol class="mt-2 flex flex-wrap gap-1" aria-label="Attempts in order: {list.length - misses.length} right, {misses.length} missed">
+      {#each list as e, i (e.id)}
+        <li
+          class="grid size-6 place-items-center rounded-full text-xs font-bold {e.correct ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}"
+          title="{i + 1}. {formatLabel(e.target) || e.promptId}: {e.correct ? 'right' : 'missed'}"
+        >
+          <span aria-hidden="true">{e.correct ? "✓" : "✗"}</span><span class="sr-only">{i + 1}: {e.correct ? "right" : "missed"}</span>
+        </li>
+      {/each}
+    </ol>
+    {#if misses.length}
+      <ul class="mt-2 flex flex-col gap-1 text-sm" aria-label="Missed">
+        {#each misses as e (e.id)}
+          <li class="flex flex-wrap gap-x-2">
+            <span class="text-destructive" aria-hidden="true">✗</span>
+            <span>Wanted <span class="font-semibold">{formatLabel(e.target) || e.promptId}</span>{#if e.response !== undefined}, answered <span class="font-semibold">{formatLabel(e.response)}</span>{/if}</span>
+          </li>
+        {/each}
+      </ul>
+    {:else}
+      <p class="mt-1 text-sm text-success">All {list.length} right.</p>
+    {/if}
+    <details class="group mt-2 text-sm">
+      <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-ws-soft hover:text-ws-ink [&::-webkit-details-marker]:hidden">
+        <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Details of each attempt
+      </summary>
+      <ol class="flex flex-col divide-y divide-ws-line rounded-xl border border-ws-line">
+        {#each list as e, i (e.id)}
+          <li class="flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-baseline sm:gap-3">
+            <span class="font-medium sm:w-48 sm:shrink-0">
+              <span class="tnum text-ws-soft">{i + 1}.</span>
+              {formatLabel(e.target) || e.promptId}:
+              {#if e.correct}<span class="text-success">Right</span>{:else}<span class="text-destructive">Missed</span>{#if e.response !== undefined}, answered {formatLabel(e.response)}{/if}{/if}
+            </span>
+            <span class="text-ws-soft">
+              Credit {pct(e.partialCredit)}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Not recorded"}, {INPUT_LABEL[e.source]}{e.instrument
+                ? `, ${INSTRUMENT_LABEL[e.instrument]}`
+                : ""}
+            </span>
+          </li>
+        {/each}
+      </ol>
+    </details>
   {:else}
     <p class="mt-1 text-sm text-ws-soft">No graded attempts.</p>
   {/if}
@@ -135,33 +150,40 @@
 
 <article class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="{id}-title" data-session={id} style:--card-hue={hueVar(hue)}>
   <div class="flex items-start gap-3">
-    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--card-hue)] text-[oklch(0.2_0.04_288)]" aria-hidden="true">
+    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--card-hue)] text-ws-stage" aria-hidden="true">
       <Icon class="size-5" />
     </span>
     <div class="min-w-0 flex-1">
       <h3 id="{id}-title" class="font-semibold">{title}</h3>
       <p class="text-sm text-ws-soft">{when}. {SOURCE_LABEL[session.source]} on {instrument}</p>
     </div>
-    {#if scores.length}
-      <div
-        class="flex h-10 shrink-0 items-end gap-0.5"
-        role="img"
-        aria-label="{exerciseTitle(lead!.exerciseId)} scores up to this session: {scores.map((v) => pct(v)).join(', ')}"
-      >
-        {#each scores as v, i (i)}
-          <span
-            class="w-1.5 rounded-sm bg-[color:var(--card-hue)] {i === scores.length - 1 ? '' : 'opacity-45'}"
-            style:height="{Math.max(10, v * 100)}%"
-          ></span>
-        {/each}
+    {#if lead?.score !== undefined}
+      <div class="flex shrink-0 items-end gap-2">
+        {#if scores.length > 1}
+          <div
+            class="flex h-9 items-end gap-0.5"
+            role="img"
+            aria-label="{exerciseTitle(lead.exerciseId)} scores up to this session: {scores.map((v) => pct(v)).join(', ')}"
+          >
+            {#each scores as v, i (i)}
+              <span
+                class="w-1.5 rounded-sm bg-[color:var(--card-hue)] {i === scores.length - 1 ? '' : 'opacity-45'}"
+                style:height="{Math.max(10, v * 100)}%"
+              ></span>
+            {/each}
+          </div>
+        {/if}
+        <p class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</p>
       </div>
     {/if}
   </div>
-  <dl class="tnum mt-3 flex gap-5 text-sm">
-    <div><dt class="text-ws-soft">XP</dt><dd class="font-semibold">{session.xp}</dd></div>
-    <div><dt class="text-ws-soft">Attempts</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
-    <div><dt class="text-ws-soft">Minutes</dt><dd class="font-semibold">{minutes}</dd></div>
-    {#if lead?.score !== undefined}<div><dt class="text-ws-soft">Score</dt><dd class="font-semibold">{pct(lead.score)}</dd></div>{/if}
+  <!-- What it measured first, effort after: right answers and time, XP last. -->
+  <dl class="tnum mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+    {#if session.eventIds.length}
+      <div class="flex gap-1.5"><dt class="text-ws-soft">Answers</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
+    {/if}
+    <div class="flex gap-1.5"><dt class="text-ws-soft">Time</dt><dd class="font-semibold">{duration}</dd></div>
+    <div class="flex gap-1.5"><dt class="text-ws-soft">XP</dt><dd class="font-semibold">+{session.xp}</dd></div>
   </dl>
 
   {#if !editing}
@@ -189,15 +211,17 @@
       <div class="flex flex-wrap items-center gap-2">
         <button type="submit" class={btnPrimary}>Save</button>
         <button type="button" class={btn} onclick={() => (editing = confirming = false)}>Cancel</button>
-        <span class="grow"></span>
+      </div>
+      <!-- Deleting is its own row, away from Save, and asks first. -->
+      <div class="mt-2 flex flex-wrap items-center gap-2 border-t border-ws-line pt-3">
         {#if confirming}
-          <span class="flex flex-wrap items-center gap-2 rounded-full bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label="Confirm delete">
-            Delete this session?
+          <span class="flex flex-wrap items-center gap-2 rounded-2xl bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label="Confirm delete">
+            Delete this session and its {plural(session.eventIds.length, "answer")} for good?
             <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110" onclick={remove}>Delete session</button>
             <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>Keep it</button>
           </span>
         {:else}
-          <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}>Delete session</button>
+          <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />Delete session</button>
         {/if}
       </div>
     </form>
@@ -206,10 +230,10 @@
   <div class="mt-3 flex flex-wrap items-center gap-2">
     <button type="button" class={btn} aria-expanded={open} aria-controls="{id}-detail" onclick={() => (open = !open)}>
       <ChevronDown class="size-4 transition-transform {open ? 'rotate-180' : ''}" aria-hidden="true" />
-      {open ? "Hide runs and evidence" : `Show ${plural(session.runs.length, "run")} and evidence`}
+      {open ? "Hide answers" : "Show every answer"}
     </button>
     {#if !editing}
-      <button type="button" class={btn} onclick={startEdit}>Edit note and tags</button>
+      <button type="button" class={btn} onclick={startEdit}>Edit note<span class="max-sm:sr-only"> and tags</span></button>
     {/if}
   </div>
 

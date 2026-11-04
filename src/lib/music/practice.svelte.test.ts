@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("$app/state", () => ({ page: { url: new URL("http://localhost/music/scales") } }));
 
-const { practice, answered } = await import("./practice.svelte");
+const { practice, answered, routineInstrument } = await import("./practice.svelte");
+const { page } = await import("$app/state");
 const { db, input } = await import("./runtime");
 
 const spec = {
@@ -126,6 +127,50 @@ describe("editing a session", () => {
       nextTime: "C major at 80",
     });
     expect(await db.sessions.get(id)).toMatchObject({ note: "slow the shifts" });
+  });
+});
+
+describe("the session's instrument", () => {
+  beforeEach(fresh);
+  const click = {
+    promptId: "q",
+    correct: true,
+    partialCredit: 1,
+    source: "click" as const,
+    response: "P5",
+  };
+
+  it("reads a routine id's instrument", () => {
+    expect(routineInstrument("routine-2026-11-04-voice-10")).toBe("voice");
+    expect(routineInstrument("routine-2026-11-04-mpc-30-pass2")).toBe("mpc");
+    expect(routineInstrument("routine-2026-11-04-kazoo-10")).toBeUndefined();
+    expect(routineInstrument(undefined)).toBeUndefined();
+  });
+
+  it("is the routine's for a set, even when its runs report none", async () => {
+    const url = page.url;
+    page.url = new URL(
+      "http://localhost/music/ear/scale-degrees?routine=routine-2026-11-04-voice-10&step=2",
+    ) as typeof url;
+    try {
+      const run = practice.beginRun({ ...spec, instrument: undefined });
+      await run.attempt(click);
+      await run.finish();
+      expect(practice.sessions[0].instrument).toBe("voice");
+    } finally {
+      page.url = url;
+    }
+  });
+
+  it("is never blanked by a run with no instrument", async () => {
+    const first = practice.beginRun(spec);
+    await first.attempt(click);
+    await first.finish();
+    const second = practice.beginRun({ ...spec, instrument: undefined });
+    await second.attempt(click);
+    await second.finish();
+    expect(practice.sessions).toHaveLength(1);
+    expect(practice.sessions[0].instrument).toBe("piano");
   });
 });
 

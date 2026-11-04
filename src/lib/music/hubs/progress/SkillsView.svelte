@@ -35,18 +35,19 @@
     const parts = [`Estimate ${pct(r.estimate)}`];
     if (r.lastMeasured !== undefined) parts.push(`last measured ${pct(r.lastMeasured)}`);
     if (r.due) parts.push("due for review");
-    if (r.checked < MIN_EVIDENCE) parts.push(`only ${plural(r.checked, "checked attempt")}`);
+    if (r.checked < MIN_EVIDENCE) parts.push(`only ${plural(r.checked, "answer")} in Check mode`);
     return parts.join(", ");
   };
   const capLabel = (c: Capability) => CAPABILITY_LABEL[c];
 </script>
 
 <div class="flex flex-col gap-6">
-  <div class="flex flex-wrap items-end justify-between gap-4">
-    <div class="w-full max-w-56">
+  <!-- The filter takes its own full-width line, so its chips wrap across the page, not down a column. -->
+  <div class="flex flex-col gap-2">
+    <div class="w-full min-w-0">
       <Choice label="Instrument" {options} bind:value={scope} />
     </div>
-    <label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+    <label class="flex min-h-11 w-fit cursor-pointer items-center gap-2 text-sm">
       <input type="checkbox" class="size-5 accent-[color:var(--instr)]" bind:checked={showAll} />
       Show all {SKILL_GRAPH.skills.filter((s) => !s.deprecated).length} skills
     </label>
@@ -56,10 +57,10 @@
     <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Estimate today</span>
     <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
     <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Review due, dropped ten points</span>
-    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} checked attempts</span>
+    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode</span>
   </div>
   <p class="-mt-3 max-w-prose text-sm text-ws-soft">
-    Only checked attempts move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
+    Only answers in Check mode move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
     every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
   </p>
 
@@ -121,8 +122,8 @@
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.estimate === undefined ? "" : pct(r.confidence)}</td>
                     <td class="tnum py-2 pr-3 text-right">
-                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} checked</span>{:else}{r.attempts}<span
-                          class="block text-xs text-ws-soft">{r.checked} checked</span
+                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} in Check</span>{:else}{r.attempts}<span
+                          class="block text-xs text-ws-soft">{r.checked} in Check</span
                         >{/if}
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.accuracy === undefined ? "" : pct(r.accuracy)}</td>

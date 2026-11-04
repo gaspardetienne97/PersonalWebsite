@@ -4,6 +4,7 @@
 // A run where nothing was heard (no note, tap, onset or answer) writes nothing:
 // no session, no XP, no streak day. Its attempts wait until input arrives.
 import { page } from "$app/state";
+import { INSTRUMENTS } from "@repo/music-core";
 import type {
   Assistance,
   InputEvent,
@@ -164,19 +165,24 @@ class Practice {
     const now = Date.now();
     const cur = this.#current;
     const last = cur ? Math.max(cur.startTime, cur.endTime ?? 0) : 0;
+    // A routine session belongs to the routine's instrument, whatever its first run reports
+    // (answer-button ear drills report none), so the set is counted where it was planned.
+    const planned = routineInstrument(routineId);
     if (
       cur &&
       cur.source === (routineId ? "daily-routine" : source) &&
       cur.routineId === routineId &&
       now - last < SESSION_IDLE_MS
     ) {
-      if (cur.instrument !== instrument) cur.instrument = undefined;
+      // A run with no instrument says nothing about the session's: it never blanks it.
+      if (!planned && instrument && cur.instrument !== instrument)
+        cur.instrument = cur.runs.some((r) => r.instrument) ? undefined : instrument;
       return cur;
     }
     const s: PracticeSession = {
       id: uid("session"),
       startTime: now,
-      instrument,
+      instrument: planned ?? instrument,
       source: routineId ? "daily-routine" : source,
       routineId,
       runs: [],
@@ -281,6 +287,12 @@ class Practice {
     }
     return out;
   }
+}
+
+/** The instrument a routine id was built for (`routine-<day>-<instrument>-<minutes>[-passN]`). */
+export function routineInstrument(routineId: string | undefined): Instrument | undefined {
+  const m = routineId?.match(/^routine-\d{4}-\d{2}-\d{2}-([a-z]+)-\d+/);
+  return INSTRUMENTS.find((i) => i === m?.[1]);
 }
 
 function routineParams(): Record<string, string> {

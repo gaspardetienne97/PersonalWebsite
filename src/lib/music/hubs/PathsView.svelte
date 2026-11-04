@@ -6,6 +6,8 @@
   import Lock from "lucide-svelte/icons/lock";
   import Music from "lucide-svelte/icons/music";
   import Flag from "lucide-svelte/icons/flag";
+  import Play from "lucide-svelte/icons/play";
+  import Target from "lucide-svelte/icons/target";
   import type { Snippet } from "svelte";
   import {
     LEARNING_PATHS,
@@ -20,6 +22,7 @@
   import { db, settings } from "../runtime";
   import type { Hue } from "../bench.svelte";
   import { addShelfSong, type Song } from "./library/songs";
+  import { plainPathText } from "./progress/model";
 
   const ORDER: { id: PathId; hue: Hue }[] = [
     { id: "guitar", hue: "guitar" },
@@ -85,13 +88,26 @@
     locked: "Locked",
     todo: "Read and play",
   };
-  const strandName: Record<string, string> = {
+  // Strand letters mean different things per path (S is strumming on guitar, songs on the ear
+  // path). A code with no name here is left out rather than printed.
+  const STRUMMING = {
     S: "Chords and strumming",
+    C: "Chords and strumming",
     F: "Fingerpicking",
     L: "Lead",
     R: "Riffs",
     T: "Reading, theory and ear",
   };
+  const STRANDS: Partial<Record<PathId, Record<string, string>>> = {
+    guitar: STRUMMING,
+    ukulele: STRUMMING,
+    ear: { E: "Ear", H: "Harmony", S: "Songs by ear" },
+  };
+  const strands = (code: string) => [
+    ...new Set(code.split(/,\s*/).flatMap((c) => STRANDS[selected]?.[c] ?? [])),
+  ];
+  /** "Level 3"; a placement level 0 goes by its own name ("Check-in"). */
+  const levelName = (l: LevelProgress) => (l.level.id === "0" ? l.level.title : `Level ${l.level.id}`);
   const passed = (st: StepStatus) => st === "done" || st === "review";
 
   // One node open at a time per level, the "Up next" step until another is picked ("" for none).
@@ -122,7 +138,7 @@
   <span class="relative h-12" aria-hidden="true">
     <span
       class="node absolute top-0 grid size-12 -translate-x-1/2 place-items-center rounded-full font-display text-sm font-semibold tnum {look === 'passed'
-        ? 'bg-[color:var(--p)] text-[oklch(0.2_0.04_288)]'
+        ? 'bg-[color:var(--p)] text-ws-stage'
         : look === 'next'
           ? 'pulse bg-ws-surface text-instr-ink ring-4 ring-[color:var(--p)]'
           : look === 'review'
@@ -163,20 +179,24 @@
         <div class="min-w-0">
           {@render head(
             sp.step.id,
-            sp.step.title,
+            plainPathText(sp.step.title),
             coming ? "Coming" : sp.almost ? "Almost there" : statusText[st],
             st === "next",
             `Step ${stepLabel(sp)}: `,
           )}
           {#if openId === sp.step.id}
             <div id="stop-{sp.step.id}" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 shadow-sm">
-              {#if sp.step.strand}
-                <p class="text-xs text-ws-soft">{sp.step.strand.split(/,\s*/).map((c) => strandName[c] ?? c).join(", ")}</p>
+              {#if sp.step.strand && strands(sp.step.strand).length}
+                <p class="text-xs font-medium text-ws-soft">{strands(sp.step.strand).join(", ")}</p>
               {/if}
-              <p class="mt-0.5 text-sm">{sp.step.summary}</p>
-              {#if sp.step.detail}<p class="mt-1 text-sm text-ws-soft">Done means: {sp.step.detail}</p>{/if}
+              <p class="mt-0.5 text-sm">{plainPathText(sp.step.summary)}</p>
+              {#if sp.step.detail}
+                <p class="mt-2 flex gap-2 rounded-xl bg-ws-raised px-3 py-2 text-sm">
+                  <Target class="mt-0.5 size-4 shrink-0 text-instr-ink" aria-hidden="true" /><span><span class="font-semibold">To pass:</span> {plainPathText(sp.step.detail)}</span>
+                </p>
+              {/if}
               {#if coming}
-                <p class="mt-1 text-xs text-ws-soft">Waits for: {sp.step.needs}</p>
+                <p class="mt-1 text-xs text-ws-soft">Waits for: {plainPathText(sp.step.needs ?? "")}</p>
               {:else if st === "review"}
                 <p class="mt-1 text-xs text-ws-soft">A later step you passed covers this. Use it to review.</p>
               {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
@@ -196,11 +216,11 @@
                 <div class="mt-3 flex flex-wrap gap-2">
                   <a
                     href={sp.step.href}
-                    class="flex min-h-11 items-center rounded-full px-5 text-sm font-semibold {st === 'next'
-                      ? 'bg-[color:var(--p)] text-[oklch(0.2_0.04_288)]'
+                    class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold {st === 'next' || openId === sp.step.id
+                      ? 'bg-[color:var(--p)] text-ws-stage hover:brightness-105'
                       : 'border border-ws-line hover:bg-ws-raised'}"
                   >
-                    {sp.step.kind === "reference" ? "Open" : st === "done" ? "Practise again" : "Practise"}<span class="sr-only">&nbsp;{sp.step.title}</span>
+                    <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? "Open" : st === "done" ? "Practise again" : "Practise"}<span class="sr-only">&nbsp;{sp.step.title}</span>
                   </a>
                   {#each sp.step.links as l (l.href)}
                     <a href={l.href} class="flex min-h-11 items-center rounded-full px-3 text-sm text-instr-ink underline-offset-4 hover:underline">{l.label}</a>
@@ -219,13 +239,13 @@
         {#snippet songFace()}<Music class="size-5" />{/snippet}
         {@render node(steps.length, enough ? "passed" : "open", songFace)}
         <div class="min-w-0">
-          {@render head("songs", "Song shelf", `${lv.played} of ${lv.level.pick} songs played`, false)}
+          {@render head("songs", "Song shelf", lv.level.pick ? `${lv.played} of ${lv.level.pick} songs played` : "Songs to play along with", false)}
           <!-- The checkpoint's songs as badges, lit once played. -->
           <ul class="mt-1 flex flex-wrap gap-1.5" aria-label="Songs on the shelf">
             {#each lv.songs as row (row.key)}
               <li
                 class="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs {row.played
-                  ? 'border-transparent bg-[color:var(--p)] text-[oklch(0.2_0.04_288)]'
+                  ? 'border-transparent bg-[color:var(--p)] text-ws-stage'
                   : 'border-ws-line text-ws-soft'}"
               >
                 {#if row.played}<Check class="size-3" aria-hidden="true" /><span class="sr-only">Played: </span>{/if}{row.song.title}
@@ -288,7 +308,7 @@
         <div class="min-w-0">
           {@render head("test", "Level test", lv.passed ? "Level passed" : "The checkpoint at the end of the level", false)}
           {#if openId === "test"}
-            <p id="stop-test" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 text-sm shadow-sm">{lv.level.test}</p>
+            <p id="stop-test" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 text-sm shadow-sm">{plainPathText(lv.level.test)}</p>
           {/if}
         </div>
       </li>
@@ -312,59 +332,93 @@
         <span class="size-3 shrink-0 rounded-full bg-[color:var(--p)]" aria-hidden="true"></span>
         <span class="min-w-0">
           <span class="block font-semibold">{pr.path.title}</span>
-          <span class="tnum block text-sm text-ws-soft">
-            {#if pr.levels?.length}Level {pr.currentLevel ?? pr.levels.at(-1)!.level.id}, {pr.levels.filter((l) => l.passed).length} of {pr.levels.length} passed{:else}{pr.done} of {pr.total} done{/if}
-          </span>
+          {#if pr.levels?.length}
+            {@const at = pr.levels.find((l) => l.level.id === pr.currentLevel) ?? pr.levels.at(-1)!}
+            <span class="tnum block text-sm text-ws-soft">{levelName(at)}, {at.done} of {at.total} steps</span>
+            <span class="mt-1 block h-1 w-28 rounded-full bg-ws-raised" aria-hidden="true"
+              ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{at.total ? (at.done / at.total) * 100 : 0}%"></span></span
+            >
+          {:else}
+            <span class="tnum block text-sm text-ws-soft">{pr.done} of {pr.total} steps</span>
+            <span class="mt-1 block h-1 w-28 rounded-full bg-ws-raised" aria-hidden="true"
+              ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{pr.total ? (pr.done / pr.total) * 100 : 0}%"></span></span
+            >
+          {/if}
         </span>
       </button>
     {/each}
   </nav>
 
   <section aria-labelledby="path-title" class="min-w-0" style:--p="var(--hue-{ORDER.find((o) => o.id === selected)?.hue})">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 id="path-title" class="font-display text-2xl font-semibold tracking-tight">{current.path.title}</h2>
-        <p class="text-ws-soft">
-          {#if current.levels?.length}<span class="tnum">{current.levels.length} level{current.levels.length === 1 ? "" : "s"}, {current.steps.length} steps.</span>{:else}<span class="tnum">{current.steps.length} steps.</span>{/if}
-          {current.path.subtitle}
+    <!-- On a phone the path, its level and the Continue button stay pinned under the strip while the road scrolls. -->
+    <div
+      class="z-10 flex items-center justify-between gap-3 max-lg:sticky max-lg:top-[var(--ws-strip-h,3.75rem)] max-lg:-mx-4 max-lg:border-b max-lg:border-ws-line max-lg:bg-ws-bg/95 max-lg:px-4 max-lg:py-2 max-lg:backdrop-blur"
+    >
+      <div class="min-w-0">
+        <h2 id="path-title" class="truncate font-display text-xl font-semibold tracking-tight sm:text-2xl">{current.path.title}</h2>
+        <p class="tnum truncate text-sm text-ws-soft">
+          {#if level}{levelName(level)}: {level.done} of {level.total} steps passed{:else}{current.done} of {current.total} steps passed{/if}
         </p>
-        {#if current.path.benchmark}<p class="text-sm text-ws-soft">Ends around {current.path.benchmark}.</p>{/if}
       </div>
       {#if current.continueHref}
         <a
           href={current.continueHref}
-          class="flex min-h-11 items-center rounded-full bg-[color:var(--p)] px-5 text-sm font-semibold text-[oklch(0.2_0.04_288)]">Continue</a
+          class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[color:var(--p)] px-5 text-sm font-semibold text-ws-stage hover:brightness-105"><Play class="size-4" aria-hidden="true" />Continue</a
         >
       {/if}
     </div>
+    <p class="mt-2 text-ws-soft">
+      {plainPathText(current.path.subtitle)}
+      <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps.</span>
+      {#if current.path.benchmark}Ends around {current.path.benchmark}.{/if}
+    </p>
 
     {#if current.levels?.length && level}
-      <!-- The levels as stops on one line, lit up to the last one passed. -->
-      <div class="mt-4 flex items-center overflow-x-auto p-1" role="group" aria-label="Levels">
+      <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
+           The current and the next level carry their names. -->
+      {@const curIdx = current.levels.findIndex((l) => l.level.id === current.currentLevel)}
+      <div class="mt-4 flex items-start overflow-x-auto px-1 pb-2 pt-1" role="group" aria-label="Levels">
         {#each current.levels as l, k (l.level.id)}
-          {#if k}<span class="h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
+          {@const isCurrent = l.level.id === current.currentLevel}
+          {@const ahead = !l.passed && !isCurrent}
+          {@const named = curIdx >= 0 && (k === curIdx || k === curIdx + 1)}
+          {#if k}<span class="mt-5 h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
           <button
             type="button"
-            class="tnum flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-sm {l.level.id === level.level.id
-              ? 'border-transparent bg-[color:var(--p)] font-semibold text-[oklch(0.2_0.04_288)]'
-              : l.passed
-                ? 'border-[color:var(--p)] bg-ws-surface hover:bg-ws-raised'
-                : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+            class="flex shrink-0 flex-col items-center gap-1 rounded-xl px-0.5 {named ? 'w-24' : ''}"
             aria-pressed={l.level.id === level.level.id}
-            aria-label="Level {l.level.id}{l.passed ? ', passed' : l.level.id === current.currentLevel ? ', current' : ''}"
+            aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
           >
-            {#if l.passed}<Check class="size-3.5" aria-hidden="true" />{/if}{l.level.id}
+            <span
+              class="tnum grid size-11 place-items-center rounded-full text-sm font-semibold {l.level.id === level.level.id
+                ? 'ring-2 ring-ws-ink ring-offset-2 ring-offset-ws-bg'
+                : ''} {l.passed
+                ? 'bg-[color:var(--p)] text-ws-stage'
+                : isCurrent
+                  ? 'bg-ws-surface text-ws-ink ring-4 ring-[color:var(--p)]'
+                  : 'bg-ws-raised text-ws-soft'}"
+            >
+              {#if l.passed}<Check class="size-4" aria-hidden="true" />{:else}<span class="relative"
+                  >{#if l.level.id === "0"}<Flag class="size-4" aria-hidden="true" />{:else}{l.level.id}{/if}{#if ahead}<Lock
+                      class="absolute -right-3 -top-2 size-3"
+                      aria-hidden="true"
+                    />{/if}</span
+                >{/if}
+            </span>
+            {#if named}
+              <span class="line-clamp-2 text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{isCurrent ? "Now: " : "Next: "}{l.level.title}</span>
+            {/if}
           </button>
         {/each}
       </div>
 
-      <div class="mt-5">
-        <h3 class="font-display text-xl font-semibold">{level.level.title}</h3>
-        <p class="mt-1">{level.level.goal}</p>
-        {#if level.level.adds}<p class="mt-1 text-sm text-ws-soft">Adds: {level.level.adds}</p>{/if}
+      <div class="mt-4">
+        <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
+        <p class="mt-1">{plainPathText(level.level.goal)}</p>
+        {#if level.level.adds}<p class="mt-1 text-sm text-ws-soft">New here: {plainPathText(level.level.adds)}</p>{/if}
         <p class="tnum mt-2 text-sm text-ws-soft">
-          {level.done} of {level.total} steps passed, {level.played} of {level.level.pick} songs played.
+          {level.done} of {level.total} steps passed{#if level.level.pick && level.songs.length}, {level.played} of {level.level.pick} songs played{/if}.
           {#if level.passed}Level passed.{/if}
         </p>
       </div>

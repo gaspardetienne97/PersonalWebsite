@@ -1,18 +1,23 @@
 <script lang="ts">
   import Play from "lucide-svelte/icons/play";
   import Check from "lucide-svelte/icons/check";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
   import PartyPopper from "lucide-svelte/icons/party-popper";
   import { BUDGET_OPTIONS, roleLabel } from "@repo/music-core/progress/routine";
+  import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
   import { levelFor } from "@repo/music-core/progress/rewards";
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { hueForRoute, hueVar } from "../hues";
   import { practice } from "../practice.svelte";
   import { settings } from "../runtime";
   import { blockReason, localWeekday, setDayInstrument, splitOptions, todayChallenges, todayPlan, WEEKDAYS } from "../today.svelte";
-  import { btnPrimary, panel } from "../components/ui";
+  import { btn, btnPrimary, panel } from "../components/ui";
   import Picker from "../components/Picker.svelte";
   import { HUE_ICON } from "./hue-icons";
   import Ring from "./progress/Ring.svelte";
+  import StreakWeek from "./progress/StreakWeek.svelte";
+  import { formatDuration } from "./progress/model";
 
   const plan = $derived(todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes));
   const instrument = $derived(plan.instrument);
@@ -24,6 +29,13 @@
   const minutesLeft = $derived(
     plan.routine.steps.filter((s) => !plan.done.includes(s.n)).reduce((m, s) => m + s.minutes, 0),
   );
+  // The coach's bar, drawn: checked answers so far against the five it needs.
+  const toMeasure = $derived(Math.min(plan.checked, COACH_MIN_ATTEMPTS));
+  // A set run in Practice: true, and the card says why the coach still has nothing.
+  const practiceOnly = $derived(plan.done.length > 0 && !plan.advice.measured && plan.checked === 0);
+
+  // Length and the weekday's routine: changed rarely, so they wait behind Adjust.
+  let adjusting = $state(false);
 
   const hueOf = (href: string) => hueForRoute(href, instrument);
   // The end-of-set burst: twelve dots in the set's hues, flung out on a circle.
@@ -49,9 +61,6 @@
     fresh = true;
   });
 
-  const DAY = ["M", "T", "W", "T", "F", "S", "S"];
-  const dayLetter = (d: string) => DAY[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7];
-  const dotLabel = { practised: "practised", frozen: "covered by a freeze", missed: "no practice", today: "today, not yet", upcoming: "still to come" };
   const greeting = () => {
     const h = new Date().getHours();
     return h < 12 ? "Morning session" : h < 18 ? "Afternoon session" : "Evening session";
@@ -60,13 +69,58 @@
 
 <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
   <section aria-labelledby="set-title" class="min-w-0">
-    <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
-    <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-      {#if allDone}Set complete. Nice work.{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
-    </h2>
+    <div class="flex items-end justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
+        <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+          {#if allDone}Set complete. Nice work.{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
+        </h2>
+      </div>
+      <button type="button" class="{btn} shrink-0" aria-expanded={adjusting} aria-controls="set-adjust" onclick={() => (adjusting = !adjusting)}>
+        <SlidersHorizontal class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Adjust</span><ChevronDown
+          class="size-4 motion-safe:transition-transform max-sm:hidden {adjusting ? 'rotate-180' : ''}"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+
+    {#if adjusting}
+      <div id="set-adjust" class="mt-3 flex flex-col gap-3 rounded-2xl border border-ws-line bg-ws-surface p-3 sm:p-4">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-sm font-medium" id="len-label">Length of the set</span>
+          <div class="flex flex-wrap items-center gap-1.5" role="group" aria-labelledby="len-label">
+            {#each BUDGET_OPTIONS as m (m)}
+              <button
+                type="button"
+                class="tnum min-h-11 min-w-12 rounded-full border px-3 text-sm {m === budget
+                  ? 'border-transparent bg-instr font-semibold text-ws-stage'
+                  : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+                aria-pressed={m === budget}
+                onclick={() => settings.update({ routineBudgetMinutes: m })}>{m} min</button
+              >
+            {/each}
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span class="font-medium" aria-hidden="true">{WEEKDAYS[weekday]} routine</span>
+          <Picker
+            class="w-auto"
+            label="Instrument on {WEEKDAYS[weekday]}s"
+            value={settings.value.weeklySplit?.[weekday] ?? ""}
+            options={splitOptions(settings.value.activeInstrument)}
+            onchange={(v) => setDayInstrument(weekday, v)}
+          />
+          <span class="text-ws-soft">Repeats every {WEEKDAYS[weekday]}.</span>
+        </div>
+      </div>
+    {/if}
 
     <!-- The set as a ribbon that fills block by block, and the one button that plays it. -->
-    <div class="relative mt-4 overflow-hidden rounded-3xl border border-ws-line bg-ws-surface p-4 shadow-sm sm:p-5">
+    <div
+      class="relative mt-4 overflow-hidden rounded-3xl border bg-ws-surface p-4 shadow-sm sm:p-5 {allDone
+        ? 'border-success/60 ring-1 ring-success/30'
+        : 'border-ws-line'}"
+    >
       <div
         class="flex gap-1.5"
         role="progressbar"
@@ -90,10 +144,13 @@
                 <span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-surface text-ws-ink shadow-sm">
                   {#if done}<Check class="size-4 text-success" aria-hidden="true" />{:else}<Icon class="size-4" aria-hidden="true" />{/if}
                 </span>
-                <span class="tnum hidden truncate text-xs font-semibold sm:inline {done ? 'text-[oklch(0.2_0.04_288)]' : 'text-ws-soft'}">{step.minutes} min</span>
+                <span class="tnum hidden truncate text-xs font-semibold sm:inline {done ? 'text-ws-stage' : 'text-ws-soft'}">{step.minutes} min</span>
               </span>
             </div>
-            <p class="mt-1.5 truncate text-xs font-medium {done ? 'text-ws-soft line-through' : ''}">{step.label}</p>
+            <p class="mt-1.5 flex min-w-0 items-center gap-1 text-xs font-medium">
+              <span class="truncate">{step.label}</span>
+              {#if done}<span class="shrink-0 text-success max-sm:sr-only">Done</span>{:else if isNext}<span class="shrink-0 text-instr-ink">Now</span>{/if}
+            </p>
           </div>
         {/each}
       </div>
@@ -111,39 +168,21 @@
               <span class="spark absolute size-2 rounded-full" style:background={b.hue} style:--dx="{b.dx}px" style:--dy="{b.dy}px"></span>
             {/each}
           </span>
-          <p class="min-w-0 flex-1 text-sm">
-            {plan.summary.completedSteps} of {plan.summary.totalSteps} blocks, +{plan.summary.xp} XP{#if plan.summary.accuracy !== undefined},
-              {Math.round(plan.summary.accuracy * 100)}% correct{/if}, {Math.round(plan.summary.durationMs / 60000)} min.
-          </p>
-          <a class={btnPrimary} href={plan.repeatHref}>Repeat the set</a>
-          <a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/journal">Open journal</a>
+          <!-- What the set came to, measured: time actually played, not the plan's minutes. -->
+          <dl class="tnum flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-1">
+            <div><dt class="text-xs text-ws-soft">Blocks</dt><dd class="font-semibold">{plan.summary.completedSteps} of {plan.summary.totalSteps}</dd></div>
+            {#if plan.summary.accuracy !== undefined}
+              <div><dt class="text-xs text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
+            {/if}
+            <div><dt class="text-xs text-ws-soft">Time played</dt><dd class="font-semibold">{formatDuration(plan.summary.durationMs)}</dd></div>
+            <div><dt class="text-xs text-ws-soft">XP</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
+          </dl>
+          <div class="flex basis-full flex-wrap items-center gap-2 sm:basis-auto">
+            <a class={btnPrimary} href={plan.repeatHref}>Repeat the set</a>
+            <a class={btn} href="/music/journal">Open journal</a>
+          </div>
         </div>
       {/if}
-    </div>
-
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Time available">
-        {#each BUDGET_OPTIONS as m (m)}
-          <button
-            type="button"
-            class="tnum min-h-11 min-w-12 rounded-full border px-3 text-sm {m === budget
-              ? 'border-transparent bg-instr font-semibold text-ws-stage'
-              : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
-            aria-pressed={m === budget}
-            onclick={() => settings.update({ routineBudgetMinutes: m })}>{m} min</button
-          >
-        {/each}
-      </div>
-      <div class="flex items-center gap-2 text-sm text-ws-soft">
-        <span aria-hidden="true">{WEEKDAYS[weekday]}s</span>
-        <Picker
-          class="w-auto"
-          label="Instrument on {WEEKDAYS[weekday]}s"
-          value={settings.value.weeklySplit?.[weekday] ?? ""}
-          options={splitOptions(settings.value.activeInstrument)}
-          onchange={(v) => setDayInstrument(weekday, v)}
-        />
-      </div>
     </div>
 
     <ol class="mt-4 flex flex-col gap-2">
@@ -158,15 +197,19 @@
           style:--step-hue={hueVar(hueOf(step.href))}
         >
           <span
-            class="grid size-9 shrink-0 place-items-center rounded-full {done ? 'bg-success text-white' : 'bg-[color:var(--step-hue)] text-[oklch(0.2_0.04_288)]'}"
+            class="grid size-9 shrink-0 place-items-center rounded-full {done ? 'bg-success text-white' : 'bg-[color:var(--step-hue)] text-ws-stage'}"
             aria-hidden="true">{#if done}<Check class="size-4" />{:else}<Icon class="size-4" />{/if}</span
           >
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-ws-soft">{roleLabel(step)}</p>
+            <p class="flex flex-wrap items-center gap-x-2 text-xs font-medium text-ws-soft">
+              <span>{roleLabel(step)}</span>
+              {#if isNext}<span class="rounded-full bg-instr-wash px-2 font-semibold text-instr-ink">Now</span>{/if}
+              <span class="tnum sm:hidden">{step.minutes} min</span>
+            </p>
             <p class="font-semibold">
               <span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span>{step.label}
             </p>
-            <p class="text-sm text-ws-soft">{blockReason(step)}</p>
+            <p class="line-clamp-2 text-sm text-ws-soft">{blockReason(step)}</p>
           </div>
           <span class="tnum hidden text-sm text-ws-soft sm:inline">{step.minutes} min</span>
           <a href={step.href} class="flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised">
@@ -178,35 +221,8 @@
   </section>
 
   <aside class="flex min-w-0 flex-col gap-4">
-    <section class={panel} aria-labelledby="streak-title">
-      <h2 id="streak-title" class="font-display text-lg font-semibold">
-        {plan.streak.current ? `${plan.streak.current}-day streak` : "Start a streak today"}
-      </h2>
-      <ol class="mt-3 grid grid-cols-7 gap-1 text-center text-xs text-ws-soft">
-        {#each plan.streak.week as d (d.day)}
-          <li class="flex flex-col items-center gap-1">
-            <span
-              class="grid size-8 place-items-center rounded-full {d.state === 'practised'
-                ? 'bg-instr text-ws-stage'
-                : d.state === 'frozen'
-                  ? 'border-2 border-dashed border-info text-info'
-                  : d.state === 'today'
-                    ? 'border-2 border-instr-ink'
-                    : d.state === 'upcoming'
-                      ? 'border border-dashed border-ws-line'
-                      : 'bg-ws-raised'}"
-              title="{d.day}: {dotLabel[d.state]}"
-            >
-              {#if d.state === "practised"}<Check class="size-4" aria-hidden="true" />{:else if d.state === "frozen"}<span aria-hidden="true">❄</span>{/if}
-            </span>
-            <span aria-hidden="true">{dayLetter(d.day)}</span>
-            <span class="sr-only">{d.day}: {dotLabel[d.state]}</span>
-          </li>
-        {/each}
-      </ol>
-      <p class="mt-3 text-sm text-ws-soft">
-        {plan.freezes} freeze{plan.freezes === 1 ? "" : "s"} held, one earned per week you practise. A missed day is covered automatically.
-      </p>
+    <section class={panel} aria-label="Streak">
+      <StreakWeek week={plan.streak.week} current={plan.streak.current} freezes={plan.freezes} />
     </section>
 
     <section class={panel} aria-labelledby="coach-title">
@@ -218,20 +234,36 @@
             <span class="tnum font-display text-base font-semibold">{Math.round(plan.advice.focus.accuracy * 100)}%</span>
           </Ring>
           <p class="text-sm text-ws-soft">
-            correct on {plan.advice.focus.name}, from {plan.advice.focus.attempts} checked answers on {INSTRUMENT_LABEL[instrument]}
+            correct on {plan.advice.focus.name}, from {plan.advice.focus.attempts} answers in Check mode on {INSTRUMENT_LABEL[instrument]}
           </p>
         </div>
       {:else}
         <p class="mt-1 text-sm">{plan.advice.summary}</p>
+        {#if !plan.advice.measured && plan.checked < COACH_MIN_ATTEMPTS}
+          <div class="mt-3 flex items-center gap-3">
+            <div
+              class="h-2 flex-1 rounded-full bg-ws-raised"
+              role="progressbar"
+              aria-label="Answers in Check mode"
+              aria-valuemin={0}
+              aria-valuemax={COACH_MIN_ATTEMPTS}
+              aria-valuenow={toMeasure}
+            >
+              <div class="h-full rounded-full bg-instr" style:width="{(toMeasure / COACH_MIN_ATTEMPTS) * 100}%"></div>
+            </div>
+            <span class="tnum text-sm font-semibold">{toMeasure} of {COACH_MIN_ATTEMPTS}</span>
+          </div>
+        {/if}
+        {#if practiceOnly}
+          <p class="mt-2 text-sm text-ws-soft">Today's set ran in Practice. Answers in Check mode count here.</p>
+        {/if}
       {/if}
       {#if plan.advice.insights.length}
         <ul class="mt-3 flex flex-col gap-1 text-sm text-ws-soft">
           {#each plan.advice.insights as line (line)}<li>{line}</li>{/each}
         </ul>
       {/if}
-      <a class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href={plan.advice.action.href}>
-        {plan.advice.action.label}
-      </a>
+      <a class="{btn} mt-3" href={plan.advice.action.href}>{plan.advice.action.label}</a>
     </section>
 
     <section class={panel} aria-labelledby="challenges-title">
@@ -240,8 +272,10 @@
         {#each challenges as c (c.id)}
           <li class="text-sm">
             <div class="flex items-baseline justify-between gap-2">
-              <span class="font-medium">{#if c.done}<span class="text-success" aria-hidden="true">✓ </span>{/if}{c.title}</span>
-              <span class="tnum text-ws-soft">{c.progress}/{c.target}</span>
+              <span class="font-medium"
+                >{#if c.done}<Check class="mr-1 inline size-4 text-success" aria-hidden="true" /><span class="sr-only">Done: </span>{/if}{c.title}</span
+              >
+              <span class="tnum text-ws-soft">{c.progress} of {c.target}</span>
             </div>
             <div class="mt-1 h-1.5 rounded-full bg-ws-raised" aria-hidden="true">
               <div class="h-full rounded-full {c.done ? 'bg-success' : 'bg-instr'}" style:width="{(c.progress / c.target) * 100}%"></div>

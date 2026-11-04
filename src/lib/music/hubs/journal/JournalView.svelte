@@ -1,22 +1,30 @@
 <script lang="ts">
-  // The journal: weekly rollups, the 12-week heatmap, goals, focus areas, a
-  // composer for today's session, filters and the session list.
+  // The journal: the session list first, then this week against last, the 12-week heatmap,
+  // goals and focus areas. A note on today's session waits behind "Add a note"; filters show
+  // once there are enough sessions to need them.
+  import NotebookPen from "lucide-svelte/icons/notebook-pen";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import X from "lucide-svelte/icons/x";
+  import { tick } from "svelte";
   import type { Instrument } from "@repo/music-core";
-  import { INSTRUMENTS } from "@repo/music-core";
   import { skillName } from "@repo/music-core/progress/graph";
-  import { dayKey } from "@repo/music-core/progress/rewards";
+  import { addDays, dayKey, weekStart } from "@repo/music-core/progress/rewards";
   import { filterSessions, focusAreas, heatmap, weekRollups, weeklyGoals } from "@repo/music-core/progress/journal";
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { btn, btnPrimary } from "../../components/ui";
-  import { parseTags, plural, signed } from "../progress/model";
+  import { parseTags, plural } from "../progress/model";
+  import WeekCompare from "../progress/WeekCompare.svelte";
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import { instrumentOptions } from "$lib/music/components/instrument-icons";
 
   let { announce = () => {}, now = Date.now() }: { announce?: (msg: string) => void; now?: number } = $props();
+
+  /** Below this many sessions the list is short enough to read, so the filters stay out of the way. */
+  const FILTER_FROM = 6;
 
   const today = $derived(dayKey(now));
   const sessions = $derived(practice.sessions);
@@ -33,7 +41,9 @@
   let instrument = $state<Instrument | "">("");
   let from = $state("");
   let to = $state("");
+  let moreFilters = $state(false);
   const filtering = $derived(!!(skill || instrument || from || to));
+  const showFilters = $derived(sessions.length >= FILTER_FROM);
   const skillOptions = $derived(
     [...new Set(sessions.flatMap((s) => s.runs.flatMap((r) => r.skillIds)))]
       .map((id) => ({ id, name: skillName(id) }))
@@ -47,6 +57,21 @@
       to: to || undefined,
     }).sort((a, b) => b.startTime - a.startTime),
   );
+  // Date presets; anything else is a custom range (or a day picked on the heatmap).
+  const RANGES = $derived([
+    { id: "all", label: "All", from: "", to: "" },
+    { id: "week", label: "This week", from: weekStart(today), to: "" },
+    { id: "month", label: "This month", from: `${today.slice(0, 8)}01`, to: "" },
+    { id: "30", label: "Last 30 days", from: addDays(today, -29), to: "" },
+  ]);
+  const range = $derived(RANGES.find((r) => r.from === from && r.to === to)?.id ?? "custom");
+  function pickRange(r: (typeof RANGES)[number]) {
+    from = r.from;
+    to = r.to;
+    announce(r.id === "all" ? "Showing every session." : `Showing ${r.label.toLowerCase()}.`);
+  }
+  const longDay = (day: string) =>
+    new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
   // Tapping a practised day on the heatmap shows just that day; tapping it again shows all.
   const pickedDay = $derived(from && from === to ? from : undefined);
   function pickDay(day: string) {
@@ -55,7 +80,7 @@
       announce("Showing every day.");
     } else {
       from = to = day;
-      announce(`Showing ${new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}.`);
+      announce(`Showing ${longDay(day)}.`);
     }
     document.getElementById("sessions-title")?.scrollIntoView({ block: "nearest" });
   }
@@ -67,9 +92,16 @@
     announce("Filters cleared.");
   }
 
-  // Composer for today's latest session
+  // A note for today's latest session, written from the top of the list.
+  let composing = $state(false);
   let draftNote = $state("");
   let draftTags = $state("");
+  let noteBox = $state<HTMLTextAreaElement>();
+  async function openComposer() {
+    composing = true;
+    await tick();
+    noteBox?.focus();
+  }
   async function addToToday(e: SubmitEvent) {
     e.preventDefault();
     const s = latestToday;
@@ -81,84 +113,135 @@
     });
     draftNote = "";
     draftTags = "";
+    composing = false;
     announce("Added to today's session.");
   }
 
-  const ROWS = [
-    { key: "xp", label: "XP" },
-    { key: "sessions", label: "Sessions" },
-    { key: "attempts", label: "Attempts" },
-    { key: "minutes", label: "Minutes" },
-  ] as const;
   const field = "min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
+  const chip = (on: boolean) =>
+    `min-h-11 rounded-full border px-4 text-sm ${on ? "border-transparent bg-ws-ink font-semibold text-ws-bg" : "border-ws-line bg-ws-surface hover:bg-ws-raised"}`;
 </script>
 
 {#if sessions.length === 0}
-  <div class="rounded-2xl border border-dashed border-ws-line p-6">
-    <p class="font-semibold">Your journal is empty.</p>
-    <p class="text-sm text-ws-soft">Every drill you finish is saved here with its score, its attempts and room for a note.</p>
-    <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
-      >Start today's set</a
-    >
-  </div>
+  <!-- Empty: what a saved session will look like, and the one way to make one. -->
+  <section aria-labelledby="journal-empty" class="grid items-center gap-6 rounded-3xl border border-ws-line bg-ws-surface p-5 sm:p-8 lg:grid-cols-2">
+    <div class="flex flex-col items-start gap-3">
+      <h2 id="journal-empty" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Your journal is empty</h2>
+      <p class="max-w-prose text-ws-soft">Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.</p>
+      <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start today's set</a>
+    </div>
+    <div class="rounded-2xl border border-dashed border-ws-line p-4" aria-hidden="true">
+      <p class="text-xs font-medium text-ws-soft">A saved session looks like this</p>
+      <div class="mt-2 flex items-start gap-3 opacity-80">
+        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><NotebookPen class="size-5" /></span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">Scale degrees</p>
+          <p class="text-sm text-ws-soft">Today, 6 min. Drill on Voice</p>
+        </div>
+        <p class="tnum font-display text-2xl font-semibold">80%</p>
+      </div>
+      <div class="mt-3 flex gap-1">
+        {#each [1, 1, 1, 0, 1, 1, 1, 1, 0, 1] as ok, i (i)}
+          <span class="grid size-6 place-items-center rounded-full text-xs font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
+        {/each}
+      </div>
+      <p class="mt-2 text-sm">Degree 6 still slips. Sing it before answering.</p>
+    </div>
+  </section>
 {:else}
   <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <section aria-labelledby="composer-title" id="journal-composer" class="min-w-0 rounded-2xl bg-instr-wash p-4 sm:p-5 lg:col-start-1">
-        <h2 id="composer-title" class="font-display text-xl font-semibold">Note on today</h2>
-        {#if latestToday}
-          <form class="mt-3 flex flex-col gap-3" onsubmit={addToToday}>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="font-medium">What went well, what to fix</span>
-              <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:value={draftNote}></textarea>
-            </label>
-            <div class="flex flex-wrap items-end gap-3">
-              <label class="flex min-w-0 flex-1 basis-48 flex-col gap-1 text-sm">
-                <span class="font-medium">Tags, separated by commas</span>
-                <input class={field} bind:value={draftTags} placeholder="scales, left hand" />
-              </label>
-              <button
-                type="submit"
-                class={btnPrimary}
-                disabled={!draftNote.trim() && !draftTags.trim()}>Add to today's session</button
-              >
-            </div>
-          </form>
-        {:else}
-          <p class="mt-1 text-sm">Nothing saved today yet. Notes attach to today's latest session once you practise.</p>
-          <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
-            >Start today's set</a
-          >
+    <section aria-labelledby="sessions-title" class="min-w-0">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 id="sessions-title" class="font-display text-xl font-semibold">Sessions</h2>
+          <p class="tnum text-sm text-ws-soft">
+            {filtering ? `${shown.length} of ${plural(sessions.length, "session")}` : plural(sessions.length, "session")}, newest first
+          </p>
+        </div>
+        {#if latestToday && !composing}
+          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Add a note</button>
         {/if}
-      </section>
+      </div>
 
-    <aside class="flex min-w-0 flex-col gap-8 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+      {#if composing && latestToday}
+        <form id="journal-composer" class="mt-3 flex flex-col gap-3 rounded-2xl bg-instr-wash p-4" aria-label="Note on today's session" onsubmit={addToToday}>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">What went well, what to fix</span>
+            <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={draftNote}></textarea>
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">Tags, separated by commas</span>
+            <input class={field} bind:value={draftTags} placeholder="scales, left hand" />
+          </label>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" class={btnPrimary} disabled={!draftNote.trim() && !draftTags.trim()}>Add to today's session</button>
+            <button type="button" class={btn} onclick={() => (composing = false)}>Cancel</button>
+          </div>
+        </form>
+      {/if}
+
+      {#if showFilters}
+        <div class="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="When">
+          {#each RANGES as r (r.id)}
+            <button type="button" class={chip(range === r.id)} aria-pressed={range === r.id} onclick={() => pickRange(r)}>{r.label}</button>
+          {/each}
+          <button type="button" class="{btn} border-dashed" aria-expanded={moreFilters} aria-controls="journal-filters" onclick={() => (moreFilters = !moreFilters)}>
+            More filters<ChevronDown class="size-4 motion-safe:transition-transform {moreFilters ? 'rotate-180' : ''}" aria-hidden="true" />
+          </button>
+        </div>
+        {#if moreFilters}
+          <form id="journal-filters" class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Filter sessions" onsubmit={(e) => e.preventDefault()}>
+            <div class="flex min-w-0 flex-col gap-1 text-sm">
+              <span class="font-medium">Skill</span>
+              <Picker label="Skill" value={skill} options={[{ value: "", label: "Any skill" }, ...skillOptions.map((o) => ({ value: o.id, label: o.name }))]} onchange={(v) => (skill = v)} />
+            </div>
+            <div class="flex min-w-0 flex-col gap-1 text-sm">
+              <span class="font-medium">Instrument</span>
+              <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]} onchange={(v) => (instrument = v as typeof instrument)} />
+            </div>
+            <label class="flex min-w-0 flex-col gap-1 text-sm">
+              <span class="font-medium">From</span>
+              <input type="date" class={field} bind:value={from} max={to || undefined} />
+            </label>
+            <label class="flex min-w-0 flex-col gap-1 text-sm">
+              <span class="font-medium">To</span>
+              <input type="date" class={field} bind:value={to} min={from || undefined} />
+            </label>
+          </form>
+        {/if}
+      {/if}
+      {#if pickedDay}
+        <p class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          Showing {longDay(pickedDay)}.
+          <button type="button" class={btn} onclick={() => pickDay(pickedDay)}><X class="size-4" aria-hidden="true" />Show every day</button>
+        </p>
+      {:else if filtering && shown.length}
+        <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
+      {/if}
+
+      {#if shown.length}
+        <ul class="mt-3 flex flex-col gap-3">
+          {#each shown as s (s.id)}
+            <li><SessionEntry session={s} {announce} /></li>
+          {/each}
+        </ul>
+      {:else}
+        <div class="mt-4 rounded-2xl border border-dashed border-ws-line p-5">
+          <p class="font-medium">No sessions match these filters.</p>
+          <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
+        </div>
+      {/if}
+    </section>
+
+    <aside class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="rollup-title">
         <h2 id="rollup-title" class="font-display text-xl font-semibold">This week and last</h2>
-        <table class="mt-2 w-full text-sm">
-          <thead class="text-left text-ws-soft">
-            <tr>
-              <th scope="col" class="py-1.5 font-medium"><span class="sr-only">Measure</span></th>
-              <th scope="col" class="py-1.5 text-right font-medium">This week</th>
-              <th scope="col" class="py-1.5 text-right font-medium">Last week</th>
-              <th scope="col" class="py-1.5 text-right font-medium">Change</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-ws-line border-t border-ws-line">
-            {#each ROWS as row (row.key)}
-              <tr>
-                <th scope="row" class="py-2 text-left font-medium">{row.label}</th>
-                <td class="tnum py-2 text-right">{weeks.thisWeek[row.key]}</td>
-                <td class="tnum py-2 text-right text-ws-soft">{weeks.lastWeek[row.key]}</td>
-                <td class="tnum py-2 text-right">{signed(weeks.delta[row.key])}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
+        <WeekCompare {weeks} />
       </section>
 
       <section aria-labelledby="heat-title">
         <h2 id="heat-title" class="font-display text-xl font-semibold">Last 12 weeks</h2>
-        <p class="text-sm text-ws-soft">Tap a day to see its sessions.</p>
+        <p class="text-sm text-ws-soft">Tap a practised day to see its sessions.</p>
         <div class="mt-3"><Heatmap {cells} selected={pickedDay} onpick={pickDay} /></div>
       </section>
 
@@ -217,54 +300,11 @@
           </ul>
         {:else}
           <p class="mt-1 text-sm">Tag a session and the tags you use most show up here.</p>
-          <a class="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline underline-offset-4" href="#journal-composer"
-            >Tag today's session</a
-          >
+          {#if latestToday}
+            <button type="button" class="{btn} mt-2" onclick={openComposer}>Tag today's session</button>
+          {/if}
         {/if}
       </section>
     </aside>
-      <section aria-labelledby="sessions-title" class="min-w-0 lg:col-start-1">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="sessions-title" class="font-display text-xl font-semibold">Sessions</h2>
-          <p class="tnum text-sm text-ws-soft">
-            {filtering ? `${shown.length} of ${plural(sessions.length, "session")}` : plural(sessions.length, "session")}, newest first
-          </p>
-        </div>
-        <form class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Filter sessions" onsubmit={(e) => e.preventDefault()}>
-          <div class="flex min-w-0 flex-col gap-1 text-sm">
-            <span class="font-medium">Skill</span>
-            <Picker label="Skill" value={skill} options={[{ value: "", label: "Any skill" }, ...skillOptions.map((o) => ({ value: o.id, label: o.name }))]} onchange={(v) => (skill = v)} />
-          </div>
-          <div class="flex min-w-0 flex-col gap-1 text-sm">
-            <span class="font-medium">Instrument</span>
-            <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]} onchange={(v) => (instrument = v as typeof instrument)} />
-          </div>
-          <label class="flex min-w-0 flex-col gap-1 text-sm">
-            <span class="font-medium">From</span>
-            <input type="date" class={field} bind:value={from} max={to || undefined} />
-          </label>
-          <label class="flex min-w-0 flex-col gap-1 text-sm">
-            <span class="font-medium">To</span>
-            <input type="date" class={field} bind:value={to} min={from || undefined} />
-          </label>
-        </form>
-        {#if filtering && shown.length}
-          <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
-        {/if}
-
-        {#if shown.length}
-          <ul class="mt-3 flex flex-col gap-3">
-            {#each shown as s (s.id)}
-              <li><SessionEntry session={s} {announce} /></li>
-            {/each}
-          </ul>
-        {:else}
-          <div class="mt-4 rounded-2xl border border-dashed border-ws-line p-5">
-            <p class="font-medium">No sessions match these filters.</p>
-            <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
-          </div>
-        {/if}
-      </section>
-
   </div>
 {/if}
