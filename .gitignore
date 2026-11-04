@@ -51,3 +51,6 @@ ds-bundle/
 
 # Scores downloaded from your MuseScore account for the path shelves: licensed to you, never committed.
 /.music-scores/
+
+# Jazz backing tracks the jazz drills play from /audio/jazz/: local recordings, never committed.
+/static/audio/jazz/
