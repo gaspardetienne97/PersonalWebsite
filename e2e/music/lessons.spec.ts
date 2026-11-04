@@ -7,6 +7,9 @@ test.use({ storageState: { cookies: [], origins: [] } });
 const URL = "/music/circle?mode=order";
 const lessonHeading = (page: Page) => page.getByRole("heading", { name: "The order of sharps" });
 const start = (page: Page) => page.getByRole("button", { name: "Start", exact: true });
+/** A lesson, a run or its results own the screen; Close leads back to the setup (tabs, mode, Lesson). */
+const closeSession = (page: Page) =>
+  page.getByRole("button", { name: "Close and back to setup" }).click();
 
 /** Records whether the lesson ever appears, so a flash before the stored settings arrive is caught. */
 async function watchForLesson(page: Page) {
@@ -115,6 +118,7 @@ test.describe("intro lessons", () => {
   test("changing tab swaps the lesson", async ({ page }) => {
     await page.goto(URL);
     await expect(lessonHeading(page)).toBeVisible();
+    await closeSession(page);
     await page.getByRole("button", { name: "Key signatures", exact: true }).click();
     await expect(lessonHeading(page)).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
@@ -122,6 +126,8 @@ test.describe("intro lessons", () => {
 
   test("signature shows count first, then signature", async ({ page }) => {
     await page.goto(URL);
+    await expect(lessonHeading(page)).toBeVisible();
+    await closeSession(page);
     await page.getByRole("button", { name: "Read a signature", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
     const second = page.getByRole("heading", {
@@ -154,13 +160,14 @@ test.describe("intro lessons", () => {
     await page.getByRole("button", { name: "Skip, I know this" }).click();
     await page.getByRole("button", { name: "Lesson", exact: true }).click();
     await expect(page.getByTestId("lesson")).toBeVisible();
+    await closeSession(page);
     await page.getByRole("button", { name: "Pulse", exact: true }).click();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(start(page)).toBeVisible();
     expect(errors).toEqual([]);
   });
 
-  test("after a run: the Lesson button shows, and a new tab's lesson replaces the results", async ({
+  test("after a run: Close leads to the Lesson button, and a new tab's lesson shows", async ({
     page,
   }) => {
     await page.goto(URL);
@@ -172,13 +179,14 @@ test.describe("intro lessons", () => {
       await page.keyboard.press("Enter");
     }
     await expect(again).toBeVisible();
+    await closeSession(page);
+    await expect(again).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Results" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Lesson", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Key signatures", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Round the wheel" })).toBeVisible();
-    await expect(again).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Results" })).toHaveCount(0);
     await page.getByRole("button", { name: "Skip, I know this" }).click();
-    await expect(again).toBeVisible();
+    await expect(start(page)).toBeVisible();
   });
 
   test("the progress row counts every screen of a chained lesson", async ({ page }) => {
@@ -510,15 +518,21 @@ test.describe("concept cards", () => {
   }) => {
     await page.goto("/music/chords?mode=build");
     await page.getByRole("button", { name: "Start", exact: true }).click();
+    // A note heard, so the run is scored and its results offer the Check run.
+    await page
+      .getByRole("button", { name: /, target$/ })
+      .first()
+      .click();
     await page.getByRole("button", { name: "Finish now" }).click();
     const again = page.getByRole("button", { name: "Again", exact: true });
     await expect(again).toBeVisible();
-    await expect(page.getByRole("button", { name: "Lesson", exact: true })).toBeVisible();
-    await check(page).click();
+    // The results offer the same setup in Check; its card shows first.
+    await page.getByRole("button", { name: "Run it in Check" }).click();
     await expect(page.getByRole("heading", { name: "Shape the hand" })).toBeVisible();
     await expect(again).toHaveCount(0);
     await (await toEnd(page)).click();
     await expect(again).toBeVisible();
+    await closeSession(page);
     await expect(check(page)).toHaveAttribute("aria-pressed", "true");
   });
 

@@ -431,7 +431,17 @@ export async function captureDemo(page: Page, F: string, width: Width, ms = 2500
   return true;
 }
 
-export const nextRunButton = (page: Page) => page.getByTestId("next-run").getByRole("button");
+/** The next-run button: in the results card through round 2, in the shell's dock bar from round 3. */
+export const nextRunButton = (page: Page) =>
+  page
+    .getByTestId("next-run")
+    .getByRole("button")
+    .or(
+      page
+        .getByTestId("drill-bar")
+        .getByRole("button", { name: /^(Speed up to|Slow down to|Move on:|Step back:)/ }),
+    )
+    .first();
 
 export interface GoFlow {
   F: string;

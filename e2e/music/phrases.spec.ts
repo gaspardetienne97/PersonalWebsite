@@ -78,7 +78,9 @@ test.describe("phrases", () => {
       },
       { notes, downbeat, beatMs, port: PORTS.keys.id },
     );
-    await expect(page.getByRole("status")).toContainText("15 of 15 in order", { timeout: 20_000 });
+    await expect(page.getByRole("status")).toContainText(/all 15 notes in order/i, {
+      timeout: 20_000,
+    });
     await page.screenshot({ path: `${SHOTS}/piano-ode-1280.png`, fullPage: true });
   });
 
@@ -193,7 +195,9 @@ test.describe("phrases", () => {
       },
       { notes, downbeat, beatMs, port: PORTS.keys.id },
     );
-    await expect(page.getByRole("status")).toContainText("7 of 7 in order", { timeout: 20_000 });
+    await expect(page.getByRole("status")).toContainText(/all 7 steps in order/i, {
+      timeout: 20_000,
+    });
     await expect(page.locator("article").first()).toContainText("Notes and chords in order");
     await page.screenshot({ path: `${SHOTS}/guitar-turnaround-1280.png`, fullPage: true });
   });

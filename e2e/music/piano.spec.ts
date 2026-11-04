@@ -356,7 +356,9 @@ test.describe("piano drills over fake MIDI", () => {
       page,
       line.map((m, i) => ({ at: i * 250, notes: [m], hold: 150 })),
     );
-    await expect(page.getByRole("status")).toContainText("23 of 23 in order", { timeout: 5000 });
+    await expect(page.getByRole("status")).toContainText(/all 23 notes in order/i, {
+      timeout: 5000,
+    });
     await shoot(page, "licks-results");
   });
 

@@ -267,7 +267,10 @@ test.describe("ear training", () => {
     await expect(next).toContainText("2 clean runs");
     // Results: a row per interval, this run only.
     await expect(page.getByText(/^\d+ of \d+$/).first()).toBeVisible();
-    await next.getByRole("button", { name: "Move on: the perfect 4th" }).click();
+    await page
+      .getByTestId("drill-bar")
+      .getByRole("button", { name: "Move on: the perfect 4th" })
+      .click();
     // The next run starts with the 4th added.
     await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
     await expect(page.locator("button.choice", { hasText: /^Perfect 4th/ })).toBeVisible();
@@ -639,7 +642,10 @@ test.describe("ear training", () => {
     }
     const next = page.getByTestId("next-run");
     await expect(next).toHaveAttribute("data-kind", "harder");
-    await next.getByRole("button", { name: "Move on: Major pentachord" }).click();
+    await page
+      .getByTestId("drill-bar")
+      .getByRole("button", { name: "Move on: Major pentachord" })
+      .click();
     // The next run starts at the new level, with 2 and 4 to answer.
     await expect(prompt(page)).toHaveAttribute("aria-label", "Question 1");
     await expect(
@@ -852,7 +858,7 @@ test.describe("ear training", () => {
       await page.getByRole("button", { name: i === 0 ? "Missed it" : "Heard it" }).click();
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 heard");
-    await expect(page.locator("article").first()).toContainText("doesn't move mastery");
+    await expect(page.locator("article").first()).toContainText("doesn't move your skill scores");
     await shots(page, "ear-cadences-pocket-results");
   });
 
@@ -1065,7 +1071,7 @@ test.describe("rhythm", () => {
           i * beat,
         );
     });
-    await expect(page.getByRole("status")).toContainText(/On time|rushed|dragged/, {
+    await expect(page.getByRole("status")).toContainText(/beats landed/, {
       timeout: 10_000,
     });
     // Headless timers jitter against the audio clock, so allow one tap outside its window.
@@ -1182,7 +1188,7 @@ test.describe("rhythm", () => {
       },
       { downbeat, beatMs },
     );
-    await expect(page.getByRole("status")).toContainText(/On time|rushed|dragged/, {
+    await expect(page.getByRole("status")).toContainText(/beats landed/, {
       timeout: 15_000,
     });
     await expect(page.locator("article").first()).toContainText("4 of 4");
@@ -1205,7 +1211,7 @@ test.describe("rhythm", () => {
           100 + i * beat,
         );
     }, PORTS.keys.id);
-    await expect(page.getByRole("status")).toContainText(/On time|rushed|dragged/, {
+    await expect(page.getByRole("status")).toContainText(/beats landed/, {
       timeout: 10_000,
     });
     await expect(page.locator("article").first()).toContainText("4 of 4");

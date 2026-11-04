@@ -147,9 +147,12 @@ test.describe("guitar and ukulele path drills", () => {
         },
         { notes, downbeat, beatMs, port: PORTS.keys.id },
       );
-      await expect(page.getByRole("status")).toContainText(`${steps} of ${steps} in order`, {
-        timeout: 20_000,
-      });
+      await expect(page.getByRole("status")).toContainText(
+        new RegExp(`all ${steps} (notes|steps) in order`, "i"),
+        {
+          timeout: 20_000,
+        },
+      );
       await page.screenshot({ path: `${SHOTS}/${id}-1280.png`, fullPage: true });
     });
 
@@ -279,8 +282,9 @@ test.describe("guitar and ukulele path drills", () => {
     await expect(page.getByRole("article")).toContainText("Clean at 60 BPM");
     // The last tap ends the run; it must not also move the spider's start fret.
     await expect(page.getByRole("article").getByText("8 of 8 taps")).toBeVisible();
-    await expect(page.getByText("Setup:").locator("..")).toContainText("from fret 5");
     await page.screenshot({ path: `${SHOTS}/spider-bursts-1280.png`, fullPage: true });
+    await page.getByRole("button", { name: "Close and back to setup" }).click();
+    await expect(page.getByTestId("setup-line")).toContainText("from fret 5");
   });
 
   test("Changes: a timed pair joins the hardest five, and ?hardest opens the slowest", async ({

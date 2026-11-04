@@ -408,7 +408,9 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("article").getByText(/All 4 target notes of C matched from memory/),
     ).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole("article").getByText(/counts toward mastery/)).toBeVisible();
+    await expect(
+      page.getByRole("article").getByText(/counts toward your skill scores/),
+    ).toBeVisible();
   });
 
   test("Ukulele G7, one of the London College syllabus chords, builds by taps", async ({

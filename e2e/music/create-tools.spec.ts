@@ -301,7 +301,9 @@ test.describe("Create", () => {
     await openPanel(page);
 
     // A preset beat, then one more bar: the song grows with it.
+    await page.getByRole("button", { name: "Sounds" }).click();
     await choose(page, page.getByLabel("Start from a preset"), "Boom bap · 2 bars");
+    await page.keyboard.press("Escape");
     await expect(page.getByRole("status")).toContainText("Boom bap · 2 bars");
     await page.getByRole("button", { name: "Add a bar to the beat" }).click();
     await expect(page.getByRole("status")).toContainText("The song grew to 3 bars");

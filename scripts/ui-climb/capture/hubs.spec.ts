@@ -181,7 +181,13 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(400);
     await entry.scrollIntoViewIfNeeded();
     await shot(page, "journal", "entry", width);
-    await entry.getByRole("button", { name: /^Edit note/ }).click();
+    // Edit note sits behind "More for this session" from round 3 on.
+    const more = entry.getByRole("button", { name: "More for this session" });
+    if (await more.isVisible().catch(() => false)) await more.click();
+    await entry
+      .getByRole("button", { name: /^Edit note/ })
+      .first()
+      .click();
     const note = entry.getByRole("textbox").first();
     await note.fill("Pulse rushed on beat 3. Degrees felt solid, 6 still slips.");
     await page.waitForTimeout(300);

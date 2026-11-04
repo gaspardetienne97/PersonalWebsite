@@ -121,6 +121,7 @@ test("voicings: drop-2 through a ii-V-I, and the wrong order named in Check", as
   await expect(page.getByRole("status")).toContainText("All 12 chords right.", { timeout: 8000 });
 
   // Check: the close shape for a drop-2 chord has the wrong bottom note.
+  await page.getByRole("button", { name: "Close and back to setup" }).click();
   await startDrill(page, "Check");
   await expect(page.getByText("Dm7 with D on top, drop-2.")).toBeVisible();
   // 4-way close: F A C D.
@@ -164,7 +165,7 @@ test("licks: an enclosure into the 3rd, in order", async ({ page }) => {
     page,
     line.map((m, i) => ({ at: i * 250, notes: [m], hold: 150 })),
   );
-  await expect(page.getByRole("status")).toContainText("9 of 9 in order", { timeout: 5000 });
+  await expect(page.getByRole("status")).toContainText(/all 9 notes in order/i, { timeout: 5000 });
 });
 
 test("licks: Giant Steps changes two to a bar on the lane", async ({ page }) => {
@@ -185,7 +186,7 @@ test("chord scales: 1-2-3-5 up and back through a ii-V-I", async ({ page }) => {
     page,
     line.map((m, i) => ({ at: i * 250, notes: [m], hold: 150 })),
   );
-  await expect(page.getByRole("status")).toContainText("24 of 24 in order", { timeout: 8000 });
+  await expect(page.getByRole("status")).toContainText(/all 24 notes in order/i, { timeout: 8000 });
 });
 
 test("scales: Eb and F triad pairs, up", async ({ page }) => {
@@ -198,5 +199,7 @@ test("scales: Eb and F triad pairs, up", async ({ page }) => {
     page,
     line.map((m, i) => ({ at: i * 600, notes: [m], hold: 300 })),
   );
-  await expect(page.getByRole("status")).toContainText("Clean at 100 BPM", { timeout: 8000 });
+  await expect(page.getByRole("status")).toContainText(/Clean and even at 100 BPM/, {
+    timeout: 8000,
+  });
 });

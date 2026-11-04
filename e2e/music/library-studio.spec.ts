@@ -494,7 +494,7 @@ test.describe("jam and lab", () => {
       { at: 400, notes: [64], hold: 300 },
       { at: 800, notes: [67], hold: 500 },
     ]);
-    await expect(page.getByText("Distinct")).toBeVisible();
+    await expect(page.getByTestId("lab-tally")).toContainText("3 different notes");
     await shoot(page, "lab-running");
     await page.getByRole("button", { name: /^Stop/ }).click();
     await expect(page.getByText("Take saved: 3 notes")).toBeVisible();
