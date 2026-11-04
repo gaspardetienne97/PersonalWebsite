@@ -14,6 +14,8 @@
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { onMount } from "svelte";
   import { SectionSpy } from "$lib/music/section-spy.svelte";
+  import Picker from "$lib/music/components/Picker.svelte";
+  import { btnPrimary } from "$lib/music/components/ui";
 
   const TOPICS = [
     { id: "session", label: "How a session works", hue: "piano", icon: Layers },
@@ -29,6 +31,18 @@
 
   const spy = new SectionSpy(TOPICS.map((t) => t.id));
   onMount(() => spy.watch());
+  const topicOptions = TOPICS.map((t, i) => ({ value: t.id, label: `${i + 1} of ${TOPICS.length}: ${t.label}` }));
+  function jump(id: string) {
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-reduce-motion");
+    document.getElementById(id)?.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
+    history.replaceState(history.state, "", `#${id}`);
+  }
+  const STEPS = [
+    "Open Today and pick how many minutes you have.",
+    "Woodshed builds a short set from what is due: something you are learning, something slipping, something to review.",
+    "Press Start and go block by block. The setup is remembered, so most days that is all it takes.",
+    "Each run ends with one sentence, the number that matters, the change since last time, and what to try next.",
+  ];
 
   // Illustration data: a set, two keyboards, a result, a week.
   const SET = [
@@ -102,15 +116,19 @@
   </header>
   <p role="status" class="sr-only">Guide loaded.</p>
 
-  <nav aria-label="Guide topics" class="sticky top-27 z-20 min-w-0 -mx-4 bg-ws-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-32 lg:mx-0 lg:self-start lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
-    <ul class="flex gap-2 overflow-x-auto py-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:py-0">
+  <!-- Below lg: one sticky row that names the topic you are reading and jumps to any other. -->
+  <div class="sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+    <Picker label="Guide topic" value={spy.current} options={topicOptions} onchange={jump} />
+  </div>
+  <nav aria-label="Guide topics" class="hidden min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:block lg:self-start">
+    <ul class="flex flex-col gap-1">
       {#each TOPICS as t (t.id)}
-        <li class="shrink-0">
+        <li>
           <a
             href="#{t.id}"
             aria-current={spy.current === t.id ? "location" : undefined}
             style:--topic="var(--hue-{t.hue})"
-            class="topic flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-ws-line px-4 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:items-start lg:whitespace-normal lg:rounded-lg lg:border-0 lg:px-3 lg:py-3"
+            class="topic flex min-h-11 items-start gap-2 rounded-lg px-3 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
           >
             <!-- Sits on the first line, so a label that wraps keeps its dot at the top. -->
             <span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{t.label}
@@ -121,19 +139,29 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-12">
-    <section id="session" aria-labelledby="session-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="session" aria-labelledby="session-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("session-h", "How a session works", "session")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Open <a class={link} href="/music">Today</a> and pick how many minutes you have. Woodshed builds a short set from what is due: something you are learning, something slipping, and something to review. Press Start and go block by block, or open any drill from the Drills tab instead.</p>
-        <p>Every drill runs the same way. The setup is remembered and folded into one line, so most days you just press Start. Timed drills start with a count-in (set in the practice strip), and nothing you play during it is graded. When the run ends you get one sentence on how it went, the number that matters, the change since your last run with the same setup, and what to try next.</p>
-        <p>Your session is saved as you go. There is nothing to submit.</p>
-      </div>
+          <ol class="flex flex-col gap-3">
+            {#each STEPS as step, i (i)}
+              <li class="flex gap-3">
+                <span class="tnum grid size-7 shrink-0 place-items-center rounded-full bg-instr-wash text-sm font-semibold text-instr-ink" aria-hidden="true">{i + 1}</span>
+                <span class="pt-0.5">{step}</span>
+              </li>
+            {/each}
+          </ol>
+          <p class="text-sm text-ws-soft">Timed drills count you in first (set in the practice strip at the top), and nothing played during the count-in is graded. Your session is saved as you go; there is nothing to submit.</p>
+          <p class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a class="{btnPrimary} no-underline" href="/music">Open Today</a>
+            <a class={link} href="/music?tab=drills">Or pick any drill</a>
+          </p>
+        </div>
         {@render setPicture()}
       </div>
     </section>
 
-    <section id="check" aria-labelledby="check-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="check" aria-labelledby="check-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("check-h", "Practice and Check", "check")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -145,7 +173,7 @@
       </div>
     </section>
 
-    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("nm-h", 'What "Not measured" means', "not-measured")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -156,7 +184,7 @@
       </div>
     </section>
 
-    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="connect" aria-labelledby="connect-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("connect-h", "MIDI, the MPC and the microphone", "connect")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -169,7 +197,7 @@
       </div>
     </section>
 
-    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="keys" aria-labelledby="keys-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("keys-h", "Playing from the computer keyboard", "keys")}
       <div class={prose}>
         <p>No instrument nearby? The keys below play whichever surface is on screen. They follow key positions, so they work the same on other layouts.</p>
@@ -213,7 +241,7 @@
       </div>
     </section>
 
-    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("shortcuts-h", "Shortcuts", "shortcuts")}
       <dl class="mt-3 grid max-w-prose grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-3">
         <dt><kbd class="kbd">Space</kbd></dt>
@@ -225,7 +253,7 @@
       </dl>
     </section>
 
-    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("streaks-h", "Streaks, freezes and XP", "streaks")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -237,7 +265,7 @@
       </div>
     </section>
 
-    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("privacy-h", "Privacy", "privacy")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
@@ -253,16 +281,16 @@
 {#snippet heading(id: string, label: string, topicId: string)}
   {@const t = topic(topicId)}
   <h2 {id} class="mb-4 flex items-center gap-3 font-display text-2xl font-semibold tracking-tight">
-    <span class="grid size-10 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{t.hue})" aria-hidden="true"><t.icon class="size-5" /></span>
+    <span class="grid size-10 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-{t.hue})" aria-hidden="true"><t.icon class="size-5" /></span>
     {label}
   </h2>
 {/snippet}
 
 {#snippet setPicture()}
-  <figure class="pic" aria-label="Today's set: four five-minute blocks, scales, ear, reading and rhythm, with the first one ready to start">
+  <figure class="pic max-md:order-first" aria-label="Today's set: four five-minute blocks, scales, ear, reading and rhythm, with the first one ready to start">
     <div class="flex h-14 gap-1.5">
       {#each SET as b, i (b.label)}
-        <div class="flex min-w-0 flex-1 items-end rounded-lg p-1.5 text-xs font-semibold text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{b.hue})" style:opacity={i === 0 ? 1 : 0.75}>{b.label}</div>
+        <div class="flex min-w-0 flex-1 items-end rounded-lg p-1.5 text-xs font-semibold text-ws-stage" style:background="var(--hue-{b.hue})" style:opacity={i === 0 ? 1 : 0.75}>{b.label}</div>
       {/each}
     </div>
     <ol class="mt-3 flex flex-col gap-1.5 text-sm">
@@ -291,7 +319,7 @@
 {/snippet}
 
 {#snippet checkPicture()}
-  <figure class="pic flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward mastery">
+  <figure class="pic max-md:order-first flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward mastery">
     <div>
       <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">Practice <span class="text-xs font-normal text-ws-stage-soft">targets lit</span></p>
       {@render miniKeys(true)}
@@ -306,7 +334,7 @@
 {/snippet}
 
 {#snippet resultPicture()}
-  <figure class="pic" aria-label="A result card: notes right 92 percent, timing 78 percent, velocity not measured on an on-screen pad">
+  <figure class="pic max-md:order-first" aria-label="A result card: notes right 92 percent, timing 78 percent, velocity not measured on an on-screen pad">
     <p class="font-display text-3xl font-bold">85%</p>
     <p class="text-xs text-ws-stage-soft">score, velocity left out</p>
     <dl class="mt-3 flex flex-col gap-2.5 text-sm">
@@ -323,12 +351,12 @@
 {/snippet}
 
 {#snippet devicesPicture()}
-  <figure class="pic" aria-label="Keyboard, MPC and Aerophone connect over MIDI, the MPC with a heartbeat; the guitar comes in through the microphone">
+  <figure class="pic max-md:order-first" aria-label="Keyboard, MPC and Aerophone connect over MIDI, the MPC with a heartbeat; the guitar comes in through the microphone">
     <ul class="flex flex-col gap-2">
       {#each DEVICES as d (d.name)}
         {@const Icon = INSTRUMENT_ICON[d.instrument]}
         <li class="flex items-center gap-2.5">
-          <span class="grid size-9 shrink-0 place-items-center rounded-lg text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{d.instrument})"><Icon class="size-4" aria-hidden="true" /></span>
+          <span class="grid size-9 shrink-0 place-items-center rounded-lg text-ws-stage" style:background="var(--hue-{d.instrument})"><Icon class="size-4" aria-hidden="true" /></span>
           <span class="min-w-0 flex-1">
             <span class="block text-sm font-semibold">{d.name}</span>
             <span class="block text-xs text-ws-stage-soft">{d.note}</span>
@@ -342,12 +370,12 @@
 {/snippet}
 
 {#snippet weekPicture()}
-  <figure class="pic" aria-label="A week: five days practised, one covered by a freeze shown dashed, and today still open">
+  <figure class="pic max-md:order-first" aria-label="A week: five days practised, one covered by a freeze shown dashed, and today still open">
     <ol class="grid grid-cols-7 gap-1 text-center text-xs text-ws-stage-soft">
       {#each WEEK as w, i (i)}
         <li class="flex flex-col items-center gap-1">
           <span
-            class="grid size-8 place-items-center rounded-full {w.s === 'done' ? 'text-[oklch(0.2_0.04_288)]' : w.s === 'frozen' ? 'border-2 border-dashed border-info text-info' : 'border-2 border-ws-stage-ink/40'}"
+            class="grid size-8 place-items-center rounded-full {w.s === 'done' ? 'text-ws-stage' : w.s === 'frozen' ? 'border-2 border-dashed border-info text-info' : 'border-2 border-ws-stage-ink/40'}"
             style:background={w.s === "done" ? "var(--hue-rhythm)" : undefined}
           >{#if w.s === "done"}<Check class="size-4" aria-hidden="true" />{:else if w.s === "frozen"}❄{/if}</span>
           {w.d}
@@ -360,7 +388,7 @@
 {/snippet}
 
 {#snippet privacyPicture()}
-  <figure class="pic" aria-label="Sessions, scores, recordings and samples stay inside this browser; nothing goes to a server">
+  <figure class="pic max-md:order-first" aria-label="Sessions, scores, recordings and samples stay inside this browser; nothing goes to a server">
     <div class="rounded-xl border-2 border-dashed p-3" style:border-color="var(--hue-aerophone)">
       <p class="mb-2 text-xs font-semibold" style:color="var(--hue-aerophone)">This browser</p>
       <ul class="grid grid-cols-2 gap-1.5 text-xs">

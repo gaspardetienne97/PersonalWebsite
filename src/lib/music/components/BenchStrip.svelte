@@ -14,8 +14,11 @@
 
 <script lang="ts">
   // The practice controls: instrument, metronome, tempo, count-in, tuning and
-  // the live input source. One row that wraps; on a phone the secondary
-  // controls sit behind "More" so nothing is off-screen.
+  // the live input source. Only what the page uses: hubs get the compact strip
+  // (instrument, sound and input, search), untimed pages leave out the clock
+  // controls. One row at every width; on a phone the secondary controls sit
+  // behind "More" on a second row, and a run keeps only the beat, the click,
+  // the tempo and sound.
   import * as Popover from "@repo/ui/popover";
   import Search from "lucide-svelte/icons/search";
   import Timer from "lucide-svelte/icons/timer";
@@ -50,7 +53,7 @@
     if (mic.state === "on") return "Microphone";
     return midi.enabled && midi.inputs.length ? "MIDI ready" : "On-screen";
   });
-  const soundLabel = $derived(s.muted ? "Sound off" : !audio.unlocked ? "Enable sound" : "");
+  const soundLabel = $derived(s.muted ? "Sound off" : !audio.unlocked ? "Tap for sound" : "");
   const midiLive = $derived(midi.enabled && midi.inputs.some((p) => p.state === "connected" && !midi.profile(p.id)?.ignored));
   const fretted = $derived(s.activeInstrument === "guitar" || s.activeInstrument === "ukulele" ? s.activeInstrument : null);
   const tuningId = $derived(fretted === "ukulele" ? s.ukuleleTuningId : s.guitarTuningId);
@@ -97,52 +100,65 @@
     bench.clickDuringRun = settings.value.metronomeEnabled;
   });
 
-  const untimed = $derived(!bench.timed);
+  // What this page shows. Compact: hubs and tools; clock: Metronome, Tempo and Count-in.
+  const compact = $derived(bench.compact);
+  const clock = $derived(bench.timed && !compact);
+  const locked = $derived(bench.locked);
+  const showMetronome = $derived(clock && !unused.includes("metronome"));
+  const showTempo = $derived(clock && !unused.includes("tempo"));
+  const showCountIn = $derived(clock && !unused.includes("count-in"));
+  const showTuning = $derived(!compact && !!fretted);
+  const showReads = $derived(!compact && s.activeInstrument === "aerophone");
+  // A phone row without the tempo pill has room for Search; More is only for what is left.
+  const searchInline = $derived(compact || !showTempo);
+  const hasMore = $derived(showMetronome || showCountIn || showTuning || showReads || !searchInline);
+  // Without Tempo and More a phone row has room for the sound pill's words.
+  const roomy = $derived(!showTempo && !hasMore);
+  $effect(() => {
+    if (locked) more = false;
+  });
   // Popovers render inside the app's root, where its colours are defined (as Picker's do).
   let root = $state<HTMLElement>();
   const portalTo = $derived(root?.closest<HTMLElement>(".woodshed") ?? undefined);
   const pill =
     "flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-3 text-sm disabled:opacity-60";
-  /** Secondary controls: behind More on a phone, inline from sm up. */
-  const extra = $derived(more ? "" : "max-sm:hidden");
+  /** Secondary controls: on a phone, on a second row behind More. */
+  const extra = $derived(more ? "max-sm:order-1" : "max-sm:hidden");
+  /** Left out of a phone's slim strip while a run counts in or plays. */
+  const idle = $derived(locked ? "max-sm:hidden" : "");
 </script>
 
-<div bind:this={root} class="sticky z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur {bench.running ? 'top-0' : 'top-12 max-sm:top-0'}">
+<div bind:this={root} bind:offsetHeight={bench.stripH} class="sticky top-0 z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur">
   <!-- One row from sm up (scrolling only if it must), so pills that come and go never change the strip's height mid-click. -->
   <div class="flex flex-wrap items-center gap-2 px-4 py-2 sm:flex-nowrap sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
-    <div class="{pill.replace('border-ws-line', 'border-instr ring-1 ring-inset ring-instr')} relative pr-2">
+    <div class="{pill.replace('border-ws-line', 'border-instr ring-1 ring-inset ring-instr')} {idle} relative min-w-0 pr-2">
       <Picker
-        class="-my-px min-h-11 w-auto min-w-28 pr-1"
+        class="-my-px min-h-11 w-auto min-w-0 pr-1 sm:min-w-28"
         tone="bare"
         label="Instrument"
         value={s.activeInstrument}
-        disabled={bench.locked}
+        disabled={locked}
         options={instrumentOptions((i) => INSTRUMENT_LABEL[i])}
         onchange={(v) => settings.update({ activeInstrument: v as Instrument })}
       />
     </div>
 
-    {#if !unused.includes("metronome")}<button
+    {#if showMetronome}<button
       type="button"
-      class={pill}
+      class="{pill} {locked ? '' : extra}"
       aria-pressed={bench.clickDuringRun}
       aria-label="Metronome click in runs"
       title={bench.clickDuringRun ? "Runs click. Tap to mute the click." : "Runs are silent. Tap to hear the click."}
       onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
     >
       <Timer class="size-4" aria-hidden="true" />
-      <span class="hidden sm:inline">Metronome</span>
+      <span class="hidden lg:inline">Metronome</span>
       <span class="text-ws-soft">{bench.clickDuringRun ? "On" : "Off"}</span>
       <span class="size-2 rounded-full {bench.clickDuringRun ? 'bg-instr' : 'bg-ws-line'}" aria-hidden="true"></span>
     </button>{/if}
 
-    {#if !unused.includes("tempo")}<Popover.Root>
-      <Popover.Trigger
-        class={pill}
-        disabled={bench.locked || untimed}
-        title={untimed ? "Not used here" : undefined}
-        aria-label="Tempo {s.bpm} BPM{untimed ? ', not used here' : ''}"
-      >
+    {#if showTempo}<Popover.Root>
+      <Popover.Trigger class={pill} disabled={locked} aria-label="Tempo {s.bpm} BPM">
         <span class="tnum font-display text-base font-semibold">{s.bpm}</span>
         <span class="text-ws-soft">BPM</span>
       </Popover.Trigger>
@@ -172,11 +188,10 @@
       </Popover.Content>
     </Popover.Root>{/if}
 
-    {#if !unused.includes("count-in")}<Popover.Root>
-      <Popover.Trigger class="{pill} {extra}" disabled={bench.locked || untimed} title={untimed ? "Not used here" : undefined}>
+    {#if showCountIn}<Popover.Root>
+      <Popover.Trigger class="{pill} {extra}" disabled={locked}>
         <span>Count-in</span>
         <span class="font-semibold">{s.countInBars === 0 ? "Off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span>
-        {#if untimed}<span class="sr-only">, not used here</span>{/if}
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="w-60 border-ws-line bg-ws-surface text-ws-ink">
         <p class="text-sm font-medium">Count-in before a run</p>
@@ -191,9 +206,9 @@
       </Popover.Content>
     </Popover.Root>{/if}
 
-    {#if fretted}
+    {#if showTuning && fretted}
       <Popover.Root>
-        <Popover.Trigger class="{pill} {extra}" disabled={bench.locked} aria-label="Tuning: {tuningName}">
+        <Popover.Trigger class="{pill} {extra}" disabled={locked} aria-label="Tuning: {tuningName}">
           <span>Tuning</span>
           <span class="font-semibold">{tuningName}</span>
         </Popover.Trigger>
@@ -207,9 +222,9 @@
       </Popover.Root>
     {/if}
 
-    {#if s.activeInstrument === "aerophone"}
+    {#if showReads}
       <Popover.Root>
-        <Popover.Trigger class="{pill} {extra}" disabled={bench.locked} aria-label="Aerophone reads in {aeroKey.label}">
+        <Popover.Trigger class="{pill} {extra}" disabled={locked} aria-label="Aerophone reads in {aeroKey.label}">
           <span>Reads in</span>
           <span class="font-semibold">{aeroKey.label}</span>
         </Popover.Trigger>
@@ -228,7 +243,7 @@
       </Popover.Root>
     {/if}
 
-    <span class="min-h-11 shrink-0 items-center gap-1 px-1 {bench.running || bench.countingIn ? 'flex' : 'hidden'} {extra}" aria-hidden="true" title="Beat">
+    <span class="min-h-11 shrink-0 items-center gap-1 px-1 {locked && clock ? 'flex' : 'hidden'}" aria-hidden="true" title="Beat">
       {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
         <span
           class="size-2.5 rounded-full transition-transform {bench.beat === b
@@ -241,38 +256,44 @@
       <span class="sr-only">Beat {bench.beat} of {bench.beatsPerBar}</span>
     {/if}
 
-    <span class="ml-auto"></span>
+    <span class="ml-auto max-sm:hidden"></span>
 
-    <!-- Sound, MIDI and the microphone in one pill; it asks for attention while sound is locked or muted. -->
+    <!-- Sound, MIDI and the microphone in one pill. Muted is flagged; sound waiting for a first tap only says so.
+         A full phone row shows the speaker alone (slashed when silent): the words and devices are in the pop-up. -->
     <Popover.Root>
       <Popover.Trigger
-        class="{pill} {soundLabel ? (s.muted ? 'border-warn' : 'border-instr text-instr-ink') : ''}"
+        class="{pill} {s.muted ? 'border-warn' : ''} max-sm:ml-auto {roomy ? '' : 'max-sm:w-11 max-sm:justify-center max-sm:px-0'}"
         aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}"
       >
-        {#if s.muted || !audio.unlocked}<VolumeOff class="size-4" aria-hidden="true" />{:else}<Volume class="size-4" aria-hidden="true" />{/if}
-        {#if soundLabel}<span>{soundLabel}</span>{/if}
-        <span class="flex items-center gap-1 {midiLive ? '' : 'text-ws-soft'}" title="MIDI {midiLive ? 'on' : 'off'}">
+        <!-- Children stay mounted: the first tap unlocks sound, and swapping nodes mid-click would swallow the click that opens the pop-up. -->
+        <VolumeOff class="size-4 {s.muted || !audio.unlocked ? '' : 'hidden'}" aria-hidden="true" /><Volume class="size-4 {s.muted || !audio.unlocked ? 'hidden' : ''}" aria-hidden="true" />
+        <span class="whitespace-nowrap {soundLabel ? '' : 'hidden'} {roomy ? '' : 'max-sm:hidden'}">{soundLabel}</span>
+        <!-- MIDI and microphone at a glance from sm up; a phone keeps them in the pop-up. -->
+        <span class="hidden items-center gap-1 sm:flex {midiLive ? '' : 'text-ws-soft'}" title="MIDI {midiLive ? 'on' : 'off'}">
           <KeyboardMusic class="size-4" aria-hidden="true" /><span class="size-2 rounded-full {midiLive ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
         </span>
-        <span class="flex items-center gap-1 {mic.state === 'on' ? '' : 'text-ws-soft'}" title="Microphone {mic.state === 'on' ? 'on' : 'off'}">
+        <span class="hidden items-center gap-1 sm:flex {mic.state === 'on' ? '' : 'text-ws-soft'}" title="Microphone {mic.state === 'on' ? 'on' : 'off'}">
           {#if mic.state === "on"}<Mic class="size-4" aria-hidden="true" />{:else}<MicOff class="size-4" aria-hidden="true" />{/if}<span class="size-2 rounded-full {mic.state === 'on' ? 'bg-success' : 'bg-ws-line'}" aria-hidden="true"></span>
         </span>
         {#if !soundLabel}<span class="hidden lg:inline">{sourceLabel}</span>{/if}
-        <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
+        <ChevronDown class="hidden size-4 text-ws-soft sm:block" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="max-h-[80vh] w-80 overflow-y-auto border-ws-line bg-ws-surface text-ws-ink">
         <InputPanel />
       </Popover.Content>
     </Popover.Root>
 
-    <button type="button" class="{pill} {extra}" onclick={() => palette.open()} aria-label="Search" aria-keyshortcuts="Meta+K Control+K">
+    <!-- Words only on the widest screens, so the row never clips beside the sidebar. -->
+    <button type="button" class="{pill} {searchInline ? idle : extra} max-2xl:w-11 max-2xl:justify-center max-2xl:px-0" onclick={() => palette.open()} aria-label="Search" title="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
       <Search class="size-4" aria-hidden="true" />
-      <span class="hidden xl:inline">Search</span>
-      <kbd class="hidden rounded border border-ws-line px-1 text-xs text-ws-soft xl:inline">⌘K</kbd>
+      <span class="hidden 2xl:inline">Search</span>
+      <kbd class="hidden rounded border border-ws-line px-1 text-xs text-ws-soft 2xl:inline">⌘K</kbd>
     </button>
 
-    <button type="button" class="{pill} sm:hidden" aria-expanded={more} onclick={() => (more = !more)}>
-      {more ? "Less" : "More"}<ChevronDown class="size-4 transition-transform {more ? 'rotate-180' : ''}" aria-hidden="true" />
-    </button>
+    {#if hasMore && !locked}
+      <button type="button" class="{pill} sm:hidden" aria-expanded={more} onclick={() => (more = !more)}>
+        {more ? "Less" : "More"}
+      </button>
+    {/if}
   </div>
 </div>

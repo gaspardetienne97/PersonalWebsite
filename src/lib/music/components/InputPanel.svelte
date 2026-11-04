@@ -47,7 +47,7 @@
   <section class="flex flex-col gap-2" aria-labelledby="input-sound">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-sound" class="text-sm font-semibold">Sound</h2>
-      <span class="text-xs text-ws-soft">{!audio.unlocked ? "Not enabled yet" : settings.value.muted ? "Muted" : "On"}</span>
+      <span class="text-xs text-ws-soft">{settings.value.muted ? "Off" : !audio.unlocked ? "Waiting for a tap" : "On"}</span>
     </div>
     {#if !audio.unlocked}
       <button type="button" class={btnPrimary} onclick={() => audio.unlock()}>Enable sound</button>

@@ -12,6 +12,7 @@
   import Palette from "lucide-svelte/icons/palette";
   import Target from "lucide-svelte/icons/target";
   import Database from "lucide-svelte/icons/database";
+  import Check from "lucide-svelte/icons/check";
   import type { PlaybackSound } from "@repo/music-core";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
   import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
@@ -43,9 +44,9 @@
     { value: "saw", label: "Saw" },
   ];
   const LEVELS = [
-    { key: "playbackLevel", label: "Playback and drills" },
-    { key: "metronomeLevel", label: "Metronome" },
-    { key: "masterLevel", label: "Master" },
+    { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
+    { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
+    { key: "masterLevel", label: "Master", blurb: "Everything at once." },
   ] as const;
   const SECTIONS = [
     { id: "audio", label: "Audio", icon: Volume2, hue: "piano" },
@@ -120,10 +121,11 @@
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
-  <nav aria-label="Settings sections" class="sticky top-27 z-20 min-w-0 -mx-4 bg-ws-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-32 lg:mx-0 lg:self-start lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
-    <ul class="flex gap-1.5 overflow-x-auto py-2 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:py-0">
+  <!-- Chips that wrap on a phone (all six in view, nothing cut off); a sticky list beside the page from lg. -->
+  <nav aria-label="Settings sections" class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:self-start">
+    <ul class="flex flex-wrap gap-1.5 lg:flex-col lg:gap-1">
       {#each SECTIONS as sec (sec.id)}
-        <li class="shrink-0">
+        <li>
           <a
             href="#{sec.id}"
             aria-current={spy.current === sec.id ? "location" : undefined}
@@ -138,15 +140,15 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-10">
-    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("audio-h", "Audio", Volume2)}
       {@render note("audio")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p id="sound-l" class="font-medium">Sound</p>
-            <p class="text-sm text-ws-soft">
-              {s.muted ? "Off: nothing in Woodshed makes sound. Your levels are kept." : audio.unlocked ? "On." : "On, and it starts at your first tap (browsers wait for one)."}
+            <p class="flex items-center gap-1 font-medium"><span id="sound-l">Sound</span><Hint about="Sound" text="Browsers keep a page silent until you tap or click it once. Any tap in Woodshed starts the sound, and so does Play test sound." /></p>
+            <p class="text-sm text-ws-soft" data-testid="sound-status">
+              {s.muted ? "Sound off. Nothing in Woodshed plays; your levels are kept." : audio.unlocked ? "Sound on." : "Sound on. It starts at your first tap."}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -163,8 +165,11 @@
         </li>
         {#each LEVELS as l (l.key)}
           <li class={rowCls}>
-            <label for={l.key} class="min-w-0 flex-1 basis-40 font-medium">{l.label}</label>
-            <div class="flex w-full items-center gap-3 sm:w-64">
+            <div class="min-w-0 flex-1 basis-40">
+              <label for={l.key} class="flex items-baseline gap-2 font-medium">{l.label}<span class="tnum text-sm font-semibold text-instr-ink">{Math.round(s[l.key] * 100)}%</span></label>
+              <p class="text-sm text-ws-soft">{l.blurb}</p>
+            </div>
+            <div class="flex w-full items-center sm:w-64">
               <input
                 id={l.key}
                 type="range"
@@ -175,7 +180,6 @@
                 value={s[l.key]}
                 oninput={(e) => settings.update({ [l.key]: Number(e.currentTarget.value) })}
               />
-              <span class="tnum w-12 text-right text-sm">{Math.round(s[l.key] * 100)}%</span>
             </div>
           </li>
         {/each}
@@ -191,7 +195,7 @@
       </ul>
     </section>
 
-    <section id="input" aria-labelledby="input-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="input" aria-labelledby="input-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("input-h", "Instruments", Mic, "Which microphone and MIDI devices to use is set on Connect, with a live test for each. These rows are about reading and pitch.")}
       {@render note("input")}
       <ul class={listCls}>
@@ -224,7 +228,7 @@
       </ul>
     </section>
 
-    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
       {@render note("latency")}
       <ul class={listCls}>
@@ -283,7 +287,7 @@
       </ul>
     </section>
 
-    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("appearance-h", "Appearance", Palette)}
       {@render note("appearance")}
       <ul class={listCls}>
@@ -302,7 +306,7 @@
       </ul>
     </section>
 
-    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("goals-h", "Goals", Target)}
       {@render note("goals")}
       <ul class={listCls}>
@@ -330,7 +334,7 @@
       </ul>
     </section>
 
-    <section id="data" aria-labelledby="data-h" class="scroll-mt-42 lg:scroll-mt-32">
+    <section id="data" aria-labelledby="data-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
       {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />
@@ -343,7 +347,7 @@
 {#snippet heading(id: string, label: string, Icon: typeof Volume2, hint?: string)}
   <div class="mb-3 flex items-center gap-1">
     <h2 {id} class="flex items-center gap-2 font-display text-xl font-semibold">
-      <span class="grid size-8 place-items-center rounded-lg text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{SECTIONS.find((x) => `${x.id}-h` === id)?.hue ?? 'create'})" aria-hidden="true"><Icon class="size-4" /></span>{label}
+      <span class="grid size-8 place-items-center rounded-lg text-ws-stage" style:background="var(--hue-{SECTIONS.find((x) => `${x.id}-h` === id)?.hue ?? 'create'})" aria-hidden="true"><Icon class="size-4" /></span>{label}
     </h2>
     {#if hint}<Hint about={label.toLowerCase()} text={hint} />{/if}
   </div>
@@ -359,7 +363,10 @@
     onclick={() => set(!on)}
   >
     <span class="absolute inset-x-1 h-7 rounded-full transition-colors {on ? 'bg-instr-ink' : 'bg-ws-raised ring-1 ring-ws-line'}"></span>
-    <span class="relative size-6 rounded-full bg-ws-surface shadow transition-transform {on ? 'translate-x-8' : 'translate-x-2'}"></span>
+    <!-- The knob carries a check when on, so the state is never colour alone. -->
+    <span class="relative grid size-6 place-items-center rounded-full bg-ws-surface text-instr-ink shadow transition-transform {on ? 'translate-x-8' : 'translate-x-2'}">
+      {#if on}<Check class="size-4" strokeWidth={3} aria-hidden="true" />{/if}
+    </span>
   </button>
 {/snippet}
 
@@ -373,7 +380,12 @@
   .topic[aria-current="location"] {
     color: var(--ws-ink);
     font-weight: 600;
+    border-color: var(--topic);
     background: color-mix(in oklch, var(--topic) 16%, transparent);
-    box-shadow: inset 3px 0 0 var(--topic);
+  }
+  @media (min-width: 1024px) {
+    .topic[aria-current="location"] {
+      box-shadow: inset 3px 0 0 var(--topic);
+    }
   }
 </style>

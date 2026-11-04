@@ -9,6 +9,10 @@ export interface SearchItem {
   keywords?: string;
   /** Drills rank above pages that match as well. */
   drill?: boolean;
+  /** A heading for the empty palette's sections ("Up next", "Recent", "Pages"). */
+  group?: string;
+  /** Why an item matched when its title does not: the words around the query. */
+  match?: string;
 }
 
 const PAGES: SearchItem[] = [
@@ -93,13 +97,60 @@ export function registerSearchItems(items: SearchItem[]) {
 
 export const searchIndex = (): SearchItem[] => [...PAGES, ...DRILLS, ...PATHS, ...extra];
 
+const norm = (id: string) => id.replace(/^technique\.ukulele\./, "technique.guitar.");
+
+/** The drills behind the latest runs, newest first, each once. */
+export function recentDrills(
+  runs: { exerciseId: string; startedAt: number }[],
+  n = 3,
+): SearchItem[] {
+  const out: SearchItem[] = [];
+  for (const r of [...runs].sort((a, b) => b.startedAt - a.startedAt)) {
+    const id = norm(r.exerciseId);
+    const e = CATALOG.find((x) => x.exerciseId === id || x.modes.some((m) => m.exerciseId === id));
+    const item = e && DRILLS.find((d) => d.href === e.route);
+    if (item && !out.some((o) => o.href === item.href)) out.push(item);
+    if (out.length === n) break;
+  }
+  return out;
+}
+
+/** The first `n` drills for an instrument, in catalogue order: the empty palette's start before any history. */
+export const drillsFor = (instrument: string, n = 3): SearchItem[] =>
+  CATALOG.filter((e) => (e.instruments as string[]).includes(instrument))
+    .slice(0, n)
+    .flatMap((e) => DRILLS.filter((d) => d.href === e.route).slice(0, 1));
+
+/** The words around the first place `q` appears in `text`, for a result that matched there. */
+function excerpt(text: string, q: string): string {
+  const at = text.toLowerCase().indexOf(q);
+  const from = Math.max(0, text.lastIndexOf(" ", Math.max(0, at - 24)) + 1);
+  const to = text.indexOf(" ", at + q.length + 24);
+  return `${from > 0 ? "…" : ""}${text.slice(from, to < 0 ? undefined : to)}${to < 0 ? "" : "…"}`;
+}
+
+const path = (href: string) => href.split(/[?#]/)[0];
+
 /**
  * The palette's results: label matches before keyword-only ones, an exact label first, then
- * drills before pages, then a label that starts with the query before a word in it.
+ * drills before pages, then a label that starts with the query before a word in it. A
+ * keyword-only match is left out once two titles match, and otherwise says what it matched.
+ * With no query: `lead` (today's next block, recent drills) first, then pages.
  */
-export function searchItems(query: string, all = searchIndex()): SearchItem[] {
+export function searchItems(
+  query: string,
+  all = searchIndex(),
+  lead: SearchItem[] = [],
+): SearchItem[] {
   const q = query.trim().toLowerCase();
-  if (!q) return all.slice(0, 12);
+  if (!q) {
+    // A drill that is also the next block is listed once.
+    const first = lead.filter((i, n) => lead.findIndex((j) => path(j.href) === path(i.href)) === n);
+    const rest = all
+      .filter((i) => !i.drill && !first.some((f) => f.href === i.href))
+      .map((i) => (lead.length ? { ...i, group: "Pages" } : i));
+    return [...first, ...rest].slice(0, 12);
+  }
   const score = (item: SearchItem) => {
     const label = item.label.toLowerCase();
     const at = label.startsWith(q)
@@ -114,10 +165,18 @@ export function searchItems(query: string, all = searchIndex()): SearchItem[] {
     return at < 0 ? -1 : at + (label === q ? 0 : 100) + (item.drill ? 0 : 10);
   };
   // The sort is stable, so equal scores keep the index order.
-  return all
+  const hits = all
     .map((item) => ({ item, s: score(item) }))
     .filter((r) => r.s >= 0)
-    .sort((a, b) => a.s - b.s)
+    .sort((a, b) => a.s - b.s);
+  const strong = hits.filter((r) => r.s < 1000).length;
+  return hits
+    .filter((r) => r.s < 1000 || strong < 2)
     .slice(0, 20)
-    .map((r) => r.item);
+    .map(({ item, s }) =>
+      // A hint match needs no note: the hint is shown beside the title.
+      s >= 1000 && item.keywords?.toLowerCase().includes(q)
+        ? { ...item, match: excerpt(item.keywords, q) }
+        : item,
+    );
 }

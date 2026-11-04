@@ -9,6 +9,9 @@
   let commands = $state("");
   let { children } = $props();
   const currentPath = $derived($page.url?.pathname ?? "/");
+  // The music app brings its own navigation (theme toggle and a link home included).
+  // An error page is drawn outside it, so it keeps the site's.
+  const music = $derived(!$page.error && (currentPath === "/music" || currentPath.startsWith("/music/")));
 </script>
 
 <svelte:window
@@ -26,9 +29,9 @@
     <SplashScreen />
   {/if}
   <ModeWatcher />
-  <Header />
+  {#if !music}<Header />{/if}
   <main class="grow">
     {@render children()}
   </main>
-  <Footer />
+  {#if !music}<Footer />{/if}
 </div>

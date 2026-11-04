@@ -21,8 +21,12 @@ class Bench {
   beatsPerBar = $state(4);
   /** Keep the metronome clicking during a run (persisted by the strip). */
   clickDuringRun = $state(true);
-  /** False on pages that run no clock, so the strip dims Tempo and Count-in. */
+  /** False on pages that run no clock, so the strip leaves out Metronome, Tempo and Count-in. */
   timed = $state(true);
+  /** Hubs and tools: the strip shows only the instrument, sound and input, and search. */
+  compact = $state(false);
+  /** The strip's rendered height in px, written to --ws-strip-h on the app root. */
+  stripH = $state(0);
   /** Page-level hue override (ear, reading…); null follows the instrument. */
   hue = $state<Hue | null>(null);
   get locked() {

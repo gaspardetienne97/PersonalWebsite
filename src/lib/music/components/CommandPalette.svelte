@@ -1,13 +1,32 @@
 <script lang="ts">
   // ⌘K / Ctrl-K: one flat index over hubs, drills and paths. Arrows move, Enter goes.
+  // Empty, it opens on today's next block and the drills played last.
   import * as Dialog from "@repo/ui/dialog";
   import { goto } from "$app/navigation";
   import { palette } from "./palette.svelte";
-  import { searchItems } from "../search";
+  import { drillsFor, recentDrills, searchIndex, searchItems, type SearchItem } from "../search";
+  import { practice } from "../practice.svelte";
+  import { settings } from "../runtime";
 
   let query = $state("");
   let active = $state(0);
-  const items = $derived(searchItems(query));
+  // Today's plan loads with the palette's first opening, not with every page.
+  let plan = $state<typeof import("../today.svelte")>();
+  $effect(() => {
+    if (palette.isOpen && !plan) void import("../today.svelte").then((m) => (plan = m));
+  });
+  const lead = $derived.by((): SearchItem[] => {
+    if (!palette.isOpen || query.trim()) return [];
+    const played = recentDrills(practice.sessions.flatMap((s) => s.runs));
+    const recent = played.length
+      ? played.map((i) => ({ ...i, group: "Recent" }))
+      : drillsFor(settings.value.activeInstrument).map((i) => ({ ...i, group: "Drills to try" }));
+    if (!plan) return recent;
+    const today = plan.todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes);
+    const next = today.routine.steps.find((st) => !today.done.includes(st.n));
+    return [...(next ? [{ label: next.label, href: next.href, hint: "Next in today's set", group: "Up next" }] : []), ...recent];
+  });
+  const items = $derived(searchItems(query, searchIndex(), lead));
 
   $effect(() => {
     void query;
@@ -58,17 +77,23 @@
     />
     <ul id="palette-results" role="listbox" aria-label="Results" class="max-h-[50vh] overflow-y-auto">
       {#each items as item, i (item.href + item.label)}
+        {#if item.group && item.group !== items[i - 1]?.group}
+          <li role="presentation" class="px-3 pb-1 pt-3 text-xs font-semibold text-muted-foreground first:pt-1">{item.group}</li>
+        {/if}
         <li
           id="palette-{i}"
           role="option"
           aria-selected={i === active}
-          class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-3 text-sm {i === active ? 'bg-accent' : ''}"
+          class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-1.5 text-sm {i === active ? 'bg-accent' : ''}"
           onpointerenter={() => (active = i)}
           onclick={() => go(item.href)}
           onkeydown={() => {}}
         >
-          <span class="font-medium">{item.label}</span>
-          {#if item.hint}<span class="truncate text-muted-foreground">{item.hint}</span>{/if}
+          <span class="min-w-0">
+            <span class="block font-medium">{item.label}</span>
+            {#if item.match}<span class="block truncate text-xs text-muted-foreground">Matches "{item.match}"</span>{/if}
+          </span>
+          {#if item.hint}<span class="shrink-0 truncate text-muted-foreground">{item.hint}</span>{/if}
         </li>
       {:else}
         <li class="px-3 py-4 text-sm text-muted-foreground">Nothing matches "{query}".</li>

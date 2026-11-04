@@ -26,8 +26,12 @@
   --hue-create: oklch(0.74 0.14 260);
 
   --instr: var(--hue-piano);
-  /* Text-safe version of the hue on the page background. */
-  --instr-ink: color-mix(in oklch, var(--instr), black 42%);
+  /* Text-safe version of the hue on the page background: one lightness for every
+     hue (7:1 or better on --ws-bg, --ws-surface and --ws-raised) with its chroma
+     kept, so it reads as the hue and not as a muddy brown. color-mix is the
+     fallback where relative colours are not supported. */
+  --instr-ink: color-mix(in oklch, var(--instr), black 50%);
+  --instr-ink: oklch(from var(--instr) 0.42 min(c, 0.13) h);
   --instr-wash: color-mix(in oklch, var(--instr) 16%, transparent);
 
   /* Tone roles and hands: fixed musical identity, identical in both themes. */
@@ -42,8 +46,24 @@
   --finger-3: oklch(0.88 0.15 95);
   --finger-4: oklch(0.76 0.16 350);
 
+  /* Layout contract for sticky and docked children. The layout overrides
+     --ws-strip-h with the strip's measured height; --ws-dock-h is the phone
+     tab bar (with the safe area), 0 at lg and while a run hides the bar. */
+  --ws-strip-h: 3.75rem;
+  --ws-dock-h: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
+
   background: var(--ws-bg);
   color: var(--ws-ink);
+}
+
+@media (min-width: 64rem) {
+  .woodshed {
+    --ws-dock-h: 0px;
+  }
+}
+
+.woodshed[data-running] {
+  --ws-dock-h: 0px;
 }
 
 .dark .woodshed {
@@ -86,12 +106,6 @@
     ),
     var(--ws-stage);
   color: var(--ws-stage-ink);
-}
-
-/* Focus mode: a running drill owns the screen. */
-html[data-music-focus] .app > header,
-html[data-music-focus] .app > footer {
-  display: none;
 }
 
 html[data-reduce-motion] *,
