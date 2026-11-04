@@ -11,16 +11,15 @@
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import Pads from "./Pads.svelte";
   import AerophoneKeys from "./AerophoneKeys.svelte";
-  import DictationGrid from "../drills/rhythm/DictationGrid.svelte";
   import { GROOVE_LANES } from "@repo/music-core/content/rhythm";
   import { countName } from "@repo/music-core/lessons/count";
   import Staff from "../notation/Staff.svelte";
   import { noteName } from "@repo/music-core";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
-  import { btnStage as btn, btnPrimary } from "./ui";
+  import { btn, btnPrimary } from "./ui";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
-  let { lessons, onfinish }: { lessons: Lesson[]; onfinish: () => void } = $props();
+  let { lessons, onfinish, onskip }: { lessons: Lesson[]; onfinish: () => void; onskip?: () => void } = $props();
 
   let li = $state(0);
   let si = $state(0);
@@ -199,17 +198,38 @@
   const eqLabel = (f: Extract<LessonFigure, { kind: "eq" }>) =>
     `EQ curve: ${hzText(f.band)} ${f.gainDb >= 0 ? "boosted" : "cut"} by ${Math.abs(f.gainDb)} dB, everything else flat`;
   const fretMarks = (m: { string: number; fret: number; label: string }[]): FretMark[] => m.map((x) => ({ ...x, role: "scale" }));
+
+  /** The counts of one beat, as a player says them; the beat's own number goes in the first. */
+  const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
+  const hitAt = (beats: number[] | undefined, i: number, perBeat: number) => (beats ?? []).some((b) => Math.abs(b * perBeat - i) < 1e-6);
+
+  /** Letter names under a staff sit on one line per system (VexFlow hangs each below its own note). */
+  function baseline(node: HTMLElement) {
+    const align = () => {
+      const texts = [...node.querySelectorAll<SVGTextElement>(".vf-annotation text")];
+      const ys = texts.map((t) => Number(t.getAttribute("y") ?? 0));
+      texts.forEach((t, i) => {
+        // The lowest label within reach (the same system), never one from the system below.
+        const y = Math.max(...ys.filter((v) => Math.abs(v - ys[i]) < 40));
+        if (ys[i] !== y) t.setAttribute("y", String(y));
+      });
+    };
+    const watch = new MutationObserver(align);
+    watch.observe(node, { childList: true, subtree: true });
+    align();
+    return { destroy: () => watch.disconnect() };
+  }
 </script>
 
 <svelte:window onkeydown={onKey} />
 
-<div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 pt-2 text-ws-stage-ink" data-testid="lesson">
-  <div class="flex items-center justify-between gap-3 text-sm text-ws-stage-ink/80">
+<div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 pt-2 text-ws-ink" data-testid="lesson">
+  <div class="flex items-center justify-between gap-3 text-sm text-ws-soft">
     <p>{lessons[0].title}</p>
     <p><span aria-hidden="true">{at} / {total}</span><span class="sr-only">Screen {at} of {total}</span></p>
   </div>
   <!-- One bar for the whole sequence: chained item cards can run to dozens of screens. -->
-  <div class="h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/20" aria-hidden="true">
+  <div class="h-1.5 overflow-hidden rounded-full bg-ws-raised" aria-hidden="true">
     <div class="h-full rounded-full bg-instr" style:width="{(at / total) * 100}%"></div>
   </div>
 
@@ -217,31 +237,21 @@
 
   {#if figure?.kind === "groove"}
     {@const g = figure}
-    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Groove grid, {g.bars} {g.bars === 1 ? 'bar' : 'bars'}, {GROOVE_LANES.filter((l) => g.lanes[l.id]).map((l) => l.label).join(', ')}">
-      <DictationGrid
-        bars={g.bars}
-        rows={GROOVE_LANES.map((l) => ({ id: l.id as string, label: l.label }))}
-        perBeat={g.perBeat}
-        beatsPerBar={4}
-        barNumbers={g.barNumbers}
-        marks={Object.fromEntries(GROOVE_LANES.map((l) => [l.id, Array.from({ length: g.bars * 4 * g.perBeat }, (_, i) => (g.lanes[l.id] ?? []).some((b) => Math.abs(b * g.perBeat - i) < 1e-6))]))}
-      />
+    <!-- One row per drum across the whole bar, one bar a block, on the dark stage panel. -->
+    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label="Groove grid, {g.bars} {g.bars === 1 ? 'bar' : 'bars'}: {GROOVE_LANES.filter((l) => g.lanes[l.id]?.length).map((l) => `${l.label} on ${g.lanes[l.id]!.map((b) => countName(b, g.perBeat, 4)).join(', ')}`).join('; ')}">
+      {@render beatGrid(g.bars, g.perBeat, 4, GROOVE_LANES.map((l) => ({ label: l.label, beats: g.lanes[l.id] })), g.barNumbers)}
     </div>
   {:else if figure?.kind === "rhythm"}
     {@const r = figure}
-    <div class="mx-auto w-full max-w-md space-y-2" role="group" aria-label="Rhythm grid, {r.bars} {r.bars === 1 ? 'bar' : 'bars'}, notes on {r.onsets.length ? r.onsets.map((b) => countName(b, r.perBeat, r.beatsPerBar)).join(', ') : 'no counts yet'}">
-      <DictationGrid
-        bars={r.bars}
-        rows={[{ id: "hit", label: "" }]}
-        perBeat={r.perBeat}
-        beatsPerBar={r.beatsPerBar}
-        marks={{ hit: Array.from({ length: r.bars * r.beatsPerBar * r.perBeat }, (_, i) => r.onsets.some((b) => Math.abs(b * r.perBeat - i) < 1e-6)) }}
-      />
+    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label="Rhythm grid, {r.bars} {r.bars === 1 ? 'bar' : 'bars'}, notes on {r.onsets.length ? r.onsets.map((b) => countName(b, r.perBeat, r.beatsPerBar)).join(', ') : 'no counts yet'}">
+      {@render beatGrid(r.bars, r.perBeat, r.beatsPerBar, [{ label: "", beats: r.onsets }])}
     </div>
   {:else if figure}
     <!-- A long line (two bars of eighths) gets the column's full width at its own size, and room for a second system on a phone. -->
     {@const wide = figure.kind === "staff" && figure.notes.length > 8}
-    <div class="mx-auto w-full {wide ? '' : 'max-w-md'} rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
+    {@const paper = figure.kind === "staff" || figure.kind === "signature"}
+    <!-- Notation on its own paper card; every other figure is drawn on the dark stage panel. -->
+    <div class="mx-auto w-full {wide ? '' : 'max-w-md'} {paper ? 'rounded-xl border border-ws-line bg-ws-surface px-3 pb-1 text-ws-ink' : 'stage rounded-2xl p-4'}">
       {#if figure.kind === "signature"}
         <!-- Key signature only: the empty bar's rest is hidden, the staff enlarged and centred. -->
         <div class="sig">
@@ -249,7 +259,7 @@
         </div>
         <p class="sr-only">{sigLabel(figure)}</p>
       {:else if figure.kind === "staff"}
-        <div class="notes" class:wide>
+        <div class="notes" class:wide use:baseline>
           <Staff score={staffScore(figure)} maxHeight={wide ? "20rem" : "14rem"} time={!!figure.meter} fill={wide ? true : "center"} revealLabels />
         </div>
         <p class="sr-only">{staffLabel(figure)}</p>
@@ -263,15 +273,15 @@
         {@const f = figure}
         <svg viewBox="-4 -20 {EQ.w + 8} {EQ.h + 42}" class="w-full py-2" role="img" aria-label={eqLabel(f)}>
           <!-- Flat line, frequency ticks, then the curve and its band. -->
-          <line x1="0" x2={EQ.w} y1={eqY(0)} y2={eqY(0)} class="stroke-ws-line" stroke-width="1.5" stroke-dasharray="4 4" />
+          <line x1="0" x2={EQ.w} y1={eqY(0)} y2={eqY(0)} class="stroke-ws-stage-ink/30" stroke-width="1.5" stroke-dasharray="4 4" />
           {#each [100, 1000, 10000] as hz (hz)}
-            <line x1={eqX(hz)} x2={eqX(hz)} y1="0" y2={EQ.h} class="stroke-ws-line" stroke-width="1" />
-            <text x={eqX(hz)} y={EQ.h + 16} text-anchor="middle" class="fill-ws-soft text-[11px]">{hzText(hz)}</text>
+            <line x1={eqX(hz)} x2={eqX(hz)} y1="0" y2={EQ.h} class="stroke-ws-stage-ink/15" stroke-width="1" />
+            <text x={eqX(hz)} y={EQ.h + 16} text-anchor="middle" class="fill-ws-stage-soft text-[11px]">{hzText(hz)}</text>
           {/each}
           <path d="{eqPath(f)} L{EQ.w},{eqY(0)} L0,{eqY(0)} Z" class="fill-instr/20" />
-          <path d={eqPath(f)} fill="none" class="stroke-instr-ink" stroke-width="2.5" stroke-linejoin="round" />
-          <circle cx={eqX(f.band)} cy={eqY(f.gainDb)} r="5" class="fill-instr-ink" />
-          <text x={eqX(f.band)} y={f.gainDb >= 0 ? eqY(f.gainDb) - 10 : eqY(f.gainDb) + 18} text-anchor={eqX(f.band) > EQ.w * 0.8 ? "end" : eqX(f.band) < EQ.w * 0.2 ? "start" : "middle"} class="fill-ws-ink text-[12px] font-semibold">{hzText(f.band)}, {f.gainDb > 0 ? "+" : ""}{f.gainDb} dB</text>
+          <path d={eqPath(f)} fill="none" class="stroke-instr" stroke-width="2.5" stroke-linejoin="round" />
+          <circle cx={eqX(f.band)} cy={eqY(f.gainDb)} r="5" class="fill-instr" />
+          <text x={eqX(f.band)} y={f.gainDb >= 0 ? eqY(f.gainDb) - 10 : eqY(f.gainDb) + 18} text-anchor={eqX(f.band) > EQ.w * 0.8 ? "end" : eqX(f.band) < EQ.w * 0.2 ? "start" : "middle"} class="fill-ws-stage-ink text-[12px] font-semibold">{hzText(f.band)}, {f.gainDb > 0 ? "+" : ""}{f.gainDb} dB</text>
         </svg>
       {:else if figure.kind === "aerophone"}
         <AerophoneKeys midi={figure.midi} compact />
@@ -287,7 +297,7 @@
 
   {#if steps.length}
     <ol class="flex flex-col gap-1 text-base" aria-live="polite">
-      {#each steps.slice(0, shown) as st, i (i)}<li class={i === shown - 1 ? "font-semibold" : "text-ws-stage-ink/80"}>{st.text}</li>{/each}
+      {#each steps.slice(0, shown) as st, i (i)}<li class={i === shown - 1 ? "font-semibold" : "text-ws-soft"}>{st.text}</li>{/each}
     </ol>
   {/if}
 
@@ -301,14 +311,72 @@
 
   <!-- The moves dock at the bottom of the screen (the session's dock), so Next sits in the thumb zone and
        the text scrolls clear of it. -->
-  <div class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
-    {#if !isFirst}<button type="button" class="{btn} min-h-12 px-5 text-base" onclick={back}>Back</button>{/if}
+  <div class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
+    {#if !isFirst}<button type="button" class="{btn} min-h-12 px-4 text-base sm:px-5" onclick={back}>Back</button>{/if}
+    {#if onskip && !isLast}<button type="button" class="{btn} min-h-12 px-4 text-base max-sm:text-sm" onclick={onskip}>Skip, I know this</button>{/if}
+    <span class="ml-auto hidden text-sm text-ws-soft lg:inline">Arrow keys move.</span>
     <button type="button" class="{btnPrimary} min-h-12 flex-1 text-base sm:flex-none sm:px-8" onclick={next} aria-keyshortcuts="ArrowRight">{isLast ? "Start the quiz" : "Next"}</button>
-    <span class="ml-auto hidden text-sm text-ws-stage-soft lg:inline">Arrow keys move.</span>
   </div>
 </div>
 
+<!-- A read-only count grid: the counts on top, then one row per drum (or one for a rhythm) across each bar.
+     Hits on a numbered beat are full dots; hits between beats are smaller and lighter, so the picture shows the
+     difference the text explains. -->
+{#snippet beatGrid(bars: number, perBeat: 2 | 3 | 4, beatsPerBar: number, rows: { label: string; beats?: number[] }[], barNumbers?: number[])}
+  {@const cells = beatsPerBar * perBeat}
+  {@const labelled = rows.some((x) => x.label)}
+  <div class="flex flex-col gap-3" aria-hidden="true">
+    {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
+      <div>
+        {#if bars > 1}<p class="mb-1 text-xs font-semibold text-ws-stage-soft">Bar {barNumbers?.[bar] ?? bar + 1}</p>{/if}
+        <div class="grid items-center gap-y-1" style:grid-template-columns="{labelled ? '3.25rem ' : ''}repeat({cells}, minmax(0, 1fr))">
+          {#if labelled}<span></span>{/if}
+          {#each Array.from({ length: cells }, (_, i) => i) as i (i)}
+            <span class="text-center text-xs leading-5 tnum {i % perBeat ? 'text-ws-stage-soft' : 'font-bold text-ws-stage-ink'}">{i % perBeat ? COUNTS[perBeat][i % perBeat] : Math.floor(i / perBeat) + 1}</span>
+          {/each}
+          {#each rows as row (row.label)}
+            {#if labelled}<span class="truncate pr-1 text-xs font-semibold text-ws-stage-soft">{row.label}</span>{/if}
+            {#each Array.from({ length: cells }, (_, i) => i) as i (i)}
+              {@const on = hitAt(row.beats, bar * cells + i, perBeat)}
+              <span class="grid h-8 place-items-center {i % perBeat ? '' : 'beat'}">
+                {#if on}<span class="rounded-full bg-instr {i % perBeat ? 'size-2.5' : 'size-4'}"></span>{:else}<span class="size-1.5 rounded-full bg-ws-stage-ink/20"></span>{/if}
+              </span>
+            {/each}
+          {/each}
+        </div>
+      </div>
+    {/each}
+  </div>
+{/snippet}
+
 <style>
+  /* The moves: a bar in the page theme on a phone (contract S1, as ws-bar ws-bar-bottom); from sm up, where
+     the lesson is a column in the middle of the screen, the page itself with only the fade above. */
+  .lesson-dock {
+    background: var(--ws-bar);
+    border-top: 1px solid var(--ws-line);
+    box-shadow: var(--ws-bar-shadow);
+  }
+  .lesson-dock::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: 1.5rem;
+    background: linear-gradient(to bottom, transparent, var(--ws-bg));
+    pointer-events: none;
+  }
+  @media (min-width: 40rem) {
+    .lesson-dock {
+      background: var(--ws-bg);
+      border-top-color: transparent;
+      box-shadow: none;
+    }
+  }
+  .beat {
+    border-radius: 0.375rem;
+    background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
+  }
   .sig :global(.vf-stavenote) {
     display: none;
   }
@@ -320,9 +388,5 @@
   }
   .notes.wide {
     zoom: 1;
-  }
-  .lesson-dock {
-    background: color-mix(in oklch, var(--ws-stage) 94%, transparent);
-    backdrop-filter: blur(6px);
   }
 </style>

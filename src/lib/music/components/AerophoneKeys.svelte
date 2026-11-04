@@ -40,6 +40,8 @@
     { id: "oct-2", hand: "thumb", c: [30, 320], crescent: 1.1 },
   ];
   const MAIN = new Set(["k1", "k2", "k3", "k4", "k5", "k6"]);
+  /** Short names drawn on the side and palm keys (the main six carry their number). */
+  const SHORT: Record<string, string> = { Gs: "G#", Cs: "C#", Bb: "Bb", B: "B", Eb: "Eb", C: "C", C1: "C1", C2: "C2", C3: "C3", C4: "C4", C5: "C5", Tc: "Tc", Ta: "Ta", Tf: "Tf", X: "X", P: "P" };
   /** A crescent bowed to the left, `s` its scale. */
   const crescent = ([x, y]: [number, number], s: number) =>
     `M${x + 14 * s},${y - 9 * s} Q${x - 18 * s},${y} ${x + 14 * s},${y + 9 * s} Q${x - 1 * s},${y} ${x + 14 * s},${y - 9 * s} Z`;
@@ -110,7 +112,7 @@
 </script>
 
 <figure class="flex w-full flex-col items-center gap-2" class:max-w-52={compact} class:max-w-64={!compact}>
-  <svg viewBox="0 0 224 820" class="h-auto w-full {compact ? 'max-h-[24rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
+  <svg viewBox="0 0 224 820" class="h-auto w-full {compact ? 'max-h-[22rem] md:max-h-[30rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
     <defs>
       <linearGradient id="{uid}-col" x1="0" x2="1">
         <stop offset="0" stop-color="oklch(0.84 0.01 290)" />
@@ -150,7 +152,13 @@
         data-held={wrong || undefined}
       />
       {#if MAIN.has(k.id)}
-        <text x={k.c[0]} y={k.c[1] + 4.5} class="num" class:lit={on || wrong}>{k.id.slice(1)}</text>
+        <text x={k.c[0]} y={k.c[1] + 6} class="num" class:lit={on || wrong}>{k.id.slice(1)}</text>
+      {:else if SHORT[k.id]}
+        <text x={k.c[0]} y={k.c[1] + 4} class="tag" class:lit={on || wrong} transform={"rot" in k && k.rot ? `rotate(${k.rot} ${k.c[0]} ${k.c[1]})` : undefined}>{SHORT[k.id]}</text>
+      {/if}
+      {#if wrong}
+        <!-- A key down that this fingering does not use: an X as well as red. -->
+        <path class="cross" d="M{k.c[0] - 7},{k.c[1] - 7} L{k.c[0] + 7},{k.c[1] + 7} M{k.c[0] + 7},{k.c[1] - 7} L{k.c[0] - 7},{k.c[1] + 7}" />
       {/if}
     {/each}
   </svg>
@@ -159,11 +167,11 @@
     <li><span style:--c="var(--ae-right)"></span>Right hand</li>
     <li><span style:--c="var(--ae-thumb)"></span>Left thumb, on the back</li>
     {#if KEYS.some((k) => pressed(k.id, held) && !pressed(k.id, target))}
-      <li><span class="wrong-swatch"></span>Pressed, not in this fingering</li>
+      <li><span class="wrong-swatch"></span>X: pressed, not in this fingering</li>
     {/if}
   </ul>
   <!-- Which finger goes where, as Roland's lessons label the target keys. -->
-  <figcaption class="text-center text-ws-stage-soft" class:text-xs={compact} class:text-sm={!compact}>{description}</figcaption>
+  <figcaption class="text-center text-ws-stage-soft {compact ? 'text-[13px]' : 'text-sm'}">{description}</figcaption>
 </figure>
 
 <style>
@@ -220,20 +228,34 @@
   }
   .num {
     fill: oklch(0.95 0.01 290);
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 700;
     text-anchor: middle;
     pointer-events: none;
   }
-  .num.lit {
+  .num.lit,
+  .tag.lit {
     fill: oklch(0.2 0.01 290);
+  }
+  .tag {
+    fill: oklch(0.95 0.01 290);
+    font-size: 11px;
+    font-weight: 700;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+  .cross {
+    stroke: white;
+    stroke-width: 3;
+    stroke-linecap: round;
+    pointer-events: none;
   }
   .legend {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.25rem 0.75rem;
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-ink);
   }
   .legend li {

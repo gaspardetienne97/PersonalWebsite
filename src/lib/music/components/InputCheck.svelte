@@ -13,7 +13,7 @@
   import MicOff from "lucide-svelte/icons/mic-off";
   import Plug from "lucide-svelte/icons/plug";
   import { midi, mic, settings } from "../runtime";
-  import { btn, btnPrimary } from "./ui";
+  import { btn } from "./ui";
 
   /** `required`: the drill cannot be played on screen (Start waits for the input).
    *  `inline`: a setup clause on the ready screen (contract K2) instead of a banner. */
@@ -52,7 +52,7 @@
   {:else if off}
     <!-- The clause is the fix. Its name stays the action ("Turn on the microphone"); the full sentence is its title. -->
     <button type="button" class="input-clause relative z-10 inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-md px-1 font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title={error || text} disabled={busy} aria-busy={busy} onclick={turnOn} data-testid="input-check" data-input={kind}>
-      {#if kind === "mic"}<MicOff class="size-4 shrink-0" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />Turn on MIDI{/if}
+      {#if kind === "mic"}<Mic class="size-4 shrink-0" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />Turn on MIDI{/if}
     </button>{#if error}<span class="text-destructive">{" "}({error})</span>{/if}
   {/if}
 {:else if after || off}
@@ -61,13 +61,11 @@
       {#if kind === "mic"}<MicOff class="size-4 shrink-0" aria-hidden="true" />{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />{/if}
     {/if}
     <p class="min-w-0 flex-1 basis-48 text-sm">{error || text}</p>
+    <!-- After a silent run the session dock leads with "Check inputs"; here only the one-tap fix. -->
     {#if off}
-      <button type="button" class={after ? btnPrimary : btn} disabled={busy} onclick={turnOn}>
+      <button type="button" class={btn} disabled={busy} onclick={turnOn}>
         {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
       </button>
-    {:else if after && (kind === "mic" || midi.supported)}
-      <!-- After a silent run this is the way forward (Again would only be silent again), so it leads. -->
-      <a class={btnPrimary} href="/music/connect">Check inputs</a>
     {/if}
   </div>
 {/if}

@@ -29,6 +29,7 @@
   let { children } = $props();
 
   const hubs = [
+    // Today, Drills and Paths are the hub's own tabs; the nav names the section they share.
     { href: "/music", label: "Today", icon: House, owns: DRILL_ROUTES },
     { href: "/music/library", label: "Library", icon: Library, owns: ["/music/songs"] },
     { href: "/music/create", label: "Create", icon: Grid, owns: [] },
@@ -172,6 +173,8 @@
         {#each utilities as item (item.href)}
           {@render navItem(item, current(item))}
         {/each}
+        <!-- App controls, apart from the places: a divider with its name. -->
+        <li class="mt-1 border-t border-ws-line px-3 pt-2 pb-1 text-xs font-medium text-ws-soft {collapsed ? 'lg:sr-only' : ''}" role="presentation">App</li>
         {@render siteItems()}
         <li>
           <button
@@ -203,7 +206,7 @@
         moreOpen = false;
         moreButton?.focus();
       }}
-      class="fixed inset-x-0 bottom-0 z-40 border-t border-ws-line bg-ws-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      class="ws-bar ws-bar-bottom fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul class="grid grid-cols-5">
         {#each hubs as item (item.href)}
@@ -214,7 +217,7 @@
               aria-current={on ? "page" : undefined}
               class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs {on ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
             >
-              <item.icon class="size-5" aria-hidden="true" />{item.label}
+              {@render tabIcon(item.icon, on)}{item.label}
             </a>
           </li>
         {/each}
@@ -227,7 +230,7 @@
             bind:this={moreButton}
             onclick={() => (moreOpen = !moreOpen)}
           >
-            <Ellipsis class="size-5" aria-hidden="true" />More
+            {@render tabIcon(Ellipsis, utilities.some(current))}More
           </button>
         </li>
       </ul>
@@ -268,6 +271,11 @@
       <span class={collapsed ? "lg:sr-only" : ""}>Site home</span>
     </a>
   </li>
+{/snippet}
+
+<!-- The current tab: its icon sits in a filled pill, so the place reads without colour alone. -->
+{#snippet tabIcon(Icon: typeof House, on: boolean)}
+  <span class="grid h-7 w-12 place-items-center rounded-full {on ? 'bg-instr-wash' : ''}"><Icon class="size-5" aria-hidden="true" /></span>
 {/snippet}
 
 {#snippet navItem(item: { href: string; label: string; icon: typeof House }, on: boolean)}

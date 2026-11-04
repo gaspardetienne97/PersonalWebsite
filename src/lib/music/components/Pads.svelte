@@ -213,9 +213,11 @@
     min-height: 1.15rem;
     font-size: 0.75rem;
   }
+  /* The pad's code is secondary: the voice or slice name below is the label. */
   .num,
   kbd {
-    opacity: 0.8;
+    opacity: 0.7;
+    font-size: 0.68rem;
   }
   /* No keyboard on a touch screen: the key letters would only crowd the pad. */
   @media (pointer: coarse) {
@@ -232,8 +234,8 @@
   }
   /* Up to two lines, so "Slice 10" or "Mid tom" is read whole on a small pad. */
   .name {
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     line-height: 1.1;
     overflow: hidden;
     display: -webkit-box;

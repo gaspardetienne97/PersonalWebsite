@@ -65,6 +65,7 @@
   import Eye from "lucide-svelte/icons/eye";
   import EyeOff from "lucide-svelte/icons/eye-off";
   import X from "lucide-svelte/icons/x";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Timer from "lucide-svelte/icons/timer";
   import TimerOff from "lucide-svelte/icons/timer-off";
   import Alert from "lucide-svelte/icons/circle-alert";
@@ -123,6 +124,12 @@
     instrumentFree?: boolean;
     /** Setup clauses that fix an input caveat (contract K2), e.g. "left hand on MIDI" opening Connect. */
     requires?: readonly Requirement[];
+    /** What to do right now, shown beside Stop in the phone dock ("Play G4, finger 2", "Your turn"). Never the
+     *  verdict: `status` stays the live region. */
+    cue?: string;
+    /** The stage after a run is the marked music (a staff or neck with marks): it stays under the results.
+     *  Without it the stage is hidden on results; with it the drill hides its ready-only controls itself. */
+    review?: boolean;
   }
 
   let {
@@ -157,7 +164,9 @@
     checkRun = true,
     instrumentFree,
     requires = [],
-    modeNotes = { practice: "Targets shown. Practice, not a test.", check: "Targets hidden. Counts toward mastery." },
+    cue = "",
+    review = false,
+    modeNotes = { practice: "Targets shown. Counts toward speeding up.", check: "Targets hidden. Counts toward your skill scores." },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
@@ -201,9 +210,9 @@
   const secondary =
     "flex min-h-12 items-center justify-center gap-2 rounded-full border border-ws-line bg-ws-surface px-6 font-display text-base font-semibold hover:bg-ws-raised disabled:opacity-50";
   const primary = `flex min-h-12 items-center justify-center gap-2 rounded-full ${fill} px-6 font-display text-base font-semibold shadow-sm hover:brightness-105 disabled:opacity-50`;
-  /** The session's own buttons, on the dark stage. */
-  const onStage =
-    "flex min-h-12 items-center justify-center gap-2 rounded-full bg-ws-stage-ink/12 px-5 font-display text-base font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20 disabled:opacity-50";
+  /** The session's own quiet buttons: chrome, in the page theme (contract S1). */
+  const quiet =
+    "flex min-h-12 items-center justify-center gap-2 rounded-full bg-ws-raised px-5 font-display text-base font-semibold hover:bg-ws-line disabled:opacity-50";
   let setupOpen = $state(false);
   // Long exercise rows: the first few, plus the open one, until "More exercises".
   let allTabs = $state(false);
@@ -285,7 +294,7 @@
     void toReady(false);
   }
   /** Start docks at the bottom of a phone screen on the ready screen; the section pads for it. */
-  const docked = $derived(!session && phase === "ready" && !demoPlaying);
+  const docked = $derived(!session && phase === "ready");
   let clockHandle: { stop(): void } | null = null;
   let goTimer: ReturnType<typeof setTimeout> | undefined;
   /** Count-in clicks so far, and how many bars it lasts (for the count-in panel). */
@@ -396,6 +405,8 @@
 
   async function start() {
     if (blocked || showing || live) return;
+    // Start during a demo: the demo stops, then the run starts.
+    if (demoPlaying) await ondemo?.();
     await audio.unlock();
     setupOpen = false;
     silent = false;
@@ -491,7 +502,7 @@
 
 <!-- One section in both views, so the stage below stays mounted from the ready screen into the run. -->
 <section
-  class={session ? "session stage relative flex min-h-dvh w-full flex-col" : `mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? "max-lg:pb-20" : ""}`}
+  class={session ? "session relative flex min-h-dvh w-full flex-col bg-ws-bg text-ws-ink" : `mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? "max-lg:pb-[calc(var(--ws-dock-h)+5.5rem)]" : ""}`}
   aria-labelledby="drill-title"
   data-session={session ? "" : undefined}
 >
@@ -503,8 +514,8 @@
 
   <div class={session ? "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 pt-3 sm:px-6 lg:px-8" : "contents"}>
     {#if afterRun && results}
-      <!-- On the session's dark stage the results read in the stage's own tokens. -->
-      <div class="results-enter ws-on-stage">
+      <!-- The results own the screen; a silent run's card sits in the middle of it. -->
+      <div class="results-enter {silent ? 'grid flex-1 place-items-center' : ''}">
         <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
         {@render results()}
       </div>
@@ -512,16 +523,16 @@
 
     <!-- A silent run leaves the stage out: its targets were never played, so nothing on it is a result. -->
     <div
-      class="stage-box relative {phase === 'results' && silent && !showing ? 'hidden' : session ? 'flex flex-1 flex-col' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
+      class="stage-box relative {phase === 'results' && (silent || !review) && !showing ? 'hidden' : showing ? 'flex flex-1 flex-col' : session ? 'stage flex flex-1 flex-col p-3 sm:p-5' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
       class:demo={demoPlaying}
       data-live={live ? "" : undefined}
     >
-      {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored.</p>{/if}
+      {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Demo playing, not scored.</p>{/if}
       <!-- Before a run a drill's counters (if any) sit on the stage; in a session they are in the HUD. -->
       {#if hud && !session}<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 empty:hidden">{@render hud()}</div>{/if}
       {#if showing}
         {#key shownLessons.map((l) => l.id).join()}
-          <LessonView lessons={shownLessons} onfinish={endLesson} />
+          <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
         {/key}
       {:else}
         {@render stage(phase)}
@@ -546,9 +557,9 @@
 
     {#if afterRun && checkable && checkRun && mode === "practice" && !silent}
       <!-- On a phone the dock holds Again and the next run; the checked version of this run waits here. -->
-      <button type="button" class="{onStage} sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Run it in Check</button>
+      <button type="button" class="{quiet} sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Try it from memory</button>
     {/if}
-    {#if actions}<div class="flex flex-wrap items-center gap-3 {session ? 'ws-on-stage' : ''}">{@render actions()}</div>{/if}
+    {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
   </div>
 
   {#if session}
@@ -556,7 +567,7 @@
   {:else if docked}
     <!-- On a phone (and up to lg) Start docks above the tab bar: chrome, like the tab bar, never over the stage
          (the section's bottom padding lets the stage scroll clear of it). -->
-    <div class="fixed inset-x-0 bottom-[var(--ws-dock-h,3.5rem)] z-30 border-t border-ws-line bg-ws-surface px-4 py-2 lg:hidden" data-testid="drill-bar">
+    <div class="ws-bar ws-bar-bottom fixed inset-x-0 bottom-[var(--ws-dock-h,3.5rem)] z-30 border-t px-4 py-2 lg:hidden" data-testid="drill-bar">
       <div class="mx-auto flex max-w-2xl flex-col gap-1">
         {@render startButton("w-full")}
         {#if blocked && !unblocking}<span class="text-center text-xs text-ws-soft">{blocked}</span>{/if}
@@ -584,7 +595,7 @@
         </button>
       {/if}
     </div>
-    {#if blurb}<p id="drill-blurb" class="max-w-prose text-sm text-ws-soft max-sm:line-clamp-2 sm:line-clamp-1 sm:text-base" title={blurb}>{blurb}</p>{/if}
+    {#if blurb}<p id="drill-blurb" class="max-w-prose text-sm text-ws-soft line-clamp-2 sm:text-base" title={blurb}>{blurb}</p>{/if}
   </header>
   {@render exercises()}
   {@render actionBar()}
@@ -593,6 +604,7 @@
 <!-- Row 2: the exercises as underline tabs (navigation, not more choices). -->
 {#snippet exercises()}
   {#if tabs && tabs.length > 1}
+    <div class="relative">
     <div
       id="drill-exercises"
       bind:this={tabRow}
@@ -622,6 +634,13 @@
         >
       {/if}
     </div>
+    {#if fadeR}
+      <!-- A phone row that runs on: one tap scrolls it a page. -->
+      <button type="button" class="absolute right-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label="Scroll exercises" onclick={() => tabRow?.scrollBy({ left: tabRow.clientWidth * 0.8, behavior: "smooth" })}>
+        <ChevronRight class="size-5" aria-hidden="true" />
+      </button>
+    {/if}
+    </div>
   {/if}
 {/snippet}
 
@@ -630,12 +649,21 @@
 {#snippet actionBar()}
   <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3 lg:rounded-2xl lg:border lg:border-ws-line lg:bg-ws-surface lg:py-1.5 lg:pl-4 lg:pr-1.5">
     <div class="relative flex min-w-0 flex-1 items-center gap-x-3 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
-      <p class="min-w-0 flex-1 py-1 text-sm leading-7" data-testid="setup-line">
-        <span class="text-ws-soft">Setup:</span>
-        {#each clauses as c, i (i)}<span class="whitespace-nowrap">{#if setup && c.focus}<button type="button" class="clause whitespace-normal text-left font-medium max-sm:contents" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="whitespace-normal font-medium">{c.text}</span>{/if}{#if i < clauses.length - 1 || requires.length || needsInput}<span class="text-ws-soft">,</span>{/if}</span>{" "}{/each}
-        {#each requires as r, i (r.text)}<span class="whitespace-nowrap"><button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="text-ws-soft">,</span>{/if}</span>{" "}{/each}
-        {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
-      </p>
+      <!-- Every clause is a chip that never breaks mid-phrase (the commas stay for screen readers and copy).
+           A phone shows two lines of chips; the Setup button, the whole card there, holds the rest. -->
+      <div class="min-w-0 flex-1 py-1 text-sm" data-testid="setup-line">
+        <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden">
+          <span class="mr-1 text-ws-soft">Setup:</span>
+          {#each clauses as c, i (i)}{#if setup && c.focus}<button type="button" class="clause max-sm:pointer-events-none" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="clause">{c.text}</span>{/if}{#if i < clauses.length - 1 || requires.length || needsInput}<span class="sr-only">,</span>{/if}{" "}{/each}
+        </p>
+        {#if requires.length || needsInput}
+          <!-- Input caveats, each its own fix, on their own line so a clamp never hides them. -->
+          <p class="flex flex-wrap items-center gap-x-1">
+            {#each requires as r, i (r.text)}<button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="sr-only">,</span>{/if}{/each}
+            {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
+          </p>
+        {/if}
+      </div>
       {#if setup}
         <button
           type="button"
@@ -650,27 +678,29 @@
     </div>
     <div class="flex shrink-0 items-center gap-2 lg:border-l lg:border-ws-line lg:pl-3">
       {#if checkable}
-        <!-- One two-state switch with its effect under each word; the names stay "Practice" and "Check". -->
-        <div class="flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note" title={mode === "check" ? modeNotes.check : modeNotes.practice}>
-          {#each [["practice", "Practice", "with help"], ["check", "Check", "from memory"]] as const as [id, label, effect] (id)}
-            <button
-              type="button"
-              class="flex min-h-11 flex-col items-center justify-center rounded-full px-3 leading-tight sm:px-3.5 {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
-              aria-pressed={mode === id}
-              onclick={() => (mode = id)}
-            >
-              <span class="text-sm">{label}</span><span class="text-xs font-normal opacity-85" aria-hidden="true">{effect}</span>
-            </button>
-          {/each}
+        <!-- One two-state switch, the current mode's effect in one line under it. The names stay "Practice" and
+             "Check"; a demo holds the mode until it stops. -->
+        <div class="flex shrink-0 flex-col items-center gap-0.5">
+          <div class="flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note">
+            {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
+              <button
+                type="button"
+                class="flex min-h-10 items-center justify-center rounded-full px-3.5 text-sm disabled:opacity-60 {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
+                aria-pressed={mode === id}
+                disabled={demoPlaying}
+                onclick={() => (mode = id)}
+              >{label}</button>
+            {/each}
+          </div>
+          <p id="mode-note" class="w-max max-w-[min(17rem,56vw)] text-center text-xs leading-tight text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
         </div>
-        <p id="mode-note" class="sr-only">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
       {/if}
       {#if ondemo && (mode !== "check" || demoPlaying)}
         <button type="button" class="{ghost} aria-pressed:bg-instr-wash" aria-pressed={demoPlaying} onclick={ondemo}>
           {#if demoPlaying}<Square class="size-3.5 fill-current" aria-hidden="true" />Stop demo{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
         </button>
       {/if}
-      {#if phase === "ready" && !demoPlaying}
+      {#if phase === "ready"}
         <div class="ml-auto flex shrink-0 items-center gap-3 max-lg:hidden">
           {#if blocked && !unblocking}<span class="max-w-48 text-right text-xs text-ws-soft">{blocked}</span>{/if}
           {@render startButton("")}
@@ -701,28 +731,28 @@
 <!-- The session HUD: the way out, the drill, the mode, then the live counters, the beat and the click.
      A thin run-progress bar runs under the whole HUD. -->
 {#snippet hudBar()}
-  <header class="hud sticky top-0 z-30 border-b border-ws-stage-ink/10">
+  <header class="ws-bar sticky top-0 z-30 border-b">
     <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1.5 sm:flex-nowrap sm:px-6 lg:px-8">
       {#if live}
         <!-- On a phone Stop sits in the dock, in the thumb zone. -->
-        <button type="button" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-stage-ink/12 px-4 text-sm font-semibold hover:bg-ws-stage-ink/20 max-sm:hidden" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
+        <button type="button" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line max-sm:hidden" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
           <Square class="size-3.5 fill-current" aria-hidden="true" />Stop
         </button>
       {:else}
-        <button type="button" class="-ml-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-stage-ink/12" aria-label="Close and back to setup" title="Close and back to setup (Esc)" aria-keyshortcuts="Escape" onclick={close}>
+        <button type="button" class="-ml-2 grid size-11 shrink-0 place-items-center rounded-full bg-ws-raised hover:bg-ws-line" aria-label="Close and back to setup" title="Close and back to setup (Esc)" aria-keyshortcuts="Escape" onclick={close}>
           <X class="size-5" aria-hidden="true" />
         </button>
       {/if}
       <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud min-w-0 flex-1 font-display font-semibold leading-tight sm:flex-none">{title}</h1>
       {#if checkable && !showing}
-        <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-stage-soft sm:order-last">
-          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check{:else}<Eye class="size-4" aria-hidden="true" />Practice{/if}
+        <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last">
+          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check: from memory{:else}<Eye class="size-4" aria-hidden="true" />Practice: help on{/if}
         </span>
       {/if}
       {#if live && clock}
         <button
           type="button"
-          class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-stage-ink/12 sm:order-last {bench.clickDuringRun ? '' : 'text-ws-stage-soft'}"
+          class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised sm:order-last {bench.clickDuringRun ? '' : 'text-ws-soft'}"
           aria-pressed={bench.clickDuringRun}
           aria-label="Metronome click in runs"
           title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
@@ -731,9 +761,6 @@
           {#if bench.clickDuringRun}<Timer class="size-5" aria-hidden="true" />{:else}<TimerOff class="size-5" aria-hidden="true" />{/if}
         </button>
       {/if}
-      {#if showing}
-        <button type="button" class="min-h-11 shrink-0 rounded-full px-3 text-sm font-medium text-ws-stage-ink/85 underline underline-offset-4 hover:text-ws-stage-ink sm:order-last" onclick={endLesson}>Skip, I know this</button>
-      {/if}
       <!-- At most two counters from the drill, then the beat. A second line on a phone; it wraps rather than cut a value. -->
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-0.5 max-sm:basis-full sm:justify-end empty:hidden">
         {#if hud}{@render hud()}{/if}
@@ -741,7 +768,7 @@
       </div>
     </div>
     {#if live && progress !== null}
-      <div class="absolute inset-x-0 bottom-0 h-1 bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
+      <div class="absolute inset-x-0 bottom-0 h-1 bg-ws-line" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
       </div>
     {/if}
@@ -751,13 +778,13 @@
 <!-- The beat, labelled: the word, then one dot a beat with the current one filled and numbered. -->
 {#snippet beatReadout()}
   <span class="flex shrink-0 items-center gap-1.5" role="img" aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}">
-    <span class="ws-hud text-ws-stage-soft" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
+    <span class="ws-hud text-ws-soft" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
     {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
       <span class="grid size-6 place-items-center" aria-hidden="true">
         {#if bench.beat === b}
-          <span class="ws-pulse grid size-6 place-items-center rounded-full text-xs font-bold leading-none text-ws-stage tnum {bench.countingIn ? 'bg-warn' : 'bg-instr'}" data-beat={b}>{b}</span>
+          <span class="ws-pulse grid size-6 place-items-center rounded-full text-xs font-bold leading-none tnum {bench.countingIn ? 'bg-warn text-ws-stage' : 'bg-instr-strong text-on-instr'}" data-beat={b}>{b}</span>
         {:else}
-          <span class="size-2 rounded-full bg-ws-stage-ink/30"></span>
+          <span class="size-2 rounded-full bg-ws-soft/40"></span>
         {/if}
       </span>
     {/each}
@@ -768,33 +795,37 @@
      Again and the next run by the shared rule (or Done when the rule says same again). -->
 {#snippet dock()}
   {#if live}
-    <div class="dock sticky bottom-0 z-30 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
+    <div class="ws-bar ws-bar-bottom sticky bottom-0 z-30 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
       <div class="flex items-center gap-3">
-        <button type="button" class="{onStage} shrink-0" onclick={stop} aria-keyshortcuts="Escape"><Square class="size-4 fill-current" aria-hidden="true" />Stop</button>
-        <p class="line-clamp-2 min-w-0 flex-1 text-sm text-ws-stage-soft" aria-hidden="true">{status}</p>
+        <button type="button" class="{quiet} shrink-0" onclick={stop} aria-keyshortcuts="Escape"><Square class="size-4 fill-current" aria-hidden="true" />Stop</button>
+        <!-- What to do now, from the drill. Never the verdict: that is on the stage and in the live region. -->
+        {#if cue}<p class="line-clamp-2 min-w-0 flex-1 text-sm font-medium" data-cue>{cue}</p>{/if}
       </div>
     </div>
   {:else if afterRun}
     {@const next = silent ? null : offered}
-    <div class="dock sticky bottom-0 z-30 border-t border-ws-stage-ink/10 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
+    <!-- The same order after every run: Done, Again (when something else leads), the from-memory run, then the
+         primary at the right (the next run, else Again; after a silent run, checking the inputs). -->
+    {@const againLeads = !next && !silent && !unblocking}
+    <div class="ws-bar ws-bar-bottom sticky bottom-0 z-30 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
-        {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-stage-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
-        {#if next}
-          <button type="button" class="{onStage} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
-        {:else}
-          <button type="button" class="{onStage} max-sm:flex-1" onclick={close}>Done</button>
+        {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
+        <button type="button" class="{quiet} max-sm:px-4" onclick={close}>Done</button>
+        {#if !againLeads}
+          <button type="button" class="{quiet} max-sm:flex-1 max-sm:px-3" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
         {/if}
         {#if checkable && checkRun && mode === "practice" && !silent}
-          <button type="button" class="{onStage} max-sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Run it in Check</button>
+          <button type="button" class="{quiet} max-sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Try it from memory</button>
         {/if}
         <span class="flex-1 max-sm:hidden"></span>
         {#if unblocking && unblock}
-          <button type="button" class="{primary} max-sm:flex-1" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
-        {/if}
-        {#if next}
-          <button type="button" class="{primary} max-sm:flex-[2]" disabled={!!blocked} onclick={goNext}>{NEXT_VERB[next.kind]} {next.label}</button>
+          <button type="button" class="{primary} max-sm:flex-[2] max-sm:px-4" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
+        {:else if silent}
+          <a class="{primary} max-sm:flex-[2] max-sm:px-4" href="/music/connect">Check inputs</a>
+        {:else if next}
+          <button type="button" class="{primary} max-sm:flex-[2] max-sm:px-4" disabled={!!blocked} onclick={goNext}>{NEXT_VERB[next.kind]} {next.label}</button>
         {:else}
-          <button type="button" class="{silent || unblocking ? onStage : primary} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+          <button type="button" class="{primary} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
         {/if}
       </div>
     </div>
@@ -825,16 +856,6 @@
       animation: none;
     }
   }
-  /* The HUD and the dock are the stage's own glass, over the stage as it scrolls. */
-  .hud,
-  .dock {
-    background: color-mix(in oklch, var(--ws-stage) 94%, transparent);
-    backdrop-filter: blur(6px);
-  }
-  /* The session is full-bleed: the stage's spotlight sits behind the HUD. */
-  .session {
-    background-attachment: fixed;
-  }
   /* The current exercise: an underline in the hue, so the row reads as navigation. */
   .tab[aria-pressed="true"]::after {
     content: "";
@@ -845,17 +866,23 @@
     border-radius: 9999px;
     background: var(--instr);
   }
-  /* From sm up each clause is a small tappable chip; on a phone the card is one button and clauses read as text. */
-  @media (min-width: 40rem) {
-    .clause {
-      border-radius: 0.375rem;
-      padding: 0.0625rem 0.375rem;
-      background: var(--ws-raised);
-    }
-    .clause:hover {
-      color: var(--instr-ink);
-      background: var(--instr-wash);
-    }
+  /* Each clause is a chip, an atomic inline: it moves to the next line whole rather than break mid-phrase, and
+     only a clause longer than the whole card wraps inside its chip. From sm up the ones with a control open it
+     (on a phone the card is one button). */
+  .clause {
+    display: inline-block;
+    max-width: 100%;
+    margin-block: 0.125rem;
+    border-radius: 0.375rem;
+    padding: 0 0.5rem;
+    background: var(--ws-raised);
+    font-weight: 500;
+    line-height: 1.75rem;
+    text-align: left;
+  }
+  button.clause:hover {
+    color: var(--instr-ink);
+    background: var(--instr-wash);
   }
   .stage-box.demo {
     outline: 2px dashed color-mix(in oklch, var(--instr) 70%, transparent);
@@ -864,17 +891,21 @@
   .results-enter {
     animation: ws-rise 220ms ease-out;
   }
-  /* The dock contract (K1, drills mark their own markup): while a run is live the stage fills the height
-     between the HUD and the dock. data-dock="music" (lane, staff, highway, question visual) grows into the
-     free height; data-dock="instrument" and data-dock="answers" sit at the bottom, where a thumb is. Every
-     wrapper between the stage and a marked element becomes a growing column, unless it already lays out
-     as a row or a grid. From lg up a wrapper that changes layout at a breakpoint keeps it; a grid that holds
-     the music (a question beside its answers) grows instead and stretches its row, so the music cell fills.
-     Without a music region the instrument grows, as before. Normal flow, never fixed, so long stages scroll. */
+  /* The live layout (contract S4, drills mark their own markup): while a run is live the stage column fills the
+     height between the HUD and the dock and centres what it holds, so the music and the instrument (or the
+     answers) sit together with no band of space between them. Only a region marked data-grow (a lane, a highway,
+     falling notes) takes the free height. Every wrapper between the stage and a marked element (data-dock or
+     data-grow) becomes a centred growing column, unless it already lays out as a row or a grid. From lg up a
+     wrapper that changes layout at a breakpoint keeps it; a grid that holds a growing region grows and stretches
+     its row. Normal flow, never fixed, so long stages scroll. */
+  .stage-box[data-live] {
+    justify-content: center;
+  }
   @media (max-width: 63.999rem) {
-    .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-dock])) {
+    .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-dock], [data-grow])) {
       display: flex;
       flex-direction: column;
+      justify-content: center;
       flex: 1 1 auto;
       min-height: 0;
     }
@@ -888,31 +919,25 @@
             [class*=":block"],
             [class*=":hidden"],
             [class*=":contents"]
-          ):has([data-dock])
+          ):has([data-dock], [data-grow])
       ) {
       display: flex;
       flex-direction: column;
+      justify-content: center;
       flex: 1 1 auto;
       min-height: 0;
     }
-    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]):has(> [data-dock="music"])) {
+    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]):has([data-grow])) {
       flex: 1 1 auto;
       align-items: stretch;
     }
-    /* Beside the music in that grid, the answers stay at the top of their column. */
+    /* Beside the music in a grid, the answers stay at the top of their column. */
     .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]) > :is([data-dock="answers"], [data-dock="instrument"])) {
-      margin-top: 0;
       align-self: start;
     }
   }
-  .stage-box[data-live] :global([data-dock="music"]) {
+  .stage-box[data-live] :global([data-grow]) {
     flex: 1 1 auto;
     min-height: 0;
-  }
-  .stage-box[data-live] :global(:is([data-dock="answers"], [data-dock="instrument"])) {
-    margin-top: auto;
-  }
-  .stage-box[data-live]:not(:has([data-dock="music"])) :global([data-dock="instrument"]) {
-    flex: 1 0 auto;
   }
 </style>

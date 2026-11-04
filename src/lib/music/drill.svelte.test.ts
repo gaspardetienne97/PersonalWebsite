@@ -3,22 +3,23 @@ import { assistanceText, modeText } from "./drill.svelte";
 
 describe("modeText", () => {
   it("says what the run counts toward, one sentence per mode", () => {
-    expect(modeText("check")).toBe("Check run: it counts toward your skill scores.");
+    expect(modeText("check")).toBe("Check run: counts toward your skill scores.");
     expect(modeText("practice", { moves: "tempo" })).toBe(
-      "Practice run: it moves your tempo on, not your skill scores.",
+      "Practice run: counts toward speeding up. Check runs, from memory, raise your skill scores.",
     );
     expect(modeText("practice", { moves: "steps" })).toBe(
-      "Practice run: it counts toward moving on, not your skill scores.",
+      "Practice run: counts toward moving on. Check runs, from memory, raise your skill scores.",
     );
-    expect(modeText("practice")).toBe("Practice run: it does not count toward your skill scores.");
-    expect(modeText("check", { hinted: true })).toBe("You used a hint: practice, not a check.");
+    expect(modeText("practice")).toBe(
+      "Practice run: only Check runs, from memory, raise your skill scores.",
+    );
+    expect(modeText("check", { hinted: true })).toBe("You used a hint, so this run is practice.");
   });
-  it("never says a run both counts and does not", () => {
-    for (const m of ["practice", "check"] as const)
-      for (const moves of ["tempo", "steps", null] as const) {
-        const t = modeText(m, { moves });
-        expect(t).not.toMatch(/saved as practice|Counts toward moving on/);
-      }
+  it("never says a Practice run counts toward skill scores", () => {
+    for (const moves of ["tempo", "steps", null] as const)
+      expect(modeText("practice", { moves })).not.toMatch(
+        /^Practice run: counts toward your skill/,
+      );
   });
 });
 

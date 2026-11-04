@@ -140,12 +140,11 @@
   );
 </script>
 
-<div bind:this={root} bind:offsetHeight={bench.stripH} class="sticky top-0 z-30 border-b border-ws-line bg-ws-bg/90 backdrop-blur">
+<div bind:this={root} bind:offsetHeight={bench.stripH} class="ws-bar sticky top-0 z-30 border-b">
   <!-- One row at every width (scrolling from sm up only if it must), so pills that come and go never change the strip's height mid-click. -->
   <div class="flex flex-nowrap items-center gap-1.5 px-4 py-2 sm:gap-2 sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
-    {#if bench.instrumentFree}
-      <span class="{pill} {idle} text-ws-soft" title="This page draws no instrument, so any one can play it. The picker comes back on the next page.">Any instrument</span>
-    {:else}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
+    <!-- A drill that draws no instrument (answer buttons, taps) leaves the picker out. -->
+    {#if !bench.instrumentFree}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
          instrument's does (whole in its picker), so nothing spills over the page. -->
     <div class="{pill.replace('border-ws-line bg-ws-surface', 'border-instr bg-instr-wash').replace('shrink-0', roomy ? 'shrink-0' : 'shrink')} {idle} relative min-w-0 pr-2">
       <Picker
@@ -201,13 +200,13 @@
         onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
       >
         <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
-        <span class="whitespace-nowrap">{bench.clickDuringRun ? "Click on" : "Click off"}</span>
+        <span class="whitespace-nowrap">{bench.clickDuringRun ? "Metronome on" : "Metronome off"}</span>
       </button>{/if}
 
       {#if showCountIn}<Popover.Root>
         <Popover.Trigger class="{pill} {idle}" disabled={locked}>
-          <span>Count-in</span>
-          <span class="font-semibold">{s.countInBars === 0 ? "Off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span>
+          <span class="whitespace-nowrap">Count-in: <span class="font-semibold">{s.countInBars === 0 ? "off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span></span>
+          <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
         </Popover.Trigger>
         <Popover.Content portalProps={{ to: portalTo }} class="w-60 border-ws-line bg-ws-surface text-ws-ink">
           <p class="text-sm font-medium">Count-in before a run</p>
@@ -227,6 +226,7 @@
           <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Tuning: {tuningName}">
             <span>Tuning</span>
             <span class="font-semibold">{tuningName}</span>
+            <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-80 border-ws-line bg-ws-surface text-ws-ink">
             <TuningPicker
@@ -240,9 +240,10 @@
 
       {#if showReads}
         <Popover.Root>
-          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone reads in {aeroKey.label}">
-            <span>Reads in</span>
+          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone written in {aeroKey.label}" title="The written key; the Aerophone sends concert pitch">
+            <span>Written in</span>
             <span class="font-semibold">{aeroKey.label}</span>
+            <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
             <p class="text-sm font-medium">The Aerophone's reading key</p>
@@ -300,7 +301,7 @@
           <span class="grid size-6 shrink-0 place-items-center rounded-full {source.kind === 'screen' ? 'border border-ws-line text-ws-soft' : 'bg-instr text-ws-stage'}" aria-hidden="true">
             {#if source.kind === "mic"}<Mic class="size-3.5" />{:else if source.kind === "midi"}<KeyboardMusic class="size-3.5" />{:else}<Pointer class="size-3.5" />{/if}
           </span>
-          <span class="max-w-40 truncate whitespace-nowrap">{source.word}</span>
+          <span class="whitespace-nowrap max-sm:sr-only">{source.word}</span>
         </span>
         <ChevronDown class="hidden size-4 text-ws-soft sm:block" aria-hidden="true" />
       </Popover.Trigger>

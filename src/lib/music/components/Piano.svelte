@@ -32,13 +32,15 @@
   import { onMount } from "svelte";
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
-  import type { CellMarks, Flashes } from "./feedback.svelte";
+  import type { CellMarks, Flashes, FlashKind } from "./feedback.svelte";
+  /** "order": a note of the pattern, played out of its turn (an amber ring with its degree), not a wrong note. */
+  type KeyFlash = FlashKind | "order";
 
   interface Props {
     low?: number;
     high?: number;
     marks?: Record<number, CellMarks>;
-    flashes?: Flashes;
+    flashes?: Flashes<KeyFlash>;
     /** Override held notes (e.g. a replay); defaults to live input. */
     held?: ReadonlySet<number>;
     names?: "none" | "c" | "all";
@@ -55,6 +57,8 @@
     compact?: boolean;
     /** Keys a run left out: a solid red ring with the note's name on the key. */
     missing?: readonly number[];
+    /** A live run on a phone: the keys grow taller into spare height (contract S4), so no gap opens above them. */
+    fill?: boolean;
   }
 
   let {
@@ -70,6 +74,7 @@
     fit,
     compact = false,
     missing = [],
+    fill = false,
   }: Props = $props();
 
   let width = $state(0);
@@ -127,7 +132,7 @@
   }
 </script>
 
-<div class="piano rounded-xl p-2 pt-0 shadow-inner" class:compact role="group" aria-label={label}>
+<div class="piano rounded-xl p-2 pt-0 shadow-inner" class:compact class:fill role="group" aria-label={label}>
   <div class="felt" aria-hidden="true"></div>
   <div bind:this={scroller} bind:clientWidth={width} class="overflow-x-auto overscroll-x-contain pb-1">
     <div class="relative flex select-none touch-none" style:min-width={fit ? undefined : `${whites.length * minKey}px`}>
@@ -192,7 +197,9 @@
   {#if missing.includes(m)}
     <span class="missed" aria-hidden="true">{noteName(m, "flat", false)}</span>
   {:else if flash}
-    <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
+    <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : flash === "order" ? (mk.label ?? "!") : "✕"}</span>
+    <!-- The struck wrong key names itself, so the X and the word above the keys say the same note. -->
+    {#if flash === "wrong"}<span class="wrong-name" aria-hidden="true">{noteName(m, "flat", false)}</span>{/if}
   {:else if mk.label}
     <span class="mark-label" aria-hidden="true">{mk.label}</span>
   {:else if mk.target}
@@ -219,6 +226,14 @@
     height: 1.25rem;
     font-size: 0.68rem;
     box-shadow: inset 0 0 0 2.5px var(--destructive);
+  }
+  @media (max-width: 639px) {
+    .fill .white {
+      height: max(9.5rem, 24dvh);
+    }
+    .fill .black {
+      height: calc(max(9.5rem, 24dvh) * 0.62);
+    }
   }
   .felt {
     height: 6px;
@@ -306,6 +321,12 @@
     border: 2px dashed var(--tone-avoid);
     color: inherit;
   }
+  /* Outside the scale: struck through as well as dashed, so it never reads as a scale tone at a glance. */
+  [data-role="avoid"] .mark-label {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    opacity: 0.85;
+  }
   [data-role="left"] .mark-label {
     background: var(--hand-left);
   }
@@ -337,6 +358,19 @@
   }
   [data-target][data-role="right"]:not([data-held]) {
     box-shadow: inset 0 0 0 3px var(--hand-right);
+  }
+  /* A hand's target key also takes a wash of that hand's colour, so it reads at a glance, not only by its ring. */
+  .white[data-target][data-role="left"]:not([data-held]) {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--hand-left) 22%, #fffdf8), color-mix(in oklch, var(--hand-left) 34%, #f3eee4));
+  }
+  .white[data-target][data-role="right"]:not([data-held]) {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--hand-right) 22%, #fffdf8), color-mix(in oklch, var(--hand-right) 34%, #f3eee4));
+  }
+  .black[data-target][data-role="left"]:not([data-held]) {
+    background: color-mix(in oklch, var(--hand-left) 45%, #18161c);
+  }
+  .black[data-target][data-role="right"]:not([data-held]) {
+    background: color-mix(in oklch, var(--hand-right) 45%, #18161c);
   }
   [data-role="left"] .dot {
     background: var(--hand-left);
@@ -377,10 +411,11 @@
     box-shadow: inset 0 0 0 3px var(--destructive);
   }
   .name {
-    font-size: 0.72rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
     line-height: 1;
-    min-height: 0.7rem;
-    opacity: 0.7;
+    min-height: 0.8rem;
+    opacity: 0.8;
   }
   .flash {
     width: 1.5rem;
@@ -399,5 +434,19 @@
   }
   .flash[data-kind="wrong"] {
     background: var(--destructive);
+  }
+  .flash[data-kind="order"] {
+    color: #17120c;
+    background: #fffdf8;
+    box-shadow: inset 0 0 0 3px var(--warn);
+  }
+  .wrong-name {
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--destructive);
+  }
+  .black .wrong-name {
+    color: #ffb4a8;
   }
 </style>

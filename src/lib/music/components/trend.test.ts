@@ -6,10 +6,14 @@ import {
   metricScore,
   pipsText,
   priorBest,
+  scoreTone,
   setupTrend,
-  sparkPoints,
+  starKey,
   starsFor,
   starsLabel,
+  unmeasuredLine,
+  VERDICT_WORDS,
+  verdictWord,
 } from "./trend";
 
 const run = (exerciseId: string, setupKey: string, endedAt: number, score?: number) =>
@@ -34,16 +38,6 @@ describe("setupTrend", () => {
     expect(setupTrend(sessions(run("a", "x", 1000, 0.5)), 60_000)).toEqual([]);
     expect(setupTrend(sessions(run("a", "x", 1000, 0.5), run("a", "x", 2000)), 3000)).toEqual([]);
     expect(setupTrend([], 0)).toEqual([]);
-  });
-});
-
-describe("sparkPoints", () => {
-  it("spreads the runs across the width, 100% at the top", () => {
-    expect(sparkPoints([0, 1], 10, 4)).toEqual([
-      [0, 4],
-      [10, 0],
-    ]);
-    expect(sparkPoints([0.5], 10, 4)).toEqual([[5, 2]]);
   });
 });
 
@@ -81,18 +75,58 @@ describe("priorBest", () => {
 });
 
 describe("starsFor", () => {
-  it("draws stars on the advance rule's lines only", () => {
+  it("draws stars on the score, the third only for the rule's pass", () => {
     expect(starsFor(undefined, true)).toBeNull();
+    expect(starsFor(0.21, false)).toBe(0);
     expect(starsFor(0.69, false)).toBe(0);
     expect(starsFor(0.7, false)).toBe(1);
-    // 90% without the drill's own pass is close, not a pass.
-    expect(starsFor(0.9, false)).toBe(1);
-    expect(starsFor(0.9, true)).toBe(2);
-    expect(starsFor(0.996, true)).toBe(3);
-    expect(starsFor(1, false)).toBe(1);
+    expect(starsFor(0.84, true)).toBe(1);
+    // 9 of 10 right in a quiz that passes only at every answer right: a good run, not a clean one.
+    expect(starsFor(0.9, false)).toBe(2);
+    expect(starsFor(1, false)).toBe(2);
+    expect(starsFor(0.9, true)).toBe(3);
+    expect(starsFor(1, true)).toBe(3);
+    expect(VERDICT_WORDS[starsFor(0.9, false)!]).toBe("Good run");
   });
-  it("says what the stars mean", () => {
-    expect(starsLabel(2)).toBe("2 of 3 stars: a pass at 85% or better");
+  it("tones the ring on the same lines as the stars", () => {
+    for (const s of [0.2, 0.69, 0.7, 0.84, 0.85, 0.9, 1]) {
+      const stars = starsFor(s, false)!;
+      expect(scoreTone(s)).toBe(stars >= 2 ? "success" : stars === 1 ? "warn" : "error");
+    }
+  });
+  it("says what the stars mean and what the next one takes", () => {
+    expect(starsLabel(2)).toBe("2 of 3 stars: 85% or better");
+    // A pass the rule counts with a miss in it keeps its stars but is not called clean.
+    expect(verdictWord(3, 0.9)).toBe("Passed");
+    expect(verdictWord(3, 0.996)).toBe("Clean run!");
+    expect(verdictWord(2, 0.9)).toBe("Good run");
+    expect(starKey(0)).toBe("Next star: 70%");
+    expect(starKey(1)).toBe("Next star: 85%");
+    expect(starKey(2, "every answer right")).toBe("Next star: a clean run, every answer right");
+    expect(starKey(2)).toBe("Next star: a clean run");
+    expect(starKey(3, "9 of 10 right or better")).toBe(
+      "All 3 stars: a clean run, 9 of 10 right or better",
+    );
+  });
+});
+
+describe("unmeasuredLine", () => {
+  it("folds the rows the input cannot measure into one line, keeping reasoned rows out", () => {
+    expect(
+      unmeasuredLine([
+        { label: "Notes", text: "8 of 8" },
+        { label: "Which string each note came from", notMeasured: true },
+        { label: "Tone cleanliness", notMeasured: true },
+        { label: "Timing", notMeasured: true, text: "too few notes landed to judge" },
+      ]),
+    ).toBe("Not measured with this input: which string each note came from, tone cleanliness.");
+    expect(unmeasuredLine([{ label: "Timing", notMeasured: true, text: "too few" }])).toBeNull();
+    expect(
+      unmeasuredLine([
+        { label: "Dynamics, melody louder", notMeasured: true },
+        { label: "MIDI velocity", notMeasured: true },
+      ]),
+    ).toBe("Not measured with this input: dynamics, melody louder; MIDI velocity.");
   });
 });
 

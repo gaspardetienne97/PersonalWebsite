@@ -69,11 +69,12 @@ export function modeText(
   mode: DrillMode,
   { hinted = false, moves = null }: { hinted?: boolean; moves?: "tempo" | "steps" | null } = {},
 ): string {
-  if (hinted) return "You used a hint: practice, not a check.";
-  if (mode === "check") return "Check run: it counts toward your skill scores.";
-  if (moves === "tempo") return "Practice run: it moves your tempo on, not your skill scores.";
-  if (moves === "steps") return "Practice run: it counts toward moving on, not your skill scores.";
-  return "Practice run: it does not count toward your skill scores.";
+  if (hinted) return "You used a hint, so this run is practice.";
+  if (mode === "check") return "Check run: counts toward your skill scores.";
+  const scores = "Check runs, from memory, raise your skill scores.";
+  if (moves === "tempo") return `Practice run: counts toward speeding up. ${scores}`;
+  if (moves === "steps") return `Practice run: counts toward moving on. ${scores}`;
+  return `Practice run: only ${scores}`;
 }
 
 /**

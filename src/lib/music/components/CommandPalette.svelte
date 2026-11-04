@@ -84,7 +84,10 @@
 <svelte:window onkeydown={onWindowKey} />
 
 <Dialog.Root bind:open={() => palette.isOpen, (v) => (v ? palette.open() : palette.close())}>
-  <Dialog.Content class="top-[20%] max-w-xl translate-y-0 gap-2 p-3">
+  <!-- A floating panel on a laptop; a full-height sheet on a phone, so no result sits cut off at its edge. -->
+  <Dialog.Content
+    class="top-[20%] max-w-xl translate-y-0 gap-2 p-3 max-sm:inset-0 max-sm:h-dvh max-sm:max-w-none max-sm:translate-x-0 max-sm:grid-rows-[auto_minmax(0,1fr)] max-sm:border-0"
+  >
     <Dialog.Title class="sr-only">Search Woodshed</Dialog.Title>
     <input
       bind:value={query}
@@ -93,9 +96,9 @@
       aria-label="Search"
       aria-controls="palette-results"
       aria-activedescendant={items[active] ? `palette-${active}` : undefined}
-      class="h-12 w-full rounded-md border border-input bg-background px-3 text-base"
+      class="h-12 w-full rounded-md border border-input bg-background pl-3 pr-10 text-base"
     />
-    <ul id="palette-results" role="listbox" aria-label="Results" class="max-h-[50vh] overflow-y-auto">
+    <ul id="palette-results" role="listbox" aria-label="Results" class="results max-h-[50vh] overflow-y-auto pb-6 max-sm:max-h-none">
       {#each items as item, i (item.href + item.label)}
         {@const ic = iconFor(item)}
         {@const [pre, hit, post] = splitMatch(item.label, query)}
@@ -115,14 +118,20 @@
           <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground" aria-hidden="true"><ic.Icon class="size-4" /></span>
           <span class="min-w-0 flex-1">
             <span class="block font-medium {item.kind === 'all' ? 'text-instr-ink' : ''}">{pre}{#if hit}<strong class="font-bold underline decoration-2 underline-offset-2">{hit}</strong>{/if}{post}</span>
-            {#if item.match}<span class="block truncate text-xs text-muted-foreground">Matches "{item.match}"</span>{/if}
+            {#if item.match}<span class="block text-xs text-muted-foreground">Matches "{item.match}"</span>{/if}
+            <!-- What and where: on a phone the hint joins this line instead of a column beside the title. -->
+            {#if item.detail || item.hint}
+              <span class="block text-xs text-muted-foreground {item.detail ? '' : 'sm:hidden'}"
+                >{#if item.hint}<span class="sm:hidden">{item.hint}{item.detail ? ", " : ""}</span>{/if}{item.detail ?? ""}</span
+              >
+            {/if}
           </span>
-          {#if item.hint}<span class="shrink-0 truncate text-muted-foreground">{item.hint}</span>{/if}
+          {#if item.hint}<span class="shrink-0 whitespace-nowrap text-muted-foreground max-sm:hidden">{item.hint}</span>{/if}
         </li>
       {:else}
         <li class="flex flex-col items-center gap-2 px-3 py-6 text-center text-sm" role="presentation">
           <SearchX class="size-6 text-muted-foreground" aria-hidden="true" />
-          <span class="font-medium">Nothing matches "{query}"</span>
+          <span class="font-medium">No matches for "{query}"</span>
           <span class="text-muted-foreground">Try a drill name such as Intervals or Scales, or a page such as Tuner.</span>
           <button type="button" class="mt-1 inline-flex min-h-11 items-center rounded-full border border-input px-4 font-medium hover:bg-accent" onclick={() => go("/music?tab=drills")}>Browse every drill</button>
         </li>
@@ -130,3 +139,10 @@
     </ul>
   </Dialog.Content>
 </Dialog.Root>
+
+<style>
+  /* The list fades at its foot, so a row under the edge reads as more to scroll. */
+  .results {
+    mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), transparent);
+  }
+</style>

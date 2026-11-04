@@ -85,6 +85,10 @@
   --ws-strip-h: 3.75rem;
   --ws-dock-h: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
 
+  /* Session chrome (contract S1): bars in the page theme, opaque, with a fade above bottom bars. */
+  --ws-bar: var(--ws-surface);
+  --ws-bar-shadow: 0 -12px 24px -18px oklch(0.2 0.045 288 / 0.45);
+
   background: var(--ws-bg);
   color: var(--ws-ink);
 }
@@ -123,7 +127,7 @@
   --on-destructive: oklch(0.145 0.03 286);
 }
 
-/* The stage is dark in both themes (and a session puts results on it): the
+/* The stage is dark in both themes: the
    judgement tones on it take the dark theme's brighter values, so a green
    "Pass" or an amber mark never sits dim on the dark panel in the light theme. */
 .woodshed .stage {
@@ -236,6 +240,33 @@
   --ws-line: color-mix(in oklch, var(--ws-stage-ink) 18%, transparent);
   --ws-ink: var(--ws-stage-ink);
   --ws-soft: var(--ws-stage-soft);
+}
+
+/* Bars (HUD, docks, the tab bar): opaque, in the page theme. A bottom bar fades
+   what scrolls under it instead of slicing it. The bar must be positioned
+   (sticky or fixed) for the fade to sit on its top edge. */
+.woodshed .ws-bar {
+  background: var(--ws-bar);
+  border-color: var(--ws-line);
+}
+.woodshed .ws-bar-bottom {
+  box-shadow: var(--ws-bar-shadow);
+}
+.woodshed .ws-bar-bottom::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: 1.5rem;
+  background: linear-gradient(to bottom, transparent, var(--ws-bg));
+  pointer-events: none;
+}
+/* In a session only the stage box is dark: a rounded panel on the page. */
+.woodshed [data-session] .stage-box.stage {
+  border-radius: var(--ws-radius-card);
+  box-shadow:
+    0 0 0 1px var(--ws-line),
+    0 16px 40px -28px oklch(0.2 0.045 288 / 0.6);
 }
 
 /* The lit stage: one spotlight in the instrument hue. */

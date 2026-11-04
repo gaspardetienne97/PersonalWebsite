@@ -47,13 +47,13 @@
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import AerophoneKeys from "./AerophoneKeys.svelte";
-  import type { CellMarks, Flashes } from "./feedback.svelte";
+  import type { CellMarks, Flashes, FlashKind } from "./feedback.svelte";
 
   interface Props {
     /** Every pitch the exercise uses: sets the keyboard span and the fret window. */
     line: readonly number[];
     marks?: Record<number, CellMarks>;
-    flashes?: Flashes;
+    flashes?: Flashes<FlashKind | "order">;
     /** The Aerophone's note to finger; the first target mark otherwise. */
     current?: number | null;
     names?: "none" | "c" | "all";
@@ -114,7 +114,7 @@
 </script>
 
 {#if tuning}
-  <Fretboard openStrings={tuning.openStrings} from={frets.from} to={frets.to} marks={fretMarks} {flashes} flashByPitch {interactive} label="{inst} fretboard, frets {frets.from} to {frets.to}" />
+  <Fretboard openStrings={tuning.openStrings} from={frets.from} to={frets.to} marks={fretMarks} flashes={flashes as Flashes | undefined} flashByPitch {interactive} label="{inst} fretboard, frets {frets.from} to {frets.to}" />
 {:else if inst === "aerophone"}
   <div class="flex flex-col items-center gap-1" data-testid="aerophone-fingering">
     <AerophoneKeys midi={Number.isFinite(fingerNote) ? fingerNote : null} heldMidi={held} compact />

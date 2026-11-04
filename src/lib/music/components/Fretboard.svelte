@@ -232,7 +232,7 @@
   }
   .fret-numbers {
     display: grid;
-    font-size: 0.72rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     text-align: center;
     margin-bottom: 0.25rem;

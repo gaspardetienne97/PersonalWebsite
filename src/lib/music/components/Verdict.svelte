@@ -7,9 +7,9 @@
 <script lang="ts">
   // The word for one note as it lands ("On time", "Late 40 ms", "Wanted G, heard A"),
   // with an icon so colour is never the only cue. It pops in, then fades; a new
-  // `key` shows the next one. Drills place it at the stage's now-line or over the
-  // instrument, and pass only what the input measured (no timing word when timing
-  // is not measured).
+  // `key` shows the next one. Drills place it in the reserved rail between the music
+  // and the instrument (`rail`), never over keys, pads, frets or the lane, and pass
+  // only what the input measured (no timing word when timing is not measured).
   import Check from "lucide-svelte/icons/check";
   import X from "lucide-svelte/icons/x";
   import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
@@ -18,7 +18,9 @@
 
   // `compact` (a narrow pad or key, under about 72 px) draws the glyph alone: the word stays in
   // the live region and the chip's title, so it is never cut to "On ti".
-  let { kind, text, key, compact = false, class: cls = "" }: { kind?: VerdictKind | null; text?: string; key: number; compact?: boolean; class?: string } = $props();
+  // `rail` draws the reserved row (contract S4): a fixed h-9 centred slot that holds its height
+  // when empty, so the instrument never jumps when a verdict shows.
+  let { kind, text, key, compact = false, rail = false, class: cls = "" }: { kind?: VerdictKind | null; text?: string; key: number; compact?: boolean; rail?: boolean; class?: string } = $props();
 
   let shown = $state(false);
   $effect(() => {
@@ -36,7 +38,7 @@
   const Icon = $derived(kind === "early" ? ChevronsLeft : kind === "late" ? ChevronsRight : kind === "ontime" || kind === "right" ? Check : X);
 </script>
 
-<div class="pointer-events-none {cls}" aria-live="polite" data-testid="verdict">
+<div class="pointer-events-none {rail ? 'flex h-9 shrink-0 items-center justify-center' : ''} {cls}" aria-live="polite" data-testid="verdict" data-verdict-rail={rail ? "" : undefined}>
   {#if kind}
     {#key key}
       <!-- The fade sits on a wrapper: the pop's fill would hold the word at full opacity. -->

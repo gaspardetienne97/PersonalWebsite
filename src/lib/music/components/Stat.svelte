@@ -8,6 +8,6 @@
 </script>
 
 <span class="inline-flex min-w-0 items-baseline gap-1.5 ws-hud whitespace-nowrap pr-1 leading-tight" data-stat>
-  <span class="min-w-0 truncate text-ws-stage-soft">{label}</span>
-  <span class="tnum shrink-0 font-semibold {tone ? toneClass[tone] : ''}">{value}</span>
+  <span class="min-w-0 truncate text-ws-soft">{label}</span>
+  <span class="tnum shrink-0 font-semibold {tone ? toneClass[tone] : 'text-ws-ink'}">{value}</span>
 </span>
