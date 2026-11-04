@@ -179,6 +179,21 @@
   const padMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
   const padLabel = (f: Extract<LessonFigure, { kind: "pads" }>) =>
     `MPC pads: ${Object.entries(f.marks).map(([k, label]) => `A${String(+k - 35).padStart(2, "0")}${f.names?.[+k] ? ` ${f.names[+k]}` : ""}${label ? `, ${label}` : ""}`).join("; ")}`;
+  /** The EQ figure's curve: 20 Hz to 20 kHz on a log axis, ±12 dB, one bell about an octave wide. */
+  const EQ = { w: 320, h: 120, db: 12 };
+  const eqX = (hz: number) => ((Math.log10(hz) - Math.log10(20)) / 3) * EQ.w;
+  const eqY = (db: number) => EQ.h / 2 - (db / EQ.db) * (EQ.h / 2 - 8);
+  function eqPath(f: Extract<LessonFigure, { kind: "eq" }>) {
+    const c = Math.log10(f.band);
+    return Array.from({ length: 97 }, (_, i) => {
+      const lx = Math.log10(20) + (i / 96) * 3;
+      const db = f.gainDb * Math.exp(-((lx - c) ** 2) / (2 * 0.15 ** 2));
+      return `${i ? "L" : "M"}${(((lx - Math.log10(20)) / 3) * EQ.w).toFixed(1)},${eqY(db).toFixed(1)}`;
+    }).join(" ");
+  }
+  const hzText = (hz: number) => (hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${hz} Hz`);
+  const eqLabel = (f: Extract<LessonFigure, { kind: "eq" }>) =>
+    `EQ curve: ${hzText(f.band)} ${f.gainDb >= 0 ? "boosted" : "cut"} by ${Math.abs(f.gainDb)} dB, everything else flat`;
   const fretMarks = (m: { string: number; fret: number; label: string }[]): FretMark[] => m.map((x) => ({ ...x, role: "scale" }));
 </script>
 
@@ -240,6 +255,20 @@
         <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label="Piano keys" />
       {:else if figure.kind === "pads"}
         <Pads marks={padMarks(figure.marks)} names={figure.names ?? {}} keyHints={false} interactive={false} label={padLabel(figure)} />
+      {:else if figure.kind === "eq"}
+        {@const f = figure}
+        <svg viewBox="-4 -20 {EQ.w + 8} {EQ.h + 42}" class="w-full py-2" role="img" aria-label={eqLabel(f)}>
+          <!-- Flat line, frequency ticks, then the curve and its band. -->
+          <line x1="0" x2={EQ.w} y1={eqY(0)} y2={eqY(0)} class="stroke-ws-line" stroke-width="1.5" stroke-dasharray="4 4" />
+          {#each [100, 1000, 10000] as hz (hz)}
+            <line x1={eqX(hz)} x2={eqX(hz)} y1="0" y2={EQ.h} class="stroke-ws-line" stroke-width="1" />
+            <text x={eqX(hz)} y={EQ.h + 16} text-anchor="middle" class="fill-ws-soft text-[11px]">{hzText(hz)}</text>
+          {/each}
+          <path d="{eqPath(f)} L{EQ.w},{eqY(0)} L0,{eqY(0)} Z" class="fill-instr/20" />
+          <path d={eqPath(f)} fill="none" class="stroke-instr-ink" stroke-width="2.5" stroke-linejoin="round" />
+          <circle cx={eqX(f.band)} cy={eqY(f.gainDb)} r="5" class="fill-instr-ink" />
+          <text x={eqX(f.band)} y={f.gainDb >= 0 ? eqY(f.gainDb) - 10 : eqY(f.gainDb) + 18} text-anchor={eqX(f.band) > EQ.w * 0.8 ? "end" : eqX(f.band) < EQ.w * 0.2 ? "start" : "middle"} class="fill-ws-ink text-[12px] font-semibold">{hzText(f.band)}, {f.gainDb > 0 ? "+" : ""}{f.gainDb} dB</text>
+        </svg>
       {:else if figure.kind === "aerophone"}
         <AerophoneKeys midi={figure.midi} compact />
       {:else}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { PracticeSession, RunRecord } from "@repo/music-core";
-import { deltaText, notMeasuredText, setupTrend, sparkPoints } from "./trend";
+import { deltaText, metricScore, notMeasuredText, setupTrend, sparkPoints } from "./trend";
 
 const run = (exerciseId: string, setupKey: string, endedAt: number, score?: number) =>
   ({ id: `${exerciseId}${endedAt}`, exerciseId, setupKey, endedAt, score }) as RunRecord;
@@ -38,11 +38,22 @@ describe("sparkPoints", () => {
 });
 
 describe("deltaText", () => {
-  it("says the change in points, with its sign", () => {
-    expect(deltaText(12.4)).toBe("+12 points vs last time");
-    expect(deltaText(-60)).toBe("-60 points vs last time");
-    expect(deltaText(1)).toBe("+1 point vs last time");
-    expect(deltaText(0.3)).toBe("Same as last time");
+  it("says the change in the score's unit, from the last run's figure", () => {
+    expect(deltaText(0.72, 0.85)).toBe("Up from 72%");
+    expect(deltaText(1, 0.22)).toBe("Down from 100%");
+    expect(deltaText(0.5, 0.503)).toBe("Same as last time");
+    expect(deltaText(0.5, 0.6, false)).toBe("Up on last time");
+  });
+});
+
+describe("metricScore", () => {
+  it("reads a percentage or a count out of a total, nothing else", () => {
+    expect(metricScore("85%")).toBe(0.85);
+    expect(metricScore("3/4")).toBe(0.75);
+    expect(metricScore("23 of 23")).toBe(1);
+    expect(metricScore("24")).toBeUndefined();
+    expect(metricScore("Not measured")).toBeUndefined();
+    expect(metricScore("0/0")).toBeUndefined();
   });
 });
 

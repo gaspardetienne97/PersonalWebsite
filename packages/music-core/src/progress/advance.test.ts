@@ -50,4 +50,19 @@ describe("advance", () => {
     ]);
     expect(follow({ steps, step: 1 }, [clean, clean]).at(-1)).toBe("top:Same again");
   });
+
+  it("counts the clean runs toward moving on", () => {
+    const plan = { bpm: 100, tempo: { min: 40, goal: 120 } };
+    const first = advance(plan, undefined, clean);
+    expect(first.next).toMatchObject({ kind: "same", passes: 1, need: 2 });
+    expect(advance(plan, first.state, clean).next).toMatchObject({
+      kind: "faster",
+      passes: 2,
+      need: 2,
+    });
+    // A miss starts the count over; ignoring an offer keeps it capped at the need.
+    expect(advance(plan, first.state, poor).next.passes).toBe(0);
+    const twice = advance(plan, advance(plan, first.state, clean).state, clean);
+    expect(twice.next.passes).toBe(2);
+  });
 });

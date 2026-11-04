@@ -48,6 +48,12 @@ export type LessonFigure =
       midi: number;
     }
   | {
+      /** An EQ curve, flat but for one bell: `band` is its centre in Hz, `gainDb` its boost (+) or cut (-). */
+      kind: "eq";
+      band: number;
+      gainDb: number;
+    }
+  | {
       kind: "fretboard";
       instrument: "guitar" | "ukulele";
       /** Open-string midi, string 1 first; the instrument's standard tuning when absent. */

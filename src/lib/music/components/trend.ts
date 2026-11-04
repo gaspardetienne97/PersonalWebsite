@@ -37,11 +37,26 @@ export const sparkPoints = (scores: readonly number[], w: number, h: number) =>
       ] as const,
   );
 
-/** The change since the last run with this setup, in plain units ("+12 points vs last time"). */
-export function deltaText(delta: number): string {
-  const d = Math.round(delta);
-  if (d === 0) return "Same as last time";
-  return `${d > 0 ? "+" : "-"}${Math.abs(d)} ${Math.abs(d) === 1 ? "point" : "points"} vs last time`;
+/**
+ * The change since the last run with this setup, in the score's own unit: "Up from 72%",
+ * "Down from 100%", "Same as last time". Scores are 0..1; `unit` false leaves the old
+ * figure out ("Up on last time"), for a metric that is not a percentage.
+ */
+export function deltaText(prev: number, now: number, unit = true): string {
+  const p = Math.round(prev * 100);
+  const n = Math.round(now * 100);
+  if (p === n) return "Same as last time";
+  const dir = n > p ? "Up" : "Down";
+  return unit ? `${dir} from ${p}%` : `${dir} on last time`;
+}
+
+/** The score (0..1) a run's metric states, when it is one: "85%" or "3/4"; undefined otherwise ("24"). */
+export function metricScore(metric: string): number | undefined {
+  const pct = /^(\d+(?:\.\d+)?)%$/.exec(metric.trim());
+  if (pct) return Math.min(1, +pct[1] / 100);
+  const frac = /^(\d+)\s*(?:\/|of)\s*(\d+)$/.exec(metric.trim());
+  if (frac && +frac[2] > 0) return Math.min(1, +frac[1] / +frac[2]);
+  return undefined;
 }
 
 /** The rows a run could not measure, said once: "Not measured: timing, early or late". */

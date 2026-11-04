@@ -59,12 +59,24 @@ export function runInstrument(
 export const assistanceFor = (mode: DrillMode, hinted = false) =>
   hinted ? ("hinted" as const) : mode === "check" ? ("independent" as const) : ("guided" as const);
 
-export const assistanceText = (mode: DrillMode, hinted = false) =>
-  hinted
+/**
+ * What the run counts as, said once on the results. `shown: false` is for drills whose
+ * Practice keeps the target hidden until you check (rhythm echo and dictation): the
+ * run is still practice, but not because the targets were on screen.
+ */
+export const assistanceText = (
+  mode: DrillMode,
+  opts: boolean | { hinted?: boolean; shown?: boolean } = false,
+) => {
+  const { hinted = false, shown = true } = typeof opts === "boolean" ? { hinted: opts } : opts;
+  return hinted
     ? "You used a hint, so this run is practice, not a check."
     : mode === "check"
       ? "Checked run: targets were hidden, so it counts toward mastery."
-      : "Practice run: targets were shown, so it is saved as practice.";
+      : shown
+        ? "Practice run: targets were shown, so it is saved as practice."
+        : "Practice run: saved as practice, not counted.";
+};
 
 /** A persisted map keyed by setup (tempo ladders, chord-pair history). */
 export async function readKeyed<T>(key: string): Promise<Record<string, T>> {

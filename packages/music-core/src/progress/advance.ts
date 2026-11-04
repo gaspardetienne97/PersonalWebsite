@@ -59,7 +59,12 @@ export interface AdvanceNext {
   /** Plain words: what the next run is and why. */
   label: string;
   reason: string;
+  /** Clean runs in a row at this setup, this one included, and how many move on (`ADVANCE.runs`). */
+  passes: number;
+  need: number;
 }
+
+type Offer = Omit<AdvanceNext, "label" | "passes" | "need"> & { label?: string };
 
 const round = (n: number) => Math.round(n);
 
@@ -88,11 +93,16 @@ export function advance(
   const hasHarder = step < steps.length - 1;
   const hasEasier = step > 0;
   // Ignoring an offer keeps it: the counts stay with the setup, so Again offers it again.
-  const offer = (n: Omit<AdvanceNext, "label"> & { label?: string }) => ({
+  const offer = (n: Offer) => ({
     state,
-    next: { ...n, label: words(n) },
+    next: {
+      ...n,
+      label: words(n),
+      passes: Math.min(state.passes, ADVANCE.runs),
+      need: ADVANCE.runs,
+    },
   });
-  function words(n: Omit<AdvanceNext, "label"> & { label?: string }) {
+  function words(n: Offer) {
     const tempo = n.bpm !== undefined ? `${n.bpm} BPM` : "";
     if (n.kind === "harder" || n.kind === "easier")
       return [n.label, tempo && `at ${tempo}`].filter(Boolean).join(" ");
