@@ -27,6 +27,8 @@ export type LessonFigure =
       fifths?: number;
       /** The bar's time signature, drawn when given. */
       meter?: { beats: number; beatUnit: number };
+      /** Chord symbols over the staff, each from its beat to the next one's. */
+      chords?: { symbol: string; beat: number }[];
     }
   | {
       /** One line of rhythm on the dictation grid, read-only; onsets in beats from the start. */

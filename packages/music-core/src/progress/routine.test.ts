@@ -5,6 +5,7 @@ import { DAY_MS } from "./mastery";
 import { LEARNING_PATHS, pathProgress } from "./paths";
 import {
   BLOCKS,
+  blockStars,
   BUDGET_OPTIONS,
   buildRoutine,
   completedSteps,
@@ -14,8 +15,10 @@ import {
   passId,
   pickShelfSong,
   roleLabel,
+  routeForSkill,
   routineSummary,
   snapBudget,
+  starsFor,
   stepForSkill,
   stepHref,
   type PathFocus,
@@ -200,6 +203,17 @@ describe("buildRoutine", () => {
   });
 });
 
+describe("routeForSkill", () => {
+  it("sends an ear skill with its own drill there, and the rest to their step", () => {
+    expect(routeForSkill("pitch.interval.m3", "piano")).toBe("/music/ear/intervals");
+    expect(routeForSkill("pitch.intervals", "voice")).toBe("/music/ear/intervals");
+    expect(routeForSkill("pitch.scale-degree.5", "piano")).toBe("/music/ear/scale-degrees");
+    expect(routeForSkill("harmony.triad.minor", "piano")).toBe("/music/ear/chord-qualities");
+    expect(routeForSkill("reading.treble", "piano")).toBe("/music/reading");
+    expect(routeForSkill("technique.piano.scales", "mpc")).toBe("/music");
+  });
+});
+
 describe("dueSkills", () => {
   it("lists skills past a ten-point drop, most overdue first", () => {
     const m = (skillId: string, lastPracticed: number) => ({
@@ -380,5 +394,27 @@ describe("a new pass", () => {
     ];
     expect(currentPass("day", later)).toBe(2);
     expect(completedSteps(second, later)).toEqual([1]);
+  });
+});
+
+describe("stars", () => {
+  it("follow the advance rule's lines and never appear on an unscored run", () => {
+    expect(starsFor(undefined)).toBeNull();
+    expect(starsFor(0.69)).toBe(0);
+    expect(starsFor(0.7)).toBe(1);
+    expect(starsFor(0.85)).toBe(2);
+    expect(starsFor(1)).toBe(2);
+    expect(starsFor(1, true)).toBe(3);
+    expect(starsFor(0.9, true)).toBe(2);
+  });
+
+  it("keeps each block's best scored run", () => {
+    const r = buildRoutine({ id: "day-s", instrument: "piano", budgetMinutes: 10 });
+    const at = (step: number, score?: number, correct = false) =>
+      run({ exerciseId: "x", params: { routine: "day-s", step }, score, correct });
+    const stars = blockStars(r, [
+      session({ routineId: "day-s", runs: [at(1, 0.72), at(1, 0.9), at(2)] }),
+    ]);
+    expect(stars).toEqual({ 1: 2 });
   });
 });

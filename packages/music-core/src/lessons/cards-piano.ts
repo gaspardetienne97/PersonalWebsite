@@ -277,6 +277,20 @@ const lineSound = (symbol: string): LessonSound => {
   return { notes };
 };
 
+/** Both patterns on one chord as written notes: 1-2-3-5 in the first bar, 3-5-7-9 in the second, the symbol over each. */
+export const patternStaff = (symbol: string): LessonFigure => ({
+  kind: "staff",
+  clef: "treble",
+  meter: { beats: 4, beatUnit: 4 },
+  notes: (["1235", "3579"] as ChordPattern[]).flatMap((p) =>
+    chordPatternLine([symbol], p).map((n) => ({ midi: n.midi, beats: n.durationBeats })),
+  ),
+  chords: [
+    { symbol, beat: 0 },
+    { symbol, beat: 4 },
+  ],
+});
+
 export function chordPatterns(): Lesson {
   const make = (changes: "major" | "minor") => chordScaleTargets(changes, 0);
   const step = (symbol: string): LessonStep => {
@@ -297,11 +311,15 @@ export function chordPatterns(): Lesson {
       {
         title: "Two note patterns",
         text: "On each chord you play a four-note pattern up and back. 1-2-3-5 starts on the root, and 3-5-7-9 starts on the 3rd. The 3rd, 5th and 7th are the chord's own, and the 2nd or 9th comes from its go-to scale.",
+        figure: patternStaff(make("major")[0].symbol),
+        sound: lineSound(make("major")[0].symbol),
         steps: make("major").map((t) => step(t.symbol)),
       },
       {
         title: "On the minor changes",
         text: "The minor ii-V-i works the same way. On an altered chord the 5th is its flat 13th, and the 2nd or 9th is the flat 9th. In Check the keys stay dark, so know each pattern's notes.",
+        figure: patternStaff(make("minor")[0].symbol),
+        sound: lineSound(make("minor")[0].symbol),
         steps: make("minor").map((t) => step(t.symbol)),
       },
     ],

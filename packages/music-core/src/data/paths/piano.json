@@ -9,7 +9,7 @@
       "id": "0",
       "title": "Check-in",
       "goal": "Find what is already solid. Nothing is skipped: a passed check turns its steps into quick reviews: pass each one in Check mode on two different days.",
-      "adds": "Scales: check at G3 and G4. Pop: check a chord chart. Reading: check Level 3.",
+      "adds": "Scales: check at Grade 3 and Grade 4. Pop: check a chord chart. Reading: check Level 3.",
       "pick": 0,
       "steps": [
         {
@@ -198,7 +198,7 @@
       "id": "1",
       "title": "Chords from a chart",
       "goal": "play any I-V-vi-IV song from a chord chart with a LH bass and RH triads; Grade 3 scales and arpeggios in 13 keys; reading Level 3 in both clefs.",
-      "adds": "Scales: G3 in 13 keys. Pop: block chords, LH root-fifth-octave. Reading: Level 3 both clefs.",
+      "adds": "Scales: Grade 3 in 13 keys. Pop: block chords, LH root-fifth-octave. Reading: Level 3 both clefs.",
       "pick": 2,
       "steps": [
         {
@@ -725,7 +725,7 @@
       "id": "2",
       "title": "Broken chords, ballads and the pedal",
       "goal": "the ballad sound (LH broken chords, legato pedal, a singing melody over the accompaniment); Grade 4 speed in 12 keys; first grand-staff reading.",
-      "adds": "Scales: G4 in 12 keys. Pop: ballad LH arpeggio, RH broken triads, legato pedal. Reading: grand staff G3.",
+      "adds": "Scales: Grade 4 in 12 keys. Pop: ballad LH arpeggio, RH broken triads, legato pedal. Reading: grand staff G3.",
       "pick": 2,
       "steps": [
         {

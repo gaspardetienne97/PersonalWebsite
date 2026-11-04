@@ -475,6 +475,19 @@ describe("concept cards", () => {
     const snd = p.screens[0].steps![0].sound!.notes.map((n) => n.midi[0]);
     expect(snd.slice(0, 8)).toEqual(chordPatternLine(["Dm7"], "1235").map((n) => n.midi));
     expect(snd.slice(0, 8)).toEqual([62, 64, 65, 69, 69, 65, 64, 62]);
+    // The first screen draws both patterns on Dm7: one bar each, the symbol over each bar.
+    const fig = p.screens[0].figure!;
+    expect(fig.kind).toBe("staff");
+    if (fig.kind !== "staff") return;
+    expect(fig.notes.map((n) => n.midi)).toEqual([
+      ...chordPatternLine(["Dm7"], "1235").map((n) => n.midi),
+      ...chordPatternLine(["Dm7"], "3579").map((n) => n.midi),
+    ]);
+    expect(fig.notes.reduce((b, n) => b + n.beats, 0)).toBe(8);
+    expect(fig.chords).toEqual([
+      { symbol: "Dm7", beat: 0 },
+      { symbol: "Dm7", beat: 4 },
+    ]);
   });
 
   it("the chord symbol card covers every kind of chord the lead-sheet charts use", () => {

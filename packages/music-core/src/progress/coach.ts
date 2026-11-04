@@ -4,7 +4,7 @@ import type { Instrument, PracticeSession, SkillMastery } from "../types";
 import { skillSummaries, rankWeakest, type SkillStats } from "./analytics";
 import { isDueForReview } from "./mastery";
 import { SKILL_GRAPH, skillName, type SkillGraph } from "./graph";
-import { STEPS, stepForSkill, stepAllowed } from "./routine";
+import { routeForSkill } from "./routine";
 import { CATALOG } from "../content/catalog";
 
 /** Independent attempts on the instrument before the coach will name any weak spot. */
@@ -65,11 +65,8 @@ export function coach(input: {
   const all = Object.values(summaries);
   const attempts = input.checkedAnswers ?? all.reduce((n, s) => n + s.attempts, 0);
   const sessions = input.sessions.filter((s) => s.instrument === instrument);
-  const hrefFor = (skillId: string) => {
-    const step = stepForSkill(skillId);
-    const route = step && stepAllowed(step, instrument) ? STEPS[step].route : "/music";
-    return `${route}?instrument=${instrument}`;
-  };
+  const hrefFor = (skillId: string) =>
+    `${routeForSkill(skillId, instrument)}?instrument=${instrument}`;
 
   // No instrument-wide percentage here: next to the focus skill's own figure it read as a
   // second, contradicting score for the same skill.

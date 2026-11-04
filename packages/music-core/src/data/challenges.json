@@ -2,7 +2,7 @@
   "dailyChallenges": [
     {
       "id": "daily-xp",
-      "title": "Hit today's XP",
+      "title": "Earn today's XP",
       "description": "Finish one focused block and keep the day moving.",
       "href": "/music",
       "defaultTarget": 100,
@@ -19,7 +19,7 @@
     },
     {
       "id": "capability-variety",
-      "title": "Cross-train two skills",
+      "title": "Practise two different skills",
       "description": "Touch two capability areas so practice does not collapse into one lane.",
       "href": "/music",
       "defaultTarget": 2,
@@ -28,7 +28,7 @@
     },
     {
       "id": "keep-streak",
-      "title": "Keep the streak alive",
+      "title": "Practise today to keep your streak",
       "defaultTarget": 1,
       "progressSource": "whether today's UTC date is already in the practiced-days list"
     }

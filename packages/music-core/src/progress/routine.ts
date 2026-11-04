@@ -3,6 +3,7 @@ import type { Instrument, PracticeSession, RunRecord, ScoringEvent, SkillMastery
 import { DAY_MS, decayMastery, isDueForReview } from "./mastery";
 import routineData from "../data/daily-routine.json";
 import { CATALOG } from "../content/catalog";
+import { ADVANCE } from "./advance";
 import type { PathProgress } from "./paths";
 
 export type StepId =
@@ -132,6 +133,25 @@ export function stepForSkill(skillId: string): StepId | undefined {
     [/^harmony\.ii-v-i/, "voicings"],
   ];
   return rules.find(([re]) => re.test(skillId))?.[1];
+}
+
+/**
+ * The drill that practises one skill: the ear skills with a drill of their own go
+ * straight to it, so "Practise Intervals" opens intervals, not the mixed review.
+ * Everything else uses its routine step's route.
+ */
+export function routeForSkill(skillId: string, instrument?: Instrument): string {
+  const ear: [RegExp, string][] = [
+    [/^pitch\.interval/, "/music/ear/intervals"],
+    [/^(pitch\.scale-degree|ear\.scale-degree)/, "/music/ear/scale-degrees"],
+    [/^harmony\.(triad|seventh)/, "/music/ear/chord-qualities"],
+    [/^ear\.cadences/, "/music/ear/cadences"],
+    [/^ear\.melody-dictation/, "/music/ear/melody-dictation"],
+    [/^ear\.repertoire-transfer/, "/music/ear/repertoire-transfer"],
+  ];
+  const step = stepForSkill(skillId);
+  if (!step || !stepAllowed(step, instrument)) return "/music";
+  return (step === "ear" && ear.find(([re]) => re.test(skillId))?.[1]) || STEPS[step].route;
 }
 
 export const stepAllowed = (step: StepId, instrument?: Instrument) =>
@@ -464,6 +484,29 @@ export function completedSteps(routine: Routine, sessions: PracticeSession[]): n
   return routine.steps
     .filter((step) => runs.some((r) => r.endedAt > 0 && runMatchesStep(r, routine, step)))
     .map((s) => s.n);
+}
+
+/**
+ * Stars on the advance rule's lines: one at 70% (no step back), two at 85% (a pass), three for a
+ * clean run (every answer right at 100%). `null` when the run was not scored (nothing heard).
+ */
+export function starsFor(score: number | undefined, clean = false): number | null {
+  if (score === undefined) return null;
+  if (clean && score >= 1) return 3;
+  return score >= ADVANCE.pass ? 2 : score >= ADVANCE.fail ? 1 : 0;
+}
+
+/** Each step's best stars from this routine's finished runs; a step with no scored run is left out. */
+export function blockStars(routine: Routine, sessions: PracticeSession[]): Record<number, number> {
+  const runs = routineSessions(routine, sessions).flatMap((s) => s.runs);
+  const out: Record<number, number> = {};
+  for (const step of routine.steps)
+    for (const r of runs) {
+      if (!(r.endedAt > 0 && runMatchesStep(r, routine, step))) continue;
+      const s = starsFor(r.score, r.correct);
+      if (s !== null) out[step.n] = Math.max(out[step.n] ?? 0, s);
+    }
+  return out;
 }
 
 export interface RoutineSummary {

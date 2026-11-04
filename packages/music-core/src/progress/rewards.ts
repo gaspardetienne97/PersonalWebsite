@@ -234,7 +234,7 @@ export function dailyChallenges(input: {
   return [
     challenge({
       id: "daily-xp",
-      title: "Hit today's XP",
+      title: "Earn today's XP",
       description: "Finish one focused block and keep the day moving.",
       href: "/music",
       target: 100,
@@ -259,7 +259,7 @@ export function dailyChallenges(input: {
         }),
     challenge({
       id: "capability-variety",
-      title: "Cross-train two skills",
+      title: "Practise two different skills",
       description: "Touch two capability areas so practice does not collapse into one lane.",
       href: "/music",
       target: 2,
@@ -267,7 +267,7 @@ export function dailyChallenges(input: {
     }),
     challenge({
       id: "keep-streak",
-      title: "Keep the streak alive",
+      title: "Practise today to keep your streak",
       description: "Practise anything today.",
       target: 1,
       progress: sessions.some((s) => s.runs.length || s.eventIds.length) ? 1 : 0,

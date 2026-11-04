@@ -142,10 +142,10 @@ describe("daily challenges", () => {
       weakSpot: { skillId: "pitch.interval.m6", name: "Minor 6th", href: "/music/ear/intervals" },
     });
     expect(c.map((x) => [x.id, x.title, x.progress, x.done])).toEqual([
-      ["daily-xp", "Hit today's XP", 100, true],
+      ["daily-xp", "Earn today's XP", 100, true],
       ["weak-spot-reps", "Minor 6th", 2, false],
-      ["capability-variety", "Cross-train two skills", 2, true],
-      ["keep-streak", "Keep the streak alive", 1, true],
+      ["capability-variety", "Practise two different skills", 2, true],
+      ["keep-streak", "Practise today to keep your streak", 1, true],
     ]);
   });
 
