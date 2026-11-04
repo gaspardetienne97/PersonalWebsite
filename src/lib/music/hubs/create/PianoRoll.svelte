@@ -263,11 +263,21 @@
         <div class="ruler sticky top-0 z-20 flex h-7" aria-hidden="true">
           <div class="sticky left-0 z-10 shrink-0 bg-ws-stage" style:width="{KEY_W}px"></div>
           {#each Array.from({ length: Math.ceil(doc.lengthBeats / BAR_BEATS) }, (_, b) => b) as b (b)}
-            <div class="shrink-0 border-l border-ws-stage-ink/25 pl-1 text-xs font-semibold text-ws-stage-soft" style:width="{barSteps * stepW}px">{b + 1}</div>
+            <div class="shrink-0 border-l border-ws-stage-ink/25 pl-1 text-[13px] font-semibold text-ws-stage-soft" style:width="{barSteps * stepW}px">{b + 1}</div>
           {/each}
         </div>
         <div class="relative flex" style:height="{rows.length * ROW_H}px">
-          <div class="keys sticky left-0 z-10 shrink-0" style:width="{KEY_W}px" aria-hidden="true">
+          <!-- The keys sound when pressed, to try a note before drawing it (the grid's Enter does the same from the keyboard). -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="keys sticky left-0 z-10 shrink-0 cursor-pointer"
+            style:width="{KEY_W}px"
+            aria-hidden="true"
+            onpointerdown={(e) => {
+              const m = rows[Math.floor((e.clientY - (e.currentTarget as HTMLElement).getBoundingClientRect().top) / ROW_H)];
+              if (m !== undefined) void audio.unlock().then(() => audio.playNote(m, 0.4, active.velocity, soundOf(active)));
+            }}
+          >
             {#each rows as m (m)}
               <div class="key" class:black={isBlackKey(m)} class:c={m % 12 === 0} class:cur={cursor.midi === m} style:height="{ROW_H}px">{!isBlackKey(m) || cursor.midi === m ? noteName(m) : ""}</div>
             {/each}
@@ -330,7 +340,7 @@
           </div>
         </div>
         <div class="lane sticky bottom-0 z-20 flex" style:height="{LANE_H}px">
-          <div style:width="{KEY_W}px" class="sticky left-0 z-10 flex shrink-0 items-center bg-ws-stage px-1 text-[0.65rem] leading-tight text-ws-stage-soft">Velocity</div>
+          <div style:width="{KEY_W}px" class="sticky left-0 z-10 flex shrink-0 items-center bg-ws-stage px-1 text-[13px] leading-tight text-ws-stage-soft">Velocity</div>
           <div
             class="relative shrink-0 touch-none"
             style:width="{steps * stepW}px"
@@ -358,7 +368,7 @@
       </p>
     {/if}
     </div>
-    <p id="roll-cursor" class="mt-2 text-xs text-ws-stage-soft">
+    <p id="roll-cursor" class="mt-2 text-[13px] text-ws-stage-soft">
       Cursor on {where(cursor.midi, cursor.step * STEP_BEATS)}{under >= 0 ? `, a note of velocity ${Math.round((active.notes[under].velocity ?? 0.8) * 127)}` : ""}. {tool === "resize" ? "Drag a note to change its length." : "Click a cell to add a note, click a note to remove it."}
     </p>
     <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
@@ -409,11 +419,14 @@
     align-items: center;
     justify-content: flex-end;
     padding-right: 0.4rem;
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: #3b3542;
     background: linear-gradient(to right, #e9e4dc, #fbf8f2);
     border-bottom: 1px solid #0002;
+  }
+  .key:active {
+    filter: brightness(0.85);
   }
   .key.black {
     color: #d9d4df;
@@ -468,7 +481,7 @@
     margin: 0.25rem;
     padding: 0 0.4rem;
     border-radius: 999px;
-    font-size: 0.65rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--ws-stage);
     background: color-mix(in oklch, var(--ws-stage-ink) 70%, transparent);

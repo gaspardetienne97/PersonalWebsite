@@ -22,7 +22,8 @@
 
 <div class="flex flex-col gap-1 text-sm">
   <label for="{uid}-input" class="font-medium">{label}</label>
-  <div class="flex min-h-11 flex-wrap items-center gap-1.5 rounded-lg border border-ws-line bg-ws-surface px-2 py-1.5">
+  <!-- One bordered field: the chips and the typing space share it, no box inside the box. -->
+  <div class="flex min-h-11 flex-wrap items-center gap-1.5 rounded-lg border border-ws-line bg-ws-surface px-2 py-1.5 focus-within:outline-2 focus-within:outline-ws-ink">
     {#each tags as t (t)}
       <span class="inline-flex items-center gap-0.5 rounded-full bg-instr-wash py-0.5 pr-0.5 pl-2.5">
         {t}
@@ -37,7 +38,7 @@
     <input
       id="{uid}-input"
       list="{uid}-list"
-      class="min-h-8 min-w-28 flex-1 bg-transparent px-1 outline-none"
+      class="min-h-8 min-w-28 flex-1 appearance-none border-0 bg-transparent px-1 shadow-none outline-none ring-0 focus:ring-0"
       bind:value={draft}
       {onkeydown}
       oninput={() => draft.includes(",") && add(draft)}
@@ -49,5 +50,5 @@
   <datalist id="{uid}-list">
     {#each suggestions.filter((s) => !tags.includes(s)) as s (s)}<option value={s}></option>{/each}
   </datalist>
-  <span id="{uid}-hint" class="text-xs text-ws-soft">Press Enter after each tag. Tags you used before are suggested.</span>
+  <span id="{uid}-hint" class="text-[13px] text-ws-soft">Press Enter after each tag. Tags you used before are suggested.</span>
 </div>

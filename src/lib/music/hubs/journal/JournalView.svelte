@@ -143,13 +143,13 @@
     </div>
     <!-- A sample, drawn as a real card would be but faded and marked, so it never reads as an entry. -->
     <figure class="relative min-w-0">
-      <span class="absolute -top-3 right-4 z-10 rounded-full border border-ws-line bg-ws-bg px-3 py-0.5 text-sm font-semibold">Sample</span>
-      <div class="rounded-2xl border border-dashed border-ws-line bg-ws-surface p-4 opacity-60" aria-hidden="true">
+      <span class="absolute -top-3 right-4 z-10 rounded-full border border-ws-line bg-ws-bg px-3 py-0.5 text-sm font-semibold">Example</span>
+      <div class="rounded-2xl border border-dashed border-ws-line bg-ws-surface p-4 opacity-50" aria-hidden="true">
         <div class="flex items-start gap-3">
           <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><Ear class="size-5" /></span>
           <div class="min-w-0 flex-1">
-            <p class="font-semibold">Scale degrees</p>
-            <p class="text-sm text-ws-soft">Day and time. Drill on your instrument</p>
+            <p class="font-semibold">Example: Scale degrees</p>
+            <p class="text-sm text-ws-soft">Mon, 9:40 AM. Drill on piano</p>
           </div>
           <p class="tnum font-display text-2xl font-semibold leading-none">80%</p>
         </div>
@@ -175,11 +175,14 @@
           </p>
           <!-- On a phone the week's figures sit under the list: one line of them up here. -->
           <p class="tnum text-sm lg:hidden">
-            This week: <span class="font-semibold">{minutesText(weeks.thisWeek.minutes, weeks.thisWeek.sessions)}</span>, {plural(weeks.thisWeek.sessions, "session")}, {weeks.thisWeek.xp} XP
+            This week: <span class="font-semibold">{minutesText(weeks.thisWeek.minutes, weeks.thisWeek.sessions)}</span>, {plural(weeks.thisWeek.sessions, "session")}
           </p>
         </div>
         {#if latestToday && !composing}
-          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note on today</button>
+          <div class="flex flex-col items-start gap-0.5 sm:items-end">
+            <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Day note</button>
+            <span class="text-[13px] text-ws-soft">Goes on today's latest session.</span>
+          </div>
         {/if}
       </div>
 

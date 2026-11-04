@@ -167,19 +167,28 @@
 {/snippet}
 
 <article class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="{id}-title" data-session={id} style:--card-hue={hueVar(hue)}>
-  <div class="flex flex-wrap items-start gap-3">
+  <!-- The whole head is the toggle for every answer; the score stays right of the title at every width. -->
+  <h3 class="font-semibold">
+  <button
+    type="button"
+    class="-m-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-xl p-2 text-left hover:bg-ws-raised/60"
+    aria-expanded={open}
+    aria-controls="{id}-detail"
+    onclick={() => (open = !open)}
+  >
     <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--card-hue)] text-ws-stage" aria-hidden="true">
       <Icon class="size-5" />
     </span>
-    <div class="min-w-[min(12rem,60%)] flex-1">
-      <h3 id="{id}-title" class="font-semibold">{title}</h3>
-      <p class="text-sm text-ws-soft">{when}. {SOURCE_LABEL[session.source]} {played === "Answer buttons" ? "with answer buttons" : `on ${played}`}</p>
-    </div>
+    <span class="min-w-0 flex-1">
+      <span id="{id}-title" class="block">{title}</span>
+      <span class="block text-sm font-normal text-ws-soft">{when}. {SOURCE_LABEL[session.source]} {played === "Answer buttons" ? "with answer buttons" : `on ${played}`}</span>
+      <span class="sr-only">{open ? "Hide answers" : "Show every answer"}</span>
+    </span>
     {#if lead?.score !== undefined}
-      <div class="flex shrink-0 items-end gap-2 max-sm:ml-14">
+      <span class="flex shrink-0 items-end gap-2">
         {#if scores.length > 1}
-          <div
-            class="flex h-9 items-end gap-0.5"
+          <span
+            class="flex h-9 items-end gap-0.5 max-sm:hidden"
             role="img"
             aria-label="{exerciseTitle(lead.exerciseId)} scores up to this session: {scores.map((v) => pct(v)).join(', ')}"
           >
@@ -189,24 +198,34 @@
                 style:height="{Math.max(10, v * 100)}%"
               ></span>
             {/each}
-          </div>
+          </span>
         {/if}
-        <div class="flex flex-col items-end gap-1">
-          <p class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</p>
+        <span class="flex flex-col items-end gap-1">
+          <span class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</span>
           <ScoreBadge run={lead} />
-        </div>
-      </div>
+        </span>
+      </span>
     {/if}
-  </div>
-  <!-- What it measured first, effort after: right answers and time, XP last. -->
+    <ChevronDown class="mt-1 size-4 shrink-0 text-ws-soft motion-safe:transition-transform {open ? 'rotate-180' : ''}" aria-hidden="true" />
+  </button>
+  </h3>
+  <!-- What it measured, then the time; XP stays on Progress. One small note button and the overflow. -->
   <div class="mt-3 flex items-center gap-3">
   <dl class="tnum flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 text-sm">
     {#if session.eventIds.length}
       <div class="flex gap-1.5"><dt class="text-ws-soft">Answers</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
     {/if}
     <div class="flex gap-1.5"><dt class="text-ws-soft">Time</dt><dd class="font-semibold">{duration}</dd></div>
-    <div class="flex gap-1.5"><dt class="text-ws-soft">XP</dt><dd class="font-semibold">+{session.xp}</dd></div>
   </dl>
+    {#if !editing}
+      <button
+        type="button"
+        class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+        aria-label={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
+        title={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
+        onclick={startEdit}><Pencil class="size-5" aria-hidden="true" /></button
+      >
+    {/if}
     <!-- Deleting waits behind a small overflow button and asks first. -->
     <button
       type="button"
@@ -249,17 +268,6 @@
 
 
 
-  <div class="mt-3 flex flex-wrap items-center gap-2">
-    <button type="button" class={btn} aria-expanded={open} aria-controls="{id}-detail" onclick={() => (open = !open)}>
-      <ChevronDown class="size-4 transition-transform {open ? 'rotate-180' : ''}" aria-hidden="true" />
-      {open ? "Hide answers" : "Show every answer"}
-    </button>
-    {#if !editing}
-      <button type="button" class={btn} onclick={startEdit}
-        ><Pencil class="size-4" aria-hidden="true" />{session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}</button
-      >
-    {/if}
-  </div>
   {#if more}
     <div id="{id}-more" class="mt-2 flex flex-wrap items-center justify-end gap-2">
       {#if confirming}

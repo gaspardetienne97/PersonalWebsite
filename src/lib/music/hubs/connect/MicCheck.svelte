@@ -89,9 +89,9 @@
   {/if}
 
   <details class="group text-sm" open={settings.value.echoCancellation || undefined}>
-    <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
-      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Microphone options
-      <span class="font-normal text-ws-soft">Echo cancellation {settings.value.echoCancellation ? "on" : "off"}</span>
+    <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 font-medium [&::-webkit-details-marker]:hidden">
+      <span class="flex items-center gap-2 whitespace-nowrap"><ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Microphone options</span>
+      <span class="font-normal whitespace-nowrap text-ws-soft">Echo cancellation {settings.value.echoCancellation ? "on" : "off"}</span>
     </summary>
     <label class="flex min-h-11 items-start gap-3 pl-6">
       <input type="checkbox" role="switch" class="mt-0.5 size-5 shrink-0 accent-[var(--instr-ink)]" checked={settings.value.echoCancellation} onchange={(e) => void setEcho(e.currentTarget.checked)} />

@@ -175,19 +175,19 @@ describe("Honest figures", () => {
     const r = (over: Partial<SkillRow>) =>
       ({ checked: 10, attempts: 10, umbrella: false, direct: true, ...over }) as SkillRow;
     expect(skillCaption(r({ estimate: 0.14, accuracy: 0.8, lastPracticed: now }), now)).toBe(
-      "80% right on 10 answers, today. Mastery 14%: grows with Check runs.",
+      "All answers: 80% right (10 answers, today).",
     );
     expect(skillCaption(r({ estimate: 0.5, accuracy: 0.75, attempts: 12 }), now)).toBe(
-      "75% right on 12 answers. Mastery 50%: grows with Check runs.",
-    );
-    expect(skillCaption(r({ estimate: 0.9, accuracy: 0.8 }), now)).toBe(
-      "80% right on 10 answers. Mastery 90%.",
+      "All answers: 75% right (12 answers).",
     );
     expect(skillCaption(r({ checked: 0, attempts: 2, accuracy: 1 }), now)).toBe(
-      "100% right on 2 answers. No mastery yet: it grows with Check runs.",
+      "All answers: 100% right (2 answers). No mastery yet.",
     );
     expect(skillCaption(r({ estimate: 0.3, umbrella: true, direct: false, checked: 4 }), now)).toBe(
-      "4 answers in Check mode. Mastery 30%, the average of its parts.",
+      "4 answers in Check runs. Mastery is the average of its parts.",
+    );
+    expect(skillCaption(r({ estimate: 0.4, accuracy: 0.9, checked: 2 }), now)).toBe(
+      "All answers: 90% right (10 answers). Mastery is an early guess until 5 answers in Check runs.",
     );
   });
 

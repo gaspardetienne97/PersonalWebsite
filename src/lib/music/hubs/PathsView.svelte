@@ -26,7 +26,6 @@
   import type { Hue } from "../bench.svelte";
   import { addShelfSong, type Song } from "./library/songs";
   import { plainPathText } from "./progress/model";
-  import Ring from "./progress/Ring.svelte";
   import DrillPreview from "./DrillPreview.svelte";
 
   const ORDER: { id: PathId; hue: Hue }[] = [
@@ -114,6 +113,15 @@
   /** "Level 3"; a placement level 0 goes by its own name ("Check-in"). */
   const levelName = (l: LevelProgress) => (l.level.id === "0" ? l.level.title : `Level ${l.level.id}`);
   const passed = (st: StepStatus) => st === "done" || st === "review";
+  /** One status format everywhere: "Check-in: 0 of 6 steps", "Level 1: 3 of 10 steps". */
+  const levelStatus = (l: LevelProgress) => `${levelName(l)}: ${l.done} of ${l.total} steps`;
+  /** A level's name on the map in two words at most, the full title in its label and heading. */
+  const STOP = new Set(["a", "an", "and", "the", "from", "of", "to", "with", "for", "in", "on", "by"]);
+  const shortTitle = (t: string) => {
+    const w = t.replace(/[:,]/g, "").split(/\s+/).slice(0, 2);
+    while (w.length > 1 && STOP.has(w.at(-1)!.toLowerCase())) w.pop();
+    return w.join(" ");
+  };
 
   // One node open at a time per level, the "Up next" step until another is picked ("" for none).
   let opened = $state<Record<string, string>>({});
@@ -159,7 +167,7 @@
 {#snippet node(i: number, look: "passed" | "next" | "review" | "open" | "locked", content: Snippet)}
   <span class="relative h-8 sm:h-12" aria-hidden="true">
     <span
-      class="node absolute top-0 grid size-8 -translate-x-1/2 place-items-center rounded-full font-display text-xs font-semibold tnum sm:size-12 sm:text-sm {look === 'passed'
+      class="node absolute top-0 grid size-8 -translate-x-1/2 place-items-center rounded-full font-display text-[13px] font-semibold tnum sm:size-12 sm:text-sm {look === 'passed'
         ? 'bg-[color:var(--p)] text-ws-stage'
         : look === 'next'
           ? 'pulse bg-ws-surface text-instr-ink ring-4 ring-[color:var(--p)]'
@@ -229,21 +237,21 @@
                 <DrillPreview href={sp.step.href} size="md" class="mb-3 max-w-xs" />
               {/if}
               {#if sp.step.strand && strands(sp.step.strand).length}
-                <p class="text-xs font-medium text-ws-soft">{strands(sp.step.strand).join(", ")}</p>
+                <p class="inline-flex rounded-full bg-ws-raised px-2.5 py-0.5 text-[13px] font-medium">{strands(sp.step.strand).join(", ")}</p>
               {/if}
-              <p class="mt-0.5 text-sm">{plain(sp.step.summary)}</p>
+              <p class="mt-1.5 text-sm">{plain(sp.step.summary)}</p>
               {#if sp.step.detail}
                 <p class="mt-2 flex gap-2 rounded-xl bg-ws-raised px-3 py-2 text-sm">
                   <Target class="mt-0.5 size-4 shrink-0 text-instr-ink" aria-hidden="true" /><span><span class="font-semibold">To pass:</span> {plainPathText(sp.step.detail)}</span>
                 </p>
               {/if}
               {#if coming}
-                <p class="mt-1 text-xs text-ws-soft">Waits for: {plainPathText(sp.step.needs ?? "")}</p>
+                <p class="mt-1 text-[13px] text-ws-soft">Waits for: {plainPathText(sp.step.needs ?? "")}</p>
               {:else if st === "review"}
-                <p class="mt-1 text-xs text-ws-soft">A later step you passed covers this. Use it to review.</p>
+                <p class="mt-1 text-[13px] text-ws-soft">A later step you passed covers this. Use it to review.</p>
               {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
                 {@const tried = sp.evidence.reduce((n, e) => n + e.attempts, 0)}
-                <p class="tnum mt-1 text-xs text-ws-soft">
+                <p class="tnum mt-1 text-[13px] text-ws-soft">
                   {tried} checked attempt{tried === 1 ? "" : "s"} so far, the latest averaging
                   {Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100)}%.
                   {#if sp.evidence.length > 1}{sp.evidence.filter((e) => e.done).length} of {sp.evidence.length} passed.{/if}
@@ -252,8 +260,8 @@
                       : "a few more checked attempts to confirm."}{/if}
                 </p>
               {/if}
-              {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-xs text-ws-soft">Counts at {sp.step.minBpm} BPM or faster.</p>{/if}
-              {#if st === "locked"}<p class="mt-1 text-xs text-ws-soft">Opens once the steps before it pass.</p>{/if}
+              {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-[13px] text-ws-soft">Counts at {sp.step.minBpm} BPM or faster.</p>{/if}
+              {#if st === "locked"}<p class="mt-1 text-[13px] text-ws-soft">Opens once the steps before it pass.</p>{/if}
               {#if st !== "locked" && sp.step.href && !coming}
                 <div class="mt-3 flex flex-wrap gap-2">
                   <a
@@ -286,7 +294,7 @@
           <ul class="mt-1 flex flex-wrap gap-1.5" aria-label="Songs on the shelf">
             {#each lv.songs as row (row.key)}
               <li
-                class="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs {row.played
+                class="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[13px] {row.played
                   ? 'border-transparent bg-[color:var(--p)] text-ws-stage'
                   : 'border-ws-line text-ws-soft'}"
               >
@@ -335,7 +343,7 @@
                           class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Import its score</a
                         >
                       {/if}
-                      <span class="tnum text-xs text-ws-soft">{row.days ? `${Math.min(row.days, 2)} of 2 days` : "Not played yet"}</span>
+                      <span class="tnum text-[13px] text-ws-soft">{row.days ? `${Math.min(row.days, 2)} of 2 days` : "Not played yet"}</span>
                     </div>
                   </li>
                 {/each}
@@ -376,7 +384,7 @@
           <span class="block font-semibold">{pr.path.title}</span>
           {#if pr.levels?.length}
             {@const at = pr.levels.find((l) => l.level.id === pr.currentLevel) ?? pr.levels.at(-1)!}
-            <span class="tnum block text-sm text-ws-soft">{levelName(at)}, {at.done} of {at.total} steps</span>
+            <span class="tnum block text-sm text-ws-soft">{levelStatus(at)}</span>
             <span class="mt-1 block h-1 w-28 rounded-full bg-ws-raised" aria-hidden="true"
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{at.total ? (at.done / at.total) * 100 : 0}%"></span></span
             >
@@ -386,7 +394,7 @@
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{pr.total ? (pr.done / pr.total) * 100 : 0}%"></span></span
             >
           {/if}
-          {#if goal(p.id)}<span class="mt-1 block text-xs text-ws-soft max-lg:hidden">{goal(p.id)}</span>{/if}
+          {#if goal(p.id)}<span class="mt-1 block text-[13px] text-ws-soft max-lg:hidden">{goal(p.id)}</span>{/if}
         </span>
       </button>
     {/each}
@@ -400,20 +408,25 @@
       <div class="min-w-0">
         <h2 id="path-title" class="truncate font-display text-xl font-semibold tracking-tight sm:text-2xl">{current.path.title}</h2>
         <p class="tnum truncate text-sm text-ws-soft">
-          {#if level}{levelName(level)}: {level.done} of {level.total} steps passed{:else}{current.done} of {current.total} steps passed{/if}
+          {#if level}{levelStatus(level)} passed{:else}{current.done} of {current.total} steps passed{/if}
         </p>
       </div>
       {#if current.continueHref}
+        <!-- Named by where it goes. While a step card is open its Practise is the one primary, so this one steps back. -->
+        {@const target = current.levels?.find((l) => l.level.id === current.currentLevel)}
+        {@const go = target?.level.id === "0" && !target.done ? "Start check-in" : current.done === 0 && !target?.done ? "Start the path" : "Continue"}
         <a
           href={current.continueHref}
-          class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-[color:var(--p)] px-5 text-sm font-semibold text-ws-stage hover:brightness-105"><Play class="size-4" aria-hidden="true" />Continue</a
+          class="flex min-h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold {openId
+            ? 'border border-ws-line bg-ws-surface hover:bg-ws-raised'
+            : 'bg-[color:var(--p)] text-ws-stage hover:brightness-105'}"
+          ><Play class="size-4" aria-hidden="true" />{go.split(" ")[0]}<span class="max-sm:sr-only">{go.includes(" ") ? ` ${go.split(" ").slice(1).join(" ")}` : ""}</span></a
         >
       {/if}
     </div>
     <p class="mt-2 flex items-start gap-1 text-ws-soft">
       <span class="min-w-0 flex-1">
         {#each oneLine(current.path.subtitle).split(/(ABRSM Grade \d+)/) as part, k (k)}{#if k % 2}<button type="button" popovertarget="abrsm-{selected}" class="font-medium text-ws-ink underline decoration-dotted underline-offset-4">{part}</button><span id="abrsm-{selected}" popover class="m-auto max-w-sm rounded-2xl border border-ws-line bg-ws-surface p-4 text-sm text-ws-ink shadow-lg">ABRSM is a UK exam board. Its piano grades run from 1 (first year) to 8 (advanced); {part.replace("ABRSM ", "")} is a confident intermediate player.</span>{:else}{part}{/if}{/each}
-        <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps.</span>
       </span>
       <button
         type="button"
@@ -428,20 +441,21 @@
       <p id="path-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">
         {plainPathText(current.path.subtitle)}
         {#if current.path.benchmark}By the end it sits around {current.path.benchmark}.{/if}
+        <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps in all.</span>
       </p>
     {/if}
 
     {#if current.levels?.length && level}
       <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
            The current and the next level carry their names. -->
-      <div class="mt-4 flex flex-wrap items-start gap-y-3 px-1 pb-2 pt-1" role="group" aria-label="Levels">
+      <div class="levels -mx-1 mt-4 flex items-start overflow-x-auto pb-2 pl-1 pr-10 pt-2" role="group" aria-label="Levels">
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
           {#if k}<span class="mt-5 h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
           <button
             type="button"
-            class="flex w-24 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
+            class="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
             aria-pressed={l.level.id === level.level.id}
             aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
@@ -456,11 +470,11 @@
                   : 'relative border-2 border-dashed border-ws-soft bg-ws-surface text-ws-soft'}"
             >
               {#if l.passed}<Check class="size-4" aria-hidden="true" />{:else}{#if l.level.id === "0"}<Flag class="size-4" aria-hidden="true" />{:else}{l.level.id}{/if}{#if ahead}<span
-                    class="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-ws-ink text-ws-bg"
+                    class="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-ws-ink text-ws-bg ring-2 ring-ws-bg"
                     aria-hidden="true"><Lock class="size-3" /></span
                   >{/if}{/if}
             </span>
-            <span class="text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{l.level.title}</span>
+            <span class="text-center text-[13px] leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{shortTitle(l.level.title)}</span>
           </button>
         {/each}
       </div>
@@ -481,23 +495,21 @@
           <p class="mt-1">{plain(level.level.goal)}</p>
         {/if}
         {#if level.level.adds && level.level.id !== "0"}<p class="mt-1 text-sm text-ws-soft">New here: {plain(level.level.adds)}</p>{/if}
-        <!-- The level's progress as rings that fill to the real counts. -->
-        <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div class="flex items-center gap-2">
-            <Ring value={level.total ? level.done / level.total : 0} stroke="var(--p)" class="size-14 ws-fill">
-              <span class="tnum text-sm font-semibold">{level.done}/{level.total}</span>
-            </Ring>
-            <span class="text-sm"><span class="font-semibold">Steps passed</span><span class="block text-ws-soft">{level.done} of {level.total}</span></span>
-          </div>
-          {#if level.level.pick && level.songs.length}
-            <div class="flex items-center gap-2">
-              <Ring value={Math.min(1, level.played / level.level.pick)} stroke="var(--p)" class="size-14">
-                <span class="tnum text-sm font-semibold">{level.played}/{level.level.pick}</span>
-              </Ring>
-              <span class="text-sm"><span class="font-semibold">Songs played</span><span class="block text-ws-soft">{level.played} of {level.level.pick}</span></span>
+        <!-- The level's progress as one bar, with the map's three marks named once. -->
+        <div class="mt-3 flex flex-col gap-2">
+          <div class="flex items-center gap-3">
+            <div class="h-2 max-w-sm flex-1 rounded-full bg-ws-raised" role="progressbar" aria-label="Steps passed" aria-valuemin={0} aria-valuemax={level.total} aria-valuenow={level.done}>
+              <div class="ws-fill h-full rounded-full bg-[color:var(--p)]" style:width="{level.total ? (level.done / level.total) * 100 : 0}%"></div>
             </div>
-          {/if}
-          {#if level.passed}<span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Check class="size-4" aria-hidden="true" />Level passed</span>{/if}
+            <span class="tnum text-sm font-semibold">{level.done} of {level.total} done</span>
+            {#if level.passed}<span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Check class="size-4" aria-hidden="true" />Level passed</span>{/if}
+          </div>
+          <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ws-soft" aria-hidden="true">
+            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-[color:var(--p)] text-ws-stage"><Check class="size-3" /></span>Passed</span>
+            <span class="inline-flex items-center gap-1"><span class="size-5 rounded-full bg-ws-surface ring-2 ring-[color:var(--p)]"></span>Up next</span>
+            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-ws-raised"><Lock class="size-3" /></span>Locked</span>
+            {#if level.level.pick && level.songs.length}<span class="tnum">Songs played: {level.played} of {level.level.pick}</span>{/if}
+          </p>
         </div>
       </div>
 
@@ -532,6 +544,11 @@
     .pulse::after {
       animation: none;
     }
+  }
+  /* One row of levels that scrolls sideways; its right edge fades so a cut label reads as more. */
+  .levels {
+    scrollbar-width: thin;
+    mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
   }
   :global(html[data-reduce-motion]) .pulse::after {
     animation: none;

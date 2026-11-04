@@ -12,6 +12,7 @@
   import Palette from "lucide-svelte/icons/palette";
   import Target from "lucide-svelte/icons/target";
   import Database from "lucide-svelte/icons/database";
+  import Info from "lucide-svelte/icons/info";
   import type { PlaybackSound } from "@repo/music-core";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
   import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
@@ -97,6 +98,14 @@
     say("audio", audio.unlocked ? "Sound is on." : "Sound is on, but the browser is still holding it back. Tap Play test sound.");
   }
 
+  /** A slider let go: a short sample at the new level (a click for the metronome, a note for the rest). */
+  async function sample(key: (typeof LEVELS)[number]["key"]) {
+    if (s.muted) return;
+    await audio.unlock();
+    if (key === "metronomeLevel") audio.click(true);
+    else audio.playNote(67, 0.4);
+  }
+
   const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)} ms`;
   const sampleNote = $derived(
     s.preferredPlaybackSound !== "salamander-piano"
@@ -116,14 +125,20 @@
 <div class="mx-auto grid max-w-4xl gap-6">
   <header>
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Settings are saved in this browser only, as you change them. To keep a copy, back up in <a class="font-medium text-instr-ink underline underline-offset-4" href="#data">Your data</a>. Choose devices on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
+    <p class="mt-1 max-w-prose text-ws-soft">Saved as you change them. Choose devices on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
+    <!-- The one thing that can lose work, as a callout with its fix beside it. -->
+    <div class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-instr-wash px-4 py-3">
+      <Info class="size-5 shrink-0 text-instr-ink" aria-hidden="true" />
+      <p class="min-w-0 flex-1 basis-56 text-sm">Settings and progress live in this browser only. A backup file keeps a copy.</p>
+      <a class={btn} href="#data">Back up now</a>
+    </div>
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
-  <!-- One row of section anchors above the content (one vertical nav on the page: the app's). Chips wrap on a
-       phone so all six stay in view; from sm the row sticks under the strip. -->
+  <!-- One row of section anchors above the content (one vertical nav on the page: the app's). On a phone the
+       chips scroll sideways in one row; from sm the row wraps and sticks under the strip. -->
   <nav aria-label="Settings sections" class="min-w-0 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:z-20 sm:-mx-6 sm:bg-ws-bg sm:px-6 sm:py-2">
-    <ul class="flex flex-wrap gap-1.5">
+    <ul class="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
       {#each SECTIONS as sec (sec.id)}
         <li>
           <a
@@ -179,6 +194,7 @@
                 class="h-11 min-w-0 flex-1 accent-[var(--instr-ink)]"
                 value={s[l.key]}
                 oninput={(e) => settings.update({ [l.key]: Number(e.currentTarget.value) })}
+                onchange={() => sample(l.key)}
               />
               <span class="tnum w-14 shrink-0 text-right font-display text-lg font-semibold" aria-hidden="true">{Math.round(s[l.key] * 100)}%</span>
             </div>
@@ -190,6 +206,9 @@
             <p class="text-sm text-ws-soft">Keys, frets and pads you tap sound like the instrument. MIDI devices make their own sound.</p>
           </div>
           {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
+        </li>
+        <li class="px-4 py-3 text-sm">
+          <a class="inline-flex min-h-11 items-center font-medium text-instr-ink underline underline-offset-4" href="#latency">Sound feels late? Calibrate latency</a>
         </li>
         <li class="px-4 py-3 text-sm text-ws-soft">
           Sampled piano: Salamander Grand Piano by Alexander Holm, <a class="font-medium text-instr-ink underline underline-offset-4" href="https://creativecommons.org/licenses/by/3.0/" rel="noopener noreferrer" target="_blank">CC BY 3.0</a>.

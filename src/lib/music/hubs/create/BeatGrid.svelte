@@ -116,8 +116,8 @@
     announce(`Bar ${barsOf(session.pattern)} is its own now, a copy to change.`);
   }
   const firstRepeat = $derived(overview.find((c) => c.repeat));
-  /** A short row tag for a phone: the pad for a sample, else the first word of the voice. */
-  const tag = (row: BeatRow & { sample?: string }) => (row.sample ? padLabel(row.midi) : row.name.split(" ")[0].slice(0, 5));
+  /** A phone's row name: the pad for a sample, else the voice's full name (it wraps to two short lines). */
+  const tag = (row: BeatRow & { sample?: string }) => (row.sample ? padLabel(row.midi) : row.name);
   $effect(() => {
     void total;
     measure();
@@ -163,7 +163,7 @@
           <div class="flex flex-col gap-1 text-sm">
             <span class="font-semibold">Start from a preset</span>
             <Picker class="w-full" action label="Start from a preset" placeholder="Pick a groove" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
-            <span class="text-xs text-ws-soft">Replaces this beat's hits.</span>
+            <span class="text-[13px] text-ws-soft">Replaces this beat's hits.</span>
           </div>
           <div class="flex flex-wrap gap-2 border-t border-ws-line pt-3">
             {@render extra?.()}
@@ -184,11 +184,13 @@
           aria-current={c.now ? "step" : undefined}
           aria-label="Bar {c.bar + 1}{c.repeat ? `, repeats beat bar ${c.beatBar + 1}` : ''}{c.now ? ', playing' : ''}"
           onclick={() => showBar(c.beatBar)}
-        >{c.bar + 1}</button>
+        ><span>{c.bar + 1}{#if c.repeat && overview.length <= 2}<span class="font-normal sm:hidden" aria-hidden="true">, repeats {c.beatBar + 1}</span>{/if}</span></button>
       {/each}
+      <!-- On a phone the repeat is named in its cell and Make unique sits on this row, so the whole grid fits above the tab bar. -->
+      {#if firstRepeat}<button type="button" class="inline-flex min-h-11 shrink-0 items-center px-2 text-sm font-semibold text-ws-stage-ink underline underline-offset-4 sm:hidden" onclick={makeUnique}>Make unique</button>{/if}
     </div>
     {#if firstRepeat}
-      <p class="mb-2 flex flex-wrap items-center gap-x-3 text-sm text-ws-stage-soft">
+      <p class="mb-2 flex flex-wrap items-center gap-x-3 text-sm text-ws-stage-soft max-sm:hidden">
         <span>Bar {firstRepeat.bar + 1} repeats bar {firstRepeat.beatBar + 1}.</span>
         <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique}>Make unique</button>
       </p>
@@ -212,7 +214,7 @@
             <tr>
               <th scope="row" class="rowhead" class:playing={rowHit(row.midi)}>
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
-                  <span class="flex max-w-full items-center gap-1"><span class="font-semibold sm:hidden" aria-hidden="true">{tag(row)}</span><span class="truncate font-semibold max-sm:hidden">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60 max-sm:hidden" aria-hidden="true" /></span>
+                  <span class="flex max-w-full items-center gap-1"><span class="font-semibold break-words sm:hidden" aria-hidden="true">{tag(row)}</span><span class="truncate font-semibold max-sm:hidden">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60 max-sm:hidden" aria-hidden="true" /></span>
                   {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">Sample on {padLabel(row.midi)}</span>{/if}
                 </button>
               </th>
@@ -250,7 +252,8 @@
         {/each}
       </div>
     {/if}
-    <p class="mt-3 text-sm text-ws-stage-ink/85" data-playhead={playhead}>
+    <!-- A phone leaves the summary out so the grid ends above the tab bar; the steps say the same. -->
+    <p class="mt-3 text-sm text-ws-stage-ink/85 max-sm:hidden" data-playhead={playhead}>
       {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. Tap a step to add or remove a hit.
     </p>
     <p id="beat-keys" class="sr-only">Arrow keys move around the grid, Enter or Space toggles a step.</p>
@@ -294,7 +297,7 @@
   }
   .stephead {
     height: 1.4rem;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--ws-stage-soft);
     text-align: left;
@@ -424,15 +427,16 @@
       margin-inline: -2px;
     }
     .rowhead {
-      min-width: 2.75rem;
-      max-width: 2.75rem;
+      min-width: 3.25rem;
+      max-width: 3.25rem;
     }
     .rowlabel {
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
+      line-height: 1.1;
       padding-inline: 0.2rem;
     }
     .step {
-      width: max(1.75rem, calc((100cqi - 2.75rem - 9 * 2px - 0.7rem) / 8));
+      width: max(1.75rem, calc((100cqi - 3.25rem - 9 * 2px - 0.7rem) / 8));
     }
   }
   @media (min-width: 1280px) {

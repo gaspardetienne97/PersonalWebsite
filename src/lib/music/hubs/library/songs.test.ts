@@ -113,9 +113,10 @@ describe("shelf cards", () => {
       "Medium",
     ]);
   });
-  it("spell out the hands", () => {
+  it("spell out the hands, in sentence case", () => {
     expect(plainTeaches("RH broken chords, LH root")).toBe(
-      "right hand broken chords, left hand root",
+      "Right hand broken chords, left hand root",
     );
+    expect(plainTeaches("6/8 ballad feel")).toBe("6/8 ballad feel");
   });
 });

@@ -119,33 +119,7 @@
     </ul>
   </section>
 
-  <div class="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-    <div class="flex min-w-0 flex-col gap-8">
-      <section aria-labelledby="totals-title">
-        <h2 id="totals-title" class="sr-only">Totals</h2>
-        <dl class="tnum grid max-w-md grid-cols-2 gap-3">
-          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
-            <dt class="text-sm text-ws-soft">Level</dt>
-            <dd class="font-display text-3xl font-semibold">{level}</dd>
-          </div>
-          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
-            <dt class="text-sm text-ws-soft">Streak</dt>
-            <dd class="font-display text-3xl font-semibold">{plural(streak.current, "day")}</dd>
-          </div>
-        </dl>
-        <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
-          <div class="h-full rounded-full bg-instr" style:width="{((250 - toNext) / 250) * 100}%"></div>
-        </div>
-        <p class="tnum mt-2 max-w-md text-sm"><span class="font-semibold">{toNext} XP to level {level + 1}</span></p>
-        <p class="tnum max-w-md text-sm text-ws-soft">{xp} XP in all, {summary.xp} this week, {plural(days.length, "day")} practised.</p>
-        <details class="group mt-1 max-w-md text-sm">
-          <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-            <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
-          </summary>
-          <p class="text-ws-soft">Every session earns XP. Skill scores move only on answers in Check mode, where the targets are hidden.</p>
-        </details>
-      </section>
-
+  <div class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="weeks-title">
         <h2 id="weeks-title" class="font-display text-xl font-semibold">This week and last</h2>
         <div class="max-w-md"><WeekCompare {weeks} /></div>
@@ -186,18 +160,47 @@
           <p class="mt-2 text-sm">Nothing repeated yet. Run any drill twice with the same setup to see whether it improved.</p>
         {/if}
       </section>
-    </div>
+  </div>
 
-    <div class="flex min-w-0 flex-col gap-8">
-      <section aria-labelledby="badges-title">
-        <h2 id="badges-title" class="font-display text-xl font-semibold">Achievements</h2>
+  <!-- Level and achievements: their own section, apart from what you played. -->
+  <section aria-labelledby="level-title" class="border-t border-ws-line pt-6">
+    <h2 id="level-title" class="font-display text-xl font-semibold">Level and achievements</h2>
+    <div class="mt-3 grid gap-8 lg:grid-cols-2">
+      <div class="min-w-0">
+        <dl class="tnum grid max-w-md grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
+            <dt class="text-sm text-ws-soft">Level</dt>
+            <dd class="font-display text-3xl font-semibold">{level}</dd>
+          </div>
+          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
+            <dt class="text-sm text-ws-soft">Streak</dt>
+            <dd class="font-display text-3xl font-semibold">{plural(streak.current, "day")}</dd>
+          </div>
+        </dl>
+        <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
+          <div class="h-full rounded-full bg-instr" style:width="{((250 - toNext) / 250) * 100}%"></div>
+        </div>
+        <!-- One line: the weekly figure only once it differs from the total. -->
+        <p class="tnum mt-2 max-w-md text-sm">
+          <span class="font-semibold">Level {level}. {xp} XP, {toNext} to level {level + 1}.</span>
+          {#if summary.xp !== xp}<span class="text-ws-soft">{summary.xp} XP this week.</span>{/if}
+        </p>
+        <details class="group mt-1 max-w-md text-sm">
+          <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+            <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+          </summary>
+          <p class="text-ws-soft">Every session earns XP. Skill scores move only on answers in Check runs, where the targets are hidden.</p>
+        </details>
+      </div>
+      <div class="min-w-0">
+        <h3 id="badges-title" class="font-display text-lg font-semibold">Achievements</h3>
         <p class="text-sm text-ws-soft">{badges.filter((b) => b.unlocked).length} of {badges.length} unlocked.</p>
         <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
           {#each badges as b (b.id)}
             <li
               class="flex items-center gap-3 rounded-xl px-3 py-2 {b.unlocked
                 ? 'bg-instr-wash'
-                : 'border border-dashed border-ws-line'}"
+                : 'border border-dashed border-ws-soft/60'}"
             >
               <span
                 class="grid size-9 shrink-0 place-items-center rounded-full {b.unlocked ? 'bg-instr text-ws-stage' : 'bg-ws-raised text-ws-soft'}"
@@ -206,13 +209,13 @@
                 {#if b.unlocked}<Check class="size-4" />{:else}<Lock class="size-4" />{/if}
               </span>
               <div class="min-w-0">
-                <p class="font-medium {b.unlocked ? '' : 'text-ws-soft'}">{b.title}</p>
+                <p class="font-medium">{b.title}</p>
                 <p class="text-sm text-ws-soft">{b.unlocked ? "Unlocked." : "Locked."} {b.description}</p>
               </div>
             </li>
           {/each}
         </ul>
-      </section>
+      </div>
     </div>
-  </div>
+  </section>
 {/if}

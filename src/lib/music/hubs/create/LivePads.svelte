@@ -187,7 +187,7 @@
     <Choice label="Swing" options={[50, 54, 56, 58, 60, 62, 66].map((n) => ({ value: n, label: n === 50 ? "Straight" : `${n}%` }))} value={swing} onchange={(v) => (swing = v)} />
     <Choice label="Note repeat" options={[{ value: "off", label: "Off" }, ...REPEAT_RATES.map((r) => ({ value: r.id as string, label: r.id }))]} value={rate} onchange={(v) => (rate = v)} />
   </div>
-  <p class="mt-3 text-xs text-ws-stage-soft">
+  <p class="mt-3 text-[13px] text-ws-stage-soft">
     Note repeat: hold a pad and it repeats on the loop's grid{repeater.aftertouch ? "; your pads send aftertouch, so pressure sets the level" : "; pressure sets the level when the pads send aftertouch"}. Keep this loop grades the build: in time, at least {LIVE_LOOP.passes} passes, no undo from the third on, {LIVE_LOOP.maxMinutes} minutes or less.
     {#if lastScore}<span class="font-semibold text-ws-stage-ink">Last loop: {lastScore}</span>{/if}
   </p>

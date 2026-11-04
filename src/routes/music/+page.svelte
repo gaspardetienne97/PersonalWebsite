@@ -22,13 +22,13 @@
 <svelte:head><title>{title} | Woodshed</title></svelte:head>
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5 sm:gap-6">
-  <!-- One title per view, named for it; the segmented control switches views, the sidebar switches sections. -->
+  <!-- One title per view, named for it. From lg the sidebar lists Today, Drills and Paths, so the segmented control is for smaller screens. -->
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div class="min-w-0">
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
       <p class="mt-1 text-ws-soft max-sm:hidden">{TAGLINE[tab] ?? TAGLINE.today}</p>
     </div>
-    <HubTabs param="tab" tabs={TABS} label="Practice views" />
+    <HubTabs param="tab" tabs={TABS} label="Practice views" class="lg:hidden" />
   </header>
   {#if tab === "drills"}<DrillsView />{:else if tab === "paths"}<PathsView />{:else}<TodayView />{/if}
 </div>

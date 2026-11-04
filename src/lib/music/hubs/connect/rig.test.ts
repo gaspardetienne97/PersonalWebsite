@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeMidi, hitLabel, isDetail, micOptions, tileFor } from "./rig";
+import { describeMidi, hitLabel, isDetail, micOptions, strength, tileFor, velocityOf } from "./rig";
 
 describe("connect rig", () => {
   it("gives the MPC and the Aerophone their own tile, everything else the keyboard", () => {
@@ -39,7 +39,9 @@ describe("connect rig", () => {
   });
 
   it("reads raw MIDI bytes in words", () => {
-    expect(describeMidi("90 3C 5A")).toBe("C4 played, strength 90 of 127");
+    expect(describeMidi("90 3C 5A")).toBe("C4 played, medium");
+    expect(describeMidi("90 3C 64")).toBe("C4 played, hard");
+    expect(describeMidi("90 3C 20")).toBe("C4 played, soft");
     expect(describeMidi("90 3C 00")).toBe("C4 released");
     expect(describeMidi("89 2A 00", (n) => `Pad ${n}`)).toBe("Pad 42 released");
     expect(describeMidi("B0 02 50")).toBe("Breath 80");
@@ -47,6 +49,20 @@ describe("connect rig", () => {
     expect(describeMidi("E0 00 40")).toBe("Pitch bend 0");
     expect(describeMidi("F0 47 7F 3B F7")).toBe("System message (SysEx, 5 bytes)");
     expect(describeMidi("")).toBe("Unreadable message");
+  });
+
+  it("reads velocity as a word and keeps the number for details", () => {
+    expect([1, 49, 50, 95, 96, 127].map(strength)).toEqual([
+      "Soft",
+      "Soft",
+      "Medium",
+      "Medium",
+      "Hard",
+      "Hard",
+    ]);
+    expect(velocityOf("99 25 64")).toBe(100);
+    expect(velocityOf("90 3C 00")).toBe(null);
+    expect(velocityOf("B0 02 50")).toBe(null);
   });
 
   it("keeps releases, clock and keep-alives for the details view", () => {

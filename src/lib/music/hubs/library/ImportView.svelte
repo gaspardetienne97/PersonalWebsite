@@ -128,7 +128,8 @@
       >
         <Upload class="size-7" aria-hidden="true" />
         <span class="font-display text-lg font-semibold">{#if busy}Reading the score{:else}<span class="sm:hidden">Choose a score file</span><span class="max-sm:hidden">Drop a score here, or choose a file</span>{/if}</span>
-        <span class="text-sm text-ws-soft">.musicxml, .xml, .mxl, .mid or .midi</span>
+        <span class="text-sm text-ws-soft">MusicXML (.musicxml, .xml, .mxl) or MIDI (.mid, .midi)</span>
+        <span class="max-w-sm text-center text-sm">No file yet? In MuseScore or a similar notation app, open a score and choose File, Export, MusicXML.</span>
         <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}

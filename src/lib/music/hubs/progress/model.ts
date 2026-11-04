@@ -30,8 +30,8 @@ export const MIN_EVIDENCE = COACH_MIN_ATTEMPTS;
 export const PICKS_CAP = 8;
 
 export const ASSISTANCE_LABEL: Record<Assistance, string> = {
-  independent: "Checked",
-  guided: "Practice",
+  independent: "Check run",
+  guided: "Practice run",
   hinted: "With a hint",
   "self-assessed": "Self-rated",
 };
@@ -405,22 +405,21 @@ export const minutesText = (minutes: number, sessions: number) =>
  * answer; mastery moves only on answers in Check mode, so it says so when it lags.
  */
 export function skillCaption(r: SkillRow, now: number): string {
+  // Mastery is the row's headline number; this line is the other measure, labelled as what it is.
+  const when = r.lastPracticed ? `, ${relativeDay(r.lastPracticed, now)}` : "";
   const tries =
     r.accuracy !== undefined
-      ? `${pct(r.accuracy)} right on ${plural(r.attempts, "answer")}`
-      : `${plural(r.checked, "answer")} in Check mode`;
-  const when = r.lastPracticed ? `, ${relativeDay(r.lastPracticed, now)}` : "";
+      ? `All answers: ${pct(r.accuracy)} right (${plural(r.attempts, "answer")}${when})`
+      : `${plural(r.checked, "answer")} in Check runs${when}`;
   const mastery =
     r.estimate === undefined
-      ? "No mastery yet: it grows with Check runs"
-      : `Mastery ${pct(r.estimate)}${
-          r.umbrella && !r.direct
-            ? ", the average of its parts"
-            : r.estimate < (r.accuracy ?? 0)
-              ? ": grows with Check runs"
-              : ""
-        }`;
-  return `${tries}${when}. ${mastery}.`;
+      ? " No mastery yet."
+      : r.umbrella && !r.direct
+        ? " Mastery is the average of its parts."
+        : r.checked < MIN_EVIDENCE
+          ? ` Mastery is an early guess until ${MIN_EVIDENCE} answers in Check runs.`
+          : "";
+  return `${tries}.${mastery}`;
 }
 
 /**

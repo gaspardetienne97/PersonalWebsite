@@ -118,12 +118,12 @@
     <div class="min-w-0 self-start rounded-3xl border border-ws-line bg-ws-surface p-4 sm:p-5" style:--step-hue={upNext ? hueVar(hueForRoute(upNext.href, instrument)) : "var(--instr)"}>
       <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument]}</p>
       <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else}Today's set is done{/if}
+        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Set done. Extra: {afterName}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
-        {#if upNext}{blockReason(upNext)}{:else if after}<span class="font-semibold text-ws-ink">Optional extra: {afterName}</span>{after.href === plan.advice.action.href
-            ? `, your weakest skill${plan.advice.focus ? ` (${pct(plan.advice.focus.accuracy)} right on ${plural(plan.advice.focus.attempts, "answer")})` : ""}.`
-            : `. ${after.why}`}{:else}{plan.advice.summary}{/if}
+        {#if upNext}{blockReason(upNext)}{:else if after}{after.href === plan.advice.action.href
+            ? `Your weakest skill${plan.advice.focus ? `: ${pct(plan.advice.focus.accuracy)} right (${plural(plan.advice.focus.attempts, "answer")}, Check runs)` : ""}.`
+            : after.why}{:else}{plan.advice.summary}{/if}
       </p>
       {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
       <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -153,9 +153,14 @@
         </div>
       {/if}
 
+      <details class="group mt-3 border-t border-ws-line pt-2 text-sm">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+          <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Why this
+        </summary>
+        <p class="max-w-prose">{reasoning}</p>
       {#if !plan.advice.measured && plan.checked < MIN_EVIDENCE}
         <!-- The coach's bar, drawn: answers in Check mode so far against the five it needs. -->
-        <div class="mt-4 flex items-center gap-3 border-t border-ws-line pt-4 text-sm">
+        <div class="mt-2 flex items-center gap-3 text-sm">
           <span class="shrink-0 font-medium">Coach</span>
           <div
             class="h-2 flex-1 rounded-full bg-ws-raised"
@@ -170,14 +175,9 @@
           <span class="tnum shrink-0 text-ws-soft">{toMeasure} of {MIN_EVIDENCE} answers in Check mode</span>
         </div>
       {:else}
-        <p class="mt-4 border-t border-ws-line pt-4 text-sm"><span class="font-medium">{plan.advice.headline}.</span> {plan.advice.summary}</p>
+        <p class="mt-2 text-sm"><span class="font-medium">{plan.advice.headline}.</span> {plan.advice.summary}</p>
       {/if}
 
-      <details class="group mt-3 text-sm">
-        <summary class="flex min-h-11 cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-          <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Why this
-        </summary>
-        <p class="max-w-prose">{reasoning}</p>
         <p class="mt-2 text-ws-soft">
           This is a heuristic. The evidence behind it is in
           <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/progress?view=skills">every skill</a>
@@ -196,14 +196,14 @@
           <li class="flex min-w-0 items-center gap-3 py-2.5" style:--step-hue={hueVar(hueForRoute(step.href, instrument))}>
             <span
               class="grid size-8 shrink-0 place-items-center rounded-full {done ? 'bg-success text-white' : 'bg-[color:var(--step-hue)] text-ws-stage'}"
-              aria-hidden="true">{#if done}<Check class="size-4" />{:else}<span class="tnum text-xs font-semibold">{step.n}</span>{/if}</span
+              aria-hidden="true">{#if done}<Check class="size-4" />{:else}<span class="tnum text-[13px] font-semibold">{step.n}</span>{/if}</span
             >
             <div class="min-w-0 flex-1">
               <p class="flex flex-wrap items-center gap-x-2 font-semibold">
                 <a href={step.href} class="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
                   ><span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span><span class="mr-1 font-normal text-ws-soft">{`${roleLabel(step)}: `}</span>{step.label}</a
                 >
-                {#if done}<span class="text-xs font-medium text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 text-xs text-instr-ink">Now</span>{/if}
+                {#if done}<span class="text-[13px] font-medium text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 text-[13px] text-instr-ink">Now</span>{/if}
               </p>
               <p class="text-sm text-ws-soft">
                 <span class="tnum">{step.minutes} min.</span>
@@ -226,7 +226,7 @@
           <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
         </summary>
         <p class="max-w-prose text-ws-soft">Only answers in Check mode move an estimate. A skill gets one after {MIN_EVIDENCE} of them, and it fades a little on days you do not practise.</p>
-      <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ws-soft" aria-label="Key">
+      <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ws-soft" aria-label="Key">
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-warn" aria-hidden="true"></span>Falling: down ten points or more since last measured</li>
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>Holding</li>
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border border-dashed border-ws-soft" aria-hidden="true"></span>Not measured yet: under {MIN_EVIDENCE} answers in Check mode</li>
@@ -240,7 +240,7 @@
               <div class="mt-2 flex flex-wrap gap-x-6 gap-y-3">
                 {#each pitchMaps as pm (pm.prefix)}
                   <figure class="min-w-0">
-                    <svg viewBox="0 0 200 78" class="h-20 w-auto" role="img" aria-label="{pm.title}: {pm.marks.map((m) => `${m.token} ${m.value === undefined ? 'not measured yet' : pct(m.value)}`).join(', ')}">
+                    <svg viewBox="0 0 200 78" class="h-[7.5rem] w-auto" role="img" aria-label="{pm.title}: {pm.marks.map((m) => `${m.token} ${m.value === undefined ? 'not measured yet' : pct(m.value)}`).join(', ')}">
                       {#each WHITE as w, i (w)}<rect x={i * 25 + 0.5} y="2" width="24" height="74" rx="2" class="pk-white" />{/each}
                       {#each [1, 3, 6, 8, 10] as b (b)}<rect x={keyX(b) - 7.5} y="2" width="15" height="44" rx="1.5" class="pk-black" />{/each}
                       {#each pm.marks as m (m.token)}
@@ -249,7 +249,7 @@
                         <text x={keyX(m.semi)} y={(black ? 34 : 62) + 3} text-anchor="middle" class="pk-label">{m.token}</text>
                       {/each}
                     </svg>
-                    <figcaption class="mt-1 text-xs text-ws-soft">{pm.title}: the fuller the dot, the higher the estimate; dashed is not measured yet.</figcaption>
+                    <figcaption class="mt-1 text-[13px] text-ws-soft">{pm.title}: the fuller the dot, the higher the estimate; dashed is not measured yet.</figcaption>
                   </figure>
                 {/each}
               </div>
@@ -262,7 +262,7 @@
                     class="flex min-h-11 items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface p-2.5 hover:bg-ws-raised"
                   >
                     <Ring value={trend === "new" ? undefined : r.estimate} stroke={TONE[trend]} class="size-12">
-                      <span class="tnum text-xs font-semibold" aria-hidden="true">{trend === "new" ? `${r.checked}/${MIN_EVIDENCE}` : pct(r.estimate ?? 0)}</span>
+                      <span class="tnum text-[13px] font-semibold" aria-hidden="true">{trend === "new" ? `${r.checked}/${MIN_EVIDENCE}` : pct(r.estimate ?? 0)}</span>
                     </Ring>
                     <span class="flex min-w-0 flex-col">
                       <span class="font-medium">{name}</span>
@@ -312,7 +312,7 @@
     stroke-dasharray: 2 2;
   }
   .pk-label {
-    font: 700 7.5px var(--font-sans, sans-serif);
+    font: 700 8.5px var(--font-sans, sans-serif); /* 13 px at the drawn height */
     fill: var(--ws-stage);
   }
 </style>

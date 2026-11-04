@@ -268,7 +268,7 @@
             {#each matches as r (r.label)}
               <li>
                 <button type="button" class={btn} onclick={() => showScale(r)}>
-                  {#if r.recommended}<span class="rounded-full bg-instr px-2 py-0.5 text-xs font-semibold text-ws-stage">Go-to</span>{/if}
+                  {#if r.recommended}<span class="rounded-full bg-instr px-2 py-0.5 text-[13px] font-semibold text-ws-stage">Go-to</span>{/if}
                   {FLAT_NAMES[tonicPc]} {r.label}
                 </button>
               </li>
@@ -298,7 +298,7 @@
             <p class="text-sm font-medium">Its chords</p>
             <ul class="mt-1 flex flex-wrap gap-1.5">
               {#each ckChords as c, i (c.numeral)}
-                <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-xs text-ws-soft">{c.numeral}</span> {c.name}</button></li>
+                <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-[13px] text-ws-soft">{c.numeral}</span> {c.name}</button></li>
               {/each}
             </ul>
           </div>
@@ -338,7 +338,7 @@
                   <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label="Play {c.symbol}, {c.name}">
                     <Play class="size-3.5" aria-hidden="true" /><span class="font-display text-base">{c.symbol}</span>
                   </button>
-                  <span class="block text-xs font-normal text-ws-soft">{c.name}</span>
+                  <span class="block text-[13px] font-normal text-ws-soft">{c.name}</span>
                 </th>
                 <td>{c.role}</td>
                 <td>
@@ -381,7 +381,7 @@
                   <div class="min-w-0 flex-1">
                     <p class="font-medium">
                       {r.label}
-                      {#if r.recommended}<span class="ml-1 rounded-full bg-instr-wash px-2 py-0.5 text-xs font-semibold text-instr-ink">Go-to</span>{/if}
+                      {#if r.recommended}<span class="ml-1 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">Go-to</span>{/if}
                     </p>
                     {#if r.hint}<p class="text-sm text-ws-soft">{tidy(r.hint)}</p>{/if}
                   </div>
@@ -457,7 +457,7 @@
                   <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], `${u.triad} over C7`)} aria-label="Play {u.triad} over C7">
                     <Play class="size-3.5" aria-hidden="true" />{u.triad}
                   </button>
-                  <span class="block text-xs font-normal text-ws-soft">{FLAT_NAMES[u.triadRoot]} {u.quality === "maj" ? "major" : "minor"} over C7</span>
+                  <span class="block text-[13px] font-normal text-ws-soft">{FLAT_NAMES[u.triadRoot]} {u.quality === "maj" ? "major" : "minor"} over C7</span>
                 </th>
                 <td class="tnum font-medium">{u.adds}</td>
                 <td>{u.favorite ? "Favourite" : ""}</td>
@@ -474,7 +474,7 @@
       <ol class="mt-3 flex flex-wrap gap-2">
         {#each JAZZ.TWELVE_KEY_CYCLE as k, i (k)}
           <li class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface py-1 pl-1.5 pr-4">
-            <span class="tnum grid size-8 place-items-center rounded-full bg-ws-raised text-xs text-ws-soft">{i + 1}</span>
+            <span class="tnum grid size-8 place-items-center rounded-full bg-ws-raised text-[13px] text-ws-soft">{i + 1}</span>
             <span class="font-display text-lg font-semibold">{k}</span>
           </li>
         {/each}
@@ -505,7 +505,7 @@
               {#each titles as t (t)}
                 {@const b = trackFor(t)}
                 <li class="break-inside-avoid py-1">
-                  {t}{#if b}<span class="block text-xs text-ws-soft">Backing: {b.style.replace("-", " ")}, {b.bpm} BPM</span>{/if}
+                  {t}{#if b}<span class="block text-[13px] text-ws-soft">Backing: {b.style.replace("-", " ")}, {b.bpm} BPM</span>{/if}
                 </li>
               {/each}
             </ul>

@@ -5,6 +5,7 @@
   import X from "lucide-svelte/icons/x";
   import Search from "lucide-svelte/icons/search";
   import SearchX from "lucide-svelte/icons/search-x";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
@@ -27,7 +28,7 @@
   /** The instruments a drill serves, one icon each (guitar and ukulele share one). */
   const servedIcons = (r: DrillRow) => [...new Set(r.entry.instruments.map((i) => INSTRUMENT_ICON[i]))];
 
-  // One instrument control: the strip's. "All instruments" widens the list without changing it.
+  // One instrument filter beside the search: the strip's instrument, or all of them (which widens the list without changing the strip).
   let everything = $state(false);
   const strip = $derived(settings.value.activeInstrument);
   const filter = $derived<Instrument | "all">(everything ? "all" : strip);
@@ -60,6 +61,8 @@
   );
   /** The card's icon: the drill's own glyph, the same one the search palette shows. */
   const iconOf = (r: DrillRow, h: ReturnType<typeof hueForRoute>) => DRILL_ICON[r.entry.id] ?? HUE_ICON[h];
+  // One card's mode menu open at a time (its key), so the cards keep one Start each.
+  let modesOpen = $state<string | null>(null);
   // The jump chip for the section on screen lights up as the page scrolls.
   let spy = $state<SectionSpy>();
   $effect(() => {
@@ -70,49 +73,50 @@
 </script>
 
 <div class="flex flex-col gap-6">
-  <!-- The list follows the strip's instrument; one toggle shows every drill. -->
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-    <p class="tnum flex flex-wrap items-center gap-x-2 text-ws-soft" role="status">
-      <span>{#if everything}{total} drills for every instrument{:else}{total} drills for <span class="font-semibold text-ws-ink">{INSTRUMENT_LABEL[strip]}</span>{/if}{#if q}&nbsp;matching "{q}"{/if}</span>
-      {#if q}
-        <button type="button" class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-ws-raised" onclick={() => goto("/music?tab=drills", { replaceState: true, noScroll: true })}
-          ><X class="size-4" aria-hidden="true" />Clear search</button
+  <!-- Search, with the count in the field, and the instrument filter on one line. -->
+  <div class="flex items-center gap-2">
+    <label class="relative block min-w-0 flex-1">
+      <span class="sr-only">Search drills</span>
+      <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ws-soft" aria-hidden="true" />
+      <input
+        type="search"
+        value={page.url.searchParams.get("q") ?? ""}
+        oninput={(e) => search(e.currentTarget.value)}
+        placeholder="Search {total} drills"
+        class="h-12 w-full rounded-full border border-ws-line bg-ws-surface pl-10 pr-4 text-base placeholder:text-ws-soft focus-visible:outline-2 focus-visible:outline-ws-ink"
+      />
+    </label>
+    <div role="group" aria-label="Instrument filter" class="flex shrink-0 gap-1 rounded-full border border-ws-line bg-ws-surface p-1">
+      {#each [false, true] as all (all)}
+        <button
+          type="button"
+          class="min-h-10 rounded-full px-3 text-sm {everything === all ? 'bg-ws-ink font-semibold text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}"
+          aria-pressed={everything === all}
+          onclick={() => (everything = all)}
+          >{#if all}All<span class="max-sm:sr-only">&nbsp;instruments</span>{:else}{INSTRUMENT_LABEL[strip]}{/if}</button
         >
-      {/if}
-    </p>
-    <button
-      type="button"
-      class="min-h-11 shrink-0 rounded-full border px-4 text-sm {everything
-        ? 'border-transparent bg-ws-ink font-semibold text-ws-bg'
-        : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
-      aria-pressed={everything}
-      onclick={() => (everything = !everything)}>All instruments</button
-    >
+      {/each}
+    </div>
   </div>
-
-  <!-- Search in place, above the sections. -->
-  <label class="relative -mt-2 block">
-    <span class="sr-only">Search drills</span>
-    <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ws-soft" aria-hidden="true" />
-    <input
-      type="search"
-      value={page.url.searchParams.get("q") ?? ""}
-      oninput={(e) => search(e.currentTarget.value)}
-      placeholder="Search drills"
-      class="h-12 w-full rounded-full border border-ws-line bg-ws-surface pl-10 pr-4 text-base placeholder:text-ws-soft focus-visible:outline-2 focus-visible:outline-ws-ink"
-    />
-  </label>
+  <p class="tnum -mt-3 flex flex-wrap items-center gap-x-2 text-sm text-ws-soft {q ? '' : 'sr-only'}" role="status">
+    <span>{#if everything}{total} drills for every instrument{:else}{total} drills for {INSTRUMENT_LABEL[strip]}{/if}{#if q}&nbsp;matching "{q}"{/if}</span>
+    {#if q}
+      <button type="button" class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-ws-raised" onclick={() => goto("/music?tab=drills", { replaceState: true, noScroll: true })}
+        ><X class="size-4" aria-hidden="true" />Clear search</button
+      >
+    {/if}
+  </p>
 
   <!-- Jump chips with the section on screen lit: every one in view (they wrap), pinned under the strip from sm up. -->
   <div class="z-10 -mt-2 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:rounded-2xl sm:border sm:border-ws-line sm:bg-ws-bg">
-  <nav aria-label="Jump to" class="flex flex-wrap gap-1.5 sm:px-2 sm:py-2">
+  <nav aria-label="Jump to" class="jumps flex gap-1.5 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 sm:flex-wrap sm:px-2 sm:py-2">
     {#each jumps as j (j.id)}
       {@const on = spy?.current === `g-${j.id}`}
       <a
         href="#g-{j.id}"
         aria-current={on ? "location" : undefined}
         class="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full px-2.5 text-sm sm:px-3 {on ? 'bg-instr-wash font-semibold text-instr-ink' : 'border border-ws-line text-ws-soft hover:bg-ws-raised hover:text-ws-ink sm:border-transparent'}"
-        >{j.title} <span class="tnum ml-1 max-sm:hidden">({j.count})</span></a
+        >{j.title} <span class="tnum ml-1">({j.count})</span></a
       >
     {/each}
   </nav>
@@ -154,7 +158,7 @@
                 <a href={r.href} class="font-semibold after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ws-ink">{r.title}</a>
                 <span class="block text-sm text-ws-soft">{r.blurb}</span>
                 <!-- What you have done with it: the last score, then mastery once Check mode has measured it. -->
-                <span class="tnum mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ws-soft">
+                <span class="tnum mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-ws-soft">
                   {#if last}
                     <span class="inline-flex items-center gap-1.5"
                       ><Ring value={last.score ?? 0} stroke={(last.score ?? 0) >= 0.85 ? "var(--success)" : "var(--warn)"} class="size-5" /><span
@@ -169,7 +173,8 @@
                     >
                   {:else if r.skillIds.length && m.checked}
                     <span>{m.checked} of {COACH_MIN_ATTEMPTS} checked<span class="sr-only">, not measured yet</span></span>
-                  {:else if !last && ri === 0}<span class="rounded-full bg-instr-wash px-2 py-0.5 font-semibold text-instr-ink">Start here</span>{/if}
+                  {:else if !last && ri === 0}<span class="rounded-full border border-ws-ink/40 bg-ws-surface px-2 py-0.5 font-semibold text-ws-ink">Start here</span>
+                  {:else if !last}<span class="inline-flex items-center gap-1.5"><Ring class="size-5" />Not played</span>{/if}
                   {#if filter === "all"}
                     {#if anywhere}<span>Any instrument</span>{:else}
                       <span class="inline-flex items-center gap-1"
@@ -185,14 +190,29 @@
                 ><Play class="size-4" />Start</span
               >
             </div>
-            <!-- One Start (the card's own link opens the first mode), then each named way as a chip that opens straight into it. -->
+            <!-- One Start (the card's own link opens the first mode); the other modes wait behind one Mode menu. -->
             <div class="mt-auto flex flex-col gap-2">
-              <span class="pointer-events-none flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg sm:hidden" aria-hidden="true"
-                ><Play class="size-4" />Start</span
-              >
-              {#if r.modes.length}
-                <div class="relative flex flex-wrap items-center gap-1.5">
-                  <span class="mr-0.5 text-xs text-ws-soft">Or start with</span>
+              <div class="flex items-center gap-2">
+                <span class="pointer-events-none flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg sm:hidden" aria-hidden="true"
+                  ><Play class="size-4" />Start</span
+                >
+                {#if r.modes.length}
+                  <button
+                    type="button"
+                    class="relative z-10 flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-ws-line bg-ws-surface px-3.5 text-sm font-medium hover:bg-ws-raised"
+                    aria-expanded={modesOpen === r.key}
+                    aria-controls="modes-{r.key}"
+                    aria-label="Modes for {r.title}"
+                    onclick={() => (modesOpen = modesOpen === r.key ? null : r.key)}
+                    >Mode<span class="tnum text-ws-soft">&nbsp;({r.modes.length})</span><ChevronDown
+                      class="size-4 motion-safe:transition-transform {modesOpen === r.key ? 'rotate-180' : ''}"
+                      aria-hidden="true"
+                    /></button
+                  >
+                {/if}
+              </div>
+              {#if r.modes.length && modesOpen === r.key}
+                <div id="modes-{r.key}" class="relative flex flex-wrap items-center gap-1.5">
                   {#each r.modes as mo (mo.id)}
                     {@const label = MODE_LABEL[mo.label] ?? mo.label}
                     <a
@@ -219,5 +239,12 @@
       color-mix(in oklch, var(--h) 12%, var(--ws-surface)),
       var(--ws-surface) 55%
     );
+  }
+  /* On a phone the jump chips are one row that scrolls sideways, fading at its right edge. */
+  @media (max-width: 639.98px) {
+    .jumps {
+      scrollbar-width: none;
+      mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+    }
   }
 </style>

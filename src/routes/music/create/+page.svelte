@@ -171,6 +171,14 @@
   const step = "grid size-11 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised disabled:opacity-40";
 </script>
 
+{#snippet editorToggle(cls: string)}
+  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-0.5 {cls}" role="group" aria-label="Editor">
+    {#each [{ id: "beat", label: "Beat" }, { id: "roll", label: "Melody" }] as const as t (t.id)}
+      <button type="button" class="min-h-11 rounded-full px-5 text-sm font-semibold {editor === t.id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft'}" aria-pressed={editor === t.id} onclick={() => (editor = t.id)}>{t.label}</button>
+    {/each}
+  </div>
+{/snippet}
+
 {#snippet songLength()}
   <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
   <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
@@ -180,17 +188,20 @@
 <svelte:head><title>Create | Woodshed</title></svelte:head>
 <svelte:window onkeydown={windowKey} />
 
-<div class="mx-auto flex max-w-6xl flex-col gap-5">
-  <header class="flex min-w-0 items-center justify-between gap-x-4 gap-y-1 sm:flex-wrap sm:items-end">
-    <div class="min-w-0">
-      <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">Create</h1>
-      <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">Build a beat and melodies that loop together, then jam over them.</p>
+<div class="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-5">
+  <header class="flex min-w-0 items-center justify-between gap-x-4 gap-y-1 sm:flex-wrap sm:items-end lg:flex-nowrap">
+    <div class="min-w-0 lg:flex-1">
+      <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Create</h1>
+      <p class="max-w-prose text-ws-soft max-sm:hidden">Build a beat and melodies that loop together, then jam over them.</p>
       <!-- On a phone the song's name rides under the title, so the bar below stays one row. -->
       <p class="text-sm break-words text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? "not saved" : session.changed ? "unsaved changes" : "saved"}</p>
     </div>
+    <!-- From sm up the editor switch rides in the title row, so every drum row fits a laptop screen. -->
+    {@render editorToggle("max-sm:hidden sm:ml-auto")}
     <div class="flex shrink-0 items-center">
-      <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/create/reference"><BookOpen class="size-4" aria-hidden="true" /><span>Chords<span class="max-sm:hidden">{" "}and scales</span></span></a>
-      <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" /><span>Record<span class="max-sm:hidden">{" "}a take</span></span></a>
+      <!-- On a phone the two links are icons, so the song's name and state stay on one line beside them. -->
+      <a class="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash max-sm:px-0" href="/music/create/reference"><BookOpen class="size-5 sm:size-4" aria-hidden="true" /><span class="max-sm:sr-only">Chords and scales</span></a>
+      <a class="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash max-sm:px-0" href="/music/record"><CircleDot class="size-5 sm:size-4" aria-hidden="true" /><span class="max-sm:sr-only">Record a take</span></a>
     </div>
   </header>
 
@@ -200,12 +211,12 @@
     </button>
     <p class="flex min-w-0 flex-1 basis-24 flex-col leading-tight max-sm:hidden">
       <span class="truncate font-display text-base font-semibold">{session.songName}</span>
-      <span class="text-xs text-ws-soft">Song, <span data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span></span>
+      <span class="text-[13px] text-ws-soft">Song, <span data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span></span>
     </p>
     <label class="flex items-center gap-1.5 text-sm max-sm:flex-1">
       <span class="text-ws-soft max-sm:sr-only">Tempo</span>
       <input type="number" min="40" max="200" class="{field} tnum w-16 sm:w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
-      <span class="text-ws-soft max-sm:text-xs" aria-hidden="true">BPM</span><span class="sr-only">BPM</span>
+      <span class="text-ws-soft max-sm:text-[13px]" aria-hidden="true">BPM</span><span class="sr-only">BPM</span>
     </label>
     <div class="flex items-center gap-1 text-sm max-sm:hidden" role="group" aria-label="Song length">
       {@render songLength()}
@@ -225,11 +236,7 @@
   </section>
 
   <!-- On a phone one editor shows at a time; from sm up both stay on the page and the picked one comes first. -->
-  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-0.5 sm:w-80" role="group" aria-label="Editor">
-    {#each [{ id: "beat", label: "Beat" }, { id: "roll", label: "Melody" }] as const as t (t.id)}
-      <button type="button" class="min-h-11 rounded-full text-sm font-semibold {editor === t.id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft'}" aria-pressed={editor === t.id} onclick={() => (editor = t.id)}>{t.label}</button>
-    {/each}
-  </div>
+  {@render editorToggle("sm:hidden")}
 
   {#if panelOpen}
     <div id="create-panel" class="grid gap-6 rounded-2xl border border-ws-line bg-ws-raised/60 p-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
@@ -259,7 +266,7 @@
           <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />MIDI</button>
           <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />WAV</button>
         </div>
-        <p class="text-xs text-ws-soft">MIDI has the melodies; WAV is one pass of everything you hear.</p>
+        <p class="text-[13px] text-ws-soft">MIDI has the melodies; WAV is one pass of everything you hear.</p>
         {#if session.saved}
           <button type="button" class="{btn} self-start {confirmDelete ? 'border-destructive text-destructive' : ''}" onblur={() => (confirmDelete = false)} onclick={deleteSong}>
             <Trash class="size-4" aria-hidden="true" />{confirmDelete ? `Remove ${session.songName}?` : "Remove from your songs"}

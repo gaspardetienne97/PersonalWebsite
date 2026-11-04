@@ -70,17 +70,17 @@
     <li class="flex flex-col gap-2 rounded-xl border border-ws-line bg-ws-surface p-3" data-voicing={lowToHigh(v.frets)}>
       <div class="flex items-baseline justify-between gap-2">
         <span class="text-sm font-semibold">{v.label}</span>
-        <span class="text-xs text-ws-soft">{lowToHigh(v.frets)}</span>
+        <span class="text-[13px] text-ws-soft">{lowToHigh(v.frets)}</span>
       </div>
       <div class="mx-auto w-full max-w-32">
         <ChordDiagram frets={v.frets} fingers={v.fingers} barre={v.barre} label="{name}, {v.label}: {lowToHigh(v.frets)}, low string first" />
       </div>
-      <p class="text-xs text-ws-soft">
+      <p class="text-[13px] text-ws-soft">
         {v.needsBarre ? "Needs a barre: more notes than fingers." : v.kind === "barre" ? "Easier with a barre." : v.kind === "open" ? "Open strings ring." : "No barre needed."}{v.omitsFifth ? " The 5th is left out." : ""}
       </p>
       <div class="mt-auto flex flex-wrap gap-1.5">
-        <button type="button" class="{btn} min-h-9 px-2.5 text-xs" onclick={() => hear(v.frets)}><Play class="size-3.5" aria-hidden="true" />Hear</button>
-        <a class="{btn} min-h-9 px-2.5 text-xs" href={practise(v.frets, i)}>Practise</a>
+        <button type="button" class="{btn} min-h-9 px-2.5 text-[13px]" onclick={() => hear(v.frets)}><Play class="size-3.5" aria-hidden="true" />Hear</button>
+        <a class="{btn} min-h-9 px-2.5 text-[13px]" href={practise(v.frets, i)}>Practise</a>
       </div>
     </li>
   {:else}

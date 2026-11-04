@@ -18,8 +18,14 @@ export interface SearchItem {
   /** A second line under the title: which instruments a drill runs on. */
   detail?: string;
   /** What the row is, for its icon: a page, a drill, a path, or the "show all" row. */
-  kind?: "page" | "drill" | "path" | "song" | "all";
+  kind?: "page" | "drill" | "path" | "song" | "all" | "more";
 }
+
+/** What a row is, for the palette's scope chips: a page unless it says otherwise. */
+export const kindOf = (i: SearchItem) => i.kind ?? (i.drill ? "drill" : "page");
+
+/** Pages shown under the empty palette's lead before a "More pages" row. */
+export const PAGES_SHOWN = 4;
 
 const PAGES: SearchItem[] = [
   { label: "Start today's plan", href: "/music", hint: "Today", keywords: "routine daily" },
@@ -155,12 +161,14 @@ export function splitMatch(label: string, q: string): [string, string, string] {
  * The palette's results: label matches before keyword-only ones, an exact label first, then
  * drills before pages, then a label that starts with the query before a word in it. A
  * keyword-only match is left out once two titles match, and otherwise says what it matched.
- * With no query: `lead` (today's next block, recent drills) first, then pages.
+ * With no query: `lead` (today's next block, recent drills) first, then pages: the first
+ * `PAGES_SHOWN` and a "More pages" row, unless `allPages`.
  */
 export function searchItems(
   query: string,
   all = searchIndex(),
   lead: SearchItem[] = [],
+  allPages = false,
 ): SearchItem[] {
   const q = query.trim().toLowerCase();
   if (!q) {
@@ -169,7 +177,13 @@ export function searchItems(
     const rest = all
       .filter((i) => !i.drill && !first.some((f) => f.href === i.href))
       .map((i) => (lead.length ? { ...i, group: "Pages" } : i));
-    return [...first, ...rest].slice(0, 12);
+    if (lead.length && !allPages && rest.length > PAGES_SHOWN)
+      return [
+        ...first,
+        ...rest.slice(0, PAGES_SHOWN),
+        { label: "More pages", href: "#more-pages", group: "Pages", kind: "more" },
+      ];
+    return [...first, ...rest].slice(0, lead.length && allPages ? undefined : 12);
   }
   const score = (item: SearchItem) => {
     const label = item.label.toLowerCase();

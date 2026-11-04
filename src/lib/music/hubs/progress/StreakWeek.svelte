@@ -43,6 +43,7 @@
     today: "today, not practised yet",
     upcoming: "still to come",
   };
+  const practisedDays = $derived(week.filter((d) => d.state === "practised").length);
   const frozenShown = $derived(week.some((d) => d.state === "frozen"));
   const missedShown = $derived(week.some((d) => stateOf(d) === "missed"));
 </script>
@@ -55,7 +56,7 @@
     >
     <div class="min-w-0 flex-1">
       <h2 id="{id}-title" class="font-display text-xl font-semibold">
-        {current === 1 ? "Day 1 of your streak" : current ? `${current}-day streak` : "Start a streak today"}
+        {current === 1 ? "Day 1 streak" : current ? `${current}-day streak` : "Start a streak today"}
       </h2>
       <!-- Best and freezes only when they add something: a best equal to today's streak, or no freezes, says nothing. -->
       {#if (longest ?? 0) > current || freezes}
@@ -80,19 +81,19 @@
     </p>
   {/if}
 
-  <ol class="mt-3 grid max-w-xs grid-cols-7 gap-1 text-center text-xs text-ws-soft" aria-label="This week">
+  <ol class="mt-3 grid max-w-sm grid-cols-7 gap-1 text-center text-[13px] text-ws-soft" aria-label="This week">
     {#each week as d (d.day)}
       {@const st = stateOf(d)}
       <li class="flex flex-col items-center gap-1" title="{weekday(d.day)}: {WORD[st]}">
         <span
-          class="grid size-8 place-items-center rounded-full {pop === d.day && d.state === 'practised' ? 'ws-pop [animation-delay:600ms]' : ''} {d.state === 'practised'
+          class="grid size-9 place-items-center rounded-full {pop === d.day && d.state === 'practised' ? 'ws-pop [animation-delay:600ms]' : ''} {d.state === 'practised'
             ? 'bg-instr text-ws-stage'
             : d.state === 'frozen'
               ? 'border-2 border-dashed border-info text-info'
               : d.state === 'today'
                 ? 'border-2 border-instr-ink'
                 : d.state === 'upcoming' || st === 'before'
-                  ? 'border border-dashed border-ws-line'
+                  ? 'border-2 border-dashed border-ws-soft/70'
                   : 'bg-ws-raised text-ws-soft'}"
           aria-hidden="true"
         >
@@ -105,7 +106,8 @@
       </li>
     {/each}
   </ol>
-  <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ws-soft" aria-hidden="true">
+  <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ws-soft" aria-hidden="true">
+    <span class="tnum font-semibold text-ws-ink">{practisedDays} of 7 days</span>
     <span class="inline-flex items-center gap-1"><Check class="size-3.5" />Practised</span>
     {#if missedShown}<span class="inline-flex items-center gap-1"><Minus class="size-3.5" />Missed</span>{/if}
     {#if frozenShown}<span class="inline-flex items-center gap-1"><Snowflake class="size-3.5" />Freeze used</span>{/if}

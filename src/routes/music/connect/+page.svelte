@@ -12,7 +12,7 @@
   import { noteName } from "@repo/music-core";
   import { btn, panel } from "$lib/music/components/ui";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
-  import { describeMidi, isDetail } from "$lib/music/hubs/connect/rig";
+  import { describeMidi, isDetail, velocityOf } from "$lib/music/hubs/connect/rig";
   import Piano from "$lib/music/components/Piano.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
@@ -182,7 +182,7 @@
               <span class="min-w-0 flex-1">
                 <span class="font-medium">{c.label}</span><span class="sr-only">: {next ? "do this next" : "not yet"}</span>
                 <span class="block text-ws-soft">{c.hint}</span>
-                {#if next && c.act}<a class="mt-1 inline-flex min-h-11 items-center font-semibold text-instr-ink underline-offset-4 hover:underline" href="#rig-title">Do it in Your rig</a>{/if}
+                {#if next && c.act}<a class="mt-1 inline-flex min-h-11 items-center font-semibold text-instr-ink underline-offset-4 hover:underline" href={c.act.href === "#mic" ? "#mic" : "#rig-title"}>{c.act.href === "#mic" ? "Go to the microphone" : "Do it in Your rig"}</a>{/if}
               </span>
             </li>
           {/each}
@@ -190,7 +190,7 @@
         {#if readyCount}
           <details class="group mt-2 text-sm">
             <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
-              <span class="grid size-5 shrink-0 place-items-center rounded-full bg-success text-xs font-bold text-white" aria-hidden="true">✓</span>
+              <span class="grid size-5 shrink-0 place-items-center rounded-full bg-success text-[13px] font-bold text-white" aria-hidden="true">✓</span>
               <span>{readyCount} done<span class="font-normal text-ws-soft group-open:hidden">: show them</span></span>
             </summary>
             <ul class="flex flex-col gap-1.5 pl-7">
@@ -212,12 +212,15 @@
           <ol class="mt-2 flex flex-col gap-1.5 text-sm" data-testid="activity">
             {#each shownLog as m, i (i + m.at)}
               {@const inst = midi.profile(m.portId)?.instrument ?? detectInstrument(m.port, "")}
+              {@const vel = velocityOf(m.hex)}
               <li class="flex min-w-0 flex-wrap items-baseline gap-x-2 border-b border-ws-line pb-1.5">
                 <span class="size-2 shrink-0 self-center rounded-full" style:background={inst ? `var(--hue-${inst})` : "var(--ws-soft)"} aria-hidden="true"></span>
-                <span class="min-w-0 flex-1 font-medium">{describeMidi(m.hex, inst === "mpc" ? noteFor(m.portId) : undefined)}</span>
-                <span class="tnum text-xs text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
-                <span class="w-full pl-4 text-xs text-ws-soft">{midi.profile(m.portId)?.alias ?? m.port}{#if ignoredIds.has(m.portId)}<span class="ml-1.5 rounded bg-warn/20 px-1 text-ws-ink">hidden</span>{/if}</span>
-                <span class="w-full pl-4 font-mono text-xs break-all text-ws-soft" class:hidden={!showDetails}>{m.hex}</span>
+                <span class="min-w-0 flex-1 font-medium">{describeMidi(m.hex, inst === "mpc" ? noteFor(m.portId) : undefined)}{#if vel !== null && showDetails}<span class="tnum font-normal text-ws-soft"> ({vel})</span>{/if}</span>
+                <!-- How hard, drawn: a short bar beside the word. -->
+                {#if vel !== null}<span class="h-1.5 w-8 shrink-0 self-center overflow-hidden rounded-full bg-ws-raised" aria-hidden="true"><span class="block h-full rounded-full bg-ws-ink/60" style:width="{(vel / 127) * 100}%"></span></span>{/if}
+                <span class="tnum text-[13px] text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
+                <span class="w-full pl-4 text-[13px] text-ws-soft">{midi.profile(m.portId)?.alias ?? m.port}{#if ignoredIds.has(m.portId)}<span class="ml-1.5 rounded bg-warn/20 px-1 text-ws-ink">hidden</span>{/if}</span>
+                <span class="w-full pl-4 font-mono text-[13px] break-all text-ws-soft" class:hidden={!showDetails}>{m.hex}</span>
               </li>
             {/each}
           </ol>

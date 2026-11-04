@@ -5,6 +5,7 @@
   import Square from "lucide-svelte/icons/square";
   import Minus from "lucide-svelte/icons/minus";
   import Plus from "lucide-svelte/icons/plus";
+  import Info from "lucide-svelte/icons/info";
   import { noteName } from "@repo/music-core";
   import Choice from "$lib/music/components/Choice.svelte";
   import { audio, type DroneTimbre } from "$lib/music/runtime";
@@ -33,6 +34,7 @@
     changed();
   }
   const tonicName = $derived(pretty(noteName(tonic, "flat", false)));
+  let about = $state(false);
 
   const describe = () => `${noteName(midi)}, ${timbre}`;
 
@@ -90,9 +92,26 @@
   </div>
 
   <div class="mt-4">
-    <p class="mb-2 text-sm text-ws-stage-soft" title="Numbers are scale degrees: steps up from the home note. 5 is the fifth.">
-      Tap a home note. Outlined pads with a <span class="dot" aria-hidden="true"></span> are the notes of {tonicName} major; the numbers count steps up from it.
-    </p>
+    <!-- The scale named over its pads, one line on the degrees, the rest behind the info button. -->
+    <div class="mb-2 flex items-start gap-2">
+      <div class="min-w-0 flex-1">
+        <p class="font-display text-lg font-semibold" data-testid="drone-scale">{tonicName} major</p>
+        <p class="text-sm text-ws-stage-soft">♭3 = minor third above {tonicName}. Tap a pad to change the home note.</p>
+      </div>
+      <button
+        type="button"
+        class="grid size-11 shrink-0 place-items-center rounded-full text-ws-stage-soft hover:bg-ws-stage-ink/10 hover:text-ws-stage-ink"
+        aria-label="What the pads show"
+        aria-expanded={about}
+        aria-controls="drone-about"
+        onclick={() => (about = !about)}><Info class="size-5" aria-hidden="true" /></button
+      >
+    </div>
+    {#if about}
+      <p id="drone-about" class="mb-2 rounded-xl bg-ws-stage-ink/10 px-3 py-2 text-sm">
+        Outlined pads with a <span class="dot" aria-hidden="true"></span> are the seven notes of {tonicName} major. The numbers count steps up from {tonicName}: 5 is the fifth, ♭ lowers a step by a half step, ♯ raises it.
+      </p>
+    {/if}
     <NotePads
       label="Tonic"
       selected={tonic}

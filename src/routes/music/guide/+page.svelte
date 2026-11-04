@@ -14,7 +14,6 @@
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { onMount } from "svelte";
   import { SectionSpy } from "$lib/music/section-spy.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { btn, btnPrimary } from "$lib/music/components/ui";
@@ -33,7 +32,32 @@
 
   const spy = new SectionSpy(TOPICS.map((t) => t.id));
   onMount(() => spy.watch());
-  const topicOptions = TOPICS.map((t, i) => ({ value: t.id, label: `${i + 1} of ${TOPICS.length}: ${t.label}` }));
+  // Read: a topic you have scrolled past, kept in this browser so the ticks survive a visit.
+  const READ_KEY = "woodshed.guide-read";
+  let read = $state<string[]>([]);
+  onMount(() => {
+    try {
+      read = JSON.parse(localStorage.getItem(READ_KEY) ?? "[]");
+    } catch {
+      read = [];
+    }
+  });
+  $effect(() => {
+    const i = TOPICS.findIndex((t) => t.id === spy.current);
+    const past = TOPICS.slice(0, i).map((t) => t.id).filter((id) => !read.includes(id));
+    if (!past.length) return;
+    read = [...read, ...past];
+    try {
+      localStorage.setItem(READ_KEY, JSON.stringify(read));
+    } catch {
+      // No storage: the ticks last this visit.
+    }
+  });
+  // The phone's chip row keeps the topic you are reading in view.
+  let chips = $state<HTMLElement>();
+  $effect(() => {
+    chips?.querySelector(`[data-topic="${spy.current}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
   function jump(id: string) {
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-reduce-motion");
     document.getElementById(id)?.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
@@ -114,14 +138,29 @@
 <div class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
   <header class="lg:col-span-2">
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Guide</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">What Woodshed does with your playing, and how to get the most from ten minutes at the instrument.</p>
+    <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">What Woodshed does with your playing, and how to get the most from ten minutes at the instrument.</p>
   </header>
   <p role="status" class="sr-only">Guide loaded.</p>
 
-  <!-- Below lg: one sticky row that names the topic you are reading and jumps to any other. -->
-  <div class="sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
-    <Picker label="Guide topic" value={spy.current} options={topicOptions} onchange={jump} />
-  </div>
+  <!-- Below lg: the eight topics as one sticky row of chips, the one you are reading filled, read ones ticked. -->
+  <nav aria-label="Guide topics, short list" class="min-w-0 sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 py-2 backdrop-blur sm:-mx-6 lg:hidden">
+    <ol bind:this={chips} class="flex gap-1.5 overflow-x-auto px-4 sm:px-6">
+      {#each TOPICS as t, i (t.id)}
+        {@const done = read.includes(t.id)}
+        <li class="shrink-0" data-topic={t.id}>
+          <a
+            href="#{t.id}"
+            aria-current={spy.current === t.id ? "location" : undefined}
+            style:--topic="var(--hue-{t.hue})"
+            class="topic flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border border-ws-line px-3 text-sm text-ws-soft"
+            onclick={(e) => (e.preventDefault(), jump(t.id))}
+          >
+            {#if done}<Check class="size-4 text-success" aria-hidden="true" />{:else}<span class="tnum text-[13px]" aria-hidden="true">{i + 1}</span>{/if}{t.label}{#if done}<span class="sr-only">, read</span>{/if}
+          </a>
+        </li>
+      {/each}
+    </ol>
+  </nav>
   <nav aria-label="Guide topics" class="hidden min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:block lg:self-start">
     <ul class="flex flex-col gap-1">
       {#each TOPICS as t (t.id)}
@@ -133,7 +172,7 @@
             class="topic flex min-h-11 items-start gap-2 rounded-lg px-3 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
           >
             <!-- Sits on the first line, so a label that wraps keeps its dot at the top. -->
-            <span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{t.label}
+            {#if read.includes(t.id)}<Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{:else}<span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{/if}{t.label}{#if read.includes(t.id)}<span class="sr-only">, read</span>{/if}
           </a>
         </li>
       {/each}
@@ -214,13 +253,13 @@
           <div class="stage overflow-x-auto rounded-2xl p-4">
             <div class="relative mx-auto flex w-max gap-1" aria-label="Piano key map: A S D F G H J K L play the white keys from C4 to D5; W E, T Y U, O P play the black keys." role="img">
               {#each WHITE as [k, n], i (i)}
-                <div class="flex h-28 w-10 flex-col items-center justify-end gap-1 rounded-b-lg bg-[#f4efe6] pb-2 text-xs font-medium text-[#3a3440] {k ? '' : 'opacity-40'}">
+                <div class="flex h-28 w-10 flex-col items-center justify-end gap-1 rounded-b-lg bg-ws-stage-ink pb-2 text-[13px] font-medium text-ws-stage {k ? '' : 'opacity-40'}">
                   {#if k}<kbd class="kbd-light">{k}</kbd>{/if}{n}
                 </div>
               {/each}
               {#each BLACK as [k, n, after] (k)}
                 <div
-                  class="absolute top-0 flex h-16 w-8 flex-col items-center justify-end gap-0.5 rounded-b-md bg-[#15131a] pb-1 text-[0.7rem] text-ws-stage-soft ring-1 ring-black"
+                  class="absolute top-0 flex h-16 w-8 flex-col items-center justify-end gap-0.5 rounded-b-md bg-ws-stage pb-1 text-[13px] text-ws-stage-ink ring-1 ring-ws-stage-ink/30"
                   style:left="calc({after + 1} * 2.75rem - 1.125rem)"
                 >
                   <kbd class="kbd-dark">{k}</kbd>{n}
@@ -235,7 +274,7 @@
           <div class="stage grid w-max grid-cols-4 gap-1.5 rounded-2xl p-4" role="img" aria-label="Pad key map: Z X C V play pads 1 to 4 on the bottom row, then A S D F, Q W E R, and 1 2 3 4 on the top row for pads 13 to 16.">
             {#each PAD_ROWS as row, r (r)}
               {#each row as k, c (k)}
-                <div class="flex size-14 flex-col justify-between rounded-lg bg-[#35323b] p-1.5 text-[0.7rem] text-ws-stage-soft shadow-[inset_0_-3px_0_#0006]">
+                <div class="flex size-14 flex-col justify-between rounded-lg bg-ws-stage-ink/15 p-1.5 text-[13px] text-ws-stage-ink">
                   <span>{(3 - r) * 4 + c + 1}</span>
                   <kbd class="kbd-dark self-end">{k}</kbd>
                 </div>
@@ -325,10 +364,11 @@
           <span class="h-2" style:background="var(--hue-{b.hue})" aria-hidden="true"></span>
           <span class="px-1.5 text-sm font-semibold">{b.label}</span>
           <span class="tnum px-1.5 text-sm text-ws-stage-soft">{b.min} min</span>
+          {#if i === 0}<span class="mx-1.5 self-start rounded-full bg-ws-stage-ink px-2 text-sm font-semibold text-ws-stage">Next</span>{/if}
         </li>
       {/each}
     </ol>
-    <p class="mt-2 text-xs text-ws-stage-soft">The ringed block is next.</p>
+    <p class="mt-2 text-sm text-ws-stage-soft">The ringed block, marked Next, is the one Start plays.</p>
   </figure>
 {/snippet}
 
@@ -348,12 +388,12 @@
 {#snippet checkPicture()}
   <figure class="pic max-md:order-first flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward mastery">
     <div>
-      <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">Practice <span class="text-xs font-normal text-ws-stage-soft">targets lit</span></p>
+      <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">Practice <span class="text-[13px] font-normal text-ws-stage-soft">targets lit</span></p>
       {@render miniKeys(true)}
     </div>
     <div>
       <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">
-        Check <span class="flex items-center gap-1 text-xs font-normal text-success"><Check class="size-3.5" aria-hidden="true" />counts toward mastery</span>
+        Check <span class="flex items-center gap-1 text-[13px] font-normal text-success"><Check class="size-3.5" aria-hidden="true" />counts toward mastery</span>
       </p>
       {@render miniKeys(false)}
     </div>
@@ -363,7 +403,7 @@
 {#snippet resultPicture()}
   <figure class="pic max-md:order-first" aria-label="A result card: notes right 92 percent, timing 78 percent, velocity not measured on an on-screen pad">
     <p class="font-display text-3xl font-bold">85%</p>
-    <p class="text-xs text-ws-stage-soft">score, velocity left out</p>
+    <p class="text-[13px] text-ws-stage-soft">score, velocity left out</p>
     <dl class="mt-3 flex flex-col gap-2.5 text-sm">
       {#each RESULT as r (r.label)}
         <div>
@@ -386,10 +426,10 @@
           <span class="grid size-9 shrink-0 place-items-center rounded-lg text-ws-stage" style:background="var(--hue-{d.instrument})"><Icon class="size-4" aria-hidden="true" /></span>
           <span class="min-w-0 flex-1">
             <span class="block text-sm font-semibold">{d.name}</span>
-            <span class="block text-xs text-ws-stage-soft">{d.note}</span>
+            <span class="block text-[13px] text-ws-stage-soft">{d.note}</span>
           </span>
           <span class="h-0.5 w-8 rounded-full {d.instrument === 'mpc' ? 'pulse-line' : ''}" style:background="var(--hue-{d.instrument})" aria-hidden="true"></span>
-          <span class="grid size-7 place-items-center rounded-md bg-ws-stage-ink/10 text-xs font-bold" aria-hidden="true">W</span>
+          <span class="grid size-7 place-items-center rounded-md bg-ws-stage-ink/10 text-[13px] font-bold" aria-hidden="true">W</span>
         </li>
       {/each}
     </ul>
@@ -398,7 +438,7 @@
 
 {#snippet weekPicture()}
   <figure class="pic max-md:order-first" aria-label="A week: five days practised, one covered by a freeze shown dashed, and today still open">
-    <ol class="grid grid-cols-7 gap-1 text-center text-xs text-ws-stage-soft">
+    <ol class="grid grid-cols-7 gap-1 text-center text-[13px] text-ws-stage-soft">
       {#each WEEK as w, i (i)}
         <li class="flex flex-col items-center gap-1">
           <span
@@ -409,7 +449,7 @@
         </li>
       {/each}
     </ol>
-    <p class="mt-4 text-xs text-ws-stage-soft">Level 4, 180 XP to the next</p>
+    <p class="mt-4 text-[13px] text-ws-stage-soft">Level 4, 180 XP to the next</p>
     <div class="mt-1 h-2 rounded-full bg-ws-stage-ink/10"><div class="h-full w-[28%] rounded-full" style:background="var(--hue-rhythm)"></div></div>
   </figure>
 {/snippet}
@@ -417,14 +457,14 @@
 {#snippet privacyPicture()}
   <figure class="pic max-md:order-first" aria-label="Sessions, scores, recordings and samples stay inside this browser; nothing goes to a server">
     <div class="rounded-xl border-2 border-dashed p-3" style:border-color="var(--hue-aerophone)">
-      <p class="mb-2 text-xs font-semibold" style:color="var(--hue-aerophone)">This browser</p>
-      <ul class="grid grid-cols-2 gap-1.5 text-xs">
+      <p class="mb-2 text-[13px] font-semibold" style:color="var(--hue-aerophone)">This browser</p>
+      <ul class="grid grid-cols-2 gap-1.5 text-[13px]">
         {#each ["Sessions", "Scores", "Recordings", "Samples"] as item (item)}
           <li class="rounded-md bg-ws-stage-ink/10 px-2 py-1.5">{item}</li>
         {/each}
       </ul>
     </div>
-    <p class="mt-3 flex items-center gap-2 text-xs text-ws-stage-soft"><span class="line-through">Server</span> nothing leaves this device</p>
+    <p class="mt-3 flex items-center gap-2 text-[13px] text-ws-stage-soft"><span class="line-through">Server</span> nothing leaves this device</p>
   </figure>
 {/snippet}
 
@@ -465,7 +505,7 @@
     padding-inline: 0.35rem;
     border-radius: 0.35rem;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 600;
   }
   .kbd {

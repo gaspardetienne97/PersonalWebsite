@@ -92,11 +92,11 @@
   <dl class="mt-1 grid gap-3 sm:grid-cols-2">
     <div class="min-w-0">
       <dt class="text-ws-soft">Last frame sent</dt>
-      <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-xs break-all" data-testid="mpc-out">{midi.lastOutboundFrame || "nothing yet"}</dd>
+      <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-[13px] break-all" data-testid="mpc-out">{midi.lastOutboundFrame || "nothing yet"}</dd>
     </div>
     <div class="min-w-0">
       <dt class="text-ws-soft">Last reply from the MPC (SysEx)</dt>
-      <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-xs break-all">{midi.lastInboundSysex || "nothing yet: the device has not answered"}</dd>
+      <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-[13px] break-all">{midi.lastInboundSysex || "nothing yet: the device has not answered"}</dd>
     </div>
   </dl>
   </details>

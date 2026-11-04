@@ -12,20 +12,18 @@
 
   const weeks = $derived(cells.length / 7);
   const ROWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  // Each column is labelled by the date its week starts (Monday), with the month over the
-  // first column and wherever a new month begins.
-  const columns = $derived(
-    Array.from({ length: weeks }, (_, w) => {
-      const day = cells[w * 7].day;
-      const prev = w ? cells[(w - 1) * 7].day : undefined;
-      const month =
-        !prev || prev.slice(5, 7) !== day.slice(5, 7)
-          ? new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })
-          : "";
-      return { month, date: String(Number(day.slice(8))) };
+  // Every other column is labelled by the date its week starts (Monday), "Oct 12", over two columns.
+  const pairs = $derived(
+    Array.from({ length: Math.ceil(weeks / 2) }, (_, k) => {
+      const day = cells[k * 14].day;
+      return {
+        span: Math.min(2, weeks - k * 2),
+        label: new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
+      };
     }),
   );
-  const SHADE = [0, 40, 60, 80, 100];
+  // Five shades spread evenly from empty to the full hue, so neighbouring bands read apart.
+  const SHADE = [0, 25, 50, 75, 100];
   // The legend names each shade's minute band (HEAT_BANDS), so a shade means the same every week.
   const BANDS = ["None", `Under ${HEAT_BANDS[0]} min`, ...HEAT_BANDS.map((m) => `${m} min or more`)];
   const fill = (level: number) =>
@@ -51,22 +49,16 @@
     <caption class="sr-only">Practice over the last {weeks} weeks, one row per weekday</caption>
     <thead aria-hidden="true">
       <tr>
-        <td></td>
-        {#each columns as c, w (w)}
-          <td class="relative h-4 p-0"><span class="absolute bottom-0 left-0 whitespace-nowrap text-xs font-medium text-ws-soft">{c.month}</span></td>
-        {/each}
-      </tr>
-      <tr>
-        <td class="pr-1 text-left text-xs text-ws-soft">Week of</td>
-        {#each columns as c, w (w)}
-          <td class="tnum p-0 text-center text-xs text-ws-soft">{c.date}</td>
+        <td class="pr-1 text-left text-[13px] text-ws-soft">Week of</td>
+        {#each pairs as c, k (k)}
+          <td colspan={c.span} class="tnum whitespace-nowrap p-0 text-left text-[13px] text-ws-soft">{c.label}</td>
         {/each}
       </tr>
     </thead>
     <tbody>
       {#each ROWS as name, r (name)}
         <tr>
-          <th scope="row" class="pr-1 text-left text-xs font-normal text-ws-soft">{name}</th>
+          <th scope="row" class="pr-1 text-left text-[13px] font-normal text-ws-soft">{name}</th>
           {#each Array.from({ length: weeks }, (_, w) => cells[w * 7 + r]) as c (c.day)}
             <td class="p-0">
               {#if c.sessions && onpick}
@@ -80,7 +72,7 @@
                 ><span class="sr-only">{label(c)}</span></button>
               {:else}
                 <span
-                  class="block size-6 rounded-md {c.future ? 'border border-dashed border-ws-line' : ''}"
+                  class="block size-6 rounded-md {c.future ? 'border border-dashed border-ws-soft/60' : ''}"
                   style:background={c.future ? "transparent" : fill(c.level)}
                   title={label(c)}
                 ><span class="sr-only">{label(c)}</span></span>
@@ -92,9 +84,16 @@
     </tbody>
   </table>
 </div>
-<ul class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ws-soft" aria-label="Time a day">
-  {#each BANDS as band, level (level)}
-    <li class="flex items-center gap-1.5"><span class="size-3.5 rounded-[4px]" style:background={fill(level)} aria-hidden="true"></span>{band}</li>
-  {/each}
-  <li class="flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-line" aria-hidden="true"></span>Still to come</li>
-</ul>
+<!-- The shades as one strip from none to most, its ends named; each band's minutes on hover and for screen readers. -->
+<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ws-soft">
+  <span class="flex items-center gap-2">
+    <span aria-hidden="true">{BANDS[0]}</span>
+    <ul class="flex overflow-hidden rounded-md" aria-label="Time a day">
+      {#each BANDS as band, level (level)}
+        <li class="h-4 w-7" style:background={fill(level)} title={band}><span class="sr-only">{band}</span></li>
+      {/each}
+    </ul>
+    <span aria-hidden="true">{BANDS.at(-1)}</span>
+  </span>
+  <span class="flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-soft/60" aria-hidden="true"></span>Still to come</span>
+</div>

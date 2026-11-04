@@ -174,7 +174,7 @@
                 onclick={() => {
                   bank = b;
                   selected = bankNotes(b)[0];
-                }}>{b}{#if bankCount(b)}<span class="ml-1 text-xs font-normal opacity-70">{bankCount(b)}</span>{/if}</button
+                }}>{b}{#if bankCount(b)}<span class="ml-1 text-[13px] font-normal opacity-70">{bankCount(b)}</span>{/if}</button
               >
             {/each}
           </div>
@@ -217,13 +217,13 @@
               >
                 <span class="led" aria-hidden="true"></span>
                 <span class="truncate text-sm font-semibold">{name ?? (kits.broken.includes(note) ? "Missing file" : (BUILT_IN_DRUM[note] ?? "Synth"))}</span>
-                <span class="flex items-start justify-between gap-1 text-xs opacity-80">
+                <span class="flex items-start justify-between gap-1 text-[13px] opacity-80">
                   <span>{padLabel(note)}{#if !name}<span class="max-sm:hidden">, built in</span>{/if}</span>
                   {#if p?.chokeGroup}<span aria-hidden="true">M{p.chokeGroup}</span>{/if}
                   {#if keyOf(note)}<kbd class="rounded border border-current/40 px-1 font-sans font-semibold" aria-hidden="true">{keyOf(note)}</kbd>{/if}
                 </span>
               </button>
-              {#if kit.samples.length}<Picker class="min-h-11 rounded-md px-2 text-xs" tone="stage" label="Sample on pad {padLabel(note)}" value={p?.soft ?? ""} options={[{ value: "", label: "Empty" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(note, "soft", v)} />{/if}
+              {#if kit.samples.length}<Picker class="min-h-11 rounded-md px-2 text-[13px]" tone="stage" label="Sample on pad {padLabel(note)}" value={p?.soft ?? ""} options={[{ value: "", label: "Empty" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(note, "soft", v)} />{/if}
             </div>
           {/each}
         </div>
@@ -265,7 +265,7 @@
                     aria-label="Name of {s.fileName}"
                     onchange={(e) => kits.renameSample(s.id, e.currentTarget.value)}
                   />
-                  <span class="text-xs text-ws-soft">{on.length ? `On ${on.join(", ")}` : "Not on a pad"}, {kb(s.size)}</span>
+                  <span class="text-[13px] text-ws-soft">{on.length ? `On ${on.join(", ")}` : "Not on a pad"}, {kb(s.size)}</span>
                   <div class="flex items-center gap-1">
                     <button type="button" class="min-h-11 rounded-lg px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash" aria-pressed={assigning === s.id} onclick={() => (assigning = assigning === s.id ? null : s.id)}>Assign to pad</button>
                     <button

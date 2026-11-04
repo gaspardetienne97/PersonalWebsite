@@ -26,7 +26,7 @@
       </div>
     {/each}
   </dl>
-  <p class="mt-2 text-xs text-ws-soft">This week so far. Next week shows the change against this one.</p>
+  <p class="mt-2 text-[13px] text-ws-soft">This week so far. Next week shows the change against this one.</p>
 {:else}
 <dl class="mt-3 flex flex-col gap-3 text-sm">
   {#each ROWS as row (row.key)}
@@ -48,7 +48,7 @@
     </div>
   {/each}
 </dl>
-<p class="mt-2 flex gap-4 text-xs text-ws-soft" aria-hidden="true">
+<p class="mt-2 flex gap-4 text-[13px] text-ws-soft" aria-hidden="true">
   <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-instr"></span>This week</span>
   <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-ws-soft/35"></span>Last week</span>
 </p>

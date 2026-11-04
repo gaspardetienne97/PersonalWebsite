@@ -10,6 +10,9 @@
   import Download from "lucide-svelte/icons/download";
   import FileMusic from "lucide-svelte/icons/file-music";
   import Trash from "lucide-svelte/icons/trash-2";
+  import Dots from "lucide-svelte/icons/ellipsis";
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+  import * as Menu from "@repo/ui/dropdown-menu";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "$lib/music/components/ui";
   import { micOptions } from "$lib/music/hubs/connect/rig";
@@ -220,8 +223,11 @@
     announce(`Downloading ${name}.`);
   }
 
-  async function remove(take: Take) {
-    if (confirmDelete !== take.id) return void (confirmDelete = take.id);
+  async function remove(take: Take, e?: Event) {
+    if (confirmDelete !== take.id) {
+      e?.preventDefault(); // keep the menu open for the second tap
+      return void (confirmDelete = take.id);
+    }
     confirmDelete = null;
     if (player?.id === take.id) stopPlayback();
     await db.audioTakes.delete(take.id);
@@ -284,6 +290,11 @@
     <RecordButton {recording} disabled={mic.state === "starting"} onclick={toggle} />
     <div class="min-w-0 flex-1">
       <p class="tnum font-display text-4xl font-semibold tracking-tight sm:text-6xl">{clock(recording ? elapsed : 0)}</p>
+      <!-- During a take: where it is in bars, counted at the strip's tempo in 4/4 (no click plays). -->
+      {#if recording}
+        {@const beat = Math.floor(elapsed / (60000 / settings.value.bpm))}
+        <p class="tnum mt-1 text-sm"><span class="font-semibold">Bar {Math.floor(beat / 4) + 1}, beat {(beat % 4) + 1}</span> <span class="text-ws-stage-soft">at {settings.value.bpm} BPM</span></p>
+      {/if}
       <div class="meter mt-2" data-tone={live ? boostedAdvice.tone : undefined} aria-hidden="true">
         <span class="fill" style:width="{live ? pct(boostedPeak) : 0}%"></span>
         <span class="hold" style:left="{live ? pct(hold + boost) : 0}%"></span>
@@ -377,18 +388,21 @@
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
             <span class="tnum text-sm text-ws-soft">{takeLength(take.durationMs)}</span>
-            {#if take.id === latest}<span class="flex items-center gap-1 rounded-full bg-instr-wash px-2.5 py-1 text-xs font-semibold text-instr-ink"><Check class="size-3.5" aria-hidden="true" />Just recorded</span>{/if}
+            {#if take.id === latest}<span class="flex items-center gap-1 rounded-full bg-instr-wash px-2.5 py-1 text-[13px] font-semibold text-instr-ink"><Check class="size-3.5" aria-hidden="true" />Just recorded</span>{/if}
+            <!-- The next step after listening: record it again, or turn it into notes. The rest waits in the menu. -->
+            {#if take.id === latest && !recording}
+              <button type="button" class="{btn} px-3" onclick={() => (scrollTo({ top: 0, behavior: "smooth" }), toggle())}><RotateCcw class="size-4" aria-hidden="true" />Record again</button>
+            {/if}
             <a class="{btn} px-3" href="/music/library?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
-            <button type="button" class="{btn} px-3" onclick={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</button>
-            <button
-              type="button"
-              class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm {confirmDelete === take.id ? 'bg-destructive font-semibold text-white' : 'text-ws-soft hover:bg-ws-raised'}"
-              aria-label={confirmDelete === take.id ? `Confirm: delete ${take.name}` : `Delete ${take.name}`}
-              onclick={() => remove(take)}
-              onblur={() => confirmDelete === take.id && (confirmDelete = null)}
-            >
-              <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? "Delete?" : ""}
-            </button>
+            <Menu.Root onOpenChange={(open) => !open && confirmDelete === take.id && (confirmDelete = null)}>
+              <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="More for {take.name}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+              <Menu.Content align="end" class="w-60">
+                <Menu.Item onSelect={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</Menu.Item>
+                <Menu.Item class={confirmDelete === take.id ? "text-destructive" : ""} onSelect={(e) => remove(take, e)}
+                  ><Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? `Delete ${take.name}? Tap again` : `Delete ${take.name}`}</Menu.Item
+                >
+              </Menu.Content>
+            </Menu.Root>
           </div>
           <svg viewBox="0 0 {n} 20" preserveAspectRatio="none" class="wave h-16 w-full rounded-lg" aria-hidden="true">
             {#each take.envelope as p, k (k)}

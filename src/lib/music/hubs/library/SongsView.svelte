@@ -11,6 +11,8 @@
   import { btnPrimary } from "$lib/music/components/ui";
   import Play from "lucide-svelte/icons/play";
   import Trash from "lucide-svelte/icons/trash-2";
+  import Dots from "lucide-svelte/icons/ellipsis";
+  import * as Menu from "@repo/ui/dropdown-menu";
   import RollThumb from "./RollThumb.svelte";
   import type { Score } from "@repo/music-core";
   import { barsText, durationText, plainTeaches, rangeText, scoreFacts, shelfScore, shelfTags, songHistory, type Song } from "./songs";
@@ -20,8 +22,11 @@
   /** The song whose Delete is waiting for its second tap. */
   let confirming = $state<string | null>(null);
 
-  async function remove(song: Song) {
-    if (confirming !== song.id) return void (confirming = song.id);
+  async function remove(song: Song, e?: Event) {
+    if (confirming !== song.id) {
+      e?.preventDefault(); // keep the menu open for the second tap
+      return void (confirming = song.id);
+    }
     confirming = null;
     await db.songs.delete(song.id);
     songs = songs!.filter((x) => x.id !== song.id);
@@ -74,6 +79,10 @@
   const runs = $derived(practice.sessions.flatMap((x) => x.runs));
   const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
+  // Each cover gets its own light, picked from the song's title, so the shelf does not read as one picture repeated.
+  const TINTS = ["piano", "guitar", "ear", "reading", "create", "voice", "rhythm"];
+  const tint = (title: string) => `var(--hue-${TINTS[[...title].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length]})`;
+
   const sourceLabel = (s: Song) =>
     s.score.source?.kind === "musicxml"
       ? "MusicXML"
@@ -102,9 +111,11 @@
         class:lead={i === 0}
       >
         <a href="/music/songs/{song.id}" class="group flex flex-1 flex-col focus-visible:outline-offset-[-2px]">
-          <div class="stage relative px-3 pb-2 pt-3">
+          <div class="stage cover relative px-3 pb-2 pt-10" style:--tint={tint(song.title)}>
             <RollThumb score={song.score} height={i === 0 ? 120 : 64} beats={i === 0 ? undefined : 16} />
-            <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-xs text-ws-stage-soft">{sourceLabel(song)}</span>
+            <!-- Where you stand with it, on the cover: a best score, or not started yet. -->
+            <span class="tnum absolute left-3 top-2 rounded-full px-2.5 py-0.5 text-[13px] font-semibold {h.best !== null ? 'bg-success text-success-foreground' : 'bg-ws-stage-ink/15 text-ws-stage-ink'}">{h.best !== null ? `Best ${Math.round(h.best * 100)}%` : h.lastAt !== null ? "In progress" : "Not started"}</span>
+            <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-[13px] text-ws-stage-soft">{sourceLabel(song)}</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
             {#if i === 0}<p class="text-sm font-medium text-instr-ink">{h.lastAt !== null ? "Pick up where you left off" : "Added most recently"}</p>{/if}
@@ -128,15 +139,15 @@
         <!-- Outside the cover's link: the action first, Delete small and apart. -->
         <div class="flex items-center justify-between gap-2 border-t border-ws-line px-3 py-2">
           <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
-          <button
-            type="button"
-            class="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold {confirming === song.id ? 'bg-destructive text-white' : 'text-ws-soft hover:bg-ws-raised hover:text-destructive'}"
-            aria-label={confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}
-            onblur={() => confirming === song.id && (confirming = null)}
-            onclick={() => remove(song)}
-          >
-            <Trash class="size-4" aria-hidden="true" />{#if confirming === song.id}Delete?{/if}
-          </button>
+          <!-- Delete lives in the card's menu, two taps, away from Practise. -->
+          <Menu.Root onOpenChange={(open) => !open && confirming === song.id && (confirming = null)}>
+            <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="Options for {song.title}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+            <Menu.Content align="end" class="w-64">
+              <Menu.Item class={confirming === song.id ? "text-destructive" : ""} onSelect={(e) => remove(song, e)}
+                ><Trash class="size-4" aria-hidden="true" />{confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}</Menu.Item
+              >
+            </Menu.Content>
+          </Menu.Root>
         </div>
       </li>
     {/each}
@@ -157,7 +168,7 @@
       <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Songs from level {g.level} of your path">
         {#each g.items as x (x.key)}
           <li class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
-            <div class="stage px-3 pb-2 pt-3">
+            <div class="stage cover px-3 pb-2 pt-3" style:--tint={tint(x.song.title)}>
               {#if thumbs[x.key]}<RollThumb score={thumbs[x.key]} height={56} beats={16} />{:else}<div class="h-14" aria-hidden="true"></div>{/if}
             </div>
             <div class="flex flex-1 flex-col gap-2 p-4">
@@ -165,7 +176,7 @@
               <p class="-mt-1 text-sm text-ws-soft">{x.song.artist}</p>
               <p class="text-sm">{plainTeaches(x.song.teaches)}</p>
               <ul class="flex flex-wrap gap-1.5" aria-label="About {x.song.title}">
-                {#each shelfTags(x.song) as t (t)}<li class="rounded-full bg-ws-raised px-2.5 py-0.5 text-xs font-medium">{t}</li>{/each}
+                {#each shelfTags(x.song) as t (t)}<li class="rounded-full bg-ws-raised px-2.5 py-0.5 text-[13px] font-medium">{t}</li>{/each}
               </ul>
               <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Practise {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
             </div>
@@ -177,7 +188,12 @@
 {/if}
 
 <style>
-  .lead .stage {
+  .cover {
+    background:
+      radial-gradient(90% 120% at 15% 0%, color-mix(in oklch, var(--tint) 30%, transparent), transparent 65%),
+      var(--ws-stage);
+  }
+  .lead .stage:not(.cover) {
     background:
       radial-gradient(90% 120% at 15% 0%, color-mix(in oklch, var(--instr) 28%, transparent), transparent 65%),
       var(--ws-stage);

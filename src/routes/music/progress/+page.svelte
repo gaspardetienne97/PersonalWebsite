@@ -4,6 +4,7 @@
   import Play from "lucide-svelte/icons/play";
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
   import ListMusic from "lucide-svelte/icons/list-music";
+  import Ellipsis from "lucide-svelte/icons/ellipsis";
   import HubTabs from "$lib/music/components/HubTabs.svelte";
   import { btnPrimary } from "$lib/music/components/ui";
   import { practice } from "$lib/music/practice.svelte";
@@ -35,25 +36,42 @@
   let loaded = $state(false);
   $effect(() => void practice.ready.then(() => (loaded = true)));
   const empty = $derived(loaded && practice.sessions.length === 0);
+  // Journal and Your tunes wait in one overflow menu beside the tabs, so the header has one navigation.
+  let more = $state(false);
   const first = $derived(todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes).routine.steps[0]);
 </script>
 
 <svelte:head><title>Progress: {title} | Woodshed</title></svelte:head>
+<svelte:window onkeydown={(e) => e.key === "Escape" && (more = false)} />
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5 sm:gap-6">
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div class="min-w-0">
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">Progress</h1>
-      <nav aria-label="Related pages" class="mt-1 flex flex-wrap gap-x-4 text-sm">
-        <a class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/journal"
-          ><NotebookPen class="size-4" aria-hidden="true" />Journal</a
-        >
-        <a class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/tunes"
-          ><ListMusic class="size-4" aria-hidden="true" />Your tunes</a
-        >
-      </nav>
     </div>
-    <HubTabs param="view" tabs={TABS} label="Progress views" />
+    <div class="flex items-center gap-2">
+      <HubTabs param="view" tabs={TABS} label="Progress views" />
+      <div class="relative">
+        <button
+          type="button"
+          class="grid size-11 place-items-center rounded-full border border-ws-line bg-ws-surface text-ws-soft hover:text-ws-ink"
+          aria-label="More: journal and your tunes"
+          aria-expanded={more}
+          aria-controls="progress-more"
+          onclick={() => (more = !more)}><Ellipsis class="size-5" aria-hidden="true" /></button
+        >
+        {#if more}
+          <nav id="progress-more" aria-label="Related pages" class="absolute right-0 top-full z-30 mt-2 flex w-48 flex-col rounded-2xl border border-ws-line bg-ws-surface p-1.5 shadow-lg">
+            <a class="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium hover:bg-ws-raised" href="/music/journal"
+              ><NotebookPen class="size-4" aria-hidden="true" />Journal</a
+            >
+            <a class="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium hover:bg-ws-raised" href="/music/tunes"
+              ><ListMusic class="size-4" aria-hidden="true" />Your tunes</a
+            >
+          </nav>
+        {/if}
+      </div>
+    </div>
   </header>
   <p role="status" class="sr-only">Showing {title}.</p>
   {#if empty && view !== "skills"}
@@ -69,26 +87,7 @@
       </div>
       {#if first}<DrillPreview href={first.href} size="md" />{/if}
     </section>
-    <!-- What fills in, greyed: the streak week and two skill bars, drawn empty. -->
-    <section aria-labelledby="preview-title" class="grid gap-4 sm:grid-cols-2">
-      <h2 id="preview-title" class="text-sm font-semibold text-ws-soft sm:col-span-2">What fills in after your first block</h2>
-      <div class="rounded-3xl border border-dashed border-ws-line p-4 opacity-60" aria-hidden="true">
-        <p class="font-display text-lg font-semibold">Your streak</p>
-        <div class="mt-3 flex gap-2">
-          {#each ["M", "T", "W", "T", "F", "S", "S"] as d, i (i)}
-            <span class="flex flex-col items-center gap-1 text-xs text-ws-soft"><span class="size-8 rounded-full border border-dashed border-ws-soft"></span>{d}</span>
-          {/each}
-        </div>
-      </div>
-      <div class="rounded-3xl border border-dashed border-ws-line p-4 opacity-60" aria-hidden="true">
-        <p class="font-display text-lg font-semibold">Your skills</p>
-        {#each ["Rhythm", "Intervals"] as name (name)}
-          <p class="mt-3 text-sm font-medium">{name}</p>
-          <div class="mt-1 h-2.5 rounded-full bg-ws-raised"></div>
-        {/each}
-      </div>
-      <p class="sr-only">Your streak and your skills show here once you have practised.</p>
-    </section>
+    <p class="-mt-2 text-sm text-ws-soft">After your first block you will see your streak, your minutes and the next skill to work on here.</p>
   {:else if view === "skills"}
     <SkillsView />
   {:else if view === "sessions"}

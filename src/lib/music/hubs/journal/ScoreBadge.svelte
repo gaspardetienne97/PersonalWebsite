@@ -17,7 +17,7 @@
 {#if d}
   {@const I = ICON[d.kind]}
   <span
-    class="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold {d.kind === 'best'
+    class="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[13px] font-semibold {d.kind === 'best'
       ? 'bg-success/15 text-success'
       : d.kind === 'up'
         ? 'text-success'

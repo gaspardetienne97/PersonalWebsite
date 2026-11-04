@@ -241,7 +241,7 @@
               <li class="flex items-center gap-3 rounded-xl border border-ws-line bg-ws-surface p-3">
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium">{t.name}</p>
-                  <p class="text-xs text-ws-soft">{takeLength(t.durationMs)}</p>
+                  <p class="text-[13px] text-ws-soft">{takeLength(t.durationMs)}</p>
                 </div>
                 <button type="button" class={btn} onclick={() => transcribeTake(t)}>Transcribe</button>
               </li>
@@ -260,7 +260,7 @@
           <li class="flex items-center gap-3 rounded-xl border border-ws-line bg-ws-surface p-3">
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{t.name}</p>
-              <p class="text-xs text-ws-soft">{t.notes.length} notes, {takeLength(t.durationMs)}</p>
+              <p class="text-[13px] text-ws-soft">{t.notes.length} notes, {takeLength(t.durationMs)}</p>
             </div>
             <button type="button" class={btn} onclick={() => useTake(t)}>Use this take</button>
           </li>
@@ -313,7 +313,7 @@
       {#if heard?.kind === "transcribed" && engine === "chords"}
         <label class="flex flex-col gap-1 text-sm">
           <span class="font-medium">Sensitivity</span>
-          <span class="flex items-center gap-2 text-xs text-ws-soft">Fewer<input type="range" min="0" max="1" step="0.1" class="w-32 accent-[var(--instr)]" value={sensitivity} disabled={transcriber.busy} onchange={(ev) => setSensitivity(ev.currentTarget.valueAsNumber)} aria-label="Sensitivity" aria-valuetext="{Math.round(sensitivity * 10)} of 10" />More notes</span>
+          <span class="flex items-center gap-2 text-[13px] text-ws-soft">Fewer<input type="range" min="0" max="1" step="0.1" class="w-32 accent-[var(--instr)]" value={sensitivity} disabled={transcriber.busy} onchange={(ev) => setSensitivity(ev.currentTarget.valueAsNumber)} aria-label="Sensitivity" aria-valuetext="{Math.round(sensitivity * 10)} of 10" />More notes</span>
         </label>
       {/if}
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Length">

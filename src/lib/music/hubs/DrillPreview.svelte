@@ -247,7 +247,7 @@
     fill: var(--ws-ink);
   }
   .big.small {
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .onhit {
     fill: var(--ws-stage);
@@ -257,7 +257,7 @@
     font-size: 14px;
   }
   .big.small.onhit {
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .wood {
     fill: color-mix(in oklch, var(--h) 18%, var(--ws-stage));

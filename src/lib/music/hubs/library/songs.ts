@@ -201,5 +201,9 @@ export function shelfTags(song: { detail?: string; bpm?: number; diff?: number }
 }
 
 /** Shelf shorthand said plainly: RH and LH become right hand and left hand. */
+/** A shelf song's "teaches" note in plain words, sentence case. */
 export const plainTeaches = (t: string) =>
-  t.replace(/\bRH\b/g, "right hand").replace(/\bLH\b/g, "left hand");
+  t
+    .replace(/\bRH\b/g, "right hand")
+    .replace(/\bLH\b/g, "left hand")
+    .replace(/^\p{Ll}/u, (c) => c.toUpperCase());

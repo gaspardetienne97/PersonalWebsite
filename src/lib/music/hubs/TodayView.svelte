@@ -64,10 +64,10 @@
 
   const hueOf = (href: string) => hueForRoute(href, instrument);
   // Stars per block on the advance rule's lines (70%, 85%, clean); a block with no scored run has none.
-  const stars = $derived(allDone ? blockStars(plan.routine, practice.sessions) : {});
+  const stars = $derived(plan.done.length ? blockStars(plan.routine, practice.sessions) : {});
   const STAR_WORDS = ["under 70%", "70% or better", "85% or better", "a clean run"];
   // Confetti only when a block earned its third star (a run the advance rule counts), never on a set with nothing scored.
-  const passed = $derived(Object.values(stars).some((n) => n >= 3));
+  const passed = $derived(allDone && Object.values(stars).some((n) => n >= 3));
   // Static confetti, drawn at rest so a still frame shows it; motion only adds a short fall.
   const confetti = $derived(
     Array.from({ length: 24 }, (_, i) => {
@@ -110,7 +110,7 @@
       <div class="min-w-0">
         <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
         <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-          {#if allDone}Set complete: every block done{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
+          {#if allDone}Set complete{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
         </h2>
       </div>
       <button type="button" class="{btn} shrink-0" aria-expanded={adjusting} aria-controls="set-adjust" onclick={() => (adjusting = !adjusting)}>
@@ -184,17 +184,16 @@
                       ><Check class="size-4 text-success" aria-hidden="true" /></span
                     >{:else}<Icon class="size-4" aria-hidden="true" />{/if}
                 </span>
-                <span class="tnum hidden truncate text-xs font-semibold sm:inline {done ? 'text-ws-stage' : 'text-ws-soft'}">{done ? "Done" : `${step.minutes} min`}</span>
               </span>
             </div>
             <span class="sr-only">{step.label}{done ? ", done" : isNext ? ", now" : ""}</span>
           </div>
         {/each}
       </div>
-      <!-- On a phone the segments are too narrow for words: each block's name and length sit under its segment. -->
-      <div class="mt-1.5 flex gap-1.5 sm:hidden" aria-hidden="true">
+      <!-- Each block's name and length (or Done) sit under its segment, the same at every width. -->
+      <div class="mt-1.5 flex gap-1.5" aria-hidden="true">
         {#each plan.routine.steps as step (step.n)}
-          <span class="min-w-11 basis-0 px-1 text-xs leading-tight [overflow-wrap:anywhere]" style:flex-grow={step.minutes}>
+          <span class="min-w-11 basis-0 px-1 text-[13px] leading-tight [overflow-wrap:anywhere] sm:text-sm" style:flex-grow={step.minutes}>
             <span class="block font-medium">{step.label}</span>
             <span class="tnum block text-ws-soft">{plan.done.includes(step.n) ? "Done" : `${step.minutes} min`}</span>
           </span>
@@ -228,7 +227,7 @@
                 {:else}
                   <span class="flex items-center gap-0.5" role="img" aria-label="{n} of 3 stars: {STAR_WORDS[n]}">
                     {#each [1, 2, 3] as k (k)}
-                      <Star class="size-7 {k <= n ? 'fill-current text-warn' : 'text-ws-soft'}" aria-hidden="true" />
+                      <Star class="size-7 {k <= n ? 'fill-warn text-ws-ink' : 'text-ws-soft'}" aria-hidden="true" />
                     {/each}
                     <span class="tnum ml-1.5 text-sm text-ws-soft" aria-hidden="true">{n} of 3</span>
                   </span>
@@ -236,17 +235,13 @@
               </li>
             {/each}
           </ul>
-          <!-- What the set came to, measured: blocks done (what completes a set) and the time spent in its runs. -->
-          <dl class="tnum relative mt-4 flex flex-wrap gap-x-6 gap-y-2">
-            <div><dt class="text-xs text-ws-soft">Blocks</dt><dd class="font-semibold">{plan.summary.completedSteps} of {plan.summary.totalSteps}</dd></div>
+          <!-- What the set came to: every block played (what completes a set, minutes are only the plan), with the time its runs took. -->
+          <p class="tnum relative mt-4 font-semibold">Every block played ({formatDuration(playedTotal)})</p>
+          <dl class="tnum relative mt-2 flex flex-wrap gap-x-6 gap-y-2">
             {#if plan.summary.accuracy !== undefined}
-              <div><dt class="text-xs text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
+              <div><dt class="text-[13px] text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
             {/if}
-            <div>
-              <dt class="text-xs text-ws-soft">Time playing</dt>
-              <dd class="font-semibold">{formatDuration(playedTotal)}</dd>
-            </div>
-            <div><dt class="text-xs text-ws-soft">XP</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
+            <div><dt class="text-[13px] text-ws-soft">XP</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
           </dl>
           {#if nextUp}<p class="relative mt-4 text-sm">{nextUp.why}</p>{/if}
           <div class="relative mt-2 flex flex-wrap items-center gap-2">
@@ -292,12 +287,13 @@
             aria-controls="block-{step.n}"
             onclick={() => (openRow = expanded ? -1 : step.n)}
           >
-            <span class="relative {expanded ? 'hidden' : ''}">
+            <!-- On a phone the small picture stays in the row when open, so the open block ends above the tab bar. -->
+            <span class="relative {expanded ? 'sm:hidden' : ''}">
               <DrillPreview href={step.href} {instrument} class="rounded-lg" />
               {#if done}<span class="absolute -right-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-success text-white" aria-hidden="true"><Check class="size-3.5" /></span>{/if}
             </span>
             <span class="min-w-0 flex-1">
-              <span class="flex flex-wrap items-center gap-x-2 text-xs font-medium text-ws-soft">
+              <span class="flex flex-wrap items-center gap-x-2 text-[13px] font-medium text-ws-soft">
                 <span>{roleLabel(step)}</span>
                 {#if done}<span class="font-semibold text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 font-semibold text-instr-ink">Now</span>{/if}
               </span>
@@ -306,15 +302,16 @@
             </span>
             <!-- One figure: the plan's minutes until the block is done, then the time it took. -->
             <span class="tnum shrink-0 text-right text-sm text-ws-soft">
-              {#if done}{played ? `${formatDuration(played)} played` : "Done"}{:else}{step.minutes} min{#if played}<span class="block text-xs">{formatDuration(played)} so far</span>{/if}{/if}
+              {#if done}{stars[step.n] === undefined ? "Done" : `${stars[step.n]} of 3 stars`}{:else}{step.minutes} min{#if played}<span class="block text-[13px]">{formatDuration(played)} so far</span>{/if}{/if}
             </span>
             <ChevronDown class="size-4 shrink-0 text-ws-soft motion-safe:transition-transform {expanded ? 'rotate-180' : ''}" aria-hidden="true" />
           </button>
           {#if expanded}
             <div id="block-{step.n}" class="flex flex-col gap-3 border-t border-ws-line px-3 py-3 sm:flex-row sm:items-center sm:px-4">
-              <DrillPreview href={step.href} size="md" {instrument} class="sm:w-60 sm:shrink-0" />
-              <!-- The block's Start first, then one line on what it is. -->
+              <DrillPreview href={step.href} size="md" {instrument} class="max-sm:hidden sm:w-60 sm:shrink-0" />
+              <!-- One line on what it is, then the block's Start; the rest of the reason from sm up. -->
               <div class="flex min-w-0 flex-col items-start gap-3">
+                <p class="text-sm">{blockSummary(step)}</p>
                 {#if isNext && !done}
                   <a class={btnPrimary + " min-h-14 w-full px-6 font-display text-base sm:w-auto sm:text-lg"} href={step.href}>
                     <Play class="size-5" aria-hidden="true" />Start with {step.label}
@@ -324,7 +321,7 @@
                     <Play class="size-4" aria-hidden="true" />{done ? "Play again" : "Start"}<span class="sr-only">&nbsp;{step.label}</span>
                   </a>
                 {/if}
-                <p class="text-sm">{blockReason(step)}</p>
+                {#if blockReason(step) !== blockSummary(step)}<p class="text-sm text-ws-soft max-sm:hidden">{blockReason(step).slice(blockSummary(step).length).trim()}</p>{/if}
               </div>
             </div>
           {/if}
@@ -343,17 +340,16 @@
       {#if plan.advice.focus}
         <!-- One figure for the focus skill: its checked answers, all time, on this instrument. -->
         <div class="mt-3 flex items-center gap-3">
-          <Ring value={plan.advice.focus.accuracy} stroke={plan.advice.focus.accuracy >= 0.85 ? "var(--success)" : "var(--warn)"} class="size-16">
-            <span class="tnum font-display text-base font-semibold">{Math.round(plan.advice.focus.accuracy * 100)}%</span>
-          </Ring>
-          <p class="text-sm text-ws-soft">
-            correct on {plan.advice.focus.name}, from {plan.advice.focus.attempts} answers in Check mode on {INSTRUMENT_LABEL[instrument]}
+          <Ring value={plan.advice.focus.accuracy} stroke={plan.advice.focus.accuracy >= 0.85 ? "var(--success)" : "var(--warn)"} class="size-12 shrink-0" />
+          <p class="text-sm">
+            <span class="tnum font-semibold">{Math.round(plan.advice.focus.accuracy * 100)}% right</span> on {plan.advice.focus.name}
+            <span class="tnum text-ws-soft">({plan.advice.focus.attempts} answers, Check runs)</span>
           </p>
         </div>
       {:else if !plan.advice.measured && plan.checked < COACH_MIN_ATTEMPTS}
         <!-- Nothing measured yet: one line and the bar; the method waits behind the info button. -->
         <p class="mt-1 flex items-start gap-1 text-sm">
-          <span class="flex-1">Your weak spot shows here after {COACH_MIN_ATTEMPTS} answers in Check mode (from memory).</span>
+          <span class="flex-1">Answer {COACH_MIN_ATTEMPTS} questions in a Check run to find your weak spot.</span>
           <button
             type="button"
             class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
@@ -363,15 +359,10 @@
             onclick={() => (coachInfo = !coachInfo)}><Info class="size-5" aria-hidden="true" /></button
           >
         </p>
-        {#if fresh0}
-          <!-- What will fill in, drawn faint and marked as an example. -->
-          <div class="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-ws-line p-2.5 opacity-60" aria-label="Example of a weak spot" role="img">
-            <Ring value={0.6} stroke="var(--warn)" class="size-11"><span class="tnum text-xs font-semibold">60%</span></Ring>
-            <span class="text-sm"><span class="block font-semibold">Example: Intervals</span><span class="text-ws-soft">6 of 10 right, practise it next</span></span>
-          </div>
-        {/if}
         {#if coachInfo}<p id="coach-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">{plan.advice.summary} Check mode is the run that counts: no hints, every answer scored.</p>{/if}
         <div class="mt-3 flex items-center gap-3">
+          <!-- No answers yet, so no number: an empty ring that fills once the coach has measured something. -->
+          <Ring class="size-11 shrink-0" />
           <div
             class="h-2 flex-1 rounded-full bg-ws-raised"
             role="progressbar"
@@ -418,7 +409,7 @@
           </li>
         {/each}
       </ul>
-      <p class="mt-3 text-xs text-ws-soft">Level {levelFor(practice.xpTotal)}, {practice.xpTotal} XP in total.</p>
+      <p class="mt-3 text-[13px] text-ws-soft">Level {levelFor(practice.xpTotal)}, {practice.xpTotal} XP in total.</p>
     </section>
     {/if}
   </aside>

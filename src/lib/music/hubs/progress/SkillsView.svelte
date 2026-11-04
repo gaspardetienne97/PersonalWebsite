@@ -59,22 +59,26 @@
     </label>
   </div>
 
-  <!-- The key stays in view (the bars mean nothing without it); the method waits behind a disclosure. -->
-  <div class="-mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-ws-soft" role="group" aria-label="How to read the bars">
-    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Mastery</span>
-    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Early guess: under {MIN_EVIDENCE} answers in Check mode</span>
-    <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
-    <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review</span>
-  </div>
-  <details class="group -mt-4 text-sm">
+  <!-- No key: each row names its numbers. Why there are two waits behind one disclosure. -->
+  <details class="group -mt-3 text-sm">
     <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-      <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+      <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Why two numbers?
     </summary>
-    <p class="max-w-prose text-ws-soft">
-      Only answers in Check mode move mastery, and it fades a little each day you do not practise. An early guess firms up
-      with more answers. Needs review means mastery fell ten points or more since it was last measured. Answers and the
-      percent right count every answer on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
-    </p>
+    <div class="flex max-w-prose flex-col gap-2 text-ws-soft">
+      <p>
+        <span class="font-semibold text-ws-ink">Mastery</span> is how sure the app is that you know the skill. It moves only on Check runs (no
+        hints, from memory) and fades a little each day you do not practise. Under {MIN_EVIDENCE} answers in Check runs it is an
+        early guess, drawn as an outlined bar.
+      </p>
+      <p>
+        <span class="font-semibold text-ws-ink">All answers</span> is the share you got right, Practice runs included, on
+        {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}. With hints on it runs higher than mastery.
+      </p>
+      <p class="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Mastery when last measured</span>
+        <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review: ten points or more lost since then</span>
+      </p>
+    </div>
   </details>
 
   {#if touchedCount === 0 && !showAll && !needle}
@@ -102,9 +106,10 @@
                 <div class="min-w-0 flex-1">
                   <p class="flex items-center gap-1.5 font-medium">
                     {r.skill.name}
-                    {#if !r.unlocked}<Lock class="size-3.5 shrink-0 text-ws-soft" aria-label="Locked" />{:else if r.due}<RotateCcw class="size-3.5 shrink-0 text-warn" aria-hidden="true" /><span class="sr-only">Needs review</span>{/if}
+                    {#if !r.unlocked}<Lock class="size-3.5 shrink-0 text-ws-soft" aria-label="Locked" />{:else if r.due}<span class="inline-flex shrink-0 items-center gap-1 text-[13px] font-normal text-ws-soft"><RotateCcw class="size-3.5 text-warn" aria-hidden="true" />Needs review</span>{/if}
                   </p>
                   <div class="mt-1 flex items-center gap-2">
+                    <span class="shrink-0 text-sm text-ws-soft" aria-hidden="true">Mastery</span>
                     {@render bar(r)}
                     <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
                   </div>
@@ -136,7 +141,7 @@
                   <th scope="col" class="w-44 py-2 pr-3 font-medium">Mastery</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Confidence</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Attempts</th>
-                  <th scope="col" class="py-2 pr-3 text-right font-medium">Accuracy</th>
+                  <th scope="col" class="py-2 pr-3 text-right font-medium">All answers right</th>
                   <th scope="col" class="py-2 pr-3 font-medium">Last practised</th>
                   <th scope="col" class="py-2 pr-3 font-medium">Status</th>
                   <th scope="col" class="py-2 font-medium"><span class="sr-only">Practice link</span></th>
@@ -146,7 +151,7 @@
                 {#each g.rows as r (r.skill.id)}
                   <tr data-skill={r.skill.id}>
                     <th scope="row" class="sticky left-0 z-10 bg-ws-bg py-2 pr-3 font-medium">
-                      {r.skill.name}{#if r.umbrella && !r.direct}<span class="block text-xs font-normal text-ws-soft">Average of its parts</span>{/if}
+                      {r.skill.name}{#if r.umbrella && !r.direct}<span class="block text-[13px] font-normal text-ws-soft">Average of its parts</span>{/if}
                     </th>
                     <td class="py-2 pr-3">
                       <div class="flex items-center gap-2">
@@ -158,7 +163,7 @@
                     <td class="tnum py-2 pr-3 text-right">{r.estimate === undefined ? "" : pct(r.confidence)}</td>
                     <td class="tnum py-2 pr-3 text-right">
                       {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} checked</span>{:else}{r.attempts}<span
-                          class="block text-xs text-ws-soft">{r.checked} checked</span
+                          class="block text-[13px] text-ws-soft">{r.checked} checked</span
                         >{/if}
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.accuracy === undefined ? "" : pct(r.accuracy)}</td>

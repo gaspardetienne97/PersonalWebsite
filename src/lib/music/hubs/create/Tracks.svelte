@@ -170,7 +170,7 @@
       {@render playButton("beat", session.pattern.name, "var(--instr)")}
       <div class="flex min-w-0 flex-col">
         <input class={name} aria-label="Beat name" value={session.pattern.name} onchange={(e) => session.setPattern({ ...session.pattern, name: e.currentTarget.value || session.pattern.name })} />
-        <span class="flex flex-wrap items-center gap-x-1 px-1.5 text-xs text-ws-soft">
+        <span class="flex flex-wrap items-center gap-x-1 px-1.5 text-[13px] text-ws-soft">
           <span>Beat, {count(hitCount(session.pattern), "hit")} over {count(barsOf(session.pattern), "bar")}{session.beatMuted ? ", muted" : ""}</span>
           <span class="flex items-center" role="group" aria-label="Beat length">
             <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-35" aria-label="Remove the beat's last bar" disabled={barsOf(session.pattern) <= 1} onclick={shrinkBeat}><Minus class="size-4" aria-hidden="true" /></button>
@@ -206,7 +206,7 @@
         {@render playButton(v.id, v.name, trackColour(i))}
         <div class="flex min-w-0 flex-col">
           <input class={name} aria-label="Name of {v.name}" value={v.name} onfocus={() => (session.picked.includes(v.id) ? (session.selected = v.id) : session.pick(v.id))} onchange={(e) => session.updateVoice(v.id, (x) => ({ ...x, name: e.currentTarget.value || x.name }))} />
-          <span class="px-1.5 text-xs text-ws-soft">Melody, {count(v.notes.length, "note")}{loopBeats(v, session.doc.lengthBeats) ? `, looping ${count(v.loopBars!, "bar")}` : ""}{v.muted ? ", muted" : ""}</span>
+          <span class="px-1.5 text-[13px] text-ws-soft">Melody, {count(v.notes.length, "note")}{loopBeats(v, session.doc.lengthBeats) ? `, looping ${count(v.loopBars!, "bar")}` : ""}{v.muted ? ", muted" : ""}</span>
         </div>
         <div class="order-last col-span-4 grid grid-cols-2 gap-2 sm:order-none sm:col-span-1">
           <Picker label="{v.name} instrument" value={soundOf(v)} options={ROLL_SOUNDS} onchange={(s) => setSound(v, s)} />

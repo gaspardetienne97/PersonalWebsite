@@ -64,6 +64,12 @@ describe("palette search", () => {
       "/music/scales",
     ]);
     expect(hits.at(-1)!.group).toBe("Pages");
+    // Four pages, then a row that opens the rest.
+    expect(hits.filter((h) => h.group === "Pages")).toHaveLength(5);
+    expect(hits.at(-1)).toMatchObject({ kind: "more", label: "More pages" });
+    const every = searchItems("", searchIndex(), [next, ...recent], true);
+    expect(every.some((h) => h.kind === "more")).toBe(false);
+    expect(every.filter((h) => h.group === "Pages").length).toBeGreaterThan(5);
   });
 
   it("lists recent drills newest first, once each, ukulele runs under their drill", () => {

@@ -80,8 +80,8 @@
     background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
   }
   .pad[data-role="scale"] {
-    background: color-mix(in oklch, var(--instr) 18%, transparent);
-    border-color: color-mix(in oklch, var(--instr) 70%, transparent);
+    background: color-mix(in oklch, var(--instr) 26%, transparent);
+    border-color: var(--instr);
   }
   .pad[data-role="fifth"] {
     background: color-mix(in oklch, var(--instr) 40%, transparent);

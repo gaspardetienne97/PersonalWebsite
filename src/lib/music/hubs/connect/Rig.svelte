@@ -8,6 +8,7 @@
   import Cable from "lucide-svelte/icons/cable";
   import Check from "lucide-svelte/icons/check";
   import Ellipsis from "lucide-svelte/icons/ellipsis";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { input, midi, mic, settings } from "$lib/music/runtime";
@@ -21,6 +22,9 @@
     next,
   }: { announce: (text: string) => void; fallback?: Snippet<[boolean]>; next?: Next } = $props();
   let moreOpen = $state(false);
+  // The unfinished device leads: until the microphone is on, its tile sits above the MIDI tiles.
+  const micFirst = $derived(mic.state !== "on");
+  const micNext = $derived(!!next && next.act?.href === "#mic");
 
   const TILES = [
     { id: "keyboard", label: "Keyboard", hue: "piano", prompt: "Play a key" },
@@ -50,7 +54,7 @@
     if (!midi.supported) return "No MIDI in this browser";
     if (!midi.enabled) return "MIDI is off";
     const on = portsOn(t);
-    if (!on.length) return "Not plugged in";
+    if (!on.length) return "Not connected: plug in and press a key";
     const name = midi.profile(on[0].id)?.alias ?? on[0].name;
     return on.length > 1 ? `${name} and ${on.length - 1} more` : name;
   }
@@ -63,7 +67,11 @@
         <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-create)" aria-hidden="true"><Cable class="size-5" /></span>
         Your rig
       </h2>
-      <p class="mt-1 text-sm" data-testid="rig-count"><span class="tnum font-semibold">{litCount} of 4</span> <span class="text-ws-soft">connected. Play something and its tile lights up.</span></p>
+      <!-- One status line: how many are live and what to do next. -->
+      <p class="mt-1 text-sm" data-testid="rig-count">
+        <span class="tnum font-semibold">{litCount} of 4</span>
+        <span class="text-ws-soft">connected{midi.enabled && !midi.sysexEnabled ? ", MPC lights off (not allowed)" : ""}. {micNext ? "Next: test the microphone." : "Play something and its tile lights up."}</span>
+      </p>
     </div>
     {#if midi.supported}
       {#if midi.enabled}
@@ -89,21 +97,25 @@
     {#if !midi.supported}
       <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
     {:else if !midi.enabled}
-      <p class="text-ws-soft">For keyboards, pads and the Aerophone. The browser then asks twice: once to hear your notes, once to light the MPC's pads. Allow both.</p>
-    {:else}
-      <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? "" : ". Pad lights were not allowed, so the MPC link and lights are off"}. Plug devices in any time.</p>
+      <p class="text-ws-soft">For keyboards, pads and the Aerophone. Your browser will ask for permission. Choose Allow.</p>
+      <details class="group mt-1">
+        <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+          Why twice?<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <p class="text-ws-soft">The first prompt lets Woodshed hear your notes. The second lets it light the MPC's pads and link to it. Allow both; a keyboard alone needs only the first.</p>
+      </details>
     {/if}
     {#if midi.error}<p class="mt-1 font-medium text-destructive">{midi.error}</p>{/if}
   </div>
 
   <!-- The one setup step still to do, as this card's main action (the checklist mirrors it). -->
-  {#if next && midi.enabled}
+  {#if next && midi.enabled && !micNext}
     <div class="flex flex-wrap items-center gap-3 rounded-xl bg-instr-wash p-3">
       <div class="min-w-0 flex-1 basis-48">
         <p class="font-semibold">Next step</p>
-        <p class="text-sm">{next.act?.href === "#mic" ? "Test the microphone: press Start microphone below, then play or sing a note." : next.hint}</p>
+        <p class="text-sm">{next.hint}</p>
       </div>
-      {#if next.act && next.act.href !== "#mic"}
+      {#if next.act}
         {#if next.act.href}
           <a class={btnPrimary} href={next.act.href}>{next.act.label}</a>
         {:else}
@@ -112,6 +124,8 @@
       {/if}
     </div>
   {/if}
+
+  {#if micFirst}{@render micTile()}{/if}
 
   <!-- While MIDI is off the three tiles sit in one row, so the microphone is in the first phone screen. -->
   <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3 {midi.enabled ? '' : 'max-sm:grid-cols-3'}">
@@ -126,11 +140,11 @@
         </span>
         <div class="min-w-0 flex-1 sm:w-full sm:flex-none">
           <h3 class="font-semibold sm:text-base {midi.enabled ? '' : 'max-sm:text-sm'}">{t.label}</h3>
-          <p class="w-full text-xs text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{status(t.id)}</p>
+          <p class="w-full text-[13px] text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{status(t.id)}</p>
         </div>
         <div class="flex shrink-0 flex-col items-end sm:items-center" aria-live="polite">
           {#if hit && lit}
-            <span class="flex items-center gap-1 text-xs font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
+            <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
             <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{hit.label}</span>
             {#if t.id !== "mpc"}{@render octave(hit.midi)}{/if}
           {:else if lit}
@@ -141,21 +155,27 @@
     {/each}
   </ul>
 
-  <section id="mic" class="tile flex flex-col gap-3 rounded-2xl p-3 sm:p-4" data-lit={mic.state === "on" || undefined} style:--instr="var(--hue-guitar)" aria-labelledby="mic-title" data-testid="rig-mic">
+
+  {#if !micFirst}{@render micTile()}{/if}
+
+  {@render fallback?.(litCount > 0)}
+</section>
+
+{#snippet micTile()}
+  <section id="mic" class="tile flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3 rounded-2xl p-3 sm:p-4" data-next={micNext || undefined} data-lit={mic.state === "on" || undefined} style:--instr="var(--hue-guitar)" aria-labelledby="mic-title" data-testid="rig-mic">
     <div class="flex items-center gap-3">
       <span class="chip grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true"><INSTRUMENT_ICON.voice class="size-5" /></span>
       <div class="min-w-0">
         <h3 id="mic-title" class="font-semibold">Microphone</h3>
-        <p class="text-xs text-ws-soft">
+        <p class="text-[13px] text-ws-soft">
           {mic.state === "on" ? `Listening on ${settings.value.audioInputLabel}` : `For guitar, ukulele and voice. Uses ${settings.value.audioInputLabel}.`}
         </p>
+        {#if micNext}<p class="mt-0.5 text-sm font-semibold text-instr-ink">Next step: press Start microphone, then play or sing a note.</p>{/if}
       </div>
     </div>
     <MicCheck {announce} />
   </section>
-
-  {@render fallback?.(litCount > 0)}
-</section>
+{/snippet}
 
 <!-- One octave from C, the key just played lit and marked: the note is seen on a keyboard, not only named. -->
 {#snippet octave(m: number)}
@@ -190,6 +210,10 @@
     transition:
       border-color 0.3s,
       background-color 0.3s;
+  }
+  /* The next step: a solid outline in the page's ink colour, not the tile's dashed waiting line. */
+  .tile[data-next] {
+    border: 2px solid var(--instr-ink);
   }
   .tile .chip {
     background: var(--ws-raised);

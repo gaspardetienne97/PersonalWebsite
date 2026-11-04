@@ -185,11 +185,11 @@
             {@const note = learning ? learning[i] : profile?.padNotes?.[i]}
             <li
               title={note !== undefined ? `Pad ${padLabel(36 + i)} hears MIDI note ${note}` : undefined}
-              class="flex min-h-11 flex-col items-center justify-center rounded-md border text-xs {learning && i === learning.length
+              class="flex min-h-11 flex-col items-center justify-center rounded-md border text-[13px] {learning && i === learning.length
                 ? 'target border-2 border-ws-ink bg-instr font-semibold text-ws-stage'
                 : note !== undefined
                   ? 'border-transparent bg-instr-wash'
-                  : 'border-dashed border-ws-soft/60'}"
+                  : 'border-dashed border-ws-soft text-ws-soft'}"
               aria-current={learning && i === learning.length ? "step" : undefined}
             >
               <span class="flex items-center gap-0.5 font-semibold">{#if note !== undefined}<Check class="size-3" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
@@ -198,7 +198,7 @@
           {/each}
         {/each}
       </ol>
-      <p class="text-xs text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the note it sends.</p>
+      <p class="text-[13px] text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the note it sends.</p>
     </section>
   {/if}
 
@@ -217,7 +217,7 @@
       {#if confirmRemove}
         <button
           type="button"
-          class="{btn} border-destructive text-destructive"
+          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110"
           onclick={() => {
             confirmRemove = false;
             void midi.removeProfile(port.id);
@@ -226,7 +226,7 @@
         >
         <button type="button" class={btn} onclick={() => (confirmRemove = false)}>Keep them</button>
       {:else}
-        <button type="button" class={btn} disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
+        <button type="button" class="ml-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-destructive/50 bg-ws-surface px-4 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
       {/if}
     </div>
     <p class="text-ws-soft">

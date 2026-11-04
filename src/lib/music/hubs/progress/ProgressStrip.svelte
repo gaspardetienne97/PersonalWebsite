@@ -38,21 +38,13 @@
   <StreakWeek week={streak.week} current={streak.current} longest={streak.longest} {freezes} since={days.length ? [...days].sort()[0] : undefined} />
 
   <div class="min-w-0 sm:border-l sm:border-ws-line sm:pl-5">
-    {#if thisWeek.minutes < 5}
-      <!-- Under five minutes the bars would sit on the baseline: one figure says it better. -->
-      <h2 class="font-display text-xl font-semibold">Practice time</h2>
-      <p class="mt-2 font-display text-4xl font-semibold tracking-tight"><span class="tnum">{todayText}</span> <span class="text-xl text-ws-soft">today</span></p>
-      <p class="mt-2 text-sm text-ws-soft">
-        This week so far: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>. A chart of each day shows once the week passes 5 minutes.
-      </p>
-    {:else}
     <h2 class="font-display text-xl font-semibold">
       This week: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>
     </h2>
-    <p class="text-sm text-ws-soft">Minutes practised each day, Monday to Sunday.</p>
+    <p class="text-sm text-ws-soft">Minutes practised each day, Monday to Sunday. Today: <span class="tnum">{todayText}</span>.</p>
     <div class="mt-3 flex max-w-sm gap-2">
       <!-- The scale: its top and zero, so a bar's height means something. -->
-      <div class="tnum flex h-20 shrink-0 flex-col justify-between text-right text-xs text-ws-soft" aria-hidden="true">
+      <div class="tnum flex h-20 shrink-0 flex-col justify-between text-right text-[13px] text-ws-soft" aria-hidden="true">
         <span class="-mt-1.5">{scale} min</span><span class="-mb-1.5">0</span>
       </div>
       <ol class="relative flex min-w-0 flex-1 gap-1.5">
@@ -63,20 +55,19 @@
             <div class="relative h-20 w-full" aria-hidden="true">
               <span
                 class="absolute inset-x-0 bottom-0 rounded-md {d.future
-                  ? 'border border-dashed border-ws-line'
+                  ? 'border border-dashed border-ws-soft/60'
                   : d.minutes
                     ? 'bg-instr'
                     : 'bg-ws-raised'} {d.today ? 'ring-2 ring-instr-ink ring-offset-1 ring-offset-ws-surface' : ''}"
                 style:height="{h}%"
               ></span>
             </div>
-            <span class="text-xs {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{letter(d.day)}</span>
-            <span class="tnum text-xs {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{d.future ? "" : d.minutes}</span>
+            <span class="text-[13px] {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{letter(d.day)}</span>
+            <span class="tnum text-[13px] {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{d.future ? "" : d.minutes}</span>
             <span class="sr-only">{weekday(d.day)}{d.today ? " (today)" : ""}: {d.future ? "still to come" : `${d.minutes} minutes`}</span>
           </li>
         {/each}
       </ol>
     </div>
-    {/if}
   </div>
 </section>
