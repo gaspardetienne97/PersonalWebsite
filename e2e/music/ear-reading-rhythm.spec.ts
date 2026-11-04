@@ -924,11 +924,14 @@ test.describe("note reading and sight-reading", () => {
       await midiNote(page, PORTS.keys.id, i === 0 ? midi + 1 : midi);
       if (i === 0) {
         await expect(card).toContainText("You played");
-        await shots(page, "reading-flashcards-wrong");
         // A miss stays on screen until Next, which has focus so Enter moves on.
         await page.waitForTimeout(2500);
         await expect(card).toHaveAttribute("data-state", "wrong");
-        await expect(page.getByRole("button", { name: "Next card" })).toBeFocused();
+        const nextCard = page.getByRole("button", { name: "Next card" });
+        await expect(nextCard).toBeFocused();
+        // The screenshots pass through phone width, where the dock holds Next instead: focus it again after.
+        await shots(page, "reading-flashcards-wrong");
+        await nextCard.focus();
         await page.keyboard.press("Enter");
       }
     }

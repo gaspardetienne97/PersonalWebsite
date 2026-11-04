@@ -487,24 +487,28 @@ for (const width of WIDTHS) {
     const D = [50, 57, 62, 66];
     const Em = [40, 47, 52, 55, 59, 64];
     const C = [48, 52, 55, 60, 64];
-    /** Strums on beats 1 and 3 of each bar from "Go.", the chords in `bars`. */
-    const strumRun = async (bars: (number[] | null)[]) => {
-      await page.evaluate((bars) => {
-        const w = window as any;
-        w.__capGo = 0;
-        const status = document.querySelector('[role="status"]')!;
-        const obs = new MutationObserver(() => {
-          if (status.textContent?.trim() !== "Go.") return;
-          obs.disconnect();
-          w.__capGo = performance.now();
-          const beat = 60000 / 96;
-          bars.forEach((ch, b) => {
-            if (!ch) return;
-            for (const k of [0, 2]) setTimeout(() => w.__chordMic.strum(ch), (b * 4 + k) * beat);
+    /** Strums at `beats` of each bar from "Go.", the chords in `bars`. The default is the starter
+     *  pattern's strokes (D DU UDU), a good run; [0, 2] strums only beats 1 and 3, a poor one. */
+    const strumRun = async (bars: (number[] | null)[], beats = [0, 1, 1.5, 2.5, 3, 3.5]) => {
+      await page.evaluate(
+        ([bars, beats]) => {
+          const w = window as any;
+          w.__capGo = 0;
+          const status = document.querySelector('[role="status"]')!;
+          const obs = new MutationObserver(() => {
+            if (status.textContent?.trim() !== "Go.") return;
+            obs.disconnect();
+            w.__capGo = performance.now();
+            const beat = 60000 / 96;
+            bars.forEach((ch, b) => {
+              if (!ch) return;
+              for (const k of beats) setTimeout(() => w.__chordMic.strum(ch), (b * 4 + k) * beat);
+            });
           });
-        });
-        obs.observe(status, { childList: true, characterData: true, subtree: true });
-      }, bars);
+          obs.observe(status, { childList: true, characterData: true, subtree: true });
+        },
+        [bars, beats] as const,
+      );
       await startButton(page).click();
       await expect
         .poll(() => page.evaluate(() => (window as any).__capGo), { timeout: 15_000 })
@@ -518,7 +522,7 @@ for (const width of WIDTHS) {
     await waitResults(page);
     await shot(page, F, "results", width);
 
-    await strumRun([G, null, null, null]);
+    await strumRun([G, null, null, null], [0, 2]);
     await waitResults(page);
     await shot(page, F, "results-poor", width);
 

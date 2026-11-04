@@ -201,7 +201,7 @@ test.describe("aerophone skills", () => {
       "/music/aerophone?mode=scales&scale=major&key=0&perBeat=2&octaves=2&pattern=thirds&bpm=150",
     );
     await expect(page.getByTestId("setup-line")).toContainText(
-      "C major scale, in thirds, up and down, 150 BPM, 2 notes per beat, two octaves",
+      "C major scale, in thirds, up and down, 2 notes per beat, two octaves",
     );
     await page.getByRole("button", { name: "Practice", exact: true }).click();
     await playLine(page);

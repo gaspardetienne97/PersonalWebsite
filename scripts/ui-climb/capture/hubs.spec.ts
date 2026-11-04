@@ -319,8 +319,6 @@ for (const width of WIDTHS) {
     await setup(page, width);
     await open(page, "/music/library");
     await shot(page, "library", "shelf", width, { full: true });
-    await open(page, "/music/create/reference");
-    await shot(page, "library", "reference", width, { full: true });
     await open(page, "/music/library?tab=import");
     await shot(page, "library", "import", width, { full: true });
     // A score picked: the preview before saving.

@@ -91,7 +91,8 @@ export const FLOWS = [
     job: "App settings and a help guide explaining how the app works.",
     shots: ["settings", "guide"],
     comp: ["settings"],
-    states: ["page"],
+    // Twice, so settings and the guide each show at both widths.
+    states: ["page", "page"],
   },
   {
     id: "songs",
@@ -99,7 +100,8 @@ export const FLOWS = [
     job: "A shelf of songs to learn, and playing along with one song.",
     shots: ["library", "song-studio"],
     comp: ["songs"],
-    states: ["shelf", "reference", "ready", "running", "results", "import"],
+    // No chords-and-scales reference here: it is a Create page (/music/create/reference).
+    states: ["shelf", "shelf-with-song", "ready", "running", "results", "import"],
   },
   {
     id: "create",
@@ -197,7 +199,8 @@ export const FLOWS = [
     "Naming or playing notes shown on a staff, one at a time.",
     ["reading-flashcards"],
     ["reading"],
-    DRILL_STATES,
+    // Running twice, so the run is shown on a phone as well as a laptop.
+    DRILL_STATES.flatMap((s) => (s === "running" ? [s, s] : [s])),
   ),
   drill(
     "reading-sight",

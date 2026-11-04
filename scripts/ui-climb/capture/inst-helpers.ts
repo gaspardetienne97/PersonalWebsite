@@ -445,7 +445,7 @@ export const nextRunButton = (page: Page) =>
     .or(
       page
         .getByTestId("drill-bar")
-        .getByRole("button", { name: /^(Speed up to|Slow down to|Move on:|Step back:)/ }),
+        .getByRole("button", { name: /^(Speed up to|Slow (down )?to|Move on:|Step back:)/ }),
     )
     .first();
 

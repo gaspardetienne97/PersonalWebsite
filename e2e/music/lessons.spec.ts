@@ -413,7 +413,7 @@ test.describe("ear lessons", () => {
 
   test("the lesson follows the level, not the answer mode", async ({ page }) => {
     await page.goto("/music/ear/chord-qualities?qualities=minor&answer=play-back");
-    await expect(heading(page, "One chord, all notes together")).toBeVisible();
+    await expect(heading(page, "Major and minor")).toBeVisible();
     await next(page);
     await expect(heading(page, "Minor")).toBeVisible();
     await expect(page.getByRole("button", { name: "Start the quiz" })).toBeVisible();
@@ -534,7 +534,7 @@ test.describe("concept cards", () => {
     const again = page.getByRole("button", { name: "Again", exact: true });
     await expect(again).toBeVisible();
     // The results offer the same setup in Check; its card shows first.
-    await page.getByRole("button", { name: "Try it from memory" }).click();
+    await page.getByRole("button", { name: "Check run, from memory" }).click();
     await expect(page.getByRole("heading", { name: "Shape the hand" })).toBeVisible();
     await expect(again).toHaveCount(0);
     await (await toEnd(page)).click();

@@ -168,8 +168,18 @@ test.describe("the lanes view on the pads", () => {
     await expectNoHorizontalOverflow(page);
     const highway = page.getByRole("img", { name: /notes coming up$/ });
     const pads = page.getByRole("group", { name: /^MPC pads, bank A/ });
+    // Before Start the phone shows the lanes alone, so nothing sits under the docked Start bar.
+    await expect(highway).toBeVisible();
+    await expect(pads).toBeHidden();
+    // During the run the pads join the lanes, stacked under them.
+    await page
+      .getByRole("button", { name: /^(Start|Again)/ })
+      .first()
+      .click();
+    await expect(pads).toBeVisible();
     const [h, p] = [await highway.boundingBox(), await pads.boundingBox()];
     expect(p!.y).toBeGreaterThan(h!.y + h!.height - 4);
+    await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: `${SHOTS}/lanes-375.png`, fullPage: true });
   });
 

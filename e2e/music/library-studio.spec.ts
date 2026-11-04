@@ -430,8 +430,9 @@ test.describe("library and song studio", () => {
     // Delete from the library takes two taps.
     await page.getByRole("link", { name: "Back to your songs" }).click();
     const songs = page.getByRole("list", { name: "Saved songs" });
-    await songs.getByRole("button", { name: "Delete low-riff" }).click();
-    await songs.getByRole("button", { name: "Delete low-riff? Tap again to delete" }).click();
+    await songs.getByRole("button", { name: "Options for low-riff" }).click();
+    await page.getByRole("menuitem", { name: "Delete low-riff" }).click();
+    await page.getByRole("menuitem", { name: "Delete low-riff? Tap again to delete" }).click();
     await expect(songs.getByRole("link", { name: /low-riff/ })).toHaveCount(0);
     await expect(songs.getByRole("link", { name: /Ode to Joy/ })).toBeVisible();
     await page.reload();

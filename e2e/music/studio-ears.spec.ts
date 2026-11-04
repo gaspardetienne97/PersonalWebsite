@@ -112,6 +112,7 @@ test.describe("studio ears", () => {
       "/music/listening",
     );
     await page.screenshot({ path: `${SHOTS}/drills-tab.png`, fullPage: true });
+    await page.getByRole("button", { name: "Modes for Rhythm" }).click();
     await page.getByRole("link", { name: "Rhythm: Echo" }).click();
     await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
     // The exercise is the tab row now, not part of the setup sentence.
@@ -125,18 +126,27 @@ test.describe("studio ears", () => {
       "href",
       "/music/pads?mode=groove",
     );
+    await page.getByRole("button", { name: "Modes for Aerophone breath and tongue" }).click();
     await page.getByRole("link", { name: "Aerophone breath and tongue: Bite vibrato" }).click();
     await expect(page).toHaveURL(/\/music\/aerophone\?mode=vibrato$/);
     // Ear drills chip their answer styles; Scales chips what it plays.
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "All instruments" }).click();
+    await page.getByRole("button", { name: "Modes for Intervals" }).click();
     await page.locator('a[href="/music/ear/intervals?answer=play-back"]').click();
     await expect(
       page.getByText("Play on the keys below or your MIDI keyboard.", { exact: false }),
     ).toBeVisible();
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "All instruments" }).click();
-    await page.getByRole("link", { name: "Scales: Arpeggio" }).click();
+    // Two Scales cards (keys and strings) each have a Modes menu: open the one holding Arpeggio.
+    const arpeggio = page.getByRole("link", { name: "Scales: Arpeggio" });
+    for (const menu of await page.getByRole("button", { name: "Modes for Scales" }).all()) {
+      await menu.click();
+      if (await arpeggio.isVisible()) break;
+      await page.keyboard.press("Escape");
+    }
+    await arpeggio.click();
     await expect(page).toHaveURL(/\/music\/scales\?pattern=arpeggio$/);
     await expect(page.locator("p", { hasText: "Setup:" })).toContainText(/arpeggio/i);
   });

@@ -189,7 +189,8 @@ test.describe("Accompaniment comping on the new rhythms", () => {
 test("the Tunes page lists the ladders and opens each rung", async ({ page }) => {
   await page.routeWebSocket(/.*/, () => {});
   await page.goto("/music/progress");
-  await page.getByRole("link", { name: "your tunes" }).click();
+  await page.getByRole("button", { name: "More: journal and your tunes" }).click();
+  await page.getByRole("link", { name: "Your tunes" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Tunes" })).toBeVisible();
   const ladders = page.getByTestId("ladders");
   await expect(ladders).toContainText("Yardbird Suite");

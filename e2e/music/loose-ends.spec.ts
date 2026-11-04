@@ -55,7 +55,7 @@ test("licks: two taps on the staff mark a chunk, and it loops", async ({ page })
   await staff.getByRole("button", { name: /^Bar 1, note 3/ }).click();
   await staff.getByRole("button", { name: /^Bar 1, note 5/ }).click();
   await expect(page.getByRole("status")).toContainText("Chunk set to notes 3 to 5.");
-  await expect(page.getByText("notes 3 to 5", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("setup-line")).toContainText("notes 3 to 5");
   // The three notes are tinted on the whole lick, and the lane holds just them.
   await expect(staff.getByRole("button", { name: /^Bar 1, note 4, in range/ })).toBeVisible();
   await page.getByRole("button", { name: "Loop chunk 3 times" }).click();
