@@ -21,7 +21,7 @@
   import { fretted, tuningFor } from "./instrument.svelte";
   import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
   import { ChordListener, type Heard } from "./strum.svelte";
-  import MicPanel from "./MicPanel.svelte";
+  import MicPanel, { micUnblock } from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
@@ -199,7 +199,7 @@
 </script>
 
 <DrillShell
-  lesson={{ lessons: conceptCard("tips.strum"), trigger: "check" }}
+  lesson={{ lessons: conceptCard("tips.strum", { tuning }), trigger: "check" }}
   title="Strum and identify"
   hue={instr}
   blurb="Strum the chord once into the microphone. The app names what it heard and checks each chord tone."
@@ -216,6 +216,7 @@
   onstop={stop}
   startLabel="Listen for a strum"
   blocked={mic.state === "on" ? null : "Turn on the microphone first."}
+  unblock={micUnblock}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -235,7 +236,7 @@
   {#snippet stage()}
     <p class="mb-3 font-display text-5xl font-bold leading-none">{symbol}</p>
     {#if !live && phase !== "results"}<div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>{/if}
-    <ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} />
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} /></div>
     <div class="mt-4 grid gap-2">
       <p class="text-sm font-medium">{phase === "results" ? "What the strum held" : "Chord tones"}</p>
       <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label="Chord tones of {symbol}" name={spell} />
@@ -243,7 +244,7 @@
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
       The microphone hears which notes ring, not which string rang them or how clean each one was. Inversions read as the same chord.
     </p>
-    <div class="mt-3"><MicPanel disabled={live} /></div>
+    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
   {/snippet}
 
   {#snippet results()}

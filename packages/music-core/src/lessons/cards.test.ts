@@ -22,6 +22,7 @@ import { POSITION_PATTERNS } from "../content/technique";
 import { FRETBOARD_PATTERNS } from "../data";
 import { parseChordSymbol } from "../theory/chords";
 import { CURATED_TUNINGS } from "../theory/fretboard";
+import { TUNINGS } from "../data/index";
 import { FLAT_NAMES, pc, pcOf } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
 import { lessonProblems } from "./check";
@@ -505,5 +506,35 @@ describe("concept cards", () => {
     expect(steps.find((s) => s.startsWith("Cadd9"))).toContain("9th, D");
     expect(steps.find((s) => s.startsWith("Csus4"))).toContain("4th, F");
     expect(steps.some((s) => s.startsWith("C6") || s.startsWith("Cdim"))).toBe(false);
+  });
+
+  it("draws each string tip on the strip's instrument, never a guitar for a ukulele", () => {
+    const tips = CARD_IDS.filter((id) => id.startsWith("tips.") && id !== "tips.two-hand");
+    for (const t of [...TUNINGS.guitar, ...TUNINGS.ukulele, undefined]) {
+      const want = t?.instrument ?? "guitar";
+      for (const id of tips) {
+        const figs = conceptCard(id, { tuning: t }).flatMap((l) =>
+          l.screens.flatMap((s) => [s.figure, ...(s.steps ?? []).map((x) => x.figure)]),
+        );
+        expect(
+          figs.some((f) => f?.kind === "fretboard"),
+          id,
+        ).toBe(true);
+        for (const f of figs)
+          if (f?.kind === "fretboard") {
+            expect(f.instrument, `${id} on ${t?.id}`).toBe(want);
+            const strings = (f.openStrings ?? TUNINGS[f.instrument][0].openStrings).length;
+            expect(strings, `${id} on ${t?.id}`).toBe(want === "ukulele" ? 4 : 6);
+            for (const m of f.marks) expect(m.string, id).toBeLessThanOrEqual(strings);
+          }
+      }
+    }
+    // Ukulele open C: the ring finger on string 1, fret 3; the spider on string 4.
+    const uke = { tuning: TUNINGS.ukulele[0] };
+    expect(conceptCard("tips.chords", uke)[0].screens[0].figure).toMatchObject({
+      marks: [{ string: 1, fret: 3, label: "3" }],
+    });
+    const spider = conceptCard("tips.spider", uke)[0].screens[0].figure;
+    expect(spider?.kind === "fretboard" && spider.marks.every((m) => m.string === 4)).toBe(true);
   });
 });

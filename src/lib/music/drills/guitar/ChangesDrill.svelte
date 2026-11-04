@@ -298,6 +298,7 @@
           : `${r.completed} change${r.completed === 1 ? "" : "s"}, ${r.clean} with every target note, at ${perMinute} per minute.${perMinute > bestBefore && bestBefore > 0 ? ` Your fastest ${cycleText} yet.` : ""}`,
       metric: String(perMinute),
       metricLabel: "changes per minute",
+      score: r.score,
       delta: fin.delta,
       best: fin.best || (perMinute > bestBefore && bestBefore > 0),
       clean: r.correct && mode === "check",
@@ -339,7 +340,7 @@
 </script>
 
 <DrillShell
-  lesson={{ lessons: conceptCard("tips.changes"), trigger: "check" }}
+  lesson={{ lessons: conceptCard("tips.changes", { tuning }), trigger: "check" }}
   title="Chord changes"
   hue={instr}
   blurb="Move through two or more chords and back to the first. Each arrival counts when its target notes are there, and each set of chords keeps a history of changes per minute."
@@ -425,7 +426,7 @@
         <p class="text-lg text-ws-stage-soft">then {live ? names[(target + 1) % n] : names[1]}</p>
       </div>
     {/if}
-    <ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" />
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
     {#if phase === "running" && !periodMs && !s.timed}
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>
@@ -433,7 +434,7 @@
       </div>
     {/if}
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">A change counts as having every note when the target notes of the arriving chord are all there and nothing else is. Which string sounded each note is not measured.</p>
-    <div class="mt-3"><MicPanel disabled={live} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
+    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
   {/snippet}
 
   {#snippet results()}

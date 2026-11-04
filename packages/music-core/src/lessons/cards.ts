@@ -423,30 +423,45 @@ const tip = (id: string, title: string, screens: LessonScreen[]): Lesson => ({
   screens,
 });
 
-/** Open C on the guitar, fingertips just behind the frets: the shape the chord tips draw. */
-const C_SHAPE: LessonFigure = {
+/** The strip's instrument, from its tuning (guitar when the drill passes none). */
+const fretted = (o: CardOpts): "guitar" | "ukulele" => o.tuning?.instrument ?? "guitar";
+/**
+ * Open C, fingertips just behind the frets: the shape the chord tips draw. Guitar: x32010.
+ * Ukulele: the ring finger on string 1, fret 3. Drawn on the standard tuning: it is a hand shape.
+ */
+const cShape = (o: CardOpts): LessonFigure =>
+  fretted(o) === "ukulele"
+    ? { kind: "fretboard", instrument: "ukulele", marks: [{ string: 1, fret: 3, label: "3" }] }
+    : {
+        kind: "fretboard",
+        instrument: "guitar",
+        marks: [
+          { string: 5, fret: 3, label: "3" },
+          { string: 4, fret: 2, label: "2" },
+          { string: 2, fret: 1, label: "1" },
+        ],
+      };
+/** Open C as it sounds, low string first (ukulele high G: G C E C). */
+const cChord = (o: CardOpts) =>
+  fretted(o) === "ukulele" ? [67, 60, 64, 72] : [48, 52, 55, 60, 64];
+/** One finger a fret: index to little finger on frets 1 to 4 of the top string as you hold it (guitar 6, ukulele 4). */
+const spiderString = (o: CardOpts) => (fretted(o) === "ukulele" ? 4 : 6);
+const spider = (o: CardOpts): LessonFigure => ({
   kind: "fretboard",
-  instrument: "guitar",
-  marks: [
-    { string: 5, fret: 3, label: "3" },
-    { string: 4, fret: 2, label: "2" },
-    { string: 2, fret: 1, label: "1" },
-  ],
-};
-/** One finger a fret: index to little finger on frets 1 to 4 of the low string. */
-const SPIDER: LessonFigure = {
-  kind: "fretboard",
-  instrument: "guitar",
-  marks: [1, 2, 3, 4].map((f) => ({ string: 6, fret: f, label: String(f) })),
-};
+  instrument: fretted(o),
+  marks: [1, 2, 3, 4].map((f) => ({ string: spiderString(o), fret: f, label: String(f) })),
+});
+/** The spider's four notes: frets 1 to 4 above the open string (guitar E2, ukulele high G4). */
+const spiderRun = (o: CardOpts) =>
+  [1, 2, 3, 4].map((f) => (fretted(o) === "ukulele" ? 67 : 40) + f);
 
-const TIPS: Record<string, () => Lesson> = {
-  "tips.strum": () =>
+const TIPS: Record<string, (o: CardOpts) => Lesson> = {
+  "tips.strum": (o) =>
     tip("tips.strum", "Strumming to be heard", [
       {
         title: "Fret first, then strum",
-        figure: C_SHAPE,
-        sound: tones([48, 52, 55, 60, 64], 0, 1.6),
+        figure: cShape(o),
+        sound: tones(cChord(o), 0, 1.6),
         text: "Put every finger down before you strum, so all the strings are ready. Strum once, in one smooth downward motion across the strings the shape uses. Let it ring until the app has named it.",
       },
       {
@@ -454,11 +469,12 @@ const TIPS: Record<string, () => Lesson> = {
         text: "A string that is dead or buzzing usually has a finger resting on it, or pressing away from the fret. Press with the tip of the finger, close behind the fret. The app checks each chord tone, so a muted string can show up as a missing one.",
       },
     ]),
-  "tips.chords": () =>
+  "tips.chords": (o) =>
     tip("tips.chords", "Fretting a clean chord", [
       {
         title: "Shape the hand",
-        figure: C_SHAPE,
+        figure: cShape(o),
+        sound: tones(cChord(o), 0, 1.6),
         text: "Press with the tips of your fingers, close behind the fret. Keep the fingers arched so none of them touches the string next to its own.",
       },
       {
@@ -466,11 +482,11 @@ const TIPS: Record<string, () => Lesson> = {
         text: "Sound the strings one at a time and listen: each should ring clearly, not buzz or fade. If one is dead, adjust the finger that should be pressing it, then play the shape again.",
       },
     ]),
-  "tips.changes": () =>
+  "tips.changes": (o) =>
     tip("tips.changes", "Changing chords", [
       {
         title: "Move as one shape",
-        figure: C_SHAPE,
+        figure: cShape(o),
         text: "Lift all your fingers together and put them down together, rather than one at a time. Picture the next shape before the change. Go slowly enough that every change is clean, then speed up, landing on the beat when a clock runs.",
       },
       {
@@ -478,12 +494,12 @@ const TIPS: Record<string, () => Lesson> = {
         text: "Some pairs of chords let a finger stay on its string or slide along it. Use that finger to guide the rest. Other pairs have none, so there you move every finger together.",
       },
     ]),
-  "tips.spider": () =>
+  "tips.spider": (o) =>
     tip("tips.spider", "Spider technique", [
       {
         title: "One finger a fret",
-        figure: SPIDER,
-        sound: run([41, 42, 43, 44]),
+        figure: spider(o),
+        sound: run(spiderRun(o)),
         text: "Each finger has its own fret: the index the first, the middle the second, the ring the third and the little finger the fourth. The pattern says which finger plays next. Keep the hand where it is and move only the fingers.",
       },
       {
@@ -533,7 +549,7 @@ const CARDS: Record<string, (o: CardOpts) => Lesson> = {
   ...Object.fromEntries(
     GOSPEL_PROGRESSIONS.map((g) => [`voicings.gospel.${g.id}`, () => gospel(g.id)]),
   ),
-  ...Object.fromEntries(Object.entries(TIPS).map(([id, f]) => [id, () => f()])),
+  ...TIPS,
 };
 
 export const CARD_IDS = Object.keys(CARDS);

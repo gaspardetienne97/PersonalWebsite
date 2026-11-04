@@ -53,6 +53,8 @@
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
+  import Verdict from "$lib/music/components/Verdict.svelte";
+  import { strokeVerdict, timingCounts } from "./strum-slots";
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
   import { CHORD_MODES, FRETBOARD_MODES, openMode } from "./modes";
@@ -236,6 +238,7 @@
 
   let status = $state("");
   let stepIndex = $state(0);
+  let viewW = $state(1280);
   let demoStep = $state<number | null>(null);
   // The tab: the line as it will be played, a cursor that runs with the click
   // (or the demo), so the next notes can be read ahead.
@@ -414,11 +417,17 @@
       if (mode === "practice") flashes.add(steps[k].string * 100 + steps[k].fret, "correct");
       hitAt[k] = e.at;
       hits[k] = e.at - (runDownbeat + slotOf[k] * stepMs());
+      missText = null;
+      lastHit = { key: k, ...strokeVerdict(hits[k] as number, onTimeMs()) };
       if (slotOf[k] !== slotOf[stepIndex]) stepIndex = k;
       while (stepIndex < steps.length && hitAt[stepIndex] !== undefined) stepIndex++;
       if (stepIndex >= steps.length) void finish();
     } else {
       if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
+      // Practice says what was played and where the note is; Check never names the target.
+      const want = steps[stepIndex];
+      if (mode === "practice" && want)
+        missText = `That was ${e.string !== undefined && e.fret !== undefined ? `${stringText(e.string)}, fret ${e.fret}` : noteName(e.midi)}. Try ${stringText(want.string)}, fret ${want.fret}.`;
       // A quarter tone off rounds to the next note: name the tuning; Practice moves past it (it still scores as missed).
       const open = steps.flatMap((t, i) => (i >= stepIndex && slotOf[i] === slotOf[stepIndex] && hitAt[i] === undefined ? [i] : []));
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, open.map((i) => steps[i].midi)) : null;
@@ -433,6 +442,17 @@
   }
   /** Notes heard close to a target but out of tune, this run. */
   let detuned: { midi: number; cents: number }[] = [];
+  /** Practice: the last wrong note and where the next one is, in words; cleared by a right note. */
+  let missText = $state<string | null>(null);
+  /** A string by number and open note: "string 3 (C)". */
+  const stringText = (n: number) => `string ${n} (${noteName(tuning.openStrings[n - 1], "flat", false)})`;
+  /** On time within the highway's window: a third of a note, 35 to 60 ms. */
+  const onTimeMs = () => Math.max(35, Math.min(60, stepMs() * 0.3));
+  /** The latest note that landed, as a timing word. */
+  let lastHit = $state<{ key: number; kind: "ontime" | "early" | "late"; text: string } | null>(null);
+  /** The run so far: notes landed, and notes passed without one. */
+  const rightSoFar = $derived(Object.keys(hits).length);
+  const missedSoFar = $derived(Array.from({ length: Math.min(stepIndex, steps.length) }, (_, i) => i).filter((i) => hits[i] === undefined).length);
 
   async function start(ctx: RunContext) {
     stopDemo();
@@ -442,6 +462,8 @@
     hitAt = [];
     hits = {};
     detuned = [];
+    missText = null;
+    lastHit = null;
     flashes.clear();
     run = practice.beginRun({
       exerciseId: exerciseFor(entry.exerciseId, instr),
@@ -531,6 +553,10 @@
       clean,
       xp: fin.xp,
       assistance: assistanceText(mode),
+      timing: timingCounts(
+        steps.map((_, i) => (typeof hits[i] === "number" ? hits[i] : undefined)),
+        onTimeMs(),
+      ),
       rows: [
         { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}` },
         { label: "Evenness", value: r.evenness, text: `${pct(r.evenness)}, ${Math.round(r.evennessErrorMs)} ms off` },
@@ -624,6 +650,8 @@
       .map((n) => ({ value: n, label: noteName(n, "sharp", false) })),
   );
 </script>
+
+<svelte:window bind:innerWidth={viewW} />
 
 <DrillShell
   lesson={card ? { lessons: conceptCard(card, { tuning }), trigger: "check" } : null}
@@ -767,7 +795,9 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Note" value="{Math.min(stepIndex + 1, steps.length)} of {steps.length}" />
-      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next" value="String {steps[stepIndex].string}, fret {steps[stepIndex].fret}" />{/if}
+      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next" value="String {steps[stepIndex].string} ({noteName(tuning.openStrings[steps[stepIndex].string - 1], 'flat', false)}), fret {steps[stepIndex].fret}" />{/if}
+      <Stat label="Right" value="✓ {rightSoFar}" />
+      <Stat label="Missed" value="✕ {missedSoFar}" tone={missedSoFar ? "warn" : undefined} />
     {:else if result}
       <Stat label="Notes right" value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
       <Stat label="Evenness" value={pct(result.evenness)} />
@@ -779,7 +809,8 @@
       <ChordStrip shapes={pickShapes} names={pickNames} current={pickNow} />
     {/if}
     {#if mode === "practice" && phase !== "results"}
-      <div class="mb-2 flex justify-end">{@render viewSwitch("Tab")}</div>
+      <!-- On a laptop the switch sits beside the capped tab, not on a row of its own, so the neck stays in view. -->
+      <div class="mb-2 flex justify-end {highway.on ? '' : 'lg:float-right lg:mb-0 lg:ml-3'}">{@render viewSwitch("Tab")}</div>
     {/if}
     {#if mode === "practice" && phase !== "results" && highway.on}
       <!-- The highway is a play-time view; the results go back to the tab. -->
@@ -797,8 +828,10 @@
         />
       </div>
     {:else if mode === "practice" || phase === "results"}
-      <div class="mb-3">
-        <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={tabMeter} />
+      <!-- Capped on a laptop so the tab does not zoom past what a read needs and the whole neck fits under it. -->
+      <div class="mb-3 lg:max-w-2xl">
+        <!-- A phone keeps the tab at a readable size on one row that scrolls with the cursor. -->
+        <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} cursorBeat={tabCursor} groupStates={tabStates} meter={tabMeter} oneRow={viewW < 640} />
       </div>
     {/if}
     {#if orderKey.length && mode === "practice" && phase !== "results"}
@@ -810,8 +843,25 @@
         {/each}
       </ol>
     {/if}
-    <Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} barres={isPick} onpick={picking ? pickStart : undefined} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
-    {#if mode === "practice" && !isHarm}
+    {#if phase === "running" && missText}
+      <p class="mb-2 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{missText}</p>
+    {/if}
+    <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+      {#if phase === "running"}<Verdict kind={lastHit?.kind} text={lastHit?.text} key={lastHit?.key ?? 0} class="absolute top-0 right-0 z-10" />{/if}
+      <Fretboard
+        openStrings={tuning.openStrings}
+        {from}
+        {to}
+        {marks}
+        {flashes}
+        barres={isPick}
+        targetString={phase === "running" && mode === "practice" ? (steps[stepIndex]?.string ?? null) : null}
+        onpick={picking ? pickStart : undefined}
+        label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard"
+      />
+    </div></div>
+    <!-- Spider's order row already names each finger in its colour: one key, not two. -->
+    {#if mode === "practice" && !isHarm && !isSpider}
       <!-- The colour key: the fretting hand by colour; on fingerpicking, the picking hand by letter. -->
       <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-ws-stage-soft" aria-label="Finger key">
         <div class="flex flex-wrap items-center gap-2">
@@ -836,7 +886,7 @@
       {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? "Triads are named by the root on string 6; each inversion sits higher up the neck." : box.instrument === "ukulele" ? "Positions are named by the root on string 1." : box.family === "blues-box" ? "The B.B. box sits five frets above the string-6 root: the index on the root, string 2." : "Shapes are named by the root on string 6."} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `On ${tuning.name}, each note keeps its pitch, so a retuned string's notes sit higher or lower than the shape you know. `}{steps.some((t) => t.stretch) ? "An arrow is a stretch: ←1 reaches back with the index, 4→ up with the pinky (more than a fret means moving the hand)." : ""}</p>{/if}
     </div>
     <!-- The run's clock rides along as data, for tests and tools. -->
-    <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
+    <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} offer={phase !== "ready"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
   {/snippet}
 
   {#snippet results()}

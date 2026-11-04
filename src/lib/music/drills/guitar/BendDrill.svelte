@@ -300,7 +300,7 @@
       label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard, string {string} fret {fret}"
     />
     {#if picking}<p class="mt-2 text-sm text-ws-stage-soft">Tap the neck to choose the string and fret.</p>{/if}
-    <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Bends are judged from the microphone: play close to it." /></div>
+    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Bends are judged from the microphone: play close to it." /></div>
   {/snippet}
 
   {#snippet results()}

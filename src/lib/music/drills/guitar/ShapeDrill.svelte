@@ -259,7 +259,7 @@
 </script>
 
 <DrillShell
-  lesson={{ lessons: conceptCard("tips.chords"), trigger: "check" }}
+  lesson={{ lessons: conceptCard("tips.chords", { tuning }), trigger: "check" }}
   title={isPick ? "Pick it clean" : "Build the chord"}
   hue={instr}
   blurb={isPick
@@ -272,7 +272,7 @@
   bind:phase
   bind:mode
   bind:status
-  progress={targets.length ? matched.filter(Boolean).length / targets.length : 0}
+  progress={null}
   clock={isPick ? { bpm: bpm(), beatsPerBar: 4 } : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
@@ -289,7 +289,7 @@
     {#if phase === "running"}
       <Stat label="Chord" value={symbol} />
       <Stat label="Target notes" value="{matched.filter(Boolean).length} of {targets.length}" />
-      {#if heard !== null}<Stat label={miss ? "Heard, not a match" : "Heard"} value={noteName(heard)} tone={miss ? "warn" : undefined} />{/if}
+      {#if heard !== null}<Stat label={miss ? "Heard, not a match" : "Heard"} value="{miss ? '✕' : '✓'} {noteName(heard)}" tone={miss ? "warn" : undefined} />{/if}
     {/if}
   {/snippet}
 
@@ -309,7 +309,7 @@
         />
       </div>
     {/if}
-    <ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} label="{symbol} on the {instr} neck" />
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label="{symbol} on the {instr} neck" /></div>
     <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings in playing order">
       {#each targets as t, i (t.string)}
         {@const done = matched[i]}
@@ -338,7 +338,7 @@
       Pitch matching checks which notes you sounded, not which string they came from or how clean they rang.
       {mode === "check" && phase !== "results" ? " Check hides the shape: play it from memory." : ""}
     </p>
-    <div class="mt-3"><MicPanel disabled={live} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
+    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
   {/snippet}
 
   {#snippet results()}

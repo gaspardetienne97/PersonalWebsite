@@ -31,6 +31,7 @@
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
+  import Verdict from "$lib/music/components/Verdict.svelte";
   import { FRETBOARD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
@@ -303,15 +304,23 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Question" value="{Math.min(answers.length + 1, s.questions)} of {s.questions}" />
-      <Stat label="Found" value={answers.filter((a) => a.correct).length} />
+      <Stat label="Found" value="✓ {answers.filter((a) => a.correct).length}" />
+      <Stat label="Missed" value="✕ {missed.length}" tone={missed.length ? "warn" : undefined} />
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <div class="mb-3 flex min-h-20 flex-wrap items-end gap-x-4 gap-y-1">
       {#if question}
+        {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
         <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
+        <Verdict
+          kind={last ? (last.correct ? "right" : "wrong") : null}
+          text={last ? (last.correct ? `Yes, ${noteName(last.midi, "sharp")}` : `That was ${noteName(last.midi, "sharp")}. Lit: ${isRecall ? aOrAn(last.q.label) + " up" : last.q.label}`) : undefined}
+          key={answers.length}
+          class="pb-1"
+        />
       {:else if phase === "results" && missed.length}
         <p class="text-sm text-ws-stage-soft">Missed: {missed.map((a) => (isRecall ? `${a.q.label.toLowerCase()} from ${noteName(a.q.anchor!.midi, "sharp")}` : a.q.label)).join(", ")}.</p>
       {:else}
@@ -321,8 +330,8 @@
         </p>
       {/if}
     </div>
-    <Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" />
-    <div class="mt-3"><MicPanel disabled={phase === "running"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
+    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
   {/snippet}
 
   {#snippet results()}

@@ -109,10 +109,11 @@ test.describe("guitar and ukulele path drills", () => {
   test("Strum a progression shows the chosen ukulele strum and records it", async ({ page }) => {
     await page.goto("/music/strum?instrument=ukulele&pattern=ukulele-calypso");
     await expect(page.getByText("Setup:").locator("..")).toContainText("calypso");
-    await expect(page.locator('[data-pattern="ukulele-calypso"] svg')).toBeVisible();
+    // The pattern draws one arrow per stroke.
+    await expect(page.locator('[data-pattern="ukulele-calypso"] svg').first()).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/strum-calypso-1280.png`, fullPage: true });
     // Back to any strum: the stroke row goes.
-    await page.goto("/music/strum?instrument=ukulele&pattern=");
+    await page.goto("/music/strum?instrument=ukulele&pattern=any");
     await expect(page.locator("[data-pattern]")).toHaveCount(0);
   });
 
@@ -162,7 +163,7 @@ test.describe("guitar and ukulele path drills", () => {
       "Major triads, strings 1 to 3",
     );
     await page.screenshot({ path: `${SHOTS}/triads-ready-1280.png`, fullPage: true });
-    await page.getByRole("button", { name: "Start microphone" }).click();
+    await page.getByRole("button", { name: "Turn on the microphone" }).first().click();
     await expect(page.getByText("Microphone on")).toBeVisible();
     await page.evaluate(() => (window as any).__mic.set(0));
     await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -203,7 +204,7 @@ test.describe("guitar and ukulele path drills", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "Position shift, 5 7/9h10p9\\7",
     );
-    await page.getByRole("button", { name: "Start microphone" }).click();
+    await page.getByRole("button", { name: "Turn on the microphone" }).first().click();
     await expect(page.getByText("Microphone on")).toBeVisible();
     await page.evaluate(() => (window as any).__mic.set(0));
     await page.getByRole("button", { name: "Start", exact: true }).click();

@@ -22,6 +22,8 @@
     finger?: number;
     /** A run on the neck: the note to play now, or how a played one went. */
     state?: "now" | "correct" | "wrong";
+    /** The target's note has been heard: a ring and a check, the finger's colour kept. */
+    heard?: boolean;
   }
 
   interface Props {
@@ -31,7 +33,7 @@
     marks?: FretMark[];
     /** Keyed by `string * 100 + fret`. */
     flashes?: Flashes;
-    /** Strings drawn muted (x at the nut). */
+    /** Strings drawn muted: an x on the nut, in the column where an open string's O sits. */
     muted?: number[];
     interactive?: boolean;
     /** Light up every position of held pitches (MIDI or microphone input). */
@@ -47,6 +49,8 @@
     stringNames?: boolean;
     /** Fingered dots as a ring in the finger's colour, the root filled in the instrument's hue. */
     fingerRings?: boolean;
+    /** A run's string to play now: it alone glows, so a wrong tap elsewhere never moves the highlight. */
+    targetString?: number | null;
   }
 
   let {
@@ -64,6 +68,7 @@
     barres = false,
     stringNames = true,
     fingerRings = false,
+    targetString = null,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -128,7 +133,7 @@
     tapped[s * 100 + f] || (showHeldPitches && input.activeSource !== "onscreen" && input.held.has(midiAt(s, f)));
   const flashAt = (s: number, f: number): FlashKind | undefined => flashes?.get(flashByPitch ? midiAt(s, f) : s * 100 + f);
   /** A string is ringing while a note on it is held, tapped, or lit by the demo. */
-  const ringing = (s: number) => frets.some((f) => heldHere(s, f) || markAt(s, f)?.demo);
+  const ringing = (s: number) => (targetString !== null ? s === targetString : frets.some((f) => heldHere(s, f) || markAt(s, f)?.demo));
   /** A finger on one fret over two or more strings: a barre, drawn as one rounded bar from its highest to lowest string. */
   const barreList = $derived.by(() => {
     if (!barres) return [];
@@ -146,7 +151,7 @@
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" class:rings={fingerRings} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
+<div class="neck-wrap" class:rings={fingerRings} style:--n={frets.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
@@ -163,7 +168,7 @@
     {#each strings as s (s)}
       <div class="string-row" class:ringing={ringing(s)} style:--gauge="{gauge(s)}px" style:grid-template-columns={cols}>
         <span class="string-line" aria-hidden="true"></span>
-        {#if muted.includes(s)}<span class="muted-x" aria-hidden="true">✕</span>{:else if stringNames}<span class="string-name" aria-hidden="true">{noteName(openStrings[s - 1], "flat", false)}</span>{/if}
+        {#if muted.includes(s) && from !== 0}<span class="muted-x" aria-hidden="true">✕</span>{:else if stringNames}<span class="string-name" aria-hidden="true">{noteName(openStrings[s - 1], "flat", false)}</span>{/if}
         {#each frets as f (f)}
           {@const mk = markAt(s, f)}
           {@const flash = flashAt(s, f)}
@@ -177,12 +182,13 @@
             data-finger={mk?.finger || undefined}
             data-demo={mk?.demo || undefined}
             data-state={mk?.state}
+            data-heard={mk?.heard || undefined}
             data-target={mk ? "" : undefined}
             data-flash={flash}
             data-cell={s * 100 + f}
             tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}
-            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]}` : ''}` : ''}"
+            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]}` : ''}${mk.heard ? ', heard' : ''}` : ''}{f === 0 && muted.includes(s) ? ', muted' : ''}"
             onfocus={() => (focusAt = s * 100 + f)}
             onpointerdown={(e) => press(e, s, f)}
             onpointerup={release}
@@ -196,7 +202,9 @@
             {:else if mk && !held && onBarre(s, f)}
               {#if !onBarre(s, f)!.label}<span class="dot on-barre" aria-hidden="true">{mk.label ?? ""}</span>{/if}
             {:else if mk || held}
-              <span class="dot" aria-hidden="true">{mk?.label ?? ""}</span>
+              <span class="dot" aria-hidden="true">{mk?.label ?? ""}{#if mk?.heard && !held}<span class="heard-tick">✓</span>{/if}</span>
+            {:else if f === 0 && muted.includes(s)}
+              <span class="mute-x" aria-hidden="true">✕</span>
             {/if}
           </button>
         {/each}
@@ -215,6 +223,9 @@
 <style>
   .neck-wrap {
     --nut: 1.9rem;
+    /* Dots grow with the room each fret has (about 36 px on a wide, short window), never past the row. */
+    --dot: clamp(1.6rem, calc(100cqi / var(--n, 6) * 0.5), 2.25rem);
+    container-type: inline-size;
     width: 100%;
     min-width: 0;
     padding-left: 1.5rem;
@@ -267,7 +278,7 @@
   }
   .barre {
     justify-self: center;
-    width: 1.6rem;
+    width: var(--dot);
     margin-block: 0.45rem;
     border-radius: 999px;
     display: grid;
@@ -350,18 +361,34 @@
     box-shadow: 1px 0 0 #6d6a66;
     -webkit-tap-highlight-color: transparent;
   }
+  /* A mouse needs less than a fingertip: a shorter row keeps a six-string neck in a laptop's view. */
+  @media (pointer: fine) {
+    .cell {
+      min-height: 2.5rem;
+    }
+  }
   .cell.open-cell {
     border-right: none;
     box-shadow: none;
   }
-  /* An open string's dot is a ring on the nut, so it never reads as a fretted note. */
+  /* An open string is an O on the nut, a muted one an x in the same column, as chord charts draw them:
+     neither reads as a fretted note. */
   .open-cell .dot {
     width: 1.4rem;
     height: 1.4rem;
   }
-  .open-cell[data-target]:not([data-held]) .dot {
-    background: #f6f0e2;
+  .open-cell[data-target]:not([data-held], [data-role]) .dot {
+    background: transparent;
     color: #1b120b;
+    box-shadow: inset 0 0 0 2.5px #1b120b;
+  }
+  .mute-x {
+    position: relative;
+    z-index: 3;
+    color: #1b120b;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1;
   }
   .open-cell[data-finger]:not([data-held]) .dot {
     background: var(--finger);
@@ -374,8 +401,8 @@
   .dot {
     position: relative;
     z-index: 3;
-    width: 1.6rem;
-    height: 1.6rem;
+    width: var(--dot);
+    height: var(--dot);
     border-radius: 999px;
     display: grid;
     place-items: center;
@@ -496,6 +523,27 @@
     .cell[data-state="now"] .dot {
       animation: none;
     }
+  }
+  /* Heard: a success ring outside the dot (the finger's colour stays inside) and a check. */
+  .cell[data-heard]:not([data-held]) .dot {
+    box-shadow:
+      0 0 0 3px var(--success),
+      0 2px 4px #0008;
+  }
+  .heard-tick {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.45rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--success-foreground);
+    background: var(--success);
+    box-shadow: 0 0 0 1.5px #1b120b;
   }
   .inlays {
     position: absolute;

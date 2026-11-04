@@ -47,7 +47,7 @@ async function startDrill(
 }
 
 async function startMic(page: Page) {
-  await page.getByRole("button", { name: "Start microphone" }).click();
+  await page.getByRole("button", { name: "Turn on the microphone" }).first().click();
   await expect(page.getByText("Microphone on")).toBeVisible();
   await expect(page.getByRole("meter", { name: "Input level" })).toBeVisible();
 }
@@ -633,7 +633,11 @@ test.describe("guitar drills", () => {
 
   test("Strum and identify is honest about one oscillator", async ({ page }) => {
     await page.goto("/music/chords?mode=strum&shape=guitar.c-major&instrument=guitar");
-    await expect(page.getByRole("button", { name: "Listen for a strum" })).toBeDisabled();
+    // While the microphone is off, its prompt takes Start's place.
+    await expect(page.getByRole("button", { name: "Listen for a strum" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Turn on the microphone" }).first(),
+    ).toBeVisible();
     await startMic(page);
     await startDrill(page, "Practice", "Listen for a strum");
     await expect(
@@ -660,9 +664,7 @@ test.describe("guitar drills", () => {
     ).toBeVisible({ timeout: 15_000 });
     // A run where the listener heard no strum is not scored, so it has no note on skills.
     if (!(await page.getByTestId("not-heard").count()))
-      await expect(
-        page.getByRole("article").getByText(/does not count toward any skill/),
-      ).toBeVisible();
+      await expect(page.getByRole("article").getByText(/not counted toward skills/)).toBeVisible();
     await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "strum-results", 1280);
   });
