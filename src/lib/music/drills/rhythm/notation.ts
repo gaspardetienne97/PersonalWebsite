@@ -38,14 +38,17 @@ export interface RhythmLine {
  * is a dotted quarter). Swing, notes sounding on the last third of a beat and
  * never on the first, is written as straight eighths. Everything else is as
  * it sounds. A note lasts its own length, or until the next note, rest or end.
+ * `compound` writes a two-beat bar in 6/8 even when no note falls inside a beat
+ * (a dictation on a 6/8 grid).
  */
-export function rhythmLine(p: RhythmPatternDef): RhythmLine {
+export function rhythmLine(p: RhythmPatternDef, opts: { compound?: boolean } = {}): RhythmLine {
   const edges = [
     ...p.events.flatMap((e) => [e.beat, e.beat + (e.durationBeats ?? 0)]),
     ...p.rests.flatMap((r) => [r.startBeat, r.endBeat]),
   ].map(frac);
   const onThird = edges.every((f) => near(f * 3, Math.round(f * 3)));
-  const compound = p.meter.beats === 2 && onThird && edges.some((f) => !near(f, 0));
+  const compound =
+    p.meter.beats === 2 && onThird && (!!opts.compound || edges.some((f) => !near(f, 0)));
   const swing =
     !compound &&
     edges.some((f) => near(f, 2 / 3)) &&

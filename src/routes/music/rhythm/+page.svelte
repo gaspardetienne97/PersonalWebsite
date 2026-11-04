@@ -18,6 +18,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -31,7 +32,7 @@
   import TapKey from "$lib/music/drills/rhythm/TapKey.svelte";
   import DictationCompare from "$lib/music/drills/rhythm/DictationCompare.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import { cellVerdict, countInText, demoNotes, lengthText, readPatterns, RHYTHM_TABS, signedMs, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
+  import { cellVerdict, countInText, demoNotes, lengthText, marksAsPattern, readPatterns, RHYTHM_TABS, signedMs, STROKE_MS, timingCounts, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
@@ -205,7 +206,7 @@
       // The call: the pattern on its own sound, from the first downbeat, over the click.
       call = audio.playSequence(callNotes(false), { startPerf: ctx.downbeat });
       if (writes) {
-        status = "Listen to the pattern. Then write it down.";
+        status = "Listen to the pattern. Mark the notes as you hear them, or once it ends.";
         timers.push(
           setTimeout(() => {
             ctx.stopClock();
@@ -248,6 +249,7 @@
     cancelAnimationFrame(raf);
     call?.stop();
     call = null;
+    againAt = null;
     timers.forEach(clearTimeout);
     timers = [];
     cap?.stop();
@@ -294,6 +296,7 @@
               : `You dragged: ${Math.round(r.meanErrorMs)} ms behind the click on average. Lean in a little.`,
         metric: pct(r.score),
         metricLabel: "timing",
+        timing: r.matched ? timingCounts(verdicts) : undefined,
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
@@ -322,6 +325,7 @@
             : `${r.matched} of ${total} notes tapped${r.restHits ? `, ${r.restHits} tap${r.restHits > 1 ? "s" : ""} in a rest` : ""}${r.extra ? `, ${r.extra} extra` : ""}.`,
         metric: pct(r.score),
         metricLabel: "score",
+        timing: r.matched ? timingCounts(r.grid.map((g) => g.verdict)) : undefined,
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
@@ -396,10 +400,21 @@
     return withClicks ? [...clicks, ...sounds] : sounds;
   }
 
+  /** When "Hear it again" started (the performance clock), while it plays; the grid's playhead runs from it. */
+  let againAt = $state<number | null>(null);
   function hearAgain() {
     stopDemo();
     call?.stop();
-    call = audio.playSequence(callNotes(true));
+    const h = audio.playSequence(callNotes(true));
+    call = h;
+    againAt = h.startPerf;
+    cancelAnimationFrame(raf);
+    const tick = () => {
+      now = performance.now();
+      if (call !== h || !writing || now - h.startPerf > plan.lengthMs) return void (againAt = null);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
   }
 
   async function checkDictation() {
@@ -513,13 +528,17 @@
     return !pulse && plan.rests.some((r) => rel >= r.startMs && rel < r.endMs) ? "rest" : "extra";
   }
 
-  /** The last tap in words, with how far off it was. */
-  function lastTap(at: number) {
+  /** The last tap as a verdict word, with how far off it was. */
+  function lastTap(at: number): { kind: VerdictKind; text: string } {
     const k = liveKind(at);
     const e = offset(at);
-    const ms = e === null ? "" : `, ${Math.round(Math.abs(e))} ms`;
-    return { text: k === "pocket" ? "On time" : k === "early" ? `Early${ms}` : k === "late" ? `Late${ms}` : k === "rest" ? "In a rest" : "Extra", tone: k === "pocket" ? "success" : k === "rest" || k === "extra" ? "error" : "warn" } as const;
+    const ms = e === null ? "" : ` ${Math.round(Math.abs(e))} ms`;
+    if (k === "pocket") return { kind: "ontime", text: "On time" };
+    if (k === "early" || k === "late") return { kind: k, text: `${k === "early" ? "Early" : "Late"}${ms}` };
+    return { kind: "wrong", text: k === "rest" ? "In a rest" : "Extra tap" };
   }
+  /** Practice marks each tap as it lands; Check stays quiet until the end. */
+  const tapVerdict = $derived(phase === "running" && mode === "practice" && !writes && hits.length ? lastTap(hits.at(-1)!.at) : null);
 
   const gridHits = $derived.by((): GridHit[] => {
     if (phase === "results" && patternResult)
@@ -591,6 +610,16 @@
     return still ? Math.floor(b) : b;
   });
   const playhead = $derived(demo?.playing && lit !== null ? (gridEvents[lit]?.beat ?? null) : clockBeat);
+  /** The dictation grid's playhead: over the call as it first plays, and again over each "Hear it again". */
+  const writePlayhead = $derived.by(() => {
+    if (againAt === null) return writes && !writing ? clockBeat : null;
+    const b = (now - againAt) / beatMs;
+    if (b < 0 || b >= bars * perBar) return null;
+    return reduceMotion.current || document.documentElement.hasAttribute("data-reduce-motion") ? Math.floor(b) : b;
+  });
+  /** A dictation's notation: your marks as notes while you write, what was played once checked. */
+  const shownWritten = $derived(dictationResult && earDef ? earDef : marksAsPattern(markedIn("notes"), plan.bars, grid.beatsPerBar));
+  let unwrittenMarks = $state<string | null>(null);
   /** Nothing was heard: the stage stays neutral and says so. */
   const unheard = $derived(phase === "results" && summary?.heard === false);
 
@@ -612,10 +641,8 @@
         ? { practice: "Pattern heard, shown once you check your answer. Practice, not a test.", check: "Pattern heard, shown once you check your answer. Counts toward mastery." }
         : undefined,
   );
-  const runText = (m: DrillMode) =>
-    m === "practice" && byEar
-      ? `Practice run: the pattern stayed hidden${echo ? " and your taps were marked as you played" : " until you checked"}, so it is saved as practice.`
-      : assistanceText(m);
+  /** By ear the pattern stays hidden in Practice too; Practice is still saved as practice. */
+  const runText = (m: DrillMode) => assistanceText(m, { shown: !byEar });
 </script>
 
 <svelte:head><title>Rhythm | Woodshed</title></svelte:head>
@@ -649,6 +676,7 @@
   onstart={start}
   onstop={stop}
   listens={!writes}
+  instrumentFree={writes}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -697,21 +725,18 @@
     {/if}
     {#if phase === "running" && !writes}
       <Stat label="Taps" value={hits.length} />
-      {#if mode === "practice" && hits.length}
-        {@const t = lastTap(hits.at(-1)!.at)}
-        <Stat label="Last tap" value={t.text} tone={t.tone} />
-      {/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
-    <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
+    <!-- One column on a phone, the Tap button docked at the bottom; beside the music from md up. A dictation keeps one column. -->
+    <div class="flex min-w-0 flex-1 flex-col gap-5 {writes ? '' : 'md:flex-row md:items-center'}">
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
-      <div class="min-w-0" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
+      <div class="min-w-0 md:flex-1" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
-        {#if writes && !(writing || dictationResult)}
+        {#if writes && phase === "ready"}
           <p class="mb-2 text-sm text-ws-stage-soft">
             {plan.bars} bar{plan.bars > 1 ? "s" : ""}{groove ? " of drums" : ""} over the click. {groove ? "Then write the kick, snare and hats on the grid." : "Then mark where every note fell."}
           </p>
@@ -728,49 +753,65 @@
             label={`${def.label} in rhythm notation, ${plan.bars} bar${plan.bars > 1 ? "s" : ""}, ${plan.events.length} notes and ${def.rests.length} rests`}
             onfallback={() => (unwritten = def.id)}
           />
-        {:else if !(writes && (writing || (groove && dictationResult)))}
-        <!-- While writing, the cells below carry the count; a groove's answer is shown on its rows. -->
-        <RhythmGrid
-          {bars}
-          {perBar}
-          events={gridEvents}
-          rests={pulse || hidden ? [] : def.rests}
-          chords={chordMarks}
-          hits={gridHits}
-          verdicts={phase === "results" ? verdicts : []}
-          {playhead}
-          {lit}
-          label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
-        />
+        {:else if !(writes && phase !== "ready")}
+          <!-- A dictation, once started, is drawn on its own grid below. -->
+          <RhythmGrid
+            {bars}
+            {perBar}
+            events={gridEvents}
+            rests={pulse || hidden ? [] : def.rests}
+            chords={chordMarks}
+            hits={gridHits}
+            verdicts={phase === "results" ? verdicts : []}
+            {playhead}
+            {lit}
+            label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
+          />
         {/if}
         {#if showKey}<TapKey missed={phase === "results" && anyMissed} />{/if}
-        {#if writes && (writing || dictationResult)}
-          <div class="mt-3 space-y-3" role="group" aria-label={groove ? "Your groove" : "Your rhythm"}>
+        {#if writes && phase !== "ready"}
+          {#if dictation && (writing || dictationResult) && unwrittenMarks !== shownWritten.id}
+            <!-- Your marks, written as notes as you go; after the check, what was played. -->
+            <p class="mb-1.5 text-xs font-semibold text-ws-stage-soft">{dictationResult ? "What was played, written" : "Your rhythm, written"}</p>
+            <RhythmNotation
+              pattern={shownWritten}
+              compound={grid.perBeat === 3}
+              cursorBeat={dictationResult ? null : writePlayhead}
+              label={dictationResult ? `What was played, in rhythm notation: ${heardBeats.length} notes` : `Your rhythm in notation: ${markedIn("notes").length} notes marked`}
+              onfallback={() => (unwrittenMarks = shownWritten.id)}
+            />
+          {/if}
+          <div class="mt-3" role="group" aria-label={groove ? "Your groove" : "Your rhythm"}>
             <DictationGrid
               bars={plan.bars}
               {rows}
               perBeat={grid.perBeat}
               beatsPerBar={grid.beatsPerBar}
               {marks}
+              playhead={writePlayhead}
               state={(row, i) => (dictationResult ? cellVerdict(isHeard(row, i), !!marks[row]?.[i]) : null)}
-              disabled={!writing}
+              disabled={!(writing || phase === "running")}
               ontoggle={(row, i) => {
                 const r = [...(marks[row] ?? [])];
                 r[i] = !r[i];
                 marks = { ...marks, [row]: r };
               }}
             />
-            {#if writing}
-              <div class="flex flex-wrap gap-2 pt-1">
-                <button type="button" class={btnPrimary} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
-                <button type="button" class={btnStage} onclick={hearAgain}>Hear it again</button>
-                <button type="button" class={btnStage} onclick={() => (marks = {})}>Clear</button>
-              </div>
-            {/if}
           </div>
         {/if}
       </div>
-      <div class="flex flex-col items-center gap-2" class:hidden={writes}>
+      {#if writes && (writing || phase === "running")}
+        <!-- On a phone the check sits last, full width, under the thumb. -->
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" data-dock="answers">
+          <button type="button" class="{btnPrimary} max-sm:order-last max-sm:col-span-2" disabled={!writing} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
+          <button type="button" class={btnStage} disabled={!writing} aria-pressed={againAt !== null} onclick={hearAgain}>Hear it again</button>
+          <button type="button" class={btnStage} disabled={!Object.values(marks).some((r) => r.some(Boolean))} onclick={() => (marks = {})}>Clear</button>
+        </div>
+      {/if}
+      {#if !writes}
+      <div class="flex flex-col items-center gap-2" data-dock="answers">
+        <!-- The word for each tap as it lands, over the button it came from. -->
+        <Verdict kind={tapVerdict?.kind} text={tapVerdict?.text} key={hits.length} class="flex h-8 items-center" />
         {#if onPads}
           <div class="w-72 max-w-full"><Pads label="Pads: any pad is a tap" /></div>
           <p class="text-center text-xs text-ws-stage-soft">Any pad counts, on the MPC or here{listens ? ", and the mic" : ""}. Space too.</p>
@@ -800,6 +841,7 @@
         <p class="text-center text-xs text-ws-stage-soft">MIDI keys and pads count too{listens ? ", and the mic" : ""}.</p>
         {/if}
       </div>
+      {/if}
     </div>
   {/snippet}
 

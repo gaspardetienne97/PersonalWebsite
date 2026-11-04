@@ -55,6 +55,7 @@
   import StudioScore, { type View } from "./StudioScore.svelte";
   import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
+  import { stripUnused } from "$lib/music/components/BenchStrip.svelte";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.
@@ -108,6 +109,9 @@
   /** What else a timed run grades: the score's dynamics and breaths, or vibrato on held notes. */
   const grade = $derived(perfMode && !tap && ((s.grade === "dynamics" && hasMarks) || s.grade === "vibrato" || s.grade === "balance") ? s.grade : "notes");
   const bpm = $derived(clamp(Math.round(s.bpm) || score.bpm, 20, 300));
+  // The song has its own tempo (setup, and "Set metronome to ..." in Song options): the strip's tempo would
+  // show the metronome's, not the song's. The click and count-in pills stay: a run reads both.
+  stripUnused("tempo");
   const takes = $derived(perfMode && !noStop ? ([1, 2, 4, 8].includes(s.takes) ? s.takes : 1) : 1);
   const tuning = $derived(TUNING_LIST.find((t) => t.id === s.tuning) ?? TUNING_LIST[0]);
   const custom = $derived<BeatRange | null>(s.rangeStart >= 0 && s.rangeEnd > s.rangeStart ? { startBeat: s.rangeStart, endBeat: s.rangeEnd } : null);

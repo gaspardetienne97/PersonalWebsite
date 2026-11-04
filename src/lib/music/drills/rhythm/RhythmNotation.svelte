@@ -21,8 +21,10 @@
     hits?: GridHit[];
     label: string;
     onfallback?: (reason: string) => void;
+    /** A two-beat bar written in 6/8 even with no note inside a beat. */
+    compound?: boolean;
   }
-  let { pattern, cursorBeat = null, states = {}, hits = [], label, onfallback }: Props = $props();
+  let { pattern, cursorBeat = null, states = {}, hits = [], label, onfallback, compound = false }: Props = $props();
 
   type VF = Awaited<ReturnType<typeof loadVexFlow>>;
   let VF = $state.raw<VF | null>(null);
@@ -41,7 +43,7 @@
   $effect(() => {
     if (!VF || !host || width < 40) return;
     try {
-      const l = rhythmLine(pattern);
+      const l = rhythmLine(pattern, { compound });
       layout = drawRhythm(VF, host, pattern, l, width);
       line = l;
     } catch (e) {

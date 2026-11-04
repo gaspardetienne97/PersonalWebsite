@@ -130,6 +130,7 @@
         <Staff score={staffScore} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {/if}
     </div>
-    <Piano {low} {high} {marks} {flashes} label="Piano keyboard" />
+    <!-- The keys you play: at the bottom of a phone screen while live. -->
+    <div data-dock="answers"><Piano {low} {high} {marks} {flashes} label="Piano keyboard" /></div>
   {/if}
 </div>

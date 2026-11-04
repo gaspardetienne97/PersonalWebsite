@@ -135,6 +135,9 @@
     if (phase !== "running") return;
     flatDb = await audio.studio.loudness(buffer, {});
     loop = audio.studio.loop(buffer);
+    loopFrom = performance.now();
+    loopSec = buffer.duration;
+    tickLoop();
     run = practice.beginRun({
       exerciseId: entry.modes.find((m) => m.id === exercise)!.exerciseId,
       setupKey: `${exercise}|${material}|${bands}|${gainDb}|${levels.join(",")}|${pans}|${delays}`,
@@ -211,8 +214,25 @@
   function teardown() {
     clearTimeout(introTimer);
     clearInterval(flipTimer);
+    cancelAnimationFrame(raf);
     loop?.stop();
     loop = null;
+  }
+
+  // Where the loop is, 0 to 1, for the bar under Flat and Changed. Held still with reduced motion.
+  let loopFrom = 0;
+  let loopSec = 0;
+  let raf = 0;
+  let loopAt = $state(0);
+  function tickLoop() {
+    cancelAnimationFrame(raf);
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-reduce-motion");
+    const tick = () => {
+      if (!loop) return;
+      loopAt = still || !loopSec ? 1 : (((performance.now() - loopFrom) / 1000) % loopSec) / loopSec;
+      if (!still) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
   }
 
   async function finish() {
@@ -276,10 +296,22 @@
   onDestroy(teardown);
 
   // The answer drawn: the bell for an EQ change, on a log-frequency axis from 31.5 Hz to 16 kHz.
-  const W = 600;
-  const H = 150;
-  const fx = (hz: number) => 30 + ((Math.log2(hz) - Math.log2(31.5)) / (Math.log2(16000) - Math.log2(31.5))) * (W - 60);
-  const fy = (db: number) => H / 2 - (db / 15) * (H / 2 - 16);
+  let graphW = $state(0);
+  const W = $derived(graphW || 600);
+  const H = 116;
+  /** Side margin: room for half an answer button under the 31.5 Hz and 16 kHz ends. */
+  const PAD = $derived(W >= 640 ? 64 : 30);
+  const fx = (hz: number) => PAD + ((Math.log2(hz) - Math.log2(31.5)) / (Math.log2(16000) - Math.log2(31.5))) * (W - 2 * PAD);
+  const fy = (db: number) => (H - 22) / 2 - (db / 15) * ((H - 22) / 2 - 8);
+  /** EQ bands as answers sit under their own column when every button still gets 80 px; else a plain grid. */
+  const aligned = $derived.by(() => {
+    const p = current;
+    if (!p || (p.exercise !== "peak" && p.exercise !== "cut")) return null;
+    const xs = p.choices.map((c) => fx(Number(c)));
+    const pitch = Math.min(...xs.slice(1).map((x, i) => x - xs[i]));
+    const w = Math.min(pitch - 8, 128, 2 * xs[0], 2 * (W - xs.at(-1)!));
+    return w >= 80 ? { xs, w } : null;
+  });
   const curve = $derived.by(() => {
     const eq = current?.change.eq;
     if (!eq || step !== "feedback") return `M ${fx(31.5)} ${fy(0)} L ${fx(16000)} ${fy(0)}`;
@@ -311,6 +343,7 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
+  instrumentFree
   lesson={{ lessons: listeningLessons(exercise, { material, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays }) }}
   title="Studio ears"
   hue="ear"
@@ -319,7 +352,7 @@
   tabs={STUDIO_EXERCISES.map((e) => ({ id: e.id, label: TAB[e.id] }))}
   tab={exercise}
   ontab={(id) => cfg.set({ exercise: id })}
-  modeNotes={{ practice: "The answer named after each prompt.", check: "No feedback until the end. Counts toward mastery." }}
+  modeNotes={{ practice: "Each answer is shown right after you pick. Practice, not a test.", check: "No feedback until the end. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -365,48 +398,71 @@
       <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Prompt {qi + 1}" data-exercise={p.exercise} data-answer={p.answer} data-step={step}>
         <p class="text-sm text-ws-stage-soft">{MATERIALS.find((m) => m.value === material)?.label}</p>
         <p class="font-display text-xl font-semibold sm:text-2xl">{meta.ask}</p>
-        <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Listen to">
+        <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Listen to">
           <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>Flat <kbd>A</kbd></button>
           <button type="button" class="flip" aria-pressed={changed} onclick={() => show(true)}>Changed <kbd>B</kbd></button>
-          <button type="button" class="auto ml-auto" aria-pressed={s.flip === "auto"} onclick={() => setAutoFlip(s.flip !== "auto")}>
-            <span class="dot" aria-hidden="true"></span>Flip every 2 s
+          <!-- A switch, beside the pair it flips. -->
+          <button type="button" class="auto" role="switch" aria-checked={s.flip === "auto"} onclick={() => setAutoFlip(s.flip !== "auto")}>
+            <span class="track" aria-hidden="true"><span class="thumb"></span></span>Auto flip every 2 s
           </button>
         </div>
+        <!-- The loop as it plays: what you are hearing, and how far through it is. -->
+        <div class="mt-3 flex items-center gap-3 text-sm" aria-hidden="true">
+          <span class="shrink-0 whitespace-nowrap font-semibold">Playing {changed ? "Changed" : "Flat"}</span>
+          <span class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-ws-stage-ink/15">
+            <span class="absolute inset-y-0 left-0 rounded-full bg-instr" style:width="{loopAt * 100}%"></span>
+          </span>
+        </div>
         {#if eqTask}
-          <svg class="mt-3 w-full" viewBox="0 0 {W} {H}" role="img" aria-label={step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer"}>
-            <line class="axis" x1={fx(31.5)} x2={fx(16000)} y1={fy(0)} y2={fy(0)} />
-            {#each BAND_SETS["9"] as hz (hz)}
-              <line class="tick" class:asked={p.choices.includes(String(hz))} x1={fx(hz)} x2={fx(hz)} y1={14} y2={H - 22} />
-              <text class="hz" class:asked={p.choices.includes(String(hz))} x={fx(hz)} y={H - 6}>{bandLabel(hz)}</text>
+          <div bind:clientWidth={graphW}>
+            <svg class="mt-2 block w-full" width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer"}>
+              <line class="axis" x1={fx(31.5)} x2={fx(16000)} y1={fy(0)} y2={fy(0)} />
+              {#each BAND_SETS["9"] as hz (hz)}
+                <line class="tick" class:asked={p.choices.includes(String(hz))} x1={fx(hz)} x2={fx(hz)} y1={6} y2={H - 22} />
+                <!-- Under an aligned answer row the buttons name the asked bands. -->
+                {#if !(aligned && p.choices.includes(String(hz)))}
+                  <text class="hz" class:asked={p.choices.includes(String(hz))} x={fx(hz)} y={H - 6}>{bandLabel(hz)}</text>
+                {/if}
+              {/each}
+              <path class="curve" class:shown={step === "feedback"} d={curve} />
+            </svg>
+          </div>
+        {/if}
+        <div data-dock="answers">
+          <div class={aligned ? "relative mt-1 h-12" : "mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"} role="group" aria-label="Answers">
+            {#each p.choices as t, i (t)}
+              {@const r = step === "feedback" ? records.at(-1) : undefined}
+              <button
+                type="button"
+                class="choice min-h-12 rounded-xl px-3 text-sm font-semibold {aligned ? 'absolute top-0 -translate-x-1/2' : ''}"
+                style:left={aligned ? `${aligned.xs[i]}px` : undefined}
+                style:width={aligned ? `${aligned.w}px` : undefined}
+                data-state={r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
+                disabled={step !== "answer"}
+                onclick={() => choose(t)}
+              >{label(p, t)}</button>
             {/each}
-            <path class="curve" class:shown={step === "feedback"} d={curve} />
-          </svg>
-        {/if}
-        {#if step === "feedback"}
-          {@const r = records.at(-1)!}
-          <p class="mt-2 text-lg font-semibold">
-            {#if r.correct}<span class="verdict right" aria-hidden="true">✓</span> Right: {label(p, p.answer)}.
-            {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {label(p, p.answer)}. You said {label(p, r.answered)}{r.near ? ", one step off" : ""}.{/if}
-          </p>
-          {#if mode === "practice"}
-            <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"}</button>
+          </div>
+          {#if step === "feedback"}
+            {@const r = records.at(-1)!}
+            <!-- The verdict right under the answers it marks, then the one next step. -->
+            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p class="text-lg font-semibold">
+                {#if r.correct}<span class="verdict right" aria-hidden="true">✓</span> Right: {label(p, p.answer)}.
+                {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {label(p, p.answer)}. You said {label(p, r.answered)}{r.near ? ", one step off" : ""}.{/if}
+              </p>
+              {#if mode === "practice"}
+                <button type="button" class="{btnPrimary} max-sm:w-full sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"}</button>
+              {/if}
+            </div>
           {/if}
-        {/if}
+        </div>
       </article>
-      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="group" aria-label="Answers">
-        {#each p.choices as t (t)}
-          {@const r = step === "feedback" ? records.at(-1) : undefined}
-          <button
-            type="button"
-            class="choice min-h-12 rounded-xl px-3 text-sm font-semibold"
-            data-state={r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
-            disabled={step !== "answer"}
-            onclick={() => choose(t)}
-          >{label(p, t)}</button>
-        {/each}
-      </div>
     {:else if phase === "running"}
       <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready.</p>
+    {:else if phase === "results"}
+      <!-- The run is described above; the stage keeps one line of advice, not the description again. -->
+      <p class="py-1 text-sm text-ws-stage-soft">Rest your ears for a minute before the next run.</p>
     {:else}
       <div class="space-y-2 py-2">
         <!-- What a run is, not the subtitle again. -->
@@ -455,18 +511,45 @@
     font-weight: 600;
     border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
-  .auto .dot {
-    width: 0.75rem;
-    height: 0.75rem;
+  .auto:focus-visible {
+    outline: 3px solid var(--ws-stage-ink);
+    outline-offset: 2px;
+  }
+  /* A switch: the thumb slides right and the track fills when on. */
+  .track {
+    position: relative;
+    width: 2.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
     border-radius: 999px;
-    border: 2px solid currentColor;
+    background: color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
+    transition: background 120ms ease-out;
   }
-  .auto[aria-pressed="true"] {
+  .thumb {
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    background: var(--ws-stage-ink);
+    transition: transform 120ms ease-out;
+  }
+  .auto[aria-checked="true"] {
     border-color: var(--instr);
   }
-  .auto[aria-pressed="true"] .dot {
+  .auto[aria-checked="true"] .track {
     background: var(--instr);
-    border-color: var(--instr);
+  }
+  .auto[aria-checked="true"] .thumb {
+    transform: translateX(1rem);
+    background: var(--ws-stage);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .track,
+    .thumb {
+      transition: none;
+    }
   }
   .choice {
     background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
@@ -476,7 +559,11 @@
     background: color-mix(in oklch, var(--instr) 22%, transparent);
     border-color: var(--instr);
   }
-  /* Answered: a tinted fill, with the check or cross in the verdict line above. */
+  /* Answered: the rest dim, the answer and a wrong pick tinted with a check or cross (drawn by CSS, so
+     the button's name stays the answer). */
+  .choice:disabled:not([data-state]) {
+    opacity: 0.4;
+  }
   .choice[data-state="expected"] {
     border-color: var(--success);
     background: color-mix(in oklch, var(--success) 24%, transparent);
@@ -484,6 +571,18 @@
   .choice[data-state="answered"] {
     border-color: var(--destructive);
     background: color-mix(in oklch, var(--destructive) 22%, transparent);
+  }
+  .choice[data-state]::before {
+    margin-right: 0.35rem;
+    font-weight: 800;
+  }
+  .choice[data-state="expected"]::before {
+    content: "✓";
+    color: var(--success);
+  }
+  .choice[data-state="answered"]::before {
+    content: "✕";
+    color: var(--destructive);
   }
   .axis {
     stroke: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
@@ -503,14 +602,16 @@
     fill: var(--ws-stage-ink);
     font-weight: 700;
   }
-  /* A phone draws the 600-wide graph at about half size: only the answer bands are named, larger. */
+  .hz.asked {
+    font-size: 13px;
+  }
+  /* A phone has no room for nine names: only the answer bands are named. */
   @media (max-width: 639px) {
     .hz {
       display: none;
     }
     .hz.asked {
       display: inline;
-      font-size: 24px;
     }
   }
   .curve {

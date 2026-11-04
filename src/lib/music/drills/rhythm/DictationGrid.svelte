@@ -1,7 +1,8 @@
 <script lang="ts">
-  // The groove dictation grid: one row per drum (or one row for a rhythm), one column per count, a bar at a time.
-  // Cells stay 44 px wide: where a whole bar does not fit (a phone), the bar wraps at a beat, half a bar a row.
-  // The drill makes it writable; a lesson shows it read-only.
+  // The groove dictation grid: one row per drum (or one row for a rhythm), one column per count, a bar at a time,
+  // each bar in its own box. A bar of eighths stays on one row even on a phone (cells narrow to 30 px, 44 px tall);
+  // a bar of sixteenths that does not fit wraps at a beat, inside the same box. While the pattern plays, a
+  // playhead sweeps the bar and the column under it lights. The drill makes it writable; a lesson shows it read-only.
   import { beatsPerRow, CELL_GAP } from "./rhythm";
 
   interface Props {
@@ -16,8 +17,10 @@
     ontoggle?: (row: string, i: number) => void;
     /** The number each bar is called, when the bars shown are not 1, 2, 3 in order. */
     barNumbers?: number[];
+    /** Where the pattern is while it plays, in beats from the first downbeat; null when silent. */
+    playhead?: number | null;
   }
-  let { bars, rows, perBeat, beatsPerBar, marks, state: stateOf, disabled = true, ontoggle, barNumbers }: Props = $props();
+  let { bars, rows, perBeat, beatsPerBar, marks, state: stateOf, disabled = true, ontoggle, barNumbers, playhead = null }: Props = $props();
 
   const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
   const GLYPH: Record<string, string> = { right: "✓", extra: "✕", missed: "○" };
@@ -27,55 +30,73 @@
   };
 
   let width = $state(0);
-  /** The drum name column (3.5rem) and its gap. */
-  const labelPx = $derived(rows.some((r) => r.label) ? 64 : 0);
-  const BAR_GAP = 16;
+  /** The drum name column (2.75rem) and its gap. */
+  const labelPx = $derived(rows.some((r) => r.label) ? 50 : 0);
+  const BAR_GAP = 12;
+  /** The bar box's border and padding, each side. */
+  const BOX_PAD = 9;
   /** Two bars side by side (as the ruler above draws them) only when each still fits whole. */
-  const cols = $derived(bars > 1 && width && beatsPerRow((width - BAR_GAP) / 2, perBeat, beatsPerBar, labelPx) === beatsPerBar ? 2 : 1);
-  const perRow = $derived(beatsPerRow(cols === 2 ? (width - BAR_GAP) / 2 : width, perBeat, beatsPerBar, labelPx));
+  const cols = $derived(bars > 1 && width && beatsPerRow((width - BAR_GAP) / 2 - 2 * BOX_PAD, perBeat, beatsPerBar, labelPx) === beatsPerBar ? 2 : 1);
+  const perRow = $derived(beatsPerRow((cols === 2 ? (width - BAR_GAP) / 2 : width) - 2 * BOX_PAD, perBeat, beatsPerBar, labelPx));
   const segs = $derived(Array.from({ length: Math.ceil(beatsPerBar / perRow) }, (_, s) => s));
   const cellsPerBar = $derived(beatsPerBar * perBeat);
   const cellsPerSeg = $derived(perRow * perBeat);
   const range = (n: number, from: number) => Array.from({ length: n }, (_, k) => from + k);
+  /** The cell under the playhead, and the segment (bar and row) it sweeps. */
+  const nowCell = $derived(playhead === null ? -1 : Math.floor(playhead * perBeat + 1e-6));
+  const nowSeg = $derived(playhead === null ? null : { bar: Math.floor(playhead / beatsPerBar), seg: Math.floor((playhead % beatsPerBar) / perRow), at: ((playhead % beatsPerBar) % perRow) / perRow });
 </script>
 
 <div class="grid" style:gap="{BAR_GAP}px" style:grid-template-columns="repeat({cols}, minmax(0, 1fr))" bind:clientWidth={width}>
   {#each range(bars, 0) as bar (bar)}
     {@const n = barNumbers?.[bar] ?? bar + 1}
-    <div class="space-y-2">
-      {#if bars > 1 || segs.length > 1}<p class="text-xs font-semibold text-ws-stage-soft">Bar {n}</p>{/if}
-      {#each segs as seg (seg)}
-        <div class="space-y-1">
-          {#each rows as row (row.id)}
-            <div class="flex items-center gap-2">
-              {#if row.label}<span class="w-14 shrink-0 text-xs font-semibold text-ws-stage-soft">{row.label}</span>{/if}
-              <div class="grid min-w-0 flex-1" style:gap="{CELL_GAP}px" style:grid-template-columns="repeat({cellsPerSeg}, minmax(0, 1fr))">
-                {#each range(Math.min(cellsPerSeg, cellsPerBar - seg * cellsPerSeg), bar * cellsPerBar + seg * cellsPerSeg) as i (i)}
-                  {@const on = !!marks[row.id]?.[i]}
-                  {@const st = stateOf?.(row.id, i) ?? null}
-                  <button
-                    type="button"
-                    class="cell"
-                    class:beat={i % perBeat === 0}
-                    data-row={row.id}
-                    data-state={st}
-                    aria-pressed={on}
-                    aria-label="{row.label ? `${row.label}, b` : 'B'}ar {n}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}{st ? `, ${st}` : ''}"
-                    {disabled}
-                    onclick={() => ontoggle?.(row.id, i)}
-                    ><span>{cellLabel(i)}</span>{#if st}<span class="mark" aria-hidden="true">{GLYPH[st]}</span>{:else if on}<span class="mark" aria-hidden="true">●</span>{/if}</button
-                  >
-                {/each}
+    <div class="box" style:padding="{BOX_PAD - 1}px">
+      {#if bars > 1 || segs.length > 1}<p class="mb-1.5 text-xs font-semibold text-ws-stage-soft">Bar {n}</p>{/if}
+      <div class="space-y-2">
+        {#each segs as seg (seg)}
+          <div class="relative space-y-1">
+            {#each rows as row (row.id)}
+              <div class="flex items-center gap-1.5">
+                {#if row.label}<span class="w-11 shrink-0 text-xs leading-tight font-semibold text-ws-stage-soft">{row.label}</span>{/if}
+                <div class="grid min-w-0 flex-1" style:gap="{CELL_GAP}px" style:grid-template-columns="repeat({cellsPerSeg}, minmax(0, 1fr))">
+                  {#each range(Math.min(cellsPerSeg, cellsPerBar - seg * cellsPerSeg), bar * cellsPerBar + seg * cellsPerSeg) as i (i)}
+                    {@const on = !!marks[row.id]?.[i]}
+                    {@const st = stateOf?.(row.id, i) ?? null}
+                    <button
+                      type="button"
+                      class="cell"
+                      class:beat={i % perBeat === 0}
+                      data-row={row.id}
+                      data-state={st}
+                      data-now={i === nowCell || undefined}
+                      aria-pressed={on}
+                      aria-label="{row.label ? `${row.label}, b` : 'B'}ar {n}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}{st ? `, ${st}` : ''}"
+                      {disabled}
+                      onclick={() => ontoggle?.(row.id, i)}
+                      ><span>{cellLabel(i)}</span>{#if st}<span class="mark ws-pop" aria-hidden="true">{GLYPH[st]}</span>{:else if on}<span class="mark ws-pop" aria-hidden="true">●</span>{/if}</button
+                    >
+                  {/each}
+                </div>
               </div>
-            </div>
-          {/each}
-        </div>
-      {/each}
+            {/each}
+            {#if nowSeg && nowSeg.bar === bar && nowSeg.seg === seg}
+              <div class="pointer-events-none absolute inset-y-0 right-0" style:left="{labelPx}px" aria-hidden="true">
+                <div class="playhead ws-sweep" style:--ws-progress={nowSeg.at}></div>
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
     </div>
   {/each}
 </div>
 
 <style>
+  .box {
+    min-width: 0;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in oklch, var(--ws-stage-ink) 14%, transparent);
+  }
   .cell {
     display: flex;
     flex-direction: column;
@@ -85,10 +106,12 @@
     min-width: 0;
     min-height: 2.75rem;
     border-radius: 0.5rem;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     line-height: 1;
+    color: var(--ws-stage-ink);
     background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
     border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
+    transition: box-shadow 80ms ease-out;
   }
   .cell.beat {
     background: color-mix(in oklch, var(--ws-stage-ink) 14%, transparent);
@@ -106,6 +129,20 @@
     border-color: var(--instr);
     color: var(--ws-stage);
   }
+  /* The column the playhead is over: lit, so a still frame shows where the music is. */
+  .cell[data-now] {
+    box-shadow: 0 0 0 2px var(--ws-stage-ink);
+  }
+  /* Placed by .ws-sweep at --ws-progress of the cells' width. */
+  .playhead {
+    top: -3px;
+    bottom: -3px;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: var(--ws-stage-ink);
+    box-shadow: 0 0 8px color-mix(in oklch, var(--ws-stage-ink) 60%, transparent);
+  }
   .mark {
     font-size: 0.75rem;
     font-weight: 700;
@@ -122,5 +159,10 @@
   }
   .cell[data-state="missed"] .mark {
     color: var(--destructive);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cell {
+      transition: none;
+    }
   }
 </style>

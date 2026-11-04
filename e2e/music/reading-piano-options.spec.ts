@@ -128,9 +128,24 @@ test.describe("sight-reading past Grade 6", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText("Piano 9");
     await expect(page.getByText("Setup:").locator("..")).toContainText("16 bars of 7/8");
     let clefChanges = 0;
-    for (let i = 0; i < 8; i++) {
+    // A clef change turns up in roughly one phrase in four: check at least 8 phrases, and up to
+    // 20 until one does, so chance alone does not fail the run.
+    for (let i = 0; i < 20 && (i < 8 || clefChanges === 0); i++) {
       const svg = page.locator(".paper-wrap svg").first();
       await expect(svg).toBeVisible({ timeout: 10_000 });
+      // Engraving lands a beat after the phrase changes; count once the clefs stop changing.
+      let last = -1;
+      await expect
+        .poll(
+          async () => {
+            const now = await page.locator(".paper-wrap .vf-clef").count();
+            const settled = now > 0 && now === last;
+            last = now;
+            return settled;
+          },
+          { intervals: [150, 150, 250, 400] },
+        )
+        .toBe(true);
       await expect(page.getByText(/can't draw this score/)).toHaveCount(0);
       // Two clefs open each system; a small one in a later bar is a clef change.
       const clefs = await page.locator(".paper-wrap .vf-clef").count();

@@ -39,6 +39,9 @@
   const from = $derived(ends?.[0] ?? 0);
   const steps = $derived(ends ? Math.abs(ends[1] - ends[0]) : 0);
   const way = $derived(ends && ends[1] < ends[0] ? -1 : 1);
+  /** A scale degree is heard against its tonic: both are drawn, the tonic marked 1. */
+  const degree = $derived(prompt.drill === "scale-degree");
+  const tonic = $derived(prompt.playback[0]?.midi[0] ?? 60);
   // A chord is its last event (an inversion spells its notes out first).
   const played = $derived(ends ?? [...(prompt.playback.at(-1)?.midi ?? [])].sort((a, b) => a - b));
   const chosenNotes = $derived(!chosen ? [] : interval ? chosen.playback.flatMap((e) => e.midi) : chosen.playback.at(-1)!.midi);
@@ -68,24 +71,28 @@
       if (climb < steps) out[from + way * climb] = { ...out[from + way * climb], demo: true };
       for (const m of other) out[m] = { label: String(Math.abs(m - from)), role: "avoid" };
     } else {
+      if (degree) out[tonic] = { label: "1", role: "scale" };
       for (const m of played) out[m] = { target: true };
       for (const m of other) out[m] = { role: "avoid", label: "×" };
     }
     for (const m of lit) out[m] = { ...out[m], demo: true };
     return out;
   });
-  const line = $derived([...played, ...other]);
+  const line = $derived([...(degree ? [tonic] : []), ...played, ...other]);
   const inst = $derived(settings.value.activeInstrument);
   const onKeys = $derived(!fretTuning(inst) && inst !== "aerophone");
 
-  const names = (ms: number[]) => ms.map((m) => noteName(m, "flat", false)).join(" ");
+  /** Bass to top, each name once (a doubled bass is said once). */
+  const names = (ms: number[]) => [...new Set(ms.map((m) => noteName(m, "flat", false)))].join(" ");
   const bass = (ms: number[]) => noteName(Math.min(...ms), "flat", false);
   const playedText = $derived(
     ends
       ? `${tokenLabel("interval", prompt.answer)}, ${noteName(from, "flat", false)} ${prompt.direction === "harmonic" ? "and" : way > 0 ? "up to" : "down to"} ${noteName(ends[1], "flat", false)}, ${steps} half step${steps === 1 ? "" : "s"}`
       : prompt.drill === "inversion"
         ? `${tokenLabel("inversion", prompt.answer)}: ${names(played)}, ${bass(played)} in the bass`
-        : `${tokenLabel(prompt.drill, prompt.answer)}: ${names(played)}`,
+        : degree
+          ? `${tokenLabel("scale-degree", prompt.answer)}: ${names(played)}, over the tonic ${noteName(tonic, "flat", false)}`
+          : `${tokenLabel(prompt.drill, prompt.answer)}: ${names(played)}`,
   );
   const chosenText = $derived.by(() => {
     if (!chosen) return "";
@@ -105,7 +112,7 @@
       {#if ends}
         <!-- The distance, counted as it climbs: one pip per half step. -->
         <span class="flex items-center gap-2" aria-hidden="true">
-          <span class="count tnum font-display text-3xl font-bold">{Math.min(climb, steps)}</span>
+          <span class="count tnum font-display text-3xl font-bold">{steps}</span>
           <span class="flex flex-col gap-1">
             <span class="text-xs text-ws-stage-soft">half steps</span>
             <span class="flex gap-0.5">
@@ -115,8 +122,9 @@
         </span>
       {/if}
       <span class="flex min-w-0 flex-col text-sm">
-        <span class="font-semibold">Played: {playedText}</span>
-        {#if chosen}<span class="text-ws-stage-soft"><span class="chosen-key" aria-hidden="true"></span>You chose: {chosenText}</span>{/if}
+        <!-- The legend: the swatch beside each line is the mark on the instrument. -->
+        <span class="font-semibold"><span class="played-key" aria-hidden="true"></span>Played: {playedText}</span>
+        {#if chosen}<span class="font-medium"><span class="chosen-key" aria-hidden="true"></span>You chose: {chosenText}</span>{/if}
       </span>
     </figcaption>
   </figure>
@@ -150,6 +158,15 @@
   }
   .pip.on {
     background: var(--tone-scale);
+  }
+  .played-key {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-right: 0.35rem;
+    vertical-align: -0.1rem;
+    border-radius: 999px;
+    border: 3px solid var(--instr);
   }
   .chosen-key {
     display: inline-block;

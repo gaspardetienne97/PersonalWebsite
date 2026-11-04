@@ -63,7 +63,9 @@
 <style>
   .wheel {
     position: relative;
-    width: min(100%, 20rem);
+    /* Short phones keep the whole wheel in view under the question. */
+    width: min(100%, 20rem, 34dvh);
+    min-width: 15rem;
     aspect-ratio: 1;
     margin-inline: auto;
     border-radius: 999px;

@@ -913,13 +913,19 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
   });
   const flat = hear("Flat", {});
   const g = s.gainDb;
+  /** The EQ drawn: one bell at `band`, or a flat line at 0 dB. */
+  const eqFig = (band: number, gainDb: number): LessonFigure => ({ kind: "eq", band, gainDb });
+  // Flat draws a flat curve, so stepping back to it clears the bell the last band drew.
+  const eqFlat = { ...flat, figure: eqFig(1000, 0) };
   const bands = [...BAND_SETS[drill === "boost-or-cut" ? "5" : s.bands]];
-  const eqOption = (freq: number, gainDb: number, matched = false) =>
-    hear(
+  const eqOption = (freq: number, gainDb: number, matched = false) => ({
+    ...hear(
       `${bandLabel(freq)} ${gainDb > 0 ? "boosted" : "cut"}`,
       { eq: { freq, gainDb, q: 1.41 } },
       matched,
-    );
+    ),
+    figure: eqFig(freq, gainDb),
+  });
   const lesson = (id: string, title: string, screens: LessonScreen[]): Lesson => ({
     id,
     title,
@@ -930,10 +936,14 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
     title: string,
     text: string,
     options: LessonScreen["options"],
-  ): Lesson => lesson(`listening.${drill}.${id}`, title, [{ title, text, options }]);
-  const intro = (title: string, text: string, tip: string) =>
+    figure?: LessonFigure,
+  ): Lesson =>
+    lesson(`listening.${drill}.${id}`, title, [
+      { title, text, options, ...(figure ? { figure } : {}) },
+    ]);
+  const intro = (title: string, text: string, tip: string, figure?: LessonFigure) =>
     lesson(`listening.${drill}`, title, [
-      { title: "Flat, then Changed", text },
+      { title: "Flat, then Changed", text, ...(figure ? { figure } : {}) },
       { title: "What to listen for", text: tip },
     ]);
   switch (drill as StudioExercise) {
@@ -945,26 +955,30 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
         drill === "peak"
           ? intro(
               "Hearing a boosted band",
-              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band boosted. Flip between them as often as you like, then name the band.",
+              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band boosted, like the bump drawn here. Flip between them as often as you like, then name the band.",
               "Boosting a low band makes the sound heavier or boomier, and boosting a high band makes it brighter or hissier. A band you miss comes back more often.",
+              eqFig(1000, g),
             )
           : intro(
               "Hearing a cut band",
-              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band cut. Flip between them as often as you like, then name the band.",
+              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band cut, like the dip drawn here. Flip between them as often as you like, then name the band.",
               "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you are listening for what has gone.",
+              eqFig(1000, -g),
             ),
         card(
           `gain.${g}`,
           `A ${g} dB ${drill === "peak" ? "boost" : "cut"}`,
           `Here every band is ${verb} by ${g} dB, about one octave wide. Tap Flat, then the 1 kHz band at that size.`,
-          [flat, eqOption(1000, sign * g)],
+          [eqFlat, eqOption(1000, sign * g)],
+          eqFig(1000, sign * g),
         ),
         ...bands.map((hz) =>
           card(
             `band.${hz}`,
             `${bandLabel(hz)}`,
             `Tap Flat, then ${bandLabel(hz)} ${verb} by ${g} dB. Listen for ${bandWord(hz)}.`,
-            [flat, eqOption(hz, sign * g)],
+            [eqFlat, eqOption(hz, sign * g)],
+            eqFig(hz, sign * g),
           ),
         ),
       ];
@@ -975,23 +989,24 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
           {
             title: "Flat, then Changed",
             text: "Changed has one band either boosted or cut. You decide which, and the band does not matter for the answer. Changed is turned up or down to match Flat's loudness, so a louder sound is not the clue.",
+            figure: eqFig(1000, g),
           },
           {
             title: "Boosts",
             text: `Tap Flat, then each band boosted by ${g} dB, and notice that the sound gains something.`,
-            options: [flat, ...bands.map((hz) => eqOption(hz, g, true))],
+            options: [eqFlat, ...bands.map((hz) => eqOption(hz, g, true))],
           },
           {
             title: "Cuts",
             text: `Now each band cut by ${g} dB. The sound loses something, and each cut sounds different from the boost at the same band.`,
-            options: [flat, ...bands.map((hz) => eqOption(hz, -g, true))],
+            options: [eqFlat, ...bands.map((hz) => eqOption(hz, -g, true))],
           },
         ]),
         card(
           `gain.${g}`,
           `A ${g} dB change`,
           `Here every change is ${g} dB. Tap Flat, then the 1 kHz band boosted and cut by that much.`,
-          [flat, eqOption(1000, g, true), eqOption(1000, -g, true)],
+          [eqFlat, eqOption(1000, g, true), eqOption(1000, -g, true)],
         ),
       ];
     case "level": {

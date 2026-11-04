@@ -8,9 +8,11 @@ import {
   countInText,
   demoNotes,
   lengthText,
+  marksAsPattern,
   midiHits,
   readPatterns,
   signedMs,
+  timingCounts,
   voicing,
 } from "./rhythm";
 import { rhythmLine } from "./notation";
@@ -106,16 +108,38 @@ describe("rhythm copy and layout", () => {
     expect(cellVerdict(false, false)).toBeNull();
   });
 
-  it("keeps dictation cells 44 px wide: a whole bar on a laptop, half a bar on a phone", () => {
+  it("fits a whole bar of eighths on a phone row, drum names and all; sixteenths split at half a bar", () => {
     expect(beatsPerRow(0, 2, 4)).toBe(4);
     expect(beatsPerRow(1000, 2, 4, 64)).toBe(4);
-    expect(beatsPerRow(334, 2, 4)).toBe(2);
-    expect(beatsPerRow(334, 2, 4, 64)).toBe(2);
-    expect(beatsPerRow(334, 3, 4)).toBe(2);
-    expect(beatsPerRow(334, 4, 4, 64)).toBe(1);
+    expect(beatsPerRow(334, 2, 4)).toBe(4);
+    expect(beatsPerRow(334, 2, 4, 48)).toBe(4);
+    expect(beatsPerRow(334, 4, 4)).toBe(2);
+    expect(beatsPerRow(334, 4, 4, 48)).toBe(2);
+    expect(beatsPerRow(140, 4, 4, 48)).toBe(1);
     // Three beats a bar never splits into a share that leaves a beat over.
     expect(beatsPerRow(334, 2, 3)).toBe(3);
-    expect(beatsPerRow(200, 2, 3)).toBe(1);
+    expect(beatsPerRow(100, 2, 3)).toBe(1);
+  });
+
+  it("counts a run's notes as on time, early, late and missed", () => {
+    expect(timingCounts(["pocket", "early", "pocket", "missed", "late", undefined])).toEqual({
+      onTime: 2,
+      early: 1,
+      late: 1,
+      missed: 1,
+    });
+  });
+
+  it("writes the marks as notes held to the next mark, rests before a bar's first mark", () => {
+    const p = marksAsPattern([0, 0.5, 2, 5], 2, 4);
+    expect(p.events.map((e) => [e.beat, e.durationBeats])).toEqual([
+      [0, 0.5],
+      [0.5, 1.5],
+      [2, 2],
+      [5, 3],
+    ]);
+    expect(p.rests).toEqual([{ startBeat: 4, endBeat: 5 }]);
+    expect(marksAsPattern([], 1, 4).rests).toEqual([{ startBeat: 0, endBeat: 4 }]);
   });
 });
 
@@ -154,6 +178,22 @@ describe("rhythm notation", () => {
       const from = line.written(r.startBeat);
       expect(ticks.some((t) => !t.midis.length && Math.abs(t.start - from) < 1e-6)).toBe(true);
     }
+  });
+
+  it.each([
+    [[], 2, 4],
+    [[1.5, 3], 2, 4],
+    [[0, 0.25, 0.75, 2.5, 4, 7.75], 2, 4],
+    [[0, 1], 2, 2],
+    [[1 / 3, 1, 2 + 2 / 3], 2, 2],
+  ] as const)("engraves dictation marks %j bar by bar", (marks, bars, perBar) => {
+    const line = rhythmLine(marksAsPattern(marks, bars, perBar), { compound: perBar === 2 });
+    expect(line.bars).toHaveLength(bars);
+    const barLen = (line.meter.beats * 4) / line.meter.beatUnit;
+    for (const bar of line.ticks)
+      expect(bar.reduce((a, t) => a + length(t), 0)).toBeCloseTo(barLen, 6);
+    expect(line.ticks.flat().filter((t) => t.attack)).toHaveLength(marks.length);
+    if (perBar === 2) expect(line.meter).toEqual({ beats: 6, beatUnit: 8 });
   });
 
   it("writes 6/8 in eighths, swing as straight eighths, and 4/4 triplets as triplets", () => {

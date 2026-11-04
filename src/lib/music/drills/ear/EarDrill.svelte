@@ -621,7 +621,7 @@
         : p.drill === "inversion"
           ? isPlayback
             ? "Play the chord back with the same note in the bass."
-            : "Which note of the chord is in the bass?"
+            : "Which inversion is this?"
         : p.drill === "chord-function"
           ? isPlayback
             ? `Play the ${p.keyEvents ? "last " : ""}chord back, in any octave.`
@@ -1340,6 +1340,13 @@
   const isPhrase = (p: Prompt) => p.drill === "melody-dictation" || p.drill === "repertoire-transfer";
   /** Answered by ear (not played back): the answer is drawn on the strip's instrument. */
   const onInstrument = (p: Prompt) => ON_INSTRUMENT.includes(p.drill) && !isPlayback;
+  /** "the root for root position, the 3rd for first inversion": what each offered inversion puts lowest. */
+  const inversionHint = (tokens: string[]) =>
+    tokens
+      .map((t) => EAR_INVERSIONS.find((x) => x.token === t))
+      .filter((x) => !!x)
+      .map((x) => `the ${["root", "3rd", "5th", "7th"][x.position]} for ${x.name.replace(/^Seventh, /, "").toLowerCase()}`)
+      .join(", ");
   const showAnswer = $derived(answer === "listen-along" || step === "revealed" || (step === "feedback" && (mode === "practice" || (!!current && isPhrase(current)))));
   /** Items in plain words: a range of intervals, a set's own name, or the names themselves. */
   const andList = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
@@ -1671,7 +1678,7 @@
           </p>
         {/if}
         <div class="mt-3">
-          {#if onInstrument(p) && (showAnswer || hinted)}
+          {#if (onInstrument(p) || (p.drill === "scale-degree" && !isPlayback && mistake && step === "feedback")) && (showAnswer || hinted)}
             <!-- The notes on the strip's instrument, with a wrong choice dashed beside them. -->
             <EarReveal prompt={p} chosen={step === "feedback" ? mistake?.chosen : null} {lit} />
           {:else if mistake && step === "feedback"}
@@ -1705,12 +1712,15 @@
           {/if}
         {/if}
 
-        {#if step === "feedback" && mode === "practice"}
-          <button type="button" class="{btnPrimary} mt-4" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
-        {/if}
       </article>
 
-      <div class="mt-4 {degreeChoices ? 'lg:mt-0' : ''}">
+      <!-- The answers sit at the bottom of a phone screen, under the thumb. Once answered, Continue takes
+           their place there (the answers, marked, stay in view from sm up). -->
+      <div class="mt-4 {degreeChoices ? 'lg:mt-0' : ''}" data-dock="answers">
+        {#if step === "feedback" && mode === "practice"}
+          <button type="button" class="{btnPrimary} mb-3 min-h-14 w-full text-base sm:w-auto" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
+        {/if}
+        <div class={step === "feedback" && mode === "practice" && answer === "choice" ? "max-sm:hidden" : ""}>
         {#if answer === "choice" || answer === "listen-along"}
           {#if degreeChoices || (answer === "listen-along" && p.drill === "scale-degree")}
             <DegreeWheel
@@ -1756,11 +1766,11 @@
               <button type="button" class="choice min-h-12 rounded-xl px-3 text-sm" disabled={step === "feedback" || !slots.length} onclick={() => (slots = slots.slice(0, -1))}>Undo</button>
             </div>
           {:else if answer === "choice"}
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            <div class="grid gap-2 {choiceTokens.length <= 4 ? 'grid-cols-1' : 'grid-cols-2'} sm:grid-cols-3 lg:grid-cols-4">
               {#each choiceTokens as t, i (t)}
                 <button
                   type="button"
-                  class="choice min-h-12 rounded-xl px-3 text-sm font-semibold"
+                  class="choice min-h-14 rounded-xl px-3 text-base font-semibold"
                   data-key={i < 9 ? i + 1 : null}
                   data-state={showAnswer && t === p.answer ? "expected" : showAnswer && rec && !rec.correct && rec.answered === t ? "answered" : null}
                   disabled={step === "feedback"}
@@ -1772,6 +1782,10 @@
                 </button>
               {/each}
             </div>
+            {#if p.drill === "inversion"}
+              <!-- What the names mean, in one line: which chord tone is lowest. -->
+              <p class="mt-2 text-sm text-ws-stage-soft">In the bass: {inversionHint(p.choices)}.</p>
+            {/if}
           {/if}
           {#if answer === "listen-along" && p.drill !== "scale-degree" && !onInstrument(p)}
             <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} interactive={false} />
@@ -1831,6 +1845,7 @@
             {/if}
           </div>
         {/if}
+        </div>
       </div>
       </div>
     {:else if phase === "results" && answer === "listen-along"}
@@ -1882,7 +1897,7 @@
             {:else}
               <p class="text-sm text-ws-stage-soft">
                 {answer === "choice" ? "Tap a button or press its number key." : answer === "play-back" ? "Play on the keys below or your MIDI keyboard." : answer === "voice" ? "The microphone listens once each prompt ends." : answer === "listen" ? "Reveal the answer, then say whether you heard it." : "The prompts move on by themselves."}
-                Hear it first plays an example, lit as it sounds.
+                Hear it plays an example, lit as it sounds.
               </p>
             {/if}
             {#if demo}<p class="font-semibold">That was {tokenLabel(demo.kind, demo.answer, labels)}.</p>{/if}
@@ -1898,7 +1913,10 @@
       <Results {summary}>
         {#snippet actions()}
           {#if retryCount}
-            <button type="button" class={btn} onclick={retry}>Retry my confusions ({retryCount} {retryCount === 1 ? "question" : "questions"})</button>
+            <!-- The primary unless the card already offers a next run that moves on. -->
+            {@const a = summary?.advance}
+            {@const moves = !!a && a.kind !== "same" && a.kind !== "top"}
+            <button type="button" class={moves ? btn : btnPrimary} onclick={retry}>Practise my confusions ({retryCount} {retryCount === 1 ? "question" : "questions"})</button>
           {/if}
         {/snippet}
       </Results>

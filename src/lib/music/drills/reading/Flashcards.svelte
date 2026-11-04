@@ -351,13 +351,14 @@
         {/if}
       </div>
 
-      <div class="w-full min-w-0">
+      <!-- The answer surface (names, or the instrument) sits at the bottom of a phone screen. -->
+      <div class="w-full min-w-0" data-dock="answers">
         {#if !byPlay}
           <div class="mx-auto grid max-w-xl grid-cols-4 gap-1.5 sm:grid-cols-6" role="group" aria-label="Note names">
             {#each choices as c (c)}
               <button
                 type="button"
-                class="name min-h-12 rounded-xl text-base font-semibold"
+                class="name min-h-14 rounded-xl text-base font-semibold"
                 data-state={answered && c === card?.answer ? "expected" : answered && !answered.correct && c === answered.name ? "answered" : null}
                 disabled={phase !== "running" || !!answered}
                 onclick={() => void answer(c)}>{c}</button

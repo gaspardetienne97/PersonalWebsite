@@ -217,7 +217,7 @@ test.describe("ear training", () => {
     await expect(
       page.getByRole("button", { name: /^Played .*, you said .*, once\. Play both\.$/ }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /Retry my confusions/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Practise my confusions/ })).toBeVisible();
     await shots(page, "ear-intervals-results");
   });
 

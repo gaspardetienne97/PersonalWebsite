@@ -498,6 +498,19 @@ describe("listening lessons", () => {
     ]);
     expect(opts(ls).every((o) => o.sound.effect!.matched)).toBe(true);
   });
+  it.each(["peak", "cut", "boost-or-cut"])(
+    "%s: every EQ option draws the curve it plays, Flat a flat one",
+    (drill) => {
+      const options = listeningLessons(drill, { bands: "5", gainDb: 6 }).flatMap((l) =>
+        l.screens.flatMap((s) => s.options ?? []),
+      );
+      expect(options.length).toBeGreaterThan(0);
+      for (const o of options) {
+        const eq = o.sound.effect!.change.eq;
+        expect(o.figure).toEqual({ kind: "eq", band: eq?.freq ?? 1000, gainDb: eq?.gainDb ?? 0 });
+      }
+    },
+  );
   it("level, pan and delay have an intro and one card per step in the set", () => {
     const l = listeningLessons("level", { levels: [6, 3, 2, 1] });
     expect(l.map((x) => x.id)).toEqual([

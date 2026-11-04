@@ -14,6 +14,7 @@
   import Staff from "$lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
   import { tokenLabel } from "./session";
+  import Volume2 from "lucide-svelte/icons/volume-2";
 
   let {
     prompt,
@@ -61,6 +62,14 @@
     if (events.length === 1) return prompt.drill === "pitch-compare" ? "Note" : "All at once";
     return usesDegrees ? "?" : String(ei + 1 - (prompt.keyEvents ?? 0));
   }
+  /** What the timing bars are, said once above them. */
+  const caption = $derived(
+    events.length === 1
+      ? "Played all at once"
+      : ["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill)
+        ? "Chords played, in order"
+        : "Notes played, in order",
+  );
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
   const contour = $derived(
@@ -166,6 +175,12 @@
   </div>
 {:else}
 <div bind:clientWidth={W} class="w-full">
+{#if !revealed}
+  <!-- The bars are time, not pitch: one per note or chord, lit as it sounds. -->
+  <p class="flex items-center gap-1.5 text-sm font-semibold text-ws-stage-soft">
+    <Volume2 class="size-4 {active >= 0 ? 'text-instr' : ''}" aria-hidden="true" /><span>{caption}{active >= 0 ? ", playing" : ""}</span>
+  </p>
+{/if}
 <svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? "What you heard, note by note" : "What is playing, in time"}>
   {#if revealed}<line class="base" x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom + 6} y2={H - PAD.bottom + 6} />{/if}
 

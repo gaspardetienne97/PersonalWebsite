@@ -578,6 +578,7 @@
 
 <DrillShell
   listens
+  checkRun={follower !== "wait"}
   lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, measures, piano: instrument === "piano", grand: instrument === "piano" && clefs.length > 1 }) }}
   title="Sight-reading"
   hue="reading"
@@ -646,7 +647,8 @@
         <Tab score={sounding} tuning={tabTuning} {cursorBeat} groupStates={shownStates} maxHeight={measures > 4 ? "24rem" : "14rem"} />
       </div>
     {/if}
-    <div class="mt-4">
+    <!-- What you play on (the Tap pads, the mic panel or the instrument) sits at the bottom of a phone screen. -->
+    <div class="mt-4" data-dock="answers">
       {#if tapping}
         <div class="flex flex-wrap items-start justify-center gap-6">
         {#if kick}

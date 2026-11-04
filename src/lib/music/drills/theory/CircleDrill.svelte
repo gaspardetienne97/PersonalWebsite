@@ -321,7 +321,9 @@
     {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{#if r.answered}{" "}You said {shown(p, r.answered)}.{/if}{/if}
   </p>
   {#if mode === "practice"}
-    <p class="mt-1 text-sm text-ws-stage-soft">{rule(p)}</p>
+    <!-- Continue right under the verdict, so it is in view on a phone; the rule and the pictures follow. -->
+    <button type="button" class="{btnPrimary} mt-3 min-h-12 max-sm:w-full" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70 pointer-coarse:hidden max-sm:hidden">Enter</kbd></button>
+    <p class="mt-3 text-base text-ws-stage-ink">{rule(p)}</p>
     <!-- The key's signature on a staff beside the wheel, so both sit in view with the answers. -->
     <div class="mt-3 flex flex-wrap items-start gap-4">
       {#if SIG_MODES.includes(p.mode)}
@@ -335,7 +337,6 @@
         <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
       {/if}
     </div>
-    <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70">Enter</kbd></button>
   {/if}
 {/snippet}
 
@@ -449,24 +450,24 @@
       </article>
       {#if p.analysis}
         {@const half = (i: 0 | 1, t: string) => (r && t === p.answer.split("|")[i] ? "expected" : r && t === r.answered.split("|")[i] ? "answered" : (i === 0 ? pickedKey : pickedFn) === t ? "picked" : null)}
-        <div class="mt-4 space-y-3">
+        <div class="mt-4 space-y-3" data-dock="answers">
           <div class="grid grid-cols-3 gap-2 sm:grid-cols-6" role="group" aria-label="Key centre">
             {#each p.analysis.keys as t (t)}
-              <button type="button" class="choice min-h-12 rounded-xl px-2 font-display text-lg font-semibold" data-state={half(0, t)} aria-pressed={pickedKey === t} disabled={step !== "answer"} onclick={() => pickHalf("key", t)}>{t}</button>
+              <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-lg font-semibold" data-state={half(0, t)} aria-pressed={pickedKey === t} disabled={step !== "answer"} onclick={() => pickHalf("key", t)}>{t}</button>
             {/each}
           </div>
           <div class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7" role="group" aria-label="Function">
             {#each p.choices as t (t)}
-              <button type="button" class="choice min-h-12 rounded-xl px-2 font-display text-base font-semibold" data-state={half(1, t)} aria-pressed={pickedFn === t} disabled={step !== "answer"} onclick={() => pickHalf("fn", t)}>{t}</button>
+              <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-base font-semibold" data-state={half(1, t)} aria-pressed={pickedFn === t} disabled={step !== "answer"} onclick={() => pickHalf("fn", t)}>{t}</button>
             {/each}
           </div>
         </div>
       {:else if p.mode !== "wheel"}
-        <div class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8" role="group" aria-label="Answers">
+        <div class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8" role="group" aria-label="Answers" data-dock="answers">
           {#each p.choices as t, i (t)}
             <button
               type="button"
-              class="choice min-h-12 rounded-xl px-2 font-display text-lg font-semibold"
+              class="choice min-h-14 rounded-xl px-2 font-display text-lg font-semibold"
               data-state={r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
               disabled={step !== "answer"}
               onclick={() => choose(t)}

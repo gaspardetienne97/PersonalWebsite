@@ -4,7 +4,6 @@
   // graded like Phrases (notes in order, in time); Answer on landing on a chord
   // tone and staying on the eighth-note grid. The whole run is kept as a take.
   import { onDestroy } from "svelte";
-  import { MediaQuery } from "svelte/reactivity";
   import { noteName, pc, type NoteEvent } from "@repo/music-core";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { chorusBars } from "@repo/music-core/content/jam";
@@ -21,12 +20,13 @@
     type CallMode,
     type CallNote,
   } from "@repo/music-core/content/call-response";
-  import { gradePhrase, phraseEvents } from "@repo/music-core/scoring/phrases";
+  import { gradePhrase, matchEvents, phraseEvents } from "@repo/music-core/scoring/phrases";
   import { chordTonesLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary, type RunTiming } from "$lib/music/components/Results.svelte";
+  import Verdict from "$lib/music/components/Verdict.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -64,14 +64,24 @@
   /** Call notes sounding now (Practice only: in Check the call is heard, never shown). */
   let lit = $state<number[]>([]);
   const litMarks = $derived(Object.fromEntries(lit.map((m) => [m, { target: true, demo: true } satisfies CellMarks])));
-  // On a phone the keys fit the calls' range (they stay between C4 and E5), so the whole call is in view.
-  const phone = new MediaQuery("max-width: 639px");
+  /** Calls stay between C4 and E5: the keys always fit that range, on a phone too. */
+  const CALL_RANGE = [60, 76];
+  /** Practice: the word for the note just played (in the call or not, a chord tone or not). */
+  let verdict = $state<{ kind: "right" | "wrong"; text: string; key: number } | null>(null);
+  /** Check: the notes heard this turn, by name only (no right or wrong until the end). */
+  let heard = $state<string[]>([]);
+  /** Echo: how the call's notes landed, over every turn. */
+  let timing: RunTiming = { onTime: 0, early: 0, late: 0, missed: 0 };
   const barMs = () => beatMs * BEATS_PER_BAR;
   const answerStart = (k: number) => downbeat + (turnBar(k, bars) + bars) * barMs();
 
   async function start(ctx: RunContext) {
+    stopDemo();
     summary = null;
     turns = [];
+    verdict = null;
+    heard = [];
+    timing = { onTime: 0, early: 0, late: 0, missed: 0 };
     downbeat = ctx.downbeat;
     beatMs = ctx.beatMs;
     const rand = rng(Math.floor(Math.random() * 2 ** 31));
@@ -108,12 +118,18 @@
       const bar = (performance.now() - downbeat) / barMs();
       if (bar < 0) return;
       const k = Math.floor(bar / (2 * bars));
-      now = k < CALL_TURNS ? { turn: k, part: bar - turnBar(k, bars) < bars ? "call" : "answer" } : null;
+      const next = k < CALL_TURNS ? { turn: k, part: bar - turnBar(k, bars) < bars ? ("call" as const) : ("answer" as const) } : null;
+      if (next?.part === "call" && now?.part !== "call") heard = [];
+      now = next;
     }, 40);
   }
 
   function onNote(e: NoteEvent) {
-    if (phase !== "running" || mode !== "practice") return;
+    if (phase !== "running") return;
+    if (mode !== "practice") {
+      heard = [...heard.slice(-7), noteName(e.midi, "flat")];
+      return;
+    }
     const bar = Math.floor((e.at - downbeat) / barMs());
     const k = Math.floor(bar / (2 * bars));
     const good =
@@ -121,6 +137,12 @@
         ? (calls[k] ?? []).some((n) => pc(n.midi) === pc(e.midi))
         : parseChordSymbol(chordAtBar(groove, bar).symbol)!.pcs.includes(pc(e.midi));
     flashes.add(e.midi, good ? "correct" : "wrong");
+    const name = noteName(e.midi, "flat");
+    verdict = {
+      kind: good ? "right" : "wrong",
+      text: callMode === "echo" ? `${name}${good ? " is in the call" : " is not in the call"}` : `${name}${good ? ", a chord tone" : ", off the chord"}`,
+      key: (verdict?.key ?? 0) + 1,
+    };
   }
 
   async function grade(k: number) {
@@ -133,7 +155,19 @@
     let correct: boolean;
     let text: string;
     if (callMode === "echo") {
-      const r = gradePhrase({ events: phraseEvents(calls[k]), notes, beatMs, startAt: answerStart(k) });
+      const events = phraseEvents(calls[k]);
+      const r = gradePhrase({ events, notes, beatMs, startAt: answerStart(k) });
+      // The same match and window gradePhrase uses: a note out of the window is early or late by its sign.
+      const tol = Math.min(180, beatMs / 4);
+      const m = matchEvents(events, notes);
+      events.forEach((ev, i) => {
+        const x = m[i];
+        if (!x?.right || x.at === null) return void timing.missed++;
+        const err = x.at - (answerStart(k) + ev.startBeat * beatMs);
+        if (Math.abs(err) <= tol) timing.onTime++;
+        else if (err < 0) timing.early++;
+        else timing.late++;
+      });
       score = (r.matched + r.onTime) / (2 * r.total);
       correct = r.matched === r.total && r.onTime >= 0.75 * r.total;
       text = `${r.matched} of ${r.total} notes, ${r.onTime} in time`;
@@ -156,6 +190,7 @@
     seq = null;
     now = null;
     lit = [];
+    verdict = null;
   }
 
   async function finish() {
@@ -189,8 +224,17 @@
       });
     }
     const score = fin.run.score ?? 0;
+    const goal = 120;
+    const advance = await nextRun(
+      `ear.call-response.${callMode}.${groove.id}`,
+      { bpm, tempo: { min: TEMPO.min, goal, max: TEMPO.max }, steps: [{ label: "One-bar calls" }, { label: "Two-bar calls" }], step: bars - 1 },
+      { score, correct: right === turns.length },
+      tempoAnd((i) => cfg.set({ bars: String(i + 1) })),
+    );
+    // Played past the goal: say the tempo played and the goal in one breath, not "clean at the goal".
+    if (bpm > goal && advance.reason.startsWith("clean at the goal")) advance.reason = `clean at ${bpm} BPM, past the ${goal} goal`;
     summary = {
-      headline: `${right} of ${turns.length} ${callMode === "echo" ? "calls echoed" : "answers landed in time"}.${all.length ? " The take is saved in Record." : ""}`,
+      headline: `${right} of ${turns.length} ${callMode === "echo" ? "calls echoed" : "answers landed in time"} at ${bpm} BPM.${all.length ? " The take is saved in Record." : ""}`,
       metric: pct(score),
       metricLabel: callMode === "echo" ? "notes and timing" : "landing and timing",
       delta: fin.delta,
@@ -199,13 +243,10 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows: turns.map((t, i) => ({ label: `Turn ${i + 1}`, value: t.score, text: t.text })),
+      // Echo measures each call note against its beat; an answer has no set notes to be early or late to.
+      timing: callMode === "echo" ? { ...timing } : undefined,
       // The next run by the shared rule: faster, then two-bar calls.
-      advance: await nextRun(
-        `ear.call-response.${callMode}.${groove.id}`,
-        { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max }, steps: [{ label: "One-bar calls" }, { label: "Two-bar calls" }], step: bars - 1 },
-        { score, correct: right === turns.length },
-        tempoAnd((i) => cfg.set({ bars: String(i + 1) })),
-      ),
+      advance,
     };
     status = summary.headline;
   }
@@ -222,11 +263,51 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Before Start: a sample call over the band, its keys lit as it plays. Not scored.
+
+  let demo = $state.raw<SequenceHandle | null>(null);
+  async function playDemo() {
+    if (demo?.playing) return stopDemo();
+    await audio.unlock();
+    const sec = 60 / bpm;
+    const call = callPhrase(rng(7), { groove, bar: 0, bars });
+    const band = backingNotes(groove, { bpm, mode: "both", choruses: 1 })
+      .filter((n) => n.time < bars * BEATS_PER_BAR * sec)
+      .map((n) => ({ ...n, velocity: (n.velocity ?? 0.6) * 0.7 }));
+    const lead: SequenceNote[] = call.map((n) => ({ midi: n.midi, time: n.startBeat * sec, duration: n.durationBeats * sec * 0.9, velocity: 0.9 }));
+    const h = audio.playSequence([...band, ...lead], {
+      onNote: (i) => {
+        if (i < band.length) return;
+        const n = lead[i - band.length];
+        lit = [...lit.filter((m) => m !== n.midi), n.midi];
+        setTimeout(() => (lit = lit.filter((m) => m !== n.midi)), n.duration * 1000);
+      },
+    });
+    demo = h;
+    status = "A sample call over the band, its keys lit as it plays. Not scored.";
+    void h.done.then(() => demo === h && stopDemo());
+  }
+  function stopDemo() {
+    demo?.stop();
+    demo = null;
+    lit = [];
+  }
+
   onDestroy(() => {
     teardown();
+    stopDemo();
     cap?.stop();
   });
 
+  /** Before Start, the keys a call starts and ends on: the first chord's tones in the call range. */
+  const startTones = $derived.by(() => {
+    const pcs = parseChordSymbol(chordAtBar(groove, 0).symbol)?.pcs ?? [];
+    return Array.from({ length: CALL_RANGE[1] - CALL_RANGE[0] + 1 }, (_, i) => CALL_RANGE[0] + i).filter((m) => pcs.includes(pc(m)));
+  });
+  const marks = $derived(
+    phase === "ready" && !demo?.playing ? Object.fromEntries(startTones.map((m) => [m, { role: "chord", label: noteName(m, "flat").replace(/\d+$/, "") } satisfies CellMarks])) : litMarks,
+  );
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
     { text: callMode === "echo" ? "Echo the call" : "Answer the call", focus: "mode" },
@@ -250,6 +331,8 @@
   bind:status
   clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
   progress={phase === "running" ? turns.length / CALL_TURNS : null}
+  ondemo={playDemo}
+  demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
 >
@@ -295,6 +378,12 @@
           Key of {groove.key.replace(/ major$/, "")}, now {chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol}
         </p>
       </div>
+      {#if phase === "running" && mode === "practice"}
+        <Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} class="flex h-8 items-center" />
+      {:else if phase === "running"}
+        <!-- Check: what was heard, by name, so a played note is never only a tint. Right or wrong waits for the end. -->
+        <p class="min-h-8 text-sm" aria-live="polite"><span class="text-ws-stage-soft">Heard this turn:</span> <span class="font-medium [word-spacing:0.4rem]">{heard.length ? heard.join(" ") : "nothing yet"}</span></p>
+      {/if}
       {#if turns.length && mode === "practice"}
         <ol class="flex flex-wrap gap-1.5" aria-label="Turns">
           {#each turns as t, i (i)}
@@ -302,8 +391,11 @@
           {/each}
         </ol>
       {/if}
-      <InstrumentStage line={[60, 76]} low={phone.current ? 60 : undefined} high={phone.current ? 76 : undefined} marks={litMarks} {flashes} />
-      {#if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
+      <!-- On a live phone run this grows; the keys sit at its foot, under the thumb. -->
+      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={CALL_RANGE} {marks} {flashes} /></div>
+      {#if phase === "ready" && !demo?.playing}
+        <p class="text-sm text-ws-stage-soft">Calls stay between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
+      {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
     </div>
   {/snippet}
 

@@ -2,6 +2,7 @@
 // sound of its demo (clicks, taps, strums), with the event each sound lights.
 import type { NoteEvent } from "@repo/music-core";
 import { pc } from "@repo/music-core";
+import type { RhythmPatternDef } from "@repo/music-core/data/index";
 import { RHYTHM_PATTERNS, type RhythmPlan } from "@repo/music-core/content/rhythm";
 import type { RhythmHit } from "@repo/music-core/scoring/rhythm";
 
@@ -135,14 +136,18 @@ export function cellVerdict(heard: boolean, marked: boolean): "right" | "extra" 
   return marked ? (heard ? "right" : "extra") : heard ? "missed" : null;
 }
 
-/** The smallest cell a finger can hit, and the gap between cells, in px. */
-export const CELL_MIN = 44;
-export const CELL_GAP = 4;
+/**
+ * The narrowest a dictation cell gets, and the gap between cells, in px. Cells
+ * stay 44 px tall; 30 px wide lets a whole bar of eighths sit on one row of a
+ * phone, with the drum names beside it.
+ */
+export const CELL_MIN = 30;
+export const CELL_GAP = 3;
 
 /**
  * How many beats of a bar go on one row of the dictation grid at this width: the
- * whole bar when its cells fit at 44 px, else the largest whole-beat share of it that
- * does (half a bar on a phone), never less than one beat.
+ * whole bar when its cells fit, else the largest whole-beat share of it that
+ * does (half a bar of sixteenths on a phone), never less than one beat.
  */
 export function beatsPerRow(
   width: number,
@@ -157,4 +162,48 @@ export function beatsPerRow(
     if (labelPx + cells * CELL_MIN + (cells - 1) * CELL_GAP <= width) return b;
   }
   return 1;
+}
+
+/**
+ * What a dictation grid says, written down: a note at every mark, held until
+ * the next mark or the bar line, and a rest from the bar line to a bar's first
+ * mark (a whole bar's rest when a bar has none). A mark is an onset only, so
+ * this is one honest reading of it, not the only one.
+ */
+export function marksAsPattern(
+  onsets: readonly number[],
+  bars: number,
+  perBar: number,
+): RhythmPatternDef {
+  const sorted = [...new Set(onsets)].sort((a, b) => a - b);
+  const barEnd = (b: number) => (Math.floor(b / perBar + 1e-6) + 1) * perBar;
+  const rests: RhythmPatternDef["rests"] = [];
+  for (let bar = 0; bar < bars; bar++) {
+    const from = bar * perBar;
+    const first = sorted.find((b) => b >= from - 1e-6 && b < from + perBar - 1e-6);
+    if (first === undefined) rests.push({ startBeat: from, endBeat: from + perBar });
+    else if (first > from + 1e-6) rests.push({ startBeat: from, endBeat: first });
+  }
+  return {
+    id: `marks-${sorted.join("_")}`,
+    label: "Your rhythm",
+    meter: { beats: perBar, beatUnit: 4 },
+    defaultBars: bars,
+    events: sorted.map((beat, i) => ({
+      id: `m${i}`,
+      beat,
+      voice: "tap" as const,
+      accent: "normal" as const,
+      durationBeats: Math.min(sorted[i + 1] ?? Infinity, barEnd(beat)) - beat,
+    })),
+    rests,
+  };
+}
+
+/** A run's notes as the results' timing counts: on time (in the pocket), early, late, missed. */
+export function timingCounts(
+  verdicts: readonly ("pocket" | "early" | "late" | "missed" | undefined)[],
+) {
+  const n = (v: string) => verdicts.filter((x) => x === v).length;
+  return { onTime: n("pocket"), early: n("early"), late: n("late"), missed: n("missed") };
 }

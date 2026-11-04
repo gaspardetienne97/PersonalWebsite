@@ -15,7 +15,7 @@
   import { gradeSingAlong, MIN_SUNG, type SingAlongResult, type SingPart } from "@repo/music-core/signal/sing-along";
   import { findHomeLesson } from "@repo/music-core/lessons/tier1";
   import DrillShell, { type Phase } from "$lib/music/components/DrillShell.svelte";
-  import Results, { NOT_HEARD, silentRun } from "$lib/music/components/Results.svelte";
+  import Results, { NOT_HEARD, silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -23,7 +23,7 @@
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, getBinary, getSetting, mic, putSetting, settings, type EarPlayer } from "$lib/music/runtime";
   import { estimateTempo } from "$lib/music/hubs/library/transcription";
@@ -54,6 +54,25 @@
   let frame = 0;
 
   const sourceName = $derived(sources.find((x) => x.value === s.source)?.label ?? "");
+  /** A file name as a title: "by-ear_desktop" reads "By ear desktop". Display only; saved runs keep the name. */
+  const titled = (name: string) => name.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim().replace(/^\p{Ll}/u, (c) => c.toUpperCase());
+  const sourceTitle = $derived(titled(sourceName));
+
+  // Import, from the stage or from Start's place (the primary while no recording is picked).
+  let fileInput = $state<HTMLInputElement>();
+  let picked: (() => void) | null = null;
+  /** Open the file picker; settles once a file is in (or the picker is closed). */
+  const importFile = () =>
+    new Promise<void>((resolve) => {
+      picked = resolve;
+      fileInput?.click();
+    });
+  async function onFile(input: HTMLInputElement) {
+    await addFile(input.files?.[0]);
+    input.value = "";
+    picked?.();
+    picked = null;
+  }
 
   onMount(async () => {
     const [tracks, takes] = await Promise.all([listTracks().catch(() => []), db.audioTakes.orderBy("createdAt").reverse().toArray()]);
@@ -91,7 +110,7 @@
       loop = null;
       sections = await getSetting<{ at: number; name: string }[]>(sectionKey(source), []);
       loaded = source;
-      status = `Loaded ${sourceName || "the recording"}: ${clock(duration)}.`;
+      status = `Loaded ${sourceTitle || "the recording"}: ${clock(duration)}.`;
       return true;
     } catch (e) {
       status = (e as Error).message;
@@ -181,6 +200,8 @@
   let sung: { midi: number; at: number; cents: number }[] = [];
   let sing = $state<SingAlongResult | null>(null);
   let savedLick = $state("");
+  /** A judged run (Find home, Sing along): the score and what to do next, as every drill shows it. */
+  let summary = $state<RunSummary | null>(null);
 
   async function start() {
     rated = null;
@@ -191,6 +212,7 @@
     sung = [];
     sing = null;
     savedLick = "";
+    summary = null;
     if (!(await load())) {
       phase = "ready";
       status = status || "Pick or import a recording first.";
@@ -267,7 +289,17 @@
       params: { mode: "home", recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration) },
     });
     await run.attempt({ promptId: `home-${loaded}`, correct: right, partialCredit: right ? 1 : 0, source: notes.length ? (notes[0].source ?? "click") : "click", target: FLAT_NAMES[tonics[0]], response: FLAT_NAMES[answer] });
-    await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? `Home is ${FLAT_NAMES[answer]}` : `Heard ${FLAT_NAMES[answer]}, home is ${FLAT_NAMES[tonics[0]]}` });
+    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? `Home is ${FLAT_NAMES[answer]}` : `Heard ${FLAT_NAMES[answer]}, home is ${FLAT_NAMES[tonics[0]]}` });
+    summary = {
+      headline: right ? `Right: home is ${FLAT_NAMES[answer]}.` : `You picked ${FLAT_NAMES[answer]}; home sounds like ${FLAT_NAMES[tonics[0]]}.`,
+      metric: FLAT_NAMES[answer],
+      metricLabel: right ? "is home" : `home is ${FLAT_NAMES[tonics[0]]}`,
+      score: right ? 1 : 0,
+      delta: fin.delta,
+      best: fin.best,
+      xp: fin.xp,
+      next: right ? { label: "Learn a part", href: "/music/by-ear?mode=learn", reason: "loop a stretch of this recording and play it back" } : undefined,
+    };
     cap?.stop();
     cap = null;
     player?.pause();
@@ -297,7 +329,16 @@
       params: { mode: "sing", part, recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration), speed: Number(s.speed), tune: 50 },
     });
     await run.attempt({ promptId: `sing-${part}-${loaded}`, correct: r.correct, partialCredit: r.score, source: "audio", target: part, response: sung.map((n) => n.midi) });
-    await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the record` });
+    const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the record` });
+    summary = {
+      headline: `${r.right} of ${r.total} sung notes with the record.`,
+      metric: pct(r.score),
+      metricLabel: `sung with the record, 75% passes`,
+      delta: fin.delta,
+      best: fin.best,
+      xp: fin.xp,
+      next: r.correct && part === "head" ? { label: "Sing the roots", href: "/music/by-ear?mode=sing&part=roots", reason: "the bass note under each chord" } : undefined,
+    };
     status = `${r.right} of ${r.total} sung notes matched the recording${r.inTune < r.total ? `; ${r.total - r.inTune} were more than 50 cents out` : ""}.`;
   }
 
@@ -372,7 +413,7 @@
   const lastNotes = $derived(played.slice(-16));
   const summaryLine = $derived([
     { text: mode === "home" ? "Find home" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
-    { text: sourceName || "no recording yet", focus: "source" },
+    { text: sourceTitle || "no recording yet", focus: "source" },
     { text: `${Math.round(Number(s.speed) * 100)}% speed`, focus: "speed" },
     ...(s.pitch !== "0" ? [{ text: `${s.pitch} semitones`, focus: "pitch" }] : []),
   ]);
@@ -388,6 +429,7 @@
   summary={summaryLine}
   checkable={false}
   blocked={s.source ? null : "Pick or import a recording first."}
+  unblock={{ label: "Import a recording", run: importFile }}
   bind:phase
   bind:status
   onstart={start}
@@ -409,7 +451,7 @@
       <div class="flex flex-col gap-1 text-sm" data-setup="source">
         <span class="font-medium">Recording</span>
         <div class="flex flex-wrap items-center gap-2">
-          <Picker class="w-auto min-w-48" label="Recording" value={s.source} placeholder="Pick a recording" options={sources} onchange={(v) => pick(v)} />
+          <Picker class="w-auto min-w-48" label="Recording" value={s.source} placeholder="Pick a recording" options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
           <label class="{btn} cursor-pointer focus-within:outline-2">
             <Upload class="size-4" aria-hidden="true" />Import
             <input class="sr-only" type="file" accept="audio/*" aria-label="Import a recording" onchange={(e) => addFile(e.currentTarget.files?.[0])} />
@@ -446,13 +488,16 @@
 
   {#snippet stage()}
     {#if !s.source}
-      <div class="py-6 text-center">
+      <!-- Import is the primary in Start's place; the file input it opens lives here. -->
+      <div class="flex flex-col items-center gap-3 py-6 text-center">
+        <Upload class="size-8 text-ws-stage-soft" aria-hidden="true" />
         <p class="font-display text-xl font-semibold">Pick a recording to learn from.</p>
-        <p class="mt-1 text-ws-stage-soft">Import a file you own, or use a take from Record or a backing track.</p>
-        <label class="{btnPrimary} mt-4 cursor-pointer focus-within:outline-2">
-          <Upload class="size-4" aria-hidden="true" />Import a recording
-          <input class="sr-only" type="file" accept="audio/*" aria-label="Import a recording file" onchange={(e) => addFile(e.currentTarget.files?.[0])} />
-        </label>
+        <p class="text-ws-stage-soft">Import a file you own{sources.length ? ", or pick one you have: a take from Record or a backing track" : ". It stays in this browser"}.</p>
+        {#if sources.length}
+          <Picker class="w-auto min-w-56" label="Recording" value={s.source} placeholder="Pick a recording" options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
+        {/if}
+        <input bind:this={fileInput} class="sr-only" type="file" accept="audio/*" aria-label="Import a recording file" tabindex="-1" onchange={(e) => onFile(e.currentTarget)} oncancel={() => (picked?.(), (picked = null))} />
+        {#if importError}<p role="alert" class="font-medium text-destructive">{importError}</p>{/if}
       </div>
     {:else}
       <div class="flex flex-col gap-3" data-loaded={loaded ? "yes" : "no"}>
@@ -500,7 +545,7 @@
         {/if}
 
         {#if phase === "running" && mode === "home"}
-          <div role="group" aria-label="Home note" class="grid grid-cols-6 gap-2 sm:grid-cols-12">
+          <div role="group" aria-label="Home note" class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
             {#each FLAT_NAMES as name, i (i)}
               <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{name}</button>
             {/each}
@@ -511,7 +556,7 @@
             <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
           </p>
         {:else if mode === "learn" && phase !== "results"}
-          <InstrumentStage line={[48, 84]} {flashes} interactive={phase === "running"} />
+          <div data-dock="instrument"><InstrumentStage line={[48, 84]} {flashes} interactive={phase === "running"} /></div>
           <p class="text-sm" aria-live="polite">
             <span class="text-ws-stage-soft">You played:</span>
             <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
@@ -525,17 +570,17 @@
     {#if mode === "sing" && !sing && !sung.length}
       <Results summary={silentRun()} />
     {:else}
-    <article class="{panel} flex flex-col gap-3" aria-label="This run">
+    <!-- A judged run gets the score and the next step every drill shows, on a phone too; the detail follows. -->
+    <div class="flex flex-col gap-3" role="group" aria-label="This run">
+    {#if summary}<Results {summary} />{/if}
+    <article class="{panel} flex flex-col gap-3">
       {#if mode === "home" && home}
-        {@const right = home.tonics.includes(home.answer)}
-        <p class="font-display text-2xl font-semibold">{right ? `Right: home is ${FLAT_NAMES[home.answer]}.` : `You picked ${FLAT_NAMES[home.answer]}; home sounds like ${FLAT_NAMES[home.tonics[0]]}.`}</p>
         <p class="text-sm text-ws-soft">
           The recording's notes point to {keyName(home.ranked[0])}{home.tonics.length > 1 ? `, with ${keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1])} close behind, so either tonic counts` : ""}.
           The key is worked out from the whole recording; a song that changes key or sits long away from home can fool it.
         </p>
       {:else if mode === "sing"}
         {#if sing}
-          <p class="font-display text-2xl font-semibold">{Math.round(sing.score * 100)}%: {sing.right} of {sing.total} sung notes with the record.</p>
           <p class="text-sm text-ws-soft">
             {sing.correct ? `That passes: ${PART_NAME[part]} in tune with the recording.` : `75% passes. ${sing.total - sing.inTune} notes were more than 50 cents out; the rest missed what the recording sounds there.`}
             A note counts when its pitch class sounds strongly in the recording at that moment{part === "roots" ? ", in the bass" : ""}; any octave.
@@ -562,6 +607,7 @@
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {/if}
     </article>
+    </div>
     {/if}
   {/snippet}
 </DrillShell>
