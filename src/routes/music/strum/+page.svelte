@@ -452,7 +452,7 @@
   {#snippet stage()}
     {#if phase !== "results"}
       <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-        <p class="text-sm text-ws-stage-soft">{highway.on ? "Highway: each strum slides to the line as it is due." : "Chart: the pattern on top, a box a chord."}</p>
+        <p class="text-sm text-ws-stage-soft">{highway.on ? "Highway: each chord slides down to the line as it is due." : "Chart: the strum pattern above, one box per chord."}</p>
         {@render viewSwitch("Chart")}
       </div>
     {/if}
@@ -474,13 +474,13 @@
           {@const graded = result?.chords[i]}
           <li
             class="relative flex min-h-16 min-w-16 flex-col justify-between rounded-xl border px-3 py-2 transition-colors {i === current
-              ? 'border-transparent bg-instr text-ws-stage'
+              ? 'border-transparent bg-instr-strong text-on-instr'
               : 'border-ws-stage-ink/20 bg-ws-stage-ink/5'}"
             style:flex-grow={c.bars}
             aria-current={i === current ? "step" : undefined}
           >
             <span class="font-display text-2xl font-bold leading-none">{c.symbol}</span>
-            <span class="text-xs {i === current ? '' : 'text-ws-stage-soft'}">
+            <span class="text-[13px] {i === current ? '' : 'text-ws-stage-soft'}">
               {#if graded}
                 {graded.matched ? "✓ followed" : graded.verification ? "✕ tones off" : "✕ not heard"}
               {:else}

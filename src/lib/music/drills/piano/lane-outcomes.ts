@@ -1,6 +1,7 @@
 // How each note on the beat lane landed, for the marks on its chip: the right
 // key inside half the hand's spacing (the window the two-hand grade claims in),
 // early or late past a quarter of it, missed once its window has passed.
+import { timingBreakdown } from "@repo/music-core/scoring/evidence";
 
 export type LaneOutcome = "ok" | "early" | "late" | "miss";
 
@@ -16,26 +17,33 @@ export interface LaneTarget {
  * One outcome per target, in order; undefined while its window is still open.
  * `hits` are note-ons in beats from the downbeat; each hit is claimed once.
  * `nowBeat` null means the run is over, so every unclaimed target is missed.
+ * `grader` matches the grade the run gets: `slack` (beats a target may land
+ * late at no cost, as a swung off-beat in `claim`) and `pitchClass` (any octave).
  */
 export function laneOutcomes(
   targets: readonly LaneTarget[],
   hits: readonly { midi: number; beat: number }[],
   nowBeat: number | null,
+  grader: { slack?: (beat: number) => number; pitchClass?: boolean } = {},
 ): (LaneOutcome | undefined)[] {
   const used = new Set<number>();
+  const same = (a: number, b: number) =>
+    grader.pitchClass ? (((a - b) % 12) + 12) % 12 === 0 : a === b;
   return targets.map((t) => {
     const win = t.dur / 2;
+    const slack = grader.slack?.(t.beat) ?? 0;
+    const errOf = (b: number) => (b < t.beat ? b - t.beat : Math.max(0, b - t.beat - slack));
     let best = -1;
     hits.forEach((h, i) => {
-      if (used.has(i) || h.midi !== t.midi || Math.abs(h.beat - t.beat) > win) return;
-      if (best < 0 || Math.abs(h.beat - t.beat) < Math.abs(hits[best].beat - t.beat)) best = i;
+      if (used.has(i) || !same(h.midi, t.midi) || Math.abs(errOf(h.beat)) > win) return;
+      if (best < 0 || Math.abs(errOf(h.beat)) < Math.abs(errOf(hits[best].beat))) best = i;
     });
     if (best >= 0) {
       used.add(best);
-      const err = hits[best].beat - t.beat;
+      const err = errOf(hits[best].beat);
       return Math.abs(err) <= win / 2 ? "ok" : err < 0 ? "early" : "late";
     }
-    return nowBeat === null || nowBeat > t.beat + win ? "miss" : undefined;
+    return nowBeat === null || nowBeat > t.beat + slack + win ? "miss" : undefined;
   });
 }
 
@@ -80,17 +88,5 @@ export function verdictOf(
   return { kind: o, text: `${o === "early" ? "Early" : "Late"} ${Math.round(Math.abs(errMs))} ms` };
 }
 
-/** The timing breakdown from per-target errors in ms (positive late, null missed), on time within `onTimeMs`. */
-export function timingFromErrors(errors: readonly (number | null | undefined)[], onTimeMs: number) {
-  return timingOf(
-    errors.map((e) =>
-      e === null || e === undefined
-        ? "miss"
-        : Math.abs(e) <= onTimeMs
-          ? "ok"
-          : e < 0
-            ? "early"
-            : "late",
-    ),
-  );
-}
+/** The timing breakdown from per-target errors in ms (positive late, null missed): the shared K3 rule. */
+export const timingFromErrors = timingBreakdown;

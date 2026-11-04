@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
+  import { enough, evennessRow, timingBreakdown, timingRow } from "@repo/music-core";
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import type { NoteEvent } from "@repo/music-core";
@@ -29,14 +29,16 @@
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, input, settings } from "$lib/music/runtime";
   import GrooveGrid from "$lib/music/drills/pads/GrooveGrid.svelte";
   import StickingLane from "$lib/music/drills/pads/StickingLane.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
-  import { judgeHit, laneColor, orderLanes, overdue, padsDue, starsFor, type Judgement } from "$lib/music/drills/pads/lanes";
+  import { judgeHit, laneColor, orderLanes, overdue, padsDue, type Judgement } from "$lib/music/drills/pads/lanes";
+  // The results card's stars (the advance rule's lines), so a groove's badge in the picker agrees with them.
+  import { starsFor } from "$lib/music/components/trend";
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import PadSkills from "$lib/music/drills/pads/PadSkills.svelte";
@@ -269,18 +271,19 @@
   let judged = $state<Record<number, Judgement>>({});
   let streak = $state(0);
   let liveExtra = $state(0);
+  /** Extra hits this run, marked in the lane of the pad that was hit. */
+  let extraMarks = $state<{ lane: number; atMs: number }[]>([]);
   let bestStreak = $state(0);
   let flashKey = 0;
   let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
   const judgedCount = $derived(Object.keys(judged).length);
-  const liveScore = $derived(
-    judgedCount ? Object.values(judged).reduce((t, j) => t + (j === "perfect" ? 1 : j === "miss" ? 0 : 0.7), 0) / judgedCount : null,
-  );
+  const landedCount = $derived(Object.values(judged).filter((j) => j !== "miss").length);
   /** A hit, judged against the nearest unjudged note on its pad inside the good window. */
   function judge(e: NoteEvent) {
     const hit = judgeHit(live, judged, e.midi, e.at - downbeat, judgeWindow);
     if (!hit) {
       liveExtra++;
+      extraMarks = [...extraMarks, { lane: lanes.findIndex((l) => l.pad === e.midi), atMs: e.at - downbeat }];
       flashNote = { judgement: "extra", key: ++flashKey };
       return;
     }
@@ -354,6 +357,8 @@
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     for (const [m, on] of Object.entries(demoLit)) if (on) out[+m] = { demo: true };
+    // The demo lights each pad as its note crosses the hit line, held for half a beat so the eye can follow.
+    if (demo?.playing) for (const t of live) if (now - demo.startPerf >= t.atMs - 20 && now - demo.startPerf < t.atMs + Math.min(beatMs / 2, 300)) out[t.pad] = { demo: true };
     if ((mode === "check" && !guided) || phase === "results" || demo?.playing) return out;
     if (phase === "running" && waitMode) {
       // The pads the waiting notes need.
@@ -457,6 +462,7 @@
     judged = {};
     streak = 0;
     liveExtra = 0;
+    extraMarks = [];
     bestStreak = 0;
     flashNote = null;
     stars = null;
@@ -510,7 +516,7 @@
   }
 
   const velocityWhy = (notes: NoteEvent[]) =>
-    notes.some((n) => n.source !== "midi") ? "on-screen hits carry no velocity" : "every hit had the same velocity; is Full Level on?";
+    notes.some((n) => n.source !== "midi") ? "on-screen hits carry no velocity" : "every hit had the same velocity (turn off Full Level on the MPC)";
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -525,7 +531,7 @@
     let graded: { score: number; correct: boolean; metrics: RudimentResult["metrics"] };
     if (isGroove) {
       const r = gradeGroove({
-        targets: groove.targets.map((t) => ({ voice: t.voice, beat: t.beat, accent: t.accent ? "accent" : "normal" })),
+        targets: groove.targets.map((t) => ({ voice: t.voice, beat: t.beat, accent: t.accent ? "accent" : t.ghost ? "ghost" : "normal" })),
         voicePads,
         sectionLabels: played.sectionLabels,
         beatsPerBar: perBar,
@@ -585,19 +591,22 @@
       status = summary.headline;
       return;
     }
+    const base = isGroove ? grooveSummary(grv!, ons) : rudimentSummary(rud!, ons);
     summary = {
-      ...(isGroove ? grooveSummary(grv!, ons) : rudimentSummary(rud!, ons)),
+      ...base,
+      // The longest run of notes in a row, while the notes were shown (it is a Practice measure).
+      rows: [...(base.rows ?? []), ...(guided && bestStreak >= 4 ? [{ label: "Best streak", text: `${bestStreak} in a row` }] : [])],
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
       clean: graded.correct && mode === "check",
-      assistance: assistanceText(mode),
+      mode,
       advance: await advanceAfter(graded.score, graded.correct),
     };
     // The tempo this groove starts at next time it is picked: where the Next run offer leaves it.
     const nx = summary.advance;
     if (isGroove && !isSteady && nx) void putSetting(ladderKey(entry.groove.value), nx.kind === "harder" ? entry.bpm.target : nx.kind === "easier" ? bpm : (nx.bpm ?? bpm));
-    stars = starsFor(graded.score, isGroove ? !!extra?.pass : graded.correct);
+    stars = starsFor(graded.score, isGroove ? !!extra?.pass : graded.correct) ?? 0;
     if (stars > (bestStars[starsId] ?? 0)) {
       bestStars = { ...bestStars, [starsId]: stars };
       void putSetting(STARS_KEY, bestStars);
@@ -633,28 +642,26 @@
       : r.correct
         ? `Clean: every stroke landed, ${ms} ms off the click on average.`
         : r.completion < 1
-          ? `${r.matched} of ${r.total} strokes landed. Keep going to the last one.`
+          ? `${r.total - r.matched} of ${r.total} strokes missed. Slow down until every stroke lands.`
           : r.pad < 0.875
             ? `${wrongPads} stroke${wrongPads === 1 ? "" : "s"} on the wrong pad. Slow down and say the sticking.`
             : ms > 90
               ? `Right pads, but ${ms} ms off the click on average. Aim for 90 or less.`
               : "Timing and pads are right; the accents missed their velocity bands.";
-    // Timing and velocity speak only for the strokes that landed; too few landed and they say so, not a full bar.
-    const few = r.matched < Math.min(4, r.total);
-    const from = r.matched < r.total ? `, from the ${r.matched} that landed` : "";
+    // Timing and velocity speak only when at least half the strokes landed (K3), never a full bar from a few.
+    const errs = r.perStroke.flatMap((p) => (p ? [p.errorMs] : []));
     return {
       headline,
       metric: pct(r.score),
       metricLabel: r.velocity === null ? "score, velocity not measured" : "score",
-      timing: ons.length ? timingFromErrors(r.perStroke.map((p) => p?.errorMs ?? null), Math.min(60, stepMs / 3)) : undefined,
+      timing: ons.length ? timingBreakdown(r.perStroke.map((p) => p?.errorMs ?? null), Math.min(60, stepMs / 3)) : undefined,
       rows: [
         { label: "Correct pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
-        !few ? { label: `Timing vs the click${from}`, value: r.timing, text: `${ms} ms off` } : { label: "Timing vs the click: too few strokes landed", notMeasured: true },
+        // 180 ms is where the rudiment grader's timing credit reaches zero.
+        timingRow(errs, r.total, 180, "Timing vs the click"),
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
-          : few
-            ? { label: "Velocity: too few strokes landed", notMeasured: true }
-            : { label: `${hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"}${from}`, value: r.velocity },
+          : evennessRow(r.velocity, r.matched, r.total, hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"),
         { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} extra` : ""}` },
       ],
     };
@@ -697,7 +704,7 @@
       headline,
       metric: pct(r.score),
       metricLabel: r.inBand === null ? "score, accents not measured" : "score",
-      timing: ons.length ? timingFromErrors(r.perTarget, x.tier.goodMs) : undefined,
+      timing: ons.length ? timingBreakdown(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
         ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
         { label: `Perfect (within ${Math.round(x.tier.perfectMs)} ms)`, value: x.tier.perfect, text: `${Math.round(x.tier.perfect * 100)}%, 70% to pass` },
@@ -706,7 +713,7 @@
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
         { label: "Extra hits", text: r.extra ? String(r.extra) : "None" },
-        r.matched ? { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${ms} ms off` } : { label: "Timing", notMeasured: true },
+        timingRow(r.perTarget.filter((e): e is number => e !== null), total, 180),
         r.inBand === null
           ? { label: `Accents: ${velocityWhy(ons)}`, notMeasured: true }
           : { label: "Accents in band", value: r.inBand / total, text: `${r.inBand} of ${total}` },
@@ -878,22 +885,20 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if phase === "running" && guided}
-      <Stat label="Streak" value={streak} tone={streak >= 8 ? "success" : undefined} />
-      <!-- The notes judged so far; extras are counted beside it and cost points in the final score. -->
-      {#if liveScore !== null}<Stat label="Notes so far" value="{Math.round(liveScore * 100)}%" />{/if}
-      {#if liveExtra}<Stat label="Extra hits" value={liveExtra} tone="warn" />{/if}
-    {/if}
+    <!-- Two counters: where the run is, then what landed (extras beside it, never a live percent). -->
     {#if phase === "running" && waitMode}
       <Stat label="Notes" value="{Object.keys(judged).length} of {live.length}" />
     {:else if phase === "running" && !isGroove && strokeNow !== null}
       <Stat label="Stroke" value="{clamp(strokeNow + 1, 1, strokes.length)} of {strokes.length}" />
     {:else if phase === "running" && isGroove && stepNow !== null}
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
-    {:else if rud}
+    {/if}
+    {#if phase === "running" && guided && !waitMode && judgedCount}
+      <Stat label="Landed" value="{landedCount}/{judgedCount}{liveExtra ? ` +${liveExtra} extra` : ''}" tone={landedCount === judgedCount && !liveExtra ? "success" : "warn"} />
+    {:else if phase !== "running" && rud}
       <Stat label="Landed" value="{rud.matched}/{rud.total}" tone={rud.completion === 1 ? "success" : "warn"} />
-      <Stat label="Mean error" value={rud.matched ? `${Math.round(rud.meanAbsErrorMs)} ms` : "Not measured"} tone={rud.matched && rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
-    {:else if grv}
+      <Stat label="Mean error" value={enough(rud.matched, rud.total) ? `${Math.round(rud.meanAbsErrorMs)} ms` : "Not measured"} tone={enough(rud.matched, rud.total) && rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
+    {:else if phase !== "running" && grv}
       <Stat label="Matched" value="{grv.matched}/{groove.targets.length}" tone={grv.missed ? "warn" : "success"} />
       <Stat label="Extra" value={grv.extra} tone={grv.extra ? "warn" : "success"} />
     {/if}
@@ -936,6 +941,7 @@
             countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
             label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
             pads={padGrid}
+            extras={extraMarks}
           />
           {#if waitMode}<p class="text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
         {:else if isGroove}
@@ -960,16 +966,7 @@
   {/snippet}
 
   {#snippet results()}
-    {#if summary && stars !== null}
-      <div class="stars mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface px-4 py-3" aria-label="{stars} of 3 stars">
-        <span class="stars-row" aria-hidden="true">{#each [0, 1, 2] as k (k)}<span class:lit={k < stars}>★</span>{/each}</span>
-        <span class="text-sm">
-          {stars === 3 ? "Three stars: passed." : stars === 2 ? "Two stars: pass the level's timing for the third." : stars === 1 ? "One star: most of it there." : "No stars yet: slow it down and try again."}
-          {#if bestStreak >= 4}Best streak {bestStreak}.{/if}
-          {#if (bestStars[starsId] ?? 0) > stars}<span class="text-ws-soft">Your best: {starText(bestStars[starsId])}.</span>{/if}
-        </span>
-      </div>
-    {/if}
+    <!-- One set of stars: the results card's own, on the advance rule's lines. -->
     {#if summary}
       <Results {summary} />
       {#if grv}
@@ -1013,22 +1010,9 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="mpc" sound={{ value: s.sound, onchange: (v) => cfg.set({ sound: v }) }} /></div>
+    <div class="w-full"><MidiStatus instrument="mpc" sound={{ value: s.sound, onchange: (v) => cfg.set({ sound: v }) }} since={summary?.heard === false ? downbeat : null} /></div>
   {/snippet}
 </DrillShell>
 {/if}
 
-<style>
-  .stars-row {
-    display: inline-flex;
-    gap: 0.15rem;
-    font-size: 2rem;
-    line-height: 1;
-    color: color-mix(in oklch, var(--ws-ink) 18%, transparent);
-  }
-  .stars-row .lit {
-    color: var(--warn);
-    text-shadow: 0 0 12px color-mix(in oklch, var(--warn) 50%, transparent);
-  }
-</style>
 

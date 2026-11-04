@@ -8,7 +8,7 @@
   import { onDestroy } from "svelte";
   import { conceptCard, positionsCard } from "@repo/music-core/lessons/cards";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName, pc } from "@repo/music-core";
+  import { evennessRow, noteName, pc } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import {
     positionPatternsFor,
@@ -46,7 +46,7 @@
   import { btn, btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, tuningText, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, tuningText, type Capture } from "$lib/music/drill.svelte";
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
@@ -538,7 +538,7 @@
       headline: r.correct
         ? mode === "check"
           ? `Clean and even at ${bpm()} BPM. Every finger landed.`
-          : `Clean at ${bpm()} BPM. Try it in Check to count it.`
+          : `Clean at ${bpm()} BPM. Every finger landed.`
         : !ons.length
           ? "Nothing was heard during the run. Tap the frets, play into the microphone, or connect MIDI, then try again."
           : r.pitch < 0.9
@@ -552,14 +552,14 @@
       best: fin.best,
       clean,
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       timing: timingCounts(
         steps.map((_, i) => (typeof hits[i] === "number" ? hits[i] : undefined)),
         onTimeMs(),
       ),
       rows: [
         { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}` },
-        { label: "Evenness", value: r.evenness, text: `${pct(r.evenness)}, ${Math.round(r.evennessErrorMs)} ms off` },
+        evennessRow(r.evenness, r.clean, r.total),
         taps.length && taps.length === ons.length
           ? { label: "On the written string and fret", value: taps.length ? onString / taps.length : 0, text: `${onString} of ${taps.length} taps` }
           : { label: "String and fret", notMeasured: true },
@@ -658,16 +658,16 @@
   title={isPick ? "Fingerpicking" : isHarm ? "Harmonics" : isLegato ? "Hammer-ons and pull-offs" : isSpider ? "Spider" : "Positions"}
   hue={instr}
   blurb={isHarm
-    ? "Natural harmonics: touch the string right over fret 12, 7 or 5 without pressing it down, pick, and lift. Each should ring an octave or more above the open string, one a click."
+    ? "Natural harmonics over frets 12, 7 and 5: touch the string, pick, and lift."
     : isLegato
-    ? "Pick only the notes marked ↓; hammer on (h), pull off (p) or slide (/ up, \\ down) to the rest, as tab writes them. With the microphone, each hammered, pulled or slid note is checked for a new pick attack."
+    ? "Pick only the ↓ notes; hammer, pull off or slide to the rest, as the tab writes them."
     : isPick
-    ? "A picking pattern over two or more chords: p thumb, i index, m middle, a ring. The microphone hears the notes, not which string they came from."
+    ? "A picking pattern over two or more chords: p thumb, i index, m middle, a ring."
     : isSpider
-    ? "One finger per fret, one note per click. The pattern walks your fingers until each lands on its own."
+    ? "One finger per fret, one note per click, until each finger lands on its own."
     : instr === "ukulele"
-    ? "A minor pentatonic position played string by string, from string 4 to string 1: five positions up the neck."
-    : "A pentatonic box, the B.B. box or a CAGED shape played low string to high, the boxes joined up the neck, or triads by inversion: one note per click."}
+    ? "A minor pentatonic position, string 4 to string 1, in five positions up the neck."
+    : "Pentatonic and CAGED boxes, the B.B. box or triads, low string to high, a note a click."}
   summary={summaryLine}
   tabs={isPick ? CHORD_MODES : FRETBOARD_MODES}
   tab={kind}
@@ -795,12 +795,10 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Note" value="{Math.min(stepIndex + 1, steps.length)} of {steps.length}" />
-      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next" value="String {steps[stepIndex].string} ({noteName(tuning.openStrings[steps[stepIndex].string - 1], 'flat', false)}), fret {steps[stepIndex].fret}" />{/if}
-      <Stat label="Right" value="✓ {rightSoFar}" />
-      <Stat label="Missed" value="✕ {missedSoFar}" tone={missedSoFar ? "warn" : undefined} />
+      <Stat label="Right" value="✓ {rightSoFar}  ✕ {missedSoFar}" />
     {:else if result}
+      <!-- Evenness waits for the results rows, where too few landed notes read Not measured. -->
       <Stat label="Notes right" value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
-      <Stat label="Evenness" value={pct(result.evenness)} />
     {/if}
   {/snippet}
 

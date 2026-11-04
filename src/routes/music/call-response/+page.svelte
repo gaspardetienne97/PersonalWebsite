@@ -28,9 +28,10 @@
   import Results, { silentRun, type RunSummary, type RunTiming } from "$lib/music/components/Results.svelte";
   import Verdict from "$lib/music/components/Verdict.svelte";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
+  import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -61,15 +62,20 @@
   let timers: ReturnType<typeof setTimeout>[] = [];
   let ticker: ReturnType<typeof setInterval> | undefined;
   const flashes = new Flashes();
+  let inTimer: ReturnType<typeof setTimeout> | undefined;
   /** Call notes sounding now (Practice only: in Check the call is heard, never shown). */
   let lit = $state<number[]>([]);
   const litMarks = $derived(Object.fromEntries(lit.map((m) => [m, { target: true, demo: true } satisfies CellMarks])));
   /** Calls stay between C4 and E5: the keys always fit that range, on a phone too. */
   const CALL_RANGE = [60, 76];
   /** Practice: the word for the note just played (in the call or not, a chord tone or not). */
-  let verdict = $state<{ kind: "right" | "wrong"; text: string; key: number } | null>(null);
+  let verdict = $state<{ kind: "right" | "wrong" | "in"; text: string; key: number } | null>(null);
   /** Check: the notes heard this turn, by name only (no right or wrong until the end). */
   let heard = $state<string[]>([]);
+  /** Your notes this turn, as beats from the start of your bars: the lane's second row fills in as you play. */
+  let reply = $state<{ beat: number; midi: number }[]>([]);
+  /** Where the lane's playhead is: beats into the call, then into your bars. */
+  let laneBeat = $state<number | null>(null);
   /** Echo: how the call's notes landed, over every turn. */
   let timing: RunTiming = { onTime: 0, early: 0, late: 0, missed: 0 };
   const barMs = () => beatMs * BEATS_PER_BAR;
@@ -81,6 +87,7 @@
     turns = [];
     verdict = null;
     heard = [];
+    reply = [];
     timing = { onTime: 0, early: 0, late: 0, missed: 0 };
     downbeat = ctx.downbeat;
     beatMs = ctx.beatMs;
@@ -119,13 +126,23 @@
       if (bar < 0) return;
       const k = Math.floor(bar / (2 * bars));
       const next = k < CALL_TURNS ? { turn: k, part: bar - turnBar(k, bars) < bars ? ("call" as const) : ("answer" as const) } : null;
-      if (next?.part === "call" && now?.part !== "call") heard = [];
+      if (next?.part === "call" && now?.part !== "call") {
+        heard = [];
+        reply = [];
+      }
       now = next;
+      laneBeat = next ? ((bar - turnBar(next.turn, bars) - (next.part === "answer" ? bars : 0)) * BEATS_PER_BAR) : null;
     }, 40);
   }
 
   function onNote(e: NoteEvent) {
     if (phase !== "running") return;
+    // Your bars: the note lands on the lane's second row at its beat (in Check too: what you played, not a verdict).
+    const turn = Math.floor((e.at - downbeat) / barMs() / (2 * bars));
+    if (turn >= 0 && turn < CALL_TURNS) {
+      const b = (e.at - answerStart(turn)) / beatMs;
+      if (b >= -0.5 && b < bars * BEATS_PER_BAR) reply = [...reply, { beat: Math.max(0, b), midi: e.midi }];
+    }
     if (mode !== "practice") {
       heard = [...heard.slice(-7), noteName(e.midi, "flat")];
       return;
@@ -137,9 +154,12 @@
         ? (calls[k] ?? []).some((n) => pc(n.midi) === pc(e.midi))
         : parseChordSymbol(chordAtBar(groove, bar).symbol)!.pcs.includes(pc(e.midi));
     flashes.add(e.midi, good ? "correct" : "wrong");
+    clearTimeout(inTimer);
+    if (callMode === "echo" && good) inTimer = setTimeout(() => verdict?.kind === "in" && (verdict = null), 1400);
     const name = noteName(e.midi, "flat");
     verdict = {
-      kind: good ? "right" : "wrong",
+      // In the call is not yet right (order and time are judged as the turn ends): a neutral mark, not a tick.
+      kind: callMode === "echo" ? (good ? "in" : "wrong") : good ? "right" : "wrong",
       text: callMode === "echo" ? `${name}${good ? " is in the call" : " is not in the call"}` : `${name}${good ? ", a chord tone" : ", off the chord"}`,
       key: (verdict?.key ?? 0) + 1,
     };
@@ -189,8 +209,10 @@
     seq?.stop();
     seq = null;
     now = null;
+    laneBeat = null;
     lit = [];
     verdict = null;
+    clearTimeout(inTimer);
   }
 
   async function finish() {
@@ -241,7 +263,7 @@
       best: fin.best,
       clean: mode === "check" && right === turns.length,
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: turns.map((t, i) => ({ label: `Turn ${i + 1}`, value: t.score, text: t.text })),
       // Echo measures each call note against its beat; an answer has no set notes to be early or late to.
       timing: callMode === "echo" ? { ...timing } : undefined,
@@ -267,11 +289,14 @@
   // Before Start: a sample call over the band, its keys lit as it plays. Not scored.
 
   let demo = $state.raw<SequenceHandle | null>(null);
+  /** The demo's place on the lane, from its own clock. */
+  let demoBeat = $state<number | null>(null);
+  let demoRaf = 0;
   async function playDemo() {
     if (demo?.playing) return stopDemo();
     await audio.unlock();
     const sec = 60 / bpm;
-    const call = callPhrase(rng(7), { groove, bar: 0, bars });
+    const call = sampleCall;
     const band = backingNotes(groove, { bpm, mode: "both", choruses: 1 })
       .filter((n) => n.time < bars * BEATS_PER_BAR * sec)
       .map((n) => ({ ...n, velocity: (n.velocity ?? 0.6) * 0.7 }));
@@ -285,12 +310,20 @@
       },
     });
     demo = h;
+    const tick = () => {
+      if (demo !== h) return;
+      demoBeat = (performance.now() - h.startPerf) / 1000 / sec;
+      demoRaf = requestAnimationFrame(tick);
+    };
+    demoRaf = requestAnimationFrame(tick);
     status = "A sample call over the band, its keys lit as it plays. Not scored.";
     void h.done.then(() => demo === h && stopDemo());
   }
   function stopDemo() {
     demo?.stop();
     demo = null;
+    cancelAnimationFrame(demoRaf);
+    demoBeat = null;
     lit = [];
   }
 
@@ -308,6 +341,19 @@
   const marks = $derived(
     phase === "ready" && !demo?.playing ? Object.fromEntries(startTones.map((m) => [m, { role: "chord", label: noteName(m, "flat").replace(/\d+$/, "") } satisfies CellMarks])) : litMarks,
   );
+  /** The call on the lane: this turn's while running, the sample call before Start (what Hear it plays). */
+  const sampleCall = $derived(callPhrase(rng(7), { groove, bar: 0, bars }));
+  const laneTurn = $derived(now?.turn ?? Math.max(0, turns.length - 1));
+  const laneCall = $derived(phase === "running" || phase === "countin" ? (calls[laneTurn] ?? []) : sampleCall);
+  const laneRows = $derived<LaneRow[]>([
+    { id: "call", mark: "♪", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: noteName(n.midi, "flat", false) })) },
+    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: noteName(r.midi, "flat", false) })) }] : []),
+  ]);
+  const laneChords = $derived(
+    Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol })),
+  );
+  /** The keys span every call note of the run and everything you play, so a note never falls off the keyboard. */
+  const keyLine = $derived([...CALL_RANGE, ...(phase === "ready" ? sampleCall : calls.flat()).map((n) => n.midi), ...reply.map((r) => r.midi)]);
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
     { text: callMode === "echo" ? "Echo the call" : "Answer the call", focus: "mode" },
@@ -378,8 +424,26 @@
           Key of {groove.key.replace(/ major$/, "")}, now {chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol}
         </p>
       </div>
-      {#if phase === "running" && mode === "practice"}
-        <Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} class="flex h-8 items-center" />
+      <!-- The call as note blocks in time, lit as it plays; your notes fill the row under it as you play. -->
+      <div data-dock="music">
+        <BeatLane
+          rows={laneRows}
+          beats={bars * BEATS_PER_BAR}
+          beat={demo?.playing ? demoBeat : laneBeat}
+          chords={laneChords}
+          hidden={mode === "check" && !demo?.playing}
+          label={phase === "running" ? `Turn ${laneTurn + 1}: the call, ${laneCall.length} notes, and your notes so far, ${reply.length}` : `A sample call: ${laneCall.length} notes over ${laneChords.map((c) => c.symbol).join(", ")}`}
+        />
+      </div>
+      {#if phase === "running" && mode === "practice" && verdict?.kind === "in"}
+        <!-- Neutral: the note is in the call, but order and timing are judged when the turn ends. -->
+        {#key verdict.key}
+          <p class="in-call flex h-8 items-center gap-1.5 text-sm font-semibold" aria-live="polite" data-testid="verdict">
+            <span class="dot" aria-hidden="true"></span>{verdict.text}
+          </p>
+        {/key}
+      {:else if phase === "running" && mode === "practice"}
+        <Verdict kind={verdict?.kind === "in" ? null : verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} class="flex h-8 items-center" />
       {:else if phase === "running"}
         <!-- Check: what was heard, by name, so a played note is never only a tint. Right or wrong waits for the end. -->
         <p class="min-h-8 text-sm" aria-live="polite"><span class="text-ws-stage-soft">Heard this turn:</span> <span class="font-medium [word-spacing:0.4rem]">{heard.length ? heard.join(" ") : "nothing yet"}</span></p>
@@ -392,7 +456,7 @@
         </ol>
       {/if}
       <!-- On a live phone run this grows; the keys sit at its foot, under the thumb. -->
-      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={CALL_RANGE} {marks} {flashes} /></div>
+      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={keyLine} {marks} {flashes} /></div>
       {#if phase === "ready" && !demo?.playing}
         <p class="text-sm text-ws-stage-soft">Calls stay between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
       {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
@@ -405,6 +469,13 @@
 </DrillShell>
 
 <style>
+  .in-call .dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    border: 2px solid var(--ws-stage-ink);
+    background: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
+  }
   .cue[data-part="answer"] {
     color: var(--instr);
   }

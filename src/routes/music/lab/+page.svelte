@@ -228,14 +228,18 @@
 
   {#snippet hud()}
     {#if phase !== "ready"}
+      <!-- Two counters in the HUD; the rest of the tally sits on the stage. -->
       <Stat label="Notes" value={stats.count} />
-      <Stat label="Distinct" value={stats.distinct} />
       <Stat label="Range" value={rangeOf(stats)} />
-      {#each Object.entries(stats.perSource) as [src, n] (src)}<Stat label={SOURCE[src as InputSource]} value={n} />{/each}
     {/if}
   {/snippet}
 
   {#snippet stage()}
+    {#if phase !== "ready" && stats.count}
+      <p class="mb-2 text-sm text-ws-stage-soft" data-testid="lab-tally">
+        {stats.distinct} different {stats.distinct === 1 ? "note" : "notes"}{#each Object.entries(stats.perSource) as [src, n] (src)}, {n} from {SOURCE[src as InputSource]}{/each}.
+      </p>
+    {/if}
     <div class="mb-3 flex flex-wrap items-center gap-3">
       {#if phase === "running"}
         <span class="rec flex items-center gap-2 text-sm font-semibold"><span class="dot" aria-hidden="true"></span>Recording</span>

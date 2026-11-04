@@ -5,7 +5,7 @@
   // sounded, not which string they came from or how clean they rang.
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName, pc } from "@repo/music-core";
+  import { enough, evennessRow, noteName, pc, TOO_FEW } from "@repo/music-core";
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { conceptCard } from "@repo/music-core/lessons/cards";
@@ -13,12 +13,13 @@
   import { gradeChordStrings, gradeLine } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
+  import Hint from "$lib/music/components/Hint.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
@@ -208,7 +209,7 @@
       headline: !ons.length
         ? "Nothing was heard during the run. Tap the strings, play into the microphone, or connect MIDI, then try again."
         : r.correct
-          ? `All ${r.total} target notes of ${symbol} matched${mode === "check" ? " from memory" : ""}.${mode === "practice" ? " Try it in Check with the shape hidden." : ""}`
+          ? `All ${r.total} target notes of ${symbol} matched${mode === "check" ? " from memory" : ""}.`
           : `${r.matched} of ${r.total} target notes matched. Missed ${missedStrings.join(", ")}.`,
       metric: `${r.matched}/${r.total}`,
       metricLabel: "target notes matched",
@@ -216,14 +217,14 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Target notes matched", value: r.score, text: `${r.matched} of ${r.total}` },
         { label: "Other notes sounded", text: r.extra.length ? r.extra.map((m) => noteName(m)).join(", ") : "None" },
         ...(line
           ? [
-              { label: "Evenness", value: line.evenness, text: `${pct(line.evenness)}, ${Math.round(line.evennessErrorMs)} ms off` },
-              { label: "Timing error", text: `${Math.round(line.meanTimingErrorMs)} ms mean` },
+              evennessRow(line.evenness, line.clean, line.total),
+              enough(line.clean, line.total) ? { label: "Timing error", text: `${Math.round(line.meanTimingErrorMs)} ms on average` } : { label: "Timing error", notMeasured: true, text: TOO_FEW },
             ]
           : []),
         { label: "Which string each note came from", notMeasured: true },
@@ -263,8 +264,8 @@
   title={isPick ? "Pick it clean" : "Build the chord"}
   hue={instr}
   blurb={isPick
-    ? `Hold the shape and pick one string per click, string ${targets[0]?.string} to string ${targets.at(-1)?.string}, so every note speaks.`
-    : `Fret the shape, then sound each string, string ${targets[0]?.string} to string ${targets.at(-1)?.string}. Each target note ticks off as it is heard.`}
+    ? `Hold the shape and pick one string per click, string ${targets[0]?.string} to string ${targets.at(-1)?.string}.`
+    : `Fret the shape, then sound each string from string ${targets[0]?.string} to string ${targets.at(-1)?.string}.`}
   summary={summaryLine}
   tabs={CHORD_MODES}
   tab={kind}
@@ -287,19 +288,21 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Chord" value={symbol} />
       <Stat label="Target notes" value="{matched.filter(Boolean).length} of {targets.length}" />
       {#if heard !== null}<Stat label={miss ? "Heard, not a match" : "Heard"} value="{miss ? '✕' : '✓'} {noteName(heard)}" tone={miss ? "warn" : undefined} />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
-    <p class="mb-3 font-display text-5xl font-bold leading-none">{symbol}</p>
+    <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
+    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
     {#if !live && phase !== "results"}
       <div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>
     {/if}
-    {#if isPick && (mode === "practice" || phase === "results")}
-      <div class="mb-3">
+    <!-- The chord's name (and the picking line) take the free height above the neck, so no gap opens there. -->
+    <div class="mb-3 flex flex-col justify-center gap-3" data-dock="music">
+      <p class="font-display text-5xl font-bold leading-none">{symbol}</p>
+      {#if isPick && (mode === "practice" || phase === "results")}
         <LineNotation
           notes={pickTab}
           tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }}
@@ -307,8 +310,8 @@
           cursorBeat={pickCursor}
           groupStates={Object.fromEntries(matched.flatMap((m, i) => (m ? [[i, "correct" as const]] : [])))}
         />
-      </div>
-    {/if}
+      {/if}
+    </div>
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label="{symbol} on the {instr} neck" /></div>
     <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings in playing order">
       {#each targets as t, i (t.string)}
@@ -331,14 +334,11 @@
     {#if phase === "running" && miss}
       <p class="mt-3 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
-    {#if phase === "running" && !isPick}
-      <div class="mt-3"><button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button></div>
-    {/if}
-    <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
-      Pitch matching checks which notes you sounded, not which string they came from or how clean they rang.
-      {mode === "check" && phase !== "results" ? " Check hides the shape: play it from memory." : ""}
-    </p>
-    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
+      {#if phase === "running" && !isPick}<button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>{/if}
+      <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? "Shape hidden: play it from memory." : "What is checked"}</span>
+      <Hint about="what is checked" text="Pitch matching checks which notes you sounded, not which string they came from or how clean they rang." />
+    </div>
   {/snippet}
 
   {#snippet results()}

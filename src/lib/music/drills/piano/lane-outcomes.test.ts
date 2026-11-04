@@ -23,6 +23,17 @@ describe("laneOutcomes", () => {
     expect(laneOutcomes(beats, [], 1.6)).toEqual(["miss", "miss", undefined]);
   });
 
+  it("follows the grader: a swung off-beat it claims is on time, any octave when it grades pitch class", () => {
+    const offbeat = [{ midi: 60, beat: 0.5, dur: 0.5 }];
+    const swung = [{ midi: 72, beat: 0.5 + 1 / 6 }];
+    expect(laneOutcomes(offbeat, [{ midi: 60, beat: 0.5 + 1 / 6 }], null)).toEqual(["late"]);
+    const grader = { slack: (b: number) => (b % 1 === 0.5 ? 1 / 6 : 0), pitchClass: true };
+    expect(laneOutcomes(offbeat, swung, null, grader)).toEqual(["ok"]);
+    expect(laneOutcomes(offbeat, [{ midi: 60, beat: 0.3 }], null, grader)).toEqual(["early"]);
+    // The window stays open through the slack.
+    expect(laneOutcomes(offbeat, [], 0.8, grader)).toEqual([undefined]);
+  });
+
   it("never credits the wrong key", () => {
     expect(laneOutcomes(beats.slice(0, 1), [{ midi: 61, beat: 0 }], null)).toEqual(["miss"]);
   });

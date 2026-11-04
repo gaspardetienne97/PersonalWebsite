@@ -25,10 +25,11 @@
   import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import { FINGERING_NOTE, Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import { evennessRow } from "@repo/music-core";
 
   const TEMPO = { min: 50, max: 140 };
   const BARS = 2;
@@ -161,15 +162,22 @@
     heard = [...heard, { midi: e.midi, beat: (e.at - clock0.downbeat) / clock0.beatMs }];
     if (mode !== "practice") return;
     const b = transport.beat ?? 0;
-    const want = due(b).find((n) => n.midi === e.midi);
+    const dueNow = due(b);
+    const want = dueNow.find((n) => n.midi === e.midi);
     flashes.add(e.midi, want ? "correct" : "wrong");
     // The word for the note, as the lane will mark it: on time within a quarter of the hand's spacing.
     const beat = heard.at(-1)!.beat;
     const v = want
       ? verdictOf(Math.abs(beat - want.beat) <= want.dur / 4 ? "ok" : beat < want.beat ? "early" : "late", (beat - want.beat) * clock0.beatMs)
-      : { kind: "wrong" as const, text: `Not now: ${noteName(e.midi, "flat")}` };
+      : { kind: "wrong" as const, text: wrongText(e.midi, dueNow) };
     verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
+
+  /** "Wrong note: Bb4, wanted E4": the due note nearest the one played, when there is one. */
+  const wrongText = (midi: number, dueNow: readonly TimedNote[]) => {
+    const near = [...dueNow].sort((a, b) => Math.abs(a.midi - midi) - Math.abs(b.midi - midi))[0];
+    return `Wrong note: ${noteName(midi, "flat")}${near ? `, wanted ${noteName(near.midi, "flat")}` : ""}`;
+  };
 
   function start(ctx: RunContext) {
     transport.stop();
@@ -249,7 +257,7 @@
           ? `Clean, and the hands struck together on ${r.together!.count} of ${r.together!.beats} beats.`
           : mode === "check"
             ? `Both parts clean at ${bpm} BPM, from memory.`
-            : `Clean at ${bpm} BPM. Try it in Check to count it.`
+            : `Both parts clean at ${bpm} BPM.`
         : r.pitch >= 0.9 && togetherShare !== null && togetherShare < 0.8
           ? `Every note right, but the hands struck together on only ${r.together!.count} of ${r.together!.beats} beats.`
           : weak && weak.pitch < 0.9
@@ -260,7 +268,8 @@
       value: h.pitch,
       text: `${h.matched} of ${h.total}`,
     }));
-    rows.push({ label: "Evenness", value: r.evenness, text: `${pct(r.evenness)}, ${Math.round(Math.max(...r.hands.map((h) => h.spacingErrorMs)))} ms off` });
+    // Evenness is read from the spacings of the notes that landed: too few and it is not measured (K3).
+    rows.push(evennessRow(r.evenness, r.hands.reduce((t, h) => t + h.matched, 0), r.hands.reduce((t, h) => t + h.total, 0)));
     if (measuresTogether)
       rows.push(
         r.together
@@ -277,7 +286,7 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows,
       timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
@@ -331,7 +340,8 @@
 
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
-      <Stat label="Beat" value="{Math.min(totalBeats, Math.floor(Math.max(0, transport.beat)) + 1)} of {totalBeats}" />
+      <!-- The HUD's own readout counts the beats; this counts the bars. -->
+      <Stat label="Bar" value="{Math.min(totalBeats / 4, Math.floor(Math.max(0, transport.beat) / 4) + 1)} of {totalBeats / 4}" />
     {/if}
   {/snippet}
 
@@ -339,20 +349,21 @@
     {#if phase !== "running" && phase !== "countin" && (mode === "practice" || phase === "results")}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
       {#if phase !== "running" && phase !== "countin"}<p class="max-w-prose text-ws-stage-soft">{about[pattern]}</p>{/if}
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- A setup toggle: it leaves the stage while the run plays. -->
+      {#if phase !== "running" && phase !== "countin"}
         <button
           type="button"
           class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium {s.dynamics ? 'bg-ws-stage-ink/15' : ''}"
           aria-pressed={s.dynamics}
-          disabled={phase === "running" || phase === "countin"}
           onclick={() => cfg.set({ dynamics: !s.dynamics })}
           >{s.dynamics ? "Dynamics on: melody louder" : "Dynamics off"}</button
         >
-      </div>
+      {/if}
     </div>
     {#if falling && (mode === "practice" || transport.playing || phase === "results")}
       <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
     {:else}
+      <div class="flex min-h-0 flex-1 flex-col justify-center gap-3" data-dock="music">
       {#if mode === "practice" || transport.playing || phase === "results"}
         <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></StaffFold>
       {/if}
@@ -365,16 +376,18 @@
         label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
         {outcomes}
       />
-      <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+      </div>
+      <div class="flex flex-col justify-end" data-dock="instrument">
+        <!-- The word for the last note sits above the keys, never over them. -->
+        {#if phase === "running"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
         <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} minKey={26} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
-        {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
-      </div></div>
+      </div>
     {/if}
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
         <p>Notes hidden. Keep the rhythm; keys light only where you play.</p>
       {:else if phase === "running" || phase === "countin" || phase === "results"}
-        <p>On the lane: ✓ on time, − early, + late, ✕ missed.{s.dynamics ? ` Play the ${rendering.melodyHand} hand louder.` : ""}</p>
+        {#if s.dynamics}<p>Play the {rendering.melodyHand} hand louder.</p>{/if}
       {:else}
         <details>
           <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>

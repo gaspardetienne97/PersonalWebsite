@@ -31,7 +31,7 @@
   import { btn, btnStage } from "$lib/music/components/ui";
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -69,6 +69,7 @@
   /** Notes that start together are one step: a chord or a double stop. */
   const events = $derived(phraseEvents(clicked));
   const spell = (midis: number[]) => midis.map((m) => noteName(m + shift, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
+  const chords = $derived(events.some((e) => e.notes.length > 1));
   const timed = $derived<TimedNote[]>(clicked.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
 
   let phase = $state<Phase>("ready");
@@ -132,7 +133,7 @@
   const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? "As saved" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : "semitones" }));
   const summaryLine = $derived<SetupClause[] | string>(
     phrase
-      ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, ...(isUser ? [{ text: transpose ? `moved ${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitones` : "in the key it was saved in", focus: "transpose" }] : []), { text: `it goes at about ${phrase.bpm} BPM` }]
+      ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, ...(isUser ? [{ text: transpose ? `moved ${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitones` : "in the key it was saved in", focus: "transpose" }] : []), { text: bpm === phrase.bpm ? `at its own ${bpm} BPM` : `at ${bpm} BPM, the phrase goes at about ${phrase.bpm}` }]
       : `No phrases for the ${own} yet`,
   );
   const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: `${p.style}, about ${p.bpm} BPM`, group: p.id.startsWith("user.") ? "Your licks" : `Level ${p.level}`, keywords: p.source })));
@@ -223,7 +224,6 @@
     result = r;
     phase = "results";
     await run!.attempt({ promptId: phrase.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: runSource(got), instrument: runInstrument(got, own) ?? null, target: notes.map((n) => n.midi), response: got.filter((n) => n.kind === "noteon").map((n) => n.midi) });
-    const chords = events.some((e) => e.notes.length > 1);
     const what = chords ? "steps" : "notes";
     const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} ${what}` });
     if (!fin.heard) {
@@ -244,7 +244,7 @@
         : r.correct
           ? mode === "check"
             ? `All ${r.total} ${what}, from memory.`
-            : `${r.matched} of ${r.total} in order. Try it in Check with the notes hidden.`
+            : `All ${r.total} ${what} in order.`
           : `${r.matched} of ${r.total} right. It slipped at ${chords ? "step" : "note"} ${(r.firstWrong ?? 0) + 1}${wrong ? `, ${wrong.notes.length > 1 ? `the chord ${spell(wrong.notes.map((n) => n.midi))}` : `the ${spell([wrong.notes[0].midi])}`}` : ""}.`,
       metric: pct(r.score),
       metricLabel: `${what} in order`,
@@ -252,7 +252,7 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows,
       timing: any ? timingFromErrors(events.map((_, i) => (typeof eventHits[i] === "number" ? (eventHits[i] as number) : null)), onTimeMs()) : undefined,
       // Up to the phrase's own tempo, then the next phrase for this instrument.
@@ -321,17 +321,19 @@
       <div class="mb-3 flex flex-wrap items-start justify-between gap-3 text-sm" data-testid="phrase" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-beat-ms={Math.round(60000 / bpm)} data-notes={JSON.stringify(clicked.map((n) => [n.midi, n.startBeat]))}>
         <div class="min-w-0 max-w-prose">
           <p class="font-display text-xl font-semibold">{phrase.title}</p>
-          <p class="text-ws-stage-soft">{phrase.style}. {phrase.why} <span class="whitespace-nowrap">Source: {phrase.source}.</span></p>
+          <!-- The notes take the room while it runs. -->
+          {#if phase !== "running" && phase !== "countin"}<p class="text-ws-stage-soft">{phrase.style}. {phrase.why} <span class="whitespace-nowrap">Source: {phrase.source}.</span></p>{/if}
         </div>
         {#if phase !== "running" && phase !== "countin" && mode === "practice"}
           <button type="button" class={btnStage} onclick={() => demo(0.5)}>Half speed</button>
         {/if}
       </div>
-      {#if (fretted || own === "piano") && (mode === "practice" || transport.playing) && phase !== "results"}
+      {#if (fretted || own === "piano") && (mode === "practice" || transport.playing) && phase === "ready"}
         <div class="mb-2 flex justify-end">
           {#if fretted}{@render viewSwitch("Tab")}{:else}<ViewSwitch />{/if}
         </div>
       {/if}
+      <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
       {#if moving && (mode === "practice" || transport.playing) && phase !== "results"}
         {@const beat = transport.beat === null ? null : transport.beat * click}
         <div class="mb-3">
@@ -344,7 +346,7 @@
         </div>
       {:else if mode === "practice" || transport.playing || phase === "results"}
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
-          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} /></div>
+          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} oneRow /></div>
       {:else}
         <!-- Check: the notes stay hidden; a slot a note shows how many are left, and the phrase can be heard again before a run. -->
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3" data-testid="check-progress">
@@ -355,7 +357,7 @@
               {/each}
             </ol>
             <p class="text-sm text-ws-stage-soft">
-              {phase === "running" ? `${Math.max(0, events.length - played)} of ${events.length} notes left. Play it from memory.` : `Check: the notes are hidden. ${events.length} notes: hear it, then play it from memory.`}
+              {phase === "running" ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}. Play it from memory.` : `Check: the notes are hidden. ${events.length} ${chords ? "steps" : "notes"}: hear it, then play it from memory.`}
             </p>
           </div>
           {#if phase !== "running" && phase !== "countin"}
@@ -363,11 +365,13 @@
           {/if}
         </div>
       {/if}
+      </div>
       {#if !(moving && !fretted && (mode === "practice" || transport.playing) && phase !== "results")}
-        <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+        <div class="flex flex-col justify-end" data-dock="instrument">
+          <!-- The word for the last note sits above the instrument, never over it. -->
+          {#if phase === "running" && mode === "practice"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
           <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
-          {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
-        </div></div>
+        </div>
       {/if}
     {:else}
       <p class="text-sm text-ws-stage-soft">No phrases for this instrument yet.</p>

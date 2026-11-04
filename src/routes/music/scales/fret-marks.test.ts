@@ -52,7 +52,15 @@ describe("scaleFretMarks", () => {
     });
     expect(mark(after, 1, 12)).toMatchObject({ state: "wrong", spoken: "target, root, missed" });
     const demo = scaleFretMarks({ steps, at, tonic: 55, all: false, outcomes: [], demo: 1 });
-    expect(demo).toEqual([expect.objectContaining({ string: 1, fret: 14, demo: true })]);
+    expect(demo).toEqual([
+      expect.objectContaining({
+        string: 1,
+        fret: 14,
+        demo: true,
+        state: "now",
+        spoken: "target, sounding now",
+      }),
+    ]);
   });
 
   it("gives one finger a fret and none to open strings", () => {

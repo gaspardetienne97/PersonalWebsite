@@ -14,7 +14,7 @@
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
@@ -170,7 +170,7 @@
       best: fin.best,
       clean: g.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Chord named", value: g.identified === symbol ? 1 : 0, text: g.identified ?? "None" },
         { label: "Target tones heard", value: v.coverage, text: `${expected.length - v.missing.length} of ${expected.length}` },
@@ -202,7 +202,7 @@
   lesson={{ lessons: conceptCard("tips.strum", { tuning }), trigger: "check" }}
   title="Strum and identify"
   hue={instr}
-  blurb="Strum the chord once into the microphone. The app names what it heard and checks each chord tone."
+  blurb="Strum the chord once into the microphone: it names what it heard and checks each tone."
   summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: "one strum" }]}
   tabs={CHORD_MODES}
   tab="strum"

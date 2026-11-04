@@ -74,9 +74,12 @@
   const natural = (k: number) => 90 + 25 * k;
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
   const zoomCap = $derived(maxZoom ?? (tuning ? 1.15 : 1.6));
-  const zoom = $derived(width ? Math.min(zoomCap, Math.max(Math.min(0.7, zoomCap), width / natural(Math.min(attacks, LONG)))) : 1);
-  // One row whatever the content: wide enough for a busy grand-staff bar (chords, rests, eighths in both hands).
-  const minWidth = $derived(oneRow ? Math.max(natural(attacks), 360 * Math.ceil(end / barBeats - 1e-9)) : attacks > LONG ? natural(attacks) : 0);
+  // A single line on one row never shrinks below full size: it scrolls with the cursor instead (a phone).
+  const zoom = $derived(width ? Math.min(zoomCap, Math.max(Math.min(oneRow && voices.length === 1 && !chords?.length ? 1 : 0.7, zoomCap), width / natural(Math.min(attacks, LONG)))) : 1);
+  // One row whatever the content: wide enough for a busy grand-staff bar (chords, rests, eighths in both hands);
+  // a single line needs only its notes' width, so a short one still fits the stage without scrolling.
+  const busy = $derived(voices.length > 1 || !!chords?.length);
+  const minWidth = $derived(oneRow && busy ? Math.max(natural(attacks), 360 * Math.ceil(end / barBeats - 1e-9)) : attacks > LONG ? natural(attacks) : 0);
   // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
   // Fingering adds a row of numbers above or below each staff.
   const fingered = $derived(notes.some((n) => n.finger !== undefined) || !!chords?.length);
@@ -88,7 +91,7 @@
     {#if tuning}
       <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" />
     {:else}
-      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" />
+      <Staff {score} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" oneRow={oneRow && !busy} />
     {/if}
   </div>
 </div>

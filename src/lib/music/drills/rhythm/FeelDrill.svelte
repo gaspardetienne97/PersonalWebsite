@@ -12,7 +12,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio } from "$lib/music/runtime";
 
@@ -114,7 +114,7 @@
       best: fin.best,
       clean: mode === "check" && correct,
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Right", value: score, text: `${right} of ${LENGTH}` },
         ...confused.map((x) => ({ label: `${x.f.label} heard as`, text: x.missed.map((r) => FEELS.find((f) => f.id === r.answered)!.label).join(", ") })),

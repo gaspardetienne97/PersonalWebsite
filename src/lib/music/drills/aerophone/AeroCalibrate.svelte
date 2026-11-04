@@ -184,7 +184,7 @@
 <DrillShell
   title="Aerophone"
   hue="aerophone"
-  blurb="Check the set-up before the path: the AE-20 sends the note the app reads, the breath arrives, and it reaches from p to f without clipping."
+  blurb="Check the AE-20 set-up: the note it sends, the breath, and soft to loud without clipping."
   summary={[{ text: `Set-up check, reading in ${keyLabel}` }, { text: "a written G4, then softest and loudest" }]}
   tabs={modes}
   tab="calibrate"
@@ -216,7 +216,7 @@
       <ol class="grid gap-2 sm:grid-cols-3" aria-label="Checks">
         {#each STEPS as st, i (st.id)}
           {@const now = phase === "running" && i === step}
-          <li class="rounded-xl p-3 text-sm {now ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/8'}" aria-current={now ? "step" : undefined}>
+          <li class="rounded-xl p-3 text-sm {now ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/8'}" aria-current={now ? "step" : undefined}>
             <span class="font-semibold">{i + 1}. {st.label}</span>
             <span class="block {now ? '' : 'text-ws-stage-soft'}">{st.say}</span>
           </li>

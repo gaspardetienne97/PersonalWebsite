@@ -23,7 +23,7 @@
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, runInstrument, tuningText, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, runInstrument, tuningText, type Capture } from "$lib/music/drill.svelte";
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { nextRun } from "$lib/music/advance.svelte";
   import { practice } from "$lib/music/practice.svelte";
@@ -70,7 +70,15 @@
     positionVerified: boolean | null;
     midi: number;
     ms: number;
+    /** Where it was played, when the input knows (an on-screen tap). */
+    string?: number;
+    fret?: number;
   }
+  /** What was played, in plain words: the note without its octave, and where on the neck when known. */
+  const playedText = (a: { midi: number; string?: number; fret?: number }) =>
+    `${noteName(a.midi, "sharp", false)}${a.string !== undefined && a.fret !== undefined ? ` (string ${a.string}, ${a.fret ? `fret ${a.fret}` : "open"})` : ""}`;
+  /** The answer that was wanted, as lit on the neck. */
+  const wantedText = (q: Question) => `${isRecall ? `${aOrAn(q.label)} up` : q.label} ${q.acceptable.length > 1 ? "is lit in each place" : "is lit"}`;
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -103,7 +111,9 @@
     if (!question || phase === "results") return out;
     if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root", spoken: "starting note" });
     if (revealing || (mode === "practice" && phase === "running"))
-      for (const a of question.acceptable) out.push({ string: a.string, fret: a.fret, label: revealing ? noteName(a.midi, "sharp", false) : undefined });
+      for (const a of question.acceptable)
+        // After a right answer the places turn green with a tick in the name; after a wrong one they stay rings, beside the red cross.
+        out.push({ string: a.string, fret: a.fret, label: revealing ? noteName(a.midi, "sharp", false) : undefined, state: revealing && answers.at(-1)?.correct ? "correct" : undefined });
     return out;
   });
 
@@ -137,7 +147,7 @@
     const at = e.string !== undefined && e.fret !== undefined ? e : g.correct ? q.acceptable.find((a) => a.midi === e.midi) : undefined;
     if (at) flashes.add(at.string! * 100 + at.fret!, g.correct ? "correct" : "wrong", REVEAL_MS);
     const ms = Math.round(e.at - askedAt);
-    answers = [...answers, { q, correct: g.correct, positionVerified: g.positionVerified, midi: e.midi, ms }];
+    answers = [...answers, { q, correct: g.correct, positionVerified: g.positionVerified, midi: e.midi, ms, string: e.string, fret: e.fret }];
     const r = run!;
     pending = pending.then(() =>
       r.attempt({
@@ -154,9 +164,8 @@
       }),
     );
     revealing = true;
-    status = g.correct
-      ? `Yes, ${noteName(e.midi, "sharp")}.`
-      : `That was ${noteName(e.midi, "sharp")}. ${q.acceptable.length > 1 ? "The lit frets are" : "The lit fret is"} ${isRecall ? `${aOrAn(q.label)} up` : q.label}.`;
+    const said = playedText({ midi: e.midi, string: e.string, fret: e.fret });
+    status = g.correct ? `Yes, ${said}.` : `You played ${said}. ${wantedText(q)}.`;
     revealTimer = setTimeout(() => {
       if (phase !== "running") return;
       if (answers.length >= s.questions) void finish();
@@ -212,7 +221,7 @@
     summary = {
       headline:
         right === answers.length
-          ? `All ${right} found${isRecall ? "" : ` between frets ${region.start} and ${to}`}.${mode === "check" ? "" : " Try it in Check, with the frets hidden."}`
+          ? `All ${right} found${isRecall ? "" : ` between frets ${region.start} and ${to}`}.`
           : `${right} of ${answers.length} found. The misses are listed on the stage, so look again before the next round.`,
       metric: `${right}/${answers.length}`,
       metricLabel: "found",
@@ -220,8 +229,8 @@
       best: fin.best,
       clean: mode === "check" && right === answers.length && answers.length > 0,
       xp: fin.xp,
-      assistance:
-        assistanceText(mode) + (isRecall && instr === "ukulele" ? " The skill map has no ukulele interval skill yet, so this run is kept as practice history only." : ""),
+      // The skill map has no ukulele interval skill yet: say that instead of the mode's line, which would claim it counts.
+      ...(isRecall && instr === "ukulele" ? { assistance: "No ukulele interval skill yet: this run is kept as practice history, not counted toward your skill scores." } : { mode }),
       rows: [
         { label: "Found", value: score, text: `${right} of ${answers.length}` },
         ...perInterval,
@@ -262,7 +271,7 @@
   title={isRecall ? "Interval recall" : "Note finder"}
   hue={instr}
   blurb={isRecall
-    ? "From the square, find the note a set interval up, inside a five-fret window. No timing, no fingering, just where it lives."
+    ? "From the square, find the note a set interval up, inside a five-fret window."
     : "A note is named. Find it on the neck inside a five-fret window, on any string."}
   summary={summaryLine}
   tabs={FRETBOARD_MODES}
@@ -304,20 +313,20 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Question" value="{Math.min(answers.length + 1, s.questions)} of {s.questions}" />
-      <Stat label="Found" value="✓ {answers.filter((a) => a.correct).length}" />
-      <Stat label="Missed" value="✕ {missed.length}" tone={missed.length ? "warn" : undefined} />
+      <Stat label="Found" value="✓ {answers.filter((a) => a.correct).length}  ✕ {missed.length}" />
     {/if}
   {/snippet}
 
   {#snippet stage()}
-    <div class="mb-3 flex min-h-20 flex-wrap items-end gap-x-4 gap-y-1">
+    <!-- The prompt fills the room above the neck, centred like a flash card. -->
+    <div class="mb-3 flex min-h-20 flex-1 flex-wrap content-center items-end gap-x-4 gap-y-1" data-dock="music">
       {#if question}
         {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
         <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
         <Verdict
           kind={last ? (last.correct ? "right" : "wrong") : null}
-          text={last ? (last.correct ? `Yes, ${noteName(last.midi, "sharp")}` : `That was ${noteName(last.midi, "sharp")}. Lit: ${isRecall ? aOrAn(last.q.label) + " up" : last.q.label}`) : undefined}
+          text={last ? (last.correct ? `Yes, ${playedText(last)}` : `You played ${playedText(last)}. ${wantedText(last.q)}.`) : undefined}
           key={answers.length}
           class="pb-1"
         />

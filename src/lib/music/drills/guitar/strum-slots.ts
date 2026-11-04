@@ -1,6 +1,7 @@
 // A strum pattern's bar as a row of slots ("1 & 2 & 3 & 4 &"), and each heard
 // strum judged against the stroke it was nearest: on time, early or late by so
 // many ms, or missed. Pure, so the strum page and its tests share it.
+import { timingBreakdown } from "@repo/music-core";
 
 export type Stroke = "down" | "up" | "mute";
 export interface SlotStroke {
@@ -83,16 +84,6 @@ export function pairStrums(
   return out;
 }
 
-/** The run's strokes as on time, early, late and missed counts. */
-export function timingCounts(offsets: readonly (number | undefined)[], onTimeMs: number) {
-  const t = { onTime: 0, early: 0, late: 0, missed: 0 };
-  for (const off of offsets) {
-    if (off === undefined) t.missed++;
-    else {
-      const k = strokeVerdict(off, onTimeMs).kind;
-      if (k === "ontime") t.onTime++;
-      else t[k]++;
-    }
-  }
-  return t;
-}
+/** The run's strokes as on time, early, late and missed counts: the shared breakdown (K3), so lanes and results agree. */
+export const timingCounts = (offsets: readonly (number | undefined)[], onTimeMs: number) =>
+  timingBreakdown(offsets, onTimeMs);

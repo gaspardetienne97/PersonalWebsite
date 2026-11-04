@@ -253,7 +253,7 @@
   title="Bends and vibrato"
   lesson={{ lessons: [bendLesson(instr, tuning.openStrings)] }}
   hue={instr}
-  blurb="Bend to pitch and hold it, judged in cents where it settles; or hold a note with vibrato, its rate and width measured. Needs the microphone."
+  blurb="Bend to pitch and hold it, or hold a note with vibrato. Needs the microphone."
   summary={summaryLine}
   tabs={FRETBOARD_MODES}
   tab="bends"

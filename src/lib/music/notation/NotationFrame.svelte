@@ -18,13 +18,15 @@
     highlights?: (BeatRange & { label: string })[];
     /** Engrave at least this wide: a long line stays on one row and scrolls sideways, following the cursor. */
     minWidth?: number;
+    /** Notes the player played, drawn as heads at their beat and pitch (a single staff only); `wrong` ones in red with a cross. */
+    played?: readonly { beat: number; midi: number; wrong?: boolean }[];
   }
 </script>
 
 <script lang="ts">
   import { onMount } from "svelte";
   import type { BeatRange } from "./groups";
-  import { loadVexFlow, NotationError, type Layout } from "./engrave";
+  import { loadVexFlow, NotationError, staffOffset, spell, type Layout } from "./engrave";
   import {
     RangePicker,
     cursorAt,
@@ -55,6 +57,7 @@
     onfallback,
     highlights = [],
     minWidth = 0,
+    played = [],
   }: FrameProps & {
     draw: (VF: VF, host: HTMLElement, width: number) => Layout;
     fallback: (reason: string) => string;
@@ -127,15 +130,16 @@
   );
   const span = $derived(shown ? ends(list, shown) : null);
   const cursor = $derived(layout && cursorBeat != null ? cursorAt(layout, cursorBeat) : null);
-  // A line wider than the box keeps its cursor in view: it scrolls once the cursor nears the right edge.
+  // A line wider than the box keeps its cursor near the middle, so the notes ahead are in view: it
+  // scrolls once the cursor passes 60% of the box (or falls off its left edge).
   $effect(() => {
     const x = cursor?.x;
     if (x === undefined || !viewport || viewport.scrollWidth <= viewport.clientWidth + 1) return;
     const w = viewport.clientWidth;
     const left = viewport.scrollLeft;
-    if (x < left + w * 0.1 || x > left + w * 0.7) {
+    if (x < left + w * 0.1 || x > left + w * 0.6) {
       const still = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.hasAttribute("data-reduce-motion");
-      viewport.scrollTo({ left: Math.max(0, x - w * 0.25), behavior: still ? "auto" : "smooth" });
+      viewport.scrollTo({ left: Math.max(0, x - w * 0.4), behavior: still ? "auto" : "smooth" });
     }
   });
   const text = $derived(readout(list, shown, picker.pending, bpm ?? scoreBpm, snap));
@@ -146,9 +150,23 @@
       const s = a.group === null ? undefined : groupStates[a.group];
       if (s !== "wrong" && s !== "missed" && s !== "correct") continue;
       const cell = layout.bars.find((c) => c.system === a.system);
-      if (cell && !out.some((m) => m.x === a.x)) out.push({ x: a.x, y: cell.top - 22, state: s });
+      // Above the finger numbers when the staff prints them, so both stay readable.
+      if (cell && !out.some((m) => m.x === a.x)) out.push({ x: a.x, y: cell.top - (layout.fingersAbove ? 42 : 22), state: s });
     }
     return out;
+  });
+
+  /** Each played note as a head on the staff: x at its beat, y at its pitch, with its accidental. */
+  const heads = $derived.by(() => {
+    const st = layout?.staff;
+    if (!layout || !st || !played.length) return [];
+    return played.flatMap((p, i) => {
+      const cell = layout!.bars.find((c) => p.beat >= c.startBeat - 1e-6 && p.beat < c.endBeat - 1e-6);
+      const at = cell && cursorAt(layout!, p.beat);
+      if (!cell || !at) return [];
+      const acc = spell(p.midi, st.fifths).match(/^[a-g](#|b)?/)![1];
+      return [{ i, x: at.x, y: cell.top + staffOffset(p.midi, st.clef, st.fifths, (cell.bottom - cell.top) / 4), wrong: !!p.wrong, acc: acc === "#" ? "♯" : acc === "b" ? "♭" : "" }];
+    });
   });
 
   function pick(t: Target) {
@@ -308,6 +326,11 @@
         <span class="mark ws-pop {m.state}" style:left="{m.x}px" style:top="{m.y}px" aria-hidden="true"
           >{m.state === "wrong" ? "×" : m.state === "correct" ? "✓" : "○"}</span
         >
+      {/each}
+
+      {#each heads as h (h.i)}
+        <!-- A note you played: a head at its pitch, a wrong one red and crossed, so colour is never the only cue. -->
+        <span class="played ws-pop" class:wrong={h.wrong} style:left="{h.x}px" style:top="{h.y}px" aria-hidden="true">{#if h.acc}<i>{h.acc}</i>{/if}{#if h.wrong}×{/if}</span>
       {/each}
 
       {#if cursor}
@@ -485,6 +508,35 @@
     font-weight: 700;
     line-height: 1;
     pointer-events: none;
+  }
+  .played {
+    position: absolute;
+    width: 0.8rem;
+    height: 0.6rem;
+    translate: -50% -50%;
+    rotate: -20deg;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    font-weight: 900;
+    line-height: 1;
+    background: color-mix(in oklch, currentColor 45%, transparent);
+    pointer-events: none;
+  }
+  .played.wrong {
+    color: white;
+    background: var(--destructive);
+  }
+  .played i {
+    position: absolute;
+    right: 100%;
+    rotate: 20deg;
+    font-style: normal;
+    font-size: 0.8rem;
+  }
+  .played.wrong i {
+    color: var(--destructive);
   }
   .mark.wrong {
     color: var(--destructive);

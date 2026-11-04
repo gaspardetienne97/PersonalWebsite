@@ -11,8 +11,8 @@
 <div class="mt-3 text-sm text-ws-stage-soft" data-testid="tap-key">
   <p class="flex flex-wrap items-center gap-x-4 gap-y-1">
     <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><circle r="5" class="ok" /></svg>On time (within 15 ms)</span>
-    <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><path d="M5 -5 L-5 0 L5 5 Z" class="off" /></svg>Early</span>
-    <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><path d="M-5 -5 L5 0 L-5 5 Z" class="off" /></svg>Late</span>
+    <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><path class="chev early" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" /></svg>Early</span>
+    <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><path class="chev late" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" /></svg>Late</span>
     <span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><path d="M-4.5 -4.5 L4.5 4.5 M4.5 -4.5 L-4.5 4.5" class="cross" /></svg>Extra, or in a rest</span>
     {#if missed}<span class="item"><svg viewBox="-6 -6 12 12" aria-hidden="true"><circle r="4.5" class="hollow" /></svg>Hollow: a note you missed</span>{/if}
   </p>
@@ -33,8 +33,17 @@
   .ok {
     fill: var(--success);
   }
-  .off {
-    fill: var(--warn);
+  .chev {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .chev.early {
+    stroke: var(--early, var(--warn));
+  }
+  .chev.late {
+    stroke: var(--late, var(--warn));
   }
   .cross {
     fill: none;

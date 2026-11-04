@@ -10,16 +10,20 @@
     instrument: Instrument;
     /** Pads: whether the app sounds hardware hits (off when the MPC makes its own). A device setting, so it lives here. */
     sound?: { value: boolean; onchange: (v: boolean) => void };
+    /** performance.now() of the run's start: a note heard before it is said to be from before the run. */
+    since?: number | null;
   }
-  let { instrument, sound }: Props = $props();
+  let { instrument, sound, since = null }: Props = $props();
 
-  let last = $state<{ text: string; used: boolean; midi: number } | null>(null);
+  let last = $state<{ text: string; used: boolean; midi: number; at: number } | null>(null);
+  /** The last note came before this run (a run where nothing was heard): it must not read as part of the run. */
+  const stale = $derived(!!last && since !== null && last.at < since);
 
   $effect(() =>
     midi.subscribeRaw((m) => {
       const port = midi.inputs.find((p) => p.id === m.portId) ?? { id: m.portId, name: m.port, manufacturer: "" };
       const said = explainNote(m.data, port, midi.profile(m.portId));
-      if (said) last = said;
+      if (said) last = { ...said, at: performance.now() };
     }),
   );
 
@@ -39,7 +43,7 @@
   <Cable class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
   <p class="min-w-0 flex-1 basis-60">
     {#if last && midi.enabled}
-      <span class={last.used ? "" : "font-medium"} title="MIDI note {last.midi}">{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{last.text}</span>
+      <span class={last.used ? "" : "font-medium"} title="MIDI note {last.midi}">{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{stale ? `Before the run: ${last.text}` : last.text}</span>
     {:else}
       <span class="text-ws-soft">{waiting}</span>
     {/if}

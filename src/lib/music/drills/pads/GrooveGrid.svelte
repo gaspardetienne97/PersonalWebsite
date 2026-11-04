@@ -108,6 +108,8 @@
 
 <style>
   .scroll {
+    /* The cells' screen-reader words are absolutely placed: positioned here, the scroller holds them, not the page. */
+    position: relative;
     overflow-x: auto;
     padding-bottom: 0.35rem;
     scrollbar-width: thin;

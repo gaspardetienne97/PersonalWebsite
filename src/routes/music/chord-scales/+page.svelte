@@ -19,7 +19,7 @@
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { toneLabel } from "$lib/music/drills/piano/tones";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -245,7 +245,7 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: r.chords.map((c, i) => ({
         label: `${c.symbol}, ${targets[i].scaleLabel}`,
         value: c.chord + c.scale + c.avoid ? c.score : null,
@@ -286,7 +286,7 @@
         : r.correct
           ? mode === "check"
             ? `${pattern!.label} through every chord, from memory.`
-            : `${r.matched} of ${r.total} in order. Try it in Check with the colour key hidden.`
+            : `${pattern!.label} through every chord, all ${r.total} notes in order.`
           : `${r.matched} of ${r.total} right. It slipped over ${slip?.symbol ?? "a chord"}.`,
       metric: pct(r.score),
       metricLabel: "notes in order",
@@ -294,7 +294,7 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
         { label: `On time (within ${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
@@ -388,7 +388,6 @@
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <Stat label="Chord" value="{currentIndex + 1} of {targets.length}" />
-      <Stat label="Beat" value="{Math.min(perChord, Math.floor(Math.max(0, transport.beat) % perChord) + 1)} of {perChord}" />
     {:else if patternResult}
       <Stat label="Notes in order" value={pct(patternResult.score)} tone={patternResult.correct ? "success" : "warn"} />
     {:else if result}
@@ -398,6 +397,7 @@
   {/snippet}
 
   {#snippet stage()}
+    <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
     <ol class="mb-3 grid grid-cols-3 gap-2" aria-label="Chord chart">
       {#each targets.slice(chartFrom, chartFrom + 3) as t, j (t.symbol)}
         {@const i = chartFrom + j}
@@ -421,8 +421,10 @@
       <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} /></div>
+      <!-- Each chord's symbol over its bars, so the change is read on the music itself. -->
+      <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} /></div>
     {/if}
+    </div>
     <div class="flex flex-col justify-end" data-dock="instrument">
       <InstrumentStage line={current ? [...current.midi, current.midi[0] + 12] : stageLine} {low} {high} {marks} {flashes} fit />
     </div>

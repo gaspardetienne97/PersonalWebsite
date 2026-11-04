@@ -42,7 +42,7 @@
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { capturePointer } from "$lib/music/components/feedback.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, input, settings } from "$lib/music/runtime";
   import BreathTrace from "$lib/music/drills/aerophone/BreathTrace.svelte";
@@ -316,7 +316,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: correct && mode === "check",
-      assistance: assistanceText(mode),
+      mode,
       advance: await advanceAfter(score, correct),
     };
     status = summary.headline;
@@ -392,7 +392,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: r.correct && mode === "check",
-      assistance: assistanceText(mode),
+      mode,
       advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
     status = summary.headline;
@@ -502,10 +502,10 @@
   const envelope = Array.from({ length: TRACE_SAMPLES }, (_, i) => swellEnvelope(i / (TRACE_SAMPLES - 1)));
   const showTargets = $derived(mode === "practice" || phase === "results");
   const BLURB: Record<string, string> = {
-    fingering: "Fingerings in Roland's lesson order: each note waits until it is right, and a slip says which key to move.",
-    "long-tone": "Hold one note steady: the breath read from CC 2 should sit still, at a level if you set one.",
+    fingering: "Fingerings in Roland's lesson order: each note waits until it is right.",
+    "long-tone": "Hold one note steady: the breath should sit still, at a level if you set one.",
     swell: "One note from soft to loud and back: the breath should rise and fall in a smooth arc.",
-    articulation: "Repeated attacks on one note at the strip's tempo: staccato sounds a third of each beat, legato nearly all of it.",
+    articulation: "Repeated attacks on one note: staccato sounds a third of each beat, legato nearly all.",
     "interval-landing": `A drone sounds; land the interval on it and hold it steady for ${LANDING_HOLD_MS / 1000} seconds.`,
   };
 </script>
@@ -584,7 +584,7 @@
                 {@const done = phase === "results" || (phase === "running" && i < step)}
                 {@const now = phase === "running" && i === step}
                 <li
-                  class="grid min-h-11 min-w-11 place-items-center rounded-lg px-1.5 text-sm font-semibold {now ? 'bg-instr text-ws-stage' : done ? (firstTry[i] ? 'bg-ws-stage-ink/15' : 'bg-warn/25') : 'bg-ws-stage-ink/6 text-ws-stage-soft'}"
+                  class="grid min-h-11 min-w-11 place-items-center rounded-lg px-1.5 text-sm font-semibold {now ? 'bg-instr-strong text-on-instr' : done ? (firstTry[i] ? 'bg-ws-stage-ink/15' : 'bg-warn/25') : 'bg-ws-stage-ink/6 text-ws-stage-soft'}"
                   aria-current={now ? "step" : undefined}
                 >
                   {chartName(n)}{#if done}<span class="sr-only">{firstTry[i] ? ", right first try" : ", took more than one try"}</span>{/if}
@@ -635,7 +635,7 @@
           {@const at = c.midi - shift}
           <button
             type="button"
-            class="min-h-11 min-w-11 rounded-lg px-1.5 text-xs font-semibold {sounding === at ? 'bg-instr text-ws-stage' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {at === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
+            class="min-h-11 min-w-11 rounded-lg px-1.5 text-xs font-semibold {sounding === at ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {at === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
             aria-label="Play {c.name}"
             aria-current={at === targetMidi && m !== "fingering" ? "true" : undefined}
             aria-pressed={sounding === at}
@@ -656,7 +656,8 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="aerophone" /></div>
+    <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
+    {#if summary?.heard !== false}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
   {/snippet}
 </DrillShell>
 {/if}

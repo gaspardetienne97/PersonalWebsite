@@ -4,7 +4,7 @@
   // back by ear, an ostinato under a reading line, rudiments spread across the
   // kit, and improvising over a loop. The grooves go through the groove grader;
   // dynamics and improvising have their own measures (content/pad-skills).
-  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
+  import { enough, timingBreakdown, timingRow, TOO_FEW } from "@repo/music-core";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
@@ -50,7 +50,7 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, getSetting, input, putSetting, settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -482,15 +482,35 @@
       grv = r;
       score = r.score;
       correct = r.correct;
+      const total = grooveDef.targets.length;
+      const landedErrs = r.perTarget.filter((e): e is number => e !== null);
       rows = [
-        { label: "Notes matched", value: r.accuracy, text: `${r.matched} of ${grooveDef.targets.length}, ${r.extra} extra` },
-        { label: "Timing", text: `${Math.round(r.meanAbsErrorMs)} ms off on average` },
+        { label: "Notes matched", value: r.accuracy, text: `${r.matched} of ${total}, ${r.extra} extra` },
+        // 180 ms is where the groove grader's timing credit reaches zero; too few landed reads Not measured (K3).
+        timingRow(landedErrs, total, 180),
       ];
       if (skill === "fills") {
-        const f = fillReport(grooveDef as ReturnType<typeof fillGroove>, r.perTarget);
+        const fg = grooveDef as ReturnType<typeof fillGroove>;
+        const f = fillReport(fg, r.perTarget);
         correct = r.correct && f.landed && !f.rushed;
-        rows.push({ label: "The fill", text: f.fillMeanMs === null ? "not played" : `${ms(f.fillMeanMs)} on average${f.rushed ? ": rushed" : ""}` }, { label: "Landing on the one", text: f.landingMs === null ? "missed" : `${ms(f.landingMs)}${f.landed ? ", landed" : ""}` });
-        headline = f.landingMs === null ? "The fill never landed: crash and kick together on the one after it." : f.rushed ? `The fill rushed (${ms(f.fillMeanMs)}): keep its notes the same size as the groove's.` : f.landed ? `Landed on the one (${ms(f.landingMs)}).` : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
+        // The fill and the landing speak only from enough of their own notes.
+        const fillOk = enough(fg.fill.filter((i) => r.perTarget[i] !== null).length, fg.fill.length);
+        const landOk = enough(fg.landing.filter((i) => r.perTarget[i] !== null).length, fg.landing.length);
+        rows.push(
+          fillOk ? { label: "The fill", text: `${ms(f.fillMeanMs)} on average${f.rushed ? ": rushed" : ""}` } : { label: "The fill", notMeasured: true, text: f.fillMeanMs === null ? "not played" : TOO_FEW },
+          landOk ? { label: "Landing on the one", text: `${ms(f.landingMs)}${f.landed ? ", landed" : ""}` } : { label: "Landing on the one", notMeasured: true, text: "missed" },
+        );
+        // Misses first: under 70% landed, timing advice would be read off a few notes.
+        headline =
+          r.matched < 0.7 * total
+            ? `${total - r.matched} of ${total} notes missed. Slow down until the groove holds, then add the fill.`
+            : !landOk
+              ? "The fill never landed: crash and kick together on the one after it."
+              : f.rushed && fillOk
+                ? `The fill rushed (${ms(f.fillMeanMs)}): keep its notes the same size as the groove's.`
+                : f.landed
+                  ? `Landed on the one (${ms(f.landingMs)}).`
+                  : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
       } else if (skill === "ostinato") {
         const voice = ostinatoDef!.ostinato;
         const o = ostinatoReport(grooveDef as GrooveDef, r.perTarget, voice);
@@ -615,7 +635,7 @@
       status = summary.headline;
       return;
     }
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, timing: grv && gt ? timingFromErrors(grv.perTarget, gt.matchWindowMs / 2) : undefined, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, timing: grv && gt ? timingBreakdown(grv.perTarget, gt.matchWindowMs / 2) : undefined, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }
 
@@ -742,13 +762,13 @@
     {#if phase === "running" && skill === "echo"}
       <Stat label="Now" value={inCallBar ? "listen" : "your turn"} tone={inCallBar ? undefined : "success"} />
     {:else if phase === "running" && rateNow}
+      {#if sixteenthNow !== null}<Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))} of ${Math.ceil(lengthMs / barMs)}`} />{/if}
       <Stat label="Rate" value={rateNow} />
-      {#if sixteenthNow !== null}<Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))}`} />{/if}
     {:else if phase === "running" && skill === "song" && sixteenthNow !== null && songDef}
       {@const b = Math.min(Math.floor(sixteenthNow / (gridPer * 4)), songDef.bars - 1)}
       <Stat label="Section" value={`${songDef.sectionLabels[b]}, ${songDef.dyn[b]}`} />
     {:else if phase === "running" && sixteenthNow !== null}
-      <Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))}`} />
+      <Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))} of ${Math.ceil(lengthMs / barMs)}`} />
     {/if}
   {/snippet}
 
@@ -809,7 +829,10 @@
           <p class="mt-1 text-xs text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
         </div>
       {:else}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Any pads. {loopEntry ? `The kit loops ${loopEntry.groove.label} for ${improBars} bars with the band in its style` : `The band plays ${improBars} bars of a funk vamp`}; {fillEvery ? ` A fill in every ${fillEvery}th bar, landing on the next one.` : ""} Graded on time and on keeping every bar going; listen back afterwards, as played and nudged half way to the grid.</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">
+          Play any pads over {loopEntry ? `${loopEntry.groove.label}, ${improBars} bars` : `${improBars} bars of a funk vamp`}.{fillEvery ? ` A fill every ${fillEvery}th bar, landing on the next one.` : ""}
+          <span class="mt-1 block text-ws-stage-soft">Graded on timing and on keeping every bar going.{phase === "results" ? " Hear it back as you played it, or moved half way onto the beat." : ""}</span>
+        </p>
       {/if}
       {#if !(notesShown && showLanes)}{@render padGrid()}{/if}
     </div>

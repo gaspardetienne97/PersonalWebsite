@@ -22,7 +22,7 @@
   import { JAZZ_VOICING_TYPES, UPPER_TUNES } from "@repo/music-core/content/jazz-voicings";
   import { TUNES } from "@repo/music-core/content/tunes";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun } from "$lib/music/advance.svelte";
@@ -253,7 +253,7 @@
       headline: correct
         ? mode === "check"
           ? `All ${items.length} chords right from memory.`
-          : `All ${items.length} chords right. Try it in Check to count it.`
+          : `All ${items.length} chords right.`
         : worst
           ? `${right} of ${items.length} right. ${worst.symbol} needs another look: ${grades[items.indexOf(worst)]?.note ?? "skipped"}.`
           : `${right} of ${items.length} right.`,
@@ -263,7 +263,7 @@
       best: fin.best,
       clean: correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Score", value: score, text: pct(score) },
         { label: "Right notes", value: done.length ? done.filter((g) => g.missing.length === 0).length / items.length : 0, text: `${done.filter((g) => g.missing.length === 0).length} of ${items.length} chords` },
@@ -460,17 +460,18 @@
             <div class="flex items-baseline justify-between gap-3">
               <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? `${it.symbol} in ${it.group}` : it.symbol}</span>
               <span class={g?.correct ? "text-success" : "text-ws-soft"}>
-                {g ? (g.correct ? "✓ right" : `✕ ${g.note}${g.missing.length ? `, missing ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : ""}`) : "not played"}
+                {g ? (g.correct ? "✓ right" : g.missing.length ? `✕ Missed ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : `✕ ${g.note}`) : "not played"}
               </span>
             </div>
-            <!-- A slipped chord drawn as it should sit: ✓ on the notes you had, a dashed ✕ on the ones you missed. -->
+            <!-- A slipped chord drawn as it should sit: ✓ on the notes you had, the missed ones named in a red ring. -->
             {#if g && !g.correct}
               {@const m = it.show.map((n) => n.midi)}
               <Piano
                 low={Math.min(...m) - 2}
                 high={Math.max(...m) + 2}
                 fit={{ low: Math.min(...m), high: Math.max(...m) }}
-                marks={Object.fromEntries(it.show.map((n) => [n.midi, g.missing.includes(pc(n.midi)) ? { target: true, role: "avoid" as const, label: "✕" } : { target: true, label: "✓" }]))}
+                missing={it.show.filter((n) => g.missing.includes(pc(n.midi))).map((n) => n.midi)}
+                marks={Object.fromEntries(it.show.filter((n) => !g.missing.includes(pc(n.midi))).map((n) => [n.midi, { target: true, label: "✓" }]))}
                 interactive={false}
                 names="none"
                 minKey={18}

@@ -22,14 +22,13 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
   import BeatLane from "$lib/music/drills/piano/BeatLane.svelte";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
   import { lineOutcomes, timingOf, verdictOf } from "$lib/music/drills/piano/lane-outcomes";
   import { Transport, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -281,7 +280,7 @@
         : r.correct
           ? mode === "check"
             ? `All ${r.total} notes in order, from memory.`
-            : `${r.matched} of ${r.total} in order. Try it in Check with the notes hidden.`
+            : `All ${r.total} notes in order.`
           : `${r.matched} of ${r.total} right. It slipped at note ${lo + (r.firstWrong ?? 0) + 1}${wrong ? `, the ${spell(wrong.midi)}` : ""}.`,
       metric: pct(r.score),
       metricLabel: "notes in order",
@@ -289,9 +288,12 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode, s.ear && peeked),
+      mode,
+      hinted: s.ear && peeked,
       rows,
       advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
+      // The headline's fix: the notes where it slipped, as their own chunk.
+      coach: r.practiceWindow ? { label: `Practise notes ${lo + r.practiceWindow[0] + 1} to ${lo + r.practiceWindow[1]}`, run: practiseWindow } : undefined,
       timing: timingOf(timed.map((_, i) => outcomes[i])),
     };
     status = summary.headline;
@@ -431,6 +433,7 @@
         </div>
       {/if}
     </div>
+    <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
     {#if hideNotes}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/8 p-4 text-sm" data-testid="licks-by-ear">
         By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.
@@ -470,6 +473,7 @@
         <LineNotation maxZoom={1.3} notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
       </div>
     {/if}
+    </div>
     {#if fretted}
       <Fretboard openStrings={GUITAR.openStrings} from={frets.from} to={frets.to} marks={fretMarks} {flashes} label="Guitar fretboard, standard tuning" />
       <p class="mt-3 text-sm text-ws-stage-soft">
@@ -477,10 +481,11 @@
       </p>
     {:else}
       {#if !falling}
-        <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+        <div class="flex flex-col justify-end" data-dock="instrument">
+          <!-- The word for the last note sits above the keys, never over them. -->
+          {#if phase === "running" && mode === "practice"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
           <InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />
-          {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
-        </div></div>
+        </div>
       {/if}
     {/if}
     {#if mode === "check" && phase !== "results"}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
@@ -488,14 +493,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          {#if result?.practiceWindow}
-            {@const [a, b] = result.practiceWindow}
-            <button type="button" class={btn} onclick={practiseWindow}>Practise notes {lo + a + 1} to {lo + b}</button>
-          {/if}
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>

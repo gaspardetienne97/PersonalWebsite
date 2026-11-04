@@ -14,6 +14,7 @@
   import SkipForward from "lucide-svelte/icons/skip-forward";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
+  import Pause from "lucide-svelte/icons/pause";
   import Upload from "lucide-svelte/icons/upload";
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
   import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
@@ -42,7 +43,7 @@
   import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, modeText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, settings, type SequenceHandle } from "$lib/music/runtime";
   import { addShelfSong, shelfSong, type Song } from "$lib/music/hubs/library/songs";
@@ -663,10 +664,10 @@
   {/snippet}
 
   {#snippet hud()}
-    <Stat label="Backing" value={phase === "running" ? (backingOn ? "Playing" : backingMode === "none" ? "By hand" : "Stopped") : backingMode === "none" ? "By hand" : "Ready"} />
+    <!-- Where the run is, then what it heard; the backing's state is on its own button. -->
     {#if phase === "running" || phase === "results"}
-      <Stat label="Notes recorded" value={played.length} />
       <Stat label="Chorus" value={phase === "results" ? choruses.length : chorus} />
+      <Stat label="Notes heard" value={played.length} />
     {/if}
   {/snippet}
 
@@ -741,7 +742,7 @@
           {#if !checking && !backingOn}<button type="button" class={btnStage} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>{/if}
           {#if backingMode !== "none" && !checking}
             <button type="button" class={btnStage} aria-pressed={backingOn} onclick={() => (backingOn ? stopBacking() : startBacking())}>
-              {#if backingOn}<Square class="size-4" aria-hidden="true" />Pause the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
+              {#if backingOn}<Pause class="size-4" aria-hidden="true" />Pause the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
             </button>
           {/if}
         {/if}
@@ -752,7 +753,8 @@
       {#if fretted}
         <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} label="{tuning.name} fretboard, tone roles over {chord.symbol}" />
       {:else}
-        <Piano low={48} high={84} fit={{ low: 60, high: 72 }} marks={pianoMarks} names="c" label="Keyboard, tone roles over {chord.symbol}" />
+        <!-- Two octaves always on screen, a phone too: the keys narrow before any is cut. -->
+        <Piano low={48} high={84} fit={{ low: 60, high: 84 }} marks={pianoMarks} names="c" label="Keyboard, tone roles over {chord.symbol}" />
       {/if}
     </div>
 
@@ -763,6 +765,15 @@
       <span>The numbers are degrees over the chord.</span>
     </div>
 
+    {#if phase === "running" && !showRoles}
+      <!-- Check hides the roles, not the playing: the last notes heard, newest last, with no verdict on them. -->
+      <ol class="mt-3 flex min-h-9 flex-wrap items-center gap-1.5 text-sm" aria-label="Notes heard so far" data-testid="jam-trail">
+        {#if !played.length}<li class="text-ws-stage-soft">Play: the notes you play show here.</li>{/if}
+        {#each played.slice(-10) as n, i (played.length - Math.min(played.length, 10) + i)}
+          <li class="rounded-full px-2.5 py-1 font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10'}">{noteName(n.midi, "flat", false)}</li>
+        {/each}
+      </ol>
+    {/if}
     {#if lastNote && showRoles}
       <p class="mt-3 text-lg" data-testid="jam-last">
         <span class="font-display font-semibold">{noteName(lastNote.midi)}</span>
@@ -782,7 +793,7 @@
         <div class="flex flex-wrap items-start gap-4">
           <div class="min-w-0 flex-1 basis-72">
             <p class="font-display text-2xl font-semibold leading-snug">{graded.headline}</p>
-            <p class="mt-1 text-sm text-ws-soft">{assistanceText("check")} {game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
+            <p class="mt-1 text-sm text-ws-soft">{modeText("check")} {game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
             {#if savedTake}<p class="mt-2 text-sm">Saved as a take. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Open it in Record</a></p>{/if}
           </div>
           <div class="text-right">

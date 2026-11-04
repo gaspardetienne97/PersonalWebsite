@@ -46,13 +46,15 @@ export function scaleFretMarks(o: {
   });
   return [...by.values()].map((m): FretMark => {
     const root = pc(m.midi) === pc(o.tonic);
-    const state = m.now
-      ? "now"
-      : m.outcome === "correct"
-        ? "correct"
-        : m.outcome
-          ? "wrong"
-          : undefined;
+    // One current note: the step to play, or the one the demo is sounding, the same index the tab cursor sits on.
+    const state =
+      m.now || m.demo
+        ? "now"
+        : m.outcome === "correct"
+          ? "correct"
+          : m.outcome
+            ? "wrong"
+            : undefined;
     const finger = fretFinger(m.fret, lowest);
     return {
       string: m.string,
@@ -62,7 +64,11 @@ export function scaleFretMarks(o: {
       state,
       demo: m.demo || undefined,
       label: state === "correct" ? "✓" : state === "wrong" ? "✕" : finger?.toString(),
-      spoken: ["target", root && "root", m.now ? "play next" : m.outcome && SPOKEN[m.outcome]]
+      spoken: [
+        "target",
+        root && "root",
+        m.now ? "play next" : m.demo ? "sounding now" : m.outcome && SPOKEN[m.outcome],
+      ]
         .filter(Boolean)
         .join(", "),
     };

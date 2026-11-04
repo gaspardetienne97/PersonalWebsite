@@ -16,6 +16,10 @@
 
 <script lang="ts">
   import type { LaneOutcome } from "./lane-outcomes";
+  import Check from "lucide-svelte/icons/check";
+  import X from "lucide-svelte/icons/x";
+  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
+  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
   // What lands on each beat, per hand, above the keys: notes that sit in the same
   // column strike together, left to right is the order. The playhead follows the
   // demo or the run clock, so the lane, the keys and the sound move as one.
@@ -34,8 +38,17 @@
     outcomes?: Record<string, readonly (LaneOutcome | undefined)[]>;
   }
   let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {} }: Props = $props();
-  const GLYPH: Record<LaneOutcome, string> = { ok: "✓", early: "−", late: "+", miss: "✕" };
+  // The same glyphs the results breakdown uses, so a mark reads the same on the lane and after the run.
+  const GLYPH = { ok: Check, early: ChevronsLeft, late: ChevronsRight, miss: X } as const;
   const SAID: Record<LaneOutcome, string> = { ok: "on time", early: "early", late: "late", miss: "missed" };
+  const ORDER: LaneOutcome[] = ["ok", "early", "late", "miss"];
+  /** The legend shows once a note has been marked, with each mark's count. */
+  const tally = $derived.by(() => {
+    const t: Record<LaneOutcome, number> = { ok: 0, early: 0, late: 0, miss: 0 };
+    for (const list of Object.values(outcomes)) for (const o of list) if (o) t[o]++;
+    return t;
+  });
+  const marked = $derived(ORDER.some((o) => tally[o] > 0));
 
   const at = (b: number) => `${(b / beats) * 100}%`;
   const ticks = $derived(Array.from({ length: beats * (eighths ? 2 : 1) }, (_, i) => (eighths ? i / 2 : i)));
@@ -61,7 +74,7 @@
 </script>
 
 <div bind:this={box} onscroll={() => (scrolled = (box?.scrollLeft ?? 0) > 8)} class="lane mb-3 overflow-x-auto overscroll-x-contain rounded-xl" role="img" aria-label={label}>
-  <div class="relative" style:min-width="{Math.max(18, beats * (eighths ? 3.8 : 2.6))}rem">
+  <div class="relative" style:min-width="{Math.max(18, beats * (eighths ? 5.5 : 3))}rem">
     {#if chords.length}
       <div class="flex h-6 text-sm font-semibold text-ws-stage-ink">
         <span class="gutter now-chord" aria-hidden="true">{scrolled ? nowChord : ""}</span>
@@ -83,7 +96,8 @@
     {#each rows as row (row.id)}
       <div class="flex items-center py-0.5">
         <span class="gutter"><span class="hand-mark" data-hand={row.hand} title={row.label}>{row.mark}</span></span>
-        <div class="track relative h-8 flex-1 rounded-md">
+        <!-- Rows grow with a tall screen (a phone held upright), so the lane takes the room, not a gap. -->
+        <div class="track relative h-[clamp(2.75rem,7dvh,4.5rem)] flex-1 rounded-md">
           {#each Array.from({ length: Math.ceil(beats / beatsPerBar) }, (_, i) => i * beatsPerBar) as bar (bar)}
             <span class="bar-line" style:left={at(bar)} aria-hidden="true"></span>
           {/each}
@@ -98,7 +112,7 @@
               title={out ? `${n.text}: ${SAID[out]}` : undefined}
               style:left={at(n.beat)}
               style:width="max(1.15rem, calc({at(widthOf(row, i))} - 3px))"
-              >{#if out}<span class="mark" aria-hidden="true">{GLYPH[out]}</span>{/if}{hidden ? count(n.beat) : n.text}</span
+              >{hidden ? count(n.beat) : n.text}{#if out}{@const G = GLYPH[out]}<span class="mark" aria-hidden="true"><G class="size-3" strokeWidth={3} /></span>{/if}</span
             >
           {/each}
         </div>
@@ -109,6 +123,18 @@
     {/if}
   </div>
 </div>
+{#if marked}
+  <!-- What the marks mean, as labelled chips with the counts so far (not part of the scrolling lane). -->
+  <ul class="-mt-1 mb-3 flex flex-wrap gap-1.5 text-sm" aria-label="Lane marks so far">
+    {#each ORDER as o (o)}
+      {@const G = GLYPH[o]}
+      <li class="legend inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5" data-outcome={o}>
+        <span class="mark static" aria-hidden="true"><G class="size-3" strokeWidth={3} /></span>{SAID[o].charAt(0).toUpperCase() + SAID[o].slice(1)}
+        <span class="tnum font-semibold">{tally[o]}</span>
+      </li>
+    {/each}
+  </ul>
+{/if}
 
 <style>
   .lane {
@@ -179,7 +205,7 @@
     border-radius: 0.4rem;
     background: var(--instr);
     color: #17120c;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
@@ -199,37 +225,52 @@
   /* A landed note: a glyph in a ring of its verdict's colour, so colour is never the only cue. */
   .chip[data-outcome] {
     opacity: 1;
+    padding-right: 1.2rem;
   }
   .chip[data-outcome="ok"] {
     box-shadow: inset 0 0 0 2px var(--success);
   }
-  .chip[data-outcome="early"],
+  .chip[data-outcome="early"] {
+    box-shadow: inset 0 0 0 2px var(--early, var(--warn));
+  }
   .chip[data-outcome="late"] {
-    box-shadow: inset 0 0 0 2px var(--warn);
+    box-shadow: inset 0 0 0 2px var(--late, var(--warn));
   }
   .chip[data-outcome="miss"] {
     opacity: 0.45;
     box-shadow: inset 0 0 0 2px var(--destructive);
   }
+  /* The mark sits in the chip's corner, clear of the note name. */
   .mark {
-    flex: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
     display: grid;
     place-items: center;
     width: 1rem;
     height: 1rem;
-    margin-right: 0.15rem;
     border-radius: 999px;
-    font-size: 0.65rem;
     color: white;
     background: var(--success);
   }
-  [data-outcome="early"] .mark,
+  .mark.static {
+    position: static;
+  }
+  [data-outcome="early"] .mark {
+    background: var(--early, var(--warn));
+    color: var(--on-destructive, white);
+  }
   [data-outcome="late"] .mark {
-    background: var(--warn);
-    color: #17120c;
+    background: var(--late, var(--warn));
+    color: var(--on-destructive, white);
+  }
+  .legend {
+    background: color-mix(in oklch, var(--ws-stage-ink, white) 8%, transparent);
+    color: var(--ws-stage-ink, white);
   }
   [data-outcome="miss"] .mark {
     background: var(--destructive);
+    color: var(--on-destructive, white);
   }
   .playhead {
     position: absolute;

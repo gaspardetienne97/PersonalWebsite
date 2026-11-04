@@ -22,7 +22,7 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { benchFromUrl, sounding, spanOf, Transport, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -199,7 +199,7 @@
       best: fin.best,
       clean: correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         measured
           ? { label: "Pedal changes clean", value: r.score, text: `${r.clean} of ${bars.length}` }

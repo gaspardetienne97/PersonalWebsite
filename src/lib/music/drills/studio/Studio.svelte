@@ -936,7 +936,7 @@
               {@const on = picked.includes(c.id)}
               <button
                 type="button"
-                class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+                class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
                 aria-pressed={on}
                 disabled={on && picked.length === 1}
                 onclick={() => toggleVoice(c.id)}>{on ? "✓ " : ""}{c.label}</button
@@ -963,7 +963,7 @@
               <div class="flex flex-wrap gap-1.5">
                 {#each sections as sec, i (sec.label + i)}
                   {@const on = pickedSections.includes(i)}
-                  <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
+                  <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
                 {/each}
               </div>
               {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole score plays.</span>{/if}

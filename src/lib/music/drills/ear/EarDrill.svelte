@@ -75,7 +75,7 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
   import DegreeWheel from "./DegreeWheel.svelte";
@@ -411,6 +411,8 @@
   let qi = $state(0);
   let step = $state<"playing" | "answer" | "feedback" | "revealed">("answer");
   let records = $state<AnswerRecord[]>([]);
+  /** A played-back phrase's notes per question, for the results' "you played 3 for the 2" rows. */
+  let phraseNotes = $state.raw<Record<number, number[]>>({});
   let played = $state<number[]>([]);
   /** Cents off the nearest note for each note sung on this prompt. */
   let sungCents = $state<number[]>([]);
@@ -821,6 +823,7 @@
     prompts = queued ?? makeSession();
     queued = null;
     records = [];
+    phraseNotes = {};
     // Not open for answers until the first prompt has played (the microphone may take a moment to start).
     step = "playing";
     if (!prompts.length) {
@@ -932,9 +935,12 @@
         // A short tail so the last note's release can't answer for the player.
         openAt = performance.now() + 150;
         promptAt = first ? performance.now() : promptAt;
+        // The answer shows as open a mic frame (about 45 ms) after the gate: a sung note is stamped
+        // at its frame's start, so one begun the moment "answer" shows still lands after the gate
+        // (otherwise it is dropped, and held it never sounds again).
         setTimeout(() => {
           if (prompts[qi] === p && step === "playing") step = "answer";
-        }, 150);
+        }, 210);
         if (answer === "listen-along") {
           listened = qi + 1;
           advanceTimer = setTimeout(next, 1400);
@@ -1089,6 +1095,7 @@
     step = "feedback";
     clearTimeout(chordTimer);
     records[i] = { kind: p.drill, expected: p.answer, answered, correct: g.correct, scored: true };
+    if (isPhrase(p) && Array.isArray(response)) phraseNotes = { ...phraseNotes, [i]: [...response] };
     if (!g.correct && answer === "choice" && mode === "practice") showMistake(p, answered);
     const src: InputSource | "mixed" = answer === "choice" ? "click" : answer === "voice" ? "audio" : runSource(notes);
     await run?.attempt({
@@ -1186,6 +1193,31 @@
     if (mic.state === "on" || mic.state === "starting") mic.stop();
   }
 
+  const missedPhrases = $derived(
+    records.flatMap((r, i) => {
+      const p = prompts[i];
+      if (!r || r.correct || !p || !isPhrase(p) || !phraseNotes[i] || !r.answered) return [];
+      const want = p.answer.split(" ");
+      const got = r.answered.split(" ");
+      const text = `you played ${want.flatMap((d, k) => (got[k] !== undefined && got[k] !== d ? [`${deg(got[k])} for the ${deg(d)}`] : [])).join(", ") || "a different phrase"}`;
+      return [{ i, prompt: p, notes: phraseNotes[i], text }];
+    }),
+  );
+  /** Phrases: the single notes played for others, most often first ("3 for the 2"). */
+  const noteSwaps = $derived.by(() => {
+    const n = new Map<string, { want: string; got: string; count: number }>();
+    records.forEach((r, i) => {
+      const p = prompts[i];
+      if (!r || r.correct || !p || !isPhrase(p) || !r.answered) return;
+      const got = r.answered.split(" ");
+      p.answer.split(" ").forEach((d, k) => {
+        if (got[k] === undefined || got[k] === d) return;
+        const key = `${d}>${got[k]}`;
+        n.set(key, { want: deg(d), got: deg(got[k]), count: (n.get(key)?.count ?? 0) + 1 });
+      });
+    });
+    return [...n.values()].sort((a, b) => b.count - a.count);
+  });
   const byKind = $derived(perKind(records.filter(Boolean)));
   const confused = $derived(confusions(records.filter(Boolean)));
 
@@ -1203,13 +1235,17 @@
     const fin = await run!.finish({ score, correct: right === prompts.length, headline: `${right} of ${prompts.length}` });
     const top = confused[0];
     const pocket = answer === "listen";
+    const swap = noteSwaps[0];
+    const retries = retryCount;
     summary = {
       headline:
         right === prompts.length
           ? pocket
             ? `You heard all ${prompts.length}. Try Choice to check it.`
             : `All ${prompts.length} right.`
-          : top
+          : swap
+            ? `${right} of ${prompts.length} right. You played ${swap.got} for the ${swap.want}${swap.count > 1 ? ` ${swap.count} times` : ""}.`
+            : top
             ? `${right} of ${prompts.length} ${pocket ? "heard" : "right"}. You heard ${tokenLabel(top.kind, top.expected, labels)} as ${tokenLabel(top.kind, top.answered, labels)}${top.count > 1 ? ` ${top.count} times` : ""}.`
             : `${right} of ${prompts.length} ${pocket ? "heard" : "right"}.`,
       metric: pct(score),
@@ -1218,9 +1254,9 @@
       best: fin.best,
       clean: mode === "check" && right === prompts.length && !pocket,
       xp: fin.xp,
-      assistance: pocket
-        ? "Pocket recall: you rated yourself, so this doesn't move mastery."
-        : assistanceText(mode),
+      // Pocket recall is rated by you: said in its own words, not as a Practice or Check run.
+      ...(pocket ? { assistance: "Pocket recall: you rated yourself, so this doesn't move your skill scores." } : { mode }),
+      coach: retries && !pocket ? { label: `Practise my confusions (${retries} ${retries === 1 ? "question" : "questions"})`, run: retry } : undefined,
       rows: centsRows(done) ?? itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
@@ -1326,8 +1362,10 @@
   const earLine = $derived([...(current?.expectedMidi ?? []), ...lit]);
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
-    for (const m of lit) out[m] = { demo: true };
     const p = current;
+    // Played back against a tonic (named above the question): home is marked "1" on the keys, in both modes.
+    if (phase === "running" && p && isPlayback && (isPhrase(p) || p.drill === "scale-degree")) out[tonicOf(p)] = { label: "1", role: "scale" };
+    for (const m of lit) out[m] = { ...out[m], demo: true };
     if (phase === "running" && p && isPlayback && mode === "practice" && (step === "feedback" || hinted) && p.expectedMidi) {
       const show = p.drill === "interval" || p.drill === "chord-quality" ? [] : p.expectedMidi;
       for (const m of show) out[m] = { target: true };
@@ -1337,6 +1375,8 @@
 
   const choiceTokens = $derived(current?.choices ?? []);
   const degreeChoices = $derived(current?.drill === "scale-degree" && answer === "choice");
+  /** A degree as one short word: "3", or "mi" in solfege (no "3 / mi" pairs in tight places). */
+  const deg = (d: string) => (labels === "solfege" ? (SCALE_DEGREES.find((x) => x.label === d)?.solfege ?? d) : d);
   const isPhrase = (p: Prompt) => p.drill === "melody-dictation" || p.drill === "repertoire-transfer";
   /** Answered by ear (not played back): the answer is drawn on the strip's instrument. */
   const onInstrument = (p: Prompt) => ON_INSTRUMENT.includes(p.drill) && !isPlayback;
@@ -1452,7 +1492,7 @@
               {@const on = mixPicked.includes(k) && !out}
               <button
                 type="button"
-                class="min-h-10 rounded-full border px-3 text-sm disabled:opacity-45 {on ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+                class="min-h-10 rounded-full border px-3 text-sm disabled:opacity-45 {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
                 aria-pressed={on}
                 disabled={out}
                 onclick={() => toggleMix(k)}>{KIND_LABEL[k]}</button
@@ -1498,7 +1538,7 @@
                   {@const short = chordDrill ? kindLabel(it.token) : it.short}
                   <button
                     type="button"
-                    class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
+                    class="flex min-h-11 flex-col items-start justify-center rounded-lg border px-3 py-1 text-left {on ? 'border-transparent bg-instr-strong text-on-instr' : 'border-ws-line bg-ws-surface text-ws-soft hover:bg-ws-raised'}"
                     aria-pressed={on}
                     aria-label={name}
                     onclick={() => toggleItem(it.token)}
@@ -1633,7 +1673,8 @@
       <!-- The degree wheel sits beside the question on a laptop, so every answer is in view. -->
       <div class={degreeChoices ? "lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5" : ""}>
       <article
-        class="prompt rounded-2xl p-4 sm:p-5"
+        data-dock="music"
+        class="prompt flex flex-col rounded-2xl p-4 sm:p-5"
         aria-label="Question {qi + 1}"
         data-drill={p.drill}
         data-answer={p.answer}
@@ -1667,6 +1708,11 @@
               <span class="verdict wrong" aria-hidden="true">✕</span>
               {#if p.drill === "interval-compare"}
                 {tokenLabel(p.drill, p.answer)}.{#if rec.answered} You chose: {tokenLabel(p.drill, rec.answered).toLowerCase()}.{/if}
+              {:else if isPhrase(p) && rec.answered}
+                <!-- A phrase: the notes as one line, then only the ones that differ, "3 for the 2". -->
+                {@const want = p.answer.split(" ")}
+                {@const got = rec.answered.split(" ")}
+                It was {want.map(deg).join(" ")}. You played {want.flatMap((d, i) => (got[i] !== undefined && got[i] !== d ? [`${deg(got[i])} for the ${deg(d)}`] : [])).join(", ") || "a different phrase"}.
               {:else}
                 It was {tokenLabel(p.drill, p.answer, labels)}{#if rec.answered}. You answered {tokenLabel(p.drill, rec.answered, labels)}{/if}.
               {/if}
@@ -1677,7 +1723,8 @@
             {/if}
           </p>
         {/if}
-        <div class="mt-3">
+        <!-- The picture takes the middle of the card: whatever height the session gives it, it sits centred. -->
+        <div class="mt-3 flex flex-1 flex-col justify-center">
           {#if (onInstrument(p) || (p.drill === "scale-degree" && !isPlayback && mistake && step === "feedback")) && (showAnswer || hinted)}
             <!-- The notes on the strip's instrument, with a wrong choice dashed beside them. -->
             <EarReveal prompt={p} chosen={step === "feedback" ? mistake?.chosen : null} {lit} />
@@ -1688,7 +1735,7 @@
               <EarVisual prompt={mistake.chosen} revealed prefix="You chose" labels={labels === "solfege" ? "solfege" : "numbers"} />
             </div>
           {:else}
-            <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} />
+            <EarVisual prompt={p} revealed={showAnswer || hinted} active={sounding} labels={labels === "solfege" ? "solfege" : "numbers"} answered={step === "feedback" && rec && !rec.correct && (isPhrase(p) || p.drill === "scale") ? played : []} filled={step === "answer" && isPhrase(p) && (isPlayback || answer === "voice") ? played.map((m) => (Number.isFinite(m) ? deg(SCALE_DEGREES[pc(m - tonicOf(p))].label) : "?")) : []} />
           {/if}
           {#if mistake && step === "feedback"}
             <button type="button" class="{btnStage} mt-2" onclick={() => mistake && playPrompt(mistake.both, { light: true })}>
@@ -1714,12 +1761,10 @@
 
       </article>
 
-      <!-- The answers sit at the bottom of a phone screen, under the thumb. Once answered, Continue takes
-           their place there (the answers, marked, stay in view from sm up). -->
+      <!-- The answers sit at the bottom of a phone screen, under the thumb. Once answered, Continue comes
+           under them, where the thumb already is (on a phone it takes their place; the answers, marked,
+           stay in view from sm up). -->
       <div class="mt-4 {degreeChoices ? 'lg:mt-0' : ''}" data-dock="answers">
-        {#if step === "feedback" && mode === "practice"}
-          <button type="button" class="{btnPrimary} mb-3 min-h-14 w-full text-base sm:w-auto" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
-        {/if}
         <div class={step === "feedback" && mode === "practice" && answer === "choice" ? "max-sm:hidden" : ""}>
         {#if answer === "choice" || answer === "listen-along"}
           {#if degreeChoices || (answer === "listen-along" && p.drill === "scale-degree")}
@@ -1846,6 +1891,9 @@
           </div>
         {/if}
         </div>
+        {#if step === "feedback" && mode === "practice"}
+          <button type="button" class="{btnPrimary} mt-3 min-h-14 w-full text-base sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
+        {/if}
       </div>
       </div>
     {:else if phase === "results" && answer === "listen-along"}
@@ -1910,16 +1958,21 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          {#if retryCount}
-            <!-- The primary unless the card already offers a next run that moves on. -->
-            {@const a = summary?.advance}
-            {@const moves = !!a && a.kind !== "same" && a.kind !== "top"}
-            <button type="button" class={moves ? btn : btnPrimary} onclick={retry}>Practise my confusions ({retryCount} {retryCount === 1 ? "question" : "questions"})</button>
-          {/if}
-        {/snippet}
-      </Results>
+      <Results {summary} />
+      {#if missedPhrases.length}
+        <!-- Each missed phrase drawn: the notes in their degree colours, yours in red with a cross where it differs. -->
+        <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="phrases-title">
+          <h3 id="phrases-title" class="font-display text-lg font-semibold">The phrases you missed</h3>
+          <ul class="mt-2 grid gap-3 sm:grid-cols-2">
+            {#each missedPhrases as m (m.i)}
+              <li class="phrase-row rounded-xl p-3">
+                <p class="text-sm font-semibold">Question {m.i + 1}: {m.text}</p>
+                <EarVisual prompt={m.prompt} revealed prefix="Played" labels={labels === "solfege" ? "solfege" : "numbers"} answered={m.notes} />
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
       {#if confused.length}
         <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
           <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>
@@ -1942,6 +1995,10 @@
 <svelte:window onkeydown={onKey} />
 
 <style>
+  .phrase-row {
+    background: var(--ws-stage);
+    color: var(--ws-stage-ink);
+  }
   .prompt {
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
     border: 1px solid color-mix(in oklch, var(--instr) 30%, transparent);

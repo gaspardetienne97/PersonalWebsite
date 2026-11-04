@@ -39,7 +39,7 @@
   import { assignTab } from "$lib/music/notation/groups";
   import { swingBeat } from "$lib/music/drills/piano/transport.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
@@ -141,6 +141,8 @@
   let kfs = $state.raw<FollowerState | null>(null);
   let live = $state.raw<LiveState | null>(null);
   let startAt = $state(0);
+  /** Every note played this run, at its written pitch and beat: drawn on the staff, a wrong one red and crossed. */
+  let playedNotes = $state.raw<{ beat: number; midi: number; wrong?: boolean }[]>([]);
   let now = $state(0);
   let result = $state.raw<WaitResult | PerformanceResult | null>(null);
   let summary = $state<RunSummary | null>(null);
@@ -220,6 +222,7 @@
 
   async function start(ctx: RunContext) {
     stopPreview();
+    playedNotes = [];
     if (climbing && (!climb || climb.over)) climb = startClimb(rungOf(levelId, key.name), rungs.length);
     // Every climb phrase is read fresh at the climb's rung, whichever button started it.
     else if (climbing && climb && (seed === climbSeed || rungOf(levelId, key.name) !== climb.rung)) {
@@ -314,6 +317,9 @@
     const hit = expected.includes(keyOf(written.midi));
     if (e.string && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, hit ? "correct" : "wrong", 200);
     else flashes.add(e.midi, hit ? "correct" : "wrong", 200);
+    // Wait for me: on the group the cursor waits on; Keep time: where in the bar it was played.
+    const beat = fs.mode === "wait" ? (groups[before.index]?.startBeat ?? 0) : Math.max(0, (e.at - startAt) / beatMs);
+    playedNotes = [...playedNotes, { beat, midi: written.midi, wrong: !hit }];
     fs = followerInput(fs, written);
   }
 
@@ -391,7 +397,8 @@
       clean: lanes.correct && follower === "performance" && mode === "check",
       xp: fin.xp,
       // Wait for me is guided whichever way the switch is set; the shell's sentence covers the rest.
-      assistance: follower === "wait" ? "Wait for me is guided: the cursor waited for you, so it is saved as practice. Keep time in Check counts toward mastery." : assistanceText(mode),
+      // Wait for me is practice whatever the toggle says: the cursor waited for you.
+      mode: follower === "wait" ? "practice" : mode,
       rows: perf
         ? [
             { label: "Notes matched", value: perf.pitchCompletion, text: `${perf.matched} of ${perf.expected}` },
@@ -513,6 +520,12 @@
     return out;
   });
 
+  // In Practice the notes you play land on the staff as you play; in Check they show with the results.
+  // A right note in Wait for me sits on the written head (already green), so only the wrong ones are drawn there.
+  const shownPlayed = $derived(
+    tapping || (phase === "running" && mode === "check") || phase === "ready" ? [] : fs?.mode === "wait" ? playedNotes.filter((n) => n.wrong) : playedNotes,
+  );
+
   // Look first: Start opens after the set seconds on each new phrase.
   let lookLeft = $state(0);
   let lookedAt = "";
@@ -626,10 +639,12 @@
       data-beat-ms={Math.round(beatMs)}
       data-onsets={followGroups.map((g) => Math.round(g.startBeat * 1000) / 1000).join(",")}
       class="paper-wrap"
+      data-dock="music"
     >
       <div style:zoom={zoom}>
         {#key score.id}
-          <Staff {score} {cursorBeat} groupStates={shownStates} maxHeight={measures > 4 ? "32rem" : "22rem"} />
+          <!-- A short phrase spreads across the paper: big notes to read, no empty half. -->
+          <Staff {score} {cursorBeat} groupStates={shownStates} played={shownPlayed} fill={measures <= 4} maxHeight={measures > 4 ? "32rem" : "22rem"} />
         {/key}
       </div>
     </div>
@@ -740,7 +755,7 @@
     height: 8rem;
     border-radius: 999px;
     background: radial-gradient(circle at 35% 30%, color-mix(in oklch, var(--instr), white 25%), var(--instr) 60%, color-mix(in oklch, var(--instr), black 25%));
-    color: var(--ws-stage);
+    color: var(--on-instr, var(--ws-stage));
     box-shadow: 0 8px 0 color-mix(in oklch, var(--instr), black 45%), 0 12px 26px rgb(0 0 0 / 0.3);
     transition: transform 60ms ease-out, box-shadow 60ms ease-out;
     touch-action: manipulation;

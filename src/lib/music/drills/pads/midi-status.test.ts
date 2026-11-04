@@ -28,7 +28,7 @@ describe("explainNote", () => {
 
   it("flags notes outside bank A and unmapped devices", () => {
     expect(explainNote([0x99, 82, 100], priv)?.text).toContain("outside bank A");
-    expect(explainNote([0x99, 38, 100], priv)?.text).toContain("no pad map saved");
+    expect(explainNote([0x99, 38, 100], priv)?.text).toContain("Pads not mapped yet");
   });
 
   it("ignores note-offs and names wind notes", () => {

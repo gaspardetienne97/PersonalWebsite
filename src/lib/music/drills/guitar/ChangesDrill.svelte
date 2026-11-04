@@ -16,12 +16,14 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
+  import Hint from "$lib/music/components/Hint.svelte";
+  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
   import { btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { assistanceFor, assistanceText, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { mic, settings } from "$lib/music/runtime";
   import { exerciseFor, skillsFor } from "./fretted";
@@ -303,7 +305,7 @@
       best: fin.best || (perMinute > bestBefore && bestBefore > 0),
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: [
         { label: "Changes completed", text: `${r.completed}${s.timed ? " in a minute" : ` of ${trips * n}`}` },
         { label: "Changes with every target note", value: r.completed ? r.clean / r.completed : 0, text: `${r.clean} of ${r.completed}` },
@@ -343,7 +345,7 @@
   lesson={{ lessons: conceptCard("tips.changes", { tuning }), trigger: "check" }}
   title="Chord changes"
   hue={instr}
-  blurb="Move through two or more chords and back to the first. Each arrival counts when its target notes are there, and each set of chords keeps a history of changes per minute."
+  blurb="Move round two to eight chords and back. Each set keeps its changes per minute."
   summary={summaryLine}
   tabs={CHORD_MODES}
   tab="changes"
@@ -420,21 +422,36 @@
           perfectMs={Math.round(periodMs / beatsPerChord / 8) || 60}
         />
       </div>
-    {:else}
-      <div class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    {:else if live || mode === "check"}
+      <!-- Before a Practice run the chord strip already shows the cycle: the neck moves up instead. -->
+      {@const next = live ? (target + 1) % n : 1}
+      <div class="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2" data-dock="music">
         <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>
-        <p class="text-lg text-ws-stage-soft">then {live ? names[(target + 1) % n] : names[1]}</p>
+        {#if mode === "practice"}
+          <!-- The next shape as a ghost: the move is visible before it is due. -->
+          <div class="flex items-center gap-2 rounded-xl border-2 border-dashed border-ws-stage-ink/30 py-1 pl-1 pr-3" data-testid="next-chord">
+            <div class="w-14 rounded-lg bg-ws-surface p-0.5 text-ws-ink opacity-75">
+              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} numbers={false} label="" />
+            </div>
+            <p class="flex flex-col text-sm leading-tight text-ws-stage-soft">Next<span class="font-display text-xl font-semibold text-ws-stage-ink">{names[next]}</span></p>
+          </div>
+        {:else}
+          <p class="text-lg text-ws-stage-soft">then {names[next]}</p>
+        {/if}
       </div>
     {/if}
+    <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
+    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
-    {#if phase === "running" && !periodMs && !s.timed}
-      <div class="mt-3 flex flex-wrap items-center gap-3">
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
+      {#if phase === "running" && !periodMs && !s.timed}
         <button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>
-        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. The change counts when the next chord's notes sound.</span>
-      </div>
-    {/if}
-    <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">A change counts as having every note when the target notes of the arriving chord are all there and nothing else is. Which string sounded each note is not measured.</p>
-    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
+        <span class="text-sm text-ws-stage-soft">Pause briefly between chords.</span>
+      {:else}
+        <span class="text-sm text-ws-stage-soft">How a change counts</span>
+      {/if}
+      <Hint about="how a change counts" text="A change counts when the next chord's target notes all sound and nothing else does. Which string sounded each note is not measured." />
+    </div>
   {/snippet}
 
   {#snippet results()}

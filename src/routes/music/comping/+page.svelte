@@ -17,14 +17,16 @@
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
-  import { laneOutcomes, timingOf, verdictOf, type LaneOutcome } from "$lib/music/drills/piano/lane-outcomes";
+  import { laneOutcomes, verdictOf, type LaneOutcome } from "$lib/music/drills/piano/lane-outcomes";
+  import { timingBreakdown, timingRow } from "@repo/music-core";
   import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
   import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
+  import { midi, settings } from "$lib/music/runtime";
+  import { goto } from "$app/navigation";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const TEMPO = { min: 60, max: 140 };
@@ -86,6 +88,8 @@
   let allMidi = $state(true);
   let clock0 = { downbeat: 0, beatMs: 500 };
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
+  /** After a run: each lane note's error in ms from the grader's own claims (null missed), so the lane, the breakdown and the score agree. */
+  let graded = $state<{ right: (number | null)[]; left?: (number | null)[]; onTimeMs: number } | null>(null);
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
     [demo ? "demo" : "target"]: true,
@@ -125,15 +129,29 @@
     },
   ]);
 
+  // The lane's targets on the written (straight) beat: the grader lets a swung off-beat land anywhere from
+  // straight to swung at no cost, and the lane judges with the same slack.
+  const laneTargets = $derived({
+    right: p.lick.map((n) => ({ midi: n.midiNote, beat: n.startBeat, dur: Math.min(0.5, n.durationBeats) })),
+    left: Array.from({ length: p.bars }, (_, bar) => p.compRhythm.map((hit) => ({ midi: lhMidi[0], beat: bar * BEATS_PER_BAR + hit.beat, dur: Math.min(0.5, hit.durationBeats) }))).flat(),
+  });
+  const slack = (b: number) => (swing ? swingBeat(b) - b : 0);
+  const outcomeOf = (e: number | null, onTimeMs: number): LaneOutcome => (e === null ? "miss" : e < -onTimeMs ? "early" : e > onTimeMs ? "late" : "ok");
   // Each note marked on the lane as it lands: live in Practice, after the run in both modes. The left hand
   // only when it can be measured (MIDI); on-screen keys can't strike a shell.
   const outcomes = $derived.by((): Record<string, (LaneOutcome | undefined)[]> => {
-    const live = phase === "running" && mode === "practice";
-    if (!(live || (phase === "results" && heard.length))) return {};
-    const now = phase === "results" ? null : (transport.beat ?? 0);
-    const right = laneOutcomes(notes.filter((n) => n.hand === "right"), heard, now);
+    if (phase === "results") {
+      if (!graded) return {};
+      const out: Record<string, LaneOutcome[]> = { right: graded.right.map((e) => outcomeOf(e, graded!.onTimeMs)) };
+      if (graded.left) out.left = graded.left.map((e) => outcomeOf(e, graded!.onTimeMs));
+      return out;
+    }
+    if (!(phase === "running" && mode === "practice")) return {};
+    const now = transport.beat ?? 0;
+    const right = laneOutcomes(laneTargets.right, heard, now, { slack });
     if (!allMidi) return { right };
-    return { right, left: laneOutcomes(notes.filter((n) => n.hand === "left" && n.midi === lhMidi[0]), heard, now) };
+    // The left hand's shell counts in any octave, as the grader takes it; the line is octave-exact, as graded.
+    return { right, left: laneOutcomes(laneTargets.left, heard, now, { slack, pitchClass: true }) };
   });
 
   const summaryLine = $derived<SetupClause[]>([
@@ -155,11 +173,13 @@
     heard = [...heard, { midi: e.midi, beat }];
     if (e.source !== "midi") allMidi = false;
     if (mode !== "practice") return;
-    const want = due(transport.beat ?? 0).find((n) => n.midi === e.midi);
+    // The note judged as the lane will mark it: the written beat, with the swing slack.
+    const want = [...laneTargets.right, ...laneTargets.left].find((t) => t.midi === e.midi && beat > t.beat - t.dur / 2 && beat < t.beat + slack(t.beat) + t.dur / 2);
     flashes.add(e.midi, want ? "correct" : "wrong");
+    const err = want ? (beat < want.beat ? beat - want.beat : Math.max(0, beat - want.beat - slack(want.beat))) : 0;
     const v = want
-      ? verdictOf(Math.abs(beat - want.beat) <= Math.min(0.5, want.dur) / 4 ? "ok" : beat < want.beat ? "early" : "late", (beat - want.beat) * clock0.beatMs)
-      : { kind: "wrong" as const, text: `Not now: ${noteName(e.midi, "flat")}` };
+      ? verdictOf(Math.abs(err) <= want.dur / 4 ? "ok" : err < 0 ? "early" : "late", err * clock0.beatMs)
+      : { kind: "wrong" as const, text: `Wrong note: ${noteName(e.midi, "flat")}` };
     verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
 
@@ -167,6 +187,7 @@
     transport.stop();
     summary = null;
     result = null;
+    graded = null;
     flashes.clear();
     heard = [];
     allMidi = true;
@@ -228,6 +249,16 @@
       status = summary.headline;
       return;
     }
+    // One source: the lane marks, the breakdown and the Timing row all come from the grader's claims.
+    const timed = r.metrics.flatMap((m) => (m.kind === "timing" ? [m] : []));
+    const errsFor = (ts: readonly { beat: number }[], ms: typeof timed) => ts.map((t) => ms.find((m) => Math.abs(m.expectedMs - (ctx.downbeat + t.beat * ctx.beatMs)) < 1)?.errorMs ?? null);
+    graded = {
+      right: errsFor(laneTargets.right, timed.slice(0, r.lick.matched)),
+      ...(lhMeasured ? { left: errsFor(laneTargets.left, timed.slice(r.lick.matched)) } : {}),
+      onTimeMs: r.windowMs / 2,
+    };
+    const errs = timed.map((m) => m.errorMs);
+    const total = r.lick.total + r.comp.total;
     const rows: ResultRow[] = [
       { label: "Right hand line", value: r.lick.matched / r.lick.total, text: `${r.lick.matched} of ${r.lick.total}` },
       lhMeasured
@@ -237,9 +268,7 @@
             text: `${r.comp.matched} of ${r.comp.total}${r.comp.extra ? `, ${r.comp.extra} extra` : ""}`,
           }
         : { label: "Left hand Charleston (on-screen input)", notMeasured: true },
-      r.lick.matched + r.comp.matched
-        ? { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs), text: `${Math.round(r.meanAbsErrorMs)} ms off on average` }
-        : { label: "Timing", notMeasured: true },
+      timingRow(errs, total, r.windowMs),
     ];
     const idx = COMPING_PATTERNS.findIndex((x) => x.id === p.id);
     const nextPattern = COMPING_PATTERNS[idx + 1];
@@ -261,9 +290,9 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: lhMeasured ? assistanceText(mode) : `${assistanceText(mode)} The left hand needs MIDI; this run graded the right-hand line only.`,
+      mode,
       rows,
-      timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
+      timing: timingBreakdown([...graded.right, ...(graded.left ?? [])], graded.onTimeMs),
       next:
         r.correct && mode === "check" && nextPattern
           ? { label: nextPattern.label, href: `/music/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
@@ -307,6 +336,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  requires={midi.inputs.length ? [] : [{ text: "left hand on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so they grade the right-hand line only)", run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
@@ -334,7 +364,8 @@
 
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
-      <Stat label="Beat" value="{Math.min(totalBeats, Math.floor(Math.max(0, transport.beat)) + 1)} of {totalBeats}" />
+      <!-- The HUD's own readout counts the beats; this counts the bars. -->
+      <Stat label="Bar" value="{Math.min(totalBeats / BEATS_PER_BAR, Math.floor(Math.max(0, transport.beat) / BEATS_PER_BAR) + 1)} of {totalBeats / BEATS_PER_BAR}" />
     {:else if result}
       <Stat label="Line" value="{result.lick.matched}/{result.lick.total}" tone={result.lick.matched === result.lick.total ? "success" : "warn"} />
       {#if result.lhMeasured}<Stat label="Comp hits" value="{result.comp.matched}/{result.comp.total}" tone={result.comp.matched === result.comp.total && !result.comp.extra ? "success" : "warn"} />{/if}
@@ -346,23 +377,25 @@
       <div class="min-w-0 max-w-prose">
         <p class="font-display text-2xl font-semibold">{p.chord}</p>
         <!-- The theory steps aside while the line runs, so the lane and the keys stay in view. -->
-        {#if mode === "practice" && phase !== "running" && phase !== "countin"}
+        {#if mode === "practice" && phase === "ready"}
           <p class="text-ws-stage-soft">
             Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
             The rest of the line stays in {root.rootName} mixolydian.
           </p>
           {#if approach}
             <details class="mt-1 text-ws-stage-soft">
-              <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: {approach.name.toLowerCase()}</summary>
+              <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: approach a note from a half step below</summary>
               <p>{approach.summary}</p>
             </details>
           {/if}
         {/if}
       </div>
-      {#if phase !== "running" && phase !== "countin" && mode === "practice"}
+      {#if phase === "ready" && mode === "practice"}
         <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => playDemo(0.6)}>Hear it at 60%</button>
       {/if}
     </div>
+    <!-- The music grows into the free height (no spacer between the lane and the keys). -->
+    <div class="flex min-h-0 flex-1 flex-col justify-center gap-3" data-dock="music">
     {#if mode === "practice" || transport.playing || phase === "results"}
       <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></StaffFold>
     {/if}
@@ -375,19 +408,19 @@
       label="Beat lane: right hand lick of {p.lick.length} notes; left hand shell on one and the and-of-two in each bar."
       {outcomes}
     />
-    <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+    </div>
+    <div class="flex flex-col justify-end" data-dock="instrument">
+      <!-- The word for the last note sits above the keys, never over them. -->
+      {#if phase === "running"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
       <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
-      {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
-    </div></div>
+    </div>
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
         <p>Notes hidden. Keep the rhythm on the lane; keys light only where you play.</p>
       {:else if phase === "running" || phase === "countin"}
-        <p>Shell on one and the and-of-two; the line on top. On the lane: ✓ on time, − early, + late, ✕ missed.</p>
+        <p>Shell on one and the and-of-two; the line on top.</p>
       {:else}
         {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
-        <!-- Said before Start, not after: without MIDI the run grades the line only. -->
-        <p class="mb-1 text-ws-stage-ink">The left-hand shell needs a MIDI keyboard. On-screen keys play one note at a time, so they grade the right-hand line only.</p>
         <details>
           <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
           <div class="flex flex-col gap-1 pb-1">

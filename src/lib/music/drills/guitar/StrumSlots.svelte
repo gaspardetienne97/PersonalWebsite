@@ -22,7 +22,7 @@
   const icon = $derived(slots.length > 16 ? "size-3.5" : slots.length > 8 ? "size-4" : "size-6");
   const WORD = { down: "down", up: "up", mute: "chuck" } as const;
   const MARK_ICON = { ontime: Check, early: ChevronsLeft, late: ChevronsRight, wrong: X, miss: Minus } as const;
-  const MARK_TONE = { ontime: "bg-success text-success-foreground", early: "bg-warn text-warn-foreground", late: "bg-warn text-warn-foreground", wrong: "bg-destructive text-white", miss: "border border-ws-stage-ink/40 text-ws-stage-soft" } as const;
+  const MARK_TONE = { ontime: "bg-success text-success-foreground", early: "bg-early text-[color:var(--on-early)]", late: "bg-late text-[color:var(--on-late)]", wrong: "bg-destructive text-white", miss: "border border-ws-stage-ink/40 text-ws-stage-soft" } as const;
 </script>
 
 <ol class="grid gap-y-1" style:grid-template-columns="repeat({slots.length}, minmax(0, 1fr))" aria-label={label}>
@@ -32,7 +32,7 @@
     <li class="flex min-w-0 flex-col items-center gap-1 {i % per === 0 && i ? 'border-l border-ws-stage-ink/15' : ''}">
       <span
         class="ws-pulse grid h-11 w-full max-w-11 place-items-center rounded-lg transition-colors {i === lit
-          ? 'bg-instr text-ws-stage'
+          ? 'bg-instr-strong text-on-instr'
           : s.stroke
             ? s.accent
               ? 'bg-ws-stage-ink/15'
@@ -46,13 +46,22 @@
         {:else if s.stroke === "mute"}<X class={icon} strokeWidth={s.accent ? 3.25 : 2.25} aria-hidden="true" />
         {/if}
       </span>
-      <span class="text-xs leading-none tnum {i % per === 0 ? 'font-semibold' : 'text-ws-stage-soft'}" aria-hidden="true">{s.count}</span>
-      <span class="grid size-5 place-items-center">
+      <span class="text-[13px] leading-none tnum {i % per === 0 ? 'font-semibold' : 'text-ws-stage-soft'}" aria-hidden="true">{s.count}</span>
+      <span class="grid size-6 place-items-center">
         {#if m && MarkIcon}
-          {#key m.kind}<span class="ws-pop grid size-5 place-items-center rounded-full {MARK_TONE[m.kind]}" title={m.text}><MarkIcon class="size-3.5" strokeWidth={3} aria-hidden="true" /></span>{/key}
+          {#key m.kind}<span class="ws-pop grid size-6 place-items-center rounded-full {MARK_TONE[m.kind]}" title={m.text}><MarkIcon class="size-4" strokeWidth={3} aria-hidden="true" /></span>{/key}
         {/if}
       </span>
       <span class="sr-only">{s.count || "between"}: {s.stroke ? `${s.accent ? "accented " : ""}${WORD[s.stroke]}` : "no strum"}{m ? `, ${m.text}` : ""}</span>
     </li>
   {/each}
 </ol>
+{#if Object.keys(marks).length}
+  <!-- What the marks mean, once there are marks: the same glyphs as the results. -->
+  <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-hidden="true">
+    {#each [["ontime", "On time"], ["early", "Early"], ["late", "Late"], ["miss", "Missed"], ["wrong", "Wrong"]] as const as [k, word] (k)}
+      {@const Icon = MARK_ICON[k]}
+      <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full {MARK_TONE[k]}"><Icon class="size-3.5" strokeWidth={3} /></span>{word}</li>
+    {/each}
+  </ul>
+{/if}

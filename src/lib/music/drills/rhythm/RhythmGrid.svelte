@@ -96,8 +96,8 @@
       {#each hitsIn(bar) as { e: h, i } (i)}
         {@const hx = x(h.beat - bar * perBar)}
         <g class="hit" data-kind={h.kind} transform="translate({hx} 118)">
-          {#if h.kind === "early"}<path d="M5 -5 L-5 0 L5 5 Z" />
-          {:else if h.kind === "late"}<path d="M-5 -5 L5 0 L-5 5 Z" />
+          {#if h.kind === "early"}<path class="chev early" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />
+          {:else if h.kind === "late"}<path class="chev late" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />
           {:else if h.kind === "pocket"}<circle r="5" />
           {:else if h.kind === "missed"}<circle r="4.5" class="hollow" />
           {:else}<path d="M-5 -5 L5 5 M5 -5 L-5 5" class="cross" />{/if}
@@ -181,9 +181,11 @@
   .note[data-verdict="pocket"] .head {
     fill: var(--success);
   }
-  .note[data-verdict="early"] .head,
+  .note[data-verdict="early"] .head {
+    fill: var(--early, var(--warn));
+  }
   .note[data-verdict="late"] .head {
-    fill: var(--warn);
+    fill: var(--late, var(--warn));
   }
   .note[data-verdict="missed"] .head {
     fill: none;
@@ -199,10 +201,23 @@
     fill: var(--ws-stage-ink);
     font-weight: 600;
   }
-  .hit path,
   .hit circle {
     fill: var(--warn);
   }
+  .hit .chev,
+  .chev {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .chev.early {
+    stroke: var(--early, var(--warn));
+  }
+  .chev.late {
+    stroke: var(--late, var(--warn));
+  }
+
   .hit[data-kind="pocket"] circle {
     fill: var(--success);
   }

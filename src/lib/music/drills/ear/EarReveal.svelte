@@ -48,7 +48,9 @@
   /** Where the wrong answer differs from what was played. */
   const other = $derived([...new Set(chosenNotes)].filter((m) => !played.includes(m)));
 
-  // The climb: one half step every 110 ms up to the second note (all at once with reduced motion).
+  // The climb: every half step up to the second note inside half a second, whatever the
+  // distance (an octave's 12 used to stop at 7 in a still), all at once with reduced motion.
+  const CLIMB_MS = 480;
   let climb = $state(0);
   $effect(() => {
     const total = steps;
@@ -58,7 +60,7 @@
     if (still || !total) return;
     const t = setInterval(() => {
       if (++climb >= total) clearInterval(t);
-    }, 110);
+    }, Math.min(110, CLIMB_MS / total));
     return () => clearInterval(t);
   });
 

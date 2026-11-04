@@ -35,7 +35,7 @@
   import Staff from "$lib/music/notation/Staff.svelte";
   import { btnPrimary } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio } from "$lib/music/runtime";
@@ -197,7 +197,7 @@
       best: fin.best,
       clean: mode === "check" && fluent === length,
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: analysing
         ? [
             { label: "Chords right", value: right / length, text: `${right} of ${length}` },

@@ -22,6 +22,8 @@
     active = -1,
     labels = "numbers",
     prefix,
+    answered = [],
+    filled = [],
   }: {
     prompt: EarPrompt;
     revealed: boolean;
@@ -30,6 +32,11 @@
     labels?: "numbers" | "solfege";
     /** Leads the caption, e.g. "Played" or "You chose" when a mistake is shown beside the answer. */
     prefix?: string;
+    /** A phrase played back: the note you played for each melody note (after the tonic). A wrong one is
+     *  drawn on the contour at its own pitch, in red with a cross, beside the right one. */
+    answered?: readonly number[];
+    /** Before the answer: what you have played so far, one label per answer slot (the pips after the tonic). */
+    filled?: readonly string[];
   } = $props();
 
   // Drawn at the box's own pixel width; taller when the notes span more pitches.
@@ -38,16 +45,22 @@
 
   const events = $derived(prompt.playback);
   const end = $derived(Math.max(...events.map((e) => e.time + e.duration)));
-  const all = $derived(events.flatMap((e) => e.midi));
+  const all = $derived([...events.flatMap((e) => e.midi), ...answered.filter((m) => Number.isFinite(m))]);
   const lo = $derived(Math.min(...all) - 1);
   const hi = $derived(Math.max(...all) + 1);
   const row = $derived(Math.max(5, Math.min(12, 150 / Math.max(1, hi - lo))));
   // Before the answer only the timing shows, so the picture stays short and the answers stay in view.
   // Side by side with what you chose (a prefix), each picture stays short so both fit with the answers.
-  const H = $derived(revealed ? PAD.top + PAD.bottom + (prefix ? Math.min(70, Math.max(50, (hi - lo) * row)) : Math.max(90, (hi - lo) * row)) : 62);
-  const x = (t: number) => PAD.left + (t / end) * (W - PAD.left - PAD.right);
+  // Before the answer: one big pip per note or chord, lit in turn as it sounds (Perfect Ear's listening row).
+  const SIDE = $derived(revealed ? PAD.left : 8);
+  const pipR = $derived(Math.max(14, Math.min(30, (W - 16) / Math.max(1, events.length) / 2 - 4)));
+  const H = $derived(revealed ? PAD.top + PAD.bottom + (prefix ? Math.min(70, Math.max(50, (hi - lo) * row)) : Math.max(90, (hi - lo) * row)) : pipR * 2 + 40);
+  const x = (t: number) =>
+    revealed ? PAD.left + (t / end) * (W - PAD.left - PAD.right) : events.length === 1 ? W / 2 : SIDE + pipR + (t / lastStart) * (W - 2 * SIDE - 2 * pipR);
+  // The pips span the whole row: the last one sits at the right edge.
+  const lastStart = $derived(events.at(-1)?.time || end);
   const yOf = (m: number) => PAD.top + ((hi - m) / Math.max(1, hi - lo)) * (H - PAD.top - PAD.bottom);
-  const mid = $derived(revealed ? (H - PAD.bottom + PAD.top) / 2 : 20);
+  const mid = $derived(revealed ? (H - PAD.bottom + PAD.top) / 2 : pipR + 4);
   const noteH = $derived(Math.max(10, Math.min(16, row * 1.6)));
 
   const tonic = $derived(events[0]?.midi[0] ?? 60);
@@ -55,23 +68,47 @@
   const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer", "scale", "error-detect"].includes(prompt.drill));
   /** Played before the answer: the tonic in the degree drills, the key-setting chords in a key. */
   const isTonic = (ei: number) => usesDegrees && ei === 0;
-  /** What each timing bar is, without giving the answer away: the tonic, the key, then a question mark per note. */
+  /** What each pip is, without giving the answer away: the tonic, the key, then a question mark per note. */
   function shapeLabel(ei: number): string {
     if (isTonic(ei)) return "Tonic";
     if (ei < (prompt.keyEvents ?? 0)) return "Key";
-    if (events.length === 1) return prompt.drill === "pitch-compare" ? "Note" : "All at once";
-    return usesDegrees ? "?" : String(ei + 1 - (prompt.keyEvents ?? 0));
+    // One event: the caption above already says "Played all at once".
+    if (events.length === 1) return "";
+    return usesDegrees ? "" : String(ei + 1 - (prompt.keyEvents ?? 0));
+  }
+  /**
+   * Inside each pip: the starting note's name where knowing it gives nothing away (an
+   * interval's first note, the tonic), a question mark for what you are asked about.
+   */
+  const named = $derived(["interval", "pitch-compare", "melody-dictation", "scale-degree", "error-detect", "repertoire-transfer", "scale"].includes(prompt.drill));
+  /** The answer slot a pip is (0 for the first note after the tonic or the key), or -1. */
+  const slotOf = (ei: number) => ei - (usesDegrees ? 1 : (prompt.keyEvents ?? 0));
+  const isFilled = (ei: number) => slotOf(ei) >= 0 && slotOf(ei) < filled.length;
+  function pipText(ei: number): string {
+    if (isFilled(ei)) return filled[slotOf(ei)];
+    const one = events[ei].midi.length === 1;
+    if (ei === 0 && named && one && events.length > 1) return noteName(events[0].midi[0], "flat", false);
+    if (ei < (prompt.keyEvents ?? 0)) return "K";
+    return "?";
   }
   /** What the timing bars are, said once above them. */
   const caption = $derived(
     events.length === 1
       ? "Played all at once"
-      : ["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill)
-        ? "Chords played, in order"
-        : "Notes played, in order",
+      : `${events.length} ${["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill) ? "chords" : "notes"}, one after another`,
   );
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
+  /** The melody note each answered note stands for: events after the tonic in the degree drills. */
+  const wrongAt = $derived(
+    !revealed
+      ? []
+      : answered.flatMap((m, i) => {
+          const ei = i + (usesDegrees ? 1 : 0);
+          const e = events[ei];
+          return e && Number.isFinite(m) && !e.midi.includes(m) ? [{ ei, m }] : [];
+        }),
+  );
   const contour = $derived(
     usesDegrees && events.length > 2
       ? events
@@ -178,7 +215,7 @@
 {#if !revealed}
   <!-- The bars are time, not pitch: one per note or chord, lit as it sounds. -->
   <p class="flex items-center gap-1.5 text-sm font-semibold text-ws-stage-soft">
-    <Volume2 class="size-4 {active >= 0 ? 'text-instr' : ''}" aria-hidden="true" /><span>{caption}{active >= 0 ? ", playing" : ""}</span>
+    <Volume2 class="size-4 {active >= 0 ? 'text-instr' : ''}" aria-hidden="true" /><span>{active >= 0 && events.length > 1 ? `Playing ${active + 1} of ${events.length}` : caption}</span>
   </p>
 {/if}
 <svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? "What you heard, note by note" : "What is playing, in time"}>
@@ -187,6 +224,18 @@
   {#if revealed && contour}
     <polyline class="contour" points={contour} />
   {/if}
+
+  {#each wrongAt as w (w.ei)}
+    {@const e = events[w.ei]}
+    {@const cx = x(e.time) + Math.max(8, x(e.time + e.duration) - x(e.time) - 3) / 2}
+    <!-- What you played instead: a red cross at its pitch, tied to the right note by a dashed line. -->
+    <g class="wrong-note">
+      <line x1={cx} x2={cx} y1={yOf(e.midi[0])} y2={yOf(w.m)} />
+      <circle cx={cx} cy={yOf(w.m)} r={noteH / 2 + 3} />
+      <path d="M{cx - 4} {yOf(w.m) - 4} L{cx + 4} {yOf(w.m) + 4} M{cx + 4} {yOf(w.m) - 4} L{cx - 4} {yOf(w.m) + 4}" />
+      <text class="wrong-tag" x={cx + noteH / 2 + 8} y={yOf(w.m)} dominant-baseline="central">You: {degreeText(w.m)}</text>
+    </g>
+  {/each}
 
   {#each events as e, ei (ei)}
     {@const on = ei === active}
@@ -212,18 +261,23 @@
         </g>
       {/each}
     {:else}
-      <!-- One bar per event, whatever it holds: the shape in time, not the notes. -->
-      {@const w = Math.max(8, x(e.time + e.duration) - x(e.time) - 3)}
-      <rect class="shape" class:on class:tonic={isTonic(ei)} x={x(e.time)} y={mid - 9} width={w} height="18" rx="9" />
-      {#if w >= 18 || events.length <= 8}
-        <text class="shape-tag" class:on x={x(e.time) + w / 2} y={mid + 28} text-anchor="middle">{shapeLabel(ei)}</text>
+      <!-- One pip per event, whatever it holds: the shape in time, not the notes. The tail is how long it sounds. -->
+      {@const cx = x(e.time)}
+      {@const tail = events[ei + 1] ? Math.min(x(e.time + e.duration), x(events[ei + 1].time) - pipR) - cx : 0}
+      {#if tail > pipR + 4}<rect class="tail" class:on x={cx} y={mid - 4} width={tail} height="8" rx="4" />{/if}
+      <g class="pip-g" class:on class:done={active > ei} style:transform-origin="{cx}px {mid}px">
+        <circle class="shape" class:on class:tonic={isTonic(ei)} class:done={active > ei} class:filled={isFilled(ei)} {cx} cy={mid} r={pipR} />
+        <text class="pip-text" class:on x={cx} y={mid} text-anchor="middle" dominant-baseline="central" font-size={Math.round(pipR * (pipText(ei).length > 2 ? 0.55 : 0.75))}>{pipText(ei)}</text>
+      </g>
+      {#if shapeLabel(ei)}
+        <text class="shape-tag" class:on x={cx} y={mid + pipR + 20} text-anchor="middle">{shapeLabel(ei)}</text>
       {/if}
     {/if}
   {/each}
 
 
 </svg>
-{#if revealed && prefix}<p class="mt-1 text-center text-sm font-semibold">{prefix}: {tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>{/if}
+{#if revealed && prefix}<p class="mt-1 text-center text-sm font-semibold">{prefix}: {["melody-dictation", "repertoire-transfer"].includes(prompt.drill) ? prompt.answer.split(" ").map((d) => (labels === "solfege" ? (SCALE_DEGREES.find((x) => x.label === d)?.solfege ?? d) : d)).join(" ") : tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>{/if}
 </div>
 {/if}
 
@@ -242,28 +296,51 @@
     stroke-width: 1;
   }
   .shape {
-    fill: color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
+    fill: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+    stroke: color-mix(in oklch, var(--ws-stage-ink) 45%, transparent);
+    stroke-width: 2;
     transition: fill 120ms;
   }
   .shape.tonic {
-    fill: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
+    fill: color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
+  }
+  /* Already sounded this time through: a ring in the hue, so the row reads as progress. */
+  .shape.done {
+    stroke: var(--instr);
+  }
+  /* A slot you have answered: filled in the hue, your note inside. */
+  .shape.filled {
+    fill: color-mix(in oklch, var(--instr) 35%, transparent);
+    stroke: var(--instr);
   }
   .shape.on {
     fill: var(--instr);
-    filter: drop-shadow(0 0 8px color-mix(in oklch, var(--instr) 70%, transparent));
-    animation: pulse 500ms ease-out;
+    stroke: var(--instr);
+    filter: drop-shadow(0 0 10px color-mix(in oklch, var(--instr) 70%, transparent));
+  }
+  .pip-g.on {
+    animation: pulse 420ms ease-out;
   }
   @keyframes pulse {
     from {
-      transform: scaleY(1.5);
+      transform: scale(1.25);
     }
   }
-  .shape {
-    transform-box: fill-box;
-    transform-origin: center;
+  .tail {
+    fill: color-mix(in oklch, var(--ws-stage-ink) 14%, transparent);
+  }
+  .tail.on {
+    fill: color-mix(in oklch, var(--instr) 60%, transparent);
+  }
+  .pip-text {
+    font-weight: 700;
+    fill: var(--ws-stage-ink);
+  }
+  .pip-text.on {
+    fill: var(--ws-stage);
   }
   .shape-tag {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     fill: var(--ws-stage-soft);
   }
@@ -283,6 +360,24 @@
   }
   .note rect.on {
     filter: drop-shadow(0 0 8px currentColor) brightness(1.25);
+  }
+  .wrong-note line {
+    stroke: var(--destructive);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+  }
+  .wrong-note circle {
+    fill: var(--destructive);
+  }
+  .wrong-note path {
+    stroke: var(--ws-stage);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .wrong-tag {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--destructive);
   }
   .tag {
     font-size: 13px;
@@ -305,11 +400,11 @@
     .note,
     .contour,
     .staff-card,
-    .shape.on {
+    .pip-g.on {
       animation: none;
     }
   }
-  :global(html[data-reduce-motion]) .shape.on,
+  :global(html[data-reduce-motion]) .pip-g.on,
   :global(html[data-reduce-motion]) .note,
   :global(html[data-reduce-motion]) .contour,
   :global(html[data-reduce-motion]) .staff-card {

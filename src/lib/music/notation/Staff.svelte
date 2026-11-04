@@ -12,6 +12,7 @@
     grand = false,
     fill = false,
     time = true,
+    oneRow = false,
     selection = $bindable(null),
     ...rest
   }: FrameProps & {
@@ -27,6 +28,8 @@
     fill?: boolean | "center";
     /** Draw the time signature (off for a lone flashcard). */
     time?: boolean;
+    /** Every bar on one system: the frame scrolls it, the cursor kept near the middle. */
+    oneRow?: boolean;
   } = $props();
 </script>
 
@@ -35,6 +38,6 @@
   bind:selection
   label="Staff notation, {score.title}"
   scoreBpm={score.bpm}
-  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand, fill, time })}
+  draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand, fill, time, oneRow })}
   fallback={(reason) => `The staff can't draw this score: ${reason}. Falling notes shows every note.`}
 />

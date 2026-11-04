@@ -68,6 +68,25 @@ export interface Layout {
   /** Beams, ties and tuplet marks with the groups they join: hidden when any of them is (the look-ahead mask). */
   linked: { groups: number[]; el: Element }[];
   notice?: string;
+  /** Finger numbers are printed above a staff: judge marks go higher, clear of them. */
+  fingersAbove?: boolean;
+  /** A single staff's clef and key: where a pitch sits on it (played-note heads). Absent on a grand staff or tab. */
+  staff?: { clef: "treble" | "bass"; fifths: number };
+}
+
+/**
+ * Where a pitch sits on a single staff, as px from its top line (positive down): half a line
+ * gap per diatonic step from the top line (F5 in the treble clef, A3 in the bass), spelled in the key.
+ */
+export function staffOffset(
+  midi: number,
+  clef: "treble" | "bass",
+  fifths: number,
+  lineGap: number,
+): number {
+  const [letter, , octave] = /^([a-g])(#|b)?\/(-?\d+)$/.exec(spell(midi, fifths))!.slice(1);
+  const dia = Number(octave) * 7 + "cdefgab".indexOf(letter);
+  return ((clef === "treble" ? 38 : 26) - dia) * (lineGap / 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +365,8 @@ function engrave(
   width: number,
   /** Stretch a short last line to the width too (a one-line exercise reads better spread out), or centre a one-line staff. */
   fill: boolean | "center" = false,
+  /** Every bar on one system, however wide: the frame scrolls it with the cursor. */
+  oneRow = false,
 ): Layout {
   // Each bar's meter: the score's, or its own when the score changes meter.
   const meterOf = (b: number) => barList[b].meter ?? score.meter;
@@ -420,7 +441,11 @@ function engrave(
   // Pack bars into systems.
   // A grand staff's brace sits left of the staves.
   const left = rows.length > 1 ? 22 : MARGIN;
-  const avail = Math.max(120, width - left - MARGIN);
+  const avail = Math.max(
+    120,
+    width - left - MARGIN,
+    oneRow ? natural.reduce((a, b) => a + b, 0) + modFirst : 0,
+  );
   const systems: number[][] = [];
   let used = Infinity;
   natural.forEach((w, b) => {
@@ -626,6 +651,8 @@ export interface DrawOptions {
   grand?: boolean;
   /** Stretch the last line to the width too, or centre a one-line staff. */
   fill?: boolean | "center";
+  /** Every bar on one system; wider than the box, it scrolls. */
+  oneRow?: boolean;
 }
 
 export function drawStaff(
@@ -640,13 +667,16 @@ export function drawStaff(
     grand = false,
     fill = false,
     time: withTime = true,
+    oneRow = false,
   }: DrawOptions & { revealLabels?: boolean; time?: boolean },
 ): Layout {
   const barList = barsIn(bars(score), range);
   const groups = scoreGroups(score, voiceIds, range);
   const fifths = score.keyFifths ?? 0;
   const key = keySpec(fifths);
-  const rows: RowSpec[] = staffRows(score, voiceIds, grand).map((row, r) => {
+  let fingersAbove = false;
+  const staffRowList = staffRows(score, voiceIds, grand);
+  const rows: RowSpec[] = staffRowList.map((row, r) => {
     // Fingering needs room: above a treble staff (the staff moves down), below a bass staff.
     const fingered = row.notes.some((n) => n.finger !== undefined);
     const ticks = lineTicks(row.notes, barList, groups);
@@ -689,6 +719,7 @@ export function drawStaff(
       }
     }
     const above = (fingered && row.clef !== "bass") || symbols ? 22 : 0;
+    if (fingered && row.clef !== "bass") fingersAbove = true;
     return {
       height:
         (revealLabels ? 112 : 92) +
@@ -761,7 +792,11 @@ export function drawStaff(
       },
     };
   });
-  return engrave(VF, host, score, barList, groups, rows, width, fill);
+  return {
+    ...engrave(VF, host, score, barList, groups, rows, width, fill, oneRow),
+    fingersAbove,
+    ...(staffRowList.length === 1 ? { staff: { clef: staffRowList[0].clef, fifths } } : {}),
+  };
 }
 
 export function tabFit(

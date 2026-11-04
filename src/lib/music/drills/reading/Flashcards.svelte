@@ -19,10 +19,10 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
+  import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import Staff from "$lib/music/notation/Staff.svelte";
   import type { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { mic, settings } from "$lib/music/runtime";
@@ -87,6 +87,15 @@
   const preview = $derived(flashcardPrompt(rng(7), cardOpts));
   const card = $derived(phase === "running" ? cards[qi] : preview);
   const missedCard = $derived(!!answered && !answered.correct);
+  // After a miss the keys say it in the staff's colours and glyphs: the card's note green with a tick,
+  // what was played red with a cross, held until the next card.
+  $effect(() => {
+    if (!missedCard || !card || !answered || fretted) return;
+    const want = card.midi.map((m) => m + transpose);
+    if (byPlay) for (const m of answered.submitted.map((x) => x + transpose)) if (!want.includes(m)) flashes.add(m, "wrong", 600_000);
+    for (const m of want) flashes.add(m, "correct", 600_000);
+    return () => flashes.clear();
+  });
   const staffScore = $derived(card ? (missedCard && answered ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
   // The card's own choices: the twelve names spelled for the key, or the key's triads.
   const choices = $derived(card?.choices ?? []);
@@ -226,7 +235,9 @@
       best: fin.best,
       clean: mode === "check" && right === answers.length,
       xp: fin.xp,
-      assistance: assistanceText(mode, anyHint),
+      mode,
+      hinted: anyHint,
+      coach: missed.length ? { label: `Practice the notes you missed (${missed.length})`, run: retryMissed } : undefined,
       rows: (["treble", "bass"] as const)
         .filter((c) => byClef(c).length)
         .map((c) => ({ label: c === "treble" ? "Treble clef" : "Bass clef", value: byClef(c).filter((r) => r.correct).length / byClef(c).length, text: `${byClef(c).filter((r) => r.correct).length} of ${byClef(c).length}` })),
@@ -323,7 +334,7 @@
 
   {#snippet stage()}
     <div class="mx-auto flex w-full max-w-3xl flex-col items-center gap-4">
-      <div class="card w-full max-w-md rounded-2xl p-3 text-center" data-answer={card?.answer} data-midi={card?.midi.join(",")} data-state={answered ? (answered.correct ? "right" : "wrong") : "open"}>
+      <div class="card flex w-full max-w-lg flex-col items-stretch justify-center rounded-2xl p-3 text-center" data-dock="music" data-answer={card?.answer} data-midi={card?.midi.join(",")} data-state={answered ? (answered.correct ? "right" : "wrong") : "open"}>
         {#if staffScore}
           <!-- One bar engraves at its natural size; zoom makes the card readable at arm's length. -->
           <div class="zoom">
@@ -386,13 +397,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
-        {#snippet actions()}
-          {#if missed.length}
-            <button type="button" class={btn} onclick={retryMissed}>Practice the notes you missed ({missed.length})</button>
-          {/if}
-        {/snippet}
-      </Results>
+      <Results {summary} />
     {/if}
   {/snippet}
 </DrillShell>
@@ -401,15 +406,16 @@
   .card {
     border: 2px solid transparent;
   }
+  /* A miss frames the card neutrally: the green tick and red cross inside it carry the verdict. */
   .card[data-state="wrong"] {
-    border-color: var(--destructive);
+    border-color: color-mix(in oklch, var(--ws-stage-ink) 35%, transparent);
   }
   .card[data-state="right"] {
     border-color: var(--success);
   }
   /* The card is the staff's paper (NotationFrame), with a little room above and below. */
   .zoom {
-    zoom: 1.7;
+    zoom: 2;
     padding-block: 0.4rem;
     border-radius: 0.5rem;
     background: oklch(0.99 0.004 285);

@@ -1,6 +1,6 @@
 <script lang="ts">
   // The groove dictation grid: one row per drum (or one row for a rhythm), one column per count, a bar at a time,
-  // each bar in its own box. A bar of eighths stays on one row even on a phone (cells narrow to 30 px, 44 px tall);
+  // each bar in its own box. Cells never narrow below 44 px: on a phone a bar of eighths takes two rows of four;
   // a bar of sixteenths that does not fit wraps at a beat, inside the same box. While the pattern plays, a
   // playhead sweeps the bar and the column under it lights. The drill makes it writable; a lesson shows it read-only.
   import { beatsPerRow, CELL_GAP } from "./rhythm";
@@ -125,9 +125,9 @@
     outline-offset: 2px;
   }
   .cell[aria-pressed="true"] {
-    background: var(--instr);
-    border-color: var(--instr);
-    color: var(--ws-stage);
+    background: var(--instr-strong, var(--instr));
+    border-color: var(--instr-strong, var(--instr));
+    color: var(--on-instr, var(--ws-stage));
   }
   /* The column the playhead is over: lit, so a still frame shows where the music is. */
   .cell[data-now] {

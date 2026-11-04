@@ -112,7 +112,13 @@ let pianoBuffers: Record<string, ToneNS.ToneAudioBuffer> | null = null;
 let live: Voice | null = null;
 let liveSound = "";
 
-const ready = (): Tone | null => (unlocked && graph && T ? T : null);
+/** A play call arrived before the browser let sound start (no gesture yet): the strip asks for a tap. */
+let blocked = $state(false);
+const ready = (): Tone | null => {
+  if (unlocked && graph && T) return T;
+  if (!unlocked && !blocked) blocked = true;
+  return null;
+};
 const rawCtx = (t: Tone) => t.getContext().rawContext as unknown as BaseAudioContext;
 
 // ---------------------------------------------------------------------------
@@ -665,6 +671,7 @@ async function unlock(): Promise<boolean> {
     });
   }
   unlocked = t.getContext().state === "running";
+  if (unlocked) blocked = false;
   return unlocked;
 }
 
@@ -1323,6 +1330,10 @@ function latencyInfo() {
 export const audio = {
   get unlocked() {
     return unlocked;
+  },
+  /** True once a sound was asked for while audio was still locked; false again after unlock. */
+  get blocked() {
+    return blocked;
   },
   get sampleState() {
     return sampleState;

@@ -138,10 +138,10 @@ export function cellVerdict(heard: boolean, marked: boolean): "right" | "extra" 
 
 /**
  * The narrowest a dictation cell gets, and the gap between cells, in px. Cells
- * stay 44 px tall; 30 px wide lets a whole bar of eighths sit on one row of a
- * phone, with the drum names beside it.
+ * are a full 44 px touch target both ways: on a phone a bar of eighths splits
+ * into two rows of four rather than shrinking its cells.
  */
-export const CELL_MIN = 30;
+export const CELL_MIN = 44;
 export const CELL_GAP = 3;
 
 /**
@@ -200,10 +200,26 @@ export function marksAsPattern(
   };
 }
 
-/** A run's notes as the results' timing counts: on time (in the pocket), early, late, missed. */
-export function timingCounts(
-  verdicts: readonly ("pocket" | "early" | "late" | "missed" | undefined)[],
-) {
-  const n = (v: string) => verdicts.filter((x) => x === v).length;
-  return { onTime: n("pocket"), early: n("early"), late: n("late"), missed: n("missed") };
+/**
+ * The headline's count, read from the same breakdown the bars draw, so the two
+ * never disagree: "16 of 16 beats landed, 15 on time, 1 late." Early and late
+ * are named only when there are some; a run with none says "all on time".
+ */
+export function landedText(
+  t: { onTime: number; early: number; late: number; missed: number },
+  noun: string,
+  verb = "landed",
+): string {
+  const landed = t.onTime + t.early + t.late;
+  const total = landed + t.missed;
+  const parts = !landed
+    ? []
+    : landed === t.onTime
+      ? [landed === 1 ? "on time" : "all on time"]
+      : [
+          ...(t.onTime ? [`${t.onTime} on time`] : []),
+          ...(t.early ? [`${t.early} early`] : []),
+          ...(t.late ? [`${t.late} late`] : []),
+        ];
+  return `${landed} of ${total} ${noun} ${verb}${parts.length ? `, ${parts.join(", ")}` : ""}.`;
 }

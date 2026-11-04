@@ -43,6 +43,7 @@
     countIn = null,
     label = "Notes coming up",
     pads,
+    extras = [],
   }: {
     lanes: HighwayLane[];
     notes: HighwayNote[];
@@ -63,6 +64,8 @@
     label?: string;
     /** The pad grid, beside the lanes. */
     pads?: Snippet;
+    /** Hits no note claimed, marked in the lane of the pad that was hit (ms from the downbeat). */
+    extras?: readonly { lane: number; atMs: number }[];
   } = $props();
 
   let width = $state(600);
@@ -73,11 +76,14 @@
   const visible = $derived(notes.map((n, i) => ({ ...n, i })).filter((n) => n.atMs + (n.durMs ?? 0) > fromMs - beatMs && n.atMs < toMs + beatMs));
   const lines = $derived(gridLines(fromMs, toMs, beatMs, beatsPerBar, stepsPerBeat, scale.pxPerMs));
   /** Fewer lanes, taller lanes: four fill the height a groove needs, sixteen slices still fit. */
-  const laneRem = $derived(lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.6);
+  // The lanes together are never under 13.5rem (with the bar numbers, 240 px), so a phone reads them.
+  const laneRem = $derived(Math.max(13.5 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.6));
+  const shownExtras = $derived(extras.filter((e) => e.lane >= 0 && e.atMs > fromMs - beatMs && e.atMs < toMs));
 </script>
 
 <div class="wrap">
-  <div class="view" class:with-pads={!!pads}>
+  <!-- `grid` tells the stage's dock rules (DrillShell) this already lays out as a grid: left alone, the lanes keep their width in a run. -->
+  <div class="view grid" class:with-pads={!!pads}>
     <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
       <div class="labels" aria-hidden="true">
         {#each lanes as l (l.id)}
@@ -110,6 +116,9 @@
             <span class="hold" style:--c={c} style:left="{x(n.atMs)}px" style:width="{n.durMs * scale.pxPerMs}px" style:top="calc(({n.lane} + 0.5) * var(--lane))"></span>
           {/if}
           <span class="note" data-kind={n.kind} data-judged={judged[n.i]} style:--c={c} style:left="{x(n.atMs)}px" style:top="calc(({n.lane} + 0.5) * var(--lane))"></span>
+        {/each}
+        {#each shownExtras as e, k (k)}
+          <span class="extra" style:left="{x(e.atMs)}px" style:top="calc(({e.lane} + 0.5) * var(--lane))" aria-hidden="true">✕</span>
         {/each}
         <span class="hitline" style:left="{scale.hitX}px" aria-hidden="true"></span>
         {#if flash}
@@ -306,9 +315,26 @@
     background: color-mix(in oklch, var(--c) 35%, var(--ws-stage-ink));
     box-shadow: 0 0 18px color-mix(in oklch, var(--c) 90%, transparent);
   }
-  .note[data-judged="early"],
+  .note[data-judged="early"] {
+    box-shadow: 0 0 0 2px var(--early, var(--warn));
+  }
   .note[data-judged="late"] {
-    box-shadow: 0 0 0 2px var(--warn);
+    box-shadow: 0 0 0 2px var(--late, var(--warn));
+  }
+  /* A hit nothing asked for: a cross in its pad's lane, where it was played. */
+  .extra {
+    position: absolute;
+    margin-top: var(--head);
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: white;
+    background: var(--destructive);
   }
   .note[data-judged="miss"] {
     background: transparent;
@@ -354,9 +380,11 @@
   .flash[data-kind="perfect"] {
     --k: var(--success);
   }
-  .flash[data-kind="early"],
+  .flash[data-kind="early"] {
+    --k: var(--early, var(--warn));
+  }
   .flash[data-kind="late"] {
-    --k: var(--warn);
+    --k: var(--late, var(--warn));
   }
   .flash[data-kind="miss"],
   .flash[data-kind="extra"] {

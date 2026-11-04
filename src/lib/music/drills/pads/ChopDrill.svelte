@@ -31,7 +31,7 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, input, settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -316,7 +316,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: correct && mode === "check",
-      assistance: assistanceText(mode),
+      mode,
       rows,
       timing: grv ? timingFromErrors(grv.perTarget, grv.windowMs / 2) : undefined,
       advance: piece && source.id !== "file" ? await nextRun(`pads.chop.${exercise}`, { bpm, tempo: { min: 40, goal: exercise === "reorder" && edit.id === "jungle" ? 170 : 110 }, steps: CHOP_EXERCISES.filter((x) => x.id !== "free").map((x) => ({ label: x.label })), step: exercise === "order" ? 0 : 1 }, { score, correct }, tempoAnd((i) => cfg.set({ exercise: ["order", "reorder"][i] }))) : undefined,
@@ -415,7 +415,7 @@
     {#if phase === "running" && freeHalf}
       <Stat label="Now" value={freeHalf === "first" ? "your chop" : "play it again"} tone={freeHalf === "again" ? "success" : undefined} />
     {:else if phase === "running" && stepNow !== null}
-      <Stat label="Bar" value={`${Math.min(Math.floor(stepNow / 16) + 1, Math.ceil(lengthMs / (4 * beatMs)))}`} />
+      <Stat label="Bar" value={`${Math.min(Math.floor(stepNow / 16) + 1, Math.ceil(lengthMs / (4 * beatMs)))} of ${Math.ceil(lengthMs / (4 * beatMs))}`} />
     {/if}
   {/snippet}
 

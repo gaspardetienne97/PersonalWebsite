@@ -29,7 +29,7 @@
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio } from "$lib/music/runtime";
@@ -254,7 +254,7 @@
       best: fin.best,
       clean: mode === "check" && right === LENGTH,
       xp: fin.xp,
-      assistance: assistanceText(mode),
+      mode,
       rows: choices
         .filter((c) => records.some((r) => r.prompt.answer === c))
         .map((c) => {
@@ -298,7 +298,9 @@
   // The answer drawn: the bell for an EQ change, on a log-frequency axis from 31.5 Hz to 16 kHz.
   let graphW = $state(0);
   const W = $derived(graphW || 600);
-  const H = 116;
+  // The graph takes the height the session gives the music (the answers stay at the foot), 116 to 300 px.
+  let graphH = $state(0);
+  const H = $derived(Math.max(116, Math.min(300, graphH)));
   /** Side margin: room for half an answer button under the 31.5 Hz and 16 kHz ends. */
   const PAD = $derived(W >= 640 ? 64 : 30);
   const fx = (hz: number) => PAD + ((Math.log2(hz) - Math.log2(31.5)) / (Math.log2(16000) - Math.log2(31.5))) * (W - 2 * PAD);
@@ -414,19 +416,7 @@
           </span>
         </div>
         {#if eqTask}
-          <div bind:clientWidth={graphW}>
-            <svg class="mt-2 block w-full" width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer"}>
-              <line class="axis" x1={fx(31.5)} x2={fx(16000)} y1={fy(0)} y2={fy(0)} />
-              {#each BAND_SETS["9"] as hz (hz)}
-                <line class="tick" class:asked={p.choices.includes(String(hz))} x1={fx(hz)} x2={fx(hz)} y1={6} y2={H - 22} />
-                <!-- Under an aligned answer row the buttons name the asked bands. -->
-                {#if !(aligned && p.choices.includes(String(hz)))}
-                  <text class="hz" class:asked={p.choices.includes(String(hz))} x={fx(hz)} y={H - 6}>{bandLabel(hz)}</text>
-                {/if}
-              {/each}
-              <path class="curve" class:shown={step === "feedback"} d={curve} />
-            </svg>
-          </div>
+          {@render graph(p.choices, step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer")}
         {/if}
         <div data-dock="answers">
           <div class={aligned ? "relative mt-1 h-12" : "mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"} role="group" aria-label="Answers">
@@ -465,17 +455,35 @@
       <p class="py-1 text-sm text-ws-stage-soft">Rest your ears for a minute before the next run.</p>
     {:else}
       <div class="space-y-2 py-2">
-        <!-- What a run is, not the subtitle again. -->
-        <p class="font-display text-xl font-semibold">{meta.title}: {meta.ask}</p>
+        <!-- What a run is, not the subtitle again; for an EQ change, the range it happens in. -->
+        <p class="font-display text-xl font-semibold">{meta.ask}</p>
         <p class="text-sm text-ws-stage-soft">{LENGTH} questions. Each plays Flat, then Changed; flip between them with the buttons or A and B, then pick the answer.</p>
+        {#if eqTask && (exercise === "peak" || exercise === "cut")}
+          {@render graph(BAND_SETS[bands].map(String), `The answers: ${BAND_SETS[bands].map(bandLabel).join(", ")}, on the frequency range`)}
+        {/if}
       </div>
     {/if}
   {/snippet}
+
 
   {#snippet results()}
     {#if summary}<Results {summary} />{/if}
   {/snippet}
 </DrillShell>
+
+{#snippet graph(choices: readonly string[], label: string)}
+  <!-- Every band is named on the axis, the answer bands in bold, so the buttons under it read as that scale. -->
+  <div bind:clientWidth={graphW} bind:clientHeight={graphH} class="flex min-h-29 flex-col justify-center" data-dock="music">
+    <svg class="mt-2 block w-full" width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={label}>
+      <line class="axis" x1={fx(31.5)} x2={fx(16000)} y1={fy(0)} y2={fy(0)} />
+      {#each BAND_SETS["9"] as hz (hz)}
+        <line class="tick" class:asked={choices.includes(String(hz))} x1={fx(hz)} x2={fx(hz)} y1={6} y2={H - 22} />
+        <text class="hz" class:asked={choices.includes(String(hz))} x={fx(hz)} y={H - 6}>{bandLabel(hz)}</text>
+      {/each}
+      <path class="curve" class:shown={step === "feedback" && phase === "running"} d={phase === "running" ? curve : `M ${fx(31.5)} ${fy(0)} L ${fx(16000)} ${fy(0)}`} />
+    </svg>
+  </div>
+{/snippet}
 
 <style>
   .prompt {
@@ -492,8 +500,8 @@
     border: 2px solid transparent;
   }
   .flip[aria-pressed="true"] {
-    background: var(--instr);
-    color: var(--ws-stage);
+    background: var(--instr-strong, var(--instr));
+    color: var(--on-instr, var(--ws-stage));
   }
   .flip kbd {
     margin-left: 0.4rem;
@@ -594,7 +602,7 @@
     stroke: color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
   .hz {
-    font-size: 11px;
+    font-size: 13px;
     text-anchor: middle;
     fill: color-mix(in oklch, var(--ws-stage-ink) 40%, transparent);
   }
@@ -603,7 +611,7 @@
     font-weight: 700;
   }
   .hz.asked {
-    font-size: 13px;
+    font-size: 14px;
   }
   /* A phone has no room for nine names: only the answer bands are named. */
   @media (max-width: 639px) {

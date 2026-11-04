@@ -12,7 +12,7 @@ import {
   midiHits,
   readPatterns,
   signedMs,
-  timingCounts,
+  landedText,
   voicing,
 } from "./rhythm";
 import { rhythmLine } from "./notation";
@@ -108,26 +108,33 @@ describe("rhythm copy and layout", () => {
     expect(cellVerdict(false, false)).toBeNull();
   });
 
-  it("fits a whole bar of eighths on a phone row, drum names and all; sixteenths split at half a bar", () => {
+  it("keeps every cell 44 px wide: a phone row holds half a bar of eighths, a beat of sixteenths", () => {
     expect(beatsPerRow(0, 2, 4)).toBe(4);
     expect(beatsPerRow(1000, 2, 4, 64)).toBe(4);
-    expect(beatsPerRow(334, 2, 4)).toBe(4);
-    expect(beatsPerRow(334, 2, 4, 48)).toBe(4);
-    expect(beatsPerRow(334, 4, 4)).toBe(2);
-    expect(beatsPerRow(334, 4, 4, 48)).toBe(2);
+    expect(beatsPerRow(334, 2, 4)).toBe(2);
+    expect(beatsPerRow(334, 2, 4, 48)).toBe(2);
+    expect(beatsPerRow(334, 4, 4)).toBe(1);
+    expect(beatsPerRow(334, 4, 4, 48)).toBe(1);
     expect(beatsPerRow(140, 4, 4, 48)).toBe(1);
     // Three beats a bar never splits into a share that leaves a beat over.
     expect(beatsPerRow(334, 2, 3)).toBe(3);
     expect(beatsPerRow(100, 2, 3)).toBe(1);
   });
 
-  it("counts a run's notes as on time, early, late and missed", () => {
-    expect(timingCounts(["pocket", "early", "pocket", "missed", "late", undefined])).toEqual({
-      onTime: 2,
-      early: 1,
-      late: 1,
-      missed: 1,
-    });
+  it("says the landed count from the same breakdown the bars draw", () => {
+    // Rhythm pulse used to read "On time: 16 of 16" over 15 on time and 1 late.
+    expect(landedText({ onTime: 15, early: 0, late: 1, missed: 0 }, "beats")).toBe(
+      "16 of 16 beats landed, 15 on time, 1 late.",
+    );
+    expect(landedText({ onTime: 4, early: 0, late: 0, missed: 0 }, "beats")).toBe(
+      "4 of 4 beats landed, all on time.",
+    );
+    expect(landedText({ onTime: 0, early: 2, late: 1, missed: 5 }, "notes", "tapped")).toBe(
+      "3 of 8 notes tapped, 2 early, 1 late.",
+    );
+    expect(landedText({ onTime: 0, early: 0, late: 0, missed: 4 }, "beats")).toBe(
+      "0 of 4 beats landed.",
+    );
   });
 
   it("writes the marks as notes held to the next mark, rests before a bar's first mark", () => {

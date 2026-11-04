@@ -413,7 +413,8 @@
   const lastNotes = $derived(played.slice(-16));
   const summaryLine = $derived([
     { text: mode === "home" ? "Find home" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
-    { text: sourceTitle || "no recording yet", focus: "source" },
+    // Quoted: it is the recording's own title (a file name), not one of the app's presets.
+    { text: sourceTitle ? `from “${sourceTitle}”` : "no recording yet", focus: "source" },
     { text: `${Math.round(Number(s.speed) * 100)}% speed`, focus: "speed" },
     ...(s.pitch !== "0" ? [{ text: `${s.pitch} semitones`, focus: "pitch" }] : []),
   ]);

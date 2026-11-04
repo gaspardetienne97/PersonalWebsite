@@ -7,7 +7,7 @@
   // the rest by their own measures in content/aero-skills.
   import { onDestroy } from "svelte";
   import type { ControlEvent, NoteEvent } from "@repo/music-core";
-  import { clamp, noteName } from "@repo/music-core";
+  import { clamp, evennessRow, noteName } from "@repo/music-core";
   import { fingeringFor } from "@repo/music-core/content/winds-pads";
   import {
     AERO_GRADE_SPEEDS,
@@ -53,7 +53,7 @@
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { benchFromUrl } from "$lib/music/drills/piano/transport.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { audio, settings } from "$lib/music/runtime";
@@ -307,7 +307,7 @@
       correct = r.correct;
       rows = [
         { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}` },
-        { label: "Evenness", value: r.evenness, text: `${pct(r.evenness)}, ${Math.round(r.evennessErrorMs)} ms off` },
+        evennessRow(r.evenness, r.clean, r.total),
         { label: "Stray notes between fingerings", text: String(strays) },
       ];
       if (skill === "register") {
@@ -394,7 +394,7 @@
       status = summary.headline;
       return;
     }
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
   }
 
@@ -435,7 +435,7 @@
 <DrillShell
   title="Aerophone"
   hue="aerophone"
-  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time: every fingering, the octave key at the right moment, in patterns and over two octaves." : skill === "swing" ? "Swing articulation after Niehaus: eighths long-short, each off-beat tongued and slurred into the beat. The swing is read from the timing, the tongue from the breath." : skill === "long-scale" ? "Each note of a scale held four beats at one level: the breath read from CC 2 should stay in the band from the bottom to the top." : skill === "tonguing" ? "Slurred and tongued notes on purpose: a tongued note stops the air, a slurred one changes key with the air still going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
+  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time, in patterns and over two octaves." : skill === "swing" ? "Swung eighths after Niehaus: long-short, each off-beat tongued and slurred into the beat." : skill === "long-scale" ? "Each scale note held four beats at one breath level, in the band from bottom to top." : skill === "tonguing" ? "Slurred and tongued on purpose: tongued stops the air, slurred keeps it going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
   summary={summaryLine}
   tabs={modes}
   tab={skill}
@@ -514,7 +514,7 @@
       <div class="flex min-w-0 flex-col gap-3">
         {#if skill === "long-scale"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-band">
-            <div class="flex items-baseline justify-between text-xs text-ws-stage-soft"><span>Breath, hold it in the {level.id} band</span><span class="tnum">{breathNow === null ? "no breath yet" : pct(breathNow)}</span></div>
+            <div class="flex items-baseline justify-between text-sm text-ws-stage-soft"><span>Breath, hold it in the {level.id} band</span><span class="tnum">{breathNow === null ? "no breath yet" : pct(breathNow)}</span></div>
             <div class="relative mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
               <div class="absolute inset-y-0 bg-instr/30" style:left="{level.band[0] * 100}%" style:width="{(level.band[1] - level.band[0]) * 100}%"></div>
               {#if breathNow !== null}<div class="absolute inset-y-0 w-1 rounded-full bg-instr" style:left="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
@@ -523,28 +523,30 @@
         {/if}
         {#if timed}
           {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
-          {#if mode === "practice" || phase === "results"}
-            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
-            {#if skill === "swing"}<p class="text-xs text-ws-stage-soft">Written straight, as swing charts are: play each pair long-short.</p>{/if}
-          {/if}
+          <!-- Check hides the fingering, not the line: the staff stays for reading, without the cursor on the target. -->
+          <div data-dock="music">
+            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null || mode === "check" ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
+          </div>
+          {#if skill === "swing"}<p class="text-sm text-ws-stage-soft">Written straight, as swing charts are: play each pair long-short.</p>{/if}
           <!-- A bar a group, so a wrap falls between bars and never leaves one note alone on a row. -->
           <ol class="flex flex-wrap gap-x-3 gap-y-1.5" aria-label="The line">
             {#each Array.from({ length: Math.ceil(line.length / barNotes) }, (_, b) => b) as b (b)}
               <li class="flex flex-wrap gap-1.5" aria-label="Bar {b + 1}">
                 {#each line.slice(b * barNotes, (b + 1) * barNotes) as n, k (k)}
                   {@const i = b * barNotes + k}
-                  {@const nowHere = stepNow === i}
+                  <!-- Check never lights the target: only the note count in the HUD says where you are. -->
+                  {@const nowHere = stepNow === i && mode === "practice"}
                   {@const out = chipOut[i]}
-                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr text-ws-stage' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
-                    {#if marks.length}<span class="text-[10px] font-bold opacity-70" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
+                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
+                    {#if marks.length}<span class="text-[13px] font-bold" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
                     {spell(n)}
-                    {#if out && !nowHere}<span class="text-[11px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
+                    {#if out && !nowHere}<span class="text-[13px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
                   </span>
                 {/each}
               </li>
             {/each}
           </ol>
-          {#if marks.length}<p class="text-xs text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
+          {#if marks.length}<p class="text-sm text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
           {#if skill !== "long-scale"}
             <!-- Live breath while you play: not graded here, it shows the air behind each note. -->
             <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-meter">
@@ -591,6 +593,7 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="aerophone" /></div>
+    <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
+    {#if summary?.heard !== false}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
   {/snippet}
 </DrillShell>

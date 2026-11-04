@@ -58,10 +58,12 @@
     import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, settings, type SequenceHandle } from "$lib/music/runtime";
+  import { audio, db, midi, settings, type SequenceHandle } from "$lib/music/runtime";
+  import { goto } from "$app/navigation";
   import { nextRun } from "$lib/music/advance.svelte";
+  import { timingRow } from "@repo/music-core";
 
   const TEMPO = { min: 40, max: 180 };
   const ENTRY = catalogEntry("accompany")!;
@@ -137,7 +139,7 @@
   const keyPc = $derived(pc(writtenKey + s.transpose));
   const minor = $derived(tab !== "lead-sheet" || genTune ? /minor/.test(base.key) : false);
 
-  const rendering = $derived.by((): Rendering => {
+  const full = $derived.by((): Rendering => {
     if (tab === "comping") return compingRendering(chartOf(compProg, s.transpose, compChoruses), voicing.id, rhythm.id, s.feel === "swing", bpb);
     if (tab === "lead-sheet") {
       // A jazz head is written straight and played swung.
@@ -145,6 +147,32 @@
       return s.tune === "generated" ? leadSheetRendering(generatedLeadSheet(base, s.transpose, s.seed), lh, 0, hands) : leadSheetRendering(sheet, lh, s.transpose, hands);
     }
     return patternRendering(chartOf(base, s.transpose), pattern.id, hands);
+  });
+  /** The results' fix for a weak bar: that one bar, played four times. Any setup change goes back to the whole chart. */
+  let loopBar = $state<number | null>(null);
+  const LOOPS = 4;
+  $effect(() => {
+    void full;
+    loopBar = null;
+  });
+  const rendering = $derived.by((): Rendering => {
+    if (loopBar === null) return full;
+    const from = loopBar * bpb;
+    const to = from + bpb;
+    const times = Array.from({ length: LOOPS }, (_, k) => k * bpb - from);
+    return {
+      ...full,
+      beats: LOOPS * bpb,
+      slots: times.flatMap((d) => full.slots.filter((sl) => sl.beat >= from && sl.beat < to).map((sl) => ({ ...sl, beat: sl.beat + d }))),
+      chart: times.flatMap((d) =>
+        full.chart
+          .filter((c) => c.startBeat < to && c.startBeat + c.durationBeats > from)
+          .map((c) => {
+            const a = Math.max(from, c.startBeat);
+            return { ...c, startBeat: a + d, durationBeats: Math.min(to, c.startBeat + c.durationBeats) - a };
+          }),
+      ),
+    };
   });
   const slots = $derived(rendering.slots);
   const totalBeats = $derived(rendering.beats);
@@ -213,7 +241,8 @@
 
   const handsText = $derived(hands === "both" ? "both hands" : `${hands} hand only`);
   const keyText = $derived(`${FLAT_NAMES[keyPc]}${minor ? " minor" : ""}`);
-  const summaryLine = $derived<SetupClause[]>(
+  const loopClause = $derived<SetupClause[]>(loopBar === null ? [] : [{ text: `bar ${loopBar + 1} only, ${LOOPS} times` }]);
+  const summaryLine = $derived<SetupClause[]>([...loopClause, ...(
     tab === "comping"
       ? [
           { text: `${voicing.label} on ${rhythm.label.toLowerCase()}`, focus: "voicing" },
@@ -235,8 +264,8 @@
             { text: pattern.label, focus: "pattern" },
             { text: `over ${base.name} in ${keyText}`, focus: "progression" },
             ...(hands === "both" ? [] : [{ text: handsText, focus: "hands" }]),
-          ],
-  );
+          ]
+  )]);
   const runParams = $derived<Record<string, string | number>>(
     tab === "comping"
       ? { bpm, voicing: voicing.id, rhythm: rhythm.id, feel: s.feel, progression: base.id, key: keyPc, meter: bpb, choruses: compChoruses, band: s.band, ...(swaps.size ? { reharm: reharmDevice(swaps)!, swaps: formatReharm(swaps) } : {}) }
@@ -244,7 +273,7 @@
         ? { bpm, tune: jazzHead ? s.tune : s.tune === "generated" ? `generated-${base.id}` : sheet.id, lh, hands, key: keyPc, ...(charted ? { progression: base.id } : {}), ...(shelfOf[sheet.id] && !genTune ? { shelf: shelfOf[sheet.id] } : {}), ...(s.transpose ? { transpose: s.transpose } : {}) }
         : { bpm, pattern: pattern.id, progression: base.id, hands, key: keyPc },
   );
-  const setupKey = $derived(`accompany:${tab}:${Object.values(runParams).join(":")}`);
+  const setupKey = $derived(`accompany:${tab}:${Object.values(runParams).join(":")}${loopBar === null ? "" : `:bar${loopBar + 1}`}`);
 
   function pickKey(target: number) {
     let t = (target - writtenKey) % 12;
@@ -282,12 +311,12 @@
       assistance: assistanceFor(mode),
       difficulty: Math.min(1, (tab === "patterns" ? 0.3 + pattern.n / 40 : 0.55) + (bpm - 70) / 300),
       instrument: "piano",
-      params: runParams,
+      params: loopBar === null ? runParams : { ...runParams, loopBar: loopBar + 1 },
     });
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     transport.follow(ctx.downbeat, ctx.beatMs);
     // Comping over a band: drums and bass from the downbeat, as many times as the chart runs.
-    if (tab === "comping" && s.band === "rhythm") {
+    if (tab === "comping" && s.band === "rhythm" && loopBar === null) {
       const p = transposeProgression(compProg, s.transpose);
       const times = Math.ceil(totalBeats / (chorusBars(p) * barBeats(p)) - 1e-9);
       void audio.unlock().then(() => (band = audio.playSequence(backingNotes({ ...p, feel: rendering.swing ? "swing" : "straight" }, { bpm, mode: "rhythm", choruses: times }), { startPerf: ctx.downbeat })));
@@ -329,18 +358,14 @@
       value: h.matched / h.total,
       text: `${h.matched} of ${h.total}`,
     }));
-    // No hits means no timing to average: say so instead of "0 ms off".
-    rows.push(
-      r.hands.some((h) => h.matched)
-        ? { label: "Timing", value: r.meanAbsErrorMs ? Math.max(0, 1 - r.meanAbsErrorMs / r.windowMs) : null, text: `${Math.round(r.meanAbsErrorMs)} ms off on average` }
-        : { label: "Timing", notMeasured: true },
-    );
+    // Timing speaks only when enough slots landed to judge it (K3), and says how many it is from.
+    rows.push(timingRow(r.metrics.flatMap((m) => (m.kind === "timing" ? [m.errorMs] : [])), r.hands.reduce((t, h) => t + h.total, 0), r.windowMs));
     if (chordsOff) rows.push({ label: "Chords (on-screen input)", notMeasured: true });
     summary = {
       headline: r.correct
         ? `Clean at ${bpm} BPM: ${r.hands.map((h) => `${h.matched} of ${h.total} ${h.hand}-hand`).join(", ")}.`
         : r.weakBar !== null && weak && weak.matched < weak.total
-          ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most. Loop it slower.`
+          ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most.${loopBar === null ? " Loop it on its own." : ""}`
           : `Every chord landed, but the timing wandered. Keep the hands on the click.`,
       metric: pct(r.score),
       metricLabel: "score",
@@ -348,9 +373,15 @@
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
-      assistance: chordsOff ? `${assistanceText(mode)} On-screen keys play one note at a time, so this run graded single notes only.` : assistanceText(mode),
+      mode,
       rows,
-      advance: await nextRun(`accompany.${tab}.${tab === "patterns" ? pattern.id : tab === "comping" ? voicing.id : lh}`, { bpm, tempo: { min: 50, goal: 100, max: TEMPO.max } }, r),
+      // The headline's fix as one button: that bar on its own, four times (back on the ready screen).
+      coach:
+        !r.correct && loopBar === null && r.weakBar !== null && weak && weak.matched < weak.total
+          ? { label: `Loop bar ${r.weakBar + 1}`, run: () => ((loopBar = r.weakBar), (phase = "ready"), (status = `Bar ${r.weakBar! + 1} on its own, ${LOOPS} times. Here it comes.`)) }
+          : undefined,
+      // A looped bar is a fix, not a step on the tempo ladder.
+      advance: loopBar !== null ? undefined : await nextRun(`accompany.${tab}.${tab === "patterns" ? pattern.id : tab === "comping" ? voicing.id : lh}`, { bpm, tempo: { min: 50, goal: 100, max: TEMPO.max } }, r),
     };
     status = summary.headline;
   }
@@ -409,6 +440,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  requires={midi.inputs.length ? [] : [{ text: "chords on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so they grade single notes only)", run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -508,6 +540,9 @@
             {tab === "comping" ? `${voicing.about} ${rhythm.about}` : tab === "lead-sheet" ? LEAD_LEFT.find((l) => l.id === lh)!.about : pattern.about}
           </p>
         {/if}
+        {#if loopBar !== null && phase !== "running" && phase !== "countin"}
+          <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => (loopBar = null)}>Whole chart</button>
+        {/if}
         {#if ((tab === "lead-sheet" && genTune) || charted) && phase !== "running" && phase !== "countin"}
           <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>{charted ? "New chart" : "New melody"}</button>
         {/if}
@@ -534,7 +569,6 @@
       {/if}
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
         {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check mode: read the melody and the symbols; the keys stay dark." : "Check mode: play the pattern from the chart; the notes are hidden."}</p>{/if}
-        <p>Chords need MIDI: on-screen keys play one note at a time, so an on-screen run grades single notes only.</p>
       </div>
     </div>
   {/snippet}

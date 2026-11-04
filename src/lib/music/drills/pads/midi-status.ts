@@ -47,7 +47,7 @@ export function explainNote(
     return said(`Hearing ${name}. Last hit: pad ${padLabel(mapped)}.`, true);
   if (inBankA(mapped))
     return said(
-      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : " (no pad map saved, so the pads are read in order)"}.`,
+      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : ". Pads not mapped yet, so the default order is used: map them in Connect"}.`,
       true,
     );
   return said(
