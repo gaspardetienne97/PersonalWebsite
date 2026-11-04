@@ -147,3 +147,29 @@ export async function addShelfSong(key: string, title: string, artist?: string):
   await db.songs.put(song);
   return song;
 }
+
+/**
+ * A song's Song Studio history for its card: the best scored run, the last time it was
+ * played, and how many runs. Runs that wrote no score (nothing heard) count as played only.
+ */
+export function songHistory(
+  runs: readonly {
+    exerciseId: string;
+    params: Record<string, string | number | boolean>;
+    endedAt: number;
+    score?: number;
+  }[],
+  song: Pick<Song, "id" | "shelf">,
+): { runs: number; best: number | null; lastAt: number | null } {
+  let n = 0;
+  let best: number | null = null;
+  let lastAt: number | null = null;
+  for (const r of runs) {
+    if (r.exerciseId !== "song.studio") continue;
+    if (r.params.song !== song.id && !(song.shelf && r.params.shelf === song.shelf)) continue;
+    n++;
+    if (r.score !== undefined && (best === null || r.score > best)) best = r.score;
+    if (lastAt === null || r.endedAt > lastAt) lastAt = r.endedAt;
+  }
+  return { runs: n, best, lastAt };
+}

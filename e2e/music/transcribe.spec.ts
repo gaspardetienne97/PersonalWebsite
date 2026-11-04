@@ -89,7 +89,8 @@ test.describe("transcribe", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Chord and A" })).toBeVisible();
 
     // Any song's notes open in the roll to fix.
-    await page.getByRole("link", { name: "Edit notes" }).click();
+    await page.getByRole("button", { name: "Song options" }).click();
+    await page.getByRole("menuitem", { name: "Edit notes" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Edit notes" })).toBeVisible();
     await expect(page.locator("[data-save-state]")).toHaveText("Saved");
     const grid = page.getByRole("application", { name: /Note grid/ });

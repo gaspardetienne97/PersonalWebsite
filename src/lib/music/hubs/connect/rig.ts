@@ -37,3 +37,43 @@ export function micOptions(
     });
   return options;
 }
+
+/**
+ * A raw MIDI message ("99 2A 64") in words, for the activity feed: "Note on F#2,
+ * velocity 100". `name` reads a note number the way the device's player knows it
+ * (a pad on the MPC). The bytes stay one toggle away.
+ */
+export function describeMidi(
+  hex: string,
+  name: (note: number) => string = (n) => noteName(n),
+): string {
+  const b = hex
+    .trim()
+    .split(/\s+/)
+    .map((x) => parseInt(x, 16));
+  const s = b[0];
+  if (!Number.isFinite(s)) return "Unreadable message";
+  if (s === 0xf0) return `System message (SysEx, ${b.length} bytes)`;
+  if (s === 0xf8) return "Clock tick";
+  if (s === 0xfe) return "Still connected (active sensing)";
+  if (s >= 0xf0) return "System message";
+  const ch = (s & 0x0f) + 1;
+  const [d1 = 0, d2 = 0] = b.slice(1);
+  switch (s & 0xf0) {
+    case 0x90:
+      return d2 ? `${name(d1)} on, velocity ${d2}` : `${name(d1)} off`;
+    case 0x80:
+      return `${name(d1)} off`;
+    case 0xa0:
+      return `${name(d1)} pressure ${d2}`;
+    case 0xb0:
+      return d1 === 2 ? `Breath ${d2}` : `Controller ${d1} set to ${d2}`;
+    case 0xc0:
+      return `Sound changed to program ${d1 + 1}`;
+    case 0xd0:
+      return `Pressure ${d1}`;
+    case 0xe0:
+      return `Pitch bend ${((d2 << 7) | d1) - 8192}`;
+  }
+  return `Channel ${ch} message`;
+}

@@ -29,6 +29,8 @@
     { value: 3, label: "Middle" },
     { value: 4, label: "High" },
   ] as const;
+  // Each register names the note it sounds: "Middle, A3".
+  const registers = $derived(OCTAVES.map((o) => ({ ...o, label: `${o.label}, ${pretty(noteName((o.value + 1) * 12 + tonic))}` })));
 
   const describe = () => `${noteName(midi)}, ${timbre}`;
 
@@ -54,25 +56,19 @@
   onDestroy(() => audio.drone.stop());
 </script>
 
-<div class="flex flex-wrap items-end gap-4">
-  <Choice label="Timbre" options={TIMBRES} bind:value={timbre} onchange={changed} />
-  <Choice label="Register" options={OCTAVES} bind:value={octave} onchange={changed} />
-  <label class="flex min-w-40 flex-col gap-1 text-sm">
-    <span class="font-medium">Volume <span class="tnum text-ws-soft">{Math.round(volume * 100)}%</span></span>
-    <input
-      type="range"
-      min="0.05"
-      max="1"
-      step="0.05"
-      bind:value={volume}
-      onchange={changed}
-      class="min-h-11 accent-[var(--instr)]"
-    />
-  </label>
-</div>
+<section class="stage rounded-2xl p-4 sm:p-5" aria-label="Drone">
+  <NotePads
+    label="Tonic"
+    selected={tonic}
+    tonic={tonic}
+    onselect={(p) => {
+      if (p === null) return;
+      tonic = p;
+      changed();
+    }}
+  />
 
-<section class="stage rounded-2xl p-4 sm:p-6" aria-label="Drone">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
     <p class="font-display text-xl font-semibold">
       {playing ? "Sounding" : "Tonic"} <span class="tnum">{pretty(noteName(midi))}</span>
     </p>
@@ -88,20 +84,60 @@
     </button>
   </div>
 
-  <div class="mt-4">
+  <div class="mt-3">
     <DroneScope {midi} {timbre} {playing} />
   </div>
-
-  <div class="mt-4">
-    <NotePads
-      label="Tonic"
-      selected={tonic}
-      tonic={tonic}
-      onselect={(p) => {
-        if (p === null) return;
-        tonic = p;
-        changed();
-      }}
-    />
-  </div>
 </section>
+
+<div class="grid gap-4 sm:grid-cols-2">
+  <div class="flex flex-col gap-1.5">
+    <Choice label="Timbre" options={TIMBRES} bind:value={timbre} onchange={changed} />
+    <p class="text-sm text-ws-soft">{TIMBRES.find((t) => t.value === timbre)?.hint}</p>
+  </div>
+  <Choice label="Register" options={registers} bind:value={octave} onchange={changed} />
+  <label class="flex flex-col gap-1 text-sm sm:col-span-2">
+    <span class="font-medium">Volume <span class="tnum text-ws-soft">{Math.round(volume * 100)}%</span></span>
+    <input type="range" min="0.05" max="1" step="0.05" bind:value={volume} onchange={changed} class="volume w-full" style:--v={(volume - 0.05) / 0.95} />
+  </label>
+</div>
+
+<style>
+  .volume {
+    appearance: none;
+    height: 2.75rem;
+    background: transparent;
+    cursor: pointer;
+  }
+  .volume::-webkit-slider-runnable-track {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--instr) calc(var(--v, 0.4) * 100%), var(--ws-raised) 0);
+  }
+  .volume::-moz-range-track {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--ws-raised);
+  }
+  .volume::-moz-range-progress {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--instr);
+  }
+  .volume::-webkit-slider-thumb {
+    appearance: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: -0.625rem;
+    border-radius: 999px;
+    background: var(--instr);
+    border: 3px solid var(--ws-surface);
+    box-shadow: 0 0 0 1px var(--ws-line);
+  }
+  .volume::-moz-range-thumb {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    background: var(--instr);
+    border: 3px solid var(--ws-surface);
+  }
+</style>

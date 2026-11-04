@@ -6,6 +6,7 @@
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { mic, settings } from "$lib/music/runtime";
   import Picker from "$lib/music/components/Picker.svelte";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { micOptions } from "./rig";
 
   let { announce }: { announce: (text: string) => void } = $props();
@@ -86,8 +87,14 @@
     </p>
   {/if}
 
-  <label class="flex min-h-11 items-start gap-3 text-sm">
-    <input type="checkbox" role="switch" class="mt-0.5 size-5 shrink-0 accent-[var(--instr-ink)]" checked={settings.value.echoCancellation} onchange={(e) => void setEcho(e.currentTarget.checked)} />
-    <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">Off is better for pitch and timing. Turn it on only if the speakers bleed into the mic.</span></span>
-  </label>
+  <details class="group text-sm" open={settings.value.echoCancellation || undefined}>
+    <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
+      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Microphone options
+      <span class="font-normal text-ws-soft">Echo cancellation {settings.value.echoCancellation ? "on" : "off"}</span>
+    </summary>
+    <label class="flex min-h-11 items-start gap-3 pl-6">
+      <input type="checkbox" role="switch" class="mt-0.5 size-5 shrink-0 accent-[var(--instr-ink)]" checked={settings.value.echoCancellation} onchange={(e) => void setEcho(e.currentTarget.checked)} />
+      <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">Off is better for pitch and timing. Turn it on only if the speakers bleed into the mic.</span></span>
+    </label>
+  </details>
 </div>

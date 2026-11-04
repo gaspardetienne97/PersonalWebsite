@@ -166,8 +166,10 @@ test.describe("library and song studio", () => {
       ...ODE_NOTES.map((m, i) => ({ at: 250 + i * 160, notes: [m], hold: 80 })),
     ]);
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
-    await expect(page.getByRole("status")).toContainText("14 of 15 groups clean");
-    await expect(page.getByText("Groups played clean")).toBeVisible();
+    await expect(page.getByRole("status")).toContainText(
+      "14 of 15 notes or chords right first time",
+    );
+    await expect(page.getByText("Notes or chords right first time", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-take results" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-section results" })).toContainText(
       "Whole score",
@@ -187,7 +189,7 @@ test.describe("library and song studio", () => {
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 10000 });
     await expect(page.getByText("Notes matched", { exact: true })).toBeVisible();
     await expect(page.getByText("Early / on time / late")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Again at 248 BPM" })).toBeVisible();
+    await expect(page.getByTestId("next-run")).toBeVisible();
     await shoot(page, "studio-performance-results");
   });
 
@@ -235,7 +237,7 @@ test.describe("library and song studio", () => {
       { at: 1000, notes: [36] },
     ]);
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
-    await expect(page.getByRole("status")).toContainText("3 of 4 groups clean");
+    await expect(page.getByRole("status")).toContainText("3 of 4 notes or chords right first time");
     await shoot(page, "studio-drums");
   });
 
@@ -372,11 +374,14 @@ test.describe("library and song studio", () => {
     await openOde(page);
 
     // The metronome takes the song's tempo in one tap.
-    const toSong = page.getByRole("button", { name: /^Set metronome to \d+ BPM$/ });
+    await page.getByRole("button", { name: "Song options" }).click();
+    const toSong = page.getByRole("menuitem", { name: /^Set metronome to \d+ BPM$/ });
     const bpm = (await toSong.textContent())!.match(/\d+/)![0];
     await toSong.click();
     await expect(page.getByRole("status")).toContainText(`metronome is at ${bpm} BPM`);
-    await expect(page.getByRole("button", { name: `Metronome at ${bpm} BPM` })).toBeDisabled();
+    await page.getByRole("button", { name: "Song options" }).click();
+    await expect(page.getByRole("menuitem", { name: `Metronome at ${bpm} BPM` })).toBeDisabled();
+    await page.keyboard.press("Escape");
 
     // Switching to Tab does not move the view picker.
     const views = page.getByRole("navigation", { name: "Score view" });

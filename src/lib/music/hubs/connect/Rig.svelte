@@ -6,6 +6,7 @@
   import type { Snippet } from "svelte";
   import { detectInstrument } from "@repo/music-core/io/devices";
   import Cable from "lucide-svelte/icons/cable";
+  import Check from "lucide-svelte/icons/check";
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { input, midi, mic, settings } from "$lib/music/runtime";
@@ -52,7 +53,7 @@
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
       <h2 id="rig-title" class="flex items-center gap-2.5 font-display text-xl font-semibold">
-        <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-create)" aria-hidden="true"><Cable class="size-5" /></span>
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-create)" aria-hidden="true"><Cable class="size-5" /></span>
         Your rig
       </h2>
       <p class="mt-1 text-sm" data-testid="rig-count"><span class="tnum font-semibold">{litCount} of 4</span> <span class="text-ws-soft">connected. Play something and its tile lights up.</span></p>
@@ -69,28 +70,35 @@
     {#if !midi.supported}
       <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
     {:else if !midi.enabled}
-      <p class="text-ws-soft">The browser will ask about MIDI and about SysEx. Allow both: SysEx drives the MPC link and its pad lights. Once enabled, MIDI comes back on by itself on every visit.</p>
+      <p class="text-ws-soft">The browser asks twice: allow MIDI, and allow pad lights (SysEx) for the MPC. After that MIDI turns on by itself.</p>
     {:else}
-      <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? ", with SysEx" : ", without SysEx (MPC link and lights unavailable)"}. Hot-plugging is fine.</p>
+      <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? "" : ". Pad lights were not allowed, so the MPC link and lights are off"}. Plug devices in any time.</p>
     {/if}
     {#if midi.error}<p class="mt-1 font-medium text-destructive">{midi.error}</p>{/if}
   </div>
 
-  <ul class="grid grid-cols-3 gap-2 sm:gap-3">
+  <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3">
     {#each TILES as t (t.id)}
       {@const lit = portsOn(t.id).length > 0}
       {@const hit = last[t.id]}
       {@const Icon = INSTRUMENT_ICON[t.hue]}
-      <li class="tile flex min-w-0 flex-col items-center gap-1 rounded-2xl p-2 text-center sm:p-3" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
-        <span class="chip relative grid size-11 place-items-center rounded-xl" aria-hidden="true">
+      <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
+        <span class="chip relative grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true">
           <Icon class="size-5" />
           {#if hit}{#key hit.n}<span class="bloom absolute inset-0 rounded-xl"></span>{/key}{/if}
         </span>
-        <h3 class="text-sm font-semibold sm:text-base">{t.label}</h3>
-        <p class="w-full truncate text-xs text-ws-soft" title={status(t.id)}>{status(t.id)}</p>
-        <p class="tnum flex min-h-9 items-center font-display text-2xl leading-none font-semibold sm:text-3xl" aria-live="polite">
-          {#if hit && lit}<span class="sr-only">Heard </span>{hit.label}{:else if lit}<span class="text-xs font-normal text-ws-soft sm:text-sm">{t.prompt}</span>{/if}
-        </p>
+        <div class="min-w-0 flex-1 sm:w-full sm:flex-none">
+          <h3 class="font-semibold sm:text-base">{t.label}</h3>
+          <p class="w-full truncate text-xs text-ws-soft" title={status(t.id)}>{status(t.id)}</p>
+        </div>
+        <div class="flex shrink-0 flex-col items-end sm:items-center" aria-live="polite">
+          {#if hit && lit}
+            <span class="flex items-center gap-1 text-xs font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
+            <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{hit.label}</span>
+          {:else if lit}
+            <span class="text-sm text-ws-soft">{t.prompt}</span>
+          {/if}
+        </div>
       </li>
     {/each}
   </ul>
@@ -128,7 +136,7 @@
   }
   .tile[data-lit] .chip {
     background: var(--instr);
-    color: oklch(0.2 0.04 288);
+    color: var(--ws-stage);
     box-shadow: 0 0 0 4px color-mix(in oklch, var(--instr) 25%, transparent);
   }
   .bloom {

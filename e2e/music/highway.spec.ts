@@ -204,6 +204,8 @@ test.describe("note highway", () => {
     await page.getByLabel("Score file").setInputFiles("e2e/music/fixtures/ode-to-joy.musicxml");
     await expect(page.getByRole("heading", { name: "Preview" })).toBeVisible();
     await page.getByRole("button", { name: "Save to songs" }).click();
+    // Wait for the save before leaving the page, as the library specs do.
+    await expect(page.getByText(/is in your songs\./)).toBeVisible();
     await page.goto("/music/library");
     await page
       .getByRole("link", { name: /Ode to Joy/ })

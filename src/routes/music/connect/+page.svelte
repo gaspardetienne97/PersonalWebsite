@@ -7,7 +7,10 @@
   import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
   import ListChecks from "lucide-svelte/icons/list-checks";
   import Activity from "lucide-svelte/icons/activity";
-  import { btn, panel } from "$lib/music/components/ui";
+  import { noteName } from "@repo/music-core";
+  import { btn, btnPrimary, panel } from "$lib/music/components/ui";
+  import { padLabel } from "$lib/music/drills/pads/midi-status";
+  import { describeMidi } from "$lib/music/hubs/connect/rig";
   import Piano from "$lib/music/components/Piano.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
@@ -40,20 +43,37 @@
       .map((p) => ({ id: p.id, name: p.alias ?? p.id, manufacturer: "", state: "disconnected" })),
   );
 
-  const checklist = $derived([
-    { done: midi.enabled, label: "MIDI is on", hint: midi.supported ? "Press Enable MIDI in Your rig." : "Not available in this browser." },
-    { done: midi.enabled && midi.sysexEnabled, label: "SysEx granted", hint: "Needed for MPC pad lights and the controller link only." },
-    { done: midi.inputs.length > 0, label: "A MIDI device is connected", hint: "Plug it in; hot-plugging is fine." },
+  // Each step can carry the one thing to do about it; only the next unfinished step shows it.
+  type Step = { done: boolean; label: string; hint: string; act?: { label: string; href?: string; run?: () => void } };
+  const checklist = $derived<Step[]>([
+    {
+      done: midi.enabled,
+      label: "MIDI is on",
+      hint: midi.supported ? "For the keyboard, the MPC and the Aerophone." : "Not available in this browser. Use Chrome or Edge.",
+      act: midi.supported ? { label: "Turn on MIDI", run: async () => announce((await midi.enable()) ? "MIDI is on." : midi.error) } : undefined,
+    },
+    { done: midi.enabled && midi.sysexEnabled, label: "Pad lights allowed", hint: "The browser's SysEx permission. Only the MPC's lights and link need it: turn MIDI off and on again and allow it." },
+    { done: midi.inputs.length > 0, label: "A MIDI device is connected", hint: "Plug it in by USB. No reload needed." },
     ...(hasMpc
       ? [
-          { done: mpcInputs.some((p) => midi.profile(p.id)?.padNotes), label: "MPC pad map saved", hint: "Pick the preset for your drum program, or Learn pads." },
-          { done: midi.mpcLink.state === "linked", label: "MPC controller link holding", hint: "Without it the MPC sends no pad notes." },
+          { done: mpcInputs.some((p) => midi.profile(p.id)?.padNotes), label: "MPC pad map saved", hint: "Pick the map for your drum program, or learn the pads.", act: { label: "Choose a pad map", href: "#devices-title" } },
+          { done: midi.mpcLink.state === "linked", label: "MPC connected to the app", hint: "Without the link the MPC sends no pad notes.", act: { label: "Link the MPC", href: "#mpc-title" } },
         ]
       : []),
-    { done: mic.state === "on", label: "Microphone tried", hint: "For guitar, ukulele and voice." },
-    { done: audio.unlocked, label: "Sound on", hint: "Any tap on the page turns it on." },
+    { done: mic.state === "on", label: "Microphone tried", hint: "For guitar, ukulele and voice.", act: { label: "Go to the microphone", href: "#mic" } },
+    { done: audio.unlocked, label: "Sound on", hint: "Any tap on the page turns it on.", act: { label: "Turn sound on", run: () => void audio.unlock().then((ok) => announce(ok ? "Sound is on." : "Sound is still blocked by the browser.")) } },
   ]);
   const readyCount = $derived(checklist.filter((c) => c.done).length);
+  const nextStep = $derived(checklist.find((c) => !c.done && c.act));
+  let showBytes = $state(false);
+  /** A note as the device's player knows it: a pad on a mapped MPC, a name elsewhere. */
+  function noteFor(portId: string) {
+    const map = midi.profile(portId)?.padNotes;
+    return (n: number) => {
+      const i = map?.indexOf(n) ?? -1;
+      return i >= 0 ? `Pad ${padLabel(36 + i)}` : noteName(n);
+    };
+  }
 
   const t0 = performance.now();
   let showFallback = $state(false);
@@ -67,7 +87,7 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <header>
     <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Connect</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Plug in the keyboard, the MPC and the Aerophone, or use the microphone. This is the one place to choose devices; what you set here applies on every page.</p>
+    <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone. What you set here applies on every page.</p>
   </header>
   <p role="status" class="-mt-3 min-h-6 text-sm font-medium">{status}</p>
 
@@ -124,15 +144,27 @@
       </section>
     </div>
 
-    <aside class="flex min-w-0 flex-col gap-6 lg:sticky lg:top-4">
+    <aside class="flex min-w-0 flex-col gap-6 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)]">
       <section class={panel} aria-labelledby="check-title">
         {@render heading("check-title", "Setup checklist", ListChecks, "reading")}
-        <p class="text-sm text-ws-soft">{readyCount} of {checklist.length} ready</p>
+        <p class="mt-1 text-sm"><span class="tnum font-semibold">{readyCount} of {checklist.length}</span> <span class="text-ws-soft">ready</span></p>
+        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-ws-raised" aria-hidden="true"><div class="h-full rounded-full bg-success" style:width="{(readyCount / checklist.length) * 100}%"></div></div>
         <ul class="mt-3 flex flex-col gap-2">
           {#each checklist as c (c.label)}
-            <li class="flex gap-2 text-sm">
-              <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-xs font-bold {c.done ? 'bg-success text-white' : 'border border-dashed border-ws-soft text-ws-soft'}" aria-hidden="true">{c.done ? "✓" : ""}</span>
-              <span class="min-w-0"><span class="font-medium">{c.label}</span><span class="sr-only">: {c.done ? "ready" : "not yet"}</span>{#if !c.done}<span class="block text-ws-soft">{c.hint}</span>{/if}</span>
+            {@const next = c === nextStep}
+            <li class="flex gap-2 text-sm {next ? '-mx-2 rounded-xl bg-ws-raised px-2 py-2' : ''}">
+              <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-xs font-bold {c.done ? 'bg-success text-white' : next ? 'border-2 border-instr-ink' : 'border border-dashed border-ws-soft text-ws-soft'}" aria-hidden="true">{c.done ? "✓" : ""}</span>
+              <span class="min-w-0 flex-1">
+                <span class="font-medium">{c.label}</span><span class="sr-only">: {c.done ? "ready" : next ? "do this next" : "not yet"}</span>
+                {#if !c.done}<span class="block text-ws-soft">{c.hint}</span>{/if}
+                {#if next && c.act}
+                  {#if c.act.href}
+                    <a class="{btnPrimary} mt-2" href={c.act.href}>{c.act.label}</a>
+                  {:else}
+                    <button type="button" class="{btnPrimary} mt-2" onclick={c.act.run}>{c.act.label}</button>
+                  {/if}
+                {/if}
+              </span>
             </li>
           {/each}
         </ul>
@@ -140,17 +172,22 @@
 
       <section class={panel} aria-labelledby="activity-title">
         {@render heading("activity-title", "Live activity", Activity, "mpc")}
-        <p class="text-sm text-ws-soft">The last messages as bytes, from every port, ignored ones included.</p>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm text-ws-soft">What each device just sent, ignored ports included.</p>
+          <label class="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" role="switch" class="size-4 accent-[var(--instr-ink)]" bind:checked={showBytes} />Show bytes
+          </label>
+        </div>
         {#if midi.rawLog.length}
-          <ol class="mt-3 flex flex-col gap-1.5 text-xs" data-testid="activity">
+          <ol class="mt-2 flex flex-col gap-1.5 text-sm" data-testid="activity">
             {#each midi.rawLog.slice(0, 14) as m, i (i + m.at)}
               {@const inst = midi.profile(m.portId)?.instrument ?? detectInstrument(m.port, "")}
-              <li class="flex min-w-0 flex-wrap items-baseline gap-x-2 border-b border-ws-line pb-1">
-                <span class="tnum text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
+              <li class="flex min-w-0 flex-wrap items-baseline gap-x-2 border-b border-ws-line pb-1.5">
                 <span class="size-2 shrink-0 self-center rounded-full" style:background={inst ? `var(--hue-${inst})` : "var(--ws-soft)"} aria-hidden="true"></span>
-                <span class="min-w-0 truncate font-medium">{midi.profile(m.portId)?.alias ?? m.port}</span>
-                {#if ignoredIds.has(m.portId)}<span class="rounded bg-warn/20 px-1">ignored</span>{/if}
-                <span class="w-full font-mono break-all">{m.hex}</span>
+                <span class="min-w-0 flex-1 font-medium">{describeMidi(m.hex, inst === "mpc" ? noteFor(m.portId) : undefined)}</span>
+                <span class="tnum text-xs text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
+                <span class="w-full truncate pl-4 text-xs text-ws-soft">{midi.profile(m.portId)?.alias ?? m.port}{#if ignoredIds.has(m.portId)}<span class="ml-1.5 rounded bg-warn/20 px-1 text-ws-ink">ignored</span>{/if}</span>
+                <span class="w-full pl-4 font-mono text-xs break-all text-ws-soft" class:hidden={!showBytes}>{m.hex}</span>
               </li>
             {/each}
           </ol>
@@ -165,7 +202,7 @@
 
 {#snippet heading(id: string, label: string, Icon: typeof Cable, hue: string)}
   <h2 {id} class="flex items-center gap-2.5 font-display text-xl font-semibold">
-    <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{hue})" aria-hidden="true"><Icon class="size-5" /></span>
+    <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-{hue})" aria-hidden="true"><Icon class="size-5" /></span>
     {label}
   </h2>
 {/snippet}

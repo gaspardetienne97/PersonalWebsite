@@ -12,6 +12,8 @@
   import Minus from "lucide-svelte/icons/minus";
   import Check from "lucide-svelte/icons/check";
   import Settings2 from "lucide-svelte/icons/settings-2";
+  import CircleDot from "lucide-svelte/icons/circle-dot";
+  import Grid from "lucide-svelte/icons/grid-3x3";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import BeatGrid from "$lib/music/hubs/create/BeatGrid.svelte";
   import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
@@ -38,6 +40,8 @@
   let confirmDelete = $state(false);
   let busy = $state(false);
   let panelOpen = $state(false);
+  /** The editor a phone shows: the beat grid or the piano roll (?mode=roll). */
+  let editor = $state<"beat" | "roll">(page.url.searchParams.get("mode") === "roll" ? "roll" : "beat");
   /** Play it live: record the beat from the pads, pass by pass (?live=1 opens it). */
   let live = $state(page.url.searchParams.has("live"));
   /** New or Open waiting on what to do with unsaved changes. */
@@ -77,7 +81,7 @@
   async function playAll() {
     const was = session.playing && session.only === null;
     const ok = await session.play(null);
-    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
     announce(was ? "Stopped." : `Playing ${session.songName}: ${bars(session.loopBars)} at ${session.bpm} BPM, on a loop.`);
   }
 
@@ -170,48 +174,52 @@
 <svelte:window onkeydown={windowKey} />
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5">
-  <header class="min-w-0">
-    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Create</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">
-      Build a beat and melodies that loop together, then jam over them.
-      <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Record a take</a>
-    </p>
+  <header class="flex min-w-0 flex-wrap items-end justify-between gap-x-4 gap-y-1">
+    <div class="min-w-0">
+      <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Create</h1>
+      <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">Build a beat and melodies that loop together, then jam over them.</p>
+    </div>
+    <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" />Record a take</a>
   </header>
 
-  <section class="z-20 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-ws-line bg-ws-surface/95 p-3 shadow-sm backdrop-blur sm:sticky sm:top-[7.25rem]" aria-label="Song">
-    <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" aria-pressed={session.playing && session.only === null} onclick={playAll}>
+  <section class="z-20 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 rounded-2xl border border-ws-line bg-ws-surface/95 p-2.5 shadow-sm backdrop-blur sm:sticky sm:top-[calc(var(--ws-strip-h,3.5rem)+0.5rem)] sm:p-3" aria-label="Song">
+    <button type="button" class="{btnPrimary} min-h-12 px-5 font-display text-base sm:px-6" aria-pressed={session.playing && session.only === null} onclick={playAll}>
       {#if session.playing && session.only === null}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play all{/if}
     </button>
-    <p class="flex min-w-0 flex-1 basis-40 flex-col leading-tight">
+    <p class="flex min-w-0 flex-1 basis-0 flex-col leading-tight sm:basis-24">
       <span class="truncate font-display text-base font-semibold">{session.songName}</span>
-      <span class="text-xs text-ws-soft" data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span>
+      <span class="text-xs text-ws-soft"><span class="max-sm:hidden">Song,</span> <span data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span></span>
     </p>
-    <label class="flex items-center gap-2 text-sm">
+    <label class="flex items-center gap-2 text-sm max-sm:order-last">
       <span class="text-ws-soft">Tempo</span>
       <input type="number" min="40" max="200" class="{field} tnum w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
       <span class="sr-only">BPM</span>
     </label>
-    <div class="flex items-center gap-1 text-sm" role="group" aria-label="Song length">
+    <div class="flex items-center gap-1 text-sm max-sm:order-last" role="group" aria-label="Song length">
       <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
       <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
       <button type="button" class={step} aria-label="Add a bar to the song" disabled={session.bars >= MAX_SONG_BARS} onclick={() => setBars(session.bars + 1)}><Plus class="size-4" aria-hidden="true" /></button>
     </div>
-    <button type="button" class={btn} disabled={session.saved && !session.changed} onclick={save}>
-      {#if session.saved && !session.changed}<Check class="size-4" aria-hidden="true" />Saved{:else}<Save class="size-4" aria-hidden="true" />Save{/if}
+    <button type="button" class="{btn} max-sm:px-3" disabled={session.saved && !session.changed} onclick={save}>
+      {#if session.saved && !session.changed}<Check class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Saved</span>{:else}<Save class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Save</span>{/if}
     </button>
     <button
       type="button"
-      class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash"
+      class="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash"
       aria-expanded={panelOpen}
       aria-controls="create-panel"
       onclick={() => (panelOpen = !panelOpen)}
     >
-      <Settings2 class="size-4" aria-hidden="true" />{panelOpen ? "Done" : "Tracks and song"}
-    </button>
-    <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" aria-pressed={live} onclick={() => (live = !live)}>
-      {live ? "Close the pads" : "Play it live"}
+      <Settings2 class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">{panelOpen ? "Done" : "Tracks and song"}</span>
     </button>
   </section>
+
+  <!-- On a phone one editor shows at a time; from sm up both stay on the page. -->
+  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-1 sm:hidden" role="group" aria-label="Editor">
+    {#each [{ id: "beat", label: "Beat" }, { id: "roll", label: "Melody" }] as const as t (t.id)}
+      <button type="button" class="min-h-11 rounded-full text-sm font-semibold {editor === t.id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft'}" aria-pressed={editor === t.id} onclick={() => (editor = t.id)}>{t.label}</button>
+    {/each}
+  </div>
 
   {#if panelOpen}
     <div id="create-panel" class="grid gap-6 rounded-2xl border border-ws-line bg-ws-raised/60 p-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
@@ -255,18 +263,28 @@
     </div>
   {/if}
 
-  <p role="status" class="-my-2 min-h-5 text-sm font-medium">{status}</p>
+  <p role="status" class="-my-3 text-sm font-medium empty:sr-only">{status}</p>
 
-  {#if live && ready}<LivePads {announce} />{/if}
-  <BeatGrid {announce} />
-  {#if !ready}
-    <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
-  {:else if session.doc.voices.length}
-    <PianoRoll host={session} {announce} />
-  {:else}
-    <div class="stage flex flex-wrap items-center gap-3 rounded-3xl p-5">
-      <p class="min-w-0 flex-1 text-ws-stage-soft">No melodies in this song.</p>
-      <button type="button" class={btnStage} onclick={() => announce(`Added ${session.addMelody().name}.`)}><Plus class="size-4" aria-hidden="true" />Add a melody</button>
-    </div>
-  {/if}
+  <div class="flex flex-col gap-5 {editor === 'beat' ? '' : 'max-sm:hidden'}">
+    {#if live && ready}<LivePads {announce} />{/if}
+    <BeatGrid {announce}>
+      {#snippet extra()}
+        <button type="button" class="{btnStage} {live ? 'bg-ws-stage-ink/25' : ''}" aria-pressed={live} onclick={() => (live = !live)}>
+          <Grid class="size-4" aria-hidden="true" />{live ? "Close the pads" : "Play it live"}
+        </button>
+      {/snippet}
+    </BeatGrid>
+  </div>
+  <div class="flex flex-col {editor === 'roll' ? '' : 'max-sm:hidden'}">
+    {#if !ready}
+      <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
+    {:else if session.doc.voices.length}
+      <PianoRoll host={session} {announce} />
+    {:else}
+      <div class="stage flex flex-wrap items-center gap-3 rounded-3xl p-5">
+        <p class="min-w-0 flex-1 text-ws-stage-soft">No melodies in this song.</p>
+        <button type="button" class={btnStage} onclick={() => announce(`Added ${session.addMelody().name}.`)}><Plus class="size-4" aria-hidden="true" />Add a melody</button>
+      </div>
+    {/if}
+  </div>
 </div>

@@ -84,7 +84,7 @@
   const soloing = $derived(host.pickedPlaying);
   async function playMelodies() {
     const ok = await host.playPicked();
-    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
     const names = doc.voices.filter((v) => host.picked.includes(v.id)).map((v) => v.name);
     announce(host.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
   }

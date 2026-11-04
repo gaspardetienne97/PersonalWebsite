@@ -90,17 +90,19 @@
   {/if}
   <div class="flex flex-wrap items-center gap-3">
     <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="What to import">
-      {#each [["score", "Score file"], ["audio", "Transcribe audio"], ["take", "From a MIDI take"]] as const as [id, label] (id)}
+      <!-- Short labels on the buttons; the full name (which contains them) is read out. -->
+      {#each [["score", "File", undefined], ["audio", "Audio", "Transcribe audio"], ["take", "MIDI take", "From a MIDI take"]] as const as [id, label, name] (id)}
         <button
           type="button"
-          class="min-h-10 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}"
+          class="min-h-11 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}"
           aria-pressed={mode === id}
+          aria-label={name}
           onclick={() => ((mode = id), (error = ""))}>{label}</button
         >
       {/each}
     </div>
     <p class="text-sm text-ws-soft">
-      {mode === "score" ? "MusicXML (.musicxml, .xml or .mxl) is best: it keeps the parts, key and bar lines as written. MIDI works too, but its timing and voices are often rougher." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
+      {mode === "score" ? "A score you already have. MusicXML keeps the parts and bar lines as written; MIDI works too." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
     </p>
   </div>
 
@@ -125,8 +127,8 @@
         ondrop={(e) => drop(e, takeScore)}
       >
         <Upload class="size-7" aria-hidden="true" />
-        <span class="font-display text-lg font-semibold">{busy ? "Reading the score" : "Drop a score here, or choose a file"}</span>
-        <span class="text-sm text-ws-soft">MusicXML preferred (.musicxml, .xml, .mxl); .mid and .midi work too</span>
+        <span class="font-display text-lg font-semibold">{#if busy}Reading the score{:else}<span class="sm:hidden">Choose a score file</span><span class="max-sm:hidden">Drop a score here, or choose a file</span>{/if}</span>
+        <span class="text-sm text-ws-soft">.musicxml, .xml, .mxl, .mid or .midi</span>
         <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}

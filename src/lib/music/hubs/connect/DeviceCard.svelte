@@ -29,6 +29,7 @@
     return midi.saveProfile({ ...(profile ?? { id: port.id }), ...patch, id: port.id });
   }
 
+  let confirmRemove = $state(false);
   let learning = $state<number[] | null>(null);
   let cancelLearn: (() => void) | null = null;
 
@@ -160,7 +161,11 @@
         {/if}
       </div>
       {#if learning}
-        <p class="text-sm font-medium">Hit pad {padLabel(36 + learning.length)} next ({learning.length} of 16 captured).</p>
+        <div>
+          <p class="font-display text-lg font-semibold">Hit pad {padLabel(36 + learning.length)} next</p>
+          <p class="text-sm text-ws-soft"><span class="tnum">{learning.length} of 16</span> pads captured</p>
+          <div class="mt-1.5 h-1.5 max-w-80 overflow-hidden rounded-full bg-ws-line" aria-hidden="true"><div class="h-full rounded-full bg-instr" style:width="{(learning.length / 16) * 100}%"></div></div>
+        </div>
       {/if}
       <ol class="grid max-w-80 grid-cols-4 gap-1" aria-label={learning ? "Pads captured so far" : "Saved pad map"}>
         {#each ROWS as row (row)}
@@ -169,10 +174,11 @@
             {@const note = learning ? learning[i] : profile?.padNotes?.[i]}
             <li
               class="flex min-h-11 flex-col items-center justify-center rounded-md border text-xs {learning && i === learning.length
-                ? 'border-instr-ink border-2 font-semibold'
+                ? 'target border-2 border-ws-ink bg-instr font-semibold text-ws-stage'
                 : note !== undefined
                   ? 'border-transparent bg-instr-wash'
-                  : 'border-dashed border-ws-line text-ws-soft'}"
+                  : 'border-dashed border-ws-soft/60'}"
+              aria-current={learning && i === learning.length ? "step" : undefined}
             >
               <span>{padLabel(36 + i)}</span>
               <span class="tnum font-semibold">{note ?? (profile?.padNotes || learning ? "" : 36 + i)}</span>
@@ -184,8 +190,8 @@
     </section>
   {/if}
 
-  <div class="grid gap-3 sm:grid-cols-2">
-    <div class="flex flex-col gap-1 text-sm">
+  <div class="flex flex-col gap-2 border-t border-ws-line pt-3 text-sm">
+    <div class="flex flex-wrap gap-2">
       <button
         type="button"
         class={btn}
@@ -196,20 +202,24 @@
           announce(next ? `${title} ignored: its notes no longer reach drills.` : `${title} is back: its notes reach drills again.`);
         }}>{profile?.ignored ? "Stop ignoring" : "Ignore this port"}</button
       >
-      <span class="text-ws-soft">Ignore keeps the port and its settings, and still shows its bytes in Live activity, but its notes never reach a drill. Use it for the MPC's control port.</span>
+      {#if confirmRemove}
+        <button
+          type="button"
+          class="{btn} border-destructive text-destructive"
+          onclick={() => {
+            confirmRemove = false;
+            void midi.removeProfile(port.id);
+            announce(`Forgot everything saved for ${port.name}. It now behaves like a new device.`);
+          }}>Forget its settings</button
+        >
+        <button type="button" class={btn} onclick={() => (confirmRemove = false)}>Keep them</button>
+      {:else}
+        <button type="button" class={btn} disabled={!profile} onclick={() => (confirmRemove = true)}>Remove saved settings</button>
+      {/if}
     </div>
-    <div class="flex flex-col gap-1 text-sm">
-      <button
-        type="button"
-        class={btn}
-        disabled={!profile}
-        onclick={() => {
-          void midi.removeProfile(port.id);
-          announce(`Forgot everything saved for ${port.name}. It now behaves like a new device.`);
-        }}>Remove saved settings</button
-      >
-      <span class="text-ws-soft">Remove deletes the alias, instrument, channel, pad map and offset. The port keeps working as an unknown device.</span>
-    </div>
+    <p class="text-ws-soft">
+      {#if confirmRemove}Forget the alias, instrument, channel, pad map and offset? The port keeps working as an unknown device.{:else}Ignore keeps its notes out of drills (use it for the MPC's control port). Remove forgets what is saved here.{/if}
+    </p>
   </div>
   {/if}
 </article>
@@ -223,7 +233,7 @@
   }
   .chip {
     background: var(--instr);
-    color: oklch(0.2 0.04 288);
+    color: var(--ws-stage);
   }
   .badge {
     background: color-mix(in oklch, var(--instr) 28%, transparent);
@@ -237,5 +247,18 @@
   }
   .device[data-inactive]:focus-within {
     opacity: 1;
+  }
+  .target {
+    animation: target-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes target-pulse {
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--instr) 40%, transparent);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .target {
+      animation: none;
+    }
   }
 </style>

@@ -38,7 +38,7 @@
       onclick={() => onselect(p)}
     >
       <span class="font-display text-xl font-semibold">{pretty(noteName(p, "flat", false))}</span>
-      {#if semis !== null}<span class="tnum text-xs">{DEGREES[semis]}</span>{/if}
+      {#if semis !== null}<span class="tnum text-xs">{DEGREES[semis]}</span>{:else if noteName(p, "flat", false) !== noteName(p, "sharp", false)}<span class="text-xs">{pretty(noteName(p, "sharp", false))}</span>{/if}
     </button>
   {/each}
 </div>

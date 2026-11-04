@@ -158,6 +158,7 @@ test.describe("Create", () => {
     const kitName = page.getByLabel("Kit name");
     await kitName.fill("Boom Bap");
     await kitName.press("Enter");
+    await page.getByText("Advanced: send the kit to an MPC").click();
     const [dl] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("button", { name: "Download ZIP" }).click(),
@@ -521,7 +522,8 @@ test.describe("Record", () => {
     await installSyntheticMic(page, 220);
     await page.goto("/music/record?source=mic");
     await expect(page.getByRole("heading", { level: 1, name: "Record" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Record", exact: true })).toBeDisabled();
+    // Record arms the microphone itself; Arm microphone stays for checking the level first.
+    await expect(page.getByRole("button", { name: "Record", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Arm microphone" }).click();
     await expect(page.getByTestId("level-advice")).toContainText(
       /Good level|A little hot|Clipping|Quiet/,
@@ -592,6 +594,7 @@ test.describe("Tuner", () => {
     await shots(page, "tuner-tune");
 
     // A target note: the gauge measures against it, in the octave you're in.
+    await page.getByRole("button", { name: "Pick a note" }).click();
     const targets = page.getByRole("group", { name: "Target note" });
     await targets.getByRole("button", { name: "C", exact: true }).click();
     await expect(page.getByTestId("tuner-cents")).toContainText("A, 3 semitones below");

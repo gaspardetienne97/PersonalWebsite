@@ -89,7 +89,7 @@
   async function record() {
     if (recording) return stop();
     await audio.unlock();
-    if (!audio.unlocked) return announce("Sound is blocked. Tap Enable sound in the strip above, then try again.");
+    if (!audio.unlocked) return announce("Sound is blocked. Tap for sound in the strip above, then try again.");
     session.stop();
     if (!passes.length) startedAt = performance.now();
     recording = true;

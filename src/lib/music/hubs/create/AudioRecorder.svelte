@@ -6,6 +6,7 @@
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Mic from "lucide-svelte/icons/mic";
+  import Check from "lucide-svelte/icons/check";
   import Download from "lucide-svelte/icons/download";
   import FileMusic from "lucide-svelte/icons/file-music";
   import Trash from "lucide-svelte/icons/trash-2";
@@ -34,6 +35,9 @@
   let boost = $state(settings.value.recordBoostDb ?? 0);
   let now = $state(0);
   let confirmDelete = $state<string | null>(null);
+  /** The take saved on this visit, shown with Play right under the Record button. */
+  let latest = $state<string | null>(null);
+  const latestTake = $derived(takes.find((t) => t.id === latest));
 
   let rec: { stop(): Promise<Blob>; setBoost(db: number): void } | null = null;
   let t0 = 0;
@@ -72,7 +76,11 @@
 
   async function toggle() {
     if (recording) return stopRecording();
-    if (mic.state !== "on") return;
+    // Record arms the microphone itself (the browser asks the first time), then records.
+    if (mic.state !== "on") {
+      announce("Starting the microphone.");
+      if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || "The microphone did not start.");
+    }
     await audio.unlock();
     stopPlayback();
     try {
@@ -132,6 +140,7 @@
     }
     unsaved = null;
     takes = [take, ...takes];
+    latest = take.id;
     const lift = take.gainDb ?? 0;
     announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.${lift ? ` Playback lifted ${signedDb(lift)} so it is easy to hear; the recording is unchanged.` : ""}`);
   }
@@ -233,6 +242,9 @@
 
 <section class="stage relative flex flex-col gap-5 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label="Microphone recorder">
   <div class="flex flex-wrap items-end gap-3">
+    {#if live}
+      <p class="min-w-0 flex-1 basis-56 text-sm"><span class="text-ws-stage-soft">Input:</span> <span class="font-medium">{settings.value.audioInputLabel}</span></p>
+    {:else}
     <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
       <span class="text-ws-stage-soft">Input</span>
       <Picker
@@ -248,6 +260,7 @@
         }}
       />
     </div>
+    {/if}
     <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold {live ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={live} onclick={arm}>
       <Mic class="size-4" aria-hidden="true" />{live ? "Microphone on" : mic.state === "starting" ? "Starting…" : "Arm microphone"}
     </button>
@@ -257,10 +270,10 @@
     <p class="rounded-xl bg-destructive/15 px-3 py-2 text-sm" role="alert">{mic.error}</p>
   {/if}
 
-  <div class="flex flex-wrap items-center gap-5">
-    <RecordButton {recording} disabled={!live} onclick={toggle} />
-    <div class="min-w-0 flex-1 basis-64">
-      <p class="tnum font-display text-5xl font-semibold tracking-tight sm:text-6xl">{clock(recording ? elapsed : 0)}</p>
+  <div class="flex items-center gap-4 sm:gap-5">
+    <RecordButton {recording} disabled={mic.state === "starting"} onclick={toggle} />
+    <div class="min-w-0 flex-1">
+      <p class="tnum font-display text-4xl font-semibold tracking-tight sm:text-6xl">{clock(recording ? elapsed : 0)}</p>
       <div class="meter mt-2" data-tone={live ? boostedAdvice.tone : undefined} aria-hidden="true">
         <span class="fill" style:width="{live ? pct(boostedPeak) : 0}%"></span>
         <span class="hold" style:left="{live ? pct(hold + boost) : 0}%"></span>
@@ -271,10 +284,12 @@
         {#if live}
           <strong>{boostedAdvice.label}</strong>: {ADVICE[boostedAdvice.tone]} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
         {:else}
-          <span class="text-ws-stage-soft">Arm the microphone to see the input level. Nothing is recorded until you press Record.</span>
+          <span class="text-ws-stage-soft">Press Record to start, or arm the microphone first to check the level.</span>
         {/if}
       </p>
-      <div class="mt-3 flex flex-wrap items-center gap-3">
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
         <label class="flex items-center gap-2 text-sm">
           <span class="text-ws-stage-soft">Record boost</span>
           <input
@@ -294,9 +309,26 @@
             Boost to {signedDb(suggestion)}
           </button>
         {/if}
-      </div>
-    </div>
   </div>
+
+  {#if latestTake && !recording}
+    {@const isPlaying = player?.id === latestTake.id}
+    <div class="flex flex-wrap items-center gap-3 rounded-2xl bg-ws-stage-ink/8 p-3" data-testid="latest-take">
+      <button
+        type="button"
+        class="grid size-11 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-stage-ink text-ws-stage' : 'bg-instr text-ws-stage hover:brightness-105'}"
+        aria-label="{isPlaying ? 'Stop' : 'Play'} {latestTake.name}"
+        aria-pressed={isPlaying}
+        onclick={() => play(latestTake)}
+      >
+        {#if isPlaying}<Square class="size-5" aria-hidden="true" />{:else}<Play class="size-5" aria-hidden="true" />{/if}
+      </button>
+      <p class="min-w-0 flex-1 text-sm">
+        <span class="flex items-center gap-1 font-semibold"><Check class="size-4 text-success" aria-hidden="true" />Saved {latestTake.name}</span>
+        <span class="tnum text-ws-stage-soft">{takeLength(latestTake.durationMs)}. It is in your takes below.</span>
+      </p>
+    </div>
+  {/if}
 </section>
 
 {#if unsaved}

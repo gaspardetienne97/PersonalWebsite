@@ -30,7 +30,7 @@
   async function solo(id: TrackId, name: string) {
     const was = session.playing && session.only === id;
     const ok = await session.play(id);
-    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
     announce(was ? "Stopped." : `Playing ${name} on its own. Play all brings the rest back.`);
   }
 

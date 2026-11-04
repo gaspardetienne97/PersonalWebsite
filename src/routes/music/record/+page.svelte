@@ -27,7 +27,7 @@
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div class="min-w-0">
       <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Record</h1>
-      <p class="mt-1 max-w-prose text-ws-soft">
+      <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">
         Capture a take, listen back, and keep what is worth keeping. Takes stay in this browser and are in your backups.
       </p>
     </div>

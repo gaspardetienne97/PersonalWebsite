@@ -2,13 +2,17 @@
   // Saved repertoire. The most recently touched song leads, wide, as the one
   // to pick up again; the rest follow as object cards with their facts.
   import { onMount } from "svelte";
-  import { db } from "$lib/music/runtime";
+  import { db, settings } from "$lib/music/runtime";
+  import { practice } from "$lib/music/practice.svelte";
+  import { LEARNING_PATHS, PATH_FOR_INSTRUMENT } from "@repo/music-core/progress/paths";
+  import { btn } from "$lib/music/components/ui";
+  import Upload from "lucide-svelte/icons/upload";
   import { registerSearchItems } from "$lib/music/search";
   import { btnPrimary } from "$lib/music/components/ui";
   import Play from "lucide-svelte/icons/play";
   import Trash from "lucide-svelte/icons/trash-2";
   import RollThumb from "./RollThumb.svelte";
-  import { barsText, durationText, rangeText, scoreFacts, type Song } from "./songs";
+  import { barsText, durationText, rangeText, scoreFacts, songHistory, type Song } from "./songs";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
   let songs = $state.raw<Song[] | null>(null);
@@ -29,6 +33,28 @@
     onstatus?.(songs.length ? `${songs.length} saved song${songs.length === 1 ? "" : "s"}.` : "No saved songs yet.");
   });
 
+  // Starter songs: the shelf of the strip instrument's path, only scores this server has
+  // downloaded (fetched when opened, never bundled), not already in your songs.
+  let downloaded = $state<Set<string> | null>(null);
+  onMount(() => {
+    void fetch("/api/music/scores")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: { key: string }[]) => (downloaded = new Set(list.map((x) => x.key))))
+      .catch(() => (downloaded = new Set()));
+  });
+  const pathId = $derived(PATH_FOR_INSTRUMENT[settings.value.activeInstrument]);
+  const starters = $derived.by(() => {
+    if (!downloaded || !songs) return [];
+    const have = new Set(songs.flatMap((s) => (s.shelf ? [s.shelf] : [])));
+    const path = LEARNING_PATHS[pathId];
+    return (path.levels ?? [])
+      .flatMap((level, li) => level.shelf.map((song) => ({ song, level: li + 1, levelTitle: level.title, key: `${pathId}/${song.id}` })))
+      .filter((x) => downloaded!.has(x.key) && !have.has(x.key))
+      .slice(0, 6);
+  });
+  const runs = $derived(practice.sessions.flatMap((x) => x.runs));
+  const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
   const sourceLabel = (s: Song) =>
     s.score.source?.kind === "musicxml"
       ? "MusicXML"
@@ -42,17 +68,20 @@
 {#if songs === null}
   <p class="text-ws-soft">Loading your songs.</p>
 {:else if !songs.length}
-  <section class="stage flex flex-col items-start gap-3 rounded-2xl p-6 sm:p-8">
-    <h2 class="font-display text-2xl font-semibold">No songs yet</h2>
-    <p class="max-w-prose text-ws-stage-soft">
-      Bring in a MIDI file or a MusicXML score and it lands here, ready to practise in Song Studio at your own tempo.
-    </p>
-    <a href="?tab=import" class={btnPrimary}>Import a score</a>
+  <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5">
+    <div class="min-w-0 flex-1 basis-60">
+      <h2 class="font-display text-xl font-semibold">No songs of your own yet</h2>
+      <p class="text-sm text-ws-soft">
+        {starters.length ? "Start with a song from your path below, or b" : "B"}ring in a MIDI file or a MusicXML score to practise it in Song Studio at your own tempo.
+      </p>
+    </div>
+    <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />Import a score</a>
   </section>
 {:else}
   <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Saved songs">
     {#each songs as song, i (song.id)}
       {@const f = scoreFacts(song.score)}
+      {@const h = songHistory(runs, song)}
       <li
         class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface hover:border-instr-ink focus-within:border-instr-ink {i === 0 ? 'sm:col-span-2' : ''}"
         class:lead={i === 0}
@@ -66,6 +95,13 @@
             {#if i === 0}<p class="text-sm font-medium text-instr-ink">Pick up where you left off</p>{/if}
             <h3 id="song-{song.id}" class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
             {#if song.composer}<p class="-mt-1 text-sm text-ws-soft">{song.composer}</p>{/if}
+            <p class="text-sm" data-testid="song-history">
+              {#if h.lastAt !== null}
+                {#if h.best !== null}<span class="tnum font-semibold">Best {Math.round(h.best * 100)}%</span><span class="text-ws-soft">, </span>{/if}<span class="text-ws-soft">last played {dateText(h.lastAt)}, {h.runs} run{h.runs === 1 ? "" : "s"}</span>
+              {:else}
+                <span class="text-ws-soft">Not played yet</span>
+              {/if}
+            </p>
             <dl class="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 text-sm {i === 0 ? 'sm:grid-cols-4' : ''}">
               <div><dt class="text-ws-soft">Tempo</dt><dd class="tnum font-medium">{song.score.bpm} BPM</dd></div>
               <div><dt class="text-ws-soft">Length</dt><dd class="tnum font-medium">{barsText(f.bars)}, {durationText(f.seconds)}</dd></div>
@@ -90,6 +126,26 @@
       </li>
     {/each}
   </ul>
+{/if}
+
+{#if starters.length}
+  <section class="flex flex-col gap-3" aria-labelledby="starters-h">
+    <div>
+      <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
+      <p class="text-sm text-ws-soft">Songs on your path's shelf, easiest level first. Opening one adds it to your songs.</p>
+    </div>
+    <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Songs from your path">
+      {#each starters as x (x.key)}
+        <li class="flex flex-col gap-2 rounded-2xl border border-ws-line bg-ws-surface p-4">
+          <p class="text-xs font-medium text-instr-ink">Level {x.level}, {x.levelTitle}</p>
+          <h3 class="font-display text-lg leading-tight font-semibold">{x.song.title}</h3>
+          <p class="-mt-1 text-sm text-ws-soft">{x.song.artist}</p>
+          <p class="text-sm">{x.song.teaches}</p>
+          <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Practise {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
+        </li>
+      {/each}
+    </ul>
+  </section>
 {/if}
 
 <style>

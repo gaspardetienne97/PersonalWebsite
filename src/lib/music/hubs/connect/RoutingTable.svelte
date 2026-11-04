@@ -50,7 +50,7 @@
         <tr class="border-t border-ws-line" style:box-shadow="inset 4px 0 0 var(--hue-{i})">
           <th scope="row" class="px-3 py-2 text-left font-medium">
             <span class="flex items-center gap-2">
-              <span class="grid size-7 shrink-0 place-items-center rounded-lg text-[oklch(0.2_0.04_288)]" style:background="var(--hue-{i})" aria-hidden="true"><Icon class="size-4" /></span>
+              <span class="grid size-7 shrink-0 place-items-center rounded-lg text-ws-stage" style:background="var(--hue-{i})" aria-hidden="true"><Icon class="size-4" /></span>
               {INSTRUMENT_LABEL[i]}
             </span>
           </th>

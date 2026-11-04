@@ -18,6 +18,10 @@
   import Timer from "lucide-svelte/icons/timer";
   import Pencil from "lucide-svelte/icons/pencil";
   import Drum from "lucide-svelte/icons/drum";
+  import Dots from "lucide-svelte/icons/ellipsis";
+  import * as Menu from "@repo/ui/dropdown-menu";
+  import { goto } from "$app/navigation";
+  import { nextRun } from "$lib/music/advance.svelte";
   import { clamp, noteName, pc, type ControlEvent, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { transposeFifths, transposeScore, writtenOffset } from "@repo/music-core/theory/transposition";
@@ -49,7 +53,7 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, retryBpm, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
+  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "$lib/music/components/Picker.svelte";
 
   let { song }: { song: Song } = $props();
@@ -559,7 +563,7 @@
       best: all.length > 1 && i === bestIdx,
       detail: isPerf(d.result)
         ? `${d.result.matched} of ${d.result.expected} notes, ${Math.round(d.result.meanAbsErrorMs)} ms off, ${d.result.early} early, ${d.result.onTime} on time, ${d.result.late} late, ${d.result.missed} missed, ${d.result.extra} extra`
-        : `${(d.result as WaitResult).cleanGroups} of ${(d.result as WaitResult).total} groups clean, ${(d.result as WaitResult).wrongNotes} wrong note${(d.result as WaitResult).wrongNotes === 1 ? "" : "s"}`,
+        : `${(d.result as WaitResult).cleanGroups} of ${(d.result as WaitResult).total} notes or chords right first time, ${(d.result as WaitResult).wrongNotes} wrong note${(d.result as WaitResult).wrongNotes === 1 ? "" : "s"}`,
     }));
     sectionRows = tallySections(all);
 
@@ -636,16 +640,16 @@
         headline:
           clean === total
             ? "Every note found with no wrong ones. Try it in Performance mode."
-            : `${clean} of ${total} groups clean; ${wrong} wrong note${wrong === 1 ? "" : "s"} along the way.`,
+            : `${clean} of ${total} notes or chords right first time; ${wrong} wrong note${wrong === 1 ? "" : "s"} along the way.`,
         metric: pct(mean),
-        metricLabel: "groups clean",
+        metricLabel: "right first time",
         delta: fin.delta,
         best: fin.best,
         clean: clean === total,
         xp: fin.xp,
         assistance: "Wait mode is guided practice. Imported songs don't change skill mastery.",
         rows: [
-          { label: "Groups played clean", value: total ? clean / total : 0, text: `${clean} of ${total}` },
+          { label: "Notes or chords right first time", value: total ? clean / total : 0, text: `${clean} of ${total}` },
           { label: drums ? "Drums found" : "Pitch completion", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
           { label: "Wrong notes", text: String(wrong) },
           { label: "Timing", notMeasured: true },
@@ -653,6 +657,18 @@
         ],
       };
     }
+    // The next run by the shared rule (B4): a timed mode climbs toward the song's tempo and past it;
+    // Wait mode is untimed, so it offers the same again. Taking the offer sets the tempo and starts.
+    if (!spot)
+      summary.advance = await nextRun(
+        `song-studio.${score.id}.${s.mode}`,
+        perfMode ? { bpm, tempo: { min: Math.max(20, Math.round(score.bpm * 0.5)), goal: score.bpm, max: Math.round(score.bpm * 1.25) } } : {},
+        { score: mean, correct: !!summary.clean },
+        ({ bpm: b }) => {
+          if (b !== undefined) setup.set({ bpm: b });
+          void tick().then(start);
+        },
+      );
     if (spot) summary.headline = spotTake(all);
     if (sightRead) summary.headline += runFirst ? " Your first run of this song: it counts as a sight-read." : " Not your first run of this song, so it doesn't count as a sight-read.";
     // Bar by bar: a take at 90% or better hides one more bar next time.
@@ -784,10 +800,8 @@
     return `${line} The next try starts in a moment.`;
   }
 
-  function retry(delta: number) {
-    setup.set({ bpm: retryBpm(bpm, delta) });
-    void start();
-  }
+  /** The results card holds the next run, so Again steps back to secondary. */
+  const offersNext = $derived(phase === "results" && !!summary?.advance && !["same", "top"].includes(summary.advance.kind));
 
   // ---- Shell ------------------------------------------------------------
   $effect(() => {
@@ -1085,17 +1099,23 @@
       {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />Ready, count me in</button>{/if}
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
-      <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={start}>
+      <button type="button" class="{offersNext ? btn : `${btnPrimary} min-h-12 px-6 font-display text-base`}" onclick={start}>
         <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
       </button>
       <button type="button" class={btn} aria-pressed={!!preview?.playing} disabled={unseen} onclick={togglePreview}>
         {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
       </button>
-      <a class={btn} href="/music/songs/{song.id}/edit"><Pencil class="size-4" aria-hidden="true" />Edit notes</a>
-      <button type="button" class={btn} onclick={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</button>
-      <button type="button" class={btn} disabled={settings.value.bpm === bpm} onclick={metronomeToSong}>
-        <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}
-      </button>
+      <!-- Editing, export and the metronome are not part of playing along: one menu. -->
+      <Menu.Root>
+        <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised" aria-label="Song options"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+        <Menu.Content align="start" class="w-60">
+          <Menu.Item onSelect={() => goto(`/music/songs/${song.id}/edit`)}><Pencil class="size-4" aria-hidden="true" />Edit notes</Menu.Item>
+          <Menu.Item onSelect={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</Menu.Item>
+          <Menu.Item disabled={settings.value.bpm === bpm} onSelect={metronomeToSong}>
+            <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}
+          </Menu.Item>
+        </Menu.Content>
+      </Menu.Root>
       <span class="hidden text-sm text-ws-soft sm:inline">Space starts, Esc stops.</span>
     {/if}
     <div class="ml-auto flex flex-wrap items-center gap-2">
@@ -1116,9 +1136,6 @@
           {:else if trouble}
             <button type="button" class={btn} onclick={fixSpot}>Fix the trouble spot, {barsOf(trouble.range)}</button>
           {/if}
-          <button type="button" class={btn} onclick={() => retry(8)}>Again at {retryBpm(bpm, 8)} BPM</button>
-          <button type="button" class={btn} onclick={() => retry(0)}>Same tempo</button>
-          <button type="button" class={btn} onclick={() => retry(-8)}>Slower, {retryBpm(bpm, -8)} BPM</button>
         {/snippet}
       </Results>
       <div class="grid gap-4 lg:grid-cols-2">
@@ -1139,7 +1156,7 @@
             <ul class="mt-2 divide-y divide-ws-line" aria-label="Per-section results">
               {#each sectionRows as r (r.label)}
                 <li class="py-2 text-sm">
-                  <div class="flex items-baseline justify-between gap-3"><span class="font-medium">{r.label}</span><span class="tnum text-ws-soft">{r.text} {perfMode ? "notes" : "groups clean"}</span></div>
+                  <div class="flex items-baseline justify-between gap-3"><span class="font-medium">{r.label}</span><span class="tnum text-ws-soft">{r.text} {perfMode ? "notes" : "right first time"}</span></div>
                   <div class="mt-1 h-1.5 rounded-full bg-ws-raised"><div class="h-full rounded-full {r.value >= 0.67 ? 'bg-success' : r.value >= 0.34 ? 'bg-warn' : 'bg-destructive'}" style:width="{Math.max(2, r.value * 100)}%"></div></div>
                 </li>
               {/each}

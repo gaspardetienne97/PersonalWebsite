@@ -1,5 +1,6 @@
 <script lang="ts">
   import Drum from "lucide-svelte/icons/drum";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
   // The MPC diagnostic that made the link debuggable (hardware notes 1): pick
   // the output, link it (the app shell keeps the heartbeat on every page),
   // prove the output with one lit pad, read pad order off a rainbow, and see
@@ -25,11 +26,11 @@
       : !midi.enabled
         ? "Blocked: MIDI is off. Enable it above."
         : !midi.sysexEnabled
-          ? "Blocked: SysEx was not granted, so every frame to the MPC is refused. Turn MIDI off and on again and allow SysEx."
+          ? "Blocked: pad lights (SysEx) were not allowed, so the MPC can't be linked. Turn MIDI off and on again and allow them."
           : link.state === "no-output"
             ? `Blocked: the linked output (${outName(link.outputId)}) is not connected.`
             : link.state === "linked"
-              ? `Linked and holding: init sent, heartbeat every second on ${outName(link.outputId)}, on every page until you unlink.`
+              ? `Linked and holding: the app checks in with ${outName(link.outputId)} every second, on every page, until you unlink.`
               : "Not linked: the MPC only sends pad notes while a host keeps talking to it. Press Keep linked.",
   );
 
@@ -41,7 +42,7 @@
 <section class="flex flex-col gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5" aria-labelledby="mpc-title">
   <div>
     <h2 id="mpc-title" class="flex items-center gap-2.5 font-display text-xl font-semibold">
-      <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[oklch(0.2_0.04_288)]" style:background="var(--hue-mpc)" aria-hidden="true"><Drum class="size-5" /></span>
+      <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-mpc)" aria-hidden="true"><Drum class="size-5" /></span>
       MPC hardware
     </h2>
     <p class="text-sm text-ws-soft">Nothing here runs by itself: every frame is sent by a button.</p>
@@ -84,15 +85,20 @@
     Pad 1 lit means this is the right output. The rainbow runs red to violet from pad index 0, so you can read the order off the unit.
   </p>
 
-  <dl class="grid gap-3 text-sm sm:grid-cols-2">
+  <details class="group text-sm">
+    <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
+      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Advanced: the last messages, as bytes
+    </summary>
+  <dl class="mt-1 grid gap-3 sm:grid-cols-2">
     <div class="min-w-0">
       <dt class="text-ws-soft">Last frame sent</dt>
       <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-xs break-all" data-testid="mpc-out">{midi.lastOutboundFrame || "nothing yet"}</dd>
     </div>
     <div class="min-w-0">
-      <dt class="text-ws-soft">Last SysEx received</dt>
+      <dt class="text-ws-soft">Last reply from the MPC (SysEx)</dt>
       <dd class="mt-1 rounded-lg bg-ws-raised px-3 py-2 font-mono text-xs break-all">{midi.lastInboundSysex || "nothing yet: the device has not answered"}</dd>
     </div>
   </dl>
+  </details>
   <a href="/music/pads" class="self-start font-medium text-instr-ink underline underline-offset-4">Try the pads drill</a>
 </section>

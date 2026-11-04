@@ -4,7 +4,11 @@
   // view goes away (Drone, another page) or you press Stop.
   import { onDestroy } from "svelte";
   import Mic from "lucide-svelte/icons/mic";
-  import Square from "lucide-svelte/icons/square";
+  import MicOff from "lucide-svelte/icons/mic-off";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ArrowUp from "lucide-svelte/icons/arrow-up";
+  import ArrowDown from "lucide-svelte/icons/arrow-down";
+  import Check from "lucide-svelte/icons/check";
   import Volume from "lucide-svelte/icons/volume-2";
   import { hzToMidiFloat, midiToHz, noteName } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
@@ -49,6 +53,8 @@
 
   // A chosen target note (pitch class), or null for "whatever note is nearest".
   let target = $state<number | null>(null);
+  // Auto-detect is the default; the twelve target notes open on demand.
+  let choosing = $state(false);
   /** What the gauge shows: distance from the target note, or from the nearest note. */
   function against(r: { hz: number; midi: number; cents: number }) {
     if (target === null) return { midi: r.midi, cents: r.cents };
@@ -145,94 +151,85 @@
   const bandTop = 80 - (INTONATION_BAND_CENTS / 50) * 80;
 </script>
 
-<div class="flex flex-wrap items-end gap-3">
-  <div class="flex flex-col gap-1 text-sm">
-    <span class="font-medium">Reference A4</span>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+  <div class="flex items-center gap-2">
+    <span class="font-medium whitespace-nowrap">Reference A4</span>
     <Picker class="tnum" label="Reference A4" value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
   </div>
   {#if fretted}
-    <div class="flex flex-col gap-1 text-sm">
-      <span class="font-medium">{instrument === "ukulele" ? "Ukulele" : "Guitar"} tuning</span>
+    <div class="flex items-center gap-2">
+      <span class="font-medium whitespace-nowrap">{instrument === "ukulele" ? "Ukulele" : "Guitar"} tuning</span>
       <Picker label="{instrument === 'ukulele' ? 'Ukulele' : 'Guitar'} tuning" value={tuning.id} options={tunings.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => settings.update({ [tuningKey]: v })} />
     </div>
   {/if}
-  <p class="min-w-64 flex-1 text-sm text-ws-soft">
-    In tune means within {IN_TUNE_CENTS} cents. {mode === "intonation"
-      ? `The trace shows the last 10 seconds; the band is ±${INTONATION_BAND_CENTS} cents.`
-      : "Weak or noisy sound holds the last reading instead of flickering."}
-  </p>
 </div>
 
-<section class="stage relative overflow-hidden rounded-2xl p-4 sm:p-6" aria-label="Tuner">
+<section class="stage relative overflow-hidden rounded-2xl p-4 sm:p-5" aria-label="Tuner">
   <div class="flex flex-wrap items-center gap-3">
     {#if listening}
-      <button type="button" class={btnStage} onclick={stop}><Square class="size-4" aria-hidden="true" />Stop listening</button>
-      <p class="text-sm text-ws-stage-soft"><span class="live-dot" aria-hidden="true"></span> Listening</p>
+      <button type="button" class={btnStage} onclick={stop}><MicOff class="size-4" aria-hidden="true" />Stop listening</button>
+      <p class="flex items-center gap-2 text-sm font-medium"><span class="live-dot" aria-hidden="true"></span>Listening</p>
     {:else}
       <button type="button" class={btnPrimary} onclick={start} disabled={mic.state === "starting"}>
         <Mic class="size-4" aria-hidden="true" />{mic.state === "denied" || mic.state === "error" ? "Try the microphone again" : "Start listening"}
       </button>
-      <p class="min-w-0 flex-1 text-sm text-ws-stage-soft">
+      <p class="min-w-0 flex-1 basis-48 text-sm text-ws-stage-soft">
         {#if mic.state === "denied" || mic.state === "error"}{mic.error}{:else}The microphone only listens while this is on. Nothing is recorded.{/if}
       </p>
     {/if}
+    <button type="button" class="{btnStage} ml-auto" aria-expanded={choosing} aria-controls="tuner-targets" onclick={() => (choosing = !choosing)}>
+      {target === null ? "Pick a note" : `Target ${pretty(noteName(target, "flat", false))}`}
+      <ChevronDown class="size-4 transition-transform {choosing ? 'rotate-180' : ''}" aria-hidden="true" />
+    </button>
   </div>
 
-  <div class="mt-4">
-    <NotePads label="Target note" noneLabel="Any note" selected={target} onselect={(p) => void chooseTarget(p)} />
-  </div>
-
-  <div class="readout mx-auto mt-4 grid max-w-xl" class:intonation={mode === "intonation"} data-state={word ?? "none"}>
-    <svg viewBox="0 0 300 172" class="w-full" aria-hidden="true">
-      <path d={arc(-70, 70)} class="track" />
-      <path d={arc(angle(-IN_TUNE_CENTS), angle(IN_TUNE_CENTS))} class="zone" />
-      {#each TICKS as t (t)}
-        {@const [x1, y1] = pt(angle(t), tickIn(t))}
-        {@const [x2, y2] = pt(angle(t), R + 6)}
-        <line {x1} {y1} {x2} {y2} class="tick" />
-      {/each}
-      {#if shown}
-        <text x="18" y="168" class="nb">{pretty(noteName(shown.midi - 1, "flat", false))}</text>
-        <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(shown.midi + 1, "flat", false))}</text>
-        <g class="needle" style:transform="rotate({angle(shown.cents)}deg)">
-          <line x1={CX} y1={CY - R + 46} x2={CX} y2={CY - R - 4} />
-          <circle cx={CX} cy={CY - R} r="7" />
-        </g>
-      {:else}
-        <text x="18" y="168" class="nb">flat</text>
-        <text x="282" y="168" class="nb" text-anchor="end">sharp</text>
-      {/if}
-    </svg>
-
-    <div class="face-wrap">
-      <div class="face" style:transform="scale({shown?.inTune ? faceScale : 0.8})" aria-hidden="true"></div>
-      <p class="note font-display" data-testid="tuner-note">
-        {#if shown}{pretty(noteName(shown.midi, "flat", false))}<span class="oct">{Math.floor(shown.midi / 12) - 1}</span>{:else if target !== null}<span class="idle">Aim for {pretty(noteName(target, "flat", false))}</span>{:else}<span class="idle">{listening ? "Play a note" : "Ready"}</span>{/if}
-      </p>
+  {#if choosing}
+    <div id="tuner-targets" class="mt-3">
+      <p class="mb-2 text-sm text-ws-stage-soft">Target note. Any note tunes to whichever note is nearest; pick one to aim at it in the octave you play.</p>
+      <NotePads label="Target note" noneLabel="Any note" selected={target} onselect={(p) => void chooseTarget(p)} />
     </div>
-  </div>
+  {/if}
 
-  <div class="mt-2 text-center">
-    {#if reading && shown && word}
-      <p class="font-display text-2xl font-semibold sm:text-3xl" data-testid="tuner-cents">
-        {#if semitonesOff}
-          {pretty(noteName(reading.midi, "flat", false))}, {Math.abs(semitonesOff)} semitone{Math.abs(semitonesOff) === 1 ? "" : "s"}
-          {semitonesOff > 0 ? "above" : "below"}
+  {#if mode === "tune"}
+    <div class="readout mx-auto mt-2 grid w-full max-w-lg" data-state={word ?? "none"}>
+      <svg viewBox="0 0 300 172" class="w-full" aria-hidden="true">
+        <path d={arc(-70, 70)} class="track" />
+        <path d={arc(angle(-IN_TUNE_CENTS), angle(IN_TUNE_CENTS))} class="zone" />
+        {#each TICKS as t (t)}
+          {@const [x1, y1] = pt(angle(t), tickIn(t))}
+          {@const [x2, y2] = pt(angle(t), R + 6)}
+          <line {x1} {y1} {x2} {y2} class="tick" />
+        {/each}
+        <text x={CX} y="12" class="scale" text-anchor="middle">0</text>
+        {#if shown}
+          <text x="18" y="168" class="nb">{pretty(noteName(shown.midi - 1, "flat", false))}</text>
+          <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(shown.midi + 1, "flat", false))}</text>
+          <g class="needle" style:transform="rotate({angle(shown.cents)}deg)">
+            <line x1={CX} y1={CY - R + 46} x2={CX} y2={CY - R - 4} />
+            <circle cx={CX} cy={CY - R} r="7" />
+          </g>
         {:else}
-          <span class="tnum">{signedCents(shown.cents)}</span> cents,
-          {#if word === "in tune"}<span class="text-success">✓ in tune</span>{:else}{word}, tune {word === "flat" ? "up" : "down"}{/if}
+          <text x="18" y="168" class="nb">flat</text>
+          <text x="282" y="168" class="nb" text-anchor="end">sharp</text>
         {/if}
-      </p>
-      <p class="tnum mt-1 text-sm text-ws-stage-soft">
-        Hearing {reading.hz.toFixed(1)} Hz, target {midiToHz(shown.midi, a4).toFixed(1)} Hz{#if held >= 0.5}. Held in tune {held.toFixed(1)} s{/if}
-      </p>
-    {:else}
-      <p class="text-sm text-ws-stage-soft">{listening ? "Nothing clear yet. One note at a time, close to the microphone." : "Start listening, then play a single note."}</p>
-    {/if}
-  </div>
+      </svg>
+
+      <div class="face-wrap">
+        <div class="face" style:transform="scale({shown?.inTune ? faceScale : 0.8})" aria-hidden="true"></div>
+        {@render note()}
+      </div>
+    </div>
+  {:else}
+    <div class="introw mt-4 flex flex-wrap items-center gap-x-6 gap-y-1">
+      {@render note()}
+      {@render readline()}
+    </div>
+  {/if}
+
+  {#if mode === "tune"}{@render readline()}{/if}
 
   {#if fretted}
-    <ul class="strings mt-5 grid gap-2" style:grid-template-columns="repeat({tuning.openStrings.length}, minmax(0, 1fr))" aria-label="{tuning.name} strings, low to high">
+    <ul class="strings mt-4 grid gap-2" style:grid-template-columns="repeat({tuning.openStrings.length}, minmax(0, 1fr))" aria-label="{tuning.name} strings, low to high">
       {#each [...tuning.openStrings].reverse() as open, k (k)}
         {@const i = tuning.openStrings.length - 1 - k}
         {@const isNear = i === near}
@@ -257,7 +254,21 @@
   {/if}
 
   {#if mode === "intonation"}
-    <div class="mt-6 border-t border-ws-stage-ink/10 pt-5">
+    <figure class="mt-4">
+      <div class="flex gap-2">
+        <div class="flex flex-col justify-between py-1 text-xs text-ws-stage-soft" aria-hidden="true"><span>sharp</span><span>0</span><span>flat</span></div>
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-44 min-w-0 flex-1 rounded-lg sm:h-56" role="img" aria-label="Pitch over the last 10 seconds, with the ±{INTONATION_BAND_CENTS} cent band">
+          <rect x="0" y={bandTop} width="600" height={160 - 2 * bandTop} class="band" />
+          <line x1="0" x2="600" y1="80" y2="80" class="mid" vector-effect="non-scaling-stroke" />
+          {#if stats}<path d={tracePath(stats.trace, frameAt)} class="line" vector-effect="non-scaling-stroke" />{/if}
+        </svg>
+      </div>
+      <figcaption class="mt-1 flex flex-wrap justify-between gap-2 text-xs text-ws-stage-soft">
+        <span><span class="band-key" aria-hidden="true"></span> Green band: within ±{INTONATION_BAND_CENTS} cents</span>
+        <span>last 10 seconds, now at the right</span>
+      </figcaption>
+    </figure>
+    <div class="mt-4">
       {#if voiced && stats}
         <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="intonation-stats">
           <div class="stat"><dt>In tune</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
@@ -268,20 +279,43 @@
       {:else}
         <p class="text-sm text-ws-stage-soft">Hold one note steadily. In tune %, hold, steadiness and drift fill in as you play.</p>
       {/if}
-      <figure class="mt-4">
-        <div class="flex gap-2">
-          <div class="flex flex-col justify-between py-1 text-xs text-ws-stage-soft" aria-hidden="true"><span>sharp</span><span>0</span><span>flat</span></div>
-          <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-36 min-w-0 flex-1 rounded-lg" role="img" aria-label="Pitch over the last 10 seconds, with the ±{INTONATION_BAND_CENTS} cent band">
-            <rect x="0" y={bandTop} width="600" height={160 - 2 * bandTop} class="band" />
-            <line x1="0" x2="600" y1="80" y2="80" class="mid" vector-effect="non-scaling-stroke" />
-            {#if stats}<path d={tracePath(stats.trace, frameAt)} class="line" vector-effect="non-scaling-stroke" />{/if}
-          </svg>
-        </div>
-        <figcaption class="mt-1 text-right text-xs text-ws-stage-soft">last 10 seconds, now at the right</figcaption>
-      </figure>
     </div>
   {/if}
 </section>
+
+<p class="text-sm text-ws-soft">
+  In tune means within {IN_TUNE_CENTS} cents. {mode === "intonation"
+    ? `The trace shows the last 10 seconds; the band is ±${INTONATION_BAND_CENTS} cents.`
+    : "Weak or noisy sound holds the last reading instead of flickering."}
+</p>
+
+{#snippet readline()}
+  <div class="mt-1 {mode === 'tune' ? 'text-center' : 'min-w-0 flex-1 basis-60'}">
+    {#if reading && shown && word}
+      <p class="readline font-display text-2xl font-semibold sm:text-3xl" data-testid="tuner-cents" data-state={word}>
+        {#if semitonesOff}
+          {pretty(noteName(reading.midi, "flat", false))}, {Math.abs(semitonesOff)} semitone{Math.abs(semitonesOff) === 1 ? "" : "s"}
+          {semitonesOff > 0 ? "above" : "below"}
+        {:else}
+          <span class="tnum">{signedCents(shown.cents)}</span> cents,
+          {#if word === "in tune"}<span class="text-success"><Check class="mr-1 inline size-6 align-[-0.1em]" aria-hidden="true" />in tune</span>{:else}{word},
+            <span class="turn">{#if word === "flat"}<ArrowUp class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{:else}<ArrowDown class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{/if}tune {word === "flat" ? "up" : "down"}</span>{/if}
+        {/if}
+      </p>
+      <p class="tnum mt-1 text-sm text-ws-stage-soft">
+        Hearing {reading.hz.toFixed(1)} Hz, target {midiToHz(shown.midi, a4).toFixed(1)} Hz{#if held >= 0.5}. Held in tune {held.toFixed(1)} s{/if}
+      </p>
+    {:else}
+      <p class="text-sm text-ws-stage-soft">{listening ? "Nothing clear yet. One note at a time, close to the microphone." : "Start listening, then play a single note."}</p>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet note()}
+  <p class="note font-display" data-testid="tuner-note">
+    {#if shown}{pretty(noteName(shown.midi, "flat", false))}<span class="oct">{Math.floor(shown.midi / 12) - 1}</span>{:else if target !== null}<span class="idle">Aim for {pretty(noteName(target, "flat", false))}</span>{:else}<span class="idle">{listening ? "Play a note" : "Ready"}</span>{/if}
+  </p>
+{/snippet}
 
 <style>
   .readout {
@@ -359,8 +393,28 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
-  .intonation .note {
+  .introw .note {
     font-size: clamp(3.5rem, 12vw, 5rem);
+  }
+  .scale {
+    fill: var(--ws-stage-soft);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .readline .turn {
+    white-space: nowrap;
+  }
+  .readline[data-state="flat"] .turn,
+  .readline[data-state="sharp"] .turn {
+    color: var(--instr);
+  }
+  .band-key {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.5rem;
+    border-radius: 2px;
+    vertical-align: middle;
+    background: color-mix(in oklch, var(--success) 45%, transparent);
   }
   .oct {
     font-size: 0.4em;
@@ -425,10 +479,20 @@
   }
   .live-dot {
     display: inline-block;
-    width: 0.5rem;
-    height: 0.5rem;
+    width: 0.625rem;
+    height: 0.625rem;
     border-radius: 999px;
     background: var(--destructive);
-    margin-right: 0.25rem;
+    animation: live 1.6s ease-in-out infinite;
+  }
+  @keyframes live {
+    50% {
+      box-shadow: 0 0 0 0.35rem color-mix(in oklch, var(--destructive) 25%, transparent);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-dot {
+      animation: none;
+    }
   }
 </style>

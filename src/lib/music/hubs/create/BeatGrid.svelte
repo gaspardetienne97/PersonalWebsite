@@ -6,6 +6,8 @@
   import Minus from "lucide-svelte/icons/minus";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
+  import Volume from "lucide-svelte/icons/volume-2";
+  import type { Snippet } from "svelte";
   import { audio } from "$lib/music/runtime";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { padLabel, sampleName } from "./kits";
@@ -27,7 +29,7 @@
     type BeatRow,
   } from "./pattern";
 
-  let { announce }: { announce: (msg: string) => void } = $props();
+  let { announce, extra }: { announce: (msg: string) => void; extra?: Snippet } = $props();
 
   const pattern = $derived(session.pattern);
   const playhead = $derived(session.beatStep);
@@ -52,7 +54,7 @@
   const soloing = $derived(session.playing && session.only === "beat");
   async function playGroove() {
     const ok = await session.play("beat");
-    if (!ok) return announce("Sound is blocked. Tap Enable sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
     announce(session.playing ? `Playing the beat on its own at ${session.bpm} BPM.` : "Stopped.");
   }
 
@@ -121,13 +123,14 @@
       <button type="button" class={btnPrimary} aria-pressed={soloing} onclick={playGroove}>
         {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play groove{/if}
       </button>
-      <h2 class="min-w-0 flex-1 basis-40 truncate font-display text-xl font-semibold">{pattern.name}</h2>
-      <Picker class="w-auto min-w-44 border-ws-stage-ink/30 bg-ws-stage-ink/15 dark:bg-ws-stage-ink/15 data-[placeholder]:text-ws-stage-ink [&_.truncate]:opacity-100" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
+      <h2 class="min-w-0 flex-1 basis-0 truncate font-display text-xl font-semibold sm:basis-24">{pattern.name}</h2>
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
         <button type="button" class="{btnStage} w-11 px-0 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove the beat's last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
         <span class="tnum w-14 text-center font-semibold">{bars(barsOf(pattern))}</span>
         <button type="button" class="{btnStage} w-11 px-0 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add a bar to the beat" disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" /></button>
       </div>
+      {@render extra?.()}
+      <Picker class="w-auto min-w-36 max-sm:flex-1 border-ws-stage-ink/30 bg-ws-stage-ink/15 dark:bg-ws-stage-ink/15 data-[placeholder]:text-ws-stage-ink [&_.truncate]:opacity-100" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
     </div>
 
     <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" data-grid>
@@ -148,7 +151,7 @@
             <tr>
               <th scope="row" class="rowhead">
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
-                  <span class="truncate font-semibold">{row.sample ?? row.name}</span>
+                  <span class="flex max-w-full items-center gap-1"><span class="truncate font-semibold">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60" aria-hidden="true" /></span>
                   <span class="text-[0.7rem] text-ws-stage-soft">{row.sample ? `Sample on ${padLabel(row.midi)}` : "Synth"}</span>
                 </button>
               </th>
@@ -224,7 +227,7 @@
     border-bottom: 2px solid transparent;
   }
   .stephead[data-now] {
-    border-bottom-color: var(--instr);
+    border-bottom: 4px solid var(--instr);
     color: var(--ws-stage-ink);
   }
   td {
@@ -265,9 +268,13 @@
   .step[data-live]:not([data-on]) {
     background: radial-gradient(circle, var(--instr) 0 28%, color-mix(in oklch, var(--ws-stage-ink) 9%, transparent) 30%);
   }
+  /* The playhead: the whole current column lights while the beat plays. */
   .step[data-now] {
-    outline: 2px solid color-mix(in oklch, var(--ws-stage-ink) 55%, transparent);
+    outline: 2px solid color-mix(in oklch, var(--ws-stage-ink) 70%, transparent);
     outline-offset: -2px;
+  }
+  .step[data-now]:not([data-on]) {
+    background: color-mix(in oklch, var(--instr) 22%, transparent);
   }
   .step[data-on][data-now] {
     transform: scale(1.06);

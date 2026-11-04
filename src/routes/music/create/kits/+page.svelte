@@ -21,9 +21,9 @@
     <a class="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-instr-ink" href="/music/create"><ArrowLeft class="size-4" aria-hidden="true" />Create</a>
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Sample kits</h1>
     <p class="mt-1 max-w-prose text-ws-soft">
-      Put your own samples on pads. In Create, beat rows whose note has a sample play it; the rest use the built-in drums. Export a kit to load it on the MPC. Kits stay in this browser.
+      Put your own sounds on pads. The beat in Create plays them in place of the built-in drums. Kits stay in this browser.
     </p>
   </header>
-  <p role="status" class="-mt-3 min-h-6 text-sm font-medium">{status}</p>
+  <p role="status" class="-my-3 text-sm font-medium empty:sr-only">{status}</p>
   <KitPanel announce={(msg) => (status = msg)} />
 </div>

@@ -23,10 +23,10 @@
 
 <svelte:head><title>Tuner | Woodshed</title></svelte:head>
 
-<div class="mx-auto flex max-w-4xl flex-col gap-5">
-  <header class="flex flex-wrap items-end justify-between gap-4">
+<div class="mx-auto flex max-w-4xl flex-col gap-4">
+  <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div class="min-w-0">
-      <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Tuner</h1>
+      <h1 class="font-display text-4xl font-semibold tracking-tight">Tuner</h1>
       <p class="mt-1 max-w-prose text-ws-soft">{BLURB[mode]}</p>
     </div>
     <HubTabs param="mode" tabs={TABS} label="Tuner modes" />

@@ -70,7 +70,7 @@
 </script>
 
 <figure class="scope" data-playing={playing || undefined} style:--level={level}>
-  <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-40 w-full" role="img" aria-label={playing ? `Waveform of the drone on ${noteName(midi)}` : "The drone is silent"}>
+  <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-28 w-full sm:h-40" role="img" aria-label={playing ? `Waveform of the drone on ${noteName(midi)}` : "The drone is silent"}>
     <line x1="0" x2={W} y1={H / 2} y2={H / 2} class="axis" vector-effect="non-scaling-stroke" />
     <path d={path} class="wave glow" vector-effect="non-scaling-stroke" />
     <path d={path} class="wave" vector-effect="non-scaling-stroke" />
