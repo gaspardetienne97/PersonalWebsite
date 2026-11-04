@@ -1,7 +1,10 @@
 import type { PracticeSession, RunRecord } from "@repo/music-core";
 import { ADVANCE, type AdvanceNext } from "@repo/music-core/progress/advance";
 
-/** Scored runs, oldest first, with the setup of the newest run if it ended within `fresh` ms. */
+/**
+ * Scored runs, oldest first, with the setup of the newest run if it ended within `fresh` ms.
+ * The setup includes the instrument: a scale on guitar is never compared with the same scale on piano.
+ */
 function setupRuns(sessions: readonly PracticeSession[], now: number, fresh: number): RunRecord[] {
   const runs = sessions.flatMap((s) => s.runs);
   const last = runs.reduce<RunRecord | undefined>(
@@ -12,7 +15,10 @@ function setupRuns(sessions: readonly PracticeSession[], now: number, fresh: num
   return runs
     .filter(
       (r) =>
-        r.exerciseId === last.exerciseId && r.setupKey === last.setupKey && r.score !== undefined,
+        r.exerciseId === last.exerciseId &&
+        r.setupKey === last.setupKey &&
+        r.instrument === last.instrument &&
+        r.score !== undefined,
     )
     .sort((a, b) => a.endedAt - b.endedAt);
 }
@@ -61,18 +67,18 @@ export function starsFor(score: number | undefined, pass: boolean): Stars | null
 export const scoreTone = (score: number): "success" | "warn" | "error" =>
   score >= ADVANCE.pass ? "success" : score >= ADVANCE.fail ? "warn" : "error";
 
-export const VERDICT_WORDS = ["Keep at it", "Close", "Good run", "Clean run!"] as const;
+export const VERDICT_WORDS = ["Keep at it", "Nearly there", "Good run", "Clean run"] as const;
 
 /** A score with nothing missed, in the whole percents the ring shows. */
 export const isClean = (score: number | undefined) =>
   score !== undefined && Math.round(score * 100) === 100;
 
 /**
- * The verdict word: three stars read "Clean run!" only when nothing was missed; a pass the
- * rule counts with a miss in it (a drill whose rule allows 9 of 10) reads "Passed".
+ * The verdict word. "Clean" means one thing everywhere: a run the drill's own rule counts (the
+ * same run the pips count). Three stars read "Clean run"; with nothing missed, "Perfect run!".
  */
 export const verdictWord = (n: Stars, score: number | undefined) =>
-  n === 3 && !isClean(score) ? "Passed" : VERDICT_WORDS[n];
+  n === 3 && isClean(score) ? "Perfect run!" : VERDICT_WORDS[n];
 
 const passPct = Math.round(ADVANCE.pass * 100);
 const failPct = Math.round(ADVANCE.fail * 100);
@@ -87,14 +93,14 @@ export function starsLabel(n: Stars): string {
 }
 
 /**
- * The star key, always shown under the stars: what the next star takes.
- * `cleanMeans` is the drill's own rule for a clean run ("every answer right", "9 of 10 right or better").
+ * The star key: what the next star takes, or null at three stars (a key there read as the
+ * run's result). `cleanMeans` is the drill's own rule for a clean run ("every answer right");
+ * leave it out when the screen already says what a clean run is.
  */
-export function starKey(n: Stars, cleanMeans?: string): string {
+export function starKey(n: Stars, cleanMeans?: string): string | null {
   if (n === 0) return `Next star: ${failPct}%`;
   if (n === 1) return `Next star: ${passPct}%`;
-  const rule = cleanMeans ? `, ${cleanMeans}` : "";
-  return n === 2 ? `Next star: a clean run${rule}` : `All 3 stars: a clean run${rule}`;
+  return n === 2 ? `Next star: ${cleanMeans ?? "a clean run"}` : null;
 }
 
 /**
@@ -115,14 +121,14 @@ export function unmeasuredLine(
   return `Not measured with this input: ${list}${list.endsWith(".") ? "" : "."}`;
 }
 
-/** The count toward moving on, in words: "Clean runs: 1 of 2 to speed up". */
+/** The count toward moving on, in words: "Clean runs: 1 of 2 to move on" (the next-run line says faster or harder). */
 export function pipsText(
   a: Pick<AdvanceNext, "kind" | "passes" | "need" | "reason" | "bpm">,
 ): string {
   // The full count moved the run on: the rule's own reason ("2 clean runs at 80 BPM"), then what it earned.
   if (a.passes >= a.need && (a.kind === "faster" || a.kind === "harder"))
     return `${a.reason[0].toUpperCase()}${a.reason.slice(1)}: ${a.kind === "faster" ? "speeding up next" : "moving on next"}`;
-  return `Clean runs: ${a.passes} of ${a.need} to ${a.bpm !== undefined ? "speed up" : "move on"}`;
+  return `Clean runs: ${a.passes} of ${a.need} to move on`;
 }
 
 /**
@@ -165,15 +171,16 @@ export function deltaLine(o: {
 
 /**
  * The change since the last run with this setup, in the score's own unit: "Up from 72%",
- * "Down from 100%", "Same as last time". Scores are 0..1; `unit` false leaves the old
+ * "Last time: 100%", "Same as last time". Scores are 0..1; `unit` false leaves the old
  * figure out ("Up on last time"), for a metric that is not a percentage.
  */
 export function deltaText(prev: number, now: number, unit = true): string {
   const p = Math.round(prev * 100);
   const n = Math.round(now * 100);
   if (p === n) return "Same as last time";
-  const dir = n > p ? "Up" : "Down";
-  return unit ? `${dir} from ${p}%` : `${dir} on last time`;
+  // A drop states the last figure plainly (the ring already shows this one), never "Down from".
+  if (n < p) return unit ? `Last time: ${p}%` : "Down on last time";
+  return unit ? `Up from ${p}%` : "Up on last time";
 }
 
 /** The score (0..1) a run's metric states, when it is one: "85%" or "3/4"; undefined otherwise ("24"). */

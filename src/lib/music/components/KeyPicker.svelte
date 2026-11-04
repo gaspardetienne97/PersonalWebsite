@@ -57,6 +57,6 @@
         open = false;
       }}
     />
-    <p class="mt-2 text-center text-xs text-ws-soft">A fifth up clockwise, a fourth up the other way.</p>
+    <p class="mt-2 text-center text-[13px] text-ws-soft">A fifth up clockwise, a fourth up the other way.</p>
   </Popover.Content>
 </Popover.Root>

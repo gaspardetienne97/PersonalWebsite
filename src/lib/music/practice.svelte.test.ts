@@ -162,6 +162,19 @@ describe("the session's instrument", () => {
     }
   });
 
+  it("compares a run only with runs on the same instrument", async () => {
+    const first = practice.beginRun(spec);
+    await first.attempt(click);
+    await first.finish();
+    await new Promise((r) => setTimeout(r, 5));
+    const second = practice.beginRun({ ...spec, instrument: "guitar" });
+    await second.attempt({ ...click, correct: false, partialCredit: 0.5 });
+    const fin = await second.finish();
+    expect(fin.heard).toBe(true);
+    expect(fin.delta).toBeNull();
+    expect(fin.previous).toBeUndefined();
+  });
+
   it("is never blanked by a run with no instrument", async () => {
     const first = practice.beginRun(spec);
     await first.attempt(click);

@@ -82,6 +82,6 @@
     aria-describedby={o.hint ? `${id}-${o.value}-hint` : undefined}
     {disabled}
     onclick={() => set(o.value)}
-    >{#if o.detail}<span class="block leading-tight">{o.label}</span><span class="block text-xs font-normal opacity-75">{o.detail}</span>{:else}{o.label}{/if}</button
+    >{#if o.detail}<span class="block leading-tight">{o.label}</span><span class="block text-[13px] font-normal opacity-75">{o.detail}</span>{:else}{o.label}{/if}</button
   >
 {/snippet}

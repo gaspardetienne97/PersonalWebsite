@@ -126,21 +126,27 @@ describe("concept cards", () => {
     ]);
   });
 
-  it("the fretted twin walks one string, W two frets and H one", () => {
+  it("the fretted twin sits in the drill's own position, W or H on each note", () => {
     const [l] = conceptCard("scales.major-formula", {
       tuning: guitars.find((t) => t.id === "guitar.standard"),
     });
     expect(l.id).toBe("scales.major-formula.guitar");
     const f = l.screens[0].steps![6].figure as Extract<LessonFigure, { kind: "fretboard" }>;
-    // C on the B string, fret 1, up to fret 13.
-    expect(f.marks.map((m) => [m.string, m.fret, m.label])).toEqual(
-      [1, 3, 5, 6, 8, 10, 12, 13].map((fret, i) => [
-        2,
-        fret,
-        ["C", "W", "W", "H", "W", "W", "W", "H"][i],
-      ]),
+    // C4 to C5 across strings 3 to 1, frets 5 to 8, as the scales drill places the line.
+    expect(f.marks.map((m) => [m.string, m.fret, m.label])).toEqual([
+      [3, 5, "C"],
+      [3, 7, "W"],
+      [2, 5, "W"],
+      [2, 6, "H"],
+      [2, 8, "W"],
+      [1, 5, "W"],
+      [1, 7, "W"],
+      [1, 8, "H"],
+    ]);
+    expect([f.from, f.to]).toEqual([4, 9]);
+    expect(l.screens[0].steps![2].text).toBe(
+      "E to F: H, a half step, the next fret on one string.",
     );
-    expect([f.from, f.to]).toEqual([0, 13]);
     const uke = conceptCard("scales.major-formula", {
       tuning: ukes.find((t) => t.id === "ukulele.high-g"),
     })[0];

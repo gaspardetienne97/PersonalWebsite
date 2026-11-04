@@ -66,8 +66,12 @@
     fit?: boolean;
     /** Authored strings and frets per pitch (a written phrase), instead of the hand-position fit. */
     positions?: Map<number, { string: number; fret: number }>;
+    /** A live run: the keys grow taller with the screen (Piano `fill`). */
+    fill?: boolean;
+    /** How the keys name an accidental (the exercise's key), so a key label and the verdict agree. */
+    spelling?: "flat" | "sharp";
   }
-  let { line: given, marks: givenMarks = {}, flashes, current = null, names = "c", interactive = true, low, high, instrument, fit = false, positions }: Props = $props();
+  let { line: given, marks: givenMarks = {}, flashes, current = null, names = "c", interactive = true, low, high, instrument, fit = false, positions, fill = false, spelling = "flat" }: Props = $props();
 
   const inst = $derived(instrument ?? settings.value.activeInstrument);
   const shift = $derived(fit ? fitShift(given, inst) : 0);
@@ -121,15 +125,15 @@
     {#if Number.isFinite(fingerNote)}<p class="font-display text-2xl font-semibold">{fingerFor(fingerNote)}</p>{/if}
     {#if roleNotes.length}
       <ul class="mt-1 flex flex-wrap justify-center gap-1" aria-label="The notes that fit">
-        {#each roleNotes as [m, mk] (m)}<li class="role-chip rounded-md px-2 py-1 text-sm font-semibold" data-role={mk.role}>{fingerFor(m)}{#if mk.label}<span class="ml-1 text-xs opacity-70">{mk.label}</span>{/if}</li>{/each}
+        {#each roleNotes as [m, mk] (m)}<li class="role-chip rounded-md px-2 py-1 text-sm font-semibold" data-role={mk.role}>{fingerFor(m)}{#if mk.label}<span class="ml-1 text-[0.8125rem]">{mk.label}</span>{/if}</li>{/each}
       </ul>
     {/if}
   </div>
 {:else}
-  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
+  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} {fill} {spelling} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
 {/if}
 {#if unplayable.length}
-  <p class="mt-1 text-xs text-ws-stage-soft">{[...new Set(unplayable)].map((m) => (inst === "aerophone" ? fingerFor(m) : noteName(m))).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+  <p class="mt-1 text-sm text-ws-stage-soft">{[...new Set(unplayable)].map((m) => (inst === "aerophone" ? fingerFor(m) : noteName(m))).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
 {/if}
 
 <style>

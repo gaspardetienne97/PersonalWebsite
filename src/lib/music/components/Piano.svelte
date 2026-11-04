@@ -57,7 +57,9 @@
     compact?: boolean;
     /** Keys a run left out: a solid red ring with the note's name on the key. */
     missing?: readonly number[];
-    /** A live run on a phone: the keys grow taller into spare height (contract S4), so no gap opens above them. */
+    /** How a key with an accidental is named (the exercise's key): one spelling with the words beside the keys. */
+    spelling?: "flat" | "sharp";
+    /** A live run: the keys grow taller with the screen (a phone's spare height; up to 260 px on a laptop). */
     fill?: boolean;
   }
 
@@ -75,6 +77,7 @@
     compact = false,
     missing = [],
     fill = false,
+    spelling = "flat",
   }: Props = $props();
 
   let width = $state(0);
@@ -127,7 +130,7 @@
   }
 
   function nameFor(m: number) {
-    if (names === "all" || (names === "c" && m % 12 === 0)) return noteName(m, "flat");
+    if (names === "all" || (names === "c" && m % 12 === 0)) return noteName(m, spelling);
     return "";
   }
 </script>
@@ -148,7 +151,7 @@
           data-demo={mk.demo || undefined}
           data-flash={flash}
           data-role={mk.role}
-          aria-label={noteName(m, "flat") + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
+          aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
@@ -176,7 +179,7 @@
           data-demo={mk.demo || undefined}
           data-flash={flash}
           data-role={mk.role}
-          aria-label={noteName(m, "flat") + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
+          aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
@@ -195,14 +198,15 @@
 
 {#snippet glyphs(mk: CellMarks, flash: string | undefined, m: number)}
   {#if missing.includes(m)}
-    <span class="missed" aria-hidden="true">{noteName(m, "flat", false)}</span>
+    <span class="missed" aria-hidden="true">{noteName(m, spelling, false)}</span>
   {:else if flash}
     <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : flash === "order" ? (mk.label ?? "!") : "✕"}</span>
     <!-- The struck wrong key names itself, so the X and the word above the keys say the same note. -->
-    {#if flash === "wrong"}<span class="wrong-name" aria-hidden="true">{noteName(m, "flat", false)}</span>{/if}
+    {#if flash === "wrong"}<span class="wrong-name" aria-hidden="true">{noteName(m, spelling, false)}</span>{/if}
   {:else if mk.label}
     <span class="mark-label" aria-hidden="true">{mk.label}</span>
-  {:else if mk.target}
+  {:else if mk.target || mk.role === "chord" || mk.role === "scale" || mk.role === "avoid"}
+    <!-- A tone role with no name (jam keeps names for the notes that matter): its colour in a dot. -->
     <span class="dot" aria-hidden="true"></span>
   {/if}
 {/snippet}
@@ -224,7 +228,7 @@
   .compact .missed {
     min-width: 1.25rem;
     height: 1.25rem;
-    font-size: 0.68rem;
+    font-size: 0.8125rem;
     box-shadow: inset 0 0 0 2.5px var(--destructive);
   }
   @media (max-width: 639px) {
@@ -233,6 +237,15 @@
     }
     .fill .black {
       height: calc(max(9.5rem, 24dvh) * 0.62);
+    }
+  }
+  /* A laptop's live keys grow with the screen's height too, up to 260 px. */
+  @media (min-width: 640px) {
+    .fill .white {
+      height: clamp(9.5rem, 26dvh, 16.25rem);
+    }
+    .fill .black {
+      height: calc(clamp(9.5rem, 26dvh, 16.25rem) * 0.62);
     }
   }
   .felt {
@@ -315,17 +328,16 @@
   [data-role="scale"] .mark-label {
     background: var(--tone-scale);
   }
+  /* Outside the scale: a solid muted fill, struck through, so it never reads as a scale tone at a glance. */
   [data-role="avoid"] .dot,
   [data-role="avoid"] .mark-label {
-    background: transparent;
-    border: 2px dashed var(--tone-avoid);
-    color: inherit;
+    background: color-mix(in oklch, var(--tone-avoid) 35%, #fffdf8);
+    box-shadow: inset 0 0 0 1.5px var(--tone-avoid);
+    color: #17120c;
   }
-  /* Outside the scale: struck through as well as dashed, so it never reads as a scale tone at a glance. */
   [data-role="avoid"] .mark-label {
     text-decoration: line-through;
     text-decoration-thickness: 2px;
-    opacity: 0.85;
   }
   [data-role="left"] .mark-label {
     background: var(--hand-left);
@@ -391,7 +403,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: #17120c;
     background: var(--instr);
@@ -404,7 +416,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: var(--destructive);
     background: #fffdf8;
@@ -432,8 +444,16 @@
     background: var(--success);
     box-shadow: 0 0 0 6px color-mix(in oklch, var(--success) 35%, transparent);
   }
+  /* A wrong key reads as loudly as a right one: the same halo, and the key itself tinted red. */
   .flash[data-kind="wrong"] {
     background: var(--destructive);
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--destructive) 35%, transparent);
+  }
+  .white[data-flash="wrong"] {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--destructive) 22%, #fffdf8), color-mix(in oklch, var(--destructive) 32%, #f3eee4));
+  }
+  .black[data-flash="wrong"] {
+    background: color-mix(in oklch, var(--destructive) 50%, #18161c);
   }
   .flash[data-kind="order"] {
     color: #17120c;
@@ -441,7 +461,7 @@
     box-shadow: inset 0 0 0 3px var(--warn);
   }
   .wrong-name {
-    font-size: 0.72rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     line-height: 1;
     color: var(--destructive);

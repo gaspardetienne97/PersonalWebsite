@@ -16,7 +16,7 @@
           "title": "Anchor the tonic",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=anchor",
-          "setup": "Scale degrees 1 and 5: listen along first, then hum the tonic (the home note) and answer. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
+          "setup": "Hear the home note (do, degree 1) and the 5 above it. Listen along first, then hum home and name each note. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
           "done": "Hum the tonic after the cadence; the app check 80% over 20 items, on two days.",
           "skillIds": ["pitch.scale-degree.1", "pitch.scale-degree.5"],
           "minAttempts": 10,
@@ -34,7 +34,7 @@
           "title": "Degrees 1 to 5",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=major-pentachord",
-          "setup": "Scale degrees, choice, major pentachord. The resolution to the tonic after each answer waits for N1.",
+          "setup": "Hear each of the first five notes of the major scale against home, and pick which one it is. The resolution to the tonic after each answer waits for N1.",
           "done": "80% over 20 items, on two days.",
           "skillIds": [
             "pitch.scale-degree.1",
@@ -52,7 +52,7 @@
           "title": "Sing or play them back",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=play-back&level=major-pentachord",
-          "setup": "Scale degrees, major pentachord: play each one back, then sing it.",
+          "setup": "Hear one of the first five notes of the major scale, play it back, then sing it.",
           "done": "75% of notes played back and sung, the voice within 50 cents, on two days.",
           "skillIds": [
             "pitch.scale-degree.1",
@@ -80,7 +80,7 @@
           "title": "Echo a rhythm",
           "strand": "E",
           "href": "/music/rhythm?mode=echo&earLevel=quarters-eighths",
-          "setup": "Rhythm, echo: quarters and eighths.",
+          "setup": "Hear a short rhythm of quarters and eighths and tap it back.",
           "done": "80% of patterns with every onset in the window, on two days.",
           "match": {
             "level": "quarters-eighths"
@@ -94,7 +94,7 @@
           "title": "Find home in a real song",
           "strand": "S",
           "href": "/music/by-ear?mode=home",
-          "setup": "Learn by ear, Find home: load a shelf song you own, listen, then play, sing or pick the note that sounds like home. It is checked against the key the whole recording points to.",
+          "setup": "Load a shelf song you own in Learn by ear, listen, then play, sing or pick the note that sounds like home. It is checked against the key the whole recording points to.",
           "done": "Tonic right first try on 4 of 5 shelf songs.",
           "minAttempts": 5,
           "threshold": 0.8,

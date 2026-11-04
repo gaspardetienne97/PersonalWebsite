@@ -41,6 +41,7 @@
   import TuningPicker from "$lib/music/drills/guitar/TuningPicker.svelte";
   import { tunings } from "$lib/music/drills/guitar/instrument.svelte";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
+  import { page } from "$app/state";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];
   let previewing = $state(false);
@@ -104,6 +105,12 @@
     if (previewing) stopPreview();
   });
 
+  // Pages that play nothing (the journal, progress, settings, the guide) leave out the instrument and input pills
+  // (the sound pill stays while sound is off, so the way back on is one tap anywhere).
+  const QUIET = ["/music/journal", "/music/progress", "/music/settings", "/music/guide"];
+  const quiet = $derived(QUIET.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + "/")));
+  /** The input in one short word for a phone's icon pill. */
+  const inputWord = $derived(source.kind === "mic" ? "Mic" : source.kind === "midi" ? "MIDI" : midi.enabled ? "No MIDI" : "MIDI off");
   // What this page shows. Compact: hubs and tools; clock: Metronome, Tempo and Count-in.
   const compact = $derived(bench.compact);
   // A drill says itself whether it runs a clock; other pages follow the layout's route list.
@@ -144,7 +151,7 @@
   <!-- One row at every width (scrolling from sm up only if it must), so pills that come and go never change the strip's height mid-click. -->
   <div class="flex flex-nowrap items-center gap-1.5 px-4 py-2 sm:gap-2 sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
     <!-- A drill that draws no instrument (answer buttons, taps) leaves the picker out. -->
-    {#if !bench.instrumentFree}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
+    {#if !bench.instrumentFree && !quiet}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
          instrument's does (whole in its picker), so nothing spills over the page. -->
     <div class="{pill.replace('border-ws-line bg-ws-surface', 'border-instr bg-instr-wash').replace('shrink-0', roomy ? 'shrink-0' : 'shrink')} {idle} relative min-w-0 pr-2">
       <Picker
@@ -200,7 +207,7 @@
         onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
       >
         <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
-        <span class="whitespace-nowrap">{bench.clickDuringRun ? "Metronome on" : "Metronome off"}</span>
+        <span class="whitespace-nowrap">Metronome: <span class="font-semibold">{bench.clickDuringRun ? "on" : "off"}</span></span>
       </button>{/if}
 
       {#if showCountIn}<Popover.Root>
@@ -247,7 +254,7 @@
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
             <p class="text-sm font-medium">The Aerophone's reading key</p>
-            <p class="mt-1 text-xs text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note; it sends concert pitch either way.</p>
+            <p class="mt-1 text-[13px] text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note; it sends concert pitch either way.</p>
             <div class="mt-2 grid grid-cols-3 gap-1.5">
               {#each AEROPHONE_READING_KEYS as k (k.id)}
                 <Popover.Close
@@ -271,14 +278,14 @@
       <!-- A phone row has no room for the word; the stage's count-in says it there, and the dots turn amber. -->
       <span class="mr-1 text-sm font-medium text-ws-soft max-sm:hidden" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
       {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
-        <span class="grid size-5 place-items-center" aria-hidden="true">
+        <span class="grid size-6 place-items-center" aria-hidden="true">
           {#if bench.beat === b}
             <span
-              class="ws-pulse grid size-5 place-items-center rounded-full text-[0.6875rem] leading-none font-bold text-ws-stage tnum {bench.countingIn ? 'bg-warn' : 'bg-instr'}"
+              class="ws-pulse grid size-6 place-items-center rounded-full text-[13px] leading-none font-bold text-ws-stage tnum {bench.countingIn ? 'bg-warn' : 'bg-instr'}"
               data-beat={b}>{b}</span
             >
           {:else}
-            <span class="size-2 rounded-full bg-ws-line"></span>
+            <span class="size-3 rounded-full bg-ws-soft"></span>
           {/if}
         </span>
       {/each}
@@ -288,9 +295,9 @@
 
     <!-- Sound, MIDI and the microphone in one pill. Muted is flagged; sound waiting for a first tap only says so.
          A full phone row shows the speaker alone (slashed when silent): the words and devices are in the pop-up. -->
-    <Popover.Root>
+    {#if quiet && !soundOff}<span class="ml-auto"></span>{:else}<Popover.Root>
       <Popover.Trigger
-        class="{roomy ? pill.replace('shrink-0', 'min-w-0 shrink-[20]') : pill} {s.muted ? 'border-warn' : ''} max-sm:ml-auto {roomy ? '' : 'max-sm:w-11 max-sm:justify-center max-sm:px-0'}"
+        class="{roomy ? pill.replace('shrink-0', 'min-w-0 shrink-[20]') : pill} {s.muted ? 'border-warn' : ''} max-sm:ml-auto {roomy ? '' : 'max-sm:px-2.5'}"
         aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}, playing from {source.word}"
       >
         <!-- Children stay mounted: the first tap unlocks sound, and swapping nodes mid-click would swallow the click that opens the pop-up. -->
@@ -303,12 +310,14 @@
           </span>
           <span class="whitespace-nowrap max-sm:sr-only">{source.word}</span>
         </span>
+        <!-- A phone's slim pill: the input's state in one word beside the speaker. -->
+        <span class="whitespace-nowrap sm:hidden" aria-hidden="true">{inputWord}</span>
         <ChevronDown class="hidden size-4 text-ws-soft sm:block" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="max-h-[80vh] w-80 overflow-y-auto border-ws-line bg-ws-surface text-ws-ink">
         <InputPanel />
       </Popover.Content>
-    </Popover.Root>
+    </Popover.Root>{/if}
 
     {#if searchInline}{@render search("")}{/if}
 
@@ -326,6 +335,6 @@
   <button type="button" class="{pill} {idle} {cls} max-2xl:w-11 max-2xl:justify-center max-2xl:px-0" onclick={() => palette.open()} aria-label="Search" title="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
     <Search class="size-4" aria-hidden="true" />
     <span class="hidden 2xl:inline">Search</span>
-    <kbd class="hidden rounded border border-ws-line px-1 text-xs text-ws-soft 2xl:inline">⌘K</kbd>
+    <kbd class="hidden rounded border border-ws-line px-1 text-[13px] text-ws-soft 2xl:inline">⌘K</kbd>
   </button>
 {/snippet}

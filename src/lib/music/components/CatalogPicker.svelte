@@ -90,7 +90,7 @@
   >
     <span class="min-w-0 flex-1">
       <span class="block truncate font-semibold">{current?.title ?? `Choose a ${noun}`}</span>
-      {#if current?.meta}<span class="block truncate text-xs text-ws-soft">{current.meta}</span>{/if}
+      {#if current?.meta}<span class="block truncate text-[13px] text-ws-soft">{current.meta}</span>{/if}
     </span>
     <span class="shrink-0 text-sm font-medium text-instr-ink">Change</span>
   </button>
@@ -117,13 +117,13 @@
     {/if}
     <div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
       {#if recents.length}
-        <p class="mb-1 mt-1 text-xs font-medium text-ws-soft">Recent</p>
+        <p class="mb-1 mt-1 text-[13px] font-medium text-ws-soft">Recent</p>
         <ul class="mb-3 flex flex-col gap-1">
           {#each recents as i (`r-${i.value}`)}{@render row(i)}{/each}
         </ul>
       {/if}
       {#each sections as s (s.name)}
-        {#if s.name}<p class="mb-1 mt-2 text-xs font-medium text-ws-soft">{s.name}</p>{/if}
+        {#if s.name}<p class="mb-1 mt-2 text-[13px] font-medium text-ws-soft">{s.name}</p>{/if}
         <ul class="flex flex-col gap-1">
           {#each s.rows as i (i.value)}{@render row(i)}{/each}
         </ul>
@@ -144,9 +144,9 @@
     >
       <span class="min-w-0 flex-1">
         <span class="block font-medium">{i.title}</span>
-        {#if i.meta}<span class="block text-xs text-ws-soft">{i.meta}</span>{/if}
+        {#if i.meta}<span class="block text-[13px] text-ws-soft">{i.meta}</span>{/if}
       </span>
-      {#if i.badge}<span class="shrink-0 text-xs text-ws-soft">{i.badge}</span>{/if}
+      {#if i.badge}<span class="shrink-0 text-[13px] text-ws-soft">{i.badge}</span>{/if}
     </button>
   </li>
 {/snippet}

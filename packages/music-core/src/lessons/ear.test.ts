@@ -359,6 +359,23 @@ describe("ear lessons", () => {
       opts.every((o) => o.sound.notes.length === 4 + 3 || o.sound.notes.length === 4 + 2),
     ).toBe(true);
   });
+  it("chord qualities: Root, 3rd and 5th on the keys, a screen named by each quality asked", () => {
+    const [intro] = earLessons("chord-qualities", ["major", "minor", "diminished", "augmented"]);
+    expect(intro.screens.map((s) => s.title)).toEqual([
+      "Major and minor",
+      "Diminished",
+      "Augmented",
+    ]);
+    for (const s of intro.screens) {
+      expect(Object.values((s.figure as { marks: object }).marks)).toEqual(["Root", "3rd", "5th"]);
+      expect(s.sound ?? s.options).toBeTruthy();
+    }
+    expect(earLessons("chord-qualities", ["major", "minor"])[0].screens).toHaveLength(1);
+  });
+  it("intervals: the first screen already shows two notes with the count between them", () => {
+    const marks = (earLessons("intervals", [])[0].screens[0].figure as { marks: object }).marks;
+    expect(marks).toMatchObject({ 60: "0", 64: "4" });
+  });
   it("intros follow the drill's setup: direction, level degrees, minor setup", () => {
     const steps = earLessons("intervals", [], { direction: "descending" })[0].screens[0].steps!;
     for (const o of steps)

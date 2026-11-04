@@ -418,7 +418,11 @@ export class Run {
     }
     await this.#flush();
     run.xp = this.xp;
-    const sessions = this.practice.sessions;
+    // The setup includes the instrument: a scale on guitar is never compared with the same scale on piano.
+    const sessions = this.practice.sessions.map((s) => ({
+      ...s,
+      runs: s.runs.filter((r) => r.instrument === run.instrument),
+    }));
     const previous = lastRunForSetup(sessions, run.exerciseId, run.setupKey, run.startedAt);
     const bestBefore = personalBest(sessions, run.exerciseId, run.setupKey);
     if (!this.#finished) {

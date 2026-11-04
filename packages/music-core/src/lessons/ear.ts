@@ -103,8 +103,9 @@ const intervals = {
       );
     return card("ear.intervals", "Intervals", {
       title: "Distance in half steps",
-      text: "An interval is the distance between two notes, counted in half steps: one key to the very next, black keys included. The quiz plays two notes and you name the distance. Tap Next to count some.",
-      figure: counted(0),
+      text: `An interval is the distance between two notes, counted in half steps: one key to the very next, black keys included. ${name(60)} ${sign > 0 ? "up" : "down"} to ${name(60 + sign * 4)} is 4. Tap Next to count some, then the quiz plays two notes and you name the distance.`,
+      // Two notes with the count between them, from the first screen: the idea drawn before Next.
+      figure: counted(4),
       steps: ["m2", "P5", "P8"].map((t) => {
         const i = EAR_INTERVALS.find((x) => x.token === t)!;
         return {
@@ -223,34 +224,34 @@ const qualities = {
       sound: { notes: [{ midi, at: 0, dur: 0.9 }] },
       figure: keys(marks, [60, 68]),
     });
-    const major = triad("Major: C, E, G", [60, 64, 67], { 60: "Root", 64: "M3", 67: "5th" });
-    // Diminished and augmented get their own screen when the quiz asks them.
+    // Root, 3rd and 5th on every key: the body text says how far each one sits.
+    const RT5 = (r: number, t: number, f: number) => ({ [r]: "Root", [t]: "3rd", [f]: "5th" });
+    const major = triad("Major: C, E, G", [60, 64, 67], RT5(60, 64, 67));
+    // Diminished and augmented get their own screen, named by the quality, when the quiz asks them.
     const odd = [
-      triad("Diminished: C, Eb, Gb", [60, 63, 66], { 60: "Root", 63: "m3", 66: "b5" }),
-      triad("Augmented: C, E, G#", [60, 64, 68], { 60: "Root", 64: "M3", 68: "#5" }),
-    ].filter((x) => o.items?.includes(x.label.split(":")[0].toLowerCase()));
+      {
+        token: "diminished",
+        title: "Diminished",
+        text: "Diminished is minor with the 5th a half step lower: C, Eb, Gb. It sounds tight and unsettled.",
+        ...triad("Diminished: C, Eb, Gb", [60, 63, 66], RT5(60, 63, 66)),
+      },
+      {
+        token: "augmented",
+        title: "Augmented",
+        text: "Augmented is major with the 5th a half step higher: C, E, G#. It sounds stretched, as if it wants to move.",
+        ...triad("Augmented: C, E, G#", [60, 64, 68], RT5(60, 64, 68)),
+      },
+    ].filter((x) => o.items?.includes(x.token));
     return card(
       "ear.chord-qualities",
       "Chord qualities",
       {
-        title: "One chord, all notes together",
-        text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Tap each to hear it: only the 3rd moves.",
+        title: "Major and minor",
+        text: "A chord's quality comes from the notes stacked above its root: the 3rd and the 5th. The quiz plays one chord with all its notes at once, and you name the quality. Tap each to hear it: only the 3rd moves, 4 half steps above the root in major, 3 in minor.",
         figure: major.figure,
-        options: [
-          major,
-          triad("Minor: C, Eb, G", [60, 63, 67], { 60: "Root", 63: "m3", 67: "5th" }),
-        ],
+        options: [major, triad("Minor: C, Eb, G", [60, 63, 67], RT5(60, 63, 67))],
       },
-      ...(odd.length
-        ? [
-            {
-              title: "The 5th can move too",
-              text: "Diminished is minor with the 5th a half step lower. Augmented is major with the 5th a half step higher. Tap each to hear it.",
-              figure: odd[0].figure,
-              options: odd,
-            },
-          ]
-        : []),
+      ...odd.map((x) => ({ title: x.title, text: x.text, figure: x.figure, sound: x.sound })),
     );
   },
   item: (token: string, o: EarOptions = {}) => {

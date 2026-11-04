@@ -6,8 +6,9 @@
     param: string;
     tabs: readonly { id: string; label: string }[];
     label: string;
+    class?: string;
   }
-  let { param, tabs, label }: Props = $props();
+  let { param, tabs, label, class: cls = "" }: Props = $props();
   const current = $derived(page.url.searchParams.get(param) ?? tabs[0].id);
   const hrefFor = (id: string) => {
     const q = new URLSearchParams(page.url.searchParams);
@@ -20,7 +21,7 @@
   };
 </script>
 
-<nav aria-label={label} class="flex flex-wrap gap-1 rounded-full border border-ws-line bg-ws-surface p-1">
+<nav aria-label={label} class="flex flex-wrap gap-1 rounded-full border border-ws-line bg-ws-surface p-1 {cls}">
   {#each tabs as t (t.id)}
     <a
       href={hrefFor(t.id)}

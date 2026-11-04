@@ -418,8 +418,21 @@ export function pedalLesson(): Lesson {
     screens: [
       {
         title: "Pedal after the chord",
-        text: "The sustain pedal keeps notes ringing after you let go of the keys. Play the chord, then press the pedal, and the chord keeps sounding while your hands move.",
+        text: "The sustain pedal keeps notes ringing after you let go of the keys. Play the chord, then press the pedal, and the chord keeps sounding while your hands move. Tap Next to hear both.",
         figure: keys(marksOf(a), span),
+        sound: { notes: bar(a, 0, second) },
+        steps: [
+          {
+            text: `Play ${a.symbol} and let go, with no pedal: it stops when your hands leave the keys.`,
+            figure: keys(marksOf(a), span),
+            sound: { notes: bar(a, 0, 0.35) },
+          },
+          {
+            text: `Play ${a.symbol}, then press the pedal just after it sounds: it keeps ringing after you let go.`,
+            figure: keys(marksOf(a), span),
+            sound: { notes: bar(a, 0, 2 * second) },
+          },
+        ],
       },
       {
         title: "Up and down at the change",

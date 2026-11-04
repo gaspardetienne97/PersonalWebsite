@@ -61,20 +61,13 @@ export const assistanceFor = (mode: DrillMode, hinted = false) =>
 
 /**
  * What the run counts as, said once on the results (Results builds it from the
- * summary's `mode`). Practice runs still count for the next-run rule (`moves`:
- * "tempo" when it climbs a tempo, "steps" when it moves through variations);
- * only Check runs count toward the skill scores.
+ * summary's `mode`). Practice runs still count for the next-run rule (the pips
+ * say so); only Check runs count toward the skill scores.
  */
-export function modeText(
-  mode: DrillMode,
-  { hinted = false, moves = null }: { hinted?: boolean; moves?: "tempo" | "steps" | null } = {},
-): string {
-  if (hinted) return "You used a hint, so this run is practice.";
-  if (mode === "check") return "Check run: counts toward your skill scores.";
-  const scores = "Check runs, from memory, raise your skill scores.";
-  if (moves === "tempo") return `Practice run: counts toward speeding up. ${scores}`;
-  if (moves === "steps") return `Practice run: counts toward moving on. ${scores}`;
-  return `Practice run: only ${scores}`;
+export function modeText(mode: DrillMode, { hinted = false }: { hinted?: boolean } = {}): string {
+  if (hinted) return "You used a hint, so this run counts as practice.";
+  if (mode === "check") return "Check run: counted in your skill scores.";
+  return "Practice run: your skill scores move on Check runs only.";
 }
 
 /**

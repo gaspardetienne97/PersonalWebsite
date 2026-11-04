@@ -1,7 +1,7 @@
 <script lang="ts" module>
   import type { NextRun } from "../advance.svelte";
   /** The next-run button's verb, by the kind of move. */
-  export const NEXT_VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow down to", harder: "Move on:", easier: "Step back:" };
+  export const NEXT_VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow to", harder: "Move on:", easier: "Step back:" };
   export type Phase = "ready" | "countin" | "running" | "results";
   export type DrillMode = "practice" | "check";
 
@@ -66,6 +66,8 @@
   import EyeOff from "lucide-svelte/icons/eye-off";
   import X from "lucide-svelte/icons/x";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import Timer from "lucide-svelte/icons/timer";
   import TimerOff from "lucide-svelte/icons/timer-off";
   import Alert from "lucide-svelte/icons/circle-alert";
@@ -101,6 +103,8 @@
     results?: Snippet;
     actions?: Snippet;
     ondemo?: () => void | Promise<void>;
+    /** The demo button's name ("Hear an example" where the drill plays an example, not this run). */
+    demoLabel?: string;
     demoPlaying?: boolean;
     onstart: (ctx: RunContext) => void | Promise<void>;
     onstop?: () => void;
@@ -124,9 +128,12 @@
     instrumentFree?: boolean;
     /** Setup clauses that fix an input caveat (contract K2), e.g. "left hand on MIDI" opening Connect. */
     requires?: readonly Requirement[];
-    /** What to do right now, shown beside Stop in the phone dock ("Play G4, finger 2", "Your turn"). Never the
-     *  verdict: `status` stays the live region. */
+    /** What to do right now, shown in the phone dock when there is no `step` ("Play G4, finger 2", "Your turn").
+     *  Never the verdict: `status` stays the live region. */
     cue?: string;
+    /** The drill's one go-on action while live (Continue, See results, Next card, Check my rhythm). On a phone the
+     *  dock draws it as a full-width primary; the drill hides its in-card copy with max-sm:hidden. */
+    step?: { label: string; run: () => void; disabled?: boolean } | null;
     /** The stage after a run is the marked music (a staff or neck with marks): it stays under the results.
      *  Without it the stage is hidden on results; with it the drill hides its ready-only controls itself. */
     review?: boolean;
@@ -149,6 +156,7 @@
     results,
     actions,
     ondemo,
+    demoLabel = "Hear it",
     demoPlaying = false,
     onstart,
     onstop,
@@ -165,8 +173,9 @@
     instrumentFree,
     requires = [],
     cue = "",
+    step = null,
     review = false,
-    modeNotes = { practice: "Targets shown. Counts toward speeding up.", check: "Targets hidden. Counts toward your skill scores." },
+    modeNotes = { practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
@@ -315,15 +324,19 @@
   let fadeL = $state(false);
   let fadeR = $state(false);
   function edges() {
+    fadeL = !!tabRow && tabRow.scrollLeft > 6;
     if (!tabRow) return;
-    fadeL = tabRow.scrollLeft > 6;
     fadeR = tabRow.scrollLeft + tabRow.clientWidth < tabRow.scrollWidth - 6;
   }
   $effect(() => {
     void tab;
     void shownTabs.length;
     if (!tabRow) return;
-    tabRow.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    const open = tabRow.querySelector<HTMLElement>('[aria-pressed="true"]');
+    // The open exercise in view with the one before it whole at the left edge, so no tab is ever cut on the left
+    // (the right edge fades under the scroll chevron). The row scrolls, never the page.
+    const prev = open?.previousElementSibling as HTMLElement | null;
+    if (open && tabRow.scrollWidth > tabRow.clientWidth) tabRow.scrollTo({ left: Math.max(0, (prev ?? open).offsetLeft - 4) });
     edges();
   });
 
@@ -474,6 +487,27 @@
     onstop?.();
   }
 
+  // "More below" (sessions): while the end of the content sits under the dock or below the screen, a pill says so.
+  let endMark: HTMLElement | undefined = $state();
+  let dockH = $state(0);
+  let more = $state(false);
+  /** A lesson docks its own Back and Next over the screen bottom: the pill sits above them. */
+  let lessonDockH = $state(0);
+  $effect(() => {
+    if (!session || !endMark) return void (more = false);
+    lessonDockH = showing ? (document.querySelector<HTMLElement>("[data-lesson-dock]")?.offsetHeight ?? 0) : 0;
+    const io = new IntersectionObserver(([e]) => (more = !e.isIntersecting && e.boundingClientRect.top > 0), {
+      // The lesson's own dock sits in the flow just above the end mark, so only the session dock is subtracted.
+      rootMargin: `0px 0px -${Math.round(dockH)}px 0px`,
+    });
+    io.observe(endMark);
+    return () => io.disconnect();
+  });
+  function scrollMore() {
+    const still = document.documentElement.hasAttribute("data-reduce-motion") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    scrollBy({ top: innerHeight * 0.7, behavior: still ? "instant" : "smooth" });
+  }
+
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     const onControl = t?.closest("button, a, input, select, textarea, [contenteditable], [role=slider]");
@@ -514,8 +548,8 @@
 
   <div class={session ? "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 pt-3 sm:px-6 lg:px-8" : "contents"}>
     {#if afterRun && results}
-      <!-- The results own the screen; a silent run's card sits in the middle of it. -->
-      <div class="results-enter {silent ? 'grid flex-1 place-items-center' : ''}">
+      <!-- The results own the screen; a silent run's card sits at the top of it. -->
+      <div class="results-enter">
         <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
         {@render results()}
       </div>
@@ -523,7 +557,7 @@
 
     <!-- A silent run leaves the stage out: its targets were never played, so nothing on it is a result. -->
     <div
-      class="stage-box relative {phase === 'results' && (silent || !review) && !showing ? 'hidden' : showing ? 'flex flex-1 flex-col' : session ? 'stage flex flex-1 flex-col p-3 sm:p-5' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
+      class="stage-box relative {phase === 'results' && (silent || !review) && !showing ? 'hidden' : showing ? 'flex flex-1 flex-col' : session ? 'stage flex flex-col p-3 sm:p-5' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
       class:demo={demoPlaying}
       data-live={live ? "" : undefined}
     >
@@ -555,22 +589,35 @@
       {/if}
     </div>
 
-    {#if afterRun && checkable && checkRun && mode === "practice" && !silent}
-      <!-- On a phone the dock holds Again and the next run; the checked version of this run waits here. -->
-      <button type="button" class="{quiet} sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Try it from memory</button>
-    {/if}
-    {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
+    {#if actions && !showing}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
+    {#if session}<div bind:this={endMark} data-end class="h-px"></div>{/if}
   </div>
 
   {#if session}
-    {@render dock()}
+    <!-- The dock (when there is one) and the "More below" pill 8 px above it, or above the screen bottom. -->
+    <div class="sticky bottom-0 z-30" bind:clientHeight={dockH}>
+      {#if more}
+        <button
+          type="button"
+          style:bottom="calc(100% + {lessonDockH + 8}px)"
+          class="absolute left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-ws-line bg-ws-raised px-4 text-sm font-medium text-ws-ink shadow-md hover:bg-ws-line"
+          aria-label="Scroll to see more"
+          onclick={scrollMore}
+          transition:fade={{ duration: 120 }}><ChevronDown class="size-4" aria-hidden="true" />More below</button
+        >
+      {/if}
+      {@render dock()}
+    </div>
   {:else if docked}
     <!-- On a phone (and up to lg) Start docks above the tab bar: chrome, like the tab bar, never over the stage
          (the section's bottom padding lets the stage scroll clear of it). -->
     <div class="ws-bar ws-bar-bottom fixed inset-x-0 bottom-[var(--ws-dock-h,3.5rem)] z-30 border-t px-4 py-2 lg:hidden" data-testid="drill-bar">
       <div class="mx-auto flex max-w-2xl flex-col gap-1">
-        {@render startButton("w-full")}
-        {#if blocked && !unblocking}<span class="text-center text-xs text-ws-soft">{blocked}</span>{/if}
+        <div class="flex items-center gap-2">
+          {@render demoButton()}
+          {@render startButton("min-w-0 flex-1")}
+        </div>
+        {#if blocked && !unblocking}<span class="text-center text-sm text-ws-soft">{blocked}</span>{/if}
       </div>
     </div>
   {/if}
@@ -609,8 +656,8 @@
       id="drill-exercises"
       bind:this={tabRow}
       onscroll={edges}
-      class="-mx-1 flex snap-x scroll-px-1 overflow-x-auto border-b border-ws-line px-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible"
-      style:mask-image={fadeL || fadeR ? `linear-gradient(to right, ${fadeL ? "transparent" : "black"}, black 2.5rem, black calc(100% - 2.5rem), ${fadeR ? "transparent" : "black"})` : undefined}
+      class="relative -mx-1 flex max-w-[calc(100%+0.5rem)] snap-x scroll-px-1 overflow-x-auto border-b border-ws-line px-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible"
+      style:mask-image={fadeL || fadeR ? `linear-gradient(to right, ${fadeL ? "transparent 0.5rem, black 3rem" : "black"}, ${fadeR ? "black calc(100% - 3rem), transparent calc(100% - 0.5rem)" : "black"})` : undefined}
       role="group"
       aria-label="Exercise"
     >
@@ -630,10 +677,16 @@
           aria-expanded={allTabs}
           aria-controls="drill-exercises"
           onclick={toggleTabs}
-          >{allTabs ? "Fewer exercises" : "More exercises"}{#if !allTabs}<span class="tnum text-xs text-ws-soft" aria-hidden="true">+{hiddenTabs}</span>{/if}</button
+          >{allTabs ? "Fewer exercises" : "More exercises"}{#if !allTabs}<span class="tnum text-[13px] text-ws-soft" aria-hidden="true">+{hiddenTabs}</span>{/if}</button
         >
       {/if}
     </div>
+    {#if fadeL}
+      <!-- More exercises to the left: the fade sits under this chevron, and one tap scrolls back a page. -->
+      <button type="button" class="absolute left-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label="Scroll exercises back" onclick={() => tabRow?.scrollBy({ left: -tabRow.clientWidth * 0.8, behavior: "smooth" })}>
+        <ChevronLeft class="size-5" aria-hidden="true" />
+      </button>
+    {/if}
     {#if fadeR}
       <!-- A phone row that runs on: one tap scrolls it a page. -->
       <button type="button" class="absolute right-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label="Scroll exercises" onclick={() => tabRow?.scrollBy({ left: tabRow.clientWidth * 0.8, behavior: "smooth" })}>
@@ -647,66 +700,63 @@
 <!-- Row 3, the action bar: the setup sentence (its caveats as clauses that fix themselves), then Practice or
      Check, Hear it and Start. On a laptop one bar; below lg the setup line is its own card and Start docks. -->
 {#snippet actionBar()}
-  <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3 lg:rounded-2xl lg:border lg:border-ws-line lg:bg-ws-surface lg:py-1.5 lg:pl-4 lg:pr-1.5">
-    <div class="relative flex min-w-0 flex-1 items-center gap-x-3 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
-      <!-- Every clause is a chip that never breaks mid-phrase (the commas stay for screen readers and copy).
-           A phone shows two lines of chips; the Setup button, the whole card there, holds the rest. -->
-      <div class="min-w-0 flex-1 py-1 text-sm" data-testid="setup-line">
-        <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden">
-          <span class="mr-1 text-ws-soft">Setup:</span>
-          {#each clauses as c, i (i)}{#if setup && c.focus}<button type="button" class="clause max-sm:pointer-events-none" onclick={() => openAt(c.focus)}>{c.text}</button>{:else}<span class="clause">{c.text}</span>{/if}{#if i < clauses.length - 1 || requires.length || needsInput}<span class="sr-only">,</span>{/if}{" "}{/each}
+  <!-- One card. Laptop, one row: the setup sentence, Setup, Practice or Check, Hear it, Start. Below lg: the
+       sentence, then Practice or Check (left) and Setup (right), the mode's note on one line under them; Hear it
+       and Start dock at the bottom. On a phone the whole card opens the setup (the toggle sits above that). -->
+  <div class="relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 lg:flex-nowrap lg:rounded-2xl">
+    <!-- A clause with a control is a chip that opens it (from sm up); the rest is plain text that never breaks
+         mid-phrase. A phone shows two lines; the Setup button, the whole card there, holds the rest. -->
+    <div class="min-w-0 basis-full py-1 text-sm lg:flex-1 lg:basis-auto" data-testid="setup-line">
+      <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden">
+        <span class="mr-1 text-ws-soft">Setup:</span>
+        {#each clauses as c, i (i)}{@const more = i < clauses.length - 1 || requires.length || needsInput}{#if setup && c.focus}<button type="button" class="clause max-sm:pointer-events-none" onclick={() => openAt(c.focus)}>{c.text}<ChevronDown class="size-3.5 shrink-0 text-ws-soft" aria-hidden="true" /></button>{#if more}<span class="sr-only">,</span>{/if}{:else}<span class="inline-block max-w-full font-medium">{c.text}{#if more}<span class="text-ws-soft">,</span>{/if}</span>{/if}{" "}{/each}
+      </p>
+      {#if requires.length || needsInput}
+        <!-- Input caveats, each its own fix, on their own line so a clamp never hides them. -->
+        <p class="flex flex-wrap items-center gap-x-1">
+          {#each requires as r, i (r.text)}<button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="sr-only">,</span>{/if}{/each}
+          {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
         </p>
-        {#if requires.length || needsInput}
-          <!-- Input caveats, each its own fix, on their own line so a clamp never hides them. -->
-          <p class="flex flex-wrap items-center gap-x-1">
-            {#each requires as r, i (r.text)}<button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="sr-only">,</span>{/if}{/each}
-            {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
-          </p>
-        {/if}
+      {/if}
+    </div>
+    {#if setup}
+      <button
+        type="button"
+        class="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-instr-ink hover:bg-instr-wash max-lg:order-1 max-lg:ml-auto max-sm:after:absolute max-sm:after:inset-0 max-sm:after:rounded-xl"
+        aria-expanded={setupOpen}
+        aria-controls="drill-setup"
+        onclick={() => (setupOpen = !setupOpen)}
+      >
+        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
+      </button>
+    {/if}
+    {#if checkable}
+      <!-- One two-state switch, the current mode's effect on one line under it. The names stay "Practice" and
+           "Check"; a demo holds the mode until it stops (full contrast, with a reason). -->
+      <div class="max-lg:contents lg:flex lg:shrink-0 lg:flex-col lg:items-center lg:gap-0.5 lg:border-l lg:border-ws-line lg:pl-3">
+        <div class="relative z-10 flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note" title={demoPlaying ? "Stop the demo to change mode" : undefined}>
+          {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
+            <button
+              type="button"
+              class="flex min-h-10 items-center justify-center rounded-full px-3.5 text-sm {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
+              aria-pressed={mode === id}
+              aria-disabled={demoPlaying || undefined}
+              onclick={() => {
+                if (!demoPlaying) mode = id;
+              }}
+            >{label}</button>
+          {/each}
+        </div>
+        <p id="mode-note" class="text-sm leading-snug text-ws-soft max-lg:order-2 max-lg:basis-full lg:whitespace-nowrap lg:text-center">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
       </div>
-      {#if setup}
-        <button
-          type="button"
-          class="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-instr-ink hover:bg-instr-wash max-sm:after:absolute max-sm:after:inset-0 max-sm:after:rounded-xl"
-          aria-expanded={setupOpen}
-          aria-controls="drill-setup"
-          onclick={() => (setupOpen = !setupOpen)}
-        >
-          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
-        </button>
-      {/if}
-    </div>
-    <div class="flex shrink-0 items-center gap-2 lg:border-l lg:border-ws-line lg:pl-3">
-      {#if checkable}
-        <!-- One two-state switch, the current mode's effect in one line under it. The names stay "Practice" and
-             "Check"; a demo holds the mode until it stops. -->
-        <div class="flex shrink-0 flex-col items-center gap-0.5">
-          <div class="flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note">
-            {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
-              <button
-                type="button"
-                class="flex min-h-10 items-center justify-center rounded-full px-3.5 text-sm disabled:opacity-60 {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
-                aria-pressed={mode === id}
-                disabled={demoPlaying}
-                onclick={() => (mode = id)}
-              >{label}</button>
-            {/each}
-          </div>
-          <p id="mode-note" class="w-max max-w-[min(17rem,56vw)] text-center text-xs leading-tight text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
-        </div>
-      {/if}
-      {#if ondemo && (mode !== "check" || demoPlaying)}
-        <button type="button" class="{ghost} aria-pressed:bg-instr-wash" aria-pressed={demoPlaying} onclick={ondemo}>
-          {#if demoPlaying}<Square class="size-3.5 fill-current" aria-hidden="true" />Stop demo{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
-        </button>
-      {/if}
-      {#if phase === "ready"}
-        <div class="ml-auto flex shrink-0 items-center gap-3 max-lg:hidden">
-          {#if blocked && !unblocking}<span class="max-w-48 text-right text-xs text-ws-soft">{blocked}</span>{/if}
-          {@render startButton("")}
-        </div>
-      {/if}
-    </div>
+    {/if}
+    {#if phase === "ready"}
+      <div class="flex shrink-0 items-center gap-2 max-lg:hidden">
+        {@render demoButton()}
+        {#if blocked && !unblocking}<span class="max-w-48 text-right text-sm text-ws-soft">{blocked}</span>{/if}
+        {@render startButton("")}
+      </div>
+    {/if}
   </div>
   {#if setup && setupOpen}
     <div id="drill-setup" class="rounded-xl border border-ws-line bg-ws-surface p-4">
@@ -715,8 +765,17 @@
   {/if}
 {/snippet}
 
+<!-- Hear it (a quiet button); during the demo it leaves, and Stop demo takes Start's place as the one filled button. -->
+{#snippet demoButton()}
+  {#if ondemo && mode !== "check" && !demoPlaying}
+    <button type="button" class={ghost} onclick={ondemo}><Headphones class="size-4" aria-hidden="true" />{demoLabel}</button>
+  {/if}
+{/snippet}
+
 {#snippet startButton(cls: string)}
-  {#if unblocking && unblock}
+  {#if demoPlaying && ondemo}
+    <button type="button" class="{primary} {cls}" aria-pressed="true" onclick={ondemo}><Square class="size-4 fill-current" aria-hidden="true" />Stop demo</button>
+  {:else if unblocking && unblock}
     <!-- What Start waits for, one tap away; Start comes back here once it is done. -->
     <button type="button" data-start data-unblock class="{primary} {cls}" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>
       {unblock.label}
@@ -732,10 +791,10 @@
      A thin run-progress bar runs under the whole HUD. -->
 {#snippet hudBar()}
   <header class="ws-bar sticky top-0 z-30 border-b">
-    <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1.5 sm:flex-nowrap sm:px-6 lg:px-8">
+    <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 pt-1.5 pb-2.5 sm:flex-nowrap sm:pb-1.5 sm:px-6 lg:px-8">
       {#if live}
-        <!-- On a phone Stop sits in the dock, in the thumb zone. -->
-        <button type="button" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line max-sm:hidden" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
+        <!-- One exit, top left, at every width (Close takes this place on results and lessons). -->
+        <button type="button" class="-ml-1 flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
           <Square class="size-3.5 fill-current" aria-hidden="true" />Stop
         </button>
       {:else}
@@ -746,7 +805,7 @@
       <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud min-w-0 flex-1 font-display font-semibold leading-tight sm:flex-none">{title}</h1>
       {#if checkable && !showing}
         <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last">
-          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check: from memory{:else}<Eye class="size-4" aria-hidden="true" />Practice: help on{/if}
+          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check: from memory{:else}<Eye class="size-4" aria-hidden="true" />Practice: hints on{/if}
         </span>
       {/if}
       {#if live && clock}
@@ -775,16 +834,16 @@
   </header>
 {/snippet}
 
-<!-- The beat, labelled: the word, then one dot a beat with the current one filled and numbered. -->
+<!-- The beat in words ("Beat 2 of 4"), then one dot a beat: idle 12 px, the current one 24 px and numbered. -->
 {#snippet beatReadout()}
   <span class="flex shrink-0 items-center gap-1.5" role="img" aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}">
-    <span class="ws-hud text-ws-soft" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
+    <span class="ws-hud whitespace-nowrap text-ws-soft tnum" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"} <span class="font-semibold text-ws-ink">{bench.beat || 1}</span> of {bench.beatsPerBar}</span>
     {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
       <span class="grid size-6 place-items-center" aria-hidden="true">
         {#if bench.beat === b}
-          <span class="ws-pulse grid size-6 place-items-center rounded-full text-xs font-bold leading-none tnum {bench.countingIn ? 'bg-warn text-ws-stage' : 'bg-instr-strong text-on-instr'}" data-beat={b}>{b}</span>
+          <span class="ws-pulse grid size-6 place-items-center rounded-full text-[13px] font-bold leading-none tnum {bench.countingIn ? 'bg-warn text-ws-stage' : 'bg-instr-strong text-on-instr'}" data-beat={b}>{b}</span>
         {:else}
-          <span class="size-2 rounded-full bg-ws-soft/40"></span>
+          <span class="size-3 rounded-full bg-ws-soft"></span>
         {/if}
       </span>
     {/each}
@@ -795,37 +854,40 @@
      Again and the next run by the shared rule (or Done when the rule says same again). -->
 {#snippet dock()}
   {#if live}
-    <div class="ws-bar ws-bar-bottom sticky bottom-0 z-30 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
-      <div class="flex items-center gap-3">
-        <button type="button" class="{quiet} shrink-0" onclick={stop} aria-keyshortcuts="Escape"><Square class="size-4 fill-current" aria-hidden="true" />Stop</button>
-        <!-- What to do now, from the drill. Never the verdict: that is on the stage and in the live region. -->
-        {#if cue}<p class="line-clamp-2 min-w-0 flex-1 text-sm font-medium" data-cue>{cue}</p>{/if}
+    {#if step || cue}
+      <!-- Phone only: the drill's one go-on action, else what to do now. Never the verdict (stage and live region). -->
+      <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
+        {#if step}
+          <button type="button" class="{primary} w-full" disabled={step.disabled} onclick={step.run} data-step>{step.label}</button>
+        {:else}
+          <p class="flex min-h-12 items-center text-base font-medium" data-cue>{cue}</p>
+        {/if}
       </div>
-    </div>
+    {/if}
   {:else if afterRun}
     {@const next = silent ? null : offered}
-    <!-- The same order after every run: Done, Again (when something else leads), the from-memory run, then the
-         primary at the right (the next run, else Again; after a silent run, checking the inputs). -->
-    {@const againLeads = !next && !silent && !unblocking}
-    <div class="ws-bar ws-bar-bottom sticky bottom-0 z-30 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
+    <!-- The same order after every run. Laptop, one row: Done, Again (when something else leads), the from-memory
+         run, then the primary at the right (the next run, else Again; after a silent run, Again: the not-heard card
+         holds the input fix). Phone, two rows: the primary alone, full width; then the others as equal quiet buttons. -->
+    {@const againLeads = !next && !unblocking}
+    {@const small = "max-sm:min-h-11 max-sm:flex-auto max-sm:whitespace-nowrap max-sm:px-3 max-sm:text-sm"}
+    <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
         {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
-        <button type="button" class="{quiet} max-sm:px-4" onclick={close}>Done</button>
+        <button type="button" class="{quiet} {small}" onclick={close}>Done</button>
         {#if !againLeads}
-          <button type="button" class="{quiet} max-sm:flex-1 max-sm:px-3" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5 max-sm:hidden" aria-hidden="true" />Again</button>
         {/if}
         {#if checkable && checkRun && mode === "practice" && !silent}
-          <button type="button" class="{quiet} max-sm:hidden" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5" aria-hidden="true" />Try it from memory</button>
+          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />Check run, from memory</button>
         {/if}
         <span class="flex-1 max-sm:hidden"></span>
         {#if unblocking && unblock}
-          <button type="button" class="{primary} max-sm:flex-[2] max-sm:px-4" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
-        {:else if silent}
-          <a class="{primary} max-sm:flex-[2] max-sm:px-4" href="/music/connect">Check inputs</a>
+          <button type="button" class="{primary} max-sm:order-first max-sm:basis-full" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
         {:else if next}
-          <button type="button" class="{primary} max-sm:flex-[2] max-sm:px-4" disabled={!!blocked} onclick={goNext}>{NEXT_VERB[next.kind]} {next.label}</button>
+          <button type="button" class="{primary} min-w-0 whitespace-nowrap max-sm:order-first max-sm:basis-full" disabled={!!blocked} onclick={goNext}><span class="truncate">{NEXT_VERB[next.kind]} {next.label}</span></button>
         {:else}
-          <button type="button" class="{primary} max-sm:flex-1" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+          <button type="button" class="{primary} max-sm:order-first max-sm:basis-full" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
         {/if}
       </div>
     </div>
@@ -866,11 +928,12 @@
     border-radius: 9999px;
     background: var(--instr);
   }
-  /* Each clause is a chip, an atomic inline: it moves to the next line whole rather than break mid-phrase, and
-     only a clause longer than the whole card wraps inside its chip. From sm up the ones with a control open it
-     (on a phone the card is one button). */
+  /* A clause with a control is a chip, an atomic inline with a chevron: it moves to the next line whole rather
+     than break mid-phrase. From sm up it opens its control (on a phone the card is one button). */
   .clause {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     max-width: 100%;
     margin-block: 0.125rem;
     border-radius: 0.375rem;
@@ -891,21 +954,18 @@
   .results-enter {
     animation: ws-rise 220ms ease-out;
   }
-  /* The live layout (contract S4, drills mark their own markup): while a run is live the stage column fills the
-     height between the HUD and the dock and centres what it holds, so the music and the instrument (or the
-     answers) sit together with no band of space between them. Only a region marked data-grow (a lane, a highway,
-     falling notes) takes the free height. Every wrapper between the stage and a marked element (data-dock or
-     data-grow) becomes a centred growing column, unless it already lays out as a row or a grid. From lg up a
-     wrapper that changes layout at a breakpoint keeps it; a grid that holds a growing region grows and stretches
-     its row. Normal flow, never fixed, so long stages scroll. */
-  .stage-box[data-live] {
-    justify-content: center;
+  /* The live layout (contract S3): the stage hugs its content, top aligned under the HUD. It takes the free
+     height only when it holds a region marked data-grow (a lane, a highway, a plot, the pads); then every wrapper
+     between the stage and that region becomes a growing column, unless it already lays out as a row or a grid.
+     From lg up a wrapper that changes layout at a breakpoint keeps it; a grid that holds a growing region grows and
+     stretches its row. Normal flow, never fixed, so long stages scroll. */
+  .stage-box[data-live]:has(:global([data-grow])) {
+    flex: 1 1 auto;
   }
   @media (max-width: 63.999rem) {
-    .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-dock], [data-grow])) {
+    .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-grow])) {
       display: flex;
       flex-direction: column;
-      justify-content: center;
       flex: 1 1 auto;
       min-height: 0;
     }
@@ -919,11 +979,10 @@
             [class*=":block"],
             [class*=":hidden"],
             [class*=":contents"]
-          ):has([data-dock], [data-grow])
+          ):has([data-grow])
       ) {
       display: flex;
       flex-direction: column;
-      justify-content: center;
       flex: 1 1 auto;
       min-height: 0;
     }

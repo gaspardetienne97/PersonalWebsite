@@ -257,7 +257,7 @@ function rudimentsIntro(): Lesson {
     "Rudiments on the pads",
     {
       title: "Two hands, two pads",
-      text: `A rudiment is a sticking pattern: which hand plays each stroke. Left hand (L) on ${padName(LEFT_PAD)}, right (R) on ${padName(RIGHT_PAD)}. Tap Next to play this drill's paradiddle, ${drillPara}, one stroke at a time.`,
+      text: `A rudiment is a sticking: which hand plays each stroke, left (L) on ${padName(LEFT_PAD)} and right (R) on ${padName(RIGHT_PAD)}. Tap Next to play this drill's paradiddle, ${drillPara}, one stroke at a time.`,
       figure: handPads("single-strokes"),
       sound: rudimentSound("paradiddle"),
       // The sticking drawn on the pads: each Next lights the pad that plays the stroke.
@@ -290,7 +290,7 @@ function rudimentsIntro(): Lesson {
     },
     {
       title: "Accents and taps",
-      text: `In a rudiment with accents, the drill checks that each accent is hit at ${percent(RUDIMENT_BANDS.accent)} percent of full level and each tap at ${percent(RUDIMENT_BANDS.tap)} percent. It can only check this when your pads send changing velocity. Tap Even, then Accent and taps, to hear four sixteenths each way.`,
+      text: `With pads that send changing velocity, each accent should land at ${percent(RUDIMENT_BANDS.accent)} percent of full level and each tap at ${percent(RUDIMENT_BANDS.tap)} percent. Tap Even, then Accent and taps, to hear four sixteenths each way.`,
       figure: handPads("accents-ghosts"),
       options: [
         { label: "Even", sound: bandSound(true) },
@@ -299,7 +299,7 @@ function rudimentsIntro(): Lesson {
     },
     {
       title: "Eighths, triplets, sixteenths",
-      text: "The subdivision is how many strokes fit in a beat: two for eighths, three for triplets, four for sixteenths. Some rudiments set their own grid and the drill says so. Tap each to hear four beats of single strokes, and watch the grid.",
+      text: "The subdivision is how many strokes fit in a beat: two for eighths, three for triplets, four for sixteenths. Tap each to hear four beats of single strokes, and watch the grid.",
       figure: gridBeats(2),
       options: ([2, 3, 4] as const).map((n) => ({
         label: SUBDIVISION_NAMES[n][0].toUpperCase() + SUBDIVISION_NAMES[n].slice(1),
@@ -676,13 +676,13 @@ function fillsIntro(): Lesson {
     "Fills",
     {
       title: "Three bars, then a fill",
-      text: "A run is three bars of groove, then a fill in bar 4, then a crash and kick together on the next bar's one. The grid shows one bar of groove and then the fill bar. Tap Hear it to hear the third bar, the fill and the landing.",
+      text: "A run is three bars of groove, a fill in bar 4, then crash and kick together on the next one. The grid shows one groove bar and the fill bar, and Hear it plays them with the landing.",
       figure: gridOf(grid, 0, 2),
       sound: play(),
     },
     {
       title: "Landing on the one",
-      text: `The landing counts when the crash and kick are both within ${FILL.landMs} ms of the click on the one. Tap Landed to hear them there, or Late to hear both ${FILL_DEMO_MS} ms behind.`,
+      text: `The landing counts when crash and kick are both within ${FILL.landMs} ms of the click on the one. Tap Landed to hear them there, or Late to hear both ${FILL_DEMO_MS} ms behind.`,
       figure: gridOf(grid, 0, 2),
       options: [
         { label: "Landed", sound: play() },
@@ -691,7 +691,7 @@ function fillsIntro(): Lesson {
     },
     {
       title: "Do not rush",
-      text: `Students rush fills. The drill averages the timing of the fill's own notes, and if they come more than ${FILL.rushMs} ms early on average the fill counts as rushed and the run is not correct. Tap On time, or Rushed to hear the fill ${FILL_DEMO_MS} ms early.`,
+      text: `If the fill's notes come more than ${FILL.rushMs} ms early on average, the fill counts as rushed and the run is not clean. Tap On time, or Rushed to hear the fill ${FILL_DEMO_MS} ms early.`,
       figure: gridOf(grid, 0, 2),
       options: [
         { label: "On time", sound: play() },
@@ -1118,7 +1118,7 @@ function chopIntro(): Lesson {
     "Chop",
     {
       title: "A loop in sixteen slices",
-      text: `A chop cuts a loop into ${CHOP_SLICES} equal slices and puts one on each pad, slice 1 on ${padName(slicePad(0))} up to slice ${CHOP_SLICES} on ${padName(slicePad(CHOP_SLICES - 1))}. Tap Hear it for the ${src.label.toLowerCase()} loop whole, then Next to play slices 1 to 4.`,
+      text: `A chop cuts a loop into ${CHOP_SLICES} equal slices, one on each pad from ${padName(slicePad(0))} to ${padName(slicePad(CHOP_SLICES - 1))}. Hear it plays the ${src.label.toLowerCase()} loop whole, and Next lights slices 1 to 4 in turn.`,
       figure: lit(1),
       sound: {
         notes: srcNotes.map((n) => ({
@@ -1148,11 +1148,11 @@ function chopIntro(): Lesson {
     },
     {
       title: "How long a slice is",
-      text: `A slice is the loop divided by ${CHOP_SLICES}. A one-bar loop gives ${sliceWord(1)}, a two-bar loop ${sliceWord(2)} and a four-bar loop ${sliceWord(4)}. Played in order, slices 1 to ${CHOP_SLICES} bring the loop back.`,
+      text: `A one-bar loop gives slices of ${sliceWord(1)}, a two-bar loop ${sliceWord(2)} and a four-bar loop ${sliceWord(4)}. Played in order, slices 1 to ${CHOP_SLICES} bring the loop back.`,
     },
     {
       title: "Chopping it up",
-      text: `Chopping is playing the slices in a new order. The ${flip.label.split(":")[0]} edit plays slices ${slices(flip.steps)}. Slices ${list(never.map(String))} never play.`,
+      text: `Chopping plays the slices in a new order: the ${flip.label.split(":")[0]} edit plays slices ${slices(flip.steps)}. Slices ${list(never.map(String))} never play.`,
     },
   );
 }

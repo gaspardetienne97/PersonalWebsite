@@ -104,7 +104,7 @@
     {#each groups as g, gi (gi)}
       {#if g.name}
         <Select.Group>
-          <Select.GroupHeading class="px-3 pb-1 pt-2 text-xs font-semibold text-ws-soft">{g.name}</Select.GroupHeading>
+          <Select.GroupHeading class="px-3 pb-1 pt-2 text-[13px] font-semibold text-ws-soft">{g.name}</Select.GroupHeading>
           {@render items(g.items)}
         </Select.Group>
       {:else}

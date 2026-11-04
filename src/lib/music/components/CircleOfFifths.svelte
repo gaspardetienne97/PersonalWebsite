@@ -1,7 +1,7 @@
 <script lang="ts">
   // The circle of fifths as a wheel: major keys outside (C at the top, a
   // fifth clockwise, a fourth counter-clockwise), relative minors in the
-  // middle ring, each key's diminished chord inside. Pick a key and its seven
+  // middle ring, each key's diminished chord inside (only where chords are asked). Pick a key and its seven
   // chords light as one wedge, with their numerals; the centre names its
   // signature. Drills can blank keys out and mark answers.
   import { CIRCLE, keyAt, noteAtFifths, wheelIndex } from "@repo/music-core/theory/circle";
@@ -14,6 +14,7 @@
     marks = {},
     label = "Circle of fifths",
     compact = false,
+    dim = true,
   }: {
     /** The picked key, by its fifths (-7..7); null for none. */
     selected?: number | null;
@@ -27,12 +28,14 @@
     label?: string;
     /** Major keys only, larger: a key picker. */
     compact?: boolean;
+    /** The inner ring of diminished chords; without it the minor ring takes the room, its names larger. */
+    dim?: boolean;
   } = $props();
 
   const S = 360;
   const C = S / 2;
   // The outer ring is the deepest: at 375 px wide a key is still a 44 px tap.
-  const R = $derived(compact ? { outer: 172, major: 78, minor: 78, dim: 78 } : { outer: 172, major: 114, minor: 78, dim: 44 });
+  const R = $derived(compact ? { outer: 172, major: 78, minor: 78, dim: 78 } : dim ? { outer: 172, major: 114, minor: 78, dim: 44 } : { outer: 172, major: 114, minor: 54, dim: 54 });
   /** Each position its own hue, round the colour wheel the way keys go round the circle. */
   const hue = (i: number) => (i * 30 + 25) % 360;
   const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
@@ -91,19 +94,21 @@
     >
       <path class="ring major" class:in={roleOf("major", i) !== null} class:tonic={roleOf("major", i) === "I"} d={wedge(i, R.major, R.outer)} />
       <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : k.major}</text>
-      {#if k.enharmonic && !hidden && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{k.enharmonic.major}</text>{/if}
+      {#if k.enharmonic && !hidden && !mark && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{k.enharmonic.major}</text>{/if}
       {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 14} class="numeral">{roleOf("major", i)}</text>{/if}
       <!-- A marked answer carries a glyph, not colour alone. -->
-      {#if mark === "right" || mark === "wrong"}<text x={p.x} y={p.y - 22} class="glyph" aria-hidden="true">{mark === "right" ? "✓" : "✕"}</text>{/if}
+      {#if mark === "right" || mark === "wrong"}<text x={p.x} y={p.y + 17} class="glyph" aria-hidden="true">{mark === "right" ? "✓" : "✕"}</text>{/if}
     </g>
     {#if !compact}
       <!-- Middle ring: its relative minor. -->
       <path style:--h={hue(i)} class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
       <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
       {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 9} class="numeral">{roleOf("minor", i)}</text>{/if}
-      <!-- Inner ring: the key's diminished chord (its vii°). -->
-      <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
-      <text x={d.x} y={d.y} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+      {#if dim}
+        <!-- Inner ring: the key's diminished chord (its vii°). -->
+        <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
+        <text x={d.x} y={d.y} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+      {/if}
     {/if}
   {/each}
   <circle class="hub" cx={C} cy={C} r={R.dim - 2} />
@@ -111,7 +116,8 @@
     <text x={C} y={C - 7} class="hub-key">{picked.major}</text>
     <text x={C} y={C + 12} class="hub-sig">{picked.fifths === 0 ? "no ♯ or ♭" : `${Math.abs(picked.fifths)}${picked.fifths > 0 ? "♯" : "♭"}`}</text>
   {:else}
-    <text x={C} y={C + 5} class="hub-sig">♯ clockwise</text>
+    <text x={C} y={C - 8} class="hub-sig">Sharps go</text>
+    <text x={C} y={C + 10} class="hub-sig">clockwise</text>
   {/if}
 </svg>
 
@@ -210,7 +216,7 @@
     fill: oklch(var(--l-in) 0.2 var(--h));
   }
   /* Sizes are in wheel units: a phone draws the wheel at about 0.8 of them, so
-     nothing goes under 13 (about 11 to 12 px there). */
+     nothing goes under 17 (13 px or more there). */
   text {
     text-anchor: middle;
     dominant-baseline: middle;
@@ -231,28 +237,28 @@
     fill: var(--ink-tonic);
   }
   .enh {
-    font-size: 13px;
+    font-size: 16px;
     fill: var(--ink-soft);
   }
   .compact .enh {
-    font-size: 13px;
+    font-size: 17px;
   }
   .minor-name {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 600;
   }
   .dim-name {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     fill: var(--ink-soft);
   }
   .glyph {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 800;
     fill: var(--ink-tonic);
   }
   .numeral {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
   }
   .hub {
@@ -266,11 +272,11 @@
     font-size: 30px;
   }
   .hub-sig {
-    font-size: 13px;
+    font-size: 16px;
     fill: var(--ink-soft);
   }
   .compact .hub-sig {
-    font-size: 14px;
+    font-size: 17px;
   }
   @media (prefers-reduced-motion: reduce) {
     .ring {

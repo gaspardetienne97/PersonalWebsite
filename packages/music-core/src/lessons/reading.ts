@@ -668,7 +668,7 @@ const groupOf = (levelId: string) => {
   return p === 3 ? "compound" : p === 4 ? "sixteenths" : "eighths";
 };
 
-function countingLesson(g: keyof typeof GROUPS): Lesson {
+function countingLesson(g: keyof typeof GROUPS, echo = false): Lesson {
   const { perBeat, beatsPerBar, cells } = GROUPS[g];
   const names = allCounts(perBeat, beatsPerBar);
   const every = Array.from({ length: perBeat * beatsPerBar }, (_, i) => i / perBeat);
@@ -703,6 +703,9 @@ function countingLesson(g: keyof typeof GROUPS): Lesson {
     },
   };
   const t = intro[g];
+  const both: LessonSound = {
+    notes: [...click(beatsPerBar, spacing), ...tick(ex.onsets, spacing).notes],
+  };
   return {
     id: t.id,
     title: t.title,
@@ -719,11 +722,28 @@ function countingLesson(g: keyof typeof GROUPS): Lesson {
         figure: fig(ex.onsets),
         sound: tick(ex.onsets, spacing),
       },
-      {
-        title: "Count while you listen",
-        text: "Count the beats out loud while the rhythm plays over the click. Notice which counts get a note, and which stay silent.",
-        sound: { notes: [...click(beatsPerBar, spacing), ...tick(ex.onsets, spacing).notes] },
-      },
+      echo
+        ? {
+            // The echo shown before the first try: a bar heard, then the same bar tapped back on the grid.
+            title: "Hear it, then tap it back",
+            text: "One bar plays over the click, then you tap the same rhythm on the next bar. Tap Next to see it.",
+            figure: fig([]),
+            sound: both,
+            steps: [
+              { text: "Listen and count: the bar plays once.", figure: fig([]), sound: both },
+              {
+                text: `Your turn: tap on ${exNames.join(", ")}. Each tap lands on its count.`,
+                figure: fig(ex.onsets),
+                sound: both,
+              },
+            ],
+          }
+        : {
+            title: "Count while you listen",
+            text: "Count the beats out loud while the rhythm plays over the click. Notice which counts get a note, and which stay silent.",
+            figure: fig(ex.onsets),
+            sound: both,
+          },
     ],
   };
 }
@@ -860,7 +880,7 @@ export function rhythmLessons(
   const cells = level.cells.filter((c) => mode === "echo" || onGrid(c));
   return [
     ...(g === "sixteenths" ? [countingLesson("eighths")] : []),
-    countingLesson(g),
+    countingLesson(g, mode === "echo"),
     ...(mode === "dictation" ? [gridLesson(g)] : []),
     ...cellItems(g, cells),
   ];

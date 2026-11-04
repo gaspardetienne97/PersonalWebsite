@@ -43,6 +43,7 @@ import {
   tones,
   type CardOpts,
 } from "./card-kit";
+import { positionLine } from "../theory/fretboard";
 import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -56,33 +57,30 @@ export function scaleFormula(kind: string): string[] {
 
 /**
  * The major formula drawn one step at a time: C4 to C5 on the keys (or, on a fretted
- * instrument, along one string, where W is two frets and H one). Each Next adds the
- * step's W or H on the note it reaches, so the last step reads the formula left to right.
+ * instrument, in the one position the scales drill plays it, across the strings). Each
+ * Next adds the step's W or H on the note it reaches, so the last step reads the formula.
  */
 function majorFormula(o: CardOpts = {}): Lesson {
   const semis = scaleSemitones("major")!;
   const formula = scaleFormula("major");
   const names = semis.map((s) => flat(60 + s));
   const t = o.tuning;
-  // On frets: the string where C sits lowest on the neck, so the octave fits from that fret up.
-  const str = t
-    ? t.openStrings
-        .map((m, i) => ({ s: i + 1, fret: pc(60 - m) }))
-        .sort((a, b) => a.fret - b.fret)[0]
-    : undefined;
-  const notes =
-    t && str ? semis.map((x) => t.openStrings[str.s - 1] + str.fret + x) : semis.map((x) => 60 + x);
+  const notes = semis.map((x) => 60 + x);
+  // On frets: the drill's own position for the line (positionLine, as InstrumentStage places it).
+  const at = t ? positionLine(t, notes) : [];
+  const placed = t && at.every(Boolean);
+  const frets = at.flatMap((p) => (p ? [p.fret] : []));
   /** The octave with a label on each scale note (null leaves it unmarked). */
   const draw = (labels: (string | null)[]): LessonFigure =>
-    t && str
+    t && placed
       ? {
           kind: "fretboard",
           instrument: t.instrument,
           openStrings: [...t.openStrings],
-          from: Math.max(0, str.fret - 1),
-          to: str.fret + 12,
-          marks: semis.flatMap((x, i) =>
-            labels[i] === null ? [] : [{ string: str.s, fret: str.fret + x, label: labels[i]! }],
+          from: Math.max(0, Math.min(...frets) - 1),
+          to: Math.max(...frets) + 1,
+          marks: at.flatMap((p, i) =>
+            labels[i] === null ? [] : [{ string: p!.string, fret: p!.fret, label: labels[i]! }],
           ),
         }
       : keys(
@@ -95,10 +93,10 @@ function majorFormula(o: CardOpts = {}): Lesson {
   const fig = (n: number) => draw(names.map((nm, i) => (i > 0 && i <= n ? formula[i - 1] : nm)));
   const halves = formula.flatMap((f, i) => (f === "H" ? [i] : []));
   const gap = (f: string) =>
-    t
+    placed
       ? f === "W"
-        ? "2 frets up"
-        : "1 fret up"
+        ? "a whole step, 2 frets on one string"
+        : "a half step, the next fret on one string"
       : f === "W"
         ? "one key skipped"
         : "the very next key";
@@ -245,7 +243,7 @@ function rootless(o: CardOpts): Lesson {
         title: "Leave the root out",
         figure: fig(ex[0]),
         sound: hear(ex[0].t.displayMidi),
-        text: `A rootless voicing leaves the chord's root to the bass. ${arp ? "Here you play the root, then the four chord notes above it, one note at a time." : "Here the left hand plays the root alone and the right hand plays four chord notes above it."} Position A puts the 3rd lowest and position B the 7th: tap each to see and hear it on ${ex[0].t.symbol}.`,
+        text: `A rootless voicing leaves the root to the bass: ${arp ? "you play the root, then four chord notes above it, one at a time" : "the left hand plays the root, the right hand four chord notes above it"}. Tap Position A (the 3rd lowest) or Position B (the 7th lowest) to see and hear each on ${ex[0].t.symbol}.`,
         // The same chord in both positions, one keyboard each.
         options: [ex[0], b0].map((x) => ({
           label: `Position ${x.pos}: ${x.d}`,

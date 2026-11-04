@@ -11,6 +11,11 @@ export interface ResultRow {
   text?: string;
   /** The input could not measure it, or too little landed to judge: `text` says why. */
   notMeasured?: boolean;
+  /**
+   * Flags the row (the weakest band, the hand that failed) with a warning glyph and tone.
+   * Only ever a warning or an error: an override may make a row read worse than its value, never better.
+   */
+  tone?: "warn" | "error";
 }
 
 /** How the run's notes landed against the beat, as counts. */

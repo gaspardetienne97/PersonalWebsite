@@ -85,7 +85,7 @@
   --ws-strip-h: 3.75rem;
   --ws-dock-h: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
 
-  /* Session chrome (contract S1): bars in the page theme, opaque, with a fade above bottom bars. */
+  /* Session chrome (contract S1): bars in the page theme, opaque. */
   --ws-bar: var(--ws-surface);
   --ws-bar-shadow: 0 -12px 24px -18px oklch(0.2 0.045 288 / 0.45);
 
@@ -242,9 +242,8 @@
   --ws-soft: var(--ws-stage-soft);
 }
 
-/* Bars (HUD, docks, the tab bar): opaque, in the page theme. A bottom bar fades
-   what scrolls under it instead of slicing it. The bar must be positioned
-   (sticky or fixed) for the fade to sit on its top edge. */
+/* Bars (HUD, docks, the tab bar): opaque, in the page theme, with a border and
+   a soft shadow on a bottom bar's top edge (no fade: it read as text fading out). */
 .woodshed .ws-bar {
   background: var(--ws-bar);
   border-color: var(--ws-line);
@@ -252,14 +251,10 @@
 .woodshed .ws-bar-bottom {
   box-shadow: var(--ws-bar-shadow);
 }
-.woodshed .ws-bar-bottom::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 100%;
-  height: 1.5rem;
-  background: linear-gradient(to bottom, transparent, var(--ws-bg));
-  pointer-events: none;
+/* In a session, focus and scrollIntoView never park a card top under the HUD or a button under the dock. */
+html:has(.woodshed [data-session]) {
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: 8rem;
 }
 /* In a session only the stage box is dark: a rounded panel on the page. */
 .woodshed [data-session] .stage-box.stage {

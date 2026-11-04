@@ -42,6 +42,11 @@
   const MAIN = new Set(["k1", "k2", "k3", "k4", "k5", "k6"]);
   /** Short names drawn on the side and palm keys (the main six carry their number). */
   const SHORT: Record<string, string> = { Gs: "G#", Cs: "C#", Bb: "Bb", B: "B", Eb: "Eb", C: "C", C1: "C1", C2: "C2", C3: "C3", C4: "C4", C5: "C5", Tc: "Tc", Ta: "Ta", Tf: "Tf", X: "X", P: "P" };
+  /** The octave keys by the step they move. */
+  const OCT: Record<string, string> = { "oct+2": "+2", "oct+1": "+1", "oct-1": "\u22121", "oct-2": "\u22122" };
+  /** The drawing is cropped to the keys (mouthpiece and foot left out) so their names read at 13 px or more. */
+  const VIEW_TOP = 199;
+  const VIEW_H = 410;
   /** A crescent bowed to the left, `s` its scale. */
   const crescent = ([x, y]: [number, number], s: number) =>
     `M${x + 14 * s},${y - 9 * s} Q${x - 18 * s},${y} ${x + 14 * s},${y + 9 * s} Q${x - 1 * s},${y} ${x + 14 * s},${y - 9 * s} Z`;
@@ -76,8 +81,8 @@
   // mode), each key lit in its hand's colour; a key down that the note does
   // not use (from `heldMidi`) shows red. The player fingers the written note,
   // so both are looked up at the reading key's written pitch.
-  import fingerings from "@repo/music-core/data/aerophone-fingerings.json";
   import { noteName } from "@repo/music-core";
+  import { fingeringWords } from "$lib/music/drills/aerophone/names";
   import { fingeringFor as chartEntry } from "@repo/music-core/content/winds-pads";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import { settings } from "$lib/music/runtime";
@@ -88,8 +93,10 @@
     heldMidi?: number | null;
     label?: string;
     compact?: boolean;
+    /** How the drill spells a concert note (by its key), so the caption agrees with its chips; the chart's spelling by default. */
+    name?: (concert: number) => string;
   }
-  let { midi: concert, heldMidi: heldConcert = null, label, compact = false }: Props = $props();
+  let { midi: concert, heldMidi: heldConcert = null, label, compact = false, name }: Props = $props();
   const shift = $derived(writtenOffset("aerophone", settings.value));
   const midi = $derived(concert === null ? null : concert + shift);
   const heldMidi = $derived(heldConcert === null ? null : heldConcert + shift);
@@ -100,19 +107,19 @@
   const fingeringFor = (m: number | null): Fingering | null => (m === null ? null : (chartEntry(m) ?? null));
   const target = $derived(fingeringFor(midi));
   const held = $derived(fingeringFor(heldMidi));
-  const keyLabel = (id: string) => fingerings.keys.find((k) => k.id === id)?.label ?? id;
   const pressed = (id: string, f: Fingering | null) => !!f && (id === "oct+1" ? f.octave : f.keys.includes(id));
   const description = $derived(
     midi === null
       ? "No note"
       : target
-        ? `${chartEntry(midi)?.name ?? noteName(midi)}: ${[target.octave ? keyLabel("oct+1") : "", ...target.keys.map(keyLabel)].filter(Boolean).join(", ") || "all keys open"}`
+        ? `${name && concert !== null ? name(concert) : (chartEntry(midi)?.name ?? noteName(midi))}: ${fingeringWords(midi)}`
         : `${noteName(midi, "flat")}: outside the charted range, Bb3 to F#6`,
   );
 </script>
 
-<figure class="flex w-full flex-col items-center gap-2" class:max-w-52={compact} class:max-w-64={!compact}>
-  <svg viewBox="0 0 224 820" class="h-auto w-full {compact ? 'max-h-[22rem] md:max-h-[30rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
+<!-- Compact is the narrowest the key names stay at 13 px or more (15 px labels at 196 / 224 scale). -->
+<figure class="flex w-full flex-col items-center gap-2 {compact ? 'max-w-[12.25rem]' : 'max-w-64'}">
+  <svg viewBox="0 {VIEW_TOP} 224 {VIEW_H}" class="h-auto w-full {compact ? 'max-h-[26rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
     <defs>
       <linearGradient id="{uid}-col" x1="0" x2="1">
         <stop offset="0" stop-color="oklch(0.84 0.01 290)" />
@@ -154,7 +161,12 @@
       {#if MAIN.has(k.id)}
         <text x={k.c[0]} y={k.c[1] + 6} class="num" class:lit={on || wrong}>{k.id.slice(1)}</text>
       {:else if SHORT[k.id]}
-        <text x={k.c[0]} y={k.c[1] + 4} class="tag" class:lit={on || wrong} transform={"rot" in k && k.rot ? `rotate(${k.rot} ${k.c[0]} ${k.c[1]})` : undefined}>{SHORT[k.id]}</text>
+        {@const turn = "w" in k && k.w < 17 ? -90 : "rot" in k ? (k.rot ?? 0) : 0}
+        <!-- Narrow tall keys (C2, C5) carry their name up the key so it stays inside. -->
+        <text x={k.c[0]} y={k.c[1] + 5} class="tag" class:lit={on || wrong} transform={turn ? `rotate(${turn} ${k.c[0]} ${k.c[1]})` : undefined}>{SHORT[k.id]}</text>
+      {:else if "crescent" in k}
+        <!-- The octave keys are on the back: their step beside the crescent, on the wing. -->
+        <text x={k.c[0] + 31} y={k.c[1] + 5} class="tag">{OCT[k.id]}</text>
       {/if}
       {#if wrong}
         <!-- A key down that this fingering does not use: an X as well as red. -->
@@ -239,7 +251,7 @@
   }
   .tag {
     fill: oklch(0.95 0.01 290);
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 700;
     text-anchor: middle;
     pointer-events: none;

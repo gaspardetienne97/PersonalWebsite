@@ -47,7 +47,7 @@
   <section class="flex flex-col gap-2" aria-labelledby="input-sound">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-sound" class="text-sm font-semibold">Sound</h2>
-      <span class="text-xs text-ws-soft">{settings.value.muted ? "Off" : !audio.unlocked ? "Waiting for a tap" : "On"}</span>
+      <span class="text-[13px] text-ws-soft">{settings.value.muted ? "Off" : !audio.unlocked ? "Waiting for a tap" : "On"}</span>
     </div>
     {#if !audio.unlocked}
       <button type="button" class={btnPrimary} onclick={() => audio.unlock()}>Enable sound</button>
@@ -61,7 +61,7 @@
   <section class="flex flex-col gap-2 border-t border-ws-line pt-3" aria-labelledby="input-midi">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-midi" class="text-sm font-semibold">MIDI</h2>
-      <span class="text-xs text-ws-soft">{midi.enabled ? "On" : "Off"}</span>
+      <span class="text-[13px] text-ws-soft">{midi.enabled ? "On" : "Off"}</span>
     </div>
     {#if !midi.supported}
       <p class="text-sm text-ws-soft">This browser has no MIDI. Use a Chromium browser, or the microphone.</p>
@@ -69,7 +69,7 @@
       <button type="button" class={btnPrimary} onclick={midiOn}>Turn on MIDI</button>
     {:else}
       {#if midi.inputs.length}
-        <p class="text-xs text-ws-soft">Notes come from the ticked devices, each as its instrument.</p>
+        <p class="text-[13px] text-ws-soft">Notes come from the ticked devices, each as its instrument.</p>
         <ul class="flex flex-col gap-2">
           {#each midi.inputs as port (port.id)}
             {@const p = midi.profile(port.id)}
@@ -81,10 +81,10 @@
                   {#if used}<Check class="size-3.5" />{/if}
                 </span>
                 <span class="min-w-0 flex-1 truncate">{midi.profile(port.id)?.alias || port.name || port.id}</span>
-                {#if port.state !== "connected"}<span class="text-xs text-ws-soft">unplugged</span>{/if}
+                {#if port.state !== "connected"}<span class="text-[13px] text-ws-soft">unplugged</span>{/if}
               </button>
               {#if used}
-                <label class="flex items-center gap-2 pl-10 text-xs text-ws-soft">
+                <label class="flex items-center gap-2 pl-10 text-[13px] text-ws-soft">
                   Plays as
                   <select
                     class="min-h-9 min-w-0 flex-1 rounded-md border border-ws-line bg-ws-surface px-2 text-sm text-ws-ink"
@@ -109,7 +109,7 @@
   <section class="flex flex-col gap-2 border-t border-ws-line pt-3" aria-labelledby="input-mic">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-mic" class="text-sm font-semibold">Microphone</h2>
-      <span class="text-xs text-ws-soft">{mic.state === "on" ? "On" : mic.state === "starting" ? "Starting" : "Off"}</span>
+      <span class="text-[13px] text-ws-soft">{mic.state === "on" ? "On" : mic.state === "starting" ? "Starting" : "Off"}</span>
     </div>
     {#if mic.state === "on"}
       <div class="h-2 overflow-hidden rounded-full bg-ws-raised" role="meter" aria-label="Input level" aria-valuemin="-60" aria-valuemax="0" aria-valuenow={Math.round(mic.level)}>
@@ -119,7 +119,7 @@
       <button type="button" class={btnPrimary} disabled={mic.state === "starting"} onclick={() => micOn()}>Turn on the microphone</button>
       {#if mic.state === "denied" || mic.state === "error"}<p class="text-sm text-ws-soft">{mic.error}</p>{/if}
     {/if}
-    <p class="text-xs text-ws-soft">Input device</p>
+    <p class="text-[13px] text-ws-soft">Input device</p>
     <ul class="flex flex-col gap-1.5" aria-label="Microphone input device">
       {#each mics as d (d.value)}
         <li>
@@ -130,7 +130,7 @@
         </li>
       {/each}
     </ul>
-    {#if !named}<p class="text-xs text-ws-soft">Turn the microphone on once and the browser names each device.</p>{/if}
+    {#if !named}<p class="text-[13px] text-ws-soft">Turn the microphone on once and the browser names each device.</p>{/if}
     {#if mic.state === "on"}
       <button type="button" class="{btn} self-start" onclick={() => mic.stop({ unpin: true })}>Turn off the microphone</button>
     {/if}

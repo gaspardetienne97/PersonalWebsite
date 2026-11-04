@@ -51,6 +51,10 @@
     fingerRings?: boolean;
     /** A run's string to play now: it alone glows, so a wrong tap elsewhere never moves the highlight. */
     targetString?: number | null;
+    /** Rows 32 px apart (a preview, Changes): a six-string neck fits a laptop's first view. */
+    compact?: boolean;
+    /** A held note with no mark carries this name (Check, where nothing else on the neck names it). */
+    heldName?: (midi: number) => string;
   }
 
   let {
@@ -69,6 +73,8 @@
     stringNames = true,
     fingerRings = false,
     targetString = null,
+    compact = false,
+    heldName,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -151,7 +157,7 @@
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" class:rings={fingerRings} style:--n={frets.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
+<div class="neck-wrap" class:rings={fingerRings} class:compact style:--n={frets.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
@@ -202,7 +208,7 @@
             {:else if mk && !held && onBarre(s, f)}
               {#if !onBarre(s, f)!.label}<span class="dot on-barre" aria-hidden="true">{mk.label ?? ""}</span>{/if}
             {:else if mk || held}
-              <span class="dot" aria-hidden="true">{mk?.label ?? ""}{#if mk?.heard && !held}<span class="heard-tick">✓</span>{/if}</span>
+              <span class="dot" aria-hidden="true">{mk?.label ?? (held && heldName ? heldName(midiAt(s, f)) : "")}{#if mk?.heard && !held}<span class="heard-tick">✓</span>{/if}</span>
             {:else if f === 0 && muted.includes(s)}
               <span class="mute-x" aria-hidden="true">✕</span>
             {/if}
@@ -233,6 +239,7 @@
   .fret-numbers {
     display: grid;
     font-size: 0.8125rem;
+    font-weight: 600;
     color: var(--ws-stage-soft);
     text-align: center;
     margin-bottom: 0.25rem;
@@ -283,7 +290,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: #1b120b;
     background: var(--finger, var(--instr));
@@ -337,8 +344,8 @@
     left: -1.4rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--ws-stage-soft);
-    font-size: 0.8rem;
+    color: var(--ws-stage-ink);
+    font-size: 0.8125rem;
   }
   .string-name {
     position: absolute;
@@ -348,8 +355,8 @@
     top: 50%;
     transform: translateY(-50%);
     text-align: center;
-    color: var(--ws-stage-soft);
-    font-size: 0.72rem;
+    color: var(--ws-stage-ink);
+    font-size: 0.8125rem;
     font-weight: 700;
   }
   .cell {
@@ -366,6 +373,18 @@
     .cell {
       min-height: 2.5rem;
     }
+  }
+  /* Compact: 32 px rows under a mouse; a fingertip keeps 40 px. */
+  .compact .cell {
+    min-height: 2.5rem;
+  }
+  @media (pointer: fine) {
+    .compact .cell {
+      min-height: 2rem;
+    }
+  }
+  .compact {
+    --dot: clamp(1.5rem, calc(100cqi / var(--n, 6) * 0.5), 1.75rem);
   }
   .cell.open-cell {
     border-right: none;
@@ -406,7 +425,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: #1b120b;
     background: var(--instr);
@@ -473,21 +492,32 @@
     background: var(--destructive);
     color: white;
   }
-  /* Finger rings: the finger in its colour round a dark dot, the root filled in the instrument's hue. */
-  .rings [data-finger]:not([data-held]) .dot {
+  /* Rings (a scale's map): one badge per state, never a colour per finger. A note is a light ring round a dark
+     dot with its finger number, the root the same as a square, and the note to play or sounding now filled light.
+     Played notes turn green or red below. */
+  .rings [data-target]:not([data-held]) .dot {
     background: #1b120bcc;
     color: var(--ws-stage-ink);
     box-shadow:
-      inset 0 0 0 3px var(--finger),
+      inset 0 0 0 2.5px var(--ws-stage-ink),
       0 2px 4px #0008;
   }
-  .rings [data-role="root"]:not([data-held]) .dot {
-    background: var(--instr);
+  .rings [data-demo]:not([data-held]) .dot,
+  .rings .cell[data-state="now"]:not([data-held]) .dot {
+    background: var(--ws-stage-ink);
     color: #1b120b;
+    box-shadow:
+      0 0 0 3px var(--ws-stage-ink),
+      0 0 14px var(--ws-stage-ink);
   }
-  .rings [data-finger][data-demo]:not([data-held]) .dot {
-    background: var(--finger);
-    color: #1b120b;
+  /* A played note still held keeps its result colour, never the instrument's hue (coral reads as wrong). */
+  .rings .cell[data-state="correct"][data-held] .dot {
+    background: var(--success);
+    color: white;
+  }
+  .rings .cell[data-state="wrong"][data-held] .dot {
+    background: var(--destructive);
+    color: white;
   }
   .rings .dot {
     transition:
@@ -534,12 +564,12 @@
     position: absolute;
     top: -0.45rem;
     right: -0.45rem;
-    width: 1.05rem;
-    height: 1.05rem;
+    width: 1.2rem;
+    height: 1.2rem;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.65rem;
+    font-size: 0.8125rem;
     font-weight: 900;
     color: var(--success-foreground);
     background: var(--success);
@@ -559,11 +589,12 @@
     justify-content: center;
     gap: 30%;
   }
+  /* Inlays: small and faint, so they never read as a target or a hint. */
   .inlays i {
-    width: 0.7rem;
-    height: 0.7rem;
+    width: 0.45rem;
+    height: 0.45rem;
     border-radius: 999px;
-    background: radial-gradient(circle at 35% 35%, #fbf7ee, #cfc5b1);
-    opacity: 0.8;
+    background: #fbf7ee;
+    opacity: 0.25;
   }
 </style>

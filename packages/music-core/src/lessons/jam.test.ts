@@ -88,6 +88,16 @@ describe("Jam game lessons", () => {
     expect(text("side-slip")).toContain(`${aimOf("side-slip", "slips")} slips`);
   });
 
+  it("three notes: short screens, the numbers defined, and a Hear it over C7", () => {
+    const [l] = jamGameLesson("three-notes");
+    expect(l.screens.map((x) => x.title)).toEqual([
+      "The notes you may use",
+      "Over C7: the blue third",
+      "Notes and rests",
+    ]);
+    expect(l.screens[0].text).toContain("b means a half step lower");
+    expect(l.screens[1].sound!.notes[0].midi).toEqual([48, 52, 55, 58]);
+  });
   it("names the sets from the key", () => {
     expect(text("three-notes")).toContain("C, Eb and G");
     // The b3 over a C7 is explained as the blues, so the set and the band's chord do not read as a clash.

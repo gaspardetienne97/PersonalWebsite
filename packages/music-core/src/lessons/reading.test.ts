@@ -434,6 +434,11 @@ describe("rhythm lessons", () => {
       expect(l.screens[2].sound!.notes.some((n) => n.midi[0] === 42)).toBe(true);
     }
   });
+  it("echo shows the bar heard, then the taps on the grid", () => {
+    const sc = rhythmLessons("echo")[0].screens[2];
+    expect(sc.steps!.map((x) => (x.figure as { onsets: number[] }).onsets.length)).toEqual([0, 6]);
+    expect(rhythmLessons("dictation")[0].screens[2].steps).toBeUndefined();
+  });
   it("the counting text says a click on each number", () => {
     expect(rhythmLessons("echo")[0].screens[0].text).toContain("one number on each click");
   });

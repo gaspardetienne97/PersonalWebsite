@@ -47,6 +47,7 @@
   let destroyed = false;
   function halt() {
     generation++;
+    stopSweep();
     audio.stopSequence();
     clearTimeout(studioTimer);
     studioLoop?.stop();
@@ -70,7 +71,33 @@
     }
   }
 
-  function play(s: LessonSound) {
+  /** While a sound plays over a rhythm or groove grid: how far through the grid it is (0 to 1), else null. */
+  let sweep = $state<number | null>(null);
+  let sweepFrame = 0;
+  function stopSweep() {
+    cancelAnimationFrame(sweepFrame);
+    sweep = null;
+  }
+  /** Sweep a playhead across the grid figure in time with the sound. The figure counts in beats and the sound in
+   *  seconds, both from the grid's start, so the last note against the last onset gives the tempo. */
+  function startSweep(f: LessonFigure | null | undefined, s: LessonSound) {
+    if (!s.notes.length || (f?.kind !== "rhythm" && f?.kind !== "groove")) return;
+    const onsets = f.kind === "rhythm" ? f.onsets : Object.values(f.lanes).flat();
+    const lastOnset = Math.max(0, ...onsets);
+    const lastAt = Math.max(...s.notes.map((n) => n.at));
+    const secPerBeat = lastOnset > 0 && lastAt > 0 ? lastAt / lastOnset : 0.5;
+    const ms = f.bars * (f.kind === "rhythm" ? f.beatsPerBar : 4) * secPerBeat * 1000;
+    const t0 = performance.now();
+    const frame = () => {
+      const x = (performance.now() - t0) / ms;
+      if (x >= 1) return void (sweep = null);
+      sweep = x;
+      sweepFrame = requestAnimationFrame(frame);
+    };
+    frame();
+  }
+
+  function play(s: LessonSound, shows: LessonFigure | null | undefined = figure) {
     halt();
     if (s.effect) return void playEffect(s.effect);
     const mine = generation;
@@ -79,6 +106,7 @@
       .then(() => {
         // A move, another tap or the unmount before the audio was ready drops this tap.
         if (destroyed || mine !== generation) return;
+        startSweep(shows, s);
         audio.playSequence(s.notes.flatMap((n) => n.midi.map((midi) => ({ midi, time: n.at, duration: n.dur, ...(n.drum ? { voice: "drum" as const } : {}), ...(n.velocity ? { velocity: n.velocity } : {}) }))));
       })
       .catch(() => {});
@@ -276,12 +304,12 @@
           <line x1="0" x2={EQ.w} y1={eqY(0)} y2={eqY(0)} class="stroke-ws-stage-ink/30" stroke-width="1.5" stroke-dasharray="4 4" />
           {#each [100, 1000, 10000] as hz (hz)}
             <line x1={eqX(hz)} x2={eqX(hz)} y1="0" y2={EQ.h} class="stroke-ws-stage-ink/15" stroke-width="1" />
-            <text x={eqX(hz)} y={EQ.h + 16} text-anchor="middle" class="fill-ws-stage-soft text-[11px]">{hzText(hz)}</text>
+            <text x={eqX(hz)} y={EQ.h + 16} text-anchor="middle" class="fill-ws-stage-soft text-[13px]">{hzText(hz)}</text>
           {/each}
           <path d="{eqPath(f)} L{EQ.w},{eqY(0)} L0,{eqY(0)} Z" class="fill-instr/20" />
           <path d={eqPath(f)} fill="none" class="stroke-instr" stroke-width="2.5" stroke-linejoin="round" />
           <circle cx={eqX(f.band)} cy={eqY(f.gainDb)} r="5" class="fill-instr" />
-          <text x={eqX(f.band)} y={f.gainDb >= 0 ? eqY(f.gainDb) - 10 : eqY(f.gainDb) + 18} text-anchor={eqX(f.band) > EQ.w * 0.8 ? "end" : eqX(f.band) < EQ.w * 0.2 ? "start" : "middle"} class="fill-ws-stage-ink text-[12px] font-semibold">{hzText(f.band)}, {f.gainDb > 0 ? "+" : ""}{f.gainDb} dB</text>
+          <text x={eqX(f.band)} y={f.gainDb >= 0 ? eqY(f.gainDb) - 10 : eqY(f.gainDb) + 18} text-anchor={eqX(f.band) > EQ.w * 0.8 ? "end" : eqX(f.band) < EQ.w * 0.2 ? "start" : "middle"} class="fill-ws-stage-ink text-[13px] font-semibold">{hzText(f.band)}, {f.gainDb > 0 ? "+" : ""}{f.gainDb} dB</text>
         </svg>
       {:else if figure.kind === "aerophone"}
         <AerophoneKeys midi={figure.midi} compact />
@@ -305,13 +333,14 @@
     {#if screen.sound}<button type="button" class={btn} onclick={() => play(screen.sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear it</button>{/if}
     {#if shown > 0 && steps[shown - 1].sound}<button type="button" class={btn} onclick={() => play(steps[shown - 1].sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear this step</button>{/if}
     {#each screen.options ?? [] as o (o.label)}
-      <button type="button" class={btn} onclick={() => { play(o.sound); picked = o.figure ?? null; }}><Volume2 class="size-4" aria-hidden="true" />{o.label}</button>
+      <!-- An option relights the figure with its own (the keys of that voicing) while it plays. -->
+      <button type="button" class="{btn} aria-pressed:border-instr aria-pressed:bg-instr-wash" aria-pressed={!!o.figure && picked === o.figure} onclick={() => { picked = o.figure ?? null; play(o.sound, o.figure ?? figure); }}><Volume2 class="size-4" aria-hidden="true" />{o.label}</button>
     {/each}
   </div>
 
   <!-- The moves dock at the bottom of the screen (the session's dock), so Next sits in the thumb zone and
        the text scrolls clear of it. -->
-  <div class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
+  <div data-lesson-dock class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
     {#if !isFirst}<button type="button" class="{btn} min-h-12 px-4 text-base sm:px-5" onclick={back}>Back</button>{/if}
     {#if onskip && !isLast}<button type="button" class="{btn} min-h-12 px-4 text-base max-sm:text-sm" onclick={onskip}>Skip, I know this</button>{/if}
     <span class="ml-auto hidden text-sm text-ws-soft lg:inline">Arrow keys move.</span>
@@ -319,30 +348,34 @@
   </div>
 </div>
 
-<!-- A read-only count grid: the counts on top, then one row per drum (or one for a rhythm) across each bar.
-     Hits on a numbered beat are full dots; hits between beats are smaller and lighter, so the picture shows the
-     difference the text explains. -->
+<!-- A read-only count grid: the counts on top (the beat numbers bold, the counts between them lighter), then one
+     row per drum (or one for a rhythm) across each bar. Every cell is the same size; a hit is a filled dot, an empty
+     slot a ring. While Hear it plays a playhead crosses the grid. -->
 {#snippet beatGrid(bars: number, perBeat: 2 | 3 | 4, beatsPerBar: number, rows: { label: string; beats?: number[] }[], barNumbers?: number[])}
   {@const cells = beatsPerBar * perBeat}
   {@const labelled = rows.some((x) => x.label)}
   <div class="flex flex-col gap-3" aria-hidden="true">
     {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
       <div>
-        {#if bars > 1}<p class="mb-1 text-xs font-semibold text-ws-stage-soft">Bar {barNumbers?.[bar] ?? bar + 1}</p>{/if}
-        <div class="grid items-center gap-y-1" style:grid-template-columns="{labelled ? '3.25rem ' : ''}repeat({cells}, minmax(0, 1fr))">
+        {#if bars > 1}<p class="mb-1 text-[13px] font-semibold text-ws-stage-soft">Bar {barNumbers?.[bar] ?? bar + 1}</p>{/if}
+        <div class="relative grid items-center gap-y-1" style:grid-template-columns="{labelled ? '3.25rem ' : ''}repeat({cells}, minmax(0, 1fr))">
           {#if labelled}<span></span>{/if}
           {#each Array.from({ length: cells }, (_, i) => i) as i (i)}
-            <span class="text-center text-xs leading-5 tnum {i % perBeat ? 'text-ws-stage-soft' : 'font-bold text-ws-stage-ink'}">{i % perBeat ? COUNTS[perBeat][i % perBeat] : Math.floor(i / perBeat) + 1}</span>
+            <span class="text-center text-[13px] leading-5 tnum {i % perBeat ? 'text-ws-stage-soft' : 'font-bold text-ws-stage-ink'}">{i % perBeat ? COUNTS[perBeat][i % perBeat] : Math.floor(i / perBeat) + 1}</span>
           {/each}
           {#each rows as row (row.label)}
-            {#if labelled}<span class="truncate pr-1 text-xs font-semibold text-ws-stage-soft">{row.label}</span>{/if}
+            {#if labelled}<span class="truncate pr-1 text-[13px] font-semibold text-ws-stage-soft">{row.label}</span>{/if}
             {#each Array.from({ length: cells }, (_, i) => i) as i (i)}
               {@const on = hitAt(row.beats, bar * cells + i, perBeat)}
-              <span class="grid h-8 place-items-center {i % perBeat ? '' : 'beat'}">
-                {#if on}<span class="rounded-full bg-instr {i % perBeat ? 'size-2.5' : 'size-4'}"></span>{:else}<span class="size-1.5 rounded-full bg-ws-stage-ink/20"></span>{/if}
+              <span class="cell grid h-8 place-items-center">
+                {#if on}<span class="size-4 rounded-full bg-instr"></span>{:else}<span class="size-2.5 rounded-full border-[1.5px] border-ws-stage-soft"></span>{/if}
               </span>
             {/each}
           {/each}
+          {#if sweep !== null && Math.floor(sweep * bars) === bar}
+            {@const f = sweep * bars - bar}
+            <span class="pointer-events-none absolute inset-y-0 w-0.5 rounded-full bg-ws-stage-ink" style:left={labelled ? `calc(3.25rem + (100% - 3.25rem) * ${f})` : `${f * 100}%`}></span>
+          {/if}
         </div>
       </div>
     {/each}
@@ -351,20 +384,11 @@
 
 <style>
   /* The moves: a bar in the page theme on a phone (contract S1, as ws-bar ws-bar-bottom); from sm up, where
-     the lesson is a column in the middle of the screen, the page itself with only the fade above. */
+     the lesson is a column in the middle of the screen, the page itself. */
   .lesson-dock {
     background: var(--ws-bar);
     border-top: 1px solid var(--ws-line);
     box-shadow: var(--ws-bar-shadow);
-  }
-  .lesson-dock::before {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    bottom: 100%;
-    height: 1.5rem;
-    background: linear-gradient(to bottom, transparent, var(--ws-bg));
-    pointer-events: none;
   }
   @media (min-width: 40rem) {
     .lesson-dock {
@@ -373,7 +397,8 @@
       box-shadow: none;
     }
   }
-  .beat {
+  /* Every cell the same tile, on the beat or between: the dot inside says hit or not. */
+  .cell {
     border-radius: 0.375rem;
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
   }

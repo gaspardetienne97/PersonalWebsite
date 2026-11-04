@@ -449,25 +449,39 @@ const setCard = (id: string, intro: string): Lesson => {
   const notes = setNotes(set, JAM_EXAMPLE.keyPc).slice(0, set.length);
   const names = notes.map(spell);
   const rests = g.aims.some((a) => a.metric === "rests");
-  // A b3 over a major or dominant chord is the blues on purpose, not a wrong note: say so once.
+  // A b3 over a major or dominant chord is the blues on purpose, not a wrong note: say so once, over C7.
   const b3 = notes.find((m) => pc(m - JAM_EXAMPLE.keyPc) === 3);
-  const blue =
-    b3 === undefined
-      ? ""
-      : `, and the ${spell(b3)} is the blue third: over a C or C7 chord it rubs against the chord's E on purpose`;
+  const check = `Check scores the share of your notes in the set, and the aim is ${pct(id, "set")}%, in any octave.`;
+  const C7 = [48, 52, 55, 58];
   return {
     ...named(id),
     screens: [
       {
         title: "The notes you may use",
-        text: `${intro} In the key of C that is ${join(names)}${blue}. Check scores the share of your notes in the set, and the aim is ${pct(id, "set")}%, in any octave.`,
+        text: `${intro} The numbers count up the key's scale from its tonic, and b means a half step lower. In the key of C that is ${join(names)}.`,
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
+        sound: { notes: notes.map((m, i) => ({ midi: [m], at: i * 0.45, dur: 0.4 })) },
       },
+      ...(b3 === undefined
+        ? []
+        : [
+            {
+              title: "Over C7: the blue third",
+              text: `Here the ${spell(b3)} is the blue third: over a C or C7 chord it rubs against the chord's E on purpose. ${check}`,
+              figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
+              sound: {
+                notes: [
+                  { midi: C7, at: 0, dur: 0.45 * notes.length + 0.8 },
+                  ...notes.map((m, i) => ({ midi: [m], at: 0.4 + i * 0.45, dur: 0.4 })),
+                ],
+              },
+            },
+          ]),
       {
         title: rests ? "Notes and rests" : "A line that passes",
         text: rests
-          ? `Rests count too: the aim is ${aimOf(id, "rests")} silences of two beats or more in a chorus, measured from when you let go of a note. This line plays two notes, then rests for two beats, in every bar.`
-          : `This plays the ${set.length} notes up and back down. Time and rests are not graded in this game, only the notes.`,
+          ? `Rests count too: the aim is ${aimOf(id, "rests")} silences of two beats or more in a chorus, measured from when you let go of a note. This line plays two notes, then rests for two beats, in every bar.${b3 === undefined ? ` ${check}` : ""}`
+          : `This plays the ${set.length} notes up and back down. Time and rests are not graded in this game, only the notes.${b3 === undefined ? ` ${check}` : ""}`,
         sound: soundOf(rests ? restingLine(set) : setLine(set)),
       },
     ],

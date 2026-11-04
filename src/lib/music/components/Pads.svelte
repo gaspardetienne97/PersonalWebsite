@@ -2,7 +2,7 @@
   // Sixteen rubber pads on a dark panel with an LED under each, laid out like
   // the MPC: A01 bottom-left, rows ascending. Pads read canonical bank A notes.
   import { onMount } from "svelte";
-  import { input } from "../runtime";
+  import { input, midi } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
   import type { CellMarks, Flashes } from "./feedback.svelte";
   import Check from "lucide-svelte/icons/check";
@@ -24,9 +24,16 @@
     label?: string;
     /** How each hit landed against the note it was for: early, late or on time. */
     timing?: Flashes<"early" | "late" | "perfect">;
+    /** A live run whose stage gives the pads the free height (data-grow): the grid stays square, as big as the
+     *  box's width and height allow. */
+    fit?: boolean;
   }
 
-  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing }: Props = $props();
+  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing, fit = false }: Props = $props();
+  let boxW = $state(0);
+  let boxH = $state(0);
+  // Only once the box has been laid out, so a first frame never squeezes the pads.
+  const side = $derived(fit && boxW > 0 && boxH > 0 ? Math.min(boxW, boxH) : null);
   // A glyph and a word per verdict, so colour is never the only cue. A pad under 72 px wide shows the
   // glyph alone (the word is its title and is said in the live region), so a word is never cut short.
   const VERDICT = {
@@ -44,6 +51,8 @@
     return "";
   });
 
+  // With a MIDI device in, the hands are on the pads: the computer-key letters would only crowd them.
+  const letters = $derived(keyHints && !(midi.enabled && midi.inputs.length > 0));
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const ROWS = [12, 8, 4, 0];
   // Matches the runtime's QWERTY pad map (bottom row is ZXCV).
@@ -77,7 +86,8 @@
   }
 </script>
 
-<div class="panel" role="group" aria-label={label}>
+<div class="box" class:fit data-grow={fit || undefined} bind:clientWidth={boxW} bind:clientHeight={boxH}>
+<div class="panel" role="group" aria-label={label} style:width={side ? `${side}px` : undefined} style:max-width={side ? "none" : undefined}>
   {#each ROWS as row (row)}
     {#each [0, 1, 2, 3] as col (col)}
       {@const i = row + col}
@@ -112,7 +122,7 @@
             <span class="when ws-pop" data-kind={when ?? "wrong"} title={v.said} aria-hidden="true"><v.icon class="size-3.5 shrink-0" strokeWidth={3} /><span class="word">{v.word}</span></span>
           {:else}
             <span class="num">A{String(i + 1).padStart(2, "0")}</span>
-            {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
+            {#if letters}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
           {/if}
         </span>
         <span class="name">{names[midi] ?? ""}</span>
@@ -125,9 +135,16 @@
     {/each}
   {/each}
 </div>
+</div>
 <p class="sr-only" aria-live="polite">{said}</p>
 
 <style>
+  /* Grown, the pads sit in the middle of the height they were given. */
+  .box.fit {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
   .panel {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -211,13 +228,13 @@
     display: flex;
     justify-content: space-between;
     min-height: 1.15rem;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
   }
   /* The pad's code is secondary: the voice or slice name below is the label. */
   .num,
   kbd {
-    opacity: 0.7;
-    font-size: 0.68rem;
+    opacity: 0.8;
+    font-size: 0.8125rem;
   }
   /* No keyboard on a touch screen: the key letters would only crowd the pad. */
   @media (pointer: coarse) {
@@ -230,7 +247,7 @@
     border: 1px solid currentColor;
     border-radius: 3px;
     padding: 0 0.2rem;
-    opacity: 0.7;
+    line-height: 1.1;
   }
   /* Up to two lines, so "Slice 10" or "Mid tom" is read whole on a small pad. */
   .name {
@@ -252,7 +269,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     background: var(--instr);
     color: #140a10;
@@ -268,7 +285,7 @@
     border-radius: 999px;
     white-space: nowrap;
     overflow: hidden;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: #140a10;
     background: var(--success);
