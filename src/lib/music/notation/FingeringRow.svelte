@@ -130,7 +130,7 @@
   }
   .extra,
   .none {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.2;
     color: var(--ws-soft, inherit);
   }

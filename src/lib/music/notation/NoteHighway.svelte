@@ -311,7 +311,7 @@
     border-radius: 999px;
     background: var(--ws-stage-ink);
     color: var(--ws-stage);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     line-height: 1;
   }
@@ -391,7 +391,7 @@
     position: absolute;
     left: 0.5rem;
     transform: translateY(-50%);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: var(--ws-stage-soft);
   }

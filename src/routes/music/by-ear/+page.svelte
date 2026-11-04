@@ -356,6 +356,11 @@
   }
 
   const keyName = (k: KeyGuess) => `${FLAT_NAMES[k.tonicPc]} ${k.minor ? "minor" : "major"}`;
+  /** Results: hear a home note as its key's chord (minor when the recording's key is), to compare two homes. */
+  const hearHome = (tonicPc: number) => {
+    const minor = !!home?.ranked.find((k) => k.tonicPc === tonicPc)?.minor;
+    void audio.unlock().then(() => audio.playChord([48 + tonicPc, 48 + tonicPc + (minor ? 3 : 4), 48 + tonicPc + 7], 1.2));
+  };
 
   async function rate(got: boolean) {
     rated = got;
@@ -484,7 +489,8 @@
   {/snippet}
 
   {#snippet hud()}
-    {#if loaded}
+    <!-- On results the position, loop and speed sit in the result card instead. -->
+    {#if loaded && phase !== "results"}
       <Stat label="Position" value="{clock(pos)} of {clock(duration)}" />
       {#if loop}<Stat label="Loop" value="{clock(loop.a)} to {clock(loop.b)}" />{/if}
       <Stat label="Speed" value="{Math.round(Number(s.speed) * 100)}%" />
@@ -579,7 +585,15 @@
     <div class="flex flex-col gap-3" role="group" aria-label="This run">
     {#if summary}<Results {summary} />{/if}
     <article class="{panel} flex flex-col gap-3">
+      {#if loaded}<p class="text-sm text-ws-soft">{loop ? `Loop ${clock(loop.a)} to ${clock(loop.b)}` : `Whole recording, ${clock(duration)}`}, at {Math.round(Number(s.speed) * 100)}% speed.</p>{/if}
       {#if mode === "home" && home}
+        {#if !home.tonics.includes(home.answer)}
+          <!-- A miss becomes a comparison: the two homes, each as its chord. -->
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class={btn} onclick={() => hearHome(home!.tonics[0])}><Play class="size-4" aria-hidden="true" />Hear {FLAT_NAMES[home.tonics[0]]}</button>
+            <button type="button" class={btn} onclick={() => hearHome(home!.answer)}><Play class="size-4" aria-hidden="true" />Hear {FLAT_NAMES[home.answer]}</button>
+          </div>
+        {/if}
         <p class="text-sm text-ws-soft">
           The recording's notes point to {keyName(home.ranked[0])}{home.tonics.length > 1 ? `, with ${keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1])} close behind, so either tonic counts` : ""}.
           The key is worked out from the whole recording; a song that changes key or sits long away from home can fool it.
@@ -600,10 +614,20 @@
         <p class="font-display text-2xl font-semibold">{played.length} notes played{loop ? ` over ${clock(loop.a)} to ${clock(loop.b)}` : ""} at {Math.round(Number(s.speed) * 100)}%.</p>
         {#if played.length}<p class="text-sm">{played.slice(-32).map((n) => noteName(n.midi, "flat")).join(" ")}</p>{/if}
         {#if rated === null}
-          <p class="text-sm text-ws-soft">The app can't hear the part inside the recording, so you judge it: could you play it with the record?</p>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class={btnPrimary} onclick={() => rate(true)}>I got it</button>
-            <button type="button" class={btn} onclick={() => rate(false)}>Not yet</button>
+          <!-- What you played on the keys beside the judgement, so you rate what you can see. -->
+          <div class="grid items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+            {#if played.length}
+              <div class="rounded-2xl bg-ws-stage p-2 text-ws-stage-ink">
+                <InstrumentStage line={played.map((n) => n.midi)} marks={Object.fromEntries(played.slice(-32).map((n) => [n.midi, { target: true }]))} interactive={false} />
+              </div>
+            {/if}
+            <div class="flex flex-col gap-2">
+              <p class="text-sm text-ws-soft">The app can't hear the part inside the recording, so you judge it: could you play it with the record?</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="{btnPrimary} min-h-12 px-6 text-base" onclick={() => rate(true)}>I got it</button>
+                <button type="button" class="{btn} min-h-12 px-6 text-base" onclick={() => rate(false)}>Not yet</button>
+              </div>
+            </div>
           </div>
         {:else}
           <p class="text-sm text-ws-soft">Saved as {rated ? "got it" : "still learning"}, self-rated, in your journal.</p>

@@ -20,8 +20,10 @@
     tuning?: Tuning;
     /** Strings whose target note has been heard. */
     heard?: number[];
+    /** Rows 32 px apart, so a six-string neck fits a laptop's first view. */
+    compact?: boolean;
   }
-  let { shape, show = true, demo = null, flashes, label = "Fretboard", interactive = true, tuning: given, heard = [] }: Props = $props();
+  let { shape, show = true, demo = null, flashes, label = "Fretboard", interactive = true, tuning: given, heard = [], compact = false }: Props = $props();
 
   const tuning = $derived(given ?? tuningById(shape.tuningId)!);
   const targets = $derived(chordPerfectTargets(shape, tuning));
@@ -37,4 +39,4 @@
   const muted = $derived(show ? shape.frets.flatMap((f, i) => (f === null ? [i + 1] : [])) : []);
 </script>
 
-<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} barres stringNames />
+<Fretboard openStrings={tuning.openStrings} {from} {to} {marks} {flashes} {muted} {label} {interactive} {compact} barres stringNames />

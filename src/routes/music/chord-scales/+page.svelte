@@ -25,6 +25,7 @@
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import { scaleTip } from "$lib/music/drills/piano/tones";
 
   const TEMPO = { min: 40, max: 200 };
   /** Two bars a chord then one, major changes then minor. */
@@ -433,7 +434,7 @@
   {/snippet}
 
   {#snippet stage()}
-    <div class="flex min-h-0 flex-col justify-center" data-dock="music">
+    <div class="flex min-h-0 flex-col" data-dock="music">
     <ol class="mb-3 grid grid-cols-3 gap-2" aria-label="Chord chart">
       {#each targets.slice(chartFrom, chartFrom + 3) as t, j (t.symbol)}
         {@const i = chartFrom + j}
@@ -443,9 +444,9 @@
           <p class="font-display text-xl font-semibold sm:text-2xl">{t.symbol}</p>
           {#if mode === "practice" || phase === "results"}
             <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
-            {#if /lydian/i.test(t.scaleLabel) && phase !== "running"}<p class="text-xs text-ws-stage-soft max-sm:hidden">Raised 4th: no clash with the 3rd</p>{/if}
+            {#if scaleTip(t.scaleLabel) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleLabel)}</p>{/if}
           {/if}
-          {#if done}<p class="text-xs text-ws-stage-soft">{done.avoid ? `✕ ${done.avoid} outside` : done.chord + done.scale ? "✓ all inside" : "not played"}</p>{/if}
+          {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? `✕ ${done.avoid} outside` : done.chord + done.scale ? "✓ all inside" : "not played"}</p>{/if}
         </li>
       {/each}
     </ol>
@@ -459,7 +460,8 @@
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
       <!-- Each chord's symbol over its bars, so the change is read on the music itself. -->
-      <div class="mb-3"><LineNotation oneRow notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} /></div>
+      <!-- Before Start the staff engraves smaller, so the whole keyboard is in the first screen. -->
+      <div class="mb-3"><LineNotation oneRow maxZoom={phase === "running" || transport.playing ? undefined : 0.75} notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} /></div>
     {/if}
     </div>
     <div class="flex flex-col justify-end" data-dock="instrument">
@@ -470,7 +472,7 @@
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-ink" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (dashed, struck through)</li>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (muted, struck through)</li>
       {#if pattern}<li class="flex items-center gap-1.5"><span class="key-swatch" data-role="order" aria-hidden="true">5</span>In the pattern, out of order</li>{/if}
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>{pattern ? "Not in the pattern" : "A note you just played outside"}</li>
     </ul>
@@ -500,7 +502,7 @@
     border-radius: 999px;
     display: inline-grid;
     place-items: center;
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: #17120c;
   }
@@ -515,8 +517,7 @@
     background: var(--tone-scale);
   }
   .key-swatch[data-role="avoid"] {
-    border: 2px dashed var(--tone-avoid);
-    color: var(--ws-stage-ink);
+    background: color-mix(in oklch, var(--tone-avoid) 35%, #fffdf8);
     text-decoration: line-through;
     text-decoration-thickness: 2px;
   }

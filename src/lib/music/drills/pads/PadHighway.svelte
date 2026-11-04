@@ -46,6 +46,8 @@
     label = "Notes coming up",
     pads,
     extras = [],
+    fill = false,
+    alone = null,
   }: {
     lanes: HighwayLane[];
     notes: HighwayNote[];
@@ -59,8 +61,8 @@
     aheadBars?: number;
     lengthMs: number;
     judged?: Record<number, Judgement>;
-    /** The latest judgement, shown at the hit line; `key` restarts its animation. */
-    flash?: { judgement: Judgement | "extra"; ms?: number; key: number } | null;
+    /** The latest judgement, shown on the row it was for (`lane`), just past the hit line; `key` restarts its animation. */
+    flash?: { judgement: Judgement | "extra"; ms?: number; key: number; lane?: number } | null;
     /** Beats left in the count-in. */
     countIn?: number | null;
     label?: string;
@@ -68,6 +70,10 @@
     pads?: Snippet;
     /** Hits no note claimed, marked in the lane of the pad that was hit (ms from the downbeat). */
     extras?: readonly { lane: number; atMs: number }[];
+    /** A live run: the pads beside the lanes widen toward the height the lanes fill. */
+    fill?: boolean;
+    /** On a narrow stage, one part alone (before a run, so the whole surface sits above the docked Start). */
+    alone?: "pads" | "lanes" | null;
   } = $props();
 
   let width = $state(600);
@@ -80,29 +86,39 @@
   const toMs = $derived(now + scale.aheadMs);
   const visible = $derived(notes.map((n, i) => ({ ...n, i })).filter((n) => n.atMs + (n.durMs ?? 0) > fromMs - beatMs && n.atMs < toMs + beatMs));
   const lines = $derived(gridLines(fromMs, toMs, beatMs, beatsPerBar, stepsPerBeat, scale.pxPerMs));
-  /** Fewer lanes, taller lanes: four fill the height a groove needs, sixteen slices still fit. */
-  // The lanes together are never under 13.5rem (with the bar numbers, 240 px), so a phone reads them.
-  const laneRem = $derived(Math.max(13.5 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.45));
+  /** The least a lane is tall: fewer lanes, taller lanes, sixteen slices at 22 px or more. A live run's box grows
+   *  (data-grow) and the lanes share its height. */
+  // The lanes together are never under 9rem (with the bar numbers, 168 px), so a phone reads them and a short
+  // groove still sits above the docked Start.
+  const laneRem = $derived(Math.max(9 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.4));
   const shownExtras = $derived(extras.filter((e) => e.lane >= 0 && e.atMs > fromMs - beatMs && e.atMs < toMs));
 </script>
 
-<div class="wrap">
-  <!-- `grid` tells the stage's dock rules (DrillShell) this already lays out as a grid: left alone, the lanes keep their width in a run. -->
-  <div class="view grid" class:with-pads={!!pads}>
-    <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane-base="{laneRem}rem" style:--lane-grow="{40 / Math.max(1, lanes.length)}dvh" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
+<!-- The region a live stage grows (DrillShell, S3): the lanes share its height, the pads sit beside or under them. -->
+<div class="wrap" data-grow>
+  <!-- `grid` tells the stage's rules (DrillShell) this already lays out as a grid. -->
+  <div class="view grid" class:with-pads={!!pads} class:fill class:pads-only={alone === "pads" && !!pads} class:lanes-only={alone === "lanes"}>
+    <div class="highway" class:slim={lanes.every((l) => l.short)} role="img" aria-label={label} style:--lanes={lanes.length} style:--lane-base="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
       <div class="labels" aria-hidden="true">
         {#each lanes as l (l.id)}
           {@const cell = l.pad === undefined ? null : padCell(l.pad)}
           <span class="lane-label" style:--c={l.color}>
-            {#if cell}
+            {#if l.short}
+              <!-- A slice: its number in a chip the colour of its pad's strip. -->
+<span class="sr-only">{l.label.replace(l.short, "")}</span><span class="chip">{l.short}</span>
+            {:else if cell}
               <span class="map">
                 {#each Array.from({ length: 16 }, (_, k) => k) as k (k)}<i class:on={k === cell.row * 4 + cell.col}></i>{/each}
               </span>
             {:else}
               <span class="dot"></span>
             {/if}
-            <span class="name" class:has-short={!!l.short}><span class="long">{l.label}</span>{#if l.short}<span class="short">{l.short}</span>{/if}</span>
-            {#if l.pad !== undefined && lanes.length <= 8}<span class="pad">{padLabel(l.pad)}</span>{/if}
+            {#if l.short}
+              {#if l.pad !== undefined}<span class="pad">{padLabel(l.pad)}</span>{/if}
+            {:else}
+              <span class="name">{l.label}</span>
+              {#if l.pad !== undefined && lanes.length <= 8}<span class="pad">{padLabel(l.pad)}</span>{/if}
+            {/if}
           </span>
         {/each}
       </div>
@@ -128,7 +144,7 @@
         <span class="hitline" style:left="{scale.hitX}px" aria-hidden="true"></span>
         {#if flash && flash.judgement !== "extra"}
           {#key flash.key}
-            <span class="flash" data-kind={flash.judgement} style:left="{scale.hitX + 6}px" aria-live="polite">
+            <span class="flash" data-kind={flash.judgement} style:left="{scale.hitX + 10}px" style:top={flash.lane === undefined || flash.lane < 0 ? undefined : `calc((${flash.lane} + 0.5) * var(--lane) + var(--head))`} data-row={flash.lane !== undefined && flash.lane >= 0 ? "" : undefined} aria-live="polite">
               <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" ? "✕ " : ""}</span>{JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
             </span>
           {/key}
@@ -144,24 +160,55 @@
 
 <style>
   .wrap {
-    container-type: inline-size;
+    container: hw / inline-size;
+    display: flex;
+    flex-direction: column;
   }
+  /* The lanes take the height the box has (a live run's grows); the pads keep theirs. */
   .view {
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
+    grid-template-rows: 1fr;
     gap: 1rem;
   }
-  /* A wide stage puts the pads beside the lanes, as the play-along apps do. */
-  @container (min-width: 50rem) {
+  .view.with-pads {
+    grid-template-rows: 1fr auto;
+  }
+  /* A wide stage puts the pads beside the lanes, as the play-along apps do; in a run they widen toward the
+     height the lanes fill. */
+  @container hw (min-width: 50rem) {
     .view.with-pads {
+      grid-template-rows: 1fr;
       grid-template-columns: minmax(0, 1fr) 18rem;
-      align-items: center;
+    }
+    .view.with-pads.fill {
+      grid-template-columns: minmax(0, 1fr) clamp(18rem, 34%, 28rem);
+    }
+  }
+  /* Under the lanes (a phone) the pads stay a size the thumbs reach and the screen holds with the lanes; before
+     the run they stand alone, so the whole surface sits above the docked Start. */
+  @container hw (max-width: 49.99rem) {
+    .view.with-pads .side {
+      width: min(100%, 16rem);
+      justify-self: center;
+    }
+    .view.pads-only {
+      grid-template-rows: auto;
+    }
+    .view.pads-only .highway,
+    .view.lanes-only .side {
+      display: none;
+    }
+    .view.lanes-only {
+      grid-template-rows: 1fr;
     }
   }
   .highway {
-    --lane: var(--lane-base);
     --head: 1.5rem;
     display: grid;
     grid-template-columns: 7.6rem minmax(0, 1fr);
+    min-height: calc(var(--lanes) * var(--lane-base) + var(--head));
     border-radius: 1rem;
     overflow: hidden;
     background: linear-gradient(180deg, var(--ws-stage-2), var(--ws-stage));
@@ -170,31 +217,25 @@
       0 8px 24px oklch(0 0 0 / 0.25);
     color: var(--ws-stage-ink);
   }
-  /* A laptop gives the lanes up to two fifths of the screen's height, so a two-lane groove is big enough to play. */
-  @container (min-width: 50rem) {
-    .highway {
-      --lane: max(var(--lane-base), var(--lane-grow));
-    }
+  /* Slices are numbered chips: a narrower label column. */
+  .highway.slim {
+    grid-template-columns: 5.25rem minmax(0, 1fr);
   }
-  @container (max-width: 30rem) {
+  @container hw (max-width: 30rem) {
     .highway {
       grid-template-columns: 4.6rem minmax(0, 1fr);
     }
-    .map,
-    .pad,
-    .has-short .long {
+    .highway.slim {
+      grid-template-columns: 3rem minmax(0, 1fr);
+    }
+    .highway .map,
+    .highway .pad {
       display: none;
     }
-    .has-short .short {
-      display: inline;
-    }
-  }
-  .short {
-    display: none;
   }
   .labels {
     display: grid;
-    grid-template-rows: repeat(var(--lanes), var(--lane));
+    grid-template-rows: repeat(var(--lanes), minmax(0, 1fr));
     padding-top: var(--head);
     border-right: 1px solid color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
     background: color-mix(in oklch, var(--ws-stage) 60%, transparent);
@@ -205,8 +246,22 @@
     gap: 0.4rem;
     min-width: 0;
     padding-inline: 0.5rem 0.4rem;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.1;
+  }
+  /* A slice's number on its pad's colour, in the stage's dark ink (as the sticking letters are). */
+  .chip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    min-width: 1.75rem;
+    height: 1.25rem;
+    padding-inline: 0.3rem;
+    border-radius: 0.4rem;
+    background: var(--c);
+    color: #140a10;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
   }
   /* Two lines when the lane is tall enough ("Mid tom" whole, not "Mid..."), else one. */
   .name {
@@ -221,7 +276,7 @@
     overflow-wrap: anywhere;
   }
   .pad {
-    font-size: 0.65rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     font-variant-numeric: tabular-nums;
   }
@@ -249,9 +304,12 @@
     background: var(--c);
     box-shadow: 0 0 4px var(--c);
   }
+  /* The track's height is the lanes' box: each lane is a share of it (container units, so nothing here feeds
+     back into the height). */
   .track {
+    --lane: calc((100cqh - var(--head)) / var(--lanes));
+    container: lane / size;
     position: relative;
-    height: calc(var(--lanes) * var(--lane) + var(--head));
     padding-top: var(--head);
     overflow: hidden;
   }
@@ -286,7 +344,8 @@
     position: absolute;
     top: 0.05rem;
     padding-left: 0.3rem;
-    font-size: 0.66rem;
+    font-size: 0.8125rem;
+    line-height: 1.3rem;
     font-weight: 700;
     color: var(--ws-stage-soft);
     font-variant-numeric: tabular-nums;
@@ -294,7 +353,7 @@
   /* The notes: squares in the lane's colour; accents bigger with a ring, ghosts small and hollow. */
   .note {
     /* Never wider than a step, so close notes stay apart. */
-    --size: min(1.35rem, calc(var(--lane) * 0.56), calc(var(--step) * 0.72));
+    --size: min(2rem, calc(var(--lane) * 0.5), calc(var(--step) * 0.8));
     position: absolute;
     width: var(--size);
     height: var(--size);
@@ -316,7 +375,7 @@
     color: #140a10;
   }
   .note[data-kind="accent"] {
-    --size: min(1.75rem, calc(var(--lane) * 0.78), calc(var(--step) * 0.92));
+    --size: min(2.5rem, calc(var(--lane) * 0.7), calc(var(--step) * 1));
     box-shadow:
       0 0 16px color-mix(in oklch, var(--c) 75%, transparent),
       inset 0 0 0 2px color-mix(in oklch, var(--ws-stage-ink) 70%, transparent);
@@ -354,7 +413,7 @@
     width: 1.1rem;
     height: 1.1rem;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 900;
     color: white;
     background: var(--destructive);
@@ -373,7 +432,7 @@
     background: var(--ws-stage-ink);
     box-shadow: 0 0 12px color-mix(in oklch, var(--instr) 80%, transparent);
   }
-  /* The latest judgement, in the header just past the hit line. */
+  /* The latest judgement, on the row it was for just past the hit line (in the header when it has no row). */
   .flash {
     position: absolute;
     top: 0.15rem;
@@ -389,8 +448,12 @@
     animation: pop 900ms ease-out both;
     white-space: nowrap;
   }
+  .flash[data-row] {
+    transform: translateY(-50%);
+    animation-name: pop-row;
+  }
   .flash small {
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 600;
   }
   /* A solid pill in the judgement's colour, lifted toward the stage ink so it reads on the dark stage in both themes. */
@@ -426,6 +489,10 @@
   }
   .side {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.75rem;
   }
   @keyframes pop {
     from {
@@ -443,6 +510,23 @@
       opacity: 0;
     }
   }
+  @keyframes pop-row {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) scale(0.9);
+    }
+    15% {
+      opacity: 1;
+      transform: translateY(-50%);
+    }
+    75% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-50%);
+    }
+  }
   @keyframes count {
     from {
       opacity: 0;
@@ -455,7 +539,7 @@
   }
   /* A phone's notes stay big enough to aim at (after the base sizes, so this wins): a plain note may fill
      more of a step, never under 12 px. */
-  @container (max-width: 30rem) {
+  @container hw (max-width: 30rem) {
     .note:not([data-kind]),
     .note[data-kind="normal"] {
       --size: max(0.75rem, min(1.5rem, calc(var(--lane) * 0.62), calc(var(--step) * 0.92)));

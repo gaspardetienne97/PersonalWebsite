@@ -193,7 +193,7 @@
           ? `All ${length} chords of ${tuneName(tuneId)} right.`
           : `${right} of ${length} chords right: ${half(0)} keys and ${half(1)} functions.`
         : fluent === length
-          ? `All ${length} right and fast. Two days like this and it is yours.`
+          ? `All ${length} right and fast.`
           : `${right} of ${length} right, ${fluent} within ${meta.targetMs / 1000} s.`,
       metric: pct(score),
       metricLabel: analysing ? "analysis" : "fluency",
@@ -234,7 +234,20 @@
             ),
     };
     status = summary.headline;
+    runKeys = records.map((r) => ({ fifths: r.prompt.fifths, ok: r.correct && !r.slow }));
   }
+  /** This run's keys for the results wheel: a key with any miss or slow answer is marked to go over. */
+  let runKeys = $state.raw<{ fifths: number; ok: boolean }[]>([]);
+  const runMarks = $derived.by(() => {
+    const out: Record<number, "right" | "wrong"> = {};
+    for (const k of runKeys) {
+      const i = wheelIndex(k.fifths);
+      out[i] = !k.ok || out[i] === "wrong" ? "wrong" : "right";
+    }
+    return out;
+  });
+  /** The diminished ring only where an exercise asks about chords. */
+  const CHORD_MODES = ["chords", "borrowed", "secondary", "analysis"];
 
   function reviewKeys(keys: number[]) {
     review = keys;
@@ -319,9 +332,7 @@
     phase !== "running" || !current
       ? ""
       : step === "feedback"
-        ? mode === "practice"
-          ? "Read why, then Continue"
-          : ""
+        ? ""
         : current.mode === "analysis"
           ? "Pick the key centre, then its function"
           : current.mode === "wheel"
@@ -346,6 +357,14 @@
 
 <svelte:head><title>Circle of fifths | Woodshed</title></svelte:head>
 
+<!-- The results figure: this run's keys on the wheel, ticked when fast and right, crossed to go over. -->
+{#snippet keysFigure()}
+  <figure class="circle mx-auto w-full max-w-72 rounded-2xl bg-ws-stage p-3 text-ws-stage-ink">
+    <CircleOfFifths numerals={false} dim={false} marks={runMarks} label="This run's keys: ticked when fast and right, crossed to go over" />
+    <figcaption class="mt-2 text-center text-sm">This run's keys: ✓ fast and right, ✕ to go over</figcaption>
+  </figure>
+{/snippet}
+
 {#snippet verdict(p: CirclePrompt, r: (typeof records)[number], wheel: boolean)}
   <p class="mt-3 text-lg font-semibold">
     {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> Right: {shown(p, p.answer)}.
@@ -365,10 +384,11 @@
         </figure>
       {/if}
       {#if wheel}
-        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
+        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} dim={CHORD_MODES.includes(p.mode)} label="The circle, with the key of this prompt" /></div>
       {/if}
     </div>
-    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70 pointer-coarse:hidden max-sm:hidden">Enter</kbd></button>
+    <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
+    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full max-sm:hidden sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-sm opacity-70 pointer-coarse:hidden">Enter</kbd></button>
   {/if}
 {/snippet}
 
@@ -384,12 +404,13 @@
   tab={modeId}
   lesson={{ lessons: circleLessons(modeId) }}
   ontab={(id) => cfg.set({ mode: id })}
-  modeNotes={{ practice: "The wheel to tap, and the rule after each answer.", check: "Wheel hidden, no help. Counts toward mastery." }}
+  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
   bind:phase
   bind:mode
   bind:status
   progress={(qi + 1) / length}
   {cue}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < length ? "Continue" : "See results", run: next } : null}
   instrumentFree
   onstart={start}
   onstop={stop}
@@ -425,7 +446,7 @@
     {#if phase === "running" && current}
       <Stat label="Prompt" value="{qi + 1} of {length}" />
       {#if mode === "practice" && analysing}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />
-      {:else if mode === "practice"}<Stat label="Fluent (right within {meta.targetMs / 1000} s)" value={records.filter((r) => r.correct && !r.slow).length} />{/if}
+      {:else if mode === "practice"}<Stat label="Fast and right" value="{records.filter((r) => r.correct && !r.slow).length} of {length}" />{/if}
     {/if}
   {/snippet}
 
@@ -444,6 +465,7 @@
             <CircleOfFifths
               blank={(slot) => step === "answer" && slot !== 0}
               numerals={false}
+              dim={false}
               onpick={step === "answer" ? (f) => (hearKey(f), choose(String(wheelIndex(f)))) : undefined}
               marks={r ? { [Number(p.answer)]: "right", ...(r.correct ? {} : { [Number(r.answered)]: "wrong" }) } : {}}
               label="A blank circle of fifths: tap where the key goes"
@@ -457,9 +479,9 @@
               {@const done = records[i]}
               {@const opens = i === 0 || sheet[i - 1].analysis?.section !== c.analysis?.section}
               <li class="cell rounded-lg px-2 py-1 text-sm" data-state={i === qi ? "current" : done ? (mode === "practice" ? (done.correct ? "right" : "wrong") : "done") : null} aria-current={i === qi ? "step" : undefined}>
-                {#if opens}<span class="mr-1 text-xs text-ws-stage-soft">{c.analysis?.section}</span>{/if}
+                {#if opens}<span class="mr-1 text-sm text-ws-stage-soft">{c.analysis?.section}</span>{/if}
                 <span class="font-semibold">{c.ask.replace(/^.*: /, "")}</span>
-                {#if done && mode === "practice" && i !== qi}<span class="block text-xs">{c.answer.replace("|", " ")}</span>{/if}
+                {#if done && mode === "practice" && i !== qi}<span class="block text-sm">{c.answer.replace("|", " ")}</span>{/if}
                 <span class="sr-only">, {c.ask.replace(/:.*$/, "")}</span>
               </li>
             {/each}
@@ -470,11 +492,12 @@
           {@const tapped = r && !r.correct ? majorFifths(r.answered) : undefined}
           <!-- The wheel is the answer pad: it stays put, and the verdict comes up beside it. -->
           <div class="mt-3 grid items-start gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-            <!-- After the answer a phone draws the wheel smaller, so the rule and Continue stay in view. -->
-            <div class={r ? "max-sm:mx-auto max-sm:w-52" : ""}>
+            <!-- The same size after the answer (its labels stay 13 px or more); Continue is in the phone dock. -->
+            <div>
             <CircleOfFifths
               selected={r ? af : null}
               numerals={false}
+              dim={false}
               onpick={step === "answer" ? (f) => tapKey(p, f) : undefined}
               marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
               label={r ? "The circle, with the key of this prompt" : "The circle of fifths: tap the key"}
@@ -484,7 +507,7 @@
           </div>
         {:else if mode === "check" && p.mode !== "wheel" && p.mode !== "analysis"}
           <!-- Check: the same wheel, every wedge blank, so the layout matches Practice and the keys are recalled. -->
-          <div class="mt-3 max-w-[20rem]" aria-hidden="true"><CircleOfFifths blank={() => true} numerals={false} label="A blank circle of fifths" /></div>
+          <div class="mt-3 max-w-[20rem]" aria-hidden="true"><CircleOfFifths blank={() => true} numerals={false} dim={false} label="A blank circle of fifths" /></div>
         {:else if r}
           {@render verdict(p, r, p.mode !== "wheel")}
         {/if}
@@ -504,23 +527,27 @@
           </div>
         </div>
       {:else if p.mode !== "wheel"}
-        <div class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8" role="group" aria-label="Answers" data-dock="answers">
+        {@const n = p.choices.length}
+        {@const short = p.choices.every((t) => t.length <= 4)}
+        <!-- Equal columns: five short answers in one row at every width; longer ones two to a row on a phone. -->
+        <div class="mt-4 grid gap-2 {n === 5 && short ? 'grid-cols-5' : n <= 5 ? `grid-cols-2 ${n === 3 ? 'sm:grid-cols-3' : n === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}` : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-8'}" role="group" aria-label="Answers" data-dock="answers">
           {#each p.choices as t, i (t)}
+            {@const state = r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
             <button
               type="button"
-              class="choice min-h-14 rounded-xl px-2 font-display text-lg font-semibold"
-              data-state={r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
+              class="choice min-h-14 rounded-xl px-2 font-display text-lg font-semibold {i === n - 1 && n % 2 && !(n === 5 && short) && n <= 5 ? 'max-sm:col-span-2' : ''}"
+              data-state={state}
               disabled={step !== "answer"}
               onclick={() => choose(t)}
             >
-              {t}{#if i < 10}<span class="key" aria-hidden="true">{(i + 1) % 10}</span>{/if}
+              {t}{#if state}<span aria-hidden="true">{state === "expected" ? " ✓" : " ✕"}</span>{/if}{#if i < 10}<span class="key" aria-hidden="true">{(i + 1) % 10}</span>{/if}
             </button>
           {/each}
         </div>
       {/if}
     {:else}
       <div class="grid items-center gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <CircleOfFifths selected={0} numerals={false} label="The circle of fifths" />
+        <CircleOfFifths selected={0} numerals={false} dim={CHORD_MODES.includes(modeId)} label="The circle of fifths" />
         <div class="space-y-2">
           <p class="font-display text-xl font-semibold">{meta.title}</p>
           {#if analysing}
@@ -535,7 +562,7 @@
   {/snippet}
 
   {#snippet results()}
-    {#if summary}<Results {summary} />{/if}
+    {#if summary}<Results {summary} figure={runKeys.length && !analysing && modeId !== "order" ? keysFigure : undefined} />{/if}
   {/snippet}
 </DrillShell>
 
@@ -605,7 +632,7 @@
     position: absolute;
     top: 0.2rem;
     right: 0.4rem;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
   }
   /* A number key means nothing on a touch screen. */

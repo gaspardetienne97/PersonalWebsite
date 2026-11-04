@@ -71,7 +71,7 @@
   {#if line?.swing}
     <p class="swing">Swing: the eighths are written even and played long-short.</p>
   {/if}
-  <div class="paper" role="img" aria-label={label} bind:clientWidth={width}>
+  <div class="paper" role="img" aria-label={label} title="A rhythm staff: one line, no pitches. The two bars at its start mark it." bind:clientWidth={width}>
     <div class="canvas" style:height={layout ? `${layout.height}px` : undefined}>
       <div class="host" bind:this={host} aria-hidden="true"></div>
       {#each counts as c (c.beat)}
@@ -148,7 +148,7 @@
   .count {
     position: absolute;
     transform: translateX(-50%);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1;
     color: var(--ws-soft);
     pointer-events: none;
@@ -159,9 +159,9 @@
   }
   .hit {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    margin: -6px 0 0 -6px;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
     overflow: visible;
     pointer-events: none;
   }

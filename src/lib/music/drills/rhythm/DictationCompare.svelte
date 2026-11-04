@@ -67,7 +67,7 @@
     margin-bottom: 0.35rem;
   }
   .lab {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--ws-soft);
     white-space: nowrap;
     overflow: hidden;
@@ -81,8 +81,8 @@
     display: grid;
     place-items: center;
     min-width: 0;
-    height: 1.5rem;
-    font-size: 0.8125rem;
+    height: 1.75rem;
+    font-size: 1rem;
     font-weight: 700;
     line-height: 1;
     border-left: 1px solid color-mix(in oklch, var(--ws-ink) 8%, transparent);
@@ -91,7 +91,7 @@
     border-left-color: color-mix(in oklch, var(--ws-ink) 28%, transparent);
   }
   .count {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     color: var(--ws-soft);
   }

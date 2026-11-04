@@ -15,7 +15,7 @@
 </script>
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
-  <figcaption class="mb-2 text-xs text-ws-stage-soft">
+  <figcaption class="mb-2 text-sm text-ws-stage-soft">
     Attacks: {style}, each note sounds {Math.round(target * 100)}% of its beat{offsets ? ". Numbers: ms from the click, minus is early" : ""}
   </figcaption>
   <ol class="grid gap-1.5" style:grid-template-columns="repeat({count}, minmax(0, 1fr))">
@@ -37,7 +37,7 @@
 <style>
   .cell {
     position: relative;
-    height: 2.2rem;
+    height: 2.5rem;
     border-radius: 0.4rem;
     background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
     overflow: hidden;
@@ -55,7 +55,7 @@
     position: absolute;
     right: 0.25rem;
     bottom: 0.1rem;
-    font-size: 0.65rem;
+    font-size: 0.8125rem;
     font-variant-numeric: tabular-nums;
     color: var(--ws-stage-ink);
   }

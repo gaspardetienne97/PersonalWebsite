@@ -6,9 +6,12 @@
   // long-tone scale at one level. The lines are graded by order and evenness;
   // the rest by their own measures in content/aero-skills.
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import type { ControlEvent, NoteEvent } from "@repo/music-core";
   import { clamp, evennessRow, noteName } from "@repo/music-core";
-  import { fingeringFor } from "@repo/music-core/content/winds-pads";
+  import { pushTrace } from "@repo/music-core/scoring/aerophone";
+  import BreathTrace from "./BreathTrace.svelte";
+  import { aeroSpeller, fingeringWords } from "./names";
   import {
     AERO_GRADE_SPEEDS,
     AERO_PATTERNS,
@@ -56,7 +59,7 @@
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { audio, settings } from "$lib/music/runtime";
+  import { audio, input, settings } from "$lib/music/runtime";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import { aerophoneSkills, type AerophoneMode } from "@repo/music-core/content/winds-pads";
 
@@ -113,8 +116,9 @@
   /** The written line's key signature: the scale's own (arpeggios their key's), the major key for tonguing, none for crossings. */
   const scaleKind = $derived(skill === "tonguing" ? "major" : s.scale === "major-arpeggio" ? "major" : ["minor-arpeggio", "blues", "minor-pentatonic", "melodic-minor"].includes(s.scale) ? "natural-minor" : s.scale);
   const signature = $derived(keyed ? (scaleKind === "chromatic" ? 0 : signatureFor(s.key, scaleKind)) : 0);
-  /** A concert note by its written name: spelled by the key in scales and tonguing (Db major reads Db, not C#), the chart's spelling elsewhere. */
-  const spell = (midi: number) => (keyed ? noteName(midi + shift, signature < 0 ? "flat" : "sharp") : (fingeringFor(midi + shift)?.name ?? noteName(midi + shift)));
+  /** A concert note by its written name: spelled by the key in scales and tonguing (Db major reads Db, not C#), the chart's
+   *  spelling elsewhere. The one speller for the chips, the heard note, the cue and the fingering caption (contradiction 9). */
+  const spell = $derived(aeroSpeller(shift, keyed ? signature : null));
   const keyName = (pc: number) => noteName(pc, (scaleKind === "chromatic" ? 0 : signatureFor(pc, scaleKind)) < 0 ? "flat" : "sharp", false);
 
   let phase = $state<Phase>("ready");
@@ -132,6 +136,20 @@
   let stopClockRef: (() => void) | null = null;
   let joins = $state<("T" | "S")[]>([]);
   let breathNow = $state<number | null>(null);
+  /** The last breath samples (CC 2), on the ready screen too, so a test blow shows the sensor works. */
+  let breath = $state<number[]>([]);
+  $effect(() =>
+    input.subscribe((e) => {
+      if (e.kind === "cc" && e.controller === 2) {
+        breathNow = e.value;
+        breath = pushTrace(breath, e.value);
+      }
+    }),
+  );
+  /** The breath trace takes the free height of the live stage on a laptop only (the phone stage scrolls). */
+  const wide = new MediaQuery("min-width: 64rem");
+  /** Where steady air sits for most players (p to mf): a guide on the trace, never graded. */
+  const GUIDE_BAND = [0.25, 0.65] as const;
   let lineResult = $state.raw<LineResult | null>(null);
   /** The note heard on each step this run (Practice marks the chips with it as the run goes). */
   let heardOn = $state<Record<number, number>>({});
@@ -149,7 +167,6 @@
     if (phase !== "running" || mode !== "practice" || stepNow === null) return [];
     return line.map((m, i) => (heardOn[i] === m ? "ok" : i < stepNow ? "miss" : undefined));
   });
-  const target = $derived(timed ? line[stepNow ?? 0] : skill === "trills" ? trillNotes[0] : skill === "vibrato" ? vibNote : null);
 
   const patternLabel = $derived(AERO_PATTERNS.find((p) => p.id === pattern)!.label.toLowerCase());
   const summaryLine = $derived<SetupClause[]>(
@@ -175,16 +192,34 @@
   );
   // The saved setup key keeps its words; the screen says "one note per beat" in plain words.
   const summaryText = $derived(summaryLine.map((c) => c.text).join(", "));
-  const shownLine = $derived(summaryLine.map((c) => (c.focus === "perBeat" ? { ...c, text: perBeat === 1 ? "one note per beat" : `${perBeat} notes per beat` } : c)));
+  // The tempo is on the practice strip, so the setup line leaves it out (S5).
+  const shownLine = $derived(
+    summaryLine
+      .filter((c) => !/^\d+ BPM$/.test(c.text))
+      .map((c) => (c.focus === "perBeat" ? { ...c, text: perBeat === 1 ? "one note per beat" : `${perBeat} notes per beat` } : c.text.endsWith(` at ${bpm} BPM`) ? { ...c, text: c.text.slice(0, -` at ${bpm} BPM`.length) } : c)),
+  );
   /** Beside Stop on a phone: the note to play now, or how the untimed skills start. */
   const cue = $derived(
-    phase !== "running" ? "" : timed ? (stepNow === null ? "Play on the next 1" : mode === "check" ? `Note ${stepNow + 1} of ${line.length}, from memory` : `Play ${spell(line[stepNow])}`) : skill === "trills" ? `Trill ${trillPair.label}` : `Hold ${spell(vibNote)}, pulse the bite`,
+    phase !== "running" ? "" : timed ? (stepNow === null ? "Play on the next 1" : mode === "check" ? "From memory: play the line in time" : `Play ${spell(line[stepNow])}`) : skill === "trills" ? `Trill ${trillPair.label}` : `Hold ${spell(vibNote)}, pulse the bite`,
   );
   let demo = $state<{ stop(): void; playing: boolean } | null>(null);
+  let demoAt = $state(0);
   function stopDemo() {
     demo?.stop();
     demo = null;
   }
+  // While the demo plays, the clock moves so the chip and the fingering follow the note sounding.
+  $effect(() => {
+    if (!demo) return;
+    const id = setInterval(() => (now = performance.now()), 50);
+    return () => clearInterval(id);
+  });
+  /** The line's note the demo is sounding (it plays a note a step, swung or held like the run). */
+  const demoStep = $derived(
+    demo && timed && phase === "ready" ? clamp(skill === "swing" || skill === "long-scale" ? stepAt(now - demoAt) : Math.floor((now - demoAt) / stepMs), 0, line.length - 1) : null,
+  );
+
+  const target = $derived(timed ? line[stepNow ?? demoStep ?? 0] : skill === "trills" ? trillNotes[0] : skill === "vibrato" ? vibNote : null);
 
   async function playDemo() {
     if (demo?.playing) return stopDemo();
@@ -201,6 +236,7 @@
         ? Array.from({ length: 24 }, (_, i) => ({ midi: trillNotes[i % 2], time: i * 0.125, duration: 0.12 }))
         : [{ midi: vibNote, time: 0, duration: VIBRATO.seconds }];
     const handle = audio.playSequence(notes);
+    demoAt = now = performance.now();
     demo = handle;
     status = "Listen: how it goes. Not scored.";
     void handle.done.then(() => {
@@ -209,7 +245,6 @@
   }
 
   function onEvent(e: NoteEvent | ControlEvent) {
-    if (e.kind === "cc" && (e as ControlEvent).controller === 2) breathNow = e.value;
     if (e.kind === "noteon") {
       sounding = (e as NoteEvent).midi;
       if (timed && phase === "running" && e.at >= downbeat - stepMs / 2) {
@@ -402,10 +437,20 @@
     }
     const makeUp =
       skill === "long-scale" ? "half the line, half the breath band" : skill === "scales" || skill === "register" ? "85% notes + 15% evenness" : skill === "tonguing" ? "80% notes and tonguing, 20% on the click" : "score";
-    summary = { headline, metric: pct(score), metricLabel: ons.length ? makeUp : "score", cleanMeans: skill === "scales" ? "a score of 90% or more" : skill === "long-scale" ? "9 in 10 notes right and the breath in the band" : timed ? "every note right, in time" : "on rate and even", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
+    summary = { headline, metric: pct(score), metricLabel: ons.length ? makeUp : "score", cleanMeans: CLEAN_MEANS[skill], delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
   }
 
+  /** What each skill's `correct` tests, in words (contradiction 4: the star key and pips say exactly this). */
+  const CLEAN_MEANS: Record<Skill, string> = {
+    scales: "a score of 90% or more",
+    "long-scale": "9 in 10 notes right and the breath in the band 80% of the time",
+    register: "a score of 90% or more, with at most one glitch across the break",
+    tonguing: "a score of 90% or more, 8 in 10 joins as marked and 3 in 4 attacks on the click",
+    swing: "a score of 80% or more, with 9 in 10 notes right, a clear swing and 8 in 10 doo-DAHs as marked",
+    trills: "4 or more notes a second, 70% even, no stray notes",
+    vibrato: "on rate and even",
+  };
   /** Scales climb the tempo, then notes a click; the others move through their lists. */
   const PER_BEAT_STEPS = [
     { label: "One note a click", goal: 120 },
@@ -448,7 +493,6 @@
   tabs={modes}
   tab={skill}
   ontab={onmode}
-  modeNotes={{ practice: "The line and the fingering shown. Practice, not a test.", check: "Fingering hidden. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -521,14 +565,12 @@
   {#snippet stage()}
     <div class="grid items-start gap-5 {skill === 'trills' ? '' : 'md:grid-cols-[minmax(0,1fr)_14rem]'}" data-testid="aero-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-line={line.join(",")} data-step-ms={Math.round(stepMs)} data-beat-ms={Math.round(beatMs)}>
       <div class="flex min-w-0 flex-col gap-3 max-md:contents">
-        {#if skill === "long-scale"}
-          <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-band">
-            <div class="flex items-baseline justify-between text-sm text-ws-stage-soft"><span>Breath, hold it in the {level.id} band</span><span class="tnum">{breathNow === null ? "no breath yet" : pct(breathNow)}</span></div>
-            <div class="relative mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
-              <div class="absolute inset-y-0 bg-instr/30" style:left="{level.band[0] * 100}%" style:width="{(level.band[1] - level.band[0]) * 100}%"></div>
-              {#if breathNow !== null}<div class="absolute inset-y-0 w-1 rounded-full bg-instr" style:left="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
-            </div>
-          </div>
+        {#if mode === "practice" && target !== null && (demoStep !== null || (phase === "running" && stepNow !== null))}
+          <!-- On a phone the drawing is below the line: the note sounding and its keys, in words, at the top. -->
+          <p class="flex items-baseline gap-3 md:hidden" data-testid="phone-fingering">
+            <span class="font-display text-2xl font-semibold">{spell(target)}</span>
+            <span class="text-sm text-ws-stage-soft">{fingeringWords(target + shift) ?? "outside the chart"}</span>
+          </p>
         {/if}
         {#if timed}
           {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
@@ -544,12 +586,16 @@
                 {#each line.slice(b * barNotes, (b + 1) * barNotes) as n, k (k)}
                   {@const i = b * barNotes + k}
                   <!-- Check never lights the target: only the note count in the HUD says where you are. -->
-                  {@const nowHere = stepNow === i && mode === "practice"}
+                  {@const nowHere = (stepNow === i && mode === "practice") || demoStep === i}
                   {@const out = chipOut[i]}
-                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
+                  <!-- Check keeps your place without a verdict: the current chip outlined, the passed ones a shade darker with a dot. -->
+                  {@const checkNow = stepNow === i && mode === "check" && phase === "running"}
+                  {@const checkPast = mode === "check" && phase === "running" && stepNow !== null && i < stepNow}
+                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : checkNow ? 'bg-ws-stage-ink/8 ring-2 ring-instr' : checkPast ? 'bg-ws-stage-ink/20' : 'bg-ws-stage-ink/8'}" aria-current={nowHere || checkNow ? "step" : undefined}>
                     {#if marks.length}<span class="text-[13px] font-bold" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
                     {spell(n)}
-                    {#if nowHere && sounding !== null && sounding !== n}<span class="text-[13px] leading-none">heard {spell(sounding)}</span>{/if}
+                    {#if nowHere && phase === "running" && sounding !== null && sounding !== n}<span class="text-[13px] leading-none">✕ heard {spell(sounding)}</span>{/if}
+                    {#if checkPast}<span class="text-[13px] leading-none" aria-hidden="true">•</span><span class="sr-only">, played</span>{/if}
                     {#if out && !nowHere}<span class="text-[13px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
                   </span>
                 {/each}
@@ -557,15 +603,18 @@
             {/each}
           </ol>
           {#if marks.length}<p class="text-sm text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
-          {#if skill !== "long-scale"}
-            <!-- Live breath while you play: not graded here, it shows the air behind each note. -->
-            <div class="rounded-xl bg-ws-stage-ink/6 p-3 max-md:order-last" data-testid="breath-meter">
-              <div class="flex items-baseline justify-between text-sm"><span class="text-ws-stage-soft">Breath</span><span class="tnum font-semibold">{breathNow === null ? "Blow to test the breath sensor" : pct(breathNow)}</span></div>
-              <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
-                {#if breathNow !== null}<div class="h-full rounded-full bg-instr" style:width="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
-              </div>
-            </div>
-          {/if}
+          <!-- Live breath over time, in the free height on a laptop. The long-tone scale's band is its target (Practice
+               only); elsewhere a guide band that is not scored shows where steady air sits. -->
+          <div class="max-md:order-last">
+            <BreathTrace
+              values={breath}
+              measured={breath.length > 0}
+              band={mode === "practice" ? (skill === "long-scale" ? level.band : GUIDE_BAND) : undefined}
+              bandLabel={skill === "long-scale" ? `the ${level.id} band, hold it there` : "guide, not scored"}
+              label={skill === "long-scale" ? `Breath over time, the shaded band is ${level.id}` : "Breath over time"}
+              grow={wide.current}
+            />
+          </div>
         {:else if skill === "trills"}
           <p class="text-sm text-ws-stage-soft">Trill {trillPair.label}{trillPair.detail ? ` (${trillPair.detail})` : ""}: move only the finger that changes.</p>
           {#if mode === "practice"}
@@ -573,7 +622,7 @@
             <div class="flex flex-wrap justify-center gap-4">
               {#each trillNotes as n (n)}
                 <div class="flex flex-col items-center gap-1 {sounding === n ? '' : 'opacity-80'}">
-                  <AerophoneKeys midi={n} heldMidi={sounding} compact />
+                  <AerophoneKeys midi={n} heldMidi={sounding} compact name={spell} />
                   <p class="text-center font-display text-2xl font-semibold">{spell(n)}</p>
                 </div>
               {/each}
@@ -588,7 +637,7 @@
       {#if skill !== "trills"}
         <div class="flex flex-col items-center gap-2">
           {#if mode === "practice" && target !== null}
-            <AerophoneKeys midi={target} heldMidi={sounding} compact />
+            <AerophoneKeys midi={target} heldMidi={sounding} compact name={spell} />
             <p class="text-center font-display text-2xl font-semibold">{spell(target)}</p>
           {:else}
             <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden.</p>
@@ -604,6 +653,7 @@
 
   {#snippet actions()}
     <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
-    {#if summary?.heard !== false}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
+    <!-- Not during a run either: Connect has no use mid-run, and the run's own chips name what was heard. -->
+    {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
   {/snippet}
 </DrillShell>

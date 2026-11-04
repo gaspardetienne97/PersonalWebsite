@@ -121,16 +121,18 @@
     } else {
       // Say what is really wrong: the tuning (a quarter tone off), the octave, or the note. Check never names the target.
       const near = e.source === "audio" ? nearMiss(e.midi, e.cents, targets.filter((_, i) => !matched[i]).map((t) => t.midi)) : null;
-      const heardName = noteName(e.midi);
+      // One plain message, in the chord's own spelling, naming the string to play: no octave numbers.
+      const heardName = toneName(e.midi, ref, false);
+      const where = (t: (typeof targets)[number]) => `string ${t.string} ${t.fret ? `at fret ${t.fret}` : "open"}, ${toneName(t.midi, ref, false)}`;
       miss = near
         ? `${heardName} is ${Math.abs(near.cents)} cents ${near.cents > 0 ? "sharp" : "flat"} of a chord note: check your tuning.`
         : mode === "check"
-          ? `${heardName} is not one of the notes still to play.`
+          ? `Wrong note: ${heardName} is not one of the notes still to play.`
           : want && pc(want.midi) === pc(e.midi)
-            ? `Heard ${heardName}, want ${noteName(want.midi)}: the right note in the wrong octave, so the wrong string.`
+            ? `Right note, wrong octave: play ${where(want)}.`
             : want
-              ? `Heard ${heardName}, want ${noteName(want.midi)} on string ${want.string}.`
-              : `${heardName} is not in the chord.`;
+              ? `Wrong note: play ${where(want)}.`
+              : `Wrong note: ${heardName} is not in the chord.`;
       if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
     }
     if (!isPick) idle();
@@ -268,6 +270,10 @@
   });
 </script>
 
+{#snippet picker()}
+  <PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} />
+{/snippet}
+
 <DrillShell
   lesson={{ lessons: conceptCard("tips.chords", { tuning }), trigger: "check" }}
   title={isPick ? "Pick it clean" : "Build the chord"}
@@ -299,19 +305,22 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Target notes" value="{matched.filter(Boolean).length} of {targets.length}" />
-      {#if heard !== null}<Stat label={miss ? "Heard, not a match" : "Heard"} value="{miss ? '✕' : '✓'} {noteName(heard)}" tone={miss ? "warn" : undefined} />{/if}
+      <!-- A match only: a miss is said once, in plain words on the stage. -->
+      {#if heard !== null && !miss}<Stat label="Heard" value="✓ {toneName(heard, ref, false)}" />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
     <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
-    {#if !live && phase !== "results"}
-      <div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>
-    {/if}
-    <!-- The chord's name (and the picking line) take the free height above the neck, so no gap opens there. -->
+    <!-- The chord's name with its positions beside it (before a run), so the whole neck fits a laptop's first view. -->
     <div class="mb-3 flex flex-col justify-center gap-3" data-dock="music">
-      <p class="font-display text-5xl font-bold leading-none">{symbol}</p>
+      <div class="flex min-w-0 items-center gap-4">
+        <p class="shrink-0 font-display text-5xl font-bold leading-none">{symbol}</p>
+        {#if !live && phase !== "results"}
+          <div class="min-w-0 flex-1 max-sm:hidden">{@render picker()}</div>
+        {/if}
+      </div>
       {#if isPick && (mode === "practice" || phase === "results")}
         <LineNotation
           notes={pickTab}
@@ -322,7 +331,11 @@
         />
       {/if}
     </div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label="{symbol} on the {instr} neck" /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} compact={!live} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label="{symbol} on the {instr} neck" /></div>
+    {#if !live && phase !== "results"}
+      <!-- On a phone the positions follow the neck, so the whole neck sits above Start. -->
+      <div class="mt-3 sm:hidden">{@render picker()}</div>
+    {/if}
     <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings in playing order">
       {#each targets as t, i (t.string)}
         {@const done = matched[i]}
@@ -342,7 +355,7 @@
       {/each}
     </ol>
     {#if phase === "running" && miss}
-      <p class="mt-3 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
+      <p class="mt-3 flex items-start gap-2 text-base font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
       {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">Stop when you are done: what you played is scored.</span>{/if}
@@ -361,7 +374,7 @@
             {#each targets as t (t.string)}
               {@const ok = !missedStrings.some((m) => m.startsWith(`string ${t.string} `))}
               <li class="flex items-center gap-2">
-                <span class="grid size-6 place-items-center rounded-full text-xs font-bold {ok ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">{ok ? "✓" : "✕"}</span>
+                <span class="grid size-6 place-items-center rounded-full text-[13px] font-bold {ok ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">{ok ? "✓" : "✕"}</span>
                 <span>String {t.string}, <span class="font-semibold">{toneName(t.midi, ref)}</span></span>
                 <span class="sr-only">{ok ? "matched" : "missed"}</span>
               </li>

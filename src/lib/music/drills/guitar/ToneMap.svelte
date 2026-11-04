@@ -38,7 +38,7 @@
             : 'border-2 border-warn text-ws-stage-ink'}"
     >
       <span class="font-display text-base font-semibold">{name(c.pc)}</span>
-      {#if c.state !== "tone"}<span class="text-xs">{c.state === "hit" ? "✓" : word[c.state]}</span>{/if}
+      {#if c.state !== "tone"}<span class="text-[13px]">{c.state === "hit" ? "✓" : word[c.state]}</span>{/if}
       {#if c.state === "hit"}<span class="sr-only">heard</span>{/if}
     </li>
   {:else}

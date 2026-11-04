@@ -674,3 +674,15 @@ export function confusions(records: AnswerRecord[]) {
   }
   return [...counts.values()].sort((a, b) => b.count - a.count);
 }
+
+/** A count in words: "once", "twice", "3 times". */
+export const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+
+/**
+ * What a clean run means, from the rule that applies: with a next-run ladder the advance rule
+ * (9 of 10 right or better, any mode); without one, a Check run with every answer right.
+ */
+export const cleanMeansFor = (ladder: boolean, asked: number) =>
+  ladder
+    ? `${Math.ceil(0.9 * asked)} of ${asked} right or better`
+    : "every answer right, in a Check run";

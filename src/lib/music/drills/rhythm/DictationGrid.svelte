@@ -51,13 +51,13 @@
   {#each range(bars, 0) as bar (bar)}
     {@const n = barNumbers?.[bar] ?? bar + 1}
     <div class="box" style:padding="{BOX_PAD - 1}px">
-      {#if bars > 1 || segs.length > 1}<p class="mb-1.5 text-xs font-semibold text-ws-stage-soft">Bar {n}</p>{/if}
+      {#if bars > 1 || segs.length > 1}<p class="mb-1.5 text-sm font-semibold text-ws-stage-soft">Bar {n}</p>{/if}
       <div class="space-y-2">
         {#each segs as seg (seg)}
           <div class="relative space-y-1">
             {#each rows as row (row.id)}
               <div class="flex items-center gap-1.5">
-                {#if row.label}<span class="w-11 shrink-0 text-xs leading-tight font-semibold text-ws-stage-soft">{row.label}</span>{/if}
+                {#if row.label}<span class="w-11 shrink-0 text-sm leading-tight font-semibold text-ws-stage-soft">{row.label}</span>{/if}
                 <div class="grid min-w-0 flex-1" style:gap="{CELL_GAP}px" style:grid-template-columns="repeat({cellsPerSeg}, minmax(0, 1fr))">
                   {#each range(Math.min(cellsPerSeg, cellsPerBar - seg * cellsPerSeg), bar * cellsPerBar + seg * cellsPerSeg) as i (i)}
                     {@const on = !!marks[row.id]?.[i]}
@@ -104,13 +104,14 @@
     justify-content: center;
     gap: 0.1rem;
     min-width: 0;
-    min-height: 2.75rem;
+    min-height: 3rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     line-height: 1;
     color: var(--ws-stage-ink);
     background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
-    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
+    /* Every cell's edge at 3:1 on the stage, the "&" cells as much as the beats. */
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 45%, transparent);
     transition: box-shadow 80ms ease-out;
   }
   .cell.beat {
@@ -150,7 +151,7 @@
     fill: currentColor;
   }
   .mark {
-    font-size: 0.75rem;
+    font-size: 1rem;
     font-weight: 700;
   }
   .cell[data-state="right"] {

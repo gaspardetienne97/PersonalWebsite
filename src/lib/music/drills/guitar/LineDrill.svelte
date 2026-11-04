@@ -725,7 +725,7 @@
         {#if songs.length}
           <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="song">
             <Choice label="Start from a song" options={songs.map((x) => ({ value: x.id, label: x.song, detail: x.artist }))} value={song?.id ?? ""} onchange={useSong} />
-            {#if song}<p class="text-xs text-ws-soft">{song.note} Tempo {song.bpm}.</p>{/if}
+            {#if song}<p class="text-[13px] text-ws-soft">{song.note} Tempo {song.bpm}.</p>{/if}
           </div>
         {/if}
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
@@ -752,7 +752,7 @@
               </li>
             {/each}
           </ol>
-          <p class="text-xs text-ws-soft" aria-live="polite">{draft.length ? `${4 - draft.length} more to tap.` : "Tap the fingers below in the order you want to play them."}</p>
+          <p class="text-[13px] text-ws-soft" aria-live="polite">{draft.length ? `${4 - draft.length} more to tap.` : "Tap the fingers below in the order you want to play them."}</p>
           <div class="flex flex-wrap gap-1.5" role="group" aria-label="Tap the fingers in order">
             {#each [1, 2, 3, 4] as f (f)}
               <button type="button" class="flex min-h-11 items-center gap-1.5 rounded-full border border-ws-line px-3 text-sm font-medium disabled:opacity-40" disabled={draft.includes(f)} onclick={() => tapFinger(f)}>
@@ -770,11 +770,11 @@
               {@const n = i + 1}
               {@const on = spiderSet.includes(n)}
               <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label="String {n}, {noteName(open, 'flat', false)}" onclick={() => toggleString(n)}>
-                {n}<span class="text-[10px] font-normal text-ws-soft">{noteName(open, "flat", false)}</span>
+                {n}<span class="text-[13px] font-normal text-ws-soft">{noteName(open, "flat", false)}</span>
               </button>
             {/each}
           </div>
-          <p class="text-xs text-ws-soft">Tap to add or remove. They play from the lowest string up.</p>
+          <p class="text-[13px] text-ws-soft">Tap to add or remove. They play from the lowest string up.</p>
         </div>
         <Choice
           label="String crossing"
@@ -823,7 +823,7 @@
             value={target?.id ?? ""}
             onchange={(v) => cfg.set({ grade: v })}
           />
-          <p class="text-xs text-ws-soft">The exam's click becomes the goal the tempo climbs to. Rockschool Electric 2018 and Trinity classical minimums; neither says how many notes fall on a click.</p>
+          <p class="text-[13px] text-ws-soft">The exam's click becomes the goal the tempo climbs to. Rockschool Electric 2018 and Trinity classical minimums; neither says how many notes fall on a click.</p>
         </div>
       {/if}
     </div>
@@ -873,7 +873,7 @@
       <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label={isPick ? "Picking order" : "Play order"}>
         {#each orderKey as k, i (i)}
           <li class="flex items-center gap-1.5 rounded-full py-1 pr-3 pl-1 font-semibold {orderNow === i ? 'bg-ws-stage-ink/25 ring-2 ring-ws-stage-ink' : 'bg-ws-stage-ink/8'}" aria-current={orderNow === i ? "step" : undefined}>
-            <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold text-[#1b120b]" style:background={k.finger ? `var(--finger-${k.finger})` : "var(--ws-stage-soft)"} aria-hidden="true">{k.mark}</span>{k.text}
+            <span class="grid size-6 place-items-center rounded-full text-[13px] font-extrabold text-[#1b120b]" style:background={k.finger ? `var(--finger-${k.finger})` : "var(--ws-stage-soft)"} aria-hidden="true">{k.mark}</span>{k.text}
           </li>
         {/each}
       </ol>
@@ -899,7 +899,7 @@
     <!-- Spider's order row already names each finger in its colour: one key, not two. -->
     {#if mode === "practice" && !isHarm && !isSpider}
       <!-- The colour key: the fretting hand by colour; on fingerpicking, the picking hand by letter. -->
-      <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-ws-stage-soft" aria-label="Finger key">
+      <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-ws-stage-soft" aria-label="Finger key">
         <div class="flex flex-wrap items-center gap-2">
           <dt class="font-semibold text-ws-stage-ink">Fretting hand</dt>
           {#each [1, 2, 3, 4] as f (f)}

@@ -267,22 +267,20 @@ export const FOLLOWER_NAME: Record<Follower, string> = {
  * is guided whichever way the switch is set (scoring rules 1), so it never counts.
  */
 export function followerModeNotes(f: Follower): { practice: string; check: string } {
+  // One short line each (it sits under the Practice and Check switch).
   if (f === "wait")
     return {
-      practice:
-        "Wait for me: the cursor waits for each note, and each note is lit for you. Practice only.",
-      check:
-        "Wait for me: nothing is lit, but the cursor still waits, so it does not count. Keep time in Check counts.",
+      practice: "Wait for me: notes lit, the cursor waits. Practice only.",
+      check: "Wait for me: nothing lit, but it waits, so it does not count.",
     };
   if (f === "tap")
     return {
-      practice: "Tap the rhythm: the cursor moves with the click. Practice, so it does not count.",
-      check: "Tap the rhythm: the cursor moves with the click. This run counts.",
+      practice: "Tap the rhythm: hints shown, so it does not count.",
+      check: "Tap the rhythm: no hints. This run counts.",
     };
   return {
-    practice:
-      "Keep time: the cursor moves with the click, and each note is lit for you. Practice, so it does not count.",
-    check: "Keep time: the cursor moves with the click, and nothing is lit. This run counts.",
+    practice: "Keep time: notes lit, so it does not count.",
+    check: "Keep time: nothing lit. This run counts.",
   };
 }
 

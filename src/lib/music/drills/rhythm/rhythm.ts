@@ -120,16 +120,18 @@ export function signedMs(ms: number): string {
   return n === 0 ? "0 ms" : `${n > 0 ? "+" : "−"}${Math.abs(n)} ms`;
 }
 
+/** How much the taps varied beat to beat, in words a player reads: "23 ms, tight". */
+export function spreadText(ms: number): string {
+  const n = Math.round(ms);
+  return `${n} ms, ${n <= 25 ? "tight" : n <= 50 ? "a little loose" : "loose"}`;
+}
+
 /** How long a run is, as the grid draws it: "4 bars of 4", or "6 beats" when it is not whole bars. */
 export function lengthText(beats: number, perBar: number): string {
   if (beats % perBar) return `${beats} beats`;
   const bars = beats / perBar;
   return `${bars} bar${bars === 1 ? "" : "s"} of ${perBar}`;
 }
-
-/** The count-in in words: "1 bar count-in", "no count-in". */
-export const countInText = (bars: number) =>
-  bars > 0 ? `${bars} bar${bars === 1 ? "" : "s"} count-in` : "no count-in";
 
 /** A written cell once a dictation is checked: right, extra, missed, or nothing to say. */
 export function cellVerdict(heard: boolean, marked: boolean): "right" | "extra" | "missed" | null {

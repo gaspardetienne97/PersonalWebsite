@@ -5,13 +5,13 @@ import { gradePattern } from "@repo/music-core/scoring/rhythm";
 import {
   beatsPerRow,
   cellVerdict,
-  countInText,
   demoNotes,
   lengthText,
   marksAsPattern,
   midiHits,
   readPatterns,
   signedMs,
+  spreadText,
   landedText,
   voicing,
 } from "./rhythm";
@@ -92,13 +92,17 @@ describe("rhythm copy and layout", () => {
     expect(signedMs(-0.4)).toBe("0 ms");
   });
 
-  it("says the length as the grid draws it, and the count-in apart", () => {
+  it("says the length as the grid draws it", () => {
     expect(lengthText(16, 4)).toBe("4 bars of 4");
     expect(lengthText(4, 4)).toBe("1 bar of 4");
     expect(lengthText(6, 4)).toBe("6 beats");
-    expect(countInText(1)).toBe("1 bar count-in");
-    expect(countInText(2)).toBe("2 bars count-in");
-    expect(countInText(0)).toBe("no count-in");
+  });
+
+  it("says how much the taps varied, with a word for it", () => {
+    expect(spreadText(23.4)).toBe("23 ms, tight");
+    expect(spreadText(25.4)).toBe("25 ms, tight");
+    expect(spreadText(40)).toBe("40 ms, a little loose");
+    expect(spreadText(51)).toBe("51 ms, loose");
   });
 
   it("grades a written cell", () => {

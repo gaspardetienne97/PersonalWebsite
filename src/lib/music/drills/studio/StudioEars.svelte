@@ -34,6 +34,7 @@
   import { nextRun } from "$lib/music/advance.svelte";
   import { audio } from "$lib/music/runtime";
   import { listeningLessons } from "@repo/music-core/lessons/reading";
+  import Volume2 from "lucide-svelte/icons/volume-2";
 
   const LENGTH = 10;
   const entry = catalogEntry("listening")!;
@@ -99,6 +100,10 @@
   let introTimer: ReturnType<typeof setTimeout> | undefined;
   /** Misses so far by answer, this run: missed ones are asked more. */
   let misses: Record<string, number> = {};
+  /** A "Drill 250 Hz" run starts with that answer weighted as if missed often. */
+  let seed: Record<string, number> = {};
+  /** After a wrong EQ answer: the band you are hearing now, the right one or the one you chose (null: the prompt). */
+  let hearing = $state<string | null>(null);
   const rand = Math.random;
 
   // Boost or cut names no band: it draws from a fixed five, whatever Bands says for the other two.
@@ -126,7 +131,8 @@
   async function start(_ctx: RunContext) {
     summary = null;
     records = [];
-    misses = {};
+    misses = seed;
+    seed = {};
     qi = 0;
     step = "loading";
     status = "Getting the loop ready.";
@@ -160,6 +166,7 @@
     const matched = (p.exercise === "boost-or-cut" || (p.exercise === "compression" && p.change.comp)) && buffer;
     const trim = matched ? flatDb - (await audio.studio.loudness(buffer!, p.change)) : 0;
     loop?.set(p.change, trim);
+    hearing = null;
     step = "answer";
     status = `Prompt ${qi + 1} of ${LENGTH}: Flat, then Changed. Flip between them as often as you like.`;
     // Flat first, then Changed, the way most trainers present it.
@@ -204,6 +211,21 @@
     else setTimeout(next, 500);
   }
 
+  /** After a wrong EQ answer: hear the change at a band (the right one or yours), on the same loop. */
+  function hearBand(p: StudioPrompt, band: string) {
+    if (!p.change.eq) return;
+    loop?.set(band === p.answer ? p.change : { ...p.change, eq: { ...p.change.eq, freq: Number(band) } }, 0);
+    hearing = band;
+    show(true);
+  }
+
+  /** Results coach: a run that asks the weakest answer most of the time. */
+  function drillAnswer(a: string) {
+    seed = { [a]: 4 };
+    phase = "running";
+    void start({ mode, downbeat: performance.now(), beatMs: 0, bpm: 0, stopClock() {} });
+  }
+
   function next() {
     if (phase !== "running") return;
     if (qi + 1 >= LENGTH) return void finish();
@@ -243,6 +265,7 @@
     const score = records.reduce((t, r) => t + r.score, 0) / LENGTH;
     const fin = await run!.finish({ score, correct: right === LENGTH, headline: `${right} of ${LENGTH}` });
     const choices = records[0]?.prompt.choices ?? [];
+    const weakest = weakestAnswer(choices);
     summary = {
       headline:
         right === LENGTH
@@ -254,6 +277,7 @@
       best: fin.best,
       clean: mode === "check" && right === LENGTH,
       cleanMeans: "every answer right",
+      coach: weakest ? { label: `Drill ${label(records[0].prompt, weakest)}`, run: () => drillAnswer(weakest) } : undefined,
       xp: fin.xp,
       mode,
       rows: bandRows(choices),
@@ -263,6 +287,18 @@
     status = `${summary.headline} Rest your ears for a minute before the next run.`;
   }
 
+  /** The one answer below every other this run (none when tied or all right). */
+  function weakestAnswer(choices: readonly string[]): string | null {
+    const asked = choices.filter((c) => records.some((r) => r.prompt.answer === c));
+    const rate = (c: string) => {
+      const here = records.filter((r) => r.prompt.answer === c);
+      return here.filter((r) => r.correct).length / here.length;
+    };
+    const low = Math.min(...asked.map(rate));
+    const at = asked.filter((c) => rate(c) === low);
+    return low < 1 && at.length === 1 ? at[0] : null;
+  }
+
   /** One row per answer asked, in the answers' order; the weakest one (below every other) says so. */
   function bandRows(choices: readonly string[]) {
     const rows = choices
@@ -270,11 +306,12 @@
       .map((c) => {
         const here = records.filter((r) => r.prompt.answer === c);
         const ok = here.filter((r) => r.correct).length;
-        return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}` };
+        return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}`, tone: undefined as "warn" | undefined };
       });
     const low = Math.min(...rows.map((r) => r.value));
     const weakest = rows.filter((r) => r.value === low);
-    if (low < 1 && weakest.length === 1) weakest[0].text += ", your weakest";
+    // Results draws the flag (a warning glyph and "Needs work"), so the text only names it.
+    if (low < 1 && weakest.length === 1) Object.assign(weakest[0], { text: `${weakest[0].text}, your weakest`, tone: "warn" as const });
     return rows;
   }
 
@@ -308,9 +345,8 @@
   // The answer drawn: the bell for an EQ change, on a log-frequency axis from 31.5 Hz to 16 kHz.
   let graphW = $state(0);
   const W = $derived(graphW || 600);
-  // The graph takes the height the session gives the music (the answers stay at the foot), 116 to 300 px.
-  let graphH = $state(0);
-  const H = $derived(Math.max(116, Math.min(300, graphH)));
+  // The question card hugs its content: the graph is a fixed height, a little taller on a laptop.
+  const H = $derived(W >= 640 ? 170 : 132);
   /** Side margin: room for half an answer button under the 31.5 Hz and 16 kHz ends. */
   const PAD = $derived(W >= 640 ? 64 : 30);
   const fx = (hz: number) => PAD + ((Math.log2(hz) - Math.log2(31.5)) / (Math.log2(16000) - Math.log2(31.5))) * (W - 2 * PAD);
@@ -337,7 +373,7 @@
   const summaryLine = $derived<SetupClause[]>([
     { text: MATERIALS.find((m) => m.value === material)?.label.toLowerCase() ?? material, focus: "material" },
     exercise === "peak" || exercise === "cut"
-      ? { text: `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "-" : "+"}${gainDb} dB`, focus: "bands" }
+      ? { text: `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "cut" : "boosted"} ${gainDb} dB`, focus: "bands" }
       : exercise === "boost-or-cut"
         ? { text: `${gainDb} dB`, focus: "gain" }
         : exercise === "level"
@@ -364,14 +400,15 @@
   tabs={STUDIO_EXERCISES.map((e) => ({ id: e.id, label: TAB[e.id] }))}
   tab={exercise}
   ontab={(id) => cfg.set({ exercise: id })}
-  modeNotes={{ practice: "Each answer is shown right after you pick. Practice, not a test.", check: "No feedback until the end. Counts toward mastery." }}
+  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
   bind:phase
   bind:mode
   bind:status
   progress={(qi + 1) / LENGTH}
   onstart={start}
   onstop={stop}
-  cue={phase !== "running" || !current ? "" : step === "feedback" ? (mode === "practice" ? "Continue when ready" : "") : "Flip Flat and Changed, then pick"}
+  cue={phase !== "running" || !current ? "" : step === "feedback" ? "" : "Flip Flat and Changed, then pick"}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Continue" : "See results", run: next } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -412,8 +449,14 @@
         <p class="text-sm text-ws-stage-soft">{MATERIALS.find((m) => m.value === material)?.label}</p>
         <p class="font-display text-xl font-semibold sm:text-2xl">{meta.ask}</p>
         <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Listen to">
-          <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>Flat <kbd>A</kbd></button>
-          <button type="button" class="flip" aria-pressed={changed} onclick={() => show(true)}>Changed <kbd>B</kbd></button>
+          <!-- The one playing carries a speaker that pulses (still with reduced motion). -->
+          <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>{#if !changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}Flat <kbd>A</kbd></button>
+          <button type="button" class="flip" aria-pressed={changed} onclick={() => {
+              // Back from a compared band to the prompt's own change (EQ bands only, so no loudness trim).
+              if (hearing && current) loop?.set(current.change, 0);
+              hearing = null;
+              show(true);
+            }}>{#if changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}Changed <kbd>B</kbd></button>
           <!-- A switch, beside the pair it flips. -->
           <button type="button" class="auto" role="switch" aria-checked={s.flip === "auto"} onclick={() => setAutoFlip(s.flip !== "auto")}>
             <span class="track" aria-hidden="true"><span class="thumb"></span></span>Auto flip every 2 s
@@ -421,7 +464,7 @@
         </div>
         <!-- The loop as it plays: what you are hearing, and how far through it is. -->
         <div class="mt-3 flex items-center gap-3 text-sm" aria-hidden="true">
-          <span class="shrink-0 whitespace-nowrap font-semibold">Playing {changed ? "Changed" : "Flat"}</span>
+          <span class="shrink-0 whitespace-nowrap font-semibold">Playing {changed ? (hearing ? `${label(p, hearing)} ${p.exercise === "cut" ? "cut" : "boosted"}` : "Changed") : "Flat"}</span>
           <span class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-ws-stage-ink/15">
             <span class="absolute inset-y-0 left-0 rounded-full bg-instr" style:width="{loopAt * 100}%"></span>
           </span>
@@ -436,7 +479,7 @@
               {@const r = step === "feedback" ? records.at(-1) : undefined}
               <button
                 type="button"
-                class="choice min-h-12 rounded-xl px-3 text-sm font-semibold {aligned ? 'absolute top-0 -translate-x-1/2' : ''}"
+                class="choice min-h-12 whitespace-nowrap rounded-xl px-2 text-sm font-semibold {aligned ? 'absolute top-0 -translate-x-1/2' : ''}"
                 style:left={aligned ? `${aligned.xs[i]}px` : undefined}
                 style:width={aligned ? `${aligned.w}px` : undefined}
                 data-state={r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
@@ -454,9 +497,18 @@
                 {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {label(p, p.answer)}. You said {label(p, r.answered)}{r.near ? ", one step off" : ""}.{/if}
               </p>
               {#if mode === "practice"}
-                <button type="button" class="{btnPrimary} max-sm:w-full sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"}</button>
+                <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
+                <button type="button" class="{btnPrimary} max-sm:hidden sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"}</button>
               {/if}
             </div>
+            {#if mode === "practice" && !r.correct && p.change.eq && (p.exercise === "peak" || p.exercise === "cut")}
+              <!-- A miss becomes a comparison: the change at the right band, then at yours. -->
+              <div class="mt-2 flex flex-wrap gap-2">
+                {#each [p.answer, r.answered] as b (b)}
+                  <button type="button" class={btnStage} aria-pressed={hearing === b} onclick={() => hearBand(p, b)}><Volume2 class="size-4" aria-hidden="true" />Hear {label(p, b)}</button>
+                {/each}
+              </div>
+            {/if}
           {/if}
         </div>
       </article>
@@ -484,7 +536,7 @@
 
 {#snippet graph(choices: readonly string[], label: string)}
   <!-- Every band is named on the axis, the answer bands in bold, so the buttons under it read as that scale. -->
-  <div bind:clientWidth={graphW} bind:clientHeight={graphH} class="flex min-h-29 flex-col justify-center" data-dock="music">
+  <div bind:clientWidth={graphW} data-dock="music">
     <svg class="mt-2 block w-full" width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={label}>
       <!-- The bands that can be the answer, shaded, so each answer button points at its strip. -->
       {#each choices as c (c)}
@@ -518,10 +570,37 @@
     background: var(--instr-strong, var(--instr));
     color: var(--on-instr, var(--ws-stage));
   }
+  .flip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  /* The shortcut as a keycap, at full ink. */
   .flip kbd {
-    margin-left: 0.4rem;
-    font-size: 0.75rem;
-    opacity: 0.7;
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.3rem;
+    border-radius: 0.35rem;
+    border: 1.5px solid currentColor;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    font-weight: 700;
+  }
+  :global(.playing) {
+    animation: ws-pulse 900ms ease-in-out infinite;
+  }
+  @keyframes ws-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.playing) {
+      animation: none;
+    }
   }
   .auto {
     display: inline-flex;
@@ -585,7 +664,7 @@
   /* Answered: the rest dim, the answer and a wrong pick tinted with a check or cross (drawn by CSS, so
      the button's name stays the answer). */
   .choice:disabled:not([data-state]) {
-    opacity: 0.4;
+    border-color: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
   }
   .choice[data-state="expected"] {
     border-color: var(--success);
@@ -634,7 +713,7 @@
   .hz {
     font-size: 13px;
     text-anchor: middle;
-    fill: color-mix(in oklch, var(--ws-stage-ink) 40%, transparent);
+    fill: var(--ws-stage-soft);
   }
   .hz.asked {
     fill: var(--ws-stage-ink);

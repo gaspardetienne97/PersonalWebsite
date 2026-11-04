@@ -47,7 +47,7 @@ export function explainNote(
     return said(`Hearing ${name}. Last hit: pad ${padLabel(mapped)}.`, true);
   if (inBankA(mapped))
     return said(
-      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : ". Pads not mapped yet, so the default order is used: map them in Connect"}.`,
+      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : ", using the default pad order"}.`,
       true,
     );
   return said(
@@ -83,11 +83,11 @@ export function waitingReason(s: {
     return `Every ${noun} port is ignored in Connect, so none of its notes reach the drill.`;
   if (s.instrument === "mpc") {
     if (s.link === "no-sysex")
-      return "No controller link: SysEx was not granted, and the MPC only sends pad notes while linked.";
+      return "MPC not linked, so pad hits are not heard. Allow SysEx, then link it in Connect.";
     if (s.link === "no-output")
-      return "No controller link: the linked MPC output is not connected.";
+      return "MPC not linked, so pad hits are not heard. Its output is not connected: check the cable, then Connect.";
     if (s.link !== "linked")
-      return "No controller link: the MPC only sends pad notes while the app keeps it linked. Link it in Connect.";
+      return "MPC not linked, so pad hits are not heard. Link it in Connect.";
     return `Linked and listening on ${live.map((p) => p.name).join(", ")}. Hit a pad.`;
   }
   return `Listening on ${live.map((p) => p.name).join(", ")}. Play a note.`;

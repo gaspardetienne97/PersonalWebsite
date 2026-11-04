@@ -151,10 +151,17 @@
   /** Beside Stop on a phone: which note is next and, in Practice, what it is. */
   const cue = $derived(phase === "running" && next ? `Note ${Math.min(played + 1, chunk.length)} of ${chunk.length}${mode === "practice" && !hideNotes ? `: ${spell(next.midi)}` : ", from memory"}` : "");
 
+  /** The last wrong note in Practice: the key heard (its X) and the key wanted (ringed), from the one event the pill names. */
+  let slip = $state<{ heard: number; want: number } | null>(null);
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (transport.playing && !hideNotes) for (const n of lit) out[n.midi] = { demo: true };
     else if (showTargets && next) out[next.midi] = { target: true };
+    if (slip && phase === "running" && mode === "practice") {
+      out[slip.want] = { ...out[slip.want], target: true };
+      // An empty mark keeps the heard key on the keyboard, so its X is never off screen.
+      out[slip.heard] ??= {};
+    }
     return out;
   });
   const fretMarks = $derived.by((): FretMark[] => {
@@ -208,11 +215,15 @@
       // Practice says how each note landed; Check keeps it for the results.
       if (want && mode === "practice") {
         const o = lineOutcomes([{ midi: want.midi, beat: want.startBeat }], [{ midi: e.midi, beat }], tolBeats(ctxRef.beatMs))[0]!;
-        const v = o === "miss" ? { kind: "wrong" as const, text: `Wanted ${spell(want.midi)}, heard ${spell(e.midi)}` } : verdictOf(o, (beat - want.startBeat) * ctxRef.beatMs);
+        const samePitch = pc(e.midi) === pc(want.midi);
+        const v = o === "miss" ? { kind: "wrong" as const, text: samePitch ? `${spell(want.midi)}, too far off the beat` : `Wanted ${spell(want.midi)}, heard ${spell(e.midi)}` } : verdictOf(o, (beat - want.startBeat) * ctxRef.beatMs);
         verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
+        slip = o === "miss" && !samePitch ? { heard: e.midi, want: want.midi } : null;
       }
     }
     if (want && mode === "practice") {
+      // One mark at a time: the keys show the note the pill names, never an older one still fading.
+      flashes.clear();
       const ok = pc(e.midi) === pc(want.midi) && (e.string === undefined || want.string === undefined || (e.string === want.string && e.fret === want.fret));
       if (fretted) {
         const key = e.string !== undefined ? e.string * 100 + (e.fret ?? 0) : want.string! * 100 + want.fret!;
@@ -233,6 +244,7 @@
     played = 0;
     hits = [];
     verdict = null;
+    slip = null;
     runBeatMs = ctx.beatMs;
     flashes.clear();
     ctxRef = ctx;
@@ -450,7 +462,7 @@
         </div>
       {/if}
     </div>
-    <div class="flex min-h-0 flex-col justify-center" data-dock="music">
+    <div class="flex min-h-0 flex-col" data-dock="music">
     {#if hideNotes}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/8 p-4 text-sm" data-testid="licks-by-ear">
         By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.

@@ -453,7 +453,7 @@
     top: 2px;
     padding: 0 6px;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     background: var(--instr, currentColor);
     color: var(--ws-stage, #fff);
@@ -479,7 +479,7 @@
     position: absolute;
     top: 2px;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     line-height: 1;
     padding: 0.2rem 0.35rem;
@@ -518,7 +518,7 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
-    font-size: 0.6rem;
+    font-size: 0.8125rem;
     font-weight: 900;
     line-height: 1;
     background: color-mix(in oklch, currentColor 45%, transparent);
@@ -533,7 +533,7 @@
     right: 100%;
     rotate: 20deg;
     font-style: normal;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .played.wrong i {
     color: var(--destructive);

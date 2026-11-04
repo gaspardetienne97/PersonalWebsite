@@ -330,7 +330,7 @@
       {@const v = result?.verdicts[k]}
       <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
         <span class="font-display text-xl font-semibold">{b.symbol}</span>
-        <span class="text-xs text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
+        <span class="text-sm text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
       </li>
     {/each}
   </ol>

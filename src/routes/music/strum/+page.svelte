@@ -25,9 +25,9 @@
   import { applyBenchParams, fretted, tuningFor } from "$lib/music/drills/guitar/instrument.svelte";
   import { chordId, positionsOn, symbolRef, toneName } from "$lib/music/drills/guitar/chords";
   import { ChordListener, type Heard } from "$lib/music/drills/guitar/strum.svelte";
-  import MicPanel, { micUnblock } from "$lib/music/drills/guitar/MicPanel.svelte";
+  import MicPanel, { startMic } from "$lib/music/drills/guitar/MicPanel.svelte";
   import StrumSlots, { type SlotMark } from "$lib/music/drills/guitar/StrumSlots.svelte";
-  import { pairStrums, slotAt, strokeVerdict, strumSlots, timingCounts } from "$lib/music/drills/guitar/strum-slots";
+  import { pairStrums, slotAt, strokeVerdict, strumScore, strumSlots, timingCounts } from "$lib/music/drills/guitar/strum-slots";
   import Verdict from "$lib/music/components/Verdict.svelte";
   import Info from "lucide-svelte/icons/info";
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
@@ -155,8 +155,15 @@
     });
   }
 
-  function start(ctx: RunContext) {
+  async function start(ctx: RunContext) {
     stopDemo();
+    // Start turns the microphone on (its label says so): a refused one ends the run before it begins.
+    if (mic.state !== "on" && !(await startMic())) {
+      ctx.stopClock();
+      phase = "ready";
+      status = mic.error || "The microphone did not start. Check the browser allows it, then press Start again.";
+      return;
+    }
     summary = null;
     result = null;
     observed = [];
@@ -184,6 +191,11 @@
     halt();
     const r = followChords({ chords: chart, observed, bpm: bpm(), startAt: downbeat, strictness });
     result = r;
+    // The score is the expected strums (contradiction 7): with a pattern, the share that landed on time with a
+    // tone of their chord; with any strum, the chords followed. Chord tones heard is a row, never the ring.
+    const landed = strumScore(blocks.map((_, k) => blockHits[k]), onTimeMs());
+    const score = strum ? landed.score : r.total ? r.matched / r.total : 0;
+    const correct = r.correct && (!strum || landed.landed === landed.total);
     phase = "results";
     const setupKey = `strum:${prog.id}:${choruses}:${strictness}:${bpm()}${strum ? `:${strum.id}` : ""}`;
     // One run, no skills: nothing here moves mastery.
@@ -200,8 +212,8 @@
     });
     await run.attempt({
       promptId: prog.id,
-      correct: r.correct,
-      partialCredit: r.score,
+      correct,
+      partialCredit: score,
       metrics: r.metrics,
       source: "audio",
       instrument: instr,
@@ -211,7 +223,7 @@
       // The strum listener has its own path from the microphone.
       heard: observed.length > 0,
     });
-    const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} chords followed` });
+    const fin = await run.finish({ score, correct, headline: strum ? `${landed.landed} of ${landed.total} strums on time on the chord` : `${r.matched} of ${r.total} chords followed` });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -223,20 +235,23 @@
     summary = {
       headline: !observed.length
         ? "No strums were heard. Check the level meter moves when you play, then try again."
-        : r.correct
-          ? `All ${r.total} chords followed, in time.`
-          : `${r.matched} of ${r.total} chords followed.${r.chords.find((c) => !c.matched) ? ` ${r.chords.find((c) => !c.matched)!.symbol} is the one to work on first.` : ""}`,
-      // The ring is the run's score (chord tones heard), the metric "since last time" compares.
-      metric: pct(r.score),
-      metricLabel: "chord tones heard",
-      cleanMeans: "every chord followed, in time",
+        : correct
+          ? `All ${r.total} chords followed, ${strum ? "every strum on time" : "in time"}.`
+          : `${strum ? `${landed.landed} of ${landed.total} strums on time on the chord. ` : ""}${r.matched} of ${r.total} chords followed.${r.chords.find((c) => !c.matched) ? ` ${r.chords.find((c) => !c.matched)!.symbol} is the one to work on first.` : ""}`,
+      // The ring is the run's score (the expected strums that landed), the metric "since last time" compares.
+      metric: pct(score),
+      metricLabel: strum ? "strums on time on the chord" : "chords followed",
+      score,
+      cleanMeans: strum ? "every strum on time on its chord, every chord followed" : "every chord followed, in time",
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
       assistance: "Practice record only: not counted toward skills yet.",
       ...(strokes ? { timing: strokes } : {}),
       rows: [
+        ...(strum ? [{ label: "Strums on time on the chord", value: landed.score, text: `${landed.landed} of ${landed.total}` }] : []),
         { label: "Chords followed", value: r.total ? r.matched / r.total : 0, text: `${r.matched} of ${r.total}` },
+        { label: "Chord tones heard", value: r.score, text: pct(r.score) },
         { label: "Strums heard", text: String(observed.length) },
         timed.length
           ? { label: "Mean timing", text: `${Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length)} ms from the beat` }
@@ -246,7 +261,7 @@
       ],
       // The tempo climbs to the progression's own, then the next progression up.
       advance: observed.length
-        ? await nextRun(`${instr}.strum.${strictness}.${choruses}`, { bpm: bpm(), tempo: { min: 40, goal: prog.bpm, max: 160 }, steps: LADDER.map((p) => ({ label: p.name, goal: p.bpm })), step: LADDER.indexOf(prog) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ progression: LADDER[i].id })))
+        ? await nextRun(`${instr}.strum.${strictness}.${choruses}`, { bpm: bpm(), tempo: { min: 40, goal: prog.bpm, max: 160 }, steps: LADDER.map((p) => ({ label: p.name, goal: p.bpm })), step: LADDER.indexOf(prog) }, { score, correct }, tempoAnd((i) => cfg.set({ progression: LADDER[i].id })))
         : undefined,
     };
     status = summary.headline;
@@ -337,6 +352,21 @@
     });
     return out;
   });
+  /** After a run: every bar of the chart as its slots, each stroke marked (missed where no strum came). */
+  const barMarks = $derived.by(() => {
+    if (!strum || !result || !beatMs) return [];
+    return Array.from({ length: Math.round(totalBeats / 4) }, (_, bar) => {
+      const r = strumSlots(strokesIn(bar).map((e) => ({ beat: e.beat, stroke: e.stroke, accent: e.accent === "accent" })));
+      const marks: Record<number, SlotMark> = {};
+      blocks.forEach((b, k) => {
+        if (Math.floor(b.startBeat / 4 + 1e-6) !== bar) return;
+        const hit = blockHits[k];
+        marks[Math.round((b.startBeat - bar * 4) / r.step)] =
+          hit === "wrong" ? { kind: "wrong", text: `Not ${chordAt(b.startBeat)}` } : typeof hit === "number" ? strokeVerdict(hit, onTimeMs()) : { kind: "miss", text: "Missed" };
+      });
+      return { bar, chord: chordAt(bar * 4), slots: r.slots, marks };
+    });
+  });
   /** The latest judged strum, as a word over the row. */
   const lastVerdict = $derived.by(() => {
     if (!live || !strum) return null;
@@ -369,8 +399,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={mic.state === "on" ? null : "Turn on the microphone first."}
-  unblock={micUnblock}
+  startLabel={mic.state === "on" ? "Start" : "Start (turns on the mic)"}
   {cue}
 >
   {#snippet setup()}
@@ -457,23 +486,32 @@
   {#snippet stage()}
     {#if phase !== "results"}
       <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-        {#if highway.on}<p class="text-sm text-ws-stage-soft">Highway view: each chord slides down to the line as it is due, so you see it coming.</p>{/if}
+        <p class="text-sm text-ws-stage-soft max-sm:hidden">{highway.on ? "Highway: each strum slides down to the line as it is due." : "Highway: a scrolling view"}</p>
         {@render viewSwitch("Chart")}
       </div>
     {/if}
     {#if highway.on && phase !== "results"}
       <NoteHighway chords={blocks} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={hwBeat} chordHits={blockHits} judge={phase === "running"} perfectMs={onTimeMs()} />
     {:else}
+      <!-- From lg the pattern and the chart sit side by side, so the chord's shape is in a laptop's first view. -->
+      <div class="lg:flex lg:items-start lg:gap-6">
       {#if strum && phase !== "results"}
         <!-- The strum pattern above the chords: what the hand does, slot by slot, lit on the click. -->
-        <div class="relative mb-3 max-w-xl" data-pattern={strum.id}>
+        <div class="relative mb-3 max-w-xl lg:w-[30rem] lg:shrink-0" data-pattern={strum.id}>
           <div class="mb-1.5 flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <p class="text-sm"><span class="text-ws-stage-soft">Strum pattern:</span> <span class="font-semibold">{strumName(strum)}</span></p>
+            <p class="text-sm"><span class="text-ws-stage-soft">Strum pattern:</span> <span class="font-semibold">{strumName(strum)}</span> <span class="whitespace-nowrap text-ws-stage-soft">(D = down, U = up)</span></p>
             <Verdict kind={lastVerdict?.kind} text={lastVerdict?.text} key={lastVerdict?.key ?? 0} />
+            {#if phase === "running" && current >= 0}
+              <!-- The change coming, big enough to read mid-strum. -->
+              <p class="flex items-baseline gap-2 rounded-xl border-2 border-ws-stage-ink/25 px-3 py-1" data-testid="next-chord">
+                <span class="text-sm text-ws-stage-soft">Next</span><span class="font-display text-2xl font-bold leading-none">{chart[current + 1]?.symbol ?? "End"}</span>
+              </p>
+            {/if}
           </div>
           <StrumSlots slots={row.slots} lit={live || demo ? rowLit : null} marks={rowMarks} legend={!live} label="{strumName(strum)}, one bar: down and up strokes on the count" />
         </div>
       {/if}
+      <div class="min-w-0 flex-1">
       <p class="mb-1.5 text-sm text-ws-stage-soft">Chords</p>
       <ol class="flex flex-wrap gap-1.5" aria-label="Chord chart">
         {#each chart as c, i (i)}
@@ -499,9 +537,11 @@
       {#if !strum}
         <p class="mt-2 max-w-prose text-sm text-ws-stage-soft">Any strum: what counts is each chord ringing on its bar. Pick a pattern in Setup to practise one.</p>
       {/if}
+      </div>
+      </div>
     {/if}
     {#if shownShape}
-      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
+      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
     {/if}
     <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
     <div class="mt-3 grid gap-2">
@@ -520,6 +560,22 @@
   {/snippet}
 
   {#snippet results()}
-    {#if summary}<Results {summary} />{/if}
+    {#if summary}
+      <!-- Where in the pattern the misses were: every bar's strokes, marked as the row marked them live. -->
+      {#snippet figure()}
+        <section aria-labelledby="strum-bars" style="--ws-stage-ink: var(--ws-ink); --ws-stage-soft: var(--ws-soft)">
+          <h3 id="strum-bars" class="text-sm font-semibold">Each strum, bar by bar</h3>
+          <ol class="mt-2 grid max-w-2xl gap-2">
+            {#each barMarks as b, i (b.bar)}
+              <li class="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2">
+                <span class="pt-0.5 font-display text-lg font-bold">{b.chord}</span>
+                <div><StrumSlots slots={b.slots} marks={b.marks} compact legend={i === barMarks.length - 1} label="Bar {b.bar + 1}, {b.chord}" /></div>
+              </li>
+            {/each}
+          </ol>
+        </section>
+      {/snippet}
+      <Results {summary} figure={barMarks.length && summary.heard !== false ? figure : undefined} />
+    {/if}
   {/snippet}
 </DrillShell>

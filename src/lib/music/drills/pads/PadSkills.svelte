@@ -695,7 +695,6 @@
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab={skill}
   ontab={onmode}
-  modeNotes={{ practice: "The grid and the pads show what is due. Practice, not a test.", check: "From memory, no grid. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -826,7 +825,7 @@
               {/if}
             {/each}
           </svg>
-          <p class="mt-1 text-xs text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
+          <p class="mt-1 text-sm text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
         </div>
       {:else}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">

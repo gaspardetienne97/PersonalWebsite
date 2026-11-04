@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { pairStrums, slotAt, strokeVerdict, strumSlots, timingCounts } from "./strum-slots";
+import {
+  pairStrums,
+  slotAt,
+  strokeVerdict,
+  strumScore,
+  strumSlots,
+  timingCounts,
+} from "./strum-slots";
 
 const row = (r: ReturnType<typeof strumSlots>) =>
   r.slots.map((s) => (s.stroke ? { down: "D", up: "U", mute: "X" }[s.stroke] : "-")).join("");
@@ -45,5 +52,12 @@ describe("strum slots", () => {
     const offs = pairStrums([0, 500, 1000], [20, 30, 1400, 1460], 1000);
     expect(offs).toEqual([20, undefined, 400]);
     expect(timingCounts(offs, 40)).toEqual({ onTime: 1, early: 0, late: 1, missed: 1 });
+  });
+
+  it("scores the expected strums: on time with a chord tone, never the strums heard alone", () => {
+    // 24 expected, 8 strummed: 6 on time, 1 late, 1 with no chord tone. 16 missed.
+    const hits = [...Array(6).fill(10), 90, "wrong" as const, ...Array(16).fill(undefined)];
+    expect(strumScore(hits, 40)).toEqual({ landed: 6, total: 24, score: 0.25 });
+    expect(strumScore([], 40).score).toBe(0);
   });
 });

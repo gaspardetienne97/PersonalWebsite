@@ -191,3 +191,52 @@ export function padsDue(
   for (const t of notes) if (t.atMs >= at - 40 && t.atMs <= at + aheadMs) out.add(t.pad);
   return out;
 }
+
+/**
+ * The loop's outline for drawing: the loudest sample in each of `bins` equal
+ * parts of the first `length` samples, scaled so the loudest part is 1.
+ */
+export function peaks(data: Float32Array, length: number, bins: number): number[] {
+  const out = Array.from({ length: bins }, (_, b) => {
+    let m = 0;
+    for (
+      let i = Math.floor((b * length) / bins), end = Math.floor(((b + 1) * length) / bins);
+      i < end && i < data.length;
+      i++
+    )
+      m = Math.max(m, Math.abs(data[i]));
+    return m;
+  });
+  const top = Math.max(...out);
+  return top > 0 ? out.map((v) => v / top) : out;
+}
+
+/**
+ * A rudiment's score on the strokes asked for: the grader's timing and velocity
+ * are averages over the strokes that landed, so four clean strokes of sixteen
+ * would earn their full weight. Here they count only for the share that landed,
+ * so the ring never reads high beside "12 of 16 strokes missed". Never above the
+ * grader's own score; a run with every stroke landed scores the same.
+ */
+export function strokeScore(r: {
+  score: number;
+  pad: number;
+  timing: number;
+  velocity: number | null;
+  completion: number;
+}): number {
+  const parts: [number, number | null][] = [
+    [0.45, r.pad],
+    [0.3, r.timing * r.completion],
+    [0.15, r.velocity === null ? null : r.velocity * r.completion],
+    [0.1, r.completion],
+  ];
+  let w = 0;
+  let sum = 0;
+  for (const [weight, v] of parts) {
+    if (v === null) continue;
+    w += weight;
+    sum += weight * v;
+  }
+  return Math.min(r.score, w ? sum / w : 0);
+}

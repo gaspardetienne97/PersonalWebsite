@@ -331,7 +331,7 @@
           <li>
             <a class="flex min-h-14 flex-col justify-center rounded-xl border border-ws-line bg-ws-surface px-3 py-2 hover:bg-ws-raised" href={d.href}>
               <span class="font-semibold">{d.label}</span>
-              <span class="text-xs text-ws-soft">{d.hint}</span>
+              <span class="text-[13px] text-ws-soft">{d.hint}</span>
             </a>
           </li>
         {/each}

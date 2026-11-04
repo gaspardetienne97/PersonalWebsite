@@ -7,6 +7,8 @@ import {
   overdue,
   padCell,
   padsDue,
+  peaks,
+  strokeScore,
   stepsPerBeatFor,
   xAt,
 } from "./lanes";
@@ -128,5 +130,31 @@ describe("live judging", () => {
   it("calls a note missed once the good window has passed", () => {
     expect(overdue(notes, { 0: "perfect" }, 600, 60)).toEqual([1]);
     expect(overdue(notes, {}, 30, 60)).toEqual([]);
+  });
+});
+
+describe("peaks", () => {
+  it("takes the loudest sample per part, the loudest part as 1", () => {
+    const data = new Float32Array([0.1, -0.4, 0.2, 0.2, 0, -0.1, 0.8, 0.3]);
+    expect(peaks(data, 8, 4)).toEqual([0.5, 0.25, 0.125, 1]);
+  });
+  it("reads only the loop's length, and stays at 0 for silence", () => {
+    expect(peaks(new Float32Array([0.5, 0.5, 1, 1]), 2, 2)).toEqual([1, 1]);
+    expect(peaks(new Float32Array(4), 4, 2)).toEqual([0, 0]);
+  });
+});
+
+describe("strokeScore", () => {
+  it("counts timing only for the strokes that landed (4 of 16 is no 48%)", () => {
+    const r = { pad: 0.25, timing: 0.9, velocity: null, completion: 0.25 };
+    const grader = (0.45 * 0.25 + 0.3 * 0.9 + 0.1 * 0.25) / 0.85;
+    const s = strokeScore({ ...r, score: grader });
+    expect(s).toBeCloseTo((0.45 * 0.25 + 0.3 * 0.225 + 0.1 * 0.25) / 0.85);
+    expect(s).toBeLessThan(0.25);
+  });
+  it("leaves a run with every stroke landed as the grader scored it", () => {
+    expect(
+      strokeScore({ score: 0.925, pad: 1, timing: 0.8, velocity: 0.9, completion: 1 }),
+    ).toBeCloseTo(0.925, 6);
   });
 });

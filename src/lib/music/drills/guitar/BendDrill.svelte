@@ -289,7 +289,7 @@
         {#if !vibrato}<line x1="0" x2={W} y1={yOf((toMidi - fromMidi) * 100)} y2={yOf((toMidi - fromMidi) * 100)} class="target" vector-effect="non-scaling-stroke" />{/if}
         {#if path}<path d={path} class="trace" vector-effect="non-scaling-stroke" />{/if}
       </svg>
-      <figcaption class="flex justify-between text-xs text-ws-stage-soft"><span>{noteName(fromMidi)} (the fretted note)</span>{#if !vibrato}<span>dashed: {noteName(toMidi)}</span>{/if}</figcaption>
+      <figcaption class="flex justify-between text-[13px] text-ws-stage-soft"><span>{noteName(fromMidi)} (the fretted note)</span>{#if !vibrato}<span>dashed: {noteName(toMidi)}</span>{/if}</figcaption>
     </figure>
     {@const picking = phase === "ready"}
     <Fretboard

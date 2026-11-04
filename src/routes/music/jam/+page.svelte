@@ -179,8 +179,13 @@
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (showRoles)
-      // Degrees only on the notes that fit (chord and scale tones); an avoid note keeps its dashed ring, unlabelled.
-      for (let m = 48; m <= 84; m++) out[m] = { label: roles[pc(m)] === "avoid" ? undefined : degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)], ...(setPcs.includes(pc(m)) ? { target: true } : {}) };
+      // Degrees on the notes that matter: the scored set when a game has one (ringed, the strongest), else the
+      // chord tones. The rest of the scale and the avoid notes are a dot in their colour.
+      for (let m = 48; m <= 84; m++) {
+        // A scored note is a target, never drawn as an avoid note even where the theory would call it one.
+        if (setPcs.includes(pc(m))) out[m] = { label: degreeLabel(chord.symbol, pc(m)), target: true };
+        else out[m] = { label: !setPcs.length && roles[pc(m)] === "chord" ? degreeLabel(chord.symbol, pc(m)) : undefined, role: roles[pc(m)] };
+      }
     if (litKey !== null && lastNote) out[litKey] = { ...out[litKey], demo: true, label: showRoles ? lastNote.label : undefined };
     return out;
   });
@@ -761,17 +766,18 @@
           {#if showRoles && tones.length}
             <ul class="flex flex-wrap gap-1.5" aria-label="Chord tones of {chord.symbol}">
               {#each tones as t (t.label)}
-                <li class="tone-chip"><span class="text-xs opacity-75">{t.label}</span>{t.name}</li>
+                <li class="tone-chip"><span class="text-[0.8125rem] font-medium">{t.label}</span>{t.name}</li>
               {/each}
             </ul>
           {/if}
         </div>
-        <p class="mt-2 text-ws-stage-soft">{showRoles ? `${scaleName(chord)} fits. ` : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
+        <!-- With a scored set, the set is the advice (contradiction 13): never a scale that lights other notes. -->
+        <p class="mt-2 text-ws-stage-soft">{showRoles ? (setPcs.length ? `Use ${setPcs.map((p) => FLAT_NAMES[p]).join(", ")}. ` : `${scaleName(chord)} fits. `) : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
         {#if phase === "running"}
-          {#if !checking && !backingOn}<button type="button" class={btnStage} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-xs opacity-60">N</kbd></button>{/if}
+          {#if !checking && !backingOn}<button type="button" class={btnStage} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-[0.8125rem] text-ws-stage-soft">N</kbd></button>{/if}
           {#if backingMode !== "none" && !checking}
             <button type="button" class={btnStage} aria-pressed={backingOn} onclick={() => (backingOn ? stopBacking() : startBacking())}>
               {#if backingOn}<Pause class="size-4" aria-hidden="true" />Pause the backing{:else}<Play class="size-4" aria-hidden="true" />Play the backing{/if}
@@ -792,8 +798,8 @@
 
     <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ws-stage-ink" class:hidden={!showRoles}>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
-      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue (9, 11, 13)</span>
-      <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: dashed ring</span>
+      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue dot (9, 11, 13)</span>
+      <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: muted dot, unnamed</span>
       {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>Scored notes: solid ring ({setPcs.map((p) => FLAT_NAMES[p]).join(" ")})</span>{/if}
       <span>The numbers are degrees over the chord.</span>
     </div>
@@ -994,7 +1000,7 @@
     opacity: 0.5;
   }
   .next-tag {
-    font-size: 0.65rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1088,7 +1094,8 @@
     border-radius: 999px;
   }
   .legend.ring {
-    border: 2px dashed var(--tone-avoid);
+    background: color-mix(in oklch, var(--tone-avoid) 35%, #fffdf8);
+    box-shadow: inset 0 0 0 1.5px var(--tone-avoid);
   }
   .legend.set {
     box-shadow: inset 0 0 0 3px var(--instr);

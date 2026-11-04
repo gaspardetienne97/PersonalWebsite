@@ -6,6 +6,8 @@
   import { DRILL_ROUTES, noteNavigation } from "$lib/music/came-from.svelte";
   import House from "lucide-svelte/icons/house";
   import Library from "lucide-svelte/icons/library";
+  import Drills from "lucide-svelte/icons/layout-grid";
+  import Route from "lucide-svelte/icons/route";
   import Grid from "lucide-svelte/icons/grid-3x3";
   import Chart from "lucide-svelte/icons/chart-column";
   import CircleDot from "lucide-svelte/icons/circle-dot";
@@ -28,8 +30,10 @@
 
   let { children } = $props();
 
-  const hubs = [
-    // Today, Drills and Paths are the hub's own tabs; the nav names the section they share.
+  type NavItem = { href: string; label: string; icon: typeof House; owns?: string[]; tab?: string };
+  const hubs: NavItem[] = [
+    // Today, Drills and Paths are the hub's own tabs: the tab bar names the section they share (the hub page
+    // shows its segmented control there); the sidebar lists the three, each current on its own view.
     { href: "/music", label: "Today", icon: House, owns: DRILL_ROUTES },
     { href: "/music/library", label: "Library", icon: Library, owns: ["/music/songs"] },
     { href: "/music/create", label: "Create", icon: Grid, owns: [] },
@@ -43,11 +47,21 @@
     { href: "/music/guide", label: "Guide", icon: Help },
   ];
 
+  const sideHubs: NavItem[] = [
+    { href: "/music", label: "Today", icon: House, tab: "today" },
+    { href: "/music?tab=drills", label: "Drills", icon: Drills, tab: "drills", owns: DRILL_ROUTES },
+    { href: "/music?tab=paths", label: "Paths", icon: Route, tab: "paths" },
+    ...hubs.slice(1),
+  ];
+
   const path = $derived(page.url.pathname.replace(/\/$/, "") || "/music");
-  const current = (item: { href: string; owns?: string[] }) =>
-    path === item.href ||
-    (item.href !== "/music" && path.startsWith(item.href + "/")) ||
-    (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
+  const hubTab = $derived(page.url.searchParams.get("tab") ?? "today");
+  const current = (item: NavItem) =>
+    item.tab && path === "/music"
+      ? hubTab === item.tab
+      : (!item.tab && path === item.href) ||
+        (item.href !== "/music" && !item.tab && path.startsWith(item.href + "/")) ||
+        (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
 
   // Remember where each page was opened from (drills show "Back to ...").
   afterNavigate((nav) => noteNavigation(nav.from?.url, nav.to?.url));
@@ -165,7 +179,7 @@
         {#if !collapsed}<span>Woodshed</span>{/if}
       </a>
       <ul class="flex flex-col gap-1 px-2 pt-2">
-        {#each hubs as item (item.href)}
+        {#each sideHubs as item (item.href)}
           {@render navItem(item, current(item))}
         {/each}
       </ul>
@@ -174,7 +188,7 @@
           {@render navItem(item, current(item))}
         {/each}
         <!-- App controls, apart from the places: a divider with its name. -->
-        <li class="mt-1 border-t border-ws-line px-3 pt-2 pb-1 text-xs font-medium text-ws-soft {collapsed ? 'lg:sr-only' : ''}" role="presentation">App</li>
+        <li class="mt-1 border-t border-ws-line px-3 pt-2 pb-1 text-[13px] font-medium text-ws-soft {collapsed ? 'lg:sr-only' : ''}" role="presentation">App</li>
         {@render siteItems()}
         <li>
           <button
@@ -215,7 +229,7 @@
             <a
               href={item.href}
               aria-current={on ? "page" : undefined}
-              class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs {on ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
+              class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[13px] {on ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
             >
               {@render tabIcon(item.icon, on)}{item.label}
             </a>
@@ -224,7 +238,7 @@
         <li>
           <button
             type="button"
-            class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-xs {utilities.some(current) ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
+            class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[13px] {utilities.some(current) ? 'text-instr-ink font-semibold' : 'text-ws-soft'}"
             aria-expanded={moreOpen}
             aria-controls="woodshed-more"
             bind:this={moreButton}
@@ -258,7 +272,8 @@
       class="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
     >
       <Sun class="size-5 shrink-0 dark:hidden" aria-hidden="true" /><Moon class="hidden size-5 shrink-0 dark:block" aria-hidden="true" />
-      <span class={collapsed ? "lg:sr-only" : ""}>Theme</span>
+      <!-- A quick toggle that says the theme now on. -->
+      <span class={collapsed ? "lg:sr-only" : ""}>Theme: <span class="font-medium text-ws-ink dark:hidden">Light</span><span class="hidden font-medium text-ws-ink dark:inline">Dark</span></span>
     </button>
   </li>
   <li>
@@ -278,7 +293,7 @@
   <span class="grid h-7 w-12 place-items-center rounded-full {on ? 'bg-instr-wash' : ''}"><Icon class="size-5" aria-hidden="true" /></span>
 {/snippet}
 
-{#snippet navItem(item: { href: string; label: string; icon: typeof House }, on: boolean)}
+{#snippet navItem(item: NavItem, on: boolean)}
   <li>
     <a
       href={item.href}

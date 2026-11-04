@@ -385,7 +385,7 @@
       {#if !live}<div class="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">{@render about_()}<ViewSwitch /></div>{/if}
       <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={pianoLabel} />
     {:else}
-      <div class="flex min-h-0 flex-col justify-center gap-3" data-dock="music">
+      <div class="flex min-h-0 flex-col gap-3" data-dock="music">
         {#if mode === "practice" || transport.playing || phase === "results"}
           <!-- Before Start the staff engraves smaller, so the lane and the keys share the first screen. -->
           <StaffFold live={live || transport.playing} aside={live ? undefined : aside}><LineNotation maxZoom={live ? 1.1 : 0.6} notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></StaffFold>

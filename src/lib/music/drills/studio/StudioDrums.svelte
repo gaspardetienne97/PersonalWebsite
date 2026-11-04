@@ -150,7 +150,7 @@
     <!-- The drum names stay put while the bars scroll under them. -->
     <div class="names sticky left-0 z-10 shrink-0 bg-ws-surface" style:width="{NAME}px" style:padding-top="{HEAD}px">
       {#each rows as r (r.id)}
-        <div class="name flex items-center gap-1.5 pr-1.5 text-xs" style:height="{ROW}px" data-flash={flashes?.get(r.key)} title="{r.name}, pad {r.pad}">
+        <div class="name flex items-center gap-1.5 pr-1.5 text-[13px]" style:height="{ROW}px" data-flash={flashes?.get(r.key)} title="{r.name}, pad {r.pad}">
           <span class="size-2 shrink-0 rounded-full" style:background={laneColor(r.id)} aria-hidden="true"></span>
           <span class="truncate font-medium">{r.name}</span>
           <span class="ml-auto text-ws-soft">{r.pad}</span>
@@ -159,7 +159,7 @@
     </div>
     <div class="relative" style:width="{steps * CELL + 8}px" style:height="{HEAD + rows.length * ROW}px" style:--cell="{CELL}px" style:--bar="{barSteps * CELL}px">
       {#each Array.from({ length: barCount }, (_, b) => b) as b (b)}
-        <span class="absolute top-0.5 text-xs text-ws-soft" style:left="{b * barSteps * CELL + 3}px">{b + 1}</span>
+        <span class="absolute top-0.5 text-[13px] text-ws-soft" style:left="{b * barSteps * CELL + 3}px">{b + 1}</span>
       {/each}
       {#each rows as r, i (r.id)}
         <div class="lane absolute left-0" style:top="{HEAD + i * ROW + 1}px" style:width="{steps * CELL}px" style:height="{ROW - 2}px"></div>

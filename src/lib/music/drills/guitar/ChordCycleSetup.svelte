@@ -61,10 +61,10 @@
         >
           <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="" />
           <span class="text-sm font-semibold">{names[i]}</span>
-          <span class="text-[10px] leading-tight text-ws-soft">{shortPosition(sh.positionLabel)}</span>
+          <span class="text-[13px] leading-tight text-ws-soft">{shortPosition(sh.positionLabel)}</span>
         </button>
         {#if n > 2}
-          <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-xs" aria-label="Remove {names[i]}" onclick={() => remove(i)}>✕</button>
+          <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-[13px]" aria-label="Remove {names[i]}" onclick={() => remove(i)}>✕</button>
         {/if}
       </div>
     {/each}
@@ -72,7 +72,7 @@
       <button type="button" class="grid min-h-24 w-20 place-items-center rounded-xl border border-dashed border-ws-line text-sm font-medium hover:bg-ws-raised" onclick={add}>Add chord</button>
     {/if}
   </div>
-  <p class="text-xs text-ws-soft">Tap a chord to change it. The run goes round them in order and back to the first.</p>
+  <p class="text-[13px] text-ws-soft">Tap a chord to change it. The run goes round them in order and back to the first.</p>
 </div>
 <ChordPicker label="Chord {edit + 1}" {instrument} value={ids[edit]} onchange={setChord} />
 <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">

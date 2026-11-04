@@ -6,12 +6,15 @@
 <script lang="ts">
   // After an answer: the prompt's notes on the strip's instrument (keys, frets or
   // the Aerophone's fingering). An interval counts its half steps out from the
-  // first note, one key or fret at a time; a wrong choice shows, dashed, where
+  // first note, one key or fret at a time (on a phone only the two ends carry a
+  // number); a wrong choice shows as a red key with a cross and its name, where
   // that answer would have landed. Notes light as they sound.
   import { noteName } from "@repo/music-core";
   import type { EarPrompt } from "@repo/music-core/content/ear";
   import InstrumentStage, { fretTuning } from "$lib/music/components/InstrumentStage.svelte";
-  import type { CellMarks } from "$lib/music/components/feedback.svelte";
+  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
+  import { MediaQuery } from "svelte/reactivity";
+  import { untrack } from "svelte";
   import { settings } from "$lib/music/runtime";
   import EarVisual from "./EarVisual.svelte";
   import { tokenLabel } from "./session";
@@ -65,18 +68,29 @@
     return () => clearInterval(t);
   });
 
+  /** A phone keeps the keys readable: numbers only on the two played keys. */
+  const phone = new MediaQuery("max-width: 639px");
+  // The chosen answer's own notes: a red key with a cross and its name (held for the whole feedback).
+  const chosenMarks = new Flashes();
+  $effect(() => {
+    const ms = other;
+    untrack(() => {
+      chosenMarks.clear();
+      for (const m of ms) chosenMarks.add(m, "wrong", 600_000);
+    });
+    return () => untrack(() => chosenMarks.clear());
+  });
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (ends) {
-      for (let k = 1; k < Math.min(climb + 1, steps); k++) out[from + way * k] = { label: String(k), role: "scale" };
+      if (!phone.current) for (let k = 1; k < Math.min(climb + 1, steps); k++) out[from + way * k] = { label: String(k), role: "scale" };
       out[from] = { target: true, label: "0" };
       out[ends[1]] = { target: true, label: climb >= steps && steps ? String(steps) : undefined };
       if (climb < steps) out[from + way * climb] = { ...out[from + way * climb], demo: true };
-      for (const m of other) out[m] = { label: String(Math.abs(m - from)), role: "avoid" };
     } else {
       if (degree) out[tonic] = { label: "1", role: "scale" };
-      for (const m of played) out[m] = { target: true };
-      for (const m of other) out[m] = { role: "avoid", label: "×" };
+      // The played notes: an outlined key with a dot (a degree also names itself), the same at every width.
+      for (const m of played) out[m] = { target: true, ...(degree ? { label: prompt.answer } : {}) };
     }
     for (const m of lit) out[m] = { ...out[m], demo: true };
     return out;
@@ -110,14 +124,14 @@
 
 <div class="reveal">
   <figure data-testid="ear-reveal">
-    <InstrumentStage {line} {marks} current={lit.at(-1) ?? played.at(-1) ?? null} interactive={false} />
+    <InstrumentStage {line} {marks} flashes={chosenMarks} current={lit.at(-1) ?? played.at(-1) ?? null} interactive={false} />
     <figcaption class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
       {#if ends}
         <!-- The distance, counted as it climbs: one pip per half step. -->
         <span class="flex items-center gap-2" aria-hidden="true">
           <span class="count tnum font-display text-3xl font-bold">{steps}</span>
           <span class="flex flex-col gap-1">
-            <span class="text-xs text-ws-stage-soft">half steps</span>
+            <span class="text-sm text-ws-stage-soft">half steps</span>
             <span class="flex gap-0.5">
               {#each { length: steps } as _, k (k)}<span class="pip" class:on={k < climb}></span>{/each}
             </span>
@@ -168,7 +182,7 @@
     height: 0.8rem;
     margin-right: 0.35rem;
     vertical-align: -0.1rem;
-    border-radius: 999px;
+    border-radius: 0.2rem;
     border: 3px solid var(--instr);
   }
   .chosen-key {
@@ -183,10 +197,10 @@
     place-items: center;
     width: 1.1rem;
     height: 1.1rem;
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 800;
-    color: var(--ws-stage);
-    background: var(--tone-avoid);
+    color: white;
+    background: var(--destructive);
   }
   .staff summary::-webkit-details-marker {
     display: none;

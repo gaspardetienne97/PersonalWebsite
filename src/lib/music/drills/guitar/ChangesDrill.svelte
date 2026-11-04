@@ -36,6 +36,7 @@
   import NoteHighway, { highway, viewSwitch, type HighwayChord } from "$lib/music/notation/NoteHighway.svelte";
   import type { Hit } from "$lib/music/notation/highway";
   import { CHORD_MODES, openMode } from "./modes";
+  import ArrowRight from "lucide-svelte/icons/arrow-right";
 
   const IDLE_MS = 20_000;
   const CLOCK_STEPS = [{ label: "A change every bar" }, { label: "A change every 2 beats" }, { label: "A change every beat" }];
@@ -313,7 +314,7 @@
       mode,
       rows: [
         { label: "Changes completed", text: `${r.completed}${s.timed ? " in a minute" : ` of ${trips * n}`}` },
-        { label: "Changes with every target note", value: r.completed ? r.clean / r.completed : 0, text: `${r.clean} of ${r.completed}` },
+        { label: "With every target note", value: r.completed ? r.clean / r.completed : 0, text: `${r.clean} of ${r.completed}` },
         r.onTime !== null ? { label: "On time", value: r.completed ? r.onTime / r.completed : 0, text: `${r.onTime} of ${r.completed}` } : { label: "On time (no clock)", notMeasured: true },
         { label: "Target notes per chord", value: r.score },
         { label: "Which strings rang", notMeasured: true },
@@ -372,7 +373,7 @@
       <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="hardest">
         {#if hardest.length}
           <Choice label="Hardest five" options={hardest.map((h) => ({ value: h.key, label: pairName(h), detail: `${h.perMinute} a minute` }))} value={inHardest ? cycleKey : ""} onchange={(k) => useHard(hardest.find((h) => h.key === k)!)} />
-          <p class="text-xs text-ws-soft">Your slowest pairs, by changes a minute over each one's last three runs.</p>
+          <p class="text-[13px] text-ws-soft">Your slowest pairs, by changes a minute over each one's last three runs.</p>
         {:else}
           <p class="text-sm"><span class="font-medium">Hardest five:</span> <span class="text-ws-soft">play a few pairs first, and the slowest show here.</span></p>
         {/if}
@@ -413,7 +414,8 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if mode === "practice"}
+    {#if mode === "practice" && (!live || timedView)}
+      <!-- The whole cycle before the run (and over the highway); live without it, the chord now and the next one say it. -->
       <ChordStrip {shapes} {names} current={live ? target : null} />
     {/if}
     {#if beatsPerChord && phase !== "results"}
@@ -432,25 +434,34 @@
       </div>
     {:else if live || mode === "check"}
       <!-- Before a Practice run the chord strip already shows the cycle: the neck moves up instead. -->
-      {@const next = live ? (target + 1) % n : 1}
-      <div class="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2" data-dock="music">
-        <p class="font-display text-5xl font-bold leading-none">{live ? names[target] : names[0]}</p>
-        {#if mode === "practice"}
-          <!-- The next shape as a ghost: the move is visible before it is due. -->
-          <div class="flex items-center gap-2 rounded-xl border-2 border-dashed border-ws-stage-ink/30 py-1 pl-1 pr-3" data-testid="next-chord">
-            <div class="w-20 rounded-lg bg-ws-surface p-1 text-ws-ink sm:w-24">
-              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} label="" />
+      {@const now = live ? target : 0}
+      {@const next = (now + 1) % n}
+      <!-- The chord now over its own diagram, then the next one smaller to its right: the move is seen before it is due. -->
+      <div class="mb-3 flex flex-wrap items-end gap-x-4 gap-y-2" data-dock="music">
+        <div class="flex flex-col gap-2">
+          <p class="font-display text-5xl font-bold leading-none">{names[now]}</p>
+          {#if mode === "practice"}
+            <div class="w-24 rounded-lg bg-ws-surface p-1 text-ws-ink ring-3 ring-instr sm:w-28">
+              <ChordDiagram frets={shapes[now].frets} fingers={shapes[now].fingers} barre={shapes[now].barre} label="{names[now]}, now" />
             </div>
-            <p class="flex flex-col text-sm leading-tight text-ws-stage-soft">Next<span class="font-display text-xl font-semibold text-ws-stage-ink">{names[next]}</span></p>
+          {/if}
+        </div>
+        {#if mode === "practice"}
+          <ArrowRight class="mb-12 size-7 shrink-0 text-ws-stage-soft" aria-hidden="true" />
+          <div class="flex flex-col gap-2" data-testid="next-chord">
+            <p class="flex items-baseline gap-2 leading-none"><span class="text-sm text-ws-stage-soft">Next</span><span class="font-display text-2xl font-semibold">{names[next]}</span></p>
+            <div class="w-20 rounded-lg bg-ws-surface p-1 text-ws-ink opacity-85 sm:w-24">
+              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} label="{names[next]}, next" />
+            </div>
           </div>
         {:else}
-          <p class="text-lg text-ws-stage-soft">then {names[next]}</p>
+          <p class="pb-1 text-lg text-ws-stage-soft">then {names[next]}</p>
         {/if}
       </div>
     {/if}
     <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
     <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} compact label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
       {#if phase === "running" && !periodMs && !s.timed}
         <span class="text-sm text-ws-stage-soft">Pause briefly between chords. Stop when you are done: the changes you played are scored.</span>
@@ -464,13 +475,15 @@
   {#snippet results()}
     {#if summary}
       {#snippet figure()}
-        {#if pairRuns.length}
+        {#if pairRuns.length === 1}
+          <p class="text-base">First run on {cycleText}: <span class="font-semibold">{pairRuns[0].perMinute} a minute</span>. Your chart starts with the next one.</p>
+        {:else if pairRuns.length}
           <section aria-labelledby="pair-history">
             <h3 id="pair-history" class="text-sm font-semibold">{cycleText}: changes per minute</h3>
             <ol class="mt-3 flex h-28 items-end gap-1.5 overflow-x-auto pb-1">
               {#each pairRuns.slice(-16) as r, i (r.date + i)}
                 <li class="flex h-full w-8 shrink-0 flex-col items-center justify-end gap-1">
-                  <span class="tnum text-xs">{r.perMinute}</span>
+                  <span class="tnum text-[13px]">{r.perMinute}</span>
                   <span class="w-full rounded-t bg-instr" style:height="{Math.max(4, (r.perMinute / maxRun) * 72)}px" aria-hidden="true"></span>
                   <span class="sr-only">{new Date(r.date).toLocaleDateString()}: {r.perMinute} per minute, {r.clean} of {r.completed} with every note</span>
                 </li>

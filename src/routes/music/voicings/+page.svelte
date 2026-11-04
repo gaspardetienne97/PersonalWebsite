@@ -406,7 +406,7 @@
           aria-current={now ? "step" : undefined}
         >
           <span class="font-display text-xl font-semibold">{it.symbol}</span>
-          <span class="text-xs text-ws-stage-soft">
+          <span class="text-sm text-ws-stage-soft">
             {#if g}{g.correct ? "✓ right" : `✕ ${g.note}`}{:else if now}now{:else}&nbsp;{/if}
           </span>
         </li>
@@ -516,7 +516,7 @@
     min-width: 1.5rem;
     height: 1.5rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
     font-weight: 800;
   }
   .key-mark.target {

@@ -4,7 +4,7 @@
   // all at one height, so it never gives the answer away). Revealed, every
   // note rises to its pitch and the drill's own picture appears: intervals,
   // chords and cadences on a grand staff (named underneath), degrees in their
-  // colours with a melody's contour.
+  // one neutral colour with a melody's contour (green and red only for right and wrong).
   import { noteName, pc } from "@repo/music-core";
   import { functionLabel, functionSymbol, parseFunction, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
@@ -12,7 +12,7 @@
   import { inversionOf } from "@repo/music-core/scoring/ear";
   import type { Score } from "@repo/music-core";
   import Staff from "$lib/music/notation/Staff.svelte";
-  import { degreeColor } from "./degrees";
+  import { placeTags } from "./degrees";
   import { cadenceShift, tokenLabel } from "./session";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
@@ -74,7 +74,7 @@
     if (ei < (prompt.keyEvents ?? 0)) return "Key";
     // One event: the caption above already says "Played all at once".
     if (events.length === 1) return "";
-    return usesDegrees ? "" : String(ei + 1 - (prompt.keyEvents ?? 0));
+    return usesDegrees ? "" : `${chords ? "Chord" : "Note"} ${ei + 1 - (prompt.keyEvents ?? 0)}`;
   }
   /**
    * Inside each pip: the starting note's name where knowing it gives nothing away (an
@@ -89,15 +89,19 @@
     const one = events[ei].midi.length === 1;
     if (ei === 0 && named && one && events.length > 1) return noteName(events[0].midi[0], "flat", false);
     if (ei < (prompt.keyEvents ?? 0)) return "K";
-    return "?";
+    // Chords and unnamed notes count in order ("Chord 1, then chord 2"): a number, never a "?" that looks tappable.
+    return named ? "?" : String(slotOf(ei) + 1);
   }
+  const chords = $derived(["cadence", "progression", "chord-function", "loop", "key-change", "chord-quality", "inversion"].includes(prompt.drill));
   /** What the timing bars are, said once above them. */
   const caption = $derived(
     events.length === 1
       ? "Played all at once"
       : prompt.drill === "inversion"
         ? `Arpeggiated chord, ${events.length} notes`
-        : `${events.length} ${["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill) ? "chords" : "notes"}, one after another`,
+        : events.length - (prompt.keyEvents ?? 0) === 2 && chords
+          ? "Chord 1, then chord 2"
+          : `${events.length} ${chords ? "chords" : "notes"}, one after another`,
   );
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
@@ -108,7 +112,8 @@
       : answered.flatMap((m, i) => {
           const ei = i + (usesDegrees ? 1 : 0);
           const e = events[ei];
-          return e && Number.isFinite(m) && !e.midi.includes(m) ? [{ ei, m }] : [];
+          // Judged as the grader does, by pitch class: the right note in another octave is right.
+          return e && Number.isFinite(m) && !e.midi.some((x) => pc(x) === pc(m)) ? [{ ei, m }] : [];
         }),
   );
   const contour = $derived(
@@ -202,6 +207,30 @@
     const d = degreeOf(m);
     return labels === "solfege" ? (SCALE_DEGREES.find((s) => s.label === d)?.solfege ?? d) : d;
   };
+  const say = (d: string) => (labels === "solfege" ? (SCALE_DEGREES.find((x) => x.label === d)?.solfege ?? d) : d);
+  /** Judged (a phrase played back): which melody notes you got right, green; the rest stay neutral beside your red one. */
+  const judged = $derived(revealed && answered.length > 0);
+  const rightAt = (ei: number) => judged && !wrongAt.some((w) => w.ei === ei) && ei > 0;
+  /** Each note's label: the tonic says "Tonic" alone (it is 1 by definition), the rest their degree. Never within
+   *  8 px of another label: a label that would be goes under its note. 13 px bold, about 8 px a character. */
+  const tagText = (ei: number, m: number) => (isTonic(ei) ? "Tonic" : degreeText(m));
+  const tagYs = $derived.by(() => {
+    if (!revealed || !usesDegrees) return [] as number[][];
+    const boxes = events.flatMap((e, ei) => e.midi.map((m) => ({ x: x(e.time) + 4, above: yOf(m) - noteH / 2 - 4, below: yOf(m) + noteH / 2 + 15, w: tagText(ei, m).length * 8 })));
+    // Fixed: each "You: 4" row label and each red cross on the contour.
+    const taken = wrongAt.flatMap((w) => {
+      const e = events[w.ei];
+      const cx = x(e.time) + Math.max(8, x(e.time + e.duration) - x(e.time) - 3) / 2;
+      const r = noteH / 2 + 3;
+      return [
+        { x: cx - ((4 + degreeText(w.m).length) * 8) / 2, y: H - 6, w: (4 + degreeText(w.m).length) * 8 },
+        { x: cx - r, y: yOf(w.m) + r, w: 2 * r },
+      ];
+    });
+    const ys = placeTags(boxes, taken);
+    let k = 0;
+    return events.map((e) => e.midi.map(() => ys[k++]));
+  });
 </script>
 
 {#if revealed && onStaff}
@@ -245,7 +274,7 @@
     {@const on = ei === active}
     {#if revealed}
       {#each e.midi as m, mi (mi)}
-        {@const colour = usesDegrees ? degreeColor(degreeOf(m)) : "var(--instr)"}
+        {@const colour = rightAt(ei) ? "var(--success)" : usesDegrees ? "var(--ear-note)" : "var(--instr)"}
         <g class="note" style:--d="{ei * 70 + mi * 30}ms">
           <rect
             x={x(e.time)}
@@ -260,7 +289,7 @@
             class:on
           />
           {#if usesDegrees}
-            <text class="tag" x={x(e.time) + 4} y={yOf(m) - noteH / 2 - 4}>{isTonic(ei) ? `Tonic, ${degreeText(m)}` : degreeText(m)}</text>
+            <text class="tag" x={x(e.time) + 4} y={tagYs[ei]?.[mi] ?? yOf(m) - noteH / 2 - 4}>{tagText(ei, m)}</text>
           {/if}
         </g>
       {/each}
@@ -271,7 +300,7 @@
       {#if tail > pipR + 4}<rect class="tail" class:on x={cx} y={mid - 4} width={tail} height="8" rx="4" />{/if}
       <g class="pip-g" class:on class:done={active > ei} style:transform-origin="{cx}px {mid}px">
         <circle class="shape" class:on class:tonic={isTonic(ei)} class:done={active > ei} class:filled={isFilled(ei)} {cx} cy={mid} r={pipR} />
-        <text class="pip-text" class:on x={cx} y={mid} text-anchor="middle" dominant-baseline="central" font-size={Math.round(pipR * (pipText(ei).length > 2 ? 0.55 : 0.75))}>{pipText(ei)}</text>
+        <text class="pip-text" class:on x={cx} y={mid} text-anchor="middle" dominant-baseline="central" font-size={Math.max(13, Math.round(pipR * (pipText(ei).length > 2 ? 0.55 : 0.75)))}>{pipText(ei)}</text>
       </g>
       {#if shapeLabel(ei)}
         <text class="shape-tag" class:on x={cx} y={mid + pipR + 20} text-anchor="middle">{shapeLabel(ei)}</text>
@@ -281,7 +310,12 @@
 
 
 </svg>
-{#if revealed && prefix}<p class="mt-1 text-center text-sm font-semibold">{prefix}: {["melody-dictation", "repertoire-transfer"].includes(prompt.drill) ? prompt.answer.split(" ").map((d) => (labels === "solfege" ? (SCALE_DEGREES.find((x) => x.label === d)?.solfege ?? d) : d)).join(" ") : tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>{/if}
+{#if revealed && prefix}
+  {@const phrase = ["melody-dictation", "repertoire-transfer"].includes(prompt.drill)}
+  <p class="mt-1 text-center text-sm font-semibold">{prefix}: {phrase ? prompt.answer.split(" ").map(say).join(" ") : tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>
+  <!-- A phrase you played back: your notes under the phrase's, each by its own degree (4 #4 4 under 4 3 4). -->
+  {#if phrase && judged}<p class="text-center text-sm font-semibold">You played: {answered.map((m) => (Number.isFinite(m) ? degreeText(m) : "?")).join(" ")}</p>{/if}
+{/if}
 </div>
 {/if}
 
@@ -290,6 +324,8 @@
     animation: fade 400ms both;
   }
   .ear-visual {
+    /* One neutral note colour (3:1 on the stage); green and red mean only right and wrong. */
+    --ear-note: color-mix(in oklch, var(--ws-stage-ink) 72%, var(--ws-stage));
     display: block;
     width: 100%;
     height: auto;

@@ -118,3 +118,32 @@ export function spellChord(midis: number[]): string[] {
     sorted.map((m) => ({ midi: m, steps: CHORD_STEPS[(((m - root) % 12) + 12) % 12] })),
   ).slice(1);
 }
+
+/** A label to place: its left edge, its baseline above the note and the one under it, its width. */
+export interface TagBox {
+  x: number;
+  above: number;
+  below: number;
+  w: number;
+}
+/**
+ * Baselines for note labels: each sits above its note unless that lands within `gap` px of a
+ * label already placed (or a fixed one in `taken`), then under it. 13 px text, so a box is 13 tall.
+ */
+export function placeTags(
+  tags: readonly TagBox[],
+  taken: readonly { x: number; y: number; w: number }[] = [],
+  gap = 8,
+): number[] {
+  const placed = [...taken];
+  const clear = (x: number, y: number, w: number) =>
+    placed.every(
+      (p) =>
+        x + w + gap <= p.x || p.x + p.w + gap <= x || y + gap <= p.y - 13 || p.y + gap <= y - 13,
+    );
+  return tags.map((t) => {
+    const y = clear(t.x, t.above, t.w) ? t.above : t.below;
+    placed.push({ x: t.x, y, w: t.w });
+    return y;
+  });
+}

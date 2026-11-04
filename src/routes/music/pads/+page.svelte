@@ -36,7 +36,7 @@
   import StickingLane from "$lib/music/drills/pads/StickingLane.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
   import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
-  import { judgeHit, laneColor, orderLanes, overdue, padsDue, type Judgement } from "$lib/music/drills/pads/lanes";
+  import { judgeHit, laneColor, orderLanes, overdue, padsDue, strokeScore, type Judgement } from "$lib/music/drills/pads/lanes";
   // The results card's stars (the advance rule's lines), so a groove's badge in the picker agrees with them.
   import { starsFor } from "$lib/music/components/trend";
   import { backingChords, backingFor } from "$lib/music/drills/pads/backing";
@@ -270,20 +270,27 @@
   });
   let judged = $state<Record<number, Judgement>>({});
   let streak = $state(0);
+  /** Hits no note claimed this run: on a pad the piece does not use, and on its pads off the notes. */
+  let liveWrongPad = $state(0);
   let liveExtra = $state(0);
   /** Extra hits this run, marked in the lane of the pad that was hit. */
   let extraMarks = $state<{ lane: number; atMs: number }[]>([]);
   let bestStreak = $state(0);
   let flashKey = 0;
-  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
+  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number; lane?: number } | null>(null);
   const judgedCount = $derived(Object.keys(judged).length);
   const landedCount = $derived(Object.values(judged).filter((j) => j !== "miss").length);
   /** A hit, judged against the nearest unjudged note on its pad inside the good window. */
   function judge(e: NoteEvent) {
     const hit = judgeHit(live, judged, e.midi, e.at - downbeat, judgeWindow);
     if (!hit) {
-      liveExtra++;
-      extraMarks = [...extraMarks, { lane: lanes.findIndex((l) => l.pad === e.midi), atMs: e.at - downbeat }];
+      const at = e.at - downbeat;
+      const own = lanes.findIndex((l) => l.pad === e.midi);
+      if (own < 0) liveWrongPad++;
+      else liveExtra++;
+      // A pad the piece does not use is marked on the lane of the note due nearest that moment.
+      const nearest = live.reduce((b, n) => (b === null || Math.abs(n.atMs - at) < Math.abs(b.atMs - at) ? n : b), null as (typeof live)[number] | null);
+      extraMarks = [...extraMarks, { lane: own >= 0 ? own : (nearest?.lane ?? -1), atMs: at }];
       flashNote = { judgement: "extra", key: ++flashKey };
       return;
     }
@@ -291,7 +298,7 @@
     if (hit.judgement !== "miss") timing.add(e.midi, hit.judgement, 450);
     streak++;
     bestStreak = Math.max(bestStreak, streak);
-    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey };
+    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey, lane: live[hit.index]?.lane };
   }
   /** Notes gone past the good window unhit: missed, and the streak resets. */
   function sweepMisses() {
@@ -300,7 +307,7 @@
     if (!missed.length) return;
     judged = { ...judged, ...Object.fromEntries(missed.map((i) => [i, "miss" as const])) };
     streak = 0;
-    flashNote = { judgement: "miss", key: ++flashKey };
+    flashNote = { judgement: "miss", key: ++flashKey, lane: live[missed[missed.length - 1]]?.lane };
   }
 
   // Wait mode: the notes stop at each group until its pads are hit.
@@ -465,6 +472,7 @@
     judged = {};
     streak = 0;
     liveExtra = 0;
+    liveWrongPad = 0;
     extraMarks = [];
     bestStreak = 0;
     flashNote = null;
@@ -572,8 +580,9 @@
         anchorAt: downbeat,
         hits: notes,
       });
-      rud = r;
-      graded = r;
+      // The score follows the strokes: timing and velocity count for the share that landed (never more than the grader's).
+      rud = { ...r, score: strokeScore(r) };
+      graded = rud;
     }
     phase = "results";
     await run!.attempt({
@@ -665,9 +674,10 @@
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
           : evennessRow(r.velocity, r.matched, r.total, hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"),
-        { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} stray` : ""}` },
+        { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} extra` : ""}` },
       ],
-      cleanMeans: "every stroke on its pad and on the click",
+      // The grader's pass rule exactly (gradeRudiment's correct).
+      cleanMeans: `every stroke played, 7 of 8 on the right pad, 90 ms or less off the click on average${r.velocity === null ? "" : hits.some((h) => h.velocityBand) ? ", accents in band" : ", even velocity"}`,
     };
   }
 
@@ -709,7 +719,8 @@
       metric: pct(r.score),
       // What the input could not measure is said once, in its own row below.
       metricLabel: "score",
-      cleanMeans: "9 of 10 hits on time, 7 of 10 dead on",
+      // The pass rule exactly (gradeTier), with the windows the rows and the setup line show.
+      cleanMeans: `9 of 10 hits within ${Math.round(x.tier.goodMs)} ms and 7 of 10 within ${Math.round(x.tier.perfectMs)} ms${isSteady ? ", and within 3 BPM on your own" : ""}`,
       timing: ons.length ? timingBreakdown(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
         ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
@@ -718,7 +729,7 @@
         ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
-        { label: "Stray hits", text: r.extra ? String(r.extra) : "None" },
+        { label: "Extra hits", text: r.extra ? String(r.extra) : "None" },
         timingRow(r.perTarget.filter((e): e is number => e !== null), total, 180, "Timing", x.tier.goodMs),
         r.inBand === null
           ? { label: `Accents: ${velocityWhy(ons)}`, notMeasured: true }
@@ -791,7 +802,7 @@
 
 {#snippet padGrid()}
   <div data-dock="answers">
-    <Pads {marks} {flashes} {timing} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+    <Pads {marks} {flashes} {timing} {names} colors={padColors} fit={(phase === "running" || phase === "countin") && !(notesShown && showLanes)} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
   </div>
 {/snippet}
 
@@ -814,7 +825,6 @@
   tab={s.mode}
   ontab={setMode}
   lesson={{ lessons: isGroove ? padLessons("grooves", entry.level, grooveLessonItems(entry, swing)) : padLessons("rudiments", undefined, [rudimentItem(pattern.id)]) }}
-  modeNotes={{ practice: "The notes come at you, judged as they pass. Practice, not a test.", check: "From memory, no notes shown. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -900,8 +910,9 @@
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
     {/if}
     {#if phase === "running" && guided && !waitMode && judgedCount}
-      <Stat label="On target" value="{landedCount} of {judgedCount}" tone={landedCount === judgedCount ? "success" : undefined} />
-      {#if liveExtra}<Stat label="Stray hits" value={liveExtra} />{/if}
+      <Stat label="On target" value="{landedCount} of {judgedCount} {isGroove ? 'hits' : 'strokes'}" tone={landedCount === judgedCount && !liveWrongPad && !liveExtra ? "success" : undefined} />
+      {#if liveWrongPad}<Stat label="Wrong pad" value={liveWrongPad} />{/if}
+      {#if liveExtra}<Stat label="Extra" value={liveExtra} />{/if}
     {/if}
     <!-- After a run the HUD stays quiet: the results card says the numbers once (a silent run has none). -->
   {/snippet}
@@ -916,16 +927,19 @@
         </p>
       {:else}
         {#if isGroove && !playing}
-          <div class="rounded-xl bg-ws-stage-ink/8 p-3 text-sm" aria-label="About this groove">
-            <p class="font-semibold">
-              {entry.groove.label}. <span class="font-normal text-ws-stage-soft">{entry.style}, level {entry.level}{grooveMeter(entry.groove) !== "4/4" ? `, in ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? `, swing ${swing}%` : ""}. {levelOf.tier.charAt(0).toUpperCase() + levelOf.tier.slice(1)} timing: perfect within {TIERS[levelOf.tier].perfect} ms, good within {TIERS[levelOf.tier].good} ms.</span>
-            </p>
+          <!-- One line, the rest behind More, so the lanes and the pads stay in the first screen. -->
+          <details class="rounded-xl bg-ws-stage-ink/8 px-3 py-2 text-sm" aria-label="About this groove">
+            <summary class="flex min-h-8 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+              <span class="min-w-0 flex-1 truncate"><span class="font-semibold">{entry.groove.label}.</span> <span class="text-ws-stage-soft">{entry.style}, level {entry.level}{grooveMeter(entry.groove) !== "4/4" ? `, in ${grooveMeter(entry.groove)}` : ""}{swing !== 50 ? `, swing ${swing}%` : ""}</span></span>
+              <span class="shrink-0 font-medium text-ws-stage-ink underline underline-offset-2">More</span>
+            </summary>
+            <p class="mt-1 text-ws-stage-soft">{levelOf.tier.charAt(0).toUpperCase() + levelOf.tier.slice(1)} timing: perfect within {Math.round(judgeWindow.perfect)} ms, good within {Math.round(judgeWindow.good)} ms.</p>
             <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
             <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
             <p class="mt-1 text-ws-stage-soft">
               {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; two clean runs in a row move it up. Now {bpm}.{/if}
             </p>
-          </div>
+          </details>
         {/if}
         {#if showLanes}
           <!-- The notes slide onto the hit line, judged as they pass; the pads beside light the next hit. -->
@@ -944,8 +958,10 @@
             label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
             pads={padGrid}
             extras={extraMarks}
+            fill={phase === "running" || phase === "countin"}
+            alone={phase === "running" || phase === "countin" ? null : isGroove ? "lanes" : "pads"}
           />
-          {#if waitMode}<p class="text-xs text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
+          {#if waitMode}<p class="text-sm text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
         {:else if isGroove}
           <GrooveGrid
             targets={groove.targets}
@@ -960,8 +976,8 @@
         {:else}
           <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
         {/if}
-        {#if !isGroove && hits.some((h) => h.grace)}<p class="text-xs text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
-        {#if !isGroove && phase === "ready"}<p class="text-xs text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
+        {#if !isGroove && hits.some((h) => h.grace)}<p class="text-sm text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
+        {#if !isGroove && phase === "ready"}<p class="text-sm text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
       {/if}
       {#if !(notesShown && showLanes)}{@render padGrid()}{/if}
     </div>

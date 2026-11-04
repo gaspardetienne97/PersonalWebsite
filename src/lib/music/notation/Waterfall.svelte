@@ -199,7 +199,7 @@
     position: absolute;
     left: 0.3rem;
     bottom: 2px;
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     line-height: 1;
     color: color-mix(in oklch, var(--wf-ink) 55%, transparent);
   }
@@ -216,7 +216,7 @@
     /* A bright leading edge: the bottom reaches the keys first, so it marks where the note starts. */
     box-shadow: inset 0 -2px 0 color-mix(in oklch, var(--wf-hand) 45%, white);
     color: #17120c;
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     line-height: 1;
   }

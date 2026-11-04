@@ -29,7 +29,7 @@
     beat?: number | null;
     beatsPerBar?: number;
     chords?: { beat: number; symbol: string }[];
-    /** Check mode: keep the rhythm grid, hide the notes. */
+    /** Check mode: keep the rhythm grid, each note an outlined blank slot. */
     hidden?: boolean;
     /** Show "&" between beats (eighth-note material). */
     eighths?: boolean;
@@ -82,18 +82,18 @@
     if (x < box.scrollLeft + 36 || x > box.scrollLeft + box.clientWidth * 0.75) box.scrollLeft = Math.max(0, x - box.clientWidth / 3);
   });
   const live = (n: LaneNote) => beat !== null && beat >= n.beat && beat < n.beat + Math.max(0.2, n.dur * 0.9);
-  /** Where a note falls in its bar, the way it is counted: "1", "&", "2"... (Check shows this instead of the note). */
-  const count = (b: number) => (Math.abs(b % 1) < 0.01 ? String((Math.floor(b) % beatsPerBar) + 1) : "&");
   /** The chord sounding now (or at the start), pinned at the lane's left edge so it never scrolls away. */
   const nowChord = $derived(chords.length ? chords.filter((c) => c.beat <= Math.max(0, beat ?? 0)).at(-1)?.symbol ?? chords[0].symbol : null);
 </script>
 
-<div bind:clientWidth={outer} class="flex flex-col gap-2" class:mb-3={!marked} role="img" aria-label={label}>
+<!-- The region a live stage grows (DrillShell, S3): the rows take the free height, up to a comfortable size, and
+     the keys under the lane stay right below it. -->
+<div bind:clientWidth={outer} class="flex flex-col gap-2" class:mb-3={!marked} role="img" aria-label={label} data-grow>
   {#each systems as [b0, b1] (b0)}
     <div
       bind:this={box}
       onscroll={() => (scrolled = (box?.scrollLeft ?? 0) > 8)}
-      class="lane overflow-x-auto overscroll-x-contain rounded-xl"
+      class="lane flex flex-col overflow-x-auto overscroll-x-contain rounded-xl"
       class:tight={wrap}
       data-scrolls={!wrap && outer > 0 && outer < Math.max(18, beats * (eighths ? 5.5 : 3)) * REM ? "" : undefined}
     >
@@ -126,7 +126,7 @@
   {@const pos = (b: number) => `${((b - b0) / len) * 100}%`}
   <!-- A short last row keeps the bar width of the rows above it (three bars on two rows: the third is half wide). -->
   <div
-    class="relative"
+    class="relative flex flex-1 flex-col"
     style:min-width={wrap ? undefined : `${Math.max(18, beats * (eighths ? 5.5 : 3))}rem`}
     style:width={wrap ? `calc(2.25rem + (100% - 2.25rem) * ${len / (perRow * beatsPerBar)})` : undefined}
   >
@@ -141,19 +141,20 @@
         </div>
       </div>
     {/if}
-    <div class="relative ml-9 h-5 text-xs text-ws-stage-soft" aria-hidden="true">
+    <!-- The count over the lane; a phone keeps the beats and drops the "&"s, which would crowd one bar a row. -->
+    <div class="relative ml-9 h-5 text-[0.8125rem] leading-5 text-ws-stage-soft" aria-hidden="true">
       {#each ticks.filter((t) => t >= b0 && t < b1) as t (t)}
         <span
-          class="tnum absolute top-0 -translate-x-0.5 {t % 1 ? 'opacity-60' : 'font-semibold'}"
+          class="tnum absolute top-0 -translate-x-0.5 {t % 1 ? 'max-sm:hidden' : 'font-semibold'}"
           style:left={pos(t)}>{t % 1 ? "&" : (Math.floor(t) % beatsPerBar) + 1}</span
         >
       {/each}
     </div>
     {#each rows as row (row.id)}
-      <div class="flex items-center py-0.5">
+      <div class="row flex flex-1 items-center py-0.5">
         <span class="gutter"><span class="hand-mark" data-hand={row.hand} title={row.label}>{row.mark}</span></span>
-        <!-- Rows grow a little with a tall screen; wrapped bars keep them short, so both bars and the keys fit. -->
-        <div class="track relative flex-1 rounded-md {wrap ? 'h-10' : 'h-[clamp(2.5rem,5.5dvh,4.5rem)]'}">
+        <!-- Rows share the height the stage gives the lane (a live run), never under 40 px nor over 96. -->
+        <div class="track relative flex-1 self-stretch rounded-md {wrap ? 'min-h-10' : 'min-h-[clamp(2.5rem,5.5dvh,4.5rem)]'}">
           {#each Array.from({ length: Math.ceil(len / beatsPerBar) }, (_, i) => b0 + i * beatsPerBar) as bar (bar)}
             <span class="bar-line" style:left={pos(bar)} aria-hidden="true"></span>
           {/each}
@@ -165,11 +166,11 @@
                 data-hand={row.hand}
                 data-live={live(n) || undefined}
                 data-outcome={out}
-                data-off={hidden && n.beat % 1 ? "" : undefined}
+                data-hidden={hidden || undefined}
                 title={out ? `${n.text}: ${SAID[out]}` : undefined}
                 style:left={pos(n.beat)}
                 style:width="max(1.15rem, calc({((Math.min(widthOf(row, i), b1 - n.beat)) / len) * 100}% - 3px))"
-                >{hidden ? count(n.beat) : n.text}{#if out}{@const G = GLYPH[out]}<span class="mark" aria-hidden="true"><G class="size-3" strokeWidth={3} /></span>{/if}</span
+                >{hidden ? "" : n.text}{#if out}{@const G = GLYPH[out]}<span class="mark" aria-hidden="true"><G class="size-3" strokeWidth={3} /></span>{/if}</span
               >
             {/if}
           {/each}
@@ -184,8 +185,12 @@
 
 <style>
   .lane {
+    flex: 1 1 auto;
     background: color-mix(in oklch, var(--ws-stage-ink, white) 5%, transparent);
     padding: 0.4rem 0.5rem 0.5rem;
+  }
+  .row {
+    max-height: 6rem;
   }
   /* The left column (hand marks, the chord now) stays put while a long lane scrolls under it. */
   .gutter {
@@ -207,7 +212,7 @@
   }
   /* One bar a row on a phone: eighth-note chips are narrow, so the name and the mark shrink to fit. */
   .tight .chip {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .lane.tight {
     padding: 0.25rem 0.5rem;
@@ -220,7 +225,7 @@
     height: 0.85rem;
   }
   .now-chord {
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     line-height: 1;
     overflow: hidden;
     white-space: nowrap;
@@ -242,7 +247,7 @@
     display: grid;
     place-items: center;
     border-radius: 0.5rem;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: #17120c;
     background: var(--instr);
@@ -275,10 +280,20 @@
     overflow: hidden;
     opacity: 0.88;
   }
-  /* Check: the blocks carry the count instead of the note; the off-beats step back. */
-  .chip[data-off] {
-    opacity: 0.55;
-    font-weight: 600;
+  /* Check: an outlined slot a note, in its hand's colour, blank (when, not what). */
+  .chip[data-hidden] {
+    opacity: 1;
+    background: transparent;
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--slot, var(--instr)) 85%, transparent);
+  }
+  .chip[data-hidden][data-hand="left"] {
+    --slot: var(--hand-left);
+    background: transparent;
+    border-left-color: var(--hand-left);
+  }
+  .chip[data-hidden][data-hand="right"] {
+    --slot: var(--hand-right);
+    background: transparent;
   }
   .chip[data-live] {
     opacity: 1;

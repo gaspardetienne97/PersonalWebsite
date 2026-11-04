@@ -28,7 +28,7 @@ describe("explainNote", () => {
 
   it("flags notes outside bank A and unmapped devices", () => {
     expect(explainNote([0x99, 82, 100], priv)?.text).toContain("outside bank A");
-    expect(explainNote([0x99, 38, 100], priv)?.text).toContain("Pads not mapped yet");
+    expect(explainNote([0x99, 38, 100], priv)?.text).toContain("using the default pad order");
   });
 
   it("ignores note-offs and names wind notes", () => {
@@ -58,7 +58,9 @@ describe("waitingReason", () => {
         ],
       }),
     ).toContain("ignored");
-    expect(waitingReason({ ...base, link: "off" })).toContain("No controller link");
+    expect(waitingReason({ ...base, link: "off" })).toBe(
+      "MPC not linked, so pad hits are not heard. Link it in Connect.",
+    );
     expect(waitingReason({ ...base, link: "no-sysex" })).toContain("SysEx");
     expect(waitingReason({ ...base, profiles: [{ id: "pub", ignored: true }] })).toBe(
       "Linked and listening on MPC One+ Private. Hit a pad.",

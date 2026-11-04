@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseChordSymbol } from "@repo/music-core/theory/chords";
-import { toneLabel } from "./tones";
+import { scaleTip, toneLabel } from "./tones";
 
 const labels = (symbol: string, semis: number[]) =>
   semis.map((s) => toneLabel(s, parseChordSymbol(symbol)!.intervals));
@@ -22,5 +22,14 @@ describe("toneLabel", () => {
     ]);
     expect(labels("Dm7b5", [3, 6])).toEqual(["b3", "b5"]);
     expect(labels("Cdim7", [9])).toEqual(["bb7"]);
+  });
+});
+
+describe("scaleTip", () => {
+  it("gives each scale its own reason, never Lydian's to Mixolydian", () => {
+    expect(scaleTip("C Lydian")).toBe("Raised 4th: no clash with the 3rd");
+    expect(scaleTip("G Mixolydian")).toBe("Flat 7th: the chord's own 7th");
+    expect(scaleTip("D Dorian")).toContain("6th");
+    expect(scaleTip("C major (Ionian)")).toBeNull();
   });
 });

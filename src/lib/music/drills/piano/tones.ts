@@ -35,3 +35,15 @@ export function toneLabel(semitones: number, chordIntervals: readonly number[]):
       return "7";
   }
 }
+
+/**
+ * The one line that says why a chord's scale fits it, from the scale's own
+ * degrees: Lydian's raised 4th, Mixolydian's flat 7th, Dorian's natural 6th.
+ * Matched on the whole word, so "Mixolydian" never gets Lydian's tip.
+ */
+export function scaleTip(scaleLabel: string): string | null {
+  if (/\bmixolydian\b/i.test(scaleLabel)) return "Flat 7th: the chord's own 7th";
+  if (/\blydian\b/i.test(scaleLabel)) return "Raised 4th: no clash with the 3rd";
+  if (/\bdorian\b/i.test(scaleLabel)) return "Natural 6th: the minor's brighter colour";
+  return null;
+}

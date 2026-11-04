@@ -360,7 +360,7 @@
       {/if}
       <!-- On a laptop the Aerophone's fingering chart stands beside the staff, so both fit one screen. -->
       <div class={own === "aerophone" ? "flex min-h-0 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-6" : "contents"}>
-      <div class="flex min-h-0 flex-col justify-center" data-dock="music">
+      <div class="flex min-h-0 flex-col" data-dock="music">
       {#if moving && (mode === "practice" || transport.playing) && phase !== "results"}
         {@const beat = transport.beat === null ? null : transport.beat * click}
         <div class="mb-3">
@@ -373,7 +373,7 @@
         </div>
       {:else if mode === "practice" || transport.playing || phase === "results"}
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
-          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} oneRow minZoom={phoneZoom} /></div>
+          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={phase === "running" ? (events[Math.min(played, events.length - 1)]?.startBeat ?? 0) * click : transport.beat === null ? null : transport.beat * click} groupStates={states} oneRow minZoom={phoneZoom} /></div>
       {:else}
         <!-- Check: the notes stay hidden; a slot a note shows how many are left, and the phrase can be heard again before a run. -->
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3" data-testid="check-progress">
@@ -397,7 +397,7 @@
         <div class="flex flex-col" data-dock="instrument">
           <!-- The word for the last note has its own row between the music and the instrument, never over it. -->
           {#if phase === "running" && mode === "practice"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
-          <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
+          <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} spelling={phrase?.keyFifths < 0 ? "flat" : "sharp"} fill={phase === "running" || phase === "countin"} />
         </div>
       {/if}
       </div>

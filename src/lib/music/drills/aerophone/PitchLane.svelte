@@ -23,7 +23,7 @@
 </script>
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
-  <figcaption class="mb-1 flex items-baseline justify-between text-xs text-ws-stage-soft">
+  <figcaption class="mb-1 flex items-baseline justify-between text-sm text-ws-stage-soft">
     <span>Pitch{drone !== null ? `, drone ${name(drone)}` : ""}</span>
     <span class="tnum font-semibold text-ws-stage-ink">
       {#if Number.isFinite(now)}{name(now)}{#if now === target}<span class="ml-1 text-success-stage" aria-label="on target">✓</span>{/if}{:else}silent{/if}
@@ -39,8 +39,8 @@
       <rect x={d.x - 2.5} y={y(d.m) - 2.5} width="5" height="5" rx="1.5" class="dot" data-on={d.m === target || undefined} />
     {/each}
   </svg>
-  {#if drone !== null}<span class="cap" style:top="{((y(drone) - 17) / H) * 100}%">drone {name(drone)}</span>{/if}
-  <span class="cap" style:top="{((y(target) - 15) / H) * 100}%">{name(target)}</span>
+  {#if drone !== null}<span class="cap" style:top="{((y(drone) - 20) / H) * 100}%">drone {name(drone)}</span>{/if}
+  <span class="cap" style:top="{((y(target) - 19) / H) * 100}%">{name(target)}</span>
   </div>
 </figure>
 
@@ -57,7 +57,7 @@
   .cap {
     position: absolute;
     left: 0.25rem;
-    font-size: 0.66rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     pointer-events: none;
   }

@@ -412,7 +412,7 @@
             { label: `${words.one === "Note" ? "Notes" : "Notes and chords"} right first time`, value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
             { label: "Wrong notes", text: String(wait!.wrongNotes) },
             // Wait for me waits for each note, so there is no beat to be on: say how to get timing graded.
-            { label: "Timing", notMeasured: true, text: "Timing is scored with the click on (In time with the click)" },
+            { label: "Timing", notMeasured: true, text: `Not scored in ${FOLLOWER_NAME.wait}. Turn on the click to score timing.` },
           ],
     };
     // The climb is its own advance; otherwise the next run by the shared rule, when something was played.
@@ -549,8 +549,9 @@
     for (const m of lit) out[m] = { demo: true };
     if (phase === "running" && mode === "practice" && current)
       for (const n of current.notes)
-        // The wanted key carries its name (or its hand when both hands play), so the eye need not hunt for it.
-        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : noteName(n.midi + transpose), role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
+        // The wanted key carries its name (or its hand when both hands play), so the eye need not hunt for it; a C
+        // already prints its name on the key, so it only lights.
+        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : pc(n.midi + transpose) === 0 ? undefined : noteName(n.midi + transpose), role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
     return out;
   });
   const allSounding = $derived(sounding.voices.flatMap((v) => v.notes.map((n) => n.midi)));
@@ -569,7 +570,8 @@
   });
   // A short phrase engraves at its natural size (about 190 px a bar); zoom it to fill the stage.
   let paperW = $state(0);
-  const zoom = $derived(paperW ? Math.min(1.8, Math.max(1, paperW / (Math.min(4, measures) * 200 + 110))) : 1);
+  // The stage hugs the staff and the keys (no growing region): a wide screen gets a bigger staff instead.
+  const zoom = $derived(paperW ? Math.min(2.2, Math.max(1, paperW / (Math.min(4, measures) * 200 + 110))) : 1);
   // Which hand is up, only when the phrase has two.
   const hand = $derived(both ? handLabel(current ?? groups[0]) : null);
 
@@ -665,7 +667,8 @@
         {#if !showTab}<span class="text-sm text-ws-stage-soft">Tab stays hidden so the staff does the work.</span>{/if}
       {/if}
       {#if phase === "ready"}
-        <button type="button" class={btnStage} onclick={newPhrase}>New phrase</button>
+        <!-- Outlined, so it reads as a button on the stage, beside the staff it changes. -->
+        <button type="button" class="{btnStage} border-2 border-ws-stage-ink/40 bg-transparent" onclick={newPhrase}>New phrase</button>
       {/if}
     </div>
     {#if fretted && tabTuning && showTab}
@@ -697,9 +700,9 @@
               }}
             >
               <span class="font-display text-2xl font-bold">Kick</span>
-              <span class="text-xs opacity-80">every beat</span>
+              <span class="text-sm opacity-80">every beat</span>
             </button>
-            <p class="text-center text-xs text-ws-stage-soft">A kick pad (MIDI 36) counts too.</p>
+            <p class="text-center text-sm text-ws-stage-soft">A kick pad (MIDI 36) counts too.</p>
           </div>
         {/if}
         <div class="flex flex-col items-center gap-2">
@@ -723,9 +726,9 @@
             }}
           >
             <span class="font-display text-2xl font-bold">Tap</span>
-            <span class="text-xs opacity-80">or Space</span>
+            <span class="text-sm opacity-80">or Space</span>
           </button>
-          <p class="text-center text-xs text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is graded.</p>
+          <p class="text-center text-sm text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is graded.</p>
         </div>
         </div>
       {:else if useMic}

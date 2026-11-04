@@ -19,6 +19,7 @@
   import Pencil from "lucide-svelte/icons/pencil";
   import Drum from "lucide-svelte/icons/drum";
   import Dots from "lucide-svelte/icons/ellipsis";
+  import CircleX from "lucide-svelte/icons/circle-x";
   import * as Menu from "@repo/ui/dropdown-menu";
   import { goto } from "$app/navigation";
   import { nextRun } from "$lib/music/advance.svelte";
@@ -41,7 +42,6 @@
   } from "@repo/music-core/scoring/follower";
   import HubTabs from "$lib/music/components/HubTabs.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
@@ -907,13 +907,21 @@
 
 <svelte:window onkeydown={onKey} />
 
-<section class="mx-auto flex w-full max-w-6xl flex-col gap-4" aria-labelledby="studio-title">
+{#snippet stat(label: string, value: string)}
+  <span class="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-tight" data-stat>
+    <span class="text-ws-stage-soft">{label}</span>
+    <span class="tnum font-semibold text-ws-stage-ink">{value}</span>
+  </span>
+{/snippet}
+
+<!-- Live on a laptop the run fills the screen: the stage takes the height and the score grows into it. -->
+<section class="mx-auto flex w-full max-w-6xl flex-col gap-3 sm:gap-4 {live ? 'lg:min-h-[calc(100dvh-7.25rem)]' : ''}" aria-labelledby="studio-title">
   {#if !live}
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
         <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/library"><ArrowLeft class="size-4" aria-hidden="true" />Back to your songs</a>
         <h1 id="studio-title" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{song.title}</h1>
-        <p class="mt-1 text-ws-soft">
+        <p class="mt-1 text-ws-soft max-sm:text-sm">
           {song.composer ? `${song.composer}. ` : ""}{barsText(facts.bars)} in {facts.meter}{facts.key ? `, ${facts.key}` : ""}, written at {score.bpm} BPM ({durationText(facts.seconds)}).
         </p>
       </div>
@@ -1104,7 +1112,7 @@
   <!-- Transport and practice actions: above the score. -->
   <div class="flex flex-wrap items-center gap-2">
     {#if live}
-      <button type="button" class="{btnPrimary} min-h-12 px-6" onclick={stop}><Square class="size-4" aria-hidden="true" />Stop <kbd class="text-xs opacity-70">Esc</kbd></button>
+      <button type="button" class="{btnPrimary} min-h-12 px-6" onclick={stop}><Square class="size-4" aria-hidden="true" />Stop <kbd class="text-[13px] opacity-70">Esc</kbd></button>
       {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />Ready, count me in</button>{/if}
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
@@ -1153,7 +1161,7 @@
           <ul class="mt-2 divide-y divide-ws-line" aria-label="Per-take results">
             {#each takeRows as r (r.label)}
               <li class="flex items-baseline gap-3 py-2 text-sm">
-                <span class="min-w-0 flex-1"><span class="font-medium">{r.label}</span>{#if r.best}<span class="ml-2 rounded-full bg-instr-wash px-2 py-0.5 text-xs font-semibold text-instr-ink">Best take</span>{/if}<span class="block text-ws-soft">{r.detail}</span></span>
+                <span class="min-w-0 flex-1"><span class="font-medium">{r.label}</span>{#if r.best}<span class="ml-2 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">Best take</span>{/if}<span class="block text-ws-soft">{r.detail}</span></span>
                 <span class="tnum font-display text-xl font-semibold">{pct(r.score)}</span>
               </li>
             {/each}
@@ -1176,19 +1184,21 @@
     </div>
   {/if}
 
-  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={(phase === "countin" || phase === "running") && perfMode ? Math.round(startAt) : undefined}>
+  <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5 {live ? 'lg:flex lg:flex-1 lg:flex-col' : ''}" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={(phase === "countin" || phase === "running") && perfMode ? Math.round(startAt) : undefined}>
     {#if live}
+      <!-- Progress in a neutral ink, so the wanted key (in the instrument hue) never reads as part of it. -->
       <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
-        <div class="h-full rounded-full bg-instr" style:width="{progress * 100}%"></div>
+        <div class="h-full rounded-full bg-ws-stage-ink/70" style:width="{progress * 100}%"></div>
       </div>
-      <div class="mb-3 flex flex-wrap gap-2">
-        {#if phase === "look"}<Stat label="Look" value="{lookLeft} s" />{:else}<Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />{/if}
-        {#if ls && fstate}<Stat label="Note" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
-        {#if ls?.expected.length && memory === "off" && !tap}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
-        <Stat label="Tempo" value="{bpm} BPM" />
-        {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
+      <!-- The run's readout in stage ink: the stage is dark in both themes. -->
+      <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-base">
+        {#if phase === "look"}{@render stat("Look", `${lookLeft} s`)}{:else}{@render stat(perfMode ? "Take" : "Mode", perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait")}{/if}
+        {#if ls && fstate}{@render stat("Note", `${Math.min(ls.index + 1, fstate.groups.length)} of ${fstate.groups.length}`)}{/if}
+        {#if ls?.expected.length && memory === "off" && !tap}{@render stat("Next", ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " "))}{/if}
+        {@render stat("Tempo", `${bpm} BPM`)}
+        {#if spot}{@render stat(`Loop, ${barsOf(spot.range)}`, `${spot.streak} of ${SPOT.clean} clean`)}{/if}
       </div>
-      {#if lastMiss && memory === "off"}<p class="mb-2 text-sm font-semibold text-destructive" aria-live="polite">{lastMiss}</p>{/if}
+      {#if lastMiss && memory === "off"}<p class="mb-2 flex items-center gap-2 text-base font-semibold text-destructive" aria-live="polite"><CircleX class="size-5 shrink-0" aria-hidden="true" />{lastMiss}</p>{/if}
     {:else if preview?.playing}
       <p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored. The cursor follows the sound.</p>
     {/if}
@@ -1242,7 +1252,8 @@
       {#if drums}
         <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the strip on MPC pads. Graded by drum: any hat counts for a hat, kick and snare must be exact.</p>
       {:else}
-        <p class="mt-3 text-sm text-ws-stage-soft">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : "; octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
+        <!-- A phone leaves this out so the staff and keys end above the tab bar; the strip names the input. -->
+        <p class="mt-3 text-sm text-ws-stage-soft max-sm:hidden">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : "; octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
       {/if}
     {/if}
   </div>

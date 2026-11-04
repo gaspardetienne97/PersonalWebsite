@@ -32,6 +32,7 @@
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
   import Verdict from "$lib/music/components/Verdict.svelte";
+  import { btnStage } from "$lib/music/components/ui";
   import { FRETBOARD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
@@ -39,6 +40,8 @@
   const isRecall = kind === "interval-recall";
 
   const REVEAL_MS = 900;
+  /** After a wrong answer the lit places stay long enough to read; Next skips the wait. */
+  const WRONG_MS = 2000;
   const cfg = new DrillSetup(isRecall ? "fretboard-interval-recall" : "fretboard-note-finder", {
     region: 0,
     interval: 7,
@@ -74,11 +77,18 @@
     string?: number;
     fret?: number;
   }
+  /** A string by the letter the neck shows beside it ("A string"); two strings with one letter say high or low. */
+  const stringName = (n: number) => {
+    const letter = (m: number) => noteName(m, "flat", false);
+    const open = tuning.openStrings;
+    const twin = open.findIndex((m, i) => i !== n - 1 && letter(m) === letter(open[n - 1]));
+    return `${twin < 0 ? "" : open[n - 1] > open[twin] ? "high " : "low "}${letter(open[n - 1])} string`;
+  };
   /** What was played, in plain words: the note without its octave, and where on the neck when known. */
   const playedText = (a: { midi: number; string?: number; fret?: number }) =>
-    `${noteName(a.midi, "sharp", false)}${a.string !== undefined && a.fret !== undefined ? ` (string ${a.string}, ${a.fret ? `fret ${a.fret}` : "open"})` : ""}`;
+    `${noteName(a.midi, "sharp", false)}${a.string !== undefined && a.fret !== undefined ? ` (${stringName(a.string)}, ${a.fret ? `fret ${a.fret}` : "open"})` : ""}`;
   /** The answer that was wanted, as lit on the neck. */
-  const wantedText = (q: Question) => `${isRecall ? `${aOrAn(q.label)} up` : q.label} ${q.acceptable.length > 1 ? "is lit in each place" : "is lit"}`;
+  const wantedText = (q: Question) => `${isRecall ? `${aOrAn(q.label)} up` : q.label} is lit`;
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -165,12 +175,16 @@
     );
     revealing = true;
     const said = playedText({ midi: e.midi, string: e.string, fret: e.fret });
-    status = g.correct ? `Yes, ${said}.` : `You played ${said}. ${wantedText(q)}.`;
-    revealTimer = setTimeout(() => {
-      if (phase !== "running") return;
-      if (answers.length >= s.questions) void finish();
-      else ask();
-    }, REVEAL_MS);
+    status = g.correct ? `Yes, ${said}.` : `That was ${said}. ${wantedText(q)}.`;
+    revealTimer = setTimeout(goOn, g.correct ? REVEAL_MS : WRONG_MS);
+  }
+
+  /** The next question (or the results), when the reveal ends or Next is pressed. */
+  function goOn() {
+    clearTimeout(revealTimer);
+    if (phase !== "running" || !revealing) return;
+    if (answers.length >= s.questions) void finish();
+    else ask();
   }
 
   async function start(ctx: RunContext) {
@@ -267,6 +281,7 @@
   const missed = $derived(answers.filter((a) => !a.correct));
   /** Beside Stop on a phone: what to find now. */
   const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? `Find ${aOrAn(question.label)} up from the square` : `Find ${question.label}, frets ${region.start} to ${to}`) : "");
+  const wrongShown = $derived(phase === "running" && revealing && answers.at(-1)?.correct === false);
 </script>
 
 <DrillShell
@@ -287,6 +302,7 @@
   onstart={start}
   onstop={stop}
   {cue}
+  step={wrongShown ? { label: "Next", run: goOn } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -323,25 +339,41 @@
 
   {#snippet stage()}
     <!-- The prompt fills the room above the neck, centred like a flash card. -->
-    <div class="mb-3 flex min-h-20 flex-wrap content-center items-end gap-x-4 gap-y-1" data-dock="music">
+    <div class="mb-3 flex flex-wrap content-center items-end gap-x-4 gap-y-1 {question ? 'min-h-20' : 'sm:min-h-20'}" data-dock="music">
       {#if question}
         {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
         <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
         <Verdict
           kind={last ? (last.correct ? "right" : "wrong") : null}
-          text={last ? (last.correct ? `Yes, ${playedText(last)}` : `You played ${playedText(last)}. ${wantedText(last.q)}.`) : undefined}
+          text={last ? (last.correct ? `Yes, ${playedText(last)}` : `That was ${playedText(last)}. ${wantedText(last.q)}.`) : undefined}
           key={answers.length}
           class="pb-1"
         />
+        {#if last && !last.correct}
+          <!-- The next question comes by itself; Next goes on now (in the dock on a phone). -->
+          <button type="button" class="{btnStage} mb-0.5 max-sm:hidden" onclick={goOn}>Next</button>
+        {/if}
       {:else}
-        <p class="max-w-prose text-ws-stage-soft">
+        <!-- On a phone the blurb above says this: the whole neck fits above Start instead. -->
+        <p class="max-w-prose text-ws-stage-soft max-sm:hidden">
           {isRecall ? "A square marks the starting note. Find the interval above it; sounding the square first is fine." : "A note name appears here. Tap it on the neck, or play it."}
           {mode === "check" ? " Check hides the answers." : " Practice lights the answers."}
         </p>
       {/if}
     </div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
+    <!-- Where the window sits on the whole neck: the nut at the left, the five frets lit. -->
+    <div class="mb-2 flex items-center gap-3 text-sm text-ws-stage-soft {phase === 'ready' ? 'max-sm:hidden' : ''}" data-testid="neck-map">
+      <span class="shrink-0">Frets {region.start} to {to} of {tuning.fretCount}</span>
+      <div class="relative h-3 max-w-72 flex-1 rounded-full bg-ws-stage-ink/15" aria-hidden="true">
+        <span class="absolute inset-y-0 left-0 w-1 rounded-l-full bg-ws-stage-ink/60"></span>
+        {#each [3, 5, 7, 9, 12, 15].filter((f) => f <= tuning.fretCount) as f (f)}
+          <span class="absolute top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ws-stage-ink/50" style:left="{((f - 0.5) / tuning.fretCount) * 100}%"></span>
+        {/each}
+        <span class="absolute inset-y-0 rounded-full bg-instr" style:left="{(Math.max(0, region.start - 1) / tuning.fretCount) * 100}%" style:width="{((to - Math.max(0, region.start - 1)) / tuning.fretCount) * 100}%"></span>
+      </div>
+    </div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} compact={phase !== "running"} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
     <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
   {/snippet}
 

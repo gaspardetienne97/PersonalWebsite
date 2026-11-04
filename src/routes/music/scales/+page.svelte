@@ -143,7 +143,7 @@
     { value: "plain", label: "One note a click, no grade target" },
     ...ABRSM_SPEEDS.map((g) => {
       const sp = gradeSpeed(g.grade, pattern);
-      return { value: g.grade, label: sp ? `${g.grade}: ${sp[0]}, ${PER[sp[1]]}` : `${g.grade} (no speed for blocked chords)`, group: "ABRSM grade speeds", disabled: !sp };
+      return { value: g.grade, label: sp ? `${g.grade}: ${sp[0]}, ${PER[sp[1]]}` : `${g.grade} (no speed for blocked chords)`, group: "ABRSM grade speeds (UK exam levels)", disabled: !sp };
     }),
   ]);
 
@@ -285,11 +285,11 @@
       if (!slipped) firstWrong[stepIndex] = e.midi;
       slipped = true;
       // Name both notes, so the red key or fret says what went wrong. Check says it after the slip,
-      // in the played note's terms ("B, not C"); the target was never shown before it.
+      // played note first ("F, wanted G"); the target was never shown before it.
       flashes.add(e.midi, "wrong");
-      const want = expected.map((m) => noteName(m, "flat", mode === "practice")).join(" ");
-      const heard = noteName(e.midi, "flat", mode === "practice");
-      verdict = { kind: "wrong", text: mode === "practice" ? `Wanted ${want}, heard ${heard}` : `${heard}, not ${want}`, key: (verdict?.key ?? 0) + 1 };
+      const want = expected.map((m) => noteName(m, spell, mode === "practice")).join(" ");
+      const heard = noteName(e.midi, spell, mode === "practice");
+      verdict = { kind: "wrong", text: mode === "practice" ? `Wanted ${want}, heard ${heard}` : `${heard}, wanted ${want}`, key: (verdict?.key ?? 0) + 1 };
       // A quarter tone off rounds to the next note: say it is the tuning, not the playing.
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
       if (miss) {
@@ -318,6 +318,8 @@
   const written = $derived(steps.flatMap((st) => st.notes.map((n) => ({ midi: n.midi, startBeat: st.atBeat * quartersPerClick, durationBeats: quartersPerClick / perBeat, hand: onPiano ? n.hand : undefined, finger: fingerFor(n), ...frets.get(n.midi) }))));
   // A triad pair is written in the key it belongs to: a major pair is IV and V a 4th up, a minor pair ii and iii a step down.
   const signature = $derived(pattern === "triad-pairs" ? signatureFor((s.tonic + (s.chord === "minor" ? 10 : 5)) % 12, "major") : isScaleLine(pattern) ? signatureFor(s.tonic % 12, s.kind === "chromatic" ? "major" : s.kind) : s.chord === "minor" ? signatureFor(s.tonic % 12, "natural-minor") : s.chord === "major" ? signatureFor(s.tonic % 12, "major") : 0);
+  /** Every note this page names (the cue, a slip, the chips, a held fret) is spelled by the exercise's key. */
+  const spell = $derived<"flat" | "sharp">(signature < 0 ? "flat" : "sharp");
   const cursorClick = $derived(demoStep !== null ? (steps[demoStep]?.atBeat ?? null) : phase === "running" ? (steps[Math.min(stepIndex, steps.length - 1)]?.atBeat ?? null) : null);
   const cursor = $derived(cursorClick === null ? null : cursorClick * quartersPerClick);
   /** Each step's take: as played during a run, and after it the steps never reached are missed. */
@@ -350,7 +352,7 @@
     const n = st.notes[0];
     const p = frets.get(n.midi);
     const how = tuning && p ? (p.fret ? `string ${p.string}, fret ${p.fret}` : `open string ${p.string}`) : fingerFor(n) ? `finger ${fingerFor(n)}` : "";
-    return `Play ${st.notes.map((x) => noteName(x.midi)).join(" + ")}${how && st.notes.length === 1 ? `, ${how}` : ""}`;
+    return `Play ${st.notes.map((x) => noteName(x.midi, spell)).join(" + ")}${how && st.notes.length === 1 ? `, ${how}` : ""}`;
   });
   const unplayable = $derived(tuning ? [...new Set(all.filter((m) => !frets.has(m)))] : []);
 
@@ -437,7 +439,7 @@
     summary = {
       // A slip is named before anything else: the counts and the marks below show it.
       headline: detuned.length
-        ? `${r.clean} of ${r.total} notes right. ${[...new Set(detuned.map((d) => noteName(d.midi, "flat", false)))].join(" and ")} sounded about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents out: tune your ${inst} in Tuner, then try again.`
+        ? `${r.clean} of ${r.total} notes right. ${[...new Set(detuned.map((d) => noteName(d.midi, spell, false)))].join(" and ")} sounded about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents out: tune your ${inst} in Tuner, then try again.`
         : r.slips.length
           ? `${r.clean} of ${r.total} notes right. ${slipText(r.slips)}${r.pitch < 0.75 ? " Slow down until each note lands before the next." : ""}`
           : r.correct
@@ -451,7 +453,8 @@
               : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
       metric: pct(r.score),
       metricLabel: "85% notes + 15% evenness",
-      cleanMeans: "a score of 90% or more",
+      // Exactly what gradeLine's correct tests: the score, and the preset's evenness floor when one is set.
+      cleanMeans: `a score of 90% or more${scaleSetup.minEvenness !== undefined ? `, with evenness at ${pct(scaleSetup.minEvenness)} or more` : ""}`,
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
@@ -489,7 +492,7 @@
 
   /** Where the slips were, by note number and name: "Slipped on note 5 (G4): a wrong note was played for it." */
   function slipText(at: number[]) {
-    const name = (i: number) => `note ${i + 1} (${steps[i].notes.map((n) => noteName(n.midi)).join(" + ")})`;
+    const name = (i: number) => `note ${i + 1} (${steps[i].notes.map((n) => noteName(n.midi, spell)).join(" + ")})`;
     const list = at.length > 2 ? `${at.length} notes` : at.map(name).join(" and ");
     return `Slipped on ${list}: a wrong note was played for ${at.length > 1 ? "each" : "it"}.`;
   }
@@ -532,7 +535,7 @@
   lesson={cards.length ? { lessons: cards.flatMap((c) => conceptCard(c, tuning ? { tuning } : {})), trigger: "check" } : null}
   title="Scales"
   hue="piano"
-  blurb="Scales, arpeggios and inversions, evenly at the click, up to an ABRSM grade's speed."
+  blurb="Scales, arpeggios and inversions, evenly at the click, up to a UK exam grade's speed."
   summary={setupLine}
   bind:phase
   bind:mode
@@ -649,7 +652,7 @@
           </ol>
           <span class="text-ws-soft"
             >{bpm() < proj.rungs[0].bpm
-              ? `You are at ${bpm()} BPM now, below the ladder: these runs build the line, and the climb starts at ${proj.rungs[0].bpm} BPM.`
+              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
               : "Two clean Check runs at a rung unlock the next one. The ringed rung is the strip's tempo."}</span
           >
         </div>
@@ -661,7 +664,7 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Step" value="{Math.min(stepIndex + 1, steps.length)} of {steps.length}" />
-      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next note" value={steps[stepIndex].notes.map((n) => noteName(n.midi)).join(" + ")} />{/if}
+      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next note" value={steps[stepIndex].notes.map((n) => noteName(n.midi, spell)).join(" + ")} />{/if}
     {:else if result}
       <!-- Evenness waits for the results rows, where too few landed notes read Not measured. -->
       <Stat label="Notes right" value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
@@ -673,18 +676,17 @@
       {@const proj = ladderProjection(ladders[key], bpm())}
       <!-- One line for the ladder; its rungs are in Setup. Checked runs climb it, the strip's BPM is this run. -->
       <p class="mb-3 text-sm text-ws-stage-soft" data-testid="tempo-ladder-line">
-        <span class="font-medium text-ws-stage-ink">Tempo ladder:</span>
         {bpm() < proj.rungs[0].bpm
-          ? `you are at ${bpm()} BPM, below it. These runs build the line; the climb starts at ${proj.rungs[0].bpm} BPM, and Check runs climb it.`
+          ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
           : proj.rungs.some((r) => r.bpm === bpm())
-            ? `this run is the ${bpm()} BPM rung. Two clean Check runs at a rung unlock the next.`
-            : `starts at ${proj.rungs[0].bpm} BPM, and Check runs climb it.`}
+            ? `Tempo ladder: this run is the ${bpm()} BPM rung. Two clean Check runs here unlock the next.`
+            : `Tempo ladder: starts at ${proj.rungs[0].bpm} BPM, and clean Check runs climb it.`}
       </p>
     {/if}
     {#if phase !== "running" && phase !== "countin" && (onPiano && (mode === "practice" || phase === "results"))}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     {#if mode === "check" && phase !== "results"}
       <!-- Check: no targets, only where you are in the line and the notes already played, named once they are behind you. -->
-      <div class="mb-4 flex min-h-0 flex-col justify-center gap-3" data-testid="check-progress" data-dock="music">
+      <div class="mb-1 flex min-h-0 flex-col justify-center gap-3" data-testid="check-progress" data-dock="music">
         <ol class="flex flex-wrap gap-1.5" aria-label="Steps played">
           {#each steps as st, i (i)}
             {@const done = phase === "running" && i < stepIndex}
@@ -699,7 +701,7 @@
                   : 'border-ws-stage-soft/50 text-ws-stage-soft'}"
             >
               {#if done}
-                <span aria-hidden="true">{played[i] === "wrong" ? "✕" : "✓"}</span>{st.notes.map((n) => noteName(n.midi, "flat", false)).join("+")}
+                <span aria-hidden="true">{played[i] === "wrong" ? "✕" : "✓"}</span>{st.notes.map((n) => noteName(n.midi, spell, false)).join("+")}
                 <span class="sr-only">{played[i] === "wrong" ? ", slipped" : ", clean"}</span>
               {:else}
                 <span class="sr-only">Step {i + 1}{now ? ", now" : ""}</span><span aria-hidden="true">{i + 1}</span>
@@ -716,7 +718,8 @@
       <FallingKeys score={lineScore(written, quartersPerClick > 1 ? { beats: 12, beatUnit: 8 } : undefined)} {low} {high} beat={clock.beat} groupStates={lineStates} {marks} {flashes} />
     {:else}
       {#if mode === "practice" || phase === "results"}
-        <div class="mb-1 min-h-0" data-dock="music">
+        <!-- On a phone before Start the instrument alone fits above the docked Start; the line shows once running. -->
+        <div class="mb-1 min-h-0 {phase === 'ready' ? 'max-sm:hidden' : ''}" data-dock="music">
           <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
         </div>
       {/if}
@@ -727,26 +730,27 @@
       <div class="relative flex flex-col justify-end" data-dock="instrument">
       {#if tuning}
         <div style:--instr="var(--hue-{inst})">
-          <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings label="{inst} fretboard" />
+          <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings compact={phase === "ready"} heldName={mode === "check" ? (m) => noteName(m, spell, false) : undefined} label="{inst} fretboard" />
         </div>
         {#if unplayable.length}
-          <p class="mt-1 text-xs text-ws-stage-soft">{unplayable.map((m) => noteName(m)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+          <p class="mt-1 text-sm text-ws-stage-soft">{unplayable.map((m) => noteName(m, spell)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
         {/if}
       {:else}
         <InstrumentStage line={all} {low} {high} {marks} {flashes} />
       {/if}
       </div>
     {/if}
-    {#if tuning && (phase === "running" || phase === "results") && mode === "practice"}
-      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="What the marks on the neck mean">
-        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-ws-stage-ink/15 ring-2 ring-ws-stage-ink" aria-hidden="true"></span>Play next</li>
-        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-xs font-bold text-white" aria-hidden="true">✓</span>Played right</li>
-        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-xs font-bold text-white" aria-hidden="true">✕</span>Slipped or missed</li>
-        <li class="flex items-center gap-1.5"><span class="size-5 rounded-md bg-instr" aria-hidden="true"></span>The root</li>
-        <li>Ring colours are fingers, 1 index to 4 little finger</li>
+    {#if tuning && mode === "practice"}
+      <!-- One badge per state on the neck, the same before, during and after a run. -->
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft {phase === 'ready' ? 'max-sm:hidden' : ''}" aria-label="What the marks on the neck mean">
+        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-ws-stage text-[0.8125rem] font-bold text-ws-stage-ink ring-2 ring-ws-stage-ink" aria-hidden="true">1</span>A note, with its finger (1 index to 4 little)</li>
+        <li class="flex items-center gap-1.5"><span class="size-5 rounded-md bg-ws-stage ring-2 ring-ws-stage-ink" aria-hidden="true"></span>The root</li>
+        <li class="flex items-center gap-1.5"><span class="size-5 rounded-full bg-ws-stage-ink" aria-hidden="true"></span>{phase === "running" ? "Play now" : demo ? "Sounding now" : "Play now, in a run"}</li>
+        {#if phase !== "ready"}
+          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-white" aria-hidden="true">✓</span>Played right</li>
+          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-white" aria-hidden="true">✕</span>Slipped or missed</li>
+        {/if}
       </ul>
-    {:else if tuning && phase === "ready" && mode === "practice"}
-      <p class="mt-3 text-sm text-ws-stage-soft">Numbers are fretting fingers, 1 index to 4 little finger. The filled square is the root.</p>
     {:else if onPiano && pattern === "scale" && phase === "ready"}
       <p class="mt-3 text-sm text-ws-stage-soft">
         {fingerOf.size ? "Numbers are fingers, 1 thumb to 5 little finger, as the scale books print them." : "No standard fingering for this scale here: keep the thumb off the black keys and cross it under after 3 or 4."}
@@ -762,8 +766,8 @@
           <p class="text-sm font-semibold">Your run, note by note</p>
           <LineNotation notes={written} tuning={fretTuning(inst)} title={key} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
           <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-soft" aria-label="What the marks mean">
-            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-xs font-bold text-success-foreground" aria-hidden="true">✓</span>Right first time</li>
-            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-xs font-bold text-[color:var(--on-destructive)]" aria-hidden="true">✕</span>Slipped: a wrong note first</li>
+            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-success-foreground" aria-hidden="true">✓</span>Right first time</li>
+            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-[color:var(--on-destructive)]" aria-hidden="true">✕</span>Slipped: a wrong note first</li>
             <li class="flex items-center gap-1.5"><span class="size-4 rounded-full border-2 border-ws-soft" aria-hidden="true"></span>Not played</li>
           </ul>
         </div>

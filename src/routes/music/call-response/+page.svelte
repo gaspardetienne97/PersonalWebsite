@@ -73,6 +73,8 @@
   let verdict = $state<{ kind: "right" | "wrong" | "in"; text: string; key: number } | null>(null);
   /** Check: the notes heard this turn, by name only (no right or wrong until the end). */
   let heard = $state<string[]>([]);
+  /** Check: the last finished turn's notes, shown by name only once that turn is over. */
+  let lastHeard = $state<string[]>([]);
   /** Your notes this turn, as beats from the start of your bars: the lane's second row fills in as you play. */
   let reply = $state<{ beat: number; midi: number }[]>([]);
   /** Where the lane's playhead is: beats into the call, then into your bars. */
@@ -88,6 +90,7 @@
     turns = [];
     verdict = null;
     heard = [];
+    lastHeard = [];
     reply = [];
     timing = { onTime: 0, early: 0, late: 0, missed: 0 };
     downbeat = ctx.downbeat;
@@ -128,6 +131,7 @@
       const k = Math.floor(bar / (2 * bars));
       const next = k < CALL_TURNS ? { turn: k, part: bar - turnBar(k, bars) < bars ? ("call" as const) : ("answer" as const) } : null;
       if (next?.part === "call" && now?.part !== "call") {
+        lastHeard = now ? heard : [];
         heard = [];
         reply = [];
       }
@@ -347,10 +351,12 @@
   const sampleCall = $derived(callPhrase(rng(7), { groove, bar: 0, bars }));
   const laneTurn = $derived(now?.turn ?? Math.max(0, turns.length - 1));
   const laneCall = $derived(phase === "running" || phase === "countin" ? (calls[laneTurn] ?? []) : sampleCall);
+  /** Check hides the notes: the blocks show where in time, blank, never a name or a beat number. */
+  const blankLane = $derived(mode === "check" && !demo?.playing);
   const laneRows = $derived<LaneRow[]>([
     // Named with their octave (C4, E5), so the call and your notes compare pitch for pitch.
-    { id: "call", mark: "Call", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: noteName(n.midi, "flat") })) },
-    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: noteName(r.midi, "flat") })) }] : []),
+    { id: "call", mark: "Call", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
+    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : noteName(r.midi, "flat") })) }] : []),
   ]);
   const laneChords = $derived(
     Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol })),
@@ -383,7 +389,7 @@
   title="Call and response"
   hue="ear"
   blurb="A short call over the band, then your turn: echo it back, or answer with your own phrase."
-  modeNotes={{ practice: "Each note lights right or wrong, and each turn is judged as it ends.", check: "No feedback until the end. Counts toward mastery." }}
+  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -445,7 +451,7 @@
           beats={bars * BEATS_PER_BAR}
           beat={demo?.playing ? demoBeat : laneBeat}
           chords={laneChords}
-          hidden={mode === "check" && !demo?.playing}
+          hidden={false}
           label={phase === "running" ? `Turn ${laneTurn + 1}: the call, ${laneCall.length} notes, and your notes so far, ${reply.length}` : `A sample call: ${laneCall.length} notes over ${laneChords.map((c) => c.symbol).join(", ")}`}
         />
       </div>
@@ -459,8 +465,12 @@
       {:else if phase === "running" && mode === "practice"}
         <Verdict kind={verdict?.kind === "in" ? null : verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} class="flex h-8 items-center" />
       {:else if phase === "running"}
-        <!-- Check: what was heard, by name, so a played note is never only a tint. Right or wrong waits for the end. -->
-        <p class="min-h-8 text-sm" aria-live="polite"><span class="text-ws-stage-soft">Heard this turn:</span> <span class="font-medium [word-spacing:0.4rem]">{heard.length ? heard.join(" ") : "nothing yet"}</span></p>
+        <!-- Check: while you play only a count (the notes stay hidden); once the turn is over, what you played by
+             name. Right or wrong waits for the end. -->
+        <p class="min-h-8 text-sm" aria-live="polite">
+          {#if now?.part === "answer"}<span class="text-ws-stage-soft">Notes heard:</span> <span class="font-medium">{heard.length}</span>
+          {:else if lastHeard.length}<span class="text-ws-stage-soft">You played:</span> <span class="font-medium [word-spacing:0.4rem]">{lastHeard.join(" ")}</span>{/if}
+        </p>
       {/if}
       {#if turns.length && mode === "practice"}
         <ol class="flex flex-wrap gap-1.5" aria-label="Turns">
@@ -470,7 +480,8 @@
         </ol>
       {/if}
       <!-- On a live phone run this grows; the keys sit at its foot, under the thumb. -->
-      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
+      <!-- A live phone run: this region takes the free height and the keys sit at its foot, under the thumb. -->
+      <div class="flex flex-col justify-end" data-dock="instrument" data-grow={phone.current && phase === "running" ? "" : undefined}><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
         <p class="text-sm text-ws-stage-soft">Calls stay between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
       {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}

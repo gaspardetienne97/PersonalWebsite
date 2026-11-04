@@ -169,8 +169,8 @@
 
   const summaryLine = $derived<SetupClause[]>([
     { text: p.label, focus: "pattern" },
-    { text: `${s.lh === "guide" ? "guide tones (3rd and 7th)" : "shell (root and 7th)"} in the left hand`, focus: "lh" },
-    { text: `${swing ? "swung" : "straight"} eighths`, focus: "feel" },
+    { text: `${s.lh === "guide" ? "Guide tones (3rd and 7th)" : "Shell (root and 7th)"} in the left hand`, focus: "lh" },
+    { text: `${swing ? "Swung" : "Straight"} eighths`, focus: "feel" },
   ]);
   const setupKey = $derived(`comping:${p.id}:${s.lh}:${s.feel}:${bpm}`);
 
@@ -299,9 +299,11 @@
             ? `The left hand added ${r.comp.extra} extra hit${r.comp.extra > 1 ? "s" : ""}. Charleston is one and the and-of-two, nothing else.`
             : r.comp.incomplete
               ? `${r.comp.incomplete} left-hand hit${r.comp.incomplete > 1 ? "s were" : " was"} missing a note. Strike both notes as one.`
-              : r.lick.matched < r.lick.total
-                ? `${r.lick.matched} of ${r.lick.total} right-hand notes landed. Slow it down and let the last note sit.`
-                : `${r.comp.matched} of ${r.comp.total} left-hand hits landed. Keep them on one and the and-of-two.`,
+              : r.lick.matched < r.lick.total && lhMeasured && r.comp.matched < r.comp.total
+                ? `Right hand ${r.lick.matched} of ${r.lick.total}, left hand ${r.comp.matched} of ${r.comp.total}. Slow it down, or try each hand alone first.`
+                : r.lick.matched < r.lick.total
+                  ? `Right hand ${r.lick.matched} of ${r.lick.total}. Slow it down and let the last note sit.`
+                  : `Left hand ${r.comp.matched} of ${r.comp.total}. Keep the hits on one and the and-of-two.`,
       metric: pct(r.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -413,7 +415,7 @@
       {/if}
     </div>
     <!-- The music grows into the free height (no spacer between the lane and the keys). -->
-    <div class="flex min-h-0 flex-col justify-center gap-3" data-dock="music">
+    <div class="flex min-h-0 flex-col gap-3" data-dock="music">
     {#if mode === "practice" || transport.playing || phase === "results"}
       <StaffFold live={phase === "running" || phase === "countin" || transport.playing}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></StaffFold>
     {/if}

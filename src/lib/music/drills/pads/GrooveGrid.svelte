@@ -127,7 +127,7 @@
     width: max-content;
   }
   .bar-label {
-    font-size: 0.72rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     padding-left: 2px;
   }
@@ -148,7 +148,7 @@
   }
   .count {
     text-align: center;
-    font-size: 0.66rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     border-radius: 3px;
   }
@@ -157,7 +157,7 @@
     font-weight: 700;
   }
   .name {
-    font-size: 0.72rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
     white-space: nowrap;
     overflow: hidden;
@@ -183,7 +183,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.62rem;
+    font-size: 0.8125rem;
     font-weight: 800;
     color: #140a10;
     background: color-mix(in oklch, var(--instr) 70%, var(--ws-stage-ink));

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
-  import { clamp, noteName } from "@repo/music-core";
+  import { clamp } from "@repo/music-core";
+  import { aeroSpeller } from "$lib/music/drills/aerophone/names";
   import {
     AEROPHONE_CHART,
     AEROPHONE_MODES,
@@ -77,7 +79,9 @@
   const seq = $derived(lessonLine(lesson).map((m) => m - shift));
   // Fingering: the note waiting to be played (flash cards: nothing moves on until it is right).
   /** A concert note by the chart's spelling of its written note (G#4, Eb4), so names match the buttons and the slip hints. */
-  const chartName = (midi: number) => fingeringFor(midi + shift)?.name ?? noteName(midi + shift);
+  const chartName = $derived(aeroSpeller(shift, null));
+  /** The breath trace takes the free height of the live stage on a laptop only (the phone stage scrolls). */
+  const wide = new MediaQuery("min-width: 64rem");
   const slipHint = (want: number, played: number) => fingeringSlip(want + shift, played + shift);
   let step = $state(0);
   let firstTry = $state<boolean[]>([]);
@@ -393,7 +397,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: r.correct && mode === "check",
-      cleanMeans: m === "articulation" ? "every note right, on the click, as marked" : "the note held, right and steady",
+      cleanMeans: m === "articulation" ? "every note right, on the click, as marked" : `the note held, right and steady${level ? `, with 70% of the hold in the ${level.id} band` : ""}`,
       mode,
       advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
@@ -524,11 +528,10 @@
   hue="aerophone"
   blurb={BLURB[m]}
   lesson={m === "long-tone" ? { lessons: aeroLessons(m, s.level) } : m === "articulation" || m === "interval-landing" ? { lessons: aeroLessons(m, undefined, shift) } : null}
-  summary={summaryLine}
+  summary={summaryLine.filter((c) => !/^\d+ BPM$/.test(c.text))}
   tabs={AEROPHONE_MODES}
   tab={s.mode}
   ontab={(v) => cfg.set({ mode: v })}
-  modeNotes={{ practice: "The fingering and the target shown. Practice, not a test.", check: "Fingering hidden. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -580,7 +583,7 @@
       <div class="flex min-w-0 flex-col gap-3 max-md:contents">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
-            <p class="text-xs text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it is right` : "up and back down"}</p>
+            <p class="text-sm text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it is right` : "up and back down"}</p>
             <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Lesson notes">
               {#each seq as n, i (i)}
                 {@const done = phase === "results" || (phase === "running" && i < step)}
@@ -602,15 +605,18 @@
         {/if}
         {#if m === "long-tone" && showTargets}
           <div class="rounded-xl bg-ws-stage-ink/6 p-3">
-            <div class="flex items-baseline justify-between text-xs text-ws-stage-soft"><span>Hold {chartName(targetMidi)}</span><span class="tnum">{s.seconds} s</span></div>
+            <div class="flex items-baseline justify-between text-sm text-ws-stage-soft"><span>Hold {chartName(targetMidi)}</span><span class="tnum">{s.seconds} s</span></div>
             <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10"><div class="h-full rounded-full bg-instr" style:width="{holdProgress * 100}%"></div></div>
           </div>
         {/if}
         {#if m !== "fingering"}<div class="max-md:order-last"><BreathTrace
           values={breath}
           points={m === "swell" && (phase === "running" || phase === "results") ? swellPts : undefined}
-          target={m === "swell" && showTargets ? envelope : level && showTargets ? Array(TRACE_SAMPLES).fill((level.band[0] + level.band[1]) / 2) : undefined}
+          target={m === "swell" && showTargets ? envelope : undefined}
+          band={level && showTargets ? level.band : undefined}
+          bandLabel={level ? `the ${level.id} band, hold it there` : undefined}
           measured={breathSeen}
+          grow={wide.current}
           label={m === "swell" ? "Breath over the swell, dashed line is the target shape" : "Breath, last 64 samples"}
         /></div>{/if}
         {#if m === "articulation"}
@@ -620,9 +626,9 @@
       </div>
       <div class="flex flex-col items-center gap-2">
         {#if showTargets}
-          <AerophoneKeys midi={targetMidi} heldMidi={sounding} compact />
+          <AerophoneKeys midi={targetMidi} heldMidi={sounding} compact name={chartName} />
           <p class="text-center font-display text-2xl font-semibold">{chartName(targetMidi)}</p>
-          <p class="text-center text-xs text-ws-stage-soft">
+          <p class="text-center text-sm text-ws-stage-soft">
             {fingering?.verified ? "Fingering verified on your instrument." : "Best-effort fingering, not yet confirmed on the unit."}
           </p>
         {:else}
@@ -631,13 +637,13 @@
       </div>
     </div>
     <div class="mt-4">
-      <p class="mb-2 text-xs text-ws-stage-soft">{picksTarget ? "Tap a note to make it the target. " : ""}Play from the chart: taps choose the pitch and score pitch only. Breath and articulation need the Aerophone.</p>
+      <p class="mb-2 text-sm text-ws-stage-soft">{picksTarget ? "Tap a note to make it the target. " : ""}Play from the chart: taps choose the pitch and score pitch only. Breath and articulation need the Aerophone.</p>
       <div class="flex flex-wrap gap-1" role="group" aria-label="Fingering chart notes">
         {#each AEROPHONE_CHART as c (c.midi)}
           {@const at = c.midi - shift}
           <button
             type="button"
-            class="min-h-11 min-w-11 rounded-lg px-1.5 text-xs font-semibold {sounding === at ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {at === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
+            class="min-h-11 min-w-11 rounded-lg px-1.5 text-sm font-semibold {sounding === at ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {at === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
             aria-label="Play {c.name}"
             aria-current={at === targetMidi && m !== "fingering" ? "true" : undefined}
             aria-pressed={sounding === at}
@@ -659,7 +665,8 @@
 
   {#snippet actions()}
     <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
-    {#if summary?.heard !== false}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
+    <!-- Not during a run either: Connect has no use mid-run, and the stage names what was heard. -->
+    {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
   {/snippet}
 </DrillShell>
 {/if}

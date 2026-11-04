@@ -87,3 +87,12 @@ export function pairStrums(
 /** The run's strokes as on time, early, late and missed counts: the shared breakdown (K3), so lanes and results agree. */
 export const timingCounts = (offsets: readonly (number | undefined)[], onTimeMs: number) =>
   timingBreakdown(offsets, onTimeMs);
+
+/**
+ * The run's score on its expected strums: the share that landed on time with a tone of their chord (a hit's
+ * offset within `onTimeMs`); "wrong" (no chord tone) or any other word, and undefined (no strum), count against it.
+ */
+export function strumScore(hits: readonly (number | string | undefined)[], onTimeMs: number) {
+  const landed = hits.filter((h) => typeof h === "number" && Math.abs(h) <= onTimeMs).length;
+  return { landed, total: hits.length, score: hits.length ? landed / hits.length : 0 };
+}

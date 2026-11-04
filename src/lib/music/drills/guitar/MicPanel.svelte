@@ -22,7 +22,7 @@
   import Volume2 from "lucide-svelte/icons/volume-2";
   import { btnStage } from "$lib/music/components/ui";
 
-  /** `disabled` locks Stop during a run; `offer` draws Turn on the microphone while it is off. */
+  /** `disabled` (a run is live) locks Stop and shrinks the prompt to a chip; `offer` draws the prompt while it is off. */
   let { hint = "Sit close to the sound hole, about a hand's width away.", disabled = false, offer = true }: { hint?: string; disabled?: boolean; offer?: boolean } = $props();
 
   const fill = $derived(Math.max(0, Math.min(1, (mic.peak + 60) / 60)));
@@ -32,7 +32,12 @@
   const adviceText = $derived(advice.tone === "hot" ? "Too loud: move back a little" : advice.tone === "clipping" ? "Far too loud: move well back" : advice.label);
 </script>
 
-{#if mic.state === "on" || offer || mic.error}
+{#if disabled && offer && mic.state !== "on"}
+  <!-- Mid-run the prompt is a chip (asked once, at setup): one tap still fixes a silent run without stopping it. -->
+  <button type="button" class="{btnStage} self-start" disabled={mic.state === "starting"} onclick={() => void startMic()} title={mic.error || hint}>
+    <MicOff class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Mic off: turn on"}
+  </button>
+{:else if mic.state === "on" || offer || mic.error}
   <div class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-ws-stage-ink/8 px-3 py-2" data-mic={mic.state}>
     {#if mic.state === "on"}
       <p class="flex items-center gap-2 text-sm font-semibold"><Mic class="size-4" aria-hidden="true" />Microphone on</p>

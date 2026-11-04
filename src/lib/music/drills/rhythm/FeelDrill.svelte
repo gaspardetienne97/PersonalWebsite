@@ -11,7 +11,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { btnPrimary, btnStage } from "$lib/music/components/ui";
   import { assistanceFor, pct } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio } from "$lib/music/runtime";
@@ -153,7 +153,6 @@
   hue="ear"
   blurb="Hear a groove and name its feel: straight, swung, shuffle or 12/8."
   summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right to pass` }]}
-  modeNotes={{ practice: "What gave it away, after each answer.", check: "Straight on to the next. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -162,7 +161,8 @@
   onstart={start}
   onstop={stop}
   instrumentFree
-  cue={phase !== "running" || !current ? "" : step === "feedback" ? (mode === "practice" ? "Continue when ready" : "") : "Name the feel you hear"}
+  cue={phase !== "running" || !current || step === "feedback" ? "" : "Name the feel you hear"}
+  step={phase === "running" && current && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Continue" : "See results", run: next } : null}
 >
   {#snippet hud()}
     {#if phase === "running" && current}
@@ -176,12 +176,12 @@
       {@const r = step === "feedback" ? records.at(-1) : undefined}
       <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Groove {qi + 1}" data-feel={current.feel} data-step={step}>
         <p class="font-display text-2xl font-semibold sm:text-3xl">What is the feel?</p>
-        <button type="button" class="{btn} mt-3" onclick={() => hear()}>Hear it again</button>
+        <button type="button" class="{btnStage} mt-3" onclick={() => hear()}>Hear it again</button>
         {#if r}
           <p class="mt-3 text-lg font-semibold">{r.correct ? "Right" : "Not quite"}: {FEELS.find((f) => f.id === current!.feel)?.label}, {current.groove.label.toLowerCase()} at {current.bpm} BPM.</p>
           {#if mode === "practice"}
             <p class="mt-1 text-sm text-ws-stage-soft">{FEELS.find((f) => f.id === current!.feel)?.hint}</p>
-            <button type="button" class="{btnPrimary} mt-3" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70">Enter</kbd></button>
+            <button type="button" class="{btnPrimary} mt-3 max-sm:hidden" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"} <kbd class="ml-1 text-sm opacity-80">Enter</kbd></button>
           {/if}
         {/if}
       </article>
@@ -237,8 +237,8 @@
     position: absolute;
     top: 0.2rem;
     right: 0.4rem;
-    font-size: 0.65rem;
-    opacity: 0.55;
+    font-size: 0.8125rem;
+    opacity: 0.8;
   }
   /* A number key means nothing on a touch screen. */
   @media (pointer: coarse), (max-width: 639px) {

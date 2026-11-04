@@ -30,16 +30,18 @@
     playhead?: number | null;
     lit?: number | null;
     label: string;
+    /** Count the "&" between beats; a pulse taps beats only, so it leaves them out. */
+    offbeats?: boolean;
   }
-  let { bars, perBar, events, rests = [], chords = [], hits = [], verdicts = [], playhead = null, lit = null, label }: Props = $props();
+  let { bars, perBar, events, rests = [], chords = [], hits = [], verdicts = [], playhead = null, lit = null, label, offbeats = true }: Props = $props();
 
   const W = 400;
   const x = (b: number) => 22 + (b / perBar) * (W - 40);
   const uid = `rg-${Math.random().toString(36).slice(2, 7)}`;
   const fine = $derived(events.some((e) => Math.abs((e.beat * 2) % 1) > 1e-6));
   const counts = $derived(
-    Array.from({ length: perBar * (fine ? 1 : 2) }, (_, i) => {
-      const b = fine ? i : i / 2;
+    Array.from({ length: perBar * (fine || !offbeats ? 1 : 2) }, (_, i) => {
+      const b = fine || !offbeats ? i : i / 2;
       return { b, text: Number.isInteger(b) ? String(b + 1) : "&" };
     }),
   );
@@ -60,7 +62,7 @@
           <line x1="0" y1="0" x2="0" y2="6" class="hatch" />
         </pattern>
       </defs>
-      <text x="4" y={top + 14} class="bar-no">{bar + 1}</text>
+      {#if bars > 1}<text x="4" y={top + 14} class="bar-no">{bar + 1}</text>{/if}
       {#each chords.filter((c) => c.startBeat >= bar * perBar && c.startBeat < (bar + 1) * perBar) as c (c.startBeat)}
         <text x={x(c.startBeat - bar * perBar)} y="16" class="chord">{c.symbol}</text>
       {/each}
@@ -95,7 +97,7 @@
       {/each}
       {#each hitsIn(bar) as { e: h, i } (i)}
         {@const hx = x(h.beat - bar * perBar)}
-        <g class="hit" data-kind={h.kind} transform="translate({hx} 118)">
+        <g class="hit" data-kind={h.kind} transform="translate({hx} 118) scale(1.4)">
           {#if h.kind === "early"}<path class="chev early" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />
           {:else if h.kind === "late"}<path class="chev late" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />
           {:else if h.kind === "pocket"}<path class="tick" d="M-4.5 0 L-1.5 3.5 L4.5 -4" />
@@ -140,7 +142,7 @@
   }
   .bar-no {
     fill: var(--ws-stage-soft);
-    font-size: 13px;
+    font-size: 16px;
   }
   .chord {
     fill: var(--instr);
@@ -192,9 +194,10 @@
     stroke: var(--destructive);
     stroke-width: 2;
   }
+  /* In viewBox units: a bar drawn under 400 px wide (a phone) still sets them at 13 px or more. */
   .count {
     fill: var(--ws-stage-soft);
-    font-size: 13px;
+    font-size: 16px;
     text-anchor: middle;
   }
   .count.beat {

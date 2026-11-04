@@ -16,6 +16,8 @@ import {
   targetForSkill,
   tokenLabel,
   weaknessWeight,
+  cleanMeansFor,
+  times,
 } from "./session";
 
 const base = { mastery: {}, summaries: {}, now: Date.now(), level: "anchor" };
@@ -399,5 +401,20 @@ describe("setLadder", () => {
       step: 1,
       steps: [{ label: "without the P4" }, { label: "this set" }],
     });
+  });
+});
+
+describe("cleanMeansFor", () => {
+  it("states the advance rule when the run has a ladder", () => {
+    expect(cleanMeansFor(true, 10)).toBe("9 of 10 right or better");
+  });
+  it("states the stricter clean rule without one (the mixed review: 9 of 10 is not clean)", () => {
+    expect(cleanMeansFor(false, 10)).toBe("every answer right, in a Check run");
+  });
+});
+
+describe("times", () => {
+  it("says counts in words", () => {
+    expect([1, 2, 3].map(times)).toEqual(["once", "twice", "3 times"]);
   });
 });

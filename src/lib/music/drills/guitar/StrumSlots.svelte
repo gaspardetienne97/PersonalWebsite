@@ -17,7 +17,8 @@
   import type { Slot } from "./strum-slots";
 
   // `legend`: what the marks mean, before the run (and in the demo); during a run each mark carries its own word.
-  let { slots, lit = null, marks = {}, label, legend = false }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string; legend?: boolean } = $props();
+  // `compact` (results): one short row, each stroke's mark in its slot (the arrow where nothing was judged).
+  let { slots, lit = null, marks = {}, label, legend = false, compact = false }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string; legend?: boolean; compact?: boolean } = $props();
 
   const per = $derived(Math.max(1, Math.round(slots.length / 4)));
   const icon = $derived(slots.length > 16 ? "size-3.5" : slots.length > 8 ? "size-4" : "size-6");
@@ -31,6 +32,12 @@
     {@const m = marks[i]}
     {@const MarkIcon = m ? MARK_ICON[m.kind] : null}
     <li class="flex min-w-0 flex-col items-center gap-1 {i % per === 0 && i ? 'border-l border-ws-stage-ink/15' : ''}">
+      {#if compact}
+        <span class="grid size-7 place-items-center">
+          {#if m && MarkIcon}<span class="grid size-7 place-items-center rounded-full {MARK_TONE[m.kind]}" title={m.text}><MarkIcon class="size-4" strokeWidth={3} aria-hidden="true" /></span>
+          {:else if s.stroke}<span class="size-1.5 rounded-full bg-ws-stage-ink/40" aria-hidden="true"></span>{/if}
+        </span>
+      {:else}
       <span
         class="ws-pulse grid h-11 w-full max-w-11 place-items-center rounded-lg transition-colors {i === lit
           ? 'bg-instr-strong text-on-instr'
@@ -47,9 +54,11 @@
         {:else if s.stroke === "mute"}<X class={icon} strokeWidth={s.accent ? 3.25 : 2.25} aria-hidden="true" />
         {/if}
       </span>
+      {/if}
       <span class="text-[13px] leading-none tnum {i % per === 0 ? 'font-semibold' : 'text-ws-stage-soft'}" aria-hidden="true">{s.count}</span>
-      <span class="grid size-6 place-items-center">
-        {#if m && MarkIcon}
+      <!-- The mark row: kept while a run can mark it, left out before one (no empty band under the counts). -->
+      <span class="grid size-6 place-items-center" class:hidden={compact || (legend && !Object.keys(marks).length)}>
+        {#if !compact && m && MarkIcon}
           {#key m.kind}<span class="ws-pop grid size-6 place-items-center rounded-full {MARK_TONE[m.kind]}" title={m.text}><MarkIcon class="size-4" strokeWidth={3} aria-hidden="true" /></span>{/key}
         {/if}
       </span>
@@ -59,10 +68,11 @@
 </ol>
 {#if legend}
   <!-- What the marks mean, shown once before the run: the same glyphs the strokes get as they are judged. -->
-  <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-hidden="true">
+  <!-- One row at every width: from sm the glyph beside its word, on a phone above it in five equal columns. -->
+  <ul class="mt-2 grid grid-cols-5 gap-x-1 text-sm text-ws-stage-soft sm:flex sm:gap-x-4" aria-hidden="true">
     {#each [["ontime", "On time"], ["early", "Early"], ["late", "Late"], ["miss", "Missed"], ["wrong", "Wrong"]] as const as [k, word] (k)}
       {@const Icon = MARK_ICON[k]}
-      <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full {MARK_TONE[k]}"><Icon class="size-3.5" strokeWidth={3} /></span>{word}</li>
+      <li class="flex items-center gap-1.5 whitespace-nowrap max-sm:flex-col max-sm:gap-0.5"><span class="grid size-5 place-items-center rounded-full {MARK_TONE[k]}"><Icon class="size-3.5" strokeWidth={3} /></span>{word}</li>
     {/each}
   </ul>
 {/if}

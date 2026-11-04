@@ -1,10 +1,11 @@
 <script lang="ts">
-  // The twelve degrees around the tonic, each in its fixed colour with its label.
+  // The degrees around the tonic, evenly spaced (twelve sit by semitone), in one neutral ring colour with
+  // their labels: green and red mean only right and wrong.
   // Degrees outside the level stay visible (dimmed, "not in this set") but are not
   // answers; in a level with no chromatic degree the chromatic ones are left out. Answered states
   // carry a glyph and words, never colour alone.
   import { SCALE_DEGREES, degreeLabel } from "@repo/music-core/content/ear";
-  import { DEGREE_ROLE, degreeColor } from "./degrees";
+  import { DEGREE_ROLE } from "./degrees";
 
   interface Props {
     /** Degrees that can be picked (the level). */
@@ -24,8 +25,9 @@
   const R = 42; // % of the box, to button centres
   const chromatic = (l: string) => /^[b#]/.test(l);
   const shown = $derived(available.some(chromatic) ? SCALE_DEGREES : SCALE_DEGREES.filter((d) => !chromatic(d.label) || available.includes(d.label)));
-  const pos = (s: number) => {
-    const a = (s / 12) * 2 * Math.PI - Math.PI / 2;
+  /** Evenly round the wheel by order, so no two buttons crowd (3 and 4, 7 and 1 are a half step apart). */
+  const pos = (i: number) => {
+    const a = (i / shown.length) * 2 * Math.PI - Math.PI / 2;
     return { left: 50 + R * Math.cos(a), top: 50 + R * Math.sin(a) };
   };
 </script>
@@ -33,10 +35,10 @@
 <div class="wheel" role="group" aria-label="Scale degrees">
   <div class="hub" aria-hidden="true">
     <span class="font-display text-lg font-semibold">{center}</span>
-    <span class="text-xs text-ws-stage-soft">tonic</span>
+    <span class="text-sm text-ws-stage-soft">tonic</span>
   </div>
-  {#each shown as d (d.label)}
-    {@const p = pos(d.semitones)}
+  {#each shown as d, i (d.label)}
+    {@const p = pos(i)}
     {@const open = available.includes(d.label)}
     {@const state = expected === d.label ? "expected" : answered === d.label ? "answered" : null}
     <button
@@ -48,13 +50,12 @@
       data-state={state}
       style:left="{p.left}%"
       style:top="{p.top}%"
-      style:--deg={degreeColor(d.label)}
       disabled={disabled || !open || !onpick}
       aria-label="{degreeLabel(d.label, 'degree')}, {DEGREE_ROLE[d.label]}{!open ? ', not in this set' : ''}{state === 'expected' ? ', the answer' : state === 'answered' ? ', your answer' : ''}"
       onclick={() => onpick?.(d.label)}
     >
       <span class="text-base font-semibold leading-none">{labels === "solfege" ? d.solfege : d.label}</span>
-      {#if labels === "degree"}<span class="text-xs leading-none">{d.solfege}</span>{/if}
+      {#if labels === "degree"}<span class="text-sm leading-none">{d.solfege}</span>{/if}
       {#if state}<span class="glyph" aria-hidden="true">{state === "expected" ? "✓" : "✕"}</span>{/if}
     </button>
   {/each}
@@ -89,10 +90,10 @@
     width: 3.4rem;
     height: 3.4rem;
     border-radius: 999px;
-    /* Neutral chips with the degree's colour as a rim: green and red mean only right and wrong. */
+    /* Neutral chips with one neutral rim: green and red mean only right and wrong. */
     background: color-mix(in oklch, var(--ws-stage-ink) 12%, var(--ws-stage));
     color: var(--ws-stage-ink);
-    border: 3px solid var(--deg);
+    border: 3px solid color-mix(in oklch, var(--ws-stage-ink) 45%, var(--ws-stage));
     transition: transform 120ms ease-out, box-shadow 120ms ease-out;
   }
   .deg:not(:disabled):hover {
@@ -104,16 +105,16 @@
   }
   .deg.off {
     background: transparent;
-    border: 2px dashed color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);
+    border: 2px dashed color-mix(in oklch, var(--ws-stage-ink) 45%, transparent);
     color: var(--ws-stage-soft);
   }
   .deg.lit {
-    box-shadow: 0 0 0 4px color-mix(in oklch, var(--deg) 45%, transparent), 0 0 24px var(--deg);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--instr) 45%, transparent), 0 0 24px var(--instr);
     transform: scale(1.1);
   }
   .deg.lit:not([data-state]) {
-    background: var(--deg);
-    color: oklch(0.2 0.04 287);
+    border-color: var(--instr);
+    background: color-mix(in oklch, var(--instr) 30%, var(--ws-stage));
   }
   .deg[data-state="expected"] {
     border-color: var(--success);
@@ -136,7 +137,7 @@
     border-radius: 999px;
     background: var(--ws-stage-ink);
     color: var(--ws-stage);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 700;
   }
 </style>

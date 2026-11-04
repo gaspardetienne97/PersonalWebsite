@@ -86,6 +86,9 @@
 
   /** What is on the pads now ("source@bpm"), and what is being cut. */
   let loaded = $state("");
+  /** The loop's outline, 12 bins a slice, for the slice picture. */
+  let outline = $state.raw<number[]>([]);
+  const PER_SLICE = 12;
   let cutting = $state(false);
   let cutError = $state("");
   const want = $derived(`${source.id}:${source.id === "file" ? `${file?.name}:${s.fileBars}` : bpm}`);
@@ -94,8 +97,11 @@
     cutting = true;
     cutError = "";
     try {
-      await loadSlices(source, bpm, source.id === "file" ? file?.buffer : undefined);
-      if (key === want) loaded = key;
+      const o = await loadSlices(source, bpm, source.id === "file" ? file?.buffer : undefined, PER_SLICE);
+      if (key === want) {
+        loaded = key;
+        outline = o;
+      }
     } catch (e) {
       cutError = `The loop could not be cut: ${(e as Error).message}`;
     } finally {
@@ -123,10 +129,21 @@
     }
   }
 
-  // MIDI hits play their slice (on-screen taps already do, through the input layer).
+  /** The slice sounding now (a hit or the demo), lit on the slice picture; null when none. */
+  let lit = $state<number | null>(null);
+  let litTimer: ReturnType<typeof setTimeout> | undefined;
+  function light(slice: number) {
+    lit = slice;
+    clearTimeout(litTimer);
+    litTimer = setTimeout(() => (lit = null), Math.max(160, (source.bars * 4 * beatMs) / CHOP_SLICES));
+  }
+
+  // MIDI hits play their slice (on-screen taps already do, through the input layer); every hit lights its slice.
   $effect(() =>
     input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source !== "onscreen" && e.midi >= 36 && e.midi < 36 + CHOP_SLICES) audio.playKitPad(e.midi, e.velocity);
+      if (e.kind !== "noteon" || e.midi < 36 || e.midi >= 36 + CHOP_SLICES) return;
+      if (e.source !== "onscreen") audio.playKitPad(e.midi, e.velocity);
+      light(e.midi - 36);
     }),
   );
 
@@ -145,12 +162,14 @@
   const judgeWindow = $derived({ perfect: Math.min(90, beatMs / 16), good: Math.min(180, beatMs / 8) });
   let judged = $state<Record<number, Judgement>>({});
   let flashKey = 0;
-  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number } | null>(null);
+  let flashNote = $state<{ judgement: Judgement | "extra"; ms?: number; key: number; lane?: number } | null>(null);
   const timing = new Flashes<"early" | "late" | "perfect">();
   const showLanes = $derived(lanesView && !!piece && phase !== "results" && (mode === "practice" || phase === "ready"));
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
+    // The demo lights the pad it plays.
+    if (demo?.playing && lit !== null) out[slicePad(lit)] = { demo: true };
     if (mode !== "practice" || phase !== "running") return out;
     const rel = now - downbeat;
     const ahead = Math.min(beatMs / 2, 260);
@@ -163,12 +182,14 @@
     { text: CHOP_EXERCISES.find((x) => x.id === exercise)!.label, focus: "exercise" },
     { text: `${source.label}, ${source.bars} bar${source.bars > 1 ? "s" : ""} on 16 pads`, focus: "source" },
     ...(exercise === "reorder" ? [{ text: edit.label, focus: "edit" }] : []),
-    { text: `${Math.round(bpm)} BPM${source.id === "file" ? " (the loop's)" : ""}` },
+    // The strip shows the tempo; an imported loop's own tempo is news.
+    ...(source.id === "file" ? [{ text: `${Math.round(bpm)} BPM (the loop's)` }] : []),
   ]);
 
   function stopDemo() {
     demo?.stop();
     demo = null;
+    lit = null;
   }
   async function playDemo() {
     if (demo?.playing) return stopDemo();
@@ -177,7 +198,7 @@
     const notes = piece
       ? piece.targets.map((t) => ({ midi: CHOP_PADS[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.2, velocity: 0.9, voice: "kit" as const }))
       : Array.from({ length: CHOP_SLICES * 2 }, (_, i) => ({ midi: slicePad(i % CHOP_SLICES), time: (i * source.bars * 4 * beatMs) / CHOP_SLICES / 1000, duration: 0.2, velocity: 0.9, voice: "kit" as const }));
-    const handle = audio.playSequence(notes);
+    const handle = audio.playSequence(notes, { onNote: (i) => light(notes[i].midi - 36) });
     demo = handle;
     status = piece ? "Listen: the slices as written. Not scored." : "Listen: the loop, slice by slice. Not scored.";
     void handle.done.then(() => {
@@ -198,7 +219,7 @@
     }
     judged = { ...judged, [hit.index]: hit.judgement };
     timing.add(e.midi, hit.judgement as "early" | "late" | "perfect", 450);
-    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey };
+    flashNote = { judgement: hit.judgement, ms: hit.err, key: ++flashKey, lane: live[hit.index].lane };
   }
 
   function start(ctx: RunContext) {
@@ -230,7 +251,7 @@
       const missed = phase === "running" && mode === "practice" && piece ? overdue(live, judged, now - downbeat, judgeWindow.good) : [];
       if (missed.length) {
         judged = { ...judged, ...Object.fromEntries(missed.map((i) => [i, "miss" as const])) };
-        flashNote = { judgement: "miss", key: ++flashKey };
+        flashNote = { judgement: "miss", key: ++flashKey, lane: live[missed[missed.length - 1]].lane };
       }
       if (phase === "running" || phase === "countin") raf = requestAnimationFrame(tick);
     };
@@ -340,6 +361,7 @@
 
   onDestroy(() => {
     clearTimeout(timer);
+    clearTimeout(litTimer);
     cancelAnimationFrame(raf);
     cap?.stop();
     stopDemo();
@@ -355,24 +377,51 @@
   });
   const cellNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (every * beatMs)) : null);
   const goodMs = $derived(Math.min(180, beatMs / 8));
+  const running = $derived(phase === "running" || phase === "countin");
 </script>
+
+{#snippet slicePicture()}
+  <!-- The loop as a picture, cut where the pads cut it: slice 1 on A01 to 16 on A16, each in its pad's colour,
+       the one sounding now lit. On a phone beside the lanes it is left out: the lanes and pads carry the numbers. -->
+  <figure class="flex flex-col gap-1.5 {showLanes ? 'max-sm:hidden' : ''}" data-testid="slice-picture">
+    {#if outline.length}
+      <ol class="wave" aria-label="The loop, cut into {CHOP_SLICES} slices">
+        {#each Array.from({ length: CHOP_SLICES }, (_, i) => i) as i (i)}
+          <li data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} aria-label="Slice {i + 1}{lit === i ? ', sounding' : ''}">
+            <svg viewBox="0 0 {PER_SLICE} 2" preserveAspectRatio="none" aria-hidden="true">
+              {#each outline.slice(i * PER_SLICE, (i + 1) * PER_SLICE) as v, k (k)}
+                <rect x={k + 0.15} width="0.7" y={1 - Math.max(v, 0.04) * 0.92} height={Math.max(v, 0.04) * 1.84} />
+              {/each}
+            </svg>
+            <span>{i + 1}</span>
+          </li>
+        {/each}
+      </ol>
+    {/if}
+    <figcaption class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{source.label}.</span> {source.detail}. Slice 1 on A01, bottom left. {cutError}</figcaption>
+  </figure>
+{/snippet}
 
 {#snippet padGrid()}
   <div data-dock="answers">
-    <Pads {marks} {flashes} {timing} {names} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+    <Pads {marks} {flashes} {timing} {names} fit={running && !showLanes} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
   </div>
+{/snippet}
+
+{#snippet side()}
+  {@render slicePicture()}
+  {@render padGrid()}
 {/snippet}
 
 <DrillShell
   title="Pads"
   hue="mpc"
-  blurb="A loop cut into 16 slices on A01 to A16. Play them back in order, in a written order, or chop your own and play it again."
+  blurb="A loop cut into 16 slices, one a pad. Play them back in order, in a new order, or chop your own."
   summary={summaryLine}
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab="chop"
   ontab={onmode}
   lesson={{ lessons: padLessons("chop", undefined, [exercise, ...(exercise === "reorder" ? [`edit:${edit.id}`] : [])]) }}
-  modeNotes={{ practice: "The slices due light up. Practice, not a test.", check: "The order stays written, the pads stay dark. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
@@ -422,7 +471,6 @@
 
   {#snippet stage()}
     <div class="flex flex-col gap-4" data-testid="chop-stage" data-view={showLanes ? "lanes" : "grid"} data-loaded={loaded === want || undefined} data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-targets={piece ? JSON.stringify(targets.map((t) => [t.pad, Math.round(t.atMs)])) : undefined}>
-      <p class="text-sm"><span class="font-semibold">{source.label}.</span> <span class="text-ws-stage-soft">{source.detail}. Slice 1 is on A01 (bottom left), slice 16 on A16. {cutError}</span></p>
       {#if showLanes}
         <PadHighway
           {lanes}
@@ -435,25 +483,31 @@
           flash={flashNote}
           countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
           label="{lanes.length} slices: notes coming up"
-          pads={padGrid}
+          pads={side}
+          fill={running}
+          alone={running ? null : "pads"}
         />
       {:else if piece}
-        <!-- The order to play, a cell a step: the slice number, and after a run how it landed. -->
-        <ol class="chop-strip" aria-label="The slices to play, in order">
+        {@render slicePicture()}
+        <!-- The order to play, a cell a step: the slice number, and after a run how it landed. The step due now is
+             ringed in both modes (it is the clock, not a hint: the order is written). -->
+        <p class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">Play order.</span> {exercise === "order" ? "In order, a slice each step" : `${edit.every === 0.5 ? "An eighth" : edit.every === 1 ? "A beat" : "A sixteenth"} a step; a dot lets the slice before ring`}.</p>
+        <ol class="chop-strip" aria-label="Play order">
           {#each cells as c, i (i)}
             <li
               class="cell"
               class:rest={!c.slice}
-              data-now={(mode === "practice" && cellNow === i) || undefined}
+              data-now={cellNow === i || undefined}
+              data-done={(cellNow !== null && i < cellNow) || undefined}
               data-result={c.outcome === undefined ? undefined : c.outcome === null ? "miss" : Math.abs(c.outcome) <= goodMs ? "ok" : "off"}
               title={c.outcome === undefined ? undefined : c.outcome === null ? "missed" : `${c.outcome > 0 ? "late" : "early"} by ${Math.abs(Math.round(c.outcome))} ms`}
             >
-              {#if c.slice}<span class="font-semibold">{c.slice}</span>{:else}<span aria-label="ring on">·</span>{/if}
+              {#if c.slice}<span class="font-semibold">{c.slice}</span>{:else}<span aria-label="ring on">•</span>{/if}
             </li>
           {/each}
         </ol>
-        <p class="text-xs text-ws-stage-soft">{exercise === "order" ? "In order, a slice each step" : `${edit.every === 0.5 ? "An eighth" : edit.every === 1 ? "A beat" : "A sixteenth"} a step; a gap lets the slice before ring`}.</p>
       {:else}
+        {@render slicePicture()}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Bars 1 to {FREE_BARS}: play any slices, in any rhythm, to the click. Bars {FREE_BARS + 1} to {FREE_BARS * 2}: play the same again. Graded on playing it again and on time; hear it back after.</p>
       {/if}
       {#if !showLanes}{@render padGrid()}{/if}
@@ -498,6 +552,51 @@
   }
   .cell[data-now] {
     background: color-mix(in oklch, var(--instr) 45%, transparent);
+    border-color: var(--ws-stage-ink);
+  }
+  .cell[data-done]:not([data-result]) {
+    color: var(--ws-stage-soft);
+  }
+  /* The slice picture: the loop's outline, a cell a slice, in its pad's colour; the one sounding lights up. */
+  .wave {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    gap: 2px;
+  }
+  .wave li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 0;
+    padding-top: 0.2rem;
+    border-radius: 0.3rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ws-stage-soft);
+    border-top: 3px solid var(--c);
+    background: color-mix(in oklch, var(--c) 10%, transparent);
+  }
+  .wave svg {
+    width: 100%;
+    height: 2.25rem;
+    fill: color-mix(in oklch, var(--c) 75%, var(--ws-stage-ink));
+  }
+  /* Narrow, every other number, so none run together (the one sounding always shows its own). */
+  @container (max-width: 28rem) {
+    .wave li:nth-child(even):not([data-on]) span {
+      visibility: hidden;
+    }
+  }
+  .wave li[data-on] {
+    color: #140a10;
+    background: var(--c);
+  }
+  .wave li[data-on] svg {
+    fill: #140a10;
   }
   .cell[data-result="ok"] {
     border-color: var(--success);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { spellChord, spellDegree, spellInterval } from "./degrees";
+import { placeTags, spellChord, spellDegree, spellInterval } from "./degrees";
 
 describe("spellDegree", () => {
   it("spells degree 4 of Gb major as Cb, an octave number above the B it sounds as", () => {
@@ -31,5 +31,29 @@ describe("spellChord", () => {
     expect(spellChord([66, 69, 73])).toEqual(["F#", "A", "C#"]); // F# minor, not Gb Bbb Db
     expect(spellChord([64, 67, 72])).toEqual(["E", "G", "C"]); // C major, first inversion
     expect(spellChord([62, 65, 68])).toEqual(["D", "F", "Ab"]); // D diminished
+  });
+});
+
+describe("placeTags", () => {
+  it("keeps labels above their notes when they are apart", () => {
+    expect(
+      placeTags([
+        { x: 0, above: 50, below: 80, w: 40 },
+        { x: 100, above: 50, below: 80, w: 10 },
+      ]),
+    ).toEqual([50, 50]);
+  });
+  it("moves a label under its note when it would touch the one before (the tonic and a first 1)", () => {
+    expect(
+      placeTags([
+        { x: 0, above: 50, below: 80, w: 40 },
+        { x: 44, above: 50, below: 80, w: 10 },
+      ]),
+    ).toEqual([50, 80]);
+  });
+  it("keeps clear of fixed labels too", () => {
+    expect(placeTags([{ x: 0, above: 100, below: 130, w: 20 }], [{ x: 0, y: 103, w: 30 }])).toEqual(
+      [130],
+    );
   });
 });

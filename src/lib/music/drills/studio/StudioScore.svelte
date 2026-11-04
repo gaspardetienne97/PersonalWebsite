@@ -22,6 +22,7 @@
   import type { Snap } from "$lib/music/notation/selection.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import type { CellMarks, Flashes } from "$lib/music/components/feedback.svelte";
+  import { MediaQuery } from "svelte/reactivity";
 
   let {
     score,
@@ -76,7 +77,11 @@
   // Whole octaves from C, so both ends are white keys and the grids agree.
   const midis = $derived(score.voices.filter((v) => voiceIds.includes(v.id)).flatMap((v) => v.notes.map((n) => n.midi)));
   const low = $derived(Math.floor((Math.min(...midis, 60) - 0) / 12) * 12);
-  const high = $derived(Math.max(low + 12, Math.ceil((Math.max(...midis, 60) + 1) / 12) * 12));
+  // A laptop shows at least two octaves, so a one-octave tune is not drawn on a toy keyboard.
+  const wide = new MediaQuery("min-width: 1024px");
+  const high = $derived(Math.max(low + (wide.current ? 24 : 12), Math.ceil((Math.max(...midis, 60) + 1) / 12) * 12));
+  // Live on a laptop the staff is zoomed up to fill the stage (the frame draws to its zoomed width).
+  const zoom = $derived(compact && wide.current ? 1.4 : 1);
 
   let host = $state<HTMLDivElement>();
   // Keep the cursor inside the score's own viewport (never scroll the page).
@@ -108,10 +113,10 @@
     return { notes, hits };
   });
 
-  const maxHeight = $derived(compact ? "min(36dvh, 20rem)" : "min(52dvh, 30rem)");
+  const maxHeight = $derived(compact ? (zoom > 1 ? `calc(min(40dvh, 22rem) / ${zoom})` : "min(36dvh, 20rem)") : "min(52dvh, 30rem)");
 </script>
 
-<div bind:this={host} class="flex min-w-0 flex-col gap-3">
+<div bind:this={host} class="flex min-w-0 flex-col gap-3 {compact ? 'lg:flex-1' : ''}" class:live-keys={compact}>
   {#if drums}
     <StudioDrums score={drawn} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} {bpm} {timed} />
   {:else if view === "highway"}
@@ -119,7 +124,9 @@
   {:else if view === "waterfall"}
     <FallingKeys score={drawn} {voiceIds} {low} {high} beat={cursorBeat} {groupStates} {marks} {flashes} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
   {:else}
-    <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
+    <!-- The score card takes the stage's spare height on a laptop run; the notes sit in its middle. -->
+    <div class="rounded-xl bg-ws-surface p-2 text-ws-ink {compact ? 'lg:flex lg:flex-1 lg:flex-col lg:justify-center' : ''}" data-grow={compact || undefined}>
+      <div style:zoom={zoom > 1 ? zoom : undefined} style:--nt-zoom={zoom > 1 ? zoom : undefined}>
       {#if view === "tab"}
         <Tab score={drawn} {voiceIds} {tuning} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {:else if view === "fingering"}
@@ -129,8 +136,21 @@
       {:else}
         <Staff score={staffScore} {voiceIds} {cursorBeat} {groupStates} bind:selection {onselect} {snap} {bpm} {maxHeight} {onfallback} {highlights} />
       {/if}
+      </div>
     </div>
-    <!-- The keys you play: at the bottom of a phone screen while live. -->
-    <div data-dock="answers"><Piano {low} {high} {marks} {flashes} label="Piano keyboard" /></div>
+    <!-- The keys you play: at the bottom of a phone screen while live; short keys before Start on a phone, so the staff and keys fit above the tab bar. -->
+    <div data-dock="answers"><Piano {low} {high} {marks} {flashes} label="Piano keyboard" compact={!compact && !wide.current} /></div>
   {/if}
 </div>
+
+<style>
+  /* A laptop run: taller keys, so the keyboard reads at a glance from the playing position. */
+  @media (min-width: 1024px) {
+    .live-keys :global(.piano .white) {
+      height: 12rem;
+    }
+    .live-keys :global(.piano .black) {
+      height: 7.5rem;
+    }
+  }
+</style>

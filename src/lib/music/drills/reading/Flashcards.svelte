@@ -310,7 +310,7 @@
   title="Note reading"
   hue="reading"
   blurb="Read the note on the staff, then name it or play it."
-  modeNotes={{ practice: "Practice: a Hint is there when you need one, so it does not count.", check: "Check: no hints. This run counts." }}
+  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
   summary={summaryLine}
   tabs={READING_TABS}
   tab="flashcards"
@@ -321,7 +321,8 @@
   progress={cards.length ? (qi + 1) / cards.length : 0}
   onstart={start}
   onstop={stop}
-  cue={phase !== "running" || !card ? "" : answered ? (answered.correct ? "" : "Next card when ready") : byPlay ? "Play the note you see" : "Name the note you see"}
+  cue={phase !== "running" || !card ? "" : answered ? "" : byPlay ? "Play the note you see" : "Name the note you see"}
+  step={phase === "running" && answered && !answered.correct ? { label: qi + 1 < cards.length ? "Next card" : "See results", run: next } : null}
 >
   {#snippet setup()}
     <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} {instrument} {limits} />
@@ -339,7 +340,7 @@
       <div class="card flex w-full max-w-lg flex-col items-stretch justify-center rounded-2xl p-3 text-center" data-dock="music" data-answer={card?.answer} data-midi={card?.midi.join(",")} data-state={answered ? (answered.correct ? "right" : "wrong") : "open"}>
         {#if staffScore}
           <!-- One bar engraves at its natural size; zoom makes the card readable at arm's length. -->
-          <div class="zoom">
+          <div class="zoom" class:sample={phase !== "running"}>
             {#key staffScore.id}
               <!-- After a miss: the card's note (group 0) and what was played (group 1), told apart by a cross, not colour alone. -->
               <Staff score={staffScore} fill="center" time={false} groupStates={missedCard ? { 0: "correct", 1: "wrong" } : {}} maxHeight="12rem" />
@@ -360,7 +361,12 @@
           {/if}
         </p>
         {#if phase === "running" && answered && !answered.correct}
-          <button bind:this={nextBtn} type="button" class="{btnPrimary} mt-2" onclick={next}>{qi + 1 < cards.length ? "Next card" : "See results"}</button>
+          <!-- From sm the card holds Next card; a phone docks it (the shell's step). -->
+          <button bind:this={nextBtn} type="button" class="{btnPrimary} mt-2 max-sm:hidden" onclick={next}>{qi + 1 < cards.length ? "Next card" : "See results"}</button>
+        {/if}
+        {#if phase === "running" && mode === "practice" && !answered && !hinted}
+          <!-- The hint sits on the card it helps with. -->
+          <button type="button" class="{btnStage} mx-auto mt-2 border-2 border-ws-stage-ink/40 bg-transparent" onclick={() => (hinted = anyHint = true)}>Hint: show the name</button>
         {/if}
       </div>
 
@@ -390,9 +396,6 @@
         {:else}
           <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
         {/if}
-        {#if phase === "running" && mode === "practice" && !answered && !hinted}
-          <button type="button" class="{btnStage} mx-auto mt-3 flex" onclick={() => (hinted = anyHint = true)}>Hint</button>
-        {/if}
       </div>
     </div>
   {/snippet}
@@ -413,6 +416,10 @@
     border-radius: 0.5rem;
     background: oklch(0.99 0.004 285);
   }
+  /* Before Start the sample card is smaller, so the whole keyboard is in the first screen. */
+  .zoom.sample {
+    zoom: 1.4;
+  }
   :global(.dark) .zoom {
     background: oklch(0.92 0.008 285);
   }
@@ -429,9 +436,12 @@
   .name[data-state="expected"] {
     border-color: var(--success);
   }
+  .name[data-state="expected"] {
+    background: color-mix(in oklch, var(--success) 22%, transparent);
+  }
   .name[data-state="answered"] {
     border-color: var(--destructive);
-    border-style: dashed;
+    background: color-mix(in oklch, var(--destructive) 20%, transparent);
   }
   .glyph {
     display: inline-grid;
@@ -440,7 +450,7 @@
     height: 1.4rem;
     border-radius: 999px;
     color: white;
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
   }
   .glyph.wrong {
     background: var(--destructive);
