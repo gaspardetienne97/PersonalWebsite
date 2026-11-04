@@ -181,11 +181,8 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(400);
     await entry.scrollIntoViewIfNeeded();
     await shot(page, "journal", "entry", width);
-    // Edit note sits behind "More for this session" from round 3 on.
-    const more = entry.getByRole("button", { name: "More for this session" });
-    if (await more.isVisible().catch(() => false)) await more.click();
     await entry
-      .getByRole("button", { name: /^Edit note/ })
+      .getByRole("button", { name: /^(Add|Edit) note/ })
       .first()
       .click();
     const note = entry.getByRole("textbox").first();
@@ -322,7 +319,7 @@ for (const width of WIDTHS) {
     await setup(page, width);
     await open(page, "/music/library");
     await shot(page, "library", "shelf", width, { full: true });
-    await open(page, "/music/library?tab=reference");
+    await open(page, "/music/create/reference");
     await shot(page, "library", "reference", width, { full: true });
     await open(page, "/music/library?tab=import");
     await shot(page, "library", "import", width, { full: true });

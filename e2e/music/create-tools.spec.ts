@@ -617,7 +617,7 @@ test.describe("Tuner", () => {
     await expect(page).toHaveURL(/mode=intonation/);
     const stats = page.getByTestId("intonation-stats");
     await expect(stats).toBeVisible({ timeout: 10_000 });
-    for (const label of ["In tune", "Hold", "Steadiness", "Avg drift"])
+    for (const label of ["In tune", "Hold", "Held steady", "Avg drift"])
       await expect(stats).toContainText(label);
     await expect(stats).toContainText(/In tune\s*100%/);
     await page.waitForTimeout(1500);

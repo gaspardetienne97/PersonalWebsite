@@ -127,7 +127,7 @@ test("Jam in 3/4 over a reharmonised ii-V-I: the 3rd of each chord, graded and r
     [64, 12],
     [61, 18],
   ]);
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   expect((await lastRun(page)).params).toMatchObject({
     progression: "ii-v-i",
     game: "thirds",
@@ -153,7 +153,7 @@ test("Jam's displacement game: a motif a beat later each bar over the blues", as
       [0, 0.5, 1].map((o, i) => [60 + i * 3, k * 5 + o, 0.4] as [number, number, number]),
     ).flat(),
   );
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   await expect(page.getByTestId("jam-graded")).toContainText("8 displaced");
 });
 

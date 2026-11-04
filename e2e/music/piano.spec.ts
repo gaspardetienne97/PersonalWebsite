@@ -140,7 +140,7 @@ test("two hands: the demo lights both hands in step with the lane", async ({ pag
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/music/two-hand?pattern=contrary-five&hand=both&tonic=C4&bpm=60");
   await page.getByRole("button", { name: "Hear it", exact: true }).click();
-  await expect(page.getByText("Listening, not scored.")).toBeVisible();
+  await expect(page.getByText("Demo playing, not scored.")).toBeVisible();
   await page.waitForTimeout(1300);
   await shoot(page, "two-hand-demo");
   await page.getByRole("button", { name: "Stop demo" }).click();
@@ -215,7 +215,7 @@ test.describe("piano drills over fake MIDI", () => {
       page,
       rh.map((m, i) => ({ at: i * 1000, notes: [lh[i], m], hold: 500 })),
     );
-    await expect(page.getByText("Hands together (40 ms)")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("Hands landed together")).toBeVisible({ timeout: 8000 });
     await expect(page.getByText("8 of 8 beats", { exact: true })).toBeVisible();
     await expect(page.getByRole("status")).toContainText("struck together on 8 of 8 beats");
     await shoot(page, "two-hand-results");

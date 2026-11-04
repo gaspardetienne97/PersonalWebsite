@@ -356,9 +356,9 @@ for (const width of WIDTHS) {
     // Loop and mark a section while it plays.
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.waitForTimeout(800);
-    await page.getByRole("button", { name: "Set A" }).click();
+    await page.getByRole("button", { name: "Start loop" }).click();
     await page.waitForTimeout(1200);
-    await page.getByRole("button", { name: "Set B" }).click();
+    await page.getByRole("button", { name: "End loop" }).click();
     await page.getByRole("button", { name: "Verse", exact: true }).click();
     await page.waitForTimeout(300);
     await shot(page, F, "running", width);

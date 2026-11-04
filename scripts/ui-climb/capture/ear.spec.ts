@@ -79,11 +79,11 @@ async function run(page: Page, flow: EarFlow, width: Width, pattern: boolean[], 
     await answer(page, flow, pattern[i]);
     await feedback(page);
     if (shots && i === 0) {
-      await toStage(page, "article[data-drill] > button:last-child");
+      await toStage(page, ".prompt > button:last-child");
       await shot(page, flow.id, "feedback-right", width);
     }
     if (shots && i === 1) {
-      await toStage(page, "article[data-drill] > button:last-child");
+      await toStage(page, ".prompt > button:last-child");
       await shot(page, flow.id, "feedback-wrong", width);
     }
     await earContinue(page);

@@ -72,8 +72,8 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
     "data-value",
     "akai-classic",
   );
-  await pub.getByRole("button", { name: "Ignore this port" }).click();
-  await expect(pub.getByRole("button", { name: "Stop ignoring" })).toBeVisible();
+  await pub.getByRole("button", { name: "Hide this device" }).click();
+  await expect(pub.getByRole("button", { name: "Show this device" })).toBeVisible();
 
   // Link: the full handshake now, then a heartbeat every second.
   await page.getByRole("button", { name: "Keep linked (init + heartbeat)" }).click();
@@ -87,11 +87,11 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
   expect(frames.every((f) => f.port === "out-mpc-private")).toBe(true);
   expect(frames.length).toBeGreaterThanOrEqual(10);
 
-  // The ignored port's bytes still show in Live activity.
+  // The hidden device's bytes still show in Recent input.
   await midiNote(page, PORTS.mpcPublic.id, 40, 100, 10);
   const activity = page.getByTestId("activity");
   await expect(activity).toContainText("99 28 64");
-  await expect(activity).toContainText("ignored");
+  await expect(activity).toContainText("hidden");
   await midiNote(page, PORTS.mpcPrivate.id, 37, 100, 10);
   await expect(activity).toContainText("99 25 64");
   await shoot(page, "connect");
@@ -117,7 +117,7 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
     "false",
   );
   await midiNote(page, PORTS.mpcPublic.id, 37, 100, 10);
-  await expect(page.getByTestId("midi-status")).toContainText("dropped: that port is ignored");
+  await expect(page.getByTestId("midi-status")).toContainText("dropped: that device is hidden");
 
   // Full reload on a path-check URL: MIDI must come back on by itself, and the link with it.
   await page.goto(
@@ -281,7 +281,10 @@ test("Aerophone and pads with on-screen input only say what they cannot measure"
   await g4.dispatchEvent("pointerdown", { pointerId: 7, button: 0, bubbles: true });
   await expect(g4).toHaveAttribute("aria-pressed", "true");
   await page.waitForTimeout(3300);
-  await g4.dispatchEvent("pointerup", { pointerId: 7, button: 0, bubbles: true });
+  // The run ends on its own at 3 s and the results hide the stage (still mounted): the finger lifts there.
+  await page
+    .getByRole("button", { name: "Play G4", includeHidden: true })
+    .dispatchEvent("pointerup", { pointerId: 7, button: 0, bubbles: true });
   await expect(page.getByRole("status")).toContainText("Breath needs the Aerophone", {
     timeout: 10_000,
   });
@@ -321,6 +324,6 @@ test("the strip's input pop-up turns MIDI on and chooses its devices", async ({ 
   await expect(page.getByRole("button", { name: /^Sound and input: .*MIDI on,/ })).toBeVisible();
   // The choice is the device's ignored flag, the same one Connect shows.
   await page.goto("/music/connect");
-  await expect(page.getByText(/ignored: its notes don't reach drills/)).toBeVisible();
+  await expect(page.getByText(/hidden: its notes don't reach drills/)).toBeVisible();
   await expect(page.getByText("Guitar", { exact: true }).first()).toBeVisible();
 });

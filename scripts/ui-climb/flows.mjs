@@ -248,17 +248,9 @@ export const FLOWS = [
     "Finding notes on the guitar or ukulele neck.",
     ["fretboard-guitar", "fretboard-ukulele"],
     ["fretboard"],
-    [
-      "finder-ready",
-      "lesson",
-      "finder-running",
-      "running",
-      "finder-results",
-      "results",
-      "finder-check",
-      "silent",
-      ...DRILL_STATES,
-    ],
+    // Note finder only, each state twice so guitar and ukulele each get one (the
+    // fretboard captures' other states are Spider, a different exercise).
+    ["finder-ready", "finder-running", "finder-results", "finder-check"].flatMap((s) => [s, s]),
   ),
   drill(
     "strum",

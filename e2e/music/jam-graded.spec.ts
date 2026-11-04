@@ -104,7 +104,7 @@ test("three notes over the blues: a chorus graded and recorded as checked", asyn
         ] as [number, number][],
     ).flat(),
   );
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   await expect(page.getByTestId("jam-graded")).toContainText("Notes from the set: 24 of 24");
   const run = await lastRun(page);
   expect(run).toMatchObject({ exerciseId: "jam.improv", assistance: "independent", score: 1 });
@@ -150,7 +150,7 @@ test("trading fours over a standard: the lead sheet, and the band's bars left al
         ] as [number, number][],
     ),
   );
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   await expect(page.getByTestId("jam-graded")).toContainText("3 of 3 windows");
   expect((await lastRun(page)).params).toMatchObject({
     progression: "tune-jazz-blues",

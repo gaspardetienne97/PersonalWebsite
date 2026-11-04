@@ -193,7 +193,12 @@ test.describe("intro lessons", () => {
     await page.goto("/music/ear/intervals?intervals=P5,P8");
     const lesson = page.getByTestId("lesson");
     await expect(lesson).toContainText("Screen 1 of 3");
-    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // The intro counts its half steps one Next at a time; its steps stay on screen 1.
+    const perfect5th = lesson.getByRole("heading", { name: "Perfect 5th" });
+    for (let i = 0; i < 4 && !(await perfect5th.isVisible()); i++) {
+      await page.getByRole("button", { name: "Next", exact: true }).click();
+      if (!(await perfect5th.isVisible())) await expect(lesson).toContainText("Screen 1 of 3");
+    }
     await expect(lesson).toContainText("Screen 2 of 3");
     await expect(lesson.getByRole("heading", { name: "Perfect 5th" })).toBeVisible();
   });
@@ -284,7 +289,7 @@ test.describe("tier 1 lessons", () => {
     ).toBeVisible();
     await expect(page.getByTestId("lesson").getByRole("group", { name: /MPC pads/ })).toBeVisible();
     const flam = page.getByRole("heading", { name: "Flam", exact: true });
-    for (let i = 0; i < 12 && !(await flam.isVisible()); i++) {
+    for (let i = 0; i < 24 && !(await flam.isVisible()); i++) {
       await page.getByRole("button", { name: "Next", exact: true }).click();
       await expectNoHorizontalOverflow(page);
     }
@@ -391,7 +396,9 @@ test.describe("ear lessons", () => {
   }) => {
     await page.goto("/music/ear/intervals?intervals=P5,P8");
     await expect(heading(page, "Distance in half steps")).toBeVisible();
-    await next(page);
+    // The intro counts its half steps one Next at a time before the first interval.
+    for (let i = 0; i < 4 && !(await heading(page, "Perfect 5th").isVisible()); i++)
+      await next(page);
     await expect(heading(page, "Perfect 5th")).toBeVisible();
     await next(page);
     await expect(heading(page, "Octave")).toBeVisible();
@@ -523,11 +530,11 @@ test.describe("concept cards", () => {
       .getByRole("button", { name: /, target$/ })
       .first()
       .click();
-    await page.getByRole("button", { name: "Finish now" }).click();
+    await page.getByRole("button", { name: "Stop", exact: true }).first().click();
     const again = page.getByRole("button", { name: "Again", exact: true });
     await expect(again).toBeVisible();
     // The results offer the same setup in Check; its card shows first.
-    await page.getByRole("button", { name: "Run it in Check" }).click();
+    await page.getByRole("button", { name: "Try it from memory" }).click();
     await expect(page.getByRole("heading", { name: "Shape the hand" })).toBeVisible();
     await expect(again).toHaveCount(0);
     await (await toEnd(page)).click();

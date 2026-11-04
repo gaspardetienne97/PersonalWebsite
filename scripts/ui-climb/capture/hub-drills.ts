@@ -3,7 +3,7 @@
 // from the same data attributes the e2e suite uses.
 import { expect, type Page } from "@playwright/test";
 import { installFakeMidi, midiNote, muteHmr, PORTS } from "../../../e2e/music/fixtures";
-import { lessons, open, shot, startTheme, VIEWPORTS, type Width } from "./lib";
+import { jitter, lessons, mode, open, shot, startTheme, VIEWPORTS, type Width } from "./lib";
 
 export { installFakeMidi, midiNote, muteHmr, PORTS };
 export const WIDTHS: Width[] = ["desktop", "phone"];
@@ -66,17 +66,8 @@ export async function openWithMidi(
 export const startBtn = (page: Page) =>
   page.getByRole("button", { name: /^(Start|Again)$/, exact: false });
 
-export async function pickMode(page: Page, mode: "Practice" | "Check") {
-  // Click until the mode shows as pressed: a click before the page hydrates is lost,
-  // and a run started then would go out in the wrong mode.
-  const inGroup = page.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode });
-  const plain = page.getByRole("button", { name: mode, exact: true });
-  await expect(async () => {
-    const b = ((await inGroup.count()) ? inGroup : plain).first();
-    if ((await b.getAttribute("aria-pressed", { timeout: 2000 })) !== "true") await b.click();
-    await expect(b).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
-  }).toPass({ timeout: 20_000 });
-}
+/** Leave any lesson or results, then switch the mode and see it pressed (fails if it will not). */
+export const pickMode = mode;
 
 /** Skip the intro lesson if it shows (it is marked seen, as a user would). */
 export async function skipLesson(page: Page) {
@@ -226,6 +217,7 @@ export async function earContinue(page: Page) {
  * and stamped with its exact time, so timers under load cannot skew it (as the e2e does).
  */
 export async function playAt(page: Page, times: number[], midi = 60, port = PORTS.keys.id) {
+  times = times.map((t, i) => t + jitter(i));
   await page.evaluate(
     ({ times, midi, port }) => {
       const m = (window as any).__midi;
@@ -272,6 +264,7 @@ export async function waitUntil(page: Page, at: number) {
 
 /** Press Space (the on-screen Tap) at each of `times`; counts whatever the instrument's input. */
 export async function spaceAt(page: Page, times: number[]) {
+  times = times.map((t, i) => t + jitter(i));
   await page.evaluate((times) => {
     for (const at of times)
       setTimeout(
@@ -296,7 +289,7 @@ export async function armTaps(
   opts: { via?: "midi" | "space"; off?: Record<number, number>; midi?: number } = {},
 ) {
   return page.evaluate(
-    ({ beats, via, off, midi, port }) => {
+    ({ beats, via, off, jit, midi, port }) => {
       const stage = () => document.querySelector("[data-beat-ms]");
       const before = stage()?.getAttribute("data-downbeat") ?? null;
       const fire = (at: number) => {
@@ -322,7 +315,7 @@ export async function armTaps(
             ? (s.getAttribute("data-onsets") ?? "").split(",").filter(Boolean).map(Number)
             : beats;
         bs.forEach((b, i) => {
-          const at = db + b * bm + (off[i] ?? 0);
+          const at = db + b * bm + (off[i] ?? 0) + jit[i % jit.length];
           // MIDI goes a little early, stamped with its exact time; Space fires on time.
           const lead = via === "space" ? 0 : 60;
           setTimeout(() => fire(at), Math.max(0, at - lead - performance.now()));
@@ -335,6 +328,8 @@ export async function armTaps(
       beats,
       via: opts.via ?? "midi",
       off: opts.off ?? {},
+      // A player's few ms on every tap, so the per-beat rows are not all 0 ms.
+      jit: Array.from({ length: 64 }, (_, i) => jitter(i)),
       midi: opts.midi ?? 60,
       port: PORTS.keys.id,
     },

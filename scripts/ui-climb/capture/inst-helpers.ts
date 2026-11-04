@@ -11,9 +11,9 @@ import {
   PORTS,
   type FakePort,
 } from "../../../e2e/music/fixtures";
-import { shot, startTheme, VIEWPORTS, type Width } from "./lib";
+import { hasCheck, jitter, mode, shot, think, startTheme, VIEWPORTS, type Width } from "./lib";
 
-export { PORTS, shot, VIEWPORTS, type Width };
+export { hasCheck, mode, PORTS, shot, think, VIEWPORTS, type Width };
 export const WIDTHS: Width[] = ["desktop", "phone"];
 export const KEYS = PORTS.keys.id;
 export const AERO = PORTS.aerophone.id;
@@ -123,11 +123,6 @@ export async function skipLesson(page: Page) {
   if (await skip.isVisible()) await skip.click();
 }
 
-export async function mode(page: Page, m: "Practice" | "Check") {
-  const b = page.getByRole("button", { name: m, exact: true });
-  if (await b.count()) await b.click();
-}
-
 export const startButton = (page: Page) =>
   page.getByRole("button", { name: /^(Start|Again)$/ }).first();
 
@@ -204,8 +199,13 @@ export type Send = Note | Raw;
  * little early and stamped with its exact time, so a busy machine stays on the beat.
  */
 export async function sendAt(page: Page, port: string, sends: Send[]) {
-  const notes = sends.filter((x): x is Note => Array.isArray(x));
-  const raws = sends.filter((x): x is Raw => !Array.isArray(x));
+  // A player's few ms on each note (and each raw note-on), so per-beat rows are not all 0 ms.
+  const notes = sends
+    .filter((x): x is Note => Array.isArray(x))
+    .map(([m, at, hold, vel], i): Note => [m, at + jitter(i), hold, vel]);
+  const raws = sends
+    .filter((x): x is Raw => !Array.isArray(x))
+    .map((r, i) => ((r.bytes[0] & 0xf0) === 0x90 ? { ...r, at: r.at + jitter(i) } : r));
   await page.evaluate(
     ({ notes, raws, port }) => {
       const w = window as any;
@@ -244,6 +244,7 @@ export type Step = { at: number; notes: number[]; hold?: number; cc?: [number, n
  */
 export async function startOnGo(page: Page, steps: Step[], port = KEYS) {
   await clearSends(page);
+  steps = steps.map((s, i) => ({ ...s, at: s.at + jitter(i) }));
   await page.evaluate(
     ({ steps, port }) => {
       const w = window as any;
@@ -341,6 +342,7 @@ export const fret = (s: number, f: number) => `button[aria-label^="String ${s} f
 
 /** Taps on fret buttons at absolute page times. */
 export async function tapFretsAt(page: Page, taps: [string: number, fret: number, at: number][]) {
+  taps = taps.map(([s, f, at], i) => [s, f, at + jitter(i)]);
   await page.evaluate((taps) => {
     for (const [s, f, at] of taps) {
       const el = () => document.querySelector(`button[aria-label^="String ${s} fret ${f},"]`);
@@ -400,8 +402,10 @@ export async function captureLesson(page: Page, F: string, url: string, width: W
   await lessons(page, true);
   await open(page, url);
   let found = await lessonView(page).isVisible();
-  if (!found && (await page.getByRole("button", { name: "Check", exact: true }).count())) {
-    await mode(page, "Check");
+  const check = page.getByRole("group", { name: "Mode" }).getByRole("button", { name: "Check" });
+  if (!found && (await check.count())) {
+    // A plain click: `mode` would close the concept card this is here to shoot.
+    await check.click();
     found = await lessonView(page)
       .waitFor({ state: "visible", timeout: 2500 })
       .then(() => true)
@@ -421,12 +425,14 @@ export async function captureDemo(page: Page, F: string, width: Width, ms = 2500
   const demo = page.getByRole("button", { name: /^Hear it( first)?$/ });
   if (!(await demo.count())) return false;
   await demo.click();
-  await expect(page.getByText("Listening, not scored.")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/^(Listening|Demo playing), not scored\.$/)).toBeVisible({
+    timeout: 10_000,
+  });
   await page.waitForTimeout(ms);
   await shot(page, F, "demo", width);
   // A short demo can end on its own.
   const stop = page.getByRole("button", { name: "Stop demo" });
-  if (await stop.isVisible()) await stop.click();
+  if (await stop.isVisible()) await stop.click({ timeout: 1000 }).catch(() => {});
   await page.waitForTimeout(300);
   return true;
 }
@@ -540,10 +546,7 @@ export async function goFlow(page: Page, o: GoFlow) {
     await shot(page, F, "results-poor", width);
   }
 
-  if (
-    o.checkAt !== undefined &&
-    (await page.getByRole("button", { name: "Check", exact: true }).count())
-  ) {
+  if (o.checkAt !== undefined && (await hasCheck(page))) {
     await mode(page, "Check");
     await skipLesson(page);
     await resetGo(page);
@@ -709,7 +712,7 @@ export async function attrFlow(page: Page, o: AttrFlow) {
   await waitResults(page, 90_000);
   await shot(page, F, "results-poor", width);
 
-  if (o.check && (await page.getByRole("button", { name: "Check", exact: true }).count())) {
+  if (o.check && (await hasCheck(page))) {
     await mode(page, "Check");
     await page
       .getByRole("button", { name: "Skip, I know this" })

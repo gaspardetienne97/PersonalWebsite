@@ -188,10 +188,10 @@ test.describe("ear training", () => {
         P8: "Octave",
       };
       const pick = i === 0 ? (answer === "P5" ? "Perfect 4th" : "Perfect 5th") : names[answer];
-      // The picture shows only timing until the answer is in: no pitches, no arc.
+      // Until the answer is in, the keyboard is shown unlit: no pitches, no arc.
       if (i === 0) {
-        // Two bars for a melodic interval, one for a harmonic (both notes at once).
-        expect(await card.locator("svg.ear-visual .shape").count()).toBeGreaterThan(0);
+        await expect(card.getByRole("group", { name: /^Piano keyboard/ })).toBeVisible();
+        await expect(card.locator("[data-target], [data-role]")).toHaveCount(0);
         await expect(card.locator("svg.ear-visual .note, svg.ear-visual .arc")).toHaveCount(0);
       }
       await page.locator("button.choice", { hasText: new RegExp(`^${pick}`) }).click();
@@ -213,11 +213,14 @@ test.describe("ear training", () => {
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 right");
     await expect(page.getByText("What you mixed up")).toBeVisible();
-    // The mix-up as a square of the grid: played (row) against what was said (column).
+    // The mix-up as a square of the grid: played (row) against what was said (column), outlined
+    // as the one the headline names.
     await expect(
-      page.getByRole("button", { name: /^Played .*, you said .*, once\. Play both\.$/ }),
+      page.getByRole("button", {
+        name: /^Played .*, you said .*, once, the mix-up named above\. Play both\.$/,
+      }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /Practise my confusions/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Drill my confusions/ })).toBeVisible();
     await shots(page, "ear-intervals-results");
   });
 
@@ -361,8 +364,10 @@ test.describe("ear training", () => {
       .getByRole("button", { name: new RegExp(`^${wrongDegree} `) })
       .click();
     await waitStep(page, "feedback");
-    await expect(card.getByText(/^Played: /)).toBeVisible();
-    await expect(card.getByText(new RegExp(`^You chose: ${wrongDegree}`))).toBeVisible();
+    // On the strip's instrument: the degree played, the chosen one beside it (marked with a cross).
+    const degreeReveal = card.getByTestId("ear-reveal");
+    await expect(degreeReveal.getByText(/^Played: /)).toBeVisible();
+    await expect(degreeReveal).toContainText(`You chose: ${wrongDegree}`);
   });
 
   test("cadences: start on authentic and plagal, pick a set", async ({ page }) => {

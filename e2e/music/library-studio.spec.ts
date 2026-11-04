@@ -518,7 +518,7 @@ for (const width of [375, 1280]) {
       .getAttribute("href"))!;
     for (const [path, h1, name] of [
       ["/music/library", "Library", "songs"],
-      ["/music/library?tab=reference", "Library", "reference"],
+      ["/music/create/reference", "Chords and scales", "reference"],
       ["/music/library?tab=import", "Library", "import"],
       [studio, "Ode to Joy", "studio"],
       [`${studio}?view=waterfall`, "Ode to Joy", "studio-waterfall"],

@@ -78,9 +78,9 @@ test("find home: loop and mark a recording, name its tonic, and the run is judge
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.waitForTimeout(800);
-  await page.getByRole("button", { name: "Set A" }).click();
+  await page.getByRole("button", { name: "Start loop" }).click();
   await page.waitForTimeout(1200);
-  await page.getByRole("button", { name: "Set B" }).click();
+  await page.getByRole("button", { name: "End loop" }).click();
   await expect(page.getByText("Loop", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Verse", exact: true }).click();
   await expect(page.getByRole("list", { name: "Marked sections" })).toContainText("Verse");

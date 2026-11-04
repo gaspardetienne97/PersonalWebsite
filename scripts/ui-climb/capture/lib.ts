@@ -122,3 +122,60 @@ export async function open(page: Page, url: string) {
   await page.evaluate(() => document.fonts?.ready.then(() => null));
   await page.waitForTimeout(400);
 }
+
+/**
+ * Back to the setup screen from a session (a lesson, a run or its results own the screen
+ * there, and the mode, tabs and setup are hidden). Fails if the session will not close.
+ */
+export async function leaveSession(page: Page) {
+  const session = page.locator("[data-session]");
+  const close = page.getByRole("button", { name: "Close and back to setup" });
+  for (let i = 0; i < 4 && (await session.count()); i++) {
+    if (await close.isVisible()) await close.click();
+    else await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+  }
+  await expect(session, "the session (lesson, run or results) did not close").toHaveCount(0);
+}
+
+const modeGroup = (page: Page) => page.getByRole("group", { name: "Mode" });
+
+/** Whether the drill has Practice and Check (asked from the setup screen). */
+export async function hasCheck(page: Page) {
+  await leaveSession(page);
+  return (await modeGroup(page).count()) > 0;
+}
+
+/**
+ * Leave any session, then switch to `m` and see it pressed. A click before the page
+ * hydrates is lost, and Check can open its concept lesson (closed on the retry), so
+ * this retries until the toggle shows `m`. A drill without the toggle is Practice only.
+ */
+export async function mode(page: Page, m: "Practice" | "Check") {
+  const b = modeGroup(page).getByRole("button", { name: m });
+  await expect(async () => {
+    await leaveSession(page);
+    if (m === "Practice" && !(await modeGroup(page).count())) return;
+    if ((await b.getAttribute("aria-pressed", { timeout: 2000 })) !== "true") await b.click();
+    await expect(b).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
+  }, `could not switch the drill to ${m}`).toPass({ timeout: 20_000 });
+}
+
+/** A seeded number in [0, 1) for `i` (mulberry32), so every capture plays the same. */
+function rand(i: number) {
+  let t = (i * 0x6d2b79f5 + 0x9e3779b9) | 0;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+}
+
+/** A player's few ms off the beat for hit `i`: 3 to 12 ms early or late, inside on time. */
+export function jitter(i: number) {
+  const r = rand(i);
+  return (r < 0.5 ? -1 : 1) * (3 + Math.floor(((r * 2) % 1) * 10));
+}
+
+/** A player's think before answer `i` (0.8 to 1.8 s by default), so answer times do not read 0.1 s. */
+export async function think(page: Page, i: number, [lo, hi] = [800, 1800]) {
+  await page.waitForTimeout(lo + Math.round(rand(i + 7919) * (hi - lo)));
+}

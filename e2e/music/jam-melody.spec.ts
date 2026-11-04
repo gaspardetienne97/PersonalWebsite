@@ -131,7 +131,7 @@ test("Jam on your own score: its head on the lead sheet, quoted to open each A s
   const quote = (bar: number) =>
     [79, 76, 77, 79, 84].map((m, j) => [m, bar * 4 + j * 0.5] as [number, number]);
   await playBeats(page, [...quote(0), ...quote(2), ...quote(6)]);
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   await expect(page.getByTestId("jam-graded")).toContainText("3 of 3 A sections");
   expect((await lastRun(page)).params).toMatchObject({
     progression: "song-e2e-tune",
@@ -155,7 +155,7 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
     [0.5, 1, 1.5].map((o, j) => [72 + j * 2, bar * 4 + o] as [number, number]),
   );
   await playBeats(page, [...head, ...fills]);
-  await expect(page.getByTestId("jam-score")).toHaveText("100%", { timeout: 25_000 });
+  await expect(page.getByTestId("results-metric")).toHaveText("100%", { timeout: 25_000 });
   await expect(page.getByTestId("jam-graded")).toContainText("4 of 4 rests filled");
 });
 

@@ -9,6 +9,7 @@ import {
   captureLesson,
   downbeatOf,
   goFlow,
+  hasCheck,
   installChordMic,
   mode,
   nextRunButton,
@@ -20,6 +21,7 @@ import {
   startMic,
   tapChord,
   tapFretsAt,
+  think,
   top,
   waitResults,
   waitSilent,
@@ -103,7 +105,7 @@ async function spiderFlow(
   await waitResults(page);
   await shot(page, F, "results-poor", width);
 
-  if (await page.getByRole("button", { name: "Check", exact: true }).count()) {
+  if (await hasCheck(page)) {
     await mode(page, "Check");
     const c = await playLine(page, taps);
     await runningShots(page, F, width, c.downbeat, [3.3 * c.stepMs], "check");
@@ -142,6 +144,7 @@ async function finderAnswer(page: Page, n: number, right: boolean) {
     }
     return null;
   }, right);
+  await think(page, n);
   await tapChord(page, [at as Fret]);
 }
 
@@ -232,7 +235,7 @@ async function buildFlow(
   await startButton(page).click();
   await page.waitForTimeout(600);
   await tapChord(page, [chord[0], wrong]);
-  await page.getByRole("button", { name: "Finish now" }).click();
+  await page.getByRole("button", { name: "Stop", exact: true }).first().click();
   await waitResults(page);
   await shot(page, F, "results-poor", width);
 
@@ -247,13 +250,13 @@ async function buildFlow(
   await page.waitForTimeout(150);
   if (width === "desktop") await top(page);
   await shot(page, F, "check", width);
-  await page.getByRole("button", { name: "Finish now" }).click();
+  await page.getByRole("button", { name: "Stop", exact: true }).first().click();
   await waitResults(page);
   await mode(page, "Practice");
 
   await startButton(page).click();
   await page.waitForTimeout(600);
-  await page.getByRole("button", { name: "Finish now" }).click();
+  await page.getByRole("button", { name: "Stop", exact: true }).first().click();
   await waitSilent(page);
   await shot(page, F, "silent", width);
 }
@@ -525,7 +528,7 @@ for (const width of WIDTHS) {
   });
 
   test(`circle ${width}`, async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(480_000);
     await prep(page, width, {});
     const F = "circle";
     const url = "/music/circle?mode=count&band=two";
@@ -537,9 +540,13 @@ for (const width of WIDTHS) {
     const card = page.locator("article[data-mode]");
     const answers = page.getByRole("group", { name: "Answers" }).getByRole("button");
     const esc = (a: string) => a.replace(/[#♯♭]/g, (m) => `\\${m}`);
+    let asked = 0;
     const answer = async (right: boolean) => {
       await expect(card).toHaveAttribute("data-step", "answer");
       const a = (await card.getAttribute("data-answer"))!;
+      // The drill's clock runs ~0.6 s ahead of this wait: shown times land at ~1.1 to 1.8 s,
+      // inside its 2 s mark, so a clean run stays clean.
+      await think(page, asked++, [500, 1200]);
       if (right)
         await answers
           .filter({ hasText: new RegExp(`^${esc(a)}\\d?$`) })
@@ -597,7 +604,7 @@ for (const width of WIDTHS) {
     await shot(page, F, "signature-running", width);
 
     await open(page, url);
-    if (await page.getByRole("button", { name: "Check", exact: true }).count()) {
+    if (await hasCheck(page)) {
       await mode(page, "Check");
       await page
         .getByRole("button", { name: "Skip, I know this" })
