@@ -449,12 +449,18 @@ const setCard = (id: string, intro: string): Lesson => {
   const notes = setNotes(set, JAM_EXAMPLE.keyPc).slice(0, set.length);
   const names = notes.map(spell);
   const rests = g.aims.some((a) => a.metric === "rests");
+  // A b3 over a major or dominant chord is the blues on purpose, not a wrong note: say so once.
+  const b3 = notes.find((m) => pc(m - JAM_EXAMPLE.keyPc) === 3);
+  const blue =
+    b3 === undefined
+      ? ""
+      : `, and the ${spell(b3)} is the blue third: over a C or C7 chord it rubs against the chord's E on purpose`;
   return {
     ...named(id),
     screens: [
       {
         title: "The notes you may use",
-        text: `${intro} In the key of C that is ${join(names)}. Check scores the share of your notes in the set, and the aim is ${pct(id, "set")}%, in any octave.`,
+        text: `${intro} In the key of C that is ${join(names)}${blue}. Check scores the share of your notes in the set, and the aim is ${pct(id, "set")}%, in any octave.`,
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
       },
       {

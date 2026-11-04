@@ -36,6 +36,7 @@ import {
   positionsCard,
   scaleFormula,
 } from "./cards";
+import type { LessonFigure } from "./types";
 import { boxes, cagedForms, placed, ukulelePositions } from "./cards-guitar";
 import { tagsOf } from "./cards-piano";
 
@@ -61,11 +62,13 @@ describe("concept cards", () => {
         ).toEqual([
           arp
             ? `${id}.arp`
-            : id.startsWith("positions.") &&
-                "tuning" in o &&
-                !["guitar.standard", "ukulele.high-g"].includes((o.tuning as { id: string }).id)
-              ? `${id}@${(o.tuning as { id: string }).id}`
-              : id,
+            : id === "scales.major-formula" && "tuning" in o
+              ? `${id}.${(o.tuning as { instrument: string }).instrument}`
+              : id.startsWith("positions.") &&
+                  "tuning" in o &&
+                  !["guitar.standard", "ukulele.high-g"].includes((o.tuning as { id: string }).id)
+                ? `${id}@${(o.tuning as { id: string }).id}`
+                : id,
         ]);
         expect(lessonProblems(ls[0], "card"), id).toEqual([]);
       }
@@ -109,6 +112,39 @@ describe("concept cards", () => {
     expect(l.screens[0].text).toContain("W W H W W W H");
     expect(l.screens[1].text).toContain("notes 3 and 4, and between notes 7 and 8");
     expect(l.screens[1].text).toContain("E to F and B to C");
+  });
+
+  it("draws the formula one step at a time, W or H on the note each step reaches", () => {
+    const [l] = conceptCard("scales.major-formula");
+    const labels = (f: unknown) => Object.values((f as { marks: Record<number, string> }).marks);
+    expect(labels(l.screens[0].figure)).toEqual(["C", "D", "E", "F", "G", "A", "B", "C"]);
+    expect(labels(l.screens[0].steps![0].figure)).toEqual(["C", "W", "E", "F", "G", "A", "B", "C"]);
+    expect(labels(l.screens[0].steps![6].figure)).toEqual(["C", "W", "W", "H", "W", "W", "W", "H"]);
+    expect(l.screens[0].figure).toMatchObject({ kind: "keys", low: 59, high: 74 });
+    expect(Object.keys((l.screens[1].figure as { marks: object }).marks).map(Number)).toEqual([
+      64, 65, 71, 72,
+    ]);
+  });
+
+  it("the fretted twin walks one string, W two frets and H one", () => {
+    const [l] = conceptCard("scales.major-formula", {
+      tuning: guitars.find((t) => t.id === "guitar.standard"),
+    });
+    expect(l.id).toBe("scales.major-formula.guitar");
+    const f = l.screens[0].steps![6].figure as Extract<LessonFigure, { kind: "fretboard" }>;
+    // C on the B string, fret 1, up to fret 13.
+    expect(f.marks.map((m) => [m.string, m.fret, m.label])).toEqual(
+      [1, 3, 5, 6, 8, 10, 12, 13].map((fret, i) => [
+        2,
+        fret,
+        ["C", "W", "W", "H", "W", "W", "W", "H"][i],
+      ]),
+    );
+    expect([f.from, f.to]).toEqual([0, 13]);
+    const uke = conceptCard("scales.major-formula", {
+      tuning: ukes.find((t) => t.id === "ukulele.high-g"),
+    })[0];
+    expect((uke.screens[0].figure as { marks: { fret: number }[] }).marks[0].fret).toBe(0);
   });
 
   it("the minor card matches the scale code", () => {
@@ -475,19 +511,14 @@ describe("concept cards", () => {
     const snd = p.screens[0].steps![0].sound!.notes.map((n) => n.midi[0]);
     expect(snd.slice(0, 8)).toEqual(chordPatternLine(["Dm7"], "1235").map((n) => n.midi));
     expect(snd.slice(0, 8)).toEqual([62, 64, 65, 69, 69, 65, 64, 62]);
-    // The first screen draws both patterns on Dm7: one bar each, the symbol over each bar.
-    const fig = p.screens[0].figure!;
-    expect(fig.kind).toBe("staff");
-    if (fig.kind !== "staff") return;
-    expect(fig.notes.map((n) => n.midi)).toEqual([
-      ...chordPatternLine(["Dm7"], "1235").map((n) => n.midi),
-      ...chordPatternLine(["Dm7"], "3579").map((n) => n.midi),
-    ]);
-    expect(fig.notes.reduce((b, n) => b + n.beats, 0)).toBe(8);
-    expect(fig.chords).toEqual([
-      { symbol: "Dm7", beat: 0 },
-      { symbol: "Dm7", beat: 4 },
-    ]);
+    // The first screen draws each pattern on Dm7's keys, labelled by its place in the pattern.
+    const [a, b] = p.screens[0].options!;
+    expect([a.label, b.label]).toEqual(["1-2-3-5", "3-5-7-9"]);
+    expect(a.figure).toMatchObject({ kind: "keys", marks: { 62: "1", 64: "2", 65: "3", 69: "5" } });
+    expect(b.figure).toMatchObject({ kind: "keys", marks: { 65: "3", 69: "5", 72: "7", 76: "9" } });
+    expect(p.screens[0].steps![0].figure).toMatchObject({
+      marks: { 62: "1", 64: "2", 65: "3", 69: "5", 72: "7", 76: "9" },
+    });
   });
 
   it("the chord symbol card covers every kind of chord the lead-sheet charts use", () => {

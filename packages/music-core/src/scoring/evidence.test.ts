@@ -47,6 +47,15 @@ describe("timingRow", () => {
     expect(timingRow([10, -10, 10, -10], 4, 40).text).toBe("10 ms off on average");
     expect(timingRow([300, 300, 300, 300], 4, 100).value).toBe(0);
   });
+  it("names the on-time window and fills only as far as the average sits inside it", () => {
+    const r = timingRow([25, -25, 25, -25], 4, 150, "Timing", 15);
+    expect(r.text).toBe("25 ms off on average (on time is within 15 ms)");
+    expect(r.value).toBeCloseTo(0.6);
+    expect(timingRow([10, -10, 10, -10], 4, 150, "Timing", 15).value).toBe(1);
+    expect(timingRow([20, 20, 20, 20, 20], 8, 150, "Timing", 15).text).toBe(
+      "20 ms off on average, from 5 of 8 (on time is within 15 ms)",
+    );
+  });
 });
 
 describe("evennessRow", () => {

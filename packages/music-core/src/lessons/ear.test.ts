@@ -360,8 +360,15 @@ describe("ear lessons", () => {
     ).toBe(true);
   });
   it("intros follow the drill's setup: direction, level degrees, minor setup", () => {
-    const opts = earLessons("intervals", [], { direction: "descending" })[0].screens[0].options!;
-    for (const o of opts) expect(o.sound.notes[1].midi[0]).toBeLessThan(o.sound.notes[0].midi[0]);
+    const steps = earLessons("intervals", [], { direction: "descending" })[0].screens[0].steps!;
+    for (const o of steps)
+      expect(o.sound!.notes[1].midi[0]).toBeLessThan(o.sound!.notes[0].midi[0]);
+    // Each step numbers every half step from the start key "0", counting down.
+    expect((steps[1].figure as { marks: Record<number, string> }).marks).toMatchObject({
+      60: "0",
+      53: "7",
+    });
+    expect(Object.keys((steps[2].figure as { marks: object }).marks).length).toBe(13);
     for (const level of SCALE_DEGREE_LEVELS) {
       const [intro] = earLessons("melody-dictation", [], { level: level.id });
       const notes = intro.screens[0].sound!.notes;

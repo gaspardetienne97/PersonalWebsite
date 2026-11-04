@@ -1,6 +1,7 @@
 // Scales, fretboard patterns, fret finding, Chord-Perfect and the tempo ladder.
 import type { Metric, NoteEvent, Strictness } from "../types";
 import { pcOf } from "../theory/notes";
+import { enough } from "./evidence";
 import { type Graded, mean, noteOns, notMeasured, pcSet, simultaneityMeasured } from "./grade";
 import {
   alignChangeClusters,
@@ -149,7 +150,9 @@ export function gradeLine(input: LineInput): LineResult {
     };
 
   const w = input.evennessWeight ?? 0.15;
-  const score = ons.length ? pitch * (1 - w) + even.score * w : 0;
+  // Evenness the results call Not measured (too few notes landed) earns no share of the score.
+  const evenCredit = enough(clean, targets.length) ? even.score : 0;
+  const score = ons.length ? pitch * (1 - w) + evenCredit * w : 0;
   const metrics: Metric[] = [
     ...targets.map((t, i) => ({
       kind: "pitch" as const,

@@ -42,6 +42,7 @@ const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
 const CADENCES = CADENCES_AND_QUALITIES.cadences;
 const MAJOR = SCALE_DATA.semitonesByKind.major;
 
+const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
 const hs = (n: number) => (n === 1 ? "1 half step" : `${n} half steps`);
 const name = (m: number) => noteName(m, "flat", false);
 const sound = (events: PlaybackEvent[], shift = 0): LessonSound => ({
@@ -91,23 +92,29 @@ const intervalSound = (token: string, direction: Direction = "ascending", root =
   sound(intervalPrompt(rng(1), { difficulty: 0.3, token, direction, root }).playback);
 
 const intervals = {
-  intro: (o: EarOptions) =>
-    card("ear.intervals", "Intervals", {
+  intro: (o: EarOptions) => {
+    const dir = fixedDirection(o.direction) ?? "ascending";
+    const sign = dir === "descending" ? -1 : 1;
+    /** The start key "0", then every key up to `n` numbered: the half steps counted on the keys. */
+    const counted = (n: number) =>
+      keys(
+        Object.fromEntries(Array.from({ length: n + 1 }, (_, k) => [60 + sign * k, String(k)])),
+        [60, 60 + sign * 12],
+      );
+    return card("ear.intervals", "Intervals", {
       title: "Distance in half steps",
-      text: "An interval is the distance between two notes, counted in half steps: one piano key to the next. The quiz plays two notes and you name the distance. Tap a distance to hear it.",
-      options: ["m2", "P5", "P8"].map((t) => {
+      text: "An interval is the distance between two notes, counted in half steps: one key to the very next, black keys included. The quiz plays two notes and you name the distance. Tap Next to count some.",
+      figure: counted(0),
+      steps: ["m2", "P5", "P8"].map((t) => {
         const i = EAR_INTERVALS.find((x) => x.token === t)!;
         return {
-          label: hs(i.semitones),
-          sound: intervalSound(t, fixedDirection(o.direction) ?? "ascending"),
-          figure: keys({
-            60: "1st",
-            [60 + (fixedDirection(o.direction) === "descending" ? -i.semitones : i.semitones)]:
-              "2nd",
-          }),
+          text: `${i.name}: ${hs(i.semitones)} ${sign > 0 ? "up" : "down"}${i.semitones === 1 ? ", the very next key" : ""}.`,
+          figure: counted(i.semitones),
+          sound: intervalSound(t, dir),
         };
       }),
-    }),
+    });
+  },
   item: (token: string, o: EarOptions = {}) => {
     const i = EAR_INTERVALS.find((x) => x.token === token);
     if (!i) return null;
@@ -210,24 +217,42 @@ const cueCode = (cue: CueElement[]) =>
 const plainList = (xs: (string | number)[]) =>
   xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : `${xs[0]}`;
 const qualities = {
-  intro: () =>
-    card("ear.chord-qualities", "Chord qualities", {
-      title: "One chord, all notes together",
-      text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Hear major and minor: only the 3rd moves.",
-      figure: keys({ 60: "Root", 63: "m3", 64: "M3", 67: "5th" }),
-      options: [
-        {
-          label: "Major: C, E, G",
-          sound: { notes: [{ midi: [60, 64, 67], at: 0, dur: 0.9 }] },
-          figure: keys({ 60: "Root", 64: "M3", 67: "5th" }),
-        },
-        {
-          label: "Minor: C, Eb, G",
-          sound: { notes: [{ midi: [60, 63, 67], at: 0, dur: 0.9 }] },
-          figure: keys({ 60: "Root", 63: "m3", 67: "5th" }),
-        },
-      ],
-    }),
+  intro: (o: EarOptions = {}) => {
+    const triad = (label: string, midi: number[], marks: Record<number, string>) => ({
+      label,
+      sound: { notes: [{ midi, at: 0, dur: 0.9 }] },
+      figure: keys(marks, [60, 68]),
+    });
+    const major = triad("Major: C, E, G", [60, 64, 67], { 60: "Root", 64: "M3", 67: "5th" });
+    // Diminished and augmented get their own screen when the quiz asks them.
+    const odd = [
+      triad("Diminished: C, Eb, Gb", [60, 63, 66], { 60: "Root", 63: "m3", 66: "b5" }),
+      triad("Augmented: C, E, G#", [60, 64, 68], { 60: "Root", 64: "M3", 68: "#5" }),
+    ].filter((x) => o.items?.includes(x.label.split(":")[0].toLowerCase()));
+    return card(
+      "ear.chord-qualities",
+      "Chord qualities",
+      {
+        title: "One chord, all notes together",
+        text: "A chord's quality comes from the intervals stacked above its root. The quiz plays one chord with all its notes at once, and you name the quality. Tap each to hear it: only the 3rd moves.",
+        figure: major.figure,
+        options: [
+          major,
+          triad("Minor: C, Eb, G", [60, 63, 67], { 60: "Root", 63: "m3", 67: "5th" }),
+        ],
+      },
+      ...(odd.length
+        ? [
+            {
+              title: "The 5th can move too",
+              text: "Diminished is minor with the 5th a half step lower. Augmented is major with the 5th a half step higher. Tap each to hear it.",
+              figure: odd[0].figure,
+              options: odd,
+            },
+          ]
+        : []),
+    );
+  },
   item: (token: string, o: EarOptions = {}) => {
     const q = QUALITIES.find((x) => x.token === token);
     if (!q) return null;
@@ -608,6 +633,18 @@ const melodyDictation = {
         [tonic]: "Tonic",
       }),
       sound: afterSetup(p.minor, p.playback),
+      // Next walks the phrase in play order, so the order is drawn, not only the degrees.
+      steps: p.expectedMidi!.map((m, i) => {
+        const marks: Record<number, string> = { [tonic]: "Tonic" };
+        p.expectedMidi!.slice(0, i + 1).forEach(
+          (x, j) => (marks[x] = marks[x] && x !== tonic ? `${marks[x]} ${ORDINAL[j]}` : ORDINAL[j]),
+        );
+        return {
+          text: `${ORDINAL[i][0].toUpperCase()}${ORDINAL[i].slice(1)} note: degree ${degrees[i]}.`,
+          figure: keys(marks, [tonic, ...p.expectedMidi!]),
+          sound: sound(p.playback.slice(0, i + 2)),
+        };
+      }),
     });
   },
   item: degreeItem("melody-dictation", true),

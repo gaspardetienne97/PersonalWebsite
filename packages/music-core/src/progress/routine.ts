@@ -487,12 +487,13 @@ export function completedSteps(routine: Routine, sessions: PracticeSession[]): n
 }
 
 /**
- * Stars on the advance rule's lines: one at 70% (no step back), two at 85% (a pass), three for a
- * clean run (every answer right at 100%). `null` when the run was not scored (nothing heard).
+ * Stars on the advance rule's lines: one at 70% (no step back), two at 85%, three for a run the
+ * rule counts as clean (its `correct` at 85% or better), as on the results card. `null` when the
+ * run was not scored (nothing heard).
  */
 export function starsFor(score: number | undefined, clean = false): number | null {
   if (score === undefined) return null;
-  if (clean && score >= 1) return 3;
+  if (clean && score >= ADVANCE.pass) return 3;
   return score >= ADVANCE.pass ? 2 : score >= ADVANCE.fail ? 1 : 0;
 }
 

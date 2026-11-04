@@ -53,41 +53,75 @@ export function scaleFormula(kind: string): string[] {
   const s = scaleSemitones(kind)!;
   return s.slice(1).map((x, i) => ({ 1: "H", 2: "W", 3: "1.5" })[x - s[i]] ?? String(x - s[i]));
 }
-const words = (f: string) =>
-  f === "W" ? "a whole step" : f === "H" ? "a half step" : "a step and a half";
 
-function majorFormula(): Lesson {
+/**
+ * The major formula drawn one step at a time: C4 to C5 on the keys (or, on a fretted
+ * instrument, along one string, where W is two frets and H one). Each Next adds the
+ * step's W or H on the note it reaches, so the last step reads the formula left to right.
+ */
+function majorFormula(o: CardOpts = {}): Lesson {
   const semis = scaleSemitones("major")!;
   const formula = scaleFormula("major");
-  const notes = semis.map((s) => 60 + s);
-  const names = notes.map(flat);
-  const fig = (n: number): LessonFigure =>
-    keys(Object.fromEntries(notes.slice(0, n).map((m) => [m, flat(m)])), notes);
+  const names = semis.map((s) => flat(60 + s));
+  const t = o.tuning;
+  // On frets: the string where C sits lowest on the neck, so the octave fits from that fret up.
+  const str = t
+    ? t.openStrings
+        .map((m, i) => ({ s: i + 1, fret: pc(60 - m) }))
+        .sort((a, b) => a.fret - b.fret)[0]
+    : undefined;
+  const notes =
+    t && str ? semis.map((x) => t.openStrings[str.s - 1] + str.fret + x) : semis.map((x) => 60 + x);
+  /** The octave with a label on each scale note (null leaves it unmarked). */
+  const draw = (labels: (string | null)[]): LessonFigure =>
+    t && str
+      ? {
+          kind: "fretboard",
+          instrument: t.instrument,
+          openStrings: [...t.openStrings],
+          from: Math.max(0, str.fret - 1),
+          to: str.fret + 12,
+          marks: semis.flatMap((x, i) =>
+            labels[i] === null ? [] : [{ string: str.s, fret: str.fret + x, label: labels[i]! }],
+          ),
+        }
+      : keys(
+          Object.fromEntries(
+            notes.flatMap((m, i) => (labels[i] === null ? [] : [[m, labels[i]!]])),
+          ),
+          notes,
+        );
+  /** After `n` steps: the root named, the steps taken as W or H on the note they reach, the rest by name. */
+  const fig = (n: number) => draw(names.map((nm, i) => (i > 0 && i <= n ? formula[i - 1] : nm)));
   const halves = formula.flatMap((f, i) => (f === "H" ? [i] : []));
+  const gap = (f: string) =>
+    t
+      ? f === "W"
+        ? "2 frets up"
+        : "1 fret up"
+      : f === "W"
+        ? "one key skipped"
+        : "the very next key";
   return {
-    id: "scales.major-formula",
+    id: t ? `scales.major-formula.${t.instrument}` : "scales.major-formula",
     title: "The major scale formula",
     screens: [
       {
         title: "Whole steps and half steps",
-        text: `Every major scale follows one pattern of whole steps (W) and half steps (H): ${formula.join(" ")}. Start on any note and follow it. Tap Next to build C major.`,
+        text: `Every major scale follows one pattern of whole steps (W) and half steps (H): ${formula.join(" ")}. Tap Next to build C major one step at a time.`,
+        figure: fig(0),
+        sound: run(notes),
         steps: formula.map((f, i) => ({
-          text: `${names[i]} to ${names[i + 1]} is ${words(f)}: ${f}.`,
-          figure: fig(i + 2),
+          text: `${names[i]} to ${names[i + 1]}: ${f}, ${gap(f)}.`,
+          figure: fig(i + 1),
           sound: run([notes[i], notes[i + 1]], 0.5),
         })),
       },
       {
         title: "Find it in Check",
         text: `Check hides the notes, so the formula is your map. In any major scale the half steps fall between ${halves.map((i) => `notes ${i + 1} and ${i + 2}`).join(", and between ")}. In C that is ${join(halves.map((i) => `${names[i]} to ${names[i + 1]}`))}.`,
-        figure: keys(
-          Object.fromEntries(
-            halves.flatMap((i) => [
-              [notes[i], names[i]],
-              [notes[i + 1], names[i + 1]],
-            ]),
-          ),
-          notes,
+        figure: draw(
+          names.map((nm, i) => (halves.some((h) => i === h || i === h + 1) ? nm : null)),
         ),
       },
     ],
@@ -193,6 +227,8 @@ function rootless(o: CardOpts): Lesson {
     return { t, rh, d, pos: d === "3 5 7 9" ? "A" : d === "7 9 3 5" ? "B" : "?" };
   };
   const ex = ts.map(shape);
+  const b0 = shape(voicingInC("major", "B")[0]);
+  const hear = (ms: number[]) => (arp ? run(ms) : tones(ms));
   const fig = (x: (typeof ex)[number]): LessonFigure =>
     keys(
       Object.fromEntries([
@@ -208,7 +244,20 @@ function rootless(o: CardOpts): Lesson {
       {
         title: "Leave the root out",
         figure: fig(ex[0]),
-        text: `A rootless voicing leaves the chord's root to the bass. ${arp ? "Here you play the root, then the four chord notes above it, one note at a time." : "Here the left hand plays the root alone and the right hand plays four chord notes above it."} Position A puts the 3rd lowest and position B the 7th, so they read 3 5 7 9 and 7 9 3 5.`,
+        sound: hear(ex[0].t.displayMidi),
+        text: `A rootless voicing leaves the chord's root to the bass. ${arp ? "Here you play the root, then the four chord notes above it, one note at a time." : "Here the left hand plays the root alone and the right hand plays four chord notes above it."} Position A puts the 3rd lowest and position B the 7th: tap each to see and hear it on ${ex[0].t.symbol}.`,
+        // The same chord in both positions, one keyboard each.
+        options: [ex[0], b0].map((x) => ({
+          label: `Position ${x.pos}: ${x.d}`,
+          sound: hear(x.t.displayMidi),
+          figure: keys(
+            Object.fromEntries([
+              [x.t.displayMidi[0], "root"],
+              ...[...x.rh].sort((a, c) => a - c).map((m) => [m, degreeOf(x.t.symbol, m)]),
+            ]),
+            [ex[0], b0].flatMap((y) => y.t.displayMidi),
+          ),
+        })),
       },
       {
         title: "A ii-V-I in C",
@@ -523,7 +572,7 @@ const TIPS: Record<string, (o: CardOpts) => Lesson> = {
 };
 
 const CARDS: Record<string, (o: CardOpts) => Lesson> = {
-  "scales.major-formula": majorFormula,
+  "scales.major-formula": (o) => majorFormula(o),
   "scales.minor-forms": minorForms,
   "scales.thumb-under": thumbUnder,
   "positions.caged": caged,

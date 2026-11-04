@@ -16,7 +16,7 @@
           "title": "Anchor the tonic",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=anchor",
-          "setup": "Scale degrees, anchor level (1 and 5): listen along first, then hum the tonic and answer. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
+          "setup": "Scale degrees 1 and 5: listen along first, then hum the tonic (the home note) and answer. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
           "done": "Hum the tonic after the cadence; the app check 80% over 20 items, on two days.",
           "skillIds": ["pitch.scale-degree.1", "pitch.scale-degree.5"],
           "minAttempts": 10,

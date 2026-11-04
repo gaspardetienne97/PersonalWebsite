@@ -85,16 +85,16 @@ const longTone = (): Lesson => ({
     {
       title: "One note, one even breath",
       figure: { kind: "aerophone", midi: 67 },
-      text: "A long tone is a single note held for the whole time with the air as even as you can keep it. The Aerophone's breath sensor sends the app a number from 0 for no air to 1 for full (MIDI CC 2). The drill reads that number and scores how still it stays.",
+      text: "A long tone is a single note held for the whole time, with the air as even as you can keep it. The Aerophone's breath sensor tells the app how hard you blow, and the drill scores how still that stays.",
     },
     {
       title: "What you hear here",
-      text: "Hear it plays a note at one fixed loudness for three seconds. The app cannot play your breath or follow it, so this shows the pitch and the length, not how your air should feel.",
+      text: "Hear it plays a note at one fixed loudness for three seconds. The app cannot play your breath, so this shows the pitch and the length, not how your air should feel. The breath sensor reads from 0 for no air to 1 for full (it arrives as MIDI CC 2).",
       sound: held(67, 3),
     },
     {
       title: "What the drill checks",
-      text: `Tap the note on the chart, pick a hold of ${andList2(holdSeconds())} seconds, and play. The hold starts at your first target note and passes with the right pitch, the full length and a steady breath, where drifting up or down counts against you as much as shaking. Without the Aerophone's breath, only the pitch and the length are measured.`,
+      text: `Tap the note on the chart, pick a hold of ${andList2(holdSeconds())} seconds, and play. The hold starts at your first target note and passes with the right pitch, the full length and a steady breath, where drifting up or down counts against you as much as shaking. Without the breath sensor, only the pitch and the length are measured.`,
     },
   ],
 });

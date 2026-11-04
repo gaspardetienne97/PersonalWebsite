@@ -405,7 +405,8 @@ describe("stars", () => {
     expect(starsFor(0.85)).toBe(2);
     expect(starsFor(1)).toBe(2);
     expect(starsFor(1, true)).toBe(3);
-    expect(starsFor(0.9, true)).toBe(2);
+    expect(starsFor(0.9, true)).toBe(3);
+    expect(starsFor(0.8, true)).toBe(1);
   });
 
   it("keeps each block's best scored run", () => {

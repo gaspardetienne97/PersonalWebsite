@@ -64,6 +64,12 @@ describe("journal", () => {
     expect(byDay["2026-09-01"]).toMatchObject({ minutes: 20, sessions: 1, level: 3 });
     expect(byDay["2026-08-25"]).toMatchObject({ minutes: 30, level: 4 });
     expect(byDay["2026-09-03"]).toMatchObject({ level: 0, future: true });
+    // Fixed minute bands, not shares of the busiest day.
+    const one = heatmap(
+      [{ ...sessions[0], endTime: sessions[0].startTime + 4 * 60_000 }],
+      "2026-09-02",
+    );
+    expect(one.find((c) => c.sessions)?.level).toBe(1);
   });
 
   it("derives focus areas from tags and filters sessions", () => {

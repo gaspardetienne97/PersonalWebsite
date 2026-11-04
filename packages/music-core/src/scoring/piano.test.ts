@@ -62,6 +62,16 @@ describe("gradeTwoHand", () => {
     expect(r.correct).toBe(false);
   });
 
+  it("a wrong key struck on the way is counted and keeps the run from being clean", () => {
+    const p = ex("contrary-five");
+    const notes = [...play(p.targets), on(70, 1000 + 2 * beatMs + 200)].sort((a, b) => a.at - b.at);
+    const r = gradeTwoHand({ ...p, dynamics: false, beatMs, notes });
+    expect(r.wrong).toBe(1);
+    expect(r.pitch).toBe(1);
+    expect(r.correct).toBe(false);
+    expect(gradeTwoHand({ ...p, dynamics: false, beatMs, notes: play(p.targets) }).wrong).toBe(0);
+  });
+
   it("patterns that do not strike together do not measure it", () => {
     const p = ex("lh-pulse-rh-line");
     const r = gradeTwoHand({ ...p, dynamics: false, beatMs, notes: play(p.targets) });
@@ -226,6 +236,15 @@ describe("comping", () => {
     expect(r).toMatchObject({ correct: false, comp: { matched: 3, incomplete: 1 } });
     expect(gradeComping({ ...input, shellMidi: p.shellMidi, notes: perform(0.5) }).correct).toBe(
       true,
+    );
+  });
+
+  it("a wrong key in the line is counted and keeps the run from being correct", () => {
+    const notes = [...perform(0.5), on(73, beatMs + 30)].sort((a, b) => a.at - b.at);
+    const r = gradeComping({ ...input, shellMidi: p.shellMidi, notes });
+    expect(r).toMatchObject({ correct: false, lick: { extra: 1 } });
+    expect(gradeComping({ ...input, shellMidi: p.shellMidi, notes: perform(0.5) }).lick.extra).toBe(
+      0,
     );
   });
 

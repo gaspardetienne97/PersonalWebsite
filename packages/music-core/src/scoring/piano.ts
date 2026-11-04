@@ -66,12 +66,15 @@ export interface TwoHandResult extends Graded {
   /** clamp01(melody mean velocity - accompaniment mean velocity) / 0.2), null when not measured or off. */
   dynamics: number | null;
   together: { count: number; beats: number } | null;
+  /** Notes struck in a graded hand's register that no target claimed (a wrong key or a doubled one). */
+  wrong: number;
 }
 
 /**
  * Each hand (split by register) is graded on its own: pitch order by claiming the
  * nearest same-pitch onset, and spacing evenness between its matched notes.
  * score = pitch x 0.8 + evenness x 0.2; with dynamics 0.7 / 0.15 / 0.15.
+ * A wrong note (struck, never claimed) leaves the score alone but keeps the run from being correct.
  */
 export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
   const { beatMs } = input;
@@ -81,6 +84,7 @@ export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
   const handOf = (midi: number): Hand => (midi < input.splitMidi ? "left" : "right");
   const matchedAt: Record<Hand, number[]> = { left: [], right: [] };
   const metrics: Metric[] = [];
+  let wrong = 0;
 
   const hands = (["left", "right"] as const).flatMap((hand): HandResult[] => {
     const targets = input.targets
@@ -110,6 +114,7 @@ export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
       c ? [{ expected: targets[i].at, actual: played[c.hit].at, v: played[c.hit].velocity }] : [],
     );
     matchedAt[hand] = hits.map((h) => h.actual);
+    wrong += played.length - hits.length;
     const even = evenness(hits, spacingBeats * beatMs);
     return [
       {
@@ -163,7 +168,8 @@ export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
   const togetherOk80 = !together || together.count >= TOGETHER_PASS * together.beats;
   return {
     score,
-    correct: score >= 0.9 && togetherOk80,
+    // A wrong key struck on the way is a slip: the run can still score high, but it is not clean.
+    correct: score >= 0.9 && togetherOk80 && wrong === 0,
     metrics,
     notMeasured: notMeasured({
       ...(input.dynamics ? { dynamics: velOk } : {}),
@@ -174,6 +180,7 @@ export function gradeTwoHand(input: TwoHandInput): TwoHandResult {
     evenness: even,
     dynamics,
     together,
+    wrong,
   };
 }
 
@@ -336,7 +343,8 @@ export const COMP_CHORD_GAP_MS = 100;
 const SWUNG_OFFBEAT = 2 / 3;
 
 export interface CompingResult extends Graded {
-  lick: { matched: number; total: number };
+  /** `extra`: right-hand notes no lick note claimed (a wrong key, or one struck twice). */
+  lick: { matched: number; total: number; extra: number };
   /** `incomplete`: left-hand hits missing a shell note (they claim nothing). */
   comp: { matched: number; total: number; extra: number; incomplete: number };
   extra: number;
@@ -351,8 +359,8 @@ export interface CompingResult extends Graded {
  * With `shellMidi`, a left-hand hit counts only when every shell pitch class is in
  * it (curriculum P3: "both shell notes present").
  * score = completion x 0.7 + timing credit x 0.3; correct when every lick note
- * and every comp hit landed and the left hand added nothing (an extra LH onset,
- * e.g. on beat 3, breaks the Charleston).
+ * and every comp hit landed and neither hand added anything (an extra LH onset,
+ * e.g. on beat 3, breaks the Charleston; a wrong key in the line is a slip).
  */
 export function gradeComping(input: {
   lick: readonly { midi: number; startBeat: number }[];
@@ -399,7 +407,12 @@ export function gradeComping(input: {
   const score = completion * 0.7 + timing * 0.3;
   return {
     score,
-    correct: total > 0 && errors.length === total && comp.extras.length === 0 && incomplete === 0,
+    correct:
+      total > 0 &&
+      errors.length === total &&
+      comp.extras.length === 0 &&
+      lick.extras.length === 0 &&
+      incomplete === 0,
     metrics: [
       ...lickTargets.map((t, i) => ({
         kind: "pitch" as const,
@@ -423,7 +436,7 @@ export function gradeComping(input: {
       ),
     ],
     notMeasured: [],
-    lick: { matched: lickMatched, total: lickTargets.length },
+    lick: { matched: lickMatched, total: lickTargets.length, extra: lick.extras.length },
     comp: {
       matched: compMatched,
       total: compTargets.length,

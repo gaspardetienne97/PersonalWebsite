@@ -261,15 +261,35 @@ export function findHomeLesson(): Lesson {
   });
   const run = scaleRun(C, "major", "ascending");
   const home = noteName(C, "flat", false);
+  /** The scale's first `n` notes by degree, the top 1 named home. */
+  const scaleKeys = (n: number) =>
+    keys(
+      Object.fromEntries(run.slice(0, n).map((m, i) => [m, i === 7 ? "home" : String(i + 1)])),
+      run,
+    );
+  const scaleSound = (n: number): LessonSound => ({
+    notes: run
+      .slice(0, n)
+      .map((m, i) => ({ midi: [m], at: i * 0.4, dur: i === n - 1 ? 1.2 : 0.38 })),
+  });
   return {
     id: "by-ear.home",
     title: "Finding home",
     screens: [
       {
         title: "Home is one note",
-        text: `In most music one note feels like the place the music rests. It is the tonic, and the key is named for it. In ${home} major home is ${home}, and in a minor key it is the minor key's first note, such as A in A minor.`,
+        text: `In most music one note feels like the place the music rests. That note is the tonic, or home, and the key is named for it: in ${home} major home is ${home}.`,
         figure: keys({ [C]: "home" }, [C - 5, C + 7]),
         sound: { notes: [{ midi: [C - 12], at: 0, dur: 4 }] },
+      },
+      {
+        title: "Unresolved or resolved",
+        text: "A major scale climbs 1 to 7, then reaches 1 again. Tap Unresolved to stop on 7, then Resolved to step up home.",
+        figure: scaleKeys(7),
+        options: [
+          { label: "Unresolved", sound: scaleSound(7), figure: scaleKeys(7) },
+          { label: "Resolved", sound: scaleSound(8), figure: scaleKeys(8) },
+        ],
       },
       {
         title: "A cadence points home",
@@ -284,18 +304,12 @@ export function findHomeLesson(): Lesson {
         ],
       },
       {
-        title: "A scale leads home",
-        text: "A major scale climbs 1 2 3 4 5 6 7 and then 1 again. Stopping on 7 sounds unfinished, and the step up to 1 sounds like arriving.",
-        figure: keys(Object.fromEntries(run.map((m, i) => [m, String((i % 7) + 1)]))),
-        sound: { notes: run.map((m, i) => ({ midi: [m], at: i * 0.5, dur: 0.45 })) },
-      },
-      {
         title: "Finding it in a recording",
         text: "Listen for the note the music settles on, the one where it could stop. Play it on your instrument, sing it, or pick it from the notes below. The octave does not matter.",
       },
       {
         title: "How it is checked",
-        text: "The drill works out the key from the whole recording, so home belongs to the song and not to the stretch you looped. Sometimes the relative key's tonic counts too, such as C and A. A song that changes key, or sits long away from home, can fool it.",
+        text: "The drill works out the key from the whole recording, so home belongs to the song and not to the stretch you looped. A minor key's home is its first note, and the relative key's tonic counts too, such as C and A. A song that changes key, or sits long away from home, can fool it.",
       },
     ],
   };

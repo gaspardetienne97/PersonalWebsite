@@ -54,6 +54,16 @@ describe("blocked chords", () => {
 });
 
 describe("gradeLine (scales, spider, positions)", () => {
+  it("gives evenness no share of the score when too few notes landed to judge it", () => {
+    // 3 of 8 right, in perfect time: evenness reads Not measured, so the score is pitch only.
+    const r = gradeLine({
+      beats: line(C_MAJOR),
+      beatMs: 500,
+      notes: [on(60, 0), on(62, 500), on(64, 1000)],
+    });
+    expect(r.pitch).toBeCloseTo(3 / 8);
+    expect(r.score).toBeCloseTo((3 / 8) * 0.85);
+  });
   it("follows a line across a rest longer than its look-ahead (speed bursts)", () => {
     const cell = (start: number) => [start, start + 1, start + 2, start + 3];
     const beats = [...line(cell(45)), [], [], [], [], ...line(cell(50))];

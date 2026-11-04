@@ -90,6 +90,9 @@ describe("Jam game lessons", () => {
 
   it("names the sets from the key", () => {
     expect(text("three-notes")).toContain("C, Eb and G");
+    // The b3 over a C7 is explained as the blues, so the set and the band's chord do not read as a clash.
+    expect(text("three-notes")).toContain("the Eb is the blue third");
+    expect(text("pentatonic-2")).not.toContain("blue third");
     expect(text("blues-scale")).toContain("C, Eb, F, Gb, G and Bb");
     expect(text("pentatonic-1")).toContain("C, Eb, F, G and Bb");
     expect(text("pentatonic-2")).toContain("D, F, G, A and C");

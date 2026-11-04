@@ -705,10 +705,15 @@ describe("chop", () => {
     for (const s of CHOP_SOURCES) expect(s.detail).toContain(word[sliceWord(s.bars)]);
   });
 
-  it("the pads figure puts slice 1 on A01 and slice 16 on A16", () => {
-    const f = padLessons("chop")[0].screens[0].figure!;
-    expect(f.kind === "pads" && f.marks[36]).toBe("1");
-    expect(f.kind === "pads" && f.marks[51]).toBe("16");
+  it("the pads figure lights slices in order from A01, and the text names A01 to A16", () => {
+    const sc = padLessons("chop")[0].screens[0];
+    const f = sc.figure!;
+    expect(f.kind === "pads" && f.marks).toEqual({ 36: "1" });
+    const last = sc.steps!.at(-1)!.figure!;
+    expect(last.kind === "pads" && last.marks).toEqual({ 36: "1", 37: "2", 38: "3", 39: "4" });
+    // Each step plays only its own slice, from its start.
+    for (const st of sc.steps!)
+      expect(Math.min(...st.sound!.notes.map((n) => n.at))).toBeGreaterThanOrEqual(0);
     expect(padLessons("chop")[0].screens[0].text).toContain("A01");
     expect(padLessons("chop")[0].screens[0].text).toContain("A16");
   });

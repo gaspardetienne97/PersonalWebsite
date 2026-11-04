@@ -231,7 +231,7 @@ describe("find home lesson", () => {
     expect(lessonProblems(l)).toEqual([]);
   });
   it("the cadence steps play the drill's I IV V I and light each chord's own notes", () => {
-    const steps = l.screens[1].steps!;
+    const steps = l.screens[2].steps!;
     const cad = keyCadence(0);
     expect(steps.map((s) => s.sound!.notes[0].midi)).toEqual(cad.map((e) => e.midi));
     expect(steps.map((s) => Object.keys(marksOf(s.figure)).map(Number))).toEqual(
@@ -241,13 +241,14 @@ describe("find home lesson", () => {
     expect(steps[1].text).toMatch(/^F, the IV chord/);
     expect(steps[2].text).toMatch(/^G, the V chord/);
   });
-  it("the scale climbs 1 to 7 and back to 1 on the tonic", () => {
-    const marks = marksOf(l.screens[2].figure);
-    expect(Object.values(marks)).toEqual(
-      ["1", "2", "3", "4", "5", "6", "7"].concat(["1"]).slice(0, Object.keys(marks).length),
-    );
-    const ms = Object.keys(marks).map(Number);
-    expect(pc(ms[0])).toBe(pc(ms[ms.length - 1]));
+  it("Unresolved stops the scale on 7, Resolved steps up to home", () => {
+    const [un, res] = l.screens[1].options!;
+    expect([un.label, res.label]).toEqual(["Unresolved", "Resolved"]);
+    expect(Object.values(marksOf(un.figure))).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+    expect(Object.values(marksOf(res.figure))).toEqual(["1", "2", "3", "4", "5", "6", "7", "home"]);
+    const last = (o: typeof un) => o.sound.notes.at(-1)!.midi[0];
+    expect(pc(last(res))).toBe(0);
+    expect(pc(last(un))).toBe(11);
   });
 });
 

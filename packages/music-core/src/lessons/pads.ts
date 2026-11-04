@@ -257,9 +257,23 @@ function rudimentsIntro(): Lesson {
     "Rudiments on the pads",
     {
       title: "Two hands, two pads",
-      text: `A rudiment is a sticking pattern, played with the left hand on one pad and the right on another. The drill checks which pad you hit as well as when. By default the left hand plays ${padName(LEFT_PAD)} and the right ${padName(RIGHT_PAD)}, and you can tap other pads to change them.`,
+      text: `A rudiment is a sticking pattern: which hand plays each stroke. Left hand (L) on ${padName(LEFT_PAD)}, right (R) on ${padName(RIGHT_PAD)}. Tap Next to play this drill's paradiddle, ${drillPara}, one stroke at a time.`,
       figure: handPads("single-strokes"),
-      sound: rudimentSound("single-strokes"),
+      sound: rudimentSound("paradiddle"),
+      // The sticking drawn on the pads: each Next lights the pad that plays the stroke.
+      steps: rudiment("paradiddle").unit.map((h, i, unit) => ({
+        text: `Stroke ${i + 1}: ${hand(h)}.`,
+        figure: { kind: "pads", marks: { [h === "left" ? LEFT_PAD : RIGHT_PAD]: hand(h) } },
+        sound: {
+          notes: unit.slice(0, i + 1).map((x, j) => ({
+            midi: [x === "left" ? LEFT_PAD : RIGHT_PAD],
+            at: 0.05 + j * 0.22,
+            dur: 0.1,
+            drum: true,
+            velocity: 0.8,
+          })),
+        },
+      })),
     },
     {
       title: "Singles, doubles, paradiddle",
@@ -1092,20 +1106,22 @@ function chopIntro(): Lesson {
   const flip = CHOP_EDITS.find((e) => e.id === "flip")!;
   const played = new Set(flip.steps);
   const never = Array.from({ length: CHOP_SLICES }, (_, i) => i + 1).filter((n) => !played.has(n));
+  const srcNotes = chopSourceNotes(src.id);
+  const sliceBeats = (src.bars * 4) / CHOP_SLICES;
+  /** Slices 1 to `n` lit on their pads, by number. */
+  const lit = (n: number): LessonFigure => ({
+    kind: "pads",
+    marks: Object.fromEntries(Array.from({ length: n }, (_, i) => [slicePad(i), String(i + 1)])),
+  });
   return card(
     "pads.chop",
     "Chop",
     {
       title: "A loop in sixteen slices",
-      text: `A chop cuts a loop into ${CHOP_SLICES} equal slices and puts one on each pad, slice 1 on ${padName(slicePad(0))} up to slice ${CHOP_SLICES} on ${padName(slicePad(CHOP_SLICES - 1))}. Tap Hear it for the ${src.label.toLowerCase()} loop whole. The lit pads show where the slices are.`,
-      figure: {
-        kind: "pads",
-        marks: Object.fromEntries(
-          Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), String(i + 1)]),
-        ),
-      },
+      text: `A chop cuts a loop into ${CHOP_SLICES} equal slices and puts one on each pad, slice 1 on ${padName(slicePad(0))} up to slice ${CHOP_SLICES} on ${padName(slicePad(CHOP_SLICES - 1))}. Tap Hear it for the ${src.label.toLowerCase()} loop whole, then Next to play slices 1 to 4.`,
+      figure: lit(1),
       sound: {
-        notes: chopSourceNotes(src.id).map((n) => ({
+        notes: srcNotes.map((n) => ({
           midi: [n.midi],
           at: (n.beat * 60) / src.bpm,
           dur: 0.12,
@@ -1113,6 +1129,22 @@ function chopIntro(): Lesson {
           velocity: n.velocity,
         })),
       },
+      // Each Next lights the next slice's pad and plays that slice alone.
+      steps: [1, 2, 3, 4].map((k) => ({
+        text: `Slice ${k}, on ${padName(slicePad(k - 1))}.`,
+        figure: lit(k),
+        sound: {
+          notes: srcNotes
+            .filter((n) => n.beat >= (k - 1) * sliceBeats - 1e-6 && n.beat < k * sliceBeats - 1e-6)
+            .map((n) => ({
+              midi: [n.midi],
+              at: ((n.beat - (k - 1) * sliceBeats) * 60) / src.bpm,
+              dur: 0.12,
+              drum: true,
+              velocity: n.velocity,
+            })),
+        },
+      })),
     },
     {
       title: "How long a slice is",

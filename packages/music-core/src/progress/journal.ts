@@ -69,16 +69,19 @@ export function heatmap(sessions: PracticeSession[], today: string, weeks = 12):
       future: day > today,
     };
   });
-  const max = Math.max(0, ...cells.map((c) => c.minutes));
   return cells.map((c) => ({
     ...c,
     level: (c.sessions === 0
       ? 0
-      : max === 0
-        ? 1
-        : Math.max(1, Math.ceil((4 * c.minutes) / max))) as HeatCell["level"],
+      : 1 + HEAT_BANDS.filter((m) => c.minutes >= m).length) as HeatCell["level"],
   }));
 }
+
+/**
+ * Fixed minute bands for the heatmap shades, so a legend can name them: level 1 is any practice
+ * under 5 min, 2 from 5 min, 3 from 15 min, 4 from 30 min.
+ */
+export const HEAT_BANDS = [5, 15, 30] as const;
 
 /** Session tags by frequency. */
 export function focusAreas(sessions: PracticeSession[], limit = 5) {

@@ -55,20 +55,27 @@ const fromPart = (landed: number, total: number) =>
 /**
  * The timing row from the landed notes' errors (ms, either sign) out of `total`
  * targets: "24 ms off on average, from 6 of 8", filled `1 - mean / windowMs`.
+ * With `onTimeMs` (the drill's on-time window) the text names it, "25 ms off on
+ * average (on time is within 15 ms)", and the bar fills to `onTimeMs / mean`, full
+ * only when the average sits inside the window, so a long bar never reads as
+ * good timing that the breakdown calls late.
  */
 export function timingRow(
   errorsMs: readonly number[],
   total: number,
   windowMs: number,
   label = "Timing",
+  onTimeMs?: number,
 ): ResultRow {
   const landed = errorsMs.length;
   if (!enough(landed, total)) return { label, notMeasured: true, text: TOO_FEW };
   const mean = errorsMs.reduce((s, e) => s + Math.abs(e), 0) / landed;
+  const value =
+    onTimeMs !== undefined ? Math.min(1, onTimeMs / Math.max(mean, 1)) : 1 - mean / windowMs;
   return {
     label,
-    value: Math.max(0, Math.min(1, 1 - mean / windowMs)),
-    text: `${Math.round(mean)} ms off on average${fromPart(landed, total)}`,
+    value: Math.max(0, Math.min(1, value)),
+    text: `${Math.round(mean)} ms off on average${fromPart(landed, total)}${onTimeMs !== undefined ? ` (on time is within ${Math.round(onTimeMs)} ms)` : ""}`,
   };
 }
 
