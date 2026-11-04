@@ -17,8 +17,10 @@
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
   import { assignTab } from "$lib/music/notation/groups";
   import type { Hit } from "$lib/music/notation/highway";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { lineScore } from "$lib/music/notation/falling";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
+  import { timingFromErrors, verdictOf } from "$lib/music/drills/piano/lane-outcomes";
+  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
   import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
@@ -94,6 +96,9 @@
   });
   /** By event: how far from its beat the step's first note came, or wrong. */
   let eventHits = $state<Record<number, Hit>>({});
+  let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
+  /** On time within min(180 ms, a quarter beat), as the grade counts it. */
+  const onTimeMs = () => Math.min(180, (ctxRef?.beatMs ?? 500) / 4);
   const noteHits = $derived.by(() => {
     const out: Record<number, Hit> = {};
     hwNotes.forEach((n, i) => {
@@ -167,6 +172,12 @@
       if (x.at !== null && ctxRef) hits[i] = x.right || x.played.length < events[i].notes.length ? x.at - (ctxRef.downbeat + events[i].startBeat * ctxRef.beatMs) : "wrong";
     });
     eventHits = hits;
+    // The word for the step this note answered: on time, early or late by so many ms, or the note it wanted.
+    const h = hits[m.findLastIndex((x) => x.at !== null)];
+    if (want && mode === "practice" && (h === "wrong" || typeof h === "number")) {
+      const v = typeof h === "number" ? verdictOf(Math.abs(h) <= onTimeMs() ? "ok" : h < 0 ? "early" : "late", h) : { kind: "wrong" as const, text: `Wanted ${spell(want.notes.map((n) => n.midi))}, heard ${spell([e.midi])}` };
+      verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
+    }
     played = m.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;
     if (played >= events.length) {
       clearTimeout(timer);
@@ -180,6 +191,7 @@
     result = null;
     played = 0;
     eventHits = {};
+    verdict = null;
     flashes.clear();
     ctxRef = ctx;
     downbeat = ctx.downbeat;
@@ -242,6 +254,7 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows,
+      timing: any ? timingFromErrors(events.map((_, i) => (typeof eventHits[i] === "number" ? (eventHits[i] as number) : null)), onTimeMs()) : undefined,
       // Up to the phrase's own tempo, then the next phrase for this instrument.
       advance: any ? await nextRun(`phrases.${own}`, { bpm, tempo: { min: TEMPO.min, goal: phrase.bpm, max: TEMPO.max }, steps: list.map((p) => ({ label: p.title, goal: p.bpm, start: Math.max(TEMPO.min, Math.round(p.bpm * 0.75)) })), step: list.indexOf(phrase) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ phrase: list[i].id }))) : undefined,
     };
@@ -316,7 +329,7 @@
       </div>
       {#if (fretted || own === "piano") && (mode === "practice" || transport.playing) && phase !== "results"}
         <div class="mb-2 flex justify-end">
-          {#if fretted}{@render viewSwitch("Tab")}{:else}<HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" />{/if}
+          {#if fretted}{@render viewSwitch("Tab")}{:else}<ViewSwitch />{/if}
         </div>
       {/if}
       {#if moving && (mode === "practice" || transport.playing) && phase !== "results"}
@@ -351,7 +364,10 @@
         </div>
       {/if}
       {#if !(moving && !fretted && (mode === "practice" || transport.playing) && phase !== "results")}
-        <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
+        <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+          <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
+          {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
+        </div></div>
       {/if}
     {:else}
       <p class="text-sm text-ws-stage-soft">No phrases for this instrument yet.</p>

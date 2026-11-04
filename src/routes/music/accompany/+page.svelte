@@ -43,10 +43,11 @@
   import { gradeAccompaniment, type AccompanimentResult } from "@repo/music-core/scoring/piano";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { lineScore } from "$lib/music/notation/falling";
+  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
@@ -64,7 +65,8 @@
 
   const TEMPO = { min: 40, max: 180 };
   const ENTRY = catalogEntry("accompany")!;
-  const TABS = ENTRY.modes.map((m) => ({ id: m.id, label: m.label }));
+  // "Comping" is also its own drill: this tab says what it adds, as the Drills list does.
+  const TABS = ENTRY.modes.map((m) => ({ id: m.id, label: m.id === "comping" ? "Comping over changes" : m.label }));
   const tab = $derived(modeFrom(TABS, page.url.searchParams.get("mode")) as "patterns" | "comping" | "lead-sheet");
   const drillMode = $derived(ENTRY.modes.find((m) => m.id === tab)!);
 
@@ -158,6 +160,7 @@
       : slots.flatMap((sl) => sl.midi.map((midi) => ({ midi, startBeat: sl.beat, durationBeats: sl.dur, hand: sl.hand }))),
   );
   const span = $derived(spanOf(notes.map((n) => n.midi)));
+  const tight = $derived(spanOf(notes.map((n) => n.midi), 0, false));
   const falling = $derived(page.url.searchParams.get("view") === "falling");
   /** Check's rhythm guide, the same R/L lane Comping draws: one chip a slot, the notes hidden. */
   const checkLanes = $derived<LaneRow[]>(
@@ -407,10 +410,6 @@
   onstart={start}
   onstop={stop}
 >
-  {#snippet actions()}
-    {#if mode === "practice" || phase === "results"}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
-  {/snippet}
-
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       {#if tab === "patterns"}
@@ -492,6 +491,7 @@
   {/snippet}
 
   {#snippet stage()}
+    {#if phase !== "running" && phase !== "countin" && (mode === "practice" || phase === "results")}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     <div
       data-testid="accompany"
       data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined}
@@ -503,9 +503,11 @@
           <p class="text-sm text-ws-stage-soft">Now</p>
           <p class="font-display text-4xl font-bold leading-none">{rendering.chart[chordNow]?.symbol}</p>
         </div>
-        <p class="max-w-prose text-sm text-ws-stage-soft">
-          {tab === "comping" ? `${voicing.about} ${rhythm.about}` : tab === "lead-sheet" ? LEAD_LEFT.find((l) => l.id === lh)!.about : pattern.about}
-        </p>
+        {#if phase !== "running" && phase !== "countin"}
+          <p class="max-w-prose text-sm text-ws-stage-soft">
+            {tab === "comping" ? `${voicing.about} ${rhythm.about}` : tab === "lead-sheet" ? LEAD_LEFT.find((l) => l.id === lh)!.about : pattern.about}
+          </p>
+        {/if}
         {#if ((tab === "lead-sheet" && genTune) || charted) && phase !== "running" && phase !== "countin"}
           <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>{charted ? "New chart" : "New melody"}</button>
         {/if}
@@ -524,9 +526,11 @@
           <BeatLane rows={checkLanes} beats={totalBeats} beat={transport.beat} beatsPerBar={bpb} chords={rendering.chart.map((c, i) => ({ beat: rendering.chart.slice(0, i).reduce((t, x) => t + x.durationBeats, 0), symbol: c.symbol }))} hidden label="Beat lane: when each hand plays, the notes hidden." />
         {/if}
         {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
-          <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></div>
+          <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></StaffFold>
         {/if}
-        <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+        <div class="flex flex-col justify-end" data-dock="instrument">
+          <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+        </div>
       {/if}
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
         {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check mode: read the melody and the symbols; the keys stay dark." : "Check mode: play the pattern from the chart; the notes are hidden."}</p>{/if}

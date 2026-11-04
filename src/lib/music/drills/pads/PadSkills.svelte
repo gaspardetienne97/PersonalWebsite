@@ -4,6 +4,7 @@
   // back by ear, an ostinato under a reading line, rudiments spread across the
   // kit, and improvising over a loop. The grooves go through the groove grader;
   // dynamics and improvising have their own measures (content/pad-skills).
+  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
@@ -614,7 +615,7 @@
       status = summary.headline;
       return;
     }
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
+    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, assistance: assistanceText(mode), rows, timing: grv && gt ? timingFromErrors(grv.perTarget, gt.matchWindowMs / 2) : undefined, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }
 
@@ -661,7 +662,9 @@
 </script>
 
 {#snippet padGrid()}
-  <Pads marks={marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+  <div data-dock="answers">
+    <Pads marks={marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+  </div>
 {/snippet}
 
 <DrillShell

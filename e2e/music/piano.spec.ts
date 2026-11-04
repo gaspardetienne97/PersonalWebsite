@@ -139,7 +139,7 @@ test.beforeEach(async ({ page }) => {
 test("two hands: the demo lights both hands in step with the lane", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/music/two-hand?pattern=contrary-five&hand=both&tonic=C4&bpm=60");
-  await page.getByRole("button", { name: "Hear it first" }).click();
+  await page.getByRole("button", { name: "Hear it", exact: true }).click();
   await expect(page.getByText("Listening, not scored.")).toBeVisible();
   await page.waitForTimeout(1300);
   await shoot(page, "two-hand-demo");
@@ -159,7 +159,7 @@ test("falling notes: two hands, scales, licks and accompaniment fall onto the ke
   const falling = page.getByTestId("falling-notes");
   await expect(falling.locator(".note.left").first()).toBeVisible();
   await expect(falling.locator(".note.right").first()).toBeVisible();
-  await page.getByRole("button", { name: "Hear it first" }).click();
+  await page.getByRole("button", { name: "Hear it", exact: true }).click();
   // Keys light in their hand's colour as the bars reach them.
   await expect(falling.locator("[data-demo][data-role=left]").first()).toBeVisible({
     timeout: 5000,
@@ -195,7 +195,7 @@ test("licks: Check hides the targets and the lane notes", async ({ page }) => {
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.locator(".piano [data-target]")).toHaveCount(0);
   await expect(page.getByText("Check mode: the notes are hidden.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Hear it first" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Hear it", exact: true })).toHaveCount(0);
 });
 
 test.describe("piano drills over fake MIDI", () => {

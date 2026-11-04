@@ -8,6 +8,7 @@
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
+  import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
@@ -77,6 +78,7 @@
     voicingItems({ variant, keyPc: pc(s.key), keys: oneKey ? 1 : s.keys, startPosition: s.position === "B" ? "B" : "A", arpeggio: monophonic, progression: gospel.id, tune: tune.id }),
   );
   const span = $derived(spanOf(items.flatMap((i) => i.show.map((n) => n.midi))));
+  const tight = $derived(spanOf(items.flatMap((i) => i.show.map((n) => n.midi)), 0, false));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -266,10 +268,10 @@
         { label: "Score", value: score, text: pct(score) },
         { label: "Right notes", value: done.length ? done.filter((g) => g.missing.length === 0).length / items.length : 0, text: `${done.filter((g) => g.missing.length === 0).length} of ${items.length} chords` },
         monophonic
-          ? { label: "Notes sounding at once (arpeggio mode)", notMeasured: true }
+          ? { label: "Held together (arpeggio mode)", notMeasured: true }
           : onScreen
-            ? { label: "Notes sounding at once (on-screen keys)", notMeasured: true }
-            : { label: "Notes sounding at once", text: "graded on the chord while all its notes were held down together" },
+            ? { label: "Held together (on-screen keys)", notMeasured: true }
+            : { label: "Grading", text: "graded on the chord while all its notes were held down together" },
       ],
       // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
       advance:
@@ -408,7 +410,7 @@
       {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
     </ol>
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} {keyFifths} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></div>
+      <StaffFold live={phase === "running"}><LineNotation maxZoom={1.1} notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} {keyFifths} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></StaffFold>
     {/if}
     {#if current && mode === "practice"}
       <div class="mb-3 text-sm">
@@ -421,7 +423,9 @@
         Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
       </p>
     {/if}
-    <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
+    <div class="flex flex-col justify-end" data-dock="instrument">
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
+    </div>
     <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-ws-stage-soft">
       <p class="min-w-0 max-w-prose">
         {#if monophonic}
@@ -452,11 +456,28 @@
       <ol class="mt-3 grid gap-2 sm:grid-cols-3" aria-label="Chord by chord">
         {#each items as it, i (it.id)}
           {@const g = grades[i]}
-          <li class="flex items-baseline justify-between gap-3 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-sm">
-            <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? `${it.symbol} in ${it.group}` : it.symbol}</span>
-            <span class={g?.correct ? "text-success" : "text-ws-soft"}>
-              {g ? (g.correct ? "✓ right" : `✕ ${g.note}${g.missing.length ? `, missing ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : ""}`) : "not played"}
-            </span>
+          <li class="flex flex-col gap-2 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-sm">
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? `${it.symbol} in ${it.group}` : it.symbol}</span>
+              <span class={g?.correct ? "text-success" : "text-ws-soft"}>
+                {g ? (g.correct ? "✓ right" : `✕ ${g.note}${g.missing.length ? `, missing ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : ""}`) : "not played"}
+              </span>
+            </div>
+            <!-- A slipped chord drawn as it should sit: ✓ on the notes you had, a dashed ✕ on the ones you missed. -->
+            {#if g && !g.correct}
+              {@const m = it.show.map((n) => n.midi)}
+              <Piano
+                low={Math.min(...m) - 2}
+                high={Math.max(...m) + 2}
+                fit={{ low: Math.min(...m), high: Math.max(...m) }}
+                marks={Object.fromEntries(it.show.map((n) => [n.midi, g.missing.includes(pc(n.midi)) ? { target: true, role: "avoid" as const, label: "✕" } : { target: true, label: "✓" }]))}
+                interactive={false}
+                names="none"
+                minKey={18}
+                compact
+                label="{it.symbol}: {g.missing.length ? `missing ${g.missing.map((p) => FLAT_NAMES[p]).join(', ')}` : 'the notes it wants'}"
+              />
+            {/if}
           </li>
         {/each}
       </ol>

@@ -172,7 +172,7 @@ test.describe("note highway", () => {
     const road = page.getByTestId("note-highway");
     await expect(road.locator(".block .arrow").first()).toHaveText(/[↓↑✕]/);
     await expect(road.locator(".block .name").first()).not.toBeEmpty();
-    await page.getByRole("button", { name: "Hear it first" }).click();
+    await page.getByRole("button", { name: "Hear it", exact: true }).click();
     await expect(road).toHaveAttribute("data-beat", /^[1-9]/, { timeout: 5000 });
     await expect(road.locator(".ball")).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -186,7 +186,7 @@ test.describe("note highway", () => {
     await page.getByRole("button", { name: "Highway", exact: true }).click();
     const road = page.getByTestId("note-highway");
     await expect(road.locator(".note").first()).toBeVisible();
-    await page.getByRole("button", { name: "Hear it first" }).click();
+    await page.getByRole("button", { name: "Hear it", exact: true }).click();
     await expect(road).toHaveAttribute("data-beat", /^[1-9]/, { timeout: 5000 });
     await shoot(page, "phrases-guitar-1280");
     await page.getByRole("button", { name: "Stop demo" }).click();

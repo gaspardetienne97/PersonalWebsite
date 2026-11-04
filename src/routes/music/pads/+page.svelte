@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import type { NoteEvent } from "@repo/music-core";
@@ -638,16 +639,22 @@
             : ms > 90
               ? `Right pads, but ${ms} ms off the click on average. Aim for 90 or less.`
               : "Timing and pads are right; the accents missed their velocity bands.";
+    // Timing and velocity speak only for the strokes that landed; too few landed and they say so, not a full bar.
+    const few = r.matched < Math.min(4, r.total);
+    const from = r.matched < r.total ? `, from the ${r.matched} that landed` : "";
     return {
       headline,
       metric: pct(r.score),
       metricLabel: r.velocity === null ? "score, velocity not measured" : "score",
+      timing: ons.length ? timingFromErrors(r.perStroke.map((p) => p?.errorMs ?? null), Math.min(60, stepMs / 3)) : undefined,
       rows: [
-        { label: "Right pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
-        r.matched ? { label: "Timing vs the click", value: r.timing, text: `${ms} ms off` } : { label: "Timing vs the click", notMeasured: true },
+        { label: "Correct pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
+        !few ? { label: `Timing vs the click${from}`, value: r.timing, text: `${ms} ms off` } : { label: "Timing vs the click: too few strokes landed", notMeasured: true },
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
-          : { label: hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness", value: r.velocity },
+          : few
+            ? { label: "Velocity: too few strokes landed", notMeasured: true }
+            : { label: `${hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"}${from}`, value: r.velocity },
         { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} extra` : ""}` },
       ],
     };
@@ -690,6 +697,7 @@
       headline,
       metric: pct(r.score),
       metricLabel: r.inBand === null ? "score, accents not measured" : "score",
+      timing: ons.length ? timingFromErrors(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
         ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
         { label: `Perfect (within ${Math.round(x.tier.perfectMs)} ms)`, value: x.tier.perfect, text: `${Math.round(x.tier.perfect * 100)}%, 70% to pass` },
@@ -697,7 +705,7 @@
         ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
-        { label: "Extra hits", value: r.extra ? Math.max(0, 1 - r.extra / total) : 1, text: String(r.extra) },
+        { label: "Extra hits", text: r.extra ? String(r.extra) : "None" },
         r.matched ? { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${ms} ms off` } : { label: "Timing", notMeasured: true },
         r.inBand === null
           ? { label: `Accents: ${velocityWhy(ons)}`, notMeasured: true }
@@ -769,7 +777,9 @@
 <svelte:head><title>Pads | Woodshed</title></svelte:head>
 
 {#snippet padGrid()}
-  <Pads {marks} {flashes} {timing} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+  <div data-dock="answers">
+    <Pads {marks} {flashes} {timing} {names} colors={padColors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+  </div>
 {/snippet}
 
 {#if s.mode === "chop"}

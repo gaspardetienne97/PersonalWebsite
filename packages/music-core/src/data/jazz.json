@@ -53,7 +53,7 @@
       "scale": "lydian",
       "label": "Lydian",
       "recommended": true,
-      "hint": "Brighter than major — #11 instead of 11."
+      "hint": "Brighter than major: the 4th is raised (#11), so it never rubs against the chord's 3rd."
     },
     {
       "family": "maj7",
@@ -64,7 +64,7 @@
       "family": "maj7",
       "scale": "bebop major",
       "label": "Major bebop",
-      "hint": "Major scale + #5 passing note."
+      "hint": "The major scale plus a raised 5th as a passing note."
     },
     {
       "family": "maj7",
@@ -109,38 +109,38 @@
       "family": "dom7",
       "scale": "bebop",
       "label": "Dominant bebop",
-      "hint": "Mixolydian + a major-7th passing note."
+      "hint": "Mixolydian plus a major 7th as a passing note."
     },
     {
       "family": "dom7",
       "scale": "altered",
       "label": "Altered",
-      "hint": "Over minor ii-V-i / max tension. Think Db melodic minor."
+      "hint": "The most tension, over the V of a minor ii-V-i. Think of Db melodic minor."
     },
     {
       "family": "dom7",
       "scale": "half-whole diminished",
       "label": "Diminished (half-whole)",
-      "hint": "Gives b9 #9 #11 over V7."
+      "hint": "Adds the b9, #9 and #11 over a V7."
     },
     {
       "family": "dom7",
       "scale": "whole tone",
       "label": "Whole tone",
-      "hint": "For 7#5 chords."
+      "hint": "For dominant chords with a raised 5th (7#5)."
     },
     {
       "family": "m7b5",
       "scale": "locrian",
       "label": "Locrian",
       "recommended": true,
-      "hint": "Think the major scale a half-step above (Db major over Cm7b5)."
+      "hint": "Think of the major scale a half step above: Db major over Cm7b5."
     },
     {
       "family": "m7b5",
       "scale": "altered",
       "label": "Locrian #2",
-      "hint": "Brighter half-dim sound. Think Eb melodic minor."
+      "hint": "A brighter half-diminished sound. Think of Eb melodic minor."
     },
     {
       "family": "dim7",
@@ -185,7 +185,7 @@
     {
       "id": "rootless9",
       "label": "Rootless (3 5 7 9)",
-      "hint": "Plain dominant colour.",
+      "hint": "The plain dominant sound.",
       "offsets": [4, 7, 10, 14]
     },
     {
@@ -197,7 +197,7 @@
     {
       "id": "altered",
       "label": "Altered (7 b9 3 b13)",
-      "hint": "Max tension; resolves strongly (JT11).",
+      "hint": "The most tension, so it resolves strongly (JT11).",
       "offsets": [10, 13, 16, 20]
     }
   ],

@@ -49,7 +49,7 @@ test.describe("instrument views", () => {
     await expect(page.getByText(/out of the ukulele's range/)).toHaveCount(0);
     await pick(page, "Aerophone");
     await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
-    await page.getByRole("button", { name: "Hear it first" }).click();
+    await page.getByRole("button", { name: "Hear it", exact: true }).click();
     await expect(page.getByTestId("aerophone-fingering")).toContainText(/A4|B4|C#5/, {
       timeout: 10_000,
     });

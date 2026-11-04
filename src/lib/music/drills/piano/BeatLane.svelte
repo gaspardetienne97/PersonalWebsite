@@ -47,21 +47,29 @@
   };
   // A lane wider than the screen follows the playhead, keeping it in the first third of the view.
   let box: HTMLDivElement | undefined = $state();
+  let scrolled = $state(false);
   $effect(() => {
     if (!box || beat === null || box.scrollWidth <= box.clientWidth) return;
     const x = 36 + (box.scrollWidth - 36) * Math.max(0, beat / beats);
     if (x < box.scrollLeft + 36 || x > box.scrollLeft + box.clientWidth * 0.75) box.scrollLeft = Math.max(0, x - box.clientWidth / 3);
   });
   const live = (n: LaneNote) => beat !== null && beat >= n.beat && beat < n.beat + Math.max(0.2, n.dur * 0.9);
+  /** Where a note falls in its bar, the way it is counted: "1", "&", "2"... (Check shows this instead of the note). */
+  const count = (b: number) => (Math.abs(b % 1) < 0.01 ? String((Math.floor(b) % beatsPerBar) + 1) : "&");
+  /** The chord sounding now (or at the start), pinned at the lane's left edge so it never scrolls away. */
+  const nowChord = $derived(chords.length ? chords.filter((c) => c.beat <= Math.max(0, beat ?? 0)).at(-1)?.symbol ?? chords[0].symbol : null);
 </script>
 
-<div bind:this={box} class="lane mb-3 overflow-x-auto overscroll-x-contain rounded-xl" role="img" aria-label={label}>
+<div bind:this={box} onscroll={() => (scrolled = (box?.scrollLeft ?? 0) > 8)} class="lane mb-3 overflow-x-auto overscroll-x-contain rounded-xl" role="img" aria-label={label}>
   <div class="relative" style:min-width="{Math.max(18, beats * (eighths ? 3.8 : 2.6))}rem">
     {#if chords.length}
-      <div class="relative ml-9 h-6 text-sm font-semibold text-ws-stage-ink">
-        {#each chords as c (c.beat)}
-          <span class="absolute top-0 whitespace-nowrap" style:left={at(c.beat)}>{c.symbol}</span>
-        {/each}
+      <div class="flex h-6 text-sm font-semibold text-ws-stage-ink">
+        <span class="gutter now-chord" aria-hidden="true">{scrolled ? nowChord : ""}</span>
+        <div class="relative flex-1">
+          {#each chords as c (c.beat)}
+            <span class="absolute top-0 whitespace-nowrap" style:left={at(c.beat)}>{c.symbol}</span>
+          {/each}
+        </div>
       </div>
     {/if}
     <div class="relative ml-9 h-5 text-xs text-ws-stage-soft" aria-hidden="true">
@@ -73,8 +81,8 @@
       {/each}
     </div>
     {#each rows as row (row.id)}
-      <div class="flex items-center gap-1.5 py-0.5">
-        <span class="hand-mark" data-hand={row.hand} title={row.label}>{row.mark}</span>
+      <div class="flex items-center py-0.5">
+        <span class="gutter"><span class="hand-mark" data-hand={row.hand} title={row.label}>{row.mark}</span></span>
         <div class="track relative h-8 flex-1 rounded-md">
           {#each Array.from({ length: Math.ceil(beats / beatsPerBar) }, (_, i) => i * beatsPerBar) as bar (bar)}
             <span class="bar-line" style:left={at(bar)} aria-hidden="true"></span>
@@ -86,10 +94,11 @@
               data-hand={row.hand}
               data-live={live(n) || undefined}
               data-outcome={out}
+              data-off={hidden && n.beat % 1 ? "" : undefined}
               title={out ? `${n.text}: ${SAID[out]}` : undefined}
               style:left={at(n.beat)}
               style:width="max(1.15rem, calc({at(widthOf(row, i))} - 3px))"
-              >{#if out}<span class="mark" aria-hidden="true">{GLYPH[out]}</span>{/if}{hidden ? "" : n.text}</span
+              >{#if out}<span class="mark" aria-hidden="true">{GLYPH[out]}</span>{/if}{hidden ? count(n.beat) : n.text}</span
             >
           {/each}
         </div>
@@ -105,6 +114,26 @@
   .lane {
     background: color-mix(in oklch, var(--ws-stage-ink, white) 5%, transparent);
     padding: 0.4rem 0.5rem 0.5rem;
+  }
+  /* The left column (hand marks, the chord now) stays put while a long lane scrolls under it. */
+  .gutter {
+    position: sticky;
+    left: -0.5rem;
+    z-index: 3;
+    margin-left: -0.5rem;
+    padding-left: 0.5rem;
+    box-sizing: content-box;
+    flex: none;
+    width: 2.25rem;
+    display: flex;
+    align-items: center;
+    background: color-mix(in oklch, var(--ws-stage-ink, white) 5%, var(--ws-stage, #15121c));
+  }
+  .now-chord {
+    font-size: 0.7rem;
+    line-height: 1;
+    overflow: hidden;
+    white-space: nowrap;
   }
   .track {
     background: color-mix(in oklch, var(--ws-stage-ink, white) 6%, transparent);
@@ -150,11 +179,16 @@
     border-radius: 0.4rem;
     background: var(--instr);
     color: #17120c;
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
-    opacity: 0.72;
+    opacity: 0.88;
+  }
+  /* Check: the blocks carry the count instead of the note; the off-beats step back. */
+  .chip[data-off] {
+    opacity: 0.55;
+    font-weight: 600;
   }
   .chip[data-live] {
     opacity: 1;

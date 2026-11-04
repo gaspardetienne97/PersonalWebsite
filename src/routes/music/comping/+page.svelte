@@ -17,6 +17,9 @@
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
+  import { laneOutcomes, timingOf, verdictOf, type LaneOutcome } from "$lib/music/drills/piano/lane-outcomes";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
+  import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -62,6 +65,7 @@
     ...Array.from({ length: p.bars }, (_, bar) => p.compRhythm.flatMap((hit) => lhMidi.map((midi) => ({ midi, startBeat: bar * BEATS_PER_BAR + hit.beat, durationBeats: hit.durationBeats, hand: "left" as const })))).flat(),
   ]);
   const span = $derived(spanOf(notes.map((n) => n.midi)));
+  const tight = $derived(spanOf(notes.map((n) => n.midi), 0, false));
   const root = $derived(parseChordSymbol(p.chord)!);
   // A dominant's line sits in its mixolydian (C7 in F major's signature), so the 7th reads as a flat.
   const keyFifths = $derived(signatureFor(root.rootPc, "mixolydian"));
@@ -77,6 +81,11 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let stopClock: (() => void) | null = null;
+  /** Note-ons this run in beats from the downbeat, and whether every one came over MIDI (a struck shell needs it). */
+  let heard = $state<{ midi: number; beat: number }[]>([]);
+  let allMidi = $state(true);
+  let clock0 = { downbeat: 0, beatMs: 500 };
+  let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
     [demo ? "demo" : "target"]: true,
@@ -111,9 +120,21 @@
       hand: "left",
       notes: notes
         .filter((n) => n.hand === "left" && n.midi === lhMidi[0])
-        .map((n) => ({ beat: n.beat, dur: n.dur, text: lhMidi.map((m) => noteName(m, "flat", false)).join("+") })),
+        // The shell named by its chord: "C+Bb" would be cut short in a narrow cell.
+        .map((n) => ({ beat: n.beat, dur: n.dur, text: p.chord })),
     },
   ]);
+
+  // Each note marked on the lane as it lands: live in Practice, after the run in both modes. The left hand
+  // only when it can be measured (MIDI); on-screen keys can't strike a shell.
+  const outcomes = $derived.by((): Record<string, (LaneOutcome | undefined)[]> => {
+    const live = phase === "running" && mode === "practice";
+    if (!(live || (phase === "results" && heard.length))) return {};
+    const now = phase === "results" ? null : (transport.beat ?? 0);
+    const right = laneOutcomes(notes.filter((n) => n.hand === "right"), heard, now);
+    if (!allMidi) return { right };
+    return { right, left: laneOutcomes(notes.filter((n) => n.hand === "left" && n.midi === lhMidi[0]), heard, now) };
+  });
 
   const summaryLine = $derived<SetupClause[]>([
     { text: p.label, focus: "pattern" },
@@ -129,8 +150,17 @@
   }
 
   function onNote(e: NoteEvent) {
-    if (e.kind !== "noteon" || phase !== "running" || mode !== "practice") return;
-    flashes.add(e.midi, due(transport.beat ?? 0).some((n) => n.midi === e.midi) ? "correct" : "wrong");
+    if (e.kind !== "noteon" || phase !== "running") return;
+    const beat = (e.at - clock0.downbeat) / clock0.beatMs;
+    heard = [...heard, { midi: e.midi, beat }];
+    if (e.source !== "midi") allMidi = false;
+    if (mode !== "practice") return;
+    const want = due(transport.beat ?? 0).find((n) => n.midi === e.midi);
+    flashes.add(e.midi, want ? "correct" : "wrong");
+    const v = want
+      ? verdictOf(Math.abs(beat - want.beat) <= Math.min(0.5, want.dur) / 4 ? "ok" : beat < want.beat ? "early" : "late", (beat - want.beat) * clock0.beatMs)
+      : { kind: "wrong" as const, text: `Not now: ${noteName(e.midi, "flat")}` };
+    verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
 
   function start(ctx: RunContext) {
@@ -138,6 +168,10 @@
     summary = null;
     result = null;
     flashes.clear();
+    heard = [];
+    allMidi = true;
+    verdict = null;
+    clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     stopClock = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: "comping",
@@ -229,6 +263,7 @@
       xp: fin.xp,
       assistance: lhMeasured ? assistanceText(mode) : `${assistanceText(mode)} The left hand needs MIDI; this run graded the right-hand line only.`,
       rows,
+      timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
         r.correct && mode === "check" && nextPattern
           ? { label: nextPattern.label, href: `/music/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
@@ -316,7 +351,12 @@
             Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
             The rest of the line stays in {root.rootName} mixolydian.
           </p>
-          {#if approach}<p class="mt-1 text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{approach.name}.</span> {approach.summary}</p>{/if}
+          {#if approach}
+            <details class="mt-1 text-ws-stage-soft">
+              <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: {approach.name.toLowerCase()}</summary>
+              <p>{approach.summary}</p>
+            </details>
+          {/if}
         {/if}
       </div>
       {#if phase !== "running" && phase !== "countin" && mode === "practice"}
@@ -324,7 +364,7 @@
       {/if}
     </div>
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></div>
+      <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></StaffFold>
     {/if}
     <BeatLane
       rows={lanes}
@@ -333,20 +373,25 @@
       chords={[{ beat: 0, symbol: p.chord }]}
       hidden={mode === "check" && !transport.playing}
       label="Beat lane: right hand lick of {p.lick.length} notes; left hand shell on one and the and-of-two in each bar."
+      {outcomes}
     />
-    <Piano low={span.low} high={span.high} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+    <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
+    </div></div>
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
         <p>Notes hidden. Keep the rhythm on the lane; keys light only where you play.</p>
       {:else if phase === "running" || phase === "countin"}
-        <p>Shell on one and the and-of-two; the line on top.</p>
+        <p>Shell on one and the and-of-two; the line on top. On the lane: ✓ on time, − early, + late, ✕ missed.</p>
       {:else}
         {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
+        <!-- Said before Start, not after: without MIDI the run grades the line only. -->
+        <p class="mb-1 text-ws-stage-ink">The left-hand shell needs a MIDI keyboard. On-screen keys play one note at a time, so they grade the right-hand line only.</p>
         <details>
           <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
           <div class="flex flex-col gap-1 pb-1">
             <p>{FINGERING_NOTE}</p>
-            <p>The left hand needs MIDI: on-screen keys play one note at a time, so an on-screen run grades the right-hand line and shows the left hand as not measured.</p>
           </div>
         </details>
       {/if}

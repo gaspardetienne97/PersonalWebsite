@@ -11,8 +11,8 @@
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { lineScore } from "$lib/music/notation/falling";
+  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
   import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import CatalogPicker from "$lib/music/components/CatalogPicker.svelte";
@@ -24,6 +24,9 @@
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn } from "$lib/music/components/ui";
   import BeatLane from "$lib/music/drills/piano/BeatLane.svelte";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
+  import { lineOutcomes, timingOf, verdictOf } from "$lib/music/drills/piano/lane-outcomes";
   import { Transport, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -109,6 +112,9 @@
   let summary = $state<RunSummary | null>(null);
   let result = $state<LickResult | null>(null);
   let played = $state(0);
+  /** The notes played this run, in beats from the downbeat: the lane marks each one as it lands. */
+  let hits = $state<{ midi: number; beat: number }[]>([]);
+  let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   const transport = new Transport();
   const flashes = new Flashes();
   let cap: Capture | null = null;
@@ -177,10 +183,25 @@
     await transport.demo(notes, bpm, speed);
   }
 
+  /** On time within min(180 ms, a quarter beat), as the grade counts it. */
+  const tolBeats = (beatMs: number) => Math.min(180, beatMs / 4) / beatMs;
+  let runBeatMs = $state(500);
+  const outcomes = $derived(hits.length ? lineOutcomes(timed.map((n) => ({ midi: n.midi, beat: n.beat })), hits, tolBeats(runBeatMs)) : []);
+
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
     const want = chunk[played];
     played += 1;
+    if (ctxRef) {
+      const beat = (e.at - ctxRef.downbeat) / ctxRef.beatMs;
+      hits = [...hits, { midi: e.midi, beat }];
+      // Practice says how each note landed; Check keeps it for the results.
+      if (want && mode === "practice") {
+        const o = lineOutcomes([{ midi: want.midi, beat: want.startBeat }], [{ midi: e.midi, beat }], tolBeats(ctxRef.beatMs))[0]!;
+        const v = o === "miss" ? { kind: "wrong" as const, text: `Wanted ${spell(want.midi)}, heard ${spell(e.midi)}` } : verdictOf(o, (beat - want.startBeat) * ctxRef.beatMs);
+        verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
+      }
+    }
     if (want && mode === "practice") {
       const ok = pc(e.midi) === pc(want.midi) && (e.string === undefined || want.string === undefined || (e.string === want.string && e.fret === want.fret));
       if (fretted) {
@@ -200,6 +221,9 @@
     summary = null;
     result = null;
     played = 0;
+    hits = [];
+    verdict = null;
+    runBeatMs = ctx.beatMs;
     flashes.clear();
     ctxRef = ctx;
     run = practice.beginRun({
@@ -268,6 +292,7 @@
       assistance: assistanceText(mode, s.ear && peeked),
       rows,
       advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
+      timing: timingOf(timed.map((_, i) => outcomes[i])),
     };
     status = summary.headline;
   }
@@ -323,10 +348,6 @@
   onstart={start}
   onstop={stop}
 >
-  {#snippet actions()}
-    {#if lineShown}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
-  {/snippet}
-
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <CatalogPicker label="Lick" setupKey="lick" noun="lick" recentKey="licks" items={lickItems} value={lick.number} onchange={(v) => cfg.set({ lick: v, category: LICKS.find((l) => l.number === v)?.category ?? "" })} />
@@ -352,6 +373,7 @@
       />
     </div>
     <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. The licks are written in C; the key moves the line, the chords and the text together.</p>
+    {#if !fretted}<p class="mt-1 text-sm text-ws-soft">The licks carry no fingering. Any octave counts; the order is what's graded.</p>{/if}
   {/snippet}
 
   {#snippet hud()}
@@ -365,14 +387,19 @@
     <!-- Text first; a long row of bar chunks wraps under it rather than squeezing it. -->
     <div class="mb-3 flex flex-wrap gap-3 text-sm">
       <div class="min-w-0 flex-[1_1_20rem]">
+        {#if phase !== "running" && phase !== "countin" && (lineShown)}<ViewSwitch class="float-right mb-1 ml-3" />{/if}
         <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
         <!-- The reading text steps aside while the line runs, so the lane and the keys stay in view. -->
         {#if phase !== "running" && phase !== "countin"}
-          <p class="text-ws-stage-soft">Scales: {lick.scales.map(tx).join(", ")}.</p>
           <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
-          {#each techniques as t (t.id)}
-            <p class="text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
-          {/each}
+          <!-- The theory folds away, so the lane, the staff and the keys fit a laptop screen before Start. -->
+          <details class="mt-1 text-ws-stage-soft">
+            <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden"><ChevronRight class="size-4 transition-transform [details[open]>summary>&]:rotate-90" aria-hidden="true" />About this lick</summary>
+            <p>Scales: {lick.scales.map(tx).join(", ")}.</p>
+            {#each techniques as t (t.id)}
+              <p class="mt-1"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
+            {/each}
+          </details>
         {/if}
       </div>
       {#if phase !== "running" && phase !== "countin"}
@@ -409,14 +436,17 @@
         By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.
       </p>
     {:else}
-    <BeatLane
-      rows={[{ id: "line", mark: "♪", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
-      beats={chunkBeats}
-      beat={transport.beat}
-      chords={laneChords}
-      hidden={mode === "check" && !transport.playing}
-      label="Beat lane: {chunk.length} notes over {progression.join(', ')}."
-    />
+    <div class="relative">
+      <BeatLane
+        rows={[{ id: "line", mark: "♪", label: "The line", hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
+        beats={chunkBeats}
+        beat={transport.beat}
+        chords={laneChords}
+        hidden={mode === "check" && !transport.playing}
+        outcomes={mode === "practice" || phase === "results" ? { line: outcomes } : {}}
+        label="Beat lane: {chunk.length} notes over {progression.join(', ')}."
+      />
+    </div>
     {/if}
     {#if hideNotes}
       <!-- By ear: nothing written until the results. -->
@@ -437,7 +467,7 @@
       <FallingKeys score={lineScore(written)} low={span.low} high={span.high} beat={fallBeat} rest={t0} groupStates={tabStates} {marks} {flashes} />
     {:else if !fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
-        <LineNotation notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
+        <LineNotation maxZoom={1.3} notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
       </div>
     {/if}
     {#if fretted}
@@ -446,8 +476,12 @@
         Numbers on the dots are the authored fingers, never graded. Taps on the fretboard also check the string and fret; MIDI and the microphone only know the pitch.
       </p>
     {:else}
-      {#if !falling}<InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />{/if}
-      <p class="mt-3 text-sm text-ws-stage-soft">The licks carry no authored fingering. Any octave counts; the order is what's graded.</p>
+      {#if !falling}
+        <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+          <InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />
+          {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
+        </div></div>
+      {/if}
     {/if}
     {#if mode === "check" && phase !== "results"}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
   {/snippet}

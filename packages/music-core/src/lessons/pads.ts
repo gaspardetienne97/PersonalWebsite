@@ -725,6 +725,7 @@ function echoIntro(): Lesson {
     {
       title: "Listen, then play it back",
       text: "The app plays a bar, then the next bar is yours: play back what you heard. There are four rounds, each a call and an answer, and only your answers are scored. The grid stays hidden until the run is over.",
+      figure: gridOf([...call, ...answer], 0, 2),
     },
     {
       title: "One round",
@@ -807,6 +808,7 @@ function ostinatoIntro(): Lesson {
     {
       title: "Keep one part going",
       text: `An ostinato is a part that repeats without changing while another part moves. The ${hatsName} keep eighths while the snare reads a line, or the kick when you choose that for new lines, and for the clave line the ${claveName} keeps the son clave. You play two bars of the ostinato alone, then four bars with the line.`,
+      figure: gridOf(withLine, 0, 1),
     },
     {
       title: "Hats, then the line",
@@ -961,6 +963,16 @@ function repeatIntro(): Lesson {
     {
       title: "Hold the pad",
       text: "Note Repeat plays a pad again for as long as you hold it, on a grid set by the rate. The app changes the rate as the chart goes, so you hold the pad and follow the chart. The drill names the pad to hold.",
+      // One held pad: eighths for two beats, then sixteenths when the rate changes.
+      figure: gridOf(
+        [0, 0.5, 1, 1.5, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75].map((beat) => ({
+          voice: "snare",
+          beat,
+          accent: "normal" as const,
+        })),
+        0,
+        1,
+      ),
     },
     {
       title: "Pressure",
@@ -1013,6 +1025,24 @@ function songIntro(): Lesson {
     {
       title: "One take",
       text: "A piece is a list of sections, such as an intro, a groove, a build and a drop. You play it from start to end in one take, and each section is graded on its own.",
+      // Four bars as four sections: an intro on the hats, a groove, a snare build, a drop on the one.
+      figure: gridOf(
+        [
+          ...[0, 1, 2, 3].map((beat) => ({ voice: "hats", beat })),
+          ...[4, 5, 6, 7].map((beat) => ({ voice: "hats", beat })),
+          { voice: "kick", beat: 4 },
+          { voice: "kick", beat: 6 },
+          { voice: "snare", beat: 5 },
+          { voice: "snare", beat: 7 },
+          ...[8, 8.5, 9, 9.5, 10, 10.5, 11, 11.25, 11.5, 11.75].map((beat) => ({
+            voice: "snare",
+            beat,
+          })),
+          { voice: "kick", beat: 12 },
+        ].map((h) => ({ ...h, accent: "normal" as const })),
+        0,
+        4,
+      ),
     },
     {
       title: "Soft, medium, loud, rising",

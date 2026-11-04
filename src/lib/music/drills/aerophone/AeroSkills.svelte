@@ -545,6 +545,15 @@
             {/each}
           </ol>
           {#if marks.length}<p class="text-xs text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
+          {#if skill !== "long-scale"}
+            <!-- Live breath while you play: not graded here, it shows the air behind each note. -->
+            <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-meter">
+              <div class="flex items-baseline justify-between text-sm"><span class="text-ws-stage-soft">Breath</span><span class="tnum font-semibold">{breathNow === null ? "Not measured: no breath (CC 2) yet" : pct(breathNow)}</span></div>
+              <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
+                {#if breathNow !== null}<div class="h-full rounded-full bg-instr" style:width="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
+              </div>
+            </div>
+          {/if}
         {:else if skill === "trills"}
           <p class="text-sm text-ws-stage-soft">Trill {trillPair.label}{trillPair.detail ? ` (${trillPair.detail})` : ""}: move only the finger that changes.</p>
           {#if mode === "practice"}

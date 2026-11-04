@@ -10,8 +10,8 @@
   import Piano from "$lib/music/components/Piano.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { lineScore } from "$lib/music/notation/falling";
+  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
   import { page } from "$app/state";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -20,7 +20,9 @@
   import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
   import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
-  import { laneOutcomes } from "$lib/music/drills/piano/lane-outcomes";
+  import { laneOutcomes, timingOf, verdictOf } from "$lib/music/drills/piano/lane-outcomes";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
+  import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import { FINGERING_NOTE, Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -78,6 +80,7 @@
   });
   const totalBeats = BARS * 4;
   const span = $derived(spanOf(notes.map((n) => n.midi)));
+  const tight = $derived(spanOf(notes.map((n) => n.midi), 0, false));
   const falling = $derived(page.url.searchParams.get("view") === "falling");
   const fallScore = $derived(lineScore(notes.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.dur, hand: n.hand, finger: n.finger }))));
 
@@ -94,6 +97,7 @@
   /** Note-ons this run, in beats from the downbeat: the lane marks each note as it lands. */
   let heard = $state<{ midi: number; beat: number }[]>([]);
   let clock0 = { downbeat: 0, beatMs: 500 };
+  let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
     [demo ? "demo" : "target"]: true,
@@ -157,7 +161,14 @@
     heard = [...heard, { midi: e.midi, beat: (e.at - clock0.downbeat) / clock0.beatMs }];
     if (mode !== "practice") return;
     const b = transport.beat ?? 0;
-    flashes.add(e.midi, due(b).some((n) => n.midi === e.midi) ? "correct" : "wrong");
+    const want = due(b).find((n) => n.midi === e.midi);
+    flashes.add(e.midi, want ? "correct" : "wrong");
+    // The word for the note, as the lane will mark it: on time within a quarter of the hand's spacing.
+    const beat = heard.at(-1)!.beat;
+    const v = want
+      ? verdictOf(Math.abs(beat - want.beat) <= want.dur / 4 ? "ok" : beat < want.beat ? "early" : "late", (beat - want.beat) * clock0.beatMs)
+      : { kind: "wrong" as const, text: `Not now: ${noteName(e.midi, "flat")}` };
+    verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
 
   function start(ctx: RunContext) {
@@ -166,6 +177,7 @@
     result = null;
     flashes.clear();
     heard = [];
+    verdict = null;
     clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     stopClock = ctx.stopClock;
     run = practice.beginRun({
@@ -267,6 +279,7 @@
       xp: fin.xp,
       assistance: assistanceText(mode),
       rows,
+      timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
         r.correct && mirror && mode === "check"
           ? { label: "Closest chords, I IV V I", href: "/music/voicings?variant=inversions&key=0", reason: "the next harmony step on the piano path" }
@@ -307,10 +320,6 @@
   onstart={start}
   onstop={stop}
 >
-  {#snippet actions()}
-    {#if mode === "practice" || phase === "results"}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
-  {/snippet}
-
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
       <Choice label="Pattern" setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
@@ -327,8 +336,9 @@
   {/snippet}
 
   {#snippet stage()}
+    {#if phase !== "running" && phase !== "countin" && (mode === "practice" || phase === "results")}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-      <p class="max-w-prose text-ws-stage-soft">{about[pattern]}</p>
+      {#if phase !== "running" && phase !== "countin"}<p class="max-w-prose text-ws-stage-soft">{about[pattern]}</p>{/if}
       <div class="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -344,7 +354,7 @@
       <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
     {:else}
       {#if mode === "practice" || transport.playing || phase === "results"}
-        <div class="mb-3"><LineNotation notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></div>
+        <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></StaffFold>
       {/if}
       <BeatLane
         rows={lanes}
@@ -355,7 +365,10 @@
         label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
         {outcomes}
       />
-      <Piano low={span.low} high={span.high} {marks} {flashes} minKey={26} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
+        <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} minKey={26} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+        {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
+      </div></div>
     {/if}
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}

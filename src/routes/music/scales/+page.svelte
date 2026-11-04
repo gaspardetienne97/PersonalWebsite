@@ -36,8 +36,9 @@
   import { scaleFretMarks, type Outcome } from "./fret-marks";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
+  import { lineScore } from "$lib/music/notation/falling";
+  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
+  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
   import { page } from "$app/state";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
@@ -280,7 +281,12 @@
       if (expected.every((m) => hit.has(m))) advance(e.at);
     } else {
       slipped = true;
-      if (mode === "practice") flashes.add(e.midi, "wrong");
+      if (mode === "practice") {
+        flashes.add(e.midi, "wrong");
+        // Name both notes, so the red key says what went wrong.
+        const want = expected.map((m) => noteName(m, "flat")).join(" ");
+        verdict = { kind: "wrong", text: `Wanted ${want}, heard ${noteName(e.midi, "flat")}`, key: (verdict?.key ?? 0) + 1 };
+      }
       // A quarter tone off rounds to the next note: say it is the tuning, not the playing.
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
       if (miss) {
@@ -300,6 +306,7 @@
     if (stepIndex >= steps.length) void finish();
   }
   let stepStart = 0;
+  let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   /** Notes heard close to the target but out of tune, this run. */
   let detuned: { midi: number; cents: number }[] = [];
 
@@ -342,6 +349,7 @@
     slipped = false;
     detuned = [];
     flashes.clear();
+    verdict = null;
     const beatMs = ctx.beatMs;
     stepStart = ctx.downbeat - beatMs / 2;
     run = practice.beginRun({
@@ -515,10 +523,6 @@
   onstart={start}
   onstop={stop}
 >
-  {#snippet actions()}
-    {#if onPiano && (mode === "practice" || phase === "results")}<div class="ml-auto"><HubTabs param="view" tabs={NOTE_VIEWS} label="Notes view" /></div>{/if}
-  {/snippet}
-
   {#snippet setup()}
     <div class="flex flex-col gap-5">
       <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -614,6 +618,7 @@
   {/snippet}
 
   {#snippet stage()}
+    {#if phase !== "running" && phase !== "countin" && (onPiano && (mode === "practice" || phase === "results"))}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     {#if falling && (mode === "practice" || phase === "results")}
       <FallingKeys score={lineScore(written, quartersPerClick > 1 ? { beats: 12, beatUnit: 8 } : undefined)} {low} {high} beat={clock.beat} groupStates={lineStates} {marks} {flashes} />
     {:else}
@@ -622,6 +627,8 @@
           <LineNotation notes={written} tuning={fretTuning(inst)} title={key} cursorBeat={cursor} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
         </div>
       {/if}
+      <div class="relative flex flex-col justify-end" data-dock="instrument">
+      {#if verdict && phase === "running"}<Verdict {...verdict} class="absolute inset-x-0 top-3 z-10 flex justify-center" />{/if}
       {#if tuning}
         <div style:--instr="var(--hue-{inst})">
           <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings label="{inst} fretboard" />
@@ -632,6 +639,7 @@
       {:else}
         <InstrumentStage line={all} {low} {high} {marks} {flashes} />
       {/if}
+      </div>
     {/if}
     {#if mode === "check" && phase !== "results"}
       <!-- Check: no targets, only where you are in the line (the step count advances on the right note anyway). -->

@@ -1,9 +1,34 @@
+<script lang="ts" module>
+  import { isBlackKey } from "@repo/music-core";
+
+  /** The whites from `fit` (widened to white keys), grown one white at a time, low side first, while `room` allows. */
+  export function fitRange(f: { low: number; high: number }, outerLow: number, outerHigh: number, room: number) {
+    const down = (m: number) => (isBlackKey(m) ? m - 1 : m);
+    let lo = down(Math.max(21, Math.min(f.low, f.high)));
+    let hi = Math.min(108, Math.max(f.low, f.high));
+    if (isBlackKey(hi)) hi += 1;
+    const floor = Math.max(21, Math.min(outerLow, lo));
+    const ceil = Math.min(108, Math.max(outerHigh, hi));
+    let n = 0;
+    for (let m = lo; m <= hi; m++) if (!isBlackKey(m)) n++;
+    for (let below = true; n < room; below = !below) {
+      const canLo = lo > floor;
+      const canHi = hi < ceil;
+      if (!canLo && !canHi) break;
+      if ((below && canLo) || !canHi) lo = down(lo - 1);
+      else hi = isBlackKey(hi + 1) ? hi + 2 : hi + 1;
+      n++;
+    }
+    return { low: lo, high: Math.min(hi, 108) };
+  }
+</script>
+
 <script lang="ts">
   // The one keyboard. Ivory and ebony drawn as material; every key is a real
   // button named by its note. States with distinct lifetimes: held (while down),
   // target (current group), demo (while the model sounds), correct/wrong
   // (a short flash with a glyph, never a growing set).
-  import { isBlackKey, noteName } from "@repo/music-core";
+  import { noteName } from "@repo/music-core";
   import { onMount } from "svelte";
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
@@ -19,8 +44,15 @@
     names?: "none" | "c" | "all";
     interactive?: boolean;
     label?: string;
-    /** Minimum white-key width in px; the strip scrolls sideways below it. */
+    /** Minimum white-key width in px; the strip scrolls sideways below it (without `fit`). */
     minKey?: number;
+    /**
+     * The notes that must be on screen. The keys shrink to the container so this range always fits
+     * (no sideways scroll, no clipped keys); spare room adds keys round it, up to `low` and `high`.
+     */
+    fit?: { low: number; high: number };
+    /** Short keys, for a small picture of a chord (results rows, previews). */
+    compact?: boolean;
   }
 
   let {
@@ -33,9 +65,13 @@
     interactive = true,
     label = "Piano keyboard",
     minKey = 36,
+    fit,
+    compact = false,
   }: Props = $props();
 
-  const keys = $derived(Array.from({ length: high - low + 1 }, (_, i) => low + i));
+  let width = $state(0);
+  const range = $derived(fit ? fitRange(fit, low, high, Math.floor(width / minKey)) : { low, high });
+  const keys = $derived(Array.from({ length: range.high - range.low + 1 }, (_, i) => range.low + i));
   const whites = $derived(keys.filter((k) => !isBlackKey(k)));
   const whiteIndex = (m: number) => whites.findIndex((w) => w === m - 1);
   const down = $derived(held ?? input.held);
@@ -88,10 +124,10 @@
   }
 </script>
 
-<div class="piano rounded-xl p-2 pt-0 shadow-inner" role="group" aria-label={label}>
+<div class="piano rounded-xl p-2 pt-0 shadow-inner" class:compact role="group" aria-label={label}>
   <div class="felt" aria-hidden="true"></div>
-  <div bind:this={scroller} class="overflow-x-auto overscroll-x-contain pb-1">
-    <div class="relative flex select-none touch-none" style:min-width="{whites.length * minKey}px">
+  <div bind:this={scroller} bind:clientWidth={width} class="overflow-x-auto overscroll-x-contain pb-1">
+    <div class="relative flex select-none touch-none" style:min-width={fit ? undefined : `${whites.length * minKey}px`}>
       {#each whites as m (m)}
         {@const mk = marks[m] ?? {}}
         {@const flash = flashes?.get(m)}
@@ -114,7 +150,6 @@
           onkeydown={(e) => key(e, m, true)}
           onkeyup={(e) => key(e, m, false)}
         >
-          {#if m === 60}<span class="middle-c" aria-hidden="true"></span>{/if}
           {@render glyphs(mk, flash)}
           <span class="name">{nameFor(m)}</span>
         </button>
@@ -163,6 +198,12 @@
 <style>
   .piano {
     background: linear-gradient(#2a1d17, #16100d);
+  }
+  .compact .white {
+    height: 4.75rem;
+  }
+  .compact .black {
+    height: 2.9rem;
   }
   .felt {
     height: 6px;
@@ -263,6 +304,19 @@
   [data-demo][data-role="right"] {
     background: var(--hand-right) !important;
   }
+  /* A held key that is a hand's target takes that hand's colour, as its lane does. */
+  .white[data-held][data-role="left"] {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--hand-left) 55%, #efe7d6), color-mix(in oklch, var(--hand-left) 35%, #f7f1e6));
+  }
+  .white[data-held][data-role="right"] {
+    background: linear-gradient(to bottom, color-mix(in oklch, var(--hand-right) 55%, #efe7d6), color-mix(in oklch, var(--hand-right) 35%, #f7f1e6));
+  }
+  .black[data-held][data-role="left"] {
+    background: color-mix(in oklch, var(--hand-left) 60%, #111);
+  }
+  .black[data-held][data-role="right"] {
+    background: color-mix(in oklch, var(--hand-right) 60%, #111);
+  }
   [data-target][data-role="left"]:not([data-held]) {
     box-shadow: inset 0 0 0 3px var(--hand-left);
   }
@@ -282,30 +336,22 @@
     background: var(--instr);
   }
   .mark-label {
-    min-width: 1.35rem;
-    height: 1.35rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
     padding: 0 0.25rem;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #17120c;
     background: var(--instr);
   }
   .name {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     line-height: 1;
     min-height: 0.7rem;
     opacity: 0.7;
-  }
-  .middle-c {
-    position: absolute;
-    top: 0.5rem;
-    width: 0.4rem;
-    height: 0.4rem;
-    border-radius: 999px;
-    background: #9b8f7d;
   }
   .flash {
     width: 1.5rem;

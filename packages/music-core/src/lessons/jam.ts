@@ -491,6 +491,7 @@ function motifLesson(): Lesson {
       {
         title: "Keep one rhythm",
         text: `Pick the rhythm of one bar and repeat it as the chords change. Check compares where your notes start, to the nearest eighth note, so only the start times matter. Use the same rhythm in at least ${pct("motif", "motif")}% of your bars, with a chord tone on beat 1 in ${pct("motif", "downbeats")}% of them.`,
+        figure: rhythm(2),
       },
       {
         title: "The Charleston",
@@ -528,6 +529,7 @@ function approachLesson(): Lesson {
       {
         title: "Lean in from a half step",
         text: `An approach note is a half step above or below the note you are heading for. Check wants a chord tone on beat 1 of your bars, with the note played just before it a half step away. The score is the share of your bars that do, and the aim is ${pct("approach", "approach")}%, so an empty bar of yours counts as a miss.`,
+        figure: marks({ [target.midi - 1]: "below", [target.midi + 1]: "above" }),
       },
       {
         title: "One target, two ways in",
@@ -566,6 +568,14 @@ const offBeatCard = (): Lesson => ({
     {
       title: "Where a phrase begins",
       text: `A phrase is a run of notes with less than a beat of silence between them, so a pause of a beat or more starts a new one. Each new phrase should begin clearly between beats, such as on the and of 1 or the and of 4. The score is the share that do, and the aim is ${pct("off-beat", "offbeat")}%.`,
+      // Each phrase starts on the and of 1, after the beat, then stops.
+      figure: {
+        kind: "rhythm",
+        bars: 2,
+        perBeat: 2,
+        beatsPerBar: 4,
+        onsets: [0.5, 1, 1.5, 4.5, 5, 5.5],
+      },
     },
     {
       title: "A line that passes",
@@ -594,6 +604,7 @@ function windowsCard(id: "space" | "space-1" | "call-response"): Lesson {
         text: call
           ? `The band plays a call for ${n(w.band)}, then you answer for ${n(w.you)}. A note must start in your answer, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`
           : `You play for ${n(w.you)}, then the band has ${n(w.band)} to itself, all chorus. A note must start in each of your stretches, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`,
+        figure: rhythm(call ? [2, 3] : id === "space" ? [0, 1] : [0, 2]),
       },
       {
         title: "A line that passes",
@@ -620,6 +631,10 @@ function bridgeCard(): Lesson {
       {
         title: "Only the bridge counts",
         text: `The A sections are not graded: rest in them or play the head. In the bridge, land a 3rd or 7th ${WINDOW} for ${pct("bridge", "landings")}% of the changes. A tune with no section marked B is graded on every bar.`,
+        figure: keys(
+          Object.fromEntries(changes.map((c) => [near(pc(thirdOf(c.symbol).midi), 66), c.symbol])),
+          changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
+        ),
       },
       {
         title: "A bridge, change by change",
@@ -662,6 +677,11 @@ function displacementLesson(): Lesson {
       {
         title: "The same idea, a beat later",
         text: "Play a short motif of 2 to 6 notes, then play it again with the same rhythm, starting one beat later in its bar. A repeat counts when it comes no more than two bars after the last one. The pitches are free to change, but leave at least half a beat of silence between motifs.",
+        figure: {
+          ...rhythm,
+          bars: 2,
+          onsets: [0, 1].flatMap((k) => [0, 0.5, 1].map((x) => k * (bpb + 1) + x)),
+        },
       },
       {
         title: "Beat 1, beat 2, beat 3",
@@ -691,6 +711,7 @@ function sideSlipLesson(): Lesson {
       {
         title: "Step outside, then come back",
         text: `A side-slip is a phrase of three or more notes that are neither chord tones nor in the chord's scale, played within a beat of each other with no two inside notes in a row. It ends by resolving to a chord tone on the next beat, no more than a beat and a half after the last slip note. The aim is ${aimOf("side-slip", "slips")} slips a chorus, with ${pct("side-slip", "resolved")}% of them resolved.`,
+        figure: lit(slipped, (m) => (inside(m) ? "in" : "out")),
       },
       {
         title: "Slide a phrase up",
@@ -723,6 +744,11 @@ function quoteCard(): Lesson {
       {
         title: "Start from the tune",
         text: `Open each A section with a run of at least four notes from the head: the same pitch names and the same steps between them, in any octave. A repeated note counts once. The run must start from half a beat before the section up to two bars into it, and the aim is ${pct("quote", "quotes")}% of the A sections.`,
+        figure: {
+          kind: "staff",
+          clef: "treble",
+          notes: head.map((h) => ({ midi: h.midi, beats: 1 })),
+        },
       },
       {
         title: "An example",
@@ -761,6 +787,18 @@ function fillsCard(): Lesson {
       {
         title: "Head, then fills",
         text: `Play the head, and fill its rests of two beats or more. Check wants ${pct("melody-fills", "melody")}% of the head's notes played, in any octave and within half a beat of where the head puts them. A fill is 2 to 4 notes that start inside the rest but not in its last half beat, and the aim is ${aimOf("melody-fills", "fills", 0, 6)} filled rests a chorus, or all of them if the head has fewer.`,
+        figure: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            { midi: a.midi, beats: 1 },
+            { midi: b.midi, beats: 1 },
+            { midi: null, beats: 0.5 },
+            { midi: c.midi, beats: 0.5 },
+            { midi: d.midi, beats: 0.5 },
+            { midi: null, beats: 0.5 },
+          ],
+        },
       },
       {
         title: "A bar",

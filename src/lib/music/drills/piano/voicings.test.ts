@@ -14,7 +14,7 @@ describe("voicingItems", () => {
   it("altered: the b9 chord's scale is half-whole diminished, one period per sentence", () => {
     const [b9] = voicingItems({ variant: "altered", keyPc: 0, keys: 1 });
     expect(b9.hint).toBe(
-      "Diminished tension. Go-to scale: Diminished (half-whole). Gives b9 #9 #11 over V7.",
+      "Diminished tension. Go-to scale: Diminished (half-whole). Adds the b9, #9 and #11 over a V7.",
     );
     for (const v of ["major", "minor", "altered", "voice-leading", "cadence"] as const)
       for (const i of voicingItems({ variant: v, keyPc: 0, keys: 12 }))

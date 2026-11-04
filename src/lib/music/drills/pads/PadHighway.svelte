@@ -329,12 +329,12 @@
     position: absolute;
     top: 0.15rem;
     z-index: 2;
-    padding: 0.05rem 0.5rem;
+    padding: 0.15rem 0.7rem;
     border-radius: 999px;
     background: var(--ws-stage);
-    line-height: 1.1rem;
+    line-height: 1.3rem;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 1rem;
     letter-spacing: 0.02em;
     pointer-events: none;
     animation: pop 900ms ease-out both;

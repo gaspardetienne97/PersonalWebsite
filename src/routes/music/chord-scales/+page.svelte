@@ -114,9 +114,7 @@
   const plainHint = (h: string | undefined) =>
     !h
       ? ""
-      : h.startsWith("Brighter than major")
-        ? "Brighter than major: the 4th is raised (#11), so it never rubs against the chord's 3rd."
-        : h.replace(/\s+\u2014\s+/g, ": ").replace(/\s\+\s/g, " plus ").replace(/\s*\(JT\d+\)/g, "").replace(/\s*\/\s*/g, ", ");
+      : h.replace(/\s+\u2014\s+/g, ": ").replace(/\s\+\s/g, " plus ").replace(/\s*\(JT\d+\)/g, "").replace(/\s*\/\s*/g, ", ");
   // The colour key sits on the keys you play: every key of the current chord's octave, by role.
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
@@ -425,13 +423,16 @@
     {#if mode === "practice" || transport.playing || phase === "results"}
       <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} /></div>
     {/if}
-    <InstrumentStage line={current ? [...current.midi, current.midi[0] + 12] : stageLine} {low} {high} {marks} {flashes} fit />
+    <div class="flex flex-col justify-end" data-dock="instrument">
+      <InstrumentStage line={current ? [...current.midi, current.midi[0] + 12] : stageLine} {low} {high} {marks} {flashes} fit />
+    </div>
     <!-- The colour key goes with the colours on the keys: Check (and the results) hide both. -->
     {#if transport.playing || (mode === "practice" && phase !== "results")}
-    <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Colour key">
+    <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-ink" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (dashed ring)</li>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>A note you just played outside</li>
     </ul>
     {/if}
   {/snippet}
@@ -449,9 +450,13 @@
     border-radius: 999px;
     display: inline-grid;
     place-items: center;
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #17120c;
+  }
+  .key-swatch[data-role="wrong"] {
+    background: var(--destructive);
+    color: white;
   }
   .key-swatch[data-role="chord"] {
     background: var(--tone-chord);

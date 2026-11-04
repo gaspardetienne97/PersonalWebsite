@@ -41,11 +41,11 @@ test.beforeEach(async ({ page }) => {
 
 test("pedal: Hear it first plays the chart, not scored", async ({ page }) => {
   await page.goto("/music/pedal?progression=I-vi-IV-V&key=0&rounds=1");
-  await page.getByRole("button", { name: "Hear it first" }).click();
+  await page.getByRole("button", { name: "Hear it", exact: true }).click();
   await expect(page.getByText("Listening, not scored.")).toBeVisible();
   await expect(page.locator(".piano [data-demo]").first()).toBeAttached();
   await page.getByRole("button", { name: "Stop demo" }).click();
-  await expect(page.getByRole("button", { name: "Hear it first" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hear it", exact: true })).toBeVisible();
 });
 
 test("licks: two taps on the staff mark a chunk, and it loops", async ({ page }) => {

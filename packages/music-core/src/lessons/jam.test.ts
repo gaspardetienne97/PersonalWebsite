@@ -202,3 +202,11 @@ describe("guideTones", () => {
     expect(guideTones("Csus4").third).toBe(5);
   });
 });
+
+describe("jam lesson pictures", () => {
+  it("opens every game's lesson with a figure, so the idea is shown before it is told", () => {
+    for (const id of jamLessonGames())
+      for (const l of jamGameLesson(id))
+        expect(l.screens[0].figure ?? l.screens[0].steps?.[0]?.figure, l.id).toBeTruthy();
+  });
+});

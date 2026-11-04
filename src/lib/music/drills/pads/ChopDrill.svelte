@@ -5,6 +5,7 @@
   // reorder, or a free chop of your own that you then play again. The slices
   // are a kit for the run; Create's kit comes back when you leave.
   import { onDestroy } from "svelte";
+  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
   import type { NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
   import { gradeGroove, type GrooveResult } from "@repo/music-core/scoring/pads";
@@ -262,8 +263,8 @@
       const wrong = r.perVoice.filter((v) => v.missed && v.extra).length;
       rows = [
         { label: "Slices in place", value: r.matched / piece.targets.length, text: `${r.matched} of ${piece.targets.length}` },
-        { label: "Extra or wrong slices", value: Math.max(0, 1 - r.extra / piece.targets.length), text: String(r.extra) },
-        { label: "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${Math.round(r.meanAbsErrorMs)} ms off on average` },
+        { label: "Extra or wrong slices", text: r.extra ? String(r.extra) : "None" },
+        r.matched ? { label: r.matched < piece.targets.length ? `Timing, from the ${r.matched} slices hit` : "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${Math.round(r.meanAbsErrorMs)} ms off on average` } : { label: "Timing: no slice was hit", notMeasured: true },
       ];
       headline = !ons.length
         ? "No hits arrived. Check the line under the stage for why."
@@ -317,6 +318,7 @@
       clean: correct && mode === "check",
       assistance: assistanceText(mode),
       rows,
+      timing: grv ? timingFromErrors(grv.perTarget, grv.windowMs / 2) : undefined,
       advance: piece && source.id !== "file" ? await nextRun(`pads.chop.${exercise}`, { bpm, tempo: { min: 40, goal: exercise === "reorder" && edit.id === "jungle" ? 170 : 110 }, steps: CHOP_EXERCISES.filter((x) => x.id !== "free").map((x) => ({ label: x.label })), step: exercise === "order" ? 0 : 1 }, { score, correct }, tempoAnd((i) => cfg.set({ exercise: ["order", "reorder"][i] }))) : undefined,
     };
     status = headline;
@@ -355,7 +357,9 @@
 </script>
 
 {#snippet padGrid()}
-  <Pads {marks} {flashes} {timing} {names} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+  <div data-dock="answers">
+    <Pads {marks} {flashes} {timing} {names} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+  </div>
 {/snippet}
 
 <DrillShell

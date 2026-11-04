@@ -11,6 +11,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import { pedalLesson } from "@repo/music-core/lessons/technique";
   import Piano from "$lib/music/components/Piano.svelte";
+  import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -75,6 +76,7 @@
   const written = $derived(bars.flatMap((b, k) => [{ midi: b.leftHand, startBeat: k * 4, durationBeats: 4, hand: "left" as const }, ...b.rightHand.map((midi) => ({ midi, startBeat: k * 4, durationBeats: 4, hand: "right" as const }))]));
   const summaryLine = $derived<SetupClause[]>([{ text: `${progression.label} in ${keyName}`, focus: "progression" }, { text: `${bars.length} chords`, focus: "rounds" }, { text: "a chord a bar" }]);
   const keys = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand])));
+  const tight = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand]), 0, false));
 
   function onEvent(e: InputEvent) {
     if (e.kind === "cc" && e.controller === 64) {
@@ -289,7 +291,7 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Chord" value={barIndex === null ? "count-in" : `${barIndex + 1} of ${bars.length}`} />
-      <Stat label="Pedal" value={pedalDown ? "down" : "up"} tone={pedalDown ? "success" : undefined} />
+      <Stat label="Pedal" value={pedalDown ? "↓ Down" : "↑ Up"} tone={pedalDown ? "success" : undefined} />
     {:else if result}
       <Stat label="Clean changes" value={`${result.clean} of ${bars.length}`} tone={result.correct ? "success" : "warn"} />
     {/if}
@@ -307,7 +309,7 @@
       {/each}
     </ol>
     {#if mode === "practice" || phase === "results"}
-      <div class="mb-3"><LineNotation notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={transport.playing ? transport.beat : barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></div>
+      <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={transport.playing ? transport.beat : barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></StaffFold>
     {/if}
     {#if phase !== "ready"}
     <figure class="mb-3">
@@ -315,14 +317,24 @@
         {#each bars as _, k (k)}
           <line x1={(k / bars.length) * W} x2={(k / bars.length) * W} y1="4" y2={H - 4} class="bar" vector-effect="non-scaling-stroke" />
         {/each}
+        <!-- Drawn as a pedal bracket is printed: a tick where it goes down, the line while held, a tick where it lifts. -->
         {#each segments as g, i (i)}
+          <line x1={xOf(g.from)} x2={xOf(g.from)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
           <line x1={xOf(g.from)} x2={xOf(g.to)} y1={H - 12} y2={H - 12} class="ped" vector-effect="non-scaling-stroke" />
+          <line x1={xOf(g.to)} x2={xOf(g.to)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
         {/each}
       </svg>
-      <figcaption class="text-xs text-ws-stage-soft">Pedal line: down where the line runs, up in the gaps. Each gap should sit just after a bar line.</figcaption>
+      <figcaption class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ws-stage-soft">
+        {#if phase === "running"}
+          <span class="pedal-state font-semibold" data-down={pedalDown || undefined}>{pedalDown ? "↓ Pedal down" : "↑ Pedal up"}</span>
+        {/if}
+        <span>Pedal line: down where it runs, up in the gaps. Each gap sits just after a bar line.</span>
+      </figcaption>
     </figure>
     {/if}
-    <Piano low={keys.low} high={keys.high} {marks} {flashes} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
+    <div class="flex flex-col justify-end" data-dock="instrument">
+      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
+    </div>
   {/snippet}
 
   {#snippet results()}
@@ -341,5 +353,18 @@
     stroke: var(--instr);
     stroke-width: 5;
     stroke-linecap: round;
+  }
+  .ped.tick {
+    stroke-width: 3;
+  }
+  .pedal-state {
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 35%, transparent);
+    color: var(--ws-stage-ink);
+  }
+  .pedal-state[data-down] {
+    border-color: var(--instr);
+    background: color-mix(in oklch, var(--instr) 25%, transparent);
   }
 </style>

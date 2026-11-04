@@ -23,7 +23,8 @@
   }
 
   let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing }: Props = $props();
-  const TIMING_TEXT = { early: "Early", late: "Late", perfect: "On time" } as const;
+  // A word and a glyph per verdict, so colour is never the only cue.
+  const TIMING_TEXT = { early: "« Early", late: "Late »", perfect: "✓ On time" } as const;
 
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const ROWS = [12, 8, 4, 0];
@@ -86,16 +87,20 @@
         onkeyup={(e) => key(e, midi, false)}
       >
         <span class="led" aria-hidden="true"></span>
+        <!-- The top row holds the pad's id, or, for a moment, how the hit landed: one slot, never stacked. -->
         <span class="top">
-          <span class="num">A{String(i + 1).padStart(2, "0")}</span>
-          {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
+          {#if when}
+            <span class="when ws-pop" data-kind={when} aria-hidden="true">{TIMING_TEXT[when]}</span>
+          {:else if flash === "wrong"}
+            <span class="when ws-pop" data-kind="wrong" aria-hidden="true">✕ Wrong pad</span>
+          {:else}
+            <span class="num">A{String(i + 1).padStart(2, "0")}</span>
+            {#if keyHints}<kbd>{KEYS[i].toUpperCase()}</kbd>{/if}
+          {/if}
         </span>
         <span class="name">{names[midi] ?? ""}</span>
-        {#if when}
-          <span class="when" data-kind={when} aria-hidden="true">{TIMING_TEXT[when]}</span>
-        {/if}
-        {#if flash && !when}
-          <span class="glyph" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : "✕"}</span>
+        {#if flash === "correct" && !when}
+          <span class="glyph" data-kind={flash} aria-hidden="true">✓</span>
         {:else if mk.label}
           <span class="glyph" aria-hidden="true">{mk.label}</span>
         {/if}
@@ -186,8 +191,18 @@
   .top {
     display: flex;
     justify-content: space-between;
-    font-size: 0.68rem;
+    min-height: 1.15rem;
+    font-size: 0.75rem;
+  }
+  .num,
+  kbd {
     opacity: 0.8;
+  }
+  /* No keyboard on a touch screen: the key letters would only crowd the pad. */
+  @media (pointer: coarse) {
+    kbd {
+      display: none;
+    }
   }
   kbd {
     font-family: inherit;
@@ -223,34 +238,24 @@
   }
   /* How the hit landed: a pill over the pad number at the top, clear of the name, gone in a moment. */
   .when {
-    position: absolute;
-    inset-inline: 0.3rem;
-    top: 0.3rem;
-    padding: 0.1rem 0;
+    flex: 1;
+    padding: 0.1rem 0.2rem;
     border-radius: 999px;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
     font-size: 0.7rem;
     font-weight: 800;
-    letter-spacing: 0.02em;
     color: #140a10;
     background: var(--success);
-    animation: when-in 140ms ease-out both;
-    z-index: 1;
   }
   .when[data-kind="early"],
   .when[data-kind="late"] {
     background: var(--warn);
   }
-  @keyframes when-in {
-    from {
-      opacity: 0;
-      transform: translateY(-20%) scale(0.85);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .when {
-      animation: none;
-    }
+  .when[data-kind="wrong"] {
+    background: var(--destructive);
+    color: white;
   }
   .glyph[data-kind="correct"] {
     background: var(--success);

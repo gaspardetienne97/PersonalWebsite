@@ -701,9 +701,11 @@
       <div class="track" style:transform="translateX({scale.playheadX - laneAt * scale.pxPerBeat}px)">
         {#each lane as b (b.key)}
           {@const sym = prog.chords[b.index].symbol}
+          <!-- The sounding chord keeps its name in view: once its block slides past the lane's left edge, the name rides along. -->
+          {@const off = b.state === "now" ? Math.max(0, Math.min(b.beats * scale.pxPerBeat - 80, -(scale.playheadX + (b.start - laneAt) * scale.pxPerBeat))) : 0}
           <div class="block" data-state={b.state} style:left="{b.start * scale.pxPerBeat}px" style:width="{b.beats * scale.pxPerBeat - 4}px">
             {#if b.state === "next"}<span class="next-tag">Next</span>{/if}
-            <span class="sym font-display">{sym}</span>
+            <span class="sym font-display" style:margin-left="{off}px">{sym}</span>
             <!-- A dot in the middle of each beat, lit once the playhead is in it; a bar's first beat is a dash. -->
             <span class="ticks">
               {#each Array.from({ length: Math.ceil(b.beats - 1e-6) }, (_, k) => k) as k (k)}
@@ -746,17 +748,19 @@
       </div>
     </div>
 
-    {#if fretted}
-      <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} label="{tuning.name} fretboard, tone roles over {chord.symbol}" />
-    {:else}
-      <Piano low={48} high={84} marks={pianoMarks} names="c" label="Keyboard, tone roles over {chord.symbol}" />
-    {/if}
+    <div class="flex flex-col justify-end" data-dock="instrument">
+      {#if fretted}
+        <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} label="{tuning.name} fretboard, tone roles over {chord.symbol}" />
+      {:else}
+        <Piano low={48} high={84} fit={{ low: 60, high: 72 }} marks={pianoMarks} names="c" label="Keyboard, tone roles over {chord.symbol}" />
+      {/if}
+    </div>
 
-    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" class:hidden={!showRoles}>
-      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone (filled gold)</span>
-      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone (filled blue)</span>
-      <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid (dashed ring)</span>
-      <span class="text-ws-stage-soft">Labels are degrees over the chord, on the notes that fit.</span>
+    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ws-stage-ink" class:hidden={!showRoles}>
+      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
+      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue (9, 11, 13)</span>
+      <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: dashed ring</span>
+      <span>The numbers are degrees over the chord.</span>
     </div>
 
     {#if lastNote && showRoles}

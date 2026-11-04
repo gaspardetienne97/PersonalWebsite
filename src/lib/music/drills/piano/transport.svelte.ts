@@ -98,9 +98,14 @@ export function benchFromUrl(tempo: { min: number; max: number }): DrillMode {
   return q.get("mode") === "check" ? "check" : "practice";
 }
 
-/** The keyboard span for a set of notes, snapped out to whole octaves from C. */
-export function spanOf(midis: readonly number[], pad = 2): { low: number; high: number } {
+/** The keyboard span for a set of notes, snapped out to whole octaves from C (or just padded, for a keyboard's `fit`). */
+export function spanOf(
+  midis: readonly number[],
+  pad = 2,
+  octaves = true,
+): { low: number; high: number } {
   if (!midis.length) return { low: 48, high: 84 };
+  if (!octaves) return { low: Math.min(...midis) - pad, high: Math.max(...midis) + pad };
   return {
     low: Math.floor((Math.min(...midis) - pad) / 12) * 12,
     high: Math.ceil((Math.max(...midis) + pad) / 12) * 12,

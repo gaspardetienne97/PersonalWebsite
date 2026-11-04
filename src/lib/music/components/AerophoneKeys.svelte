@@ -158,6 +158,9 @@
     <li><span style:--c="var(--ae-left)"></span>Left hand</li>
     <li><span style:--c="var(--ae-right)"></span>Right hand</li>
     <li><span style:--c="var(--ae-thumb)"></span>Left thumb, on the back</li>
+    {#if KEYS.some((k) => pressed(k.id, held) && !pressed(k.id, target))}
+      <li><span class="wrong-swatch"></span>Pressed, not in this fingering</li>
+    {/if}
   </ul>
   <!-- Which finger goes where, as Roland's lessons label the target keys. -->
   <figcaption class="text-center text-ws-stage-soft" class:text-xs={compact} class:text-sm={!compact}>{description}</figcaption>
@@ -205,13 +208,19 @@
     stroke: white;
     filter: drop-shadow(0 0 7px var(--c));
   }
+  /* A key held that the fingering does not use: red, with a dashed edge so colour is not the only cue. */
   .key[data-held] {
     fill: var(--destructive);
     stroke: white;
+    stroke-dasharray: 4 3;
+  }
+  .wrong-swatch {
+    background: var(--destructive) !important;
+    outline: 1.5px dashed white;
   }
   .num {
     fill: oklch(0.95 0.01 290);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     text-anchor: middle;
     pointer-events: none;
@@ -224,8 +233,8 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.25rem 0.75rem;
-    font-size: 0.7rem;
-    color: var(--ws-stage-soft);
+    font-size: 0.78rem;
+    color: var(--ws-stage-ink);
   }
   .legend li {
     display: flex;

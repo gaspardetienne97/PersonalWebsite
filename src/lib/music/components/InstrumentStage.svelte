@@ -76,6 +76,11 @@
   const span = $derived(line.length ? { lo: Math.min(...line), hi: Math.max(...line) } : { lo: 60, hi: 72 });
   const pianoLow = $derived(low ?? Math.floor((span.lo - 2) / 12) * 12);
   const pianoHigh = $derived(high ?? Math.max(pianoLow + 24, Math.ceil((span.hi + 2) / 12) * 12));
+  // Every key the run marks must be on screen: the keys shrink to the stage before any is cut off (a phone).
+  const pianoFit = $derived.by(() => {
+    const all = [...line, ...Object.keys(marks).map(Number)].filter((m) => m >= pianoLow && m <= pianoHigh);
+    return all.length ? { low: Math.min(...all), high: Math.max(...all) } : { low: pianoLow, high: pianoHigh };
+  });
 
   const tuning = $derived(fretTuning(inst));
   // The Aerophone is fingered and named by its written note; everything here is concert.
@@ -119,7 +124,7 @@
     {/if}
   </div>
 {:else}
-  <Piano low={pianoLow} high={pianoHigh} {marks} {flashes} {names} {interactive} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
+  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
 {/if}
 {#if unplayable.length}
   <p class="mt-1 text-xs text-ws-stage-soft">{[...new Set(unplayable)].map((m) => (inst === "aerophone" ? fingerFor(m) : noteName(m))).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>

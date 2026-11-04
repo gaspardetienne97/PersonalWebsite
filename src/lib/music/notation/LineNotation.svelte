@@ -38,8 +38,10 @@
     onselect?: (sel: BeatRange) => void;
     /** The tempo the selection's length is read at. */
     bpm?: number;
+    /** The most a short line is zoomed up (tab defaults lower: its numbers read well small, and the neck needs the room below). */
+    maxZoom?: number;
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords, selection = null, onselect, bpm }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords, selection = null, onselect, bpm, maxZoom }: Props = $props();
   const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
@@ -71,7 +73,8 @@
   const LONG = 32;
   const natural = (k: number) => 90 + 25 * k;
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
-  const zoom = $derived(width ? Math.min(1.6, Math.max(0.7, width / natural(Math.min(attacks, LONG)))) : 1);
+  const zoomCap = $derived(maxZoom ?? (tuning ? 1.15 : 1.6));
+  const zoom = $derived(width ? Math.min(zoomCap, Math.max(Math.min(0.7, zoomCap), width / natural(Math.min(attacks, LONG)))) : 1);
   // One row whatever the content: wide enough for a busy grand-staff bar (chords, rests, eighths in both hands).
   const minWidth = $derived(oneRow ? Math.max(natural(attacks), 360 * Math.ceil(end / barBeats - 1e-9)) : attacks > LONG ? natural(attacks) : 0);
   // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
@@ -81,7 +84,7 @@
 </script>
 
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>
-  <div style:zoom={zoom}>
+  <div style:zoom={zoom} style:--nt-zoom={zoom}>
     {#if tuning}
       <Tab {score} {tuning} {cursorBeat} {groupStates} fill {maxHeight} {minWidth} {selection} {onselect} {bpm} snap="group" />
     {:else}

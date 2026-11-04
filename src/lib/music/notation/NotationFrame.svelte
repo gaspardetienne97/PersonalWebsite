@@ -144,7 +144,7 @@
     const out: { x: number; y: number; state: GroupState }[] = [];
     for (const a of layout.anchors) {
       const s = a.group === null ? undefined : groupStates[a.group];
-      if (s !== "wrong" && s !== "missed") continue;
+      if (s !== "wrong" && s !== "missed" && s !== "correct") continue;
       const cell = layout.bars.find((c) => c.system === a.system);
       if (cell && !out.some((m) => m.x === a.x)) out.push({ x: a.x, y: cell.top - 22, state: s });
     }
@@ -303,9 +303,10 @@
         {/if}
       {/if}
 
-      {#each marks as m (m.x)}
-        <span class="mark {m.state}" style:left="{m.x}px" style:top="{m.y}px" aria-hidden="true"
-          >{m.state === "wrong" ? "×" : "○"}</span
+      {#each marks as m (`${m.x}:${m.state}`)}
+        <!-- A glyph over each judged note, so the colour of the note is never the only cue. -->
+        <span class="mark ws-pop {m.state}" style:left="{m.x}px" style:top="{m.y}px" aria-hidden="true"
+          >{m.state === "wrong" ? "×" : m.state === "correct" ? "✓" : "○"}</span
         >
       {/each}
 
@@ -333,8 +334,15 @@
   .notice,
   .fallback {
     margin: 0 0 0.5rem;
-    font-size: 0.875rem;
+    /* A zoomed line (LineNotation) keeps its caption at caption size. */
+    font-size: calc(0.8125rem / var(--nt-zoom, 1));
+    line-height: 1.35;
     color: var(--ws-soft, inherit);
+  }
+  /* On a drill's dark stage the caption takes the stage's own soft ink. */
+  :global(.stage) .readout,
+  :global(.stage) .notice {
+    color: var(--ws-stage-soft);
   }
   .fallback {
     color: var(--ws-ink, inherit);
@@ -472,7 +480,7 @@
   }
   .mark {
     position: absolute;
-    transform: translateX(-50%);
+    translate: -50% 0;
     font-size: 1rem;
     font-weight: 700;
     line-height: 1;
@@ -480,6 +488,10 @@
   }
   .mark.wrong {
     color: var(--destructive);
+  }
+  .mark.correct {
+    color: var(--success);
+    font-size: 0.85rem;
   }
   .mark.missed {
     color: var(--ws-soft);
