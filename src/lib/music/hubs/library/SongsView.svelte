@@ -50,12 +50,12 @@
     const path = LEARNING_PATHS[pathId];
     return (path.levels ?? [])
       .flatMap((level, li) => level.shelf.map((song) => ({ song, level: li + 1, levelTitle: level.title, key: `${pathId}/${song.id}` })))
-      .filter((x) => downloaded!.has(x.key) && !have.has(x.key))
-      .slice(0, 6);
+      .filter((x) => downloaded!.has(x.key) && !have.has(x.key));
   });
+  const starterTotal = $derived(starters.length);
   // The starters by level, so the level names its group once instead of tagging every card.
   const starterLevels = $derived(
-    starters.reduce<{ level: number; title: string; items: typeof starters }[]>((out, x) => {
+    starters.slice(0, 6).reduce<{ level: number; title: string; items: typeof starters }[]>((out, x) => {
       const last = out.at(-1);
       if (last?.level === x.level) last.items.push(x);
       else out.push({ level: x.level, title: x.levelTitle, items: [x] });
@@ -65,7 +65,7 @@
   // Each starter's score, read from the server once, drawn as a small roll on its card.
   let thumbs = $state.raw<Record<string, Score>>({});
   $effect(() => {
-    for (const x of starters)
+    for (const x of starters.slice(0, 6))
       if (!(x.key in thumbs))
         void shelfScore(x.key, x.song.title)
           .then(({ score }) => (thumbs = { ...thumbs, [x.key]: score }))
@@ -87,13 +87,9 @@
 {#if songs === null}
   <p class="text-ws-soft">Loading your songs.</p>
 {:else if !songs.length}
-  <section class="flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5">
-    <div class="min-w-0 flex-1 basis-60">
-      <h2 class="font-display text-xl font-semibold">No songs of your own yet</h2>
-      <p class="text-sm text-ws-soft">
-        {starters.length ? "Start with a song from your path below, or b" : "B"}ring in a MIDI file or a MusicXML score to practise it in Song Studio at your own tempo.
-      </p>
-    </div>
+  <!-- One line: the shelf below is the content; the banner only points to Import. -->
+  <section class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface px-4 py-2">
+    <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">No songs of your own yet.</span> <span class="text-ws-soft">{starters.length ? "Start with one from your path, or bring in a score." : "Bring in a MIDI or MusicXML score."}</span></h2>
     <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />Import a score</a>
   </section>
 {:else}
@@ -107,7 +103,7 @@
       >
         <a href="/music/songs/{song.id}" class="group flex flex-1 flex-col focus-visible:outline-offset-[-2px]">
           <div class="stage relative px-3 pb-2 pt-3">
-            <RollThumb score={song.score} height={i === 0 ? 120 : 64} />
+            <RollThumb score={song.score} height={i === 0 ? 120 : 64} beats={i === 0 ? undefined : 16} />
             <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-xs text-ws-stage-soft">{sourceLabel(song)}</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
@@ -149,9 +145,12 @@
 
 {#if starters.length}
   <section class="flex flex-col gap-3" aria-labelledby="starters-h">
-    <div>
-      <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
-      <p class="text-sm text-ws-soft">Songs on your path's shelf, easiest level first. Opening one adds it to your songs.</p>
+    <div class="flex flex-wrap items-end justify-between gap-x-4">
+      <div class="min-w-0">
+        <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
+        <p class="text-sm text-ws-soft">Songs on your path's shelf, easiest level first. Opening one adds it to your songs.</p>
+      </div>
+      {#if starterTotal > 6}<a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline underline-offset-4" href="/music?tab=paths">See all {starterTotal} on the path</a>{/if}
     </div>
     {#each starterLevels as g (g.level)}
       <h3 class="font-display text-base font-semibold">Level {g.level}: {g.title}</h3>
@@ -159,7 +158,7 @@
         {#each g.items as x (x.key)}
           <li class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
             <div class="stage px-3 pb-2 pt-3">
-              {#if thumbs[x.key]}<RollThumb score={thumbs[x.key]} height={56} />{:else}<div class="h-14" aria-hidden="true"></div>{/if}
+              {#if thumbs[x.key]}<RollThumb score={thumbs[x.key]} height={56} beats={16} />{:else}<div class="h-14" aria-hidden="true"></div>{/if}
             </div>
             <div class="flex flex-1 flex-col gap-2 p-4">
               <h4 class="font-display text-lg leading-tight font-semibold">{x.song.title}</h4>

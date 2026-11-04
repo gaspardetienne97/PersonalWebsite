@@ -32,6 +32,8 @@
   // Rows top to bottom: pads 13-16, 9-12, 5-8, 1-4.
   const grid = $derived([12, 8, 4, 0].flatMap((r) => [0, 1, 2, 3].map((c) => notes[r + c])));
   const pad = (note: number) => kit?.pads.find((p) => p.note === note);
+  // The computer key for a bank A pad (runtime pad map: Z X C V on pads 1 to 4, up to 1 2 3 4 on 13 to 16).
+  const keyOf = (note: number) => (note >= 36 && note < 52 ? "ZXCVASDFQWER1234"[note - 36] : "");
   const selPad = $derived(pad(selected));
   const bankCount = (b: Bank) => bankNotes(b).filter((n) => pad(n)?.soft || pad(n)?.hard).length;
 
@@ -181,7 +183,7 @@
             <Picker class="w-auto min-w-36" label="Kit" value={kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={(id) => kits.select(id)} />
           </div>
         </div>
-        <p class="text-sm text-ws-soft">Tap a pad to hear it. Keys <kbd class="rounded border border-ws-line px-1">Z</kbd> to <kbd class="rounded border border-ws-line px-1">4</kbd> play bank A, laid out like the MPC.</p>
+        <p class="text-sm text-ws-soft">Tap a pad to hear it{bank === "A" ? ", or press the letter shown on it." : ". The computer keys play bank A."}</p>
 
         {#if assigning}
           <p class="flex flex-wrap items-center gap-2 rounded-xl bg-instr-wash px-3 py-2 text-sm">
@@ -218,6 +220,7 @@
                 <span class="flex items-start justify-between gap-1 text-xs opacity-80">
                   <span>{padLabel(note)}{#if !name}<span class="max-sm:hidden">, built in</span>{/if}</span>
                   {#if p?.chokeGroup}<span aria-hidden="true">M{p.chokeGroup}</span>{/if}
+                  {#if keyOf(note)}<kbd class="rounded border border-current/40 px-1 font-sans font-semibold" aria-hidden="true">{keyOf(note)}</kbd>{/if}
                 </span>
               </button>
               {#if kit.samples.length}<Picker class="min-h-11 rounded-md px-2 text-xs" tone="stage" label="Sample on pad {padLabel(note)}" value={p?.soft ?? ""} options={[{ value: "", label: "Empty" }, ...kit.samples.map((s) => ({ value: s.id, label: s.name }))]} onchange={(v) => choose(note, "soft", v)} />{/if}

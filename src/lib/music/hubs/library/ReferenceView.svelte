@@ -201,13 +201,13 @@
   <nav aria-label="Reference sections" class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)] lg:z-20 lg:self-start">
     <div class="flex items-center gap-2 text-sm lg:hidden">
       <span class="font-medium">Jump to</span>
-      <Picker class="min-w-0 flex-1" label="Jump to a reference section" value={section ?? ""} placeholder="Chords and scales" options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?tab=reference&section=${id}`, { noScroll: true, keepFocus: true })} />
+      <Picker class="min-w-0 flex-1" label="Jump to a reference section" value={section ?? ""} placeholder="Chords and scales" options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?section=${id}`, { noScroll: true, keepFocus: true })} />
     </div>
     <ul class="hidden lg:flex lg:flex-col lg:gap-0.5">
       {#each SECTIONS as s (s.id)}
         <li>
           <a
-            href="?tab=reference&section={s.id}"
+            href="?section={s.id}"
             data-sveltekit-noscroll
             aria-current={section === s.id ? "location" : undefined}
             class="flex min-h-11 shrink-0 items-center rounded-lg border border-ws-line px-3 text-sm whitespace-nowrap lg:border-transparent {section === s.id ? 'bg-instr-wash font-semibold text-instr-ink' : 'text-ws-soft hover:bg-ws-raised hover:text-ws-ink'}"

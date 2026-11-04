@@ -51,12 +51,14 @@ export function tracePath(
 ): string {
   let d = "";
   let pen = false;
+  // Until the window has filled, the trace starts at the left edge and grows to the right.
+  const start = Math.max(now - windowMs, trace[0]?.at ?? now);
   for (const s of trace) {
     if (s.cents === null) {
       pen = false;
       continue;
     }
-    const x = ((s.at - (now - windowMs)) / windowMs) * width;
+    const x = ((s.at - start) / windowMs) * width;
     const c = Math.max(-range, Math.min(range, s.cents));
     const y = height / 2 - (c / range) * (height / 2);
     d += `${pen ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;

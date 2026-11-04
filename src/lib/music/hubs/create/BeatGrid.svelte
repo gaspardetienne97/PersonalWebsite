@@ -17,6 +17,7 @@
   import { session } from "./session.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
   import {
+    addBar,
     barsOf,
     DEFAULT_ROWS,
     fromPreset,
@@ -89,16 +90,34 @@
   // The bar overview: every bar of the song, the beat's own bars and the
   // repeats that fill the rest, the one playing filled. A tap shows that bar.
   const overview = $derived(barCells(barsOf(pattern), session.loopBars, session.only === null || session.only === "beat" ? session.beat : -1));
-  function showBar(beatBar: number) {
+  const showBar = (beatBar: number) => showStep(beatBar * STEPS);
+  function showStep(step: number) {
     const b = box;
-    const cell = b?.querySelector<HTMLElement>(`thead th[data-step="${beatBar * STEPS}"]`);
+    const cell = b?.querySelector<HTMLElement>(`thead th[data-step="${step}"]`);
     const head = b?.querySelector<HTMLElement>("thead th.rowhead");
     if (!b || !cell || !head) return;
     b.scrollTo({ left: b.scrollLeft + cell.getBoundingClientRect().left - b.getBoundingClientRect().left - head.offsetWidth - 4 });
   }
   // More steps to the right than fit: the edge fades so the cut reads as "scroll".
   let more = $state(false);
-  const measure = () => (more = !!box && box.scrollLeft + box.clientWidth < box.scrollWidth - 2);
+  // On a phone the grid shows eight steps (half a bar) a page; dots under it name the page.
+  const PAGE = 8;
+  let page = $state(0);
+  function measure() {
+    more = !!box && box.scrollLeft + box.clientWidth < box.scrollWidth - 2;
+    const head = box?.querySelector<HTMLElement>("thead th.rowhead");
+    const w = box && head ? box.clientWidth - head.offsetWidth : 0;
+    page = w > 0 ? Math.round(box!.scrollLeft / w) : 0;
+  }
+  const pages = $derived(Math.ceil(total / PAGE));
+  /** Bar 2 repeating bar 1 gets its own copy, to change on its own. */
+  function makeUnique() {
+    session.setPattern(addBar(pattern));
+    announce(`Bar ${barsOf(session.pattern)} is its own now, a copy to change.`);
+  }
+  const firstRepeat = $derived(overview.find((c) => c.repeat));
+  /** A short row tag for a phone: the pad for a sample, else the first word of the voice. */
+  const tag = (row: BeatRow & { sample?: string }) => (row.sample ? padLabel(row.midi) : row.name.split(" ")[0].slice(0, 5));
   $effect(() => {
     void total;
     measure();
@@ -165,9 +184,15 @@
           aria-current={c.now ? "step" : undefined}
           aria-label="Bar {c.bar + 1}{c.repeat ? `, repeats beat bar ${c.beatBar + 1}` : ''}{c.now ? ', playing' : ''}"
           onclick={() => showBar(c.beatBar)}
-        >{c.bar + 1}{#if c.repeat}<span class="font-medium max-sm:sr-only">repeat</span>{/if}</button>
+        >{c.bar + 1}</button>
       {/each}
     </div>
+    {#if firstRepeat}
+      <p class="mb-2 flex flex-wrap items-center gap-x-3 text-sm text-ws-stage-soft">
+        <span>Bar {firstRepeat.bar + 1} repeats bar {firstRepeat.beatBar + 1}.</span>
+        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique}>Make unique</button>
+      </p>
+    {/if}
 
     <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" class:more data-grid aria-describedby="beat-keys" onscroll={measure}>
       <table class="grid-table">
@@ -187,7 +212,7 @@
             <tr>
               <th scope="row" class="rowhead" class:playing={rowHit(row.midi)}>
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
-                  <span class="flex max-w-full items-center gap-1"><span class="truncate font-semibold max-sm:whitespace-normal">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60" aria-hidden="true" /></span>
+                  <span class="flex max-w-full items-center gap-1"><span class="font-semibold sm:hidden" aria-hidden="true">{tag(row)}</span><span class="truncate font-semibold max-sm:hidden">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60 max-sm:hidden" aria-hidden="true" /></span>
                   {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">Sample on {padLabel(row.midi)}</span>{/if}
                 </button>
               </th>
@@ -216,6 +241,15 @@
         </tbody>
       </table>
     </div>
+    {#if pages > 1}
+      <div class="flex justify-center sm:hidden" role="group" aria-label="Grid pages">
+        {#each Array.from({ length: pages }, (_, i) => i) as p (p)}
+          <button type="button" class="grid size-11 place-items-center" aria-label="Bar {Math.floor((p * PAGE) / STEPS) + 1}, steps {((p * PAGE) % STEPS) + 1} to {((p * PAGE) % STEPS) + PAGE}" aria-current={p === page ? "true" : undefined} onclick={() => showStep(p * PAGE)}>
+            <span class="block h-2 rounded-full {p === page ? 'w-5 bg-instr' : 'w-2 bg-ws-stage-ink/35'}"></span>
+          </button>
+        {/each}
+      </div>
+    {/if}
     <p class="mt-3 text-sm text-ws-stage-ink/85" data-playhead={playhead}>
       {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. Tap a step to add or remove a hit.
     </p>
@@ -298,20 +332,25 @@
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 0.5rem;
-    background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 17%, transparent);
     box-shadow: inset 0 -2px 0 #0005;
     transition:
       background 60ms,
       transform 60ms;
   }
   .step.alt {
-    background: color-mix(in oklch, var(--ws-stage-ink) 5%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
   }
   .step.accent {
-    background: color-mix(in oklch, var(--ws-stage-ink) 18%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 24%, transparent);
   }
   .step.alt.accent {
-    background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 15%, transparent);
+  }
+  /* A beat divider: a thin rule in the gap after every fourth step. */
+  td.gap,
+  td.bargap {
+    background: linear-gradient(var(--ws-stage-soft), var(--ws-stage-soft)) right 0.1rem center / 1px 70% no-repeat;
   }
   .step:hover {
     background: color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
@@ -335,9 +374,10 @@
   .step[data-now]:not([data-on]) {
     background: color-mix(in oklch, var(--instr) 30%, transparent);
   }
+  /* A hit under the playhead stays a hit (same fill) and glows; the column itself is the playhead. */
   .step[data-on][data-now] {
     transform: scale(1.08);
-    background: white;
+    filter: brightness(1.25);
     box-shadow: 0 0 16px var(--instr);
   }
   /* More steps off to the right: fade the edge. */
@@ -370,14 +410,29 @@
   .bar-cell:hover:not([data-now]) {
     background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
   }
+  /* A phone fits eight steps, half a bar, beside short row tags; the dots page through the rest. */
   @media (max-width: 639px) {
+    [data-grid] {
+      container-type: inline-size;
+    }
+    /* The dots say there is more; a light fade keeps the eighth step whole. */
+    [data-grid].more {
+      mask-image: linear-gradient(to right, black calc(100% - 0.5rem), transparent);
+    }
+    .grid-table {
+      border-spacing: 2px;
+      margin-inline: -2px;
+    }
     .rowhead {
-      min-width: 4.5rem;
-      max-width: 4.5rem;
+      min-width: 2.75rem;
+      max-width: 2.75rem;
     }
     .rowlabel {
-      font-size: 0.8rem;
-      padding-inline: 0.25rem;
+      font-size: 0.75rem;
+      padding-inline: 0.2rem;
+    }
+    .step {
+      width: max(1.75rem, calc((100cqi - 2.75rem - 9 * 2px - 0.7rem) / 8));
     }
   }
   @media (min-width: 1280px) {

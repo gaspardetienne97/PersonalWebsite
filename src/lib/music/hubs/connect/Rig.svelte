@@ -7,13 +7,20 @@
   import { detectInstrument } from "@repo/music-core/io/devices";
   import Cable from "lucide-svelte/icons/cable";
   import Check from "lucide-svelte/icons/check";
+  import Ellipsis from "lucide-svelte/icons/ellipsis";
   import { btn, btnPrimary } from "$lib/music/components/ui";
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { input, midi, mic, settings } from "$lib/music/runtime";
   import { hitLabel, tileFor, type RigTile } from "./rig";
   import MicCheck from "./MicCheck.svelte";
 
-  let { announce, fallback }: { announce: (text: string) => void; fallback?: Snippet<[boolean]> } = $props();
+  type Next = { label: string; hint: string; act?: { label: string; href?: string; run?: () => void } };
+  let {
+    announce,
+    fallback,
+    next,
+  }: { announce: (text: string) => void; fallback?: Snippet<[boolean]>; next?: Next } = $props();
+  let moreOpen = $state(false);
 
   const TILES = [
     { id: "keyboard", label: "Keyboard", hue: "piano", prompt: "Play a key" },
@@ -51,7 +58,7 @@
 
 <section class="flex flex-col gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5" aria-labelledby="rig-title">
   <div class="flex flex-wrap items-start justify-between gap-3">
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
       <h2 id="rig-title" class="flex items-center gap-2.5 font-display text-xl font-semibold">
         <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-create)" aria-hidden="true"><Cable class="size-5" /></span>
         Your rig
@@ -60,7 +67,19 @@
     </div>
     {#if midi.supported}
       {#if midi.enabled}
-        <button type="button" class={btn} onclick={() => (midi.disable(), announce("MIDI is off on this page until you enable it again."))}>Turn off MIDI</button>
+        <!-- Rarely needed, so it waits behind a small overflow button. -->
+        <div class="flex items-center gap-2">
+          {#if moreOpen}
+            <button type="button" class={btn} onclick={() => (midi.disable(), (moreOpen = false), announce("MIDI is off on this page until you enable it again."))}>Turn off MIDI</button>
+          {/if}
+          <button
+            type="button"
+            class="grid size-11 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+            aria-label="More MIDI options"
+            aria-expanded={moreOpen}
+            onclick={() => (moreOpen = !moreOpen)}><Ellipsis class="size-5" aria-hidden="true" /></button
+          >
+        </div>
       {:else}
         <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Enable MIDI</button>
       {/if}
@@ -70,12 +89,29 @@
     {#if !midi.supported}
       <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
     {:else if !midi.enabled}
-      <p class="text-ws-soft">For keyboards, pads and the Aerophone. The browser asks twice: allow both.</p>
+      <p class="text-ws-soft">For keyboards, pads and the Aerophone. The browser then asks twice: once to hear your notes, once to light the MPC's pads. Allow both.</p>
     {:else}
       <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? "" : ". Pad lights were not allowed, so the MPC link and lights are off"}. Plug devices in any time.</p>
     {/if}
     {#if midi.error}<p class="mt-1 font-medium text-destructive">{midi.error}</p>{/if}
   </div>
+
+  <!-- The one setup step still to do, as this card's main action (the checklist mirrors it). -->
+  {#if next && midi.enabled}
+    <div class="flex flex-wrap items-center gap-3 rounded-xl bg-instr-wash p-3">
+      <div class="min-w-0 flex-1 basis-48">
+        <p class="font-semibold">Next step</p>
+        <p class="text-sm">{next.act?.href === "#mic" ? "Test the microphone: press Start microphone below, then play or sing a note." : next.hint}</p>
+      </div>
+      {#if next.act && next.act.href !== "#mic"}
+        {#if next.act.href}
+          <a class={btnPrimary} href={next.act.href}>{next.act.label}</a>
+        {:else}
+          <button type="button" class={btnPrimary} onclick={next.act.run}>{next.act.label}</button>
+        {/if}
+      {/if}
+    </div>
+  {/if}
 
   <!-- While MIDI is off the three tiles sit in one row, so the microphone is in the first phone screen. -->
   <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3 {midi.enabled ? '' : 'max-sm:grid-cols-3'}">

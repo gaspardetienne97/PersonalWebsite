@@ -15,6 +15,9 @@
   const week = $derived(weekMinutes(practice.sessions, today));
   // Same rounding as the journal rollup, so both pages agree.
   const thisWeek = $derived(weekRollups(practice.sessions, today).thisWeek);
+  const todayMin = $derived(week.find((d) => d.today)?.minutes ?? 0);
+  const todaySessions = $derived(practice.sessions.filter((s) => dayKey(s.startTime) === today).length);
+  const todayText = $derived(todaySessions ? minutesText(todayMin, todaySessions) : "0 min");
   // The scale's top: the busiest day rounded up to a round number, so the line reads as minutes.
   const scale = $derived.by(() => {
     const max = Math.max(1, ...week.map((d) => d.minutes));
@@ -32,9 +35,17 @@
   aria-label="Streak and this week"
   class="grid gap-5 rounded-3xl border border-ws-line bg-ws-surface p-4 sm:grid-cols-2 sm:p-5"
 >
-  <StreakWeek week={streak.week} current={streak.current} longest={streak.longest} {freezes} />
+  <StreakWeek week={streak.week} current={streak.current} longest={streak.longest} {freezes} since={days.length ? [...days].sort()[0] : undefined} />
 
   <div class="min-w-0 sm:border-l sm:border-ws-line sm:pl-5">
+    {#if thisWeek.minutes < 5}
+      <!-- Under five minutes the bars would sit on the baseline: one figure says it better. -->
+      <h2 class="font-display text-xl font-semibold">Practice time</h2>
+      <p class="mt-2 font-display text-4xl font-semibold tracking-tight"><span class="tnum">{todayText}</span> <span class="text-xl text-ws-soft">today</span></p>
+      <p class="mt-2 text-sm text-ws-soft">
+        This week so far: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>. A chart of each day shows once the week passes 5 minutes.
+      </p>
+    {:else}
     <h2 class="font-display text-xl font-semibold">
       This week: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>
     </h2>
@@ -66,5 +77,6 @@
         {/each}
       </ol>
     </div>
+    {/if}
   </div>
 </section>

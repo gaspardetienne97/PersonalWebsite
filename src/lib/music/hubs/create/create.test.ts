@@ -7,6 +7,7 @@ import {
   clipWarning,
   envelope,
   peakDbOf,
+  savedTakesLabel,
   signedDb,
   suggestedBoost,
 } from "./audioTakes";
@@ -367,6 +368,11 @@ describe("audio takes", () => {
     expect(suggestedBoost(-30, 6)).toBe(24);
     expect(suggestedBoost(-20, 0)).toBe(8);
     expect(suggestedBoost(-6, 0)).toBe(0);
+  });
+
+  it("counts saved takes only, never the one still recording", () => {
+    expect(savedTakesLabel(0)).toBe("none saved yet");
+    expect(savedTakesLabel(1)).toBe("1 saved");
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeMidi, hitLabel, micOptions, tileFor } from "./rig";
+import { describeMidi, hitLabel, isDetail, micOptions, tileFor } from "./rig";
 
 describe("connect rig", () => {
   it("gives the MPC and the Aerophone their own tile, everything else the keyboard", () => {
@@ -39,13 +39,22 @@ describe("connect rig", () => {
   });
 
   it("reads raw MIDI bytes in words", () => {
-    expect(describeMidi("90 3C 5A")).toMatch(/^C4 on, velocity 90$/);
-    expect(describeMidi("90 3C 00")).toBe("C4 off");
-    expect(describeMidi("89 2A 00", (n) => `Pad ${n}`)).toBe("Pad 42 off");
+    expect(describeMidi("90 3C 5A")).toBe("C4 played, strength 90 of 127");
+    expect(describeMidi("90 3C 00")).toBe("C4 released");
+    expect(describeMidi("89 2A 00", (n) => `Pad ${n}`)).toBe("Pad 42 released");
     expect(describeMidi("B0 02 50")).toBe("Breath 80");
     expect(describeMidi("B0 07 64")).toBe("Controller 7 set to 100");
     expect(describeMidi("E0 00 40")).toBe("Pitch bend 0");
     expect(describeMidi("F0 47 7F 3B F7")).toBe("System message (SysEx, 5 bytes)");
     expect(describeMidi("")).toBe("Unreadable message");
+  });
+
+  it("keeps releases, clock and keep-alives for the details view", () => {
+    expect(isDetail("90 3C 5A")).toBe(false);
+    expect(isDetail("90 3C 00")).toBe(true);
+    expect(isDetail("80 3C 40")).toBe(true);
+    expect(isDetail("F8")).toBe(true);
+    expect(isDetail("FE")).toBe(true);
+    expect(isDetail("B0 02 50")).toBe(false);
   });
 });

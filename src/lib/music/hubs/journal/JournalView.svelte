@@ -15,7 +15,8 @@
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { btn, btnPrimary } from "../../components/ui";
-  import { parseTags, plural } from "../progress/model";
+  import { minutesText, plural } from "../progress/model";
+  import TagInput from "./TagInput.svelte";
   import WeekCompare from "../progress/WeekCompare.svelte";
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
@@ -104,7 +105,8 @@
   // A note for today's latest session, written from the top of the list.
   let composing = $state(false);
   let draftNote = $state("");
-  let draftTags = $state("");
+  let draftTags = $state<string[]>([]);
+  const knownTags = $derived([...new Set(sessions.flatMap((x) => x.tags))].sort());
   let noteBox = $state<HTMLTextAreaElement>();
   async function openComposer() {
     composing = true;
@@ -118,18 +120,13 @@
     const note = draftNote.trim();
     await practice.editSession(s.id, {
       note: note ? (s.note ? `${s.note}\n${note}` : note) : s.note,
-      tags: [...new Set([...s.tags, ...parseTags(draftTags)])],
+      tags: [...new Set([...s.tags, ...draftTags])],
     });
     draftNote = "";
-    draftTags = "";
+    draftTags = [];
     composing = false;
     announce("Added to today's session.");
   }
-
-  // The sample card's date in the live cards' own format.
-  const sampleWhen = $derived(
-    new Date(now).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }),
-  );
 
   const field = "min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
   const chip = (on: boolean) =>
@@ -152,7 +149,7 @@
           <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><Ear class="size-5" /></span>
           <div class="min-w-0 flex-1">
             <p class="font-semibold">Scale degrees</p>
-            <p class="text-sm text-ws-soft">{sampleWhen}. Drill on {INSTRUMENT_LABEL[settings.value.activeInstrument]}</p>
+            <p class="text-sm text-ws-soft">Day and time. Drill on your instrument</p>
           </div>
           <p class="tnum font-display text-2xl font-semibold leading-none">80%</p>
         </div>
@@ -176,9 +173,13 @@
           <p class="tnum text-sm text-ws-soft">
             {filtering ? `${shown.length} of ${plural(sessions.length, "session")}` : plural(sessions.length, "session")}, newest first
           </p>
+          <!-- On a phone the week's figures sit under the list: one line of them up here. -->
+          <p class="tnum text-sm lg:hidden">
+            This week: <span class="font-semibold">{minutesText(weeks.thisWeek.minutes, weeks.thisWeek.sessions)}</span>, {plural(weeks.thisWeek.sessions, "session")}, {weeks.thisWeek.xp} XP
+          </p>
         </div>
         {#if latestToday && !composing}
-          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note on today's session</button>
+          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note on today</button>
         {/if}
       </div>
 
@@ -188,12 +189,9 @@
             <span class="font-medium">What went well, what to fix</span>
             <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={draftNote}></textarea>
           </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">Tags, separated by commas</span>
-            <input class={field} bind:value={draftTags} placeholder="scales, left hand" />
-          </label>
+          <TagInput bind:tags={draftTags} suggestions={knownTags} />
           <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" class={btnPrimary} disabled={!draftNote.trim() && !draftTags.trim()}>Add to today's session</button>
+            <button type="submit" class={btnPrimary} disabled={!draftNote.trim() && !draftTags.length}>Add to today's session</button>
             <button type="button" class={btn} onclick={() => (composing = false)}>Cancel</button>
           </div>
         </form>

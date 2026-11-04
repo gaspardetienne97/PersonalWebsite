@@ -54,7 +54,8 @@
   let openRow = $state<number | null>(null);
   const shownRow = $derived(openRow ?? nextStep?.n ?? null);
   let coachInfo = $state(false);
-  const plannedMinutes = $derived(plan.routine.steps.reduce((m, s) => m + s.minutes, 0));
+  // The set's playing time is the sum of its blocks' run times, so the total and the rows agree.
+  const playedTotal = $derived(Object.values(plan.playedMs).reduce((a, b) => a + b, 0));
 
   // Once the set is done: one named drill to try next (the coach's when it has measured something,
   // else the first drill on this instrument the set did not use), and tomorrow's set.
@@ -64,9 +65,9 @@
   const hueOf = (href: string) => hueForRoute(href, instrument);
   // Stars per block on the advance rule's lines (70%, 85%, clean); a block with no scored run has none.
   const stars = $derived(allDone ? blockStars(plan.routine, practice.sessions) : {});
-  const STAR_WORDS = ["under 70%", "70% or better", "a pass at 85% or better", "a clean run"];
-  // Confetti only when a block passed at 85%, never on a set with nothing scored.
-  const passed = $derived(Object.values(stars).some((n) => n >= 2));
+  const STAR_WORDS = ["under 70%", "70% or better", "85% or better", "a clean run"];
+  // Confetti only when a block earned its third star (a run the advance rule counts), never on a set with nothing scored.
+  const passed = $derived(Object.values(stars).some((n) => n >= 3));
   // Static confetti, drawn at rest so a still frame shows it; motion only adds a short fall.
   const confetti = $derived(
     Array.from({ length: 24 }, (_, i) => {
@@ -109,7 +110,7 @@
       <div class="min-w-0">
         <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
         <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-          {#if allDone}Set complete. Nice work.{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
+          {#if allDone}Set complete: every block done{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
         </h2>
       </div>
       <button type="button" class="{btn} shrink-0" aria-expanded={adjusting} aria-controls="set-adjust" onclick={() => (adjusting = !adjusting)}>
@@ -183,11 +184,20 @@
                       ><Check class="size-4 text-success" aria-hidden="true" /></span
                     >{:else}<Icon class="size-4" aria-hidden="true" />{/if}
                 </span>
-                <span class="tnum hidden truncate text-xs font-semibold sm:inline {done ? 'text-ws-stage' : 'text-ws-soft'}">{step.minutes} min</span>
+                <span class="tnum hidden truncate text-xs font-semibold sm:inline {done ? 'text-ws-stage' : 'text-ws-soft'}">{done ? "Done" : `${step.minutes} min`}</span>
               </span>
             </div>
             <span class="sr-only">{step.label}{done ? ", done" : isNext ? ", now" : ""}</span>
           </div>
+        {/each}
+      </div>
+      <!-- On a phone the segments are too narrow for words: each block's name and length sit under its segment. -->
+      <div class="mt-1.5 flex gap-1.5 sm:hidden" aria-hidden="true">
+        {#each plan.routine.steps as step (step.n)}
+          <span class="min-w-11 basis-0 px-1 text-xs leading-tight [overflow-wrap:anywhere]" style:flex-grow={step.minutes}>
+            <span class="block font-medium">{step.label}</span>
+            <span class="tnum block text-ws-soft">{plan.done.includes(step.n) ? "Done" : `${step.minutes} min`}</span>
+          </span>
         {/each}
       </div>
 
@@ -216,24 +226,25 @@
                 {#if n === undefined}
                   <span class="text-sm text-ws-soft">Not measured</span>
                 {:else}
-                  <span class="flex gap-0.5" role="img" aria-label="{n} of 3 stars: {STAR_WORDS[n]}">
+                  <span class="flex items-center gap-0.5" role="img" aria-label="{n} of 3 stars: {STAR_WORDS[n]}">
                     {#each [1, 2, 3] as k (k)}
-                      <Star class="size-7 {k <= n ? 'fill-current text-warn' : 'text-ws-line'}" aria-hidden="true" />
+                      <Star class="size-7 {k <= n ? 'fill-current text-warn' : 'text-ws-soft'}" aria-hidden="true" />
                     {/each}
+                    <span class="tnum ml-1.5 text-sm text-ws-soft" aria-hidden="true">{n} of 3</span>
                   </span>
                 {/if}
               </li>
             {/each}
           </ul>
-          <!-- What the set came to, measured: time spent in its runs, beside the plan's minutes, so the two never read as one figure. -->
+          <!-- What the set came to, measured: blocks done (what completes a set) and the time spent in its runs. -->
           <dl class="tnum relative mt-4 flex flex-wrap gap-x-6 gap-y-2">
             <div><dt class="text-xs text-ws-soft">Blocks</dt><dd class="font-semibold">{plan.summary.completedSteps} of {plan.summary.totalSteps}</dd></div>
             {#if plan.summary.accuracy !== undefined}
               <div><dt class="text-xs text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
             {/if}
             <div>
-              <dt class="text-xs text-ws-soft">In runs today</dt>
-              <dd><span class="font-semibold">{formatDuration(plan.summary.durationMs)}</span><span class="block text-xs text-ws-soft">of {plannedMinutes} min planned</span></dd>
+              <dt class="text-xs text-ws-soft">Time playing</dt>
+              <dd class="font-semibold">{formatDuration(playedTotal)}</dd>
             </div>
             <div><dt class="text-xs text-ws-soft">XP</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
           </dl>
@@ -291,18 +302,19 @@
                 {#if done}<span class="font-semibold text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 font-semibold text-instr-ink">Now</span>{/if}
               </span>
               <span class="block font-semibold"><span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span>{step.label}</span>
-              {#if !expanded}<span class="line-clamp-2 text-sm text-ws-soft">{blockSummary(step)}</span>{/if}
+              {#if !expanded}<span class="block text-sm text-ws-soft">{blockSummary(step)}</span>{/if}
             </span>
+            <!-- One figure: the plan's minutes until the block is done, then the time it took. -->
             <span class="tnum shrink-0 text-right text-sm text-ws-soft">
-              {step.minutes} min{#if played}<span class="block text-xs">{formatDuration(played)} played</span>{/if}
+              {#if done}{played ? `${formatDuration(played)} played` : "Done"}{:else}{step.minutes} min{#if played}<span class="block text-xs">{formatDuration(played)} so far</span>{/if}{/if}
             </span>
             <ChevronDown class="size-4 shrink-0 text-ws-soft motion-safe:transition-transform {expanded ? 'rotate-180' : ''}" aria-hidden="true" />
           </button>
           {#if expanded}
             <div id="block-{step.n}" class="flex flex-col gap-3 border-t border-ws-line px-3 py-3 sm:flex-row sm:items-center sm:px-4">
               <DrillPreview href={step.href} size="md" {instrument} class="sm:w-60 sm:shrink-0" />
+              <!-- The block's Start first, then one line on what it is. -->
               <div class="flex min-w-0 flex-col items-start gap-3">
-                <p class="text-sm">{blockReason(step)}</p>
                 {#if isNext && !done}
                   <a class={btnPrimary + " min-h-14 w-full px-6 font-display text-base sm:w-auto sm:text-lg"} href={step.href}>
                     <Play class="size-5" aria-hidden="true" />Start with {step.label}
@@ -312,6 +324,7 @@
                     <Play class="size-4" aria-hidden="true" />{done ? "Play again" : "Start"}<span class="sr-only">&nbsp;{step.label}</span>
                   </a>
                 {/if}
+                <p class="text-sm">{blockReason(step)}</p>
               </div>
             </div>
           {/if}
@@ -340,7 +353,7 @@
       {:else if !plan.advice.measured && plan.checked < COACH_MIN_ATTEMPTS}
         <!-- Nothing measured yet: one line and the bar; the method waits behind the info button. -->
         <p class="mt-1 flex items-start gap-1 text-sm">
-          <span class="flex-1">Weak spots show up after {COACH_MIN_ATTEMPTS} checked answers.</span>
+          <span class="flex-1">Your weak spot shows here after {COACH_MIN_ATTEMPTS} answers in Check mode (from memory).</span>
           <button
             type="button"
             class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
@@ -350,6 +363,13 @@
             onclick={() => (coachInfo = !coachInfo)}><Info class="size-5" aria-hidden="true" /></button
           >
         </p>
+        {#if fresh0}
+          <!-- What will fill in, drawn faint and marked as an example. -->
+          <div class="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-ws-line p-2.5 opacity-60" aria-label="Example of a weak spot" role="img">
+            <Ring value={0.6} stroke="var(--warn)" class="size-11"><span class="tnum text-xs font-semibold">60%</span></Ring>
+            <span class="text-sm"><span class="block font-semibold">Example: Intervals</span><span class="text-ws-soft">6 of 10 right, practise it next</span></span>
+          </div>
+        {/if}
         {#if coachInfo}<p id="coach-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">{plan.advice.summary} Check mode is the run that counts: no hints, every answer scored.</p>{/if}
         <div class="mt-3 flex items-center gap-3">
           <div

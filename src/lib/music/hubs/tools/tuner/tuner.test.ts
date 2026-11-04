@@ -50,6 +50,16 @@ describe("tuner helpers", () => {
       10000,
     );
     expect(d).toBe("M0.0 80.0L300.0 0.0M600.0 160.0");
+    // A trace younger than the window starts at the left edge.
+    expect(
+      tracePath(
+        [
+          { at: 7000, cents: 0 },
+          { at: 9000, cents: 0 },
+        ],
+        9000,
+      ),
+    ).toBe("M0.0 80.0L120.0 80.0");
     expect(pretty("Bb4")).toBe("B♭4");
   });
 });

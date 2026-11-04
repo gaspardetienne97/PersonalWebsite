@@ -76,8 +76,7 @@
       <div class="min-w-0">
         <h3 class="font-display text-lg font-semibold">{title}</h3>
         <p class="text-sm text-ws-soft">
-          {port.name}{port.manufacturer ? `, ${port.manufacturer}` : ""}.
-          {connected ? "Connected" : "Not connected"}{profile?.ignored ? ", ignored: its notes don't reach drills" : ""}.
+          {port.manufacturer ? `${port.manufacturer}. ` : ""}{connected ? "Connected" : "Not connected"}{profile?.ignored ? ", hidden: its notes don't reach drills" : ""}.
         </p>
       </div>
     </div>
@@ -90,7 +89,7 @@
           onclick={() => {
             void save({ ignored: undefined });
             announce(`${title} is back: its notes reach drills again.`);
-          }}>Stop ignoring</button
+          }}>Show this device</button
         >
       {/if}
       {#if inactive}
@@ -118,9 +117,10 @@
   <details class="group text-sm">
     <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
       <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Advanced
-      <span class="font-normal text-ws-soft">Alias, MIDI channel, latency</span>
+      <span class="font-normal text-ws-soft">Port name, alias, MIDI channel, latency</span>
     </summary>
     <div class="mt-2 grid gap-3 pl-6 sm:grid-cols-2">
+    <p class="text-sm sm:col-span-2"><span class="font-medium">Port name:</span> {port.name}{port.manufacturer ? `, ${port.manufacturer}` : ""}</p>
     <label class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">Alias</span>
       <input
@@ -193,12 +193,12 @@
               aria-current={learning && i === learning.length ? "step" : undefined}
             >
               <span class="flex items-center gap-0.5 font-semibold">{#if note !== undefined}<Check class="size-3" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
-              <span class="tnum">{note !== undefined ? noteName(note) : profile?.padNotes || learning ? "" : noteName(36 + i)}</span>
+              <span class="tnum {note === undefined && learning ? 'font-normal' : ''}">{note !== undefined ? noteName(note) : learning ? (i === learning.length ? "hit now" : "waiting") : profile?.padNotes ? "" : noteName(36 + i)}</span>
             </li>
           {/each}
         {/each}
       </ol>
-      <p class="text-xs text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Hover a pad for its MIDI note.</p>
+      <p class="text-xs text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the note it sends.</p>
     </section>
   {/if}
 
@@ -211,8 +211,8 @@
         onclick={() => {
           const next = !profile?.ignored;
           void save({ ignored: next || undefined });
-          announce(next ? `${title} ignored: its notes no longer reach drills.` : `${title} is back: its notes reach drills again.`);
-        }}>{profile?.ignored ? "Stop ignoring" : "Ignore this port"}</button
+          announce(next ? `${title} hidden: its notes no longer reach drills.` : `${title} is back: its notes reach drills again.`);
+        }}>{profile?.ignored ? "Show this device" : "Hide this device"}</button
       >
       {#if confirmRemove}
         <button
@@ -222,15 +222,15 @@
             confirmRemove = false;
             void midi.removeProfile(port.id);
             announce(`Forgot everything saved for ${port.name}. It now behaves like a new device.`);
-          }}>Forget its settings</button
+          }}>Forget it</button
         >
         <button type="button" class={btn} onclick={() => (confirmRemove = false)}>Keep them</button>
       {:else}
-        <button type="button" class={btn} disabled={!profile} onclick={() => (confirmRemove = true)}>Remove saved settings</button>
+        <button type="button" class={btn} disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
       {/if}
     </div>
     <p class="text-ws-soft">
-      {#if confirmRemove}Forget the alias, instrument, channel, pad map and offset? The port keeps working as an unknown device.{:else}Ignore keeps its notes out of drills (use it for the MPC's control port). Remove forgets what is saved here.{/if}
+      {#if confirmRemove}Forget the alias, instrument, channel, pad map and offset? The port keeps working as an unknown device.{:else}Hide keeps its notes out of drills (use it for the MPC's second port). Forget clears what is saved here; the device still works.{/if}
     </p>
   </div>
   {/if}

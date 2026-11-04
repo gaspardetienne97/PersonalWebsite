@@ -400,24 +400,27 @@ export const minutesText = (minutes: number, sessions: number) =>
   sessions && minutes < 2 ? "under 2 min" : `${minutes} min`;
 
 /**
- * A skill row's one line, both numbers named so they never read as one contradicting the other:
- * "Mastery 14%: 10 checked answers, 80% right, today". Accuracy counts every try, so it says so
- * when that is more than the checked answers.
+ * A skill row's one line, both measures named so they never read as one contradicting the other:
+ * "80% right on 10 answers, today. Mastery 14%: grows with Check runs." Accuracy counts every
+ * answer; mastery moves only on answers in Check mode, so it says so when it lags.
  */
 export function skillCaption(r: SkillRow, now: number): string {
-  const head =
+  const tries =
+    r.accuracy !== undefined
+      ? `${pct(r.accuracy)} right on ${plural(r.attempts, "answer")}`
+      : `${plural(r.checked, "answer")} in Check mode`;
+  const when = r.lastPracticed ? `, ${relativeDay(r.lastPracticed, now)}` : "";
+  const mastery =
     r.estimate === undefined
-      ? "No mastery yet"
-      : `Mastery ${pct(r.estimate)}${r.umbrella && !r.direct ? " across its parts" : ""}`;
-  const bits = [plural(r.checked, "checked answer")];
-  if (r.accuracy !== undefined)
-    bits.push(
-      r.attempts > r.checked
-        ? `${pct(r.accuracy)} right over ${plural(r.attempts, "try", "tries")}`
-        : `${pct(r.accuracy)} right`,
-    );
-  if (r.lastPracticed) bits.push(relativeDay(r.lastPracticed, now));
-  return `${head}: ${bits.join(", ")}`;
+      ? "No mastery yet: it grows with Check runs"
+      : `Mastery ${pct(r.estimate)}${
+          r.umbrella && !r.direct
+            ? ", the average of its parts"
+            : r.estimate < (r.accuracy ?? 0)
+              ? ": grows with Check runs"
+              : ""
+        }`;
+  return `${tries}${when}. ${mastery}.`;
 }
 
 /**

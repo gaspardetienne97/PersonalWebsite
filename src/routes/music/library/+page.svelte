@@ -2,12 +2,10 @@
   import { page } from "$app/state";
   import HubTabs from "$lib/music/components/HubTabs.svelte";
   import SongsView from "$lib/music/hubs/library/SongsView.svelte";
-  import ReferenceView from "$lib/music/hubs/library/ReferenceView.svelte";
   import ImportView from "$lib/music/hubs/library/ImportView.svelte";
 
   const TABS = [
     { id: "songs", label: "Songs" },
-    { id: "reference", label: "Reference" },
     { id: "import", label: "Import" },
   ] as const;
   const tab = $derived(page.url.searchParams.get("tab") ?? "songs");
@@ -24,14 +22,12 @@
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Library</h1>
-      <p class="mt-1 text-ws-soft">Your songs, the chord and scale reference, and a way in for new scores.</p>
+      <p class="mt-1 text-ws-soft">Your songs, and a way in for new scores. Chords and scales live in <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/create/reference">Create</a>.</p>
     </div>
     <HubTabs param="tab" tabs={TABS} label="Library views" />
   </header>
   <p role="status" class="sr-only">{status}</p>
-  {#if tab === "reference"}
-    <ReferenceView onstatus={(s) => (status = s)} />
-  {:else if tab === "import"}
+  {#if tab === "import"}
     <ImportView onstatus={(s) => (status = s)} />
   {:else}
     <SongsView onstatus={(s) => (status = s)} />

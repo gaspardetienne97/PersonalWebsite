@@ -130,7 +130,21 @@
   let pathInfo = $state(false);
   /** The path's one line: its subtitle up to the first semicolon; the rest waits behind the info button. */
   const oneLine = (t: string) => plainPathText(t).split(/;\s*/)[0].replace(/[.,]?$/, ".");
-  const stepLabel = (sp: StepProgress) => (sp.step.level ? sp.step.id.split(".").slice(1).join(".") : String(sp.step.order));
+  /** Steps count from 1 on each map, whatever their ids say ("0.1" on a check-in). */
+  const stepLabel = (i: number) => String(i + 1);
+  /** Path words a learner has not met yet, said plainly on the map. */
+  const plain = (t: string) =>
+    plainPathText(t)
+      .replace(/\bmajor pentachord\b/g, "the first five notes of the major scale")
+      .replace(/\bminor pentachord\b/g, "the first five notes of the minor scale")
+      .replace(/\bpentachords?\b/g, "five-note scale")
+      .replace(/\b(a|the) shelf song\b/g, "$1 song from this level's list")
+      .replace(/\bshelf songs\b/g, "songs from this level's list");
+  /** A path's goal in a few words: its benchmark up to the first comma or semicolon. */
+  const goal = (id: PathId) => {
+    const b = LEARNING_PATHS[id].benchmark;
+    return b ? `Goal: ${b.split(/[;,]\s*/)[0]}` : "";
+  };
 </script>
 
 {#snippet road(i: number, lit: boolean)}
@@ -170,8 +184,8 @@
     <span class="flex min-w-0 flex-1 flex-col items-start">
       <span class="font-semibold">{#if sr}<span class="sr-only">{sr}</span>{/if}{title}</span>
       <!-- The state as an icon and a word, never colour alone. -->
-      <span class="flex items-center gap-1 text-sm {strong ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">
-        {#if look === "passed" || look === "review"}<Check class="size-3.5 text-success" aria-hidden="true" />{:else if look === "locked"}<Lock class="size-3.5" aria-hidden="true" />{:else if look === "next"}<Play class="size-3.5" aria-hidden="true" />{:else if look === "open"}<Circle class="size-3.5 shrink-0" aria-hidden="true" />{/if}{#if teaches}<span class="sr-only">{sub}. </span><span class="line-clamp-1">{teaches}</span>{:else}{sub}{/if}
+      <span class="flex items-start gap-1 text-sm {strong ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">
+        {#if look === "passed" || look === "review"}<Check class="size-3.5 text-success" aria-hidden="true" />{:else if look === "locked"}<Lock class="size-3.5" aria-hidden="true" />{:else if look === "next"}<Play class="size-3.5" aria-hidden="true" />{:else if look === "open"}<Circle class="size-3.5 shrink-0" aria-hidden="true" />{/if}{#if teaches}<span class="sr-only">{sub}. </span><span class="text-ws-ink/80">{teaches}</span>{:else}{sub}{/if}
       </span>
     </span>
     {#if href && look !== "locked" && openId !== id}<DrillPreview {href} class="max-sm:hidden opacity-90" />{/if}
@@ -188,7 +202,7 @@
       <li class="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-3">
         {#if i < count - 1}{@render road(i, passed(st))}{/if}
         {#snippet face()}
-          {#if passed(st)}<Check class="size-5" />{:else if st === "locked"}<Lock class="size-4" />{:else}{stepLabel(sp)}{/if}
+          {#if passed(st)}<Check class="size-5" />{:else if st === "locked"}<Lock class="size-4" />{:else}{stepLabel(i)}{/if}
         {/snippet}
         {@render node(i, look, face)}
         <div class="min-w-0">
@@ -197,14 +211,19 @@
             plainPathText(sp.step.title),
             coming ? "Coming" : sp.almost ? "Almost there" : statusText[st],
             st === "next",
-            `Step ${stepLabel(sp)}: `,
+            `Step ${stepLabel(i)}: `,
             look,
             coming ? "" : (sp.step.href ?? ""),
             // An open step says what it teaches, not "not started" on every row; the ring is the status.
-            st === "not-assessed" && !coming && !sp.almost && openId !== sp.step.id ? plainPathText(sp.step.summary) : "",
+            st === "not-assessed" && !coming && !sp.almost && openId !== sp.step.id ? plain(sp.step.summary) : "",
           )}
           {#if openId === sp.step.id}
-            <div id="stop-{sp.step.id}" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 shadow-sm">
+            <div
+              id="stop-{sp.step.id}"
+              class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] p-4 shadow-sm {st === 'next'
+                ? 'bg-[color-mix(in_oklch,var(--p)_12%,var(--ws-surface))] ring-1 ring-[color:var(--p)]/40 sm:p-5'
+                : 'bg-ws-surface'}"
+            >
               {#if sp.step.href && !coming && sp.step.kind !== "reference"}
                 <!-- What the step plays, drawn, before what it asks. -->
                 <DrillPreview href={sp.step.href} size="md" class="mb-3 max-w-xs" />
@@ -212,7 +231,7 @@
               {#if sp.step.strand && strands(sp.step.strand).length}
                 <p class="text-xs font-medium text-ws-soft">{strands(sp.step.strand).join(", ")}</p>
               {/if}
-              <p class="mt-0.5 text-sm">{plainPathText(sp.step.summary)}</p>
+              <p class="mt-0.5 text-sm">{plain(sp.step.summary)}</p>
               {#if sp.step.detail}
                 <p class="mt-2 flex gap-2 rounded-xl bg-ws-raised px-3 py-2 text-sm">
                   <Target class="mt-0.5 size-4 shrink-0 text-instr-ink" aria-hidden="true" /><span><span class="font-semibold">To pass:</span> {plainPathText(sp.step.detail)}</span>
@@ -367,6 +386,7 @@
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{pr.total ? (pr.done / pr.total) * 100 : 0}%"></span></span
             >
           {/if}
+          {#if goal(p.id)}<span class="mt-1 block text-xs text-ws-soft max-lg:hidden">{goal(p.id)}</span>{/if}
         </span>
       </button>
     {/each}
@@ -414,7 +434,7 @@
     {#if current.levels?.length && level}
       <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
            The current and the next level carry their names. -->
-      <div class="levels mt-4 flex items-start overflow-x-auto px-1 pb-2 pt-1" role="group" aria-label="Levels">
+      <div class="mt-4 flex flex-wrap items-start gap-y-3 px-1 pb-2 pt-1" role="group" aria-label="Levels">
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
@@ -448,16 +468,19 @@
       <div class="mt-4">
         <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
         {#if level.level.id === "0"}
-          <!-- The check-in's rule as two steps, not a paragraph. -->
-          <p class="mt-1">Find what is already solid. Nothing is skipped.</p>
-          <ol class="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:gap-4">
-            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Pass the check-in in Check mode</li>
+          <!-- One sentence; the rules wait behind a disclosure. -->
+          <p class="mt-1">A short test of what you already play, so those steps become quick reviews.</p>
+          <details class="group mt-2 text-sm">
+            <summary class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-medium text-instr-ink">How check-in works</summary>
+          <ol class="mt-1 flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Play each check-in step from memory (Check mode)</li>
             <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><CalendarDays class="size-4" aria-hidden="true" /></span>Review each step on two different days</li>
           </ol>
+          </details>
         {:else}
-          <p class="mt-1">{plainPathText(level.level.goal)}</p>
+          <p class="mt-1">{plain(level.level.goal)}</p>
         {/if}
-        {#if level.level.adds}<p class="mt-1 text-sm text-ws-soft">New here: {plainPathText(level.level.adds)}</p>{/if}
+        {#if level.level.adds && level.level.id !== "0"}<p class="mt-1 text-sm text-ws-soft">New here: {plain(level.level.adds)}</p>{/if}
         <!-- The level's progress as rings that fill to the real counts. -->
         <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
           <div class="flex items-center gap-2">
@@ -486,11 +509,6 @@
 </div>
 
 <style>
-  /* The level line scrolls sideways on narrow screens; its right edge fades so a cut level reads as more. */
-  .levels {
-    mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
-    scrollbar-width: thin;
-  }
   .road path {
     fill: none;
     stroke-linecap: round;

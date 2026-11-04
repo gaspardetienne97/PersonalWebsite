@@ -150,15 +150,6 @@
         <text x={5 + i * w + w / 2} y="46" class="big" class:onhit={i === 0} text-anchor="middle">{c}</text>
       {/each}
     </svg>
-  {:else if p.kind === "degrees"}
-    <svg viewBox="0 0 160 80" class="h-full w-full" aria-hidden="true">
-      {#each p.degrees as d, i (d)}
-        {@const x = 12 + i * 22.6}
-        {@const y = 62 - i * 7}
-        <circle cx={x} cy={y} r="9.5" class={i === 0 ? "hit" : "beat"} />
-        <text {x} y={y + 4} class="big small" class:onhit={i === 0} text-anchor="middle">{d}</text>
-      {/each}
-    </svg>
   {:else if p.kind === "pads"}
     <svg viewBox="0 0 160 80" class="h-full w-full" aria-hidden="true">
       {#each Array.from({ length: 16 }, (_, i) => i) as i (i)}

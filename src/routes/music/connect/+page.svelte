@@ -10,9 +10,9 @@
   import CircleCheck from "lucide-svelte/icons/circle-check";
   import X from "lucide-svelte/icons/x";
   import { noteName } from "@repo/music-core";
-  import { btn, btnPrimary, panel } from "$lib/music/components/ui";
+  import { btn, panel } from "$lib/music/components/ui";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
-  import { describeMidi } from "$lib/music/hubs/connect/rig";
+  import { describeMidi, isDetail } from "$lib/music/hubs/connect/rig";
   import Piano from "$lib/music/components/Piano.svelte";
   import Pads from "$lib/music/components/Pads.svelte";
   import Fretboard from "$lib/music/components/Fretboard.svelte";
@@ -74,12 +74,13 @@
           },
         ]
       : []),
-    { done: mic.state === "on", label: "Microphone tried", hint: "For guitar, ukulele and voice.", act: { label: "Go to the microphone", href: "#mic" } },
+    { done: mic.state === "on", label: "Microphone tested", hint: "For guitar, ukulele and voice.", act: { label: "Test the microphone", href: "#mic" } },
     { done: audio.unlocked, label: "Sound on", hint: "Any tap on the page turns it on.", act: { label: "Turn sound on", run: () => void audio.unlock().then((ok) => announce(ok ? "Sound is on." : "Sound is still blocked by the browser.")) } },
   ]);
   const readyCount = $derived(checklist.filter((c) => c.done).length);
   const nextStep = $derived(checklist.find((c) => !c.done && c.act));
-  let showBytes = $state(false);
+  let showDetails = $state(false);
+  const shownLog = $derived(midi.rawLog.filter((m) => showDetails || !isDetail(m.hex)).slice(0, 14));
   /** A note as the device's player knows it: a pad on a mapped MPC, a name elsewhere. */
   function noteFor(portId: string) {
     const map = midi.profile(portId)?.padNotes;
@@ -101,7 +102,7 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <header>
     <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Connect</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone.<span class="max-sm:hidden"> What you set here applies on every page.</span></p>
+    <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone. <span class="max-sm:hidden">What you set here applies on every page.</span></p>
   </header>
   <!-- What the last action did, as a banner you can dismiss. The live region stays mounted. -->
   <div role="status" class="-mt-3 {status ? '' : 'sr-only'}">
@@ -116,7 +117,7 @@
 
   <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
     <div class="flex min-w-0 flex-col gap-6">
-      <Rig {announce}>
+      <Rig {announce} next={nextStep}>
         {#snippet fallback(anyLit: boolean)}
           <div class="flex flex-col gap-3 border-t border-ws-line pt-4">
             {#if !anyLit}
@@ -172,45 +173,51 @@
         {@render heading("check-title", "Setup checklist", ListChecks, "reading")}
         <p class="mt-1 text-sm"><span class="tnum font-semibold">{readyCount} of {checklist.length}</span> <span class="text-ws-soft">ready</span></p>
         <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-ws-raised" aria-hidden="true"><div class="h-full rounded-full bg-success" style:width="{(readyCount / checklist.length) * 100}%"></div></div>
+        <!-- Steps still to do in full; the finished ones fold into one line. The next step's button is at the top of Your rig. -->
         <ul class="mt-3 flex flex-col gap-2">
-          {#each checklist as c (c.label)}
+          {#each checklist.filter((c) => !c.done) as c (c.label)}
             {@const next = c === nextStep}
             <li class="flex gap-2 text-sm {next ? '-mx-2 rounded-xl bg-ws-raised px-2 py-2' : ''}">
-              <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-xs font-bold {c.done ? 'bg-success text-white' : next ? 'border-2 border-instr-ink' : 'border border-dashed border-ws-soft text-ws-soft'}" aria-hidden="true">{c.done ? "✓" : ""}</span>
+              <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full {next ? 'border-2 border-instr-ink' : 'border border-dashed border-ws-soft'}" aria-hidden="true"></span>
               <span class="min-w-0 flex-1">
-                <span class="font-medium">{c.label}</span><span class="sr-only">: {c.done ? "ready" : next ? "do this next" : "not yet"}</span>
-                {#if !c.done}<span class="block text-ws-soft">{c.hint}</span>{/if}
-                {#if next && c.act}
-                  {#if c.act.href}
-                    <a class="{btnPrimary} mt-2" href={c.act.href}>{c.act.label}</a>
-                  {:else}
-                    <button type="button" class="{btnPrimary} mt-2" onclick={c.act.run}>{c.act.label}</button>
-                  {/if}
-                {/if}
+                <span class="font-medium">{c.label}</span><span class="sr-only">: {next ? "do this next" : "not yet"}</span>
+                <span class="block text-ws-soft">{c.hint}</span>
+                {#if next && c.act}<a class="mt-1 inline-flex min-h-11 items-center font-semibold text-instr-ink underline-offset-4 hover:underline" href="#rig-title">Do it in Your rig</a>{/if}
               </span>
             </li>
           {/each}
         </ul>
+        {#if readyCount}
+          <details class="group mt-2 text-sm">
+            <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
+              <span class="grid size-5 shrink-0 place-items-center rounded-full bg-success text-xs font-bold text-white" aria-hidden="true">✓</span>
+              <span>{readyCount} done<span class="font-normal text-ws-soft group-open:hidden">: show them</span></span>
+            </summary>
+            <ul class="flex flex-col gap-1.5 pl-7">
+              {#each checklist.filter((c) => c.done) as c (c.label)}<li>{c.label}<span class="sr-only">: ready</span></li>{/each}
+            </ul>
+          </details>
+        {/if}
       </section>
 
       <section class={panel} aria-labelledby="activity-title">
-        {@render heading("activity-title", "Live activity", Activity, "mpc")}
+        {@render heading("activity-title", "Recent input", Activity, "mpc")}
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-sm text-ws-soft">What each device just sent, ports you ignore included.</p>
+          <p class="text-sm text-ws-soft">The last notes each device sent, hidden devices too.</p>
           <label class="flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" role="switch" class="size-4 accent-[var(--instr-ink)]" bind:checked={showBytes} />Show bytes
+            <input type="checkbox" role="switch" class="size-4 accent-[var(--instr-ink)]" bind:checked={showDetails} />Show details
           </label>
         </div>
-        {#if midi.rawLog.length}
+        {#if shownLog.length}
           <ol class="mt-2 flex flex-col gap-1.5 text-sm" data-testid="activity">
-            {#each midi.rawLog.slice(0, 14) as m, i (i + m.at)}
+            {#each shownLog as m, i (i + m.at)}
               {@const inst = midi.profile(m.portId)?.instrument ?? detectInstrument(m.port, "")}
               <li class="flex min-w-0 flex-wrap items-baseline gap-x-2 border-b border-ws-line pb-1.5">
                 <span class="size-2 shrink-0 self-center rounded-full" style:background={inst ? `var(--hue-${inst})` : "var(--ws-soft)"} aria-hidden="true"></span>
                 <span class="min-w-0 flex-1 font-medium">{describeMidi(m.hex, inst === "mpc" ? noteFor(m.portId) : undefined)}</span>
                 <span class="tnum text-xs text-ws-soft">{Math.max(0, (m.at - t0) / 1000).toFixed(1)} s</span>
-                <span class="w-full truncate pl-4 text-xs text-ws-soft">{midi.profile(m.portId)?.alias ?? m.port}{#if ignoredIds.has(m.portId)}<span class="ml-1.5 rounded bg-warn/20 px-1 text-ws-ink">ignored</span>{/if}</span>
-                <span class="w-full pl-4 font-mono text-xs break-all text-ws-soft" class:hidden={!showBytes}>{m.hex}</span>
+                <span class="w-full pl-4 text-xs text-ws-soft">{midi.profile(m.portId)?.alias ?? m.port}{#if ignoredIds.has(m.portId)}<span class="ml-1.5 rounded bg-warn/20 px-1 text-ws-ink">hidden</span>{/if}</span>
+                <span class="w-full pl-4 font-mono text-xs break-all text-ws-soft" class:hidden={!showDetails}>{m.hex}</span>
               </li>
             {/each}
           </ol>

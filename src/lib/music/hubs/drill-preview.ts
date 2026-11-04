@@ -59,8 +59,6 @@ export type Preview =
     }
   /** A row of chord names or numerals, played in order. */
   | { kind: "changes"; chords: string[]; caption: string }
-  /** The scale degrees 1 to 7 with the tonic home. */
-  | { kind: "degrees"; degrees: string[]; caption: string }
   | { kind: "pads"; lit: number[]; caption: string }
   | { kind: "circle"; caption: string }
   | { kind: "eq"; caption: string }
@@ -263,12 +261,67 @@ function grooveLanes(id: string | null): Preview {
   };
 }
 
-function intervalPreview(q: URLSearchParams): Preview {
+/**
+ * Two notes `semis` apart from a C on a stringed instrument's lower strings: the C on the lowest
+ * string that has one by fret 5, the top note on the nearest string within a five-fret window.
+ */
+export function intervalFrets(instrument: "guitar" | "ukulele", semis: number) {
+  const open = TUNINGS[instrument][0].openStrings;
+  const n = open.length;
+  // String numbers count from 1 at the top; search from the lowest string up.
+  let rs = n;
+  let rf = 0;
+  for (let s = n; s >= 1; s--) {
+    const f = (((0 - pc(open[s - 1])) % 12) + 12) % 12;
+    if (f <= 5) {
+      rs = s;
+      rf = f;
+      break;
+    }
+  }
+  const root = open[rs - 1] + rf;
+  const from = Math.max(0, rf - 1);
+  for (let s = rs; s >= 1; s--) {
+    const f = root + semis - open[s - 1];
+    if (f >= from && f <= from + 4)
+      return {
+        strings: n,
+        from,
+        to: from + 4,
+        root: { string: rs, fret: rf },
+        top: { string: s, fret: f },
+      };
+  }
+  return {
+    strings: n,
+    from: rf,
+    to: rf + semis,
+    root: { string: rs, fret: rf },
+    top: { string: rs, fret: rf + semis },
+  };
+}
+
+function intervalPreview(q: URLSearchParams, instrument: Instrument | undefined): Preview {
   const tokens = (q.get("intervals") ?? "P5").split(",");
   const iv = INTERVALS.find((i) => i.token === tokens.at(-1)) ?? INTERVALS[6];
-  return keysFor([60, 60 + iv.semitones], `${iv.name}: C up to ${name(60 + iv.semitones)}`, {
-    60: "1",
-  });
+  const top = name(60 + iv.semitones);
+  const caption = `${iv.name}: C up to ${top}`;
+  if (STRINGED(instrument)) {
+    const f = intervalFrets(instrument, iv.semitones);
+    return {
+      kind: "frets",
+      strings: f.strings,
+      from: f.from,
+      to: f.to,
+      dots: [
+        { ...f.root, label: "C" },
+        { ...f.top, label: top },
+      ],
+      caption,
+    };
+  }
+  // Both keys named, so the picture says which two notes make the interval.
+  return keysFor([60, 60 + iv.semitones], caption, { 60: "C", [60 + iv.semitones]: top });
 }
 
 function qualityPreview(q: URLSearchParams): Preview {
@@ -404,7 +457,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       return { kind: "eq", caption: "One band boosted: hear where it is" };
     case "/ear/intervals":
     case "/ear/interval-compare":
-      return intervalPreview(q);
+      return intervalPreview(q, instrument);
     case "/ear/chord-qualities":
       return qualityPreview(q);
     case "/ear/inversions":
@@ -421,12 +474,22 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         64: "3",
         67: "5",
       });
-    case "/ear/scale-degrees":
-      return {
-        kind: "degrees",
-        degrees: ["1", "2", "3", "4", "5", "6", "7"],
-        caption: "Each note heard against home, 1",
-      };
+    case "/ear/scale-degrees": {
+      // The degrees on the keys of C, home numbered 1; the anchor level asks only 1 and 5.
+      const major = SCALE_DATA.semitonesByKind.major.filter((x) => x < 12);
+      const level = q.get("level");
+      const steps =
+        level === "anchor" ? [0, 7] : level?.includes("pentachord") ? major.slice(0, 5) : major;
+      const notes = steps.map((s) => 60 + s);
+      const labels = Object.fromEntries(notes.map((m) => [m, String(major.indexOf(m - 60) + 1)]));
+      return keysFor(
+        notes,
+        steps.length === 2
+          ? "Home (1) and 5, heard against home"
+          : "Each note heard against home, 1",
+        labels,
+      );
+    }
     case "/ear/cadences":
     case "/ear/chord-functions":
     case "/ear/progressions":

@@ -118,10 +118,12 @@
     <div class="min-w-0 self-start rounded-3xl border border-ws-line bg-ws-surface p-4 sm:p-5" style:--step-hue={upNext ? hueVar(hueForRoute(upNext.href, instrument)) : "var(--instr)"}>
       <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument]}</p>
       <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Set done. One more: {afterName}{:else}Today's set is done{/if}
+        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
-        {#if upNext}{blockReason(upNext)}{:else if after}{after.href === plan.advice.action.href ? "Your set is done. One more on your weakest skill, if you have time." : after.why}{:else}{plan.advice.summary}{/if}
+        {#if upNext}{blockReason(upNext)}{:else if after}<span class="font-semibold text-ws-ink">Optional extra: {afterName}</span>{after.href === plan.advice.action.href
+            ? `, your weakest skill${plan.advice.focus ? ` (${pct(plan.advice.focus.accuracy)} right on ${plural(plan.advice.focus.attempts, "answer")})` : ""}.`
+            : `. ${after.why}`}{:else}{plan.advice.summary}{/if}
       </p>
       {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
       <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -203,7 +205,7 @@
                 >
                 {#if done}<span class="text-xs font-medium text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 text-xs text-instr-ink">Now</span>{/if}
               </p>
-              <p class="line-clamp-2 text-sm text-ws-soft">
+              <p class="text-sm text-ws-soft">
                 <span class="tnum">{step.minutes} min.</span>
                 {blockReason(step)}
               </p>

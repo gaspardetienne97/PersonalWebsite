@@ -70,9 +70,15 @@
         <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label="Octave up" disabled={octave >= HIGH_OCTAVE} onclick={() => shift(1)}><Plus class="size-4" aria-hidden="true" /></button>
       </div>
     </div>
+    <!-- Volume sits beside Play and Stop, so every drone control fits the first screen on a phone. -->
+    <div class="flex w-full items-end gap-3 sm:w-auto">
+    <label class="flex min-w-0 flex-1 flex-col text-sm sm:w-40 sm:flex-none">
+      <span class="font-medium">Volume <span class="tnum text-ws-stage-soft">{Math.round(volume * 100)}%</span></span>
+      <input type="range" min="0.05" max="1" step="0.05" bind:value={volume} onchange={changed} class="volume w-full" style:--v={(volume - 0.05) / 0.95} />
+    </label>
     <button
       type="button"
-      class="flex min-h-12 items-center gap-2 rounded-full px-6 font-display text-base font-semibold {playing
+      class="flex min-h-12 shrink-0 items-center gap-2 rounded-full px-6 font-display text-base font-semibold {playing
         ? 'bg-ws-stage-ink text-ws-stage'
         : 'bg-instr text-ws-stage'}"
       aria-pressed={playing}
@@ -80,11 +86,12 @@
     >
       {#if playing}<Square class="size-4" fill="currentColor" aria-hidden="true" />Stop drone{:else}<Play class="size-5" fill="currentColor" aria-hidden="true" />Play drone{/if}
     </button>
+    </div>
   </div>
 
   <div class="mt-4">
     <p class="mb-2 text-sm text-ws-stage-soft" title="Numbers are scale degrees: steps up from the home note. 5 is the fifth.">
-      Tap a home note. <span class="dot" aria-hidden="true"></span> marks the notes of {tonicName} major.
+      Tap a home note. Outlined pads with a <span class="dot" aria-hidden="true"></span> are the notes of {tonicName} major; the numbers count steps up from it.
     </p>
     <NotePads
       label="Tonic"
@@ -103,14 +110,10 @@
     <p class="mt-1 text-sm text-ws-stage-soft">{TIMBRES.find((t) => t.value === timbre)?.hint}</p>
   </div>
 
-  <div class="mt-3">
+  <!-- The waveform is a laptop extra; on a phone it would only push the controls down. -->
+  <div class="mt-3 max-sm:hidden">
     <DroneScope {midi} {timbre} {playing} />
   </div>
-
-  <label class="mt-3 flex flex-col gap-1 text-sm">
-    <span class="font-medium">Volume <span class="tnum text-ws-stage-soft">{Math.round(volume * 100)}%</span></span>
-    <input type="range" min="0.05" max="1" step="0.05" bind:value={volume} onchange={changed} class="volume w-full" style:--v={(volume - 0.05) / 0.95} />
-  </label>
 </section>
 
 <style>

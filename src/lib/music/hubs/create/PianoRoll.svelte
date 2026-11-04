@@ -256,7 +256,9 @@
       </label>
     </div>
 
-    <div bind:this={scroller} bind:clientWidth={viewW} class="roll relative max-h-[30rem] overflow-auto rounded-xl max-sm:h-[55dvh]">
+    <div class="relative">
+    <!-- At 1280x800 the velocity lane (sticky at the bottom) stays in the first screen. -->
+    <div bind:this={scroller} bind:clientWidth={viewW} class="roll relative max-h-[max(16rem,min(30rem,calc(100dvh-27rem)))] overflow-auto rounded-xl max-sm:h-[55dvh] max-sm:max-h-none">
       <div class="relative" style:width="{KEY_W + steps * stepW}px">
         <div class="ruler sticky top-0 z-20 flex h-7" aria-hidden="true">
           <div class="sticky left-0 z-10 shrink-0 bg-ws-stage" style:width="{KEY_W}px"></div>
@@ -267,7 +269,7 @@
         <div class="relative flex" style:height="{rows.length * ROW_H}px">
           <div class="keys sticky left-0 z-10 shrink-0" style:width="{KEY_W}px" aria-hidden="true">
             {#each rows as m (m)}
-              <div class="key" class:black={isBlackKey(m)} class:c={m % 12 === 0} class:cur={cursor.midi === m} style:height="{ROW_H}px">{m % 12 === 0 || cursor.midi === m ? noteName(m) : ""}</div>
+              <div class="key" class:black={isBlackKey(m)} class:c={m % 12 === 0} class:cur={cursor.midi === m} style:height="{ROW_H}px">{!isBlackKey(m) || cursor.midi === m ? noteName(m) : ""}</div>
             {/each}
           </div>
           <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -349,6 +351,13 @@
         </div>
       </div>
     </div>
+    {#if !active.notes.length && !period}
+      <!-- An empty roll says how to start, over the grid, out of the pointer's way. -->
+      <p class="pointer-events-none absolute left-16 right-3 top-1/3 mx-auto w-fit rounded-full bg-ws-stage/85 px-4 py-2 text-center text-sm font-medium text-ws-stage-ink shadow" aria-hidden="true">
+        Click a cell to draw a note. It plays on the loop with the beat.
+      </p>
+    {/if}
+    </div>
     <p id="roll-cursor" class="mt-2 text-xs text-ws-stage-soft">
       Cursor on {where(cursor.midi, cursor.step * STEP_BEATS)}{under >= 0 ? `, a note of velocity ${Math.round((active.notes[under].velocity ?? 0.8) * 127)}` : ""}. {tool === "resize" ? "Drag a note to change its length." : "Click a cell to add a note, click a note to remove it."}
     </p>
@@ -400,7 +409,7 @@
     align-items: center;
     justify-content: flex-end;
     padding-right: 0.4rem;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #3b3542;
     background: linear-gradient(to right, #e9e4dc, #fbf8f2);

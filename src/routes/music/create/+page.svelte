@@ -13,6 +13,7 @@
   import Check from "lucide-svelte/icons/check";
   import Settings2 from "lucide-svelte/icons/settings-2";
   import CircleDot from "lucide-svelte/icons/circle-dot";
+  import BookOpen from "lucide-svelte/icons/book-open";
   import Grid from "lucide-svelte/icons/grid-3x3";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import BeatGrid from "$lib/music/hubs/create/BeatGrid.svelte";
@@ -185,9 +186,12 @@
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">Create</h1>
       <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">Build a beat and melodies that loop together, then jam over them.</p>
       <!-- On a phone the song's name rides under the title, so the bar below stays one row. -->
-      <p class="truncate text-sm text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? "not saved" : session.changed ? "unsaved changes" : "saved"}</p>
+      <p class="text-sm break-words text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? "not saved" : session.changed ? "unsaved changes" : "saved"}</p>
     </div>
-    <a class="flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" /><span>Record<span class="max-sm:hidden">{" "}a take</span></span></a>
+    <div class="flex shrink-0 items-center">
+      <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/create/reference"><BookOpen class="size-4" aria-hidden="true" /><span>Chords<span class="max-sm:hidden">{" "}and scales</span></span></a>
+      <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" /><span>Record<span class="max-sm:hidden">{" "}a take</span></span></a>
+    </div>
   </header>
 
   <section class="z-20 flex min-h-14 items-center gap-x-2 rounded-2xl border border-ws-line bg-ws-surface/95 p-1.5 shadow-sm backdrop-blur sm:sticky sm:top-[calc(var(--ws-strip-h,3.5rem)+0.5rem)] sm:flex-wrap sm:gap-x-3 sm:gap-y-2 sm:p-3" aria-label="Song">
@@ -220,8 +224,8 @@
     </button>
   </section>
 
-  <!-- On a phone one editor shows at a time; from sm up both stay on the page. -->
-  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-0.5 sm:hidden" role="group" aria-label="Editor">
+  <!-- On a phone one editor shows at a time; from sm up both stay on the page and the picked one comes first. -->
+  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-0.5 sm:w-80" role="group" aria-label="Editor">
     {#each [{ id: "beat", label: "Beat" }, { id: "roll", label: "Melody" }] as const as t (t.id)}
       <button type="button" class="min-h-11 rounded-full text-sm font-semibold {editor === t.id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft'}" aria-pressed={editor === t.id} onclick={() => (editor = t.id)}>{t.label}</button>
     {/each}

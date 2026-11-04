@@ -8,6 +8,7 @@
   import type { NoteEvent } from "@repo/music-core";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import { compareTakes } from "@repo/music-core/scoring/compare";
+  import { savedTakesLabel } from "./audioTakes";
   import Piano from "$lib/music/components/Piano.svelte";
   import { btn } from "$lib/music/components/ui";
   import { runInstrument } from "$lib/music/drill.svelte";
@@ -214,7 +215,7 @@
 </section>
 
 <section aria-labelledby="midi-takes" class="flex flex-col gap-3">
-  <h2 id="midi-takes" class="font-display text-2xl font-semibold tracking-tight">MIDI takes <span class="tnum text-base font-normal text-ws-soft">{takes.length}</span></h2>
+  <h2 id="midi-takes" class="font-display text-2xl font-semibold tracking-tight">MIDI takes <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
   {#if takes.length}
     <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
       {#each takes as take (take.id)}

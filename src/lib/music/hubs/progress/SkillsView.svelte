@@ -59,21 +59,22 @@
     </label>
   </div>
 
-  <!-- The method and the key wait behind one disclosure, so the first skill is in view. -->
+  <!-- The key stays in view (the bars mean nothing without it); the method waits behind a disclosure. -->
+  <div class="-mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-ws-soft" role="group" aria-label="How to read the bars">
+    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Mastery</span>
+    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Early guess: under {MIN_EVIDENCE} answers in Check mode</span>
+    <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
+    <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review</span>
+  </div>
   <details class="group -mt-4 text-sm">
     <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
       <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
     </summary>
     <p class="max-w-prose text-ws-soft">
-      Only answers in Check mode move mastery, and it fades a little each day you do not practise. Attempts and accuracy count
-      every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
+      Only answers in Check mode move mastery, and it fades a little each day you do not practise. An early guess firms up
+      with more answers. Needs review means mastery fell ten points or more since it was last measured. Answers and the
+      percent right count every answer on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
     </p>
-    <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-ws-soft" aria-label="How to read the bars">
-      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Mastery today</span>
-      <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
-      <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review: down ten points</span>
-      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode: an early guess that firms up with more answers</span>
-    </div>
   </details>
 
   {#if touchedCount === 0 && !showAll && !needle}
@@ -107,7 +108,7 @@
                     {@render bar(r)}
                     <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
                   </div>
-                  <p class="tnum text-sm text-ws-soft">{skillCaption(r, now)}</p>
+                  <p class="tnum text-sm text-ws-soft">{#each skillCaption(r, now).split(/(?<=\.) /) as line (line)}<span class="block">{line}</span>{/each}</p>
                   <span class="sr-only">{describe(r)}</span>
                 </div>
                 <a href={r.href} class="inline-flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-3 text-sm font-medium hover:bg-ws-raised"

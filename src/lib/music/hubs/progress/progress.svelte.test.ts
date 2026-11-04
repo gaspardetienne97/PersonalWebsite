@@ -115,12 +115,13 @@ describe("Progress", () => {
     await expect.poll(() => shown("pitch.interval.m3")).not.toBeNull();
     const m3 = shown("pitch.interval.m3")!;
     expect(m3.textContent).toContain("Minor 3rd");
-    expect(m3.textContent).toMatch(/6 checked/);
+    // The table counts checked answers in a column; the phone card says it in a line.
+    expect(m3.textContent).toMatch(/6 checked|83% right on 6 answers/);
     expect(m3.textContent).toContain("83%"); // accuracy, 5 of 6
     expect(m3.textContent).toContain("Mastery");
     // Practice-mode answers count as attempts but never move the estimate.
     const landmarks = shown("reading.treble.landmarks")!;
-    expect(landmarks.textContent).toMatch(/0 checked/);
+    expect(landmarks.textContent).toMatch(/0 checked|it grows with Check runs/);
     expect(landmarks.textContent).toContain("No mastery yet");
     // Untouched skills stay hidden until asked for.
     expect(shown("pitch.interval.P5")).toBeNull();

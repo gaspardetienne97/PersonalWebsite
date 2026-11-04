@@ -2,6 +2,8 @@
   // Sessions: what you actually did, and whether the same setup improved.
   import Lock from "lucide-svelte/icons/lock";
   import Check from "lucide-svelte/icons/check";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
   import {
     achievements,
     computeStreak,
@@ -88,17 +90,30 @@
     <ul class="mt-2 flex flex-col divide-y divide-ws-line border-y border-ws-line">
       {#each recent as { s, lead, hue, ms, folded } (s.id)}
         {@const Icon = HUE_ICON[hue]}
-        <li class="flex min-w-0 items-center gap-3 py-2.5" style:--h={hueVar(hue)}>
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-[color:var(--h)] text-ws-stage" aria-hidden="true"><Icon class="size-5" /></span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold">{sessionTitle(s)}</p>
-            <p class="text-sm text-ws-soft">
-              {when(s.startTime)}. {sessionInstruments(s, INSTRUMENT_LABEL)}, {formatDuration(ms)}{#if s.eventIds.length}, {plural(s.eventIds.length, "answer")}{/if}{#if folded}, plus {plural(folded, "short try", "short tries")}{/if}
-            </p>
-          </div>
-          <span class="tnum flex shrink-0 flex-col items-end text-right">
-            {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span><ScoreBadge run={lead} />{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
-          </span>
+        {@const href = lead && exerciseDrill(lead.exerciseId)?.entry.route}
+        <!-- A row is its drill's door: tap it to practise the same thing again. -->
+        <li class="min-w-0" style:--h={hueVar(hue)}>
+          <svelte:element
+            this={href ? "a" : "div"}
+            {href}
+            class="flex min-w-0 items-center gap-3 py-2.5 {href ? '-mx-2 rounded-xl px-2 hover:bg-ws-raised' : ''}"
+          >
+            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-[color:var(--h)] text-ws-stage" aria-hidden="true"><Icon class="size-5" /></span>
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">{sessionTitle(s)}</p>
+              <p class="text-sm text-ws-soft">
+                {when(s.startTime)}. {sessionInstruments(s, INSTRUMENT_LABEL)}, {formatDuration(ms)}{#if s.eventIds.length}, {plural(s.eventIds.length, "answer")}{/if}{#if folded}, plus {plural(folded, "short try", "short tries")}{/if}
+              </p>
+            </div>
+            <span class="tnum flex shrink-0 flex-col items-end text-right">
+              {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span><ScoreBadge run={lead} />{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
+            </span>
+            {#if href}
+              <span class="flex shrink-0 items-center gap-1 text-sm font-semibold text-instr-ink">
+                <span class="max-sm:sr-only">Practise again</span><ChevronRight class="size-4" aria-hidden="true" />
+              </span>
+            {/if}
+          </svelte:element>
         </li>
       {/each}
     </ul>
@@ -121,10 +136,14 @@
         <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
           <div class="h-full rounded-full bg-instr" style:width="{((250 - toNext) / 250) * 100}%"></div>
         </div>
-        <p class="mt-2 max-w-md text-sm text-ws-soft">
-          <span class="font-semibold text-ws-ink">{xp} XP</span>, {toNext} to level {level + 1}. {plural(days.length, "day")} practised,
-          <span class="tnum">{summary.xp}</span> XP this week. XP grows with every session; skill scores move only on answers in Check mode.
-        </p>
+        <p class="tnum mt-2 max-w-md text-sm"><span class="font-semibold">{toNext} XP to level {level + 1}</span></p>
+        <p class="tnum max-w-md text-sm text-ws-soft">{xp} XP in all, {summary.xp} this week, {plural(days.length, "day")} practised.</p>
+        <details class="group mt-1 max-w-md text-sm">
+          <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+            <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+          </summary>
+          <p class="text-ws-soft">Every session earns XP. Skill scores move only on answers in Check mode, where the targets are hidden.</p>
+        </details>
       </section>
 
       <section aria-labelledby="weeks-title">

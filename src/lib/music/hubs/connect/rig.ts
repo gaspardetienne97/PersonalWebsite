@@ -61,9 +61,9 @@ export function describeMidi(
   const [d1 = 0, d2 = 0] = b.slice(1);
   switch (s & 0xf0) {
     case 0x90:
-      return d2 ? `${name(d1)} on, velocity ${d2}` : `${name(d1)} off`;
+      return d2 ? `${name(d1)} played, strength ${d2} of 127` : `${name(d1)} released`;
     case 0x80:
-      return `${name(d1)} off`;
+      return `${name(d1)} released`;
     case 0xa0:
       return `${name(d1)} pressure ${d2}`;
     case 0xb0:
@@ -76,4 +76,14 @@ export function describeMidi(
       return `Pitch bend ${((d2 << 7) | d1) - 8192}`;
   }
   return `Channel ${ch} message`;
+}
+
+/** Messages a player does not need to read (releases, clock ticks, keep-alives): shown only with details. */
+export function isDetail(hex: string): boolean {
+  const [s = NaN, , v = 0] = hex
+    .trim()
+    .split(/\s+/)
+    .map((x) => parseInt(x, 16));
+  const kind = s & 0xf0;
+  return kind === 0x80 || (kind === 0x90 && v === 0) || s === 0xf8 || s === 0xfe;
 }

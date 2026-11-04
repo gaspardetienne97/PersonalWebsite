@@ -12,7 +12,6 @@
   import Palette from "lucide-svelte/icons/palette";
   import Target from "lucide-svelte/icons/target";
   import Database from "lucide-svelte/icons/database";
-  import Check from "lucide-svelte/icons/check";
   import type { PlaybackSound } from "@repo/music-core";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
   import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
@@ -44,7 +43,7 @@
     { value: "saw", label: "Saw" },
   ];
   const LEVELS = [
-    { key: "masterLevel", label: "Master", blurb: "Everything at once." },
+    { key: "masterLevel", label: "Master", blurb: "" },
     { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
     { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
   ] as const;
@@ -114,23 +113,24 @@
 
 <svelte:head><title>Settings | Woodshed</title></svelte:head>
 
-<div class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
-  <header class="lg:col-span-2">
+<div class="mx-auto grid max-w-4xl gap-6">
+  <header>
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Sound, pitch, timing and your data. Everything is saved in this browser as you change it. Devices live on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
+    <p class="mt-1 max-w-prose text-ws-soft">Settings are saved in this browser only, as you change them. To keep a copy, back up in <a class="font-medium text-instr-ink underline underline-offset-4" href="#data">Your data</a>. Choose devices on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
-  <!-- Chips that wrap on a phone (all six in view, nothing cut off); a sticky list beside the page from lg. -->
-  <nav aria-label="Settings sections" class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:self-start">
-    <ul class="flex flex-wrap gap-1.5 lg:flex-col lg:gap-1">
+  <!-- One row of section anchors above the content (one vertical nav on the page: the app's). Chips wrap on a
+       phone so all six stay in view; from sm the row sticks under the strip. -->
+  <nav aria-label="Settings sections" class="min-w-0 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:z-20 sm:-mx-6 sm:bg-ws-bg sm:px-6 sm:py-2">
+    <ul class="flex flex-wrap gap-1.5">
       {#each SECTIONS as sec (sec.id)}
         <li>
           <a
             href="#{sec.id}"
             aria-current={spy.current === sec.id ? "location" : undefined}
             style:--topic="var(--hue-{sec.hue})"
-            class="topic flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-ws-line px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink lg:rounded-lg lg:border-0"
+            class="topic flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border border-ws-line px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
           >
             <span class="grid size-6 shrink-0 place-items-center rounded-md" style:color="var(--topic)" aria-hidden="true"><sec.icon class="size-4" /></span>{sec.label}
           </a>
@@ -140,13 +140,13 @@
   </nav>
 
   <div class="flex min-w-0 flex-col gap-10">
-    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="audio" aria-labelledby="audio-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("audio-h", "Audio", Volume2)}
       {@render note("audio")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="sound-l">Sound</span><Hint about="Sound" text="Browsers keep a page silent until you tap or click it once. Any tap in Woodshed starts the sound, and so does Play test sound." /></p>
+            <p class="font-medium" id="sound-l">Sound</p>
             <p class="text-sm text-ws-soft" data-testid="sound-status">
               {s.muted ? "Sound off. Nothing in Woodshed plays; your levels are kept." : audio.unlocked ? "Sound on." : "Sound on. It starts at your first tap."}
             </p>
@@ -167,7 +167,7 @@
           <li class={rowCls}>
             <div class="min-w-0 flex-1 basis-40">
               <label for={l.key} class="font-medium">{l.label}</label>
-              <p class="text-sm text-ws-soft">{l.blurb}</p>
+              {#if l.blurb}<p class="text-sm text-ws-soft">{l.blurb}</p>{/if}
             </div>
             <div class="flex w-full items-center gap-2 sm:w-72">
               <input
@@ -186,7 +186,8 @@
         {/each}
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="onscreen-l">On-screen instruments make sound</span><Hint about="On-screen instruments make sound" text="Keys, frets and pads you tap or play from the computer keyboard sound like the instrument. MIDI devices make their own sound." /></p>
+            <p class="font-medium" id="onscreen-l">On-screen instruments make sound</p>
+            <p class="text-sm text-ws-soft">Keys, frets and pads you tap sound like the instrument. MIDI devices make their own sound.</p>
           </div>
           {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
         </li>
@@ -196,7 +197,7 @@
       </ul>
     </section>
 
-    <section id="input" aria-labelledby="input-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="input" aria-labelledby="input-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("input-h", "Instruments", Mic, "Which microphone and MIDI devices to use is set on Connect, with a live test for each. These rows are about reading and pitch.")}
       {@render note("input")}
       <ul class={listCls}>
@@ -229,7 +230,7 @@
       </ul>
     </section>
 
-    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
       {@render note("latency")}
       <ul class={listCls}>
@@ -288,7 +289,7 @@
       </ul>
     </section>
 
-    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("appearance-h", "Appearance", Palette)}
       {@render note("appearance")}
       <ul class={listCls}>
@@ -307,7 +308,7 @@
       </ul>
     </section>
 
-    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="goals" aria-labelledby="goals-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("goals-h", "Goals", Target)}
       {@render note("goals")}
       <ul class={listCls}>
@@ -335,7 +336,7 @@
       </ul>
     </section>
 
-    <section id="data" aria-labelledby="data-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]">
+    <section id="data" aria-labelledby="data-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
       {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />
@@ -364,10 +365,8 @@
     onclick={() => set(!on)}
   >
     <span class="absolute inset-x-1 h-7 rounded-full transition-colors {on ? 'bg-instr-ink' : 'bg-ws-raised ring-1 ring-ws-line'}"></span>
-    <!-- The knob carries a check when on, so the state is never colour alone. -->
-    <span class="relative grid size-6 place-items-center rounded-full bg-ws-surface text-instr-ink shadow transition-transform {on ? 'translate-x-8' : 'translate-x-2'}">
-      {#if on}<Check class="size-4" strokeWidth={3} aria-hidden="true" />{/if}
-    </span>
+    <!-- A plain switch: the knob's side carries the state, so it is never colour alone. -->
+    <span class="relative size-6 rounded-full bg-ws-surface shadow transition-transform {on ? 'translate-x-8' : 'translate-x-2'}"></span>
   </button>
 {/snippet}
 
@@ -383,10 +382,5 @@
     font-weight: 600;
     border-color: var(--topic);
     background: color-mix(in oklch, var(--topic) 16%, transparent);
-  }
-  @media (min-width: 1024px) {
-    .topic[aria-current="location"] {
-      box-shadow: inset 3px 0 0 var(--topic);
-    }
   }
 </style>

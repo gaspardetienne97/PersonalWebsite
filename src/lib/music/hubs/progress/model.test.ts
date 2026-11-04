@@ -170,21 +170,24 @@ describe("Run deltas", () => {
 });
 
 describe("Honest figures", () => {
-  it("names mastery and accuracy apart, and says when accuracy counts more tries", () => {
+  it("names accuracy and mastery apart, and says when mastery lags", () => {
     const now = Date.now();
     const r = (over: Partial<SkillRow>) =>
       ({ checked: 10, attempts: 10, umbrella: false, direct: true, ...over }) as SkillRow;
     expect(skillCaption(r({ estimate: 0.14, accuracy: 0.8, lastPracticed: now }), now)).toBe(
-      "Mastery 14%: 10 checked answers, 80% right, today",
+      "80% right on 10 answers, today. Mastery 14%: grows with Check runs.",
     );
     expect(skillCaption(r({ estimate: 0.5, accuracy: 0.75, attempts: 12 }), now)).toBe(
-      "Mastery 50%: 10 checked answers, 75% right over 12 tries",
+      "75% right on 12 answers. Mastery 50%: grows with Check runs.",
+    );
+    expect(skillCaption(r({ estimate: 0.9, accuracy: 0.8 }), now)).toBe(
+      "80% right on 10 answers. Mastery 90%.",
     );
     expect(skillCaption(r({ checked: 0, attempts: 2, accuracy: 1 }), now)).toBe(
-      "No mastery yet: 0 checked answers, 100% right over 2 tries",
+      "100% right on 2 answers. No mastery yet: it grows with Check runs.",
     );
     expect(skillCaption(r({ estimate: 0.3, umbrella: true, direct: false, checked: 4 }), now)).toBe(
-      "Mastery 30% across its parts: 4 checked answers",
+      "4 answers in Check mode. Mastery 30%, the average of its parts.",
     );
   });
 

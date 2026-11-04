@@ -3,16 +3,17 @@
   // per hand (filled right, outlined left) so two voices still read apart.
   import type { Score } from "@repo/music-core";
 
-  let { score, height = 72 }: { score: Score; height?: number } = $props();
+  // `beats`: draw only the opening (the first bars), so each song's cover has its own shape.
+  let { score, height = 72, beats }: { score: Score; height?: number; beats?: number } = $props();
 
   const notes = $derived(
     score.voices.flatMap((v, i) =>
-      v.notes.filter((n) => !n.tieFrom).map((n) => ({ ...n, side: v.hand ?? (i % 2 ? "left" : "right") })),
+      v.notes.filter((n) => !n.tieFrom && (beats === undefined || n.startBeat < beats)).map((n) => ({ ...n, side: v.hand ?? (i % 2 ? "left" : "right") })),
     ),
   );
   const lo = $derived(Math.min(...notes.map((n) => n.midi), 60) - 1);
   const hi = $derived(Math.max(...notes.map((n) => n.midi), 72) + 1);
-  const len = $derived(Math.max(4, score.lengthBeats));
+  const len = $derived(Math.max(4, Math.min(beats ?? Infinity, score.lengthBeats)));
 </script>
 
 <svg viewBox="0 0 {len} {hi - lo}" preserveAspectRatio="none" style:height="{height}px" class="block w-full" aria-hidden="true">

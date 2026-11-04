@@ -127,6 +127,8 @@ export function todayPlan(strip: Instrument, minutes: number, now = Date.now()) 
     summary,
     playedMs,
     checked,
+    /** The first day ever practised, so the week's earlier days read blank, not missed. */
+    firstDay: days.length ? [...days].sort()[0] : undefined,
   };
 }
 

@@ -40,7 +40,7 @@
       <span class="font-display text-xl font-semibold">{pretty(noteName(p, "flat", false))}</span>
       <!-- In the key: a dot as well as the tint, so colour is never the only cue. -->
       {#if role && role !== "other"}<span class="in-key" aria-hidden="true"></span>{/if}
-      {#if semis !== null}<span class="tnum text-xs">{DEGREES[semis]}</span>{:else if noteName(p, "flat", false) !== noteName(p, "sharp", false)}<span class="text-xs">{pretty(noteName(p, "sharp", false))}</span>{/if}
+      {#if semis !== null}<span class="tnum text-[13px] font-medium">{DEGREES[semis]}</span>{:else if noteName(p, "flat", false) !== noteName(p, "sharp", false)}<span class="text-[13px]">{pretty(noteName(p, "sharp", false))}</span>{/if}
     </button>
   {/each}
 </div>
@@ -73,25 +73,26 @@
     border-radius: 0.8rem;
     border: 2px solid transparent;
     background: color-mix(in oklch, var(--ws-stage-ink) 6%, transparent);
-    color: var(--ws-stage-soft);
+    /* Full ink: the degree labels must read at 4.5:1 on every pad; the key is shown by tint and outline. */
+    color: var(--ws-stage-ink);
   }
   .pad:hover {
     background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
   }
   .pad[data-role="scale"] {
     background: color-mix(in oklch, var(--instr) 18%, transparent);
-    color: var(--ws-stage-ink);
+    border-color: color-mix(in oklch, var(--instr) 70%, transparent);
   }
   .pad[data-role="fifth"] {
     background: color-mix(in oklch, var(--instr) 40%, transparent);
-    color: var(--ws-stage-ink);
+    border-color: var(--instr);
   }
   .in-key {
     position: absolute;
     top: 0.35rem;
     right: 0.4rem;
-    width: 0.4rem;
-    height: 0.4rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border-radius: 999px;
     background: currentColor;
   }

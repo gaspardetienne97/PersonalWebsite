@@ -14,6 +14,7 @@
     longest,
     freezes,
     pop,
+    since,
   }: {
     week: { day: string; state: DotState }[];
     current: number;
@@ -21,7 +22,12 @@
     freezes: number;
     /** A day just practised: its cell pops in with its check (Today, the first time the set is done). */
     pop?: string;
+    /** The first day ever practised: a day before it is blank, never "missed". */
+    since?: string;
   } = $props();
+  /** A missed day before the first session is no miss at all. */
+  const stateOf = (d: { day: string; state: DotState }): DotState | "before" =>
+    d.state === "missed" && (!since || d.day < since) ? "before" : d.state;
 
   let rules = $state(false);
   const id = $props.id();
@@ -29,7 +35,8 @@
   const date = (d: string) => new Date(`${d}T00:00:00Z`);
   const letter = (d: string) => LETTER[(date(d).getUTCDay() + 6) % 7];
   const weekday = (d: string) => date(d).toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
-  const WORD: Record<DotState, string> = {
+  const WORD: Record<DotState | "before", string> = {
+    before: "before you started",
     practised: "practised",
     frozen: "covered by a streak freeze",
     missed: "missed",
@@ -37,6 +44,7 @@
     upcoming: "still to come",
   };
   const frozenShown = $derived(week.some((d) => d.state === "frozen"));
+  const missedShown = $derived(week.some((d) => stateOf(d) === "missed"));
 </script>
 
 <div class="min-w-0">
@@ -52,7 +60,7 @@
       <!-- Best and freezes only when they add something: a best equal to today's streak, or no freezes, says nothing. -->
       {#if (longest ?? 0) > current || freezes}
         <p class="text-sm text-ws-soft">
-          {#if (longest ?? 0) > current}Best streak: {longest} day{longest === 1 ? "" : "s"}.{" "}{/if}{#if freezes}{freezes} streak freeze{freezes === 1 ? "" : "s"} saved.{/if}
+          {#if (longest ?? 0) > current}Best streak: {longest} day{longest === 1 ? "" : "s"}.{" "}{/if}{#if freezes}{freezes === 1 ? "You can miss one day without losing your streak." : `You can miss ${freezes} days without losing your streak.`}{/if}
         </p>
       {/if}
     </div>
@@ -74,7 +82,8 @@
 
   <ol class="mt-3 grid max-w-xs grid-cols-7 gap-1 text-center text-xs text-ws-soft" aria-label="This week">
     {#each week as d (d.day)}
-      <li class="flex flex-col items-center gap-1" title="{weekday(d.day)}: {WORD[d.state]}">
+      {@const st = stateOf(d)}
+      <li class="flex flex-col items-center gap-1" title="{weekday(d.day)}: {WORD[st]}">
         <span
           class="grid size-8 place-items-center rounded-full {pop === d.day && d.state === 'practised' ? 'ws-pop [animation-delay:600ms]' : ''} {d.state === 'practised'
             ? 'bg-instr text-ws-stage'
@@ -82,23 +91,23 @@
               ? 'border-2 border-dashed border-info text-info'
               : d.state === 'today'
                 ? 'border-2 border-instr-ink'
-                : d.state === 'upcoming'
+                : d.state === 'upcoming' || st === 'before'
                   ? 'border border-dashed border-ws-line'
                   : 'bg-ws-raised text-ws-soft'}"
           aria-hidden="true"
         >
           {#if d.state === "practised"}<Check class="size-4" />{:else if d.state === "frozen"}<Snowflake
               class="size-4"
-            />{:else if d.state === "missed"}<Minus class="size-4" />{/if}
+            />{:else if st === "missed"}<Minus class="size-4" />{/if}
         </span>
         <span aria-hidden="true" class={d.state === "today" ? "font-semibold text-ws-ink" : ""}>{letter(d.day)}</span>
-        <span class="sr-only">{weekday(d.day)}: {WORD[d.state]}</span>
+        <span class="sr-only">{weekday(d.day)}: {WORD[st]}</span>
       </li>
     {/each}
   </ol>
   <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ws-soft" aria-hidden="true">
     <span class="inline-flex items-center gap-1"><Check class="size-3.5" />Practised</span>
-    <span class="inline-flex items-center gap-1"><Minus class="size-3.5" />Missed</span>
+    {#if missedShown}<span class="inline-flex items-center gap-1"><Minus class="size-3.5" />Missed</span>{/if}
     {#if frozenShown}<span class="inline-flex items-center gap-1"><Snowflake class="size-3.5" />Freeze used</span>{/if}
     <span class="inline-flex items-center gap-1"><span class="size-3 rounded-full border-2 border-instr-ink"></span>Today</span>
   </p>

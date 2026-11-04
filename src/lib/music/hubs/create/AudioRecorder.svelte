@@ -2,7 +2,7 @@
   // Audio takes from the microphone. The mic starts only when armed, stops on
   // leaving; takes go to OPFS (music-take-<id>) with a row in db.audioTakes.
   // Playback gain never rewrites the recording.
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Mic from "lucide-svelte/icons/mic";
@@ -16,7 +16,7 @@
   import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "$lib/music/runtime";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
-  import { autoGainDb, BOOST_RANGE, clipWarning, envelope, ENVELOPE_BUCKETS, extensionFor, GAIN_RANGE, peakDbOf, signedDb, suggestedBoost, takeKey } from "./audioTakes";
+  import { autoGainDb, BOOST_RANGE, clipWarning, envelope, ENVELOPE_BUCKETS, extensionFor, GAIN_RANGE, peakDbOf, savedTakesLabel, signedDb, suggestedBoost, takeKey } from "./audioTakes";
   import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
 
@@ -150,6 +150,9 @@
     takes = [take, ...takes];
     latest = take.id;
     announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.`);
+    // Bring the new take, with its Transcribe and Download, into view above the tab bar.
+    await tick();
+    document.querySelector(`[data-audio-take="${take.id}"]`)?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
   function stopPlayback() {
@@ -343,7 +346,11 @@
 {/if}
 
 <section aria-labelledby="audio-takes" class="flex flex-col gap-3">
-  <h2 id="audio-takes" class="font-display text-2xl font-semibold tracking-tight">Audio takes <span class="tnum text-base font-normal text-ws-soft">{takes.length}</span></h2>
+  <h2 id="audio-takes" class="font-display text-2xl font-semibold tracking-tight">Audio takes <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
+  <!-- The take being recorded sits apart from the saved list, so the count never disagrees with it. -->
+  {#if recording}
+    <p class="flex items-center gap-2 rounded-2xl border border-dashed border-ws-line p-4 font-medium"><span class="rec-dot shrink-0" aria-hidden="true"></span><span>Recording a new take, <span class="tnum">{clock(elapsed)}</span>. It joins the list when you stop.</span></p>
+  {/if}
   {#if takes.length}
     <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
       {#each takes as take (take.id)}
@@ -428,12 +435,8 @@
       {/each}
     </ul>
     <p class="text-sm text-ws-soft">Gain changes only how a take plays back here; the recording itself is never changed.</p>
-  {:else}
-    {#if recording}
-      <p class="flex items-center gap-2 rounded-2xl border border-dashed border-ws-line p-5 font-medium"><span class="rec-dot" aria-hidden="true"></span>Recording take 1, <span class="tnum">{clock(elapsed)}</span></p>
-    {:else}
-      <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
-    {/if}
+  {:else if !recording}
+    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
   {/if}
 </section>
 

@@ -1,7 +1,9 @@
 // The flat index behind the command palette: pages, every drill, every path.
 import { CATALOG } from "@repo/music-core/content/catalog";
 import { LEARNING_PATHS } from "@repo/music-core/progress/paths";
+import { INSTRUMENTS } from "@repo/music-core";
 import { DRILL_GROUPS } from "./hubs/drills-layout";
+import { INSTRUMENT_LABEL } from "./bench.svelte";
 export interface SearchItem {
   label: string;
   href: string;
@@ -13,6 +15,8 @@ export interface SearchItem {
   group?: string;
   /** Why an item matched when its title does not: the words around the query. */
   match?: string;
+  /** A second line under the title: which instruments a drill runs on. */
+  detail?: string;
   /** What the row is, for its icon: a page, a drill, a path, or the "show all" row. */
   kind?: "page" | "drill" | "path" | "song" | "all";
 }
@@ -21,14 +25,14 @@ const PAGES: SearchItem[] = [
   { label: "Start today's plan", href: "/music", hint: "Today", keywords: "routine daily" },
   { label: "All drills", href: "/music?tab=drills", hint: "Drills" },
   { label: "Learning paths", href: "/music?tab=paths", hint: "Paths", keywords: "curriculum" },
-  { label: "Library", href: "/music/library", hint: "Songs and reference" },
+  { label: "Library", href: "/music/library", hint: "Songs and imports" },
   {
     label: "Import a score",
     href: "/music/library?tab=import",
     hint: "Library",
     keywords: "midi musicxml mxl transcribe",
   },
-  { label: "Chord and scale reference", href: "/music/library?tab=reference", hint: "Library" },
+  { label: "Chord and scale reference", href: "/music/create/reference", hint: "Create" },
   {
     label: "Beat grid",
     href: "/music/create?mode=beat",
@@ -76,6 +80,10 @@ const DRILLS: SearchItem[] = CATALOG.map((e) => {
     label: e.title,
     href: e.route,
     hint: where ? `${where} drill` : "Drill",
+    detail:
+      e.instruments.length >= INSTRUMENTS.length
+        ? "Any instrument"
+        : e.instruments.map((i) => INSTRUMENT_LABEL[i]).join(", "),
     keywords: e.blurb,
     drill: true,
     kind: "drill",

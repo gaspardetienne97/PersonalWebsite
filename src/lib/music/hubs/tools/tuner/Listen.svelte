@@ -197,8 +197,8 @@
         {#if mic.state === "denied" || mic.state === "error"}{mic.error}{:else}The microphone only listens while this is on. Nothing is recorded.{/if}
       </p>
     {/if}
-    <button type="button" class="{btnStage} ml-auto" aria-expanded={choosing} aria-controls="tuner-targets" onclick={() => (choosing = !choosing)}>
-      {target === null ? "Pick a note" : `Target ${pretty(noteName(target, "flat", false))}`}
+    <button type="button" class="{btnStage} ml-auto" aria-label="Pick a note, target {target === null ? 'auto' : noteName(target, 'flat', false)}" aria-expanded={choosing} aria-controls="tuner-targets" onclick={() => (choosing = !choosing)}>
+      Target: {target === null ? "Auto" : pretty(noteName(target, "flat", false))}
       <ChevronDown class="size-4 transition-transform {choosing ? 'rotate-180' : ''}" aria-hidden="true" />
     </button>
   </div>
@@ -225,16 +225,13 @@
           {@const [lx, ly] = pt(angle(t), R + 18)}
           <text x={lx} y={ly + 4} class="scale" text-anchor="middle">{t > 0 ? `+${t}` : `−${-t}`}</text>
         {/each}
+        <text x="18" y="168" class="nb">flat</text>
+        <text x="282" y="168" class="nb" text-anchor="end">sharp</text>
         {#if shown}
-          <text x="18" y="168" class="nb">{pretty(noteName(shown.midi - 1, "flat", false))}</text>
-          <text x="282" y="168" class="nb" text-anchor="end">{pretty(noteName(shown.midi + 1, "flat", false))}</text>
           <g class="needle" style:transform="rotate({angle(shown.cents)}deg)">
             <line x1={CX} y1={CY - R + 46} x2={CX} y2={CY - R - 4} />
             <circle cx={CX} cy={CY - R} r="7" />
           </g>
-        {:else}
-          <text x="18" y="168" class="nb">flat</text>
-          <text x="282" y="168" class="nb" text-anchor="end">sharp</text>
         {/if}
       </svg>
 
@@ -326,12 +323,18 @@
             <button type="button" class={btnStage} onclick={holdAgain}><RotateCcw class="size-4" aria-hidden="true" />Hold again</button>
           </div>
         {/if}
-        <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="intonation-stats">
+        <div data-testid="intonation-stats">
+        {#if stats.inTunePct > 0}
+        <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div class="stat" title="Share of the last 10 seconds within ±{IN_TUNE_CENTS} cents"><dt>In tune</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
           <div class="stat" title="The longest stretch in tune without a break"><dt>Hold</dt><dd class="tnum font-display">{stats.holdSeconds.toFixed(1)} s</dd></div>
-          <div class="stat" title="How little the pitch wobbles, wherever it sits"><dt>Steadiness</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
-          <div class="stat" title="Average distance from the note: plus is sharp, minus is flat"><dt>Avg drift</dt><dd class="tnum font-display">{signedCents(stats.avgDriftCents)} ¢</dd></div>
+          <div class="stat" title="How little the pitch wobbles, wherever it sits"><dt>Held steady</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
+          <div class="stat" title="Average distance from the note: plus is sharp, minus is flat"><dt>Avg drift</dt><dd class="tnum font-display">{signedCents(stats.avgDriftCents)} cents</dd></div>
         </dl>
+        {:else}
+          <p class="stat text-sm">Hold the note in tune to score. The numbers appear once part of the last 10 seconds sits in the green band.</p>
+        {/if}
+        </div>
       {:else}
         <p class="text-sm text-ws-stage-soft">Hold one note steadily. In tune %, hold, steadiness and drift fill in as you play.</p>
       {/if}
@@ -433,16 +436,17 @@
     width: clamp(8rem, 30vw, 11rem);
     height: clamp(8rem, 30vw, 11rem);
     transform: rotate(-90deg);
-    opacity: 0;
-    transition: opacity 200ms;
   }
-  [data-state="in tune"] .hold {
-    opacity: 1;
-  }
+  /* The hold ring is always drawn, so the footer's promise has a place to land; it greens in tune. */
   .hold-track {
+    fill: none;
+    stroke: color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
+    stroke-width: 4;
+    transition: fill 200ms, stroke 200ms;
+  }
+  [data-state="in tune"] .hold-track {
     fill: color-mix(in oklch, var(--success) 10%, transparent);
     stroke: color-mix(in oklch, var(--success) 25%, transparent);
-    stroke-width: 4;
   }
   .hold-fill {
     fill: none;
@@ -547,7 +551,7 @@
     background: color-mix(in oklch, var(--ws-stage-ink) 5%, transparent);
   }
   .band {
-    fill: color-mix(in oklch, var(--success) 22%, transparent);
+    fill: color-mix(in oklch, var(--success) 34%, transparent);
   }
   .mid {
     stroke: color-mix(in oklch, var(--success) 70%, transparent);

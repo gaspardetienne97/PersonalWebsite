@@ -3,7 +3,8 @@
   // all of them. A card per drill: a picture of what it plays, its last score, then its modes.
   import Play from "lucide-svelte/icons/play";
   import X from "lucide-svelte/icons/x";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Search from "lucide-svelte/icons/search";
+  import SearchX from "lucide-svelte/icons/search-x";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
@@ -17,6 +18,8 @@
   import { DRILL_GROUPS, lastRun, rowMastery, type DrillRow } from "./drills-layout";
   import { pct, relativeDay } from "./progress/model";
   import DrillPreview from "./DrillPreview.svelte";
+  import Ring from "./progress/Ring.svelte";
+  import { DRILL_ICON, HUE_ICON } from "./hue-icons";
 
   /** Mode names said plainly on the cards. */
   const MODE_LABEL: Record<string, string> = { "Pocket recall": "From memory" };
@@ -29,8 +32,15 @@
   const strip = $derived(settings.value.activeInstrument);
   const filter = $derived<Instrument | "all">(everything ? "all" : strip);
   const forFilter = $derived(filter === "all" ? undefined : filter);
-  // Words from the search palette's "Show all in Drills" narrow the list by title and description.
+  // Words typed in the field (or sent by the palette's "Show all in Drills") narrow the list by
+  // title, description and mode. The URL holds them, so Back and a reload keep the search.
   const q = $derived((page.url.searchParams.get("q") ?? "").trim().toLowerCase());
+  const search = (v: string) =>
+    goto(v.trim() ? `/music?tab=drills&q=${encodeURIComponent(v)}` : "/music?tab=drills", {
+      replaceState: true,
+      noScroll: true,
+      keepFocus: true,
+    });
   const matches = (r: DrillRow) => !q || `${r.title} ${r.blurb} ${r.modes.map((m) => m.label).join(" ")}`.toLowerCase().includes(q);
   const visible = (r: DrillRow) => (filter === "all" || r.entry.instruments.includes(filter)) && matches(r);
   const shown = $derived(DRILL_GROUPS.map((g) => ({ ...g, rows: g.rows.filter(visible) })).filter((g) => g.rows.length));
@@ -48,19 +58,8 @@
       return out;
     }, []),
   );
-  // On a phone the jump row scrolls sideways: a button at its end says there is more and moves it on.
-  let chipRow = $state<HTMLElement>();
-  let moreRight = $state(false);
-  const measure = () => {
-    const el = chipRow;
-    moreRight = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
-  };
-  $effect(() => {
-    void jumps;
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  });
+  /** The card's icon: the drill's own glyph, the same one the search palette shows. */
+  const iconOf = (r: DrillRow, h: ReturnType<typeof hueForRoute>) => DRILL_ICON[r.entry.id] ?? HUE_ICON[h];
   // The jump chip for the section on screen lights up as the page scrolls.
   let spy = $state<SectionSpy>();
   $effect(() => {
@@ -91,33 +90,41 @@
     >
   </div>
 
-  <!-- Jump chips, pinned under the strip, with the section on screen lit. -->
-  <div class="sticky top-[var(--ws-strip-h,3.75rem)] z-10 -mx-4 -mt-2 border-b border-ws-line bg-ws-bg/95 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-  <nav
-    aria-label="Jump to"
-    bind:this={chipRow}
-    onscroll={measure}
-    class="chips flex gap-1.5 overflow-x-auto px-4 py-2 sm:flex-wrap sm:overflow-visible sm:px-2 {moreRight ? 'more' : ''}"
-  >
+  <!-- Search in place, above the sections. -->
+  <label class="relative -mt-2 block">
+    <span class="sr-only">Search drills</span>
+    <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ws-soft" aria-hidden="true" />
+    <input
+      type="search"
+      value={page.url.searchParams.get("q") ?? ""}
+      oninput={(e) => search(e.currentTarget.value)}
+      placeholder="Search drills"
+      class="h-12 w-full rounded-full border border-ws-line bg-ws-surface pl-10 pr-4 text-base placeholder:text-ws-soft focus-visible:outline-2 focus-visible:outline-ws-ink"
+    />
+  </label>
+
+  <!-- Jump chips with the section on screen lit: every one in view (they wrap), pinned under the strip from sm up. -->
+  <div class="z-10 -mt-2 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:rounded-2xl sm:border sm:border-ws-line sm:bg-ws-bg">
+  <nav aria-label="Jump to" class="flex flex-wrap gap-1.5 sm:px-2 sm:py-2">
     {#each jumps as j (j.id)}
       {@const on = spy?.current === `g-${j.id}`}
       <a
         href="#g-{j.id}"
         aria-current={on ? "location" : undefined}
-        class="flex min-h-10 shrink-0 items-center rounded-full px-3 text-sm {on ? 'bg-instr-wash font-semibold text-instr-ink' : 'text-ws-soft hover:bg-ws-raised hover:text-ws-ink'}"
-        >{j.title} <span class="tnum ml-1">({j.count})</span></a
+        class="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full px-2.5 text-sm sm:px-3 {on ? 'bg-instr-wash font-semibold text-instr-ink' : 'border border-ws-line text-ws-soft hover:bg-ws-raised hover:text-ws-ink sm:border-transparent'}"
+        >{j.title} <span class="tnum ml-1 max-sm:hidden">({j.count})</span></a
       >
     {/each}
   </nav>
-  {#if moreRight}
-    <button
-      type="button"
-      class="absolute inset-y-0 right-0 grid w-11 place-items-center text-ws-ink sm:hidden"
-      aria-label="Show more sections"
-      onclick={() => chipRow?.scrollBy({ left: chipRow.clientWidth * 0.7, behavior: "smooth" })}><ChevronRight class="size-5" aria-hidden="true" /></button
-    >
-  {/if}
   </div>
+
+  {#if !shown.length}
+    <div class="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-ws-line px-4 py-10 text-center">
+      <SearchX class="size-6 text-ws-soft" aria-hidden="true" />
+      <p class="font-medium">No matches{#if q}&nbsp;for "{q}"{/if}</p>
+      <p class="text-sm text-ws-soft">Try another word{#if !everything}, or look across all instruments{/if}.</p>
+    </div>
+  {/if}
 
   {#each shown as g, gi (g.id)}
     {@const opens = g.section && shown[gi - 1]?.section !== g.section}
@@ -130,21 +137,31 @@
       {/if}
       {#if g.note}<p class="mt-1 max-w-prose text-sm text-ws-soft">{g.note}</p>{/if}
       <ul class="mt-3 grid gap-3 sm:grid-cols-2">
-        {#each g.rows as r (r.key)}
+        {#each g.rows as r, ri (r.key)}
           {@const h = hueForRoute(r.entry.route, forFilter ?? drawOn(r))}
+          {@const Icon = iconOf(r, h)}
           {@const m = rowMastery(r, practice.mastery, now)}
           {@const last = lastRun(r, runs)}
           {@const anywhere = r.entry.instruments.length >= INSTRUMENTS.length}
           <!-- The title's link covers the card; each mode chip is its own link above it. -->
           <li class="card relative flex flex-col gap-3 rounded-2xl border border-ws-line p-3 hover:border-[color:var(--h)]" style:--h={hueVar(h)}>
             <div class="flex items-start gap-3">
-              <DrillPreview href={r.href} instrument={drawOn(r)} class="rounded-xl bg-ws-surface/70 p-1" />
+              <span class="relative shrink-0">
+                <DrillPreview href={r.href} instrument={drawOn(r)} class="rounded-xl bg-ws-surface/70 p-1" />
+                <span class="absolute -bottom-1.5 -left-1.5 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-ws-ink shadow-sm" aria-hidden="true"><Icon class="size-3.5" /></span>
+              </span>
               <span class="min-w-0 flex-1">
                 <a href={r.href} class="font-semibold after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ws-ink">{r.title}</a>
-                <span class="line-clamp-2 text-sm text-ws-soft">{r.blurb}</span>
+                <span class="block text-sm text-ws-soft">{r.blurb}</span>
                 <!-- What you have done with it: the last score, then mastery once Check mode has measured it. -->
                 <span class="tnum mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ws-soft">
-                  {#if last}<span><span class="font-semibold text-ws-ink">Last: {pct(last.score ?? 0)}</span>, {relativeDay(last.endedAt, now)}</span>{/if}
+                  {#if last}
+                    <span class="inline-flex items-center gap-1.5"
+                      ><Ring value={last.score ?? 0} stroke={(last.score ?? 0) >= 0.85 ? "var(--success)" : "var(--warn)"} class="size-5" /><span
+                        ><span class="font-semibold text-ws-ink">Last: {pct(last.score ?? 0)}</span>, {relativeDay(last.endedAt, now)}</span
+                      ></span
+                    >
+                  {/if}
                   {#if m.value !== undefined}
                     <span class="inline-flex items-center gap-1.5"
                       ><span class="h-1.5 w-12 rounded-full bg-ws-raised" aria-hidden="true"><span class="block h-full rounded-full bg-[color:var(--h)]" style:width="{m.value * 100}%"></span></span
@@ -152,7 +169,7 @@
                     >
                   {:else if r.skillIds.length && m.checked}
                     <span>{m.checked} of {COACH_MIN_ATTEMPTS} checked<span class="sr-only">, not measured yet</span></span>
-                  {:else if !last}<span>Not played yet</span>{/if}
+                  {:else if !last && ri === 0}<span class="rounded-full bg-instr-wash px-2 py-0.5 font-semibold text-instr-ink">Start here</span>{/if}
                   {#if filter === "all"}
                     {#if anywhere}<span>Any instrument</span>{:else}
                       <span class="inline-flex items-center gap-1"
@@ -163,25 +180,29 @@
                   {/if}
                 </span>
               </span>
+              <!-- On a laptop Start sits at the card's top right, in the same place on every card. -->
+              <span class="pointer-events-none flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg max-sm:hidden" aria-hidden="true"
+                ><Play class="size-4" />Start</span
+              >
             </div>
-            <!-- Start opens the drill's first mode (the card's own link); each named way opens straight into it. -->
-            <div class="flex min-w-0 items-end gap-3">
+            <!-- One Start (the card's own link opens the first mode), then each named way as a chip that opens straight into it. -->
+            <div class="mt-auto flex flex-col gap-2">
+              <span class="pointer-events-none flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg sm:hidden" aria-hidden="true"
+                ><Play class="size-4" />Start</span
+              >
               {#if r.modes.length}
-                <p class="relative min-w-0 flex-1 text-sm leading-7 text-ws-soft">
-                  Ways to practise:
-                  {#each r.modes as mo, k (mo.id)}
+                <div class="relative flex flex-wrap items-center gap-1.5">
+                  <span class="mr-0.5 text-xs text-ws-soft">Or start with</span>
+                  {#each r.modes as mo (mo.id)}
                     {@const label = MODE_LABEL[mo.label] ?? mo.label}
                     <a
                       href={mo.href}
-                      class="py-3 font-medium text-ws-ink underline decoration-ws-line underline-offset-4 hover:decoration-[color:var(--h)]"
+                      class="flex min-h-11 items-center whitespace-nowrap rounded-full border border-ws-line bg-ws-surface px-3.5 text-sm font-medium hover:border-[color:var(--h)] hover:bg-ws-raised"
                       aria-label="{r.title}: {label}">{label}</a
-                    >{k < r.modes.length - 1 ? ", " : ""}
+                    >
                   {/each}
-                </p>
-              {:else}<span class="flex-1"></span>{/if}
-              <span class="pointer-events-none flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg" aria-hidden="true"
-                ><Play class="size-4" />Start</span
-              >
+                </div>
+              {/if}
             </div>
           </li>
         {/each}
@@ -198,14 +219,5 @@
       color-mix(in oklch, var(--h) 12%, var(--ws-surface)),
       var(--ws-surface) 55%
     );
-  }
-  /* The jump row stays one line and scrolls sideways; its right edge fades, so a cut chip reads as more. */
-  .chips {
-    scrollbar-width: none;
-  }
-  @media (max-width: 639px) {
-    .chips.more {
-      mask-image: linear-gradient(to right, black calc(100% - 4rem), transparent calc(100% - 1rem));
-    }
   }
 </style>

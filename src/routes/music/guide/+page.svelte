@@ -15,7 +15,9 @@
   import { onMount } from "svelte";
   import { SectionSpy } from "$lib/music/section-spy.svelte";
   import Picker from "$lib/music/components/Picker.svelte";
-  import { btnPrimary } from "$lib/music/components/ui";
+  import ChevronLeft from "lucide-svelte/icons/chevron-left";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import { btn, btnPrimary } from "$lib/music/components/ui";
 
   const TOPICS = [
     { id: "session", label: "How a session works", hue: "piano", icon: Layers },
@@ -289,11 +291,21 @@
 <!-- The end of each topic leads to the next, so the guide reads straight through without the topic list. -->
 {#snippet nextTopic(id: string)}
   {@const i = TOPICS.findIndex((t) => t.id === id)}
+  {@const prev = TOPICS[i - 1]}
   {@const next = TOPICS[i + 1]}
-  <p class="mt-6 flex items-center justify-between gap-3 border-t border-ws-line pt-3 text-sm">
-    <span class="tnum text-ws-soft">Topic {i + 1} of {TOPICS.length}</span>
-    {#if next}<a class="{link} inline-flex min-h-11 items-center" href="#{next.id}" onclick={(e) => (e.preventDefault(), jump(next.id))}>Next: {next.label}</a>{/if}
-  </p>
+  <nav aria-label="Topic {i + 1} of {TOPICS.length}" class="mt-6 flex flex-col gap-3 border-t border-ws-line pt-4">
+    <!-- A dot per topic, this one filled: where you are in the guide at a glance. -->
+    <ol class="flex items-center gap-1.5" aria-hidden="true">
+      {#each TOPICS as t, k (t.id)}
+        <li class="h-2 rounded-full {k === i ? 'w-6' : 'w-2 bg-ws-line'}" style:background={k === i ? `var(--hue-${t.hue})` : undefined}></li>
+      {/each}
+      <li class="tnum ml-2 text-sm text-ws-soft">Topic {i + 1} of {TOPICS.length}</li>
+    </ol>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      {#if prev}<a class="{btn} no-underline" href="#{prev.id}" onclick={(e) => (e.preventDefault(), jump(prev.id))}><ChevronLeft class="size-4" aria-hidden="true" />Previous<span class="sr-only">: {prev.label}</span></a>{:else}<span></span>{/if}
+      {#if next}<a class="{btn} no-underline" href="#{next.id}" onclick={(e) => (e.preventDefault(), jump(next.id))}>Next: {next.label}<ChevronRight class="size-4" aria-hidden="true" /></a>{/if}
+    </div>
+  </nav>
 {/snippet}
 
 {#snippet heading(id: string, label: string, topicId: string)}
@@ -305,21 +317,18 @@
 {/snippet}
 
 {#snippet setPicture()}
+  <!-- One picture of the set: a tile per block, its colour as a band, its name and minutes in stage ink. -->
   <figure class="pic max-md:order-first" aria-label="Today's set: four five-minute blocks, scales, ear, reading and rhythm, with the first one ready to start">
-    <div class="flex h-14 gap-1.5">
+    <ol class="grid grid-cols-4 gap-1.5 md:grid-cols-2">
       {#each SET as b, i (b.label)}
-        <div class="flex min-w-0 flex-1 items-end rounded-lg p-1.5 text-xs font-semibold text-ws-stage" style:background="var(--hue-{b.hue})" style:opacity={i === 0 ? 1 : 0.75}>{b.label}</div>
-      {/each}
-    </div>
-    <ol class="mt-3 flex flex-col gap-1.5 text-sm">
-      {#each SET as b, i (b.label)}
-        <li class="flex items-center gap-2 rounded-lg px-2 py-1.5 {i === 0 ? 'ring-2' : ''}" style:--tw-ring-color="var(--hue-{b.hue})">
-          <span class="tnum grid size-6 place-items-center rounded-full bg-ws-stage-ink/10 text-xs">{i + 1}</span>
-          <span class="flex-1">{b.label}</span>
-          <span class="tnum text-xs text-ws-stage-soft">{b.min} min</span>
+        <li class="flex min-w-0 flex-col gap-1 overflow-hidden rounded-lg bg-ws-stage-ink/10 pb-2 {i === 0 ? 'ring-2' : ''}" style:--tw-ring-color="var(--hue-{b.hue})">
+          <span class="h-2" style:background="var(--hue-{b.hue})" aria-hidden="true"></span>
+          <span class="px-1.5 text-sm font-semibold">{b.label}</span>
+          <span class="tnum px-1.5 text-sm text-ws-stage-soft">{b.min} min</span>
         </li>
       {/each}
     </ol>
+    <p class="mt-2 text-xs text-ws-stage-soft">The ringed block is next.</p>
   </figure>
 {/snippet}
 

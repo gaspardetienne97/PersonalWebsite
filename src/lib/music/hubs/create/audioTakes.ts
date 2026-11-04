@@ -59,3 +59,6 @@ export function suggestedBoost(heldPeakDb: number, currentBoost: number): number
   const raw = heldPeakDb - currentBoost;
   return Math.max(BOOST_RANGE.min, Math.min(BOOST_RANGE.max, Math.round(-12 - raw)));
 }
+
+/** The takes heading's count: saved takes only, so a take still recording never reads as one of them. */
+export const savedTakesLabel = (saved: number) => (saved ? `${saved} saved` : "none saved yet");
