@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { PracticeSession, RunRecord } from "@repo/music-core";
-import { setupTrend, sparkPoints } from "./trend";
+import { deltaText, notMeasuredText, setupTrend, sparkPoints } from "./trend";
 
 const run = (exerciseId: string, setupKey: string, endedAt: number, score?: number) =>
   ({ id: `${exerciseId}${endedAt}`, exerciseId, setupKey, endedAt, score }) as RunRecord;
@@ -34,5 +34,26 @@ describe("sparkPoints", () => {
       [10, 0],
     ]);
     expect(sparkPoints([0.5], 10, 4)).toEqual([[5, 2]]);
+  });
+});
+
+describe("deltaText", () => {
+  it("says the change in points, with its sign", () => {
+    expect(deltaText(12.4)).toBe("+12 points vs last time");
+    expect(deltaText(-60)).toBe("-60 points vs last time");
+    expect(deltaText(1)).toBe("+1 point vs last time");
+    expect(deltaText(0.3)).toBe("Same as last time");
+  });
+});
+
+describe("notMeasuredText", () => {
+  it("lists the unmeasured rows on one line", () => {
+    expect(notMeasuredText(["Timing", "Early or late"])).toBe(
+      "Not measured: timing, early or late",
+    );
+    expect(notMeasuredText(["MIDI velocity"])).toBe("Not measured: MIDI velocity");
+    expect(notMeasuredText(["Velocity", "Rising: velocity not measured"])).toBe(
+      "Not measured: velocity; rising: velocity not measured",
+    );
   });
 });

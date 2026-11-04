@@ -55,7 +55,8 @@
         {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
       </button>
     {:else if after && (kind === "mic" || midi.supported)}
-      <a class={btn} href="/music/connect">Check inputs</a>
+      <!-- After a silent run this is the way forward (Again would only be silent again), so it leads. -->
+      <a class={btnPrimary} href="/music/connect">Check inputs</a>
     {/if}
   </div>
 {/if}

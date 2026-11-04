@@ -195,7 +195,8 @@
   </div>
 
   <h2 bind:this={heading} tabindex="-1" class="font-display text-2xl font-semibold outline-none sm:text-3xl">{screen.title}</h2>
-  <p class="max-w-prose text-base">{screen.text}</p>
+  <!-- On a phone the figure comes before the words (everything after it is order 1). -->
+  <p class="max-w-prose text-base max-sm:order-1">{screen.text}</p>
 
   {#if figure?.kind === "groove"}
     {@const g = figure}
@@ -249,12 +250,12 @@
   {/if}
 
   {#if steps.length}
-    <ol class="flex flex-col gap-1 text-base" aria-live="polite">
+    <ol class="flex flex-col gap-1 text-base max-sm:order-1" aria-live="polite">
       {#each steps.slice(0, shown) as st, i (i)}<li class={i === shown - 1 ? "font-semibold" : "text-ws-stage-ink/80"}>{st.text}</li>{/each}
     </ol>
   {/if}
 
-  <div class="flex flex-wrap gap-2">
+  <div class="flex flex-wrap gap-2 max-sm:order-1">
     {#if screen.sound}<button type="button" class={btn} onclick={() => play(screen.sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear it</button>{/if}
     {#if shown > 0 && steps[shown - 1].sound}<button type="button" class={btn} onclick={() => play(steps[shown - 1].sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear this step</button>{/if}
     {#each screen.options ?? [] as o (o.label)}
@@ -262,11 +263,14 @@
     {/each}
   </div>
 
-  <div class="flex flex-wrap items-center gap-2 pt-2">
-    {#if !isFirst}<button type="button" class={btn} onclick={back}>Back</button>{/if}
-    <button type="button" class={btnPrimary} onclick={next}>{isLast ? "Start the quiz" : "Next"}</button>
-    {#if li === 0 && si === 0}<button type="button" class="min-h-11 rounded-full px-4 text-sm font-medium text-ws-stage-ink/80 underline underline-offset-4 hover:text-ws-stage-ink" onclick={onskip}>Skip, I know this</button>{/if}
-    <span class="ml-auto hidden text-xs text-ws-stage-ink/70 sm:inline">Arrow keys move.</span>
+  <!-- Below lg the lesson's moves dock above the tab bar, where Start sits, so Next never hides under it. -->
+  <div
+    class="flex flex-wrap items-center gap-2 pt-2 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[var(--ws-dock-h,3.5rem)] max-lg:z-30 max-lg:flex-nowrap max-lg:border-t max-lg:border-ws-line max-lg:bg-ws-surface max-lg:px-4 max-lg:py-2 max-lg:text-ws-ink"
+  >
+    {#if !isFirst}<button type="button" class="{btn} max-lg:border max-lg:border-ws-line max-lg:bg-ws-surface max-lg:text-ws-ink" onclick={back}>Back</button>{/if}
+    <button type="button" class="{btnPrimary} max-lg:min-h-12 max-lg:flex-1 max-lg:text-base" onclick={next}>{isLast ? "Start the quiz" : "Next"}</button>
+    {#if li === 0 && si === 0}<button type="button" class="min-h-11 shrink-0 rounded-full px-3 text-sm font-medium text-ws-soft underline underline-offset-4 hover:text-ws-ink lg:px-4 lg:text-ws-stage-ink/80 lg:hover:text-ws-stage-ink" onclick={onskip}>Skip, I know this</button>{/if}
+    <span class="ml-auto hidden text-xs text-ws-stage-ink/70 lg:inline">Arrow keys move.</span>
   </div>
 </div>
 

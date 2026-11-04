@@ -44,8 +44,9 @@
   import { audio } from "../runtime";
   import InputCheck from "./InputCheck.svelte";
   import Star from "lucide-svelte/icons/star";
+  import Trophy from "lucide-svelte/icons/trophy";
   import { practice } from "../practice.svelte";
-  import { setupTrend, sparkPoints } from "./trend";
+  import { deltaText, notMeasuredText, setupTrend, sparkPoints } from "./trend";
 
   let { summary, actions }: { summary: RunSummary; actions?: Snippet } = $props();
 
@@ -55,7 +56,7 @@
   const delta = $derived(summary.delta !== undefined ? summary.delta : trend.length > 1 ? (trend[trend.length - 1] - trend[trend.length - 2]) * 100 : null);
   const clean = $derived(summary.clean ?? trend[trend.length - 1] === 1);
   const celebrate = $derived(clean || !!summary.best);
-  const SPARK = { w: 88, h: 24 };
+  const SPARK = { w: 120, h: 32 };
   const spark = $derived(sparkPoints(trend, SPARK.w, SPARK.h));
   // Fires once, when the card first shows: the run's verdict does not change after.
   let cheered = false;
@@ -72,6 +73,13 @@
     shell?.offer(moves && summary.heard !== false ? summary.advance! : null);
     return () => shell?.offer(null);
   });
+  // Nothing heard: the shell leaves the stage out and steps Again back, so the input fix leads.
+  $effect(() => {
+    shell?.silent(summary.heard === false);
+    return () => shell?.silent(false);
+  });
+  const measured = $derived(summary.rows?.filter((r) => !r.notMeasured) ?? []);
+  const unmeasured = $derived(summary.rows?.filter((r) => r.notMeasured).map((r) => r.label) ?? []);
   async function goNext() {
     summary.advance?.go();
     await tick();
@@ -88,7 +96,8 @@
     <div class="mt-4"><InputCheck after /></div>
   </article>
 {:else}
-<article class="relative overflow-hidden rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6">
+<!-- A clean run or a personal best keeps a success edge and badge after the burst has gone. -->
+<article class="relative overflow-hidden rounded-2xl border bg-ws-surface p-5 sm:p-6 {celebrate ? 'border-success/60 ring-1 ring-success/30' : 'border-ws-line'}">
   {#if celebrate}<span class="bloom" aria-hidden="true"></span>{/if}
   <div class="relative flex flex-wrap items-start gap-x-8 gap-y-4">
     <div class="min-w-0 flex-1 basis-72">
@@ -107,10 +116,11 @@
         </p>
       {/if}
     </div>
-    <div class="flex flex-col items-end text-right">
-      {#if clean}
-        <p class="mb-2 flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
-          <Star class="size-3.5 fill-current" aria-hidden="true" />Clean run
+    <div class="flex flex-col items-start sm:items-end sm:text-right">
+      {#if celebrate}
+        <p class="mb-2 flex flex-wrap gap-1.5">
+          {#if clean}<span class="flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Star class="size-4 fill-current" aria-hidden="true" />Clean run</span>{/if}
+          {#if summary.best}<span class="flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Trophy class="size-4" aria-hidden="true" />Personal best</span>{/if}
         </p>
       {/if}
       <p class="relative tnum font-display text-5xl font-bold leading-none sm:text-6xl">
@@ -122,43 +132,40 @@
       </p>
       <p class="mt-1 text-sm text-ws-soft">{summary.metricLabel}</p>
       <p class="mt-2 text-sm font-medium">
-        {#if summary.best}<span class="text-success">Personal best</span>{:else if delta != null && Math.round(delta) === 0}
-          <span class="text-ws-soft">Same as last time</span>
-        {:else if delta != null}
-          <span class={delta > 0 ? "text-success" : "text-ws-soft"}>
-            {delta > 0 ? "+" : ""}{Math.round(delta)} vs last time
-          </span>
-        {:else if summary.recorded === false}<span class="text-ws-soft">Not recorded</span>{:else}<span class="text-ws-soft">First run with this setup</span>{/if}
-        {#if summary.xp}<span class="ml-2 text-ws-soft">+{summary.xp} XP</span>{/if}
+        {#if delta != null}
+          <span class={Math.round(delta) > 0 ? "text-success" : "text-ws-soft"}>{deltaText(delta)}</span>
+        {:else if summary.recorded === false}<span class="text-ws-soft">Not recorded</span>{:else if !summary.best}<span class="text-ws-soft">First run with this setup</span>{/if}
       </p>
+      {#if summary.xp}<p class="text-sm text-ws-soft">+{summary.xp} XP</p>{/if}
       {#if trend.length > 1}
-        <svg
-          class="mt-2 overflow-visible text-instr-ink"
-          width={SPARK.w}
-          height={SPARK.h}
-          viewBox="0 0 {SPARK.w} {SPARK.h}"
-          role="img"
-          aria-label="Your last {trend.length} runs with this setup: {trend.map((v) => `${Math.round(v * 100)}%`).join(', ')}"
-        >
-          <line x1="0" x2={SPARK.w} y1={SPARK.h} y2={SPARK.h} class="stroke-ws-line" stroke-width="1" />
-          <polyline points={spark.map((p) => p.join(",")).join(" ")} fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7" />
-          {#each spark as [x, y], i (i)}<circle cx={x} cy={y} r={i === spark.length - 1 ? 3.5 : 2} fill={i === spark.length - 1 ? "currentColor" : "var(--ws-surface)"} stroke="currentColor" stroke-width="1.25" />{/each}
-        </svg>
+        <figure class="mt-2 flex flex-col items-start gap-0.5 sm:items-end">
+          <svg
+            class="overflow-visible text-instr-ink"
+            width={SPARK.w}
+            height={SPARK.h}
+            viewBox="0 0 {SPARK.w} {SPARK.h}"
+            role="img"
+            aria-label="Your last {trend.length} runs with this setup: {trend.map((v) => `${Math.round(v * 100)}%`).join(', ')}"
+          >
+            <line x1="0" x2={SPARK.w} y1={SPARK.h} y2={SPARK.h} class="stroke-ws-line" stroke-width="1" />
+            <polyline points={spark.map((p) => p.join(",")).join(" ")} fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" opacity="0.75" />
+            {#each spark as [x, y], i (i)}<circle cx={x} cy={y} r={i === spark.length - 1 ? 4 : 2.25} fill={i === spark.length - 1 ? "currentColor" : "var(--ws-surface)"} stroke="currentColor" stroke-width="1.25" />{/each}
+          </svg>
+          <figcaption class="text-xs text-ws-soft" aria-hidden="true">Last {trend.length} runs</figcaption>
+        </figure>
       {/if}
     </div>
   </div>
 
-  {#if summary.rows?.length}
+  {#if measured.length}
     <dl class="relative mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-      {#each summary.rows as row (row.label)}
+      {#each measured as row (row.label)}
         <div class="min-w-0">
           <div class="flex items-baseline justify-between gap-3 text-sm">
             <dt class="text-ws-soft">{row.label}</dt>
-            <dd class="tnum font-semibold">
-              {#if row.notMeasured}<span class="font-normal text-ws-soft">Not measured</span>{:else}{row.text ?? `${Math.round((row.value ?? 0) * 100)}%`}{/if}
-            </dd>
+            <dd class="tnum font-semibold">{row.text ?? `${Math.round((row.value ?? 0) * 100)}%`}</dd>
           </div>
-          {#if row.value != null && !row.notMeasured}
+          {#if row.value != null}
             <div class="mt-1 h-1.5 rounded-full bg-ws-raised">
               <div class="h-full rounded-full {toneClass[gradeTone(row.value)]}" style:width="{Math.max(2, row.value * 100)}%"></div>
             </div>
@@ -166,6 +173,10 @@
         </div>
       {/each}
     </dl>
+  {/if}
+  {#if unmeasured.length}
+    <!-- What the input could not hear, said once and kept in view (never scored as a zero). -->
+    <p class="relative mt-3 text-sm text-ws-soft">{notMeasuredText(unmeasured)}</p>
   {/if}
 
   {#if summary.ladder?.length}

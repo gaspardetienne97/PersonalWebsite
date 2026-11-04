@@ -64,7 +64,7 @@ export const assistanceText = (mode: DrillMode, hinted = false) =>
     ? "You used a hint, so this run is practice, not a check."
     : mode === "check"
       ? "Checked run: targets were hidden, so it counts toward mastery."
-      : "Practice run: targets were shown. Switch to Check when you're ready to count it.";
+      : "Practice run: targets were shown, so it is saved as practice.";
 
 /** A persisted map keyed by setup (tempo ladders, chord-pair history). */
 export async function readKeyed<T>(key: string): Promise<Record<string, T>> {
