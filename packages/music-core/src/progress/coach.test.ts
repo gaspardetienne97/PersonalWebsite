@@ -55,6 +55,22 @@ describe("coach", () => {
     expect(a.insights.some((l) => l.includes("%"))).toBe(false);
   });
 
+  it("counts checked answers with no instrument (clicked ear answers) on the instrument, never Practice ones", () => {
+    const a = advise([
+      ...reps(3, { skillIds: ["pitch.scale-degrees"], correct: true }),
+      ...reps(2, { skillIds: ["pitch.scale-degrees"], correct: false, partialCredit: 0 }),
+      ...reps(6, { skillIds: ["pitch.scale-degrees"], assistance: "guided", correct: false }),
+      ...reps(9, {
+        instrument: "guitar",
+        skillIds: ["pitch.scale-degrees"],
+        correct: false,
+        partialCredit: 0,
+      }),
+    ]);
+    expect(a.measured).toBe(true);
+    expect(a.focus).toMatchObject({ skillId: "pitch.scale-degrees", accuracy: 0.6, attempts: 5 });
+  });
+
   it("never frames a single attempt as a diagnosis", () => {
     const a = advise([
       ...reps(5, { instrument: "piano", skillIds: ["technique.scale.major"], correct: true }),

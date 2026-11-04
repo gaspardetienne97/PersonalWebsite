@@ -40,6 +40,14 @@ export interface StatsScope {
   independentOnly?: boolean;
 }
 
+/**
+ * Whether evidence counts on an instrument: answers on it, and answers recorded with no
+ * instrument (a clicked ear answer, scoring rule 2), which belong to their skill whatever is
+ * picked. Another instrument's answers never count.
+ */
+export const onInstrument = (x: { instrument?: Instrument }, instrument?: Instrument) =>
+  !instrument || x.instrument === undefined || x.instrument === instrument;
+
 const sliceKey = (skillId: string, instrument: Instrument | undefined, independent: boolean) =>
   `${skillId}|${instrument ?? "-"}|${independent ? "i" : "a"}`;
 
@@ -168,7 +176,7 @@ export function skillSummaries(
 ): Record<string, SkillSummary> {
   const merged: Record<string, SkillStats> = {};
   for (const s of Object.values(stats)) {
-    if (scope.instrument && s.instrument !== scope.instrument) continue;
+    if (!onInstrument(s, scope.instrument)) continue;
     if (scope.independentOnly && !s.independent) continue;
     merged[s.skillId] = mergeInto(merged[s.skillId] ?? emptyStats(s.skillId), s);
   }
