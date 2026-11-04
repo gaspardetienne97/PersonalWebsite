@@ -16,8 +16,9 @@
   let { instrument, sound, since = null }: Props = $props();
 
   let last = $state<{ text: string; used: boolean; midi: number; at: number } | null>(null);
-  /** The last note came before this run (a run where nothing was heard): it must not read as part of the run. */
-  const stale = $derived(!!last && since !== null && last.at < since);
+  /** A run where nothing was heard: a note from before it must not read as part of the run. The line says
+   *  what the run's own events say (contradiction 11): connected, nothing arrived during it. */
+  const silentRun = $derived(since !== null && (!last || last.at < since));
 
   $effect(() =>
     midi.subscribeRaw((m) => {
@@ -42,8 +43,10 @@
 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" data-testid="midi-status">
   <Cable class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
   <p class="min-w-0 flex-1 basis-60">
-    {#if last && midi.enabled}
-      <span class={last.used ? "" : "font-medium"} title="MIDI note {last.midi}">{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{stale ? `Before the run: ${last.text}` : last.text}</span>
+    {#if silentRun && midi.enabled && last}
+      <span class="font-medium">Connected, but no {instrument === "mpc" ? "pad hits" : "notes"} arrived during the run.</span>
+    {:else if last && midi.enabled}
+      <span class={last.used ? "" : "font-medium"} title="MIDI note {last.midi}">{#if !last.used}<span class="text-warn" aria-hidden="true">⚠ </span>{/if}{last.text}</span>
     {:else}
       <span class="text-ws-soft">{waiting}</span>
     {/if}

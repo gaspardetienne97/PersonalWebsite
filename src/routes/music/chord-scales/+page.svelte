@@ -15,7 +15,9 @@
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
+  import { Flashes, type CellMarks, type FlashKind } from "$lib/music/components/feedback.svelte";
+  import { lineOutcomes } from "$lib/music/drills/piano/lane-outcomes";
+  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { toneLabel } from "$lib/music/drills/piano/tones";
   import { DrillSetup } from "$lib/music/setup.svelte";
@@ -63,7 +65,10 @@
   let patternResult = $state<LickResult | null>(null);
   let played = 0;
   const transport = new Transport();
-  const flashes = new Flashes();
+  const flashes = new Flashes<FlashKind | "order">();
+  /** Pattern mode: the notes played, in beats from the downbeat, for the marks on the run's staff. */
+  let hits = $state<{ midi: number; beat: number }[]>([]);
+  let beatMsRun = $state(500);
   let cap: Capture | null = null;
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -90,7 +95,8 @@
 
   // A change is anticipated by half a beat: a note just before the bar line belongs to the next chord.
   const chordIndexAt = (beat: number) => Math.min(targets.length - 1, Math.max(0, Math.floor((beat + 0.5) / perChord)));
-  const currentIndex = $derived(transport.beat === null ? 0 : chordIndexAt(transport.beat));
+  // What is lit follows the transport clock (the playhead), never ahead of it; grading keeps the anticipation.
+  const currentIndex = $derived(transport.beat === null ? 0 : Math.min(targets.length - 1, Math.max(0, Math.floor(transport.beat / perChord))));
   const current = $derived(targets[currentIndex]);
   /** The chart shows one key's ii-V-I at a time. */
   const chartFrom = $derived(Math.floor(currentIndex / 3) * 3);
@@ -162,7 +168,12 @@
       const want = patternLine[played];
       played += 1;
       nextIndex = Math.min(played, patternLine.length - 1);
-      if (mode === "practice" && want) flashes.add(e.midi, pc(e.midi) === pc(want.midi) ? "correct" : "wrong");
+      if (ctxRef) hits = [...hits, { midi: e.midi, beat: (e.at - ctxRef.downbeat) / ctxRef.beatMs }];
+      if (mode === "practice" && want) {
+        // A note of this chord's pattern out of its turn is an order slip (amber), not a wrong note (red X).
+        const inPattern = patternLine.some((n) => n.chord === want.chord && pc(n.midi) === pc(e.midi));
+        flashes.add(e.midi, pc(e.midi) === pc(want.midi) ? "correct" : inPattern && inst === "piano" ? "order" : "wrong");
+      }
       return;
     }
     if (mode !== "practice") return;
@@ -177,6 +188,8 @@
     patternResult = null;
     played = 0;
     nextIndex = 0;
+    hits = [];
+    beatMsRun = ctx.beatMs;
     flashes.clear();
     ctxRef = ctx;
     run = practice.beginRun({
@@ -194,6 +207,17 @@
     transport.follow(ctx.downbeat, ctx.beatMs);
     timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + totalBeats * ctx.beatMs + 200);
   }
+
+  /** Pattern mode, after the run: each note right, wrong or missed, graded by position as the run is. */
+  const patternStates = $derived.by(() => {
+    const out: Record<number, GroupState> = {};
+    if (!patternResult) return out;
+    const tol = Math.min(180, beatMsRun / 4) / beatMsRun;
+    lineOutcomes(patternLine.map((n) => ({ midi: n.midi, beat: n.startBeat })), hits, tol).forEach((o, i) => (out[i] = !o ? "missed" : o === "miss" ? "wrong" : "correct"));
+    return out;
+  });
+  /** Beside Stop on a phone: the chord now and, in Practice, its scale. */
+  const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? `${current.symbol}${mode === "practice" ? `: ${pattern ? `${pattern.label} pattern` : current.scaleLabel}` : ", from memory"}` : "");
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -246,6 +270,7 @@
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
+      cleanMeans: "every chord's notes inside its scale",
       rows: r.chords.map((c, i) => ({
         label: `${c.symbol}, ${targets[i].scaleLabel}`,
         value: c.chord + c.scale + c.avoid ? c.score : null,
@@ -297,11 +322,25 @@
       mode,
       rows: [
         { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
-        { label: `On time (within ${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
+        // Timing is judged on the notes that came in order, so it says how many of those.
+        { label: `On time (within ${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
+        ...perChordRows(),
       ],
+      cleanMeans: "every note in order",
       advance: ons.length ? await nextRun(`chord-scales.pattern.${pattern!.id}.${keyCount}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max } }, r) : undefined,
     };
     status = summary.headline;
+  }
+
+  /** Pattern mode on one key: how each chord went, so the slip has a place. */
+  function perChordRows() {
+    if (targets.length > 6) return [];
+    const marks = Object.values(patternStates);
+    return targets.map((t, i) => {
+      const own = patternLine.flatMap((n, k) => (n.chord === i ? [marks[k]] : []));
+      const right = own.filter((m) => m === "correct").length;
+      return { label: t.symbol, value: own.length ? right / own.length : 0, text: `${right} of ${own.length}` };
+    });
   }
 
   function stop() {
@@ -325,7 +364,7 @@
   lesson={{ lessons: conceptCard(pattern ? "chord-scales.patterns" : changes === "major" ? "chord-scales.why" : "chord-scales.minor"), trigger: "check" }}
   title="Chord scales"
   hue="piano"
-  blurb="As the ii-V-I moves, play the go-to scale for the chord you're on, every note judged against that chord's scale; or play 1-2-3-5 or 3-5-7-9 on each chord through the keys."
+  blurb="As the ii-V-I moves, play the scale of the chord you are on, or a 1-2-3-5 or 3-5-7-9 pattern on each chord."
   summary={summaryLine}
   tabs={[
     { id: "major", label: "Major ii-V-I" },
@@ -342,6 +381,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="mb-4">
@@ -388,16 +428,12 @@
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <Stat label="Chord" value="{currentIndex + 1} of {targets.length}" />
-    {:else if patternResult}
-      <Stat label="Notes in order" value={pct(patternResult.score)} tone={patternResult.correct ? "success" : "warn"} />
-    {:else if result}
-      <Stat label="Chords played" value="{result.graded}/{targets.length}" />
-      <Stat label="Inside" value={pct(result.score)} tone={result.score >= 0.9 ? "success" : "warn"} />
     {/if}
+    <!-- After a run the HUD stays quiet: the results card says the numbers once (and a silent run has none). -->
   {/snippet}
 
   {#snippet stage()}
-    <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
+    <div class="flex min-h-0 flex-col justify-center" data-dock="music">
     <ol class="mb-3 grid grid-cols-3 gap-2" aria-label="Chord chart">
       {#each targets.slice(chartFrom, chartFrom + 3) as t, j (t.symbol)}
         {@const i = chartFrom + j}
@@ -407,6 +443,7 @@
           <p class="font-display text-xl font-semibold sm:text-2xl">{t.symbol}</p>
           {#if mode === "practice" || phase === "results"}
             <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
+            {#if /lydian/i.test(t.scaleLabel) && phase !== "running"}<p class="text-xs text-ws-stage-soft max-sm:hidden">Raised 4th: no clash with the 3rd</p>{/if}
           {/if}
           {#if done}<p class="text-xs text-ws-stage-soft">{done.avoid ? `✕ ${done.avoid} outside` : done.chord + done.scale ? "✓ all inside" : "not played"}</p>{/if}
         </li>
@@ -422,7 +459,7 @@
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
       <!-- Each chord's symbol over its bars, so the change is read on the music itself. -->
-      <div class="mb-3"><LineNotation notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} /></div>
+      <div class="mb-3"><LineNotation oneRow notes={written} tuning={fretTuning(inst)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} /></div>
     {/if}
     </div>
     <div class="flex flex-col justify-end" data-dock="instrument">
@@ -433,16 +470,27 @@
     <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-ink" aria-label="Colour key">
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
       <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (dashed ring)</li>
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>A note you just played outside</li>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (dashed, struck through)</li>
+      {#if pattern}<li class="flex items-center gap-1.5"><span class="key-swatch" data-role="order" aria-hidden="true">5</span>In the pattern, out of order</li>{/if}
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>{pattern ? "Not in the pattern" : "A note you just played outside"}</li>
     </ul>
     {/if}
   {/snippet}
 
   {#snippet results()}
-    {#if summary}<Results {summary} />{/if}
+    {#if summary}<Results {summary} {figure} />{/if}
   {/snippet}
 </DrillShell>
+
+<!-- Pattern mode: the line as you played it, each note right, wrong or missed on the staff or tab. -->
+{#snippet figure()}
+  {#if pattern && patternResult && hits.length}
+    <div class="stage rounded-2xl p-3">
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Where each note landed</p>
+      <LineNotation oneRow notes={written} tuning={fretTuning(inst)} title="{setupKey}-run" groupStates={patternStates} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} />
+    </div>
+  {/if}
+{/snippet}
 
 <style>
   .key-swatch {
@@ -469,5 +517,11 @@
   .key-swatch[data-role="avoid"] {
     border: 2px dashed var(--tone-avoid);
     color: var(--ws-stage-ink);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+  .key-swatch[data-role="order"] {
+    background: #fffdf8;
+    box-shadow: inset 0 0 0 3px var(--warn);
   }
 </style>

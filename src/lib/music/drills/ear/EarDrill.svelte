@@ -82,6 +82,8 @@
   import EarVisual from "./EarVisual.svelte";
   import EarReveal, { ON_INSTRUMENT } from "./EarReveal.svelte";
   import ConfusionGrid from "./ConfusionGrid.svelte";
+  import Volume2 from "lucide-svelte/icons/volume-2";
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
   import { degreeColor, spellDegree } from "./degrees";
   import { nextRun, type NextRun } from "$lib/music/advance.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
@@ -1253,10 +1255,12 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === prompts.length && !pocket,
+      // The advance rule's own line (advanceAfter: 90% right).
+      cleanMeans: `${Math.ceil(0.9 * prompts.length)} of ${prompts.length} right or better`,
       xp: fin.xp,
       // Pocket recall is rated by you: said in its own words, not as a Practice or Check run.
       ...(pocket ? { assistance: "Pocket recall: you rated yourself, so this doesn't move your skill scores." } : { mode }),
-      coach: retries && !pocket ? { label: `Practise my confusions (${retries} ${retries === 1 ? "question" : "questions"})`, run: retry } : undefined,
+      coach: retries && !pocket ? { label: `Drill my confusions (${retries} ${retries === 1 ? "question" : "questions"})`, run: retry } : undefined,
       rows: centsRows(done) ?? itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
     };
@@ -1373,7 +1377,21 @@
     return out;
   });
 
+  /** What to do now, beside Stop on a phone: never the verdict (the card says it). */
+  const cue = $derived.by(() => {
+    if (phase !== "running" || !current) return "";
+    if (step === "playing" || sounding >= 0) return "Listen";
+    if (step === "feedback") return mode === "practice" ? "Continue when ready" : "";
+    if (answer === "listen") return step === "revealed" ? "Did you hear it?" : "Name it to yourself, then reveal";
+    if (answer === "listen-along") return "Listen along";
+    if (answer === "voice") return "Sing your answer";
+    if (answer !== "choice") return "Play it back";
+    return degreeChoices ? "Tap the degree you heard" : "Pick what you heard";
+  });
   const choiceTokens = $derived(current?.choices ?? []);
+  /** Equal columns with no orphan: 5 and 6 as rows of 3, 7 and 8 as rows of 4, up to 4 in one row from sm. */
+  const answerCols = (n: number) =>
+    n <= 2 ? "grid-cols-2" : n === 4 ? "grid-cols-2 sm:grid-cols-4" : n === 3 || n === 5 || n === 6 || n === 9 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4";
   const degreeChoices = $derived(current?.drill === "scale-degree" && answer === "choice");
   /** A degree as one short word: "3", or "mi" in solfege (no "3 / mi" pairs in tight places). */
   const deg = (d: string) => (labels === "solfege" ? (SCALE_DEGREES.find((x) => x.label === d)?.solfege ?? d) : d);
@@ -1444,6 +1462,41 @@
   </ol>
 {/snippet}
 
+<!-- The run drawn: the missed phrases and the mix-up grid, beside the breakdown on a laptop. -->
+{#snippet runFigure()}
+  <div class="grid gap-3">
+    {#if missedPhrases.length}
+      <!-- Each missed phrase drawn: the notes in their degree colours, yours in red with a cross where it differs. -->
+      <section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="phrases-title">
+        <h3 id="phrases-title" class="font-display text-lg font-semibold">The phrases you missed</h3>
+        <ul class="mt-2 grid gap-3">
+          {#each missedPhrases as m (m.i)}
+            <li class="phrase-row rounded-xl p-3">
+              <p class="text-sm font-semibold">Question {m.i + 1}: {m.text}</p>
+              <EarVisual prompt={m.prompt} revealed prefix="Played" labels={labels === "solfege" ? "solfege" : "numbers"} answered={m.notes} />
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+    {#if confused.length}
+      <section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
+        <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>
+        {#if gridOrder}
+          <p class="mt-1 text-sm text-ws-soft">Tap a square to hear the two back to back.</p>
+          <ConfusionGrid records={records.filter(Boolean)} order={gridOrder} name={(t) => tokenLabel(KIND_OF[slug], t, labels)} onplay={playPair} named={noteSwaps.length ? null : confused[0]} />
+        {/if}
+        <!-- The same mix-ups in words: the list when there is no grid, for screen readers beside it. -->
+        <ul class="mt-2 grid gap-1 text-sm {gridOrder ? 'sr-only' : ''}">
+          {#each confused as c (c.kind + c.expected + c.answered)}
+            <li><span class="tnum font-semibold">{c.count}×</span> {tokenLabel(c.kind, c.expected, labels)}, heard as {tokenLabel(c.kind, c.answered, labels)}</li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+  </div>
+{/snippet}
+
 <DrillShell
   title={def.title}
   hue="ear"
@@ -1457,13 +1510,14 @@
   bind:mode
   bind:status
   checkable={answer !== "listen" && answer !== "listen-along"}
-  progress={prompts.length ? (qi + (rec ? 1 : 0)) / prompts.length : 0}
+  progress={prompts.length ? (qi + 1) / prompts.length : 0}
   ondemo={answer === "listen-along" ? undefined : playDemo}
   lesson={lessonRef}
   {demoPlaying}
   onstart={start}
   onstop={stop}
   {blocked}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -1670,11 +1724,12 @@
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const p = current}
-      <!-- The degree wheel sits beside the question on a laptop, so every answer is in view. -->
-      <div class={degreeChoices ? "lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5" : ""}>
+      <!-- One card holds the question and its answers, sized to its content (a grid, so the live layout
+           centres it and never stretches it). The degree wheel sits inside it, beside the question, on a laptop. -->
+      <div class="prompt grid gap-4 rounded-2xl p-4 sm:p-5 {degreeChoices ? 'lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-6' : ''}">
       <article
         data-dock="music"
-        class="prompt flex flex-col rounded-2xl p-4 sm:p-5"
+        class="flex min-w-0 flex-col"
         aria-label="Question {qi + 1}"
         data-drill={p.drill}
         data-answer={p.answer}
@@ -1688,7 +1743,9 @@
             <p class="font-display text-xl font-semibold sm:text-2xl">{ask(p)}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button type="button" class={btnStage} onclick={() => replay()} disabled={step === "feedback" && mode === "check"}>Hear it again</button>
+            <button type="button" class={btnStage} aria-label="Hear it again" onclick={() => replay()} disabled={step === "feedback" && mode === "check"}>
+              {#if sounding >= 0}<Volume2 class="playing size-4" aria-hidden="true" />Playing{:else}<RotateCcw class="size-4" aria-hidden="true" />Hear it again{/if}
+            </button>
             {#if promptKey(p)}
               <button type="button" class={btnStage} onclick={() => hearKey()} disabled={step === "feedback" && mode === "check"}>Hear the key</button>
             {/if}
@@ -1725,9 +1782,13 @@
         {/if}
         <!-- The picture takes the middle of the card: whatever height the session gives it, it sits centred. -->
         <div class="mt-3 flex flex-1 flex-col justify-center">
-          {#if (onInstrument(p) || (p.drill === "scale-degree" && !isPlayback && mistake && step === "feedback")) && (showAnswer || hinted)}
+          {#if (onInstrument(p) || (p.drill === "scale-degree" && !isPlayback && step === "feedback")) && (showAnswer || hinted)}
             <!-- The notes on the strip's instrument, with a wrong choice dashed beside them. -->
             <EarReveal prompt={p} chosen={step === "feedback" ? mistake?.chosen : null} {lit} />
+          {:else if onInstrument(p) && step !== "feedback" && answer !== "listen-along"}
+            <!-- Before the answer: the instrument unlit, one octave up from the lowest note, so the card keeps its place. -->
+            {@const lo = Math.min(...(p.expectedMidi ?? [60]))}
+            <InstrumentStage line={[lo, lo + 12]} marks={{}} interactive={false} />
           {:else if mistake && step === "feedback"}
             <!-- What was played beside what you chose, from the same starting point. -->
             <div class="grid gap-3 sm:grid-cols-2">
@@ -1764,7 +1825,7 @@
       <!-- The answers sit at the bottom of a phone screen, under the thumb. Once answered, Continue comes
            under them, where the thumb already is (on a phone it takes their place; the answers, marked,
            stay in view from sm up). -->
-      <div class="mt-4 {degreeChoices ? 'lg:mt-0' : ''}" data-dock="answers">
+      <div class="min-w-0" data-dock="answers">
         <div class={step === "feedback" && mode === "practice" && answer === "choice" ? "max-sm:hidden" : ""}>
         {#if answer === "choice" || answer === "listen-along"}
           {#if degreeChoices || (answer === "listen-along" && p.drill === "scale-degree")}
@@ -1811,7 +1872,7 @@
               <button type="button" class="choice min-h-12 rounded-xl px-3 text-sm" disabled={step === "feedback" || !slots.length} onclick={() => (slots = slots.slice(0, -1))}>Undo</button>
             </div>
           {:else if answer === "choice"}
-            <div class="grid gap-2 {choiceTokens.length <= 4 ? 'grid-cols-1' : 'grid-cols-2'} sm:grid-cols-3 lg:grid-cols-4">
+            <div class="grid gap-2 {answerCols(choiceTokens.length)}">
               {#each choiceTokens as t, i (t)}
                 <button
                   type="button"
@@ -1891,10 +1952,11 @@
           </div>
         {/if}
         </div>
-        {#if step === "feedback" && mode === "practice"}
-          <button type="button" class="{btnPrimary} mt-3 min-h-14 w-full text-base sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
-        {/if}
       </div>
+      {#if step === "feedback" && mode === "practice"}
+        <!-- Continue full width under the feedback at every width (across both columns beside the wheel). -->
+        <button type="button" class="{btnPrimary} min-h-14 w-full text-base {degreeChoices ? 'lg:col-span-2' : ''}" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
+      {/if}
       </div>
     {:else if phase === "results" && answer === "listen-along"}
       <p class="font-display text-xl font-semibold">You listened to {listened} prompts.</p>
@@ -1958,38 +2020,10 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
-      {#if missedPhrases.length}
-        <!-- Each missed phrase drawn: the notes in their degree colours, yours in red with a cross where it differs. -->
-        <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="phrases-title">
-          <h3 id="phrases-title" class="font-display text-lg font-semibold">The phrases you missed</h3>
-          <ul class="mt-2 grid gap-3 sm:grid-cols-2">
-            {#each missedPhrases as m (m.i)}
-              <li class="phrase-row rounded-xl p-3">
-                <p class="text-sm font-semibold">Question {m.i + 1}: {m.text}</p>
-                <EarVisual prompt={m.prompt} revealed prefix="Played" labels={labels === "solfege" ? "solfege" : "numbers"} answered={m.notes} />
-              </li>
-            {/each}
-          </ul>
-        </section>
-      {/if}
-      {#if confused.length}
-        <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="confusions-title">
-          <h3 id="confusions-title" class="font-display text-lg font-semibold">What you mixed up</h3>
-          {#if gridOrder}
-            <p class="mt-1 text-sm text-ws-soft">Tap a square to hear the two back to back.</p>
-            <ConfusionGrid records={records.filter(Boolean)} order={gridOrder} name={(t) => tokenLabel(KIND_OF[slug], t, labels)} onplay={playPair} />
-          {/if}
-          <!-- The same mix-ups in words: the list when there is no grid, for screen readers beside it. -->
-          <ul class="mt-2 grid gap-1 text-sm {gridOrder ? 'sr-only' : ''}">
-            {#each confused as c (c.kind + c.expected + c.answered)}
-              <li><span class="tnum font-semibold">{c.count}×</span> {tokenLabel(c.kind, c.expected, labels)}, heard as {tokenLabel(c.kind, c.answered, labels)}</li>
-            {/each}
-          </ul>
-        </section>
-      {/if}
+      <Results {summary} figure={missedPhrases.length || confused.length ? runFigure : undefined} />
     {/if}
   {/snippet}
+
 </DrillShell>
 
 <svelte:window onkeydown={onKey} />
@@ -2034,6 +2068,20 @@
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--ws-stage-soft);
+    }
+  }
+  /* Hear it again while the prompt sounds: the speaker pulses. */
+  :global(.playing) {
+    animation: ws-pulse 900ms ease-in-out infinite;
+  }
+  @keyframes ws-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.playing) {
+      animation: none;
     }
   }
   .verdict {

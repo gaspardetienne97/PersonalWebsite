@@ -18,8 +18,9 @@ export interface LaneBlock {
 
 /** How wide a beat is and where the playhead sits, for a lane `width` px wide. */
 export function laneScale(width: number) {
-  // About twelve beats across a phone, never so tight a half-bar chord loses its name.
-  const pxPerBeat = Math.min(44, Math.max(24, width / 12));
+  // About fifteen beats across a phone (a four-bar chord and the next one) and the chord now plus the next
+  // few on a laptop, never so tight a half-bar chord (36 px) loses its name.
+  const pxPerBeat = Math.round(Math.min(44, Math.max(18, width / 28)));
   return { pxPerBeat, playheadX: Math.round(width * 0.22) };
 }
 

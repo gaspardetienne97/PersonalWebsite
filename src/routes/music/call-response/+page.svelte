@@ -4,6 +4,7 @@
   // graded like Phrases (notes in order, in time); Answer on landing on a chord
   // tone and staying on the eighth-note grid. The whole run is kept as a take.
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import { noteName, pc, type NoteEvent } from "@repo/music-core";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
   import { chorusBars } from "@repo/music-core/content/jam";
@@ -262,6 +263,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === turns.length,
+      cleanMeans: callMode === "echo" ? "every call echoed" : "every answer in time on a chord tone",
       xp: fin.xp,
       mode,
       rows: turns.map((t, i) => ({ label: `Turn ${i + 1}`, value: t.score, text: t.text })),
@@ -346,14 +348,25 @@
   const laneTurn = $derived(now?.turn ?? Math.max(0, turns.length - 1));
   const laneCall = $derived(phase === "running" || phase === "countin" ? (calls[laneTurn] ?? []) : sampleCall);
   const laneRows = $derived<LaneRow[]>([
-    { id: "call", mark: "♪", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: noteName(n.midi, "flat", false) })) },
-    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: noteName(r.midi, "flat", false) })) }] : []),
+    // Named with their octave (C4, E5), so the call and your notes compare pitch for pitch.
+    { id: "call", mark: "Call", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: noteName(n.midi, "flat") })) },
+    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: noteName(r.midi, "flat") })) }] : []),
   ]);
   const laneChords = $derived(
     Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol })),
   );
   /** The keys span every call note of the run and everything you play, so a note never falls off the keyboard. */
   const keyLine = $derived([...CALL_RANGE, ...(phase === "ready" ? sampleCall : calls.flat()).map((n) => n.midi), ...reply.map((r) => r.midi)]);
+  /** A phone shows only the call's own span (and what you play), at least an octave and a bit, so keys stay wide. */
+  const phone = new MediaQuery("(max-width: 639px)");
+  const span = $derived.by(() => {
+    if (!phone.current) return {};
+    const ms = [...(phase === "running" || phase === "countin" ? (calls[laneTurn] ?? []) : sampleCall).map((n) => n.midi), ...reply.map((r) => r.midi)];
+    if (!ms.length) return {};
+    const lo = Math.min(...ms) - 2;
+    const hi = Math.max(Math.max(...ms) + 2, lo + 14);
+    return { low: lo, high: hi };
+  });
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
     { text: callMode === "echo" ? "Echo the call" : "Answer the call", focus: "mode" },
@@ -369,18 +382,19 @@
   lesson={callMode === "answer" ? { lessons: [chordTonesLesson(chordAtBar(groove, 0).symbol)] } : null}
   title="Call and response"
   hue="ear"
-  blurb="The band plays; a short call comes in, then the same number of bars are yours. Echo it back in time, or answer it with your own phrase that ends on a chord tone."
+  blurb="A short call over the band, then your turn: echo it back, or answer with your own phrase."
   modeNotes={{ practice: "Each note lights right or wrong, and each turn is judged as it ends.", check: "No feedback until the end. Counts toward mastery." }}
   summary={summaryLine}
   bind:phase
   bind:mode
   bind:status
   clock={{ bpm, beatsPerBar: BEATS_PER_BAR }}
-  progress={phase === "running" ? turns.length / CALL_TURNS : null}
+  progress={phase === "running" ? Math.min(1, (turns.length + 1) / CALL_TURNS) : null}
   ondemo={playDemo}
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
+  cue={phase === "countin" ? "Count-in: the call comes first" : phase !== "running" ? "" : !now ? "Get ready" : now.part === "call" ? "Listen to the call" : callMode === "echo" ? "Your turn: echo it" : "Your turn: answer it"}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -456,7 +470,7 @@
         </ol>
       {/if}
       <!-- On a live phone run this grows; the keys sit at its foot, under the thumb. -->
-      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={keyLine} {marks} {flashes} /></div>
+      <div class="flex flex-col justify-end" data-dock="instrument"><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
         <p class="text-sm text-ws-stage-soft">Calls stay between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
       {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}

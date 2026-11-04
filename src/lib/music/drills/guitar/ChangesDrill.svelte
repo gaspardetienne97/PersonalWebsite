@@ -20,7 +20,6 @@
   import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { assistanceFor, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
@@ -144,6 +143,8 @@
     const done = pcs[g.target].every((p) => g.midis.some((m) => m % 12 === p)) && now - g.end > CHANGE_GAP_MS;
     return done ? (g.target + 1) % n : g.target;
   });
+  /** Beside Stop on a phone: the chord now and the change coming. */
+  const cue = $derived(phase === "running" ? `${names[target]} now, then ${names[(target + 1) % n]}` : "");
   const liveGrade = $derived(live ? grade(Math.max(1, now - downbeat)) : null);
   const shown = $derived(shapes[target]);
   const pairRuns = $derived(history[cycleKey] ?? []);
@@ -297,13 +298,17 @@
         ? "Nothing was heard during the run. Tap the strings, strum into the microphone, or connect MIDI, then try again."
         : r.completed === 0
           ? `No change landed yet: play ${names[0]}, pause, then ${names[1]}.`
-          : `${r.completed} change${r.completed === 1 ? "" : "s"}, ${r.clean} with every target note, at ${perMinute} per minute.${perMinute > bestBefore && bestBefore > 0 ? ` Your fastest ${cycleText} yet.` : ""}`,
+          : `${r.completed} change${r.completed === 1 ? "" : "s"}, ${r.clean} with every target note, at ${perMinute} per minute${s.timed ? " (aim for 60)" : ""}.${perMinute > bestBefore && bestBefore > 0 ? ` Your fastest ${cycleText} yet.` : ""}${
+              // What held a clean run back from a pass: the clock, named with its count.
+              !r.correct && r.clean === r.completed && r.onTime !== null ? ` ${r.onTime} of ${r.completed} landed on the click: change on the beat to pass.` : ""
+            }`,
       metric: String(perMinute),
       metricLabel: "changes per minute",
       score: r.score,
       delta: fin.delta,
       best: fin.best || (perMinute > bestBefore && bestBefore > 0),
       clean: r.correct && mode === "check",
+      cleanMeans: periodMs ? "every change with every note, on the click" : "every change with every note",
       xp: fin.xp,
       mode,
       rows: [
@@ -323,6 +328,8 @@
   }
 
   function stop() {
+    // Untimed with no clock: Stop is the one end control, and grades the changes played (nothing heard is not scored).
+    if (phase === "running" && !periodMs && !s.timed) return void finish();
     halt();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
@@ -357,6 +364,7 @@
   clock={beatsPerChord ? { bpm: bpm(), beatsPerBar: 4 } : null}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -430,8 +438,8 @@
         {#if mode === "practice"}
           <!-- The next shape as a ghost: the move is visible before it is due. -->
           <div class="flex items-center gap-2 rounded-xl border-2 border-dashed border-ws-stage-ink/30 py-1 pl-1 pr-3" data-testid="next-chord">
-            <div class="w-14 rounded-lg bg-ws-surface p-0.5 text-ws-ink opacity-75">
-              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} numbers={false} label="" />
+            <div class="w-20 rounded-lg bg-ws-surface p-1 text-ws-ink sm:w-24">
+              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} label="" />
             </div>
             <p class="flex flex-col text-sm leading-tight text-ws-stage-soft">Next<span class="font-display text-xl font-semibold text-ws-stage-ink">{names[next]}</span></p>
           </div>
@@ -445,8 +453,7 @@
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
       {#if phase === "running" && !periodMs && !s.timed}
-        <button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>
-        <span class="text-sm text-ws-stage-soft">Pause briefly between chords.</span>
+        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. Stop when you are done: the changes you played are scored.</span>
       {:else}
         <span class="text-sm text-ws-stage-soft">How a change counts</span>
       {/if}
@@ -456,22 +463,24 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
-      {#if pairRuns.length}
-        <section class="{panel} mt-3" aria-labelledby="pair-history">
-          <h3 id="pair-history" class="font-display text-lg font-semibold">{cycleText}: changes per minute</h3>
-          <ol class="mt-3 flex h-28 items-end gap-1.5 overflow-x-auto pb-1">
-            {#each pairRuns.slice(-16) as r, i (r.date + i)}
-              <li class="flex h-full w-8 shrink-0 flex-col items-center justify-end gap-1">
-                <span class="tnum text-xs">{r.perMinute}</span>
-                <span class="w-full rounded-t bg-instr" style:height="{Math.max(4, (r.perMinute / maxRun) * 72)}px" aria-hidden="true"></span>
-                <span class="sr-only">{new Date(r.date).toLocaleDateString()}: {r.perMinute} per minute, {r.clean} of {r.completed} with every note</span>
-              </li>
-            {/each}
-          </ol>
-          <p class="mt-2 text-sm text-ws-soft">Best {maxRun} per minute over {pairRuns.length} run{pairRuns.length > 1 ? "s" : ""}.</p>
-        </section>
-      {/if}
+      {#snippet figure()}
+        {#if pairRuns.length}
+          <section aria-labelledby="pair-history">
+            <h3 id="pair-history" class="text-sm font-semibold">{cycleText}: changes per minute</h3>
+            <ol class="mt-3 flex h-28 items-end gap-1.5 overflow-x-auto pb-1">
+              {#each pairRuns.slice(-16) as r, i (r.date + i)}
+                <li class="flex h-full w-8 shrink-0 flex-col items-center justify-end gap-1">
+                  <span class="tnum text-xs">{r.perMinute}</span>
+                  <span class="w-full rounded-t bg-instr" style:height="{Math.max(4, (r.perMinute / maxRun) * 72)}px" aria-hidden="true"></span>
+                  <span class="sr-only">{new Date(r.date).toLocaleDateString()}: {r.perMinute} per minute, {r.clean} of {r.completed} with every note</span>
+                </li>
+              {/each}
+            </ol>
+            <p class="mt-2 text-sm text-ws-soft">Best {maxRun} per minute over {pairRuns.length} run{pairRuns.length > 1 ? "s" : ""}.</p>
+          </section>
+        {/if}
+      {/snippet}
+      <Results {summary} figure={pairRuns.length ? figure : undefined} />
     {/if}
   {/snippet}
 </DrillShell>

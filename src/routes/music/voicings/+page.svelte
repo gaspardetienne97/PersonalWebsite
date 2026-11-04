@@ -16,7 +16,7 @@
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
+  import { btn } from "$lib/music/components/ui";
   import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { gradeItem, isJazzType, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
   import { JAZZ_VOICING_TYPES, UPPER_TUNES } from "@repo/music-core/content/jazz-voicings";
@@ -118,6 +118,8 @@
     return out;
   });
 
+  /** Beside Stop on a phone: the chord to find now. */
+  const cue = $derived(phase === "running" && current ? `Chord ${index + 1} of ${items.length}: ${current.symbol}${mode === "practice" ? "" : ", from memory"}` : "");
   const variantLabel = $derived(jazzType?.label ?? VARIANTS.find((v) => v.value === variant)!.label);
   const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
   /** What the key picker names for a jazz type: a major key, a dorian tonic or a blues. */
@@ -264,6 +266,7 @@
       clean: correct && mode === "check",
       xp: fin.xp,
       mode,
+      cleanMeans: "every chord right",
       rows: [
         { label: "Score", value: score, text: pct(score) },
         { label: "Right notes", value: done.length ? done.filter((g) => g.missing.length === 0).length / items.length : 0, text: `${done.filter((g) => g.missing.length === 0).length} of ${items.length} chords` },
@@ -308,7 +311,7 @@
   lesson={lessonRef}
   title="Voicings"
   hue="piano"
-  blurb="Rootless jazz voicings through the keys, closest-chord inversions, cadences in every key, guide-tone voice leading, and jazz piano voicing types from So What chords to locked hands. Untimed: take the time to find each chord."
+  blurb="Jazz voicings, closest inversions and cadences through the keys. Untimed: take the time to find each chord."
   summary={summaryLine}
   tabs={[...VARIANTS.map((v) => ({ id: v.value as string, label: v.tab })), { id: "jazz", label: "Jazz types" }]}
   tab={jazzType ? "jazz" : variant}
@@ -321,6 +324,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     {#if jazzType}
@@ -423,8 +427,16 @@
         Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
       </p>
     {/if}
-    <div class="flex flex-col justify-end" data-dock="instrument">
-      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
+    <div class="flex flex-col" data-dock="instrument">
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running"} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
+      {#if mode === "practice" && phase !== "results"}
+        <!-- What the marks on the keys mean, each with its own shape so colour is never the only cue. -->
+        <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Key marks">
+          <li class="flex items-center gap-1.5"><span class="key-mark target" aria-hidden="true">R</span>Play this key</li>
+          <li class="flex items-center gap-1.5"><span class="key-mark right" aria-hidden="true">✓</span>Right note</li>
+          <li class="flex items-center gap-1.5"><span class="key-mark wrong" aria-hidden="true">✕</span>Not in the chord</li>
+        </ul>
+      {/if}
     </div>
     <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-ws-stage-soft">
       <p class="min-w-0 max-w-prose">
@@ -435,54 +447,88 @@
         {:else if mode === "check" && phase === "running"}
           The voicing is hidden: keys light only where you play.
         {:else}
-          Keys show L for the {jazzType ? "left hand" : "left-hand root"} and R for the right hand. Voicings carry no authored fingering.
+          Keys show L for the {jazzType ? "left hand" : "left-hand root"} and R for the right hand. No fingering is given for voicings: use what feels comfortable.
         {/if}
       </p>
-      {#if phase === "running"}<button type="button" class={btnStage} onclick={skip}>Grade what I played</button>{/if}
+      {#if phase === "running"}
+        <!-- The chord grades itself once all its notes are held; this is the way on when it will not. -->
+        <span class="flex flex-wrap items-center gap-x-2">
+          <span>Stuck on a chord?</span>
+          <button type="button" class="min-h-11 rounded-full px-2 font-medium text-ws-stage-ink underline underline-offset-4 hover:bg-ws-stage-ink/10" onclick={skip}>Grade what I played</button>
+        </span>
+      {/if}
     </div>
   {/snippet}
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
+      <Results {summary} {figure}>
         {#snippet actions()}
           {#if variant === "inversions"}
             <button type="button" class={btn} onclick={() => { cfg.set({ key: s.key === 0 ? 7 : 0 }); phase = "ready"; }}>Same in {s.key === 0 ? "G" : "C"}</button>
           {/if}
         {/snippet}
       </Results>
-      <!-- Nothing heard: no per-chord verdicts, so silence never reads as a row of wrong chords. -->
-      {#if summary.heard !== false}
-      <ol class="mt-3 grid gap-2 sm:grid-cols-3" aria-label="Chord by chord">
-        {#each items as it, i (it.id)}
-          {@const g = grades[i]}
-          <li class="flex flex-col gap-2 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-sm">
-            <div class="flex items-baseline justify-between gap-3">
-              <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? `${it.symbol} in ${it.group}` : it.symbol}</span>
-              <span class={g?.correct ? "text-success" : "text-ws-soft"}>
-                {g ? (g.correct ? "✓ right" : g.missing.length ? `✕ Missed ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : `✕ ${g.note}`) : "not played"}
-              </span>
-            </div>
-            <!-- A slipped chord drawn as it should sit: ✓ on the notes you had, the missed ones named in a red ring. -->
-            {#if g && !g.correct}
-              {@const m = it.show.map((n) => n.midi)}
-              <Piano
-                low={Math.min(...m) - 2}
-                high={Math.max(...m) + 2}
-                fit={{ low: Math.min(...m), high: Math.max(...m) }}
-                missing={it.show.filter((n) => g.missing.includes(pc(n.midi))).map((n) => n.midi)}
-                marks={Object.fromEntries(it.show.filter((n) => !g.missing.includes(pc(n.midi))).map((n) => [n.midi, { target: true, label: "✓" }]))}
-                interactive={false}
-                names="none"
-                minKey={18}
-                compact
-                label="{it.symbol}: {g.missing.length ? `missing ${g.missing.map((p) => FLAT_NAMES[p]).join(', ')}` : 'the notes it wants'}"
-              />
-            {/if}
-          </li>
-        {/each}
-      </ol>
-      {/if}
     {/if}
   {/snippet}
 </DrillShell>
+
+<!-- One list of the run, chord by chord, under the breakdown. -->
+{#snippet figure()}
+  <!-- Nothing heard: no per-chord verdicts, so silence never reads as a row of wrong chords. -->
+  {#if summary && summary.heard !== false}
+  <ol class="grid gap-2 sm:grid-cols-2" aria-label="Chord by chord">
+    {#each items as it, i (it.id)}
+      {@const g = grades[i]}
+      <li class="flex flex-col gap-2 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-sm">
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? `${it.symbol} in ${it.group}` : it.symbol}</span>
+          <span class={g?.correct ? "text-success" : "text-ws-soft"}>
+            {g ? (g.correct ? "✓ right" : g.missing.length ? `✕ Missed ${g.missing.map((p) => FLAT_NAMES[p]).join(" ")}` : `✕ ${g.note}`) : "not played"}
+          </span>
+        </div>
+        <!-- Each played chord drawn as it should sit: ✓ on the notes you had, the missed ones named in a red ring. -->
+        {#if g}
+          {@const m = it.show.map((n) => n.midi)}
+          <Piano
+            low={Math.min(...m) - 2}
+            high={Math.max(...m) + 2}
+            fit={{ low: Math.min(...m), high: Math.max(...m) }}
+            missing={it.show.filter((n) => g.missing.includes(pc(n.midi))).map((n) => n.midi)}
+            marks={Object.fromEntries(it.show.filter((n) => !g.missing.includes(pc(n.midi))).map((n) => [n.midi, { target: true, label: "✓" }]))}
+            interactive={false}
+            names="none"
+            minKey={18}
+            compact
+            label="{it.symbol}: {g.correct ? 'right' : g.missing.length ? `missing ${g.missing.map((p) => FLAT_NAMES[p]).join(', ')}` : 'the notes it wants'}"
+          />
+        {/if}
+      </li>
+    {/each}
+  </ol>
+  {/if}
+{/snippet}
+
+<style>
+  .key-mark {
+    display: grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+  .key-mark.target {
+    color: #17120c;
+    background: var(--hand-right);
+  }
+  .key-mark.right {
+    color: white;
+    background: var(--success);
+  }
+  .key-mark.wrong {
+    color: var(--on-destructive, white);
+    background: var(--destructive);
+  }
+</style>

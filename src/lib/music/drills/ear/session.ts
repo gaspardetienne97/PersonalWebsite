@@ -633,6 +633,28 @@ export function setLadder(picked: string[], ladder: string[], phrase: (t: string
 }
 
 /** "expected m6, answered P5" with counts, most frequent first. */
+/** "Something else": an answer outside the grid's items. */
+export const OTHER_ANSWER = "other";
+/**
+ * The played-vs-answered grid: a row per item played, a column per answer given, both in
+ * teaching order, with the count for each (played, answered) pair. Built from the same
+ * records and the same pair order as `confusions`, so a headline and its square agree.
+ */
+export function confusionCells(records: AnswerRecord[], order: string[]) {
+  const rank = (t: string) =>
+    t === OTHER_ANSWER ? 1e9 : order.indexOf(t) < 0 ? 1e6 : order.indexOf(t);
+  const byRank = (a: string, b: string) => rank(a) - rank(b);
+  const answerOf = (r: AnswerRecord) =>
+    r.answered && (order.includes(r.answered) || r.answered === r.expected)
+      ? r.answered
+      : OTHER_ANSWER;
+  const rows = [...new Set(records.map((r) => r.expected))].sort(byRank);
+  const cols = [...new Set([...rows, ...records.map(answerOf)])].sort(byRank);
+  const count = (played: string, answered: string) =>
+    records.filter((r) => r.expected === played && answerOf(r) === answered).length;
+  return { rows, cols, count };
+}
+
 export function confusions(records: AnswerRecord[]) {
   const counts = new Map<
     string,

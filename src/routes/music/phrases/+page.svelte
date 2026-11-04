@@ -88,6 +88,16 @@
 
   // The moving views: the highway on guitar and ukulele (every note at its string and fret
   // on the strip's tuning), falling notes over the keys on piano (?view=falling, as the piano drills).
+  // A phone draws the one-row staff larger (it scrolls with the cursor), so the noteheads read at arm's length.
+  let narrow = $state(false);
+  $effect(() => {
+    const q = matchMedia("(max-width: 639px)");
+    const set = () => (narrow = q.matches);
+    set();
+    q.addEventListener("change", set);
+    return () => q.removeEventListener("change", set);
+  });
+  const phoneZoom = $derived(narrow ? 1.5 : 1);
   const moving = $derived(fretted ? highway.on : own === "piano" && page.url.searchParams.get("view") === "falling");
   const tuning = $derived(fretTuning(own));
   const hwNotes = $derived.by((): HighwayNote[] => {
@@ -125,11 +135,23 @@
     else if (mode === "practice" && phase !== "results" && next) for (const n of next.notes) out[n.midi] = { target: true };
     return out;
   });
+  /** Staff marks from the heard pitch of each step (the same hits the word above the keys reads), so a
+   *  wrong step is never ticked; after the run a step never played is missed. Check keeps them for the results. */
   const states = $derived.by(() => {
     const out: Record<number, GroupState> = {};
-    if (phase === "running") events.forEach((_, i) => (i < played ? (out[i] = "correct") : i === played && (out[i] = "active")));
+    if (phase === "running" && mode !== "practice") return out;
+    if (phase !== "running" && phase !== "results") return out;
+    events.forEach((_, i) => {
+      const h = eventHits[i];
+      if (h === "wrong") out[i] = "wrong";
+      else if (typeof h === "number") out[i] = "correct";
+      else if (phase === "results") out[i] = "missed";
+      else if (i === played) out[i] = "active";
+    });
     return out;
   });
+  /** Beside Stop on a phone: the step to play now. */
+  const cue = $derived(phase === "running" && next ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}${mode === "practice" ? `: ${spell(next.notes.map((n) => n.midi))}` : ", from memory"}` : "");
   const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? "As saved" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : "semitones" }));
   const summaryLine = $derived<SetupClause[] | string>(
     phrase
@@ -233,7 +255,8 @@
     }
     const rows: ResultRow[] = [
       { label: chords ? "Notes and chords in order" : "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
-      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
+      // Timing is judged on the steps that came in order, so it says how many of those.
+      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
     ];
     if (fretted) rows.push(r.positions === null ? { label: "String and fret (MIDI and microphone can't see them)", notMeasured: true } : { label: "String and fret", value: r.positions / r.total, text: `${r.positions} of ${r.total}` });
     const wrong = r.firstWrong === null ? null : events[r.firstWrong];
@@ -254,6 +277,7 @@
       xp: fin.xp,
       mode,
       rows,
+      cleanMeans: `every ${chords ? "step" : "note"} in order`,
       timing: any ? timingFromErrors(events.map((_, i) => (typeof eventHits[i] === "number" ? (eventHits[i] as number) : null)), onTimeMs()) : undefined,
       // Up to the phrase's own tempo, then the next phrase for this instrument.
       advance: any ? await nextRun(`phrases.${own}`, { bpm, tempo: { min: TEMPO.min, goal: phrase.bpm, max: TEMPO.max }, steps: list.map((p) => ({ label: p.title, goal: p.bpm, start: Math.max(TEMPO.min, Math.round(p.bpm * 0.75)) })), step: list.indexOf(phrase) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ phrase: list[i].id }))) : undefined,
@@ -294,6 +318,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
   blocked={phrase ? null : "No phrases for this instrument yet."}
 >
   {#snippet setup()}
@@ -333,7 +358,9 @@
           {#if fretted}{@render viewSwitch("Tab")}{:else}<ViewSwitch />{/if}
         </div>
       {/if}
-      <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
+      <!-- On a laptop the Aerophone's fingering chart stands beside the staff, so both fit one screen. -->
+      <div class={own === "aerophone" ? "flex min-h-0 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-6" : "contents"}>
+      <div class="flex min-h-0 flex-col justify-center" data-dock="music">
       {#if moving && (mode === "practice" || transport.playing) && phase !== "results"}
         {@const beat = transport.beat === null ? null : transport.beat * click}
         <div class="mb-3">
@@ -346,7 +373,7 @@
         </div>
       {:else if mode === "practice" || transport.playing || phase === "results"}
         <div class="mb-3"><LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}" beatsPerBar={phrase.beatsPerBar}
-          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} oneRow /></div>
+          meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} cursorBeat={transport.beat === null ? null : transport.beat * click} groupStates={states} oneRow minZoom={phoneZoom} /></div>
       {:else}
         <!-- Check: the notes stay hidden; a slot a note shows how many are left, and the phrase can be heard again before a run. -->
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3" data-testid="check-progress">
@@ -367,19 +394,31 @@
       {/if}
       </div>
       {#if !(moving && !fretted && (mode === "practice" || transport.playing) && phase !== "results")}
-        <div class="flex flex-col justify-end" data-dock="instrument">
-          <!-- The word for the last note sits above the instrument, never over it. -->
-          {#if phase === "running" && mode === "practice"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
+        <div class="flex flex-col" data-dock="instrument">
+          <!-- The word for the last note has its own row between the music and the instrument, never over it. -->
+          {#if phase === "running" && mode === "practice"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
           <InstrumentStage instrument={own} line={notes.map((n) => n.midi)} {marks} {flashes} {positions} />
         </div>
       {/if}
+      </div>
     {:else}
       <p class="text-sm text-ws-stage-soft">No phrases for this instrument yet.</p>
     {/if}
   {/snippet}
 
   {#snippet results()}
-    {#if summary}<Results {summary} />{/if}
+    {#if summary}<Results {summary} {figure} />{/if}
   {/snippet}
 </DrillShell>
 {/if}
+
+<!-- The phrase as you played it: each step marked right, wrong or missed on the staff or tab. -->
+{#snippet figure()}
+  {#if phrase && result && Object.keys(eventHits).length}
+    <div class="stage rounded-2xl p-3">
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Where each {chords ? "step" : "note"} landed</p>
+      <LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}-run" beatsPerBar={phrase.beatsPerBar}
+        meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} groupStates={states} oneRow />
+    </div>
+  {/if}
+{/snippet}

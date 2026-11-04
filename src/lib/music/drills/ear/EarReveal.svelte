@@ -15,6 +15,7 @@
   import { settings } from "$lib/music/runtime";
   import EarVisual from "./EarVisual.svelte";
   import { tokenLabel } from "./session";
+  import { spellChord, spellDegree, spellInterval } from "./degrees";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
 
   let {
@@ -68,7 +69,7 @@
     const out: Record<number, CellMarks> = {};
     if (ends) {
       for (let k = 1; k < Math.min(climb + 1, steps); k++) out[from + way * k] = { label: String(k), role: "scale" };
-      out[from] = { target: true };
+      out[from] = { target: true, label: "0" };
       out[ends[1]] = { target: true, label: climb >= steps && steps ? String(steps) : undefined };
       if (climb < steps) out[from + way * climb] = { ...out[from + way * climb], demo: true };
       for (const m of other) out[m] = { label: String(Math.abs(m - from)), role: "avoid" };
@@ -84,18 +85,18 @@
   const inst = $derived(settings.value.activeInstrument);
   const onKeys = $derived(!fretTuning(inst) && inst !== "aerophone");
 
-  /** Bass to top, each name once (a doubled bass is said once). */
-  const names = (ms: number[]) => [...new Set(ms.map((m) => noteName(m, "flat", false)))].join(" ");
-  const bass = (ms: number[]) => noteName(Math.min(...ms), "flat", false);
-  const playedText = $derived(
-    ends
-      ? `${tokenLabel("interval", prompt.answer)}, ${noteName(from, "flat", false)} ${prompt.direction === "harmonic" ? "and" : way > 0 ? "up to" : "down to"} ${noteName(ends[1], "flat", false)}, ${steps} half step${steps === 1 ? "" : "s"}`
-      : prompt.drill === "inversion"
-        ? `${tokenLabel("inversion", prompt.answer)}: ${names(played)}, ${bass(played)} in the bass`
-        : degree
-          ? `${tokenLabel("scale-degree", prompt.answer)}: ${names(played)}, over the tonic ${noteName(tonic, "flat", false)}`
-          : `${tokenLabel(prompt.drill, prompt.answer)}: ${names(played)}`,
-  );
+  /** Bass to top, each spelled by its place in the chord (E G# B#, not E Ab C), each name once. */
+  const names = (ms: number[]) => [...new Set(spellChord(ms))].join(" ");
+  const bass = (ms: number[]) => spellChord(ms)[0];
+  const playedText = $derived.by(() => {
+    if (ends) {
+      const [a, b] = spellInterval(from, ends[1]);
+      return `${tokenLabel("interval", prompt.answer)}, ${a} ${prompt.direction === "harmonic" ? "and" : way > 0 ? "up to" : "down to"} ${b}, ${steps} half step${steps === 1 ? "" : "s"}`;
+    }
+    if (prompt.drill === "inversion") return `${tokenLabel("inversion", prompt.answer)}: ${names(played)}, ${bass(played)} in the bass`;
+    if (degree) return `${tokenLabel("scale-degree", prompt.answer)}: ${played.map((m) => spellDegree(m, tonic, prompt.answer).replace(/-?\d+$/, "")).join(" ")}, over the tonic ${noteName(tonic, "flat", false)}`;
+    return `${tokenLabel(prompt.drill, prompt.answer)}: ${names(played)}`;
+  });
   const chosenText = $derived.by(() => {
     if (!chosen) return "";
     const ms = [...chosenNotes].sort((a, b) => a - b);
@@ -126,7 +127,7 @@
       <span class="flex min-w-0 flex-col text-sm">
         <!-- The legend: the swatch beside each line is the mark on the instrument. -->
         <span class="font-semibold"><span class="played-key" aria-hidden="true"></span>Played: {playedText}</span>
-        {#if chosen}<span class="font-medium"><span class="chosen-key" aria-hidden="true"></span>You chose: {chosenText}</span>{/if}
+        {#if chosen}<span class="font-medium"><span class="chosen-key" aria-hidden="true">✕</span>You chose: {chosenText}</span>{/if}
       </span>
     </figcaption>
   </figure>
@@ -177,7 +178,15 @@
     margin-right: 0.35rem;
     vertical-align: -0.1rem;
     border-radius: 999px;
-    border: 2px dashed var(--tone-avoid);
+    /* Filled with a cross, the way the key is marked: never a faint dashed ring. */
+    display: inline-grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--ws-stage);
+    background: var(--tone-avoid);
   }
   .staff summary::-webkit-details-marker {
     display: none;

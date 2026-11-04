@@ -253,19 +253,29 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === LENGTH,
+      cleanMeans: "every answer right",
       xp: fin.xp,
       mode,
-      rows: choices
-        .filter((c) => records.some((r) => r.prompt.answer === c))
-        .map((c) => {
-          const here = records.filter((r) => r.prompt.answer === c);
-          const ok = here.filter((r) => r.correct).length;
-          return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}` };
-        }),
+      rows: bandRows(choices),
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
       advance: await advanceAfter(score, right === LENGTH),
     };
     status = `${summary.headline} Rest your ears for a minute before the next run.`;
+  }
+
+  /** One row per answer asked, in the answers' order; the weakest one (below every other) says so. */
+  function bandRows(choices: readonly string[]) {
+    const rows = choices
+      .filter((c) => records.some((r) => r.prompt.answer === c))
+      .map((c) => {
+        const here = records.filter((r) => r.prompt.answer === c);
+        const ok = here.filter((r) => r.correct).length;
+        return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}` };
+      });
+    const low = Math.min(...rows.map((r) => r.value));
+    const weakest = rows.filter((r) => r.value === low);
+    if (low < 1 && weakest.length === 1) weakest[0].text += ", your weakest";
+    return rows;
   }
 
   /** Untimed: the exercise's knob, one notch harder. */
@@ -349,7 +359,7 @@
   lesson={{ lessons: listeningLessons(exercise, { material, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays }) }}
   title="Studio ears"
   hue="ear"
-  blurb="Hear a loop flat and changed, and name the change. Keep the volume comfortable and the same throughout."
+  blurb="Hear a loop flat and changed, and name the change."
   summary={summaryLine}
   tabs={STUDIO_EXERCISES.map((e) => ({ id: e.id, label: TAB[e.id] }))}
   tab={exercise}
@@ -358,9 +368,10 @@
   bind:phase
   bind:mode
   bind:status
-  progress={(qi + (step === "feedback" ? 1 : 0)) / LENGTH}
+  progress={(qi + 1) / LENGTH}
   onstart={start}
   onstop={stop}
+  cue={phase !== "running" || !current ? "" : step === "feedback" ? (mode === "practice" ? "Continue when ready" : "") : "Flip Flat and Changed, then pick"}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -419,7 +430,8 @@
           {@render graph(p.choices, step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer")}
         {/if}
         <div data-dock="answers">
-          <div class={aligned ? "relative mt-1 h-12" : "mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"} role="group" aria-label="Answers">
+          <!-- Under the graph, each answer sits below its band; otherwise one equal grid, never a lone last button. -->
+          <div class={aligned ? "relative mt-1 h-12" : "answers mt-4 grid gap-2"} style:--np={p.choices.length === 4 ? 2 : Math.min(3, p.choices.length)} style:--ns={p.choices.length <= 5 ? p.choices.length : p.choices.length === 6 ? 3 : 4} role="group" aria-label="Answers">
             {#each p.choices as t, i (t)}
               {@const r = step === "feedback" ? records.at(-1) : undefined}
               <button
@@ -450,11 +462,10 @@
       </article>
     {:else if phase === "running"}
       <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready.</p>
-    {:else if phase === "results"}
-      <!-- The run is described above; the stage keeps one line of advice, not the description again. -->
-      <p class="py-1 text-sm text-ws-stage-soft">Rest your ears for a minute before the next run.</p>
     {:else}
       <div class="space-y-2 py-2">
+        <!-- The safety note on its own line, never cut short. -->
+        <p class="text-sm font-semibold">Keep the volume comfortable and the same all run.</p>
         <!-- What a run is, not the subtitle again; for an EQ change, the range it happens in. -->
         <p class="font-display text-xl font-semibold">{meta.ask}</p>
         <p class="text-sm text-ws-stage-soft">{LENGTH} questions. Each plays Flat, then Changed; flip between them with the buttons or A and B, then pick the answer.</p>
@@ -475,6 +486,10 @@
   <!-- Every band is named on the axis, the answer bands in bold, so the buttons under it read as that scale. -->
   <div bind:clientWidth={graphW} bind:clientHeight={graphH} class="flex min-h-29 flex-col justify-center" data-dock="music">
     <svg class="mt-2 block w-full" width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={label}>
+      <!-- The bands that can be the answer, shaded, so each answer button points at its strip. -->
+      {#each choices as c (c)}
+        {#if Number(c) > 0}<rect class="band" class:right={step === "feedback" && phase === "running" && current?.answer === c} x={fx(Number(c)) - 14} y={4} width={28} height={H - 28} rx={6} />{/if}
+      {/each}
       <line class="axis" x1={fx(31.5)} x2={fx(16000)} y1={fy(0)} y2={fy(0)} />
       {#each BAND_SETS["9"] as hz (hz)}
         <line class="tick" class:asked={choices.includes(String(hz))} x1={fx(hz)} x2={fx(hz)} y1={6} y2={H - 22} />
@@ -591,6 +606,21 @@
   .choice[data-state="answered"]::before {
     content: "✕";
     color: var(--destructive);
+  }
+  .band {
+    fill: color-mix(in oklch, var(--instr) 14%, transparent);
+  }
+  .band.right {
+    fill: color-mix(in oklch, var(--success) 28%, transparent);
+  }
+  /* Equal answer columns with no lone last button: 4 as 2 + 2 and 5 as 3 + 2 on a phone, up to five from sm. */
+  .answers {
+    grid-template-columns: repeat(var(--np), minmax(0, 1fr));
+  }
+  @media (min-width: 640px) {
+    .answers {
+      grid-template-columns: repeat(var(--ns), minmax(0, 1fr));
+    }
   }
   .axis {
     stroke: color-mix(in oklch, var(--ws-stage-ink) 30%, transparent);

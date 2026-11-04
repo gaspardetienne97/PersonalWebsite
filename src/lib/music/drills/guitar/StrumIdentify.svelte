@@ -169,6 +169,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: g.correct && mode === "check",
+      cleanMeans: "the chord named right",
       xp: fin.xp,
       mode,
       rows: [

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { enough, evennessRow, timingBreakdown, timingRow } from "@repo/music-core";
+  import { evennessRow, timingBreakdown, timingRow } from "@repo/music-core";
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import type { NoteEvent } from "@repo/music-core";
@@ -253,7 +253,7 @@
   const live = $derived(
     isGroove
       ? groove.targets.map((t) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.id === t.voice), kind: (t.accent ? "accent" : t.ghost ? "ghost" : "normal") as HighwayNote["kind"] }))
-      : strokes.map((h) => ({ pad: h.pad, atMs: h.atMs, lane: pattern.onePad || h.hand === "right" ? 0 : 1, kind: (h.accent ? "accent" : h.velocityBand ? "ghost" : "normal") as HighwayNote["kind"] })),
+      : strokes.map((h) => ({ pad: h.pad, atMs: h.atMs, lane: pattern.onePad || h.hand === "right" ? 0 : 1, kind: (h.accent ? "accent" : h.velocityBand ? "ghost" : "normal") as HighwayNote["kind"], text: h.hand === "right" ? "R" : "L" })),
   );
   const padColors = $derived<Record<number, string>>(
     isGroove
@@ -402,10 +402,13 @@
     isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}${swing !== writtenSwing ? `:swing${swing}` : ""}` : `rudiment:${pattern.id}:${perBeat}:${hitCount}:${pads.join("-")}:${bpm}`,
   );
 
+  const DEMO_STATUS = "Listen: the pattern at tempo, pads lit as they sound. Not scored.";
   function stopDemo() {
     demo?.stop();
     demo = null;
     demoLit = {};
+    // The demo's line leaves with it, so a run never reads "Not scored".
+    if (status === DEMO_STATUS) status = "";
   }
 
   async function playDemo() {
@@ -423,7 +426,7 @@
       },
     });
     demo = handle;
-    status = "Listen: the pattern at tempo, pads lit as they sound. Not scored.";
+    status = DEMO_STATUS;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -653,17 +656,18 @@
     return {
       headline,
       metric: pct(r.score),
-      metricLabel: r.velocity === null ? "score, velocity not measured" : "score",
+      metricLabel: "score",
       timing: ons.length ? timingBreakdown(r.perStroke.map((p) => p?.errorMs ?? null), Math.min(60, stepMs / 3)) : undefined,
       rows: [
         { label: "Correct pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
         // 180 ms is where the rudiment grader's timing credit reaches zero.
-        timingRow(errs, r.total, 180, "Timing vs the click"),
+        timingRow(errs, r.total, 180, "Timing vs the click", Math.min(60, stepMs / 3)),
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
           : evennessRow(r.velocity, r.matched, r.total, hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"),
-        { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} extra` : ""}` },
+        { label: "Completed", value: r.completion, text: `${r.matched} of ${r.total}${r.extra ? `, ${r.extra} stray` : ""}` },
       ],
+      cleanMeans: "every stroke on its pad and on the click",
     };
   }
 
@@ -698,12 +702,14 @@
     else if (ons.length && !isSteady)
       headline = x.pass
         ? `Passed level ${entry.level} at ${bpm} BPM: ${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good.${bpm < entry.bpm.target ? "" : " At the target tempo."}`
-        : `${headline} ${Math.round(x.tier.good * 100)}% good of the 90% to pass, ${Math.round(x.tier.perfect * 100)}% perfect of 70%.`;
+        : `${headline} ${Math.round(x.tier.good * total)} of ${total} hits on time. You need 9 of 10 to pass.`;
     const leans = x.bias.filter((b) => b.ms !== null && Math.abs(b.ms) >= 8);
     return {
       headline,
       metric: pct(r.score),
-      metricLabel: r.inBand === null ? "score, accents not measured" : "score",
+      // What the input could not measure is said once, in its own row below.
+      metricLabel: "score",
+      cleanMeans: "9 of 10 hits on time, 7 of 10 dead on",
       timing: ons.length ? timingBreakdown(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
         ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
@@ -712,8 +718,8 @@
         ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
         ...(leans.length ? [{ label: "Each drum's lean", text: leans.map((b) => `${voiceName(b.voice)} ${Math.abs(b.ms!)} ms ${b.ms! < 0 ? "early" : "late"}`).join(", ") }] : []),
         { label: "Hits matched", value: r.matched / total, text: `${r.matched} of ${total}` },
-        { label: "Extra hits", text: r.extra ? String(r.extra) : "None" },
-        timingRow(r.perTarget.filter((e): e is number => e !== null), total, 180),
+        { label: "Stray hits", text: r.extra ? String(r.extra) : "None" },
+        timingRow(r.perTarget.filter((e): e is number => e !== null), total, 180, "Timing", x.tier.goodMs),
         r.inBand === null
           ? { label: `Accents: ${velocityWhy(ons)}`, notMeasured: true }
           : { label: "Accents in band", value: r.inBand / total, text: `${r.inBand} of ${total}` },
@@ -894,14 +900,10 @@
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
     {/if}
     {#if phase === "running" && guided && !waitMode && judgedCount}
-      <Stat label="Landed" value="{landedCount}/{judgedCount}{liveExtra ? ` +${liveExtra} extra` : ''}" tone={landedCount === judgedCount && !liveExtra ? "success" : "warn"} />
-    {:else if phase !== "running" && rud}
-      <Stat label="Landed" value="{rud.matched}/{rud.total}" tone={rud.completion === 1 ? "success" : "warn"} />
-      <Stat label="Mean error" value={enough(rud.matched, rud.total) ? `${Math.round(rud.meanAbsErrorMs)} ms` : "Not measured"} tone={enough(rud.matched, rud.total) && rud.meanAbsErrorMs <= 90 ? "success" : "warn"} />
-    {:else if phase !== "running" && grv}
-      <Stat label="Matched" value="{grv.matched}/{groove.targets.length}" tone={grv.missed ? "warn" : "success"} />
-      <Stat label="Extra" value={grv.extra} tone={grv.extra ? "warn" : "success"} />
+      <Stat label="On target" value="{landedCount} of {judgedCount}" tone={landedCount === judgedCount ? "success" : undefined} />
+      {#if liveExtra}<Stat label="Stray hits" value={liveExtra} />{/if}
     {/if}
+    <!-- After a run the HUD stays quiet: the results card says the numbers once (a silent run has none). -->
   {/snippet}
 
   {#snippet stage()}
@@ -968,51 +970,72 @@
   {#snippet results()}
     <!-- One set of stars: the results card's own, on the advance rule's lines. -->
     {#if summary}
-      <Results {summary} />
-      {#if grv}
-        <div class="grid gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:grid-cols-2 sm:p-5">
-          <div class="min-w-0 overflow-x-auto">
-            <table class="w-full text-sm">
-              <caption class="mb-2 text-left font-semibold">By voice</caption>
-              <thead class="text-ws-soft"><tr><th class="py-1 text-left font-normal">Voice</th><th class="font-normal">Hit</th><th class="font-normal">Missed</th><th class="font-normal">Extra</th><th class="text-right font-normal">Timing</th></tr></thead>
-              <tbody class="tnum">
-                {#each grv.perVoice as v (v.voice)}
-                  <tr class="border-t border-ws-line">
-                    <td class="py-1.5">{voiceName(v.voice)} <span class="text-ws-soft">{padLabel(v.pad)}</span></td>
-                    <td class="text-center">{v.matched}</td>
-                    <td class="text-center {v.missed ? 'font-semibold text-destructive' : ''}">{v.missed}</td>
-                    <td class="text-center {v.extra ? 'font-semibold text-destructive' : ''}">{v.extra}</td>
-                    <td class="text-right">{v.matched ? `${Math.round(v.meanAbsErrorMs)} ms` : "none"}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-          <div class="min-w-0 overflow-x-auto">
-            <table class="w-full text-sm">
-              <caption class="mb-2 text-left font-semibold">By section</caption>
-              <thead class="text-ws-soft"><tr><th class="py-1 text-left font-normal">Section</th><th class="font-normal">Hit</th><th class="font-normal">Missed</th><th class="text-right font-normal">Verdict</th></tr></thead>
-              <tbody class="tnum">
-                {#each grv.perSection as sec (sec.label)}
-                  <tr class="border-t border-ws-line">
-                    <td class="py-1.5 capitalize">{sec.label}</td>
-                    <td class="text-center">{sec.matched}</td>
-                    <td class="text-center">{sec.missed}</td>
-                    <td class="text-right font-medium">{sectionWord(sec.label, grv)}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {/if}
+      <Results {summary} figure={grv || rud ? runFigure : undefined} />
     {/if}
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="mpc" sound={{ value: s.sound, onchange: (v) => cfg.set({ sound: v }) }} since={summary?.heard === false ? downbeat : null} /></div>
+    <!-- The device line before and after a run, never under a live run (nothing can be fixed mid-run). -->
+    {#if phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="mpc" sound={{ value: s.sound, onchange: (v) => cfg.set({ sound: v }) }} since={summary?.heard === false ? downbeat : null} /></div>{/if}
   {/snippet}
 </DrillShell>
 {/if}
 
-
+<!-- The run drawn with its marks under the breakdown: the groove's grid (and its tables by voice and section),
+     or the rudiment's strokes, each with its pad and offset. -->
+{#snippet runFigure()}
+  {#if rud}
+    <div class="stage rounded-2xl p-3">
+      <StickingLane hits={hits} {beatMs} current={null} outcomes={rud.perStroke} windowMs={Math.min(60, stepMs / 3)} />
+    </div>
+  {/if}
+  {#if grv}
+    <div class="stage mb-4 rounded-2xl p-3">
+      <GrooveGrid
+        targets={groove.targets}
+        bars={groove.groove.bars}
+        sectionLabels={groove.groove.sectionLabels}
+        playhead={null}
+        outcomes={grv.perTarget}
+        windowMs={judgeWindow.good}
+        stepsPerBeat={perBeatStep}
+        beatsPerBar={perBar}
+      />
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <div class="min-w-0 overflow-x-auto">
+        <table class="w-full text-sm">
+          <caption class="mb-2 text-left font-semibold">By voice</caption>
+          <thead class="text-ws-soft"><tr><th class="py-1 text-left font-normal">Voice</th><th class="font-normal">Hit</th><th class="font-normal">Missed</th><th class="font-normal">Extra</th><th class="text-right font-normal">Timing</th></tr></thead>
+          <tbody class="tnum">
+            {#each grv.perVoice as v (v.voice)}
+              <tr class="border-t border-ws-line">
+                <td class="py-1.5">{voiceName(v.voice)} <span class="text-ws-soft">{padLabel(v.pad)}</span></td>
+                <td class="text-center">{v.matched}</td>
+                <td class="text-center {v.missed ? 'font-semibold text-destructive' : ''}">{v.missed}</td>
+                <td class="text-center {v.extra ? 'font-semibold text-destructive' : ''}">{v.extra}</td>
+                <td class="text-right">{v.matched ? `${Math.round(v.meanAbsErrorMs)} ms` : "none"}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      <div class="min-w-0 overflow-x-auto">
+        <table class="w-full text-sm">
+          <caption class="mb-2 text-left font-semibold">By section</caption>
+          <thead class="text-ws-soft"><tr><th class="py-1 text-left font-normal">Section</th><th class="font-normal">Hit</th><th class="font-normal">Missed</th><th class="text-right font-normal">Verdict</th></tr></thead>
+          <tbody class="tnum">
+            {#each grv.perSection as sec (sec.label)}
+              <tr class="border-t border-ws-line">
+                <td class="py-1.5 capitalize">{sec.label}</td>
+                <td class="text-center">{sec.matched}</td>
+                <td class="text-center">{sec.missed}</td>
+                <td class="text-right font-medium">{sectionWord(sec.label, grv)}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {/if}
+{/snippet}

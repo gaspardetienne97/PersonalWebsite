@@ -64,10 +64,6 @@ export const JUDGEMENT_TEXT: Record<Judgement, string> = {
   miss: "Miss",
 };
 
-/** One to three stars: some of it, most of it, passed (the level's timing). */
-export const starsFor = (score: number, passed: boolean) =>
-  passed ? 3 : score >= 0.8 ? 2 : score >= 0.6 ? 1 : 0;
-
 // ---------------------------------------------------------------------------
 // The lanes view: time to x, the grid behind, the pad grid beside.
 

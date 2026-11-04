@@ -56,6 +56,8 @@
   let run: ReturnType<typeof practice.beginRun> | null = null;
 
   const barIndex = $derived(phase === "running" && now >= downbeat ? Math.min(bars.length - 1, Math.floor((now - downbeat) / barMs)) : null);
+  /** Beside Stop on a phone: the chord now and the move ("Chord 2 of 4: F, then lift"). */
+  const cue = $derived(barIndex === null ? "" : `Chord ${barIndex + 1} of ${bars.length}: ${bars[barIndex].symbol}${mode === "practice" ? ", then lift and press" : ""}`);
   const current = $derived(barIndex === null ? (phase === "ready" ? bars[0] : null) : bars[barIndex]);
   /** The chart as timed notes, for Hear it first: each chord held for its bar. */
   const demoNotes = $derived<TimedNote[]>(bars.flatMap((b, k) => [b.leftHand, ...b.rightHand].map((midi, i) => ({ midi, beat: k * 4, dur: 4, hand: i === 0 ? ("left" as const) : ("right" as const) }))));
@@ -200,13 +202,17 @@
       clean: correct && mode === "check",
       xp: fin.xp,
       mode,
+      cleanMeans: "every change lifted after the chord and pressed straight back",
       rows: [
         measured
           ? { label: "Pedal changes clean", value: r.score, text: `${r.clean} of ${bars.length}` }
           : { label: "Pedal (no CC 64 arrived)", notMeasured: true },
         ...(measured
           ? [
-              { label: "Lifted early, held through, down late", text: `${count("early")}, ${count("blurred")}, ${count("late")}` },
+              // One row each, so a count never wraps away from its name.
+              { label: "Lifted before the chord", text: `${count("early")} of ${bars.length}` },
+              { label: "Held through the change", text: `${count("blurred")} of ${bars.length}` },
+              { label: "Pressed down late", text: `${count("late")} of ${bars.length}` },
               { label: "Lift after the chord (median)", text: lifts.length ? `${Math.round(lifts[Math.floor(lifts.length / 2)])} ms` : "none" },
             ]
           : []),
@@ -235,6 +241,9 @@
     cap?.stop();
   });
 
+  /** The bar the demo is sounding, lit on the chart. */
+  const demoBar = $derived(transport.playing && transport.beat !== null ? Math.floor(transport.beat / 4) : null);
+
   // The pedal line: down is a low line, up a gap, with a tick at each bar.
   const W = 640;
   const H = 44;
@@ -262,7 +271,7 @@
   title="Pedal"
   lesson={{ lessons: [pedalLesson()] }}
   hue="piano"
-  blurb="Legato pedalling: play the chord, then lift the sustain pedal and press it straight back down, so each chord rings into the next without blurring."
+  blurb="Play the chord, then lift the sustain pedal and press it straight back, so each chord rings into the next without a blur."
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -271,6 +280,7 @@
   clock={{ bpm, beatsPerBar: 4 }}
   onstart={start}
   onstop={stop}
+  {cue}
   ondemo={playDemo}
   demoPlaying={transport.playing}
 >
@@ -292,57 +302,69 @@
     {#if phase === "running"}
       <Stat label="Chord" value={barIndex === null ? "count-in" : `${barIndex + 1} of ${bars.length}`} />
       <Stat label="Pedal" value={pedalDown ? "↓ Down" : "↑ Up"} tone={pedalDown ? "success" : undefined} />
-    {:else if result}
-      <Stat label="Clean changes" value={`${result.clean} of ${bars.length}`} tone={result.correct ? "success" : "warn"} />
     {/if}
   {/snippet}
 
   {#snippet stage()}
-    {@const demoBar = transport.playing && transport.beat !== null ? Math.floor(transport.beat / 4) : null}
-    <ol class="mb-3 grid grid-cols-4 gap-2" aria-label="Chord chart, a chord a bar">
-      {#each bars as b, k (k)}
-        {@const v = result?.verdicts[k]}
-        <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
-          <span class="font-display text-xl font-semibold">{b.symbol}</span>
-          <span class="text-xs text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
-        </li>
-      {/each}
-    </ol>
+    {@render chart()}
     {#if mode === "practice" || phase === "results"}
       <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title="pedal-{progression.id}-{pc(s.key)}-{bars.length}" cursorBeat={transport.playing ? transport.beat : barIndex === null ? null : (now - downbeat) / beatMs} keyFifths={signatureFor(pc(s.key), "major")} /></StaffFold>
     {/if}
-    {#if phase !== "ready"}
-    <figure class="mb-3">
-      <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label="The pedal over the bars: a line where it was down, a gap where it was up">
-        {#each bars as _, k (k)}
-          <line x1={(k / bars.length) * W} x2={(k / bars.length) * W} y1="4" y2={H - 4} class="bar" vector-effect="non-scaling-stroke" />
-        {/each}
-        <!-- Drawn as a pedal bracket is printed: a tick where it goes down, the line while held, a tick where it lifts. -->
-        {#each segments as g, i (i)}
-          <line x1={xOf(g.from)} x2={xOf(g.from)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
-          <line x1={xOf(g.from)} x2={xOf(g.to)} y1={H - 12} y2={H - 12} class="ped" vector-effect="non-scaling-stroke" />
-          <line x1={xOf(g.to)} x2={xOf(g.to)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
-        {/each}
-      </svg>
-      <figcaption class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ws-stage-soft">
-        {#if phase === "running"}
-          <span class="pedal-state font-semibold" data-down={pedalDown || undefined}>{pedalDown ? "↓ Pedal down" : "↑ Pedal up"}</span>
-        {/if}
-        <span>Pedal line: down where it runs, up in the gaps. Each gap sits just after a bar line.</span>
-      </figcaption>
-    </figure>
-    {/if}
+    {#if phase !== "ready"}{@render pedalLine()}{/if}
     <div class="flex flex-col justify-end" data-dock="instrument">
-      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
+      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
     </div>
   {/snippet}
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
+      <Results {summary} {figure} />
     {/if}
   {/snippet}
 </DrillShell>
+
+<!-- The chord chart, a chord a bar; after a run each card says how its change went. -->
+{#snippet chart()}
+  <ol class="mb-3 grid grid-cols-4 gap-2" aria-label="Chord chart, a chord a bar">
+    {#each bars as b, k (k)}
+      {@const v = result?.verdicts[k]}
+      <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
+        <span class="font-display text-xl font-semibold">{b.symbol}</span>
+        <span class="text-xs text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
+      </li>
+    {/each}
+  </ol>
+{/snippet}
+
+{#snippet pedalLine()}
+  <figure class="mb-3">
+    <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label="The pedal over the bars: a line where it was down, a gap where it was up">
+      {#each bars as _, k (k)}
+        <line x1={(k / bars.length) * W} x2={(k / bars.length) * W} y1="4" y2={H - 4} class="bar" vector-effect="non-scaling-stroke" />
+      {/each}
+      <!-- Drawn as a pedal bracket is printed: a tick where it goes down, the line while held, a tick where it lifts. -->
+      {#each segments as g, i (i)}
+        <line x1={xOf(g.from)} x2={xOf(g.from)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
+        <line x1={xOf(g.from)} x2={xOf(g.to)} y1={H - 12} y2={H - 12} class="ped" vector-effect="non-scaling-stroke" />
+        <line x1={xOf(g.to)} x2={xOf(g.to)} y1={H - 26} y2={H - 12} class="ped tick" vector-effect="non-scaling-stroke" />
+      {/each}
+    </svg>
+    <figcaption class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ws-stage-soft">
+      <!-- The pedal's state now is in the HUD; the line here is its history. -->
+      <span>Pedal line: down where it runs, up in the gaps. Each gap sits just after a bar line.</span>
+    </figcaption>
+  </figure>
+{/snippet}
+
+<!-- The run drawn: each change's verdict on the chart, and the pedal line under it. -->
+{#snippet figure()}
+  {#if result}
+    <div class="stage rounded-2xl p-3">
+      {@render chart()}
+      {@render pedalLine()}
+    </div>
+  {/if}
+{/snippet}
 
 <style>
   .bar {
@@ -356,15 +378,5 @@
   }
   .ped.tick {
     stroke-width: 3;
-  }
-  .pedal-state {
-    padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 35%, transparent);
-    color: var(--ws-stage-ink);
-  }
-  .pedal-state[data-down] {
-    border-color: var(--instr);
-    background: color-mix(in oklch, var(--instr) 25%, transparent);
   }
 </style>

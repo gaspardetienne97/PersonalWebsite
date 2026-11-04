@@ -84,7 +84,7 @@
           <svg class="hit" data-kind={h.kind} viewBox="-6 -6 12 12" style:left="{h.pos.x}px" style:top="{h.pos.bottom + 46}px" aria-hidden="true">
             {#if h.kind === "early"}<path class="chev early" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />
             {:else if h.kind === "late"}<path class="chev late" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />
-            {:else if h.kind === "pocket"}<circle r="5" />
+            {:else if h.kind === "pocket"}<path class="tick" d="M-4.5 0 L-1.5 3.5 L4.5 -4" />
             {:else if h.kind === "missed"}<circle r="4.5" class="hollow" />
             {:else}<path d="M-4.5 -4.5 L4.5 4.5 M4.5 -4.5 L-4.5 4.5" class="cross" />{/if}
           </svg>
@@ -182,8 +182,13 @@
     stroke: var(--late, var(--warn));
   }
 
-  .hit[data-kind="pocket"] circle {
-    fill: var(--success);
+  /* On time: a check, the same glyph as the results strip. */
+  .hit .tick {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .hit .hollow {
     fill: none;

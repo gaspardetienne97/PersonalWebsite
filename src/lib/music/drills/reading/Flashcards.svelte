@@ -234,6 +234,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === answers.length,
+      cleanMeans: "every card right",
       xp: fin.xp,
       mode,
       hinted: anyHint,
@@ -317,9 +318,10 @@
   bind:phase
   bind:mode
   bind:status
-  progress={cards.length ? (qi + (answered ? 1 : 0)) / cards.length : 0}
+  progress={cards.length ? (qi + 1) / cards.length : 0}
   onstart={start}
   onstop={stop}
+  cue={phase !== "running" || !card ? "" : answered ? (answered.correct ? "" : "Next card when ready") : byPlay ? "Play the note you see" : "Name the note you see"}
 >
   {#snippet setup()}
     <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} {instrument} {limits} />
@@ -403,16 +405,7 @@
 </DrillShell>
 
 <style>
-  .card {
-    border: 2px solid transparent;
-  }
-  /* A miss frames the card neutrally: the green tick and red cross inside it carry the verdict. */
-  .card[data-state="wrong"] {
-    border-color: color-mix(in oklch, var(--ws-stage-ink) 35%, transparent);
-  }
-  .card[data-state="right"] {
-    border-color: var(--success);
-  }
+  /* One frame (the stage panel): the green tick and red cross on the staff carry the verdict, no second border. */
   /* The card is the staff's paper (NotationFrame), with a little room above and below. */
   .zoom {
     zoom: 2;

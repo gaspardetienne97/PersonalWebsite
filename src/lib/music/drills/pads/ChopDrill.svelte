@@ -134,7 +134,8 @@
   // The run.
 
   const stepNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / 4)) : null);
-  const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), `Slice ${i + 1}`]));
+  // The slice number alone on each pad: "Slice 13" wrapped on a small pad, the number reads at a glance.
+  const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), String(i + 1)]));
   // The lanes: the slices the piece plays, in order, each ringing until the next slice starts.
   const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1) })));
   const sliceMs = $derived((source.bars * 4 * beatMs) / CHOP_SLICES);
@@ -470,7 +471,8 @@
   {/snippet}
 
   {#snippet actions()}
-    <div class="w-full"><MidiStatus instrument="mpc" /></div>
+    <!-- The device line before and after a run, never under a live run (nothing can be fixed mid-run). -->
+    {#if phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="mpc" since={summary?.heard === false ? downbeat : null} /></div>{/if}
   {/snippet}
 </DrillShell>
 

@@ -47,3 +47,74 @@ export function spellDegree(midi: number, tonic: number, degree: string): string
   const octave = Math.floor((midi - diff) / 12) - 1;
   return LETTERS[li] + (diff > 0 ? "#" : "b").repeat(Math.abs(diff)) + octave;
 }
+
+/** The letter `steps` letters from `root` (signed), with the accidental that makes `midi`; null past a double. */
+function letterFor(rootName: string, steps: number, midi: number): string | null {
+  const li = (((LETTERS.indexOf(rootName[0]) + steps) % 7) + 7) % 7;
+  let diff = (((midi - NATURAL[li]) % 12) + 12) % 12;
+  if (diff > 6) diff -= 12;
+  return Math.abs(diff) > 2 ? null : LETTERS[li] + (diff > 0 ? "#" : "b").repeat(Math.abs(diff));
+}
+const accidentals = (names: string[]) => names.join("").replace(/[A-G]/g, "").length;
+/** Spell notes letter by letter from a root, trying it as a flat and a sharp name; the one with fewer accidentals wins. */
+function spellFrom(root: number, notes: { midi: number; steps: number }[]): string[] {
+  const options = [noteName(root, "flat", false), noteName(root, "sharp", false)].map((r) => [
+    r,
+    ...notes.map((n) => letterFor(r, n.steps, n.midi) ?? noteName(n.midi, "flat", false)),
+  ]);
+  return options.sort((a, b) => accidentals(a) - accidentals(b))[0];
+}
+
+/** Letter steps per half step above the first note (the tritone as an augmented 4th). */
+const INTERVAL_STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6];
+/**
+ * Both notes of an interval, spelled as the interval: A up a major 3rd is A and C#, not Db.
+ * Descending intervals count letters down.
+ */
+export function spellInterval(from: number, to: number): [string, string] {
+  const way = to < from ? -1 : 1;
+  const [a, b] = spellFrom(from, [
+    { midi: to, steps: way * INTERVAL_STEPS[Math.abs(to - from) % 12] },
+  ]);
+  return [a, b];
+}
+
+/** Letter steps above a chord's root (b5 and #5 stay 5ths, a dim 7th a 7th). */
+const CHORD_STEPS: Record<number, number> = {
+  0: 0,
+  1: 1,
+  2: 1,
+  3: 2,
+  4: 2,
+  5: 3,
+  6: 4,
+  7: 4,
+  8: 4,
+  9: 6,
+  10: 6,
+  11: 6,
+};
+const TRIADS = [
+  [4, 7],
+  [3, 7],
+  [3, 6],
+  [4, 8],
+];
+/** A triad or seventh chord's root: the note every other note stacks on in thirds; the bass when none does. */
+export function chordRoot(midis: number[]): number {
+  const lo = Math.min(...midis);
+  for (const r of [...new Set(midis)].sort((a, b) => a - b)) {
+    const above = new Set(midis.map((m) => (((m - r) % 12) + 12) % 12));
+    if (TRIADS.some(([t, f]) => above.has(t) && above.has(f))) return r;
+  }
+  return lo;
+}
+/** A chord's notes, bass to top, each spelled by its place above the root: E aug is E G# B#, not E Ab C. */
+export function spellChord(midis: number[]): string[] {
+  const sorted = [...midis].sort((a, b) => a - b);
+  const root = chordRoot(sorted);
+  return spellFrom(
+    root,
+    sorted.map((m) => ({ midi: m, steps: CHORD_STEPS[(((m - root) % 12) + 12) % 12] })),
+  ).slice(1);
+}

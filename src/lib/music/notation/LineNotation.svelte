@@ -40,8 +40,10 @@
     bpm?: number;
     /** The most a short line is zoomed up (tab defaults lower: its numbers read well small, and the neck needs the room below). */
     maxZoom?: number;
+    /** The least a one-row single line is drawn at (it scrolls with the cursor instead of shrinking): a phone reads it larger. */
+    minZoom?: number;
   }
-  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords, selection = null, onselect, bpm, maxZoom }: Props = $props();
+  let { notes, tuning = null, title, cursorBeat = null, groupStates = {}, beatsPerBar = 4, keyFifths = 0, meter, instrument, oneRow = false, chords, selection = null, onselect, bpm, maxZoom, minZoom = 1 }: Props = $props();
   const barBeats = $derived(meter ? (meter[0] * 4) / meter[1] : beatsPerBar);
 
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
@@ -75,15 +77,16 @@
   const attacks = $derived(new Set(notes.map((n) => n.startBeat)).size);
   const zoomCap = $derived(maxZoom ?? (tuning ? 1.15 : 1.6));
   // A single line on one row never shrinks below full size: it scrolls with the cursor instead (a phone).
-  const zoom = $derived(width ? Math.min(zoomCap, Math.max(Math.min(oneRow && voices.length === 1 && !chords?.length ? 1 : 0.7, zoomCap), width / natural(Math.min(attacks, LONG)))) : 1);
+  const zoom = $derived(width ? Math.min(zoomCap, Math.max(Math.min(oneRow && voices.length === 1 && !chords?.length ? Math.max(1, minZoom) : 0.7, zoomCap), width / natural(Math.min(attacks, LONG)))) : 1);
   // One row whatever the content: wide enough for a busy grand-staff bar (chords, rests, eighths in both hands);
   // a single line needs only its notes' width, so a short one still fits the stage without scrolling.
   const busy = $derived(voices.length > 1 || !!chords?.length);
   const minWidth = $derived(oneRow && busy ? Math.max(natural(attacks), 360 * Math.ceil(end / barBeats - 1e-9)) : attacks > LONG ? natural(attacks) : 0);
-  // The visible height is capped whatever the zoom (a grand staff at 20rem); taller scrolls.
+  // The visible height is capped (a grand staff at 20rem at up to 1.1 zoom); taller scrolls.
   // Fingering adds a row of numbers above or below each staff.
   const fingered = $derived(notes.some((n) => n.finger !== undefined) || !!chords?.length);
-  const maxHeight = $derived(`${(((voices.length > 1 ? 20 : 16) + (fingered ? 5 : 0)) / zoom).toFixed(2)}rem`);
+  // A staff zoomed up past 1.1 gets the room its zoom asks for (two systems at 1.6 are not cut to one and a half).
+  const maxHeight = $derived(`${((((voices.length > 1 ? 20 : 16) + (fingered ? 5 : 0)) * Math.max(1, zoom / 1.1)) / zoom).toFixed(2)}rem`);
 </script>
 
 <div class="line-notation" data-testid={tuning ? "line-tab" : "line-staff"} bind:clientWidth={width}>

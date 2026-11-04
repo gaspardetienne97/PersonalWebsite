@@ -395,6 +395,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: lanes.correct && follower === "performance" && mode === "check",
+      cleanMeans: follower === "performance" ? "every note right and in time" : "every note right first time",
       xp: fin.xp,
       // Wait for me is guided whichever way the switch is set; the shell's sentence covers the rest.
       // Wait for me is practice whatever the toggle says: the cursor waited for you.
@@ -410,7 +411,8 @@
         : [
             { label: `${words.one === "Note" ? "Notes" : "Notes and chords"} right first time`, value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
             { label: "Wrong notes", text: String(wait!.wrongNotes) },
-            { label: "Timing", notMeasured: true },
+            // Wait for me waits for each note, so there is no beat to be on: say how to get timing graded.
+            { label: "Timing", notMeasured: true, text: "Timing is scored with the click on (In time with the click)" },
           ],
     };
     // The climb is its own advance; otherwise the next run by the shared rule, when something was played.
@@ -547,7 +549,8 @@
     for (const m of lit) out[m] = { demo: true };
     if (phase === "running" && mode === "practice" && current)
       for (const n of current.notes)
-        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : undefined, role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
+        // The wanted key carries its name (or its hand when both hands play), so the eye need not hunt for it.
+        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : noteName(n.midi + transpose), role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
     return out;
   });
   const allSounding = $derived(sounding.voices.flatMap((v) => v.notes.map((n) => n.midi)));
@@ -589,6 +592,13 @@
 
 <svelte:window onkeydown={onKey} />
 
+<!-- The phrase again with every note graded, beside the breakdown: the marks the run left on the staff. -->
+{#snippet gradedStaff()}
+  <figure class="overflow-x-auto rounded-2xl" aria-label="The phrase, each note marked">
+    <Staff {score} groupStates={shownStates} played={shownPlayed} fill={measures <= 4} maxHeight={measures > 4 ? "24rem" : "14rem"} />
+  </figure>
+{/snippet}
+
 <DrillShell
   listens
   checkRun={follower !== "wait"}
@@ -611,6 +621,7 @@
   demoPlaying={!!preview?.playing}
   onstart={start}
   onstop={stop}
+  cue={phase !== "running" || !live ? "" : tapping ? "Tap the rhythm" : follower === "wait" ? `Play ${words.one.toLowerCase()} ${Math.min(live.index + 1, groups.length)} of ${groups.length}` : "Play in time with the click"}
 >
   {#snippet setup()}
     <SetupFields {cfg} activity="sight-reading" {fretted} oneLine={fretted || aero} {instrument} limits={fretted && tuning ? positionRange(tuning, [0, 12]) : limits} />
@@ -734,7 +745,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
+      <Results {summary} figure={gradedStaff}>
         {#snippet actions()}
           {#if climbing && climb}
             {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>Climb again</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>Next phrase</button>{/if}

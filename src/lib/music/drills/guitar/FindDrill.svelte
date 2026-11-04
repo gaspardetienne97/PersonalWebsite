@@ -222,12 +222,13 @@
       headline:
         right === answers.length
           ? `All ${right} found${isRecall ? "" : ` between frets ${region.start} and ${to}`}.`
-          : `${right} of ${answers.length} found. The misses are listed on the stage, so look again before the next round.`,
+          : `${right} of ${answers.length} found. Look again at the misses below before the next round.`,
       metric: `${right}/${answers.length}`,
       metricLabel: "found",
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === answers.length && answers.length > 0,
+      cleanMeans: "every note found",
       xp: fin.xp,
       // The skill map has no ukulele interval skill yet: say that instead of the mode's line, which would claim it counts.
       ...(isRecall && instr === "ukulele" ? { assistance: "No ukulele interval skill yet: this run is kept as practice history, not counted toward your skill scores." } : { mode }),
@@ -264,6 +265,8 @@
   });
 
   const missed = $derived(answers.filter((a) => !a.correct));
+  /** Beside Stop on a phone: what to find now. */
+  const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? `Find ${aOrAn(question.label)} up from the square` : `Find ${question.label}, frets ${region.start} to ${to}`) : "");
 </script>
 
 <DrillShell
@@ -280,9 +283,10 @@
   bind:phase
   bind:mode
   bind:status
-  progress={s.questions ? answers.length / s.questions : 0}
+  progress={s.questions ? (phase === "running" ? Math.min(1, (answers.length + 1) / s.questions) : answers.length / s.questions) : 0}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -319,7 +323,7 @@
 
   {#snippet stage()}
     <!-- The prompt fills the room above the neck, centred like a flash card. -->
-    <div class="mb-3 flex min-h-20 flex-1 flex-wrap content-center items-end gap-x-4 gap-y-1" data-dock="music">
+    <div class="mb-3 flex min-h-20 flex-wrap content-center items-end gap-x-4 gap-y-1" data-dock="music">
       {#if question}
         {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
@@ -330,8 +334,6 @@
           key={answers.length}
           class="pb-1"
         />
-      {:else if phase === "results" && missed.length}
-        <p class="text-sm text-ws-stage-soft">Missed: {missed.map((a) => (isRecall ? `${a.q.label.toLowerCase()} from ${noteName(a.q.anchor!.midi, "sharp")}` : a.q.label)).join(", ")}.</p>
       {:else}
         <p class="max-w-prose text-ws-stage-soft">
           {isRecall ? "A square marks the starting note. Find the interval above it; sounding the square first is fine." : "A note name appears here. Tap it on the neck, or play it."}
@@ -345,7 +347,21 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
+      <!-- The misses, each with what was played instead: the round to look at again. -->
+      {#snippet figure()}
+        <div class="flex flex-col gap-2" data-testid="finder-misses">
+          <p class="text-sm font-semibold">Missed</p>
+          <ul class="flex flex-col gap-1.5 text-sm">
+            {#each missed as a, i (i)}
+              <li class="flex flex-wrap items-baseline gap-x-2">
+                <span class="font-semibold">{isRecall ? `${a.q.label} from ${noteName(a.q.anchor!.midi, "sharp", false)}` : a.q.label}</span>
+                <span class="text-ws-soft">you played {playedText(a)}</span>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/snippet}
+      <Results {summary} figure={missed.length ? figure : undefined} />
     {/if}
   {/snippet}
 </DrillShell>

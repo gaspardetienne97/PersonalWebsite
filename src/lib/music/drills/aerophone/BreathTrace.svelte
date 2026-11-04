@@ -25,8 +25,8 @@
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
   <figcaption class="mb-1 flex items-baseline justify-between text-xs text-ws-stage-soft">
-    <span>Breath, CC 2</span>
-    <span class="tnum font-semibold text-ws-stage-ink">{measured && last !== undefined ? `${Math.round(last * 100)}%` : "Not measured"}</span>
+    <span>Breath sensor</span>
+    <span class="tnum font-semibold text-ws-stage-ink">{measured && last !== undefined ? `${Math.round(last * 100)}%` : "Blow to test the breath sensor"}</span>
   </figcaption>
   <svg viewBox="0 0 {W} {H}" class="h-24 w-full" preserveAspectRatio="none" role="img" aria-label={label}>
     {#each [0.25, 0.5, 0.75] as g (g)}<line x1="0" x2={W} y1={y(g)} y2={y(g)} class="grid" />{/each}

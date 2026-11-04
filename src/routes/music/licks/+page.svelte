@@ -133,12 +133,23 @@
   /** By ear: no notation, lane or lit keys until the results (or a peek). */
   const hideNotes = $derived(s.ear && !peeked && phase !== "results");
   const showTargets = $derived(mode === "practice" && phase !== "results" && !hideNotes);
-  /** Tab marks while running: notes played so far, and the one up next. */
+  /** Staff and tab marks from the lane's own outcomes (one per note), so the two never disagree:
+   *  a wrong pitch is wrong, a note never played is missed, the one up next is active. */
   const tabStates = $derived.by(() => {
     const out: Record<number, GroupState> = {};
-    if (phase === "running") chunk.forEach((_, i) => (i < played ? (out[lo + i] = "correct") : i === played && (out[lo + i] = "active")));
+    if (phase !== "running" && phase !== "results") return out;
+    if (phase === "running" && mode !== "practice") return out;
+    chunk.forEach((_, i) => {
+      const o = outcomes[i];
+      if (o) out[lo + i] = o === "miss" ? "wrong" : "correct";
+      else if (phase === "results") out[lo + i] = "missed";
+      else if (i === played) out[lo + i] = "active";
+    });
     return out;
   });
+  const ended = $derived(phase === "results");
+  /** Beside Stop on a phone: which note is next and, in Practice, what it is. */
+  const cue = $derived(phase === "running" && next ? `Note ${Math.min(played + 1, chunk.length)} of ${chunk.length}${mode === "practice" && !hideNotes ? `: ${spell(next.midi)}` : ", from memory"}` : "");
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
@@ -269,7 +280,8 @@
     }
     const rows: ResultRow[] = [
       { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
-      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.total : 0, text: `${r.onTime} of ${r.total}` },
+      // Timing is judged on the notes that came in order, so it says how many of those.
+      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
     ];
     if (fretted)
       rows.push(r.positions === null ? { label: "String and fret (MIDI and microphone can't see them)", notMeasured: true } : { label: "String and fret", value: r.positions / r.total, text: `${r.positions} of ${r.total}` });
@@ -291,9 +303,10 @@
       mode,
       hinted: s.ear && peeked,
       rows,
+      cleanMeans: "every note in order",
       advance: notes.some((n) => n.kind === "noteon") ? await advanceAfter(r.score, r.correct) : undefined,
       // The headline's fix: the notes where it slipped, as their own chunk.
-      coach: r.practiceWindow ? { label: `Practise notes ${lo + r.practiceWindow[0] + 1} to ${lo + r.practiceWindow[1]}`, run: practiseWindow } : undefined,
+      coach: r.practiceWindow ? { label: `Loop notes ${lo + r.practiceWindow[0] + 1} to ${lo + r.practiceWindow[1]}`, run: practiseWindow } : undefined,
       timing: timingOf(timed.map((_, i) => outcomes[i])),
     };
     status = summary.headline;
@@ -349,6 +362,8 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
+  review
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -389,10 +404,10 @@
     <!-- Text first; a long row of bar chunks wraps under it rather than squeezing it. -->
     <div class="mb-3 flex flex-wrap gap-3 text-sm">
       <div class="min-w-0 flex-[1_1_20rem]">
-        {#if phase !== "running" && phase !== "countin" && (lineShown)}<ViewSwitch class="float-right mb-1 ml-3" />{/if}
+        {#if phase !== "running" && phase !== "countin" && !ended && lineShown}<ViewSwitch class="float-right mb-1 ml-3" />{/if}
         <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
         <!-- The reading text steps aside while the line runs, so the lane and the keys stay in view. -->
-        {#if phase !== "running" && phase !== "countin"}
+        {#if phase !== "running" && phase !== "countin" && !ended}
           <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
           <!-- The theory folds away, so the lane, the staff and the keys fit a laptop screen before Start. -->
           <details class="mt-1 text-ws-stage-soft">
@@ -404,15 +419,16 @@
           </details>
         {/if}
       </div>
-      {#if phase !== "running" && phase !== "countin"}
-        <div class="flex flex-wrap items-end gap-2 lg:justify-end">
+      {#if phase !== "running" && phase !== "countin" && !ended}
+        <div class="flex min-w-0 flex-wrap items-end gap-2 max-sm:w-full lg:justify-end">
           {#if barChunks.length > 1}
-            <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Chunk">
-              <span class="text-xs text-ws-stage-soft">Chunk</span>
+            <!-- One row that scrolls sideways on a phone, so the chunks never stack over the lick. -->
+            <div class="chunks flex min-w-0 items-center gap-1.5 max-sm:w-full max-sm:overflow-x-auto sm:flex-wrap" role="group" aria-label="Chunk">
+              <span class="shrink-0 text-sm text-ws-stage-soft">Chunk</span>
               {#each barChunks as [a, b], i (i)}
-                <button type="button" class="min-h-11 rounded-full border px-3 font-medium {lo === a && hi === b ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={lo === a && hi === b} onclick={() => setChunk(a, b)}>Bar {i + 1}</button>
+                <button type="button" class="min-h-11 shrink-0 rounded-full border px-3 font-medium {lo === a && hi === b ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={lo === a && hi === b} onclick={() => setChunk(a, b)}>Bar {i + 1}</button>
               {/each}
-              <button type="button" class="min-h-11 rounded-full border px-3 font-medium {whole ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={whole} onclick={() => (chunkSel = null)}>Whole lick</button>
+              <button type="button" class="min-h-11 shrink-0 rounded-full border px-3 font-medium {whole ? 'border-transparent bg-instr text-ws-stage' : 'border-ws-stage-ink/25 hover:bg-ws-stage-ink/10'}" aria-pressed={whole} onclick={() => (chunkSel = null)}>Whole lick</button>
             </div>
           {/if}
           {#if s.ear}
@@ -425,7 +441,8 @@
           {:else if mode === "practice"}
             <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(0.5)}>Half speed</button>
             {#if whole}
-              <span class="text-sm text-ws-stage-soft">{barChunks.length > 1 ? "Pick a bar, or tap two notes on the staff, to loop a chunk." : "Tap two notes on the staff to loop a chunk."}</span>
+              <!-- The staff carries its own tap hint; with no staff in view, the bars are the way in. -->
+              {#if falling && barChunks.length > 1}<span class="text-sm text-ws-stage-soft">Pick a bar to loop a chunk.</span>{/if}
             {:else}
               <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => demo(1, 3)}>Loop chunk 3 times</button>
             {/if}
@@ -433,7 +450,7 @@
         </div>
       {/if}
     </div>
-    <div class="flex min-h-0 flex-1 flex-col justify-center" data-dock="music">
+    <div class="flex min-h-0 flex-col justify-center" data-dock="music">
     {#if hideNotes}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/8 p-4 text-sm" data-testid="licks-by-ear">
         By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.
@@ -474,21 +491,23 @@
       </div>
     {/if}
     </div>
-    {#if fretted}
+    {#if fretted && ended}
+      <!-- After the run the tab above, marked, is the result; the idle neck steps aside. -->
+    {:else if fretted}
       <Fretboard openStrings={GUITAR.openStrings} from={frets.from} to={frets.to} marks={fretMarks} {flashes} label="Guitar fretboard, standard tuning" />
       <p class="mt-3 text-sm text-ws-stage-soft">
         Numbers on the dots are the authored fingers, never graded. Taps on the fretboard also check the string and fret; MIDI and the microphone only know the pitch.
       </p>
     {:else}
-      {#if !falling}
-        <div class="flex flex-col justify-end" data-dock="instrument">
-          <!-- The word for the last note sits above the keys, never over them. -->
-          {#if phase === "running" && mode === "practice"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
+      {#if !falling && !ended}
+        <div class="flex flex-col" data-dock="instrument">
+          <!-- The word for the last note has its own row between the music and the keys, never over them. -->
+          {#if phase === "running" && mode === "practice"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
           <InstrumentStage line={all.map((n) => n.midi)} low={span.low} high={span.high} {marks} {flashes} fit />
         </div>
       {/if}
     {/if}
-    {#if mode === "check" && phase !== "results"}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
+    {#if mode === "check" && !ended}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
   {/snippet}
 
   {#snippet results()}

@@ -15,7 +15,8 @@
   };
 </script>
 
-<div class="flex items-center gap-2 {cls}">
+<!-- On a phone it is its own row (after the caller's float), so it never squeezes the text or the staff beside it. -->
+<div class="flex items-center gap-2 {cls} max-sm:float-none! max-sm:ml-0! max-sm:mb-3 max-sm:w-full max-sm:justify-end">
   <span class="text-sm font-medium text-ws-stage-soft" aria-hidden="true">View</span>
   <nav aria-label="Notes view" class="inline-flex gap-1 rounded-full bg-ws-stage-ink/10 p-1 text-sm font-medium">
     {#each NOTE_VIEWS as v (v.id)}

@@ -89,9 +89,10 @@
     width: 3.4rem;
     height: 3.4rem;
     border-radius: 999px;
-    background: var(--deg);
-    color: oklch(0.2 0.04 287);
-    border: 2px solid transparent;
+    /* Neutral chips with the degree's colour as a rim: green and red mean only right and wrong. */
+    background: color-mix(in oklch, var(--ws-stage-ink) 12%, var(--ws-stage));
+    color: var(--ws-stage-ink);
+    border: 3px solid var(--deg);
     transition: transform 120ms ease-out, box-shadow 120ms ease-out;
   }
   .deg:not(:disabled):hover {
@@ -110,13 +111,19 @@
     box-shadow: 0 0 0 4px color-mix(in oklch, var(--deg) 45%, transparent), 0 0 24px var(--deg);
     transform: scale(1.1);
   }
+  .deg.lit:not([data-state]) {
+    background: var(--deg);
+    color: oklch(0.2 0.04 287);
+  }
   .deg[data-state="expected"] {
-    border-color: var(--ws-stage-ink);
-    box-shadow: 0 0 0 3px var(--success);
+    border-color: var(--success);
+    background: var(--success);
+    color: var(--success-foreground);
   }
   .deg[data-state="answered"] {
-    border-style: dashed;
-    border-color: var(--ws-stage-ink);
+    border-color: var(--destructive);
+    background: var(--destructive);
+    color: var(--on-destructive);
   }
   .glyph {
     position: absolute;

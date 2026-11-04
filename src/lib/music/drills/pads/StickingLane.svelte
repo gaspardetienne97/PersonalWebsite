@@ -55,7 +55,7 @@
 <style>
   .lane {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(3.9rem, 1fr));
     gap: 6px;
   }
   .stroke {
@@ -88,18 +88,20 @@
     font-size: 1.6rem;
     line-height: 1;
   }
+  /* Every small label at 13 px, so a stroke's pad and offset read without leaning in. */
   .count {
-    height: 0.9rem;
-    font-size: 0.7rem;
+    height: 1rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: var(--ws-stage-soft);
   }
   .pad {
-    font-size: 0.66rem;
+    font-size: 0.8125rem;
     color: var(--ws-stage-soft);
   }
   .v {
-    font-size: 0.66rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
     font-weight: 700;
   }
   [data-kind="ok"] .v {

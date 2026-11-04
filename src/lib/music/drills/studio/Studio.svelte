@@ -257,7 +257,8 @@
       return out;
     }
     // From memory the keys don't show what comes next.
-    if (live && ls && memory === "off" && !tap) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat) };
+    // The wanted key carries its name ("E4"), so the eye goes from the staff straight to it.
+    if (live && ls && memory === "off" && !tap) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat), label: drums ? undefined : noteName(m + written) };
     return out;
   });
 
@@ -304,8 +305,11 @@
     timers = [];
   }
 
+  /** The last wrong note, said against what was wanted ("Played C#4, expected E4"); cleared on a right one. */
+  let lastMiss = $state("");
   async function start() {
     if (live) return;
+    lastMiss = "";
     stopPreview();
     await audio.unlock();
     setupOpen = false;
@@ -432,6 +436,7 @@
       const expected = liveState(fstate, performance.now()).expected;
       const hit = expected.some((m) => (octaveExact ? m === ev.midi : pc(m) === pc(ev.midi)));
       flashes.add(tap ? raw.midi : ev.midi, hit ? "correct" : "wrong");
+      if (!tap && !drums) lastMiss = hit || !expected.length ? "" : `Played ${noteName(ev.midi + written)}, expected ${expected.map((m) => noteName(m + written)).join(" ")}`;
     }
     fstate = followerInput(fstate, ev);
     if (fstate.mode === "wait" && fstate.index >= fstate.groups.length) endTake();
@@ -1178,11 +1183,12 @@
       </div>
       <div class="mb-3 flex flex-wrap gap-2">
         {#if phase === "look"}<Stat label="Look" value="{lookLeft} s" />{:else}<Stat label={perfMode ? "Take" : "Mode"} value={perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait"} />{/if}
-        {#if ls && fstate}<Stat label="Group" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
+        {#if ls && fstate}<Stat label="Note" value="{Math.min(ls.index + 1, fstate.groups.length)} of {fstate.groups.length}" />{/if}
         {#if ls?.expected.length && memory === "off" && !tap}<Stat label="Next" value={ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " ")} />{/if}
         <Stat label="Tempo" value="{bpm} BPM" />
         {#if spot}<Stat label="Loop, {barsOf(spot.range)}" value={`${spot.streak} of ${SPOT.clean} clean`} />{/if}
       </div>
+      {#if lastMiss && memory === "off"}<p class="mb-2 text-sm font-semibold text-destructive" aria-live="polite">{lastMiss}</p>{/if}
     {:else if preview?.playing}
       <p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored. The cursor follows the sound.</p>
     {/if}

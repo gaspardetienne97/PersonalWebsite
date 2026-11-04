@@ -113,6 +113,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && correct,
+      cleanMeans: `${PASS} of ${LENGTH} right or better`,
       xp: fin.xp,
       mode,
       rows: [
@@ -150,16 +151,18 @@
 <DrillShell
   title="Feel"
   hue="ear"
-  blurb="Hear a groove and name its feel: straight, swung, a shuffle or 12/8. Listen to where the notes between the beats fall."
+  blurb="Hear a groove and name its feel: straight, swung, shuffle or 12/8."
   summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right to pass` }]}
   modeNotes={{ practice: "What gave it away, after each answer.", check: "Straight on to the next. Counts toward mastery." }}
   bind:phase
   bind:mode
   bind:status
-  progress={(qi + (step === "feedback" ? 1 : 0)) / LENGTH}
+  progress={(qi + 1) / LENGTH}
   lesson={{ lessons: earLessons("feel", FEELS.map((f) => f.id)) }}
   onstart={start}
   onstop={stop}
+  instrumentFree
+  cue={phase !== "running" || !current ? "" : step === "feedback" ? (mode === "practice" ? "Continue when ready" : "") : "Name the feel you hear"}
 >
   {#snippet hud()}
     {#if phase === "running" && current}
@@ -236,5 +239,11 @@
     right: 0.4rem;
     font-size: 0.65rem;
     opacity: 0.55;
+  }
+  /* A number key means nothing on a touch screen. */
+  @media (pointer: coarse), (max-width: 639px) {
+    .key {
+      display: none;
+    }
   }
 </style>

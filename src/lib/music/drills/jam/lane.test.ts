@@ -51,9 +51,11 @@ it("places a chord in a later chorus from the top of the run", () => {
 });
 
 it("scales a beat to the lane width within bounds", () => {
-  expect(laneScale(300)).toEqual({ pxPerBeat: 25, playheadX: 66 });
-  expect(laneScale(120).pxPerBeat).toBe(24);
-  expect(laneScale(1200).pxPerBeat).toBe(44);
+  expect(laneScale(300)).toEqual({ pxPerBeat: 18, playheadX: 66 });
+  expect(laneScale(120).pxPerBeat).toBe(18);
+  // A laptop stage (about 950 px) shows the chord now and the next five bars or so.
+  expect(laneScale(950).pxPerBeat).toBe(34);
+  expect(laneScale(1400).pxPerBeat).toBe(44);
 });
 
 it("spells the chord's own tones from the root", () => {

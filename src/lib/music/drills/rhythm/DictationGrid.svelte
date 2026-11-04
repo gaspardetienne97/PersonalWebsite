@@ -73,7 +73,7 @@
                       aria-label="{row.label ? `${row.label}, b` : 'B'}ar {n}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}{st ? `, ${st}` : ''}"
                       {disabled}
                       onclick={() => ontoggle?.(row.id, i)}
-                      ><span>{cellLabel(i)}</span>{#if st}<span class="mark ws-pop" aria-hidden="true">{GLYPH[st]}</span>{:else if on}<span class="mark ws-pop" aria-hidden="true">●</span>{/if}</button
+                      ><span>{cellLabel(i)}</span>{#if st}<span class="mark ws-pop" aria-hidden="true">{GLYPH[st]}</span>{:else if on}<svg class="head ws-pop" viewBox="-6 -4 12 8" aria-hidden="true"><ellipse rx="5" ry="3.4" transform="rotate(-22)" /></svg>{/if}</button
                     >
                   {/each}
                 </div>
@@ -142,6 +142,12 @@
     border-radius: 2px;
     background: var(--ws-stage-ink);
     box-shadow: 0 0 8px color-mix(in oklch, var(--ws-stage-ink) 60%, transparent);
+  }
+  /* A marked cell carries a notehead: the mark reads as a note, as on the staff above. */
+  .head {
+    width: 0.95rem;
+    height: 0.65rem;
+    fill: currentColor;
   }
   .mark {
     font-size: 0.75rem;

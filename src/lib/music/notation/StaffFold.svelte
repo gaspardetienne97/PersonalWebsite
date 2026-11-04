@@ -5,7 +5,8 @@
   import type { Snippet } from "svelte";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
 
-  let { children, live = false }: { children: Snippet; live?: boolean } = $props();
+  // `aside` shares the fold's row (the view switch, a setup toggle), so the staff starts one row higher.
+  let { children, live = false, aside }: { children: Snippet; live?: boolean; aside?: Snippet } = $props();
   const KEY = "woodshed.staff";
   let pref = $state<"shown" | "hidden" | null>(null);
   let narrow = $state(false);
@@ -34,8 +35,11 @@
 </script>
 
 <div class="mb-3">
-  <button type="button" class="-ml-1 flex min-h-11 items-center gap-1 px-1 text-sm font-medium text-ws-stage-soft hover:text-ws-stage-ink" aria-expanded={shown} onclick={toggle}>
-    <ChevronRight class="size-4 transition-transform {shown ? 'rotate-90' : ''}" aria-hidden="true" />{shown ? "Staff" : "Staff hidden: show it"}
-  </button>
+  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2" class:mb-1={!!aside}>
+    <button type="button" class="-ml-1 flex min-h-11 max-sm:order-last items-center gap-1 px-1 text-sm font-medium text-ws-stage-soft hover:text-ws-stage-ink" aria-expanded={shown} onclick={toggle}>
+      <ChevronRight class="size-4 transition-transform {shown ? 'rotate-90' : ''}" aria-hidden="true" />{shown ? "Staff" : "Staff hidden: show it"}
+    </button>
+    {#if aside}{@render aside()}{/if}
+  </div>
   {#if shown}{@render children()}{/if}
 </div>

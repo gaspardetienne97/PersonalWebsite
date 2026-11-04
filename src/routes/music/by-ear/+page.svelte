@@ -243,7 +243,7 @@
           ? `Sing ${PART_NAME[part]} with the recording. Headphones keep the record out of the microphone.`
           : loop
           ? "Looping. Play the part along with it; your notes show over the loop."
-          : "Playing. Set A and B to loop a stretch; your notes show over the recording.";
+          : "Playing. Start loop and End loop mark a stretch to repeat; your notes show over the recording.";
   }
 
   function stop() {
@@ -295,6 +295,8 @@
       metric: FLAT_NAMES[answer],
       metricLabel: right ? "is home" : `home is ${FLAT_NAMES[tonics[0]]}`,
       score: right ? 1 : 0,
+      clean: right,
+      cleanMeans: "the home note named",
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
@@ -334,6 +336,8 @@
       headline: `${r.right} of ${r.total} sung notes with the record.`,
       metric: pct(r.score),
       metricLabel: `sung with the record, 75% passes`,
+      clean: r.right === r.total,
+      cleanMeans: "every sung note with the record",
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
@@ -426,7 +430,7 @@
   lesson={mode === "home" ? { lessons: [findHomeLesson()] } : null}
   title="Learn by ear"
   hue="ear"
-  blurb="Load a recording you own, loop a stretch, slow it down without changing its pitch and play the part back. Find home names the note the music rests on."
+  blurb="Loop a stretch of a recording, slow it down at the same pitch, and play the part back."
   summary={summaryLine}
   checkable={false}
   blocked={s.source ? null : "Pick or import a recording first."}
@@ -507,8 +511,8 @@
             {#if playing}<Pause class="size-4" aria-hidden="true" />Pause{:else}<Play class="size-4" aria-hidden="true" />{loaded ? "Play" : loading ? "Loading" : "Load and play"}{/if}
           </button>
           <button type="button" class={btnStage} disabled={!loaded} onclick={() => player?.seek(pos - 5)}>Back 5 s</button>
-          <button type="button" class={btnStage} disabled={!loaded} onclick={setA}>Set A</button>
-          <button type="button" class={btnStage} disabled={!loaded} onclick={setB}>Set B</button>
+          <button type="button" class={btnStage} disabled={!loaded} onclick={setA}>Start loop</button>
+          <button type="button" class={btnStage} disabled={!loaded} onclick={setB}>End loop</button>
           {#if loop}<button type="button" class={btnStage} onclick={() => setLoop(null)}>Loop off</button>{/if}
         </div>
 
@@ -540,7 +544,7 @@
                   </li>
                 {/each}
               </ol>
-              <p class="text-sm text-ws-stage-soft">{sections.length} marks. Tap one to loop it up to the next.</p>
+              <p class="text-sm text-ws-stage-soft">{sections.length} {sections.length === 1 ? "mark" : "marks"}. Tap one to loop it up to the next.</p>
             {/if}
           </div>
         {/if}
@@ -603,10 +607,17 @@
           </div>
         {:else}
           <p class="text-sm text-ws-soft">Saved as {rated ? "got it" : "still learning"}, self-rated, in your journal.</p>
+          <!-- What to do next, the way a judged run says it. -->
+          <p class="text-sm">
+            Next up:
+            {#if rated}<a class="font-semibold underline underline-offset-4" href="/music/by-ear?mode=sing">sing along with it</a>, so the record checks you.{:else}loop a shorter stretch, or slow it to 75%.{/if}
+          </p>
         {/if}
         {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {/if}
+      <!-- The looper waits behind this: the recording, its loop and its marks. -->
+      <button type="button" class="{btn} self-start" onclick={() => (phase = "ready")}>Loop this part</button>
     </article>
     </div>
     {/if}

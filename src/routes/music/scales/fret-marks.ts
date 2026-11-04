@@ -3,7 +3,8 @@
 import { pc } from "@repo/music-core";
 import type { FretMark } from "$lib/music/components/Fretboard.svelte";
 
-export type Outcome = "correct" | "wrong" | "missed";
+import type { Outcome } from "$lib/music/drills/guitar/fretted";
+export type { Outcome };
 // A place played on the way up and again on the way down shows its worse take.
 const RANK = { correct: 1, missed: 2, wrong: 3 } as const;
 const SPOKEN = { correct: "played right", wrong: "played wrong", missed: "missed" } as const;

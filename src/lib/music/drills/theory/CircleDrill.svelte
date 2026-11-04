@@ -100,6 +100,8 @@
   let nextTimer: ReturnType<typeof setTimeout> | undefined;
   /** Misses and slow answers by key this run: those keys come back more. */
   let weak: Record<number, number> = {};
+  /** A review run: the last run's weak keys (by fifths), weighted to come up most of the time. */
+  let review: number[] = [];
 
   const ask = () => {
     pickedKey = null;
@@ -114,7 +116,8 @@
   async function start(_ctx: RunContext) {
     summary = null;
     records = [];
-    weak = {};
+    weak = Object.fromEntries(review.map((f) => [f, 4]));
+    review = [];
     qi = 0;
     sheet = analysing ? analysisPrompts(tuneId) : [];
     length = analysing ? sheet.length : LENGTH;
@@ -179,6 +182,7 @@
     const median = times.length ? [...times].sort((a, b) => a - b)[Math.floor(times.length / 2)] : 0;
     const fin = await run!.finish({ score, correct: fluent === length, headline: analysing ? `${right} of ${length} chords` : `${fluent} of ${length} fluent` });
     // The keys that cost the most: missed, then slow.
+    const weakFifths = modeId === "order" || modeId === "wheel" ? [] : [...new Set(records.filter((r) => !r.correct || r.slow).map((r) => r.prompt.fifths))].slice(0, 6);
     const slowKeys = modeId === "order" ? [] : [...new Set(records.filter((r) => !r.correct || r.slow).map((r) => keyName(r.prompt.fifths)))].slice(0, 6);
     // Analysis: which half was missed, and where.
     const half = (i: 0 | 1) => records.filter((r) => r.answered.split("|")[i] === r.prompt.answer.split("|")[i]).length;
@@ -196,6 +200,12 @@
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && fluent === length,
+      cleanMeans: analysing ? "every chord right" : `every answer right within ${meta.targetMs / 1000} s`,
+      // A weak run: one tap asks those keys again, most of the time.
+      coach:
+        !analysing && weakFifths.length && fluent < length
+          ? { label: `Review ${weakFifths.slice(0, 3).map(keyName).join(", ")}`, run: () => reviewKeys(weakFifths) }
+          : undefined,
       xp: fin.xp,
       mode,
       rows: analysing
@@ -208,7 +218,7 @@
         : [
         { label: "Right", value: right / length, text: `${right} of ${length}` },
         { label: `Within ${meta.targetMs / 1000} s`, value: fluent / length, text: `${fluent} of ${length}` },
-        { label: "Typical answer", text: median ? `${(median / 1000).toFixed(1)} s` : "None right yet" },
+        { label: "Typical answer", text: median ? (median < 100 ? "under 0.1 s" : `${(median / 1000).toFixed(1)} s`) : "None right yet" },
         ...(slowKeys.length ? [{ label: "Keys to go over", text: slowKeys.join(", ") }] : []),
       ],
       routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
@@ -218,12 +228,18 @@
           ? undefined
           : await nextRun(
               `circle.${modeId}.${s.minor}.${s.clefs}`,
-              { steps: KEY_BANDS.map((b) => ({ label: b.title })), step: KEY_BANDS.findIndex((b) => b.id === band) },
+              { steps: KEY_BANDS.map((b) => ({ label: BAND_TEXT[b.id].clause })), step: KEY_BANDS.findIndex((b) => b.id === band) },
               { score, correct: fluent === length },
               ({ step }) => step !== undefined && cfg.set({ band: KEY_BANDS[step].id }),
             ),
     };
     status = summary.headline;
+  }
+
+  function reviewKeys(keys: number[]) {
+    review = keys;
+    phase = "running";
+    void start({ mode, downbeat: performance.now(), beatMs: 0, bpm: 0, stopClock() {} });
   }
 
   function stop() {
@@ -234,7 +250,7 @@
 
   /** A major key's place on the circle by name ("Eb" is -3), or undefined for anything else. */
   const majorFifths = (name: string) => [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7].find((f) => keyAt(f).major === name);
-  /** Practice: a prompt whose answer is a major key is answered on the wheel too (Check keeps the wheel hidden). */
+  /** Practice: a prompt whose answer is a major key is answered on the wheel too (Check draws it blank). */
   const onWheel = (p: CirclePrompt) => mode === "practice" && (p.mode === "count" || p.mode === "signature" || p.mode === "neighbours") && majorFifths(p.answer) !== undefined;
   /** A tapped key sounds its tonic chord. */
   const hearKey = (f: number) => void audio.unlock().then(() => audio.playChord(functionChord(keyAt(f).pc, "I"), 1));
@@ -298,6 +314,22 @@
   });
   /** After an answer in Practice, the key's signature on a staff: the answer key when it is one, else the prompt's. */
   const SIG_MODES = ["count", "neighbours", "chords", "borrowed", "secondary"];
+  /** What to do now, beside Stop on a phone. */
+  const cue = $derived(
+    phase !== "running" || !current
+      ? ""
+      : step === "feedback"
+        ? mode === "practice"
+          ? "Read why, then Continue"
+          : ""
+        : current.mode === "analysis"
+          ? "Pick the key centre, then its function"
+          : current.mode === "wheel"
+            ? "Tap where the key goes"
+            : onWheel(current)
+              ? "Tap the key on the wheel or a button"
+              : "Pick an answer",
+  );
   const chordCount = $derived(analysing ? analysisSheet(TUNES.find((t) => t.id === tuneId)!).length : 0);
   const summaryLine = $derived<SetupClause[]>(
     analysing
@@ -307,7 +339,7 @@
       usesMinor ? { text: s.minor === "both" ? "major and minor" : "major only", focus: "minor" } : null,
       modeId === "signature" ? { text: s.clefs === "both" ? "treble and bass" : `${s.clefs} clef`, focus: "clefs" } : null,
       { text: `${length} questions` },
-      { text: `aim for ${meta.targetMs / 1000} s` },
+      { text: `fluent: right within ${meta.targetMs / 1000} s` },
     ].filter((c): c is SetupClause => !!c),
   );
 </script>
@@ -321,22 +353,22 @@
     {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{#if r.answered}{" "}You said {shown(p, r.answered)}.{/if}{/if}
   </p>
   {#if mode === "practice"}
-    <!-- Continue right under the verdict, so it is in view on a phone; the rule and the pictures follow. -->
-    <button type="button" class="{btnPrimary} mt-3 min-h-12 max-sm:w-full" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70 pointer-coarse:hidden max-sm:hidden">Enter</kbd></button>
-    <p class="mt-3 text-base text-ws-stage-ink">{rule(p)}</p>
-    <!-- The key's signature on a staff beside the wheel, so both sit in view with the answers. -->
+    <!-- One order at every width: the verdict, the rule with its signature, then Continue. -->
+    <p class="mt-2 text-base text-ws-stage-ink">{rule(p)}</p>
     <div class="mt-3 flex flex-wrap items-start gap-4">
       {#if SIG_MODES.includes(p.mode)}
         {@const f = majorFifths(p.answer) ?? p.fifths}
-        <figure class="w-fit rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink">
-          <div class="w-48"><Staff score={sigScore(`${p.id}-sig`, f)} maxHeight="6rem" /></div>
-          <figcaption class="pb-1 text-center text-sm font-semibold">{keyAt(f).major} major{keyAt(f).accidentals.length ? `: ${keyAt(f).accidentals.join(" ")}` : ", no sharps or flats"}</figcaption>
+        <!-- Notation is printed paper in both themes: the staff is the card, its caption on the stage. -->
+        <figure class="w-fit">
+          <div class="w-40 overflow-hidden rounded-xl"><Staff score={sigScore(`${p.id}-sig`, f)} time={false} maxHeight="6rem" /></div>
+          <figcaption class="pt-1 text-center text-sm font-semibold text-ws-stage-ink">{keyAt(f).major} major{keyAt(f).accidentals.length ? `: ${keyAt(f).accidentals.join(" ")}` : ", no sharps or flats"}</figcaption>
         </figure>
       {/if}
       {#if wheel}
         <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} label="The circle, with the key of this prompt" /></div>
       {/if}
     </div>
+    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-xs opacity-70 pointer-coarse:hidden max-sm:hidden">Enter</kbd></button>
   {/if}
 {/snippet}
 
@@ -345,7 +377,7 @@
 <DrillShell
   title="Circle of fifths"
   hue="reading"
-  blurb="Key signatures and their order, at speed. Fast and right is fluent; right but slow means you are still working it out."
+  blurb="Key signatures and their order, fast. Right within 2 s is fluent; slower means still working it out."
   summary={summaryLine}
   {tabs}
   firstTabs={4}
@@ -356,7 +388,9 @@
   bind:phase
   bind:mode
   bind:status
-  progress={(qi + (step === "feedback" ? 1 : 0)) / length}
+  progress={(qi + 1) / length}
+  {cue}
+  instrumentFree
   onstart={start}
   onstop={stop}
 >
@@ -382,7 +416,7 @@
       </p>
     {:else}
     <p class="mt-3 text-sm text-ws-soft">
-      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/library?tab=reference&section=circle">circle in the Library</a> has every key's signature and chords.
+      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/create/reference?section=circle">circle in the Library</a> has every key's signature and chords.
     </p>
     {/if}
   {/snippet}
@@ -391,18 +425,19 @@
     {#if phase === "running" && current}
       <Stat label="Prompt" value="{qi + 1} of {length}" />
       {#if mode === "practice" && analysing}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />
-      {:else if mode === "practice"}<Stat label="Fluent so far" value={records.filter((r) => r.correct && !r.slow).length} />{/if}
+      {:else if mode === "practice"}<Stat label="Fluent (right within {meta.targetMs / 1000} s)" value={records.filter((r) => r.correct && !r.slow).length} />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
+    <div class="circle contents">
     {#if phase === "running" && current}
       {@const p = current}
       {@const r = step === "feedback" ? records.at(-1) : undefined}
       <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Prompt {qi + 1}" data-mode={p.mode} data-answer={p.answer} data-step={step}>
         <p class="font-display text-2xl font-semibold sm:text-3xl">{p.ask}</p>
         {#if p.staff}
-          <div class="mt-3 max-w-64 rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink"><Staff score={signatureScore(p)} maxHeight="8rem" /></div>
+          <div class="mt-3 max-w-64 overflow-hidden rounded-xl"><Staff score={signatureScore(p)} time={false} maxHeight="8rem" /></div>
         {/if}
         {#if p.mode === "wheel"}
           <div class="mt-3">
@@ -435,6 +470,8 @@
           {@const tapped = r && !r.correct ? majorFifths(r.answered) : undefined}
           <!-- The wheel is the answer pad: it stays put, and the verdict comes up beside it. -->
           <div class="mt-3 grid items-start gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            <!-- After the answer a phone draws the wheel smaller, so the rule and Continue stay in view. -->
+            <div class={r ? "max-sm:mx-auto max-sm:w-52" : ""}>
             <CircleOfFifths
               selected={r ? af : null}
               numerals={false}
@@ -442,8 +479,12 @@
               marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
               label={r ? "The circle, with the key of this prompt" : "The circle of fifths: tap the key"}
             />
+            </div>
             {#if r}<div>{@render verdict(p, r, false)}</div>{/if}
           </div>
+        {:else if mode === "check" && p.mode !== "wheel" && p.mode !== "analysis"}
+          <!-- Check: the same wheel, every wedge blank, so the layout matches Practice and the keys are recalled. -->
+          <div class="mt-3 max-w-[20rem]" aria-hidden="true"><CircleOfFifths blank={() => true} numerals={false} label="A blank circle of fifths" /></div>
         {:else if r}
           {@render verdict(p, r, p.mode !== "wheel")}
         {/if}
@@ -490,6 +531,7 @@
         </div>
       </div>
     {/if}
+    </div>
   {/snippet}
 
   {#snippet results()}
@@ -498,6 +540,29 @@
 </DrillShell>
 
 <style>
+  /* The wheel sits on the dark stage in both themes: the dark palette always, so each key keeps
+     one colour, and the inner rings read at full ink. */
+  .circle :global(svg.wheel) {
+    --l-major: 0.62;
+    --l-minor: 0.5;
+    --l-dim: 0.4;
+    --l-in: 0.7;
+    --l-tonic: 0.84;
+    --l-fade: 0.3;
+    --ink: oklch(0.98 0.01 280);
+    --ink-soft: oklch(0.9 0.02 280);
+    --ink-tonic: oklch(0.2 0.03 280);
+  }
+  .circle :global(svg.wheel .hub) {
+    fill: var(--ws-stage);
+  }
+  .circle :global(svg.wheel .ring) {
+    stroke: var(--ws-stage);
+  }
+  .circle :global(svg.wheel .dim-name) {
+    font-size: 16px;
+    fill: var(--ink);
+  }
   .prompt {
     background: color-mix(in oklch, var(--ws-stage-ink) 7%, transparent);
     border: 1px solid color-mix(in oklch, var(--instr) 30%, transparent);
@@ -544,7 +609,7 @@
     color: var(--ws-stage-soft);
   }
   /* A number key means nothing on a touch screen. */
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (max-width: 639px) {
     .key {
       display: none;
     }

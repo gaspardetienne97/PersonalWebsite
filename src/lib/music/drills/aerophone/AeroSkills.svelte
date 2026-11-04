@@ -173,7 +173,13 @@
             ? [{ text: `Trill ${trillPair.label}`, focus: "trill" }, { text: `${TRILL_SECONDS} seconds, as fast and even as you can` }]
             : [{ text: `Bite vibrato on ${spell(vibNote)}`, focus: "vibNote" }, { text: vib.label.toLowerCase(), focus: "vib" }, { text: "the rate sets the tempo" }],
   );
+  // The saved setup key keeps its words; the screen says "one note per beat" in plain words.
   const summaryText = $derived(summaryLine.map((c) => c.text).join(", "));
+  const shownLine = $derived(summaryLine.map((c) => (c.focus === "perBeat" ? { ...c, text: perBeat === 1 ? "one note per beat" : `${perBeat} notes per beat` } : c)));
+  /** Beside Stop on a phone: the note to play now, or how the untimed skills start. */
+  const cue = $derived(
+    phase !== "running" ? "" : timed ? (stepNow === null ? "Play on the next 1" : mode === "check" ? `Note ${stepNow + 1} of ${line.length}, from memory` : `Play ${spell(line[stepNow])}`) : skill === "trills" ? `Trill ${trillPair.label}` : `Hold ${spell(vibNote)}, pulse the bite`,
+  );
   let demo = $state<{ stop(): void; playing: boolean } | null>(null);
   function stopDemo() {
     demo?.stop();
@@ -286,7 +292,7 @@
       rows = [
         { label: "Notes right", value: r.pitch, text: `${Math.round(r.pitch * line.length)} of ${line.length}` },
         { label: "Swing (off-beat late in the beat, about 2 to 1)", value: r.swing, text: ratio === null ? "no pairs heard" : `${ratio.toFixed(1)} to 1` },
-        r.articulation === null ? { label: "Doo-DAH (no breath arrived, CC 2)", notMeasured: true } : { label: "Off-beats tongued, beats slurred", value: r.articulation, text: pct(r.articulation) },
+        r.articulation === null ? { label: "Doo-DAH (no breath arrived from the breath sensor)", notMeasured: true } : { label: "Off-beats tongued, beats slurred", value: r.articulation, text: pct(r.articulation) },
       ];
       headline =
         r.pitch < 0.9
@@ -320,7 +326,7 @@
         const band = heldBand(controls, level.band as [number, number], ons[0].at, ons.at(-1)!.at + stepMs);
         score = r.score * 0.5 + (band ?? 0) * 0.5;
         correct = r.pitch >= 0.9 && (band ?? 0) >= 0.8;
-        rows[1] = band === null ? { label: `Breath at ${level.id} (no breath arrived, CC 2)`, notMeasured: true } : { label: `Breath at ${level.id}`, value: band, text: `${pct(band)} in the band` };
+        rows[1] = band === null ? { label: `Breath at ${level.id} (no breath arrived from the breath sensor)`, notMeasured: true } : { label: `Breath at ${level.id}`, value: band, text: `${pct(band)} in the band` };
         rows.pop();
       }
       if (skill === "tonguing") {
@@ -329,7 +335,7 @@
         const breathSeen = controls.some((c) => c.kind === "cc" && c.controller === 2);
         const t = tonguingScore(marks, got);
         ({ score, correct } = tonguingVerdict(r, t, breathSeen));
-        rows.push(breathSeen ? { label: "Tongued and slurred as marked", value: t, text: pct(t) } : { label: "Tonguing (no breath arrived, CC 2)", notMeasured: true });
+        rows.push(breathSeen ? { label: "Tongued and slurred as marked", value: t, text: pct(t) } : { label: "Tonguing (no breath arrived from the breath sensor)", notMeasured: true });
         // Each attack, tongued or slurred, against its click: a fifth of the grade, and three in four must land.
         const at = attackTiming({ count: line.length, stepMs, downbeat, notes, breath: controls });
         const drift = at.meanOffsetMs === null || Math.abs(at.meanOffsetMs) < 10 ? "" : `, on average ${Math.round(Math.abs(at.meanOffsetMs))} ms ${at.meanOffsetMs < 0 ? "early" : "late"}`;
@@ -394,7 +400,9 @@
       status = summary.headline;
       return;
     }
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
+    const makeUp =
+      skill === "long-scale" ? "half the line, half the breath band" : skill === "scales" || skill === "register" ? "85% notes + 15% evenness" : skill === "tonguing" ? "80% notes and tonguing, 20% on the click" : "score";
+    summary = { headline, metric: pct(score), metricLabel: ons.length ? makeUp : "score", cleanMeans: skill === "scales" ? "a score of 90% or more" : skill === "long-scale" ? "9 in 10 notes right and the breath in the band" : timed ? "every note right, in time" : "on rate and even", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
   }
 
@@ -436,7 +444,7 @@
   title="Aerophone"
   hue="aerophone"
   blurb={skill === "scales" ? "Scales and arpeggios in any key, in time, in patterns and over two octaves." : skill === "swing" ? "Swung eighths after Niehaus: long-short, each off-beat tongued and slurred into the beat." : skill === "long-scale" ? "Each scale note held four beats at one breath level, in the band from bottom to top." : skill === "tonguing" ? "Slurred and tongued on purpose: tongued stops the air, slurred keeps it going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
-  summary={summaryLine}
+  summary={shownLine}
   tabs={modes}
   tab={skill}
   ontab={onmode}
@@ -451,6 +459,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
+  {cue}
   blocked={timed && !line.length ? "That scale doesn't fit the Aerophone's charted range in this key." : null}
 >
   {#snippet setup()}
@@ -511,7 +520,7 @@
 
   {#snippet stage()}
     <div class="grid items-start gap-5 {skill === 'trills' ? '' : 'md:grid-cols-[minmax(0,1fr)_14rem]'}" data-testid="aero-skills" data-downbeat={phase === "running" || phase === "countin" ? Math.round(downbeat) : undefined} data-line={line.join(",")} data-step-ms={Math.round(stepMs)} data-beat-ms={Math.round(beatMs)}>
-      <div class="flex min-w-0 flex-col gap-3">
+      <div class="flex min-w-0 flex-col gap-3 max-md:contents">
         {#if skill === "long-scale"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-band">
             <div class="flex items-baseline justify-between text-sm text-ws-stage-soft"><span>Breath, hold it in the {level.id} band</span><span class="tnum">{breathNow === null ? "no breath yet" : pct(breathNow)}</span></div>
@@ -525,7 +534,7 @@
           {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
           <!-- Check hides the fingering, not the line: the staff stays for reading, without the cursor on the target. -->
           <div data-dock="music">
-            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null || mode === "check" ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" />
+            <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={summaryText} cursorBeat={stepNow === null || mode === "check" ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" maxZoom={1.15} />
           </div>
           {#if skill === "swing"}<p class="text-sm text-ws-stage-soft">Written straight, as swing charts are: play each pair long-short.</p>{/if}
           <!-- A bar a group, so a wrap falls between bars and never leaves one note alone on a row. -->
@@ -540,6 +549,7 @@
                   <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : 'bg-ws-stage-ink/8'}" aria-current={nowHere ? "step" : undefined}>
                     {#if marks.length}<span class="text-[13px] font-bold" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
                     {spell(n)}
+                    {#if nowHere && sounding !== null && sounding !== n}<span class="text-[13px] leading-none">heard {spell(sounding)}</span>{/if}
                     {#if out && !nowHere}<span class="text-[13px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
                   </span>
                 {/each}
@@ -549,8 +559,8 @@
           {#if marks.length}<p class="text-sm text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
           {#if skill !== "long-scale"}
             <!-- Live breath while you play: not graded here, it shows the air behind each note. -->
-            <div class="rounded-xl bg-ws-stage-ink/6 p-3" data-testid="breath-meter">
-              <div class="flex items-baseline justify-between text-sm"><span class="text-ws-stage-soft">Breath</span><span class="tnum font-semibold">{breathNow === null ? "Not measured: no breath (CC 2) yet" : pct(breathNow)}</span></div>
+            <div class="rounded-xl bg-ws-stage-ink/6 p-3 max-md:order-last" data-testid="breath-meter">
+              <div class="flex items-baseline justify-between text-sm"><span class="text-ws-stage-soft">Breath</span><span class="tnum font-semibold">{breathNow === null ? "Blow to test the breath sensor" : pct(breathNow)}</span></div>
               <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10">
                 {#if breathNow !== null}<div class="h-full rounded-full bg-instr" style:width="{clamp(breathNow, 0, 1) * 100}%"></div>{/if}
               </div>

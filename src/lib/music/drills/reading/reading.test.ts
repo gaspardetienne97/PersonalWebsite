@@ -36,7 +36,7 @@ describe("reading helpers", () => {
     const s = comparisonScore({ ...p, midi: [64] }, [65 + 24]);
     expect(s.voices[0].notes.map((n) => [n.midi, n.startBeat])).toEqual([
       [64, 0],
-      [65, 2],
+      [65, 4],
     ]);
   });
 

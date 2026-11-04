@@ -224,6 +224,13 @@
     band = null;
   };
 
+  /** Beside Stop on a phone: the bar and the chord to play now. */
+  const cue = $derived(
+    phase === "running" && transport.beat !== null && transport.beat >= 0
+      ? `Bar ${Math.min(totalBeats / bpb, Math.floor(transport.beat / bpb) + 1)} of ${totalBeats / bpb}: ${rendering.chart[chordNow]?.symbol ?? ""}${mode === "check" ? ", from memory" : ""}`
+      : "",
+  );
+
   const markFor = (hand: "left" | "right" | undefined, demo: boolean): CellMarks => ({ [demo ? "demo" : "target"]: true, label: hand === "left" ? "L" : "R", role: hand });
   const due = (b: number) => slots.filter((sl) => b >= feel(sl.beat) - 0.25 && b < feel(sl.beat) + Math.min(0.5, sl.dur));
   const marks = $derived.by(() => {
@@ -374,6 +381,7 @@
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
+      cleanMeans: "every chord on its beat",
       rows,
       // The headline's fix as one button: that bar on its own, four times (back on the ready screen).
       coach:
@@ -440,6 +448,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
   requires={midi.inputs.length ? [] : [{ text: "chords on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so they grade single notes only)", run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
@@ -515,10 +524,7 @@
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <Stat label="Bar" value="{Math.min(totalBeats / bpb, Math.floor(Math.max(0, transport.beat) / bpb) + 1)} of {totalBeats / bpb}" />
-    {:else if result}
-      {#each result.hands as h (h.hand)}
-        <Stat label="{h.hand === 'left' ? 'Left' : 'Right'} hand" value="{h.matched}/{h.total}" tone={h.matched / h.total >= 0.9 ? "success" : "warn"} />
-      {/each}
+      {#if tab === "comping" && s.band === "rhythm" && loopBar === null}<Stat label="Band" value="Bass and drums playing" />{/if}
     {/if}
   {/snippet}
 
@@ -564,7 +570,7 @@
           <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></StaffFold>
         {/if}
         <div class="flex flex-col justify-end" data-dock="instrument">
-          <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+          <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
         </div>
       {/if}
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">

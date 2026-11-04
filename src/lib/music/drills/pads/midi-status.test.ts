@@ -19,7 +19,7 @@ describe("explainNote", () => {
 
   it("says when the port is ignored or the channel is wrong", () => {
     expect(explainNote([0x99, 37, 100], pub, { id: "pub", ignored: true })).toEqual({
-      text: "A note from MPC One+ Public was dropped: that port is ignored in Connect.",
+      text: "A note from MPC One+ Public was dropped: that device is hidden in Connect.",
       used: false,
       midi: 37,
     });

@@ -34,7 +34,7 @@ export function explainNote(
   const name = profile?.alias ?? port.name;
   const said = (text: string, used: boolean) => ({ text, used, midi: e.midi });
   if (profile?.ignored)
-    return said(`A note from ${name} was dropped: that port is ignored in Connect.`, false);
+    return said(`A note from ${name} was dropped: that device is hidden in Connect.`, false);
   if (profile?.channel && e.channel && e.channel !== profile.channel)
     return said(
       `A note from ${name} was dropped: it came on channel ${e.channel}, and Connect pins the device to channel ${profile.channel}.`,

@@ -2,28 +2,28 @@
   // This run's answers as a grid: a row per item played, a column per answer
   // given. The diagonal is right, everything off it is a mix-up, shaded by how
   // often. Tapping a square plays the two items back to back.
-  import type { AnswerRecord } from "./session";
+  import { confusionCells, OTHER_ANSWER as OTHER, type AnswerRecord } from "./session";
 
   let {
     records,
     order,
     name,
     onplay,
+    named = null,
   }: {
     records: AnswerRecord[];
     /** Every item in teaching order (answers outside it count as "Something else"). */
     order: string[];
     name: (token: string) => string;
     onplay: (played: string, answered: string) => void;
+    /** The mix-up the headline names (played, answered): its square is outlined. */
+    named?: { expected: string; answered: string } | null;
   } = $props();
 
-  const OTHER = "other";
-  const rank = (t: string) => (t === OTHER ? 1e9 : order.indexOf(t) < 0 ? 1e6 : order.indexOf(t));
-  const byRank = (a: string, b: string) => rank(a) - rank(b);
-  const answerOf = (r: AnswerRecord) => (r.answered && (order.includes(r.answered) || r.answered === r.expected) ? r.answered : OTHER);
-  const rows = $derived([...new Set(records.map((r) => r.expected))].sort(byRank));
-  const cols = $derived([...new Set([...rows, ...records.map(answerOf)])].sort(byRank));
-  const count = (a: string, b: string) => records.filter((r) => r.expected === a && answerOf(r) === b).length;
+  const cells = $derived(confusionCells(records, order));
+  const rows = $derived(cells.rows);
+  const cols = $derived(cells.cols);
+  const count = (a: string, b: string) => cells.count(a, b);
   const label = (t: string) => (t === OTHER ? "Something else" : name(t));
   const times = (n: number) => (n === 1 ? "once" : `${n} times`);
 </script>
@@ -50,8 +50,9 @@
                 type="button"
                 class="cell tnum font-semibold"
                 data-kind={!n ? "empty" : r === c ? "right" : "wrong"}
+                data-named={named && named.expected === r && named.answered === c ? "" : undefined}
                 style:--heat="{n ? Math.round(18 + (n / total) * 52) : 0}%"
-                aria-label="Played {label(r)}, you said {label(c)}{n ? `, ${times(n)}` : ', never'}. Play {r === c || c === OTHER ? 'it' : 'both'}."
+                aria-label="Played {label(r)}, you said {label(c)}{n ? `, ${times(n)}` : ', never'}{named && named.expected === r && named.answered === c ? ', the mix-up named above' : ''}. Play {r === c || c === OTHER ? 'it' : 'both'}."
                 onclick={() => onplay(r, c)}>{n || ""}</button
               >
             </td>
@@ -100,6 +101,11 @@
   }
   .cell[data-kind="wrong"] {
     background: color-mix(in oklch, var(--destructive) var(--heat), transparent);
+  }
+  /* The square the headline names. */
+  .cell[data-named] {
+    outline: 3px solid var(--ws-ink);
+    outline-offset: 1px;
   }
   .cell:hover {
     border-color: var(--instr);

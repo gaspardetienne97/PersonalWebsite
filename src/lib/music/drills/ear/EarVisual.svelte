@@ -13,7 +13,7 @@
   import type { Score } from "@repo/music-core";
   import Staff from "$lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
-  import { tokenLabel } from "./session";
+  import { cadenceShift, tokenLabel } from "./session";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
   let {
@@ -95,7 +95,9 @@
   const caption = $derived(
     events.length === 1
       ? "Played all at once"
-      : `${events.length} ${["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill) ? "chords" : "notes"}, one after another`,
+      : prompt.drill === "inversion"
+        ? `Arpeggiated chord, ${events.length} notes`
+        : `${events.length} ${["cadence", "progression", "chord-function", "loop", "key-change"].includes(prompt.drill) ? "chords" : "notes"}, one after another`,
   );
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
@@ -134,8 +136,9 @@
           : [events.slice(prompt.keyEvents ?? 0)],
   );
   // The prompt's key; without one, the first chord is the key's I (or i), root in the bass.
-  const tonicPc = $derived((prompt as { keyPc?: number }).keyPc ?? pc(events[0].midi[0]));
-  const minorKey = $derived((prompt as { minor?: boolean }).minor ?? parseFunction(prompt.answer.split(" ")[0]).minor);
+  // A cadence is in C major moved by the shift in its id ("Key of F major"): drawn in that key.
+  const tonicPc = $derived(prompt.drill === "cadence" ? pc(cadenceShift(prompt.id)) : ((prompt as { keyPc?: number }).keyPc ?? pc(events[0].midi[0])));
+  const minorKey = $derived(prompt.drill === "cadence" ? false : ((prompt as { minor?: boolean }).minor ?? parseFunction(prompt.answer.split(" ")[0]).minor));
   function describe(g: EarPrompt["playback"]): string {
     if (prompt.caption) return prompt.caption;
     const ms = g.flatMap((e) => e.midi);
@@ -169,7 +172,7 @@
   }
   // Chords of a key are drawn in it: its signature (a minor key's is its relative major's)
   // and its spelling (Eb major's IV is Ab, not G#).
-  const keyed = $derived(["chord-function", "progression", "loop", "bass-line"].includes(prompt.drill));
+  const keyed = $derived(["chord-function", "progression", "loop", "bass-line", "cadence"].includes(prompt.drill));
   const keyFifths = $derived.by(() => {
     const f = (((tonicPc + (minorKey ? 3 : 0)) % 12) * 7) % 12;
     return f > 5 ? f - 12 : f;
@@ -233,7 +236,8 @@
       <line x1={cx} x2={cx} y1={yOf(e.midi[0])} y2={yOf(w.m)} />
       <circle cx={cx} cy={yOf(w.m)} r={noteH / 2 + 3} />
       <path d="M{cx - 4} {yOf(w.m) - 4} L{cx + 4} {yOf(w.m) + 4} M{cx + 4} {yOf(w.m) - 4} L{cx - 4} {yOf(w.m) + 4}" />
-      <text class="wrong-tag" x={cx + noteH / 2 + 8} y={yOf(w.m)} dominant-baseline="central">You: {degreeText(w.m)}</text>
+      <!-- Your note's name in its own row under the line, so it never lands on another note's label. -->
+      <text class="wrong-tag" x={cx} y={H - 6} text-anchor="middle">You: {degreeText(w.m)}</text>
     </g>
   {/each}
 

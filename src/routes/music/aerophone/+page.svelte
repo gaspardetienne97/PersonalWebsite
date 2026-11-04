@@ -316,6 +316,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: correct && mode === "check",
+      cleanMeans: "every note right on the first try",
       mode,
       advance: await advanceAfter(score, correct),
     };
@@ -392,6 +393,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: r.correct && mode === "check",
+      cleanMeans: m === "articulation" ? "every note right, on the click, as marked" : "the note held, right and steady",
       mode,
       advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
@@ -400,7 +402,7 @@
 
   const signedMs = (o: number) => `${o > 0 ? "+" : ""}${Math.round(o)}`;
   const onScreen = (ons: NoteEvent[]) => ons.some((n) => n.source !== "midi");
-  const whyNot = (ons: NoteEvent[]) => (onScreen(ons) ? "the chart and keys have no breath" : "no CC 2 arrived");
+  const whyNot = (ons: NoteEvent[]) => (onScreen(ons) ? "the chart and keys have no breath" : "no breath reached the app from the breath sensor");
 
   function describe(r: BreathResult | SwellResult | ArticulationResult, ons: NoteEvent[]): Pick<RunSummary, "headline" | "rows"> {
     const played = ons[0]?.midi;
@@ -575,7 +577,7 @@
 
   {#snippet stage()}
     <div class="grid items-start gap-5 md:grid-cols-[minmax(0,1fr)_16rem]" data-testid="aerophone-stage" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-beat-ms={beatMs} data-target={targetMidi}>
-      <div class="flex min-w-0 flex-col gap-3">
+      <div class="flex min-w-0 flex-col gap-3 max-md:contents">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
             <p class="text-xs text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it is right` : "up and back down"}</p>
@@ -604,17 +606,17 @@
             <div class="mt-2 h-3 overflow-hidden rounded-full bg-ws-stage-ink/10"><div class="h-full rounded-full bg-instr" style:width="{holdProgress * 100}%"></div></div>
           </div>
         {/if}
-        {#if m !== "fingering"}<BreathTrace
+        {#if m !== "fingering"}<div class="max-md:order-last"><BreathTrace
           values={breath}
           points={m === "swell" && (phase === "running" || phase === "results") ? swellPts : undefined}
           target={m === "swell" && showTargets ? envelope : level && showTargets ? Array(TRACE_SAMPLES).fill((level.band[0] + level.band[1]) / 2) : undefined}
           measured={breathSeen}
           label={m === "swell" ? "Breath over the swell, dashed line is the target shape" : "Breath, last 64 samples"}
-        />{/if}
+        /></div>{/if}
         {#if m === "articulation"}
           <AttackGrid count={s.count} target={ARTICULATION_TARGET[style]} played={artPlayed} current={artBeat} {style} offsets={phase === "results" && result && "timing" in result ? result.timing?.offsets : undefined} />
         {/if}
-        <PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" name={chartName} />
+        <div class="max-md:order-last"><PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" name={chartName} /></div>
       </div>
       <div class="flex flex-col items-center gap-2">
         {#if showTargets}

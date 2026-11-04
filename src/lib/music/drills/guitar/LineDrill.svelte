@@ -50,7 +50,7 @@
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, mic, settings } from "$lib/music/runtime";
-  import { exerciseFor, skillsFor } from "./fretted";
+  import { exerciseFor, skillsFor, withSlips, type Outcome } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
   import Verdict from "$lib/music/components/Verdict.svelte";
@@ -259,7 +259,10 @@
   const tabCursor = $derived(
     demoStep !== null ? (slotOf[demoStep] / perBeat) * quartersPerClick : phase === "running" && now >= runDownbeat ? Math.min(slotCount / perBeat, (now - runDownbeat) / (60000 / bpm())) * quartersPerClick : null,
   );
+  /** After a run: each note as the grader heard it, so the marked tab shows the counts' own marks. */
+  let doneStates = $state<Record<number, GroupState>>({});
   const tabStates = $derived.by(() => {
+    if (phase === "results") return doneStates;
     const out: Record<number, GroupState> = {};
     if (phase !== "running") return out;
     for (let i = 0; i < Math.min(stepIndex, steps.length); i++) out[groupOf[i]] = "correct";
@@ -291,6 +294,8 @@
   let stopClockRef: (() => void) | null = null;
   /** When each step was first played (legato: to look for a pick attack at it). */
   let hitAt: (number | undefined)[] = [];
+  /** The first wrong note heard while each step was due. */
+  let firstWrong: (number | undefined)[] = [];
 
   /** A stretch shows which way the finger reaches: ←1 back toward the nut, 4→ up the neck. */
   const finger = (t: FretTarget) => t.label ?? (t.finger ? (t.stretch === "back" ? `←${t.finger}` : t.stretch === "up" ? `${t.finger}→` : String(t.finger)) : undefined);
@@ -426,6 +431,8 @@
       if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
       // Practice says what was played and where the note is; Check never names the target.
       const want = steps[stepIndex];
+      // The first wrong note on a step makes it a slip: it leaves the clean count, as the marks show.
+      if (stepIndex < steps.length && firstWrong[stepIndex] === undefined) firstWrong[stepIndex] = e.midi;
       if (mode === "practice" && want)
         missText = `That was ${e.string !== undefined && e.fret !== undefined ? `${stringText(e.string)}, fret ${e.fret}` : noteName(e.midi)}. Try ${stringText(want.string)}, fret ${want.fret}.`;
       // A quarter tone off rounds to the next note: name the tuning; Practice moves past it (it still scores as missed).
@@ -446,6 +453,12 @@
   let missText = $state<string | null>(null);
   /** A string by number and open note: "string 3 (C)". */
   const stringText = (n: number) => `string ${n} (${noteName(tuning.openStrings[n - 1], "flat", false)})`;
+  /** Beside Stop on a phone: the string and fret to play now (Practice), or only where you are (Check). */
+  const cue = $derived.by(() => {
+    const t = steps[stepIndex];
+    if (phase !== "running" || !t) return "";
+    return mode === "check" ? `Note ${stepIndex + 1} of ${steps.length}, from memory` : `Play string ${t.string}, ${t.fret ? `fret ${t.fret}` : "open"}`;
+  });
   /** On time within the highway's window: a third of a note, 35 to 60 ms. */
   const onTimeMs = () => Math.max(35, Math.min(60, stepMs() * 0.3));
   /** The latest note that landed, as a timing word. */
@@ -460,6 +473,7 @@
     result = null;
     stepIndex = 0;
     hitAt = [];
+    firstWrong = [];
     hits = {};
     detuned = [];
     missText = null;
@@ -510,8 +524,27 @@
     const notes = (cap?.notes ?? []).map(asHarmonic);
     const beats: { midi: number }[][] = Array.from({ length: slotCount }, () => []);
     steps.forEach((t, i) => beats[slotOf[i]]?.push({ midi: t.midi }));
-    const r = gradeLine({ beats, beatMs: stepMs(), notes, ...(isPick && isTremolo(pickPattern) ? { evennessWeight: 0.5 } : {}) });
+    const evennessWeight = isPick && isTremolo(pickPattern) ? 0.5 : undefined;
+    // Each click's take, from the steps due on it: a wrong note first is a slip, a step never played is missed.
+    const played: (Outcome | undefined)[] = [];
+    const wrongAt: (number | undefined)[] = [];
+    beats.forEach((_, sl) => {
+      const mine = steps.flatMap((_, i) => (slotOf[i] === sl ? [i] : []));
+      const wrong = mine.map((i) => firstWrong[i]).find((m) => m !== undefined);
+      wrongAt[sl] = wrong;
+      played[sl] = wrong !== undefined ? "wrong" : mine.every((i) => hitAt[i] !== undefined) ? "correct" : "missed";
+    });
+    // The grader follows the line by pitch; the marks decide what counts as right first time.
+    const r = withSlips(gradeLine({ beats, beatMs: stepMs(), notes, ...(evennessWeight ? { evennessWeight } : {}) }), beats.map((notes) => ({ notes })), played, wrongAt, evennessWeight);
     result = r;
+    const states: Record<number, GroupState> = {};
+    steps.forEach((_, i) => {
+      const g = groupOf[i];
+      const mine = r.outcomes[slotOf[i]];
+      // A pinch shows its worst note.
+      if (states[g] === undefined || states[g] === "correct") states[g] = mine;
+    });
+    doneStates = states;
     phase = "results";
     await run!.attempt({
       promptId: key,
@@ -535,7 +568,9 @@
     const onString = taps.filter((n) => steps.some((t) => t.midi === n.midi && t.string === n.string && t.fret === n.fret)).length;
     const clean = r.correct && mode === "check";
     summary = {
-      headline: r.correct
+      headline: r.slips.length && ons.length
+        ? `${r.clean} of ${r.total} notes right first time: ${r.slips.length === 1 ? "one step" : `${r.slips.length} steps`} had a wrong note before the right one.${r.pitch < 0.75 ? " Slow down until each finger lands before the next." : ""}`
+        : r.correct
         ? mode === "check"
           ? `Clean and even at ${bpm()} BPM. Every finger landed.`
           : `Clean at ${bpm()} BPM. Every finger landed.`
@@ -547,10 +582,11 @@
               : `${r.clean} of ${r.total} notes right. Slow down until each finger lands before the next.`
             : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
       metric: pct(r.score),
-      metricLabel: "score",
+      metricLabel: evennessWeight ? "50% notes + 50% evenness" : "85% notes + 15% evenness",
       delta: fin.delta,
       best: fin.best,
       clean,
+      cleanMeans: "a score of 90% or more",
       xp: fin.xp,
       mode,
       timing: timingCounts(
@@ -558,7 +594,7 @@
         onTimeMs(),
       ),
       rows: [
-        { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}` },
+        { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}${r.slips.length ? `, ${r.slips.length} ${r.slips.length > 1 ? "slips" : "slip"}` : ""}` },
         evennessRow(r.evenness, r.clean, r.total),
         taps.length && taps.length === ons.length
           ? { label: "On the written string and fret", value: taps.length ? onString / taps.length : 0, text: `${onString} of ${taps.length} taps` }
@@ -681,6 +717,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -844,8 +881,9 @@
     {#if phase === "running" && missText}
       <p class="mb-2 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{missText}</p>
     {/if}
+    <!-- The verdict's own rail above the neck, never over its fret numbers. -->
+    {#if phase === "running" || phase === "countin"}<Verdict rail kind={lastHit?.kind} text={lastHit?.text} key={lastHit?.key ?? 0} />{/if}
     <div class="flex flex-col justify-end" data-dock="instrument"><div class="relative">
-      {#if phase === "running"}<Verdict kind={lastHit?.kind} text={lastHit?.text} key={lastHit?.key ?? 0} class="absolute top-0 right-0 z-10" />{/if}
       <Fretboard
         openStrings={tuning.openStrings}
         {from}
@@ -889,7 +927,14 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary}>
+      <!-- The run written out with each note's mark, the marks the counts are made of. -->
+      {#snippet figure()}
+        <div class="flex flex-col gap-2" data-testid="line-marked">
+          <p class="text-sm font-semibold">Your run, note by note</p>
+          <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} groupStates={tabStates} meter={tabMeter} oneRow={viewW < 640} />
+        </div>
+      {/snippet}
+      <Results {summary} {figure}>
         {#snippet actions()}
           {#if !isHarm}<button type="button" class={btn} onclick={nextPattern}>Next {kind === "positions" ? "shape" : "pattern"}</button>{/if}
         {/snippet}

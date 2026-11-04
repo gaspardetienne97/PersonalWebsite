@@ -156,6 +156,7 @@
       best: fin.best,
       xp: fin.xp,
       clean: r.correct,
+      cleanMeans: "every check passed",
       assistance: "A set-up check: it does not change skill mastery.",
       rows: [
         { label: `Key: written G4 in ${keyLabel}`, value: r.keyOk ? 1 : 0, text: received === null ? "no note" : `${name(received + shift)} as read${r.keyOk ? ", right" : ""}` },

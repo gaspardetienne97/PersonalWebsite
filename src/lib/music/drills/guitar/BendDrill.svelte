@@ -200,6 +200,7 @@
         delta: fin.delta,
         best: fin.best,
         clean: correct,
+        cleanMeans: "every bend held in tune",
         xp: fin.xp,
         assistance: "The string, fret and target stay on screen; the microphone judges where each bend settles.",
         rows: [

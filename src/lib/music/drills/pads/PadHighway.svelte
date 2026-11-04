@@ -15,6 +15,8 @@
     kind: "accent" | "normal" | "ghost";
     /** A note that rings or is held (a slice, a roll): drawn as a line this long. */
     durMs?: number;
+    /** A letter inside the note (R or L, the sticking). */
+    text?: string;
   }
 </script>
 
@@ -69,7 +71,10 @@
   } = $props();
 
   let width = $state(600);
-  const scale = $derived(highwayScale(width, beatMs, beatsPerBar, aheadBars));
+  // Before a run the hit line waits a beat ahead of the first note: the view reaches that much further, so the
+  // whole first bar shows (sixteen slices never run off the right edge). The count-in and the run use the set view.
+  const lead = $derived(countIn === null && now < 0 ? -now / (beatsPerBar * beatMs) : 0);
+  const scale = $derived(highwayScale(width, beatMs, beatsPerBar, aheadBars + lead));
   const x = (ms: number) => xAt(ms, now, scale);
   const fromMs = $derived(now - scale.behindMs);
   const toMs = $derived(now + scale.aheadMs);
@@ -77,14 +82,14 @@
   const lines = $derived(gridLines(fromMs, toMs, beatMs, beatsPerBar, stepsPerBeat, scale.pxPerMs));
   /** Fewer lanes, taller lanes: four fill the height a groove needs, sixteen slices still fit. */
   // The lanes together are never under 13.5rem (with the bar numbers, 240 px), so a phone reads them.
-  const laneRem = $derived(Math.max(13.5 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.6));
+  const laneRem = $derived(Math.max(13.5 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.45));
   const shownExtras = $derived(extras.filter((e) => e.lane >= 0 && e.atMs > fromMs - beatMs && e.atMs < toMs));
 </script>
 
 <div class="wrap">
   <!-- `grid` tells the stage's dock rules (DrillShell) this already lays out as a grid: left alone, the lanes keep their width in a run. -->
   <div class="view grid" class:with-pads={!!pads}>
-    <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
+    <div class="highway" role="img" aria-label={label} style:--lanes={lanes.length} style:--lane-base="{laneRem}rem" style:--lane-grow="{40 / Math.max(1, lanes.length)}dvh" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
       <div class="labels" aria-hidden="true">
         {#each lanes as l (l.id)}
           {@const cell = l.pad === undefined ? null : padCell(l.pad)}
@@ -115,16 +120,16 @@
           {#if n.durMs}
             <span class="hold" style:--c={c} style:left="{x(n.atMs)}px" style:width="{n.durMs * scale.pxPerMs}px" style:top="calc(({n.lane} + 0.5) * var(--lane))"></span>
           {/if}
-          <span class="note" data-kind={n.kind} data-judged={judged[n.i]} style:--c={c} style:left="{x(n.atMs)}px" style:top="calc(({n.lane} + 0.5) * var(--lane))"></span>
+          <span class="note" data-kind={n.kind} data-judged={judged[n.i]} style:--c={c} style:left="{x(n.atMs)}px" style:top="calc(({n.lane} + 0.5) * var(--lane))">{#if n.text && n.kind !== "ghost"}<b aria-hidden="true">{n.text}</b>{/if}</span>
         {/each}
         {#each shownExtras as e, k (k)}
           <span class="extra" style:left="{x(e.atMs)}px" style:top="calc(({e.lane} + 0.5) * var(--lane))" aria-hidden="true">✕</span>
         {/each}
         <span class="hitline" style:left="{scale.hitX}px" aria-hidden="true"></span>
-        {#if flash}
+        {#if flash && flash.judgement !== "extra"}
           {#key flash.key}
             <span class="flash" data-kind={flash.judgement} style:left="{scale.hitX + 6}px" aria-live="polite">
-              <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" || flash.judgement === "extra" ? "✕ " : ""}</span>{flash.judgement === "extra" ? "Extra" : JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
+              <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" ? "✕ " : ""}</span>{JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
             </span>
           {/key}
         {/if}
@@ -153,6 +158,7 @@
     }
   }
   .highway {
+    --lane: var(--lane-base);
     --head: 1.5rem;
     display: grid;
     grid-template-columns: 7.6rem minmax(0, 1fr);
@@ -163,6 +169,12 @@
       inset 0 0 0 1px color-mix(in oklch, var(--ws-stage-ink) 10%, transparent),
       0 8px 24px oklch(0 0 0 / 0.25);
     color: var(--ws-stage-ink);
+  }
+  /* A laptop gives the lanes up to two fifths of the screen's height, so a two-lane groove is big enough to play. */
+  @container (min-width: 50rem) {
+    .highway {
+      --lane: max(var(--lane-base), var(--lane-grow));
+    }
   }
   @container (max-width: 30rem) {
     .highway {
@@ -292,6 +304,17 @@
     background: var(--c);
     box-shadow: 0 0 10px color-mix(in oklch, var(--c) 50%, transparent);
   }
+  /* The sticking letter, centred in the note in the stage's dark ink. */
+  .note b {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: calc(var(--size) * 0.62);
+    font-weight: 900;
+    line-height: 1;
+    color: #140a10;
+  }
   .note[data-kind="accent"] {
     --size: min(1.75rem, calc(var(--lane) * 0.78), calc(var(--step) * 0.92));
     box-shadow:
@@ -386,8 +409,7 @@
   .flash[data-kind="late"] {
     --k: var(--late, var(--warn));
   }
-  .flash[data-kind="miss"],
-  .flash[data-kind="extra"] {
+  .flash[data-kind="miss"] {
     --k: var(--destructive);
   }
   .count {
@@ -429,6 +451,17 @@
     to {
       opacity: 1;
       transform: scale(1);
+    }
+  }
+  /* A phone's notes stay big enough to aim at (after the base sizes, so this wins): a plain note may fill
+     more of a step, never under 12 px. */
+  @container (max-width: 30rem) {
+    .note:not([data-kind]),
+    .note[data-kind="normal"] {
+      --size: max(0.75rem, min(1.5rem, calc(var(--lane) * 0.62), calc(var(--step) * 0.92)));
+    }
+    .note[data-kind="accent"] {
+      --size: max(0.9rem, min(1.75rem, calc(var(--lane) * 0.78), calc(var(--step) * 1.1)));
     }
   }
   /* The notes still move (they are the clock); the pops and glows hold still. */

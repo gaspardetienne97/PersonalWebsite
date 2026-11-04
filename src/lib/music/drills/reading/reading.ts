@@ -35,7 +35,8 @@ export function flashcardScore(p: FlashcardPrompt, keyFifths = 0): Score {
 }
 
 /**
- * Expected and submitted side by side: two half notes, the answer first.
+ * Expected and submitted side by side: two whole notes in one bar (no stems, so both
+ * heads are the same kind of object), the answer first.
  * A named answer (no octave) is placed in the octave nearest the expected note.
  */
 export function comparisonScore(p: FlashcardPrompt, submitted: number[], keyFifths = 0): Score {
@@ -49,10 +50,13 @@ export function comparisonScore(p: FlashcardPrompt, submitted: number[], keyFift
   return {
     ...flashcardScore(p, keyFifths),
     id: `${p.id}-vs`,
+    // One bar of 8/4 (the card draws no time signature): two stemless whole notes on one line.
+    meter: { beats: 8, beatUnit: 4 },
     voices: cardVoices(p, [
-      ...p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 2 })),
-      ...submitted.map((m) => ({ midi: near(m), startBeat: 2, durationBeats: 2 })),
+      ...p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 4 })),
+      ...submitted.map((m) => ({ midi: near(m), startBeat: 4, durationBeats: 4 })),
     ]),
+    lengthBeats: 8,
   };
 }
 

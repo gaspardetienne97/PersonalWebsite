@@ -22,7 +22,7 @@
   import Volume2 from "lucide-svelte/icons/volume-2";
   import { btnStage } from "$lib/music/components/ui";
 
-  /** `disabled` locks Stop during a run; `offer` draws Start microphone while it is off. */
+  /** `disabled` locks Stop during a run; `offer` draws Turn on the microphone while it is off. */
   let { hint = "Sit close to the sound hole, about a hand's width away.", disabled = false, offer = true }: { hint?: string; disabled?: boolean; offer?: boolean } = $props();
 
   const fill = $derived(Math.max(0, Math.min(1, (mic.peak + 60) / 60)));
@@ -56,7 +56,7 @@
     {:else if offer}
       <!-- Starting stays open mid-run: the player can fix a silent run without stopping it. -->
       <button type="button" class={btnStage} disabled={mic.state === "starting"} onclick={() => void startMic()}>
-        <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Start microphone"}
+        <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Turn on the microphone"}
       </button>
       <p class="min-w-48 flex-1 text-sm text-ws-stage-soft">{mic.error || hint}</p>
     {:else}

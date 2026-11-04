@@ -16,7 +16,8 @@
   import Minus from "lucide-svelte/icons/minus";
   import type { Slot } from "./strum-slots";
 
-  let { slots, lit = null, marks = {}, label }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string } = $props();
+  // `legend`: what the marks mean, before the run (and in the demo); during a run each mark carries its own word.
+  let { slots, lit = null, marks = {}, label, legend = false }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string; legend?: boolean } = $props();
 
   const per = $derived(Math.max(1, Math.round(slots.length / 4)));
   const icon = $derived(slots.length > 16 ? "size-3.5" : slots.length > 8 ? "size-4" : "size-6");
@@ -56,8 +57,8 @@
     </li>
   {/each}
 </ol>
-{#if Object.keys(marks).length}
-  <!-- What the marks mean, once there are marks: the same glyphs as the results. -->
+{#if legend}
+  <!-- What the marks mean, shown once before the run: the same glyphs the strokes get as they are judged. -->
   <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-hidden="true">
     {#each [["ontime", "On time"], ["early", "Early"], ["late", "Late"], ["miss", "Missed"], ["wrong", "Wrong"]] as const as [k, word] (k)}
       {@const Icon = MARK_ICON[k]}

@@ -305,6 +305,7 @@
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
+        cleanMeans: "every beat in time",
         xp: fin.xp,
         mode,
         rows: [
@@ -336,10 +337,11 @@
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
+        cleanMeans: "every note in time, no taps in rests",
         xp: fin.xp,
         mode,
         rows: [
-          timingRow(errors.filter((e): e is number => e !== null), total, plan.matchWindowMs),
+          timingRow(errors.filter((e): e is number => e !== null), total, plan.matchWindowMs, "Timing", POCKET_MS),
           { label: "Missed notes", text: String(r.missed) },
           { label: "Taps in rests", text: String(r.restHits) },
           { label: "Extra taps", text: String(r.extra) },
@@ -560,7 +562,12 @@
         ...patternResult.grid.flatMap((g, i): GridHit[] => (g.verdict === "missed" && plan.events[i] ? [{ beat: plan.events[i].beat, kind: "missed" }] : [])),
       ];
     if (phase === "results" && pulseResult) return hits.map((h) => ({ beat: toBeat(h.at), kind: pulseResult!.metrics.some((m) => m.kind === "timing" && m.actualMs === h.at) ? liveKind(h.at) : "extra" }));
-    if (phase === "running" && mode === "practice") return hits.map((h) => ({ beat: toBeat(h.at), kind: liveKind(h.at) }));
+    if (phase === "running" && mode === "practice")
+      return [
+        ...hits.map((h): GridHit => ({ beat: toBeat(h.at), kind: liveKind(h.at) })),
+        // Pulse: a beat whose window has passed with no tap gets the missed ring under it.
+        ...(pulse ? targetsRel.flatMap((t, i): GridHit[] => (now - downbeat > t + windowMs && !hits.some((h) => Math.abs(h.at - downbeat - t) <= windowMs) ? [{ beat: i, kind: "missed" }] : [])) : []),
+      ];
     return [];
   });
   const verdicts = $derived.by((): (GridVerdict | undefined)[] => {
@@ -629,6 +636,17 @@
   /** A dictation's notation: your marks as notes while you write, what was played once checked. */
   const shownWritten = $derived(dictationResult && earDef ? earDef : marksAsPattern(markedIn("notes"), plan.bars, grid.beatsPerBar));
   let unwrittenMarks = $state<string | null>(null);
+  /** What to do now, beside Stop on a phone: the count-in, then where the run is. */
+  const cue = $derived.by(() => {
+    if (phase === "countin") return "Count-in: play on the next 1";
+    if (phase !== "running") return "";
+    if (writes) return writing ? `Mark every ${groove ? "hit" : "note"}, then check` : "Listen";
+    if (echo) return now >= downbeat ? "Your turn: tap it back" : "Listen";
+    const b = Math.floor((now - downbeat) / beatMs);
+    if (b < 0) return "Get ready";
+    if (pulse) return `Beat ${Math.min(beats, b + 1)} of ${beats}`;
+    return `Bar ${Math.min(plan.bars, Math.floor(b / perBar) + 1)} of ${plan.bars}`;
+  });
   /** Nothing was heard: the stage stays neutral and says so. */
   const unheard = $derived(phase === "results" && summary?.heard === false);
 
@@ -654,6 +672,43 @@
 
 <svelte:head><title>Rhythm | Woodshed</title></svelte:head>
 <svelte:window onkeydown={onKey} />
+
+<!-- The run drawn: the score marked note by note, every beat's offset, a dictation's comparison. -->
+{#snippet runFigure()}
+  <div class="grid gap-3">
+    {#if patternResult && !byEar && unwritten !== def.id}
+      <!-- The written rhythm again, each note marked by its grade (on the stage panel, as it was read). -->
+      <figure class="stage rounded-2xl p-3">
+        <RhythmNotation pattern={def} cursorBeat={null} states={noteStates} hits={gridHits} label={`${def.label}, each note marked: green on time or close, red missed`} />
+      </figure>
+    {/if}
+      {#if perHit.length && summary?.heard !== false}
+        <!-- Every beat (or note) and how far its tap sat from the click: + late, − early. Off ones stand out. -->
+        <section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="every-hit">
+          <h3 id="every-hit" class="font-display text-base font-semibold">{pulse ? "Every beat" : "Every note"}, ms from the click</h3>
+          <p class="text-sm text-ws-soft">+ is late, − is early. Within 15 ms counts as on time.</p>
+          <ol class="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-8 lg:grid-cols-4" aria-label="Every hit">
+            {#each perHit as h, i (i)}
+              {@const v = h.error === null ? "missed" : timingVerdict(h.error)}
+              <li class="chip tnum" data-v={v}>
+                <span class="text-xs text-ws-soft">{h.label}</span>
+                <span class="flex items-center gap-1 whitespace-nowrap font-semibold">
+                  <svg viewBox="-6 -6 12 12" class="glyph" aria-hidden="true">
+                    {#if v === "early"}<path class="chev" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />{:else if v === "late"}<path class="chev" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />{:else if v === "pocket"}<path class="tick" d="M-4.5 0 L-1.5 3.5 L4.5 -4" />{:else}<circle r="4.5" class="hollow" />{/if}
+                  </svg>
+                  {h.error === null ? "Missed" : signedMs(h.error)}
+                </span>
+                {#if v !== "missed"}<span class="text-xs font-semibold">{v === "early" ? "Early" : v === "late" ? "Late" : "On time"}</span>{/if}
+              </li>
+            {/each}
+          </ol>
+        </section>
+      {/if}
+      {#if dictationResult && summary?.heard !== false}
+        <DictationCompare bars={plan.bars} {rows} perBeat={grid.perBeat} beatsPerBar={grid.beatsPerBar} heard={isHeard} marked={(row, i) => !!marks[row]?.[i]} />
+      {/if}
+  </div>
+{/snippet}
 
 <DrillShell
   lesson={groove ? { lessons: [grooveDictationLesson()] } : echo || dictation ? { lessons: rhythmLessons(echo ? "echo" : "dictation", earLevel.id) } : null}
@@ -684,6 +739,7 @@
   onstop={stop}
   listens={!writes}
   instrumentFree={writes}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -731,6 +787,7 @@
       <Stat label="Now" value={writes ? (writing ? "Write it down" : "Listen") : now >= downbeat ? "Your turn" : "Listen"} />
     {/if}
     {#if phase === "running" && !writes}
+      <Stat label="Tempo" value="{bpm} BPM" />
       <Stat label="Taps" value={hits.length} />
     {/if}
   {/snippet}
@@ -739,7 +796,7 @@
     <!-- One column on a phone, the Tap button docked at the bottom; beside the music from md up. A dictation keeps one column. -->
     <div class="flex min-w-0 flex-1 flex-col gap-5 {writes ? '' : 'md:flex-row md:items-center'}">
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
-      <div class="min-w-0 md:flex-1" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
+      <div class="min-w-0 {writes ? '' : 'md:flex-1'}" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
           <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
         {/if}
@@ -752,14 +809,17 @@
           <p class="mb-2 text-sm text-ws-stage-soft">Nothing was heard, so no taps are marked.</p>
         {/if}
         {#if !pulse && !byEar && unwritten !== def.id}
-          <RhythmNotation
-            pattern={def}
-            cursorBeat={playhead}
-            states={noteStates}
-            hits={gridHits}
-            label={`${def.label} in rhythm notation, ${plan.bars} bar${plan.bars > 1 ? "s" : ""}, ${plan.events.length} notes and ${def.rests.length} rests`}
-            onfallback={() => (unwritten = def.id)}
-          />
+          <!-- On results the marked score is drawn once, in the results figure (the stage is hidden then). -->
+          {#if phase !== "results"}
+            <RhythmNotation
+              pattern={def}
+              cursorBeat={playhead}
+              states={noteStates}
+              hits={gridHits}
+              label={`${def.label} in rhythm notation, ${plan.bars} bar${plan.bars > 1 ? "s" : ""}, ${plan.events.length} notes and ${def.rests.length} rests`}
+              onfallback={() => (unwritten = def.id)}
+            />
+          {/if}
         {:else if !writes}
           <!-- A dictation is drawn on its own grid below, greyed out until Start. -->
           <RhythmGrid
@@ -775,7 +835,7 @@
             label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
           />
         {/if}
-        {#if showKey}<TapKey missed={phase === "results" && anyMissed} />{/if}
+        {#if showKey}<TapKey missed={(phase === "results" && anyMissed) || (phase === "running" && pulse)} />{/if}
         {#if writes}
           {#if dictation && (writing || dictationResult) && unwrittenMarks !== shownWritten.id}
             <!-- Your marks, written as notes as you go; after the check, what was played. -->
@@ -787,6 +847,14 @@
               label={dictationResult ? `What was played, in rhythm notation: ${heardBeats.length} notes` : `Your rhythm in notation: ${markedIn("notes").length} notes marked`}
               onfallback={() => (unwrittenMarks = shownWritten.id)}
             />
+          {/if}
+          {#if writing || phase === "running"}
+            <!-- The helpers sit above the grid they act on; Check stays alone below it. -->
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" class={btnStage} disabled={!writing} aria-pressed={againAt !== null} onclick={hearAgain}>Hear it again</button>
+              <button type="button" class={btnStage} disabled={!Object.values(marks).some((r) => r.some(Boolean))} onclick={() => (marks = {})}>Clear</button>
+              <span class="text-sm text-ws-stage-soft">{writing ? `Tap a cell for every ${groove ? "hit" : "note"} you heard.` : "Listen first: the grid opens when it ends."}</span>
+            </div>
           {/if}
           <div class="mt-3" class:opacity-60={phase === "ready"} role="group" aria-label={groove ? "Your groove" : "Your rhythm"} data-dock={phase === "ready" ? undefined : "music"}>
             <DictationGrid
@@ -809,10 +877,8 @@
       </div>
       {#if writes && (writing || phase === "running")}
         <!-- On a phone the check leads, full width, right under the grid it checks; the helpers follow. -->
-        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" data-dock="answers">
-          <button type="button" class="{btnPrimary} min-h-12 max-sm:col-span-2" disabled={!writing} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
-          <button type="button" class={btnStage} disabled={!writing} aria-pressed={againAt !== null} onclick={hearAgain}>Hear it again</button>
-          <button type="button" class={btnStage} disabled={!Object.values(marks).some((r) => r.some(Boolean))} onclick={() => (marks = {})}>Clear</button>
+        <div class="flex" data-dock="answers">
+          <button type="button" class="{btnPrimary} min-h-12 w-full sm:w-auto sm:min-w-56" disabled={!writing} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
         </div>
       {/if}
       {#if !writes}
@@ -845,7 +911,7 @@
           <span class="font-display text-2xl font-bold">Tap</span>
           <span class="text-xs opacity-80 pointer-coarse:hidden">or Space</span>
         </button>
-        <p class="text-center text-xs text-ws-stage-soft">MIDI keys and pads count too{listens ? ", and the mic" : ""}.</p>
+        <p class="text-center text-xs text-ws-stage-soft">{live ? "" : "Starts after the count-in. "}MIDI keys and pads count too{listens ? ", and the mic" : ""}.</p>
         {/if}
       </div>
       {/if}
@@ -854,32 +920,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
-      {#if perHit.length && summary.heard !== false}
-        <!-- Every beat (or note) and how far its tap sat from the click: + late, − early. Off ones stand out. -->
-        <section class="mt-3 rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="every-hit">
-          <h3 id="every-hit" class="font-display text-base font-semibold">{pulse ? "Every beat" : "Every note"}, ms from the click</h3>
-          <p class="text-sm text-ws-soft">+ is late, − is early. Within 15 ms counts as on time.</p>
-          <ol class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5" aria-label="Every hit">
-            {#each perHit as h, i (i)}
-              {@const v = h.error === null ? "missed" : timingVerdict(h.error)}
-              <li class="chip tnum" data-v={v}>
-                <span class="text-xs text-ws-soft">{h.label}</span>
-                <span class="flex items-center gap-1 whitespace-nowrap font-semibold">
-                  <svg viewBox="-6 -6 12 12" class="glyph" aria-hidden="true">
-                    {#if v === "early"}<path class="chev" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />{:else if v === "late"}<path class="chev" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />{:else if v === "pocket"}<circle r="5" />{:else}<circle r="4.5" class="hollow" />{/if}
-                  </svg>
-                  {h.error === null ? "Missed" : signedMs(h.error)}
-                </span>
-                {#if v === "early" || v === "late"}<span class="text-xs font-semibold">{v === "early" ? "Early" : "Late"}</span>{/if}
-              </li>
-            {/each}
-          </ol>
-        </section>
-      {/if}
-      {#if dictationResult && summary.heard !== false}
-        <DictationCompare bars={plan.bars} {rows} perBeat={grid.perBeat} beatsPerBar={grid.beatsPerBar} heard={isHeard} marked={(row, i) => !!marks[row]?.[i]} />
-      {/if}
+      <Results {summary} figure={summary.heard !== false && (perHit.length || dictationResult || patternResult) ? runFigure : undefined} />
     {/if}
   {/snippet}
 </DrillShell>
@@ -952,6 +993,13 @@
   }
   .chip[data-v="pocket"] .glyph {
     fill: var(--success);
+  }
+  .glyph .tick {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .glyph .hollow {
     fill: none;

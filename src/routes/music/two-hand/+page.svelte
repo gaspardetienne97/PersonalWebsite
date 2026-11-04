@@ -99,6 +99,9 @@
   let heard = $state<{ midi: number; beat: number }[]>([]);
   let clock0 = { downbeat: 0, beatMs: 500 };
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
+  /** Wrong keys struck so far in Practice (the lane's tally says the same as the word above the keys). */
+  let liveWrong = $state(0);
+  const wrongShown = $derived(phase === "results" ? (result?.wrong ?? 0) : liveWrong);
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
     [demo ? "demo" : "target"]: true,
@@ -141,13 +144,23 @@
     return Object.fromEntries((["left", "right"] as const).map((h) => [h, laneOutcomes(notes.filter((n) => n.hand === h), heard, now)]));
   });
 
+  /** What to play now, beside Stop on a phone: the beat and its notes ("Beat 3: E and A"); Check names the beat only. */
+  const cue = $derived.by(() => {
+    if (phase !== "running" || transport.beat === null || transport.beat < 0) return "";
+    const b = transport.beat;
+    const where = `Bar ${Math.min(BARS, Math.floor(b / 4) + 1)}, beat ${(Math.floor(b) % 4) + 1}`;
+    if (mode !== "practice") return `${where}: from memory`;
+    const names = [...new Set(due(b).sort((x, y) => x.midi - y.midi).map((n) => noteName(n.midi, "flat", false)))];
+    return names.length ? `Beat ${(Math.floor(b) % 4) + 1}: ${names.join(" and ")}` : where;
+  });
+
   const patternLabel = $derived(TWO_HAND_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern);
   const tonicName = $derived(noteName(tonic, "flat", false));
   const about = $derived(ABOUT(tonicName));
   const summaryLine = $derived<SetupClause[]>([
     { text: `${patternLabel} from ${tonicName}`, focus: "pattern" },
     { text: hand === "both" ? "both hands" : `${hand} hand only`, focus: "hand" },
-    ...(s.dynamics ? [{ text: "melody louder" }] : []),
+    ...(s.dynamics ? [{ text: "melody louder", focus: "dynamics" }] : []),
   ]);
   const setupKey = $derived(`two-hand:${pattern}:${s.tonic}:${hand}:${s.dynamics ? "dyn" : "flat"}:${bpm}`);
 
@@ -165,6 +178,7 @@
     const dueNow = due(b);
     const want = dueNow.find((n) => n.midi === e.midi);
     flashes.add(e.midi, want ? "correct" : "wrong");
+    if (!want) liveWrong++;
     // The word for the note, as the lane will mark it: on time within a quarter of the hand's spacing.
     const beat = heard.at(-1)!.beat;
     const v = want
@@ -186,6 +200,7 @@
     flashes.clear();
     heard = [];
     verdict = null;
+    liveWrong = 0;
     clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     stopClock = ctx.stopClock;
     run = practice.beginRun({
@@ -250,9 +265,12 @@
   function buildSummary(r: TwoHandResult, fin: { delta: number | null; best: boolean; xp: number }): RunSummary {
     const weak = [...r.hands].sort((a, b) => a.pitch - b.pitch)[0];
     const togetherShare = r.together && r.together.beats ? r.together.count / r.together.beats : null;
+    const togetherFine = togetherShare === null || togetherShare >= 0.8;
     const headline = !r.hands.some((h) => h.matched)
       ? "No notes landed on the beats. Start on the first click after the count-in."
-      : r.correct
+      : r.wrong && r.score >= 0.9 && togetherFine
+        ? `Every part landed, but ${r.wrong} wrong key${r.wrong > 1 ? "s" : ""} slipped in. Once more without ${r.wrong > 1 ? "them" : "it"}.`
+        : r.correct
         ? togetherShare !== null
           ? `Clean, and the hands struck together on ${r.together!.count} of ${r.together!.beats} beats.`
           : mode === "check"
@@ -273,9 +291,10 @@
     if (measuresTogether)
       rows.push(
         r.together
-          ? { label: "Hands together (40 ms)", value: togetherShare ?? 0, text: `${r.together.count} of ${r.together.beats} beats` }
+          ? { label: "Hands landed together", value: togetherShare ?? 0, text: `${r.together.count} of ${r.together.beats} beats` }
           : { label: "Hands together (on-screen input)", notMeasured: true },
       );
+    if (r.wrong) rows.push({ label: "Wrong keys struck", text: String(r.wrong) });
     if (s.dynamics)
       rows.push(r.dynamics === null ? { label: "Dynamics, melody louder", notMeasured: true } : { label: "Dynamics, melody louder", value: r.dynamics });
     return {
@@ -288,6 +307,7 @@
       xp: fin.xp,
       mode,
       rows,
+      cleanMeans: measuresTogether ? "every note on its beat, hands together, no wrong keys" : "every note on its beat, no wrong keys",
       timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
         r.correct && mirror && mode === "check"
@@ -328,6 +348,7 @@
   demoPlaying={transport.playing}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
@@ -335,7 +356,19 @@
       <Choice label="Tonic" options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
       <Choice label="Practise" setupKey="hand" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.id === "both" ? "Both hands" : `${m.label} only` }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Mirror hands starts at 60 to 66 BPM. Dynamics sits on the stage.</p>
+    <div class="mt-4 sm:max-w-sm">
+      <Choice
+        label="Dynamics"
+        setupKey="dynamics"
+        options={[
+          { value: "flat", label: "Off" },
+          { value: "dyn", label: `Melody louder` },
+        ]}
+        value={s.dynamics ? "dyn" : "flat"}
+        onchange={(v) => cfg.set({ dynamics: v === "dyn" })}
+      />
+    </div>
+    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Mirror hands starts at 60 to 66 BPM. Dynamics asks the melody hand to play louder; velocity needs MIDI.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -346,54 +379,47 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if phase !== "running" && phase !== "countin" && (mode === "practice" || phase === "results")}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-      {#if phase !== "running" && phase !== "countin"}<p class="max-w-prose text-ws-stage-soft">{about[pattern]}</p>{/if}
-      <!-- A setup toggle: it leaves the stage while the run plays. -->
-      {#if phase !== "running" && phase !== "countin"}
-        <button
-          type="button"
-          class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium {s.dynamics ? 'bg-ws-stage-ink/15' : ''}"
-          aria-pressed={s.dynamics}
-          onclick={() => cfg.set({ dynamics: !s.dynamics })}
-          >{s.dynamics ? "Dynamics on: melody louder" : "Dynamics off"}</button
-        >
-      {/if}
-    </div>
+    {@const live = phase === "running" || phase === "countin"}
+    {@const pianoLabel = `Piano keyboard, ${noteName(span.low)} to ${noteName(span.high)}. Left hand keys marked L, right hand R.`}
     {#if falling && (mode === "practice" || transport.playing || phase === "results")}
-      <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      {#if !live}<div class="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">{@render about_()}<ViewSwitch /></div>{/if}
+      <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={pianoLabel} />
     {:else}
-      <div class="flex min-h-0 flex-1 flex-col justify-center gap-3" data-dock="music">
-      {#if mode === "practice" || transport.playing || phase === "results"}
-        <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></StaffFold>
-      {/if}
-      <BeatLane
-        rows={lanes}
-        beats={totalBeats}
-        beat={transport.beat}
-        {eighths}
-        hidden={mode === "check" && !transport.playing}
-        label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
-        {outcomes}
-      />
+      <div class="flex min-h-0 flex-col justify-center gap-3" data-dock="music">
+        {#if mode === "practice" || transport.playing || phase === "results"}
+          <!-- Before Start the staff engraves smaller, so the lane and the keys share the first screen. -->
+          <StaffFold live={live || transport.playing} aside={live ? undefined : aside}><LineNotation maxZoom={live ? 1.1 : 0.6} notes={toWritten(notes)} title={setupKey} cursorBeat={transport.beat} keyFifths={signatureFor(tonic % 12, "major")} /></StaffFold>
+        {:else if !live}
+          <div class="mb-1">{@render about_()}</div>
+        {/if}
+        <BeatLane
+          rows={lanes}
+          beats={totalBeats}
+          beat={transport.beat}
+          {eighths}
+          hidden={mode === "check" && !transport.playing}
+          label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
+          {outcomes}
+          wrong={phase === "running" && mode === "practice" ? wrongShown : 0}
+        />
       </div>
-      <div class="flex flex-col justify-end" data-dock="instrument">
-        <!-- The word for the last note sits above the keys, never over them. -->
-        {#if phase === "running"}<div class="flex min-h-10 items-center justify-center">{#if verdict}<Verdict {...verdict} class="flex justify-center" />{/if}</div>{/if}
-        <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} minKey={26} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      <div class="flex flex-col" data-dock="instrument">
+        <!-- The word for the last note has its own row between the lane and the keys, never over them. -->
+        {#if phase === "running"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
+        <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} minKey={26} label={pianoLabel} />
       </div>
     {/if}
     <div class="mt-3 text-sm text-ws-stage-soft">
-      {#if mode === "check" && (phase === "running" || phase === "countin")}
+      {#if mode === "check" && live}
         <p>Notes hidden. Keep the rhythm; keys light only where you play.</p>
-      {:else if phase === "running" || phase === "countin" || phase === "results"}
+      {:else if live || phase === "results"}
         {#if s.dynamics}<p>Play the {rendering.melodyHand} hand louder.</p>{/if}
       {:else}
         <details>
           <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
           <div class="flex flex-col gap-1 pb-1">
             <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is written only for Mirror hands."}</p>
-            {#if measuresTogether}<p>Hands together needs MIDI: both hands within 40 ms. On-screen keys play one note at a time, so an on-screen run shows Together as not measured.</p>{/if}
+            {#if measuresTogether}<p>Hands landed together needs MIDI: both hands within 40 ms. On-screen keys play one note at a time, so an on-screen run shows it as not measured.</p>{/if}
             {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI; on-screen keys can't measure it.</p>{/if}
             {#if mode === "check"}<p>Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
           </div>
@@ -404,7 +430,24 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
+      <Results {summary} {figure} />
     {/if}
   {/snippet}
 </DrillShell>
+
+<!-- The pattern in a sentence; the view switch beside it when there is room, its own row on a phone. -->
+{#snippet about_()}<p hidden={transport.playing} class="min-w-0 max-w-prose flex-1 text-sm text-ws-stage-soft sm:basis-64">{about[pattern]}</p>{/snippet}
+{#snippet aside()}
+  {@render about_()}
+  {#if mode === "practice" || phase === "results"}<ViewSwitch />{/if}
+{/snippet}
+
+<!-- The run as the lane marked it, note by note, under the breakdown. -->
+{#snippet figure()}
+  {#if heard.length}
+    <div class="stage rounded-2xl p-3">
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Each note as it landed</p>
+      <BeatLane rows={lanes} beats={totalBeats} {eighths} label="Your run on the beat lane: {lanes.map((l) => `${l.label}`).join(' and ')}, each note marked on time, early, late or missed." {outcomes} wrong={wrongShown} />
+    </div>
+  {/if}
+{/snippet}

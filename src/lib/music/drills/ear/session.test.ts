@@ -5,6 +5,7 @@ import { cadencePrompt } from "@repo/music-core/content/ear";
 import {
   buildSession,
   cadenceShift,
+  confusionCells,
   confusions,
   mixKinds,
   MIX_KINDS,
@@ -217,6 +218,25 @@ describe("ear sessions", () => {
     ]);
     expect(tokenLabel("scale-degree", "3", "solfege")).toBe("mi");
     expect(tokenLabel("cadence", "authentic")).toBe("Authentic (V to I)");
+  });
+
+  it("puts the headline's mix-up in the grid square of the same pair (played row, answered column)", () => {
+    const deg = (expected: string, answered: string) => ({
+      kind: "scale-degree" as const,
+      expected,
+      answered,
+      correct: expected === answered,
+      scored: true,
+    });
+    const recs = [deg("2", "1"), deg("2", "1"), deg("1", "2"), deg("4", "1"), deg("3", "3")];
+    const top = confusions(recs)[0];
+    expect(top).toMatchObject({ expected: "2", answered: "1", count: 2 });
+    const cells = confusionCells(recs, ["1", "2", "3", "4", "5", "6", "7"]);
+    expect(cells.rows).toEqual(["1", "2", "3", "4"]);
+    expect(cells.count(top.expected, top.answered)).toBe(top.count);
+    // The reverse pair is its own square, not the headline's.
+    expect(cells.count("1", "2")).toBe(1);
+    for (const c of confusions(recs)) expect(cells.count(c.expected, c.answered)).toBe(c.count);
   });
 
   it("reads a cadence's shift from its id, up as well as down", () => {

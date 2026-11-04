@@ -16,7 +16,6 @@
   import Hint from "$lib/music/components/Hint.svelte";
   import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btnStage } from "$lib/music/components/ui";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
@@ -30,6 +29,7 @@
   import PositionPicker from "./PositionPicker.svelte";
   import LineNotation from "$lib/music/notation/LineNotation.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
+  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
   import { CHORD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "build" | "pick" } = $props();
@@ -216,6 +216,7 @@
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
+      cleanMeans: "every target note matched",
       xp: fin.xp,
       mode,
       rows: [
@@ -244,6 +245,8 @@
   }
 
   function stop() {
+    // Build is untimed: Stop is its one end control, and grades what was played (nothing heard is not scored).
+    if (!isPick && phase === "running") return void finish();
     halt();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
@@ -257,6 +260,12 @@
 
   const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: isPick ? "one string per click" : "untimed" }]);
   const showShape = $derived(mode === "practice" || phase === "results");
+  /** Beside Stop on a phone: the string to sound now (its note too in Practice). */
+  const cue = $derived.by(() => {
+    const t = targets[Math.max(0, cursor)];
+    if (phase !== "running" || !t || cursor >= targets.length) return "";
+    return `${isPick ? "Pick" : "Sound"} string ${t.string}${mode === "practice" ? `, ${toneName(t.midi, ref)}` : ""}`;
+  });
 </script>
 
 <DrillShell
@@ -279,6 +288,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
+  {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -335,7 +345,7 @@
       <p class="mt-3 flex items-start gap-2 text-sm font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
-      {#if phase === "running" && !isPick}<button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>{/if}
+      {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">Stop when you are done: what you played is scored.</span>{/if}
       <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? "Shape hidden: play it from memory." : "What is checked"}</span>
       <Hint about="what is checked" text="Pitch matching checks which notes you sounded, not which string they came from or how clean they rang." />
     </div>
@@ -343,7 +353,23 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
+      <!-- The shape and each string's take: the marks the count above is made of. -->
+      {#snippet figure()}
+        <div class="flex flex-wrap items-start gap-5" data-testid="shape-marked">
+          <div class="w-28 shrink-0"><ChordDiagram frets={shape.frets} fingers={shape.fingers} barre={shape.barre} label="{symbol}, {shape.positionLabel ?? 'open position'}" /></div>
+          <ol class="flex min-w-0 flex-1 flex-col gap-1.5 text-sm" aria-label="Each string">
+            {#each targets as t (t.string)}
+              {@const ok = !missedStrings.some((m) => m.startsWith(`string ${t.string} `))}
+              <li class="flex items-center gap-2">
+                <span class="grid size-6 place-items-center rounded-full text-xs font-bold {ok ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">{ok ? "✓" : "✕"}</span>
+                <span>String {t.string}, <span class="font-semibold">{toneName(t.midi, ref)}</span></span>
+                <span class="sr-only">{ok ? "matched" : "missed"}</span>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {/snippet}
+      <Results {summary} figure={summary.heard === false ? undefined : figure} />
     {/if}
   {/snippet}
 </DrillShell>

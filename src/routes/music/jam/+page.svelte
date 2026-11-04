@@ -34,7 +34,7 @@
   import { TUNINGS } from "@repo/music-core/data/index";
   import { jamGameLesson } from "@repo/music-core/lessons/jam";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Results, { silentRun } from "$lib/music/components/Results.svelte";
+  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
   import Piano from "$lib/music/components/Piano.svelte";
   import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
@@ -43,7 +43,7 @@
   import type { CellMarks } from "$lib/music/components/feedback.svelte";
   import { btn, btnStage, panel } from "$lib/music/components/ui";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, modeText, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, capture, pct, runInstrument, type Capture } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, settings, type SequenceHandle } from "$lib/music/runtime";
   import { addShelfSong, shelfSong, type Song } from "$lib/music/hubs/library/songs";
@@ -165,11 +165,23 @@
 
   /** Check hides the tone roles: the targets are the player's to hear. */
   const showRoles = $derived(!(checking || (mode === "check" && phase !== "results")));
+  /** The notes a set game scores (C Eb G, the guide tones), ringed on every octave above the degrees. */
+  const setPcs = $derived.by((): number[] => {
+    const st = game.set;
+    if (!st) return [];
+    if ("key" in st) return st.key.map((x) => pc(prog.keyPc + x));
+    const all = Array.from({ length: 12 }, (_, p) => p).filter((p) => roles[p] === "chord");
+    return st.chord === "chord" ? all : all.filter((p) => /(3|7)$/.test(degreeLabel(chord.symbol, p)));
+  });
+  /** The key just played, lit with its degree for a moment, so the eye stays on the keys. */
+  let litKey = $state<number | null>(null);
+  let litTimer: ReturnType<typeof setTimeout> | undefined;
   const pianoMarks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
-    if (!showRoles) return out;
-    // Degrees only on the notes that fit (chord and scale tones); an avoid note keeps its dashed ring, unlabelled.
-    for (let m = 48; m <= 84; m++) out[m] = { label: roles[pc(m)] === "avoid" ? undefined : degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)] };
+    if (showRoles)
+      // Degrees only on the notes that fit (chord and scale tones); an avoid note keeps its dashed ring, unlabelled.
+      for (let m = 48; m <= 84; m++) out[m] = { label: roles[pc(m)] === "avoid" ? undefined : degreeLabel(chord.symbol, pc(m)), role: roles[pc(m)], ...(setPcs.includes(pc(m)) ? { target: true } : {}) };
+    if (litKey !== null && lastNote) out[litKey] = { ...out[litKey], demo: true, label: showRoles ? lastNote.label : undefined };
     return out;
   });
   const fretMarks = $derived.by(() => {
@@ -232,6 +244,9 @@
     if (e.kind !== "noteon" || phase !== "running") return;
     played = [...played, { midi: e.midi, at: e.at, chordIndex: chordIdx, chorus }];
     lastNote = { midi: e.midi, role: roles[pc(e.midi)], label: degreeLabel(chord.symbol, pc(e.midi)), symbol: chord.symbol };
+    litKey = e.midi;
+    clearTimeout(litTimer);
+    litTimer = setTimeout(() => (litKey = null), 500);
   }
 
   function closeChorus() {
@@ -455,16 +470,19 @@
 
   onDestroy(() => {
     clearTimeout(endTimer);
+    clearTimeout(litTimer);
     stopBacking();
     cap?.stop();
     stopReview();
   });
 
   const summaryLine = $derived([
-    { text: `${prog.name} in ${prog.key}`, focus: "progression" },
+    // Three short chips by default (the tune, the game, the length); the rest only when changed from it.
+    { text: prog.name.includes(prog.key) ? prog.name : `${prog.name} in ${prog.key}`, focus: "progression" },
     { text: game.id === "free" ? "solo over the changes" : game.label.toLowerCase(), focus: "game" },
-    { text: `${runChoruses} chorus${runChoruses === 1 ? "" : "es"} in Check${s.trade && !game.windows ? `, trading ${s.trade === 4 ? "fours" : "twos"}` : ""}`, focus: "choruses" },
-    { text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "both" ? "drums and chords" : backingMode === "rhythm" ? "drums and bass" : backingMode, focus: "backing" },
+    { text: `test run: ${runChoruses} chorus${runChoruses === 1 ? "" : "es"}`, focus: "choruses" },
+    ...(s.trade && !game.windows ? [{ text: `trading ${s.trade === 4 ? "fours" : "twos"}`, focus: "trade" }] : []),
+    ...(backingMode === "both" ? [] : [{ text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "rhythm" ? "drums and bass" : backingMode === "drums" ? "drums only" : "chords only", focus: "backing" }]),
     ...(meter === 3 ? [{ text: "in 3/4", focus: "meter" }] : []),
     ...(swaps.size ? [{ text: `${swaps.size} chord${swaps.size === 1 ? "" : "s"} reharmonised`, focus: "reharm" }] : []),
     ...(s.transpose ? [{ text: `transposed ${s.transpose > 0 ? "+" : ""}${s.transpose}`, focus: "transpose" }] : []),
@@ -543,6 +561,20 @@
   const scale = $derived(laneScale(laneW));
   const lane = $derived(laneBlocks(chordBeats, laneAt, scale.playheadX / scale.pxPerBeat + 1, (laneW - scale.playheadX) / scale.pxPerBeat + 1));
   const tones = $derived(chordToneNames(chord.symbol));
+  /** A graded Check run in the shared results card: stars and the celebration only when every aim is met. */
+  const gradedSummary = $derived<RunSummary | null>(
+    graded
+      ? {
+          headline: graded.headline,
+          metric: pct(graded.score),
+          metricLabel: "score",
+          delta,
+          mode: "check",
+          clean: graded.passed,
+          cleanMeans: "every aim met in every chorus",
+        }
+      : null,
+  );
 </script>
 
 <svelte:head><title>Jam | Woodshed</title></svelte:head>
@@ -762,15 +794,16 @@
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue (9, 11, 13)</span>
       <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: dashed ring</span>
+      {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>Scored notes: solid ring ({setPcs.map((p) => FLAT_NAMES[p]).join(" ")})</span>{/if}
       <span>The numbers are degrees over the chord.</span>
     </div>
 
-    {#if phase === "running" && !showRoles}
-      <!-- Check hides the roles, not the playing: the last notes heard, newest last, with no verdict on them. -->
+    {#if phase === "running"}
+      <!-- The last notes heard, newest last: role colours in Practice, plain in Check (no verdict on them). -->
       <ol class="mt-3 flex min-h-9 flex-wrap items-center gap-1.5 text-sm" aria-label="Notes heard so far" data-testid="jam-trail">
         {#if !played.length}<li class="text-ws-stage-soft">Play: the notes you play show here.</li>{/if}
         {#each played.slice(-10) as n, i (played.length - Math.min(played.length, 10) + i)}
-          <li class="rounded-full px-2.5 py-1 font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10'}">{noteName(n.midi, "flat", false)}</li>
+          <li class="trail-note rounded-full px-3 py-1.5 text-base font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/15'}" data-role={showRoles ? roles[pc(n.midi)] : undefined}>{noteName(n.midi, "flat", false)}</li>
         {/each}
       </ol>
     {/if}
@@ -788,46 +821,8 @@
   {/snippet}
 
   {#snippet results()}
-    {#if graded}
-      <article class="{panel} flex flex-col gap-4" data-testid="jam-graded">
-        <div class="flex flex-wrap items-start gap-4">
-          <div class="min-w-0 flex-1 basis-72">
-            <p class="font-display text-2xl font-semibold leading-snug">{graded.headline}</p>
-            <p class="mt-1 text-sm text-ws-soft">{modeText("check")} {game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
-            {#if savedTake}<p class="mt-2 text-sm">Saved as a take. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Open it in Record</a></p>{/if}
-          </div>
-          <div class="text-right">
-            <p class="tnum font-display text-5xl font-bold leading-none" data-testid="jam-score">{pct(graded.score)}</p>
-            <p class="mt-1 text-sm text-ws-soft">score{delta !== null ? `, ${delta >= 0 ? "+" : ""}${Math.round(delta)} on last time` : ""}</p>
-          </div>
-        </div>
-        <ol class="flex flex-col gap-3" aria-label="Choruses graded">
-          {#each graded.choruses as c (c.index)}
-            <li class="rounded-xl border border-ws-line p-3">
-              <div class="flex flex-wrap items-center gap-3">
-                <p class="min-w-0 flex-1"><span class="font-semibold">{chorusName(c.index, graded.choruses.length)}.</span> {pct(c.score)}{c.passed ? ", every aim met" : ""}</p>
-                {#if savedTake && c.notes}
-                  <button type="button" class={btn} onclick={() => playChorus(choruses[c.index])}><Play class="size-4" aria-hidden="true" />Hear this chorus</button>
-                {/if}
-              </div>
-              <ul class="mt-2 flex flex-col gap-1 text-sm">
-                {#each c.parts as part (part.metric)}
-                  <li class="flex flex-wrap gap-x-2">
-                    <span class="font-medium">{part.label}:</span>
-                    <span>{part.detail}{part.value !== null && !isCount(part.metric) ? ` (${pct(part.value)})` : ""}, aim {isCount(part.metric) ? part.aim : pct(part.aim)}</span>
-                    {#if part.credit >= 1}<span class="text-ws-soft">met</span>{/if}
-                  </li>
-                {/each}
-              </ul>
-              <p class="mt-2 text-sm text-ws-soft">
-                {c.notes} notes, range {rangeText(c.range)}. {c.phrases.count} phrase{c.phrases.count === 1 ? "" : "s"}, {c.phrases.meanBars} bars long on average; {c.measures.rests?.detail}.
-                {c.measures.time?.value != null ? `${pct(c.measures.time.value)} on the ${swings(prog) ? "swing (triplet)" : "sixteenth"} grid` : ""}{c.swing !== null ? `, swing ${c.swing}:1` : ""}.
-                {game.id !== "free" && c.measures.strong?.value != null ? ` Chord tones on 1 and 3: ${pct(c.measures.strong.value)}.` : ""}
-              </p>
-            </li>
-          {/each}
-        </ol>
-      </article>
+    {#if graded && gradedSummary}
+      <Results summary={gradedSummary} figure={choruses_} />
     {:else if !played.length}
       <Results summary={silentRun()} />
     {:else}
@@ -838,7 +833,7 @@
             {played.length} notes over {choruses.length} chorus{choruses.length === 1 ? "" : "es"}.
           </p>
           <p class="mt-1 text-sm text-ws-soft">Jam is not scored. The reports below describe where your notes landed, chorus by chorus.</p>
-          {#if savedTake}<p class="mt-2 text-sm">Saved as a take. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Open it in Record</a></p>{/if}
+          {#if savedTake}<p class="mt-2 flex flex-wrap items-center gap-2 text-sm">Saved as a take. <a class={btn} href="/music/record">Open it in Record</a></p>{/if}
         </div>
         {#if played.length}
           {@const t = choruses.reduce((a, c) => ({ chord: a.chord + c.report.chord, notes: a.notes + c.report.notes }), { chord: 0, notes: 0 })}
@@ -879,6 +874,49 @@
   {/snippet}
 </DrillShell>
 
+<!-- The graded run chorus by chorus: each aim as a labelled meter, the take to hear again. -->
+{#snippet choruses_()}
+  {#if graded}
+    <div class="flex flex-col gap-3" data-testid="jam-graded">
+      <p class="text-sm text-ws-soft">{game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
+      {#if savedTake}
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <span>Saved as a take.</span>
+          <a class={btn} href="/music/record">Open it in Record</a>
+        </div>
+      {/if}
+      <ol class="flex flex-col gap-3" aria-label="Choruses graded">
+        {#each graded.choruses as c (c.index)}
+          <li class="rounded-xl border border-ws-line p-3">
+            <div class="flex flex-wrap items-center gap-3">
+              <p class="min-w-0 flex-1"><span class="font-semibold">{chorusName(c.index, graded.choruses.length)}.</span> {pct(c.score)}{c.passed ? ", every aim met" : ""}</p>
+              {#if savedTake && c.notes}
+                <button type="button" class={btn} onclick={() => playChorus(choruses[c.index])}><Play class="size-4" aria-hidden="true" />Hear this chorus</button>
+              {/if}
+            </div>
+            <ul class="mt-2 flex flex-col gap-2 text-sm">
+              {#each c.parts as part (part.metric)}
+                <li class="flex flex-col gap-1">
+                  <span class="flex flex-wrap justify-between gap-x-3">
+                    <span class="font-medium">{part.label}: {part.detail}{part.value !== null && !isCount(part.metric) ? ` (${pct(part.value)})` : ""}</span>
+                    <span class="text-ws-soft">aim {isCount(part.metric) ? part.aim : pct(part.aim)}{part.credit >= 1 ? ", met" : ""}</span>
+                  </span>
+                  <span class="meter" aria-hidden="true"><span style:width="{Math.round(Math.min(1, Math.max(0, part.credit)) * 100)}%" class:met={part.credit >= 1}></span></span>
+                </li>
+              {/each}
+            </ul>
+            <p class="mt-2 text-sm text-ws-soft">
+              {c.notes} notes, range {rangeText(c.range)}. {c.phrases.count} phrase{c.phrases.count === 1 ? "" : "s"}, {c.phrases.meanBars} bars long on average; {c.measures.rests?.detail}.
+              {c.measures.time?.value != null ? `${pct(c.measures.time.value)} on the ${swings(prog) ? "swing (triplet)" : "sixteenth"} grid` : ""}{c.swing !== null ? `, swing ${c.swing}:1` : ""}.
+              {game.id !== "free" && c.measures.strong?.value != null ? ` Chord tones on 1 and 3: ${pct(c.measures.strong.value)}.` : ""}
+            </p>
+          </li>
+        {/each}
+      </ol>
+    </div>
+  {/if}
+{/snippet}
+
 <style>
   .lane {
     position: relative;
@@ -896,6 +934,17 @@
     width: 22%;
     background: linear-gradient(90deg, var(--ws-stage), transparent);
     opacity: 0.7;
+    pointer-events: none;
+  }
+  /* What is arriving fades in at the right edge, so a chord cut by the edge reads as on its way. */
+  .lane::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 1;
+    width: 10%;
+    background: linear-gradient(270deg, var(--ws-stage), transparent);
+    opacity: 0.8;
     pointer-events: none;
   }
   .track {
@@ -1016,6 +1065,22 @@
     animation: none;
     transition: none;
   }
+  .meter {
+    display: block;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--ws-raised);
+    overflow: hidden;
+  }
+  .meter > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--warn);
+  }
+  .meter > span.met {
+    background: var(--success);
+  }
   .legend {
     display: inline-block;
     width: 1rem;
@@ -1024,6 +1089,19 @@
   }
   .legend.ring {
     border: 2px dashed var(--tone-avoid);
+  }
+  .legend.set {
+    box-shadow: inset 0 0 0 3px var(--instr);
+  }
+  .trail-note[data-role="chord"]:not(:last-child) {
+    box-shadow: inset 0 0 0 2px var(--tone-chord);
+  }
+  .trail-note[data-role="scale"]:not(:last-child) {
+    box-shadow: inset 0 0 0 2px var(--tone-scale);
+  }
+  .trail-note[data-role="avoid"]:not(:last-child) {
+    outline: 2px dashed var(--tone-avoid);
+    outline-offset: -2px;
   }
   .role-pill {
     display: inline-flex;
