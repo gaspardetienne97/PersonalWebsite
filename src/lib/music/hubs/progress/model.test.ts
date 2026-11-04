@@ -3,6 +3,8 @@ import type { PracticeSession } from "@repo/music-core";
 import {
   exerciseTitle,
   fallingSentence,
+  foldShort,
+  runDelta,
   formatDuration,
   plainPathText,
   scoreHistory,
@@ -64,7 +66,9 @@ describe("Journal names", () => {
 
 describe("Durations", () => {
   it("reads seconds under a minute, minutes under an hour, then hours", () => {
-    expect(formatDuration(0)).toBe("0 sec");
+    expect(formatDuration(0)).toBe("a few seconds");
+    expect(formatDuration(4_400)).toBe("a few seconds");
+    expect(formatDuration(5_000)).toBe("5 sec");
     expect(formatDuration(42_400)).toBe("42 sec");
     expect(formatDuration(59_600)).toBe("1 min");
     expect(formatDuration(6 * 60_000 + 20_000)).toBe("6 min");
@@ -74,30 +78,90 @@ describe("Durations", () => {
 });
 
 describe("Path copy", () => {
-  it("says what the curriculum codes mean instead of printing them", () => {
-    expect(plainPathText("The cadence that keeps the key waits for N1.")).toBe(
-      "The cadence that keeps the key comes in a later update.",
+  it("says what the curriculum codes mean, and drops what is still to build", () => {
+    expect(plainPathText("Name the degree. The cadence that keeps the key waits for N1.")).toBe(
+      "Name the degree.",
     );
-    expect(plainPathText("Narrowing the set waits for N1 (chosen degrees).")).toBe(
-      "Narrowing the set comes in a later update.",
+    expect(plainPathText("Narrowing the set waits for N1 (chosen degrees). Then sing it.")).toBe(
+      "Then sing it.",
     );
-    expect(plainPathText("The cadence and key context wait for N1.")).toBe(
-      "The cadence and key context come in a later update.",
+    expect(plainPathText("Play it. The cadence and key context wait for N1.")).toBe("Play it.");
+    expect(plainPathText("Play it twice. The check against the score (N3) is still to come.")).toBe(
+      "Play it twice.",
     );
-    expect(plainPathText("The check against the score (N3) is still to come.")).toBe(
-      "The check against the score is still to come.",
-    );
-    expect(plainPathText("(the reharmonisation sandbox, N10, is still to come)")).toBe(
-      "(the reharmonisation sandbox is still to come)",
-    );
+    expect(
+      plainPathText(
+        "The Create piano roll (the reharmonisation sandbox, N10, is still to come): try it.",
+      ),
+    ).toBe("The Create piano roll: try it.");
     expect(plainPathText("a chord tone (a self-check until N10).")).toBe(
-      "a chord tone (a self-check for now).",
+      "a chord tone (a self-check).",
     );
+    for (const t of ["waits for N1.", "x waits for N7. y"])
+      expect(plainPathText(t)).not.toMatch(/later update|N\d/);
     expect(plainPathText("Circle T-1 and T-2")).toBe("Circle of fifths step 1 and step 2");
     expect(plainPathText("Hear the low band (Studio S-1, S-2)")).toBe(
       "Hear the low band (Studio ears step 1, step 2)",
     );
     expect(plainPathText("H1 The major scale")).toBe("The major scale");
     expect(plainPathText("Degrees 1 to 5")).toBe("Degrees 1 to 5");
+  });
+});
+
+describe("Short sessions", () => {
+  const session = (
+    id: string,
+    start: number,
+    ms: number,
+    events: number,
+    exerciseId = "ear.intervals",
+  ) =>
+    ({
+      id,
+      startTime: start,
+      endTime: start + ms,
+      source: "drill",
+      runs: [{ exerciseId, endedAt: start + ms }],
+      eventIds: Array.from({ length: events }, (_, i) => `${id}-${i}`),
+      tags: [],
+      xp: 0,
+    }) as unknown as PracticeSession;
+
+  it("folds a tap-length session into the same drill's session before it, newest first", () => {
+    const list = foldShort([
+      session("a", 0, 60_000, 10),
+      session("b", 70_000, 2_000, 1),
+      session("c", 80_000, 2_000, 1, "rhythm.pulse"),
+    ]);
+    expect(list.map((x) => [x.session.id, x.folded])).toEqual([
+      ["c", 0],
+      ["a", 1],
+    ]);
+  });
+
+  it("keeps a short session that has a note", () => {
+    const noted = { ...session("b", 70_000, 2_000, 1), note: "felt rushed" };
+    expect(foldShort([session("a", 0, 60_000, 10), noted])).toHaveLength(2);
+  });
+});
+
+describe("Run deltas", () => {
+  const run = (id: string, endedAt: number, score: number, setupKey = "k") => ({
+    id,
+    exerciseId: "ear.intervals",
+    setupKey,
+    endedAt,
+    score,
+  });
+  const sessions = (runs: ReturnType<typeof run>[]) => [{ runs } as unknown as PracticeSession];
+  it("names a new best, a rise, a drop and a first run", () => {
+    const a = run("a", 1, 0.7);
+    const b = run("b", 2, 0.9);
+    const c = run("c", 3, 0.8);
+    const all = sessions([a, b, c]);
+    expect(runDelta(a, all)).toBeUndefined();
+    expect(runDelta(b, all)).toEqual({ kind: "best", text: "Best yet, up from 70%" });
+    expect(runDelta(c, all)).toEqual({ kind: "down", text: "Down from 90%" });
+    expect(runDelta(run("d", 4, 0.85, "other"), all)).toBeUndefined();
   });
 });

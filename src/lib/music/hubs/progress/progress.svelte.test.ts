@@ -107,19 +107,25 @@ beforeEach(async () => {
 describe("Progress", () => {
   it("shows one row per touched skill with honest evidence", async () => {
     render(SkillsView, { now });
-    await expect.element(page.getByRole("rowheader", { name: "Minor 3rd" })).toBeVisible();
-    const m3 = document.querySelector('tr[data-skill="pitch.interval.m3"]')!;
+    // A table on a laptop, a card per skill on a phone: read whichever this viewport shows.
+    const shown = (id: string) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-skill="${id}"]`)].find(
+        (el) => el.offsetParent !== null,
+      ) ?? null;
+    await expect.poll(() => shown("pitch.interval.m3")).not.toBeNull();
+    const m3 = shown("pitch.interval.m3")!;
+    expect(m3.textContent).toContain("Minor 3rd");
     expect(m3.textContent).toContain("6 in Check");
     expect(m3.textContent).toContain("83%"); // accuracy, 5 of 6
     expect(m3.textContent).toContain("Estimate");
     // Practice-mode answers count as attempts but never move the estimate.
-    const landmarks = document.querySelector('tr[data-skill="reading.treble.landmarks"]')!;
+    const landmarks = shown("reading.treble.landmarks")!;
     expect(landmarks.textContent).toContain("0 in Check");
     expect(landmarks.textContent).toContain("No estimate yet");
     // Untouched skills stay hidden until asked for.
-    expect(document.querySelector('tr[data-skill="pitch.interval.P5"]')).toBeNull();
+    expect(shown("pitch.interval.P5")).toBeNull();
     await page.getByLabelText(/Show all \d+ skills/).click();
-    await expect.element(page.getByRole("rowheader", { name: "Perfect 5th" })).toBeVisible();
+    await expect.poll(() => shown("pitch.interval.P5")?.textContent).toContain("Perfect 5th");
   });
 
   it("splits What next into measured and not measured yet", async () => {
@@ -162,12 +168,12 @@ describe("Journal", () => {
     // One line per attempt behind each run's details, and the misses spelled out up front.
     expect(detail.querySelectorAll("details li")).toHaveLength(8);
     expect(detail.querySelectorAll('[aria-label="Missed"] li').length).toBeGreaterThan(0);
-    // Named for what was practised, and Delete only from the edit view.
+    // Named for what was practised, and Delete only behind More, with a confirm.
     expect(document.getElementById("s1-title")!.textContent).toBe(
       "Intervals and Reading flashcards",
     );
     expect(page.getByRole("button", { name: "Delete session" }).elements()).toHaveLength(0);
-    await page.getByRole("button", { name: "Edit note and tags" }).click();
+    await page.getByRole("button", { name: "More for this session" }).click();
     await page.getByRole("button", { name: "Delete session" }).click();
     await expect
       .poll(() => page.getByRole("group", { name: "Confirm delete" }).elements().length)

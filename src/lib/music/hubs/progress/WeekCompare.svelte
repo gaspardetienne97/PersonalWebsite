@@ -13,6 +13,18 @@
   ] as const;
 </script>
 
+{#if ROWS.every((r) => weeks.lastWeek[r.key] === 0)}
+  <!-- Nothing last week: this week's figures alone, no bars against an empty week. -->
+  <dl class="tnum mt-3 grid grid-cols-2 gap-3 text-sm">
+    {#each ROWS as row (row.key)}
+      <div class="rounded-xl bg-ws-raised/60 px-3 py-2">
+        <dt class="text-ws-soft">{row.label}</dt>
+        <dd class="font-display text-xl font-semibold">{weeks.thisWeek[row.key]}</dd>
+      </div>
+    {/each}
+  </dl>
+  <p class="mt-2 text-xs text-ws-soft">This week so far. Next week shows the change against this one.</p>
+{:else}
 <dl class="mt-3 flex flex-col gap-3 text-sm">
   {#each ROWS as row (row.key)}
     {@const now = weeks.thisWeek[row.key]}
@@ -37,3 +49,4 @@
   <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-instr"></span>This week</span>
   <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-ws-soft/35"></span>Last week</span>
 </p>
+{/if}

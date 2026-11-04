@@ -13,11 +13,14 @@
     current,
     longest,
     freezes,
+    pop,
   }: {
     week: { day: string; state: DotState }[];
     current: number;
     longest?: number;
     freezes: number;
+    /** A day just practised: its cell pops in with its check (Today, the first time the set is done). */
+    pop?: string;
   } = $props();
 
   let rules = $state(false);
@@ -70,7 +73,7 @@
     {#each week as d (d.day)}
       <li class="flex flex-col items-center gap-1" title="{weekday(d.day)}: {WORD[d.state]}">
         <span
-          class="grid size-8 place-items-center rounded-full {d.state === 'practised'
+          class="grid size-8 place-items-center rounded-full {pop === d.day && d.state === 'practised' ? 'ws-pop [animation-delay:600ms]' : ''} {d.state === 'practised'
             ? 'bg-instr text-ws-stage'
             : d.state === 'frozen'
               ? 'border-2 border-dashed border-info text-info'

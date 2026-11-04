@@ -13,12 +13,14 @@ export interface SearchItem {
   group?: string;
   /** Why an item matched when its title does not: the words around the query. */
   match?: string;
+  /** What the row is, for its icon: a page, a drill, a path, or the "show all" row. */
+  kind?: "page" | "drill" | "path" | "song" | "all";
 }
 
 const PAGES: SearchItem[] = [
   { label: "Start today's plan", href: "/music", hint: "Today", keywords: "routine daily" },
-  { label: "All drills", href: "/music?tab=drills", hint: "Today" },
-  { label: "Learning paths", href: "/music?tab=paths", hint: "Today", keywords: "curriculum" },
+  { label: "All drills", href: "/music?tab=drills", hint: "Drills" },
+  { label: "Learning paths", href: "/music?tab=paths", hint: "Paths", keywords: "curriculum" },
   { label: "Library", href: "/music/library", hint: "Songs and reference" },
   {
     label: "Import a score",
@@ -76,6 +78,7 @@ const DRILLS: SearchItem[] = CATALOG.map((e) => {
     hint: where ? `${where} drill` : "Drill",
     keywords: e.blurb,
     drill: true,
+    kind: "drill",
   };
 });
 const PATHS: SearchItem[] = Object.values(LEARNING_PATHS).map((p) => ({
@@ -83,6 +86,7 @@ const PATHS: SearchItem[] = Object.values(LEARNING_PATHS).map((p) => ({
   href: "/music?tab=paths",
   hint: "Path",
   keywords: p.subtitle,
+  kind: "path",
 }));
 
 let extra: SearchItem[] = [];
@@ -131,6 +135,14 @@ function excerpt(text: string, q: string): string {
 
 const path = (href: string) => href.split(/[?#]/)[0];
 
+/** A label split around the first place `q` appears, so the palette can set the match in bold. */
+export function splitMatch(label: string, q: string): [string, string, string] {
+  const at = q.trim() ? label.toLowerCase().indexOf(q.trim().toLowerCase()) : -1;
+  if (at < 0) return [label, "", ""];
+  const end = at + q.trim().length;
+  return [label.slice(0, at), label.slice(at, end), label.slice(end)];
+}
+
 /**
  * The palette's results: label matches before keyword-only ones, an exact label first, then
  * drills before pages, then a label that starts with the query before a word in it. A
@@ -170,7 +182,7 @@ export function searchItems(
     .filter((r) => r.s >= 0)
     .sort((a, b) => a.s - b.s);
   const strong = hits.filter((r) => r.s < 1000).length;
-  return hits
+  const shown = hits
     .filter((r) => r.s < 1000 || strong < 2)
     .slice(0, 20)
     .map(({ item, s }) =>
@@ -179,4 +191,17 @@ export function searchItems(
         ? { ...item, match: excerpt(item.keywords, q) }
         : item,
     );
+  // The Drills tab, filtered to the same words, as the last row whenever a drill matched.
+  const drills = shown.filter((i) => i.drill).length;
+  return drills
+    ? [
+        ...shown,
+        {
+          label: `Show ${drills === 1 ? "it" : `all ${drills}`} in Drills`,
+          href: `/music?tab=drills&q=${encodeURIComponent(query.trim())}`,
+          hint: "Drills",
+          kind: "all" as const,
+        },
+      ]
+    : shown;
 }

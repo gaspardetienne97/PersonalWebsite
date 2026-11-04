@@ -1,9 +1,11 @@
 <script lang="ts">
   // One journal entry as a card named for its drills, with the drill's icon and a score
-  // sparkline; on demand its runs and attempt evidence. Delete lives in the edit view,
-  // behind a confirm, so it is never one tap from the main actions.
+  // sparkline; on demand its runs and attempt evidence. Delete lives behind the card's
+  // "More" button and a confirm, so it is never one tap from the main actions.
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import Trash from "lucide-svelte/icons/trash-2";
+  import Ellipsis from "lucide-svelte/icons/ellipsis";
+  import ScoreBadge from "./ScoreBadge.svelte";
   import { tick } from "svelte";
   import type { PracticeSession, ScoringEvent } from "@repo/music-core";
   import { sessionMinutes } from "@repo/music-core/progress/journal";
@@ -32,6 +34,7 @@
   let open = $state(false);
   let editing = $state(false);
   let confirming = $state(false);
+  let more = $state(false);
   let note = $state("");
   let nextTime = $state("");
   let tags = $state("");
@@ -86,9 +89,11 @@
 
   async function keep() {
     confirming = false;
+    more = false;
     await tick();
-    deleteBtn?.focus();
+    moreBtn?.focus();
   }
+  let moreBtn = $state<HTMLButtonElement>();
 
   async function remove() {
     await practice.deleteSession(id);
@@ -103,7 +108,7 @@
     <ol class="mt-2 flex flex-wrap gap-1" aria-label="Attempts in order: {list.length - misses.length} right, {misses.length} missed">
       {#each list as e, i (e.id)}
         <li
-          class="grid size-6 place-items-center rounded-full text-xs font-bold {e.correct ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}"
+          class="grid size-8 place-items-center rounded-full text-sm font-bold {e.correct ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}"
           title="{i + 1}. {formatLabel(e.target) || e.promptId}: {e.correct ? 'right' : 'missed'}"
         >
           <span aria-hidden="true">{e.correct ? "✓" : "✗"}</span><span class="sr-only">{i + 1}: {e.correct ? "right" : "missed"}</span>
@@ -149,16 +154,16 @@
 {/snippet}
 
 <article class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="{id}-title" data-session={id} style:--card-hue={hueVar(hue)}>
-  <div class="flex items-start gap-3">
+  <div class="flex flex-wrap items-start gap-3">
     <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--card-hue)] text-ws-stage" aria-hidden="true">
       <Icon class="size-5" />
     </span>
-    <div class="min-w-0 flex-1">
+    <div class="min-w-[min(12rem,60%)] flex-1">
       <h3 id="{id}-title" class="font-semibold">{title}</h3>
       <p class="text-sm text-ws-soft">{when}. {SOURCE_LABEL[session.source]} on {instrument}</p>
     </div>
     {#if lead?.score !== undefined}
-      <div class="flex shrink-0 items-end gap-2">
+      <div class="flex shrink-0 items-end gap-2 max-sm:ml-14">
         {#if scores.length > 1}
           <div
             class="flex h-9 items-end gap-0.5"
@@ -173,7 +178,10 @@
             {/each}
           </div>
         {/if}
-        <p class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</p>
+        <div class="flex flex-col items-end gap-1">
+          <p class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</p>
+          <ScoreBadge run={lead} />
+        </div>
       </div>
     {/if}
   </div>
@@ -187,7 +195,7 @@
   </dl>
 
   {#if !editing}
-    {#if session.note}<p class="mt-2 max-w-prose whitespace-pre-line">{session.note}</p>{/if}
+    {#if session.note}<p class="mt-2 line-clamp-2 max-w-prose whitespace-pre-line" title={session.note}>{session.note}</p>{/if}
     {#if session.nextTime}<p class="mt-1 text-sm"><span class="font-medium">Next time:</span> {session.nextTime}</p>{/if}
     {#if session.tags.length}
       <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Tags">
@@ -202,7 +210,7 @@
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Next time</span>
-        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={nextTime} />
+        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={nextTime} placeholder="What to try next session" />
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Tags, separated by commas</span>
@@ -211,18 +219,6 @@
       <div class="flex flex-wrap items-center gap-2">
         <button type="submit" class={btnPrimary}>Save</button>
         <button type="button" class={btn} onclick={() => (editing = confirming = false)}>Cancel</button>
-      </div>
-      <!-- Deleting is its own row, away from Save, and asks first. -->
-      <div class="mt-2 flex flex-wrap items-center gap-2 border-t border-ws-line pt-3">
-        {#if confirming}
-          <span class="flex flex-wrap items-center gap-2 rounded-2xl bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label="Confirm delete">
-            Delete this session and its {plural(session.eventIds.length, "answer")} for good?
-            <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110" onclick={remove}>Delete session</button>
-            <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>Keep it</button>
-          </span>
-        {:else}
-          <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />Delete session</button>
-        {/if}
       </div>
     </form>
   {/if}
@@ -233,9 +229,35 @@
       {open ? "Hide answers" : "Show every answer"}
     </button>
     {#if !editing}
-      <button type="button" class={btn} onclick={startEdit}>Edit note<span class="max-sm:sr-only"> and tags</span></button>
+      <button type="button" class={btn} onclick={startEdit}>Edit note</button>
     {/if}
+    <!-- Deleting waits behind More, away from the everyday actions, and asks first. -->
+    <button
+      type="button"
+      class="{btn} ml-auto w-11 px-0"
+      bind:this={moreBtn}
+      aria-label="More for this session"
+      aria-expanded={more}
+      aria-controls="{id}-more"
+      onclick={() => {
+        more = !more;
+        confirming = false;
+      }}><Ellipsis class="size-4" aria-hidden="true" /></button
+    >
   </div>
+  {#if more}
+    <div id="{id}-more" class="mt-2 flex flex-wrap items-center justify-end gap-2">
+      {#if confirming}
+        <span class="flex flex-wrap items-center gap-2 rounded-2xl bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label="Confirm delete">
+          Delete this session and its {plural(session.eventIds.length, "answer")} for good?
+          <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110" onclick={remove}>Delete session</button>
+          <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>Keep it</button>
+        </span>
+      {:else}
+        <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />Delete session</button>
+      {/if}
+    </div>
+  {/if}
 
   {#if open}
     <div id="{id}-detail" class="mt-3 flex flex-col gap-4 border-l-2 border-instr pl-4">

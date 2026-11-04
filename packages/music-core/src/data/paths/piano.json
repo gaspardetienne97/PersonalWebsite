@@ -8,7 +8,7 @@
     {
       "id": "0",
       "title": "Check-in",
-      "goal": "Find what is already solid. Nothing is skipped: a passed check turns its steps into quick reviews, one cold Check run each on two days.",
+      "goal": "Find what is already solid. Nothing is skipped: a passed check turns its steps into quick reviews: pass each one in Check mode on two different days.",
       "adds": "Scales: check at G3 and G4. Pop: check a chord chart. Reading: check Level 3.",
       "pick": 0,
       "steps": [
@@ -192,7 +192,7 @@
         }
       ],
       "shelf": [],
-      "test": "Every level stays in the path. A step marked review needs one clean Check run, cold, on two different days; a review that fails turns back into a normal step."
+      "test": "Every level stays in the path. A step marked review needs one clean Check run, without warming up first, on two different days; a review that fails turns back into a normal step."
     },
     {
       "id": "1",

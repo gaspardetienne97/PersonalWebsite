@@ -22,6 +22,10 @@
     return Math.ceil(max / step) * step;
   });
 
+  // One day of data makes a near-empty chart: one figure instead until a second day is in.
+  const daysWithData = $derived(week.filter((d) => d.minutes > 0).length);
+  const todayMinutes = $derived(week.find((d) => d.today)?.minutes ?? 0);
+
   const LETTER = ["M", "T", "W", "T", "F", "S", "S"];
   const weekday = (d: string) =>
     new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
@@ -38,6 +42,13 @@
     <h2 class="font-display text-xl font-semibold">
       This week: <span class="tnum">{total}</span> min
     </h2>
+    {#if daysWithData < 2}
+      <p class="mt-2 flex items-baseline gap-2">
+        <span class="tnum font-display text-4xl font-semibold">{todayMinutes}</span>
+        <span class="text-ws-soft">min today</span>
+      </p>
+      <p class="text-sm text-ws-soft">The day by day chart starts once a second day has practice in it.</p>
+    {:else}
     <p class="text-sm text-ws-soft">Minutes practised each day, Monday to Sunday.</p>
     <div class="mt-3 flex max-w-sm gap-2">
       <!-- The scale: its top and zero, so a bar's height means something. -->
@@ -66,5 +77,6 @@
         {/each}
       </ol>
     </div>
+    {/if}
   </div>
 </section>

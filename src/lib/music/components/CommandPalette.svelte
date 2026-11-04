@@ -4,7 +4,15 @@
   import * as Dialog from "@repo/ui/dialog";
   import { goto } from "$app/navigation";
   import { palette } from "./palette.svelte";
-  import { drillsFor, recentDrills, searchIndex, searchItems, type SearchItem } from "../search";
+  import { drillsFor, recentDrills, searchIndex, searchItems, splitMatch, type SearchItem } from "../search";
+  import FileText from "lucide-svelte/icons/file-text";
+  import Route from "lucide-svelte/icons/route";
+  import Music from "lucide-svelte/icons/music";
+  import LayoutGrid from "lucide-svelte/icons/layout-grid";
+  import SearchX from "lucide-svelte/icons/search-x";
+  import { hueForRoute } from "../hues";
+  import { DRILL_ICON, HUE_ICON } from "../hubs/hue-icons";
+  import { CATALOG } from "@repo/music-core/content/catalog";
   import { practice } from "../practice.svelte";
   import { settings } from "../runtime";
 
@@ -27,6 +35,18 @@
     return [...(next ? [{ label: next.label, href: next.href, hint: "Next in today's set", group: "Up next" }] : []), ...recent];
   });
   const items = $derived(searchItems(query, searchIndex(), lead));
+
+  /** A type icon per row: a drill's own glyph in its hue, a path, a song, a page. */
+  function iconFor(item: SearchItem) {
+    const route = item.href.split("?")[0];
+    if (item.kind === "all") return { Icon: LayoutGrid };
+    if (item.kind === "path") return { Icon: Route };
+    if (item.kind === "song" || route.startsWith("/music/songs")) return { Icon: Music };
+    const entry = CATALOG.find((e) => e.route === route);
+    if (item.drill || entry || item.group === "Up next")
+      return { Icon: (entry && DRILL_ICON[entry.id]) || HUE_ICON[hueForRoute(route, settings.value.activeInstrument)] };
+    return { Icon: FileText };
+  }
 
   $effect(() => {
     void query;
@@ -77,6 +97,8 @@
     />
     <ul id="palette-results" role="listbox" aria-label="Results" class="max-h-[50vh] overflow-y-auto">
       {#each items as item, i (item.href + item.label)}
+        {@const ic = iconFor(item)}
+        {@const [pre, hit, post] = splitMatch(item.label, query)}
         {#if item.group && item.group !== items[i - 1]?.group}
           <li role="presentation" class="px-3 pb-1 pt-3 text-xs font-semibold text-muted-foreground first:pt-1">{item.group}</li>
         {/if}
@@ -84,19 +106,26 @@
           id="palette-{i}"
           role="option"
           aria-selected={i === active}
-          class="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-1.5 text-sm {i === active ? 'bg-accent' : ''}"
+          class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-1.5 text-sm {i === active ? 'bg-accent' : ''}"
           onpointerenter={() => (active = i)}
           onclick={() => go(item.href)}
           onkeydown={() => {}}
         >
-          <span class="min-w-0">
-            <span class="block font-medium">{item.label}</span>
+          <!-- The dialog sits outside the Woodshed frame, so the row icons use the site's own tokens. -->
+          <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground" aria-hidden="true"><ic.Icon class="size-4" /></span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-medium {item.kind === 'all' ? 'text-instr-ink' : ''}">{pre}{#if hit}<strong class="font-bold underline decoration-2 underline-offset-2">{hit}</strong>{/if}{post}</span>
             {#if item.match}<span class="block truncate text-xs text-muted-foreground">Matches "{item.match}"</span>{/if}
           </span>
           {#if item.hint}<span class="shrink-0 truncate text-muted-foreground">{item.hint}</span>{/if}
         </li>
       {:else}
-        <li class="px-3 py-4 text-sm text-muted-foreground">Nothing matches "{query}".</li>
+        <li class="flex flex-col items-center gap-2 px-3 py-6 text-center text-sm" role="presentation">
+          <SearchX class="size-6 text-muted-foreground" aria-hidden="true" />
+          <span class="font-medium">Nothing matches "{query}"</span>
+          <span class="text-muted-foreground">Try a drill name such as Intervals or Scales, or a page such as Tuner.</span>
+          <button type="button" class="mt-1 inline-flex min-h-11 items-center rounded-full border border-input px-4 font-medium hover:bg-accent" onclick={() => go("/music?tab=drills")}>Browse every drill</button>
+        </li>
       {/each}
     </ul>
   </Dialog.Content>

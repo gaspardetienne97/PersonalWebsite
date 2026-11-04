@@ -1,6 +1,8 @@
 <script lang="ts">
   // Skills: what is solid and what is stale, one row per skill, grouped by capability.
   import Lock from "lucide-svelte/icons/lock";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
   import type { Capability, Instrument } from "@repo/music-core";
   import { INSTRUMENTS } from "@repo/music-core";
   import { SKILL_GRAPH, capabilitySummary } from "@repo/music-core/progress/graph";
@@ -53,16 +55,22 @@
     </label>
   </div>
 
-  <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm text-ws-soft" aria-label="How to read the bars">
-    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Estimate today</span>
-    <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
-    <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Review due, dropped ten points</span>
-    <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode</span>
-  </div>
-  <p class="-mt-3 max-w-prose text-sm text-ws-soft">
-    Only answers in Check mode move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
-    every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
-  </p>
+  <!-- The method and the key wait behind one disclosure, so the first skill is in view. -->
+  <details class="group -mt-3 text-sm">
+    <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+      <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+    </summary>
+    <p class="max-w-prose text-ws-soft">
+      Only answers in Check mode move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
+      every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
+    </p>
+    <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-ws-soft" aria-label="How to read the bars">
+      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Estimate today</span>
+      <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
+      <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review: down ten points</span>
+      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode</span>
+    </div>
+  </details>
 
   {#if touchedCount === 0 && !showAll}
     <div class="rounded-2xl border border-dashed border-ws-line p-6">
@@ -82,8 +90,32 @@
           </p>
         </div>
         {#if g.rows.length}
+          <!-- On a phone, one card per skill: name, bar, percent and a review glyph. -->
+          <ul class="divide-y divide-ws-line sm:hidden">
+            {#each g.rows as r (r.skill.id)}
+              <li class="flex items-center gap-3 py-2" data-skill={r.skill.id}>
+                <div class="min-w-0 flex-1">
+                  <p class="flex items-center gap-1.5 font-medium">
+                    {r.skill.name}
+                    {#if !r.unlocked}<Lock class="size-3.5 shrink-0 text-ws-soft" aria-label="Locked" />{:else if r.due}<RotateCcw class="size-3.5 shrink-0 text-warn" aria-hidden="true" /><span class="sr-only">Needs review</span>{/if}
+                  </p>
+                  <div class="mt-1 flex items-center gap-2">
+                    {@render bar(r)}
+                    <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
+                  </div>
+                  <p class="tnum text-xs text-ws-soft">
+                    {r.checked} in Check{#if r.accuracy !== undefined}, {pct(r.accuracy)} right{/if}{#if r.lastPracticed}, {relativeDay(r.lastPracticed, now)}{/if}
+                  </p>
+                  <span class="sr-only">{describe(r)}</span>
+                </div>
+                <a href={r.href} class="inline-flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-3 text-sm font-medium hover:bg-ws-raised"
+                  >Practise<span class="sr-only">&nbsp;{r.skill.name}</span></a
+                >
+              </li>
+            {/each}
+          </ul>
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div class="relative overflow-x-auto" role="region" aria-label="{capLabel(g.capability)} skills" tabindex="0">
+          <div class="relative overflow-x-auto max-sm:hidden" role="region" aria-label="{capLabel(g.capability)} skills" tabindex="0">
             <table class="w-full min-w-[48rem] table-fixed text-left text-sm">
               <colgroup>
                 <col class="w-[24%]" />
@@ -132,7 +164,7 @@
                       {#if !r.unlocked}
                         <span class="inline-flex items-center gap-1 text-ws-soft"><Lock class="size-3.5" aria-hidden="true" />Locked</span>
                       {:else if r.due}
-                        <span class="font-medium text-ws-ink">Review due</span>
+                        <span class="font-medium text-ws-ink">Needs review</span>
                       {:else}
                         <span class="text-ws-soft">Unlocked</span>
                       {/if}

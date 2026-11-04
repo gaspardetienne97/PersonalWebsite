@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "@repo/music-core/content/catalog";
-import { DRILL_GROUPS, rowMastery, withInstrument } from "./drills-layout";
+import { DRILL_GROUPS, lastRun, rowMastery, withInstrument } from "./drills-layout";
 
 describe("drills layout", () => {
   const rows = DRILL_GROUPS.flatMap((g) => g.rows);
@@ -72,5 +72,25 @@ describe("drills layout", () => {
     expect(rowMastery(r, { a: m("a", 0.9, 4) }, now)).toEqual({ checked: 4 });
     // Untouched skills count as zero, so half the drill at 0.8 reads 0.4.
     expect(rowMastery(r, { a: m("a", 0.8, 5) }, now).value).toBeCloseTo(0.4);
+  });
+
+  it("finds a row's latest scored run, and a split row only its own modes'", () => {
+    const scales = rows.find((r) => r.key === "scales")!;
+    const run = (exerciseId: string, endedAt: number, score?: number) => ({
+      exerciseId,
+      endedAt,
+      score,
+    });
+    const runs = [
+      run(scales.entry.exerciseId, 1, 0.5),
+      run(scales.entry.exerciseId, 3, 0.8),
+      run(scales.entry.exerciseId, 4),
+    ];
+    expect(lastRun(scales, runs)?.score).toBe(0.8);
+    const grooves = rows.find((r) => r.key === "pads:grooves")!;
+    const beats = rows.find((r) => r.key === "pads:beats")!;
+    const grooveId = grooves.entry.modes.find((m) => m.id === "groove")!.exerciseId;
+    expect(lastRun(grooves, [run(grooveId, 2, 0.9)])?.score).toBe(0.9);
+    expect(lastRun(beats, [run(grooveId, 2, 0.9)])).toBeUndefined();
   });
 });

@@ -8,6 +8,8 @@
   import Flag from "lucide-svelte/icons/flag";
   import Play from "lucide-svelte/icons/play";
   import Target from "lucide-svelte/icons/target";
+  import Info from "lucide-svelte/icons/info";
+  import Circle from "lucide-svelte/icons/circle";
   import type { Snippet } from "svelte";
   import {
     LEARNING_PATHS,
@@ -23,6 +25,8 @@
   import type { Hue } from "../bench.svelte";
   import { addShelfSong, type Song } from "./library/songs";
   import { plainPathText } from "./progress/model";
+  import Ring from "./progress/Ring.svelte";
+  import DrillPreview from "./DrillPreview.svelte";
 
   const ORDER: { id: PathId; hue: Hue }[] = [
     { id: "guitar", hue: "guitar" },
@@ -84,7 +88,7 @@
     review: "Review",
     next: "Up next",
     "in-progress": "In progress",
-    "not-assessed": "Not started",
+    "not-assessed": "Open, not played yet",
     locked: "Locked",
     todo: "Read and play",
   };
@@ -120,14 +124,17 @@
   );
   const toggle = (id: string) => (opened = { ...opened, [mapKey]: openId === id ? "" : id });
   /** The road winds: each node sits left, centre or right of its lane (percent of the lane). */
-  const x = (i: number) => [50, 70, 50, 30][i % 4];
+  const x = (i: number) => [50, 66, 50, 34][i % 4];
   const seg = (i: number) => `M ${x(i)} 0 C ${x(i)} 50, ${x(i + 1)} 50, ${x(i + 1)} 100`;
+  let pathInfo = $state(false);
+  /** The path's one line: its subtitle up to the first semicolon; the rest waits behind the info button. */
+  const oneLine = (t: string) => plainPathText(t).split(/;\s*/)[0].replace(/[.,]?$/, ".");
   const stepLabel = (sp: StepProgress) => (sp.step.level ? sp.step.id.split(".").slice(1).join(".") : String(sp.step.order));
 </script>
 
 {#snippet road(i: number, lit: boolean)}
   <!-- From this node's centre to the next one's: the li's height, shifted down half a node. -->
-  <svg class="road pointer-events-none absolute left-0 top-6 h-full w-20 sm:w-28" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+  <svg class="road pointer-events-none absolute left-0 top-4 h-full w-12 sm:top-6 sm:w-28" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
     <path d={seg(i)} class="stroke-ws-line" stroke-width="12" />
     {#if lit}<path d={seg(i)} stroke="var(--p)" stroke-width="12" />{/if}
     <path d={seg(i)} class="stroke-ws-surface" stroke-width="1.5" stroke-dasharray="4 7" />
@@ -135,9 +142,9 @@
 {/snippet}
 
 {#snippet node(i: number, look: "passed" | "next" | "review" | "open" | "locked", content: Snippet)}
-  <span class="relative h-12" aria-hidden="true">
+  <span class="relative h-8 sm:h-12" aria-hidden="true">
     <span
-      class="node absolute top-0 grid size-12 -translate-x-1/2 place-items-center rounded-full font-display text-sm font-semibold tnum {look === 'passed'
+      class="node absolute top-0 grid size-8 -translate-x-1/2 place-items-center rounded-full font-display text-xs font-semibold tnum sm:size-12 sm:text-sm {look === 'passed'
         ? 'bg-[color:var(--p)] text-ws-stage'
         : look === 'next'
           ? 'pulse bg-ws-surface text-instr-ink ring-4 ring-[color:var(--p)]'
@@ -151,16 +158,22 @@
   </span>
 {/snippet}
 
-{#snippet head(id: string, title: string, sub: string, strong: boolean, sr = "")}
+{#snippet head(id: string, title: string, sub: string, strong: boolean, sr = "", look = "", href = "")}
   <button
     type="button"
-    class="flex min-h-12 w-full flex-col items-start justify-center text-left after:absolute after:inset-x-0 after:top-0 after:h-12"
+    class="flex min-h-12 w-full items-center gap-3 text-left after:absolute after:inset-x-0 after:top-0 after:h-12"
     aria-expanded={openId === id}
     aria-controls={openId === id ? `stop-${id}` : undefined}
     onclick={() => toggle(id)}
   >
-    <span class="font-semibold">{#if sr}<span class="sr-only">{sr}</span>{/if}{title}</span>
-    <span class="text-sm {strong ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">{sub}</span>
+    <span class="flex min-w-0 flex-1 flex-col items-start">
+      <span class="font-semibold">{#if sr}<span class="sr-only">{sr}</span>{/if}{title}</span>
+      <!-- The state as an icon and a word, never colour alone. -->
+      <span class="flex items-center gap-1 text-sm {strong ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">
+        {#if look === "passed" || look === "review"}<Check class="size-3.5 text-success" aria-hidden="true" />{:else if look === "locked"}<Lock class="size-3.5" aria-hidden="true" />{:else if look === "next"}<Play class="size-3.5" aria-hidden="true" />{:else if look === "open"}<Circle class="size-3.5" aria-hidden="true" />{/if}{sub}
+      </span>
+    </span>
+    {#if href && look !== "locked" && openId !== id}<DrillPreview {href} class="max-sm:hidden opacity-90" />{/if}
   </button>
 {/snippet}
 
@@ -170,12 +183,13 @@
     {#each steps as sp, i (sp.step.id)}
       {@const st = sp.status}
       {@const coming = sp.step.kind === "new"}
-      <li class="relative grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+      {@const look = passed(st) ? (st === "review" ? "review" : "passed") : st === "next" ? "next" : st === "locked" ? "locked" : "open"}
+      <li class="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-3">
         {#if i < count - 1}{@render road(i, passed(st))}{/if}
         {#snippet face()}
           {#if passed(st)}<Check class="size-5" />{:else if st === "locked"}<Lock class="size-4" />{:else}{stepLabel(sp)}{/if}
         {/snippet}
-        {@render node(i, passed(st) ? (st === "review" ? "review" : "passed") : st === "next" ? "next" : st === "locked" ? "locked" : "open", face)}
+        {@render node(i, look, face)}
         <div class="min-w-0">
           {@render head(
             sp.step.id,
@@ -183,9 +197,15 @@
             coming ? "Coming" : sp.almost ? "Almost there" : statusText[st],
             st === "next",
             `Step ${stepLabel(sp)}: `,
+            look,
+            coming ? "" : (sp.step.href ?? ""),
           )}
           {#if openId === sp.step.id}
             <div id="stop-{sp.step.id}" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 shadow-sm">
+              {#if sp.step.href && !coming && sp.step.kind !== "reference"}
+                <!-- What the step plays, drawn, before what it asks. -->
+                <DrillPreview href={sp.step.href} size="md" class="mb-3 max-w-xs" />
+              {/if}
               {#if sp.step.strand && strands(sp.step.strand).length}
                 <p class="text-xs font-medium text-ws-soft">{strands(sp.step.strand).join(", ")}</p>
               {/if}
@@ -223,7 +243,7 @@
                     <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? "Open" : st === "done" ? "Practise again" : "Practise"}<span class="sr-only">&nbsp;{sp.step.title}</span>
                   </a>
                   {#each sp.step.links as l (l.href)}
-                    <a href={l.href} class="flex min-h-11 items-center rounded-full px-3 text-sm text-instr-ink underline-offset-4 hover:underline">{l.label}</a>
+                    <a href={l.href} class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:border-[color:var(--p)] hover:bg-ws-raised">{l.label}</a>
                   {/each}
                 </div>
               {/if}
@@ -234,7 +254,7 @@
     {/each}
     {#if lv}
       {@const enough = lv.played >= Math.min(lv.level.pick, lv.songs.length)}
-      <li class="relative grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+      <li class="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-3">
         {@render road(steps.length, enough)}
         {#snippet songFace()}<Music class="size-5" />{/snippet}
         {@render node(steps.length, enough ? "passed" : "open", songFace)}
@@ -302,7 +322,7 @@
           {/if}
         </div>
       </li>
-      <li class="relative grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+      <li class="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2 pb-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-3">
         {#snippet testFace()}<Flag class="size-5" />{/snippet}
         {@render node(steps.length + 1, lv.passed ? "passed" : "open", testFace)}
         <div class="min-w-0">
@@ -367,31 +387,44 @@
         >
       {/if}
     </div>
-    <p class="mt-2 text-ws-soft">
-      {plainPathText(current.path.subtitle)}
-      <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps.</span>
-      {#if current.path.benchmark}Ends around {current.path.benchmark}.{/if}
+    <p class="mt-2 flex items-start gap-1 text-ws-soft">
+      <span class="min-w-0 flex-1">
+        {oneLine(current.path.subtitle)}
+        <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps.</span>
+      </span>
+      <button
+        type="button"
+        class="-my-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised hover:text-ws-ink"
+        aria-label="About this path"
+        aria-expanded={pathInfo}
+        aria-controls="path-info"
+        onclick={() => (pathInfo = !pathInfo)}><Info class="size-5" aria-hidden="true" /></button
+      >
     </p>
+    {#if pathInfo}
+      <p id="path-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">
+        {plainPathText(current.path.subtitle)}
+        {#if current.path.benchmark}By the end it sits around {current.path.benchmark}.{/if}
+      </p>
+    {/if}
 
     {#if current.levels?.length && level}
       <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
            The current and the next level carry their names. -->
-      {@const curIdx = current.levels.findIndex((l) => l.level.id === current.currentLevel)}
       <div class="mt-4 flex items-start overflow-x-auto px-1 pb-2 pt-1" role="group" aria-label="Levels">
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
-          {@const named = curIdx >= 0 && (k === curIdx || k === curIdx + 1)}
           {#if k}<span class="mt-5 h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
           <button
             type="button"
-            class="flex shrink-0 flex-col items-center gap-1 rounded-xl px-0.5 {named ? 'w-24' : ''}"
+            class="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
             aria-pressed={l.level.id === level.level.id}
             aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
           >
             <span
-              class="tnum grid size-11 place-items-center rounded-full text-sm font-semibold {l.level.id === level.level.id
+              class="tnum grid place-items-center rounded-full font-semibold {isCurrent ? 'size-12 text-base' : 'size-10 text-sm'} {l.level.id === level.level.id
                 ? 'ring-2 ring-ws-ink ring-offset-2 ring-offset-ws-bg'
                 : ''} {l.passed
                 ? 'bg-[color:var(--p)] text-ws-stage'
@@ -406,9 +439,7 @@
                     />{/if}</span
                 >{/if}
             </span>
-            {#if named}
-              <span class="line-clamp-2 text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{isCurrent ? "Now: " : "Next: "}{l.level.title}</span>
-            {/if}
+            <span class="line-clamp-2 text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{l.level.title}</span>
           </button>
         {/each}
       </div>
@@ -417,10 +448,24 @@
         <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
         <p class="mt-1">{plainPathText(level.level.goal)}</p>
         {#if level.level.adds}<p class="mt-1 text-sm text-ws-soft">New here: {plainPathText(level.level.adds)}</p>{/if}
-        <p class="tnum mt-2 text-sm text-ws-soft">
-          {level.done} of {level.total} steps passed{#if level.level.pick && level.songs.length}, {level.played} of {level.level.pick} songs played{/if}.
-          {#if level.passed}Level passed.{/if}
-        </p>
+        <!-- The level's progress as rings that fill to the real counts. -->
+        <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div class="flex items-center gap-2">
+            <Ring value={level.total ? level.done / level.total : 0} stroke="var(--p)" class="size-14 ws-fill">
+              <span class="tnum text-sm font-semibold">{level.done}/{level.total}</span>
+            </Ring>
+            <span class="text-sm"><span class="font-semibold">Steps passed</span><span class="block text-ws-soft">{level.done} of {level.total}</span></span>
+          </div>
+          {#if level.level.pick && level.songs.length}
+            <div class="flex items-center gap-2">
+              <Ring value={Math.min(1, level.played / level.level.pick)} stroke="var(--p)" class="size-14">
+                <span class="tnum text-sm font-semibold">{level.played}/{level.level.pick}</span>
+              </Ring>
+              <span class="text-sm"><span class="font-semibold">Songs played</span><span class="block text-ws-soft">{level.played} of {level.level.pick}</span></span>
+            </div>
+          {/if}
+          {#if level.passed}<span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Check class="size-4" aria-hidden="true" />Level passed</span>{/if}
+        </div>
       </div>
 
       {@render map(levelSteps, level)}

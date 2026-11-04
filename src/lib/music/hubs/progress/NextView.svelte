@@ -6,7 +6,8 @@
   import { hueForRoute, hueVar } from "../../hues";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
-  import { blockReason, todayPlan } from "../../today.svelte";
+  import { blockReason, nextDrill, todayPlan } from "../../today.svelte";
+  import DrillPreview from "../DrillPreview.svelte";
   import { practiceName } from "@repo/music-core/progress/coach";
   import { CAPABILITY_LABEL, fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
   import Ring from "./Ring.svelte";
@@ -63,6 +64,36 @@
   });
   const TONE: Record<Trend, string> = { falling: "var(--warn)", holding: "var(--success)", new: "var(--ws-soft)" };
 
+  // After the set: one named drill, the same one Today offers.
+  const after = $derived(upNext ? undefined : nextDrill(plan));
+  const target = $derived(upNext?.href ?? after?.href);
+
+  // Pitch skills drawn on one octave of keys from C: each interval's top note, each degree's key,
+  // filled by today's estimate once measured, dashed while it is not.
+  const SEMI: Record<string, number> = { m2: 1, M2: 2, m3: 3, M3: 4, P4: 5, TT: 6, P5: 7, m6: 8, M6: 9, m7: 10, M7: 11, P8: 12, "1": 0, b2: 1, "2": 2, b3: 3, "3": 4, "4": 5, "#4": 6, "5": 7, b6: 8, "6": 9, b7: 10, "7": 11 };
+  const pitchMaps = $derived(
+    [
+      { title: "Intervals, up from C", prefix: "pitch.interval." },
+      { title: "Scale degrees in C", prefix: "pitch.scale-degree." },
+    ]
+      .map((m) => ({
+        ...m,
+        marks: rows
+          .filter((r) => r.skill.id.startsWith(m.prefix) && r.touched)
+          .map((r) => {
+            const token = r.skill.id.slice(m.prefix.length);
+            return { semi: SEMI[token], token, value: r.checked >= MIN_EVIDENCE ? r.estimate : undefined };
+          })
+          .filter((x) => x.semi !== undefined),
+      }))
+      .filter((m) => m.marks.length),
+  );
+  const WHITE = [0, 2, 4, 5, 7, 9, 11, 12];
+  const keyX = (semi: number) => {
+    const w = WHITE.indexOf(semi);
+    return w >= 0 ? w * 25 + 12.5 : (WHITE.indexOf(semi - 1) + 1) * 25;
+  };
+
   const drop = (r: SkillRow) => Math.round(((r.lastMeasured ?? 0) - (r.estimate ?? 0)) * 100);
 </script>
 
@@ -77,11 +108,14 @@
         {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
-        {#if upNext}{blockReason(upNext)}{:else}{plan.advice.summary}{/if}
+        {#if upNext}{blockReason(upNext)}{:else if after}Next: {after.label.replace(/^Try /, "")}. {after.why}{:else}{plan.advice.summary}{/if}
       </p>
+      {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
       <div class="mt-4 flex flex-wrap items-center gap-2">
         {#if upNext}
           <a class="{btnPrimary} min-h-12 px-6 text-base" href={upNext.href}><Play class="size-4" aria-hidden="true" />Start {upNext.label}</a>
+        {:else if after}
+          <a class="{btnPrimary} min-h-12 px-6 text-base" href={after.href}><Play class="size-4" aria-hidden="true" />{after.label}</a>
         {:else}
           <a class="{btnPrimary} min-h-12 px-6 text-base" href={plan.advice.action.href}>{plan.advice.action.label}</a>
         {/if}
@@ -151,7 +185,9 @@
             >
             <div class="min-w-0 flex-1">
               <p class="flex flex-wrap items-center gap-x-2 font-semibold">
-                <span><span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span><span class="font-normal text-ws-soft">{`${roleLabel(step)}: `}</span>{step.label}</span>
+                <a href={step.href} class="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                  ><span class="sr-only">Step {step.n}{done ? ", done" : ""}: </span><span class="mr-1 font-normal text-ws-soft">{`${roleLabel(step)}: `}</span>{step.label}</a
+                >
                 {#if done}<span class="text-xs font-medium text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 text-xs text-instr-ink">Now</span>{/if}
               </p>
               <p class="line-clamp-1 text-sm text-ws-soft">
@@ -159,12 +195,7 @@
                 {blockReason(step)}
               </p>
             </div>
-            <a
-              href={step.href}
-              class="flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised"
-            >
-              {done ? "Again" : "Start"}<span class="sr-only">&nbsp;{step.label}</span>
-            </a>
+            <DrillPreview href={step.href} {instrument} class="max-sm:hidden" />
           </li>
         {/each}
       </ol>
@@ -174,18 +205,40 @@
   <section aria-labelledby="picks-title" class="min-w-0 max-lg:order-2">
     <h2 id="picks-title" class="font-display text-xl font-semibold">Where your skills stand</h2>
     {#if anything}
-      <p class="text-sm text-ws-soft">
-        From answers in Check mode on {INSTRUMENT_LABEL[instrument]}, by area. The ring is today's estimate.
-      </p>
+      <p class="text-sm text-ws-soft">On {INSTRUMENT_LABEL[instrument]}, by area. Rings fill to today's estimate.</p>
+      <details class="group mt-1 text-sm">
+        <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+          <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+        </summary>
+        <p class="max-w-prose text-ws-soft">Only answers in Check mode move an estimate. A skill gets one after {MIN_EVIDENCE} of them, and it fades a little on days you do not practise.</p>
       <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ws-soft" aria-label="Key">
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-warn" aria-hidden="true"></span>Falling: down ten points or more since last measured</li>
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>Holding</li>
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border border-dashed border-ws-soft" aria-hidden="true"></span>Not measured yet: under {MIN_EVIDENCE} answers in Check mode</li>
       </ul>
+      </details>
       <div class="mt-4 flex flex-col gap-5">
         {#each map as [area, tiles] (area)}
           <div class="min-w-0">
             <h3 class="text-sm font-semibold text-ws-soft">{CAPABILITY_LABEL[area]}</h3>
+            {#if area === "pitch" && pitchMaps.length}
+              <div class="mt-2 flex flex-wrap gap-x-6 gap-y-3">
+                {#each pitchMaps as pm (pm.prefix)}
+                  <figure class="min-w-0">
+                    <svg viewBox="0 0 200 78" class="h-20 w-auto" role="img" aria-label="{pm.title}: {pm.marks.map((m) => `${m.token} ${m.value === undefined ? 'not measured yet' : pct(m.value)}`).join(', ')}">
+                      {#each WHITE as w, i (w)}<rect x={i * 25 + 0.5} y="2" width="24" height="74" rx="2" class="pk-white" />{/each}
+                      {#each [1, 3, 6, 8, 10] as b (b)}<rect x={keyX(b) - 7.5} y="2" width="15" height="44" rx="1.5" class="pk-black" />{/each}
+                      {#each pm.marks as m (m.token)}
+                        {@const black = !WHITE.includes(m.semi)}
+                        <circle cx={keyX(m.semi)} cy={black ? 34 : 62} r="9.5" class={m.value === undefined ? "pk-new" : "pk-hit"} style:fill-opacity={m.value === undefined ? undefined : 0.25 + 0.75 * m.value} />
+                        <text x={keyX(m.semi)} y={(black ? 34 : 62) + 3} text-anchor="middle" class="pk-label">{m.token}</text>
+                      {/each}
+                    </svg>
+                    <figcaption class="mt-1 text-xs text-ws-soft">{pm.title}: the fuller the dot, the higher the estimate; dashed is not measured yet.</figcaption>
+                  </figure>
+                {/each}
+              </div>
+            {/if}
             <ul class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {#each tiles as { r, trend, name } (r.skill.id)}
                 <li class="min-w-0">
@@ -224,3 +277,27 @@
     {/if}
   </section>
 </div>
+
+<style>
+  .pk-white {
+    fill: var(--ws-stage-ink);
+    stroke: color-mix(in oklch, var(--ws-stage) 35%, transparent);
+    stroke-width: 0.8;
+  }
+  .pk-black {
+    fill: var(--ws-stage);
+  }
+  .pk-hit {
+    fill: var(--instr);
+  }
+  .pk-new {
+    fill: var(--ws-stage-ink);
+    stroke: var(--ws-soft);
+    stroke-width: 1.2;
+    stroke-dasharray: 2 2;
+  }
+  .pk-label {
+    font: 700 7.5px var(--font-sans, sans-serif);
+    fill: var(--ws-stage);
+  }
+</style>

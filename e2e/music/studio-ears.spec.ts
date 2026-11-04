@@ -95,7 +95,7 @@ test.describe("studio ears", () => {
     page,
   }) => {
     await page.goto("/music?tab=drills");
-    await page.getByRole("button", { name: "Everything" }).click();
+    await page.getByRole("button", { name: "All instruments" }).click();
     const jump = page.getByRole("navigation", { name: "Jump to" });
     await expect(jump.getByRole("link")).toHaveText([
       /^Ear training \(16\)$/,
@@ -120,7 +120,7 @@ test.describe("studio ears", () => {
     ).toHaveAttribute("aria-pressed", "true");
     // Pads and the Aerophone are split by what their modes practise; a split row opens its first mode.
     await page.goto("/music?tab=drills");
-    await page.getByRole("button", { name: "Everything" }).click();
+    await page.getByRole("button", { name: "All instruments" }).click();
     await expect(page.getByRole("link", { name: "Pad grooves", exact: true })).toHaveAttribute(
       "href",
       "/music/pads?mode=groove",
@@ -129,13 +129,13 @@ test.describe("studio ears", () => {
     await expect(page).toHaveURL(/\/music\/aerophone\?mode=vibrato$/);
     // Ear drills chip their answer styles; Scales chips what it plays.
     await page.goto("/music?tab=drills");
-    await page.getByRole("button", { name: "Everything" }).click();
+    await page.getByRole("button", { name: "All instruments" }).click();
     await page.locator('a[href="/music/ear/intervals?answer=play-back"]').click();
     await expect(
       page.getByText("Play on the keys below or your MIDI keyboard.", { exact: false }),
     ).toBeVisible();
     await page.goto("/music?tab=drills");
-    await page.getByRole("button", { name: "Everything" }).click();
+    await page.getByRole("button", { name: "All instruments" }).click();
     await page.getByRole("link", { name: "Scales: Arpeggio" }).click();
     await expect(page).toHaveURL(/\/music\/scales\?pattern=arpeggio$/);
     await expect(page.locator("p", { hasText: "Setup:" })).toContainText(/arpeggio/i);

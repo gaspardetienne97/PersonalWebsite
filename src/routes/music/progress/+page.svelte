@@ -9,6 +9,7 @@
   import NextView from "$lib/music/hubs/progress/NextView.svelte";
   import SkillsView from "$lib/music/hubs/progress/SkillsView.svelte";
   import SessionsView from "$lib/music/hubs/progress/SessionsView.svelte";
+  import DrillPreview from "$lib/music/hubs/DrillPreview.svelte";
 
   const TABS = [
     { id: "next", label: "What next" },
@@ -41,7 +42,8 @@
   </header>
   <p role="status" class="sr-only">Showing {title}.</p>
   {#if empty && view !== "skills"}
-    <section aria-labelledby="empty-title" class="flex flex-col items-start gap-3 rounded-3xl border border-ws-line bg-ws-surface p-5 sm:p-8">
+    <section aria-labelledby="empty-title" class="grid items-center gap-5 rounded-3xl border border-ws-line bg-ws-surface p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div class="flex flex-col items-start gap-3">
       <h2 id="empty-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Nothing practised yet</h2>
       <p class="max-w-prose text-ws-soft">
         Play one short block and this page fills in: your streak, the minutes you played, and which skill to work on next.
@@ -49,6 +51,8 @@
       {#if first}
         <a class="{btnPrimary} min-h-12 px-6 text-base" href={first.href}><Play class="size-4" aria-hidden="true" />Start with {first.label}</a>
       {/if}
+      </div>
+      {#if first}<DrillPreview href={first.href} size="md" />{/if}
     </section>
   {:else if view === "skills"}
     <SkillsView />

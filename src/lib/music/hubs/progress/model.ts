@@ -18,7 +18,7 @@ import {
   skillName,
 } from "@repo/music-core/progress/graph";
 import { decayMastery, isDueForReview } from "@repo/music-core/progress/mastery";
-import { skillSummaries, type SkillStats } from "@repo/music-core/progress/analytics";
+import { onInstrument, skillSummaries, type SkillStats } from "@repo/music-core/progress/analytics";
 import { STEPS, stepForSkill } from "@repo/music-core/progress/routine";
 import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
 import { addDays, dayKey, weekStart } from "@repo/music-core/progress/rewards";
@@ -144,11 +144,7 @@ export function scopedStats(
   instrument?: Instrument,
 ): Record<string, SkillStats> {
   if (!instrument) return stats;
-  return Object.fromEntries(
-    Object.entries(stats).filter(
-      ([, s]) => s.instrument === undefined || s.instrument === instrument,
-    ),
-  );
+  return Object.fromEntries(Object.entries(stats).filter(([, s]) => onInstrument(s, instrument)));
 }
 
 export interface SkillRow {
@@ -264,6 +260,71 @@ export function weekMinutes(sessions: PracticeSession[], today: string) {
   });
 }
 
+/**
+ * How a scored run compares with the earlier runs of the same exercise and setup: a new best, up
+ * or down from the run before (in the score's own unit), or level. Nothing for a first run.
+ */
+export function runDelta(
+  run: { id: string; exerciseId: string; setupKey: string; endedAt: number; score?: number },
+  sessions: PracticeSession[],
+): { kind: "best" | "up" | "down" | "same"; text: string } | undefined {
+  if (run.score === undefined) return;
+  const before = sessions
+    .flatMap((s) => s.runs)
+    .filter(
+      (r) =>
+        r.id !== run.id &&
+        r.exerciseId === run.exerciseId &&
+        r.setupKey === run.setupKey &&
+        r.score !== undefined &&
+        r.endedAt < run.endedAt,
+    )
+    .sort((a, b) => a.endedAt - b.endedAt);
+  const prev = before.at(-1);
+  if (!prev) return;
+  const now = Math.round(run.score * 100);
+  const then = Math.round(prev.score! * 100);
+  if (now > Math.round(Math.max(...before.map((r) => r.score!)) * 100))
+    return { kind: "best", text: `Best yet, up from ${then}%` };
+  if (now > then) return { kind: "up", text: `Up from ${then}%` };
+  if (now < then) return { kind: "down", text: `Down from ${then}%` };
+  return { kind: "same", text: "Same as last time" };
+}
+
+/** A session's length as recorded: its end, else its last run's end. */
+export const sessionMs = (s: PracticeSession) =>
+  (s.endTime ?? Math.max(s.startTime, ...s.runs.map((r) => r.endedAt))) - s.startTime;
+
+/**
+ * Newest first, with each tap-length session (under 5 s, one answer or none, no note or tags)
+ * folded into the session of the same drill just before it. Display only: storage keeps both.
+ */
+export function foldShort(
+  sessions: PracticeSession[],
+): { session: PracticeSession; folded: number }[] {
+  const lead = (s: PracticeSession) => s.runs[0]?.exerciseId;
+  const out: { session: PracticeSession; folded: number }[] = [];
+  const asc = [...sessions].sort((a, b) => a.startTime - b.startTime);
+  for (const s of asc) {
+    const prev = out.at(-1);
+    const tiny = sessionMs(s) < 5000 && s.eventIds.length <= 1 && !s.note && !s.tags.length;
+    if (tiny && prev && lead(prev.session) && lead(prev.session) === lead(s)) prev.folded++;
+    else out.push({ session: s, folded: 0 });
+  }
+  return out.reverse();
+}
+
+/** The instruments a session's runs used, named: "Piano", "Piano and Voice", or "answer buttons". */
+export function sessionInstruments(s: PracticeSession, label: Record<string, string>): string {
+  const names = [
+    ...new Set(
+      [s.instrument, ...s.runs.map((r) => r.instrument)].filter((i): i is Instrument => !!i),
+    ),
+  ].map((i) => label[i]);
+  if (!names.length) return "answer buttons";
+  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
 export interface SetupTrend {
   key: string;
   title: string;
@@ -325,6 +386,8 @@ export const parseTags = (raw: string) => [
  */
 export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
+  // Under five seconds is a tap or two, not a figure to read ("0 sec" beside 89% looks broken).
+  if (s < 5) return "a few seconds";
   if (s < 60) return `${s} sec`;
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min`;
@@ -333,18 +396,20 @@ export function formatDuration(ms: number): string {
 }
 
 /**
- * Path copy without the curriculum's working codes: "waits for N1" (an app feature still to
- * build), "Circle T-2", "Studio S-3" and the "H1 " numbering on harmony steps. The data keeps
- * the codes; the page says what they mean.
+ * Path copy without the curriculum's working codes: "Circle T-2", "Studio S-3" and the "H1 "
+ * numbering on harmony steps. Sentences about app features still to build ("waits for N1",
+ * "is still to come") are dropped: a learner reads only what the step does today. The data
+ * keeps the codes; the page says what they mean.
  */
 export function plainPathText(text: string): string {
   return text
-    .replace(/\bwait(s?) for N\d+(?: \([^)]*\))?/g, "come$1 in a later update")
-    .replace(/ until N\d+\b/g, " for now")
-    .replace(/,? \(?N\d+\)?,?(?= is still to come)/g, "")
+    .replace(/\s*\([^()]*\bN\d+\b[^()]*is still to come\)/g, "")
+    .replace(/(^|(?<=[.!?]\s))[^.!?]*(\bwaits? for N\d+|\bis still to come)[^.!?]*[.!?]\s*/g, "")
+    .replace(/ until N\d+\b/g, "")
     .replace(/ \(N\d+\)/g, "")
     .replace(/\bCircle T-(\d+)/g, "Circle of fifths step $1")
     .replace(/\bStudio S-(\d+)/g, "Studio ears step $1")
     .replace(/\b[TS]-(\d+)\b/g, "step $1")
-    .replace(/^H\d+ /, "");
+    .replace(/^H\d+ /, "")
+    .trim();
 }

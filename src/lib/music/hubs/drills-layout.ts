@@ -125,6 +125,30 @@ export function rowMastery(
   return { checked, value: parts.reduce((n, p) => n + (p?.mastery ?? 0), 0) / parts.length };
 }
 
+/**
+ * The latest scored run of a row's drill (a split row: only its own modes), for "Last: 82%,
+ * 2 days ago". Ukulele runs record the guitar ids' twins.
+ */
+export function lastRun<R extends { exerciseId: string; endedAt: number; score?: number }>(
+  r: Pick<DrillRow, "entry" | "modes" | "key">,
+  runs: R[],
+): R | undefined {
+  const split = r.key.includes(":");
+  const ids = new Set(
+    split
+      ? r.entry.modes
+          .filter((m) => r.modes.some((c) => c.id === m.id) || r.modes.length === 0)
+          .map((m) => m.exerciseId)
+      : [r.entry.exerciseId, ...r.entry.modes.map((m) => m.exerciseId)],
+  );
+  let best: R | undefined;
+  for (const run of runs) {
+    const id = run.exerciseId.replace(/^technique\.ukulele\./, "technique.guitar.");
+    if (run.score !== undefined && ids.has(id) && (!best || run.endedAt > best.endedAt)) best = run;
+  }
+  return best;
+}
+
 const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`));
 
 const EAR = "Ear training";
@@ -134,7 +158,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
     id: "ear-notes",
     section: EAR,
     title: "Notes and melody",
-    note: "Answer by choosing, playing it back, singing, from memory (pocket recall) or just listening along.",
+    note: "Answer by choosing, playing it back, singing, from memory or just listening along.",
     rows: ear(
       "intervals",
       "interval-compare",

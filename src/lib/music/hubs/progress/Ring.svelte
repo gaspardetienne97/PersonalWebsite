@@ -22,7 +22,7 @@
       class={value === undefined ? "stroke-ws-soft/60" : "stroke-ws-raised"}
       stroke-dasharray={value === undefined ? "2 2.2" : undefined}
     />
-    {#if value !== undefined}
+    {#if value !== undefined && value > 0}
       <circle
         cx="18"
         cy="18"
@@ -33,6 +33,7 @@
         stroke-linecap="round"
         pathLength="100"
         stroke-dasharray="{Math.max(2, value * 100)} 100"
+        class="ws-fill"
       />
     {/if}
   </svg>

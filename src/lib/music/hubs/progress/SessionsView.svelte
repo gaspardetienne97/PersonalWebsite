@@ -17,7 +17,8 @@
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { hueForRoute, hueVar } from "../../hues";
   import { HUE_ICON } from "../hue-icons";
-  import { exerciseDrill, formatDuration, pct, plural, relativeDay, sessionTitle, setupTrends } from "./model";
+  import { exerciseDrill, foldShort, formatDuration, pct, plural, relativeDay, sessionInstruments, sessionMs, sessionTitle, setupTrends } from "./model";
+  import ScoreBadge from "../journal/ScoreBadge.svelte";
   import WeekCompare from "./WeekCompare.svelte";
 
   let { now = Date.now() }: { now?: number } = $props();
@@ -46,15 +47,14 @@
 
   // The latest sessions first, as a dated list: what, on what, how long, and how it went.
   const RECENT = 8;
+  // Tap-length sessions fold into the one before them (display only), so "0 sec, 89%" never shows.
   const recent = $derived(
-    [...practice.sessions]
-      .sort((a, b) => b.startTime - a.startTime)
+    foldShort(practice.sessions)
       .slice(0, RECENT)
-      .map((s) => {
+      .map(({ session: s, folded }) => {
         const lead = s.runs.find((r) => r.score !== undefined) ?? s.runs[0];
         const hue = hueForRoute((lead && exerciseDrill(lead.exerciseId)?.entry.route) ?? "/music", lead?.instrument ?? s.instrument);
-        const end = s.endTime ?? Math.max(s.startTime, ...s.runs.map((r) => r.endedAt));
-        return { s, lead, hue, ms: end - s.startTime };
+        return { s, lead, hue, ms: sessionMs(s), folded };
       }),
   );
   const when = (ms: number) =>
@@ -84,18 +84,18 @@
       >
     </div>
     <ul class="mt-2 flex flex-col divide-y divide-ws-line border-y border-ws-line">
-      {#each recent as { s, lead, hue, ms } (s.id)}
+      {#each recent as { s, lead, hue, ms, folded } (s.id)}
         {@const Icon = HUE_ICON[hue]}
         <li class="flex min-w-0 items-center gap-3 py-2.5" style:--h={hueVar(hue)}>
           <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-[color:var(--h)] text-ws-stage" aria-hidden="true"><Icon class="size-5" /></span>
           <div class="min-w-0 flex-1">
             <p class="truncate font-semibold">{sessionTitle(s)}</p>
             <p class="text-sm text-ws-soft">
-              {when(s.startTime)}. {s.instrument ? INSTRUMENT_LABEL[s.instrument] : "Several instruments"}, {formatDuration(ms)}
+              {when(s.startTime)}. {sessionInstruments(s, INSTRUMENT_LABEL)}, {formatDuration(ms)}{#if s.eventIds.length}, {plural(s.eventIds.length, "answer")}{/if}{#if folded}, plus {plural(folded, "short try", "short tries")}{/if}
             </p>
           </div>
-          <span class="tnum shrink-0 text-right">
-            {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span>{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
+          <span class="tnum flex shrink-0 flex-col items-end text-right">
+            {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span><ScoreBadge run={lead} />{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
           </span>
         </li>
       {/each}

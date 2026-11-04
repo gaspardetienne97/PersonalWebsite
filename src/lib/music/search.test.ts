@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drillsFor, recentDrills, searchIndex, searchItems } from "./search";
+import { drillsFor, recentDrills, searchIndex, searchItems, splitMatch } from "./search";
 
 describe("palette search", () => {
   it("ranks drills above the reference page and tells the two scales drills apart", () => {
@@ -27,7 +27,9 @@ describe("palette search", () => {
   });
 
   it("drops matches on a description once two titles match", () => {
-    const labels = searchItems("interv").map((h) => h.label);
+    const labels = searchItems("interv")
+      .filter((h) => h.kind !== "all")
+      .map((h) => h.label);
     expect(labels.slice(0, 2)).toEqual(expect.arrayContaining(["Intervals"]));
     expect(labels).not.toContain("Fretboard");
     expect(labels).not.toContain("Aerophone");
@@ -77,5 +79,19 @@ describe("palette search", () => {
     const drills = drillsFor("piano");
     expect(drills).toHaveLength(3);
     expect(drills.every((d) => d.drill)).toBe(true);
+  });
+
+  it("labels pages with their real place and ends drill results with a Show all row", () => {
+    const hint = (label: string) => searchIndex().find((h) => h.label === label)!.hint;
+    expect(hint("All drills")).toBe("Drills");
+    expect(hint("Learning paths")).toBe("Paths");
+    const hits = searchItems("interv");
+    expect(hits.at(-1)).toMatchObject({ kind: "all", href: "/music?tab=drills&q=interv" });
+    expect(searchItems("journal").some((h) => h.kind === "all")).toBe(false);
+  });
+
+  it("splits a label around the match for bold", () => {
+    expect(splitMatch("Interval comparison", "comp")).toEqual(["Interval ", "comp", "arison"]);
+    expect(splitMatch("Tuner", "zz")).toEqual(["Tuner", "", ""]);
   });
 });

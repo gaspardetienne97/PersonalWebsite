@@ -24,11 +24,12 @@ import {
   freezesEarned,
   practicedDays,
 } from "@repo/music-core/progress/rewards";
-import { weakestSkills } from "@repo/music-core/progress/analytics";
+import { onInstrument, weakestSkills } from "@repo/music-core/progress/analytics";
 import { practice } from "./practice.svelte";
 import { INSTRUMENT_LABEL } from "./bench.svelte";
 import { db, settings } from "./runtime";
 import { plainPathText } from "./hubs/progress/model";
+import { CATALOG } from "@repo/music-core/content/catalog";
 
 /** Shelf keys the song block can open: songs in the library with a shelf tag, and downloaded scores. */
 let shelfKeys = $state<ReadonlySet<string>>(new Set());
@@ -61,9 +62,8 @@ function pathPlan(instrument: Instrument) {
 /** Today's weekday, Monday 0, in local time: the day the weekly split names. */
 export const localWeekday = (now = Date.now()) => (new Date(now).getDay() + 6) % 7;
 
-/** The set for today's instrument: the weekly split's for today, else the strip's. */
-export function todayPlan(strip: Instrument, minutes: number) {
-  const now = Date.now();
+/** The set for today's instrument: the weekly split's for today, else the strip's. `now` a day ahead gives tomorrow's. */
+export function todayPlan(strip: Instrument, minutes: number, now = Date.now()) {
   const instrument = dayInstrument(settings.value.weeklySplit, localWeekday(now), strip);
   const budget = snapBudget(minutes);
   const today = dayKey(now);
@@ -72,9 +72,9 @@ export function todayPlan(strip: Instrument, minutes: number) {
   const pass = currentPass(base, practice.sessions);
   const days = practicedDays(practice.sessions);
   const streak = computeStreak(days, settings.value.frozenDays, today);
-  // Each checked answer once, however many skills it touches.
+  // Each checked answer once, however many skills it touches; clicked ear answers have no instrument.
   const checked = practice.events.filter(
-    (e) => e.instrument === instrument && e.assistance === "independent",
+    (e) => onInstrument(e, instrument) && e.assistance === "independent",
   ).length;
   const advice = coach({
     instrument,
@@ -107,6 +107,13 @@ export function todayPlan(strip: Instrument, minutes: number) {
   const done = completedSteps(routine, practice.sessions);
   const freezes = freezesEarned(days, settings.value.frozenDays);
   const summary = routineSummary(routine, practice.sessions, practice.events);
+  // Time actually spent in each block's runs, so a block reads "40 sec played", not its plan.
+  const playedMs: Record<number, number> = {};
+  for (const r of summary.runs)
+    if (r.params.routine === routine.id && r.endedAt > r.startedAt) {
+      const n = Number(r.params.step);
+      playedMs[n] = (playedMs[n] ?? 0) + r.endedAt - r.startedAt;
+    }
   return {
     today,
     instrument,
@@ -118,9 +125,14 @@ export function todayPlan(strip: Instrument, minutes: number) {
     freezes,
     advice,
     summary,
+    playedMs,
     checked,
   };
 }
+
+/** Tomorrow's set, as today's would be built a day from now (the weekly split and the path's next step). */
+export const tomorrowPlan = (strip: Instrument, minutes: number) =>
+  todayPlan(strip, minutes, Date.now() + 86_400_000);
 
 export const WEEKDAYS = [
   "Monday",
@@ -152,6 +164,35 @@ export function blockReason(step: RoutineStep): string {
   const name = practiceName(step.skillId);
   const why = step.reason === "due" ? "Due for review" : "Your weak spot";
   return name === step.label ? `${why}.` : `${why}: ${name}.`;
+}
+
+/**
+ * One named drill for after the set: the coach's weak spot once it has measured one, else the
+ * first drill on this instrument the set did not use.
+ */
+export function nextDrill(plan: ReturnType<typeof todayPlan>) {
+  const { advice, instrument } = plan;
+  if (advice.measured && advice.focus)
+    return {
+      label: advice.action.label,
+      href: advice.action.href,
+      why: `Your weak spot: ${advice.focus.name}.`,
+    };
+  const used = new Set(plan.routine.steps.map((s) => s.href.split("?")[0]));
+  const e = CATALOG.find(
+    (c) => c.instruments.includes(instrument) && !used.has(c.route) && !c.route.includes("?"),
+  );
+  return e && { label: `Try ${e.title}`, href: e.route, why: e.blurb };
+}
+
+/**
+ * The row's one line: the first sentence of why the block is in the set ("Next on the Piano Path.",
+ * "Due for review: Intervals."). The rest waits behind the row's details.
+ */
+export function blockSummary(step: RoutineStep): string {
+  const full = blockReason(step);
+  const first = /^.*?[.!?](?=\s|$)/.exec(full)?.[0] ?? full;
+  return first;
 }
 
 export function todayChallenges(advice: ReturnType<typeof coach>) {

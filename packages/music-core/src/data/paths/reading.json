@@ -76,7 +76,7 @@
           "id": "P1.4",
           "title": "Hands together, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=wait&measures=4",
-          "setup": "Sight-reading, Piano 4 (hands together), waits for you, 4 bars.",
+          "setup": "Sight-reading, Piano 4 (hands together), Wait for me, 4 bars.",
           "done": "5 phrases at 90% in wait mode.",
           "match": {
             "instrument": "piano",
@@ -478,7 +478,7 @@
           "id": "P2.4",
           "title": "Leaving the position, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=wait",
-          "setup": "Sight-reading, Piano 5, waits for you.",
+          "setup": "Sight-reading, Piano 5, Wait for me.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "piano",
@@ -1130,7 +1130,7 @@
           "id": "P4.4",
           "title": "Grade 4 phrases, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=wait",
-          "setup": "Sight-reading, Piano 6, waits for you.",
+          "setup": "Sight-reading, Piano 6, Wait for me.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "piano",
@@ -1492,7 +1492,7 @@
           "id": "P5.4",
           "title": "Grade 5 phrases, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=wait",
-          "setup": "Sight-reading, Piano 7, waits for you.",
+          "setup": "Sight-reading, Piano 7, Wait for me.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "piano",
@@ -2138,7 +2138,7 @@
           "id": "P7.5",
           "title": "Grade 6 phrases, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=wait",
-          "setup": "Sight-reading, Piano 8, waits for you. Triplets and clef changes are not in the generator yet.",
+          "setup": "Sight-reading, Piano 8, Wait for me. Triplets and clef changes are not in the generator yet.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "piano",
@@ -2439,7 +2439,7 @@
           "id": "G1.1",
           "title": "Tab on, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading, Primer, waits for you, Show tab on.",
+          "setup": "Sight-reading, Primer, Wait for me, Show tab on.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "guitar",
@@ -3010,7 +3010,7 @@
           "id": "G3.2",
           "title": "First contact",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading, Primer, waits for you, tab hidden. The open-123 position setting is not there yet; the drill reads in first position.",
+          "setup": "Sight-reading, Primer, Wait for me, tab hidden. The open-123 position setting is not there yet; the drill reads in first position.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "guitar",
@@ -4765,7 +4765,7 @@
           "id": "U1.1",
           "title": "Tab on, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading on ukulele, Primer, waits for you, Show tab on.",
+          "setup": "Sight-reading on ukulele, Primer, Wait for me, Show tab on.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "ukulele",
@@ -5040,7 +5040,7 @@
           "id": "U2.2",
           "title": "First contact",
           "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading on ukulele, Primer, tab hidden, waits for you. The open position setting is not there yet.",
+          "setup": "Sight-reading on ukulele, Primer, tab hidden, Wait for me. The open position setting is not there yet.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "ukulele",
@@ -6287,7 +6287,7 @@
           "id": "A1.2",
           "title": "First contact",
           "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading on the Aerophone, Primer, waits for you. Concert pitch until Eb transposition ships: AE-20 transpose off.",
+          "setup": "Sight-reading on the Aerophone, Primer, Wait for me. Concert pitch until Eb transposition ships: AE-20 transpose off.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "aerophone",

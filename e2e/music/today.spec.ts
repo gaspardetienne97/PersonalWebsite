@@ -19,6 +19,7 @@ test.describe("today", () => {
     await expect(page.getByText(/session, Guitar$/)).toBeVisible();
 
     const song = page.locator("ol li").filter({ has: page.getByText("Song", { exact: true }) });
+    await song.getByRole("button", { expanded: false }).first().click();
     const start = song.getByRole("link", { name: /^Start/ });
     await expect(start).toHaveAttribute(
       "href",

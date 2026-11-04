@@ -29,7 +29,15 @@
   const today = $derived(dayKey(now));
   const sessions = $derived(practice.sessions);
   const weeks = $derived(weekRollups(sessions, today));
-  const cells = $derived(heatmap(sessions, today, 12));
+  // The heatmap covers the weeks since the first session (four at least, twelve at most), so a new
+  // journal is not a grid of empty cells.
+  const heatWeeks = $derived.by(() => {
+    const first = Math.min(...sessions.map((s) => s.startTime));
+    if (!Number.isFinite(first)) return 4;
+    const weeks = Math.ceil((Date.parse(weekStart(today)) - Date.parse(weekStart(dayKey(first)))) / (7 * 86_400_000)) + 1;
+    return Math.min(12, Math.max(4, weeks));
+  });
+  const cells = $derived(heatmap(sessions, today, heatWeeks));
   const goals = $derived(weeklyGoals(sessions, today, settings.value.weeklySessionGoal));
   const focus = $derived(focusAreas(sessions));
   const latestToday = $derived(
@@ -130,19 +138,19 @@
       <p class="max-w-prose text-ws-soft">Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.</p>
       <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start today's set</a>
     </div>
-    <div class="rounded-2xl border border-dashed border-ws-line p-4" aria-hidden="true">
+    <div class="min-w-0 rounded-2xl border border-dashed border-ws-line p-4" aria-hidden="true">
       <p class="text-xs font-medium text-ws-soft">A saved session looks like this</p>
       <div class="mt-2 flex items-start gap-3 opacity-80">
         <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><NotebookPen class="size-5" /></span>
         <div class="min-w-0 flex-1">
           <p class="font-semibold">Scale degrees</p>
-          <p class="text-sm text-ws-soft">Today, 6 min. Drill on Voice</p>
+          <p class="text-sm text-ws-soft">Today, 6 min. Drill on {INSTRUMENT_LABEL[settings.value.activeInstrument]}</p>
         </div>
         <p class="tnum font-display text-2xl font-semibold">80%</p>
       </div>
-      <div class="mt-3 flex gap-1">
+      <div class="mt-3 flex flex-wrap gap-1">
         {#each [1, 1, 1, 0, 1, 1, 1, 1, 0, 1] as ok, i (i)}
-          <span class="grid size-6 place-items-center rounded-full text-xs font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
+          <span class="grid size-8 place-items-center rounded-full text-sm font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
         {/each}
       </div>
       <p class="mt-2 text-sm">Degree 6 still slips. Sing it before answering.</p>
@@ -240,7 +248,7 @@
       </section>
 
       <section aria-labelledby="heat-title">
-        <h2 id="heat-title" class="font-display text-xl font-semibold">Last 12 weeks</h2>
+        <h2 id="heat-title" class="font-display text-xl font-semibold">Last {heatWeeks} weeks</h2>
         <p class="text-sm text-ws-soft">Tap a practised day to see its sessions.</p>
         <div class="mt-3"><Heatmap {cells} selected={pickedDay} onpick={pickDay} /></div>
       </section>
