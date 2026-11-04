@@ -1,7 +1,8 @@
 <script lang="ts">
   // One journal entry as a card named for its drills, with the drill's icon and a score
-  // sparkline; on demand its runs and attempt evidence. Delete lives behind the card's
-  // "More" button and a confirm, so it is never one tap from the main actions.
+  // sparkline; on demand its runs and attempt evidence. The note leads when there is one.
+  // Edit note and Delete live behind the card's one "More" button (Delete asks first), so
+  // the card shows one everyday action: its answers.
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import Trash from "lucide-svelte/icons/trash-2";
   import Ellipsis from "lucide-svelte/icons/ellipsis";
@@ -12,6 +13,7 @@
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { practice } from "../../practice.svelte";
   import { btn, btnPrimary } from "../../components/ui";
+  import Pencil from "lucide-svelte/icons/pencil";
   import { hueForRoute, hueVar } from "../../hues";
   import { HUE_ICON } from "../hue-icons";
   import {
@@ -26,6 +28,7 @@
     pct,
     plural,
     scoreHistory,
+    sessionInstruments,
     sessionTitle,
   } from "../progress/model";
 
@@ -48,7 +51,8 @@
   );
   const orphans = $derived(events.filter((e) => !session.runs.some((r) => r.id === e.runId)));
   const duration = $derived(formatDuration(sessionMinutes(session) * 60_000));
-  const instrument = $derived(session.instrument ? INSTRUMENT_LABEL[session.instrument] : "several instruments");
+  // Same naming as Sessions on Progress: the instruments the runs used, or the answer buttons.
+  const played = $derived(sessionInstruments(session, INSTRUMENT_LABEL));
   const title = $derived(sessionTitle(session));
   // The first run sets the card's hue and icon, and its drill's recent scores the sparkline.
   const lead = $derived(session.runs.find((r) => r.score !== undefined) ?? session.runs[0]);
@@ -67,11 +71,17 @@
     }),
   );
 
-  function startEdit() {
+  let noteBox = $state<HTMLTextAreaElement>();
+  async function startEdit() {
+    // One thing at a time: the answers and the More row fold away while the note is edited.
+    open = false;
+    more = confirming = false;
     note = session.note ?? "";
     nextTime = session.nextTime ?? "";
     tags = session.tags.join(", ");
     editing = true;
+    await tick();
+    noteBox?.focus();
   }
 
   async function save(e: SubmitEvent) {
@@ -94,6 +104,8 @@
     moreBtn?.focus();
   }
   let moreBtn = $state<HTMLButtonElement>();
+  // Save at full strength (contract K5 tokens, falling back to the hue until they land).
+
 
   async function remove() {
     await practice.deleteSession(id);
@@ -120,7 +132,7 @@
         {#each misses as e (e.id)}
           <li class="flex flex-wrap gap-x-2">
             <span class="text-destructive" aria-hidden="true">✗</span>
-            <span>Wanted <span class="font-semibold">{formatLabel(e.target) || e.promptId}</span>{#if e.response !== undefined}, answered <span class="font-semibold">{formatLabel(e.response)}</span>{/if}</span>
+            <span>Expected <span class="font-semibold">{formatLabel(e.target) || e.promptId}</span>{#if e.response !== undefined}, you answered <span class="font-semibold">{formatLabel(e.response)}</span>{/if}</span>
           </li>
         {/each}
       </ul>
@@ -137,7 +149,7 @@
             <span class="font-medium sm:w-48 sm:shrink-0">
               <span class="tnum text-ws-soft">{i + 1}.</span>
               {formatLabel(e.target) || e.promptId}:
-              {#if e.correct}<span class="text-success">Right</span>{:else}<span class="text-destructive">Missed</span>{#if e.response !== undefined}, answered {formatLabel(e.response)}{/if}{/if}
+              {#if e.correct}<span class="text-success">Right</span>{:else}<span class="text-destructive">Missed</span>{#if e.response !== undefined}, you answered {formatLabel(e.response)}{/if}{/if}
             </span>
             <span class="text-ws-soft">
               Credit {pct(e.partialCredit)}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Not recorded"}, {INPUT_LABEL[e.source]}{e.instrument
@@ -160,7 +172,7 @@
     </span>
     <div class="min-w-[min(12rem,60%)] flex-1">
       <h3 id="{id}-title" class="font-semibold">{title}</h3>
-      <p class="text-sm text-ws-soft">{when}. {SOURCE_LABEL[session.source]} on {instrument}</p>
+      <p class="text-sm text-ws-soft">{when}. {SOURCE_LABEL[session.source]} {played === "Answer buttons" ? "with answer buttons" : `on ${played}`}</p>
     </div>
     {#if lead?.score !== undefined}
       <div class="flex shrink-0 items-end gap-2 max-sm:ml-14">
@@ -185,17 +197,8 @@
       </div>
     {/if}
   </div>
-  <!-- What it measured first, effort after: right answers and time, XP last. -->
-  <dl class="tnum mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-    {#if session.eventIds.length}
-      <div class="flex gap-1.5"><dt class="text-ws-soft">Answers</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
-    {/if}
-    <div class="flex gap-1.5"><dt class="text-ws-soft">Time</dt><dd class="font-semibold">{duration}</dd></div>
-    <div class="flex gap-1.5"><dt class="text-ws-soft">XP</dt><dd class="font-semibold">+{session.xp}</dd></div>
-  </dl>
-
   {#if !editing}
-    {#if session.note}<p class="mt-2 line-clamp-2 max-w-prose whitespace-pre-line" title={session.note}>{session.note}</p>{/if}
+    {#if session.note}<p class="mt-3 line-clamp-3 max-w-prose whitespace-pre-line border-l-2 border-[color:var(--card-hue)] pl-3" title={session.note}>{session.note}</p>{/if}
     {#if session.nextTime}<p class="mt-1 text-sm"><span class="font-medium">Next time:</span> {session.nextTime}</p>{/if}
     {#if session.tags.length}
       <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Tags">
@@ -206,7 +209,7 @@
     <form class="mt-3 flex max-w-xl flex-col gap-3" onsubmit={save}>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Note</span>
-        <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:value={note}></textarea>
+        <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={note}></textarea>
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Next time</span>
@@ -218,20 +221,27 @@
       </label>
       <div class="flex flex-wrap items-center gap-2">
         <button type="submit" class={btnPrimary}>Save</button>
-        <button type="button" class={btn} onclick={() => (editing = confirming = false)}>Cancel</button>
+        <button type="button" class="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ws-soft hover:bg-ws-raised hover:text-ws-ink" onclick={() => (editing = confirming = false)}>Cancel</button>
       </div>
     </form>
   {/if}
+
+  <!-- What it measured first, effort after: right answers and time, XP last. -->
+  <dl class="tnum mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+    {#if session.eventIds.length}
+      <div class="flex gap-1.5"><dt class="text-ws-soft">Answers</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
+    {/if}
+    <div class="flex gap-1.5"><dt class="text-ws-soft">Time</dt><dd class="font-semibold">{duration}</dd></div>
+    <div class="flex gap-1.5"><dt class="text-ws-soft">XP</dt><dd class="font-semibold">+{session.xp}</dd></div>
+  </dl>
+
 
   <div class="mt-3 flex flex-wrap items-center gap-2">
     <button type="button" class={btn} aria-expanded={open} aria-controls="{id}-detail" onclick={() => (open = !open)}>
       <ChevronDown class="size-4 transition-transform {open ? 'rotate-180' : ''}" aria-hidden="true" />
       {open ? "Hide answers" : "Show every answer"}
     </button>
-    {#if !editing}
-      <button type="button" class={btn} onclick={startEdit}>Edit note</button>
-    {/if}
-    <!-- Deleting waits behind More, away from the everyday actions, and asks first. -->
+    <!-- Editing the note and deleting wait behind More; deleting asks first. -->
     <button
       type="button"
       class="{btn} ml-auto w-11 px-0"
@@ -254,6 +264,9 @@
           <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>Keep it</button>
         </span>
       {:else}
+        {#if !editing}
+          <button type="button" class={btn} onclick={startEdit}><Pencil class="size-4" aria-hidden="true" />Edit note</button>
+        {/if}
         <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />Delete session</button>
       {/if}
     </div>

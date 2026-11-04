@@ -2,7 +2,7 @@
   // Twelve weeks of practice, one row per weekday (Monday first), one column per week.
   // A practised day is a button: it filters the session list to that day.
   import type { HeatCell } from "@repo/music-core/progress/journal";
-  import { plural } from "../progress/model";
+  import { minutesText, plural } from "../progress/model";
 
   let {
     cells,
@@ -23,7 +23,9 @@
         : "";
     }),
   );
-  const SHADE = [0, 30, 55, 80, 100];
+  const SHADE = [0, 40, 60, 80, 100];
+  // The legend's scale in minutes: shades run from none up to the busiest day shown.
+  const most = $derived(Math.max(0, ...cells.map((c) => c.minutes)));
   const fill = (level: number) =>
     level === 0 ? "var(--ws-raised)" : `color-mix(in oklab, var(--instr) ${SHADE[level]}%, var(--ws-raised))`;
   const long = (day: string) =>
@@ -37,7 +39,7 @@
     c.future
       ? `${long(c.day)}: still to come`
       : c.sessions
-        ? `${long(c.day)}: ${c.minutes} minutes, ${plural(c.sessions, "session")}, ${c.xp} XP`
+        ? `${long(c.day)}: ${minutesText(c.minutes, c.sessions)}, ${plural(c.sessions, "session")}, ${c.xp} XP`
         : `${long(c.day)}: no practice`;
 </script>
 
@@ -62,7 +64,7 @@
               {#if c.sessions && onpick}
                 <button
                   type="button"
-                  class="block size-6 rounded-[5px] hover:ring-2 hover:ring-instr-ink/40 {selected === c.day ? 'ring-2 ring-instr-ink ring-offset-1 ring-offset-ws-bg' : ''}"
+                  class="block size-5 rounded-[5px] hover:ring-2 focus-visible:ring-2 hover:ring-instr-ink/40 {selected === c.day ? 'ring-2 ring-instr-ink ring-offset-1 ring-offset-ws-bg' : ''}"
                   style:background={fill(c.level)}
                   title={label(c)}
                   aria-pressed={selected === c.day}
@@ -70,7 +72,7 @@
                 ><span class="sr-only">{label(c)}</span></button>
               {:else}
                 <span
-                  class="block size-6 rounded-[5px] {c.future ? 'border border-dashed border-ws-line' : ''}"
+                  class="block size-5 rounded-[5px] {c.future ? 'border border-dashed border-ws-line' : ''}"
                   style:background={c.future ? "transparent" : fill(c.level)}
                   title={label(c)}
                 ><span class="sr-only">{label(c)}</span></span>
@@ -83,11 +85,11 @@
   </table>
 </div>
 <div class="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ws-soft" aria-hidden="true">
-  <span class="mr-1">Minutes played per day:</span>
-  none
+  <span class="mr-1">Time a day:</span>
+  <span class="tnum">0</span>
   {#each SHADE as _, level (level)}
     <span class="size-3.5 rounded-[4px]" style:background={fill(level)}></span>
   {/each}
-  most
+  <span class="tnum">{most ? minutesText(most, 1) : "0"}</span>
   <span class="ml-2 inline-flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-line"></span>still to come</span>
 </div>

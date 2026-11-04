@@ -3,6 +3,7 @@
   // all of them. A card per drill: a picture of what it plays, its last score, then its modes.
   import Play from "lucide-svelte/icons/play";
   import X from "lucide-svelte/icons/x";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
@@ -47,6 +48,19 @@
       return out;
     }, []),
   );
+  // On a phone the jump row scrolls sideways: a button at its end says there is more and moves it on.
+  let chipRow = $state<HTMLElement>();
+  let moreRight = $state(false);
+  const measure = () => {
+    const el = chipRow;
+    moreRight = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+  };
+  $effect(() => {
+    void jumps;
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  });
   // The jump chip for the section on screen lights up as the page scrolls.
   let spy = $state<SectionSpy>();
   $effect(() => {
@@ -78,9 +92,12 @@
   </div>
 
   <!-- Jump chips, pinned under the strip, with the section on screen lit. -->
+  <div class="sticky top-[var(--ws-strip-h,3.75rem)] z-10 -mx-4 -mt-2 border-b border-ws-line bg-ws-bg/95 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
   <nav
     aria-label="Jump to"
-    class="chips sticky top-[var(--ws-strip-h,3.75rem)] z-10 -mx-4 -mt-2 flex gap-1.5 overflow-x-auto border-b border-ws-line bg-ws-bg/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-2"
+    bind:this={chipRow}
+    onscroll={measure}
+    class="chips flex gap-1.5 overflow-x-auto px-4 py-2 sm:flex-wrap sm:overflow-visible sm:px-2 {moreRight ? 'more' : ''}"
   >
     {#each jumps as j (j.id)}
       {@const on = spy?.current === `g-${j.id}`}
@@ -92,6 +109,15 @@
       >
     {/each}
   </nav>
+  {#if moreRight}
+    <button
+      type="button"
+      class="absolute inset-y-0 right-0 grid w-11 place-items-center text-ws-ink sm:hidden"
+      aria-label="Show more sections"
+      onclick={() => chipRow?.scrollBy({ left: chipRow.clientWidth * 0.7, behavior: "smooth" })}><ChevronRight class="size-5" aria-hidden="true" /></button
+    >
+  {/if}
+  </div>
 
   {#each shown as g, gi (g.id)}
     {@const opens = g.section && shown[gi - 1]?.section !== g.section}
@@ -137,23 +163,26 @@
                   {/if}
                 </span>
               </span>
-              <span class="pointer-events-none flex h-9 shrink-0 items-center gap-1 rounded-full bg-[color:var(--h)] px-3 text-xs font-semibold text-ws-stage max-sm:hidden" aria-hidden="true"
-                ><Play class="size-3.5" />Start</span
+            </div>
+            <!-- Start opens the drill's first mode (the card's own link); each named way opens straight into it. -->
+            <div class="flex min-w-0 items-end gap-3">
+              {#if r.modes.length}
+                <p class="relative min-w-0 flex-1 text-sm leading-7 text-ws-soft">
+                  Ways to practise:
+                  {#each r.modes as mo, k (mo.id)}
+                    {@const label = MODE_LABEL[mo.label] ?? mo.label}
+                    <a
+                      href={mo.href}
+                      class="py-3 font-medium text-ws-ink underline decoration-ws-line underline-offset-4 hover:decoration-[color:var(--h)]"
+                      aria-label="{r.title}: {label}">{label}</a
+                    >{k < r.modes.length - 1 ? ", " : ""}
+                  {/each}
+                </p>
+              {:else}<span class="flex-1"></span>{/if}
+              <span class="pointer-events-none flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-ws-ink px-4 text-sm font-semibold text-ws-bg" aria-hidden="true"
+                ><Play class="size-4" />Start</span
               >
             </div>
-            <!-- The card opens the drill; a mode chip opens straight into that mode. -->
-            {#if r.modes.length}
-              <span class="relative flex min-w-0 flex-wrap items-center gap-1.5">
-                {#each r.modes as mo (mo.id)}
-                  {@const label = MODE_LABEL[mo.label] ?? mo.label}
-                  <a
-                    href={mo.href}
-                    class="flex min-h-11 items-center rounded-full border border-ws-line bg-ws-surface/80 px-3.5 text-sm hover:border-[color:var(--h)] hover:bg-ws-raised"
-                    aria-label="{r.title}: {label}">{label}</a
-                  >
-                {/each}
-              </span>
-            {/if}
           </li>
         {/each}
       </ul>
@@ -172,7 +201,11 @@
   }
   /* The jump row stays one line and scrolls sideways; its right edge fades, so a cut chip reads as more. */
   .chips {
-    mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent);
     scrollbar-width: none;
+  }
+  @media (max-width: 639px) {
+    .chips.more {
+      mask-image: linear-gradient(to right, black calc(100% - 4rem), transparent calc(100% - 1rem));
+    }
   }
 </style>

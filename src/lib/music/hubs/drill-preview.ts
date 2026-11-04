@@ -415,6 +415,12 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         "Major or minor: hear the scale",
         { 60: "1" },
       );
+    case "/ear/mixed":
+      return keysFor([60, 64, 67, 72], "A mixed review of what you hear: notes against home", {
+        60: "1",
+        64: "3",
+        67: "5",
+      });
     case "/ear/scale-degrees":
       return {
         kind: "degrees",

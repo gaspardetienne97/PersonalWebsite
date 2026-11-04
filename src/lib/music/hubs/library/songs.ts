@@ -132,14 +132,22 @@ export async function shelfSong(key: string): Promise<Song | undefined> {
   return songs.find((s) => s.shelf === key);
 }
 
-/** Read a shelf song's downloaded score from the server into the library, tagged for its shelf. */
-export async function addShelfSong(key: string, title: string, artist?: string): Promise<Song> {
+/** A shelf song's downloaded score, read from the server (not saved anywhere). */
+export async function shelfScore(
+  key: string,
+  title: string,
+): Promise<{ score: Score; name: string }> {
   const res = await fetch(`/api/music/scores/${key}`);
   if (!res.ok) throw new Error(`The score for ${title} has not been downloaded yet.`);
   const name =
     res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
     `${key.split("/")[1]}.mxl`;
-  const score = await importScoreFile(name, new Uint8Array(await res.arrayBuffer()));
+  return { score: await importScoreFile(name, new Uint8Array(await res.arrayBuffer())), name };
+}
+
+/** Read a shelf song's downloaded score from the server into the library, tagged for its shelf. */
+export async function addShelfSong(key: string, title: string, artist?: string): Promise<Song> {
+  const { score, name } = await shelfScore(key, title);
   const song = {
     ...songFromScore({ ...score, title }, { composer: artist, source: name }),
     shelf: key,
@@ -173,3 +181,25 @@ export function songHistory(
   }
   return { runs: n, best, lastAt };
 }
+
+/** A shelf song's own facts as card tags: its key, its tempo and how hard it is. */
+export function shelfTags(song: { detail?: string; bpm?: number; diff?: number }): string[] {
+  const key = /^([A-G][#b]?(?: (?:minor|major|dorian|mixolydian))?)(?=[,( ]|$)/.exec(
+    song.detail ?? "",
+  )?.[1];
+  const level =
+    song.diff === undefined
+      ? undefined
+      : song.diff <= 1
+        ? "Easier"
+        : song.diff === 2
+          ? "Medium"
+          : "Harder";
+  return [key && `Key of ${key}`, song.bpm && `${song.bpm} BPM`, level].filter(
+    (t): t is string => !!t,
+  );
+}
+
+/** Shelf shorthand said plainly: RH and LH become right hand and left hand. */
+export const plainTeaches = (t: string) =>
+  t.replace(/\bRH\b/g, "right hand").replace(/\bLH\b/g, "left hand");

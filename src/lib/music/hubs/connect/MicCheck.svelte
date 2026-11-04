@@ -3,7 +3,7 @@
   // shows the same stored name). It starts only on a tap and stops on leaving.
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { btn } from "$lib/music/components/ui";
   import { mic, settings } from "$lib/music/runtime";
   import Picker from "$lib/music/components/Picker.svelte";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
@@ -65,7 +65,7 @@
       <button type="button" class={btn} onclick={stop}>Stop microphone</button>
     {:else}
       <!-- Neutral, not the tile's hue: guitar's coral read as a warning here. -->
-      <button type="button" class={btnPrimary.replace("bg-instr", "bg-ws-ink").replace("text-ws-stage", "text-ws-bg")} onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting" : "Start microphone"}</button>
+      <button type="button" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ws-ink px-5 text-sm font-semibold text-ws-bg hover:brightness-110 disabled:opacity-50" onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting" : "Start microphone"}</button>
     {/if}
   </div>
   {#if !named}<p class="text-sm text-ws-soft">Start the microphone once and the browser shows each device's name.</p>{/if}

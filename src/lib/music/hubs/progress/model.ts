@@ -314,14 +314,14 @@ export function foldShort(
   return out.reverse();
 }
 
-/** The instruments a session's runs used, named: "Piano", "Piano and Voice", or "answer buttons". */
+/** The instruments a session's runs used, named: "Piano", "Piano and Voice", or "Answer buttons". */
 export function sessionInstruments(s: PracticeSession, label: Record<string, string>): string {
   const names = [
     ...new Set(
       [s.instrument, ...s.runs.map((r) => r.instrument)].filter((i): i is Instrument => !!i),
     ),
   ].map((i) => label[i]);
-  if (!names.length) return "answer buttons";
+  if (!names.length) return "Answer buttons";
   return names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 
@@ -387,12 +387,48 @@ export const parseTags = (raw: string) => [
 export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
   // Under five seconds is a tap or two, not a figure to read ("0 sec" beside 89% looks broken).
-  if (s < 5) return "a few seconds";
+  if (s < 5) return "under 5 sec";
   if (s < 60) return `${s} sec`;
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+}
+
+/** A week's or a day's minutes as a figure that never undersells it: 1 min over three sessions reads "under 2 min". */
+export const minutesText = (minutes: number, sessions: number) =>
+  sessions && minutes < 2 ? "under 2 min" : `${minutes} min`;
+
+/**
+ * A skill row's one line, both numbers named so they never read as one contradicting the other:
+ * "Mastery 14%: 10 checked answers, 80% right, today". Accuracy counts every try, so it says so
+ * when that is more than the checked answers.
+ */
+export function skillCaption(r: SkillRow, now: number): string {
+  const head =
+    r.estimate === undefined
+      ? "No mastery yet"
+      : `Mastery ${pct(r.estimate)}${r.umbrella && !r.direct ? " across its parts" : ""}`;
+  const bits = [plural(r.checked, "checked answer")];
+  if (r.accuracy !== undefined)
+    bits.push(
+      r.attempts > r.checked
+        ? `${pct(r.accuracy)} right over ${plural(r.attempts, "try", "tries")}`
+        : `${pct(r.accuracy)} right`,
+    );
+  if (r.lastPracticed) bits.push(relativeDay(r.lastPracticed, now));
+  return `${head}: ${bits.join(", ")}`;
+}
+
+/**
+ * The drill to draw for a coach pick: a weak interval or degree is drawn as that drill (the
+ * coach's own link may be the mixed ear drill, which has no picture of its own).
+ */
+export function previewHref(skillId: string | undefined, fallback: string): string {
+  const m = /^pitch\.(intervals?|scale-degrees?)(?:\.(.+))?$/.exec(skillId ?? "");
+  if (!m) return fallback;
+  if (m[1].startsWith("scale")) return "/music/ear/scale-degrees";
+  return m[2] ? `/music/ear/intervals?intervals=${m[2]}` : "/music/ear/intervals";
 }
 
 /**

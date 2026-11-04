@@ -1,5 +1,14 @@
 <script lang="ts">
+  import { bench } from "$lib/music/bench.svelte";
   import JournalView from "$lib/music/hubs/journal/JournalView.svelte";
+
+  // The page keeps one accent of its own, whatever the strip's instrument is.
+  $effect(() => {
+    bench.hue = "create";
+    return () => {
+      if (bench.hue === "create") bench.hue = null;
+    };
+  });
 
   let status = $state("");
   const announce = (msg: string) => {

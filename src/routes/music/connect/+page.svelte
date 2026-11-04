@@ -61,7 +61,7 @@
       hint: midi.supported ? "For the keyboard, the MPC and the Aerophone." : "Not available in this browser. Use Chrome or Edge.",
       act: midi.supported ? { label: "Turn on MIDI", run: async () => announce((await midi.enable()) ? "MIDI is on." : midi.error) } : undefined,
     },
-    { done: midi.enabled && midi.sysexEnabled, label: "Pad lights allowed", hint: "The browser's SysEx permission. Only the MPC's lights and link need it: turn MIDI off and on again and allow it." },
+    { done: midi.enabled && midi.sysexEnabled, label: "MPC lights allowed", hint: "A second browser permission (SysEx). Only the MPC's lights and link need it: turn MIDI off and on again and allow it." },
     { done: midi.inputs.length > 0, label: "A MIDI device is connected", hint: "Plug it in by USB. No reload needed." },
     ...(hasMpc
       ? [
@@ -101,7 +101,7 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <header>
     <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Connect</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone. What you set here applies on every page.</p>
+    <p class="mt-1 max-w-prose text-ws-soft">Plug in a keyboard, the MPC or the Aerophone, or use the microphone.<span class="max-sm:hidden"> What you set here applies on every page.</span></p>
   </header>
   <!-- What the last action did, as a banner you can dismiss. The live region stays mounted. -->
   <div role="status" class="-mt-3 {status ? '' : 'sr-only'}">
@@ -196,7 +196,7 @@
       <section class={panel} aria-labelledby="activity-title">
         {@render heading("activity-title", "Live activity", Activity, "mpc")}
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-sm text-ws-soft">What each device just sent, ignored ports included.</p>
+          <p class="text-sm text-ws-soft">What each device just sent, ports you ignore included.</p>
           <label class="flex min-h-11 items-center gap-2 text-sm">
             <input type="checkbox" role="switch" class="size-4 accent-[var(--instr-ink)]" bind:checked={showBytes} />Show bytes
           </label>

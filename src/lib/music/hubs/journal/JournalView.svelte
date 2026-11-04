@@ -1,8 +1,9 @@
 <script lang="ts">
   // The journal: the session list first, then this week against last, the 12-week heatmap,
-  // goals and focus areas. A note on today's session waits behind "Add a note"; filters show
+  // goals and focus areas. A note on today's session waits behind its button; filters show
   // once there are enough sessions to need them.
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
+  import Ear from "lucide-svelte/icons/ear";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import X from "lucide-svelte/icons/x";
   import { tick } from "svelte";
@@ -125,6 +126,11 @@
     announce("Added to today's session.");
   }
 
+  // The sample card's date in the live cards' own format.
+  const sampleWhen = $derived(
+    new Date(now).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }),
+  );
+
   const field = "min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
   const chip = (on: boolean) =>
     `min-h-11 rounded-full border px-4 text-sm ${on ? "border-transparent bg-ws-ink font-semibold text-ws-bg" : "border-ws-line bg-ws-surface hover:bg-ws-raised"}`;
@@ -138,23 +144,28 @@
       <p class="max-w-prose text-ws-soft">Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.</p>
       <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start today's set</a>
     </div>
-    <div class="min-w-0 rounded-2xl border border-dashed border-ws-line p-4" aria-hidden="true">
-      <p class="text-xs font-medium text-ws-soft">A saved session looks like this</p>
-      <div class="mt-2 flex items-start gap-3 opacity-80">
-        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><NotebookPen class="size-5" /></span>
-        <div class="min-w-0 flex-1">
-          <p class="font-semibold">Scale degrees</p>
-          <p class="text-sm text-ws-soft">Today, 6 min. Drill on {INSTRUMENT_LABEL[settings.value.activeInstrument]}</p>
+    <!-- A sample, drawn as a real card would be but faded and marked, so it never reads as an entry. -->
+    <figure class="relative min-w-0">
+      <span class="absolute -top-3 right-4 z-10 rounded-full border border-ws-line bg-ws-bg px-3 py-0.5 text-sm font-semibold">Sample</span>
+      <div class="rounded-2xl border border-dashed border-ws-line bg-ws-surface p-4 opacity-60" aria-hidden="true">
+        <div class="flex items-start gap-3">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><Ear class="size-5" /></span>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">Scale degrees</p>
+            <p class="text-sm text-ws-soft">{sampleWhen}. Drill on {INSTRUMENT_LABEL[settings.value.activeInstrument]}</p>
+          </div>
+          <p class="tnum font-display text-2xl font-semibold leading-none">80%</p>
         </div>
-        <p class="tnum font-display text-2xl font-semibold">80%</p>
+        <p class="mt-3 max-w-prose border-l-2 border-[color:var(--hue-ear)] pl-3">Degree 6 still slips. Sing it before answering.</p>
+        <div class="mt-3 flex flex-wrap gap-1">
+          {#each [1, 1, 1, 0, 1, 1, 1, 1, 0, 1] as ok, i (i)}
+            <span class="grid size-8 place-items-center rounded-full text-sm font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
+          {/each}
+        </div>
+        <p class="tnum mt-2 flex gap-5 text-sm"><span><span class="text-ws-soft">Answers</span> <b>10</b></span><span><span class="text-ws-soft">Time</span> <b>6 min</b></span></p>
       </div>
-      <div class="mt-3 flex flex-wrap gap-1">
-        {#each [1, 1, 1, 0, 1, 1, 1, 1, 0, 1] as ok, i (i)}
-          <span class="grid size-8 place-items-center rounded-full text-sm font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
-        {/each}
-      </div>
-      <p class="mt-2 text-sm">Degree 6 still slips. Sing it before answering.</p>
-    </div>
+      <figcaption class="mt-2 text-sm text-ws-soft">What a saved session looks like.</figcaption>
+    </figure>
   </section>
 {:else}
   <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -167,7 +178,7 @@
           </p>
         </div>
         {#if latestToday && !composing}
-          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Add a note</button>
+          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note on today's session</button>
         {/if}
       </div>
 

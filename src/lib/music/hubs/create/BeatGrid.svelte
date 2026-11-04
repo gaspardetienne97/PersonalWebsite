@@ -2,15 +2,16 @@
   // The beat's editor: a step sequencer of one to eight bars, rows are drum
   // voices keyed by MIDI note (a row with a kit sample plays the sample). The
   // song bar plays it; the tracks list mutes it and picks its kit.
-  import Plus from "lucide-svelte/icons/plus";
-  import Minus from "lucide-svelte/icons/minus";
   import Play from "lucide-svelte/icons/play";
+  import Sliders from "lucide-svelte/icons/sliders-horizontal";
+  import * as Popover from "@repo/ui/popover";
   import Square from "lucide-svelte/icons/square";
   import Volume from "lucide-svelte/icons/volume-2";
   import Drum from "lucide-svelte/icons/drum";
   import type { Snippet } from "svelte";
   import { audio } from "$lib/music/runtime";
   import { btnStage } from "$lib/music/components/ui";
+  import { barCells } from "./pattern";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
@@ -21,9 +22,7 @@
     fromPreset,
     hitCount,
     isOn,
-    MAX_BARS,
     PRESETS,
-    removeBar,
     STEPS,
     stepsOf,
     toggleStep,
@@ -84,16 +83,26 @@
   }
 
   const bars = (n: number) => `${n} ${n === 1 ? "bar" : "bars"}`;
-  function grow() {
-    const song = session.bars;
-    session.growBeat();
-    const n = barsOf(session.pattern);
-    announce(`The beat is ${bars(n)}; the new bar starts as a copy of the last one.${session.bars > song ? ` The song grew to ${bars(session.bars)}.` : ""}`);
+  /** The row sounding on the playhead's step: its name lights with the hit. */
+  const rowHit = (midi: number) => playhead >= 0 && isOn(pattern, midi, playhead);
+
+  // The bar overview: every bar of the song, the beat's own bars and the
+  // repeats that fill the rest, the one playing filled. A tap shows that bar.
+  const overview = $derived(barCells(barsOf(pattern), session.loopBars, session.only === null || session.only === "beat" ? session.beat : -1));
+  function showBar(beatBar: number) {
+    const b = box;
+    const cell = b?.querySelector<HTMLElement>(`thead th[data-step="${beatBar * STEPS}"]`);
+    const head = b?.querySelector<HTMLElement>("thead th.rowhead");
+    if (!b || !cell || !head) return;
+    b.scrollTo({ left: b.scrollLeft + cell.getBoundingClientRect().left - b.getBoundingClientRect().left - head.offsetWidth - 4 });
   }
-  function shrink() {
-    session.setPattern(removeBar(pattern));
-    announce(`The beat is ${bars(barsOf(session.pattern))}. It repeats to fill the song.`);
-  }
+  // More steps to the right than fit: the edge fades so the cut reads as "scroll".
+  let more = $state(false);
+  const measure = () => (more = !!box && box.scrollLeft + box.clientWidth < box.scrollWidth - 2);
+  $effect(() => {
+    void total;
+    measure();
+  });
 
   function usePreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
@@ -119,24 +128,48 @@
   const field = "min-h-11 rounded-lg border border-ws-stage-ink/15 bg-ws-stage-ink/8 px-3 text-sm text-ws-stage-ink";
 </script>
 
+<svelte:window onresize={measure} />
+
 <section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
-    <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+    <div class="mb-3 flex items-center gap-2 sm:gap-3">
       <!-- The song bar's Play is the main transport; this plays the beat alone. -->
-      <button type="button" class={btnStage} aria-pressed={soloing} onclick={playGroove}>
+      <button type="button" class="{btnStage} shrink-0" aria-pressed={soloing} onclick={playGroove}>
         {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play beat{/if}
       </button>
-      <h2 class="min-w-0 flex-1 basis-0 truncate font-display text-xl font-semibold sm:basis-24">{pattern.name}</h2>
-      <div class="flex items-center gap-1 text-sm" role="group" aria-label="Beat length">
-        <button type="button" class="{btnStage} w-11 px-0 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove the beat's last bar" disabled={barsOf(pattern) <= 1} onclick={shrink}><Minus class="size-4" aria-hidden="true" /></button>
-        <span class="tnum w-14 text-center font-semibold">{bars(barsOf(pattern))}</span>
-        <button type="button" class="{btnStage} w-11 px-0 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add a bar to the beat" disabled={barsOf(pattern) >= MAX_BARS} onclick={grow}><Plus class="size-4" aria-hidden="true" /></button>
-      </div>
-      {@render extra?.()}
-      <a class={btnStage} href="/music/create/kits"><Drum class="size-4" aria-hidden="true" />Kits</a>
-      <Picker class="w-auto min-w-36 max-sm:flex-1 border-ws-stage-ink/30 bg-ws-stage-ink/15 dark:bg-ws-stage-ink/15 data-[placeholder]:text-ws-stage-ink [&_.truncate]:opacity-100" tone="stage" action label="Start from a preset" placeholder="Presets" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
+      <h2 class="min-w-0 flex-1 truncate font-display text-xl font-semibold">{pattern.name}</h2>
+      <!-- One menu for what the beat sounds like: presets, sample kits, the live pads. -->
+      <Popover.Root>
+        <Popover.Trigger class="{btnStage} shrink-0"><Sliders class="size-4" aria-hidden="true" />Sounds</Popover.Trigger>
+        <Popover.Content align="end" class="flex w-[min(18rem,calc(100vw-2rem))] flex-col gap-3 rounded-2xl border-ws-line bg-ws-surface p-3 text-ws-ink shadow-lg">
+          <div class="flex flex-col gap-1 text-sm">
+            <span class="font-semibold">Start from a preset</span>
+            <Picker class="w-full" action label="Start from a preset" placeholder="Pick a groove" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
+            <span class="text-xs text-ws-soft">Replaces this beat's hits.</span>
+          </div>
+          <div class="flex flex-wrap gap-2 border-t border-ws-line pt-3">
+            {@render extra?.()}
+            <a class="inline-flex min-h-11 items-center gap-2 rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised" href="/music/create/kits"><Drum class="size-4" aria-hidden="true" />Sample kits</a>
+          </div>
+        </Popover.Content>
+      </Popover.Root>
     </div>
 
-    <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" data-grid aria-describedby="beat-keys">
+    <!-- Bar overview: the song's bars, the one playing filled, repeats dashed. -->
+    <div class="mb-2 flex gap-1" role="group" aria-label="Bars of the song">
+      {#each overview as c (c.bar)}
+        <button
+          type="button"
+          class="bar-cell"
+          data-repeat={c.repeat || undefined}
+          data-now={c.now || undefined}
+          aria-current={c.now ? "step" : undefined}
+          aria-label="Bar {c.bar + 1}{c.repeat ? `, repeats beat bar ${c.beatBar + 1}` : ''}{c.now ? ', playing' : ''}"
+          onclick={() => showBar(c.beatBar)}
+        >{c.bar + 1}{#if c.repeat}<span class="font-medium max-sm:sr-only">repeat</span>{/if}</button>
+      {/each}
+    </div>
+
+    <div bind:this={box} class="relative overflow-x-auto scroll-pl-28 pb-1" class:more data-grid aria-describedby="beat-keys" onscroll={measure}>
       <table class="grid-table">
         <thead>
           <tr>
@@ -152,10 +185,10 @@
         <tbody>
           {#each rows as row, r (row.midi)}
             <tr>
-              <th scope="row" class="rowhead">
+              <th scope="row" class="rowhead" class:playing={rowHit(row.midi)}>
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
-                  <span class="flex max-w-full items-center gap-1"><span class="truncate font-semibold">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60" aria-hidden="true" /></span>
-                  {#if row.sample}<span class="text-[0.7rem] text-ws-stage-soft">Sample on {padLabel(row.midi)}</span>{/if}
+                  <span class="flex max-w-full items-center gap-1"><span class="truncate font-semibold max-sm:whitespace-normal">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60" aria-hidden="true" /></span>
+                  {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">Sample on {padLabel(row.midi)}</span>{/if}
                 </button>
               </th>
               {#each Array.from({ length: total }, (_, i) => i) as s (s)}
@@ -165,6 +198,7 @@
                     type="button"
                     class="step"
                     class:alt={Math.floor(s / 4) % 2 === 1}
+                    class:accent={s % 4 === 0}
                     data-on={on || undefined}
                     data-live={liveAt.has(`${row.midi}:${s}`) || undefined}
                     data-now={playhead === s || undefined}
@@ -221,18 +255,22 @@
   .rowlabel:hover {
     background: color-mix(in oklch, var(--ws-stage-ink) 8%, transparent);
   }
+  .rowhead.playing .rowlabel {
+    color: var(--instr);
+  }
   .stephead {
     height: 1.4rem;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--ws-stage-soft);
     text-align: left;
     padding-left: 0.2rem;
-    border-bottom: 2px solid transparent;
+    border-radius: 0.375rem 0.375rem 0 0;
   }
+  /* The playhead: a bright column, its head filled. */
   .stephead[data-now] {
-    border-bottom: 4px solid var(--instr);
-    color: var(--ws-stage-ink);
+    background: var(--instr);
+    color: var(--ws-stage);
   }
   td {
     padding: 0;
@@ -251,12 +289,16 @@
     font-weight: 500;
     color: var(--ws-stage-soft);
   }
+  .stephead[data-now] .barnum {
+    color: inherit;
+  }
+  /* Beat groups alternate in shade; the first step of each beat is a touch brighter. */
   .step {
     display: block;
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 0.5rem;
-    background: color-mix(in oklch, var(--ws-stage-ink) 9%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 12%, transparent);
     box-shadow: inset 0 -2px 0 #0005;
     transition:
       background 60ms,
@@ -265,33 +307,90 @@
   .step.alt {
     background: color-mix(in oklch, var(--ws-stage-ink) 5%, transparent);
   }
+  .step.accent {
+    background: color-mix(in oklch, var(--ws-stage-ink) 18%, transparent);
+  }
+  .step.alt.accent {
+    background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+  }
   .step:hover {
-    background: color-mix(in oklch, var(--ws-stage-ink) 16%, transparent);
+    background: color-mix(in oklch, var(--ws-stage-ink) 22%, transparent);
   }
   .step[data-on] {
-    background: linear-gradient(color-mix(in oklch, var(--instr) 85%, white), var(--instr));
+    background: linear-gradient(color-mix(in oklch, var(--instr) 70%, white), var(--instr));
     box-shadow:
       inset 0 -3px 0 color-mix(in oklch, var(--instr) 60%, black),
       0 0 10px color-mix(in oklch, var(--instr) 35%, transparent);
   }
+  .step[data-on].accent {
+    background: linear-gradient(color-mix(in oklch, var(--instr) 45%, white), var(--instr));
+  }
   .step[data-live]:not([data-on]) {
     background: radial-gradient(circle, var(--instr) 0 28%, color-mix(in oklch, var(--ws-stage-ink) 9%, transparent) 30%);
   }
-  /* The playhead: the whole current column lights while the beat plays. */
   .step[data-now] {
-    outline: 2px solid color-mix(in oklch, var(--ws-stage-ink) 70%, transparent);
+    outline: 2px solid var(--instr);
     outline-offset: -2px;
   }
   .step[data-now]:not([data-on]) {
-    background: color-mix(in oklch, var(--instr) 22%, transparent);
+    background: color-mix(in oklch, var(--instr) 30%, transparent);
   }
   .step[data-on][data-now] {
-    transform: scale(1.06);
+    transform: scale(1.08);
     background: white;
+    box-shadow: 0 0 16px var(--instr);
+  }
+  /* More steps off to the right: fade the edge. */
+  [data-grid].more {
+    mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+  }
+  .bar-cell {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    border-radius: 0.5rem;
+    border: 2px solid color-mix(in oklch, var(--ws-stage-ink) 25%, transparent);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ws-stage-ink);
+  }
+  .bar-cell[data-repeat] {
+    border-style: dashed;
+    color: var(--ws-stage-soft);
+  }
+  .bar-cell[data-now] {
+    background: var(--instr);
+    border-color: var(--instr);
+    color: var(--ws-stage);
+  }
+  .bar-cell:hover:not([data-now]) {
+    background: color-mix(in oklch, var(--ws-stage-ink) 10%, transparent);
+  }
+  @media (max-width: 639px) {
+    .rowhead {
+      min-width: 4.5rem;
+      max-width: 4.5rem;
+    }
+    .rowlabel {
+      font-size: 0.8rem;
+      padding-inline: 0.25rem;
+    }
   }
   @media (min-width: 1280px) {
     .step {
       width: 2.9rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .step {
+      transition: none;
+    }
+    .step[data-on][data-now] {
+      transform: none;
     }
   }
 </style>

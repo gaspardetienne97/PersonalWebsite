@@ -62,7 +62,7 @@
       {#if midi.enabled}
         <button type="button" class={btn} onclick={() => (midi.disable(), announce("MIDI is off on this page until you enable it again."))}>Turn off MIDI</button>
       {:else}
-        <button type="button" class={btnPrimary} onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Enable MIDI</button>
+        <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Enable MIDI</button>
       {/if}
     {/if}
   </div>
@@ -70,26 +70,27 @@
     {#if !midi.supported}
       <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
     {:else if !midi.enabled}
-      <p class="text-ws-soft">Turn on MIDI to connect keyboards, pads and the Aerophone. The browser asks twice: allow both.</p>
+      <p class="text-ws-soft">For keyboards, pads and the Aerophone. The browser asks twice: allow both.</p>
     {:else}
       <p class="text-ws-soft">MIDI is on{midi.sysexEnabled ? "" : ". Pad lights were not allowed, so the MPC link and lights are off"}. Plug devices in any time.</p>
     {/if}
     {#if midi.error}<p class="mt-1 font-medium text-destructive">{midi.error}</p>{/if}
   </div>
 
-  <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3">
+  <!-- While MIDI is off the three tiles sit in one row, so the microphone is in the first phone screen. -->
+  <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3 {midi.enabled ? '' : 'max-sm:grid-cols-3'}">
     {#each TILES as t (t.id)}
       {@const lit = portsOn(t.id).length > 0}
       {@const hit = last[t.id]}
       {@const Icon = INSTRUMENT_ICON[t.hue]}
-      <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
+      <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center {midi.enabled ? '' : 'max-sm:flex-col max-sm:gap-1 max-sm:p-2 max-sm:text-center'}" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
         <span class="chip relative grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true">
           <Icon class="size-5" />
           {#if hit}{#key hit.n}<span class="bloom absolute inset-0 rounded-xl"></span>{/key}{/if}
         </span>
         <div class="min-w-0 flex-1 sm:w-full sm:flex-none">
-          <h3 class="font-semibold sm:text-base">{t.label}</h3>
-          <p class="w-full truncate text-xs text-ws-soft" title={status(t.id)}>{status(t.id)}</p>
+          <h3 class="font-semibold sm:text-base {midi.enabled ? '' : 'max-sm:text-sm'}">{t.label}</h3>
+          <p class="w-full text-xs text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{status(t.id)}</p>
         </div>
         <div class="flex shrink-0 flex-col items-end sm:items-center" aria-live="polite">
           {#if hit && lit}
@@ -109,7 +110,7 @@
       <span class="chip grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true"><INSTRUMENT_ICON.voice class="size-5" /></span>
       <div class="min-w-0">
         <h3 id="mic-title" class="font-semibold">Microphone</h3>
-        <p class="truncate text-xs text-ws-soft">
+        <p class="text-xs text-ws-soft">
           {mic.state === "on" ? `Listening on ${settings.value.audioInputLabel}` : `For guitar, ukulele and voice. Uses ${settings.value.audioInputLabel}.`}
         </p>
       </div>

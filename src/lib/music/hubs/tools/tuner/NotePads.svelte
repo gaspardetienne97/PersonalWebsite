@@ -38,6 +38,8 @@
       onclick={() => onselect(p)}
     >
       <span class="font-display text-xl font-semibold">{pretty(noteName(p, "flat", false))}</span>
+      <!-- In the key: a dot as well as the tint, so colour is never the only cue. -->
+      {#if role && role !== "other"}<span class="in-key" aria-hidden="true"></span>{/if}
       {#if semis !== null}<span class="tnum text-xs">{DEGREES[semis]}</span>{:else if noteName(p, "flat", false) !== noteName(p, "sharp", false)}<span class="text-xs">{pretty(noteName(p, "sharp", false))}</span>{/if}
     </button>
   {/each}
@@ -61,6 +63,7 @@
     }
   }
   .pad {
+    position: relative;
     display: flex;
     min-height: 3.5rem;
     flex-direction: column;
@@ -82,6 +85,15 @@
   .pad[data-role="fifth"] {
     background: color-mix(in oklch, var(--instr) 40%, transparent);
     color: var(--ws-stage-ink);
+  }
+  .in-key {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.4rem;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
   }
   .pad[data-role="tonic"],
   .pad[data-on]:not([data-role]) {

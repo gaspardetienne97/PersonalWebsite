@@ -10,6 +10,7 @@
   import Target from "lucide-svelte/icons/target";
   import Info from "lucide-svelte/icons/info";
   import Circle from "lucide-svelte/icons/circle";
+  import CalendarDays from "lucide-svelte/icons/calendar-days";
   import type { Snippet } from "svelte";
   import {
     LEARNING_PATHS,
@@ -88,7 +89,7 @@
     review: "Review",
     next: "Up next",
     "in-progress": "In progress",
-    "not-assessed": "Open, not played yet",
+    "not-assessed": "Not started",
     locked: "Locked",
     todo: "Read and play",
   };
@@ -158,10 +159,10 @@
   </span>
 {/snippet}
 
-{#snippet head(id: string, title: string, sub: string, strong: boolean, sr = "", look = "", href = "")}
+{#snippet head(id: string, title: string, sub: string, strong: boolean, sr = "", look = "", href = "", teaches = "")}
   <button
     type="button"
-    class="flex min-h-12 w-full items-center gap-3 text-left after:absolute after:inset-x-0 after:top-0 after:h-12"
+    class="flex min-h-12 w-full scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)] items-center gap-3 text-left after:absolute after:inset-x-0 after:top-0 after:h-12 lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)]"
     aria-expanded={openId === id}
     aria-controls={openId === id ? `stop-${id}` : undefined}
     onclick={() => toggle(id)}
@@ -170,7 +171,7 @@
       <span class="font-semibold">{#if sr}<span class="sr-only">{sr}</span>{/if}{title}</span>
       <!-- The state as an icon and a word, never colour alone. -->
       <span class="flex items-center gap-1 text-sm {strong ? 'font-semibold text-instr-ink' : 'text-ws-soft'}">
-        {#if look === "passed" || look === "review"}<Check class="size-3.5 text-success" aria-hidden="true" />{:else if look === "locked"}<Lock class="size-3.5" aria-hidden="true" />{:else if look === "next"}<Play class="size-3.5" aria-hidden="true" />{:else if look === "open"}<Circle class="size-3.5" aria-hidden="true" />{/if}{sub}
+        {#if look === "passed" || look === "review"}<Check class="size-3.5 text-success" aria-hidden="true" />{:else if look === "locked"}<Lock class="size-3.5" aria-hidden="true" />{:else if look === "next"}<Play class="size-3.5" aria-hidden="true" />{:else if look === "open"}<Circle class="size-3.5 shrink-0" aria-hidden="true" />{/if}{#if teaches}<span class="sr-only">{sub}. </span><span class="line-clamp-1">{teaches}</span>{:else}{sub}{/if}
       </span>
     </span>
     {#if href && look !== "locked" && openId !== id}<DrillPreview {href} class="max-sm:hidden opacity-90" />{/if}
@@ -199,6 +200,8 @@
             `Step ${stepLabel(sp)}: `,
             look,
             coming ? "" : (sp.step.href ?? ""),
+            // An open step says what it teaches, not "not started" on every row; the ring is the status.
+            st === "not-assessed" && !coming && !sp.almost && openId !== sp.step.id ? plainPathText(sp.step.summary) : "",
           )}
           {#if openId === sp.step.id}
             <div id="stop-{sp.step.id}" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 shadow-sm">
@@ -389,7 +392,7 @@
     </div>
     <p class="mt-2 flex items-start gap-1 text-ws-soft">
       <span class="min-w-0 flex-1">
-        {oneLine(current.path.subtitle)}
+        {#each oneLine(current.path.subtitle).split(/(ABRSM Grade \d+)/) as part, k (k)}{#if k % 2}<button type="button" popovertarget="abrsm-{selected}" class="font-medium text-ws-ink underline decoration-dotted underline-offset-4">{part}</button><span id="abrsm-{selected}" popover class="m-auto max-w-sm rounded-2xl border border-ws-line bg-ws-surface p-4 text-sm text-ws-ink shadow-lg">ABRSM is a UK exam board. Its piano grades run from 1 (first year) to 8 (advanced); {part.replace("ABRSM ", "")} is a confident intermediate player.</span>{:else}{part}{/if}{/each}
         <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps.</span>
       </span>
       <button
@@ -411,14 +414,14 @@
     {#if current.levels?.length && level}
       <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
            The current and the next level carry their names. -->
-      <div class="mt-4 flex items-start overflow-x-auto px-1 pb-2 pt-1" role="group" aria-label="Levels">
+      <div class="levels mt-4 flex items-start overflow-x-auto px-1 pb-2 pt-1" role="group" aria-label="Levels">
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
           {#if k}<span class="mt-5 h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
           <button
             type="button"
-            class="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
+            class="flex w-24 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
             aria-pressed={l.level.id === level.level.id}
             aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
@@ -430,23 +433,30 @@
                 ? 'bg-[color:var(--p)] text-ws-stage'
                 : isCurrent
                   ? 'bg-ws-surface text-ws-ink ring-4 ring-[color:var(--p)]'
-                  : 'bg-ws-raised text-ws-soft'}"
+                  : 'relative border-2 border-dashed border-ws-soft bg-ws-surface text-ws-soft'}"
             >
-              {#if l.passed}<Check class="size-4" aria-hidden="true" />{:else}<span class="relative"
-                  >{#if l.level.id === "0"}<Flag class="size-4" aria-hidden="true" />{:else}{l.level.id}{/if}{#if ahead}<Lock
-                      class="absolute -right-3 -top-2 size-3"
-                      aria-hidden="true"
-                    />{/if}</span
-                >{/if}
+              {#if l.passed}<Check class="size-4" aria-hidden="true" />{:else}{#if l.level.id === "0"}<Flag class="size-4" aria-hidden="true" />{:else}{l.level.id}{/if}{#if ahead}<span
+                    class="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-ws-ink text-ws-bg"
+                    aria-hidden="true"><Lock class="size-3" /></span
+                  >{/if}{/if}
             </span>
-            <span class="line-clamp-2 text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{l.level.title}</span>
+            <span class="text-center text-xs leading-tight {isCurrent ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{l.level.title}</span>
           </button>
         {/each}
       </div>
 
       <div class="mt-4">
         <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
-        <p class="mt-1">{plainPathText(level.level.goal)}</p>
+        {#if level.level.id === "0"}
+          <!-- The check-in's rule as two steps, not a paragraph. -->
+          <p class="mt-1">Find what is already solid. Nothing is skipped.</p>
+          <ol class="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:gap-4">
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Pass the check-in in Check mode</li>
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><CalendarDays class="size-4" aria-hidden="true" /></span>Review each step on two different days</li>
+          </ol>
+        {:else}
+          <p class="mt-1">{plainPathText(level.level.goal)}</p>
+        {/if}
         {#if level.level.adds}<p class="mt-1 text-sm text-ws-soft">New here: {plainPathText(level.level.adds)}</p>{/if}
         <!-- The level's progress as rings that fill to the real counts. -->
         <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -476,6 +486,11 @@
 </div>
 
 <style>
+  /* The level line scrolls sideways on narrow screens; its right edge fades so a cut level reads as more. */
+  .levels {
+    mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+    scrollbar-width: thin;
+  }
   .road path {
     fill: none;
     stroke-linecap: round;

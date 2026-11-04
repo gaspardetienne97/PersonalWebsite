@@ -1,11 +1,11 @@
 <script lang="ts">
   // On What next: the streak as a week calendar, and this week's practice time as seven
-  // day bars against a labelled scale.
+  // day bars against a labelled scale, drawn from the first day so it reads as a chart.
   import { computeStreak, dayKey, freezesEarned, practicedDays } from "@repo/music-core/progress/rewards";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { weekRollups } from "@repo/music-core/progress/journal";
-  import { weekMinutes } from "./model";
+  import { minutesText, weekMinutes } from "./model";
   import StreakWeek from "./StreakWeek.svelte";
 
   const today = $derived(dayKey(Date.now()));
@@ -14,17 +14,13 @@
   const freezes = $derived(freezesEarned(days, settings.value.frozenDays));
   const week = $derived(weekMinutes(practice.sessions, today));
   // Same rounding as the journal rollup, so both pages agree.
-  const total = $derived(weekRollups(practice.sessions, today).thisWeek.minutes);
+  const thisWeek = $derived(weekRollups(practice.sessions, today).thisWeek);
   // The scale's top: the busiest day rounded up to a round number, so the line reads as minutes.
   const scale = $derived.by(() => {
     const max = Math.max(1, ...week.map((d) => d.minutes));
     const step = max <= 10 ? 5 : max <= 30 ? 10 : max <= 60 ? 15 : 30;
     return Math.ceil(max / step) * step;
   });
-
-  // One day of data makes a near-empty chart: one figure instead until a second day is in.
-  const daysWithData = $derived(week.filter((d) => d.minutes > 0).length);
-  const todayMinutes = $derived(week.find((d) => d.today)?.minutes ?? 0);
 
   const LETTER = ["M", "T", "W", "T", "F", "S", "S"];
   const weekday = (d: string) =>
@@ -40,15 +36,8 @@
 
   <div class="min-w-0 sm:border-l sm:border-ws-line sm:pl-5">
     <h2 class="font-display text-xl font-semibold">
-      This week: <span class="tnum">{total}</span> min
+      This week: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>
     </h2>
-    {#if daysWithData < 2}
-      <p class="mt-2 flex items-baseline gap-2">
-        <span class="tnum font-display text-4xl font-semibold">{todayMinutes}</span>
-        <span class="text-ws-soft">min today</span>
-      </p>
-      <p class="text-sm text-ws-soft">The day by day chart starts once a second day has practice in it.</p>
-    {:else}
     <p class="text-sm text-ws-soft">Minutes practised each day, Monday to Sunday.</p>
     <div class="mt-3 flex max-w-sm gap-2">
       <!-- The scale: its top and zero, so a bar's height means something. -->
@@ -71,12 +60,11 @@
               ></span>
             </div>
             <span class="text-xs {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{letter(d.day)}</span>
-            <span class="tnum text-xs text-ws-soft" aria-hidden="true">{d.future ? "" : d.minutes}</span>
+            <span class="tnum text-xs {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{d.future ? "" : d.minutes}</span>
             <span class="sr-only">{weekday(d.day)}{d.today ? " (today)" : ""}: {d.future ? "still to come" : `${d.minutes} minutes`}</span>
           </li>
         {/each}
       </ol>
     </div>
-    {/if}
   </div>
 </section>

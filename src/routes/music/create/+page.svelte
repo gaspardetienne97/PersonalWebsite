@@ -170,42 +170,48 @@
   const step = "grid size-11 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised disabled:opacity-40";
 </script>
 
+{#snippet songLength()}
+  <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
+  <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
+  <button type="button" class={step} aria-label="Add a bar to the song" disabled={session.bars >= MAX_SONG_BARS} onclick={() => setBars(session.bars + 1)}><Plus class="size-4" aria-hidden="true" /></button>
+{/snippet}
+
 <svelte:head><title>Create | Woodshed</title></svelte:head>
 <svelte:window onkeydown={windowKey} />
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5">
-  <header class="flex min-w-0 flex-wrap items-end justify-between gap-x-4 gap-y-1">
+  <header class="flex min-w-0 items-center justify-between gap-x-4 gap-y-1 sm:flex-wrap sm:items-end">
     <div class="min-w-0">
-      <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Create</h1>
+      <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">Create</h1>
       <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">Build a beat and melodies that loop together, then jam over them.</p>
+      <!-- On a phone the song's name rides under the title, so the bar below stays one row. -->
+      <p class="truncate text-sm text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? "not saved" : session.changed ? "unsaved changes" : "saved"}</p>
     </div>
-    <a class="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" />Record a take</a>
+    <a class="flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/record"><CircleDot class="size-4" aria-hidden="true" /><span>Record<span class="max-sm:hidden">{" "}a take</span></span></a>
   </header>
 
-  <section class="z-20 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 rounded-2xl border border-ws-line bg-ws-surface/95 p-2.5 shadow-sm backdrop-blur sm:sticky sm:top-[calc(var(--ws-strip-h,3.5rem)+0.5rem)] sm:p-3" aria-label="Song">
-    <button type="button" class="{btnPrimary} min-h-12 px-5 font-display text-base sm:px-6" aria-pressed={session.playing && session.only === null} onclick={playAll}>
+  <section class="z-20 flex min-h-14 items-center gap-x-2 rounded-2xl border border-ws-line bg-ws-surface/95 p-1.5 shadow-sm backdrop-blur sm:sticky sm:top-[calc(var(--ws-strip-h,3.5rem)+0.5rem)] sm:flex-wrap sm:gap-x-3 sm:gap-y-2 sm:p-3" aria-label="Song">
+    <button type="button" class="{btnPrimary} min-h-11 shrink-0 px-4 font-display text-base sm:min-h-12 sm:px-6" aria-pressed={session.playing && session.only === null} onclick={playAll}>
       {#if session.playing && session.only === null}<Square class="size-5" aria-hidden="true" />Stop{:else}<Play class="size-5" aria-hidden="true" />Play all{/if}
     </button>
-    <p class="flex min-w-0 flex-1 basis-0 flex-col leading-tight sm:basis-24">
+    <p class="flex min-w-0 flex-1 basis-24 flex-col leading-tight max-sm:hidden">
       <span class="truncate font-display text-base font-semibold">{session.songName}</span>
-      <span class="text-xs text-ws-soft"><span class="max-sm:hidden">Song,</span> <span data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span></span>
+      <span class="text-xs text-ws-soft">Song, <span data-save-state>{!session.saved ? "Not saved" : session.changed ? "Unsaved changes" : "Saved"}</span></span>
     </p>
-    <label class="flex items-center gap-2 text-sm max-sm:order-last">
-      <span class="text-ws-soft">Tempo</span>
-      <input type="number" min="40" max="200" class="{field} tnum w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
-      <span class="sr-only">BPM</span>
+    <label class="flex items-center gap-1.5 text-sm max-sm:flex-1">
+      <span class="text-ws-soft max-sm:sr-only">Tempo</span>
+      <input type="number" min="40" max="200" class="{field} tnum w-16 sm:w-20" value={session.bpm} onchange={(e) => session.setBpm(e.currentTarget.valueAsNumber)} />
+      <span class="text-ws-soft max-sm:text-xs" aria-hidden="true">BPM</span><span class="sr-only">BPM</span>
     </label>
-    <div class="flex items-center gap-1 text-sm max-sm:order-last" role="group" aria-label="Song length">
-      <button type="button" class={step} aria-label="Remove the song's last bar" disabled={session.bars <= 1} onclick={() => setBars(session.bars - 1)}><Minus class="size-4" aria-hidden="true" /></button>
-      <span class="tnum w-16 text-center font-semibold">{bars(session.bars)}</span>
-      <button type="button" class={step} aria-label="Add a bar to the song" disabled={session.bars >= MAX_SONG_BARS} onclick={() => setBars(session.bars + 1)}><Plus class="size-4" aria-hidden="true" /></button>
+    <div class="flex items-center gap-1 text-sm max-sm:hidden" role="group" aria-label="Song length">
+      {@render songLength()}
     </div>
-    <button type="button" class="{btn} max-sm:px-3" disabled={session.saved && !session.changed} onclick={save}>
+    <button type="button" class="{btn} shrink-0 max-sm:size-11 max-sm:px-0" disabled={session.saved && !session.changed} onclick={save}>
       {#if session.saved && !session.changed}<Check class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Saved</span>{:else}<Save class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Save</span>{/if}
     </button>
     <button
       type="button"
-      class="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash"
+      class="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold text-instr-ink hover:bg-instr-wash max-sm:px-0"
       aria-expanded={panelOpen}
       aria-controls="create-panel"
       onclick={() => (panelOpen = !panelOpen)}
@@ -215,7 +221,7 @@
   </section>
 
   <!-- On a phone one editor shows at a time; from sm up both stay on the page. -->
-  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-1 sm:hidden" role="group" aria-label="Editor">
+  <div class="grid grid-cols-2 rounded-full border border-ws-line bg-ws-surface p-0.5 sm:hidden" role="group" aria-label="Editor">
     {#each [{ id: "beat", label: "Beat" }, { id: "roll", label: "Melody" }] as const as t (t.id)}
       <button type="button" class="min-h-11 rounded-full text-sm font-semibold {editor === t.id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft'}" aria-pressed={editor === t.id} onclick={() => (editor = t.id)}>{t.label}</button>
     {/each}
@@ -230,6 +236,11 @@
           <span class="text-ws-soft">Name</span>
           <input class="{field} font-medium" bind:value={session.songName} />
         </label>
+        <!-- On a phone the song's length lives here, out of the one-row bar. -->
+        <div class="flex items-center gap-2 text-sm sm:hidden" role="group" aria-label="Song length">
+          <span class="text-ws-soft">Length</span>
+          {@render songLength()}
+        </div>
         <div class="flex flex-wrap gap-2">
           <button type="button" class={btn} onclick={saveCopy}>Save as a copy</button>
           <button type="button" class={btn} onclick={() => request({ kind: "new" })}><FilePlus class="size-4" aria-hidden="true" />New song</button>
@@ -265,17 +276,19 @@
 
   <p role="status" class="-my-3 text-sm font-medium empty:sr-only">{status}</p>
 
+  <!-- ?mode=roll opens on the melody editor: on a laptop it comes first. -->
+  <div class="flex flex-col gap-5">
   <div class="flex flex-col gap-5 {editor === 'beat' ? '' : 'max-sm:hidden'}">
     {#if live && ready}<LivePads {announce} />{/if}
     <BeatGrid {announce}>
       {#snippet extra()}
-        <button type="button" class="{btnStage} {live ? 'bg-ws-stage-ink/25' : ''}" aria-pressed={live} onclick={() => (live = !live)}>
+        <button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised {live ? 'bg-instr-wash text-instr-ink' : ''}" aria-pressed={live} onclick={() => (live = !live)}>
           <Grid class="size-4" aria-hidden="true" />{live ? "Close the pads" : "Play it live"}
         </button>
       {/snippet}
     </BeatGrid>
   </div>
-  <div class="flex flex-col {editor === 'roll' ? '' : 'max-sm:hidden'}">
+  <div class="flex flex-col {editor === 'roll' ? 'sm:order-first' : 'max-sm:hidden'}">
     {#if !ready}
       <div class="stage h-80 rounded-3xl" aria-hidden="true"></div>
     {:else if session.doc.voices.length}
@@ -286,5 +299,6 @@
         <button type="button" class={btnStage} onclick={() => announce(`Added ${session.addMelody().name}.`)}><Plus class="size-4" aria-hidden="true" />Add a melody</button>
       </div>
     {/if}
+  </div>
   </div>
 </div>

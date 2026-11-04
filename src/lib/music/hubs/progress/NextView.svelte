@@ -9,7 +9,7 @@
   import { blockReason, nextDrill, todayPlan } from "../../today.svelte";
   import DrillPreview from "../DrillPreview.svelte";
   import { practiceName } from "@repo/music-core/progress/coach";
-  import { CAPABILITY_LABEL, fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
+  import { CAPABILITY_LABEL, fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, previewHref, relativeDay, skillRows, type SkillRow } from "./model";
   import Ring from "./Ring.svelte";
   import ProgressStrip from "./ProgressStrip.svelte";
   import Play from "lucide-svelte/icons/play";
@@ -66,7 +66,20 @@
 
   // After the set: one named drill, the same one Today offers.
   const after = $derived(upNext ? undefined : nextDrill(plan));
-  const target = $derived(upNext?.href ?? after?.href);
+  const afterName = $derived(after?.label.replace(/^(Try|Practise) /, ""));
+  // The coach's pick is drawn as the weak skill's own drill (its link may be the mixed ear drill);
+  // a family of skills ("Intervals") is drawn as its weakest measured member.
+  const focusDrawn = $derived.by(() => {
+    const id = plan.advice.focus?.skillId;
+    if (!id) return undefined;
+    const kids = rows
+      .filter((r) => r.skill.id.startsWith(`${id.replace(/s$/, "")}.`) && r.direct && r.estimate !== undefined)
+      .sort((a, b) => a.estimate! - b.estimate!);
+    return kids[0]?.skill.id ?? id;
+  });
+  const target = $derived(
+    upNext?.href ?? (after && (after.href === plan.advice.action.href ? previewHref(focusDrawn, after.href) : after.href)),
+  );
 
   // Pitch skills drawn on one octave of keys from C: each interval's top note, each degree's key,
   // filled by today's estimate once measured, dashed while it is not.
@@ -105,10 +118,10 @@
     <div class="min-w-0 self-start rounded-3xl border border-ws-line bg-ws-surface p-4 sm:p-5" style:--step-hue={upNext ? hueVar(hueForRoute(upNext.href, instrument)) : "var(--instr)"}>
       <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument]}</p>
       <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else}Today's set is done{/if}
+        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Set done. One more: {afterName}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
-        {#if upNext}{blockReason(upNext)}{:else if after}Next: {after.label.replace(/^Try /, "")}. {after.why}{:else}{plan.advice.summary}{/if}
+        {#if upNext}{blockReason(upNext)}{:else if after}{after.href === plan.advice.action.href ? "Your set is done. One more on your weakest skill, if you have time." : after.why}{:else}{plan.advice.summary}{/if}
       </p>
       {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
       <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -190,7 +203,7 @@
                 >
                 {#if done}<span class="text-xs font-medium text-success">Done</span>{:else if isNext}<span class="rounded-full bg-instr-wash px-2 text-xs text-instr-ink">Now</span>{/if}
               </p>
-              <p class="line-clamp-1 text-sm text-ws-soft">
+              <p class="line-clamp-2 text-sm text-ws-soft">
                 <span class="tnum">{step.minutes} min.</span>
                 {blockReason(step)}
               </p>

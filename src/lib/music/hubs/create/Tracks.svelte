@@ -4,6 +4,7 @@
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import Plus from "lucide-svelte/icons/plus";
+  import Minus from "lucide-svelte/icons/minus";
   import Dots from "lucide-svelte/icons/ellipsis";
   import Volume from "lucide-svelte/icons/volume-2";
   import VolumeOff from "lucide-svelte/icons/volume-off";
@@ -15,7 +16,7 @@
   import { audio } from "$lib/music/runtime";
   import { kits } from "./kitStore.svelte";
   import { session, type TrackId } from "./session.svelte";
-  import { barsOf, hitCount } from "./pattern";
+  import { barsOf, hitCount, MAX_BARS, removeBar } from "./pattern";
   import { chordsIn, KEYS, progressionVoice, PROGRESSIONS } from "./progressions";
   import { loopBeats, ROLL_SOUNDS, soundOf, trackColour, type RollVoice } from "./roll";
 
@@ -100,6 +101,17 @@
     announce(`Saved ${v.name} to the library. Add it to any song from Add from library.`);
   }
 
+  // The beat's own length: it repeats to fill the song, and a longer beat grows the song.
+  function growBeat() {
+    const song = session.bars;
+    session.growBeat();
+    announce(`The beat is ${count(barsOf(session.pattern), "bar")}; the new bar starts as a copy of the last one.${session.bars > song ? ` The song grew to ${count(session.bars, "bar")}.` : ""}`);
+  }
+  function shrinkBeat() {
+    session.setPattern(removeBar(session.pattern));
+    announce(`The beat is ${count(barsOf(session.pattern), "bar")}. It repeats to fill the song.`);
+  }
+
   /** First tap asks, second tap does it. */
   function twice(key: string, e: Event, run: () => void) {
     if (confirming !== key) {
@@ -158,7 +170,13 @@
       {@render playButton("beat", session.pattern.name, "var(--instr)")}
       <div class="flex min-w-0 flex-col">
         <input class={name} aria-label="Beat name" value={session.pattern.name} onchange={(e) => session.setPattern({ ...session.pattern, name: e.currentTarget.value || session.pattern.name })} />
-        <span class="px-1.5 text-xs text-ws-soft">Beat, {count(hitCount(session.pattern), "hit")} over {count(barsOf(session.pattern), "bar")}{session.beatMuted ? ", muted" : ""}</span>
+        <span class="flex flex-wrap items-center gap-x-1 px-1.5 text-xs text-ws-soft">
+          <span>Beat, {count(hitCount(session.pattern), "hit")} over {count(barsOf(session.pattern), "bar")}{session.beatMuted ? ", muted" : ""}</span>
+          <span class="flex items-center" role="group" aria-label="Beat length">
+            <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-35" aria-label="Remove the beat's last bar" disabled={barsOf(session.pattern) <= 1} onclick={shrinkBeat}><Minus class="size-4" aria-hidden="true" /></button>
+            <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-35" aria-label="Add a bar to the beat" disabled={barsOf(session.pattern) >= MAX_BARS} onclick={growBeat}><Plus class="size-4" aria-hidden="true" /></button>
+          </span>
+        </span>
       </div>
       <Picker class="order-last col-span-4 sm:order-none sm:col-span-1" label="Beat kit" value={kits.kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={pickKit} />
       <div class="flex items-center">

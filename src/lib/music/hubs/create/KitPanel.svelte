@@ -147,39 +147,15 @@
 </script>
 
 <section aria-labelledby="kit-title" class="flex flex-col gap-4">
-  {#if kit}
-    <div class="flex flex-col gap-3 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:flex-row sm:items-center sm:p-5">
-      <div class="min-w-0 flex-1">
-        <p class="font-display text-lg font-semibold">{kit.samples.length ? "Add more sounds" : "Start with your own sounds"}</p>
-        <p class="text-sm text-ws-soft">WAV, AIFF, FLAC, MP3 or OGG. A file called "Kick_01" or "HiHat Open" lands on the matching pad by itself.</p>
-      </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <input bind:this={fileInput} type="file" multiple accept=".wav,.wave,.aif,.aiff,.flac,.mp3,.ogg,.oga,audio/*" class="sr-only" aria-label="Import samples" onchange={onFiles} />
-          <button type="button" class={btnPrimary} disabled={busy} onclick={() => fileInput?.click()}>
-            <Upload class="size-4" aria-hidden="true" />Import samples
-          </button>
-        </div>
-
-    </div>
-  {/if}
-
-  <div class="flex flex-wrap items-end justify-between gap-3">
-    <div class="min-w-0">
-      <h2 id="kit-title" class="font-display text-2xl font-semibold tracking-tight">Pads</h2>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <div class="flex items-center gap-2 text-sm">
-        <span class="text-ws-soft">Kit</span>
-        <Picker class="w-auto min-w-40" label="Kit" value={kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={(id) => kits.select(id)} />
-      </div>
-      {#if kit}
-        <label class="flex min-w-0 items-center gap-2 text-sm">
-          <span class="text-ws-soft">Kit name</span>
-          <input class="min-h-11 w-40 min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3" value={kit.name} onchange={(e) => kits.rename(e.currentTarget.value)} />
-        </label>
-      {/if}
-      <button type="button" class={btn} onclick={newKit}><Plus class="size-4" aria-hidden="true" />New kit</button>
-    </div>
+  <!-- The pads lead; importing is one button beside their heading. -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 id="kit-title" class="font-display text-2xl font-semibold tracking-tight">Pads</h2>
+    {#if kit}
+      <input bind:this={fileInput} type="file" multiple accept=".wav,.wave,.aif,.aiff,.flac,.mp3,.ogg,.oga,audio/*" class="sr-only" aria-label="Import samples" onchange={onFiles} />
+      <button type="button" class={btnPrimary} disabled={busy} onclick={() => fileInput?.click()}>
+        <Upload class="size-4" aria-hidden="true" />Import samples
+      </button>
+    {/if}
   </div>
 
   {#if kit}
@@ -200,8 +176,12 @@
               >
             {/each}
           </div>
-          <p class="text-sm text-ws-soft">Tap a pad to hear it. Empty pads play the built-in drum named on them. Keys <kbd class="rounded border border-ws-line px-1">Z</kbd> to <kbd class="rounded border border-ws-line px-1">4</kbd> play bank A, laid out like the MPC.</p>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-ws-soft max-sm:sr-only">Kit</span>
+            <Picker class="w-auto min-w-36" label="Kit" value={kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={(id) => kits.select(id)} />
+          </div>
         </div>
+        <p class="text-sm text-ws-soft">Tap a pad to hear it. Keys <kbd class="rounded border border-ws-line px-1">Z</kbd> to <kbd class="rounded border border-ws-line px-1">4</kbd> play bank A, laid out like the MPC.</p>
 
         {#if assigning}
           <p class="flex flex-wrap items-center gap-2 rounded-xl bg-instr-wash px-3 py-2 text-sm">
@@ -235,8 +215,8 @@
               >
                 <span class="led" aria-hidden="true"></span>
                 <span class="truncate text-sm font-semibold">{name ?? (kits.broken.includes(note) ? "Missing file" : (BUILT_IN_DRUM[note] ?? "Synth"))}</span>
-                <span class="flex items-start justify-between gap-1 text-[0.7rem] opacity-70">
-                  <span>{padLabel(note)}{name ? "" : ", built in"}</span>
+                <span class="flex items-start justify-between gap-1 text-xs opacity-80">
+                  <span>{padLabel(note)}{#if !name}<span class="max-sm:hidden">, built in</span>{/if}</span>
                   {#if p?.chokeGroup}<span aria-hidden="true">M{p.chokeGroup}</span>{/if}
                 </span>
               </button>
@@ -302,6 +282,23 @@
             <p class="mt-2 rounded-2xl border border-dashed border-ws-line p-4 text-sm text-ws-soft">No samples yet. Until a pad has one, the beat plays the built-in drums.</p>
           {/if}
         </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="flex min-w-0 items-center gap-2 text-sm">
+            <span class="text-ws-soft">Kit name</span>
+            <input class="min-h-11 w-40 min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3" value={kit.name} onchange={(e) => kits.rename(e.currentTarget.value)} />
+          </label>
+          <button type="button" class={btn} onclick={newKit}><Plus class="size-4" aria-hidden="true" />New kit</button>
+        </div>
+
+        <details class="group rounded-2xl bg-ws-raised/60 p-4">
+          <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />How file names map
+          </summary>
+          <p class="mt-1 max-w-prose text-sm text-ws-soft">
+            Import WAV, AIFF, FLAC, MP3 or OGG. A file called "Kick_01" or "HiHat Open" lands on the matching pad by itself; anything else takes the next free pad of the bank on screen. Empty pads play the built-in drum named on them. Kits stay in this browser.
+          </p>
+        </details>
 
         <details class="group rounded-2xl bg-ws-raised/60 p-4">
           <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">

@@ -22,6 +22,7 @@ import {
 } from "./kits";
 import {
   addBar,
+  barCells,
   beatNotes,
   isOn,
   PRESETS,
@@ -144,6 +145,17 @@ describe("beat pattern", () => {
     expect(two.steps).toEqual({ 36: [0, 8, 16, 24], 38: [4, 12, 20, 28] });
     expect(removeBar(two)).toEqual({ ...one, bars: 1 });
     expect(removeBar(one)).toBe(one); // never below one bar
+  });
+
+  it("draws the song's bars for the overview: the beat's own, then repeats, the playing one marked", () => {
+    const cells = barCells(1, 3, 5); // a one-bar beat in a three-bar song, beat 5 is in bar 2
+    expect(cells.map((c) => [c.beatBar, c.repeat, c.now])).toEqual([
+      [0, false, false],
+      [0, true, true],
+      [0, true, false],
+    ]);
+    expect(barCells(2, 1).map((c) => c.repeat)).toEqual([false, false]); // a longer beat sets the length
+    expect(barCells(2, 2, -1).some((c) => c.now)).toBe(false); // stopped
   });
   it("ships presets whose hits all sit inside their bars, the verified grooves among them", () => {
     for (const pr of PRESETS)

@@ -35,9 +35,12 @@
   let boost = $state(settings.value.recordBoostDb ?? 0);
   let now = $state(0);
   let confirmDelete = $state<string | null>(null);
-  /** The take saved on this visit, shown with Play right under the Record button. */
+  /** The take saved on this visit, marked in the list. */
   let latest = $state<string | null>(null);
-  const latestTake = $derived(takes.find((t) => t.id === latest));
+  /** The live input as a scrolling trace: recent peaks, 0..1, newest last. */
+  let trace = $state<number[]>([]);
+  const TRACE = 96;
+  let traceAt = 0;
 
   let rec: { stop(): Promise<Blob>; setBoost(db: number): void } | null = null;
   let t0 = 0;
@@ -58,6 +61,10 @@
       if (mic.peak >= hold || t - holdAt > 1500) {
         hold = mic.peak;
         holdAt = t;
+      }
+      if (mic.state === "on" && t - traceAt > 50) {
+        traceAt = t;
+        trace = [...trace.slice(1 - TRACE), pct(mic.peak + boost) / 100];
       }
       raf = requestAnimationFrame(step);
     });
@@ -90,6 +97,7 @@
     }
     t0 = performance.now();
     elapsed = 0;
+    trace = [];
     recording = true;
     timer = setInterval(() => {
       elapsed = performance.now() - t0;
@@ -278,7 +286,7 @@
         <span class="hold" style:left="{live ? pct(hold + boost) : 0}%"></span>
         {#each [-30, -6, -1] as mark (mark)}<span class="mark" style:left="{pct(mark)}%"></span>{/each}
       </div>
-      <div class="mt-1 flex justify-between text-[0.7rem] text-ws-stage-soft" aria-hidden="true"><span>−60 dB</span><span>−30</span><span>−6</span><span>0</span></div>
+      <div class="mt-1 flex justify-between text-[0.8125rem] text-ws-stage-soft" aria-hidden="true"><span>−60 dB</span><span>−30</span><span>−6</span><span>0</span></div>
       <p class="mt-2 text-sm" data-testid="level-advice">
         {#if live}
           <strong>{boostedAdvice.label}</strong>: {ADVICE[boostedAdvice.tone]} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
@@ -288,6 +296,20 @@
       </p>
     </div>
   </div>
+  {#if live}
+    <!-- What the microphone hears right now, scrolling: it turns red while recording. -->
+    <figure class="flex flex-col gap-1">
+      <svg viewBox="0 0 {TRACE} 20" preserveAspectRatio="none" class="h-16 w-full rounded-lg bg-ws-stage-ink/5" aria-hidden="true">
+        <line x1="0" x2={TRACE} y1="10" y2="10" class="mid" vector-effect="non-scaling-stroke" />
+        {#each trace as p, k (k)}
+          {@const h = Math.max(0.3, p * 9.5)}
+          <rect x={TRACE - trace.length + k + 0.15} y={10 - h} width="0.7" height={2 * h} class={recording ? "live rec" : "live"} />
+        {/each}
+      </svg>
+      <figcaption class="text-[0.8125rem] text-ws-stage-soft">{recording ? "Recording: the take as it comes in" : "Live input: play a little to check the level"}</figcaption>
+    </figure>
+  {/if}
+
   <div class="flex flex-wrap items-center gap-3">
         <label class="flex items-center gap-2 text-sm">
           <span class="text-ws-stage-soft">Record boost</span>
@@ -310,27 +332,6 @@
         {/if}
   </div>
 
-  {#if latestTake && !recording}
-    {@const isPlaying = player?.id === latestTake.id}
-    <div class="flex flex-wrap items-center gap-3 rounded-2xl bg-ws-stage-ink/8 p-3" data-testid="latest-take">
-      <button
-        type="button"
-        class="grid size-11 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-stage-ink text-ws-stage' : 'bg-instr text-ws-stage hover:brightness-105'}"
-        aria-label="{isPlaying ? 'Stop' : 'Play'} {latestTake.name}"
-        aria-pressed={isPlaying}
-        onclick={() => play(latestTake)}
-      >
-        {#if isPlaying}<Square class="size-5" aria-hidden="true" />{:else}<Play class="size-5" aria-hidden="true" />{/if}
-      </button>
-      <p class="min-w-0 flex-1 text-sm">
-        <span class="flex items-center gap-1 font-semibold"><Check class="size-4 text-success" aria-hidden="true" />Saved {latestTake.name}</span>
-        <span class="tnum text-ws-stage-soft">{takeLength(latestTake.durationMs)}. It is in your takes below.</span>
-      </p>
-      {#if latestTake.gainDb}
-        <span class="tnum rounded-full bg-ws-stage-ink/10 px-2.5 py-1 text-xs" title="Quiet takes play back louder here. The recording itself is unchanged.">Plays at {signedDb(latestTake.gainDb)}</span>
-      {/if}
-    </div>
-  {/if}
 </section>
 
 {#if unsaved}
@@ -351,7 +352,7 @@
         {@const warn = clipWarning(peakDbOf(take.envelope), gain)}
         {@const pos = progress(take)}
         {@const n = Math.max(1, take.envelope.length)}
-        <li class="flex flex-col gap-3 p-3 sm:p-4" data-audio-take={take.id}>
+        <li class="flex flex-col gap-3 p-3 sm:p-4 {take.id === latest ? 'bg-instr-wash/40' : ''}" data-audio-take={take.id}>
           <div class="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -369,6 +370,7 @@
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
             <span class="tnum text-sm text-ws-soft">{takeLength(take.durationMs)}</span>
+            {#if take.id === latest}<span class="flex items-center gap-1 rounded-full bg-instr-wash px-2.5 py-1 text-xs font-semibold text-instr-ink"><Check class="size-3.5" aria-hidden="true" />Just recorded</span>{/if}
             <a class="{btn} px-3" href="/music/library?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
             <button type="button" class="{btn} px-3" onclick={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</button>
             <button
@@ -412,6 +414,7 @@
               />
               <span class="tnum w-14 font-semibold">{signedDb(gain)}</span>
             </label>
+            {#if gain > 0}<span class="text-sm text-ws-soft">Plays {gain} dB louder here, so a quiet take is easy to hear</span>{:else if gain < 0}<span class="text-sm text-ws-soft">Plays {-gain} dB quieter here</span>{/if}
             <input
               class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
               value={take.note ?? ""}
@@ -443,6 +446,16 @@
   }
   .wave {
     background: var(--ws-stage);
+  }
+  .mid {
+    stroke: color-mix(in oklch, var(--ws-stage-ink) 20%, transparent);
+    stroke-width: 1;
+  }
+  .live {
+    fill: var(--success);
+  }
+  .live.rec {
+    fill: var(--destructive);
   }
   .cursor {
     stroke: var(--ws-stage-ink);

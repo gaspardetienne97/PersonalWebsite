@@ -47,11 +47,14 @@
     >
     <div class="min-w-0 flex-1">
       <h2 id="{id}-title" class="font-display text-xl font-semibold">
-        {current ? `${current}-day streak` : "Start a streak today"}
+        {current === 1 ? "Day 1 of your streak" : current ? `${current}-day streak` : "Start a streak today"}
       </h2>
-      <p class="text-sm text-ws-soft">
-        {#if longest}Best streak: {longest} day{longest === 1 ? "" : "s"}.{" "}{/if}{freezes} streak freeze{freezes === 1 ? "" : "s"} saved.
-      </p>
+      <!-- Best and freezes only when they add something: a best equal to today's streak, or no freezes, says nothing. -->
+      {#if (longest ?? 0) > current || freezes}
+        <p class="text-sm text-ws-soft">
+          {#if (longest ?? 0) > current}Best streak: {longest} day{longest === 1 ? "" : "s"}.{" "}{/if}{#if freezes}{freezes} streak freeze{freezes === 1 ? "" : "s"} saved.{/if}
+        </p>
+      {/if}
     </div>
     <button
       type="button"

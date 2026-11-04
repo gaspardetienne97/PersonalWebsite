@@ -41,6 +41,10 @@ describe("drill previews", () => {
     });
   });
 
+  it("draws the mixed ear review instead of the area icon", () => {
+    expect(drillPreview("/music/ear/mixed?instrument=voice")).toMatchObject({ kind: "keys" });
+  });
+
   it("has a picture or the area icon for every catalogue drill, and never throws", () => {
     for (const e of CATALOG) expect(() => drillPreview(e.route, "piano")).not.toThrow();
     expect(drillPreview("/music/songs/shelf/guitar/blackbird")).toEqual({ kind: "icon" });

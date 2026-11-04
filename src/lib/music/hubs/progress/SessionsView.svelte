@@ -13,7 +13,7 @@
   import { weekRollups } from "@repo/music-core/progress/journal";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
-  import { todayChallenges, todayPlan } from "../../today.svelte";
+  import { todayPlan } from "../../today.svelte";
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { hueForRoute, hueVar } from "../../hues";
   import { HUE_ICON } from "../hue-icons";
@@ -31,15 +31,15 @@
   const weeks = $derived(weekRollups(practice.sessions, today));
   const trends = $derived(setupTrends(practice.sessions));
   const plan = $derived(todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes));
-  const challenges = $derived(todayChallenges(plan.advice));
   const weakSpot = $derived(
     plan.advice.focus ? { skillId: plan.advice.focus.skillId, name: plan.advice.focus.name, href: plan.advice.action.href } : undefined,
   );
   const summary = $derived(weeklySummary({ today, sessions: practice.sessions, events: practice.events, weakSpot }));
+  const streak = $derived(computeStreak(days, settings.value.frozenDays, today));
   const badges = $derived(
     achievements({
       xp,
-      longestStreak: computeStreak(days, settings.value.frozenDays, today).longest,
+      longestStreak: streak.longest,
       mastery: practice.mastery,
       frozenDays: settings.value.frozenDays,
     }),
@@ -57,8 +57,10 @@
         return { s, lead, hue, ms: sessionMs(s), folded };
       }),
   );
-  const when = (ms: number) =>
-    `${relativeDay(ms, now)}, ${new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+  const when = (ms: number) => {
+    const day = relativeDay(ms, now);
+    return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+  };
 
 
   const trendWords = (first: number, last: number) => {
@@ -106,16 +108,23 @@
     <div class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="totals-title">
         <h2 id="totals-title" class="sr-only">Totals</h2>
-        <p class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          <span class="tnum">{plural(days.length, "day")}</span> practised
-        </p>
-        <p class="mt-1 text-ws-soft">
-          Level {level}, {toNext} XP to level {level + 1}. <span class="tnum font-semibold text-ws-ink">{xp} XP</span> in total.
-        </p>
+        <dl class="tnum grid max-w-md grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
+            <dt class="text-sm text-ws-soft">Level</dt>
+            <dd class="font-display text-3xl font-semibold">{level}</dd>
+          </div>
+          <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
+            <dt class="text-sm text-ws-soft">Streak</dt>
+            <dd class="font-display text-3xl font-semibold">{plural(streak.current, "day")}</dd>
+          </div>
+        </dl>
         <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
           <div class="h-full rounded-full bg-instr" style:width="{((250 - toNext) / 250) * 100}%"></div>
         </div>
-        <p class="mt-2 text-sm text-ws-soft">XP counts showing up. Skill estimates come only from answers in Check mode.</p>
+        <p class="mt-2 max-w-md text-sm text-ws-soft">
+          <span class="font-semibold text-ws-ink">{xp} XP</span>, {toNext} to level {level + 1}. {plural(days.length, "day")} practised,
+          <span class="tnum">{summary.xp}</span> XP this week. XP grows with every session; skill scores move only on answers in Check mode.
+        </p>
       </section>
 
       <section aria-labelledby="weeks-title">
@@ -161,35 +170,10 @@
     </div>
 
     <div class="flex min-w-0 flex-col gap-8">
-      <section aria-labelledby="challenges-title">
-        <h2 id="challenges-title" class="font-display text-xl font-semibold">Today's challenges</h2>
-        <ul class="mt-3 flex flex-col gap-3">
-          {#each challenges as c (c.id)}
-            <li class="text-sm">
-              <div class="flex items-baseline justify-between gap-2">
-                <span class="font-medium">
-                  {#if c.done}<Check class="mr-1 inline size-4 text-success" aria-hidden="true" /><span class="sr-only">Done: </span>{/if}{c.title}
-                </span>
-                <span class="tnum text-ws-soft">{c.progress} of {c.target}</span>
-              </div>
-              <div class="mt-1 h-1.5 rounded-full bg-ws-raised" aria-hidden="true">
-                <div class="h-full rounded-full {c.done ? 'bg-success' : 'bg-instr'}" style:width="{(c.progress / c.target) * 100}%"></div>
-              </div>
-            </li>
-          {/each}
-        </ul>
-        <p class="mt-4 text-sm">
-          This week so far: <span class="tnum">{summary.xp}</span> XP from {plural(summary.sessions, "session")}, {plural(
-            summary.completedChallenges,
-            "challenge",
-          )} completed.
-        </p>
-      </section>
-
       <section aria-labelledby="badges-title">
         <h2 id="badges-title" class="font-display text-xl font-semibold">Achievements</h2>
         <p class="text-sm text-ws-soft">{badges.filter((b) => b.unlocked).length} of {badges.length} unlocked.</p>
-        <ul class="mt-3 flex flex-col gap-2">
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
           {#each badges as b (b.id)}
             <li
               class="flex items-center gap-3 rounded-xl px-3 py-2 {b.unlocked

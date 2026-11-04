@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bench } from "$lib/music/bench.svelte";
   import { page } from "$app/state";
   import Play from "lucide-svelte/icons/play";
   import HubTabs from "$lib/music/components/HubTabs.svelte";
@@ -10,6 +11,14 @@
   import SkillsView from "$lib/music/hubs/progress/SkillsView.svelte";
   import SessionsView from "$lib/music/hubs/progress/SessionsView.svelte";
   import DrillPreview from "$lib/music/hubs/DrillPreview.svelte";
+
+  // The page keeps one accent of its own, whatever the strip's instrument is.
+  $effect(() => {
+    bench.hue = "create";
+    return () => {
+      if (bench.hue === "create") bench.hue = null;
+    };
+  });
 
   const TABS = [
     { id: "next", label: "What next" },

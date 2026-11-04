@@ -187,8 +187,8 @@
 <section class="stage relative overflow-hidden rounded-2xl p-4 sm:p-5" aria-label="Tuner">
   <div class="flex flex-wrap items-center gap-3">
     {#if listening}
-      <button type="button" class={btnStage} onclick={stop}><MicOff class="size-4" aria-hidden="true" />Stop listening</button>
-      <p class="flex items-center gap-2 text-sm font-medium"><span class="live-dot" aria-hidden="true"></span>Listening</p>
+      <!-- One mic control: the button carries the live dot, so the state is not said twice. -->
+      <button type="button" class={btnStage} onclick={stop}><span class="live-dot" aria-hidden="true"></span><MicOff class="size-4" aria-hidden="true" />Stop listening</button>
     {:else}
       <button type="button" class={btnPrimary} onclick={start} disabled={mic.state === "starting"}>
         <Mic class="size-4" aria-hidden="true" />{mic.state === "denied" || mic.state === "error" ? "Try the microphone again" : "Start listening"}
@@ -211,7 +211,7 @@
   {/if}
 
   {#if mode === "tune"}
-    <div class="readout mx-auto mt-2 grid w-full max-w-lg" data-state={word ?? "none"}>
+    <div class="readout mx-auto mt-2 grid w-full max-w-md" data-state={word ?? "none"}>
       <svg viewBox="-12 -6 324 178" class="w-full" aria-hidden="true">
         <path d={arc(-70, 70)} class="track" />
         <path d={arc(angle(-IN_TUNE_CENTS), angle(IN_TUNE_CENTS))} class="zone" />
@@ -283,7 +283,8 @@
     </ul>
   {/if}
 
-  {#if keyed}
+  <!-- Intonation keeps the graph and its numbers in view; the keyboard picture is the Tune tab's. -->
+  {#if keyed && mode === "tune"}
     <div class="mx-auto mt-4 w-full max-w-lg" data-testid="tuner-keys">
       <Piano
         fit={{ low: octaveC, high: octaveC + 12 }}
@@ -292,6 +293,7 @@
         held={NONE}
         marks={shown ? { [shown.midi]: { target: true, label: pretty(noteName(shown.midi, "flat", false)) } } : {}}
         interactive={false}
+        compact
         names="c"
         minKey={28}
         label="Keyboard with the note heard marked"
@@ -303,7 +305,7 @@
     <figure class="mt-4">
       <div class="flex gap-2">
         <div class="flex flex-col justify-between py-1 text-xs text-ws-stage-soft" aria-hidden="true"><span>sharp</span><span>0</span><span>flat</span></div>
-        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-44 min-w-0 flex-1 rounded-lg sm:h-56" role="img" aria-label="Pitch over the last 10 seconds, with the in-tune band of ±{IN_TUNE_CENTS} cents">
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace h-36 min-w-0 flex-1 rounded-lg sm:h-44" role="img" aria-label="Pitch over the last 10 seconds, with the in-tune band of ±{IN_TUNE_CENTS} cents">
           <rect x="0" y={bandTop} width="600" height={160 - 2 * bandTop} class="band" />
           <line x1="0" x2="600" y1="80" y2="80" class="mid" vector-effect="non-scaling-stroke" />
           {#if stats}<path d={tracePath(stats.trace, frameAt)} class="line" vector-effect="non-scaling-stroke" />{/if}

@@ -12,7 +12,8 @@
   import Play from "lucide-svelte/icons/play";
   import Trash from "lucide-svelte/icons/trash-2";
   import RollThumb from "./RollThumb.svelte";
-  import { barsText, durationText, rangeText, scoreFacts, songHistory, type Song } from "./songs";
+  import type { Score } from "@repo/music-core";
+  import { barsText, durationText, plainTeaches, rangeText, scoreFacts, shelfScore, shelfTags, songHistory, type Song } from "./songs";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
   let songs = $state.raw<Song[] | null>(null);
@@ -51,6 +52,24 @@
       .flatMap((level, li) => level.shelf.map((song) => ({ song, level: li + 1, levelTitle: level.title, key: `${pathId}/${song.id}` })))
       .filter((x) => downloaded!.has(x.key) && !have.has(x.key))
       .slice(0, 6);
+  });
+  // The starters by level, so the level names its group once instead of tagging every card.
+  const starterLevels = $derived(
+    starters.reduce<{ level: number; title: string; items: typeof starters }[]>((out, x) => {
+      const last = out.at(-1);
+      if (last?.level === x.level) last.items.push(x);
+      else out.push({ level: x.level, title: x.levelTitle, items: [x] });
+      return out;
+    }, []),
+  );
+  // Each starter's score, read from the server once, drawn as a small roll on its card.
+  let thumbs = $state.raw<Record<string, Score>>({});
+  $effect(() => {
+    for (const x of starters)
+      if (!(x.key in thumbs))
+        void shelfScore(x.key, x.song.title)
+          .then(({ score }) => (thumbs = { ...thumbs, [x.key]: score }))
+          .catch(() => {});
   });
   const runs = $derived(practice.sessions.flatMap((x) => x.runs));
   const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -92,7 +111,7 @@
             <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-xs text-ws-stage-soft">{sourceLabel(song)}</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
-            {#if i === 0}<p class="text-sm font-medium text-instr-ink">Pick up where you left off</p>{/if}
+            {#if i === 0}<p class="text-sm font-medium text-instr-ink">{h.lastAt !== null ? "Pick up where you left off" : "Added most recently"}</p>{/if}
             <h3 id="song-{song.id}" class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
             {#if song.composer}<p class="-mt-1 text-sm text-ws-soft">{song.composer}</p>{/if}
             <p class="text-sm" data-testid="song-history">
@@ -134,17 +153,27 @@
       <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
       <p class="text-sm text-ws-soft">Songs on your path's shelf, easiest level first. Opening one adds it to your songs.</p>
     </div>
-    <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Songs from your path">
-      {#each starters as x (x.key)}
-        <li class="flex flex-col gap-2 rounded-2xl border border-ws-line bg-ws-surface p-4">
-          <p class="text-xs font-medium text-instr-ink">Level {x.level}, {x.levelTitle}</p>
-          <h3 class="font-display text-lg leading-tight font-semibold">{x.song.title}</h3>
-          <p class="-mt-1 text-sm text-ws-soft">{x.song.artist}</p>
-          <p class="text-sm">{x.song.teaches}</p>
-          <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Practise {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
-        </li>
-      {/each}
-    </ul>
+    {#each starterLevels as g (g.level)}
+      <h3 class="font-display text-base font-semibold">Level {g.level}: {g.title}</h3>
+      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Songs from level {g.level} of your path">
+        {#each g.items as x (x.key)}
+          <li class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
+            <div class="stage px-3 pb-2 pt-3">
+              {#if thumbs[x.key]}<RollThumb score={thumbs[x.key]} height={56} />{:else}<div class="h-14" aria-hidden="true"></div>{/if}
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4">
+              <h4 class="font-display text-lg leading-tight font-semibold">{x.song.title}</h4>
+              <p class="-mt-1 text-sm text-ws-soft">{x.song.artist}</p>
+              <p class="text-sm">{plainTeaches(x.song.teaches)}</p>
+              <ul class="flex flex-wrap gap-1.5" aria-label="About {x.song.title}">
+                {#each shelfTags(x.song) as t (t)}<li class="rounded-full bg-ws-raised px-2.5 py-0.5 text-xs font-medium">{t}</li>{/each}
+              </ul>
+              <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Practise {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
+            </div>
+          </li>
+        {/each}
+      </ul>
+    {/each}
   </section>
 {/if}
 

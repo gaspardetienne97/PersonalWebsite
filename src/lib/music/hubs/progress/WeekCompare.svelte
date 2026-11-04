@@ -2,15 +2,18 @@
   // This week against last, one pair of bars per measure (each pair on its own scale), with the
   // numbers and the change written out so the bars are never the only cue.
   import type { Rollup } from "@repo/music-core/progress/journal";
-  import { signed } from "./model";
+  import { minutesText, signed } from "./model";
 
   let { weeks }: { weeks: { thisWeek: Rollup; lastWeek: Rollup; delta: Rollup } } = $props();
   const ROWS = [
-    { key: "minutes", label: "Minutes" },
+    { key: "minutes", label: "Time" },
     { key: "sessions", label: "Sessions" },
     { key: "attempts", label: "Attempts" },
     { key: "xp", label: "XP" },
   ] as const;
+  type Key = (typeof ROWS)[number]["key"];
+  // Minutes read as time ("under 2 min" over a few short sessions, never a bare "1").
+  const shown = (week: Rollup, key: Key) => (key === "minutes" ? minutesText(week.minutes, week.sessions) : week[key]);
 </script>
 
 {#if ROWS.every((r) => weeks.lastWeek[r.key] === 0)}
@@ -19,7 +22,7 @@
     {#each ROWS as row (row.key)}
       <div class="rounded-xl bg-ws-raised/60 px-3 py-2">
         <dt class="text-ws-soft">{row.label}</dt>
-        <dd class="font-display text-xl font-semibold">{weeks.thisWeek[row.key]}</dd>
+        <dd class="font-display text-xl font-semibold">{shown(weeks.thisWeek, row.key)}</dd>
       </div>
     {/each}
   </dl>
@@ -34,7 +37,7 @@
       <div class="flex items-baseline justify-between gap-2">
         <dt class="font-medium">{row.label}</dt>
         <dd class="tnum text-ws-soft">
-          <span class="font-semibold text-ws-ink">{now}</span> this week, {then} last
+          <span class="font-semibold text-ws-ink">{shown(weeks.thisWeek, row.key)}</span> this week, {shown(weeks.lastWeek, row.key)} last
           <span class="sr-only">, change</span><span class="ml-1 {weeks.delta[row.key] > 0 ? 'text-success' : ''}">({signed(weeks.delta[row.key])})</span>
         </dd>
       </div>

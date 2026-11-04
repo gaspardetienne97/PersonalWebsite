@@ -6,7 +6,10 @@ import {
   foldShort,
   runDelta,
   formatDuration,
+  minutesText,
   plainPathText,
+  previewHref,
+  skillCaption,
   scoreHistory,
   sessionTitle,
   type SkillRow,
@@ -66,8 +69,8 @@ describe("Journal names", () => {
 
 describe("Durations", () => {
   it("reads seconds under a minute, minutes under an hour, then hours", () => {
-    expect(formatDuration(0)).toBe("a few seconds");
-    expect(formatDuration(4_400)).toBe("a few seconds");
+    expect(formatDuration(0)).toBe("under 5 sec");
+    expect(formatDuration(4_400)).toBe("under 5 sec");
     expect(formatDuration(5_000)).toBe("5 sec");
     expect(formatDuration(42_400)).toBe("42 sec");
     expect(formatDuration(59_600)).toBe("1 min");
@@ -163,5 +166,42 @@ describe("Run deltas", () => {
     expect(runDelta(b, all)).toEqual({ kind: "best", text: "Best yet, up from 70%" });
     expect(runDelta(c, all)).toEqual({ kind: "down", text: "Down from 90%" });
     expect(runDelta(run("d", 4, 0.85, "other"), all)).toBeUndefined();
+  });
+});
+
+describe("Honest figures", () => {
+  it("names mastery and accuracy apart, and says when accuracy counts more tries", () => {
+    const now = Date.now();
+    const r = (over: Partial<SkillRow>) =>
+      ({ checked: 10, attempts: 10, umbrella: false, direct: true, ...over }) as SkillRow;
+    expect(skillCaption(r({ estimate: 0.14, accuracy: 0.8, lastPracticed: now }), now)).toBe(
+      "Mastery 14%: 10 checked answers, 80% right, today",
+    );
+    expect(skillCaption(r({ estimate: 0.5, accuracy: 0.75, attempts: 12 }), now)).toBe(
+      "Mastery 50%: 10 checked answers, 75% right over 12 tries",
+    );
+    expect(skillCaption(r({ checked: 0, attempts: 2, accuracy: 1 }), now)).toBe(
+      "No mastery yet: 0 checked answers, 100% right over 2 tries",
+    );
+    expect(skillCaption(r({ estimate: 0.3, umbrella: true, direct: false, checked: 4 }), now)).toBe(
+      "Mastery 30% across its parts: 4 checked answers",
+    );
+  });
+
+  it("never shows 1 min for several short sessions", () => {
+    expect(minutesText(1, 3)).toBe("under 2 min");
+    expect(minutesText(0, 1)).toBe("under 2 min");
+    expect(minutesText(0, 0)).toBe("0 min");
+    expect(minutesText(14, 3)).toBe("14 min");
+  });
+
+  it("draws a weak interval or degree as its own drill", () => {
+    expect(previewHref("pitch.interval.m3", "/music/ear/mixed")).toBe(
+      "/music/ear/intervals?intervals=m3",
+    );
+    expect(previewHref("pitch.intervals", "/x")).toBe("/music/ear/intervals");
+    expect(previewHref("pitch.scale-degree.b3", "/x")).toBe("/music/ear/scale-degrees");
+    expect(previewHref("rhythm.pulse", "/music/rhythm")).toBe("/music/rhythm");
+    expect(previewHref(undefined, "/music/rhythm")).toBe("/music/rhythm");
   });
 });

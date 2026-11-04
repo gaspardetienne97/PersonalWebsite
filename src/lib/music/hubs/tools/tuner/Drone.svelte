@@ -83,9 +83,8 @@
   </div>
 
   <div class="mt-4">
-    <p class="mb-2 text-sm text-ws-stage-soft">
-      Pick the home note. Numbers are degrees from {tonicName}; <span class="key key-scale" aria-hidden="true"></span> tinted notes are in {tonicName} major,
-      <span class="key key-fifth" aria-hidden="true"></span> the brightest is the fifth.
+    <p class="mb-2 text-sm text-ws-stage-soft" title="Numbers are scale degrees: steps up from the home note. 5 is the fifth.">
+      Tap a home note. <span class="dot" aria-hidden="true"></span> marks the notes of {tonicName} major.
     </p>
     <NotePads
       label="Tonic"
@@ -115,19 +114,13 @@
 </section>
 
 <style>
-  .key {
+  .dot {
     display: inline-block;
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 0.2rem;
-    vertical-align: -0.05em;
-  }
-  .key-scale {
-    background: color-mix(in oklch, var(--instr) 18%, transparent);
-    outline: 1px solid color-mix(in oklch, var(--instr) 50%, transparent);
-  }
-  .key-fifth {
-    background: color-mix(in oklch, var(--instr) 40%, transparent);
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--ws-stage-ink);
+    vertical-align: 0.05em;
   }
   .volume {
     appearance: none;

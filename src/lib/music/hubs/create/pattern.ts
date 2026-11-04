@@ -201,3 +201,27 @@ export function fromPreset(preset: BeatPreset, bpm: number): BeatPattern {
     updatedAt: Date.now(),
   };
 }
+
+/** One bar of the song as the beat's overview draws it. */
+export interface BarCell {
+  /** The song's bar, from 0. */
+  bar: number;
+  /** The beat's own bar that sounds there (the beat repeats to fill the song). */
+  beatBar: number;
+  /** True past the beat's own length: a repeat. */
+  repeat: boolean;
+  /** True for the bar the playhead is in. */
+  now: boolean;
+}
+
+/** The song's bars for the overview strip; `beat` is beats into the pass, -1 when stopped. */
+export function barCells(beatBars: number, songBars: number, beat = -1): BarCell[] {
+  const n = Math.max(1, beatBars, songBars);
+  const now = beat < 0 ? -1 : Math.floor(beat / 4) % n;
+  return Array.from({ length: n }, (_, bar) => ({
+    bar,
+    beatBar: bar % Math.max(1, beatBars),
+    repeat: bar >= beatBars,
+    now: bar === now,
+  }));
+}

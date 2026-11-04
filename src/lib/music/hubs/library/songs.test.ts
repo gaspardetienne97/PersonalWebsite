@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { Score } from "@repo/music-core";
 import { scoreToMidi } from "@repo/music-core/io/midi-file";
-import { importScoreFile, keyName, scoreFacts, songHistory, songSections } from "./songs";
+import {
+  importScoreFile,
+  keyName,
+  plainTeaches,
+  scoreFacts,
+  shelfTags,
+  songHistory,
+  songSections,
+} from "./songs";
 
 import odeXml from "../../../../../e2e/music/fixtures/ode-to-joy.musicxml?raw";
 
@@ -89,5 +97,25 @@ describe("songHistory", () => {
       lastAt: 40,
     });
     expect(songHistory([], { id: "a" })).toEqual({ runs: 0, best: null, lastAt: null });
+  });
+});
+
+describe("shelf cards", () => {
+  it("tag each song from its own data", () => {
+    expect(shelfTags({ detail: "F, 74", bpm: 74, diff: 1 })).toEqual([
+      "Key of F",
+      "74 BPM",
+      "Easier",
+    ]);
+    expect(shelfTags({ detail: "A minor, 3/4", diff: 3 })).toEqual(["Key of A minor", "Harder"]);
+    expect(shelfTags({ detail: "Capo 1, 102 BPM", bpm: 102, diff: 2 })).toEqual([
+      "102 BPM",
+      "Medium",
+    ]);
+  });
+  it("spell out the hands", () => {
+    expect(plainTeaches("RH broken chords, LH root")).toBe(
+      "right hand broken chords, left hand root",
+    );
   });
 });

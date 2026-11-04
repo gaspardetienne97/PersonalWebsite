@@ -3,20 +3,25 @@
   import Lock from "lucide-svelte/icons/lock";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+  import Search from "lucide-svelte/icons/search";
   import type { Capability, Instrument } from "@repo/music-core";
-  import { INSTRUMENTS } from "@repo/music-core";
   import { SKILL_GRAPH, capabilitySummary } from "@repo/music-core/progress/graph";
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { practice } from "../../practice.svelte";
-  import Choice from "../../components/Choice.svelte";
-  import { CAPABILITY_LABEL, MIN_EVIDENCE, pct, plural, relativeDay, skillRows, type SkillRow } from "./model";
+  import Picker from "../../components/Picker.svelte";
+  import { instrumentOptions } from "../../components/instrument-icons";
+  import { CAPABILITY_LABEL, MIN_EVIDENCE, pct, plural, relativeDay, skillCaption, skillRows, type SkillRow } from "./model";
 
   let { now = Date.now() }: { now?: number } = $props();
 
   let scope = $state<Instrument | "all">("all");
   let showAll = $state(false);
+  let query = $state("");
 
-  const options = [{ value: "all" as const, label: "All instruments" }, ...INSTRUMENTS.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] }))];
+  const options = [{ value: "all", label: "All instruments" }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])];
+  const total = SKILL_GRAPH.skills.filter((s) => !s.deprecated).length;
+  const needle = $derived(query.trim().toLowerCase());
+  const matches = (r: SkillRow) => !needle || r.skill.name.toLowerCase().includes(needle);
   const rows = $derived(
     skillRows({ stats: practice.stats, mastery: practice.mastery, instrument: scope === "all" ? undefined : scope, now }),
   );
@@ -27,14 +32,14 @@
       .filter((s) => s.total > 0)
       .map((s) => ({
       ...s,
-      rows: rows.filter((r) => r.skill.capability === s.capability && (showAll || r.touched)),
+      rows: rows.filter((r) => r.skill.capability === s.capability && (showAll || needle || r.touched) && matches(r)),
       touched: rows.filter((r) => r.skill.capability === s.capability && r.touched).length,
     })),
   );
 
   const describe = (r: SkillRow) => {
-    if (r.estimate === undefined) return "No estimate yet";
-    const parts = [`Estimate ${pct(r.estimate)}`];
+    if (r.estimate === undefined) return "No mastery yet";
+    const parts = [`Mastery ${pct(r.estimate)}`];
     if (r.lastMeasured !== undefined) parts.push(`last measured ${pct(r.lastMeasured)}`);
     if (r.due) parts.push("due for review");
     if (r.checked < MIN_EVIDENCE) parts.push(`only ${plural(r.checked, "answer")} in Check mode`);
@@ -44,35 +49,34 @@
 </script>
 
 <div class="flex flex-col gap-6">
-  <!-- The filter takes its own full-width line, so its chips wrap across the page, not down a column. -->
-  <div class="flex flex-col gap-2">
-    <div class="w-full min-w-0">
-      <Choice label="Instrument" {options} bind:value={scope} />
-    </div>
-    <label class="flex min-h-11 w-fit cursor-pointer items-center gap-2 text-sm">
-      <input type="checkbox" class="size-5 accent-[color:var(--instr)]" bind:checked={showAll} />
-      Show all {SKILL_GRAPH.skills.filter((s) => !s.deprecated).length} skills
+  <!-- One row: which instrument, and a search; the first skill sits right under it. -->
+  <div class="flex flex-wrap items-center gap-2" role="search" aria-label="Filter skills">
+    <Picker class="w-44 shrink-0 sm:w-56" label="Instrument" value={scope} {options} onchange={(v) => (scope = v as typeof scope)} />
+    <label class="relative min-w-0 max-w-sm flex-1 basis-32">
+      <span class="sr-only">Search skills</span>
+      <Search class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ws-soft" aria-hidden="true" />
+      <input type="search" class="min-h-11 w-full rounded-full border border-ws-line bg-ws-surface pl-9 pr-3 text-sm" placeholder="Search skills" bind:value={query} />
     </label>
   </div>
 
   <!-- The method and the key wait behind one disclosure, so the first skill is in view. -->
-  <details class="group -mt-3 text-sm">
+  <details class="group -mt-4 text-sm">
     <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
       <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
     </summary>
     <p class="max-w-prose text-ws-soft">
-      Only answers in Check mode move the estimate, and it fades a little each day you do not practise. Attempts and accuracy count
+      Only answers in Check mode move mastery, and it fades a little each day you do not practise. Attempts and accuracy count
       every attempt on {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}.
     </p>
     <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-ws-soft" aria-label="How to read the bars">
-      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Estimate today</span>
+      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full bg-instr" aria-hidden="true"></span>Mastery today</span>
       <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Last measured</span>
       <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review: down ten points</span>
-      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode</span>
+      <span class="flex items-center gap-2"><span class="h-2.5 w-8 rounded-full border-2 border-instr-ink" aria-hidden="true"></span>Under {MIN_EVIDENCE} answers in Check mode: an early guess that firms up with more answers</span>
     </div>
   </details>
 
-  {#if touchedCount === 0 && !showAll}
+  {#if touchedCount === 0 && !showAll && !needle}
     <div class="rounded-2xl border border-dashed border-ws-line p-6">
       <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]} yet`}.</p>
       <p class="text-sm text-ws-soft">Every graded attempt lands here, grouped by what it trains.</p>
@@ -103,9 +107,7 @@
                     {@render bar(r)}
                     <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
                   </div>
-                  <p class="tnum text-xs text-ws-soft">
-                    {r.checked} in Check{#if r.accuracy !== undefined}, {pct(r.accuracy)} right{/if}{#if r.lastPracticed}, {relativeDay(r.lastPracticed, now)}{/if}
-                  </p>
+                  <p class="tnum text-sm text-ws-soft">{skillCaption(r, now)}</p>
                   <span class="sr-only">{describe(r)}</span>
                 </div>
                 <a href={r.href} class="inline-flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-3 text-sm font-medium hover:bg-ws-raised"
@@ -130,7 +132,7 @@
               <thead class="text-ws-soft">
                 <tr>
                   <th scope="col" class="sticky left-0 z-10 bg-ws-bg py-2 pr-3 font-medium">Skill</th>
-                  <th scope="col" class="w-44 py-2 pr-3 font-medium">Estimate</th>
+                  <th scope="col" class="w-44 py-2 pr-3 font-medium">Mastery</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Confidence</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Attempts</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Accuracy</th>
@@ -154,8 +156,8 @@
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.estimate === undefined ? "" : pct(r.confidence)}</td>
                     <td class="tnum py-2 pr-3 text-right">
-                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} in Check</span>{:else}{r.attempts}<span
-                          class="block text-xs text-ws-soft">{r.checked} in Check</span
+                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} checked</span>{:else}{r.attempts}<span
+                          class="block text-xs text-ws-soft">{r.checked} checked</span
                         >{/if}
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.accuracy === undefined ? "" : pct(r.accuracy)}</td>
@@ -182,10 +184,15 @@
             </table>
           </div>
         {:else}
-          <p class="py-3 text-sm text-ws-soft">None touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]}`}.</p>
+          <p class="py-3 text-sm text-ws-soft">{needle ? `No ${capLabel(g.capability).toLowerCase()} skill matches "${query.trim()}".` : `None touched ${scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]}`}.`}</p>
         {/if}
       </section>
     {/each}
+  {/if}
+  {#if !needle}
+    <button type="button" class="inline-flex min-h-11 w-fit items-center rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-medium hover:bg-ws-raised" aria-pressed={showAll} onclick={() => (showAll = !showAll)}>
+      {showAll ? `Show only the ${plural(touchedCount, "skill")} you have touched` : `Show all ${total} skills`}
+    </button>
   {/if}
 </div>
 
