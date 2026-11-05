@@ -1288,3 +1288,47 @@ The plan is in `context/research/curriculum-2026-10/` (round-one reports, then t
 - **Instruments on the stage**: Circle answers by tapping the wheel in Practice, plain exercise names; Jam's chords slide past a playhead (`drills/jam/lane.ts`); Read and tap engraves real rhythm notation coloured as you tap (`drills/rhythm/notation.ts`, `RhythmNotation.svelte`); Scales on guitar and ukulele names the strings, marks the root and fingers, and colours each note as played (`routes/music/scales/fret-marks.ts`, Fretboard `stringNames`, `fingerRings`, mark `state`).
 - **Devices**: Connect opens on "Your rig", live tiles for keyboard, MPC, Aerophone and microphone with the last note and a level meter; Connect is the one place to choose the microphone (`micOptions` in `hubs/connect/rig.ts`, also used by the strip pop-up and the recorder), Settings shows it read-only.
 - **Library and Create**: Delete off the cover with a Practise link on each card; Create's controls look enabled when they are, and a short song's roll fills the view.
+
+## 9. UI hill climb (2026-11-04)
+
+Six rounds of screenshot judging against competitor apps (branch `ge/woodshed-ui-hill-climb-1`; scores and the before and after gallery in the local `.ui-climb/`). Every feature above stays reachable; where one moved, it says so here.
+
+### 9.1 The drill session
+
+- **Full-screen session** (`DrillShell.svelte`, `bench.session`): a lesson, a run and its results fill the screen; the sidebar, tab bar and practice strip step aside. Close ("Close and back to setup") or Escape returns to setup, where the exercise tabs, the mode switch and the Lesson button live. From results, changing tab or reopening the lesson is one Close away.
+- **Top bar**: Stop or Close, the drill name, the mode as an icon on a phone (the words on a laptop), the drill's counters (at most two `Stat`s) and the beat in words ("Beat 2 of 4"). On a phone it takes two rows when needed and never cuts a value.
+- **Ready screen**: three rows (setup sentence as chips that open their setting, what you will play, Start). Hear it docks beside Start on a phone; during a demo, Stop demo is the only filled button. A drill can pass `demoLabel` ("Hear an example" on ear chords).
+- **Live**: the stage hugs its content and only a region marked `data-grow` takes the free height. A drill passes `cue` (short text) or `step` (its go-on button: Continue, Next card, Check my rhythm) for the phone dock. Live verdicts sit in `Verdict`'s reserved `rail` above the instrument, never over the keys.
+- **Light chrome, dark instrument**: in light theme the top bar, ready screen, lesson, results card and dock follow the theme; only the instrument panel stays dark (section 8's "lit bench").
+- **Bottom bars** are opaque; content never fades or sits under them. When more content is below, a "More below" button sits inside the bar (a chevron on a phone).
+- **Strip**: shows tempo, click and count-in only when the open drill has a clock (`bench.clocked`, set by DrillShell from its `clock` prop); pills shrink instead of overflowing at 375 px.
+
+### 9.2 Results
+
+- **Order**: verdict (score ring, stars, word), headline, the next run with its pips, then the drill's marked music (`figure`, `data-testid="results-figure"`), then the rows; on a phone the status line, XP and history fold into "How this run counted".
+- **Stars** (`trend.ts`): one at 70%, two at 85%, the third only for a run the drill's own advance rule counts. "Clean" means one thing everywhere: a run the rule counts, the run the pips count. Three stars read "Clean run", or "Perfect run!" with nothing missed; confetti and the celebrate sound only then. A key under the stars says what earns the next one, using the drill's `cleanMeans` (its real rule, e.g. "9 of 10 right or better").
+- **Dock**: Done, Again, "Check run, from memory" (the old "Run it in Check"), then the next run as the primary. A silent run leads with Again, and the input fix sits in the not-heard card.
+- **Evidence** (`packages/music-core/src/scoring/evidence.ts`): timing breakdown, Timing row and evenness row come from the grader's own offsets and read Not measured when too few notes landed; a row can carry `tone` to flag the weakest item. Deltas and best compare runs on the same instrument only.
+
+### 9.3 Honest numbers (changes to scoring)
+
+- Evenness earns no share of a line's score when too few notes landed to measure it (`gradeLine`).
+- A slipped note (a wrong note before the right one) in scales and Spider counts against the score, the clean count and the pass (`withSlips` in `drills/guitar/fretted.ts`).
+- Two-hand and comping runs with wrong keys are not clean.
+- Pads grade ghost notes as ghosts (a clean groove scores 100%); a rudiment's timing and velocity count only for strokes that landed (`strokeScore`).
+- Strum's score is the share of expected strums on time on the chord, with one rule for "on the chord" shared by the strum score and chords followed (`onChord` in `scoring/chord-follower.ts`).
+- No advance rule changed; every change above can only lower a score.
+
+### 9.4 Hubs and tools
+
+- **Today** names each block of the plan at every width; a done block shows its stars; daily challenges read in plain words ("Earn today's XP").
+- **Drills**: search with a count and an instrument filter on one line; one Start per card with its modes in a "Modes for ..." menu; previews drawn on the strip's instrument.
+- **Paths**: the level chain wraps; steps numbered from 1; the header button names its target.
+- **Progress** leads with mastery and explains its two numbers on request; Journal and Your tunes sit in a "More" menu. The journal has a labelled note button, removable tag chips and a banded heatmap.
+- **Connect** says "Hide this device" / "Show this device" (was Ignore); recent input with raw bytes behind "Show details".
+- **The chord and scale reference** moved to `/music/create/reference`; `/music/library?tab=reference` redirects there.
+- **Song library**: a song's Delete sits in its "Options for ..." menu. **Song studio** values are light on the dark stage.
+
+### 9.5 Type and contrast
+
+- `src/lib/music/type-floor.test.ts` fails any label under 13 px in the music app (Tailwind sizes, CSS and SVG font sizes); `hues.test.ts` checks the run fill against its text in both themes.

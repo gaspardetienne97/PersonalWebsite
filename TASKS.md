@@ -7,6 +7,14 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 - **Test runs in the practice data (2026-10-30).** The UX walkthrough drove real drills in the owner's browser: it added 5 sessions on Oct 30 between 2:07 and 2:12 PM (about 228 XP), completed three of that day's challenges, spent both held streak freezes, and marked the Intervals, Circle of fifths and Pads intro lessons as seen. Nothing was deleted. Remove those sessions in the Journal and reset those lessons if the owner wants; the freezes may not come back.
 - **Official MuseScore scores.** MuseScore's Official scores can be viewed and played but never downloaded, on any plan (PRO+ only adds viewing them). An agent found community scores for 112 shelf songs that had only official ones; 97 still have none (mostly licensed songs such as the Beatles, Einaudi, Hotel California and Stairway). Each shelf has other songs to pick.
 
+- **UI hill climb (2026-11-04), owner levers.** Branch `ge/woodshed-ui-hill-climb-1`, not merged or pushed; read `.ui-climb/summary.md` and open `.ui-climb/report.html` (both local). Choices left to you:
+  - The instrument panel stays dark in light theme (your "lit bench"); judges still name it in about 18 flaws a round. A light stage variant would likely lift visual scores.
+  - From results, the exercise tabs and the Lesson button are one Close away instead of on screen.
+  - A Practice run can only go to "Check run, from memory" from results when it heard something.
+  - Saved "Any strum" setups now get the starter pattern (D DU UDU); kit pads keep the MPC layout.
+  - The scales tempo ladder lives in Setup with a line on the ready screen saying when the run is below it.
+  - Known leftovers from the climb: the Voice path-focus ear block uses `answer=choice` (`routine.ts`); `coach()`'s fallback double-counts multi-skill answers when `checkedAnswers` is absent; answers saved with no instrument count toward every instrument; `paths.ts` and `ear-theory.json` still link `?tab=reference` (it redirects).
+
 ## In progress
 
 - **UX review and fixes (2026-10-30)**: a walkthrough in the Orca browser (26 findings, 12 flat screens) and research on Yousician, Melodics, Simply Piano, Duolingo Music, EarMaster and others, then two waves of fixes (see the catalog, 8.25). Left on purpose: a drill still switches the strip to an instrument it serves (BRIEF rule); Jam and Rhythm have no lesson or Hear it first; "Listen for a strum" and the Lab's "Start recording" keep their own Start labels.
@@ -15,6 +23,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Done
 
+- **UI hill climb, six rounds (2026-11-04)**, branch `ge/woodshed-ui-hill-climb-1` (not merged or pushed). Screenshot judges (Claude Opus, Claude Fable, GPT) scored 39 flows beside competitor screens each round. Claude mean 7.01 to 7.83 with every flow up; GPT 6.58 to 7.58 on the 24 flows it scored both times. Above the best competitor on 38 of 39 flows (Create is 0.2 under Chrome Music Lab); no flow reached 9 from every judge. Stopped after round 6 on a plateau (about +0.05 a round from round 3). What changed is in the catalog, section 9; scores, per-round changes and reasons below 9 in `.ui-climb/summary.md` and `.ui-climb/report.html` (local). Gates at the end: lint, check, svelte-check 23, 1453 unit, build, e2e 327 of 327.
 - Domain contract and IO boundary in `packages/music-core` (types, MIDI parsing, device profiles and pad maps, MPC Controller Mode frames, input router)
 - Theory, content generators and the drill catalog (90 tests; the two-hand and voicing generators reproduce the verified JSON exactly; every emitted skill id exists in the seed)
 - Scoring engines (110 tests), including an order-following scale grader so a late start or tempo drift costs only the notes actually missed
@@ -110,6 +119,9 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 ## Needs hardware
 
 The owner's checks, grouped by instrument. Everything below passed in the browser with fake MIDI or synthetic audio; none of it has been heard or played on the real thing.
+
+**Strum and chord following (from the UI climb, 2026-11-04)**
+- Strum's score and "chords followed" now share one rule (`onChord`). The chord detector drops notes under half the loudest, so an open G (G three times, D once) may be heard as G and B and miss the chord. Strum a few open chords on a real guitar and check they count; if not, the detector's cutoff needs work, not the rule.
 
 **Microphone, silent runs**
 - With the microphone on and the click coming out of the speakers, the click itself can count as "heard", so a run where nothing was played may still be scored. Check with the real mic and speakers; headphones avoid it.
