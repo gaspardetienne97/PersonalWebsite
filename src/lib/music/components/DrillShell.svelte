@@ -487,15 +487,13 @@
     onstop?.();
   }
 
-  // "More below" (sessions): while the end of the content sits under the dock or below the screen, a pill says so.
+  // "More below" (sessions): while the end of the content sits under the dock or below the screen, a button in
+  // the bottom bar says so (never over the content: it lives in the bar, beside the go-on action).
   let endMark: HTMLElement | undefined = $state();
   let dockH = $state(0);
   let more = $state(false);
-  /** A lesson docks its own Back and Next over the screen bottom: the pill sits above them. */
-  let lessonDockH = $state(0);
   $effect(() => {
     if (!session || !endMark) return void (more = false);
-    lessonDockH = showing ? (document.querySelector<HTMLElement>("[data-lesson-dock]")?.offsetHeight ?? 0) : 0;
     const io = new IntersectionObserver(([e]) => (more = !e.isIntersecting && e.boundingClientRect.top > 0), {
       // The lesson's own dock sits in the flow just above the end mark, so only the session dock is subtracted.
       rootMargin: `0px 0px -${Math.round(dockH)}px 0px`,
@@ -566,7 +564,7 @@
       {#if hud && !session}<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 empty:hidden">{@render hud()}</div>{/if}
       {#if showing}
         {#key shownLessons.map((l) => l.id).join()}
-          <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} />
+          <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} beforeNext={moreButton} />
         {/key}
       {:else}
         {@render stage(phase)}
@@ -594,18 +592,8 @@
   </div>
 
   {#if session}
-    <!-- The dock (when there is one) and the "More below" pill 8 px above it, or above the screen bottom. -->
+    <!-- The dock, when there is one ("More below" sits inside it, never over the content). -->
     <div class="sticky bottom-0 z-30" bind:clientHeight={dockH}>
-      {#if more}
-        <button
-          type="button"
-          style:bottom="calc(100% + {lessonDockH + 8}px)"
-          class="absolute left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-ws-line bg-ws-raised px-4 text-sm font-medium text-ws-ink shadow-md hover:bg-ws-line"
-          aria-label="Scroll to see more"
-          onclick={scrollMore}
-          transition:fade={{ duration: 120 }}><ChevronDown class="size-4" aria-hidden="true" />More below</button
-        >
-      {/if}
       {@render dock()}
     </div>
   {:else if docked}
@@ -791,7 +779,9 @@
      A thin run-progress bar runs under the whole HUD. -->
 {#snippet hudBar()}
   <header class="ws-bar sticky top-0 z-30 border-b">
-    <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-3 gap-y-0.5 px-4 pt-1.5 pb-2.5 sm:flex-nowrap sm:pb-1.5 sm:px-6 lg:px-8">
+    <!-- A phone has two rows: the exit, the title, the mode (as its icon) and the click; then the counters and
+         the beat. The title wraps between words before it ever runs into the mode. -->
+    <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-2 gap-y-0.5 px-4 pt-1.5 pb-2.5 sm:flex-nowrap sm:gap-x-3 sm:pb-1.5 sm:px-6 lg:px-8">
       {#if live}
         <!-- One exit, top left, at every width (Close takes this place on results and lessons). -->
         <button type="button" class="-ml-1 flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
@@ -802,16 +792,17 @@
           <X class="size-5" aria-hidden="true" />
         </button>
       {/if}
-      <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud min-w-0 flex-1 font-display font-semibold leading-tight sm:flex-none">{title}</h1>
+      <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud font-display font-semibold leading-tight sm:flex-none">{title}</h1>
       {#if checkable && !showing}
-        <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last">
-          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />Check: from memory{:else}<Eye class="size-4" aria-hidden="true" />Practice: hints on{/if}
+        {@const modeText = mode === "check" ? "Check: from memory" : "Practice: hints on"}
+        <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last" title={modeText}>
+          {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />{:else}<Eye class="size-4" aria-hidden="true" />{/if}<span class="max-sm:sr-only">{modeText}</span>
         </span>
       {/if}
       {#if live && clock}
         <button
           type="button"
-          class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised sm:order-last {bench.clickDuringRun ? '' : 'text-ws-soft'}"
+          class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised max-sm:-mr-2 max-sm:ml-auto sm:order-last {bench.clickDuringRun ? '' : 'text-ws-soft'}"
           aria-pressed={bench.clickDuringRun}
           aria-label="Metronome click in runs"
           title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
@@ -854,14 +845,18 @@
      Again and the next run by the shared rule (or Done when the rule says same again). -->
 {#snippet dock()}
   {#if live}
-    {#if step || cue}
-      <!-- Phone only: the drill's one go-on action, else what to do now. Never the verdict (stage and live region). -->
-      <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:hidden">
-        {#if step}
-          <button type="button" class="{primary} w-full" disabled={step.disabled} onclick={step.run} data-step>{step.label}</button>
-        {:else}
-          <p class="flex min-h-12 items-center text-base font-medium" data-cue>{cue}</p>
-        {/if}
+    {#if step || cue || more}
+      <!-- Phone: the drill's one go-on action, else what to do now. Never the verdict (stage and live region).
+           From sm up the bar shows only while there is more below. -->
+      <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8 {more ? '' : 'sm:hidden'}">
+        <div class="mx-auto flex max-w-6xl items-center gap-2">
+          {#if step}
+            <button type="button" class="{primary} min-w-0 flex-1 sm:hidden" disabled={step.disabled} onclick={step.run} data-step>{step.label}</button>
+          {:else if cue}
+            <p class="flex min-h-12 min-w-0 flex-1 items-center text-base font-medium sm:hidden" data-cue>{cue}</p>
+          {/if}
+          {@render moreButton(!step && !cue, "sm:ml-auto")}
+        </div>
       </div>
     {/if}
   {:else if afterRun}
@@ -871,6 +866,7 @@
          holds the input fix). Phone, two rows: the primary alone, full width; then the others as equal quiet buttons. -->
     {@const againLeads = !next && !unblocking}
     {@const small = "max-sm:min-h-11 max-sm:flex-auto max-sm:whitespace-nowrap max-sm:px-3 max-sm:text-sm"}
+    {@const lead = `max-sm:order-first ${more ? "max-sm:basis-[calc(100%-3.5rem)]" : "max-sm:basis-full"}`}
     <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
         {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
@@ -882,15 +878,32 @@
           <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />Check run, from memory</button>
         {/if}
         <span class="flex-1 max-sm:hidden"></span>
+        <!-- Phone, row 1: "More below" (when there is more), then the primary filling the rest of the row. -->
+        {@render moreButton(false, "max-sm:order-first")}
         {#if unblocking && unblock}
-          <button type="button" class="{primary} max-sm:order-first max-sm:basis-full" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
+          <button type="button" class="{primary} {lead}" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
         {:else if next}
-          <button type="button" class="{primary} min-w-0 whitespace-nowrap max-sm:order-first max-sm:basis-full" disabled={!!blocked} onclick={goNext}><span class="truncate">{NEXT_VERB[next.kind]} {next.label}</span></button>
+          <button type="button" class="{primary} min-w-0 whitespace-nowrap {lead}" disabled={!!blocked} onclick={goNext}><span class="truncate">{NEXT_VERB[next.kind]} {next.label}</span></button>
         {:else}
-          <button type="button" class="{primary} max-sm:order-first max-sm:basis-full" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+          <button type="button" class="{primary} {lead}" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
         {/if}
       </div>
     </div>
+  {/if}
+{/snippet}
+
+<!-- "More below", in a bottom bar just before its go-on action (or at its right end). A phone shows the chevron
+     alone beside an action, the words when it stands alone; from sm up always the words. -->
+{#snippet moreButton(words = false, cls = "")}
+  {#if more}
+    <button
+      type="button"
+      class="{quiet} shrink-0 whitespace-nowrap max-sm:min-h-12 {words ? 'ml-auto' : 'max-sm:size-12 max-sm:px-0'} {cls}"
+      aria-label="More below"
+      title="More below: scroll down"
+      onclick={scrollMore}
+      data-more><ChevronDown class="size-5" aria-hidden="true" /><span class={words ? "" : "max-sm:hidden"}>More below</span></button
+    >
   {/if}
 {/snippet}
 

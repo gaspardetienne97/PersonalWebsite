@@ -4,6 +4,8 @@
   // judged from CC 64 against the chord's first note; the line under the chart
   // draws what the pedal did.
   import { onDestroy } from "svelte";
+  import Check from "lucide-svelte/icons/check";
+  import X from "lucide-svelte/icons/x";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc } from "@repo/music-core";
   import { PEDAL_PROGRESSIONS, pedalChords } from "@repo/music-core/content/piano";
@@ -140,11 +142,11 @@
   }
 
   const VERDICT: Record<PedalVerdict, string> = {
-    clean: "clean",
-    early: "lifted early",
-    blurred: "held through",
-    late: "down again late",
-    "no-chord": "no chord",
+    clean: "Clean",
+    early: "Lifted early",
+    blurred: "Held through",
+    late: "Down late",
+    "no-chord": "No chord",
   };
 
   async function finish() {
@@ -325,12 +327,24 @@
 
 <!-- The chord chart, a chord a bar; after a run each card says how its change went. -->
 {#snippet chart()}
-  <ol class="mb-3 grid grid-cols-4 gap-2" aria-label="Chord chart, a chord a bar">
+  <!-- After a run a phone shows the cards two by two, so each verdict stays on its own card. -->
+  <ol class="mb-3 grid gap-2 {result ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-4'}" aria-label="Chord chart, a chord a bar">
     {#each bars as b, k (k)}
       {@const v = result?.verdicts[k]}
-      <li class="flex min-h-14 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
+      <li class="flex min-h-14 min-w-0 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
         <span class="font-display text-xl font-semibold">{b.symbol}</span>
-        <span class="text-sm text-ws-stage-soft">{v ? `${v === "clean" ? "✓" : "✕"} ${VERDICT[v]}${chordOk[k] === false ? ", chord incomplete" : ""}` : b.roman}</span>
+        {#if v}
+          <span class="flex items-center gap-1.5 text-sm text-ws-stage-ink">
+            <span class="grid size-5 shrink-0 place-items-center rounded-full {v === 'clean' ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">
+              {#if v === "clean"}<Check class="size-4" strokeWidth={3} />{:else}<X class="size-4" strokeWidth={3} />{/if}
+            </span>
+            <span class="min-w-0">{VERDICT[v]}</span>
+          </span>
+          <!-- The chord's own check, apart from the pedal's. "No chord" already says it. -->
+          {#if chordOk[k] === false && v !== "no-chord"}<span class="text-sm text-ws-stage-soft">Incomplete</span>{/if}
+        {:else}
+          <span class="text-sm text-ws-stage-soft">{b.roman}</span>
+        {/if}
       </li>
     {/each}
   </ol>

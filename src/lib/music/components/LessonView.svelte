@@ -2,7 +2,7 @@
   // One lesson screen at a time, in place of the drill's stage, inside the drill session (the session's HUD
   // carries Close and "Skip, I know this"). The figure leads, then the words; Back and Next dock at the
   // bottom of the screen, outside the text, so nothing reads under a bar. Sounds play on tap only.
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy, tick, type Snippet } from "svelte";
   import type { Score } from "@repo/music-core";
   import type { Lesson, LessonFigure, LessonSound } from "@repo/music-core/lessons/types";
   import { audio } from "../runtime";
@@ -19,7 +19,8 @@
   import { btn, btnPrimary } from "./ui";
   import Volume2 from "lucide-svelte/icons/volume-2";
 
-  let { lessons, onfinish, onskip }: { lessons: Lesson[]; onfinish: () => void; onskip?: () => void } = $props();
+  /** `beforeNext`: drawn in the dock just before Next (the session's "More below", while there is more). */
+  let { lessons, onfinish, onskip, beforeNext }: { lessons: Lesson[]; onfinish: () => void; onskip?: () => void; beforeNext?: Snippet } = $props();
 
   let li = $state(0);
   let si = $state(0);
@@ -344,6 +345,7 @@
     {#if !isFirst}<button type="button" class="{btn} min-h-12 px-4 text-base sm:px-5" onclick={back}>Back</button>{/if}
     {#if onskip && !isLast}<button type="button" class="{btn} min-h-12 px-4 text-base max-sm:text-sm" onclick={onskip}>Skip, I know this</button>{/if}
     <span class="ml-auto hidden text-sm text-ws-soft lg:inline">Arrow keys move.</span>
+    {@render beforeNext?.()}
     <button type="button" class="{btnPrimary} min-h-12 flex-1 text-base sm:flex-none sm:px-8" onclick={next} aria-keyshortcuts="ArrowRight">{isLast ? "Start the quiz" : "Next"}</button>
   </div>
 </div>

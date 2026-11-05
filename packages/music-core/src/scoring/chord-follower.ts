@@ -7,6 +7,13 @@ import { claim, matchWindowMs } from "./timing";
 /** A chord counts as matched at this verification score (e.g. every tone plus one extra of four). */
 export const CHORD_MATCH_SCORE = 0.75;
 
+/**
+ * "On the chord": the heard tones verify at CHORD_MATCH_SCORE. The one rule for a chord followed and for a
+ * strum on its chord, so a run's strum count and its chords followed never disagree.
+ */
+export const onChord = (expectedPcs: readonly number[], heardPcs: readonly number[]) =>
+  verifyChordTones(expectedPcs, heardPcs).score >= CHORD_MATCH_SCORE;
+
 export interface ChordFollowResult extends Graded {
   matched: number;
   total: number;
@@ -51,7 +58,7 @@ export function followChords(input: {
       observedAt: c ? input.observed[c.hit].at : undefined,
       errorMs: c?.errorMs,
       verification,
-      matched: !!verification && verification.score >= CHORD_MATCH_SCORE,
+      matched: !!c && onChord(t.pcs, input.observed[c.hit].pcs),
     };
   });
   const matched = chords.filter((c) => c.matched).length;

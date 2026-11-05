@@ -11,7 +11,7 @@
   import { CHART_LEVELS, chartProgression, isChartLevel } from "@repo/music-core/content/accompany";
   import { RHYTHM_PATTERNS } from "@repo/music-core/content/rhythm";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
-  import { followChords, type ChordFollowResult } from "@repo/music-core/scoring/chord-follower";
+  import { followChords, onChord, type ChordFollowResult } from "@repo/music-core/scoring/chord-follower";
   import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -191,8 +191,8 @@
     halt();
     const r = followChords({ chords: chart, observed, bpm: bpm(), startAt: downbeat, strictness });
     result = r;
-    // The score is the expected strums (contradiction 7): with a pattern, the share that landed on time with a
-    // tone of their chord; with any strum, the chords followed. Chord tones heard is a row, never the ring.
+    // The score is the expected strums (contradiction 7): with a pattern, the share that landed on time on their
+    // chord (onChord, the rule a chord followed uses); with any strum, the chords followed. Chord tones heard is a row, never the ring.
     const landed = strumScore(blocks.map((_, k) => blockHits[k]), onTimeMs());
     const score = strum ? landed.score : r.total ? r.matched / r.total : 0;
     const correct = r.correct && (!strum || landed.landed === landed.total);
@@ -297,13 +297,13 @@
   const blockOffsets = $derived(beatMs ? pairStrums(blockTimes, observed.map((h) => h.at), beatMs) : []);
   /** The strum that landed on each block, for its tones. */
   const blockStrum = (k: number) => observed.find((h) => h.at - blockTimes[k] === blockOffsets[k]);
-  /** Each judged block: its offset, or wrong when none of the chord's tones rang. */
+  /** Each judged block: its offset, or wrong when its strum is not on the chord (the follower's own rule, onChord). */
   const blockHits = $derived.by(() => {
     const out: Record<number, Hit> = {};
     blockOffsets.forEach((off, k) => {
       if (off === undefined) return;
       const pcs = chart.findLast((c) => c.startBeat <= blocks[k].startBeat + 1e-6)?.pcs ?? [];
-      out[k] = blockStrum(k)?.pcs.some((p) => pcs.includes(p)) ? off : "wrong";
+      out[k] = onChord(pcs, blockStrum(k)?.pcs ?? []) ? off : "wrong";
     });
     return out;
   });
