@@ -20,8 +20,28 @@ const WIDTH_WORDS = {
   phone: "phone, 390 px wide",
 };
 
-// TODO(phase 1): the session screen is dark in both themes from phase 1, so drill panels can
-// keep one theme of a drill's session states (capture still shoots both; lib.ts `shot` themes).
+// Hub pages follow the app theme; every other shot is a drill page, which is dark in both
+// themes by the owner's choice, so its caption says so instead of claiming a light screen.
+const HUB_SHOTS = new Set([
+  "today-fresh",
+  "today-history",
+  "drills-tab",
+  "paths",
+  "progress",
+  "journal",
+  "connect",
+  "tuner",
+  "settings",
+  "guide",
+  "create",
+  "library",
+  "palette",
+  "record",
+]);
+const themeWords = (p) =>
+  HUB_SHOTS.has(p.shotFlow)
+    ? `${p.theme} theme`
+    : `app theme set to ${p.theme} (drill screens are dark in both themes by design)`;
 const STATE_WORDS = {
   ready: "exercise set up, before starting",
   lesson: "the lesson shown before the first try",
@@ -93,7 +113,7 @@ for (const flow of FLOWS) {
     key: "woodshed",
     images: picks.map((p) => ({
       path: p.path,
-      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")}${flow.alternate ? " exercise" : ""}, ` : ""}${WIDTH_WORDS[p.width]}, ${p.theme} theme, ${
+      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")}${flow.alternate ? " exercise" : ""}, ` : ""}${WIDTH_WORDS[p.width]}, ${themeWords(p)}, ${
         STATE_WORDS[p.state] ?? p.state.replaceAll("-", " ")
       }`,
     })),
