@@ -45,7 +45,7 @@
     { value: "saw", label: "Saw" },
   ];
   const LEVELS = [
-    { key: "masterLevel", label: "Overall volume", blurb: "Everything the app plays." },
+    { key: "masterLevel", label: "Overall volume", blurb: "Everything Woodshed plays." },
     { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
     { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
   ] as const;
@@ -165,7 +165,7 @@
           <div class="min-w-0 flex-1 basis-48">
             <p class="font-medium" id="sound-l">Sound</p>
             <p class="text-sm text-ws-soft" data-testid="sound-status">
-              {s.muted ? "Sound off. Nothing in Woodshed plays; your levels are kept." : audio.unlocked ? "Sound on." : "Sound on. It starts at your first tap."}
+              {s.muted ? "Sound off. Nothing in Woodshed plays. Your levels are kept." : audio.unlocked ? "Sound on." : "Sound on. It starts at your first tap."}
             </p>
           </div>
           <div class="flex items-center gap-2">

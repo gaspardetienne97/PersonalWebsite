@@ -36,11 +36,11 @@ async function intro(page: Page, flow: string, width: Width, url: string) {
 /** A silent run: Again, play nothing, wait for "Nothing was heard". */
 async function silent(page: Page, flow: string, width: Width) {
   await startBtn(page).click();
-  await expect(
-    page.getByText("Nothing was heard, so this run wasn't scored.").first(),
-  ).toBeVisible({
-    timeout: 45_000,
-  });
+  await expect(page.getByText("Nothing was heard, so this run wasn't scored.").first()).toBeVisible(
+    {
+      timeout: 45_000,
+    },
+  );
   await toResults(page);
   await shot(page, flow, "silent", width);
 }

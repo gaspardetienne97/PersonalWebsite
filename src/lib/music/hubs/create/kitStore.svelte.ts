@@ -149,7 +149,7 @@ class KitStore {
         kit = setPad(kit, note, { soft: id });
         filled.push(note);
         placed.push(`${name} on pad ${padLabel(note)}`);
-      } else placed.push(`${name} (every pad is taken, so it is in the sample list only)`);
+      } else placed.push(`${name} (every pad is taken, so it's in the sample list only)`);
     }
     await this.#write(kit);
     return { placed, refused, pads: filled };

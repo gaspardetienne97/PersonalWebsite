@@ -278,7 +278,7 @@
 
   {#if pending}
     <div class="flex flex-wrap items-center gap-2 rounded-2xl border border-instr bg-instr-wash p-3 text-sm" role="group" aria-label="Unsaved changes">
-      <p class="min-w-0 flex-1 basis-60 font-medium">{session.songName} has changes that are not saved.</p>
+      <p class="min-w-0 flex-1 basis-60 font-medium">{session.songName} has unsaved changes.</p>
       <button type="button" class={btnPrimary} onclick={saveThen}>Save, then {pending.kind === "new" ? "start a new one" : "open"}</button>
       <button type="button" class={btn} onclick={() => run(pending!)}>Discard changes</button>
       <button type="button" class={btn} onclick={() => (pending = null)}>Cancel</button>

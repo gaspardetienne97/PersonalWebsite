@@ -101,7 +101,7 @@
       await audio.unlock();
       const [kind, id] = source.split(":");
       const blob = await getBinary(kind === "take" ? takeKey(id) : trackKey(id));
-      if (!blob) throw new Error("That recording's audio is missing from this browser.");
+      if (!blob) throw new Error("That recording's file is missing from this browser. Import it again.");
       player?.dispose();
       player = await audio.earPlayer(blob);
       player.set({ rate: Number(s.speed), semitones: Number(s.pitch) });
@@ -220,7 +220,7 @@
     }
     if (mode === "sing" && !(await mic.start())) {
       phase = "ready";
-      status = mic.error || "The microphone could not start. Allow it to sing along.";
+      status = mic.error || "The microphone didn't start. Allow it in the browser to sing along.";
       return;
     }
     t0 = performance.now();
@@ -238,12 +238,12 @@
     player!.play(loop ? loop.a : pos);
     status =
       mode === "home"
-        ? "Listen. Play or sing the note that sounds like home, or pick it below."
+        ? "Listen. Play or sing the tonic, the note that sounds like home, or pick it below."
         : mode === "sing"
-          ? `Sing ${PART_NAME[part]} with the recording. Headphones keep the record out of the microphone.`
+          ? `Sing ${PART_NAME[part]} with the recording. Headphones keep the recording out of the microphone.`
           : loop
-          ? "Looping. Play the part along with it; your notes show over the loop."
-          : "Playing. Start loop and End loop mark a stretch to repeat; your notes show over the recording.";
+          ? "Looping. Play the part along with it. Your notes show over the loop."
+          : "Playing. Start loop and End loop mark a stretch to repeat. Your notes show over the recording.";
   }
 
   function stop() {
@@ -252,7 +252,7 @@
     player?.pause();
     if (mode === "home" && !homeAnswered) {
       phase = "ready";
-      status = "Stopped before an answer: nothing recorded.";
+      status = "Stopped before an answer. Nothing saved.";
       return;
     }
     if (mode === "sing") {
@@ -289,14 +289,14 @@
       params: { mode: "home", recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration) },
     });
     await run.attempt({ promptId: `home-${loaded}`, correct: right, partialCredit: right ? 1 : 0, source: notes.length ? (notes[0].source ?? "click") : "click", target: FLAT_NAMES[tonics[0]], response: FLAT_NAMES[answer] });
-    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? `Home is ${FLAT_NAMES[answer]}` : `Heard ${FLAT_NAMES[answer]}, home is ${FLAT_NAMES[tonics[0]]}` });
+    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? `The tonic is ${FLAT_NAMES[answer]}` : `Heard ${FLAT_NAMES[answer]}, the tonic is ${FLAT_NAMES[tonics[0]]}` });
     summary = {
-      headline: right ? `Right: home is ${FLAT_NAMES[answer]}.` : `You picked ${FLAT_NAMES[answer]}; home sounds like ${FLAT_NAMES[tonics[0]]}.`,
+      headline: right ? `Right: the tonic is ${FLAT_NAMES[answer]}.` : `You picked ${FLAT_NAMES[answer]}. The tonic sounds like ${FLAT_NAMES[tonics[0]]}.`,
       metric: FLAT_NAMES[answer],
-      metricLabel: right ? "is home" : `home is ${FLAT_NAMES[tonics[0]]}`,
+      metricLabel: right ? "is the tonic" : `the tonic is ${FLAT_NAMES[tonics[0]]}`,
       score: right ? 1 : 0,
       clean: right,
-      cleanMeans: "the home note named",
+      cleanMeans: "the tonic named",
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
@@ -306,13 +306,13 @@
     cap = null;
     player?.pause();
     phase = "results";
-    status = right ? `Right: ${FLAT_NAMES[answer]} is home.` : `${FLAT_NAMES[answer]} is not home here. The recording points to ${keyName(ranked[0])}.`;
+    status = right ? `Right: ${FLAT_NAMES[answer]} is the tonic.` : `${FLAT_NAMES[answer]} isn't the tonic here. The recording points to ${keyName(ranked[0])}.`;
   }
   /** Grade what was sung against the recording, and record it as a judged run. */
   async function finishSing() {
     phase = "results";
     if (sung.length < MIN_SUNG) {
-      status = !sung.length ? NOT_HEARD : `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing recorded.`;
+      status = !sung.length ? NOT_HEARD : `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing saved.`;
       return;
     }
     const b = player!.buffer;
@@ -331,13 +331,13 @@
       params: { mode: "sing", part, recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration), speed: Number(s.speed), tune: 50 },
     });
     await run.attempt({ promptId: `sing-${part}-${loaded}`, correct: r.correct, partialCredit: r.score, source: "audio", target: part, response: sung.map((n) => n.midi) });
-    const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the record` });
+    const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the recording` });
     summary = {
-      headline: `${r.right} of ${r.total} sung notes with the record.`,
+      headline: `${r.right} of ${r.total} sung notes with the recording.`,
       metric: pct(r.score),
-      metricLabel: `sung with the record, 75% passes`,
+      metricLabel: `sung with the recording, 75% passes`,
       clean: r.right === r.total,
-      cleanMeans: "every sung note with the record",
+      cleanMeans: "every sung note with the recording",
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
@@ -421,7 +421,7 @@
   const PITCHES = [-2, -1, 0, 1, 2].map((n) => ({ value: String(n), label: n === 0 ? "As recorded" : `${n > 0 ? "+" : "−"}${Math.abs(n)}` }));
   const lastNotes = $derived(played.slice(-16));
   const summaryLine = $derived([
-    { text: mode === "home" ? "Find home" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
+    { text: mode === "home" ? "Find the tonic" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
     // Quoted: it is the recording's own title (a file name), not one of the app's presets.
     { text: sourceTitle ? `from “${sourceTitle}”` : "no recording yet", focus: "source" },
     { text: `${Math.round(Number(s.speed) * 100)}% speed`, focus: "speed" },
@@ -452,8 +452,8 @@
         setupKey="mode"
         options={[
           { value: "learn", label: "Learn a part", hint: "Loop, slow down, mark sections, play it back. You rate the run." },
-          { value: "home", label: "Find home", hint: "Name the note the music rests on. Judged against the recording's key." },
-          { value: "sing", label: "Sing along", hint: "Sing the tune, or its roots, with the recording. Each sung note is checked against what the recording sounds then." },
+          { value: "home", label: "Find the tonic", hint: "Name the tonic, the home note the music rests on. Scored against the recording's key." },
+          { value: "sing", label: "Sing along", hint: "Sing the tune, or its roots, with the recording. Each sung note is scored against what the recording sounds then." },
         ]}
         value={mode}
         onchange={(v) => cfg.set({ mode: v })}
@@ -514,7 +514,7 @@
       <div class="flex flex-col gap-3" data-loaded={loaded ? "yes" : "no"}>
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" class={btnStage} onclick={toggle} disabled={loading}>
-            {#if playing}<Pause class="size-4" aria-hidden="true" />Pause{:else}<Play class="size-4" aria-hidden="true" />{loaded ? "Play" : loading ? "Loading" : "Load and play"}{/if}
+            {#if playing}<Pause class="size-4" aria-hidden="true" />Pause{:else}<Play class="size-4" aria-hidden="true" />{loaded ? "Play" : loading ? "Loading…" : "Load and play"}{/if}
           </button>
           <button type="button" class={btnStage} disabled={!loaded} onclick={() => player?.seek(pos - 5)}>Back 5 s</button>
           <button type="button" class={btnStage} disabled={!loaded} onclick={setA}>Start loop</button>
@@ -556,7 +556,7 @@
         {/if}
 
         {#if phase === "running" && mode === "home"}
-          <div role="group" aria-label="Home note" class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
+          <div role="group" aria-label="Tonic" class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
             {#each FLAT_NAMES as name, i (i)}
               <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{name}</button>
             {/each}
@@ -596,17 +596,17 @@
         {/if}
         <p class="text-sm text-ws-soft">
           The recording's notes point to {keyName(home.ranked[0])}{home.tonics.length > 1 ? `, with ${keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1])} close behind, so either tonic counts` : ""}.
-          The key is worked out from the whole recording; a song that changes key or sits long away from home can fool it.
+          Woodshed works the key out from the whole recording. A song that changes key or sits long away from the tonic can fool it.
         </p>
       {:else if mode === "sing"}
         {#if sing}
           <p class="text-sm text-ws-soft">
-            {sing.correct ? `That passes: ${PART_NAME[part]} in tune with the recording.` : `75% passes. ${sing.total - sing.inTune} notes were more than 50 cents out; the rest missed what the recording sounds there.`}
-            A note counts when its pitch class sounds strongly in the recording at that moment{part === "roots" ? ", in the bass" : ""}; any octave.
+            {sing.correct ? `That passes: ${PART_NAME[part]} in tune with the recording.` : `75% passes. ${sing.total - sing.inTune} notes were more than 50 cents out. The rest missed what the recording sounds there.`}
+            A note counts when its pitch class sounds strongly in the recording at that moment{part === "roots" ? ", in the bass" : ""}, in any octave.
           </p>
           <p class="text-sm">{sing.notes.slice(-24).map((n) => `${noteName(n.midi, "flat")}${n.ok ? "" : "?"}`).join(" ")}</p>
         {:else}
-          <p class="font-display text-2xl font-semibold">Too few notes to grade.</p>
+          <p class="font-display text-2xl font-semibold">Too few notes to score.</p>
         {/if}
         {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
@@ -622,7 +622,7 @@
               </div>
             {/if}
             <div class="flex flex-col gap-2">
-              <p class="text-sm text-ws-soft">The app can't hear the part inside the recording, so you judge it: could you play it with the record?</p>
+              <p class="text-sm text-ws-soft">Woodshed can't hear the part inside the recording, so you rate it: could you play it with the recording?</p>
               <div class="flex flex-wrap gap-2">
                 <button type="button" class="{btnPrimary} min-h-12 px-6 text-base" onclick={() => rate(true)}>I got it</button>
                 <button type="button" class="{btn} min-h-12 px-6 text-base" onclick={() => rate(false)}>Not yet</button>
@@ -634,7 +634,7 @@
           <!-- What to do next, the way a judged run says it. -->
           <p class="text-sm">
             Next up:
-            {#if rated}<a class="font-semibold underline underline-offset-4" href="/music/by-ear?mode=sing">sing along with it</a>, so the record checks you.{:else}loop a shorter stretch, or slow it to 75%.{/if}
+            {#if rated}<a class="font-semibold underline underline-offset-4" href="/music/by-ear?mode=sing">sing along with it</a>, so the recording scores you.{:else}loop a shorter stretch, or slow it to 75%.{/if}
           </p>
         {/if}
         {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}

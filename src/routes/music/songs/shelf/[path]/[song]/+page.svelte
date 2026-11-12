@@ -46,7 +46,7 @@
 
 {#if error}
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">
-    <h1 class="font-display text-4xl font-semibold tracking-tight">{entry?.title ?? "This song"} is not in your songs yet</h1>
+    <h1 class="font-display text-4xl font-semibold tracking-tight">{entry?.title ?? "This song"} isn't in your songs yet</h1>
     <p class="text-ws-soft">{error} Import its score from the path's song list, then come back.</p>
     <a class={btnPrimary} href="/music/studio?tab=import&shelf={encodeURIComponent(key)}&for={encodeURIComponent(entry?.title ?? '')}">Import its score</a>
   </div>

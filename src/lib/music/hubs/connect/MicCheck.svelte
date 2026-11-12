@@ -48,7 +48,7 @@
   });
 
   const ADVICE: Record<string, string> = {
-    clipping: "Turn the input down or move back; clipped audio breaks pitch detection.",
+    clipping: "Turn the input down or move back. Clipped sound breaks pitch detection.",
     hot: "Back off a little to leave headroom for loud strums.",
     good: "Right where pitch detection works best.",
     quiet: "Move closer or raise the input gain.",
@@ -97,7 +97,7 @@
     </summary>
     <label class="flex min-h-11 items-start gap-3 pl-6">
       <input type="checkbox" role="switch" class="mt-0.5 size-5 shrink-0 accent-[var(--instr-ink)]" checked={settings.value.echoCancellation} onchange={(e) => void setEcho(e.currentTarget.checked)} />
-      <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">The browser filters the app's own sound out of the microphone, which also blurs your notes. Leave it off for pitch and timing. Turn it on only if the speakers bleed into the mic.</span></span>
+      <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">The browser filters Woodshed's own sound out of the microphone, which also blurs your notes. Leave it off for pitch and timing. Turn it on only if the speakers bleed into the mic.</span></span>
     </label>
   </details>
 </div>

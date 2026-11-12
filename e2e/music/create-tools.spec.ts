@@ -919,7 +919,7 @@ test.describe("Guide", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Guide" })).toBeVisible();
     await expect(page).toHaveTitle("Guide | Woodshed");
     for (const h of [
-      "How a session works",
+      "How Today's set works",
       "Practice and Check",
       'What "Not measured" means',
       "Shortcuts",

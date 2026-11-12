@@ -28,14 +28,14 @@
         : !midi.sysexEnabled
           ? "Blocked: pad lights (SysEx) weren't allowed, so the MPC can't be linked. Turn MIDI off and on again and allow them."
           : link.state === "no-output"
-            ? `Blocked: the linked output (${outName(link.outputId)}) is not connected.`
+            ? `Blocked: the linked output (${outName(link.outputId)}) isn't connected.`
             : link.state === "linked"
-              ? `Linked and holding: the app checks in with ${outName(link.outputId)} every second, on every page, until you unlink.`
+              ? `Linked and holding: Woodshed checks in with ${outName(link.outputId)} every second, on every page, until you unlink.`
               : "Not linked: the MPC only sends pad notes while a host keeps talking to it. Press Keep linked.",
   );
 
   function report(ok: boolean, what: string) {
-    announce(ok ? `${what} sent to ${outName(outputId)}.` : `${what} was not sent: ${!midi.sysexEnabled ? "SysEx is not granted" : "no output"}.`);
+    announce(ok ? `${what} sent to ${outName(outputId)}.` : `${what} wasn't sent: ${!midi.sysexEnabled ? "SysEx isn't allowed" : "no output"}.`);
   }
 </script>
 
@@ -65,7 +65,7 @@
       disabled={!ready}
       onclick={async () => {
         await midi.linkMpc(outputId);
-        announce(midi.mpcLink.state === "linked" ? `Linked ${outName(outputId)}: handshake sent, heartbeat running.` : `Saved the link, but it cannot run yet: ${stateLine}`);
+        announce(midi.mpcLink.state === "linked" ? `Linked ${outName(outputId)}: handshake sent, heartbeat running.` : `Saved the link, but it can't run yet: ${stateLine}`);
       }}>Keep linked (init + heartbeat)</button
     >
     <button

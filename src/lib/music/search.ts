@@ -28,7 +28,7 @@ export const kindOf = (i: SearchItem) => i.kind ?? (i.drill ? "drill" : "page");
 export const PAGES_SHOWN = 4;
 
 const PAGES: SearchItem[] = [
-  { label: "Start today's plan", href: "/music", hint: "Today", keywords: "routine daily" },
+  { label: "Start Today's set", href: "/music", hint: "Today", keywords: "routine daily" },
   { label: "All drills", href: "/music?tab=drills", hint: "Drills" },
   { label: "Learning paths", href: "/music?tab=paths", hint: "Drills", keywords: "curriculum" },
   {

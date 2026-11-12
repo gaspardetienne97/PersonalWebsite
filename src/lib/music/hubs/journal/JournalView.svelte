@@ -139,7 +139,7 @@
     <div class="flex flex-col items-start gap-3">
       <h2 id="journal-empty" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Your journal is empty</h2>
       <p class="max-w-prose text-ws-soft">Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.</p>
-      <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start today's set</a>
+      <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start Today's set</a>
     </div>
     <!-- A sample, drawn as a real card would be but faded and marked, so it never reads as an entry. -->
     <figure class="relative min-w-0">

@@ -100,7 +100,7 @@ const EAR_BLURB: Record<string, string> = {
   "scale-degrees": "Hear the tonic, then a note, and name its place in the key.",
   "melody-dictation": "Hear a three or four note phrase and play it back in order.",
   "repertoire-transfer": "Hear a short phrase from one of your saved songs and play it back.",
-  mixed: "A short adaptive mix of the nine ear drills; pick which go in.",
+  mixed: "A short mix of the nine ear drills that adapts to you. Pick which go in.",
 };
 
 const earEntries = EAR_DRILLS.map((d) =>
@@ -542,13 +542,13 @@ export const CATALOG: CatalogEntry[] = [
     route: "/music/by-ear",
     title: "Learn by ear",
     blurb:
-      "Loop a part of a recording you own, slow it down, mark its sections and play it back, or find the note that sounds like home.",
+      "Loop a part of a recording you own, slow it down, mark its sections and play it back, or find its tonic.",
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "played",
     modes: [
       mode("learn", "Learn a part", "ear.by-ear", ["ear.by-ear"]),
-      mode("home", "Find home", "ear.find-home", ["ear.find-home"]),
+      mode("home", "Find the tonic", "ear.find-home", ["ear.find-home"]),
       mode("sing", "Sing along", "ear.by-ear.sing", ["ear.by-ear"]),
     ],
   }),
@@ -604,7 +604,7 @@ export const CATALOG: CatalogEntry[] = [
     // Song practice lives at /music/songs/[id]; the library is where a song is picked.
     route: "/music/library?tab=songs",
     title: "Song practice",
-    blurb: "Play through one of your saved songs while the score waits for you or keeps time.",
+    blurb: "Play through one of your saved songs while Woodshed waits for you or keeps time.",
     instruments: [...INSTRUMENTS],
     capability: "reading",
     modality: "played",

@@ -437,7 +437,7 @@
               />
               <span class="tnum w-14 font-semibold">{signedDb(gain)}</span>
             </label>
-            {#if gain > 0}<span class="text-sm text-ws-soft">Plays {gain} dB louder here, so a quiet take is easy to hear</span>{:else if gain < 0}<span class="text-sm text-ws-soft">Plays {-gain} dB quieter here</span>{/if}
+            {#if gain > 0}<span class="text-sm text-ws-soft">Plays {gain} dB louder here, so you can hear a quiet take</span>{:else if gain < 0}<span class="text-sm text-ws-soft">Plays {-gain} dB quieter here</span>{/if}
             <input
               class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
               value={take.note ?? ""}

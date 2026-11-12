@@ -76,7 +76,7 @@
     <p class="font-semibold">No sessions saved yet.</p>
     <p class="text-sm text-ws-soft">Finish one drill and it shows up here with its score, so the next visit has something to beat.</p>
     <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
-      >Start today's set</a
+      >Start Today's set</a
     >
   </div>
 {:else}

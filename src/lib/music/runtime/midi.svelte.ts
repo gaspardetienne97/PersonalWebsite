@@ -94,7 +94,7 @@ function setProfiles(next: DeviceProfile[]) {
 
 function persistProfiles() {
   return putSetting(PROFILES_KEY, profiles).catch((e) => {
-    error = `Could not save device settings: ${(e as Error).message}`;
+    error = `Device settings didn't save: ${(e as Error).message}`;
   });
 }
 
@@ -182,7 +182,7 @@ function send(outputId: string, bytes: number[] | Uint8Array): boolean {
     lastOutboundFrame = toHex(bytes);
     return true;
   } catch (e) {
-    error = `Could not send to ${out.name ?? outputId}: ${(e as Error).message}`;
+    error = `Couldn't send to ${out.name ?? outputId}: ${(e as Error).message}`;
     return false;
   }
 }
@@ -210,10 +210,10 @@ async function enable(): Promise<boolean> {
     try {
       access = await navigator.requestMIDIAccess({ sysex: false });
       sysexEnabled = false;
-      error = `SysEx was not granted (${reason}), so MPC pad lights and the controller link are off. Plain MIDI works.`;
+      error = `SysEx wasn't allowed (${reason}), so MPC pad lights and the controller link are off. Plain MIDI works.`;
     } catch (second) {
       enabled = false;
-      error = `MIDI access was refused: ${(second as Error).message || reason}`;
+      error = `The browser refused MIDI access: ${(second as Error).message || reason}`;
       return false;
     }
   }

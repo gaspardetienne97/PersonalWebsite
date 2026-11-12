@@ -485,8 +485,8 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       return keysFor(
         notes,
         steps.length === 2
-          ? "The home note (do, 1) and 5"
-          : "Each note heard against the home note (do, 1)",
+          ? "The tonic (do, 1) and 5"
+          : "Each note heard against the tonic (do, 1)",
         labels,
       );
     }

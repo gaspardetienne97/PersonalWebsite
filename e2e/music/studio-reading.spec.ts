@@ -180,7 +180,7 @@ test.describe("song practice for reading", () => {
     await importSong(page, "e2e/music/fixtures/ode-duet.musicxml", "Ode duet");
     const base = page.url().split("?")[0];
     await page.goto(base + "?mode=performance&takes=1&grade=balance&bpm=240");
-    await expect(page.getByText("melody balance graded")).toBeVisible();
+    await expect(page.getByText("melody balance scored")).toBeVisible();
     await page.getByRole("button", { name: "Start performance" }).click();
     // The melody over the bass at beats 0 and 4: louder at 0, softer at 4.
     await playFromGo(page, [

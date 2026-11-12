@@ -9,7 +9,7 @@ describe("palette search", () => {
     expect(at("Scales and modes")).toBeLessThan(at("Chord and scale reference"));
     const hint = (label: string) => hits.find((h) => h.label === label)!.hint;
     expect(hint("Scales")).toBe("Technique drill");
-    expect(hint("Scales and modes")).toBe("Ear training drill");
+    expect(hint("Scales and modes")).toBe("Ear drill");
   });
 
   it("puts an exact label first and keyword-only matches last", () => {
@@ -49,7 +49,7 @@ describe("palette search", () => {
     const next = {
       label: "Rhythm",
       href: "/music/rhythm?routine=r&step=1",
-      hint: "Next in today's set",
+      hint: "Next in Today's set",
     };
     const recent = recentDrills([
       { exerciseId: "rhythm.pulse", startedAt: 3 },

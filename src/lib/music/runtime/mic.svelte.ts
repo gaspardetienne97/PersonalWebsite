@@ -309,8 +309,8 @@ async function start(
       state = "error";
       error =
         err.name === "NotFoundError" || err.name === "OverconstrainedError"
-          ? "No microphone was found. Plug one in or pick another input in Settings."
-          : `The microphone could not start: ${err.message}`;
+          ? "No microphone found. Plug one in, or pick another input on Connect."
+          : `The microphone didn't start: ${err.message}`;
     }
     return false;
   }

@@ -221,7 +221,7 @@
   <div class="flex min-w-0 flex-col gap-10">
     <section id="explorer" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-explorer">
       <h2 id="h-explorer" tabindex="-1" class="font-display text-2xl font-semibold">Chords and scales on the keyboard</h2>
-      <p class="mt-1 max-w-prose text-ws-soft">All 17 scales and every chord quality, on any tonic. Labels are degrees from the tonic; tap Hear it to play it back, or play along.</p>
+      <p class="mt-1 max-w-prose text-ws-soft">All 17 scales and every chord quality, on any tonic. Labels are degrees from the tonic. Tap Hear it, or play along.</p>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Choice
           label="Show"
@@ -319,7 +319,7 @@
     <section id="fretted-chords" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-fretted-chords">
       <h2 id="h-fretted-chords" tabindex="-1" class="font-display text-2xl font-semibold">Guitar and ukulele chords</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
-        Any chord, every place on the neck it can be played. The shapes are worked out from the notes, so open chords, barre chords and the closed shapes up the neck all come from the same rules.
+        Any chord, everywhere on the neck you can play it. Woodshed works the shapes out from the notes, so open chords, barre chords and closed shapes up the neck all follow the same rules.
       </p>
       <div class="mt-4"><ChordFinder {onstatus} /></div>
     </section>

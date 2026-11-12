@@ -149,7 +149,7 @@ const SPLIT_ORDER: Instrument[] = ["guitar", "ukulele", "piano", "aerophone", "m
 
 /** Choices for a weekday in the split: "" plays the strip's instrument. */
 export const splitOptions = (strip: Instrument) => [
-  { value: "", label: `Follows the strip (${INSTRUMENT_LABEL[strip]})` },
+  { value: "", label: `Follows the top bar (${INSTRUMENT_LABEL[strip]})` },
   ...SPLIT_ORDER.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] })),
 ];
 

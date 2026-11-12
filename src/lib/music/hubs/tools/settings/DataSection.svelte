@@ -211,7 +211,7 @@
           Media left out: {prepared.excluded.audioTakes} audio take{prepared.excluded.audioTakes === 1 ? "" : "s"}, {prepared.excluded.backingTracks} backing track{prepared.excluded.backingTracks === 1 ? "" : "s"} and {prepared.excluded.samples} kit sample{prepared.excluded.samples === 1 ? "" : "s"}. Use the full backup to keep them.
         </p>
       {:else if prepared.missing}
-        <p class="text-sm text-warn">{prepared.missing} referenced file{prepared.missing === 1 ? " was" : "s were"} already missing from this browser and could not be included.</p>
+        <p class="text-sm text-warn">{prepared.missing} referenced file{prepared.missing === 1 ? " was" : "s were"} already missing from this browser, so the backup leaves {prepared.missing === 1 ? "it" : "them"} out.</p>
       {/if}
     </li>
   {/if}
@@ -263,7 +263,7 @@
   <li class={rowCls}>
     <div class="min-w-0 flex-1 basis-56">
       <p class="font-medium">Reset local data</p>
-      <p class="text-sm text-ws-soft">Deletes every session, take, sample and setting Woodshed keeps in this browser. Nothing else in the app deletes your data.</p>
+      <p class="text-sm text-ws-soft">Deletes every session, take, sample and setting Woodshed keeps in this browser. Nothing else in Woodshed deletes your data.</p>
     </div>
     {#if confirmReset}
       <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm reset">

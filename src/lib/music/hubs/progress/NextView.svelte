@@ -249,7 +249,7 @@
                         <text x={keyX(m.semi)} y={(black ? 34 : 62) + 3} text-anchor="middle" class="pk-label">{m.token}</text>
                       {/each}
                     </svg>
-                    <figcaption class="mt-1 text-[13px] text-ws-soft">{pm.title}: the fuller the dot, the higher the estimate; dashed is not measured yet.</figcaption>
+                    <figcaption class="mt-1 text-[13px] text-ws-soft">{pm.title}: the fuller the dot, the higher the skill score. Dashed means not measured yet.</figcaption>
                   </figure>
                 {/each}
               </div>

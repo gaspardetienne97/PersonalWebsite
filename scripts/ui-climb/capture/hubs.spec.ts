@@ -94,7 +94,7 @@ async function makeHistory(
   await ten.click();
   await expect(ten).toHaveAttribute("aria-pressed", "true");
   await choose(page, page.getByLabel(/^Instrument on \w+s$/), "Voice");
-  await expect(page.getByText(/session, Voice$/)).toBeVisible();
+  await expect(page.getByText(/^This (morning|afternoon|evening), Voice$/)).toBeVisible();
   await expect(page.locator('button[aria-controls^="block-"]')).toHaveCount(2);
 
   // Block 1: the warm-up.

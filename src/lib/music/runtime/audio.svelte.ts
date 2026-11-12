@@ -277,7 +277,7 @@ function loadPiano(t: Tone) {
       sampleState = "ready";
     },
     onerror: (e) => {
-      sampleError = `The sampled piano could not load (${e.message}); using Warm Synth.`;
+      sampleError = `The sampled piano didn't load (${e.message}). Using Warm synth.`;
       sampleState = "error";
     },
   });

@@ -46,7 +46,7 @@
     session.updateVoice(v.id, (x) => ({ ...x, loopBars: bars || undefined }));
     announce(
       bars
-        ? `${v.name} repeats its first ${count(bars, "bar")} through all ${session.bars} bars of the song. Notes after bar ${bars} are not heard.`
+        ? `${v.name} repeats its first ${count(bars, "bar")} through all ${session.bars} bars of the song. Notes after bar ${bars} aren't heard.`
         : `${v.name} plays as written, without a loop.`,
     );
   }

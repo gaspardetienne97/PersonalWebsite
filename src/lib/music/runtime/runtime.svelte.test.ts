@@ -275,7 +275,7 @@ describe("midi runtime", () => {
     expect(await midi.enable()).toBe(true);
     expect(fake.requests).toEqual([{ sysex: true }, { sysex: false }]);
     expect(midi.sysexEnabled).toBe(false);
-    expect(midi.error).toMatch(/SysEx was not granted/);
+    expect(midi.error).toMatch(/SysEx wasn't allowed/);
     expect(midi.send("out-mpc", heartbeatFrame())).toBe(false);
     expect(midi.send("out-mpc", [0x90, 60, 100])).toBe(true);
     expect(fake.outputs.get("out-mpc")!.sent).toEqual([[0x90, 60, 100]]);

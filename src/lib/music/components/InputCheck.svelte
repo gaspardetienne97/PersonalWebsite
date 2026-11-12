@@ -71,7 +71,7 @@
           ? "The microphone hears sound (the level below moves), but it recognised no notes in the run. Play louder than the room, close to the microphone."
           : "The microphone is on but the level below is flat. Play close to it and watch the level move."
       : !midi.supported
-        ? "This browser has no MIDI. Play on screen, or open the app in Chrome or Edge."
+        ? "This browser has no MIDI. Play on screen, or open Woodshed in Chrome or Edge."
         : off
           ? `MIDI is off. Turn it on${orScreen}.`
           : midi.inputs.length

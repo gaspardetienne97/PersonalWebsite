@@ -19,7 +19,7 @@
   import { btn, btnPrimary } from "$lib/music/components/ui";
 
   const TOPICS = [
-    { id: "session", label: "How a session works", hue: "piano", icon: Layers },
+    { id: "session", label: "How Today's set works", hue: "piano", icon: Layers },
     { id: "check", label: "Practice and Check", hue: "reading", icon: Eye },
     { id: "not-measured", label: "Not measured", hue: "ear", icon: CircleSlash },
     { id: "connect", label: "MIDI, the MPC and the mic", hue: "mpc", icon: Cable },
@@ -65,9 +65,9 @@
   }
   const STEPS = [
     "Open Today and pick how many minutes you have.",
-    "Woodshed builds a short set from what is due: something you are learning, something slipping, something to review.",
-    "Press Start and go block by block. The setup is remembered, so most days that is all it takes.",
-    "Each run ends with one sentence, the number that matters, the change since last time, and what to try next.",
+    "Woodshed builds a short set from what's due: something you're learning, something slipping, something to review.",
+    "Press Start and go block by block. Woodshed remembers the setup, so most days that's all it takes.",
+    "Each run ends with one sentence, your score, the change since last time, and what to try next.",
   ];
 
   // Illustration data: a set, two keyboards, a result, a week.
@@ -181,7 +181,7 @@
 
   <div class="flex min-w-0 flex-col gap-12">
     <section id="session" aria-labelledby="session-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("session-h", "How a session works", "session")}
+      {@render heading("session-h", "How Today's set works", "session")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
           <ol class="flex flex-col gap-3">
@@ -192,7 +192,7 @@
               </li>
             {/each}
           </ol>
-          <p class="text-sm text-ws-soft">Timed drills count you in first (set in the practice strip at the top), and nothing played during the count-in is graded. Your session is saved as you go; there is nothing to submit.</p>
+          <p class="text-sm text-ws-soft">Timed drills count you in first (set the count-in in the top bar). Nothing you play during the count-in is scored. Woodshed saves each run as you go.</p>
           <p class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <a class="{btnPrimary} no-underline" href="/music">Open Today</a>
             <a class={link} href="/music?tab=drills">Or pick any drill</a>
@@ -207,9 +207,9 @@
       {@render heading("check-h", "Practice and Check", "check")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Every graded drill has two modes. <strong>Practice</strong> shows you the targets on the keys, frets or pads, and lets you hear it first. <strong>Check</strong> hides them.</p>
-        <p>Only Check moves your skill mastery. Playing a scale while it is lit up proves you can follow lights; playing it from memory proves you know it. Practice runs are still saved and still earn XP, they just do not claim more than they show.</p>
-        <p>"Hear it first" is a demo. It is never scored.</p>
+        <p>Every scored drill has two modes. <strong>Practice</strong> shows the targets on the keys, frets or pads, and you can hear it first. <strong>Check</strong> hides them.</p>
+        <p>Only Check runs change your skill scores. Playing a scale while it's lit up shows you can follow the lights. Playing it in Check shows you know it. Practice runs are saved and earn XP too.</p>
+        <p>"Hear it" plays a demo. It's never scored.</p>
       </div>
         {@render checkPicture()}
       </div>
@@ -220,8 +220,8 @@
       {@render heading("nm-h", 'What "Not measured" means', "not-measured")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Some inputs cannot see some things. An on-screen pad has no velocity, the microphone cannot tell which string you used, a computer keyboard plays one note at a time so it cannot judge two hands together.</p>
-        <p>When that happens the result says <strong>Not measured</strong> for that part and leaves it out of the score, rather than giving you a zero or a flattering 100%. Connect the real instrument and those rows start counting.</p>
+        <p>Some inputs can't measure everything. An on-screen pad has no velocity. The microphone can't tell which string you used. A computer keyboard plays one note at a time, so it can't measure two hands together.</p>
+        <p>Then the results say <strong>Not measured</strong> for that part and leave it out of the score. You get neither a zero nor a free 100%. Connect the real instrument and those rows start counting.</p>
       </div>
         {@render resultPicture()}
       </div>
@@ -232,9 +232,9 @@
       {@render heading("connect-h", "MIDI, the MPC and the microphone", "connect")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p><strong>MIDI</strong> works in Chromium browsers. Plug in the keyboard, MPC or Aerophone and enable MIDI once on <a class={link} href="/music/connect">Connect</a>; after that Woodshed reopens it on every visit. Name each device and tell it which instrument it is.</p>
-        <p><strong>The MPC One+</strong> only sends pad notes while a computer keeps talking to it. Turn on the controller link on Connect and Woodshed keeps that conversation going on every page, not just that one. If your pads send the Akai Classic notes, pick that pad map there, or use Learn pads and hit each pad once.</p>
-        <p><strong>The microphone</strong> is for guitar, ukulele and voice. It only starts when you press something that needs it, and it stops when the drill ends. Pick the input and echo cancellation on <a class={link} href="/music/connect#mic">Connect</a>; the <a class={link} href="/music/tuner">Tuner</a> is the quickest way to check it hears you.</p>
+        <p><strong>MIDI</strong> works in Chromium browsers. Plug in the keyboard, MPC or Aerophone and turn on MIDI once on <a class={link} href="/music/connect">Connect</a>. After that Woodshed reopens it on every visit. Name each device and choose the instrument it plays as.</p>
+        <p><strong>The MPC One+</strong> only sends pad notes while a computer keeps talking to it. Link the MPC on Connect and Woodshed keeps the link alive on every page. If your pads send the Akai Classic notes, pick that pad map there, or use Learn pads and hit each pad once.</p>
+        <p><strong>The microphone</strong> is for guitar, ukulele and voice. It starts only when you press something that needs it, and it stops when the drill ends. Pick the input and echo cancellation on <a class={link} href="/music/connect#mic">Connect</a>. The <a class={link} href="/music/tuner">Tuner</a> is the fastest way to check it hears you.</p>
         <p>If notes feel late, run a latency calibration in <a class={link} href="/music/settings#latency">Settings</a>.</p>
       </div>
         {@render devicesPicture()}
@@ -245,7 +245,7 @@
     <section id="keys" aria-labelledby="keys-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
       {@render heading("keys-h", "Playing from the computer keyboard", "keys")}
       <div class={prose}>
-        <p>No instrument nearby? The keys below play whichever surface is on screen. They follow key positions, so they work the same on other layouts.</p>
+        <p>With no instrument nearby, the keys below play whichever surface is on screen. They follow key positions, so they work the same on other keyboard layouts.</p>
       </div>
       <div class="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
         <figure class="min-w-0">
@@ -291,7 +291,7 @@
       {@render heading("shortcuts-h", "Shortcuts", "shortcuts")}
       <dl class="mt-3 grid max-w-prose grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-3">
         <dt><kbd class="kbd">Space</kbd></dt>
-        <dd>Start a drill, or run it again from the results, while focus is not on a button or field.</dd>
+        <dd>Start a drill, or run it again from the results, while focus isn't on a button or field.</dd>
         <dt><kbd class="kbd">Esc</kbd></dt>
         <dd>Stop a run or count-in.</dd>
         <dt><span class="flex gap-1"><kbd class="kbd">⌘</kbd><kbd class="kbd">K</kbd></span></dt>
@@ -304,9 +304,9 @@
       {@render heading("streaks-h", "Streaks, freezes and XP", "streaks")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Your streak counts the days you practise in a row. It is forgiving: every week you practise earns a <strong>freeze</strong>, and you can hold two. Miss a day and come back, and a freeze covers the gap for you. Frozen days show dashed on the week calendar.</p>
-        <p><strong>XP</strong> rewards showing up and doing the work: a wrong answer still earns a little, a hard clean run earns a lot more, and beating your last run adds a bonus. Every 250 XP is a level.</p>
-        <p>XP is not skill. Mastery is separate and only moves on Check runs, and it fades if you leave a skill alone, so Progress can tell you what is actually due.</p>
+        <p>Your streak counts the days you practise in a row. Every week you practise earns a <strong>freeze</strong>, and you can hold two. Miss a day and a freeze covers the gap. Frozen days show dashed on the week calendar.</p>
+        <p><strong>XP</strong> rewards showing up: a wrong answer still earns a little, a hard clean run earns much more, and beating your last run adds a bonus. Every 250 XP is an XP level.</p>
+        <p>XP isn't skill. Skill scores are separate: only Check runs change them, and they fade when you leave a skill alone. That's how Progress knows what's due.</p>
       </div>
         {@render weekPicture()}
       </div>
@@ -317,7 +317,7 @@
       {@render heading("privacy-h", "Privacy", "privacy")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Everything stays in this browser: sessions, scores, recordings and samples. There is no account and nothing is sent to a server. The microphone audio is analysed on this device and only saved when you record a take.</p>
+        <p>Everything stays in this browser: sessions, scores, recordings and samples. There's no account, and nothing goes to a server. Woodshed analyses microphone sound on this device and saves it only when you record a take.</p>
         <p>Clearing this site's data in the browser deletes it, so make a backup in <a class={link} href="/music/settings#data">Settings</a> now and then. Backups are files you keep.</p>
       </div>
         {@render privacyPicture()}
@@ -386,14 +386,14 @@
 {/snippet}
 
 {#snippet checkPicture()}
-  <figure class="pic max-md:order-first flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward mastery">
+  <figure class="pic max-md:order-first flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward your skill scores">
     <div>
       <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">Practice <span class="text-[13px] font-normal text-ws-stage-soft">targets lit</span></p>
       {@render miniKeys(true)}
     </div>
     <div>
       <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">
-        Check <span class="flex items-center gap-1 text-[13px] font-normal text-success"><Check class="size-3.5" aria-hidden="true" />counts toward mastery</span>
+        Check <span class="flex items-center gap-1 text-[13px] font-normal text-success"><Check class="size-3.5" aria-hidden="true" />counts toward skill scores</span>
       </p>
       {@render miniKeys(false)}
     </div>
@@ -418,7 +418,7 @@
 {/snippet}
 
 {#snippet devicesPicture()}
-  <figure class="pic max-md:order-first" aria-label="Keyboard, MPC and Aerophone connect over MIDI, the MPC with a heartbeat; the guitar comes in through the microphone">
+  <figure class="pic max-md:order-first" aria-label="Keyboard, MPC and Aerophone connect over MIDI, the MPC with a heartbeat. The guitar comes in through the microphone">
     <ul class="flex flex-col gap-2">
       {#each DEVICES as d (d.name)}
         {@const Icon = INSTRUMENT_ICON[d.instrument]}
@@ -449,13 +449,13 @@
         </li>
       {/each}
     </ol>
-    <p class="mt-4 text-[13px] text-ws-stage-soft">Level 4, 180 XP to the next</p>
+    <p class="mt-4 text-[13px] text-ws-stage-soft">XP level 4, 180 XP to the next</p>
     <div class="mt-1 h-2 rounded-full bg-ws-stage-ink/10"><div class="h-full w-[28%] rounded-full" style:background="var(--hue-rhythm)"></div></div>
   </figure>
 {/snippet}
 
 {#snippet privacyPicture()}
-  <figure class="pic max-md:order-first" aria-label="Sessions, scores, recordings and samples stay inside this browser; nothing goes to a server">
+  <figure class="pic max-md:order-first" aria-label="Sessions, scores, recordings and samples stay inside this browser. Nothing goes to a server">
     <div class="rounded-xl border-2 border-dashed p-3" style:border-color="var(--hue-aerophone)">
       <p class="mb-2 text-[13px] font-semibold" style:color="var(--hue-aerophone)">This browser</p>
       <ul class="grid grid-cols-2 gap-1.5 text-[13px]">

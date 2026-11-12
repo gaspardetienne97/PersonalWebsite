@@ -90,7 +90,7 @@
       <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]} yet`}.</p>
       <p class="text-sm text-ws-soft">Every scored answer lands here, grouped by what it trains.</p>
       <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
-        >Start today's set</a
+        >Start Today's set</a
       >
     </div>
   {:else}

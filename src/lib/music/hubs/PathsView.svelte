@@ -483,7 +483,7 @@
         <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
         {#if level.level.id === "0"}
           <!-- One sentence; the rules wait behind a disclosure. -->
-          <p class="mt-1">A short test of what you already play, so those steps become quick reviews.</p>
+          <p class="mt-1">A short test of what you already play, so those steps become short reviews.</p>
           <details class="group mt-2 text-sm">
             <summary class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-medium text-instr-ink">How check-in works</summary>
           <ol class="mt-1 flex flex-col gap-2 sm:flex-row sm:gap-4">

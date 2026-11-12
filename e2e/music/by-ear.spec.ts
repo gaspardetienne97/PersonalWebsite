@@ -88,10 +88,10 @@ test("find home: loop and mark a recording, name its tonic, and the run is judge
 
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page
-    .getByRole("group", { name: "Home note" })
+    .getByRole("group", { name: "Tonic" })
     .getByRole("button", { name: "A", exact: true })
     .click();
-  await expect(page.getByLabel("This run")).toContainText("Right: home is A.");
+  await expect(page.getByLabel("This run")).toContainText("Right: the tonic is A.");
   const run = await lastRun(page);
   expect(run).toMatchObject({ exerciseId: "ear.find-home", assistance: "independent", score: 1 });
   expect(run.params.mode).toBe("home");

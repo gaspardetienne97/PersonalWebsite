@@ -117,7 +117,7 @@ for (const width of WIDTHS) {
 
     await start();
     for (let i = 0; i < 3; i++) {
-      await page.getByRole("button", { name: "Grade what I played" }).click();
+      await page.getByRole("button", { name: "Score what I played" }).click();
       await page.waitForTimeout(600);
     }
     await waitSilent(page);
@@ -365,12 +365,10 @@ for (const width of WIDTHS) {
     await page.getByRole("button", { name: "Pause" }).click();
 
     const home = (note: string) =>
-      page
-        .getByRole("group", { name: "Home note" })
-        .getByRole("button", { name: note, exact: true });
+      page.getByRole("group", { name: "Tonic" }).getByRole("button", { name: note, exact: true });
     await startButton(page).click();
     await home("A").click();
-    await expect(page.getByLabel("This run")).toContainText("Right: home is A.");
+    await expect(page.getByLabel("This run")).toContainText("Right: the tonic is A.");
     await shot(page, F, "results", width);
     await startButton(page).click();
     await home("D").click();
