@@ -26,7 +26,7 @@ describe("backingNotes", () => {
     expect(notes.some((n) => !n.voice && n.midi === 48)).toBe(true); // C in the bass
     // The bass line plays on the bass sound; the chords stay on the player's own.
     expect(notes.find((n) => !n.voice && n.midi === 48)?.sound).toBe("bass");
-    expect(notes.filter((n) => !n.voice && n.midi > 52).every((n) => !n.sound)).toBe(true);
+    expect(notes.filter((n) => n.velocity === 0.45).every((n) => !n.sound)).toBe(true);
   });
   it("drums only has no pitched notes", () => {
     expect(
