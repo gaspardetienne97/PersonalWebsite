@@ -485,7 +485,15 @@
   });
 </script>
 
+<!-- The MIDI line. Before a run on a laptop or a tablet it sits in the stage's rail (the hud), so it costs no row
+     (then this is not passed, so no empty row is drawn); on a phone, and after a run, it is under the stage.
+     Not during a run: Connect has no use then. Not under a silent run's card either: a note heard before or
+     after the run would contradict "no note arrived". -->
+{#snippet statusLine()}
+  {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
+{/snippet}
 <DrillShell
+  actions={wide.current && phase === "ready" ? undefined : statusLine}
   title="Aerophone"
   hue="aerophone"
   blurb={skill === "scales" ? "Scales and arpeggios in any key, in time, in patterns and over two octaves." : skill === "swing" ? "Swung eighths after Niehaus: long-short, each off-beat tongued and slurred into the beat." : skill === "long-scale" ? "Each scale note held four beats at one breath level, in the band from bottom to top." : skill === "tonguing" ? "Slurred and tongued on purpose: tongued stops the air, slurred keeps it going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
@@ -555,6 +563,8 @@
   {/snippet}
 
   {#snippet hud()}
+    <!-- Before a run, from lg: what the Aerophone's MIDI is doing, in the stage's rail beside Hear it. -->
+    {#if wide.current && phase === "ready" && summary?.heard !== false}<div class="min-w-0 flex-1"><MidiStatus instrument="aerophone" /></div>{/if}
     {#if phase === "running" && timed && stepNow !== null}
       <Stat label="Note" value={`${stepNow + 1} of ${line.length}`} />
     {:else if phase === "running" && !timed}
@@ -612,7 +622,7 @@
               band={mode === "practice" ? (skill === "long-scale" ? level.band : GUIDE_BAND) : undefined}
               bandLabel={skill === "long-scale" ? `the ${level.id} band, hold it there` : "guide, not scored"}
               label={skill === "long-scale" ? `Breath over time, the shaded band is ${level.id}` : "Breath over time"}
-              grow={wide.current}
+              grow={wide.current && (phase === "running" || phase === "countin")}
             />
           </div>
         {:else if skill === "trills"}
@@ -635,10 +645,10 @@
         {/if}
       </div>
       {#if skill !== "trills"}
-        <div class="flex flex-col items-center gap-2">
+        <div class="keys flex flex-col items-center gap-2">
           {#if mode === "practice" && target !== null}
             <AerophoneKeys midi={target} heldMidi={sounding} compact name={spell} />
-            <p class="text-center font-display text-2xl font-semibold">{spell(target)}</p>
+            <p class="name text-center font-display text-2xl font-semibold">{spell(target)}</p>
           {:else}
             <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden.</p>
           {/if}
@@ -651,9 +661,19 @@
     {#if summary}<Results {summary} />{/if}
   {/snippet}
 
-  {#snippet actions()}
-    <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
-    <!-- Not during a run either: Connect has no use mid-run, and the run's own chips name what was heard. -->
-    {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
-  {/snippet}
 </DrillShell>
+
+<style>
+  /* A wide, short window (tablet landscape, a 13 inch laptop; DrillShell's one-row rule): the note's name sits in
+     the drawing's empty top corner, so the drawing, its key colours and its fingering in words fit one view. */
+  @media (min-width: 64rem) and (max-height: 56rem) {
+    .keys {
+      position: relative;
+    }
+    .keys .name {
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+  }
+</style>

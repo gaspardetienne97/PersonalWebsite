@@ -327,8 +327,9 @@
 
 <!-- The chord chart, a chord a bar; after a run each card says how its change went. -->
 {#snippet chart()}
-  <!-- After a run a phone shows the cards two by two, so each verdict stays on its own card. -->
-  <ol class="mb-3 grid gap-2 {result ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-4'}" aria-label="Chord chart, a chord a bar">
+  <!-- After a run a phone shows the cards two by two, so each verdict stays on its own card. Before one, a laptop or
+       a tablet keeps a longer chart on one row, so the staff, the pedal line and the keys share the view. -->
+  <ol class="mb-3 grid gap-2 {result ? 'grid-cols-2 sm:grid-cols-4' : bars.length > 4 ? 'grid-cols-4 lg:grid-cols-8' : 'grid-cols-4'}" aria-label="Chord chart, a chord a bar">
     {#each bars as b, k (k)}
       {@const v = result?.verdicts[k]}
       <li class="flex min-h-14 min-w-0 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>

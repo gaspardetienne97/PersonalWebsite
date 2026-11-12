@@ -485,9 +485,11 @@
 
   {#snippet stage()}
     {#if phase !== "results"}
-      <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-        <p class="text-sm text-ws-stage-soft max-sm:hidden">{highway.on ? "Highway: each strum slides down to the line as it is due." : "Highway: a scrolling view"}</p>
-        {@render viewSwitch("Chart")}
+      <!-- From lg, over the chart, the switch shares the chords' heading row (pulled up over it, its caption left to
+           the switch's own words), so the chart starts one row higher. The highway keeps the row and its caption. -->
+      <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 {highway.on ? '' : 'lg:pointer-events-none lg:relative lg:z-10 lg:-mb-11'}">
+        <p class="text-sm text-ws-stage-soft max-sm:hidden {highway.on ? '' : 'lg:hidden'}">{highway.on ? "Highway: each strum slides down to the line as it is due." : "Highway: a scrolling view"}</p>
+        <div class="pointer-events-auto">{@render viewSwitch("Chart")}</div>
       </div>
     {/if}
     {#if highway.on && phase !== "results"}
@@ -498,7 +500,7 @@
       {#if strum && phase !== "results"}
         <!-- The strum pattern above the chords: what the hand does, slot by slot, lit on the click. -->
         <div class="relative mb-3 max-w-xl lg:w-[30rem] lg:shrink-0" data-pattern={strum.id}>
-          <div class="mb-1.5 flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div class="mb-1.5 flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1 lg:min-h-11">
             <p class="text-sm"><span class="text-ws-stage-soft">Strum pattern:</span> <span class="font-semibold">{strumName(strum)}</span> <span class="whitespace-nowrap text-ws-stage-soft">(D = down, U = up)</span></p>
             <Verdict kind={lastVerdict?.kind} text={lastVerdict?.text} key={lastVerdict?.key ?? 0} />
             {#if phase === "running" && current >= 0}
@@ -512,7 +514,7 @@
         </div>
       {/if}
       <div class="min-w-0 flex-1">
-      <p class="mb-1.5 text-sm text-ws-stage-soft">Chords</p>
+      <p class="mb-1.5 flex items-center text-sm text-ws-stage-soft lg:min-h-11">Chords</p>
       <ol class="flex flex-wrap gap-1.5" aria-label="Chord chart">
         {#each chart as c, i (i)}
           {@const graded = result?.chords[i]}
@@ -543,11 +545,14 @@
     {#if shownShape}
       <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
     {/if}
-    <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
-    <div class="mt-3 grid gap-2">
-      <p class="text-sm font-medium">Tones of {chart[shownIndex]?.symbol}{live ? ", against what the microphone hears" : ""}</p>
-      <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" name={spell} />
-      {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map(spell).join(" ") : "nothing"}</p>{/if}
+    <!-- From lg the chord's tones and the microphone share one row under the neck (the tones first). -->
+    <div class="mt-3 flex flex-col gap-3 lg:flex-row-reverse lg:items-center lg:gap-6">
+      <div class="lg:min-w-0 lg:flex-1"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
+      <div class="grid gap-2 lg:flex lg:max-w-[55%] lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1">
+        <p class="text-sm font-medium">Tones of {chart[shownIndex]?.symbol}{live ? ", against what the microphone hears" : ""}</p>
+        <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" name={spell} />
+        {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map(spell).join(" ") : "nothing"}</p>{/if}
+      </div>
     </div>
     <details class="group mt-3 max-w-prose text-sm text-ws-stage-soft">
       <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">

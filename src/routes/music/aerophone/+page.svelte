@@ -523,7 +523,15 @@
 {:else if s.mode === "calibrate"}
   <AeroCalibrate modes={AEROPHONE_MODES} onmode={(v) => cfg.set({ mode: v })} />
 {:else}
+<!-- The MIDI line. Before a run on a laptop or a tablet it sits in the stage's rail (the hud), so it costs no row
+     (then this is not passed, so no empty row is drawn); on a phone, and after a run, it is under the stage.
+     Not during a run: Connect has no use then. Not under a silent run's card either: a note heard before or
+     after the run would contradict "no note arrived". -->
+{#snippet statusLine()}
+  {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
+{/snippet}
 <DrillShell
+  actions={wide.current && phase === "ready" ? undefined : statusLine}
   title="Aerophone"
   hue="aerophone"
   blurb={BLURB[m]}
@@ -565,6 +573,8 @@
   {/snippet}
 
   {#snippet hud()}
+    <!-- Before a run, from lg: what the Aerophone's MIDI is doing, in the stage's rail beside Hear it. -->
+    {#if wide.current && phase === "ready" && summary?.heard !== false}<div class="min-w-0 flex-1"><MidiStatus instrument="aerophone" /></div>{/if}
     {#if phase === "running" && m === "fingering"}
       <Stat label="Note" value={`${Math.min(step + 1, seq.length)} of ${seq.length}`} />
       <Stat label="First try" value={String(firstTry.filter(Boolean).length)} />
@@ -616,7 +626,7 @@
           band={level && showTargets ? level.band : undefined}
           bandLabel={level ? `the ${level.id} band, hold it there` : undefined}
           measured={breathSeen}
-          grow={wide.current}
+          grow={wide.current && (phase === "running" || phase === "countin")}
           label={m === "swell" ? "Breath over the swell, dashed line is the target shape" : "Breath, last 64 samples"}
         /></div>{/if}
         {#if m === "articulation"}
@@ -624,10 +634,11 @@
         {/if}
         <div class="max-md:order-last"><PitchLane values={pitch} target={targetMidi} drone={m === "interval-landing" ? drone : null} label="Pitch, last 64 samples, target {chartName(targetMidi)}" name={chartName} /></div>
       </div>
-      <div class="flex flex-col items-center gap-2">
+      <!-- From md the drawing is the tall column: it spans the lanes and the chart's notes, which sit under the lanes. -->
+      <div class="keys flex flex-col items-center gap-2 md:col-start-2 md:row-span-2 md:row-start-1">
         {#if showTargets}
           <AerophoneKeys midi={targetMidi} heldMidi={sounding} compact name={chartName} />
-          <p class="text-center font-display text-2xl font-semibold">{chartName(targetMidi)}</p>
+          <p class="name text-center font-display text-2xl font-semibold">{chartName(targetMidi)}</p>
           <p class="text-center text-sm text-ws-stage-soft">
             {fingering?.verified ? "Fingering verified on your instrument." : "Best-effort fingering, not yet confirmed on the unit."}
           </p>
@@ -635,8 +646,7 @@
           <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden. Target {chartName(targetMidi)}.</p>
         {/if}
       </div>
-    </div>
-    <div class="mt-4">
+    <div class="max-md:order-last md:col-start-1">
       <p class="mb-2 text-sm text-ws-stage-soft">{picksTarget ? "Tap a note to make it the target. " : ""}Play from the chart: taps choose the pitch and score pitch only. Breath and articulation need the Aerophone.</p>
       <div class="flex flex-wrap gap-1" role="group" aria-label="Fingering chart notes">
         {#each AEROPHONE_CHART as c (c.midi)}
@@ -657,16 +667,27 @@
         {/each}
       </div>
     </div>
+    </div>
   {/snippet}
 
   {#snippet results()}
     {#if summary}<Results {summary} />{/if}
   {/snippet}
 
-  {#snippet actions()}
-    <!-- Not under a silent run's card: a note heard before or after the run would contradict "no note arrived". -->
-    <!-- Not during a run either: Connect has no use mid-run, and the stage names what was heard. -->
-    {#if summary?.heard !== false && phase !== "running" && phase !== "countin"}<div class="w-full"><MidiStatus instrument="aerophone" /></div>{/if}
-  {/snippet}
 </DrillShell>
 {/if}
+
+<style>
+  /* A wide, short window (tablet landscape, a 13 inch laptop; DrillShell's one-row rule): the note's name sits in
+     the drawing's empty top corner, so the drawing, its key colours and its fingering in words fit one view. */
+  @media (min-width: 64rem) and (max-height: 56rem) {
+    .keys {
+      position: relative;
+    }
+    .keys .name {
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+  }
+</style>

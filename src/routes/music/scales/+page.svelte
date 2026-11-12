@@ -672,18 +672,25 @@
   {/snippet}
 
   {#snippet stage()}
-    {#if phase === "ready" && perBeat === 1}
-      {@const proj = ladderProjection(ladders[key], bpm())}
-      <!-- One line for the ladder; its rungs are in Setup. Checked runs climb it, the strip's BPM is this run. -->
-      <p class="mb-3 text-sm text-ws-stage-soft" data-testid="tempo-ladder-line">
-        {bpm() < proj.rungs[0].bpm
-          ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
-          : proj.rungs.some((r) => r.bpm === bpm())
-            ? `Tempo ladder: this run is the ${bpm()} BPM rung. Two clean Check runs here unlock the next.`
-            : `Tempo ladder: starts at ${proj.rungs[0].bpm} BPM, and clean Check runs climb it.`}
-      </p>
+    {@const ladderLine = phase === "ready" && perBeat === 1}
+    {@const views = phase !== "running" && phase !== "countin" && onPiano && (mode === "practice" || phase === "results")}
+    {#if ladderLine || views}
+      <!-- One row above the music: the ladder's line and the view switch, so the staff keeps the stage's whole width. -->
+      <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {#if ladderLine}
+          {@const proj = ladderProjection(ladders[key], bpm())}
+          <!-- One line for the ladder; its rungs are in Setup. Checked runs climb it, the strip's BPM is this run. -->
+          <p class="min-w-0 flex-1 basis-64 text-sm text-ws-stage-soft" data-testid="tempo-ladder-line">
+            {bpm() < proj.rungs[0].bpm
+              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
+              : proj.rungs.some((r) => r.bpm === bpm())
+                ? `Tempo ladder: this run is the ${bpm()} BPM rung. Two clean Check runs here unlock the next.`
+                : `Tempo ladder: starts at ${proj.rungs[0].bpm} BPM, and clean Check runs climb it.`}
+          </p>
+        {/if}
+        {#if views}<ViewSwitch class="ml-auto" />{/if}
+      </div>
     {/if}
-    {#if phase !== "running" && phase !== "countin" && (onPiano && (mode === "practice" || phase === "results"))}<ViewSwitch class="float-right mb-2 ml-3" />{/if}
     {#if mode === "check" && phase !== "results"}
       <!-- Check: no targets, only where you are in the line and the notes already played, named once they are behind you. -->
       <div class="mb-1 flex min-h-0 flex-col justify-center gap-3" data-testid="check-progress" data-dock="music">
