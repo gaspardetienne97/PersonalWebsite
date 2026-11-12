@@ -1,13 +1,13 @@
 {
   "id": "ear",
-  "title": "Ear and Harmony Path",
-  "subtitle": "Eleven levels from hearing home to whole songs by ear: ear training and the harmony of songs, interleaved, with a song shelf at every level.",
-  "benchmark": "Trinity and RSL Rock and Pop aural, grades 6 to 8; ABRSM aural to grade 6; Berklee Harmony 1 to 3",
+  "title": "Ear and harmony path",
+  "subtitle": "Eleven levels, from hearing the tonic to whole songs by ear. Ear training and the harmony of songs take turns, with a song list at every level.",
+  "benchmark": "grade 6 to 8 ear tests (Trinity and RSL Rock and Pop), ABRSM aural to grade 6, Berklee Harmony 1 to 3",
   "levels": [
     {
       "id": "1",
       "title": "Home",
-      "goal": "Hear where home is in any song, sing and find degrees 1 to 5, echo simple rhythms, play a first melody and a riff by ear.",
+      "goal": "Hear where the tonic is in any song. Sing and find degrees 1 to 5, echo simple rhythms, and play a first melody and a riff by ear.",
       "adds": "Ear: the tonic, degrees 1 to 5, echoed rhythms, riffs. Harmony: the major scale and the keys near C (Circle T-1, T-2).",
       "pick": 2,
       "steps": [
@@ -16,8 +16,8 @@
           "title": "Anchor the tonic",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=anchor",
-          "setup": "Hear the home note (do, degree 1) and the 5 above it. Listen along first, then hum home and name each note. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
-          "done": "Hum the tonic after the cadence; the app check 80% over 20 items, on two days.",
+          "setup": "Hear the tonic (the home note, degree 1) and the 5 above it. Listen along first, then hum the tonic and name each note. The I-IV-V-I cadence that keeps the key for 8 questions waits for N1.",
+          "done": "Hum the tonic after the cadence. In the app, 80% on 20 questions, on two days.",
           "skillIds": ["pitch.scale-degree.1", "pitch.scale-degree.5"],
           "minAttempts": 10,
           "threshold": 0.8,
@@ -34,8 +34,8 @@
           "title": "Degrees 1 to 5",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=major-pentachord",
-          "setup": "Hear each of the first five notes of the major scale against home, and pick which one it is. The resolution to the tonic after each answer waits for N1.",
-          "done": "80% over 20 items, on two days.",
+          "setup": "Hear each of the first five notes of the major scale against the tonic, and pick which one it is. The resolution to the tonic after each answer waits for N1.",
+          "done": "80% on 20 questions, on two days.",
           "skillIds": [
             "pitch.scale-degree.1",
             "pitch.scale-degree.2",
@@ -94,8 +94,8 @@
           "title": "Find home in a real song",
           "strand": "S",
           "href": "/music/by-ear?mode=home",
-          "setup": "Load a shelf song you own in Learn by ear, listen, then play, sing or pick the note that sounds like home. It is checked against the key the whole recording points to.",
-          "done": "Tonic right first try on 4 of 5 shelf songs.",
+          "setup": "Load a song from the song list that you own in Learn by ear. Listen, then play, sing or pick the note that sounds like home. The app checks it against the key the whole recording points to.",
+          "done": "Tonic right first try on 4 of 5 songs from the song list.",
           "minAttempts": 5,
           "threshold": 0.8,
           "links": [
@@ -112,7 +112,7 @@
           "strand": "H",
           "href": "/music/scales?kind=major&tonic=60&bpm=72",
           "setup": "Library reference (scales), then Scales on your instrument: C, G, F and D major.",
-          "done": "Whole and half step pattern recited; four scales clean at 72 BPM twice, on two days.",
+          "done": "Whole and half step pattern recited. Four scales clean at 72 BPM twice, on two days.",
           "match": {
             "kind": "major"
           },
@@ -149,7 +149,7 @@
           "strand": "H",
           "href": "/music/circle?mode=count&band=two",
           "setup": "Circle: the order of sharps and flats, then signatures for C, G and F, then up to 2 sharps or flats.",
-          "done": "95% under 2 seconds over 20 items, on two days.",
+          "done": "95% under 2 seconds on 20 questions, on two days.",
           "match": {
             "band": "two"
           },
@@ -172,8 +172,8 @@
           "title": "First melody by ear",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a melody; check it in Phrases (Ode to Joy is built in) or against the score in Song practice.",
-          "done": "Two shelf melodies played through, at most 2 wrong notes each.",
+          "setup": "Loop a melody from the song list. Check it in Phrases (Ode to Joy is built in) or against the notation in Song practice.",
+          "done": "Two melodies from the song list played through, at most 2 wrong notes each.",
           "exerciseIds": [],
           "links": [
             {
@@ -188,8 +188,8 @@
           "title": "First riff by ear",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a riff, one string or one hand.",
-          "done": "Riff in time with the record, four times clean.",
+          "setup": "Loop a riff from the song list, on one string or one hand.",
+          "done": "Riff in time with the recording, four times clean.",
           "exerciseIds": [],
           "feeds": "Seven Nation Army, Smoke on the Water, Another One Bites the Dust"
         },
@@ -197,7 +197,7 @@
           "id": "1.10",
           "title": "Sing the tonic of anything",
           "strand": "E",
-          "setup": "Any song you hear during the day: hum home, then check it in Learn by ear, Find home, with the recording. Every check goes in the journal.",
+          "setup": "For any song you hear during the day, hum the tonic. Check it in Learn by ear, Find home, with the recording. Every check goes in the journal.",
           "done": "10 songs logged in the journal, 8 right.",
           "href": "/music/by-ear?mode=home",
           "minAttempts": 10,
@@ -229,7 +229,7 @@
           "id": "when-the-saints-go-marching-in",
           "title": "When the Saints Go Marching In",
           "artist": "Trad.",
-          "teaches": "Melody: the 1-3-4-5 pickup motif; sing, then play",
+          "teaches": "Melody: the 1-3-4-5 pickup motif. Sing, then play",
           "detail": "F, 110 BPM (cut time), I IV V",
           "bpm": 110,
           "diff": 1,
@@ -285,7 +285,7 @@
           "id": "lean-on-me",
           "title": "Lean on Me",
           "artist": "Bill Withers",
-          "teaches": "Melody: stepwise 1-2-3-4 and back; I to IV by ear",
+          "teaches": "Melody: stepwise 1-2-3-4 and back, I to IV by ear",
           "detail": "C, 76 BPM, I IV I V",
           "bpm": 76,
           "diff": 1,
@@ -304,7 +304,7 @@
           "id": "seven-nation-army",
           "title": "Seven Nation Army",
           "artist": "The White Stripes",
-          "teaches": "Riff on one string: 1-1-b3-1-b7-b6-5; find home in a minor riff",
+          "teaches": "Riff on one string: 1-1-b3-1-b7-b6-5. Find the tonic in a minor riff",
           "detail": "E minor, 124 BPM, riff only",
           "bpm": 124,
           "diff": 1,
@@ -342,7 +342,7 @@
           "id": "another-one-bites-the-dust",
           "title": "Another One Bites the Dust",
           "artist": "Queen",
-          "teaches": "Bass riff with sixteenth pickups; roots and b3",
+          "teaches": "Bass riff with sixteenth pickups, roots and b3",
           "detail": "E minor, 110 BPM",
           "bpm": 110,
           "diff": 2,
@@ -363,7 +363,7 @@
           }
         }
       ],
-      "test": "Sing and then play two shelf melodies from memory (at most 2 slips), play one riff with the recording at full speed, and pass Scale degrees at the major pentachord level at 85% on a fresh day."
+      "test": "Sing and then play two melodies from the song list from memory (at most 2 slips). Play one riff with the recording at full speed. Pass Scale degrees on the first five notes of the major scale at 85%, on a fresh day."
     },
     {
       "id": "2",
@@ -378,7 +378,7 @@
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=major-diatonic",
           "setup": "Scale degrees, choice, major diatonic. The cadence and key context wait for N1.",
-          "done": "80% over 20 items, on two days.",
+          "done": "80% on 20 questions, on two days.",
           "skillIds": [
             "pitch.scale-degree.1",
             "pitch.scale-degree.2",
@@ -442,7 +442,7 @@
           "strand": "E",
           "href": "/music/ear/melody-dictation?answer=play-back&level=major-diatonic",
           "setup": "Melody dictation, play back, major diatonic: three and four note phrases. One and two bar phrases with rhythm wait for N5.",
-          "done": "75% per note, half the items fully right, on two days.",
+          "done": "75% per note, half the questions fully right, on two days.",
           "match": {
             "level": "major-diatonic"
           },
@@ -456,7 +456,7 @@
           "strand": "E",
           "href": "/music/rhythm?mode=echo&earLevel=rests-halves",
           "setup": "Rhythm, echo, then dictation: rests and halves.",
-          "done": "Echo 80%; dictation 75% per note, on two days.",
+          "done": "Echo 80%. Dictation 75% per note, on two days.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
             "level": "rests-halves"
@@ -481,7 +481,7 @@
           "strand": "H",
           "href": "/music/circle?mode=chords&band=two",
           "setup": "Library reference, then Circle, a key's chords, up to 2 sharps or flats. Numeral this chord waits for N7.",
-          "done": "Quality pattern (Maj min min Maj Maj min dim) recited; the chords of C, G, D, F, A and Bb named under 5 seconds, 95%.",
+          "done": "Quality pattern (Maj min min Maj Maj min dim) recited. The chords of C, G, D, F, A and Bb named under 5 seconds, 95%.",
           "match": {
             "band": "two"
           },
@@ -500,8 +500,8 @@
           "title": "H3 Function and cadences",
           "strand": "H",
           "href": "/music/ear/cadences?answer=choice&cadences=authentic,plagal,half",
-          "setup": "Cadences: authentic, plagal and half; Library reference.",
-          "done": "Cadences 80% over 20 items, on two days.",
+          "setup": "Cadences: authentic, plagal and half. Library reference.",
+          "done": "Cadences: 80% on 20 questions, on two days.",
           "skillIds": ["ear.cadences.authentic", "ear.cadences.plagal", "ear.cadences.half"],
           "minAttempts": 6,
           "threshold": 0.8,
@@ -530,7 +530,7 @@
           "strand": "E",
           "href": "/music/ear/chord-functions?answer=choice&functions=I,IV,V",
           "setup": "Chords in a key: I, IV and V.",
-          "done": "80% over 20 items, on two days.",
+          "done": "80% on 20 questions, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
           "feeds": "La Bamba, Bad Moon Rising"
@@ -576,7 +576,7 @@
           "title": "Chords of a three-chord song",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords: hum the bass, test I, IV or V each bar, write numerals.",
+          "setup": "Loop a song from the song list for its chords: hum the bass, test I, IV or V each bar, write numerals.",
           "done": "Chords per bar 90% right on two songs.",
           "exerciseIds": [],
           "feeds": "The shelf"
@@ -586,8 +586,8 @@
           "title": "Melody with its rhythm",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for a melody: write 8 bars with rhythm and compare with the score in Song practice. The check against the score (N3) is still to come.",
-          "done": "85% of notes and rhythms against the score.",
+          "setup": "Loop a melody from the song list: write 8 bars with rhythm and compare with the notation in Song practice. The check against the notation (N3) is still to come.",
+          "done": "85% of notes and rhythms against the notation.",
           "exerciseIds": [],
           "feeds": "Amazing Grace, Auld Lang Syne, Leaving on a Jet Plane"
         }
@@ -597,7 +597,7 @@
           "id": "amazing-grace",
           "title": "Amazing Grace",
           "artist": "Trad.",
-          "teaches": "Melody in 3/4, major pentatonic; then the chords",
+          "teaches": "Melody in 3/4, major pentatonic, then the chords",
           "detail": "G or F, 3/4, 72 BPM, I IV V",
           "bpm": 72,
           "diff": 1,
@@ -616,7 +616,7 @@
           "id": "auld-lang-syne",
           "title": "Auld Lang Syne",
           "artist": "Trad.",
-          "teaches": "Pentatonic melody with a dotted rhythm; I V IV",
+          "teaches": "Pentatonic melody with a dotted rhythm, I V IV",
           "detail": "F, 4/4, 80 BPM",
           "bpm": 80,
           "diff": 1,
@@ -654,7 +654,7 @@
           "id": "twist-and-shout",
           "title": "Twist and Shout",
           "artist": "The Beatles",
-          "teaches": "I-IV-V loop; the rising 5-6-7-8 vocal stack on V",
+          "teaches": "I-IV-V loop, the rising 5-6-7-8 vocal stack on V",
           "detail": "D, 126 BPM",
           "bpm": 126,
           "diff": 1,
@@ -673,7 +673,7 @@
           "id": "three-little-birds",
           "title": "Three Little Birds",
           "artist": "Bob Marley",
-          "teaches": "I-IV-I-V; the offbeat skank; the bass line",
+          "teaches": "I-IV-I-V, the offbeat skank, the bass line",
           "detail": "A, 74 BPM",
           "bpm": 74,
           "diff": 1,
@@ -693,7 +693,7 @@
           "id": "bad-moon-rising",
           "title": "Bad Moon Rising",
           "artist": "Creedence Clearwater Revival",
-          "teaches": "I-V-IV-I verse, IV-I-V-I chorus; the melody",
+          "teaches": "I-V-IV-I verse, IV-I-V-I chorus, the melody",
           "detail": "D, 180 BPM",
           "bpm": 180,
           "diff": 1,
@@ -731,7 +731,7 @@
           "id": "brown-eyed-girl",
           "title": "Brown Eyed Girl",
           "artist": "Van Morrison",
-          "teaches": "I-IV-I-V verse; the guitar intro riff; vi appears in the chorus",
+          "teaches": "I-IV-I-V verse, the guitar intro riff, vi appears in the chorus",
           "detail": "G, 150 BPM",
           "bpm": 150,
           "diff": 2,
@@ -750,7 +750,7 @@
           "id": "leaving-on-a-jet-plane",
           "title": "Leaving on a Jet Plane",
           "artist": "John Denver",
-          "teaches": "Melody with long held notes; I-IV and V",
+          "teaches": "Melody with long held notes, I-IV and V",
           "detail": "G (Denver in A), 4/4, 90 BPM",
           "bpm": 90,
           "diff": 2,
@@ -771,12 +771,12 @@
           }
         }
       ],
-      "test": "From the recording alone, write the melody (8 bars, with rhythm) and chords of one shelf song at 85% against the score and play both; name I, IV or V for every bar of a second song you have not prepared; Progression dictation with I, IV and V at 80% on a fresh day."
+      "test": "From the recording alone, write the melody (8 bars, with rhythm) and chords of one song from the song list. Reach 85% against the notation and play both. Name I, IV or V for every bar of a second song you haven't prepared. Progression dictation with I, IV and V at 80% on a fresh day."
     },
     {
       "id": "3",
       "title": "The pop loops",
-      "goal": "Hear vi, recognise the four-chord loops and their rotations, follow roots on 1, 2, 4, 5, 6, and pick the bass out of a mix.",
+      "goal": "Hear vi and recognise the four-chord loops and their rotations. Follow roots on 1, 2, 4, 5 and 6, and pick the bass out of a mix.",
       "adds": "Ear: vi, the four loops, roots on 1 2 4 5 6, the bass in the mix. Harmony: the relative minor, rotations of one loop.",
       "pick": 2,
       "steps": [
@@ -786,7 +786,7 @@
           "strand": "E",
           "href": "/music/ear/chord-functions?answer=choice&functions=I,IV,V,vi",
           "setup": "Chords in a key: I, IV, V and vi.",
-          "done": "75% over 20 items, on two days.",
+          "done": "75% on 20 questions, on two days.",
           "minAttempts": 2,
           "threshold": 0.75,
           "feeds": "Let It Be"
@@ -796,7 +796,7 @@
           "title": "Song loops by ear",
           "strand": "E",
           "href": "/music/ear/song-loops?answer=choice&loops=pop",
-          "setup": "Song loops, pop: I-V-vi-IV, I-vi-IV-V, vi-IV-I-V, I-IV-V-IV and I-IV-vi-V played as a groove with bass and drums after the key is set. Then the song loops set, real songs' chords.",
+          "setup": "Song loops, pop: I-V-vi-IV, I-vi-IV-V, vi-IV-I-V, I-IV-V-IV and I-IV-vi-V. Each plays as a groove with bass and drums after the key is set. Then the song loops set, real songs' chords.",
           "done": "Loop named first try, 80%, on two days.",
           "minAttempts": 10,
           "threshold": 0.8,
@@ -851,7 +851,7 @@
           "strand": "H",
           "href": "/music/changes/jam?progression=pop-axis",
           "setup": "Library reference, then Jam with the pop axis in C, G and D: play the loop starting on each chord.",
-          "done": "Loop played in three keys along Jam, two choruses each, no lost place.",
+          "done": "Loop played in three keys along with Jam, two choruses each, no lost place.",
           "exerciseIds": [],
           "links": [
             {
@@ -912,7 +912,7 @@
           "id": "3.8",
           "title": "Two-bar melodies with rhythm",
           "strand": "E",
-          "setup": "Call and response, Echo: two-bar calls; sing first, then play back. The calls are made up over a groove, not taken from real tunes.",
+          "setup": "Call and response, Echo: two-bar calls. Sing first, then play back. The calls are made up over a groove, not taken from real tunes.",
           "done": "75% per note and onset.",
           "feeds": "Choruses",
           "href": "/music/changes/call-response?mode=echo&groove=pop-axis&bars=2",
@@ -952,7 +952,7 @@
           "title": "Transcribe a loop and its bass",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords and bass, in Learn by ear: loop it, slow it down and play it back. The check against the score (N3) is still to come.",
+          "setup": "In Learn by ear, loop a song from the song list for its chords and bass. Slow it down and play it back. The check against the notation (N3) is still to come.",
           "done": "Two songs: loop and bass roots right for every bar.",
           "exerciseIds": [],
           "links": [
@@ -968,7 +968,7 @@
           "title": "Transcribe a chorus melody",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop, 8 to 16 bars, compared with the score.",
+          "setup": "Loop 8 to 16 bars of a song from the song list and compare with the notation.",
           "done": "85% of notes and rhythms.",
           "exerciseIds": [],
           "feeds": "Let It Be, Someone Like You, Hallelujah"
@@ -978,7 +978,7 @@
           "title": "Sing roots while you play",
           "strand": "S",
           "href": "/music/ear/bass-lines?answer=voice",
-          "setup": "Ear, Bass lines, Sing it: sing each root after the 1 once the key is set. Play the loop on your instrument before and after; singing while you play is not graded yet.",
+          "setup": "Ear, Bass lines, Sing it: sing each root after the 1 once the key is set. Play the loop on your instrument before and after. Singing while you play isn't scored yet.",
           "done": "Two choruses, roots in tune within 50 cents, 75%.",
           "match": {
             "answer": "voice"
@@ -997,7 +997,7 @@
           "strand": "H",
           "href": "/music/create?mode=roll",
           "setup": "Create, the piano roll with a preset progression: an 8-bar melody over I-V-vi-IV that ends on 1.",
-          "done": "Saved; every strong-beat note a chord tone (a self-check until N10).",
+          "done": "Saved. Every strong-beat note a chord tone (a self-check until N10).",
           "feeds": "Writing"
         }
       ],
@@ -1006,7 +1006,7 @@
           "id": "let-it-be",
           "title": "Let It Be",
           "artist": "The Beatles",
-          "teaches": "I-V-vi-IV verse; the IV-I/3 walk-down; the chorus melody",
+          "teaches": "I-V-vi-IV verse, the IV-I/3 walk-down, the chorus melody",
           "detail": "C, 72 BPM",
           "bpm": 72,
           "diff": 1,
@@ -1030,7 +1030,7 @@
           "id": "stand-by-me",
           "title": "Stand by Me",
           "artist": "Ben E. King",
-          "teaches": "I-vi-IV-V bass riff; sing the roots",
+          "teaches": "I-vi-IV-V bass riff. Sing the roots",
           "detail": "A, 118 BPM",
           "bpm": 118,
           "diff": 1,
@@ -1049,7 +1049,7 @@
           "id": "no-woman-no-cry",
           "title": "No Woman, No Cry",
           "artist": "Bob Marley",
-          "teaches": "I-V-vi-IV as one loop; organ fills",
+          "teaches": "I-V-vi-IV as one loop, organ fills",
           "detail": "C, 80 BPM",
           "bpm": 80,
           "diff": 1,
@@ -1097,7 +1097,7 @@
           "id": "someone-like-you",
           "title": "Someone Like You",
           "artist": "Adele",
-          "teaches": "I-V-vi-IV with I/3; the leaps in the chorus melody",
+          "teaches": "I-V-vi-IV with I/3, the leaps in the chorus melody",
           "detail": "A, 67 BPM",
           "bpm": 67,
           "diff": 2,
@@ -1178,7 +1178,7 @@
           "id": "dont-stop-believin",
           "title": "Don't Stop Believin'",
           "artist": "Journey",
-          "teaches": "I-V-vi-IV piano riff; the chorus arrives late (form)",
+          "teaches": "I-V-vi-IV piano riff, the chorus arrives late (form)",
           "detail": "E, 119 BPM",
           "bpm": 119,
           "diff": 2,
@@ -1218,7 +1218,7 @@
           }
         }
       ],
-      "test": "Name the loop of five shelf or new songs from the recording, first try, 4 of 5; transcribe one chorus (melody, bass roots, chords) at 85% against the score and play it with the record; Chords in a key with I, IV, V and vi at 80%."
+      "test": "Name the loop of five songs, from the song list or new, from the recording: 4 of 5 right first try. Transcribe one chorus (melody, bass roots, chords) at 85% against the notation and play it with the recording. Chords in a key with I, IV, V and vi at 80%."
     },
     {
       "id": "4",
@@ -1233,7 +1233,7 @@
           "strand": "H",
           "href": "/music/changes/jam?progression=blues&game=changes&choruses=3",
           "setup": "Library reference, then Jam in Check, Make the changes, blues: A and E (guitar, ukulele), C and F (piano), Bb and F concert (Aerophone).",
-          "done": "Three choruses along Jam without losing the form.",
+          "done": "Three choruses along with Jam without losing the form.",
           "links": [
             {
               "label": "In A",
@@ -1289,7 +1289,7 @@
           "title": "Blue notes in context",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=chromatic-color",
-          "setup": "Scale degrees, chromatic colour, judged on b3 and b7. Narrowing the set to b3 and b7 waits for N1 (chosen degrees).",
+          "setup": "Scale degrees, chromatic colour, scored on b3 and b7. Narrowing the set to b3 and b7 waits for N1 (chosen degrees).",
           "done": "80% on b3 and b7, on two days.",
           "skillIds": ["pitch.scale-degree.b3", "pitch.scale-degree.b7"],
           "minAttempts": 5,
@@ -1301,8 +1301,8 @@
           "title": "Swing and shuffle",
           "strand": "E",
           "href": "/music/rhythm?mode=echo&earLevel=swing",
-          "setup": "Rhythm, echo: swing, then compound; then dictation.",
-          "done": "Echo 80% on swing and compound, on two days; dictation 75%.",
+          "setup": "Rhythm, echo: swing, then compound. Then dictation.",
+          "done": "Echo 80% on swing and compound, on two days. Dictation 75%.",
           "each": {
             "param": "level",
             "values": ["swing", "compound"]
@@ -1325,8 +1325,8 @@
           "id": "4.6",
           "title": "Count the form",
           "strand": "S",
-          "setup": "Learn by ear: mark each chord change of a 12-bar blues (the Change mark) on 3 recordings, then loop each change to check it. The app keeps your marks; it can't judge them.",
-          "done": "Every change within a beat; quick change heard or not, right on 3 songs.",
+          "setup": "Learn by ear: mark each chord change of a 12-bar blues (the Change mark) on 3 recordings. Loop each change to check it. The app keeps your marks but can't score them.",
+          "done": "Every change within a beat. Quick change heard or not, right on 3 songs.",
           "href": "/music/by-ear?mode=learn",
           "exerciseIds": [],
           "feeds": "The shelf"
@@ -1336,8 +1336,8 @@
           "title": "Call: echo a blues lick",
           "strand": "E",
           "href": "/music/phrases?instrument=piano&phrase=piano.c-blues-lick",
-          "setup": "Phrases: the piano C blues lick or the guitar A blues lick, then Licks; then one-bar calls over a blues in Call and response, Echo.",
-          "done": "75% of echoes graded right over 12 calls.",
+          "setup": "Phrases: the piano C blues lick or the guitar A blues lick, then Licks. Then one-bar calls over a blues in Call and response, Echo.",
+          "done": "75% of echoes scored right over 12 calls.",
           "threshold": 0.75,
           "links": [
             {
@@ -1359,7 +1359,7 @@
           "id": "4.8",
           "title": "Response: answer the call",
           "strand": "E",
-          "setup": "Call and response, Answer, over the 12-bar blues: answer each call in the bars after it, on the grid, and land on a chord tone. Checked runs of 6 turns; the take is kept.",
+          "setup": "Call and response, Answer, over the 12-bar blues. Answer each call in the bars after it, on the grid, and land on a chord tone. Check runs of 6 turns. The app keeps the take.",
           "done": "12 answers kept, 75% end on a chord tone in time.",
           "href": "/music/changes/call-response?mode=answer&groove=blues&bars=1",
           "match": {
@@ -1380,7 +1380,7 @@
           "title": "Circle T-3 and T-4",
           "strand": "H",
           "href": "/music/circle?mode=count&band=all",
-          "setup": "Circle: signatures for all 15 keys, then read them on the staff, treble up to four, then all keys in both clefs.",
+          "setup": "Circle: signatures for all 15 keys, then read them on the staff. Treble up to four first, then all keys in both clefs.",
           "done": "95% under 2 seconds (count) and under 3 seconds (staff), on two days.",
           "exerciseIds": ["theory.circle.count", "theory.circle.signature"],
           "match": {
@@ -1409,8 +1409,8 @@
           "title": "Transcribe a blues head",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop; write it with rhythm and compare with the score.",
-          "done": "85% of notes and rhythms; play it with the record.",
+          "setup": "Loop a blues head from the song list. Write it with rhythm and compare with the notation.",
+          "done": "85% of notes and rhythms. Play it with the recording.",
           "exerciseIds": [],
           "feeds": "C Jam Blues, Tenor Madness"
         },
@@ -1419,8 +1419,8 @@
           "title": "Transcribe a riff or boogie bass",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a riff or a boogie bass.",
-          "done": "Riff or bass for a full chorus, played with the record.",
+          "setup": "Loop a riff or a boogie bass from the song list.",
+          "done": "Riff or bass for a full chorus, played with the recording.",
           "exerciseIds": [],
           "feeds": "Sunshine of Your Love, Johnny B. Goode, Hound Dog"
         }
@@ -1454,7 +1454,7 @@
           "id": "hound-dog",
           "title": "Hound Dog",
           "artist": "Elvis Presley",
-          "teaches": "12-bar form, stop-time; the melody on 1, b3, 4, 5",
+          "teaches": "12-bar form, stop-time, the melody on 1, b3, 4, 5",
           "detail": "C, 87 BPM (half-time feel)",
           "bpm": 87,
           "diff": 1,
@@ -1473,7 +1473,7 @@
           "id": "folsom-prison-blues",
           "title": "Folsom Prison Blues",
           "artist": "Johnny Cash",
-          "teaches": "Boom-chuck bass on 1 and 5; a 12-bar-like verse",
+          "teaches": "Boom-chuck bass on 1 and 5, a 12-bar-like verse",
           "detail": "E (F live), 105 BPM",
           "bpm": 105,
           "diff": 1,
@@ -1497,7 +1497,7 @@
           "id": "johnny-b-goode",
           "title": "Johnny B. Goode",
           "artist": "Chuck Berry",
-          "teaches": "12-bar I-IV-V; the double-stop intro (guitar)",
+          "teaches": "12-bar I-IV-V, the double-stop intro (guitar)",
           "detail": "Bb, 168 BPM",
           "bpm": 168,
           "diff": 2,
@@ -1540,7 +1540,7 @@
           "id": "tenor-madness",
           "title": "Tenor Madness",
           "artist": "Sonny Rollins",
-          "teaches": "A jazz blues head; I7 IV7 with a ii-V turnaround",
+          "teaches": "A jazz blues head, I7 IV7 with a ii-V turnaround",
           "detail": "Bb, 180 BPM swing",
           "bpm": 180,
           "diff": 2,
@@ -1579,7 +1579,7 @@
           "id": "pride-and-joy",
           "title": "Pride and Joy",
           "artist": "Stevie Ray Vaughan",
-          "teaches": "Shuffle riff and quick change; the boogie bass",
+          "teaches": "Shuffle riff and quick change, the boogie bass",
           "detail": "E (Eb tuning), 117 BPM",
           "bpm": 117,
           "diff": 3,
@@ -1596,13 +1596,13 @@
           }
         }
       ],
-      "test": "Say quick change or not, and where the turnaround is, on three blues recordings; play one transcribed head and one riff with the record; three choruses of call and response over a Jam blues with 75% of echoes right and answers kept."
+      "test": "Say quick change or not, and where the turnaround is, on three blues recordings. Play one transcribed head and one riff with the recording. Three choruses of call and response over a Jam blues: 75% of echoes right, and the answers kept."
     },
     {
       "id": "5",
       "title": "Minor keys",
       "goal": "Hear minor tonality, its degrees and chords, the raised 7 of harmonic minor, and interval size.",
-      "adds": "Ear: minor degrees and chords, harmonic minor, interval size. Harmony: natural, harmonic and melodic minor; relative and parallel minor; i iv V, VI VII, the Andalusian cadence.",
+      "adds": "Ear: minor degrees and chords, harmonic minor, interval size. Harmony: natural, harmonic and melodic minor. Relative and parallel minor. I iv V, VI VII, the Andalusian cadence.",
       "pick": 2,
       "steps": [
         {
@@ -1611,7 +1611,7 @@
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=minor-diatonic",
           "setup": "Scale degrees, choice, minor diatonic. The i-iv-V-i cadence waits for N1.",
-          "done": "75% over 20 items, on two days.",
+          "done": "75% on 20 questions, on two days.",
           "skillIds": [
             "pitch.scale-degree.1",
             "pitch.scale-degree.2",
@@ -1647,8 +1647,8 @@
           "title": "H7 The minor key",
           "strand": "H",
           "href": "/music/circle?mode=count&band=all&minor=both",
-          "setup": "Library reference; Scales: natural, harmonic and melodic minor in A, E and D; Circle T-5, minor signatures.",
-          "done": "Natural, harmonic and melodic forms played in A, E and D minor; 95% on minor keys under 2 seconds, on two days.",
+          "setup": "Library reference. Scales: natural, harmonic and melodic minor in A, E and D. Circle T-5, minor signatures.",
+          "done": "Natural, harmonic and melodic forms played in A, E and D minor. 95% on minor keys under 2 seconds, on two days.",
           "match": {
             "band": "all",
             "minor": "both"
@@ -1714,7 +1714,7 @@
           "strand": "E",
           "href": "/music/ear/melody-dictation?answer=play-back&level=minor-diatonic",
           "setup": "Melody dictation, minor diatonic, then Spot the wrong note, minor diatonic.",
-          "done": "75% per note in dictation; 80% on the wrong note, on two days.",
+          "done": "75% per note in dictation. 80% on the wrong note, on two days.",
           "match": {
             "level": "minor-diatonic"
           },
@@ -1768,7 +1768,7 @@
           "title": "Transcribe a minor melody",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop, 16 bars, compared with the score.",
+          "setup": "Loop 16 bars of a minor melody from the song list and compare with the notation.",
           "done": "85% of notes and rhythms.",
           "exerciseIds": [],
           "feeds": "Greensleeves, Bella Ciao, Summertime"
@@ -1778,7 +1778,7 @@
           "title": "Transcribe a minor progression and bass",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords and bass.",
+          "setup": "Loop a song from the song list for its chords and bass.",
           "done": "Chords and bass right for every bar of a verse.",
           "exerciseIds": [],
           "feeds": "House of the Rising Sun, Hit the Road Jack"
@@ -1787,7 +1787,7 @@
           "id": "5.11",
           "title": "Call and response in minor",
           "strand": "E",
-          "setup": "Call and response, Answer, over the minor ii-V-i. Checked runs of 6 turns; the take is kept.",
+          "setup": "Call and response, Answer, over the minor ii-V-i. Check runs of 6 turns. The app keeps the take.",
           "done": "12 answers, 75% end on a chord tone.",
           "href": "/music/changes/call-response?mode=answer&groove=minor-ii-v-i&bars=1",
           "match": {
@@ -1808,7 +1808,7 @@
           "id": "aint-no-sunshine",
           "title": "Ain't No Sunshine",
           "artist": "Bill Withers",
-          "teaches": "Am-Em-G-Am: i-v-VII; the repeated 'I know' line",
+          "teaches": "Am-Em-G-Am: i-v-VII, the repeated 'I know' line",
           "detail": "A minor, 78 BPM",
           "bpm": 78,
           "diff": 1,
@@ -1827,7 +1827,7 @@
           "id": "hit-the-road-jack",
           "title": "Hit the Road Jack",
           "artist": "Ray Charles",
-          "teaches": "Andalusian i-VII-VI-V, the bass walks down; call and response vocals",
+          "teaches": "Andalusian i-VII-VI-V, the bass walks down, call and response vocals",
           "detail": "A minor, 172 BPM",
           "bpm": 172,
           "diff": 1,
@@ -1846,7 +1846,7 @@
           "id": "bella-ciao",
           "title": "Bella Ciao",
           "artist": "Italian folk",
-          "teaches": "Minor melody with V7 (harmonic minor); i-iv-V7",
+          "teaches": "Minor melody with V7 (harmonic minor), i-iv-V7",
           "detail": "D or A minor, 120 BPM",
           "bpm": 120,
           "diff": 1,
@@ -1894,7 +1894,7 @@
           "id": "greensleeves",
           "title": "Greensleeves",
           "artist": "Trad.",
-          "teaches": "Minor melody with a raised 6 and 7; 3/4 (6/8)",
+          "teaches": "Minor melody with a raised 6 and 7, 3/4 (6/8)",
           "detail": "A or E minor, 3/4",
           "diff": 2,
           "scores": [
@@ -1912,7 +1912,7 @@
           "id": "house-of-the-rising-sun",
           "title": "House of the Rising Sun",
           "artist": "The Animals",
-          "teaches": "i-III-IV-VI, i-III-V: the major V and major IV in minor; arpeggio bass",
+          "teaches": "i-III-IV-VI, i-III-V: the major V and major IV in minor, arpeggio bass",
           "detail": "A minor, 6/8, 117 BPM",
           "bpm": 117,
           "diff": 2,
@@ -1954,7 +1954,7 @@
           "id": "rolling-in-the-deep",
           "title": "Rolling in the Deep",
           "artist": "Adele",
-          "teaches": "i-v-VII then VI-VII-i; a sixteenth-note vocal rhythm",
+          "teaches": "i-v-VII then VI-VII-i, a sixteenth-note vocal rhythm",
           "detail": "C minor, 105 BPM",
           "bpm": 105,
           "diff": 2,
@@ -1970,7 +1970,7 @@
           }
         }
       ],
-      "test": "Say major or minor for 10 recordings (9 right); transcribe one minor melody and one minor progression at 85%; hear the Andalusian cadence in a new song."
+      "test": "Say major or minor for 10 recordings (9 right). Transcribe one minor melody and one minor progression at 85%. Hear the Andalusian cadence in a new song."
     },
     {
       "id": "6",
@@ -1984,7 +1984,7 @@
           "title": "Chromatic colour",
           "strand": "E",
           "href": "/music/ear/scale-degrees?answer=choice&level=chromatic-color",
-          "setup": "Scale degrees, choice, chromatic colour: judged on the chromatic degrees.",
+          "setup": "Scale degrees, choice, chromatic colour: scored on the chromatic degrees.",
           "done": "66% (many choices), on two days.",
           "skillIds": [
             "pitch.scale-degree.b2",
@@ -2002,7 +2002,7 @@
           "title": "H8 Borrowed chords",
           "strand": "H",
           "href": "/music/circle?mode=borrowed&band=two",
-          "setup": "Library reference, then Circle of fifths, Spot the borrowed chord: a written progression in a key, pick the chord from the parallel minor (iv, bVI, bVII, bIII). Keys to two sharps or flats; a run is 20 progressions.",
+          "setup": "Library reference, then Circle of fifths, Spot the borrowed chord. In a written progression in a key, pick the chord from the parallel minor (iv, bVI, bVII, bIII). Keys to two sharps or flats. A run is 20 progressions.",
           "done": "90% on 20 progressions.",
           "minAttempts": 1,
           "minDays": 1,
@@ -2019,7 +2019,7 @@
           "id": "6.3",
           "title": "Hear bVII, bVI and iv",
           "strand": "E",
-          "setup": "Song loops, borrowed chords: bVII, bVI, iv and bIII beside I, IV, V and vi, each in a short loop after the key is set (heard in a loop, not as a single chord in Chords in a key).",
+          "setup": "Song loops, borrowed chords: bVII, bVI, iv and bIII beside I, IV, V and vi. Each plays in a short loop after the key is set, not as a single chord as in Chords in a key.",
           "done": "75%.",
           "href": "/music/ear/song-loops?answer=choice&loops=borrowed",
           "skillIds": ["ear.loops.borrowed"],
@@ -2162,7 +2162,7 @@
           "title": "Transcribe chords with a borrowed chord",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords, compared with the score.",
+          "setup": "Loop a song from the song list for its chords and compare with the notation.",
           "done": "Every bar right, the borrowed chord named.",
           "exerciseIds": [],
           "feeds": "Creep, Hey Jude, Don't Look Back in Anger"
@@ -2172,7 +2172,7 @@
           "title": "Transcribe a melody with chromatic notes",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a melody.",
+          "setup": "Loop a melody from the song list.",
           "done": "85% of notes and rhythms.",
           "exerciseIds": [],
           "feeds": "Norwegian Wood, Space Oddity"
@@ -2183,7 +2183,7 @@
           "strand": "H",
           "href": "/music/create?mode=roll",
           "setup": "Create: 16 bars, verse and chorus, with one bVII or iv.",
-          "done": "Saved and played; the borrowed chord resolves.",
+          "done": "Saved and played. The borrowed chord resolves.",
           "feeds": "Writing"
         }
       ],
@@ -2192,7 +2192,7 @@
           "id": "sweet-home-alabama",
           "title": "Sweet Home Alabama",
           "artist": "Lynyrd Skynyrd",
-          "teaches": "D-C-G: the I-bVII-IV Mixolydian loop; the riff",
+          "teaches": "D-C-G: the I-bVII-IV Mixolydian loop, the riff",
           "detail": "D, 98 BPM",
           "bpm": 98,
           "diff": 1,
@@ -2235,7 +2235,7 @@
           "id": "hey-jude",
           "title": "Hey Jude",
           "artist": "The Beatles",
-          "teaches": "Verse I-V7-I-IV; the coda I-bVII-IV-I",
+          "teaches": "Verse I-V7-I-IV, the coda I-bVII-IV-I",
           "detail": "F, 74 BPM",
           "bpm": 74,
           "diff": 2,
@@ -2298,7 +2298,7 @@
           "id": "norwegian-wood",
           "title": "Norwegian Wood",
           "artist": "The Beatles",
-          "teaches": "Mixolydian melody (b7) in 3/4; the bridge in the parallel minor",
+          "teaches": "Mixolydian melody (b7) in 3/4, the bridge in the parallel minor",
           "detail": "E, 3/4, 180 BPM",
           "bpm": 180,
           "diff": 2,
@@ -2322,7 +2322,7 @@
           "id": "here-comes-the-sun",
           "title": "Here Comes the Sun",
           "artist": "The Beatles",
-          "teaches": "bVII-IV-I in the bridge; uneven bar groupings (11/8, 7/8)",
+          "teaches": "bVII-IV-I in the bridge, uneven bar groupings (11/8, 7/8)",
           "detail": "A, 129 BPM",
           "bpm": 129,
           "diff": 3,
@@ -2357,7 +2357,7 @@
           }
         }
       ],
-      "test": "Name every chord of two new songs that use bVII or iv; play one shelf song's melody and chords with the record; all twelve intervals ascending at 66%."
+      "test": "Name every chord of two new songs that use bVII or iv. Play the melody and chords of one song from the song list with the recording. All twelve intervals ascending at 66%."
     },
     {
       "id": "7",
@@ -2395,8 +2395,8 @@
           "title": "H9 Diatonic sevenths and the circle",
           "strand": "H",
           "href": "/music/circle?mode=chords&band=four",
-          "setup": "Circle T-6, a key's chords up to four; T-7, the blank wheel; T-8, round the circle on your instrument.",
-          "done": "T-6 95% under 5 seconds, on two days; the blank wheel from memory; T-8 done.",
+          "setup": "Circle T-6, a key's chords up to four. T-7, the blank wheel. T-8, round the circle on your instrument.",
+          "done": "T-6 95% under 5 seconds, on two days. The blank wheel from memory. T-8 done.",
           "match": {
             "band": "four"
           },
@@ -2430,7 +2430,7 @@
           "title": "H10 Secondary dominants",
           "strand": "H",
           "href": "/music/circle?mode=secondary&band=two",
-          "setup": "Library reference, then Circle of fifths, Spot the secondary dominant: pick the secondary dominant (II7, III7, VI7, I7) in a written progression, or name the chord it leads to. A run is 20 progressions.",
+          "setup": "Library reference, then Circle of fifths, Spot the secondary dominant. Pick the secondary dominant (II7, III7, VI7, I7) in a written progression, or name the chord it leads to. A run is 20 progressions.",
           "done": "90% on 20.",
           "minAttempts": 1,
           "minDays": 1,
@@ -2447,7 +2447,7 @@
           "id": "7.5",
           "title": "Hear secondary dominants",
           "strand": "E",
-          "setup": "Song loops, secondary dominants: V7/V, V7/vi, V7/ii and V7/IV inside short loops. They are not yet items in Chords in a key or Progression dictation.",
+          "setup": "Song loops, secondary dominants: V7/V, V7/vi, V7/ii and V7/IV inside short loops. They aren't yet items in Chords in a key or Progression dictation.",
           "done": "66%.",
           "href": "/music/ear/song-loops?answer=choice&loops=secondary",
           "skillIds": ["ear.loops.secondary"],
@@ -2491,8 +2491,8 @@
           "title": "H11 Slash chords and line clichés",
           "strand": "H",
           "href": "/music/library?tab=reference&section=vocabulary",
-          "setup": "Library reference; play the walk-downs of Let It Be and A Whiter Shade of Pale on your instrument.",
-          "done": "Both played with the record.",
+          "setup": "Library reference. Play the walk-downs of Let It Be and A Whiter Shade of Pale on your instrument.",
+          "done": "Both played with the recording.",
           "exerciseIds": [],
           "feeds": "A Whiter Shade of Pale"
         },
@@ -2526,7 +2526,7 @@
           "title": "Transcribe a stepwise bass line",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a bass line.",
+          "setup": "Loop a bass line from the song list.",
           "done": "Bass for a whole section at 85%.",
           "exerciseIds": [],
           "feeds": "A Whiter Shade of Pale, Don't Know Why"
@@ -2536,7 +2536,7 @@
           "title": "Transcribe chords with secondary dominants",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for chords, written as symbols and numerals.",
+          "setup": "Loop a song from the song list for its chords. Write them as symbols and numerals.",
           "done": "Every bar right, every V/x labelled.",
           "exerciseIds": [],
           "feeds": "Yesterday, Just the Two of Us, Fly Me to the Moon"
@@ -2573,7 +2573,7 @@
           "id": "yesterday",
           "title": "Yesterday",
           "artist": "The Beatles",
-          "teaches": "V/vi (III7) to vi, then IV-V-I; a preview of AABA form",
+          "teaches": "V/vi (III7) to vi, then IV-V-I, a preview of AABA form",
           "detail": "F, 97 BPM",
           "bpm": 97,
           "diff": 2,
@@ -2707,7 +2707,7 @@
           "id": "georgia-on-my-mind",
           "title": "Georgia on My Mind",
           "artist": "Ray Charles",
-          "teaches": "I-iii7-VI7-ii7; a line cliché in the bridge",
+          "teaches": "I-iii7-VI7-ii7, a line cliché in the bridge",
           "detail": "F, 60 BPM",
           "bpm": 60,
           "diff": 3,
@@ -2748,7 +2748,7 @@
           }
         }
       ],
-      "test": "Transcribe the chords of a song with at least two secondary dominants, symbols and numerals, every bar right; sing the guide-tone line of a ii-V-I in three keys; inversions root, first and second at 80%."
+      "test": "Transcribe the chords of a song with at least two secondary dominants. Write symbols and numerals, every bar right. Sing the guide-tone line of a ii-V-I in three keys. Inversions root, first and second at 80%."
     },
     {
       "id": "8",
@@ -2791,7 +2791,7 @@
           "strand": "H",
           "href": "/music/scales?kind=lydian&tonic=60",
           "setup": "Library reference and the circle's white-note modes (F C G D A E B), then Scales: all seven modes on C, brightest first.",
-          "done": "Name each mode's characteristic note; play all seven on one tonic, on two days.",
+          "done": "Name each mode's characteristic note. Play all seven on one tonic, on two days.",
           "match": {
             "tonic": "60"
           },
@@ -2824,7 +2824,7 @@
           "id": "8.4",
           "title": "Modal vamps by ear",
           "strand": "E",
-          "setup": "Song loops, modal vamps: i-IV (Dorian), I-bVII (Mixolydian), I-II (Lydian), i-bII (Phrygian) and i-bVI-bVII (Aeolian); then Jam, modal.",
+          "setup": "Song loops, modal vamps: i-IV (Dorian), I-bVII (Mixolydian), I-II (Lydian), i-bII (Phrygian) and i-bVI-bVII (Aeolian). Then Jam, modal.",
           "done": "75%.",
           "href": "/music/ear/song-loops?answer=choice&loops=modal",
           "skillIds": ["ear.loops.modal"],
@@ -2843,7 +2843,7 @@
           "title": "Sing a mode over a drone",
           "strand": "E",
           "href": "/music/ear/scales?answer=voice&scales=dorian,mixolydian&scaleDirection=both&tune=35",
-          "setup": "Ear, Scales, Sing it: Dorian and Mixolydian up and down from the tonic, within 35 cents. In Check only the tonic sounds; the tuner's drone is for practice.",
+          "setup": "Ear, Scales, Sing it: Dorian and Mixolydian up and down from the tonic, within 35 cents. In Check only the tonic sounds. The tuner's drone is for practice.",
           "done": "Dorian and Mixolydian up and down, 75% within 35 cents.",
           "skillIds": ["ear.scale.dorian", "ear.scale.mixolydian"],
           "match": {
@@ -2863,8 +2863,8 @@
           "title": "H13 Chord-scale basics",
           "strand": "H",
           "href": "/music/changes/chord-scales?mode=major&changes=major",
-          "setup": "Chord scales: the major ii-V-I, then the minor; Library chord-scale map.",
-          "done": "The chord-scale drill passed for both: 3 checked runs each at 66%, on two days.",
+          "setup": "Chord scales: the major ii-V-I, then the minor. Library chord-scale map.",
+          "done": "The chord-scale drill passed for both: 3 Check runs each at 66%, on two days.",
           "each": {
             "param": "changes",
             "values": ["major", "minor"]
@@ -2886,7 +2886,7 @@
           "title": "Improvise on a modal vamp",
           "strand": "E",
           "href": "/music/changes/jam?progression=modal&game=chord-tones&choruses=3",
-          "setup": "Jam in Check, modal, Chord tones on 1 and 3 (the game counts chord tones only). Call and response, Answer, judges landing on a chord tone.",
+          "setup": "Jam in Check, modal, Chord tones on 1 and 3 (the game counts chord tones only). Call and response, Answer, scores landing on a chord tone.",
           "done": "Three choruses, 75% of strong-beat notes chord or scale tones.",
           "links": [
             {
@@ -2907,7 +2907,7 @@
           "title": "Transcribe a modal melody",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a melody, compared with the score.",
+          "setup": "Loop a melody from the song list and compare with the notation.",
           "done": "85% of notes and rhythms.",
           "exerciseIds": [],
           "feeds": "Scarborough Fair, Eleanor Rigby"
@@ -2917,8 +2917,8 @@
           "title": "Transcribe a modal bass line",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a bass line.",
-          "done": "Bass for a whole section, played with the record.",
+          "setup": "Loop a bass line from the song list.",
+          "done": "Bass for a whole section, played with the recording.",
           "exerciseIds": [],
           "feeds": "Billie Jean, Get Lucky, Another Brick in the Wall"
         },
@@ -2926,7 +2926,7 @@
           "id": "8.10",
           "title": "Call and response in a mode",
           "strand": "E",
-          "setup": "Call and response over the Dorian vamp: Echo first, then Answer. Checked runs of 6 turns.",
+          "setup": "Call and response over the Dorian vamp: Echo first, then Answer. Check runs of 6 turns.",
           "done": "12 answers, 75%.",
           "href": "/music/changes/call-response?mode=answer&groove=modal&bars=1",
           "match": {
@@ -2969,7 +2969,7 @@
           "id": "oye-como-va",
           "title": "Oye Como Va",
           "artist": "Tito Puente, Santana",
-          "teaches": "Am7-D9 vamp: i-IV Dorian; the bass montuno",
+          "teaches": "Am7-D9 vamp: i-IV Dorian, the bass montuno",
           "detail": "A Dorian, 125 BPM",
           "bpm": 125,
           "diff": 1,
@@ -2993,7 +2993,7 @@
           "id": "another-brick-in-the-wall",
           "title": "Another Brick in the Wall, part 2",
           "artist": "Pink Floyd",
-          "teaches": "Dm-G vamp: i-IV Dorian; the bass line",
+          "teaches": "Dm-G vamp: i-IV Dorian, the bass line",
           "detail": "D Dorian, 104 BPM",
           "bpm": 104,
           "diff": 1,
@@ -3037,7 +3037,7 @@
           "id": "billie-jean",
           "title": "Billie Jean",
           "artist": "Michael Jackson",
-          "teaches": "Bass line F#-C#-E-F#-E-C#-B-C#; a Dorian vamp",
+          "teaches": "Bass line F#-C#-E-F#-E-C#-B-C#, a Dorian vamp",
           "detail": "F# minor, 117 BPM",
           "bpm": 117,
           "diff": 2,
@@ -3099,7 +3099,7 @@
           "id": "so-what",
           "title": "So What",
           "artist": "Miles Davis",
-          "teaches": "AABA: 16 bars D Dorian, 8 Eb Dorian, 8 D; the bass call and the 'so what' answer",
+          "teaches": "AABA: 16 bars D Dorian, 8 Eb Dorian, 8 D, the bass call and the 'so what' answer",
           "detail": "D Dorian, 136 BPM",
           "bpm": 136,
           "diff": 2,
@@ -3135,7 +3135,7 @@
           ]
         }
       ],
-      "test": "Name the mode of six recordings or vamps (5 right); transcribe one modal bass line and one modal melody; improvise three choruses on a Dorian vamp with the strong-beat target."
+      "test": "Name the mode of six recordings or vamps (5 right). Transcribe one modal bass line and one modal melody. Improvise three choruses on a Dorian vamp with the strong-beat target."
     },
     {
       "id": "9",
@@ -3149,7 +3149,7 @@
           "title": "H14 Song form",
           "strand": "H",
           "href": "/music/library?tab=reference",
-          "setup": "Library reference: verse, pre-chorus, chorus, bridge; AABA, ABAC; 12 and 16-bar blues; 4 and 8-bar phrases.",
+          "setup": "Library reference: verse, pre-chorus, chorus, bridge. AABA, ABAC. 12 and 16-bar blues. 4 and 8-bar phrases.",
           "done": "The form of 4 known songs written from memory.",
           "exerciseIds": [],
           "feeds": "All"
@@ -3158,7 +3158,7 @@
           "id": "9.2",
           "title": "Label form on recordings",
           "strand": "S",
-          "setup": "Learn by ear: mark every section boundary on a recording (Intro, Verse, Chorus, Bridge, A, B), then loop each section to check it. The app keeps your marks; it can't judge them.",
+          "setup": "Learn by ear: mark every section boundary on a recording (Intro, Verse, Chorus, Bridge, A, B). Loop each section to check it. The app keeps your marks but can't score them.",
           "done": "4 songs, every boundary within a bar.",
           "href": "/music/by-ear?mode=learn",
           "exerciseIds": [],
@@ -3169,7 +3169,7 @@
           "title": "H15 ii-V chains and turnarounds",
           "strand": "H",
           "href": "/music/changes/jam?progression=ii-v-i&game=changes&choruses=2",
-          "setup": "Library reference; Jam in Check, Make the changes, with the ii-V-I and the minor ii-V-i in 4 keys, one run per key.",
+          "setup": "Library reference. Jam in Check, Make the changes, with the ii-V-I and the minor ii-V-i in 4 keys, one run per key.",
           "done": "Two choruses each, no lost place.",
           "links": [
             {
@@ -3257,7 +3257,7 @@
           "title": "Transcribe a jazz head with chords",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop: write the lead sheet, then compare with the score.",
+          "setup": "Loop a head from the song list. Write the lead sheet, then compare with the notation.",
           "done": "85% of the melody, chords right every bar.",
           "exerciseIds": [],
           "feeds": "St. Thomas, Watermelon Man, Blue Bossa, Satin Doll"
@@ -3267,8 +3267,8 @@
           "title": "Transcribe a jazz or Latin bass line",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a bass line.",
-          "done": "One chorus of bass, played with the record.",
+          "setup": "Loop a bass line from the song list.",
+          "done": "One chorus of bass, played with the recording.",
           "exerciseIds": [],
           "feeds": "Cantaloupe Island, Watermelon Man"
         },
@@ -3287,10 +3287,10 @@
         },
         {
           "id": "9.11",
-          "title": "Improvise a chorus on a shelf tune",
+          "title": "Improvise a chorus on a tune from the song list",
           "strand": "S",
           "href": "/music/changes/jam?progression=tune-autumn-leaves&game=chord-tones&choruses=2",
-          "setup": "Jam in Check with a shelf tune's changes (Autumn Leaves here; any of the tune charts counts).",
+          "setup": "Jam in Check on the changes of a tune from the song list. Autumn Leaves opens here, and any of the tune charts counts.",
           "done": "Two choruses, 75% strong-beat chord tones.",
           "feeds": "Jazz Path improv",
           "match": {
@@ -3327,7 +3327,7 @@
           "id": "st-thomas",
           "title": "St. Thomas",
           "artist": "Sonny Rollins",
-          "teaches": "16-bar calypso, I-vi-ii-V; a motivic head",
+          "teaches": "16-bar calypso, I-vi-ii-V, a motivic head",
           "detail": "C, 200 BPM (half-time feel)",
           "bpm": 200,
           "diff": 1,
@@ -3370,7 +3370,7 @@
           "id": "cantaloupe-island",
           "title": "Cantaloupe Island",
           "artist": "Herbie Hancock",
-          "teaches": "16 bars modal: Fm7-Db7-Dm7; the piano and bass riff",
+          "teaches": "16 bars modal: Fm7-Db7-Dm7, the piano and bass riff",
           "detail": "F minor, 112 BPM",
           "bpm": 112,
           "diff": 1,
@@ -3394,7 +3394,7 @@
           "id": "autumn-leaves",
           "title": "Autumn Leaves",
           "artist": "Kosma",
-          "teaches": "AABC, ii-V-I in Bb then ii-V-i in Gm: hear the two homes",
+          "teaches": "AABC, ii-V-I in Bb then ii-V-i in Gm: hear the two tonics",
           "detail": "G minor / Bb, 140 BPM swing",
           "bpm": 140,
           "diff": 2,
@@ -3470,7 +3470,7 @@
           "id": "take-five",
           "title": "Take Five",
           "artist": "Dave Brubeck",
-          "teaches": "5/4 vamp i-v; a bridge of descending ii-Vs",
+          "teaches": "5/4 vamp i-v, a bridge of descending ii-Vs",
           "detail": "Eb minor, 172 BPM",
           "bpm": 172,
           "diff": 2,
@@ -3510,12 +3510,12 @@
           }
         }
       ],
-      "test": "Write the form and chords of a 32-bar standard you have not prepared, by ear, at 80% against the lead sheet; play a transcribed head with the record; guide tones through two choruses."
+      "test": "By ear, write the form and chords of a 32-bar standard you haven't prepared. Reach 80% against the lead sheet. Play a transcribed head with the recording. Guide tones through two choruses."
     },
     {
       "id": "10",
       "title": "Short solos",
-      "goal": "Transcribe 12 to 24 bars of real solos, play them with the record, analyse them against the changes, and reuse the licks.",
+      "goal": "Transcribe 12 to 24 bars of real solos and play them with the recording. Analyse them against the changes and reuse the licks.",
       "adds": "Ear: solos from recordings, licks in keys. Harmony: chord tones, tensions and approach notes as a soloist uses them.",
       "pick": 2,
       "steps": [
@@ -3525,7 +3525,7 @@
           "strand": "S",
           "href": "/music/library?tab=songs",
           "setup": "Learn by ear: loop the solo at 70% speed with the pitch kept, sing it, then at 100%.",
-          "done": "Sing 8 bars along with the record at full speed.",
+          "done": "Sing 8 bars along with the recording at full speed.",
           "exerciseIds": [],
           "links": [
             {
@@ -3540,7 +3540,7 @@
           "title": "Transcribe 4, then 8, then 12 bars",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the score in Song practice. The check against the score (N3) is still to come.",
+          "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the notation in Song practice. The check against the notation (N3) is still to come.",
           "done": "85% of notes and rhythms per chunk.",
           "exerciseIds": [],
           "links": [
@@ -3553,10 +3553,10 @@
         },
         {
           "id": "10.3",
-          "title": "Play it with the record",
+          "title": "Play it with the recording",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice with the imported score, then with the record at 100%.",
+          "setup": "Song practice with the imported notation, then with the recording at 100%.",
           "done": "Clean at 100% twice.",
           "exerciseIds": [],
           "feeds": "The shelf"
@@ -3566,8 +3566,8 @@
           "title": "Analyse the solo",
           "strand": "H",
           "href": "/music/changes/jam",
-          "setup": "Write each note's role over the chord (chord tone, tension, approach); check with Jam's tone roles.",
-          "done": "Every note labelled; two licks marked.",
+          "setup": "Write each note's role over the chord (chord tone, tension, approach). Check with Jam's tone roles.",
+          "done": "Every note labelled. Two licks marked.",
           "exerciseIds": []
         },
         {
@@ -3575,8 +3575,8 @@
           "title": "Licks into keys",
           "strand": "E",
           "href": "/music/phrases",
-          "setup": "Phrases, Your licks: save two licks (Learn by ear, Save as a lick, or the first bars of a transcription), then take each through the keys.",
-          "done": "Each lick in 4 keys at the record's tempo.",
+          "setup": "Phrases, Your licks: save two licks, then take each through the keys. A lick comes from Learn by ear (Save as a lick) or the first bars of a transcription.",
+          "done": "Each lick in 4 keys at the recording's tempo.",
           "match": {
             "user": "true"
           },
@@ -3630,7 +3630,7 @@
           "id": "10.8",
           "title": "Jazz phrases by ear",
           "strand": "E",
-          "setup": "Licks, By ear: jazz lines looped at 50, 75 or 100%, notes hidden until the results. The lines run one to four bars and are not picked for their approach notes.",
+          "setup": "Licks, By ear: jazz lines looped at 50, 75 or 100%, notes hidden until the results. The lines run one to four bars and aren't picked for their approach notes.",
           "done": "75% per note.",
           "href": "/music/changes/licks?ear=1",
           "match": {
@@ -3677,7 +3677,7 @@
           "id": "the-thrill-is-gone",
           "title": "The Thrill Is Gone",
           "artist": "B.B. King",
-          "teaches": "Minor pentatonic with bends; short phrases and space",
+          "teaches": "Minor pentatonic with bends, short phrases and space",
           "detail": "B minor blues, 92 BPM",
           "bpm": 92,
           "diff": 2,
@@ -3840,7 +3840,7 @@
           "title": "My Funny Valentine",
           "artist": "Chet Baker",
           "teaches": "Sparse, singable trumpet ballad solo",
-          "detail": "C minor, ballad; no solo transcription on MuseScore, the lead sheet is in the Jazz Path repertoire",
+          "detail": "C minor, ballad. No solo transcription on MuseScore. The lead sheet is on the Jazz path",
           "diff": 2,
           "scores": [
             {
@@ -3854,7 +3854,7 @@
           }
         }
       ],
-      "test": "One rock or blues solo and one jazz solo transcribed (85% against the score) and played with the record at full speed; a chorus of your own over the same changes using two of its licks."
+      "test": "One rock or blues solo and one jazz solo transcribed (85% against the notation) and played with the recording at full speed. A chorus of your own over the same changes using two of its licks."
     },
     {
       "id": "11",
@@ -3889,7 +3889,7 @@
           "title": "Diminished passing chords",
           "strand": "E",
           "href": "/music/ear/chord-qualities?answer=choice&qualities=major-7,dominant-7,minor-7,half-diminished-7,diminished-7",
-          "setup": "Chord qualities, the sevenths, judged on diminished 7. I-#i°7-ii-V is in Song loops, turnarounds.",
+          "setup": "Chord qualities, the sevenths, scored on diminished 7. I-#i°7-ii-V is in Song loops, turnarounds.",
           "done": "75% on diminished 7, on two days.",
           "skillIds": ["harmony.seventh.diminished"],
           "minAttempts": 5,
@@ -3907,7 +3907,7 @@
           "title": "Hear a key change",
           "strand": "E",
           "href": "/music/ear/progressions?answer=choice&changes=key",
-          "setup": "Progression dictation, key changes: the old key is set, then a ii-V (later a plain V7 or a backdoor) takes it somewhere new. Where does it go: up a step, up a half step, to the relative, a third away; then the chords as numerals in the new key.",
+          "setup": "Progression dictation, key changes. The old key is set, then a ii-V takes it somewhere new (later a plain V7 or a backdoor). Say where it goes: up a step, up a half step, to the relative, or a third away. Then name the chords as numerals in the new key.",
           "done": "75%.",
           "skillIds": ["ear.key-changes"],
           "minAttempts": 10,
@@ -3920,7 +3920,7 @@
           "strand": "H",
           "href": "/music/create?mode=roll",
           "setup": "The Create piano roll (the reharmonisation sandbox, N10, is still to come): Amazing Grace or Happy Birthday with diatonic subs, then secondary dominants, then tritone subs and passing diminished chords.",
-          "done": "Three versions saved; melody notes on strong beats are chord tones or tensions.",
+          "done": "Three versions saved. Melody notes on strong beats are chord tones or tensions.",
           "feeds": "Writing"
         },
         {
@@ -3929,7 +3929,7 @@
           "strand": "S",
           "href": "/music/library?tab=songs",
           "setup": "Transcribe the chords of two versions of one song.",
-          "done": "Both chord charts right every bar; the substitutions labelled.",
+          "done": "Both chord charts right every bar. The substitutions labelled.",
           "exerciseIds": [],
           "feeds": "Over the Rainbow, My Favorite Things"
         },
@@ -3938,7 +3938,7 @@
           "title": "A whole lead sheet by ear",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Melody, chords and form of a whole song in Learn by ear, compared with the score. The check against the score (N3) is still to come.",
+          "setup": "Melody, chords and form of a whole song in Learn by ear, compared with the notation. The check against the notation (N3) is still to come.",
           "done": "85% of the melody, 85% of chord bars.",
           "exerciseIds": [],
           "links": [
@@ -3969,7 +3969,7 @@
           "title": "Fine pitch (optional)",
           "strand": "E",
           "href": "/music/ear/fine-pitch?answer=choice&startCents=25",
-          "setup": "Fine pitch, the staircase, starting at 25 cents (warm up from 50). Judged on runs that start at 25 cents or finer.",
+          "setup": "Fine pitch, the staircase, starting at 25 cents (warm up from 50). Scored on runs that start at 25 cents or finer.",
           "done": "Threshold at or under 25 cents, on two days.",
           "minAttempts": 2,
           "minDifficulty": 0.33,
@@ -4079,7 +4079,7 @@
           "id": "body-and-soul",
           "title": "Body and Soul",
           "artist": "Johnny Green",
-          "teaches": "Tritone subs throughout; the bridge a half step up",
+          "teaches": "Tritone subs throughout, the bridge a half step up",
           "detail": "Db, ballad",
           "diff": 3,
           "scores": [
@@ -4116,7 +4116,7 @@
           "id": "giant-steps",
           "title": "Giant Steps",
           "artist": "Coltrane",
-          "teaches": "Chart only: keys a major third apart (B, G, Eb); hear the tonics move",
+          "teaches": "Chart only: keys a major third apart (B, G, Eb). Hear the tonics move",
           "detail": "B, 286 BPM",
           "bpm": 286,
           "diff": 3,
@@ -4132,7 +4132,7 @@
           }
         }
       ],
-      "test": "The path final: a whole song you have not prepared (from a list you pick), melody, chords and form by ear in under two hours, 85% against the score; play it; then a reharmonised chorus of it with at least one secondary dominant, one tritone sub and one borrowed chord."
+      "test": "The path final: a whole song you haven't prepared, from a list you pick. Melody, chords and form by ear in under two hours, 85% against the notation. Play it. Then a reharmonised chorus of it with at least one secondary dominant, one tritone sub and one borrowed chord."
     }
   ]
 }
