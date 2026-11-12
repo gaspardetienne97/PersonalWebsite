@@ -1,14 +1,14 @@
 {
   "id": "jazz",
-  "title": "Jazz Path",
-  "subtitle": "Ten piano-led levels from shells on the blues to 40 standards from a lead sheet: comping, soloing, ballads, Monk and Silver, reharmonisation and modern jazz.",
+  "title": "Jazz path",
+  "subtitle": "Ten piano-led levels, from shells on the blues to 40 standards from a lead sheet. You comp, solo, play ballads, Monk and Silver, reharmonise and reach modern jazz.",
   "benchmark": "Levine's The Jazz Piano Book in 12 keys, Open Studio piano Level 4, a 40-tune book",
   "instruments": ["piano"],
   "levels": [
     {
       "id": "1",
       "title": "Shells and the blues",
-      "goal": "Comp a 12-bar blues in F, Bb and C with shells in swing time, play blues heads with melody plus shells, and improvise a chorus with three-note and motif games.",
+      "goal": "Comp a 12-bar blues in F, Bb and C with shells in swing time. Play blues heads with melody plus shells. Improvise a chorus with the three-note and motif games.",
       "adds": "Shells, the blues form, Charleston comping, swing eighths, the blues scale, the first constraint games, the first transcription.",
       "pick": 3,
       "steps": [
@@ -63,7 +63,7 @@
           "title": "Swing eighths and off-beat accents",
           "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
           "setup": "Rhythm, read and tap: swing eighths from 100 up to 120. Then Comping: blue third over C7 at 100.",
-          "done": "Rhythm 90% at 120, 3 runs, on two days; comping 90%.",
+          "done": "Rhythm 90% at 120, 3 runs, on two days. Comping 90%.",
           "threshold": 0.9,
           "minBpm": 120,
           "links": [
@@ -78,7 +78,7 @@
           "title": "Charleston comping (beat 1 and the and-of-2)",
           "href": "/music/changes/comping?pattern=blue-third-c7&lh=shell&bpm=110",
           "setup": "Comping: blue third over C7, F7 and G7 with the Charleston shell. Then Jam, blues in Bb, comping the Charleston (not scored yet).",
-          "done": "Comping 90% at 110 on all three; one blues chorus in Bb at 110 with the rhythm held.",
+          "done": "Comping 90% at 110 on all three. One blues chorus in Bb at 110 with the rhythm held.",
           "each": {
             "param": "pattern",
             "values": ["blue-third-c7", "blue-third-f7", "blue-third-g7"]
@@ -136,7 +136,7 @@
         {
           "id": "1.6",
           "title": "Improv game: three notes",
-          "setup": "Jam: blues in F at 100; the right hand uses only F, Ab, C (then Bb, Db, F over a Bb blues).",
+          "setup": "Jam: blues in F at 100. The right hand uses only F, Ab, C (then Bb, Db, F over a Bb blues).",
           "done": "4 choruses with 90% of notes from the set and at least 6 two-beat rests per chorus.",
           "links": [
             {
@@ -156,7 +156,7 @@
         {
           "id": "1.7",
           "title": "Improv game: call and response",
-          "setup": "Jam: blues; the backing plays 2 bars, you answer 2. Until response windows exist, leave bars 1-2, 5-6 and 9-10 empty.",
+          "setup": "Jam: blues. The backing plays 2 bars, you answer 2. Until response windows exist, leave bars 1-2, 5-6 and 9-10 empty.",
           "done": "3 choruses where every answer starts inside its window and ends before the next call.",
           "links": [
             {
@@ -176,7 +176,7 @@
         {
           "id": "1.8",
           "title": "Improv game: one rhythmic motif",
-          "setup": "Jam: blues; keep one 1-bar rhythm (the C Jam two-note riff, or the Charleston) and change the pitches to fit each chord.",
+          "setup": "Jam: blues. Keep one 1-bar rhythm (the C Jam two-note riff, or the Charleston) and change the pitches to fit each chord.",
           "done": "Same onset pattern in at least 8 of 12 bars, a chord tone on beat 1 in 75% of bars.",
           "links": [
             {
@@ -196,8 +196,8 @@
           "id": "1.9",
           "title": "Learn two blues heads by ear",
           "href": "/music/songs/shelf/jazz/c-jam-blues",
-          "setup": "Learn the head from the record, then check it in Song practice on the imported lead sheet: wait mode first, then performance. C Jam Blues is judged here; the second head counts on the shelf.",
-          "done": "C Jam Blues and one more shelf head in performance mode, 90% at 120, on two days.",
+          "setup": "Learn the head from the recording. Check it in Song practice on the imported lead sheet: Wait mode first, then Performance mode. C Jam Blues is scored here. The second head counts towards the song list.",
+          "done": "C Jam Blues and one more head from the song list in Performance mode, 90% at 120, on two days.",
           "threshold": 0.9,
           "minBpm": 120,
           "links": [
@@ -215,8 +215,8 @@
           "id": "1.10",
           "title": "Head plus shells",
           "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4&bpm=110",
-          "setup": "Two hands: left-hand shell plus right-hand line. Then a shelf head in Song practice with your own left hand (not counted here yet).",
-          "done": "Two choruses of a shelf head, melody plus shells, 90% at 110.",
+          "setup": "Two hands: left-hand shell plus right-hand line. Then a head from the song list in Song practice with your own left hand (not counted here yet).",
+          "done": "Two choruses of a head from the song list, melody plus shells, 90% at 110.",
           "match": {
             "pattern": "lh-shell-rh-line"
           },
@@ -228,7 +228,7 @@
           "title": "Three blues licks in three keys",
           "href": "/music/phrases?instrument=piano&phrase=piano.c-blues-lick&bpm=100",
           "setup": "Phrases: the C blues lick, hear first. The blues category in Licks (blue-third grace note, 6-5-b3-1 turnaround, Monk's whole-step trill in F, Bb, C) is still to come. Left-hand companion: the Oscar Peterson blues patterns.",
-          "done": "The lick clean at 100, hear-first, on two days; later each blues lick in F, Bb and C.",
+          "done": "The lick clean at 100, hear-first, on two days. Later each blues lick in F, Bb and C.",
           "match": {
             "phrase": "piano.c-blues-lick"
           },
@@ -254,7 +254,7 @@
           "title": "Minor blues",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=charleston&bpm=120&progression=minor-blues&transpose=0",
           "setup": "Accompaniment, comping: shells through the minor blues (Cm7, Fm7, Ab7, G7alt). The three-note chorus waits for improvisation scoring in Jam.",
-          "done": "3 choruses at 120 with shells; one three-note chorus (C, Eb, G).",
+          "done": "3 choruses at 120 with shells. One three-note chorus (C, Eb, G).",
           "match": {
             "progression": "minor-blues"
           },
@@ -266,7 +266,7 @@
         {
           "id": "1.13",
           "title": "First transcription: 4 bars",
-          "setup": "Loop and slow Monk on Bags' Groove (the first phrase of his solo) or Wynton Kelly on Freddie Freeloader (the first 4 bars); sing it, find it on the keys, then play along in Record. Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
+          "setup": "Loop and slow one phrase: Monk's first on Bags' Groove, or Wynton Kelly's first 4 bars on Freddie Freeloader. Sing it, find it on the keys, then play along in Record. Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
           "done": "The 4 bars along with the recording 3 times in a row.",
           "links": [
             {
@@ -495,12 +495,12 @@
           }
         }
       ],
-      "test": "Two shelf heads at 120 with melody plus shells; one chorus of comping with the Charleston in Bb at 120; one improvised chorus in F that passes the three-note game (90% set notes, 6 rests) and lands a chord tone on beat 1 in 75% of bars."
+      "test": "Two heads from the song list at 120 with melody plus shells. One chorus of comping with the Charleston in Bb at 120. One improvised chorus in F that passes the three-note game (90% set notes, 6 rests). It also lands a chord tone on beat 1 in 75% of bars."
     },
     {
       "id": "2",
       "title": "Guide tones and the first standards",
-      "goal": "Play the first standards through rungs a to c of the tune ladder and solo with guide tones and arpeggios over major and minor ii-V-I.",
+      "goal": "Play the first standards through rungs a to c of the tune ladder. Solo with guide tones and arpeggios over major and minor ii-V-I.",
       "adds": "Diatonic 7th chords, shells and guide tones through ii-V-I in 12 keys, minor ii-V-i, 32-bar forms, bossa comping, chord-tone soloing, the first licks.",
       "pick": 3,
       "steps": [
@@ -672,8 +672,8 @@
           "id": "2.7",
           "title": "Rung a on two shelf tunes",
           "href": "/music/songs/shelf/jazz/autumn-leaves",
-          "setup": "Song practice on the imported lead sheet: roots in the left hand, melody in the right. Autumn Leaves is judged here; do a second tune too.",
-          "done": "Performance mode 90% at the shelf tempo, on two days, for two tunes.",
+          "setup": "Song practice on the imported lead sheet: roots in the left hand, melody in the right. Autumn Leaves is scored here. Do a second tune too.",
+          "done": "Performance mode, 90% at the listed tempo, on two days, for two tunes.",
           "threshold": 0.9,
           "minBpm": 120,
           "links": [
@@ -690,8 +690,8 @@
         {
           "id": "2.8",
           "title": "Rung b: guide tones through the form",
-          "setup": "The tune player: Jam in Check on the tune's changes, Guide tones only, at 80% of the shelf tempo (the tempo is yours to set).",
-          "done": "Two choruses with no wrong guide tone, at 80% of the shelf tempo.",
+          "setup": "The tune player: Jam in Check on the tune's changes, Guide tones only. Set the tempo yourself to 80% of the listed tempo.",
+          "done": "Two choruses with no wrong guide tone, at 80% of the listed tempo.",
           "href": "/music/changes/jam?progression=tune-autumn-leaves&game=guide-tones&choruses=2",
           "match": {
             "game": "guide-tones",
@@ -713,8 +713,8 @@
         {
           "id": "2.9",
           "title": "Rung c: melody plus shells",
-          "setup": "Accompaniment, Lead sheet: the shelf tune's imported score (with chord symbols) as the melody over your own shells; warm up in Two hands, shell plus line.",
-          "done": "Two choruses 90% at the shelf tempo.",
+          "setup": "Accompaniment, Lead sheet: the tune's imported notation (with chord symbols) is the melody over your own shells. Warm up in Two hands, shell plus line.",
+          "done": "Two choruses 90% at the listed tempo.",
           "links": [
             {
               "label": "Two hands: shell plus line",
@@ -752,7 +752,7 @@
         {
           "id": "2.11",
           "title": "Improv game: guide tones only",
-          "setup": "Jam on a shelf tune; the right hand plays only 3rds and 7ths, one per bar, then two per bar.",
+          "setup": "Jam on a tune from the song list. The right hand plays only 3rds and 7ths, one per bar, then two per bar.",
           "done": "A 3rd or 7th within a beat of 80% of the changes, two choruses.",
           "links": [
             {
@@ -772,8 +772,8 @@
           "id": "2.12",
           "title": "Improv game: arpeggios",
           "href": "/music/changes/chord-scales?changes=major&key=C",
-          "setup": "Chord scales, major and minor ii-V-I in three keys. Then Jam: 1-3-5-7 up on each chord, then 3-5-7-9 (the chorus is not scored yet).",
-          "done": "Chord scales clean in 3 keys, both changes; one chorus with chord tones on 80% of strong beats.",
+          "setup": "Chord scales, major and minor ii-V-I in three keys. Then Jam: 1-3-5-7 up on each chord, then 3-5-7-9 (the chorus isn't scored yet).",
+          "done": "Chord scales clean in 3 keys, both changes. One chorus with chord tones on 80% of strong beats.",
           "each": {
             "param": "changes",
             "values": ["major", "minor"]
@@ -794,7 +794,7 @@
           "id": "2.13",
           "title": "Four licks in three keys",
           "href": "/music/changes/licks?lick=1&key=C&bpm=120",
-          "setup": "Licks: major ii-V-I licks 1 and 4, minor ii-V-i licks 18 and 19; hear first, then three keys round the cycle.",
+          "setup": "Licks: major ii-V-I licks 1 and 4, minor ii-V-i licks 18 and 19. Hear first, then three keys round the cycle.",
           "done": "Each lick at 120 in three keys, on two days.",
           "each": {
             "param": "lick",
@@ -821,8 +821,8 @@
         {
           "id": "2.14",
           "title": "Transcribe a melody",
-          "setup": "The first 8 bars of Blue Bossa (Joe Henderson) or Autumn Leaves (Miles on Somethin' Else): sing and play back, then play along. Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "Play along with the record 3 times.",
+          "setup": "The first 8 bars of Blue Bossa (Joe Henderson) or Autumn Leaves (Miles on Somethin' Else): sing and play back, then play along. Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "Play along with the recording 3 times.",
           "links": [
             {
               "label": "Ear: melody, sung back",
@@ -1011,12 +1011,12 @@
           }
         }
       ],
-      "test": "Two shelf tunes through rungs a to c at tempo; shells through major and minor ii-V-I in 12 keys at 80; one chorus on Autumn Leaves passing the guide-tone game (80% of changes landed)."
+      "test": "Two tunes from the song list through rungs a to c at tempo. Shells through major and minor ii-V-I in 12 keys at 80. One chorus on Autumn Leaves passing the guide-tone game (80% of changes landed)."
     },
     {
       "id": "3",
       "title": "Rootless voicings and comping in time",
-      "goal": "Comp any shelf tune with rootless A and B voicings on real comping rhythms, solo a chorus with chord tones and approach notes, and finish the whole ladder (a to f) on two tunes.",
+      "goal": "Comp any tune from the song list with rootless A and B voicings on real comping rhythms. Solo a chorus with chord tones and approach notes. Finish the whole ladder (a to f) on two tunes.",
       "adds": "Rootless voicings in time, comping rhythms, two-feel bass, secondary dominants and chained ii-Vs, chromatic approach notes, the second key.",
       "pick": 3,
       "steps": [
@@ -1024,7 +1024,7 @@
           "id": "3.1",
           "title": "Rootless A and B through major ii-V-I",
           "href": "/music/changes/voicings?variant=major&keys=1&position=A",
-          "setup": "Voicings, Major ii-V-I: 1 key, 3 keys, 12 keys; start in position A, then B.",
+          "setup": "Voicings, Major ii-V-I: 1 key, 3 keys, 12 keys. Start in position A, then B.",
           "done": "12 keys at 95% from both starting forms, on two days.",
           "match": {
             "variant": "major",
@@ -1136,7 +1136,7 @@
           "id": "3.6",
           "title": "Two-feel bass under shells",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=two-feel&rhythm=charleston&bpm=100&progression=blues&transpose=-2",
-          "setup": "Accompaniment, comping: root and 5th in half notes in the left hand, the 3rd and 7th in the right, through the Bb blues. The quarter-note walking line waits for a walking-bass pattern.",
+          "setup": "Accompaniment, comping, through the Bb blues. Left hand: root and 5th in half notes. Right hand: the 3rd and 7th. The quarter-note walking line waits for a walking-bass pattern.",
           "done": "One Bb blues chorus at 100, quarter-note walk, 90%.",
           "match": {
             "voicing": "two-feel",
@@ -1150,8 +1150,8 @@
         {
           "id": "3.7",
           "title": "Secondary dominants and chained ii-Vs",
-          "setup": "Song loops, secondary dominants, named by numeral; then Jam on the All of Me and Satin Doll changes.",
-          "done": "Name each chord's function on the shelf chart without errors; comp it once through.",
+          "setup": "Song loops, secondary dominants, named by numeral. Then Jam on the All of Me and Satin Doll changes.",
+          "done": "Name each chord's function on the tune's chart without errors. Comp it once through.",
           "links": [
             {
               "label": "Ear: progressions with sevenths",
@@ -1197,7 +1197,7 @@
         {
           "id": "3.9",
           "title": "Improv game: approach notes",
-          "setup": "Jam on a shelf tune: every chord tone on beat 1 approached by a half step from below, then from above.",
+          "setup": "Jam on a tune from the song list. Approach every chord tone on beat 1 by a half step from below, then from above.",
           "done": "80% of bar downbeats are chord tones approached chromatically, one chorus.",
           "href": "/music/changes/jam?progression=tune-autumn-leaves&game=approach&choruses=1",
           "match": {
@@ -1209,7 +1209,7 @@
         {
           "id": "3.10",
           "title": "Rung e on two shelf tunes",
-          "setup": "Jam over the tune, recorded, scored for chord tones and guide-tone landings.",
+          "setup": "Jam over the tune and record it. Jam scores chord tones and guide-tone landings.",
           "done": "One chorus with chord tones on 75% of strong beats and 70% guide-tone landings.",
           "href": "/music/changes/jam?progression=tune-autumn-leaves&game=changes&choruses=1",
           "match": {
@@ -1225,7 +1225,7 @@
         {
           "id": "3.11",
           "title": "Rung f: second key",
-          "setup": "Transpose the tune in Song practice and in Accompaniment, Lead sheet: down a 4th, or the key a singer would ask for. The app does not check that the key moved.",
+          "setup": "Transpose the tune in Song practice and in Accompaniment, Lead sheet. Go down a 4th, or to the key a singer would ask for. The app doesn't check that the key moved.",
           "done": "Rungs a and c in the new key at 85%, one day, on one tune.",
           "href": "/music/changes/accompany?mode=lead-sheet&instrument=piano&lh=shells&transpose=-5",
           "match": {
@@ -1239,7 +1239,7 @@
           "id": "3.12",
           "title": "Four more licks in six keys",
           "href": "/music/changes/licks?lick=5&key=C&bpm=140",
-          "setup": "Licks: major ii-V-I licks 5 and 9, ii-V-I-VI licks 12 and 13; six keys round the cycle.",
+          "setup": "Licks: major ii-V-I licks 5 and 9, ii-V-I-VI licks 12 and 13. Six keys round the cycle.",
           "done": "Each lick at 140 in six keys, on two days.",
           "each": {
             "param": "lick",
@@ -1266,8 +1266,8 @@
         {
           "id": "3.13",
           "title": "Transcribe comping rhythm",
-          "setup": "Red Garland's comping under Miles on \"Bye Bye Blackbird\" (first chorus): rhythm only, then with voicings. Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "Tap the comping rhythm with the record, 8 bars, 90%.",
+          "setup": "Red Garland's comping under Miles on \"Bye Bye Blackbird\" (first chorus): rhythm only, then with voicings. Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "Tap the comping rhythm with the recording, 8 bars, 90%.",
           "links": [
             {
               "label": "Rhythm: dictation",
@@ -1474,12 +1474,12 @@
           }
         }
       ],
-      "test": "One shelf tune through all six rungs (a to f) at tempo; rootless ii-V-I in 12 keys in time at 100; two choruses of comping on a second tune with two different comping rhythms. Do the full ladder on two shelf tunes."
+      "test": "One tune from the song list through all six rungs (a to f) at tempo. Rootless ii-V-I in 12 keys in time at 100. Two choruses of comping on a second tune with two different comping rhythms. Do the full ladder on two tunes from the song list."
     },
     {
       "id": "4",
       "title": "Modal jazz: So What, quartal and Herbie",
-      "goal": "Comp and solo over modal tunes and vamps with So What, quartal and sus voicings, pentatonic lines and developed motifs.",
+      "goal": "Comp and solo over modal tunes and vamps. Use So What, quartal and sus voicings, pentatonic lines and developed motifs.",
       "adds": "Modes by ear, So What chords, quartal stacks, sus and slash (\"Herbie\") voicings, pentatonic superimposition, motif development, space.",
       "pick": 3,
       "steps": [
@@ -1555,7 +1555,7 @@
         {
           "id": "4.5",
           "title": "Modal vamp comping",
-          "setup": "Jam: modal vamp, then the So What form (16 bars D dorian, 8 Eb, 8 D), Make the changes, with So What chords. Jam grades the chord tones on the changes, not the voicing or the comping rhythm.",
+          "setup": "Jam: modal vamp, then the So What form (16 bars D dorian, 8 Eb, 8 D), Make the changes, with So What chords. Jam scores the chord tones on the changes, not the voicing or the comping rhythm.",
           "done": "2 choruses at 135 with So What chords, the comping rhythm held.",
           "links": [
             {
@@ -1588,7 +1588,7 @@
         {
           "id": "4.7",
           "title": "The Cantaloupe Island and Watermelon Man riffs",
-          "setup": "Song practice, Performance: the opening bars of each shelf score, the left-hand riff with the right-hand comp. Cantaloupe Island first, then Watermelon Man (linked).",
+          "setup": "Song practice, Performance mode: the opening bars of each tune's notation, the left-hand riff with the right-hand comp. Cantaloupe Island first, then Watermelon Man (linked).",
           "done": "Each riff 4 times through at 110, 90%.",
           "href": "/music/songs/shelf/jazz/cantaloupe-island?bars=1-4",
           "match": {
@@ -1634,7 +1634,7 @@
         {
           "id": "4.9",
           "title": "Improv game: motif development",
-          "setup": "Jam, modal vamp, One rhythmic motif: one 2-bar motif, then repeat, transpose, invert and displace it by a beat. The game counts a repeated one-bar rhythm, so check the variations on the recording.",
+          "setup": "Jam, modal vamp, One rhythmic motif. Play one 2-bar motif, then repeat, transpose, invert and displace it by a beat. The game counts a repeated one-bar rhythm, so check the variations on the recording.",
           "done": "One chorus where the motif returns at least 4 times, varied.",
           "links": [
             {
@@ -1657,7 +1657,7 @@
         {
           "id": "4.10",
           "title": "Improv game: space",
-          "setup": "Jam: play 2 bars, rest 2 bars for a whole chorus; then 1 on, 1 off.",
+          "setup": "Jam: play 2 bars, rest 2 bars for a whole chorus. Then 1 on, 1 off.",
           "done": "2 choruses with every rest window silent.",
           "links": [
             {
@@ -1676,7 +1676,7 @@
         {
           "id": "4.11",
           "title": "Ladder rungs a, c, d, e on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung. Rung a is Song practice on the tune's notation. Rungs b and e are Jam. Rung c is Accompaniment's lead sheet with shells, and rung d is its comping.",
           "done": "Rungs a, c, d and e done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -1687,8 +1687,8 @@
         {
           "id": "4.12",
           "title": "Transcribe the So What call and response",
-          "setup": "Bill Evans' two-chord answer to the bass in the head of \"So What\", then Herbie's comping on \"Cantaloupe Island\" (first 8 bars). Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "Both along with the record 3 times.",
+          "setup": "Bill Evans' two-chord answer to the bass in the head of \"So What\", then Herbie's comping on \"Cantaloupe Island\" (first 8 bars). Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "Both along with the recording 3 times.",
           "links": [
             {
               "label": "Record",
@@ -1773,7 +1773,7 @@
           "title": "Impressions",
           "artist": "John Coltrane",
           "teaches": "The So What form at speed, quartal comping",
-          "detail": "D and Eb dorian, 32 bars, 160 (the record is faster)",
+          "detail": "D and Eb dorian, 32 bars, 160 (the recording is faster)",
           "bpm": 160,
           "diff": 2,
           "scores": [
@@ -1876,12 +1876,12 @@
           }
         }
       ],
-      "test": "So What with quartal comping for two choruses at 135 and one solo chorus that moves through two pentatonics; Maiden Voyage or Cantaloupe Island rungs a, c and d at tempo; So What voicings up and down D and Eb dorian."
+      "test": "So What with quartal comping for two choruses at 135. One solo chorus on it that moves through two pentatonics. Maiden Voyage or Cantaloupe Island: rungs a, c and d at tempo. So What voicings up and down D and Eb dorian."
     },
     {
       "id": "5",
       "title": "Bebop vocabulary and the bebop blues",
-      "goal": "Play bebop blues heads and solo with eighth-note lines that put chord tones on the beat, using enclosures, the bebop scale and Parker-style licks.",
+      "goal": "Play bebop blues heads. Solo with eighth-note lines that put chord tones on the beat, using enclosures, the bebop scale and Parker-style licks.",
       "adds": "Bebop dominant scale, enclosures, chromatic approach patterns, Bird blues changes, comping sparsely under your own line, tempo up to 180.",
       "pick": 3,
       "steps": [
@@ -1889,7 +1889,7 @@
           "id": "5.1",
           "title": "Bebop dominant scale from each chord tone, descending",
           "href": "/music/scales?kind=bebop-dominant&tonic=65&span=two-octave&motion=down&perBeat=2&bpm=140",
-          "setup": "Scales: bebop dominant on F and Bb, eighths, descending. Starting from the 3rd, 5th and b7 is not in Scales yet; Chord scales covers the dominant in a ii-V-I.",
+          "setup": "Scales: bebop dominant on F and Bb, eighths, descending. Starting from the 3rd, 5th and b7 isn't in Scales yet. Chord scales covers the dominant in a ii-V-I.",
           "done": "F7 and Bb7 at 140 in eighths, chord tones on the beat, 3 clean runs each.",
           "each": {
             "param": "tonic",
@@ -1941,7 +1941,7 @@
           "id": "5.4",
           "title": "Rootless dominants with 9 and 13 under a line",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=stabs&progression=blues&transpose=5",
-          "setup": "Accompaniment, comping: rootless left-hand stabs on the and of 2 and on 4 through the F blues, your own bebop line on top (the line is not graded).",
+          "setup": "Accompaniment, comping, through the F blues: rootless left-hand stabs on the and of 2 and on 4. Play your own bebop line on top (the line isn't scored).",
           "done": "One F blues chorus: rootless left-hand stabs on the and-of-2 and 4 under a right-hand bebop line, 90% voicings.",
           "match": {
             "voicing": "rootless",
@@ -1962,7 +1962,7 @@
           "id": "5.5",
           "title": "Bird blues changes",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=140&progression=bird-blues&transpose=0",
-          "setup": "Accompaniment, comping through the Bird blues (Fmaj7, Em7b5 A7, Dm7 G7, Cm7 F7 ...): shells, then rootless.",
+          "setup": "Accompaniment, comping through the Bird blues (Fmaj7, Em7b5 A7, Dm7 G7, Cm7 F7 and on): shells, then rootless.",
           "done": "Comp 2 choruses at 140 with shells, then rootless.",
           "match": {
             "progression": "bird-blues"
@@ -1990,8 +1990,8 @@
           "id": "5.6",
           "title": "Bebop heads by ear",
           "href": "/music/songs/shelf/jazz/nows-the-time",
-          "setup": "Learn from the record, check in Song practice. Now's the Time is judged here; do a second head too.",
-          "done": "2 shelf heads in performance mode, 90% at 160.",
+          "setup": "Learn from the recording, check in Song practice. Now's the Time is scored here. Do a second head too.",
+          "done": "2 heads from the song list in Performance mode, 90% at 160.",
           "threshold": 0.9,
           "minBpm": 160,
           "links": [
@@ -2060,7 +2060,7 @@
         {
           "id": "5.10",
           "title": "Ladder rungs a to e on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung. Rung a is Song practice on the tune's notation. Rungs b and e are Jam. Rung c is Accompaniment's lead sheet with shells, and rung d is its comping.",
           "done": "Rungs a to e done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -2071,7 +2071,7 @@
         {
           "id": "5.11",
           "title": "Tempo ladder on the blues",
-          "setup": "Jam: blues at 140, then 160, then 180, Make the changes on the solo chorus; comp the rootless chorus in Accompaniment, Comping, which grades the rhythm.",
+          "setup": "Jam: blues at 140, then 160, then 180, Make the changes on the solo chorus. Comp the rootless chorus in Accompaniment, Comping, which scores the rhythm.",
           "done": "A clean chorus at 180.",
           "links": [
             {
@@ -2095,8 +2095,8 @@
         {
           "id": "5.12",
           "title": "Transcribe a bebop chorus",
-          "setup": "Wynton Kelly's first chorus on \"Freddie Freeloader\" or Parker's first chorus on \"Now's the Time\": learn it at 70% speed, then 100%. Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "The chorus along with the record at full speed, 3 times.",
+          "setup": "Wynton Kelly's first chorus on \"Freddie Freeloader\" or Parker's on \"Now's the Time\". Learn it at 70% speed, then 100%. Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "The chorus along with the recording at full speed, 3 times.",
           "links": [
             {
               "label": "Record",
@@ -2109,7 +2109,7 @@
         {
           "id": "5.13",
           "title": "One bebop standard",
-          "setup": "Yardbird Suite through rungs a, c and d: the head in Song practice, melody and shells in the lead sheet, rootless comping on its changes.",
+          "setup": "Yardbird Suite through rungs a, c and d. The head in Song practice, melody and shells in the lead sheet, rootless comping on its changes.",
           "done": "Rungs a, c and d done.",
           "feeds": "Yardbird Suite",
           "href": "/music/tunes",
@@ -2316,12 +2316,12 @@
           }
         }
       ],
-      "test": "Two bebop heads at 160 with rootless comping; one blues chorus at 160 that passes the eighth-note game (chord tones on 80% of beats 1 and 3) with at least two enclosures; six bebop licks in 4 random keys on demand."
+      "test": "Two bebop heads at 160 with rootless comping. One blues chorus at 160 with at least two enclosures. It passes the eighth-note game (chord tones on 80% of beats 1 and 3). Six bebop licks in 4 random keys on demand."
     },
     {
       "id": "6",
       "title": "Rhythm changes, tritone subs and tempo",
-      "goal": "Play rhythm-changes heads in Bb at 180, comp the A section and the dominant-cycle bridge, and solo with tritone-sub and altered colours.",
+      "goal": "Play rhythm-changes heads in Bb at 180. Comp the A section and the dominant-cycle bridge. Solo with tritone-sub and altered colours.",
       "adds": "I-VI-ii-V variants, the III7-VI7-II7-V7 bridge, tritone substitution, altered dominants and upper structures, a stride-lite left hand, faster tempos.",
       "pick": 3,
       "steps": [
@@ -2418,7 +2418,7 @@
           "id": "6.3",
           "title": "Hear and play the tritone sub",
           "setup": "Song loops, tritone substitutes: ii-bII7-I against ii-V-I by ear. A tritone-sub option in Voicings (the same guide tones over a new root) is still to come.",
-          "done": "12 keys at 95%; 20 in a row by ear at 85%.",
+          "done": "12 keys at 95%. 20 in a row by ear at 85%.",
           "href": "/music/ear/song-loops?answer=choice&loops=tritone",
           "skillIds": ["ear.loops.tritone"],
           "threshold": 0.85,
@@ -2429,7 +2429,7 @@
           "title": "Altered dominants and upper structures",
           "href": "/music/changes/voicings?variant=altered&keys=12",
           "setup": "Voicings, Altered through 12 keys. An upper-structure drill (US II, bIII and bVI over a 3-7 shell, from the data the app already has) is still to come.",
-          "done": "Altered in 12 keys at 95%; later US II and bVI in 6 keys.",
+          "done": "Altered in 12 keys at 95%. Later US II and bVI in 6 keys.",
           "match": {
             "variant": "altered",
             "keys": "12"
@@ -2487,8 +2487,8 @@
           "id": "6.7",
           "title": "Heads at tempo",
           "href": "/music/songs/shelf/jazz/oleo",
-          "setup": "Song practice, tempo ladder 140, 160, 180. Oleo is judged here; do a second head too.",
-          "done": "Two shelf heads at 180 in performance mode, 90%.",
+          "setup": "Song practice, tempo ladder 140, 160, 180. Oleo is scored here. Do a second head too.",
+          "done": "Two heads from the song list at 180 in Performance mode, 90%.",
           "threshold": 0.9,
           "minBpm": 180,
           "links": [
@@ -2506,7 +2506,7 @@
           "id": "6.8",
           "title": "Sparse comping at speed",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=garland&bpm=180&progression=rhythm-changes&transpose=0",
-          "setup": "Accompaniment, comping over the rhythm changes A section with a sparse rhythm (Charleston, Garland or the stabs). Extra attacks are counted but do not lower the score yet.",
+          "setup": "Accompaniment, comping over the rhythm changes A section with a sparse rhythm (Charleston, Garland or the stabs). The app counts extra attacks, but they don't lower the score yet.",
           "done": "2 choruses, 90% voicings, no more than 2 attacks per bar.",
           "match": {
             "progression": "rhythm-changes"
@@ -2518,7 +2518,7 @@
         {
           "id": "6.9",
           "title": "Improv game: the bridge only",
-          "setup": "Jam, rhythm changes, The bridge only: play the A sections as space or the head, improvise only the bridge with guide-tone lines (3 to b7 to 3).",
+          "setup": "Jam, rhythm changes, The bridge only. Play the A sections as space or the head. Improvise only on the bridge, with guide-tone lines (3 to b7 to 3).",
           "done": "4 bridges with 85% guide-tone landings.",
           "href": "/music/changes/jam?progression=tune-rhythm-changes&game=bridge&choruses=4",
           "match": {
@@ -2532,7 +2532,7 @@
         {
           "id": "6.10",
           "title": "Improv game: quote the head",
-          "setup": "Jam, Quote the head, on one of your scores with chord symbols and its melody (a MuseScore lead sheet, or your Real Book page typed in): open each A section with a fragment of the head, then develop it. Oleo and Rhythm-a-ning from the shelf are linked.",
+          "setup": "Jam, Quote the head. Use notation of yours with chord symbols and the melody: a MuseScore lead sheet, or your Real Book page typed in. Open each A section with a fragment of the head, then develop it. Oleo and Rhythm-a-Ning from the song list are linked.",
           "done": "One chorus with the head fragment in all 3 A sections.",
           "href": "/music/changes/jam?game=quote&choruses=1",
           "match": {
@@ -2554,7 +2554,7 @@
         {
           "id": "6.11",
           "title": "Ladder rungs a to f on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung. Rung a is Song practice on the tune's notation. Rungs b and e are Jam. Rung c is Accompaniment's lead sheet with shells, and rung d is its comping.",
           "done": "Rungs a to f done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -2565,8 +2565,8 @@
         {
           "id": "6.12",
           "title": "Transcribe Count Basie's intro and comping",
-          "setup": "Basie's intro to \"Lester Leaps In\" (1939), then Monk's head phrasing on \"Rhythm-a-Ning\". Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "Both along with the record at full speed, 3 times.",
+          "setup": "Basie's intro to \"Lester Leaps In\" (1939), then Monk's head phrasing on \"Rhythm-a-Ning\". Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "Both along with the recording at full speed, 3 times.",
           "links": [
             {
               "label": "Record",
@@ -2778,19 +2778,19 @@
           ]
         }
       ],
-      "test": "Two rhythm-changes heads at 180 with sparse rootless comping; one solo chorus at 160 that passes the bridge game (85% landings) and uses at least two tritone-sub or altered lines; the dominant cycle and altered voicings in 12 keys at 120."
+      "test": "Two rhythm-changes heads at 180 with sparse rootless comping. One solo chorus at 160 that passes the bridge game (85% landings). It uses at least two tritone-sub or altered lines. The dominant cycle and altered voicings in 12 keys at 120."
     },
     {
       "id": "7",
       "title": "Ballads, block chords and solo piano",
-      "goal": "Play ballads as solo piano with two-handed voicings, harmonise a melody in block chords (drop-2, locked hands, Red Garland), and play a jazz waltz.",
+      "goal": "Play ballads as solo piano with two-handed voicings. Harmonise a melody in block chords (drop-2, locked hands, Red Garland). Play a jazz waltz.",
       "adds": "Two-handed rootless voicings, drop-2 and four-way close, Shearing locked hands, Garland block chords, ballad and solo-piano left hands, rubato intros and tags, 3/4 comping, Evans voicings.",
       "pick": 3,
       "steps": [
         {
           "id": "7.1",
           "title": "Two-handed rootless voicings",
-          "setup": "Left hand 3-7 (or 7-3), right hand 9-5-13 or 5-9-1; ii-V-I in 12 keys.",
+          "setup": "Left hand 3-7 (or 7-3), right hand 9-5-13 or 5-9-1, through ii-V-I in 12 keys.",
           "done": "12 keys at 95%, onset spread under 40 ms.",
           "href": "/music/changes/voicings?variant=two-hand&keys=12",
           "match": {
@@ -2824,7 +2824,7 @@
           "title": "Pedal and voicing balance",
           "href": "/music/pedal",
           "setup": "Pedal: legato pedalling through a progression. The velocity check in Song practice (melody louder than the inner voices) is still to come.",
-          "done": "Pedal 90%, on two days; later the melody over 10 velocity points above the inner voices on 80% of chords.",
+          "done": "Pedal 90%, on two days. Later, the melody more than 10 velocity points above the inner voices on 80% of chords.",
           "threshold": 0.9,
           "feeds": "All ballads"
         },
@@ -2832,7 +2832,7 @@
           "id": "7.4",
           "title": "Four-way close and drop-2",
           "setup": "Given a melody note and a chord symbol, play 4-way close, then drop-2.",
-          "done": "16 bars of a shelf melody at 70 in each form, 90%.",
+          "done": "16 bars of a melody from the song list at 70 in each form, 90%.",
           "feeds": "Lullaby of Birdland, Darn That Dream",
           "href": "/music/changes/voicings?variant=drop2",
           "each": {
@@ -2844,7 +2844,7 @@
         {
           "id": "7.5",
           "title": "Shearing locked hands",
-          "setup": "Melody doubled an octave below in the left hand, 4-way close in the right; a diminished chord on passing notes.",
+          "setup": "Melody doubled an octave below in the left hand, 4-way close in the right. A diminished chord on passing notes.",
           "done": "One A section of Lullaby of Birdland at 120, 90%.",
           "feeds": "Lullaby of Birdland",
           "href": "/music/changes/voicings?variant=locked",
@@ -2867,7 +2867,7 @@
         {
           "id": "7.7",
           "title": "Melody embellishment and fills",
-          "setup": "Jam, Melody and fills, on one of your scores with chord symbols and its melody, at a ballad tempo: play the melody and fill only in its rests with 2-to-4-note fills. Misty and In a Sentimental Mood from the shelf are linked.",
+          "setup": "Jam, Melody and fills, at a ballad tempo. Use notation of yours with chord symbols and the melody. Play the melody and fill only its rests, with fills of 2 to 4 notes. Misty and In a Sentimental Mood from the song list are linked.",
           "done": "One chorus: melody 90% recognisable, a fill in at least 6 rests.",
           "href": "/music/changes/jam?game=melody-fills&choruses=1",
           "match": {
@@ -2902,7 +2902,7 @@
         {
           "id": "7.9",
           "title": "Bill Evans voicings",
-          "setup": "Voicings, Major ii-V-I from position B (rootless with 9 and 13), then Evans spreads (left hand 7-3-6 or 3-7-9, right-hand melody plus one voice).",
+          "setup": "Voicings, Major ii-V-I from position B (rootless with 9 and 13). Then Evans spreads: left hand 7-3-6 or 3-7-9, right-hand melody plus one voice.",
           "done": "Blue in Green changes with spread voicings at 60, 90%.",
           "links": [
             {
@@ -2948,8 +2948,8 @@
           "id": "7.11",
           "title": "A full solo-piano ballad",
           "href": "/music/songs/shelf/jazz/misty",
-          "setup": "Song practice: one shelf arrangement (the Misty piano solo or In a Sentimental Mood) through fix-the-spot loops to performance.",
-          "done": "Performance mode 90% at the written tempo, on two days.",
+          "setup": "Song practice: one arrangement from the song list (the Misty piano solo or In a Sentimental Mood). Work from fix-the-spot loops up to Performance mode.",
+          "done": "Performance mode, 90% at the written tempo, on two days.",
           "threshold": 0.9,
           "minBpm": 60,
           "links": [
@@ -2963,14 +2963,14 @@
           "id": "7.12",
           "title": "Your own ballad arrangement",
           "href": "/music/record",
-          "setup": "Rungs a and c, then two-handed voicings and a ballad left hand, an intro and a tag; recorded in Record.",
-          "done": "One recorded chorus with intro and tag you would play for a friend."
+          "setup": "Rungs a and c, then two-handed voicings and a ballad left hand, an intro and a tag. Record it in Record.",
+          "done": "One recorded chorus with intro and tag that you'd play for a friend."
         },
         {
           "id": "7.13",
           "title": "Transcribe a block-chord chorus",
-          "setup": "Red Garland's block-chord chorus on \"Billy Boy\" (8 bars) or Shearing's \"Lullaby of Birdland\" head. Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "8 bars along with the record, 3 times.",
+          "setup": "Red Garland's block-chord chorus on \"Billy Boy\" (8 bars) or Shearing's \"Lullaby of Birdland\" head. Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "8 bars along with the recording, 3 times.",
           "links": [
             {
               "label": "Garland's Billy Boy, trio transcription",
@@ -3182,12 +3182,12 @@
           ]
         }
       ],
-      "test": "One ballad as solo piano with intro and tag, recorded, 90% in performance mode; one A section in locked hands or drop-2 at tempo; Waltz for Debby or another waltz: two choruses comping in 3/4."
+      "test": "One ballad as solo piano with intro and tag, recorded, 90% in Performance mode. One A section in locked hands or drop-2 at tempo. Waltz for Debby or another waltz: two choruses comping in 3/4."
     },
     {
       "id": "8",
       "title": "Monk and Silver",
-      "goal": "Play Monk and Silver tunes in their style (Monk's angular voicings and space, Silver's funky hard-bop grooves and left-hand punches), solo by developing the head, then write a head of your own.",
+      "goal": "Play Monk and Silver tunes in their style: Monk's angular voicings and space, Silver's funky hard-bop grooves and left-hand punches. Solo by developing the head. Then write a head of your own.",
       "adds": "Whole-tone and minor-second sounds, displacement, melodic paraphrase, hard-bop comping, latin and gospel grooves, composing a head.",
       "pick": 3,
       "steps": [
@@ -3195,7 +3195,7 @@
           "id": "8.1",
           "title": "Whole-tone scale and Monk runs",
           "href": "/music/scales?kind=whole-tone&tonic=60&span=two-octave&bpm=120",
-          "setup": "Scales: whole-tone from C and from Db (the two collections), 2 octaves; then descending runs over a dominant.",
+          "setup": "Scales: whole-tone from C and from Db (the two collections), 2 octaves. Then descending runs over a dominant.",
           "done": "2 octaves at 120 in both whole-tone collections.",
           "each": {
             "param": "tonic",
@@ -3230,7 +3230,7 @@
         {
           "id": "8.3",
           "title": "Half-step chord shifts",
-          "setup": "Accompaniment, comping: rootless voicings with drums and bass through Well You Needn't (F7 Gb7) and Epistrophy (Db7 D7), two times through.",
+          "setup": "Accompaniment, comping: rootless voicings with drums and bass, two times through. Well You Needn't (F7 Gb7), then Epistrophy (Db7 D7).",
           "done": "2 choruses at 160, rootless, 90%.",
           "feeds": "Well You Needn't, Epistrophy",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&choruses=2&bpm=160&progression=tune-well-you-neednt",
@@ -3278,7 +3278,7 @@
           "id": "8.5",
           "title": "Improv game: melodic paraphrase",
           "href": "/music/record",
-          "setup": "Jam over Blue Monk (a Bb blues): solo only by changing the head's rhythm, register and order, Monk's own method. Record it and listen back.",
+          "setup": "Jam over Blue Monk (a Bb blues). Solo only by changing the head's rhythm, register and order, as Monk did. Record it and listen back.",
           "done": "One chorus where the head stays recognisable throughout, checked on the recording.",
           "links": [
             {
@@ -3291,7 +3291,7 @@
         {
           "id": "8.6",
           "title": "Hard-bop comping and Silver's left-hand punches",
-          "setup": "Accompaniment, comping: hard-bop hits (1, the and of 2, the next chord pushed on the and of 4) with left-hand octave stabs, over drums and bass. Sister Sadie's changes wait for a chart checked against a second source; the blues in G stands in.",
+          "setup": "Accompaniment, comping, over drums and bass: hard-bop hits with left-hand octave stabs. The hits fall on 1, the and of 2, and the next chord pushed on the and of 4. Sister Sadie's changes wait for a chart checked against a second source. The blues in G stands in.",
           "done": "2 choruses of the Sister Sadie changes at 150.",
           "feeds": "Silver shelf",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=octave-stabs&rhythm=hard-bop&band=rhythm&choruses=2&bpm=150&progression=blues&transpose=7",
@@ -3356,7 +3356,7 @@
         {
           "id": "8.10",
           "title": "Ladder rungs a to e on three shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung. Rung a is Song practice on the tune's notation. Rungs b and e are Jam. Rung c is Accompaniment's lead sheet with shells, and rung d is its comping.",
           "done": "Rungs a to e done on three tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -3368,14 +3368,14 @@
           "id": "8.11",
           "title": "Write a head",
           "href": "/music/create",
-          "setup": "Compose a 12-bar blues head in Monk's or Silver's style; enter it in Create or the Song editor (writing path).",
+          "setup": "Compose a 12-bar blues head in Monk's or Silver's style. Enter it in Create or the Song editor (writing path).",
           "done": "The head recorded, notated, and played over the backing with your comping."
         },
         {
           "id": "8.12",
           "title": "Transcribe Monk and Silver",
-          "setup": "Monk's whole solo chorus on \"Bags' Groove\" and Silver's first chorus on \"Song for My Father\". Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "One chorus each with the record at full speed.",
+          "setup": "Monk's whole solo chorus on \"Bags' Groove\" and Silver's first chorus on \"Song for My Father\". Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "One chorus each with the recording at full speed.",
           "links": [
             {
               "label": "Record",
@@ -3646,19 +3646,19 @@
           }
         }
       ],
-      "test": "Pick at least one Monk and one Silver tune from the shelf. One Monk and one Silver tune through rungs a to e at tempo; one chorus of melodic paraphrase recorded; your own blues head played with a solo chorus."
+      "test": "Pick at least one Monk and one Silver tune from the song list. Play both through rungs a to e at tempo. Record one chorus of melodic paraphrase. Play your own blues head with a solo chorus."
     },
     {
       "id": "9",
       "title": "Reharmonisation and key-centre standards",
-      "goal": "Analyse a standard's key centres, solo through them, and reharmonise a simple standard with tritone subs, related ii-Vs, backdoor and passing chords.",
+      "goal": "Analyse a standard's key centres and solo through them. Reharmonise a level 2 or 3 standard with tritone subs, related ii-Vs, backdoor and passing chords.",
       "adds": "Lead-sheet analysis, melodic-minor harmony (lydian dominant, altered, locrian #2), the reharm toolkit, upper structures in context, controlled outside playing.",
       "pick": 3,
       "steps": [
         {
           "id": "9.1",
           "title": "Lead-sheet analysis",
-          "setup": "Mark each bar's key centre and function on a shelf tune; the circle of fifths for each key's chords.",
+          "setup": "Mark each bar's key centre and function on a tune from the song list. Use the circle of fifths for each key's chords.",
           "done": "All the Things You Are analysed with no errors against the key.",
           "links": [
             {
@@ -3688,7 +3688,7 @@
         {
           "id": "9.3",
           "title": "m7b5 and minor ii-V voicings in context",
-          "setup": "Voicings, Minor ii-V-i, then Accompaniment, comping: rootless through the Stella changes (the A section is the first 16 bars; the run comps the whole form).",
+          "setup": "Voicings, Minor ii-V-i. Then Accompaniment, comping: rootless through the Stella changes. The A section is the first 16 bars, and the run comps the whole form.",
           "done": "The Stella A section at 120, rootless, 95%.",
           "links": [
             {
@@ -3726,7 +3726,7 @@
         {
           "id": "9.5",
           "title": "Upper structures on a tune",
-          "setup": "The upper-structure drill on the V7 chords of a shelf tune.",
+          "setup": "The upper-structure drill on the V7 chords of a tune from the song list.",
           "done": "Every V7 in Just Friends voiced with an upper structure at 120.",
           "href": "/music/changes/voicings?variant=upper&tune=tune-just-friends",
           "match": {
@@ -3738,7 +3738,7 @@
         {
           "id": "9.6",
           "title": "Reharm toolkit, one device at a time",
-          "setup": "Jam's Reharmonise: swap a chord in Fly Me to the Moon for a tritone sub, related ii, backdoor ii-V, secondary dominant, passing diminished or chromatic ii-V; hear it and solo over it, then Comp it in Accompaniment. Each device is judged on one comped run that uses it alone.",
+          "setup": "Jam's Reharmonise: swap a chord in Fly Me to the Moon for one device. The devices: tritone sub, related ii, backdoor ii-V, secondary dominant, passing diminished, chromatic ii-V. Hear it and solo over it, then comp it in Accompaniment. Each device is scored on one comped run that uses it alone.",
           "done": "Each device applied to Fly Me to the Moon and comped once, 90%.",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=charleston&band=rhythm&progression=tune-fly-me-to-the-moon&reharm=2:tritone",
           "match": {
@@ -3789,13 +3789,13 @@
           "id": "9.7",
           "title": "Reharmonise a standard",
           "href": "/music/record",
-          "setup": "Write a reharmonised chart for one level 2 or 3 tune (Fly Me to the Moon, All of Me, Autumn Leaves), keeping the melody; play it and record it.",
+          "setup": "Write a reharmonised chart for one level 2 or 3 tune (Fly Me to the Moon, All of Me, Autumn Leaves). Keep the melody. Play it and record it.",
           "done": "Chart written, played as melody plus two-handed voicings, recorded."
         },
         {
           "id": "9.8",
           "title": "Improv game: key-centre targeting",
-          "setup": "Jam in Check on All the Things You Are, Land on the 3rd: land the 3rd of each new key's I chord on beat 1. The game asks for the 3rd at every change, not only at the key changes.",
+          "setup": "Jam in Check on All the Things You Are, Land on the 3rd. Land the 3rd of each new key's I chord on beat 1. The game asks for the 3rd at every change, not only at the key changes.",
           "done": "80% of key-change landings, two choruses.",
           "feeds": "All the Things You Are, Have You Met Miss Jones",
           "href": "/music/changes/jam?progression=tune-all-the-things-you-are&game=thirds&choruses=2",
@@ -3821,7 +3821,7 @@
         {
           "id": "9.10",
           "title": "Ladder rungs a to f on three shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung. Rung a is Song practice on the tune's notation. Rungs b and e are Jam. Rung c is Accompaniment's lead sheet with shells, and rung d is its comping.",
           "done": "Rungs a to f done on three tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -3832,7 +3832,7 @@
         {
           "id": "9.11",
           "title": "Tempo ceiling",
-          "setup": "Jam on Just Friends or I'll Remember April at 200, Make the changes. The solo chorus is judged; comp the tune in Accompaniment at the same tempo.",
+          "setup": "Jam on Just Friends or I'll Remember April at 200, Make the changes. The solo chorus is scored. Comp the tune in Accompaniment at the same tempo.",
           "done": "One clean chorus, comping plus solo.",
           "feeds": "Just Friends, I'll Remember April",
           "href": "/music/changes/jam?progression=tune-just-friends&game=changes&choruses=1&bpm=200",
@@ -3856,8 +3856,8 @@
         {
           "id": "9.12",
           "title": "Transcribe an Evans or Jarrett chorus",
-          "setup": "Bill Evans on \"Solar\" (one chorus) or Keith Jarrett's opening on \"Stella by Starlight\" (voicings). Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "One chorus or 16 bars of voicings along with the record.",
+          "setup": "Bill Evans on \"Solar\" (one chorus) or Keith Jarrett's opening on \"Stella by Starlight\" (voicings). Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "One chorus or 16 bars of voicings along with the recording.",
           "links": [
             {
               "label": "Record",
@@ -4087,19 +4087,19 @@
           }
         }
       ],
-      "test": "All the Things You Are or Stella through rungs a to f; your reharmonised chart played and recorded; one chorus on Have You Met Miss Jones or Solar passing the key-centre game (80% landings)."
+      "test": "All the Things You Are or Stella through rungs a to f. Your reharmonised chart played and recorded. One chorus on Have You Met Miss Jones or Solar passing the key-centre game (80% landings)."
     },
     {
       "id": "10",
       "title": "Hancock, Evans, Shorter, Coltrane",
-      "goal": "Play modern jazz repertoire: non-functional and slash-chord harmony (Hancock, Shorter), Evans' 3/4 and phrygian tunes, Coltrane changes at a slow tempo, and one complete solo-piano arrangement.",
+      "goal": "Play modern jazz repertoire. Non-functional and slash-chord harmony (Hancock, Shorter), Evans' 3/4 and phrygian tunes, Coltrane changes at a slow tempo. Finish with one complete solo-piano arrangement.",
       "adds": "Fourth and slash voicings in context, triad pairs, Coltrane changes and 1-2-3-5 patterns, odd phrase lengths, solo-piano arranging, repertoire upkeep.",
       "pick": 3,
       "steps": [
         {
           "id": "10.1",
           "title": "Slash and fourth voicings on non-functional changes",
-          "setup": "Voicings, Jazz types on a tune's changes: quartal stacks, then slash chords (linked), on Maiden Voyage. Dolphin Dance's changes differ from chart to chart, so the app does not carry them; Maiden Voyage, checked against two sources, stands in. Take both to Dolphin Dance and Speak Like a Child from your book.",
+          "setup": "Voicings, Jazz types on a tune's changes: quartal stacks, then slash chords (linked), on Maiden Voyage. Dolphin Dance's changes differ from chart to chart, so the app doesn't carry them. Maiden Voyage, checked against two sources, stands in. Take both to Dolphin Dance and Speak Like a Child from your book.",
           "done": "Both types through Maiden Voyage's changes, 90%.",
           "href": "/music/changes/voicings?variant=quartal-tune&tune=tune-maiden-voyage",
           "match": {
@@ -4132,7 +4132,7 @@
         {
           "id": "10.3",
           "title": "Coltrane changes",
-          "setup": "Jam: Giant Steps at 80, then 120, then 160; shells, then rootless, Make the changes. Jam grades the chord tones and the 3rd or 7th at each change, not the comping rhythm.",
+          "setup": "Jam: Giant Steps at 80, then 120, then 160. Shells, then rootless, Make the changes. Jam scores the chord tones and the 3rd or 7th at each change, not the comping rhythm.",
           "done": "One chorus comped clean at 160.",
           "feeds": "Giant Steps, Have You Met Miss Jones",
           "href": "/music/changes/jam?progression=tune-giant-steps&game=changes&choruses=1&bpm=80",
@@ -4183,7 +4183,7 @@
         {
           "id": "10.6",
           "title": "Odd phrase lengths",
-          "setup": "Infant Eyes (9-bar phrases), Peace (10 bars) and Footprints (24 bars of 3/4) in the tune player. Judged on Infant Eyes, rungs a and c; a lost bar shows as a lower score, not on its own.",
+          "setup": "Infant Eyes (9-bar phrases), Peace (10 bars) and Footprints (24 bars of 3/4) in the tune player. Scored on Infant Eyes, rungs a and c. A lost bar lowers the score but isn't shown on its own.",
           "done": "One chorus of Infant Eyes, rungs a and c, no lost bar.",
           "feeds": "Infant Eyes",
           "href": "/music/tunes",
@@ -4210,7 +4210,7 @@
         {
           "id": "10.7",
           "title": "Evans in 3/4",
-          "setup": "Accompaniment, comping: Very Early in 3/4 with drums and bass, rootless on 1 and the and of 2, two times through. The solo chorus is Jam's, on the same tune in 3/4.",
+          "setup": "Accompaniment, comping: Very Early in 3/4 with drums and bass, rootless on 1 and the and of 2, two times through. The solo chorus is in Jam, on the same tune in 3/4.",
           "done": "Two choruses comped, one solo chorus.",
           "feeds": "Very Early",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=2&bpm=160&progression=tune-very-early",
@@ -4232,7 +4232,7 @@
         {
           "id": "10.8",
           "title": "Improv game: motif across changes",
-          "setup": "Jam on Inner Urge, One rhythmic motif: take one 4-note motif through the descending lydian chords, adjusting each note to the chord.",
+          "setup": "Jam on Inner Urge, One rhythmic motif. Take one 4-note motif through the descending lydian chords and adjust each note to the chord.",
           "done": "16 bars with the motif in every chord.",
           "feeds": "Inner Urge",
           "href": "/music/changes/jam?progression=tune-inner-urge&game=motif&choruses=1",
@@ -4247,7 +4247,7 @@
           "id": "10.9",
           "title": "A solo-piano arrangement",
           "href": "/music/record",
-          "setup": "Choose a shelf tune; arrange an intro, the head (ballad left hand or stride), one solo chorus with left-hand comping, the head out and a tag; notate it in the Song editor or Create.",
+          "setup": "Choose a tune from the song list. Arrange an intro, the head (ballad left hand or stride), one solo chorus with left-hand comping, the head out and a tag. Notate it in the Song editor or Create.",
           "done": "A recorded performance with no stops, on two days.",
           "links": [
             {
@@ -4260,7 +4260,7 @@
         {
           "id": "10.10",
           "title": "Repertoire review",
-          "setup": "The Tunes page's repertoire brings back the most overdue tune: play rungs a and d. Judged as rung a done on 30 tunes, over every level.",
+          "setup": "The Tunes page's repertoire brings back the most overdue tune: play rungs a and d. Scored as rung a done on 30 tunes, across every level.",
           "done": "30 tunes reviewed in the level with 90% on rung a.",
           "href": "/music/tunes",
           "ladder": {
@@ -4271,8 +4271,8 @@
         {
           "id": "10.11",
           "title": "Transcribe Herbie",
-          "setup": "8 to 16 bars of Herbie's solo on \"Dolphin Dance\" or his comping on \"Infant Eyes\". Learn by ear loops and slows the recording with the pitch kept; its runs are self-rated, so this step is not judged.",
-          "done": "Along with the record, 3 times.",
+          "setup": "8 to 16 bars of Herbie's solo on \"Dolphin Dance\" or his comping on \"Infant Eyes\". Learn by ear loops and slows the recording and keeps its pitch. You rate those runs yourself, so this step isn't scored.",
+          "done": "Along with the recording, 3 times.",
           "links": [
             {
               "label": "Record",
@@ -4454,7 +4454,7 @@
           ]
         }
       ],
-      "test": "Capstone: a 20-minute recorded set of five tunes from five different levels: one blues, one ballad as solo piano, one at 180 or faster, one in a second key on request, one modern (level 10). Each with a head, at least one solo chorus that passes its level's metric, and comping you would be happy to play with a band."
+      "test": "Capstone: a 20-minute recorded set of five tunes from five different levels. One blues, one ballad as solo piano, one at 180 or faster, one in a second key on request, one modern (level 10). Each has a head, at least one solo chorus that passes its level's improv game, and comping you'd be happy to play with a band."
     }
   ]
 }
