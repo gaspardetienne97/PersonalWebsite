@@ -2,7 +2,7 @@
 // tonguing told apart by the breath, register crossings, trills, bite vibrato
 // and a long tone at a level, over fake MIDI stamped exactly.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, PORTS } from "./fixtures";
+import { installFakeMidi, PORTS, pickMode } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/aero-skills";
 const PORT = PORTS.aerophone.id;
@@ -73,7 +73,7 @@ test.describe("aerophone skills", () => {
   test("scales: C major up and down, in time", async ({ page }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/aerophone?mode=scales&scale=major&key=0&perBeat=1&bpm=120");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await playLine(page);
     await expect(page.getByRole("status")).toContainText("Clean and even at 120 BPM", {
       timeout: 20_000,
@@ -172,7 +172,7 @@ test.describe("aerophone skills", () => {
   test("long tone at mf: breath inside the band", async ({ page }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/aerophone?mode=long-tone&target=67&seconds=3&level=mf");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await page.getByRole("button", { name: /^Start/ }).click();
     await expect(page.getByRole("status")).toContainText("Play and hold G4");
     await page.evaluate((port) => {
@@ -203,7 +203,7 @@ test.describe("aerophone skills", () => {
     await expect(page.getByTestId("setup-line")).toContainText(
       "C major scale, in thirds, up and down, 2 notes per beat, two octaves",
     );
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await playLine(page);
     await expect(page.getByRole("status")).toContainText("Clean and even at 150 BPM", {
       timeout: 30_000,
@@ -215,7 +215,7 @@ test.describe("aerophone skills", () => {
   }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/aerophone?mode=swing&scale=major&key=7&bpm=120");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     const stage = page.getByTestId("aero-skills");
     await page.getByRole("button", { name: /^(Start|Again)/ }).click();
     await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
@@ -252,7 +252,7 @@ test.describe("aerophone skills", () => {
   test("long-tone scale: every note four beats at p", async ({ page }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/aerophone?mode=long-scale&scale=major&key=0&level=p&bpm=240");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     const stage = page.getByTestId("aero-skills");
     await page.getByRole("button", { name: /^(Start|Again)/ }).click();
     await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
@@ -322,7 +322,7 @@ test.describe("aerophone skills", () => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/aerophone?mode=fingering&lesson=palm-keys");
     await expect(page.getByRole("button", { name: "Play F#6" })).toBeVisible();
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await page.getByRole("button", { name: /^Start/ }).click();
     await expect(page.getByRole("status")).toContainText("Finger C#6");
     for (const midi of [85, 86, 87, 88, 89, 88, 87, 86, 85]) {

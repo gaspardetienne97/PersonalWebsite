@@ -1,7 +1,7 @@
 // Finger drumming: the repertoire by level, the tempo ladder, holding the
 // tempo with no click, and one-pad rolls, played over a fake MIDI keyboard.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow, installFakeMidi, PORTS } from "./fixtures";
+import { expectNoHorizontalOverflow, installFakeMidi, PORTS, openSetup } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/pads-repertoire";
 async function shots(page: Page, name: string) {
@@ -149,7 +149,7 @@ test.describe("finger-drumming repertoire", () => {
 
   test("the groove list is by level, and a two-finger roll stays on one pad", async ({ page }) => {
     await page.goto("/music/pads?mode=groove");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     // The groove picker is a sheet: search, level chips, the list grouped by level, no phrases.
     await page.getByRole("button", { name: /Change$/ }).click();
     const sheet = page.getByRole("dialog", { name: "Groove" });
@@ -208,9 +208,9 @@ test.describe("finger-drumming repertoire", () => {
     const gridBox = (await preview.boundingBox())!;
     const padsBox = (await page.getByRole("group", { name: /^MPC pads, bank A/ }).boundingBox())!;
     expect(padsBox.y).toBeGreaterThan(gridBox.y + gridBox.height - 1);
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(page.getByText("Band: Gm7 C9")).toBeVisible();
-    await page.getByRole("button", { name: "Hide setup" }).click();
+    await openSetup(page, false);
     await shots(page, "amen-ready");
     await page.getByRole("button", { name: /^Start/ }).click();
     await playGroove(page);

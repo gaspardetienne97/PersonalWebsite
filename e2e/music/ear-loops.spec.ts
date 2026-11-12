@@ -1,7 +1,7 @@
 // Song loops by ear: a chord loop in a key set first, named chord by chord with
 // the buttons or played back over fake MIDI; a checked run records its loop set.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, midiNote, PORTS } from "./fixtures";
+import { installFakeMidi, midiNote, PORTS, pickMode } from "./fixtures";
 
 /** "bVII" as its button shows it. */
 const numeralLabel = (t: string) => t.replace(/^b/, "♭");
@@ -54,7 +54,7 @@ test("song loops: every chord into a slot, judged chord by chord", async ({ page
 test("song loops: a checked run of modal vamps, all right, records its set", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/music/ear/song-loops?answer=choice&loops=modal");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   for (let i = 0; i < 10; i++) {
     await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {

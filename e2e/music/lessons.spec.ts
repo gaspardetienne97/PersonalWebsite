@@ -1,6 +1,6 @@
 // Intro lessons in the drill frame (lessons are on here; the other suites switch them off).
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow } from "./fixtures";
+import { choose, expectNoHorizontalOverflow, modeButton, openSetup, pickMode } from "./fixtures";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -86,10 +86,8 @@ test.describe("intro lessons", () => {
     await page.goto(URL);
     await (await toEnd(page)).click();
     await expect(start(page)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Practice", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await openSetup(page);
+    await expect(modeButton(page, "Practice")).toHaveAttribute("aria-pressed", "true");
     await watchForLesson(page);
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -161,7 +159,7 @@ test.describe("intro lessons", () => {
     await page.getByRole("button", { name: "Lesson", exact: true }).click();
     await expect(page.getByTestId("lesson")).toBeVisible();
     await closeSession(page);
-    await page.getByRole("button", { name: "Pulse", exact: true }).click();
+    await choose(page, page.getByLabel("Rhythm mode"), "Pulse");
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(start(page)).toBeVisible();
     expect(errors).toEqual([]);
@@ -457,7 +455,6 @@ test.describe("jam game lessons", () => {
     await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
     await page.setViewportSize({ width: 1280, height: 900 });
   });
-  const check = (page: Page) => page.getByRole("button", { name: "Check", exact: true });
 
   test("Practice shows no lesson; Check shows the game's, and finishing stays in Check", async ({
     page,
@@ -465,22 +462,23 @@ test.describe("jam game lessons", () => {
     await page.goto("/music/jam?game=guide-tones&backing=none");
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByTestId("lesson")).toBeVisible();
     await expect(page.getByRole("heading", { name: "The notes that name a chord" })).toBeVisible();
     await (await toEnd(page)).click();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
+    await openSetup(page);
     await expect(page.locator("#mode-note")).toContainText("Tone roles hidden");
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
   });
 
   test("the open game has no lesson, and another game has its own", async ({ page }) => {
     await page.goto("/music/jam?game=free&backing=none");
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await page.goto("/music/jam?game=approach&backing=none");
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByRole("heading", { name: "Lean in from a half step" })).toBeVisible();
   });
 
@@ -488,7 +486,7 @@ test.describe("jam game lessons", () => {
     await page.setViewportSize({ width: 375, height: 800 });
     for (const game of ["side-slip", "motif", "space"]) {
       await page.goto(`/music/jam?game=${game}&backing=none`);
-      await check(page).click();
+      await pickMode(page, "Check");
       await expect(page.getByTestId("lesson")).toBeVisible();
       for (let i = 0; i < 4; i++) {
         await page.keyboard.press("ArrowRight");
@@ -503,7 +501,8 @@ test.describe("concept cards", () => {
     await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
     await page.setViewportSize({ width: 1280, height: 900 });
   });
-  const check = (page: Page) => page.getByRole("button", { name: "Check", exact: true });
+  /** Check, in Setup's Mode group (the setup sentence opens it). */
+  const check = (page: Page) => modeButton(page, "Check");
 
   test("Scales shows no card in Practice, the formula card on first Check, and stays in Check", async ({
     page,
@@ -511,12 +510,13 @@ test.describe("concept cards", () => {
     await page.goto("/music/scales?instrument=piano");
     await expect(page.getByRole("button", { name: /^Start/ }).first()).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByTestId("lesson")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Whole steps and half steps" })).toBeVisible();
     await (await toEnd(page)).click();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Start/ }).first()).toBeVisible();
+    await openSetup(page);
     await expect(check(page)).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -540,27 +540,28 @@ test.describe("concept cards", () => {
     await (await toEnd(page)).click();
     await expect(again).toBeVisible();
     await closeSession(page);
+    await openSetup(page);
     await expect(check(page)).toHaveAttribute("aria-pressed", "true");
   });
 
   test("a technique tip shows on first Check", async ({ page }) => {
     await page.goto("/music/two-hand");
     await expect(page.getByTestId("lesson")).toHaveCount(0);
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByRole("heading", { name: "One hand at a time" })).toBeVisible();
   });
 
   test("each tab gets the card for its own setup", async ({ page }) => {
     await page.goto("/music/voicings?variant=minor");
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(
       page.getByRole("heading", { name: "Half-diminished, altered, minor" }),
     ).toBeVisible();
     await page.goto("/music/voicings?variant=voice-leading");
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByRole("heading", { name: "The 3rd and the 7th" })).toBeVisible();
     await page.goto("/music/chord-scales?changes=minor");
-    await check(page).click();
+    await pickMode(page, "Check");
     await expect(page.getByTestId("lesson")).toContainText("Scales for a minor ii-V-i");
   });
 
@@ -572,7 +573,7 @@ test.describe("concept cards", () => {
       "/music/chord-scales",
     ]) {
       await page.goto(url);
-      await check(page).click();
+      await pickMode(page, "Check");
       await expect(page.getByTestId("lesson")).toBeVisible();
       for (let i = 0; i < 4; i++) {
         await page.keyboard.press("ArrowRight");

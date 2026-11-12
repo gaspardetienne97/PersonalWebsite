@@ -141,9 +141,36 @@ export async function expectNoHorizontalOverflow(page: Page) {
   expect(sw, "horizontal page overflow").toBeLessThanOrEqual(iw);
 }
 
+/** The ready screen's setup sentence ("C major, 80 BPM, Practice"): the one way into Setup. */
+export const setupLine = (page: Page) => page.getByTestId("setup-line");
+
+/** Open the Setup panel from the setup sentence (or close it with `open` false); nothing when it already is. */
+export async function openSetup(page: Page, open = true) {
+  const line = setupLine(page);
+  await expect(async () => {
+    if ((await line.getAttribute("aria-expanded")) !== String(open)) await line.click();
+    await expect(line).toHaveAttribute("aria-expanded", String(open), { timeout: 1000 });
+  }).toPass({ timeout: 10_000 });
+}
+
+/** The Practice or Check button: Setup's "Mode" group (open Setup first to see it). */
+export const modeButton = (page: Page, mode: "Practice" | "Check") =>
+  page.locator('[data-setup="run-mode"]').getByRole("button", { name: mode, exact: true });
+
+/** Pick Practice or Check in Setup, then leave Setup as it was (closed, unless the test had it open). */
+export async function pickMode(page: Page, mode: "Practice" | "Check") {
+  const line = setupLine(page);
+  const wasOpen = (await line.getAttribute("aria-expanded")) === "true";
+  await openSetup(page);
+  await modeButton(page, mode).click();
+  await expect(line.or(page.getByTestId("lesson")).first()).toBeVisible();
+  // Check can open a lesson (a concept card), which takes the screen: then there is no Setup to close.
+  if (!wasOpen && (await line.isVisible())) await openSetup(page, false);
+}
+
 /** Start a drill and wait for the count-in to finish. */
 export async function startDrill(page: Page, mode: "Practice" | "Check" = "Practice") {
-  await page.getByRole("button", { name: mode, exact: true }).click();
+  await pickMode(page, mode);
   await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await expect(page.getByRole("status")).toContainText(/Go\.|Listen|Play|Question/, {
     timeout: 10_000,

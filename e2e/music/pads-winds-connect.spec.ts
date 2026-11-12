@@ -3,7 +3,14 @@
 // Akai Classic notes on channel 10), the controller link, a full reload, and an
 // Aerophone sending breath on CC 2.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi, midiNote, choose } from "./fixtures";
+import {
+  PORTS,
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  midiNote,
+  choose,
+  pickMode,
+} from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/pads-winds-connect";
 const HEARTBEAT = [0xf0, 0x47, 0x00, 0x56, 0x52, 0x00, 0x04, 0x41, 0x67, 0x16, 0x00, 0xf7];
@@ -134,7 +141,7 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
   await shoot(page, "pads-rudiment-ready");
 
   // Single strokes: hardware 37 / 38 become A01 / A06. The ignored port plays along and must not count.
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: /^Start/ }).click();
   const step = 300; // eighths at 100 BPM
   await playAt(page, [
@@ -195,7 +202,7 @@ test("Aerophone: long tone with breath on CC 2", async ({ page }) => {
   await expect(page.getByTestId("aerophone-stage")).toContainText("Fingering verified");
   await shoot(page, "aerophone-ready");
 
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: /^Start/ }).click();
   await expect(page.getByRole("status")).toContainText("Play and hold G4");
   await page.evaluate((id) => {
@@ -240,7 +247,7 @@ test("Aerophone fingering: Roland's first lesson, a slip named, the octave cresc
       .evaluateAll((ps) => [...new Set(ps.map((p) => p.getAttribute("data-key")))].sort());
   expect(await lit()).toEqual(["k1", "k2", "k3"]);
   await shoot(page, "aerophone-fingering-ready");
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: /^Start/ }).click();
   await expect(page.getByRole("status")).toContainText("Finger G4");
   const play = (midi: number) =>

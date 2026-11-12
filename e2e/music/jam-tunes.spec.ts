@@ -2,7 +2,13 @@
 // game, Accompaniment comping in 3/4 and hard-bop hits over drums and bass, and the
 // Tunes page. Fake MIDI stamped to the beat, as in jam-graded.spec.ts.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi } from "./fixtures";
+import {
+  PORTS,
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  pickMode,
+  setupLine,
+} from "./fixtures";
 
 test.describe.configure({ retries: 2 });
 
@@ -79,7 +85,7 @@ const lastRun = (page: Page) =>
 
 /** Start Accompaniment in Practice and play every slot from the run's own downbeat. */
 async function playSlots(page: Page) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   const stage = page.getByTestId("accompany");
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
@@ -118,7 +124,7 @@ test("Jam in 3/4 over a reharmonised ii-V-I: the 3rd of each chord, graded and r
   // The sandbox shows the swapped chart: G7 became Db7.
   await page.getByRole("button", { name: "1 chord reharmonised" }).click();
   await expect(page.getByTestId("jam-reharm")).toContainText("Dm7 Db7 Cmaj7 A7");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   // Dm7 two bars of 3 (F), Db7 (F), Cmaj7 (E), A7 (C#): a change every six beats.
   await playBeats(page, [
@@ -143,7 +149,7 @@ test("Jam's displacement game: a motif a beat later each bar over the blues", as
   await page.goto(
     "/music/jam?progression=blues&transpose=0&backing=drums&game=displacement&choruses=1&meter=4&bpm=200",
   );
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.getByTestId("jam-game")).toContainText("Displace a motif");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   // Three eighths every five beats, released before the next.
@@ -167,9 +173,10 @@ test.describe("Accompaniment comping on the new rhythms", () => {
     await page.goto(
       "/music/accompany?mode=comping&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=1&progression=ii-v-i&transpose=0&bpm=140",
     );
-    await expect(
-      page.getByText("Rootless A and B on waltz: 1 and the and of 2", { exact: true }),
-    ).toBeVisible();
+    // One clause of the setup sentence, whole.
+    await expect(setupLine(page)).toContainText(
+      /(: |, )Rootless A and B on waltz: 1 and the and of 2(, |$)/,
+    );
     const slots = await playSlots(page);
     expect(slots.slice(0, 2).map(([b]) => b)).toEqual([0, 1.5]);
     await expect(page.getByRole("status")).toContainText("Clean at 140 BPM", { timeout: 40_000 });
@@ -180,7 +187,8 @@ test.describe("Accompaniment comping on the new rhythms", () => {
     await page.goto(
       "/music/accompany?mode=comping&voicing=octave-stabs&rhythm=hard-bop&meter=4&band=rhythm&choruses=1&progression=tune-well-you-neednt&transpose=0&bpm=160",
     );
-    await expect(page.getByText("Octave stabs on hard-bop hits", { exact: true })).toBeVisible();
+    // One clause of the setup sentence, whole.
+    await expect(setupLine(page)).toContainText(/(: |, )Octave stabs on hard-bop hits(, |$)/);
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 160 BPM", { timeout: 60_000 });
   });

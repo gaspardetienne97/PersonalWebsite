@@ -3,7 +3,7 @@
 // Maiden Voyage's changes, and guitar shells in Chords. Fake MIDI stamped to
 // the beat, as in jam-graded.spec.ts; fret taps for the guitar.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, installFakeMidi, startDrill } from "./fixtures";
+import { PORTS, installFakeMidi, startDrill, pickMode } from "./fixtures";
 
 test.describe.configure({ retries: 2 });
 
@@ -124,7 +124,7 @@ test("Jam on your own score: its head on the lead sheet, quoted to open each A s
     "/music/jam?progression=song-e2e-tune&game=quote&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
   );
   await expect(page.getByTestId("jam-lead-sheet")).toContainText("Test tune, A A B A (8 bars)");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.getByTestId("jam-game")).toContainText("Quote the head");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   // The head's first four notes an octave up (then a note off the head) at bars 1, 3 and 7.
@@ -145,7 +145,7 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
   await page.goto(
     "/music/jam?progression=song-e2e-tune&game=melody-fills&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
   );
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const head = [0, 2, 4, 6].flatMap((bar) =>
@@ -162,7 +162,7 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
 test("Jam says a melody game needs a tune with its melody", async ({ page }) => {
   await setUp(page);
   await page.goto("/music/jam?progression=ii-v-i&game=quote&choruses=1");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.getByText(/Quote the head needs a tune with its melody/).first()).toBeVisible();
 });
 
@@ -209,7 +209,7 @@ test("guitar shells: G7 as 1-3-7 with the root on string 6, built by taps", asyn
   await page.routeWebSocket(/.*/, () => {});
   await page.goto("/music/chords?mode=build&shape=shell.guitar.7.7&position=0&instrument=guitar");
   await expect(page.getByText("Setup:").locator("..")).toContainText("1-3-7, root on 6");
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.evaluate(async () => {
     for (const [s, f] of [

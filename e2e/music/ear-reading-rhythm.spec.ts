@@ -7,6 +7,8 @@ import {
   installSyntheticMic,
   midiNote,
   PORTS,
+  openSetup,
+  pickMode,
 } from "./fixtures";
 
 // On a dev server a dependency re-optimisation (or another agent's edit) can reload the page mid-run.
@@ -256,7 +258,7 @@ test.describe("ear training", () => {
     // One clean run already on the First steps set.
     await seedAdvance(page, "ear.intervals.M3,P5,P8", 1);
     await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       const card = prompt(page);
@@ -286,7 +288,7 @@ test.describe("ear training", () => {
       await seedAdvance(page, "ear.intervals.M3,P5,P8", 1);
       await page.goto("/music/ear/intervals?answer=choice&intervals=M3,P5,P8&direction=ascending");
       await page.getByRole("button", { name: "Skip, I know this" }).click();
-      await page.getByRole("button", { name: "Check", exact: true }).click();
+      await pickMode(page, "Check");
       await page.getByRole("button", { name: "Start", exact: true }).click();
       for (let i = 0; i < 10; i++) {
         const card = prompt(page);
@@ -311,7 +313,7 @@ test.describe("ear training", () => {
   }) => {
     // Chord qualities start on major and minor; a set picks more.
     await page.goto("/music/ear/chord-qualities?answer=choice");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(
       page
         .getByRole("group", { name: "Quality sets" })
@@ -372,7 +374,7 @@ test.describe("ear training", () => {
 
   test("cadences: start on authentic and plagal, pick a set", async ({ page }) => {
     await page.goto("/music/ear/cadences?answer=choice");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     const sets = page.getByRole("group", { name: "Cadence sets" });
     await expect(sets.getByRole("button", { name: "Authentic and plagal" })).toHaveAttribute(
       "aria-pressed",
@@ -392,7 +394,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/chord-functions?answer=choice");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(
       page
         .getByRole("group", { name: "Chord sets" })
@@ -473,7 +475,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/scales?answer=choice");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     const sets = page.getByRole("group", { name: "Scale sets" });
     await expect(sets.getByRole("button", { name: "Major and minor" })).toHaveAttribute(
       "aria-pressed",
@@ -634,7 +636,7 @@ test.describe("ear training", () => {
   test("scale degrees: an easy level offers the next one", async ({ page }) => {
     await seedAdvance(page, "ear.scale-degrees.level", 0);
     await page.goto("/music/ear/scale-degrees?answer=choice&level=anchor");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       const card = prompt(page);
@@ -660,7 +662,7 @@ test.describe("ear training", () => {
 
   test("intervals: practise a few at a time, in one direction", async ({ page }) => {
     await page.goto("/music/ear/intervals?answer=choice");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     const sets = page.getByRole("group", { name: "Interval sets" });
     await sets.getByRole("button", { name: "Perfect" }).click();
     await expect(sets.getByRole("button", { name: "Perfect" })).toHaveAttribute(
@@ -706,7 +708,7 @@ test.describe("ear training", () => {
     test.setTimeout(60_000);
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/ear/scale-degrees?answer=play-back&level=major-diatonic");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`);
@@ -772,7 +774,7 @@ test.describe("ear training", () => {
     test.setTimeout(60_000);
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/scale-degrees?answer=voice&level=anchor");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {
@@ -795,7 +797,7 @@ test.describe("ear training", () => {
     test.setTimeout(60_000);
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/intervals?answer=voice&intervals=M3,P5,P8&direction=ascending");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {
@@ -913,7 +915,7 @@ test.describe("note reading and sight-reading", () => {
       page,
       "/music/reading?activity=flashcards&instrument=piano&answer=play&clefs=treble&low=60&high=72",
     );
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = page.locator(".card[data-midi]");
     for (let i = 0; i < 10; i++) {
@@ -1095,7 +1097,7 @@ test.describe("rhythm", () => {
     }) => {
       await installFakeMidi(page, [PORTS.keys]);
       await enableMidi(page, `/music/rhythm?mode=echo&earLevel=${level}`);
-      await page.getByRole("button", { name: "Check", exact: true }).click();
+      await pickMode(page, "Check");
       await page.getByRole("button", { name: "Start", exact: true }).click();
       await expect(page.getByRole("status")).toContainText("Listen to the pattern");
       const stage = page.locator("[data-onsets]");
@@ -1174,7 +1176,7 @@ test.describe("rhythm", () => {
 
   test("a first tap a hair early, still in the count-in, counts", async ({ page }) => {
     await page.goto("/music/rhythm?mode=pulse&beats=4");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const stage = page.locator("[data-downbeat][data-beat-ms]");
     await expect(stage).toHaveAttribute("data-downbeat", /\d/);
@@ -1205,7 +1207,7 @@ test.describe("rhythm", () => {
   test("pulse over fake MIDI with no count-in", async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(page, "/music/rhythm?mode=pulse&beats=4");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Tap 4 beats");
     await page.evaluate((port) => {

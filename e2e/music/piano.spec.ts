@@ -1,7 +1,13 @@
 // Piano and jazz drills: every route loads without sideways scroll, and each
 // drill runs start to results over a fake Web MIDI keyboard.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi, startDrill } from "./fixtures";
+import {
+  PORTS,
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  startDrill,
+  pickMode,
+} from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/piano";
 const ROUTES = [
@@ -103,7 +109,7 @@ function play(page: Page, steps: Step[], onGo = false) {
 
 /** Start in Practice and play `steps` from the downbeat. */
 async function runTimed(page: Page, steps: Step[]) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   const playing = play(page, steps, true);
   await page.getByRole("button", { name: /^(Start|Again)/ }).click();
   await playing;
@@ -184,7 +190,7 @@ test("falling notes: two hands, scales, licks and accompaniment fall onto the ke
     await expectNoHorizontalOverflow(page);
   }
   // Check mode hides the notes, so there is nothing to switch.
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.getByTestId("falling-notes")).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Notes view" })).toHaveCount(0);
 });
@@ -192,7 +198,7 @@ test("falling notes: two hands, scales, licks and accompaniment fall onto the ke
 test("licks: Check hides the targets and the lane notes", async ({ page }) => {
   await page.goto("/music/licks?lick=1&key=C");
   await expect(page.locator(".piano [data-target]")).toHaveCount(1);
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await expect(page.locator(".piano [data-target]")).toHaveCount(0);
   await expect(page.getByText("Check mode: the notes are hidden.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Hear it", exact: true })).toHaveCount(0);
@@ -269,7 +275,7 @@ test.describe("piano drills over fake MIDI", () => {
       [43, 59, 62, 67], // G: B D G
       [48, 60, 64, 67], // C
     ];
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     // From "Go.": a chord every bar (4 s at 60 BPM), the pedal down after the first,
     // then up 80 ms after each new chord and down again 120 ms later.
     const going = page.evaluate(

@@ -2,7 +2,7 @@
 // notes sliding onto a hit line, the pads beside lighting the next hit and
 // marking each hit early, late or on time. Fake MIDI stamped exactly.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow, installFakeMidi, PORTS } from "./fixtures";
+import { expectNoHorizontalOverflow, installFakeMidi, PORTS, openSetup } from "./fixtures";
 
 const PORT = PORTS.keys.id;
 const SHOTS = process.env.PW_SHOTS ?? "test-results/pads-lanes";
@@ -106,7 +106,7 @@ test.describe("the lanes view on the pads", () => {
     page,
   }) => {
     await enableMidi(page, "/music/pads?mode=groove&groove=backbeat&bpm=90");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     const view = page.getByRole("group", { name: "View" });
     await view.getByRole("button", { name: "Grid" }).click();
     await expect(page.getByRole("region", { name: /The groove, / })).toBeVisible();

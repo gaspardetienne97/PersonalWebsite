@@ -2,7 +2,7 @@
 // where a progression goes and the chords that take it there; a tune's changes
 // marked with key centre and function, chord by chord.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow } from "./fixtures";
+import { expectNoHorizontalOverflow, pickMode } from "./fixtures";
 
 test.describe.configure({ retries: 2 });
 // Another agent's edit must not reload the page mid-run.
@@ -80,7 +80,7 @@ test("key changes: a checked run, all right, counts toward the key-change skills
 }) => {
   test.setTimeout(90_000);
   await page.goto("/music/ear/progressions?answer=choice&changes=key");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   for (let i = 0; i < 10; i++) {
     await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {
@@ -130,7 +130,7 @@ test("analysis: a tune's chords marked with key and function, the rule after a m
 test("analysis: a checked run of Blue Bossa, all right, records the tune", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/music/circle?mode=analysis&tune=tune-blue-bossa");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const card = page.locator("article[data-mode]");
   for (let i = 0; i < 13; i++) {

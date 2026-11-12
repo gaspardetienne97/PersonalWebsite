@@ -141,26 +141,42 @@ export async function leaveSession(page: Page) {
   await expect(session, "the session (lesson, run or results) did not close").toHaveCount(0);
 }
 
-const modeGroup = (page: Page) => page.getByRole("group", { name: "Mode" });
+/** The ready screen's setup sentence: the way into Setup, where Practice or Check lives. It carries the
+ *  mode as `data-mode` when the drill has both. */
+const setupLine = (page: Page) => page.getByTestId("setup-line");
+const modeGroup = (page: Page) => page.locator('[data-setup="run-mode"]');
+
+/** Open Setup from the setup sentence (or close it); nothing when it already is, or the drill has none. */
+export async function openSetup(page: Page, open = true) {
+  const line = setupLine(page);
+  const now = await line.getAttribute("aria-expanded", { timeout: 2000 }).catch(() => null);
+  if (now !== null && now !== String(open)) await line.click();
+}
 
 /** Whether the drill has Practice and Check (asked from the setup screen). */
 export async function hasCheck(page: Page) {
   await leaveSession(page);
-  return (await modeGroup(page).count()) > 0;
+  return (await setupLine(page).getAttribute("data-mode")) !== null;
 }
 
 /**
- * Leave any session, then switch to `m` and see it pressed. A click before the page
- * hydrates is lost, and Check can open its concept lesson (closed on the retry), so
- * this retries until the toggle shows `m`. A drill without the toggle is Practice only.
+ * Leave any session, then switch to `m` (in Setup) and see the setup sentence say so, with Setup
+ * closed again. A click before the page hydrates is lost, and Check can open its concept lesson
+ * (closed on the retry), so this retries until the sentence shows `m`. A drill without the two
+ * modes is Practice only.
  */
 export async function mode(page: Page, m: "Practice" | "Check") {
-  const b = modeGroup(page).getByRole("button", { name: m });
+  const line = setupLine(page);
   await expect(async () => {
     await leaveSession(page);
-    if (m === "Practice" && !(await modeGroup(page).count())) return;
-    if ((await b.getAttribute("aria-pressed", { timeout: 2000 })) !== "true") await b.click();
-    await expect(b).toHaveAttribute("aria-pressed", "true", { timeout: 1000 });
+    const now = await line.getAttribute("data-mode", { timeout: 2000 });
+    if (now === null && m === "Practice") return;
+    if (now !== m.toLowerCase()) {
+      await openSetup(page);
+      await modeGroup(page).getByRole("button", { name: m, exact: true }).click({ timeout: 2000 });
+    }
+    await expect(line).toHaveAttribute("data-mode", m.toLowerCase(), { timeout: 1000 });
+    await openSetup(page, false);
   }, `could not switch the drill to ${m}`).toPass({ timeout: 20_000 });
 }
 

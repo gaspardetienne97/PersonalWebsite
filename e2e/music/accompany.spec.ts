@@ -1,7 +1,13 @@
 // Accompaniment: hand patterns, comping over changes and a lead sheet, each run
 // start to results over a fake Web MIDI keyboard with stamped notes.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi } from "./fixtures";
+import {
+  PORTS,
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  pickMode,
+  setupLine,
+} from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/piano";
 
@@ -32,7 +38,7 @@ async function enableMidi(page: Page) {
 
 /** Start in Practice, then play every slot from the run's own downbeat, stamped. */
 async function playSlots(page: Page, opts: { drop?: (beat: number) => boolean } = {}) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   const stage = page.getByTestId("accompany");
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
@@ -94,9 +100,8 @@ test.describe("accompaniment over fake MIDI", () => {
     await page.goto(
       "/music/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
     );
-    await expect(
-      page.getByText("Shells, alternating on charleston", { exact: true }),
-    ).toBeVisible();
+    // One clause of the setup sentence, whole.
+    await expect(setupLine(page)).toContainText(/(: |, )Shells, alternating on charleston(, |$)/);
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 140 BPM", { timeout: 40_000 });
     await expect(page.getByText("24 of 24", { exact: true })).toBeVisible();

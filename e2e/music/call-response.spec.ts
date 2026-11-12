@@ -1,7 +1,7 @@
 // Call and response over a groove, through fake MIDI stamped to the beat: every
 // call echoed back in a checked run, then answers that land on a chord tone.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, PORTS } from "./fixtures";
+import { installFakeMidi, PORTS, pickMode } from "./fixtures";
 
 test.describe.configure({ retries: 2 });
 
@@ -81,7 +81,7 @@ const lastRun = (page: Page) =>
 test("echo: every call played back in time, a checked run", async ({ page }) => {
   test.setTimeout(60_000);
   await setUp(page, "/music/call-response?mode=echo&groove=blues&bars=1");
-  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const c = await runClock(page);
   const bar = 4 * c.beatMs;

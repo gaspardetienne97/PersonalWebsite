@@ -4,7 +4,7 @@
 // Taps are scheduled in the page against the run's own downbeat; MIDI is
 // stamped with each note's exact time.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, installSyntheticMic, PORTS } from "./fixtures";
+import { installFakeMidi, installSyntheticMic, PORTS, pickMode } from "./fixtures";
 
 const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
 
@@ -108,7 +108,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
       "guitar",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText("The B.B. box");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await tapLine(page, [
       [3, 11],
@@ -137,7 +137,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "root A at fret 0 on string 1",
     );
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await tapLine(page, [
       [4, 2],
@@ -159,7 +159,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
     test.setTimeout(60_000);
     await settle(page, "/music/fretboard?mode=harmonics&instrument=ukulele&bpm=90", "ukulele");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Harmonics");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await tapLine(
       page,
@@ -201,7 +201,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
     await settle(page, "/music/phrases?phrase=piano.rock-triplets&bpm=90", "piano");
     await expect(page.getByTestId("phrase")).toContainText("Rock and roll triplets");
     await expect(page.getByTestId("line-staff").locator("svg")).toBeVisible();
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: /^Start/ }).click();
     const notes = await playPhrase(page);
     // Three notes a click: the second chord starts a third of a click in.
@@ -230,7 +230,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
     });
     await expect(page.getByTestId("phrase")).toContainText("My blues lick");
     await expect(page.getByText("Setup:").locator("..")).toContainText("moved up 2 semitones");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: /^Start/ }).click();
     const notes = await playPhrase(page);
     expect(notes.map(([m]) => m)).toEqual([62, 65, 67, 69]);
@@ -259,7 +259,7 @@ test.describe("phase 5 strings, phrases and ear", () => {
     test.setTimeout(150_000);
     await installSyntheticMic(page, 0);
     await page.goto("/music/ear/bass-lines?answer=voice");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     for (let i = 0; i < 10; i++) {
       await expect(prompt(page)).toHaveAttribute("aria-label", `Question ${i + 1}`, {

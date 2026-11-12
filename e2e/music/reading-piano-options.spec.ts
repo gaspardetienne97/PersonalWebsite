@@ -2,7 +2,7 @@
 // a phrase's rhythm, generated charts and jazz lead sheets in Accompaniment, the
 // new Scales options and the gospel Voicings, over fake MIDI.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, muteHmr, PORTS, startDrill } from "./fixtures";
+import { installFakeMidi, muteHmr, PORTS, startDrill, pickMode } from "./fixtures";
 
 async function enableMidi(page: Page, url: string, countIn = false) {
   await page.goto(url);
@@ -90,7 +90,7 @@ test.describe("sight-reading past Grade 6", () => {
     );
     await muteHmr(page);
     await expect(page.getByText("Setup:").locator("..")).toContainText("tapping the rhythm");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("button", { name: "Tap", exact: true })).toBeEnabled();
     const paper = page.locator(".paper-wrap[data-onsets]");
@@ -220,7 +220,7 @@ test.describe("scales and voicings options", () => {
     );
     const rh = [60, 62, 64, 65, 67, 69, 71, 72];
     const lh = [60, 59, 57, 55, 53, 52, 50, 48];
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     const playing = playOnGo(
       page,
       rh.map((m, i) => ({ at: i * 1000, notes: i === 0 ? [m] : [lh[i], m], hold: 500 })),

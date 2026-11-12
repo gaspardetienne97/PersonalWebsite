@@ -1,6 +1,6 @@
 // The circle of fifths: the wheel in the Library, and the drill.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow } from "./fixtures";
+import { expectNoHorizontalOverflow, openSetup } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/circle";
 const prompt = (page: Page) => page.locator("article[data-mode]");
@@ -125,7 +125,7 @@ test.describe("circle of fifths", () => {
     await expect(page.getByRole("button", { name: "Tonic: Eb" })).toBeVisible();
 
     await page.goto("/music/chord-scales");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await page.getByRole("button", { name: /^Key: / }).click();
     await shots(page, "key-picker");
     // The bottom of the circle: F#/Gb, spelled Gb as the jazz cycle has it.

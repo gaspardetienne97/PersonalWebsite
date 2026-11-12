@@ -3,7 +3,7 @@
 // balance from MIDI velocity; and the sight-reading generator's kick lane and
 // meter changes. Over fake MIDI.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, installFakeMidi, muteHmr } from "./fixtures";
+import { PORTS, installFakeMidi, muteHmr, pickMode } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/studio-reading";
 // Ode to Joy, bars 1 to 4, one note per group, and where each starts (beats).
@@ -225,7 +225,7 @@ test.describe("sight-reading generator for Tap the rhythm", () => {
       "/music/reading?activity=sight-reading&follower=tap&kick=true&level=line-4&measures=1&meter=simple&climb=false",
     );
     await expect(page.getByText("Setup:").locator("..")).toContainText("kick on every beat");
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("button", { name: "Kick", exact: true })).toBeEnabled();
     const paper = page.locator(".paper-wrap[data-onsets]");

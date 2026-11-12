@@ -115,10 +115,9 @@ test.describe("studio ears", () => {
     await page.getByRole("button", { name: "Modes for Rhythm" }).click();
     await page.getByRole("link", { name: "Rhythm: Echo" }).click();
     await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
-    // The exercise is the tab row now, not part of the setup sentence.
-    await expect(
-      page.getByRole("group", { name: "Exercise" }).getByRole("button", { name: "Echo" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    // The mode is the title's picker now, not part of the setup sentence.
+    await expect(page.getByLabel("Rhythm mode")).toHaveAttribute("data-value", "echo");
+    await expect(page.getByLabel("Rhythm mode")).toContainText("Echo");
     // Pads and the Aerophone are split by what their modes practise; a split row opens its first mode.
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "All instruments" }).click();
@@ -148,6 +147,6 @@ test.describe("studio ears", () => {
     }
     await arpeggio.click();
     await expect(page).toHaveURL(/\/music\/scales\?pattern=arpeggio$/);
-    await expect(page.locator("p", { hasText: "Setup:" })).toContainText(/arpeggio/i);
+    await expect(page.getByTestId("setup-line")).toContainText(/arpeggio/i);
   });
 });

@@ -14,7 +14,7 @@
     stopClock(): void;
   }
 
-  /** One clause of the setup sentence; `focus` names the control (its setupKey) a click opens. */
+  /** One clause of the setup sentence. `focus` names the control (its setupKey) the clause is about. */
   export interface SetupClause {
     text: string;
     focus?: string;
@@ -39,9 +39,12 @@
 </script>
 
 <script lang="ts">
-  // The frame every drill uses. The ready screen is the instrument and one Start:
-  // title, exercise tabs, one action bar (the setup sentence, Practice or Check,
-  // Hear it, Start), then the stage. From the first lesson step or Start until
+  // The frame every drill uses. The whole drill page is dark in both themes (the
+  // `dark` class and [data-drill-page] on the section; woodshed.css holds the palette).
+  // The ready screen is the instrument and one Start: the title (a mode picker in
+  // a trainer), exercise tabs, the setup as one sentence beside Start (tapping it
+  // opens Setup, where Practice or Check lives), then the stage, with Hear it as
+  // an icon at its top. From the first lesson step or Start until
   // the player leaves the results, the drill is a session that owns the screen
   // (contract K1): no navs, no strip, a HUD on top (Stop or Close, the title,
   // the mode, two counters, the beat and the click), the stage filling the
@@ -58,6 +61,8 @@
   import Headphones from "lucide-svelte/icons/headphones";
   import BookOpen from "lucide-svelte/icons/book-open";
   import LessonView from "./LessonView.svelte";
+  import Choice from "./Choice.svelte";
+  import TrainerSwitch, { type TrainerMode } from "./TrainerSwitch.svelte";
   import InputCheck, { inputFor } from "./InputCheck.svelte";
   import { lessonsAuto } from "../lessons.svelte";
   import { pendingLessons, type LessonRef } from "@repo/music-core/lessons/types";
@@ -66,6 +71,7 @@
   import EyeOff from "lucide-svelte/icons/eye-off";
   import X from "lucide-svelte/icons/x";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import ChevronUp from "lucide-svelte/icons/chevron-up";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import Timer from "lucide-svelte/icons/timer";
@@ -78,9 +84,11 @@
 
   interface Props {
     title: string;
+    /** A trainer's modes: the title becomes a picker for them (Rhythm; Ear and the jazz trainer next). */
+    trainer?: { options: readonly TrainerMode[]; value: string; onpick?: (id: string) => void } | null;
     hue: Hue;
     blurb?: string;
-    /** The current setup as one line, or as clauses that each open their own control. */
+    /** The current setup as one line, or as clauses; the shell joins them into one sentence that opens Setup. */
     summary: string | readonly SetupClause[];
     /** The drill's exercises as a tab row under the title (one place for "which exercise"). */
     tabs?: readonly { id: string; label: string }[];
@@ -141,6 +149,7 @@
 
   let {
     title,
+    trainer = null,
     hue,
     blurb,
     summary,
@@ -235,16 +244,15 @@
     await tick();
     document.querySelectorAll<HTMLButtonElement>("#drill-exercises [data-tab]")[keep]?.focus();
   }
-  const clauses = $derived<readonly SetupClause[]>(typeof summary === "string" ? [{ text: summary }] : summary);
-  /** Open the panel on one control: the clause's setupKey. */
-  async function openAt(focus?: string) {
-    setupOpen = true;
-    if (!focus) return;
-    await tick();
-    const el = document.querySelector<HTMLElement>(`#drill-setup [data-setup="${focus}"]`);
-    el?.scrollIntoView({ block: "nearest" });
-    el?.querySelector<HTMLElement>("button, input, select, [tabindex]")?.focus();
-  }
+  /** The setup as one sentence, the mode last ("C major, 80 BPM, Practice"). */
+  const sentence = $derived(
+    [...(typeof summary === "string" ? [summary] : summary.map((c) => c.text)), ...(checkable ? [mode === "check" ? "Check" : "Practice"] : [])]
+      .filter(Boolean)
+      .join(", "),
+  );
+  /** A trainer's current mode, named beside the title in the session's top bar. */
+  const trainerLabel = $derived(trainer?.options.find((o) => o.id === trainer.value)?.label);
+  const canDemo = $derived(!!ondemo && mode !== "check" && !demoPlaying);
   // Intro lessons: decided only after the stored settings arrive (no flash for a returning player).
   let ready = $state(false);
   void settings.ready.then(() => (ready = true));
@@ -534,8 +542,9 @@
 
 <!-- One section in both views, so the stage below stays mounted from the ready screen into the run. -->
 <section
-  class={session ? "session relative flex min-h-dvh w-full flex-col bg-ws-bg text-ws-ink" : `mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? "max-lg:pb-[calc(var(--ws-dock-h)+5.5rem)]" : ""}`}
+  class="dark {session ? 'session relative flex min-h-dvh w-full flex-col bg-ws-bg text-ws-ink' : `ready mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? 'max-lg:pb-[calc(var(--ws-dock-h)+5.5rem)]' : ''}`}"
   aria-labelledby="drill-title"
+  data-drill-page
   data-session={session ? "" : undefined}
 >
   {#if session}
@@ -559,9 +568,30 @@
       class:demo={demoPlaying}
       data-live={live ? "" : undefined}
     >
-      {#if demoPlaying}<p class="mb-2 text-sm text-ws-stage-soft">Demo playing, not scored.</p>{/if}
-      <!-- Before a run a drill's counters (if any) sit on the stage; in a session they are in the HUD. -->
-      {#if hud && !session}<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 empty:hidden">{@render hud()}</div>{/if}
+      <!-- The stage's top rail before a run: what the stage needs to say (the drill's counters, which a session
+           shows in the HUD; an input caveat with its own fix; the demo's note) and Hear it as an icon at the
+           right. During the demo the icon leaves and Stop demo takes Start's place. -->
+      {#if !session}
+        <div class="rail -mt-1 mb-1 flex items-center gap-3 sm:-mr-2 sm:-mt-2">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm empty:hidden">
+            {#if demoPlaying}<p class="text-ws-stage-soft">Demo playing, not scored.</p>{/if}
+            {#if hud}{@render hud()}{/if}
+            {#each requires as r (r.text)}
+              <button type="button" class="-mx-1.5 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>
+            {/each}
+            {#if needsInput}<InputCheck inline required={!!blocked} />{/if}
+          </div>
+          {#if canDemo}
+            <button
+              type="button"
+              class="ml-auto grid size-11 shrink-0 place-items-center rounded-full border border-ws-stage-ink/15 bg-ws-stage-ink/8 text-ws-stage-ink hover:bg-ws-stage-ink/15"
+              aria-label={demoLabel}
+              title="{demoLabel}: a demo, not scored"
+              onclick={ondemo}><Headphones class="size-5" aria-hidden="true" /></button
+            >
+          {/if}
+        </div>
+      {/if}
       {#if showing}
         {#key shownLessons.map((l) => l.id).join()}
           <LessonView lessons={shownLessons} onfinish={endLesson} onskip={endLesson} beforeNext={moreButton} />
@@ -601,10 +631,7 @@
          (the section's bottom padding lets the stage scroll clear of it). -->
     <div class="ws-bar ws-bar-bottom fixed inset-x-0 bottom-[var(--ws-dock-h,3.5rem)] z-30 border-t px-4 py-2 lg:hidden" data-testid="drill-bar">
       <div class="mx-auto flex max-w-2xl flex-col gap-1">
-        <div class="flex items-center gap-2">
-          {@render demoButton()}
-          {@render startButton("min-w-0 flex-1")}
-        </div>
+        {@render startButton("w-full")}
         {#if blocked && !unblocking}<span class="text-center text-sm text-ws-soft">{blocked}</span>{/if}
       </div>
     </div>
@@ -621,19 +648,24 @@
       <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title="Back to {back.label}">
         <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">Back to {back.label}</span>
       </a>
-      <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 flex-1 font-display font-semibold tracking-tight">
+      <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 font-display font-semibold tracking-tight {trainer ? 'shrink-0' : 'flex-1'}">
         {title}
       </h1>
+      {#if trainer}
+        <!-- A trainer: the mode is part of the title, and tapping it picks another. -->
+        <TrainerSwitch label="{title} mode" options={trainer.options} value={trainer.value} onpick={trainer.onpick} />
+        <span class="flex-1"></span>
+      {/if}
       {#if lesson?.lessons.length}
         <button type="button" class={ghost} onclick={() => (revisitFor = lessonIds)}>
           <BookOpen class="size-4" aria-hidden="true" />Lesson
         </button>
       {/if}
     </div>
-    {#if blurb}<p id="drill-blurb" class="max-w-prose text-sm text-ws-soft line-clamp-2 sm:text-base" title={blurb}>{blurb}</p>{/if}
+    {#if blurb}<p id="drill-blurb" class="blurb max-w-prose text-sm text-ws-soft line-clamp-2 sm:text-base" title={blurb}>{blurb}</p>{/if}
   </header>
   {@render exercises()}
-  {@render actionBar()}
+  {@render readyBar()}
 {/snippet}
 
 <!-- Row 2: the exercises as underline tabs (navigation, not more choices). -->
@@ -685,78 +717,59 @@
   {/if}
 {/snippet}
 
-<!-- Row 3, the action bar: the setup sentence (its caveats as clauses that fix themselves), then Practice or
-     Check, Hear it and Start. On a laptop one bar; below lg the setup line is its own card and Start docks. -->
-{#snippet actionBar()}
-  <!-- One card. Laptop, one row: the setup sentence, Setup, Practice or Check, Hear it, Start. Below lg: the
-       sentence, then Practice or Check (left) and Setup (right), the mode's note on one line under them; Hear it
-       and Start dock at the bottom. On a phone the whole card opens the setup (the toggle sits above that). -->
-  <div class="relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-ws-line bg-ws-surface py-1.5 pl-4 pr-1.5 lg:flex-nowrap lg:rounded-2xl">
-    <!-- A clause with a control is a chip that opens it (from sm up); the rest is plain text that never breaks
-         mid-phrase. A phone shows two lines; the Setup button, the whole card there, holds the rest. -->
-    <div class="min-w-0 basis-full py-1 text-sm lg:flex-1 lg:basis-auto" data-testid="setup-line">
-      <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden" data-truncate-ok>
-        <span class="mr-1 text-ws-soft">Setup:</span>
-        {#each clauses as c, i (i)}{@const more = i < clauses.length - 1 || requires.length || needsInput}{#if setup && c.focus}<button type="button" class="clause max-sm:pointer-events-none" onclick={() => openAt(c.focus)}>{c.text}<ChevronDown class="size-3.5 shrink-0 text-ws-soft" aria-hidden="true" /></button>{#if more}<span class="sr-only">,</span>{/if}{:else}<span class="inline-block max-w-full font-medium">{c.text}{#if more}<span class="text-ws-soft">,</span>{/if}</span>{/if}{" "}{/each}
-      </p>
-      {#if requires.length || needsInput}
-        <!-- Input caveats, each its own fix, on their own line so a clamp never hides them. -->
-        <p class="flex flex-wrap items-center gap-x-1">
-          {#each requires as r, i (r.text)}<button type="button" class="relative z-10 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>{#if i < requires.length - 1 || needsInput}<span class="sr-only">,</span>{/if}{/each}
-          {#if needsInput}<span class="relative z-10"><InputCheck inline required={!!blocked} /></span>{/if}
-        </p>
-      {/if}
-    </div>
-    {#if setup}
+<!-- Row 3, the ready bar: the setup as one sentence, the mode last, and Start. The sentence is the one way into
+     Setup (no chips, no mode buttons before the first run). Below lg Start docks at the bottom. -->
+{#snippet readyBar()}
+  <div class="bar flex items-stretch gap-3">
+    {#if setup || checkable}
       <button
         type="button"
-        class="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-instr-ink hover:bg-instr-wash max-lg:order-1 max-lg:ml-auto max-sm:after:absolute max-sm:after:inset-0 max-sm:after:rounded-xl"
+        class="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-xl border border-ws-line bg-ws-surface px-4 py-2 text-left text-base hover:bg-ws-raised"
+        data-testid="setup-line"
+        data-mode={checkable ? mode : undefined}
         aria-expanded={setupOpen}
         aria-controls="drill-setup"
+        title={setupOpen ? "Hide setup" : "Change the setup"}
         onclick={() => (setupOpen = !setupOpen)}
       >
-        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
+        <Settings2 class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
+        <span class="min-w-0 flex-1 font-medium leading-snug"><span class="sr-only">Setup: </span>{sentence}</span>
+        {#if setupOpen}<ChevronUp class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{:else}<ChevronDown class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{/if}
       </button>
-    {/if}
-    {#if checkable}
-      <!-- One two-state switch, the current mode's effect on one line under it. The names stay "Practice" and
-           "Check"; a demo holds the mode until it stops (full contrast, with a reason). -->
-      <div class="max-lg:contents lg:flex lg:shrink-0 lg:flex-col lg:items-center lg:gap-0.5 lg:border-l lg:border-ws-line lg:pl-3">
-        <div class="relative z-10 flex shrink-0 rounded-full border border-ws-line bg-ws-surface p-0.5" role="group" aria-label="Mode" aria-describedby="mode-note" title={demoPlaying ? "Stop the demo to change mode" : undefined}>
-          {#each [["practice", "Practice"], ["check", "Check"]] as const as [id, label] (id)}
-            <button
-              type="button"
-              class="flex min-h-10 items-center justify-center rounded-full px-3.5 text-sm {mode === id ? `${fill} font-semibold` : 'text-ws-soft hover:text-ws-ink'}"
-              aria-pressed={mode === id}
-              aria-disabled={demoPlaying || undefined}
-              onclick={() => {
-                if (!demoPlaying) mode = id;
-              }}
-            >{label}</button>
-          {/each}
-        </div>
-        <p id="mode-note" class="text-sm leading-snug text-ws-soft max-lg:order-2 max-lg:basis-full lg:whitespace-nowrap lg:text-center">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
-      </div>
+    {:else}
+      <p class="flex min-h-12 min-w-0 flex-1 items-center text-base font-medium leading-snug" data-testid="setup-line">
+        <span><span class="sr-only">Setup: </span>{sentence}</span>
+      </p>
     {/if}
     {#if phase === "ready"}
-      <div class="flex shrink-0 items-center gap-2 max-lg:hidden">
-        {@render demoButton()}
+      <div class="flex shrink-0 items-center gap-3 max-lg:hidden">
         {#if blocked && !unblocking}<span class="max-w-48 text-right text-sm text-ws-soft">{blocked}</span>{/if}
         {@render startButton("")}
       </div>
     {/if}
   </div>
-  {#if setup && setupOpen}
-    <div id="drill-setup" class="rounded-xl border border-ws-line bg-ws-surface p-4">
-      {@render setup()}
+  {#if setupOpen && (setup || checkable)}
+    <div id="drill-setup" class="flex flex-col gap-4 rounded-xl border border-ws-line bg-ws-surface p-4">
+      {#if checkable}
+        <!-- Practice or Check, first in Setup. The names stay "Practice" and "Check"; a demo holds the mode
+             until it stops. The current mode's effect sits on one line beside it. -->
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-1" title={demoPlaying ? "Stop the demo to change mode" : undefined}>
+          <Choice
+            label="Mode"
+            setupKey="run-mode"
+            options={[
+              { value: "practice", label: "Practice" },
+              { value: "check", label: "Check" },
+            ]}
+            value={mode}
+            disabled={demoPlaying}
+            onchange={(v) => (mode = v)}
+          />
+          <p id="mode-note" class="flex min-h-11 items-center text-sm leading-snug text-ws-soft">{mode === "check" ? modeNotes.check : modeNotes.practice}</p>
+        </div>
+      {/if}
+      {#if setup}{@render setup()}{/if}
     </div>
-  {/if}
-{/snippet}
-
-<!-- Hear it (a quiet button); during the demo it leaves, and Stop demo takes Start's place as the one filled button. -->
-{#snippet demoButton()}
-  {#if ondemo && mode !== "check" && !demoPlaying}
-    <button type="button" class={ghost} onclick={ondemo}><Headphones class="size-4" aria-hidden="true" />{demoLabel}</button>
   {/if}
 {/snippet}
 
@@ -792,7 +805,7 @@
           <X class="size-5" aria-hidden="true" />
         </button>
       {/if}
-      <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud font-display font-semibold leading-tight sm:flex-none">{title}</h1>
+      <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud font-display font-semibold leading-tight sm:flex-none">{title}{#if trainerLabel}<span class="font-medium text-ws-soft">, {trainerLabel}</span>{/if}</h1>
       {#if checkable && !showing}
         {@const modeText = mode === "check" ? "Check: from memory" : "Practice: hints on"}
         <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last" title={modeText}>
@@ -941,24 +954,37 @@
     border-radius: 9999px;
     background: var(--instr);
   }
-  /* A clause with a control is a chip, an atomic inline with a chevron: it moves to the next line whole rather
-     than break mid-phrase. From sm up it opens its control (on a phone the card is one button). */
-  .clause {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    max-width: 100%;
-    margin-block: 0.125rem;
-    border-radius: 0.375rem;
-    padding: 0 0.5rem;
-    background: var(--ws-raised);
-    font-weight: 500;
-    line-height: 1.75rem;
-    text-align: left;
+  /* The stage's top rail takes no room when it holds nothing. */
+  .rail:not(:has(> button)):not(:has(> div:not(:empty))) {
+    display: none;
   }
-  button.clause:hover {
-    color: var(--instr-ink);
-    background: var(--instr-wash);
+  /* Tablet landscape, and any wide window that is short (1180 x 820, 1280 x 800): the ready screen spends one row
+     on its chrome so the stage, the instrument and Start share one view. The title and the ready bar sit on one
+     line, the blurb steps aside (the Lesson holds it), and the stage keeps a tighter margin. */
+  @media (min-width: 64rem) and (max-height: 56rem) {
+    .ready {
+      display: grid;
+      grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+      align-items: center;
+      gap: 0.5rem 1rem;
+    }
+    .ready > :global(*),
+    .ready > :global(.contents > *) {
+      grid-column: 1 / -1;
+    }
+    .ready > header {
+      grid-column: 1;
+    }
+    .ready > .bar {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .ready .blurb {
+      display: none;
+    }
+    .ready .stage-box {
+      padding: 0.75rem;
+    }
   }
   .stage-box.demo {
     outline: 2px dashed color-mix(in oklch, var(--instr) 70%, transparent);

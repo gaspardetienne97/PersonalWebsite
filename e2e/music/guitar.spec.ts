@@ -1,7 +1,15 @@
 // Guitar and ukulele drills end to end: on-screen fret taps and the synthetic
 // microphone through the real getUserMedia path.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow, installSyntheticMic, tap } from "./fixtures";
+import {
+  expectNoHorizontalOverflow,
+  installSyntheticMic,
+  tap,
+  openSetup,
+  pickMode,
+  setupLine,
+  modeButton,
+} from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/guitar";
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -41,7 +49,7 @@ async function startDrill(
   mode: "Practice" | "Check" | null = "Practice",
   label = "Start",
 ) {
-  if (mode) await page.getByRole("button", { name: mode, exact: true }).click();
+  if (mode) await pickMode(page, mode);
   await page.getByRole("button", { name: label, exact: true }).click();
   await expect(page.getByRole("status")).toContainText(/Go\.|Play|Question/, { timeout: 10_000 });
 }
@@ -107,7 +115,7 @@ test.describe("guitar drills", () => {
     }
     // Check mode hides it, like the targets.
     await page.goto("/music/fretboard?mode=spider&instrument=guitar");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await expect(page.getByTestId("line-tab")).toHaveCount(0);
   });
 
@@ -133,7 +141,7 @@ test.describe("guitar drills", () => {
 
   test("Spider setup: any strings, any finger order, three notes a click", async ({ page }) => {
     await page.goto("/music/fretboard?mode=spider&instrument=guitar&startFret=5&crossing=0");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     // Strings as toggles: keep 1, 3 and 6.
     const strings = page.getByRole("group", { name: "Strings" });
     for (let n = 1; n <= 6; n++) {
@@ -153,7 +161,7 @@ test.describe("guitar drills", () => {
     await expect(setupLine).toContainText("4-1-2-3");
     await expect(setupLine).toContainText("strings 1, 3 and 6");
     await expect(setupLine).toContainText("three notes a click");
-    await page.getByRole("button", { name: "Hide setup" }).click();
+    await openSetup(page, false);
     // On each string the dots read the order: fret 5 (index) is played second.
     await expect(page.locator(fret(6, 5))).toHaveAttribute(
       "aria-label",
@@ -261,8 +269,13 @@ test.describe("guitar drills", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "Bend a whole step, string 3, fret 7 (D4 to E4)",
     );
-    // Bends have no Check: the string, fret and target are always shown.
-    await expect(page.getByRole("button", { name: "Check", exact: true })).toHaveCount(0);
+    // Bends have no Check: the string, fret and target are always shown. The setup sentence names no mode,
+    // and Setup has no Mode group.
+    await expect(setupLine(page)).not.toHaveAttribute("data-mode", /.*/);
+    await expect(setupLine(page)).not.toContainText(/Practice|Check/);
+    await openSetup(page);
+    await expect(modeButton(page, "Check")).toHaveCount(0);
+    await openSetup(page, false);
     await startMic(page);
     const set = (midi: number, cents = 0) =>
       page.evaluate(
@@ -471,7 +484,7 @@ test.describe("guitar drills", () => {
     await expect(strip.getByRole("listitem")).toHaveCount(3);
     await expect(page.getByText("Setup:").locator("..")).toContainText("C, G, Am");
     // The setup: add a fourth chord, then move the first one up the neck.
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await page.getByRole("button", { name: "Add chord" }).click();
     await expect(page.getByRole("button", { name: /^Chord \d: / })).toHaveCount(4);
     await page.getByRole("button", { name: /^Chord 1: C,/ }).click();
@@ -485,7 +498,7 @@ test.describe("guitar drills", () => {
       .getByRole("button", { name: /^Remove / })
       .last()
       .click();
-    await page.getByRole("button", { name: "Hide setup" }).click();
+    await openSetup(page, false);
     await shoot(page, "changes-cycle-ready", 1280);
 
     // A fresh three-chord run by taps: C, G, Am and back to C is three changes.
@@ -573,14 +586,14 @@ test.describe("guitar drills", () => {
     await page.goto("/music/chords?mode=fingerpick&pattern=rolling&instrument=guitar&perBeat=2");
     await expect(page.getByText("Setup:").locator("..")).toContainText("a bar each");
     await expect(page.getByTestId("line-tab").locator("svg")).toBeVisible();
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(page.getByRole("group", { name: "In three (3/4 or 6/8)" })).toBeVisible();
     await shoot(page, "fingerpick-patterns", 1280);
   });
 
   test("Fingerpicking from a song: pattern, chords and tempo in one tap", async ({ page }) => {
     await page.goto("/music/chords?mode=fingerpick&instrument=guitar");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await page
       .getByRole("group", { name: "Start from a song" })
       .getByRole("button", { name: /^House of the Rising Sun/ })
@@ -591,7 +604,7 @@ test.describe("guitar drills", () => {
     await expect(setupLine).toContainText("three notes a click");
     await expect(page.getByRole("button", { name: /^Tempo 58 BPM/ })).toBeVisible();
     await expect(page.getByText(/no capo\. Tempo 58\./)).toBeVisible();
-    await page.getByRole("button", { name: "Hide setup" }).click();
+    await openSetup(page, false);
     await expect(
       page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
     ).toHaveCount(6);
@@ -616,7 +629,7 @@ test.describe("guitar drills", () => {
     await expect(
       page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
     ).toHaveCount(3);
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(page.getByRole("button", { name: /^Chord \d: / })).toHaveCount(3);
     await shoot(page, "fingerpick-cycle", 1280);
   });

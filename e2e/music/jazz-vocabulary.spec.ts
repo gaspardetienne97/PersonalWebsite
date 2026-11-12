@@ -2,7 +2,14 @@
 // categories, the 1-2-3-5 pattern in Chord scales and triad pairs in Scales,
 // each run start to results over a fake Web MIDI keyboard.
 import { expect, test, type Page } from "@playwright/test";
-import { PORTS, expectNoHorizontalOverflow, installFakeMidi, startDrill } from "./fixtures";
+import {
+  PORTS,
+  expectNoHorizontalOverflow,
+  installFakeMidi,
+  startDrill,
+  pickMode,
+  openSetup,
+} from "./fixtures";
 
 async function seed(page: Page) {
   await page.evaluate(
@@ -68,7 +75,7 @@ function play(page: Page, steps: Step[], onGo = false) {
 }
 
 async function runTimed(page: Page, steps: Step[]) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   const playing = play(page, steps, true);
   await page.getByRole("button", { name: /^(Start|Again)/ }).click();
   await playing;
@@ -135,7 +142,7 @@ test("voicings: So What up D dorian, the type picked from the Jazz types tab", a
   // A long exercise row keeps its first few; the rest sit behind More exercises.
   await page.getByRole("button", { name: "More exercises" }).click();
   await page.getByRole("button", { name: "Jazz types" }).click();
-  await page.getByTestId("setup-line").getByRole("button").first().click();
+  await openSetup(page);
   await page.getByRole("button", { name: "So What", exact: true }).click();
   await expect(page.getByText("Setup:").locator("..")).toContainText("So What from D dorian");
   await expectNoHorizontalOverflow(page);

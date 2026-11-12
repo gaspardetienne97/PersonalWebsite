@@ -33,7 +33,7 @@
   import TapKey from "$lib/music/drills/rhythm/TapKey.svelte";
   import DictationCompare from "$lib/music/drills/rhythm/DictationCompare.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import { cellVerdict, demoNotes, lengthText, marksAsPattern, readPatterns, landedText, RHYTHM_TABS, signedMs, spreadText, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
+  import { cellVerdict, demoNotes, lengthText, marksAsPattern, readPatterns, landedText, signedMs, spreadText, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
   const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
@@ -59,6 +59,8 @@
   let grooveDef = $state.raw<Groove | null>(null);
   const pulse = $derived(s.mode !== "read-and-tap" && !byEar);
   const tab = $derived(byEar ? s.mode : pulse ? "pulse" : "read-and-tap");
+  /** The trainer's modes, from the catalog: the title is their picker. */
+  const MODES = catalogEntry("rhythm")?.modes ?? [];
   /** The microphone counts onsets only where something is tapped. */
   const listens = $derived(s.mic && !writes);
   const earLevel = $derived(EAR_RHYTHM_LEVELS.find((l) => l.id === s.earLevel) ?? EAR_RHYTHM_LEVELS[0]);
@@ -764,9 +766,7 @@
         ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle."
         : "Read the rhythm and tap it. Rests are part of the music: a tap in one costs points."}
   summary={summaryLine}
-  tabs={RHYTHM_TABS}
-  {tab}
-  ontab={(v) => pick({ mode: v })}
+  trainer={{ options: MODES, value: tab, onpick: (v) => pick({ mode: v }) }}
   {modeNotes}
   bind:phase
   bind:mode

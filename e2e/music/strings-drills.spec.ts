@@ -3,7 +3,7 @@
 // speed bursts and the hardest five. Taps are scheduled in the page against the
 // run's own downbeat; MIDI is stamped with each note's exact time.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, installSyntheticMic, PORTS, tap } from "./fixtures";
+import { installFakeMidi, installSyntheticMic, PORTS, tap, pickMode } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/strings";
 const fret = (s: number, f: number) => `button[aria-label^="String ${s} fret ${f},"]`;
@@ -294,7 +294,7 @@ test.describe("guitar and ukulele path drills", () => {
     await page.goto(
       "/music/chords?mode=changes&shape=guitar.c-major&to=guitar.g-major&timed=0&trips=1&clock=0&instrument=guitar",
     );
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await pickMode(page, "Practice");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText(/Go\.|Play/, { timeout: 10_000 });
     const C = [

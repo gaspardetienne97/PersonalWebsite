@@ -11,7 +11,17 @@ import {
   PORTS,
   type FakePort,
 } from "../../../e2e/music/fixtures";
-import { hasCheck, jitter, mode, shot, think, startTheme, VIEWPORTS, type Width } from "./lib";
+import {
+  hasCheck,
+  jitter,
+  mode,
+  openSetup,
+  shot,
+  think,
+  startTheme,
+  VIEWPORTS,
+  type Width,
+} from "./lib";
 
 export { hasCheck, mode, PORTS, shot, think, VIEWPORTS, type Width };
 /** Instrument drills: laptop and tablet landscape (usable on a phone, but not shot there). */
@@ -403,7 +413,9 @@ export async function captureLesson(page: Page, F: string, url: string, width: W
   await lessons(page, true);
   await open(page, url);
   let found = await lessonView(page).isVisible();
-  const check = page.getByRole("group", { name: "Mode" }).getByRole("button", { name: "Check" });
+  // Check lives in Setup, behind the setup sentence.
+  if (!found) await openSetup(page);
+  const check = page.locator('[data-setup="run-mode"]').getByRole("button", { name: "Check" });
   if (!found && (await check.count())) {
     // A plain click: `mode` would close the concept card this is here to shoot.
     await check.click();

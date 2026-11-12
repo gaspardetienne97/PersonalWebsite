@@ -2,7 +2,7 @@
 // eighths, swing 66 on a straight-written groove, a triplet fill, and a loop
 // under Improvise, played over fake MIDI stamped with each hit's exact time.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow, installFakeMidi, PORTS } from "./fixtures";
+import { expectNoHorizontalOverflow, installFakeMidi, PORTS, openSetup } from "./fixtures";
 
 const SHOTS = "docs/screenshots/rebuild/pads-meters";
 
@@ -122,12 +122,12 @@ test.describe("shuffles, odd meters and swing", () => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/pads?mode=groove&groove=swing-62&swing=66&bpm=80");
     await expect(page.getByText("Setup:").locator("..")).toContainText("swing 66%");
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await expect(page.getByRole("button", { name: "66%", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await page.getByRole("button", { name: "Hide setup" }).click();
+    await openSetup(page, false);
     const targets = await play(page, "pads-stage");
     // At 80 BPM a beat is 750 ms: the second hat at 0.33 of it.
     expect(targets.filter(([pad]) => pad === 42)[1][1]).toBe(248);

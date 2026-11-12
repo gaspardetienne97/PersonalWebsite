@@ -3,7 +3,7 @@
 // Stick Control, the clave and generated reading lines, faded feedback in
 // Grooves, the feel ear drill and a loop built live in Create.
 import { expect, test, type Page } from "@playwright/test";
-import { installFakeMidi, PORTS } from "./fixtures";
+import { installFakeMidi, PORTS, openSetup, pickMode } from "./fixtures";
 
 const PORT = PORTS.keys.id;
 
@@ -184,7 +184,7 @@ test.describe("beat making on the pads", () => {
     test.setTimeout(120_000);
     await enableMidi(page, "/music/pads?mode=song&bpm=160");
     // A new piece comes in the set's shape, saved with the settings.
-    await page.getByRole("button", { name: "Setup", exact: true }).click();
+    await openSetup(page);
     await page.getByRole("button", { name: "Write a new piece" }).click();
     await expect(page.getByTestId("set-check")).toContainText("In the set's shape");
     await expect(page.getByTestId("song-builder").getByRole("listitem")).toHaveCount(7);
@@ -284,7 +284,7 @@ test.describe("beat making on the pads", () => {
   test("faded feedback: the guide for two plays, then on your own", async ({ page }) => {
     test.setTimeout(60_000);
     await enableMidi(page, "/music/pads?mode=groove&groove=basic-rock&bpm=100&fade=true");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "the guide fades after 2 plays",
     );
@@ -301,7 +301,7 @@ test.describe("beat making on the pads", () => {
   test("feel: ten grooves named in Check", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/music/ear/feel");
-    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await pickMode(page, "Check");
     await page.getByRole("button", { name: /^Start/ }).click();
     const label: Record<string, string> = {
       straight: "Straight",

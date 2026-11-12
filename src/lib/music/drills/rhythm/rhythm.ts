@@ -6,15 +6,6 @@ import type { RhythmPatternDef } from "@repo/music-core/data/index";
 import { RHYTHM_PATTERNS, type RhythmPlan } from "@repo/music-core/content/rhythm";
 import type { RhythmHit } from "@repo/music-core/scoring/rhythm";
 
-/** The five rhythm exercises, as the shell's tab row. */
-export const RHYTHM_TABS = [
-  { id: "pulse", label: "Pulse" },
-  { id: "read-and-tap", label: "Read and tap" },
-  { id: "echo", label: "Echo" },
-  { id: "dictation", label: "Dictation" },
-  { id: "groove", label: "Groove dictation" },
-] as const;
-
 /**
  * The read-and-tap list: the rhythms, then the strums for this instrument under
  * their own heading. The plain quarter pulse is Pulse mode, so it stays out.

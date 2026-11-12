@@ -1,7 +1,7 @@
 // The note highway on guitar and ukulele: notes scroll into the now line on the
 // run's own clock, and each fret tap is judged perfect, early, late or missed.
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoHorizontalOverflow } from "./fixtures";
+import { expectNoHorizontalOverflow, pickMode } from "./fixtures";
 
 const SHOTS = process.env.HIGHWAY_SHOTS ?? "test-results/highway";
 const fret = (s: number, f: number) => `button[aria-label^="String ${s} fret ${f},"]`;
@@ -13,14 +13,14 @@ async function shoot(page: Page, name: string) {
 
 /** Start a Practice run and wait for the count-in's clock to be published. */
 async function startRun(page: Page) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.locator("[data-step-ms][data-downbeat]")).toHaveCount(1, { timeout: 10_000 });
 }
 
 /** Start a run on a drill without a step clock (changes): wait for the shell's "Go.". */
 async function startRun2(page: Page) {
-  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  await pickMode(page, "Practice");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(/Go\.|Play/, { timeout: 10_000 });
 }
