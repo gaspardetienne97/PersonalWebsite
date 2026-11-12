@@ -1,5 +1,5 @@
-// Library (songs, reference, import), Song Studio, Jam and the Practice Lab:
-// each route loads without sideways scroll, imports land in Songs, Song Studio
+// Library (songs, reference, import), Song practice, Jam and the Practice Lab:
+// each route loads without sideways scroll, imports land in Songs, Song practice
 // runs wait and performance passes over fake MIDI, views survive reload and
 // Back, Jam reports on a chorus, and a Lab take survives a reload.
 import { expect, test, type Page } from "@playwright/test";
@@ -92,7 +92,7 @@ async function openOde(page: Page, query = "") {
   }
 }
 
-test.describe("library and song studio", () => {
+test.describe("library and song practice", () => {
   test.beforeEach(async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await page.setViewportSize({ width: 1280, height: 1000 });
@@ -153,7 +153,7 @@ test.describe("library and song studio", () => {
     await shoot(page, "reference");
   });
 
-  test("song studio: wait pass and a performance take to results", async ({ page }) => {
+  test("song practice: wait pass and a performance take to results", async ({ page }) => {
     await importOde(page);
     await openOde(page, "?mode=wait");
     await expectNoHorizontalOverflow(page);
@@ -193,7 +193,7 @@ test.describe("library and song studio", () => {
     await shoot(page, "studio-performance-results");
   });
 
-  test("song studio: a drum part on MPC pads, graded by drum", async ({ page }) => {
+  test("song practice: a drum part on MPC pads, graded by drum", async ({ page }) => {
     // Bass plus a channel-10 kit (e2e/music/fixtures/back-beat.mid, written with @tonejs/midi):
     // kick and closed hat, snare, open hat, kick.
     await seedSettings(page, { activeInstrument: "mpc" });
@@ -241,7 +241,7 @@ test.describe("library and song studio", () => {
     await shoot(page, "studio-drums");
   });
 
-  test("song studio: fix the trouble spot loops the bar until it is clean", async ({ page }) => {
+  test("song practice: fix the trouble spot loops the bar until it is clean", async ({ page }) => {
     test.setTimeout(60_000);
     await importOde(page);
     await openOde(page, "?mode=wait&range=whole");
@@ -300,7 +300,7 @@ test.describe("library and song studio", () => {
     await expect(page.getByText("Setup:").locator("..")).toContainText("Bb, Barre at fret 1");
   });
 
-  test("song studio: views survive reload and Back", async ({ page }) => {
+  test("song practice: views survive reload and Back", async ({ page }) => {
     await importOde(page);
     await openOde(page);
     const views = page.getByRole("navigation", { name: "Score view" });
@@ -329,7 +329,7 @@ test.describe("library and song studio", () => {
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
   });
 
-  test("song studio falling notes: lanes over the keys, bar numbers, right and wrong keys", async ({
+  test("song practice falling notes: lanes over the keys, bar numbers, right and wrong keys", async ({
     page,
   }) => {
     await importOde(page);
@@ -364,7 +364,7 @@ test.describe("library and song studio", () => {
     await shoot(page, "studio-falling-run");
   });
 
-  test("song studio review: back, metronome, steady tab, sections, fitting, hand colours, delete", async ({
+  test("song practice review: back, metronome, steady tab, sections, fitting, hand colours, delete", async ({
     page,
   }) => {
     await importOde(page);
