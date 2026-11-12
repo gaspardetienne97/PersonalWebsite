@@ -164,7 +164,7 @@ export function fretboardLessons(
           },
           {
             title: "The natural notes",
-            text: `The natural notes are A B C D E F G, then A again. There is a sharp between most of them, but not between B and C or between E and F. The ${name(low)} string below shows the naturals in its first five frets.`,
+            text: `The natural notes are A B C D E F G, then A again. There's a sharp between most of them, but not between B and C or between E and F. The ${name(low)} string below shows the naturals in its first five frets.`,
             figure: fig(naturals),
           },
           {

@@ -364,7 +364,7 @@ function guideTonesLesson(): Lesson {
     screens: [
       {
         title: "The notes that name a chord",
-        text: `The 3rd says whether a chord is major or minor, and the 7th says what kind of seventh it is. Together they are the guide tones. In ${dm.slot.symbol} they are ${dm.a.tone.name} and ${dm.b.tone.name}.`,
+        text: `The 3rd says whether a chord is major or minor, and the 7th says what kind of seventh it is. Together they're the guide tones. In ${dm.slot.symbol} they are ${dm.a.tone.name} and ${dm.b.tone.name}.`,
         figure: fig(dm),
         sound: { notes: [{ midi: [dm.a.midi, dm.b.midi], at: 0, dur: 1.6 }] },
       },
@@ -425,7 +425,7 @@ const thirdsCard = (): Lesson => {
     screens: [
       {
         title: "The 3rd of each new chord",
-        text: `Land on the 3rd of every chord that differs from the one before, ${WINDOW}. The score is the share of changes landed, and the aim is ${pct("thirds", "thirds")}%. A 7th does not count here, and on a sus chord the 4th stands in for the 3rd.`,
+        text: `Land on the 3rd of every chord that differs from the one before, ${WINDOW}. The score is the share of changes landed, and the aim is ${pct("thirds", "thirds")}%. A 7th doesn't count here, and on a sus chord the 4th stands in for the 3rd.`,
         steps: slots.map((s) => ({
           text: `${s.symbol}: land on ${third(s).name}.`,
           figure: keys(
@@ -458,7 +458,7 @@ const setCard = (id: string, intro: string): Lesson => {
     screens: [
       {
         title: "The notes you may use",
-        text: `${intro} The numbers count up the key's scale from its tonic, and b means a half step lower. In the key of C that is ${join(names)}.`,
+        text: `${intro} The numbers count up the key's scale from its tonic, and b means a half step lower. In the key of C that's ${join(names)}.`,
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
         sound: { notes: notes.map((m, i) => ({ midi: [m], at: i * 0.45, dur: 0.4 })) },
       },
@@ -481,7 +481,7 @@ const setCard = (id: string, intro: string): Lesson => {
         title: rests ? "Notes and rests" : "A line that passes",
         text: rests
           ? `Rests count too: the aim is ${aimOf(id, "rests")} silences of two beats or more in a chorus, measured from when you let go of a note. This line plays two notes, then rests for two beats, in every bar.${b3 === undefined ? ` ${check}` : ""}`
-          : `This plays the ${set.length} notes up and back down. Time and rests are not graded in this game, only the notes.${b3 === undefined ? ` ${check}` : ""}`,
+          : `This plays the ${set.length} notes up and back down. Only the notes are scored in this game, not time or rests.${b3 === undefined ? ` ${check}` : ""}`,
         sound: soundOf(rests ? restingLine(set) : setLine(set)),
       },
     ],
@@ -548,7 +548,7 @@ function approachLesson(): Lesson {
     screens: [
       {
         title: "Lean in from a half step",
-        text: `An approach note is a half step above or below the note you are heading for. Check wants a chord tone on beat 1 of your bars, with the note played just before it a half step away. The score is the share of your bars that do, and the aim is ${pct("approach", "approach")}%, so an empty bar of yours counts as a miss.`,
+        text: `An approach note is a half step above or below the note you're heading for. Check wants a chord tone on beat 1 of your bars, with the note played just before it a half step away. The score is the share of your bars that do, and the aim is ${pct("approach", "approach")}%, so an empty bar of yours counts as a miss.`,
         figure: marks({ [target.midi - 1]: "below", [target.midi + 1]: "above" }),
       },
       {
@@ -571,7 +571,7 @@ function approachLesson(): Lesson {
       },
       {
         title: "When to play it",
-        text: "The approach note should start in the beat before beat 1, such as on the last beat of the bar before or the and of that beat, and it is the last note you play before the target. Either side works, so mix them up.",
+        text: "The approach note should start in the beat before beat 1, such as on the last beat of the bar before or the and of that beat. It's the last note you play before the target. Either side works, so mix them up.",
       },
       {
         title: "A line that passes",
@@ -650,7 +650,7 @@ function bridgeCard(): Lesson {
     screens: [
       {
         title: "Only the bridge counts",
-        text: `The A sections are not graded: rest in them or play the head. In the bridge, land a 3rd or 7th ${WINDOW} for ${pct("bridge", "landings")}% of the changes. A tune with no section marked B is graded on every bar.`,
+        text: `The A sections aren't scored: rest in them or play the head. In the bridge, land a 3rd or 7th ${WINDOW} for ${pct("bridge", "landings")}% of the changes. A tune with no section marked B is scored on every bar.`,
         figure: keys(
           Object.fromEntries(changes.map((c) => [near(pc(thirdOf(c.symbol).midi), 66), c.symbol])),
           changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
@@ -735,7 +735,7 @@ function sideSlipLesson(): Lesson {
       },
       {
         title: "Slide a phrase up",
-        text: `The easy way: take a phrase from the scale and play it all a half step higher. Tap Next to try it on ${s.symbol}.`,
+        text: `One way in: take a phrase from the scale and play it all a half step higher. Tap Next to try it on ${s.symbol}.`,
         steps: [
           {
             text: `The first four notes of the ${s.symbol} scale: ${join(plain.map(spell))}.`,

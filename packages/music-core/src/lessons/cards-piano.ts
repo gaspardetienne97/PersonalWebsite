@@ -135,7 +135,7 @@ export function guideTones(): Lesson {
     screens: [
       {
         title: "The 3rd and the 7th",
-        text: "A chord's 3rd and 7th say what kind of chord it is. The drill asks for just those two notes of each chord, in turn, through as many keys as the Keys setting says. Each time it asks for the pair nearest the one before.",
+        text: "A chord's 3rd and 7th say what kind of chord it is. The drill asks for those two notes of each chord in turn, through as many keys as the Keys setting says. Each time it asks for the pair nearest the one before.",
         steps: info.map((x) => ({
           text: `${x.s}: the 3rd is ${flat(x.third)} and the 7th is ${flat(x.seventh)}.`,
           figure: keys(
@@ -168,7 +168,7 @@ export function gospel(id: string): Lesson {
     screens: [
       {
         title: "Chords over a moving bass",
-        text: `${prog.about} The note after a slash is the bass; with no slash the bass is the root. In C, tap Next for each chord.`,
+        text: `${prog.about} The note after a slash is the bass, and with no slash the bass is the root. In C, tap Next for each chord.`,
         steps: bars.map((b) => ({
           text: `${b.symbol}: the bass is ${bassName(b.symbol)} and the other notes are in ${inv[b.inversion] ?? "an inversion"}.`,
           figure: keys(
@@ -252,14 +252,14 @@ export function chordScalesMinor(): Lesson {
         title: "A scale for each chord",
         text: `Over each chord of a minor ii-V-i you play its go-to scale. In C minor, ${ts[0].symbol} takes ${ts[0].scaleLabel}, ${ts[1].symbol} takes ${ts[1].scaleLabel} and ${ts[2].symbol} takes ${ts[2].scaleLabel}. Tap Next for the notes of each.`,
         steps: ts.map((t) => ({
-          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} ${outside(t).length > 1 ? "are" : "is"} not in C natural minor.` : "All of it is in C natural minor."}`,
+          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} ${outside(t).length > 1 ? "aren't" : "isn't"} in C natural minor.` : "It's all in C natural minor."}`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
         })),
       },
       {
         title: "Notes outside the key",
-        text: "The altered V brings notes the key does not have, such as the B that leads up to C. The ii and the i stay close to the key. In Check the keys stay dark, so know each scale's notes.",
+        text: "The altered V brings notes the key doesn't have, such as the B that leads up to C. The ii and the i stay close to the key. In Check the keys stay dark, so know each scale's notes.",
       },
     ],
   };

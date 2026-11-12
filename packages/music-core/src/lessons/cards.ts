@@ -117,7 +117,7 @@ function majorFormula(o: CardOpts = {}): Lesson {
       },
       {
         title: "Find it in Check",
-        text: `Check hides the notes, so the formula is your map. In any major scale the half steps fall between ${halves.map((i) => `notes ${i + 1} and ${i + 2}`).join(", and between ")}. In C that is ${join(halves.map((i) => `${names[i]} to ${names[i + 1]}`))}.`,
+        text: `Check hides the notes, so the formula is your map. In any major scale the half steps fall between ${halves.map((i) => `notes ${i + 1} and ${i + 2}`).join(", and between ")}. In C that's ${join(halves.map((i) => `${names[i]} to ${names[i + 1]}`))}.`,
         figure: draw(
           names.map((nm, i) => (halves.some((h) => i === h || i === h + 1) ? nm : null)),
         ),
@@ -273,7 +273,7 @@ function rootless(o: CardOpts): Lesson {
       },
       {
         title: "The voices barely move",
-        text: `Between one chord and the next in the same key, each of the four upper notes moves a whole step at most, counting note names and ignoring which octave the keys show. Some do not move at all. In Check the keys stay dark, so work out each chord's notes from its position.`,
+        text: `Between one chord and the next in the same key, each of the four upper notes moves a whole step at most, counting note names and ignoring which octave the keys show. Some don't move at all. In Check the keys stay dark, so work out each chord's notes from its position.`,
       },
     ],
   };
@@ -364,7 +364,7 @@ function cadence(minor: boolean): Lesson {
           }
         : {
             title: "V7 pulls home",
-            text: "The 7th of V7 falls a half step to the 3rd of the tonic chord, and the 3rd of V7 rises a half step to the tonic. That pull is what to listen for in Check, where the keys stay dark.",
+            text: "The 7th of V7 falls a half step to the 3rd of the tonic chord. The 3rd of V7 rises a half step to the tonic. That pull is what to listen for in Check, where the keys stay dark.",
           },
     ],
   };
@@ -418,7 +418,7 @@ function chordSymbols(): Lesson {
       },
       {
         title: "Slashes",
-        text: "A note after a slash is the lowest note: C/E is a C chord with E in the bass, and Am/G is A minor with G in the bass. You choose how to place the notes.",
+        text: "A note after a slash is the lowest note. C/E is a C chord with E in the bass, and Am/G is A minor with G in the bass. You choose how to place the notes.",
       },
     ],
   };
@@ -452,7 +452,7 @@ function whyDorian(): Lesson {
         title: "All three chords",
         text: "The scale starts from a different note for each chord. Tap Next for each chord and whether its scale stays inside the key.",
         steps: ts.map((t) => ({
-          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} is not in C major.` : "All of it is in C major."}`,
+          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} isn't in C major.` : "It's all in C major."}`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
         })),
@@ -513,7 +513,7 @@ const TIPS: Record<string, (o: CardOpts) => Lesson> = {
       },
       {
         title: "If a note is missing",
-        text: "A string that is dead or buzzing usually has a finger resting on it, or pressing away from the fret. Press with the tip of the finger, close behind the fret. The app checks each chord tone, so a muted string can show up as a missing one.",
+        text: "A dead or buzzing string usually has a finger resting on it, or pressing away from the fret. Press with the tip of the finger, close behind the fret. The app checks each chord tone, so a muted string can show up as a missing one.",
       },
     ]),
   "tips.chords": (o) =>

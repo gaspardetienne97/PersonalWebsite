@@ -511,7 +511,7 @@ const scales = {
     const run = scaleRun60(token);
     return card(`ear.scales:${token}`, s.name, {
       title: s.name,
-      text: `Listen for ${COLOUR[token]}. A low tonic is held under the scale, which here goes up.`,
+      text: `Listen for ${COLOUR[token]}. A low tonic holds under the scale, which here goes up.`,
       figure: keys(marksOf(run)),
       sound: sound(scalePlayback(60, token, "ascending")),
     });
@@ -547,7 +547,7 @@ const inversions = {
     ];
     return card(`ear.inversions:${token}`, inv.name, {
       title: inv.name,
-      text: `The ${BASS_TONE[inv.position]} of the chord is the lowest note, with the same note again an octave higher. Here, in ${inv.seventh ? "C7" : "C major"}, that is ${name(bass)}.`,
+      text: `The ${BASS_TONE[inv.position]} of the chord is the lowest note, with the same note again an octave higher. Here, in ${inv.seventh ? "C7" : "C major"}, that's ${name(bass)}.`,
       figure: keys(marksOf(voicing)),
       sound: { notes },
     });

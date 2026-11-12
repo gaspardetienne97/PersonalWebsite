@@ -317,13 +317,13 @@ function rudimentCard(key: string): Lesson | null {
   if (key === "stick-control") {
     return card("pads.rudiments:stick-control", "Stick Control", {
       title: "Stick Control",
-      text: `Page one of Stick Control is every four-note sticking of R and L, ${RUDIMENTS.filter((r) => r.hits).length} in all, in eighths. Each is played ${d.hits! / d.unit.length} times on one pad a hand, so the app can check the sticking. The label gives the sticking, such as ${sticking(d.unit)}.`,
+      text: `Page one of Stick Control is every four-note sticking of R and L, ${RUDIMENTS.filter((r) => r.hits).length} in all, in eighths. You play each ${d.hits! / d.unit.length} times on one pad a hand, so the app can check the sticking. The label gives the sticking, such as ${sticking(d.unit)}.`,
       figure: handPads(d.id),
       sound: rudimentSound(d.id),
     });
   }
   const grid = d.subdivision
-    ? `It is timed in ${SUBDIVISION_NAMES[d.subdivision]}.`
+    ? `It's timed in ${SUBDIVISION_NAMES[d.subdivision]}.`
     : d.perBeat
       ? `It plays ${d.perBeat.join(", ")} notes in successive beats, timed on its closest spacing, ${SUBDIVISION_NAMES[rudimentPerBeat(d, 2)]}.`
       : "It uses the subdivision you pick.";
@@ -335,7 +335,7 @@ function rudimentCard(key: string): Lesson | null {
   ];
   if (d.flam)
     parts.push(
-      `Each stroke has a grace note on the other pad ${MPC_RUDIMENTS.flamGraceMs} ms before it, and only the main strokes are graded.`,
+      `Each stroke has a grace note on the other pad ${MPC_RUDIMENTS.flamGraceMs} ms before it, and only the main strokes are scored.`,
     );
   else if (d.accentMode === "moving") parts.push("The accent moves one note later each beat.");
   else if (d.accents)
@@ -513,7 +513,7 @@ function grooveCard(item: string): Lesson | null {
     const hits: Hit[] = g.targets.filter((t) => t.beat >= 8 && t.beat < 16);
     return card(id, "Fills", {
       title: "Fills",
-      text: `A fill is a short burst of drum hits that marks the end of a phrase. In these grooves it is the last bar of four, and the next phrase starts back on the one. The grid shows the last two bars of "${g.label}".`,
+      text: `A fill is a short burst of drum hits that marks the end of a phrase. In these grooves it's the last bar of four, and the next phrase starts back on the one. The grid shows the last two bars of "${g.label}".`,
       figure: gridOf(hits, 8, 2),
       sound: soundOf(hits, { from: 8 }),
     });
@@ -632,7 +632,7 @@ function grooveCard(item: string): Lesson | null {
       },
       {
         title: "Feel it",
-        text: "Count the beats, not the late notes: the swung one should feel lazy, not placed. On a swung groove the results show Swing played, where your notes on the e and the a landed against the groove's swing. It does not change the pass.",
+        text: "Count the beats, not the late notes: the swung one should feel lazy, not placed. On a swung groove the results show Swing played, where your notes on the e and the a landed against the groove's swing. It doesn't change the pass.",
       },
     );
   }
@@ -691,7 +691,7 @@ function fillsIntro(): Lesson {
     },
     {
       title: "Do not rush",
-      text: `If the fill's notes come more than ${FILL.rushMs} ms early on average, the fill counts as rushed and the run is not clean. Tap On time, or Rushed to hear the fill ${FILL_DEMO_MS} ms early.`,
+      text: `If the fill's notes come more than ${FILL.rushMs} ms early on average, the fill counts as rushed and the run isn't clean. Tap On time, or Rushed to hear the fill ${FILL_DEMO_MS} ms early.`,
       figure: gridOf(grid, 0, 2),
       options: [
         { label: "On time", sound: play() },
@@ -842,7 +842,7 @@ function ostinatoIntro(): Lesson {
       ],
     },
     {
-      title: "How it is graded",
+      title: "How it's scored",
       text: `The drill counts how many ostinato notes you hit alone, then under the line. The ostinato holds when the rate under the line is no more than ${Math.round(OSTINATO.maxDrop * 100)} percentage points below the rate alone. The run also needs the groove itself to be correct.`,
     },
   );
@@ -990,11 +990,11 @@ function repeatIntro(): Lesson {
     },
     {
       title: "Pressure",
-      text: "If your pads send aftertouch, pressure sets the level of the repeats. If they do not, every repeat keeps the level of your first hit.",
+      text: "If your pads send aftertouch, pressure sets the level of the repeats. If they don't, every repeat keeps the level of your first hit.",
     },
     {
       title: "Builds",
-      text: `The build goes ${list(runs)}, louder all the way. It is judged on how steadily the level climbs and on covering at least ${Math.round(BUILD.span * 100)} percent of your soft to loud range, and only when your pads send velocity.`,
+      text: `The build goes ${list(runs)}, louder all the way. It's scored on how steadily the level climbs and on covering at least ${Math.round(BUILD.span * 100)} percent of your soft to loud range. That needs pads that send velocity.`,
     },
   );
 }
@@ -1038,7 +1038,7 @@ function songIntro(): Lesson {
     "Song form",
     {
       title: "One take",
-      text: "A piece is a list of sections, such as an intro, a groove, a build and a drop. You play it from start to end in one take, and each section is graded on its own.",
+      text: "A piece is a list of sections, such as an intro, a groove, a build and a drop. You play it from start to end in one take, and each section is scored on its own.",
       // Four bars as four sections: an intro on the hats, a groove, a snare build, a drop on the one.
       figure: gridOf(
         [
@@ -1071,7 +1071,7 @@ function songIntro(): Lesson {
     },
     {
       title: "How a section passes",
-      text: `A section passes with at least ${Math.round(SECTION_PASS.matched * 100)} percent of its notes matched, no more than ${Math.round(SECTION_PASS.extraShare * 100)} percent of them as extra hits (one is always allowed), and its level in band when your pads send velocity. The run is correct when every section passes.`,
+      text: `A section passes with at least ${Math.round(SECTION_PASS.matched * 100)} percent of its notes matched and no more than ${Math.round(SECTION_PASS.extraShare * 100)} percent of them as extra hits (one is always allowed). When your pads send velocity, its level must be in band too. The run is correct when every section passes.`,
     },
   );
 }
@@ -1222,7 +1222,7 @@ function dynamicsIntro(): Lesson {
     "Dynamics",
     {
       title: "Velocity",
-      text: "How hard you strike a pad is its velocity, a MIDI number from 1 to 127. The drill reads it from the MPC with Full Level off; the pads on screen send none. Tap Soft and Loud to hear the two ends.",
+      text: "How hard you strike a pad is its velocity, a MIDI number from 1 to 127. The drill reads it from the MPC with Full Level off, and the pads on screen send none. Tap Soft and Loud to hear the two ends.",
       options: [
         { label: "Soft", sound: snareAt(0.1) },
         { label: "Loud", sound: snareAt(0.9) },
@@ -1315,7 +1315,7 @@ function phraseCard(id: string): Lesson | null {
   if (voices.length === 1)
     return card(`pads.phrases:${id}`, g.label, {
       title: g.label,
-      text: `${r.feel} It is all on ${drum(voices[0])}, on ${counts(voices[0])}.`,
+      text: `${r.feel} It's all on ${drum(voices[0])}, on ${counts(voices[0])}.`,
       figure: figure(all),
       sound,
     });

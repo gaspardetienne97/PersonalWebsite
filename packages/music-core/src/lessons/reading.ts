@@ -464,13 +464,13 @@ const BASS_CHORDS: ItemText = {
 const ITEM_TEXT: Record<string, ItemText> = {
   ties: {
     title: "Ties",
-    text: "A tie is a curved line joining two notes of the same pitch. Play the first, hold through the second, and do not play it again.",
+    text: "A tie is a curved line joining two notes of the same pitch. Play the first, hold through the second, and don't play it again.",
     // The middle half note crosses the bar line, so it is written as two tied quarters.
     bar: { beats: 2, notes: [1, 2, 1] },
   },
   "dotted-quarter": {
     title: "Dotted quarter notes",
-    text: "A dotted quarter note is a quarter note plus an eighth note, so it is as long as three eighth notes. A dot always adds half of the note's own length.",
+    text: "A dotted quarter note is a quarter note plus an eighth note, so it's as long as three eighth notes. A dot always adds half of the note's own length.",
     bar: { beats: 2, notes: [1.5, 0.5] },
   },
   syncopation: {
@@ -505,7 +505,7 @@ const ITEM_TEXT: Record<string, ItemText> = {
   },
   "clef-change": {
     title: "Clef changes",
-    text: "For a bar or two the left hand may read in the treble clef, and a small clef sign on the staff marks the change. A bass clef sign marks the return.",
+    text: "For a bar or two the left hand may read in the treble clef. A small clef sign on the staff marks the change, and a bass clef sign marks the return.",
     // Notes around middle C as the left hand reads them in the treble clef.
     figure: quarters("treble", [60, 62, 64, 65]),
   },
@@ -578,7 +578,7 @@ function restsLesson(clef: Clef): Lesson {
   const SCREENS = [
     {
       title: "Long rests",
-      text: "A rest is a silence as long as the note it is named after. The whole rest hangs below a line and the half rest sits on top of one. Tap Next to see each rest after its note.",
+      text: "A rest is a silence as long as the note it's named after. The whole rest hangs below a line and the half rest sits on top of one. Tap Next to see each rest after its note.",
     },
     {
       title: "Shorter rests",
@@ -975,14 +975,14 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
         drill === "peak"
           ? intro(
               "Hearing a boosted band",
-              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band boosted, like the bump drawn here. Flip between them as often as you like, then name the band.",
+              "Each question gives you one loop in two versions. Flat is untouched, and Changed has one band boosted, like the bump drawn here. Flip between them as often as you like, then name the band.",
               "Boosting a low band makes the sound heavier or boomier, and boosting a high band makes it brighter or hissier. A band you miss comes back more often.",
               eqFig(1000, g),
             )
           : intro(
               "Hearing a cut band",
-              "Each prompt gives you one loop in two versions. Flat is untouched, and Changed has one band cut, like the dip drawn here. Flip between them as often as you like, then name the band.",
-              "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you are listening for what has gone.",
+              "Each question gives you one loop in two versions. Flat is untouched, and Changed has one band cut, like the dip drawn here. Flip between them as often as you like, then name the band.",
+              "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you're listening for what's gone.",
               eqFig(1000, -g),
             ),
         card(
@@ -1008,7 +1008,7 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
         lesson("listening.boost-or-cut", "Boost or cut", [
           {
             title: "Flat, then Changed",
-            text: "Changed has one band either boosted or cut. You decide which, and the band does not matter for the answer. Changed is turned up or down to match Flat's loudness, so a louder sound is not the clue.",
+            text: "Changed has one band either boosted or cut. You decide which, and the band doesn't matter for the answer. Changed is turned up or down to match Flat's loudness, so a louder sound isn't the clue.",
             figure: eqFig(1000, g),
           },
           {

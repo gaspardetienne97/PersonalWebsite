@@ -89,7 +89,7 @@ const longTone = (): Lesson => ({
     },
     {
       title: "What you hear here",
-      text: "Hear it plays a note at one fixed loudness for three seconds. The app cannot play your breath, so this shows the pitch and the length, not how your air should feel. The breath sensor reads from 0 for no air to 1 for full (it arrives as MIDI CC 2).",
+      text: "Hear it plays a note at one fixed loudness for three seconds. The app can't play your breath, so this shows the pitch and the length, not how your air should feel. The breath sensor reads from 0 for no air to 1 for full (it arrives as MIDI CC 2).",
       sound: held(67, 3),
     },
     {
@@ -117,7 +117,7 @@ const breathLevels = (): Lesson => ({
     },
     {
       title: "Hear the four loudnesses",
-      text: "Each button plays a note at the middle of its band, louder for a higher level. The drill reads your breath, not the loudness of a note, and the app cannot play a breath, so this is only a picture of soft to loud.",
+      text: "Each button plays a note at the middle of its band, louder for a higher level. The drill reads your breath, not the loudness of a note, and the app can't play a breath, so this is only a picture of soft to loud.",
       options: BREATH_LEVELS.map((l) => ({
         label: l.id,
         sound: held(67, 2, (l.band[0] + l.band[1]) / 2),
@@ -125,7 +125,7 @@ const breathLevels = (): Lesson => ({
     },
     {
       title: "How a level is scored",
-      text: "In practice mode the breath trace shows a dashed line at the middle of the band. Half the score is the share of the hold with your breath inside the band, and the hold passes only when most of it is. These bands are starting values, so where soft and loud land depends on your sensor and how you blow.",
+      text: "In Practice the breath trace shows a dashed line at the middle of the band. Half the score is the share of the hold with your breath inside the band, and the hold passes only when most of it is. These bands are starting values, so where soft and loud land depends on your sensor and how you blow.",
     },
   ],
 });
@@ -150,7 +150,7 @@ const articulation = (): Lesson => {
         title: "One tongue a beat",
         figure: { kind: "aerophone", midi: 67 },
         sound: run((STACCATO + LEGATO) / 2),
-        text: "The drill plays a click at the practice strip's tempo. You tongue the same note once on each click, for as many notes as you set.",
+        text: "The drill plays a click at the top bar's tempo. You tongue the same note once on each click, for as many notes as you set.",
       },
       {
         title: "Staccato and legato",
@@ -162,11 +162,11 @@ const articulation = (): Lesson => {
       },
       {
         title: "Tonguing on a breath sensor",
-        text: `A tongued note stops the air for a moment, so the breath dips. The drill counts a dip under ${pct(ATTACK.dip)} percent of your usual breath as a tongue stop, and the rise after it as the attack, because the instrument may keep sounding and send no new note.`,
+        text: `A tongued note stops the air for a moment, so the breath dips. The drill counts a dip under ${pct(ATTACK.dip)} percent of your usual breath as a tongue stop, and the rise after it as the attack. It reads the breath because the instrument may keep sounding and send no new note.`,
       },
       {
         title: "What the drill checks",
-        text: `It checks that every note is the target, how long each sounds against the style, and how close each attack lands to its click: within ${ATTACK.windowMs} ms, or a quarter of the beat if that is less. Note length needs the Aerophone's own note-offs, so the on-screen chart cannot measure it.`,
+        text: `It checks that every note is the target, how long each sounds against the style, and how close each attack lands to its click. An attack counts within ${ATTACK.windowMs} ms, or a quarter of the beat if that's less. Note length needs the Aerophone's own note-offs, so the on-screen chart can't measure it.`,
       },
     ],
   };
@@ -213,7 +213,7 @@ const landing = (shift: number): Lesson => {
       },
       {
         title: "Hearing it against the drone",
-        text: "Listen to the drone, think of the note an interval away, then finger it and play. The drill checks that the note your keys send is the target, not fine tuning, and the bite can bend pitch without changing the note.",
+        text: "Listen to the drone, think of the note an interval away, then finger it and play. The drill checks that the note your keys send is the target, not fine tuning. The bite can bend pitch without changing the note.",
       },
       {
         title: "What the drill checks",
@@ -234,11 +234,11 @@ const register = (pairId: string | undefined, shift: number): Lesson => ({
     {
       title: "Across the break",
       figure: { kind: "aerophone", midi: firstOctaveNote().midi - shift },
-      text: `A crossing goes back and forth between two notes whose fingerings differ, in eighths, with no stray note in between. On the chart, each note from ${octaveName()} up to the top of the octave uses the fingering of the note an octave below with the +1 key under the left thumb added.`,
+      text: `A crossing goes back and forth between two notes whose fingerings differ, in eighths, with no stray note in between. On the chart, each note from ${octaveName()} up to the top of the octave uses the fingering of the note an octave below, plus the +1 key under the left thumb.`,
     },
     {
       title: "Move everything together",
-      text: "The common slip is a stray note between the two, because the keys did not all change at the same moment. Step through this crossing's two fingerings and change only the keys that differ, all at once.",
+      text: "The common slip is a stray note between the two, because the keys didn't all change at the same moment. Step through this crossing's two fingerings and change only the keys that differ, all at once.",
       steps: crossingSteps(pairId, shift),
     },
     {
@@ -366,7 +366,7 @@ export function bendLesson(
       },
       {
         title: "Hear the target first",
-        text: "The drill shows your string and fret, names the target note and draws it as a dashed line. To hear it first, fret the target on the same string, 1 fret up for a half step or 2 for a whole step. The app cannot bend, so each button plays the two frets one after the other.",
+        text: "The drill shows your string and fret, names the target note and draws it as a dashed line. To hear it first, fret the target on the same string, 1 fret up for a half step or 2 for a whole step. The app can't bend, so each button plays the two frets one after the other.",
         options: [
           { label: "Half step", sound: pair(1), figure: to(1) },
           { label: "Whole step", sound: pair(2), figure: to(2) },
@@ -374,19 +374,19 @@ export function bendLesson(
       },
       {
         title: "Push with the ring finger",
-        text: "Bend with the ring finger, and put the first and second fingers on the same string behind it when the fret leaves room, so all three push together. Turn the wrist and forearm to push the string across the neck, not just the fingertip.",
+        text: "Bend with the ring finger. When the fret leaves room, put the first and second fingers behind it on the same string, so all three push together. Turn the wrist and forearm to push the string across the neck, not only the fingertip.",
       },
       {
-        title: "When it judges",
-        text: `The microphone judges where the bend settles. It does so once you have held it steady for ${BEND_SETTLE_MS} ms, or after ${secs(BEND_PROMPT_MS)} seconds if you never do, and a bend counts as held after ${BEND.holdMs} ms steady.`,
+        title: "When it measures",
+        text: `The microphone measures where the bend settles. It does so once you've held it steady for ${BEND_SETTLE_MS} ms, or after ${secs(BEND_PROMPT_MS)} seconds if you never do. A bend counts as held after ${BEND.holdMs} ms steady.`,
       },
       {
         title: "What the drill checks",
-        text: `A whole step is 200 cents and a half step 100. In tune is within ${BEND.inTune} cents of the target and close within ${BEND.close}, and past that it says flat, so push further, or sharp, so ease off.`,
+        text: `A whole step is 200 cents and a half step 100. In tune is within ${BEND.inTune} cents of the target and close is within ${BEND.close}. Past that it says flat, so push further, or sharp, so ease off.`,
       },
       {
         title: "Even vibrato",
-        text: `In the vibrato exercise you hold a ${instrument === "ukulele" ? "ukulele" : "guitar"} note and rock the string a little, evenly. A try counts when the drill hears vibrato, and it shows the rate, the width in cents and how even it was without judging them. The app cannot play vibrato either.`,
+        text: `In the vibrato exercise you hold a ${instrument === "ukulele" ? "ukulele" : "guitar"} note and rock the string a little, evenly. A try counts when the drill hears vibrato, and it shows the rate, the width in cents and how even it was without scoring them. The app can't play vibrato either.`,
       },
     ],
   };
@@ -436,7 +436,7 @@ export function pedalLesson(): Lesson {
       },
       {
         title: "Up and down at the change",
-        text: `At the next chord, play it, then lift the pedal just after it sounds and press straight back down. The old chord stops and the new one rings. Here that is ${a.symbol} to ${b.symbol}.`,
+        text: `At the next chord, play it, then lift the pedal just after it sounds and press straight back down. The old chord stops and the new one rings. Here that's ${a.symbol} to ${b.symbol}.`,
         figure: keys(marksOf(b), span),
         steps: [
           { text: `Play ${a.symbol} and press the pedal.`, figure: keys(marksOf(a), span) },
@@ -449,7 +449,7 @@ export function pedalLesson(): Lesson {
       },
       {
         title: "Why the order matters",
-        text: "Lifting before the new chord leaves a gap, and holding the pedal through the change blurs the two chords together. The app cannot press a pedal, so each button changes how long the first chord rings instead.",
+        text: "Lifting before the new chord leaves a gap, and holding the pedal through the change blurs the two chords together. The app can't press a pedal, so each button changes how long the first chord rings instead.",
         options: [
           { label: "Lifted early: a gap", sound: change(0.9) },
           { label: "Lift just after: clean", sound: change(second + PEDAL_EXAMPLE.liftMs / 1000) },

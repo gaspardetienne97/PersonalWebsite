@@ -498,16 +498,16 @@ describe("concept cards", () => {
     }
     const [l] = conceptCard("chord-scales.why");
     expect(l.screens[0].text).toContain("D Dorian: D E F G A B C");
-    expect(l.screens[1].steps![0].text).toContain("All of it is in C major");
-    expect(l.screens[1].steps![2].text).toContain("F# is not in C major");
+    expect(l.screens[1].steps![0].text).toContain("It's all in C major");
+    expect(l.screens[1].steps![2].text).toContain("F# isn't in C major");
   });
 
   it("the minor tab and the patterns have cards that match the data", () => {
     const ts = chordScaleTargets("minor", 0);
     expect(ts.map((t) => t.scaleLabel)).toEqual(["D Locrian", "G Altered", "C Dorian"]);
     const [m] = conceptCard("chord-scales.minor");
-    expect(m.screens[0].steps![0].text).toContain("All of it is in C natural minor");
-    expect(m.screens[0].steps![1].text).toContain("not in C natural minor");
+    expect(m.screens[0].steps![0].text).toContain("It's all in C natural minor");
+    expect(m.screens[0].steps![1].text).toContain("aren't in C natural minor");
     const [p] = conceptCard("chord-scales.patterns");
     expect(p.screens[0].steps![0].text).toContain(
       "Dm7: 1-2-3-5 is D E F A, and 3-5-7-9 is F A C E",

@@ -89,7 +89,7 @@ const ORDER: Lesson = {
     },
     {
       title: "Ready for the quiz",
-      text: `Next you are asked for the sharps or flats of a key, in order: ${list(SHARP_ORDER)} for sharps, ${list(FLAT_ORDER)} for flats. Go as fast as you can stay right.`,
+      text: `Next, name the sharps or flats of a key, in order: ${list(SHARP_ORDER)} for sharps, ${list(FLAT_ORDER)} for flats. Go as fast as you can stay right.`,
     },
   ],
 };
@@ -125,13 +125,13 @@ const COUNT: Lesson = {
     },
     {
       title: "Naming a flat key",
-      text: "A flat key is named by the second-to-last flat. The exception is F, which has 1 flat and has to be learned.",
+      text: "A flat key takes its name from the second-to-last flat. The exception is F, with 1 flat, which you have to learn.",
       steps: [-2, -3, -4, -1].map((f) => {
         const k = keyAt(f);
         return {
           text:
             f === -1
-              ? `${k.major} major has 1 flat, ${k.accidentals[0]}. There is no second-to-last, so learn it.`
+              ? `${k.major} major has 1 flat, ${k.accidentals[0]}. There's no second-to-last, so learn it.`
               : `${accidentalCount(f)}. The second-to-last is ${k.accidentals[-f - 2]}, so the key is ${k.major}.`,
           figure: sig(f, -f),
         };
@@ -163,7 +163,7 @@ const SIGNATURE: Lesson = {
     },
     {
       title: "Bass clef",
-      text: "The same signature is written on different lines in bass clef. The order of the sharps and flats stays the same.",
+      text: "In bass clef the same signature sits on different lines. The order of the sharps and flats stays the same.",
       steps: [3, -3].map((f) => ({
         text: `${keyAt(f).major} major on the bass staff: ${accidentalCount(f)}.`,
         figure: sig(f, Math.abs(f), "bass"),
@@ -171,21 +171,21 @@ const SIGNATURE: Lesson = {
     },
     {
       title: "From signature to key",
-      text: "With sharps, the key is a half step above the last sharp. With flats, it is the second-to-last flat, and F has 1 flat.",
+      text: "With sharps, the key is a half step above the last sharp. With flats, it's the second-to-last flat, and F has 1 flat.",
       steps: [4, -4].map((f) => {
         const k = keyAt(f);
         return {
           text:
             f > 0
               ? `${accidentalCount(f)}, the last is ${last(k.accidentals)}. A half step up gives ${k.major}.`
-              : `${accidentalCount(f)}, the second-to-last is ${k.accidentals[-f - 2]}. That is ${k.major}.`,
+              : `${accidentalCount(f)}, the second-to-last is ${k.accidentals[-f - 2]}. That's ${k.major}.`,
           figure: sig(f, Math.abs(f)),
         };
       }),
     },
     {
       title: "Ready for the quiz",
-      text: "You are shown a signature and asked for the key. Count first, then apply the rule for sharps or flats. Speed comes with practice.",
+      text: "You see a signature and name the key. Count first, then apply the rule for sharps or flats. Speed comes with practice.",
     },
   ],
 };
@@ -266,7 +266,7 @@ const CHORDS: Lesson = {
     },
     {
       title: "Any key, same shape",
-      text: "Pick any key and the wedge moves with it. The chords change, the numerals do not.",
+      text: "Pick any key and the wedge moves with it. The chords change, the numerals don't.",
       steps: [1, -1, 2].map((f) => ({
         text: `In ${keyAt(f).major}: ${diatonicChords(f)
           .map((c) => c.name)
@@ -362,7 +362,7 @@ const SECONDARY: Lesson = {
   screens: [
     {
       title: "A dominant for any chord",
-      text: "A secondary dominant is a dominant seventh a fifth above the chord it leads to. It is written V of, or V/ followed by the target.",
+      text: "A secondary dominant is a dominant seventh a fifth above the chord it leads to. It's written V of, or V/ followed by the target.",
       steps: [
         {
           text: `G7 is the V of C, a fifth above C.`,
@@ -418,7 +418,7 @@ function analysisLesson(): Lesson {
     screens: [
       {
         title: "Key and function",
-        text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. Fly Me to the Moon is our example. It starts in C.",
+        text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. The example is Fly Me to the Moon. It starts in C.",
         figure: wheel(0),
         steps: [0, 3, 4].map(chordStep),
       },
@@ -429,7 +429,7 @@ function analysisLesson(): Lesson {
       },
       {
         title: "V of",
-        text: "A dominant that resolves to a chord that is not the home key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
+        text: "A dominant that resolves to a chord other than the home key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
         steps: [5, 6, 7].map(chordStep),
       },
       {

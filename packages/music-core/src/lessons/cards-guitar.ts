@@ -132,12 +132,12 @@ export function caged(o: CardOpts): Lesson {
     screens: [
       {
         title: "Five shapes for one chord",
-        text: `CAGED names five shapes for a major chord, after the open chords C, A, G, E and D. The same chord can be played with each of them, in five places along the neck. Tap Next for where each sits${tuningText(t)}, counted from the root fret on string 6.`,
+        text: `CAGED names five shapes for a major chord, after the open chords C, A, G, E and D. Each one plays the same chord, in five places along the neck. Tap Next for where each sits${tuningText(t)}, counted from the root fret on string 6.`,
         steps,
       },
       {
         title: "Find it in Check",
-        text: "Check hides the notes of the shape. Know which shape it is, which strings it uses and where it sits, then play it from its lowest string up.",
+        text: "Check hides the notes of the shape. Know which shape it is, which strings it uses and where it sits. Then play it from its lowest string up.",
       },
     ],
   };
@@ -175,7 +175,7 @@ export function connectedBoxes(o: CardOpts): Lesson {
     screens: [
       {
         title: "One run through five boxes",
-        text: "The connected run joins the five boxes into one line up the neck. It plays box 1 from the low string to the high, then box 2 from the high string back to the low, and so on through box 5.",
+        text: "The connected run joins the five boxes into one line up the neck. It plays box 1 from the low string to the high, then box 2 from the high string back to the low. It carries on that way through box 5.",
         steps: bx.map((b, i) => ({
           text: `Box ${i + 1}: ${i % 2 ? "high string to low" : "low string to high"}, its lowest fret ${place(b.low)}.`,
         })),
@@ -269,7 +269,7 @@ export function triads(id: string, o: CardOpts): Lesson {
     screens: [
       {
         title: "Three inversions",
-        text: `A ${minor ? "minor" : "major"} triad can be played in three inversions, each higher up the neck than the one before. The drill plays them on strings ${Math.max(...stringsOf)} to ${Math.min(...stringsOf)}. Tap Next for ${root} ${minor ? "minor" : "major"}${tuningText(t)} at its lowest root fret.`,
+        text: `You can play a ${minor ? "minor" : "major"} triad in three inversions, each higher up the neck than the one before. The drill plays them on strings ${Math.max(...stringsOf)} to ${Math.min(...stringsOf)}. Tap Next for ${root} ${minor ? "minor" : "major"}${tuningText(t)} at its lowest root fret.`,
         steps: parts.map((ns) => {
           const ord = lowest(ns);
           return {

@@ -134,7 +134,7 @@ function voicingCard(id: JazzVoicingId, lessonId: string): Lesson {
         ),
       },
       {
-        title: "How it is stacked",
+        title: "How it's stacked",
         text: `Here is ${id === "monk" ? "the first chord with a cluster" : "the first one the drill gives"}, ${c.symbol}. Tap Next to add its notes from the bottom up.`,
         figure: marks([notes[0]]),
         steps,
@@ -300,15 +300,15 @@ export function findHomeLesson(): Lesson {
           step(0, "This is home."),
           step(1, "It moves away from home."),
           step(2, "It sounds unfinished and wants to go home."),
-          step(3, "It sounds finished, because you are back home."),
+          step(3, "It sounds finished, because you're back home."),
         ],
       },
       {
         title: "Finding it in a recording",
-        text: "Listen for the note the music settles on, the one where it could stop. Play it on your instrument, sing it, or pick it from the notes below. The octave does not matter.",
+        text: "Listen for the note the music settles on, the one where it could stop. Play it on your instrument, sing it, or pick it from the notes below. The octave doesn't matter.",
       },
       {
-        title: "How it is checked",
+        title: "How it's checked",
         text: "The drill works out the key from the whole recording, so home belongs to the song and not to the stretch you looped. A minor key's home is its first note, and the relative key's tonic counts too, such as C and A. A song that changes key, or sits long away from home, can fool it.",
       },
     ],
@@ -380,7 +380,7 @@ export function chordTonesLesson(chord: string): Lesson {
     screens: [
       {
         title: "The chord's tones",
-        text: `Your answer should finish on a tone of the chord that is playing. ${chord} is made of ${names}, lit on the keys.`,
+        text: `Your answer should finish on a tone of the chord that's playing. ${chord} is made of ${names}, lit on the keys.`,
         figure: upTo(tones.length),
         sound: {
           notes: [
@@ -455,11 +455,11 @@ export function biteVibratoLesson(): Lesson {
       },
       {
         title: "What you hear here",
-        text: "Each tap above alternates a note with the note a semitone below, one pair per pulse. The app cannot bend a pitch, and real vibrato is much narrower than a semitone. So this shows the rate only, not the width.",
+        text: "Each tap above alternates a note with the note a semitone below, one pair per pulse. The app can't bend a pitch, and real vibrato is much narrower than a semitone. So this shows the rate only, not the width.",
       },
       {
         title: "What the drill checks",
-        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are but does not score that: aim for a small, even wobble around the note, not a slide between notes.`,
+        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are but doesn't score that: aim for a small, even wobble around the note, not a slide between notes.`,
       },
     ],
   };
@@ -542,7 +542,7 @@ export function padImproviseLesson(): Lesson {
     screens: [
       {
         title: "Play over the band",
-        text: "In this drill the band plays a loop and you play any pads and any rhythm over it. It is graded on time, meaning how close your hits sit to the sixteenth grid, and on keeping every bar going. A bar counts as kept going when it has at least two hits.",
+        text: "In this drill the band plays a loop and you play any pads and any rhythm over it. It's scored on time, meaning how close your hits sit to the sixteenth grid, and on keeping every bar going. A bar counts as kept going when it has at least two hits.",
         figure: padGrid([groove]),
       },
       {
@@ -568,7 +568,7 @@ export function padImproviseLesson(): Lesson {
       },
       {
         title: "Leave space",
-        text: "You do not have to fill every beat. This bar is only the kick and snare, with no hi-hat, and it still counts as kept going. Only a bar with no hits, or one hit, loses that part of the score.",
+        text: "You don't have to fill every beat. This bar is only the kick and snare, with no hi-hat, and it still counts as kept going. Only a bar with no hits, or one hit, loses that part of the score.",
         figure: padGrid([bare]),
         sound: padSound([bare, bare]),
       },
