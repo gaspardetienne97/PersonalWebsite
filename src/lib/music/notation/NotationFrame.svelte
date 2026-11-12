@@ -323,14 +323,14 @@
 
       {#each marks as m (`${m.x}:${m.state}`)}
         <!-- A glyph over each judged note, so the colour of the note is never the only cue. -->
-        <span class="mark ws-pop {m.state}" style:left="{m.x}px" style:top="{m.y}px" aria-hidden="true"
+        <span class="mark ws-pop {m.state}" data-verdict={m.state} style:left="{m.x}px" style:top="{m.y}px" aria-hidden="true"
           >{m.state === "wrong" ? "×" : m.state === "correct" ? "✓" : "○"}</span
         >
       {/each}
 
       {#each heads as h (h.i)}
         <!-- A note you played: a head at its pitch, a wrong one red and crossed, so colour is never the only cue. -->
-        <span class="played ws-pop" class:wrong={h.wrong} style:left="{h.x}px" style:top="{h.y}px" aria-hidden="true">{#if h.acc}<i>{h.acc}</i>{/if}{#if h.wrong}×{/if}</span>
+        <span class="played ws-pop" class:wrong={h.wrong} data-verdict={h.wrong ? "wrong" : "played"} style:left="{h.x}px" style:top="{h.y}px" aria-hidden="true">{#if h.acc}<i>{h.acc}</i>{/if}{#if h.wrong}×{/if}</span>
       {/each}
 
       {#if cursor}

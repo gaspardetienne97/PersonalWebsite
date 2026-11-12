@@ -735,7 +735,7 @@
       {/each}
     </ol>
     <!-- The form lane: chords as wide as their beats slide left past a fixed playhead, so the next one is always arriving. -->
-    <div class="lane mb-4" class:glide={!clockOn && !still} bind:clientWidth={laneW} aria-hidden="true" data-testid="jam-lane">
+    <div class="lane mb-4" class:glide={!clockOn && !still} bind:clientWidth={laneW} aria-hidden="true" data-testid="jam-lane" data-truncate-ok>
       <div class="track" style:transform="translateX({scale.playheadX - laneAt * scale.pxPerBeat}px)">
         {#each lane as b (b.key)}
           {@const sym = prog.chords[b.index].symbol}

@@ -191,6 +191,7 @@
             data-heard={mk?.heard || undefined}
             data-target={mk ? "" : undefined}
             data-flash={flash}
+            data-verdict={flash}
             data-cell={s * 100 + f}
             tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}

@@ -205,7 +205,7 @@
     <div class="mt-4"><InputCheck after /></div>
   </article>
 {:else}
-<article class="overflow-hidden rounded-2xl border bg-ws-surface {confetti ? 'border-success/60' : 'border-ws-line'}" data-testid="results" data-stars={stars ?? undefined}>
+<article class="overflow-hidden rounded-2xl border bg-ws-surface {confetti ? 'border-success/60' : 'border-ws-line'}" data-testid="results" data-stars={stars ?? undefined} data-score={score}>
   <!-- 1. The hero: the score ring, the verdict word and its stars, what the next star takes, and the change since last time. -->
   <div class="relative overflow-hidden px-5 py-3 sm:px-6 sm:py-4 {band}">
     {#if confetti}
@@ -249,13 +249,13 @@
       <div class="flex min-w-0 flex-1 flex-col items-start gap-1">
         {#if stars !== null}
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p class="flex items-center gap-1.5 font-display text-[1.75rem] font-bold leading-tight {verdictInk}">
+            <p class="flex items-center gap-1.5 font-display text-[1.75rem] font-bold leading-tight {verdictInk}" data-testid="results-verdict">
               {#if ringTone === "success"}<Check class="size-6 shrink-0" strokeWidth={3} aria-hidden="true" />
               {:else if ringTone === "warn"}<span class="grid size-6 shrink-0 place-items-center" aria-hidden="true"><span class="size-3 rounded-full bg-warn"></span></span>
               {:else if ringTone === "error"}<X class="size-6 shrink-0 text-destructive" strokeWidth={3} aria-hidden="true" />{/if}
               {verdictWord(stars, score)}
             </p>
-            <p class="flex gap-0.5" role="img" aria-label={starsLabel(stars)}>
+            <p class="flex gap-0.5" role="img" aria-label={starsLabel(stars)} data-testid="results-stars">
               {#each [0, 1, 2] as i (i)}
                 {#if i < stars}
                   <Star class="ws-pop size-6 fill-warn text-warn" style="animation-delay: {i * 110}ms" aria-hidden="true" />

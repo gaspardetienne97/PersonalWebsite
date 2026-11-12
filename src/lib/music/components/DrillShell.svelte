@@ -695,7 +695,7 @@
     <!-- A clause with a control is a chip that opens it (from sm up); the rest is plain text that never breaks
          mid-phrase. A phone shows two lines; the Setup button, the whole card there, holds the rest. -->
     <div class="min-w-0 basis-full py-1 text-sm lg:flex-1 lg:basis-auto" data-testid="setup-line">
-      <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden">
+      <p class="leading-8 max-sm:max-h-16 max-sm:overflow-hidden" data-truncate-ok>
         <span class="mr-1 text-ws-soft">Setup:</span>
         {#each clauses as c, i (i)}{@const more = i < clauses.length - 1 || requires.length || needsInput}{#if setup && c.focus}<button type="button" class="clause max-sm:pointer-events-none" onclick={() => openAt(c.focus)}>{c.text}<ChevronDown class="size-3.5 shrink-0 text-ws-soft" aria-hidden="true" /></button>{#if more}<span class="sr-only">,</span>{/if}{:else}<span class="inline-block max-w-full font-medium">{c.text}{#if more}<span class="text-ws-soft">,</span>{/if}</span>{/if}{" "}{/each}
       </p>

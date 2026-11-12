@@ -38,7 +38,7 @@
   const Icon = $derived(kind === "early" ? ChevronsLeft : kind === "late" ? ChevronsRight : kind === "ontime" || kind === "right" ? Check : X);
 </script>
 
-<div class="pointer-events-none {rail ? 'flex h-9 shrink-0 items-center justify-center' : ''} {cls}" aria-live="polite" data-testid="verdict" data-verdict-rail={rail ? "" : undefined}>
+<div class="pointer-events-none {rail ? 'flex h-9 shrink-0 items-center justify-center' : ''} {cls}" aria-live="polite" data-testid="verdict" data-verdict-rail={rail ? "" : undefined} data-verdict={kind ?? ""} data-verdict-key={key}>
   {#if kind}
     {#key key}
       <!-- The fade sits on a wrapper: the pop's fill would hold the word at full opacity. -->

@@ -104,6 +104,7 @@
         data-target={mk.target || undefined}
         data-demo={mk.demo || undefined}
         data-flash={flash}
+        data-verdict={flash}
         aria-pressed={held}
         aria-label="Pad A{String(i + 1).padStart(2, '0')}{names[midi] ? `, ${names[midi]}` : ''}{mk.target ? ', target' : ''}"
         tabindex={interactive ? 0 : -1}

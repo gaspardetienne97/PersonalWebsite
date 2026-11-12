@@ -150,6 +150,7 @@
           data-target={mk.target || undefined}
           data-demo={mk.demo || undefined}
           data-flash={flash}
+          data-verdict={flash}
           data-role={mk.role}
           aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
@@ -178,6 +179,7 @@
           data-target={mk.target || undefined}
           data-demo={mk.demo || undefined}
           data-flash={flash}
+          data-verdict={flash}
           data-role={mk.role}
           aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
           aria-pressed={down.has(m)}
