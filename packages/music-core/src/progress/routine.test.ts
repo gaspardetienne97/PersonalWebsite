@@ -331,7 +331,7 @@ describe("the song block", () => {
     const song = pickShelfSong(fresh, new Set([key(hard), key(easy)]))!;
     expect(song.shelf).toBe(key(easy));
     expect(song.href).toBe(`/music/songs/shelf/${key(easy)}`);
-    expect(song.description).toContain("level 1 of the Guitar Path shelf");
+    expect(song.description).toContain("A level 1 song on the Guitar Path");
   });
 
   it("keeps to a song already started over a fresh one, and plays a song not yet played first", () => {

@@ -6,7 +6,7 @@
     "piano": [
       {
         "id": "scales",
-        "label": "Scales & Technique",
+        "label": "Scales and technique",
         "href": "/music/play/scales?instrument=piano",
         "description": "Finish with a clean technique run.",
         "minutes": 5
@@ -15,14 +15,14 @@
         "id": "ear",
         "label": "Ear training review",
         "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=piano",
-        "description": "Recognition and weak-spot review.",
+        "description": "Name what you hear and review your weak spots.",
         "minutes": 5
       },
       {
         "id": "reading",
-        "label": "Note Reading",
+        "label": "Note reading",
         "href": "/music/learn/reading?instrument=piano",
-        "description": "Read notes with MIDI or on-screen input.",
+        "description": "Read notes and play them by MIDI or on screen.",
         "minutes": 5
       },
       {
@@ -36,23 +36,23 @@
     "guitar": [
       {
         "id": "spider",
-        "label": "String Independence",
+        "label": "String independence",
         "href": "/music/play/spider?instrument=guitar",
-        "description": "Run focused fretting permutations and note-finder work.",
+        "description": "Fretting patterns across the strings, then notes on the neck.",
         "minutes": 5
       },
       {
         "id": "ear",
         "label": "Ear training review",
         "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=guitar",
-        "description": "Recognition and weak-spot review.",
+        "description": "Name what you hear and review your weak spots.",
         "minutes": 5
       },
       {
         "id": "chord-perfect",
-        "label": "Chord Work",
+        "label": "Chord work",
         "href": "/music/play/chord-perfect?instrument=guitar",
-        "description": "Clean up chord shapes, recognition, and changes.",
+        "description": "Clean up chord shapes and changes, and name chords.",
         "minutes": 5
       },
       {
@@ -66,23 +66,23 @@
     "ukulele": [
       {
         "id": "spider",
-        "label": "String Independence",
+        "label": "String independence",
         "href": "/music/play/spider?instrument=ukulele",
-        "description": "Run focused fretting permutations and note-finder work.",
+        "description": "Fretting patterns across the strings, then notes on the neck.",
         "minutes": 5
       },
       {
         "id": "ear",
         "label": "Ear training review",
         "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=ukulele",
-        "description": "Recognition and weak-spot review.",
+        "description": "Name what you hear and review your weak spots.",
         "minutes": 5
       },
       {
         "id": "chord-perfect",
-        "label": "Chord Work",
+        "label": "Chord work",
         "href": "/music/play/chord-perfect?instrument=ukulele",
-        "description": "Clean up chord shapes, recognition, and changes.",
+        "description": "Clean up chord shapes and changes, and name chords.",
         "minutes": 5
       },
       {
@@ -96,7 +96,7 @@
     "mpc": [
       {
         "id": "mpc",
-        "label": "MPC Rudiments",
+        "label": "MPC rudiments",
         "href": "/music/play/mpc?instrument=mpc",
         "description": "Build pad timing and rudiment control.",
         "minutes": 5
@@ -112,16 +112,16 @@
     "aerophone": [
       {
         "id": "aerophone",
-        "label": "Aerophone Technique",
+        "label": "Aerophone technique",
         "href": "/music/learn/aerophone?instrument=aerophone",
-        "description": "Shape breath, articulation, dynamics, and interval landings.",
+        "description": "Breath, tonguing, dynamics and landing intervals.",
         "minutes": 5
       },
       {
         "id": "ear",
         "label": "Ear training review",
         "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=aerophone",
-        "description": "Recognition and weak-spot review.",
+        "description": "Name what you hear and review your weak spots.",
         "minutes": 5
       },
       {
@@ -133,7 +133,7 @@
       },
       {
         "id": "scales",
-        "label": "Scales & Technique",
+        "label": "Scales and technique",
         "href": "/music/play/scales?instrument=aerophone",
         "description": "Finish with a clean technique run.",
         "minutes": 5
@@ -144,7 +144,7 @@
         "id": "ear",
         "label": "Ear training review",
         "href": "/music/learn/ear/scale-degrees?level=anchor&instrument=voice&answer=voice",
-        "description": "Recognition and weak-spot review.",
+        "description": "Name what you hear and review your weak spots.",
         "minutes": 5
       },
       {
@@ -161,14 +161,14 @@
       "id": "ear",
       "label": "Ear training review",
       "href": "/music/learn/ear/scale-degrees?level=anchor",
-      "description": "Recognition and weak-spot review.",
+      "description": "Name what you hear and review your weak spots.",
       "minutes": 5
     },
     {
       "id": "reading",
-      "label": "Note Reading",
+      "label": "Note reading",
       "href": "/music/learn/reading",
-      "description": "Read notes with MIDI or on-screen input.",
+      "description": "Read notes and play them by MIDI or on screen.",
       "minutes": 5
     },
     {
@@ -180,7 +180,7 @@
     },
     {
       "id": "scales",
-      "label": "Scales & Technique",
+      "label": "Scales and technique",
       "href": "/music/play/scales",
       "description": "Finish with a clean technique run.",
       "minutes": 5

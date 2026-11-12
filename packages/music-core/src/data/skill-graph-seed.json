@@ -98,7 +98,7 @@
     },
     {
       "id": "pitch.interval.P8",
-      "name": "Perfect Octave",
+      "name": "Perfect octave",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["interval", "ear"],
@@ -106,7 +106,7 @@
     },
     {
       "id": "pitch.scale-degrees",
-      "name": "Functional Scale Degrees",
+      "name": "Scale degrees",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -114,7 +114,7 @@
     },
     {
       "id": "pitch.scale-degree.1",
-      "name": "1 - Tonic",
+      "name": "1 (tonic)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -122,7 +122,7 @@
     },
     {
       "id": "pitch.scale-degree.b2",
-      "name": "b2 - Flat 2nd",
+      "name": "b2 (flat 2nd)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -130,7 +130,7 @@
     },
     {
       "id": "pitch.scale-degree.2",
-      "name": "2 - Supertonic",
+      "name": "2 (supertonic)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -138,7 +138,7 @@
     },
     {
       "id": "pitch.scale-degree.b3",
-      "name": "b3 - Flat 3rd",
+      "name": "b3 (flat 3rd)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -146,7 +146,7 @@
     },
     {
       "id": "pitch.scale-degree.3",
-      "name": "3 - Mediant",
+      "name": "3 (mediant)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -154,7 +154,7 @@
     },
     {
       "id": "pitch.scale-degree.4",
-      "name": "4 - Subdominant",
+      "name": "4 (subdominant)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -162,7 +162,7 @@
     },
     {
       "id": "pitch.scale-degree.#4",
-      "name": "#4 - Sharp 4th / Flat 5th",
+      "name": "#4 (sharp 4th or flat 5th)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -170,7 +170,7 @@
     },
     {
       "id": "pitch.scale-degree.5",
-      "name": "5 - Dominant",
+      "name": "5 (dominant)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -178,7 +178,7 @@
     },
     {
       "id": "pitch.scale-degree.b6",
-      "name": "b6 - Flat 6th",
+      "name": "b6 (flat 6th)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -186,7 +186,7 @@
     },
     {
       "id": "pitch.scale-degree.6",
-      "name": "6 - Submediant",
+      "name": "6 (submediant)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -194,7 +194,7 @@
     },
     {
       "id": "pitch.scale-degree.b7",
-      "name": "b7 - Flat 7th",
+      "name": "b7 (flat 7th)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -202,7 +202,7 @@
     },
     {
       "id": "pitch.scale-degree.7",
-      "name": "7 - Leading Tone",
+      "name": "7 (leading tone)",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["scale-degree", "ear"],
@@ -210,7 +210,7 @@
     },
     {
       "id": "harmony.triads",
-      "name": "Triad Qualities",
+      "name": "Triad qualities",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["chord"],
@@ -218,7 +218,7 @@
     },
     {
       "id": "harmony.triad.major",
-      "name": "Major Triads",
+      "name": "Major triads",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["chord"],
@@ -226,7 +226,7 @@
     },
     {
       "id": "harmony.triad.minor",
-      "name": "Minor Triads",
+      "name": "Minor triads",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["chord"],
@@ -234,7 +234,7 @@
     },
     {
       "id": "harmony.triad.diminished",
-      "name": "Diminished Triads",
+      "name": "Diminished triads",
       "capability": "harmony",
       "level": "early-intermediate",
       "tags": ["chord"],
@@ -242,7 +242,7 @@
     },
     {
       "id": "harmony.triad.augmented",
-      "name": "Augmented Triads",
+      "name": "Augmented triads",
       "capability": "harmony",
       "level": "early-intermediate",
       "tags": ["chord"],
@@ -250,7 +250,7 @@
     },
     {
       "id": "harmony.sevenths",
-      "name": "Seventh Chords",
+      "name": "Seventh chords",
       "capability": "harmony",
       "level": "early-intermediate",
       "tags": ["chord"],
@@ -282,7 +282,7 @@
     },
     {
       "id": "harmony.seventh.half-diminished",
-      "name": "Half-Diminished 7th",
+      "name": "Half-diminished 7th",
       "capability": "harmony",
       "level": "intermediate",
       "tags": ["chord"],
@@ -306,7 +306,7 @@
     },
     {
       "id": "ear.cadences.authentic",
-      "name": "Authentic Cadence",
+      "name": "Authentic cadence",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["cadence", "ear"],
@@ -314,7 +314,7 @@
     },
     {
       "id": "ear.cadences.plagal",
-      "name": "Plagal Cadence",
+      "name": "Plagal cadence",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["cadence", "ear"],
@@ -322,7 +322,7 @@
     },
     {
       "id": "ear.cadences.half",
-      "name": "Half Cadence",
+      "name": "Half cadence",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["cadence", "ear"],
@@ -330,7 +330,7 @@
     },
     {
       "id": "ear.cadences.deceptive",
-      "name": "Deceptive Cadence",
+      "name": "Deceptive cadence",
       "capability": "harmony",
       "level": "beginner",
       "tags": ["cadence", "ear"],
@@ -514,7 +514,7 @@
     },
     {
       "id": "rhythm.pattern.guitar-four-on-the-floor",
-      "name": "Four on the Floor Strum",
+      "name": "Four on the floor strum",
       "capability": "rhythm",
       "level": "beginner",
       "tags": ["guitar", "strumming", "rhythm", "pattern"],
@@ -522,7 +522,7 @@
     },
     {
       "id": "rhythm.pattern.guitar-island-strum",
-      "name": "Island Strum with a Mute",
+      "name": "Island strum with a mute",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["guitar", "strumming", "rhythm", "pattern", "syncopation"],
@@ -530,7 +530,7 @@
     },
     {
       "id": "rhythm.subdivisions",
-      "name": "Rhythm Subdivisions",
+      "name": "Rhythm subdivisions",
       "capability": "rhythm",
       "level": "beginner",
       "tags": ["timing", "subdivision"],
@@ -538,7 +538,7 @@
     },
     {
       "id": "rhythm.quarter-pulse",
-      "name": "Quarter-Note Pulse",
+      "name": "Quarter-note pulse",
       "capability": "rhythm",
       "level": "beginner",
       "tags": ["timing"],
@@ -546,7 +546,7 @@
     },
     {
       "id": "rhythm.eighths",
-      "name": "Eighth Notes",
+      "name": "Eighth notes",
       "capability": "rhythm",
       "level": "beginner",
       "tags": ["subdivision"],
@@ -554,7 +554,7 @@
     },
     {
       "id": "rhythm.subdivision.eighths",
-      "name": "Eighth-Note Subdivision",
+      "name": "Eighth-note subdivision",
       "capability": "rhythm",
       "level": "beginner",
       "tags": ["rhythm", "subdivision", "eighths"],
@@ -570,7 +570,7 @@
     },
     {
       "id": "rhythm.sixteenths",
-      "name": "Sixteenth Notes",
+      "name": "Sixteenth notes",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["subdivision"],
@@ -578,7 +578,7 @@
     },
     {
       "id": "rhythm.subdivision.sixteenths",
-      "name": "Sixteenth-Note Subdivision",
+      "name": "Sixteenth-note subdivision",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["rhythm", "subdivision", "sixteenths"],
@@ -586,7 +586,7 @@
     },
     {
       "id": "rhythm.gap-click",
-      "name": "Gap Click Timing",
+      "name": "Gap click timing",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["rhythm", "metronome", "gap-click", "timing"],
@@ -594,7 +594,7 @@
     },
     {
       "id": "rhythm.syncopation",
-      "name": "Off-Beat Syncopation",
+      "name": "Off-beat syncopation",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["rhythm", "syncopation", "off-beat"],
@@ -602,7 +602,7 @@
     },
     {
       "id": "rhythm.dotted",
-      "name": "Dotted Rhythms",
+      "name": "Dotted rhythms",
       "capability": "rhythm",
       "level": "early-intermediate",
       "tags": ["rhythm", "dotted", "cross-rhythm"],
@@ -610,7 +610,7 @@
     },
     {
       "id": "rhythm.swing",
-      "name": "Swing Feel",
+      "name": "Swing feel",
       "capability": "rhythm",
       "level": "intermediate",
       "tags": ["rhythm", "swing", "jazz"],
@@ -618,7 +618,7 @@
     },
     {
       "id": "reading.treble",
-      "name": "Treble Clef Reading",
+      "name": "Treble clef reading",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -626,7 +626,7 @@
     },
     {
       "id": "reading.treble.landmarks",
-      "name": "Treble Landmark Notes",
+      "name": "Treble landmark notes",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -634,7 +634,7 @@
     },
     {
       "id": "reading.treble.stepwise",
-      "name": "Treble Stepwise Reading",
+      "name": "Treble stepwise reading",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -642,7 +642,7 @@
     },
     {
       "id": "reading.bass",
-      "name": "Bass Clef Reading",
+      "name": "Bass clef reading",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -650,7 +650,7 @@
     },
     {
       "id": "reading.bass.landmarks",
-      "name": "Bass Landmark Notes",
+      "name": "Bass landmark notes",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -658,7 +658,7 @@
     },
     {
       "id": "reading.bass.stepwise",
-      "name": "Bass Stepwise Reading",
+      "name": "Bass stepwise reading",
       "capability": "reading",
       "level": "beginner",
       "tags": ["staff"],
@@ -666,7 +666,7 @@
     },
     {
       "id": "reading.polyphonic",
-      "name": "Polyphonic Reading",
+      "name": "Polyphonic reading",
       "capability": "reading",
       "level": "intermediate",
       "tags": ["staff", "chord"],
@@ -674,7 +674,7 @@
     },
     {
       "id": "reading.rhythm.compound",
-      "name": "Compound-Meter Reading",
+      "name": "Compound-meter reading",
       "capability": "reading",
       "level": "intermediate",
       "tags": ["rhythm"],
@@ -682,7 +682,7 @@
     },
     {
       "id": "technique.scales",
-      "name": "Scale Fluency",
+      "name": "Scale fluency",
       "capability": "technique",
       "level": "beginner",
       "tags": ["scale"],
@@ -690,7 +690,7 @@
     },
     {
       "id": "technique.scale.major",
-      "name": "Major Scale Fluency",
+      "name": "Major scale fluency",
       "capability": "technique",
       "level": "beginner",
       "tags": ["scale"],
@@ -698,7 +698,7 @@
     },
     {
       "id": "technique.scale.natural-minor",
-      "name": "Natural Minor Scale Fluency",
+      "name": "Natural minor scale fluency",
       "capability": "technique",
       "level": "beginner",
       "tags": ["scale"],
@@ -706,7 +706,7 @@
     },
     {
       "id": "technique.scale.harmonic-minor",
-      "name": "Harmonic Minor Scale Fluency",
+      "name": "Harmonic minor scale fluency",
       "capability": "technique",
       "level": "early-intermediate",
       "tags": ["scale"],
@@ -714,7 +714,7 @@
     },
     {
       "id": "technique.scale.melodic-minor",
-      "name": "Melodic Minor Scale Fluency",
+      "name": "Melodic minor scale fluency",
       "capability": "technique",
       "level": "intermediate",
       "tags": ["scale"],
@@ -722,7 +722,7 @@
     },
     {
       "id": "technique.scale.major-pentatonic",
-      "name": "Major Pentatonic Fluency",
+      "name": "Major pentatonic fluency",
       "capability": "technique",
       "level": "beginner",
       "tags": ["scale"],
@@ -730,7 +730,7 @@
     },
     {
       "id": "technique.scale.minor-pentatonic",
-      "name": "Minor Pentatonic Fluency",
+      "name": "Minor pentatonic fluency",
       "capability": "technique",
       "level": "beginner",
       "tags": ["scale"],
@@ -738,7 +738,7 @@
     },
     {
       "id": "technique.aerophone",
-      "name": "Aerophone Technique",
+      "name": "Aerophone technique",
       "capability": "technique",
       "level": "beginner",
       "tags": ["aerophone", "breath"],
@@ -746,7 +746,7 @@
     },
     {
       "id": "technique.aerophone.breath-steadiness",
-      "name": "Aerophone Breath Steadiness",
+      "name": "Aerophone breath steadiness",
       "capability": "technique",
       "level": "beginner",
       "tags": ["aerophone", "breath", "long-tone"],
@@ -754,7 +754,7 @@
     },
     {
       "id": "technique.aerophone.dynamic-control",
-      "name": "Aerophone Dynamic Control",
+      "name": "Aerophone dynamic control",
       "capability": "technique",
       "level": "beginner",
       "tags": ["aerophone", "breath", "swell", "dynamics"],
@@ -762,7 +762,7 @@
     },
     {
       "id": "technique.aerophone.articulation",
-      "name": "Aerophone Articulation",
+      "name": "Aerophone articulation",
       "capability": "technique",
       "level": "beginner",
       "tags": ["aerophone", "breath", "articulation", "staccato", "legato"],
@@ -770,7 +770,7 @@
     },
     {
       "id": "technique.aerophone.interval-landing",
-      "name": "Aerophone Interval Landing",
+      "name": "Aerophone interval landing",
       "capability": "technique",
       "level": "beginner",
       "tags": ["aerophone", "intonation", "interval", "drone"],
@@ -778,7 +778,7 @@
     },
     {
       "id": "intonation.interval-landing",
-      "name": "Interval Landing",
+      "name": "Interval landing",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["intonation", "interval", "drone"],
@@ -786,7 +786,7 @@
     },
     {
       "id": "technique.strings",
-      "name": "String Instrument Technique",
+      "name": "String instrument technique",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "fretting"],
@@ -794,7 +794,7 @@
     },
     {
       "id": "technique.strings.spider",
-      "name": "Chromatic Spider Drill",
+      "name": "Chromatic spider drill",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "spider", "chromatic"],
@@ -802,7 +802,7 @@
     },
     {
       "id": "technique.strings.spider.permutations",
-      "name": "Spider Permutations",
+      "name": "Spider permutations",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "spider", "permutation", "finger-independence"],
@@ -810,7 +810,7 @@
     },
     {
       "id": "technique.strings.note-finder",
-      "name": "Fretboard Note Finder",
+      "name": "Fretboard note finder",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "fretboard", "note-finder"],
@@ -818,7 +818,7 @@
     },
     {
       "id": "technique.guitar.spider",
-      "name": "Guitar Spider Drill",
+      "name": "Guitar spider drill",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "spider", "chromatic"],
@@ -826,7 +826,7 @@
     },
     {
       "id": "technique.guitar.intervals",
-      "name": "Guitar Interval Recall",
+      "name": "Guitar interval recall",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "intervals"],
@@ -834,7 +834,7 @@
     },
     {
       "id": "technique.guitar.intervals.3",
-      "name": "Guitar Minor Third Recall",
+      "name": "Guitar minor third recall",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "intervals"],
@@ -842,7 +842,7 @@
     },
     {
       "id": "technique.guitar.intervals.4",
-      "name": "Guitar Major Third Recall",
+      "name": "Guitar major third recall",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "intervals"],
@@ -850,7 +850,7 @@
     },
     {
       "id": "technique.guitar.intervals.7",
-      "name": "Guitar Perfect Fifth Recall",
+      "name": "Guitar perfect fifth recall",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "intervals"],
@@ -858,7 +858,7 @@
     },
     {
       "id": "technique.guitar.intervals.12",
-      "name": "Guitar Octave Recall",
+      "name": "Guitar octave recall",
       "capability": "pitch",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "intervals"],
@@ -866,7 +866,7 @@
     },
     {
       "id": "technique.guitar.note-finder",
-      "name": "Guitar Note Finder",
+      "name": "Guitar note finder",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "fretboard", "note-finder"],
@@ -874,7 +874,7 @@
     },
     {
       "id": "technique.ukulele.spider",
-      "name": "Ukulele Spider Drill",
+      "name": "Ukulele spider drill",
       "capability": "technique",
       "level": "beginner",
       "tags": ["ukulele", "spider", "chromatic"],
@@ -882,7 +882,7 @@
     },
     {
       "id": "technique.ukulele.note-finder",
-      "name": "Ukulele Note Finder",
+      "name": "Ukulele note finder",
       "capability": "technique",
       "level": "beginner",
       "tags": ["ukulele", "fretboard", "note-finder"],
@@ -890,7 +890,7 @@
     },
     {
       "id": "technique.strings.chord-perfect",
-      "name": "Chord-Perfect Drill",
+      "name": "Chord-perfect drill",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "chords", "fretting"],
@@ -898,7 +898,7 @@
     },
     {
       "id": "technique.strings.chord-changes",
-      "name": "Chord Change Trainer",
+      "name": "Chord change trainer",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "chords", "changes", "fretting"],
@@ -906,7 +906,7 @@
     },
     {
       "id": "technique.guitar.chord-perfect",
-      "name": "Guitar Chord-Perfect",
+      "name": "Guitar chord-perfect",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "chords", "fretting"],
@@ -914,7 +914,7 @@
     },
     {
       "id": "technique.guitar.chord-changes",
-      "name": "Guitar Chord Changes",
+      "name": "Guitar chord changes",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "chords", "changes", "fretting"],
@@ -922,7 +922,7 @@
     },
     {
       "id": "technique.ukulele.chord-perfect",
-      "name": "Ukulele Chord-Perfect",
+      "name": "Ukulele chord-perfect",
       "capability": "technique",
       "level": "beginner",
       "tags": ["ukulele", "chords", "fretting"],
@@ -930,7 +930,7 @@
     },
     {
       "id": "technique.ukulele.chord-changes",
-      "name": "Ukulele Chord Changes",
+      "name": "Ukulele chord changes",
       "capability": "technique",
       "level": "beginner",
       "tags": ["ukulele", "chords", "changes", "fretting"],
@@ -938,7 +938,7 @@
     },
     {
       "id": "technique.strings.open-chord-id",
-      "name": "Open Chord Identification",
+      "name": "Open chord identification",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "ukulele", "chords", "identification"],
@@ -946,7 +946,7 @@
     },
     {
       "id": "technique.guitar.open-chord-id",
-      "name": "Guitar Open Chord Identification",
+      "name": "Guitar open chord identification",
       "capability": "technique",
       "level": "beginner",
       "tags": ["guitar", "chords", "identification"],
@@ -954,7 +954,7 @@
     },
     {
       "id": "technique.ukulele.open-chord-id",
-      "name": "Ukulele Open Chord Identification",
+      "name": "Ukulele open chord identification",
       "capability": "technique",
       "level": "beginner",
       "tags": ["ukulele", "chords", "identification"],
@@ -962,7 +962,7 @@
     },
     {
       "id": "technique.piano",
-      "name": "Piano Technique",
+      "name": "Piano technique",
       "capability": "technique",
       "level": "beginner",
       "tags": ["piano", "keys", "hands"],
@@ -970,7 +970,7 @@
     },
     {
       "id": "technique.piano.two-hand-independence",
-      "name": "Two-Hand Independence",
+      "name": "Two-hand independence",
       "capability": "technique",
       "level": "beginner",
       "tags": ["piano", "independence", "coordination", "hands"],
@@ -978,7 +978,7 @@
     },
     {
       "id": "technique.piano.independence.shell-line",
-      "name": "Piano Shell + Line Independence",
+      "name": "Piano shell and line independence",
       "capability": "technique",
       "level": "early-intermediate",
       "tags": ["piano", "independence", "shell", "line", "hands"],
@@ -986,7 +986,7 @@
     },
     {
       "id": "technique.piano.comping",
-      "name": "Piano Comping over a Shell",
+      "name": "Piano comping over a shell",
       "capability": "technique",
       "level": "intermediate",
       "tags": ["piano", "comping", "shell", "swing", "syncopation"],
@@ -994,7 +994,7 @@
     },
     {
       "id": "technique.mpc.groove.backbeat",
-      "name": "MPC Groove Recall: backbeat",
+      "name": "MPC groove: kick and snare",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "groove", "recall", "backbeat"],
@@ -1002,7 +1002,7 @@
     },
     {
       "id": "technique.mpc.groove.eighth-hats",
-      "name": "MPC Groove Recall: eighth-hats",
+      "name": "MPC groove: eighth-note hats",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "groove", "recall", "eighth-hats"],
@@ -1010,7 +1010,7 @@
     },
     {
       "id": "technique.mpc.groove.syncopated",
-      "name": "MPC Groove Recall: syncopated",
+      "name": "MPC groove: syncopated kick",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "groove", "recall", "syncopated"],
@@ -1018,7 +1018,7 @@
     },
     {
       "id": "technique.mpc.groove.boom-bap-2bar",
-      "name": "MPC Groove Recall: boom-bap-2bar",
+      "name": "MPC groove: boom bap, 2 bars",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "groove", "recall", "boom-bap-2bar"],
@@ -1026,7 +1026,7 @@
     },
     {
       "id": "technique.mpc.groove.turnaround-fill",
-      "name": "MPC Groove Recall: turnaround-fill",
+      "name": "MPC groove: turnaround with a fill",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "groove", "recall", "turnaround-fill"],
@@ -1034,7 +1034,7 @@
     },
     {
       "id": "technique.mpc",
-      "name": "MPC Technique",
+      "name": "MPC technique",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "pads", "finger-drumming"],
@@ -1042,7 +1042,7 @@
     },
     {
       "id": "technique.mpc.single-strokes",
-      "name": "MPC Alternating Single Strokes",
+      "name": "MPC alternating single strokes",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "pads", "rudiment", "single-strokes"],
@@ -1050,7 +1050,7 @@
     },
     {
       "id": "technique.mpc.paradiddles",
-      "name": "MPC Paradiddles",
+      "name": "MPC paradiddles",
       "capability": "technique",
       "level": "beginner",
       "tags": ["mpc", "pads", "rudiment", "paradiddle"],

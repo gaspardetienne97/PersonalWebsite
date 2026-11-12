@@ -14,22 +14,22 @@ export const RUNGS: { id: Rung; label: string; done: string }[] = [
   {
     id: "a",
     label: "Roots and melody",
-    done: "Song practice in Performance mode on the tune's shelf score, 90% at the shelf tempo, on two days.",
+    done: "Song practice in Performance mode on the tune's notation: 90% or better at 90% of its tempo or faster, on two days.",
   },
   {
     id: "b",
     label: "Guide tones",
-    done: "Jam's guide-tones game on the tune, two choruses at 90%, at 80% of the shelf tempo.",
+    done: "Jam's guide-tones game on the tune: two choruses, 90% or better, at 80% of its tempo or faster.",
   },
   {
     id: "c",
     label: "Melody and shells",
-    done: "Accompaniment's lead sheet on your shelf score with shells in the left hand, 90%.",
+    done: "Accompaniment's lead sheet on the tune's notation, shells in the left hand: 90% or better.",
   },
   {
     id: "d",
     label: "Rootless comping",
-    done: "Accompaniment's comping on the tune's changes, rootless, 90%.",
+    done: "Accompaniment's comping on the tune's changes with rootless voicings: 90% or better.",
   },
   {
     id: "e",
@@ -39,7 +39,7 @@ export const RUNGS: { id: Rung; label: string; done: string }[] = [
   {
     id: "f",
     label: "A second key",
-    done: "Rungs a and c transposed, 85% each.",
+    done: "Rungs a and c in another key: 85% or better each.",
   },
 ];
 

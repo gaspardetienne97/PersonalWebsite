@@ -25,7 +25,7 @@ test.describe("today", () => {
       "href",
       /^\/music\/songs\/shelf\/guitar\/[a-z0-9-]+\?.*routine=routine-/,
     );
-    await expect(song).toContainText("level 1 of the Guitar Path shelf");
+    await expect(song).toContainText("A level 1 song on the Guitar Path");
 
     // The strip stays on its instrument until a block opens; the block's link switches it.
     await start.click();

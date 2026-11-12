@@ -151,7 +151,7 @@ describe("daily challenges", () => {
 
   it("counts checked reps when no weak spot is named yet", () => {
     const reps = dailyChallenges({ day, sessions, events }).find((x) => x.id === "weak-spot-reps")!;
-    expect(reps.title).toBe("Three answers in Check mode");
+    expect(reps.title).toBe("Three answers in Check");
     expect(reps.progress).toBe(2);
   });
 

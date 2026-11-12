@@ -62,7 +62,7 @@ export const STEPS: Record<StepId, StepDef> = {
   mpc: { ...fromData("mpc"), route: "/music/pads", for: ["mpc"] },
   aerophone: { ...fromData("aerophone"), route: "/music/aerophone", for: ["aerophone"] },
   "two-hand": {
-    label: "Two-Hand Piano",
+    label: "Two-hand piano",
     description: "Independent hands, locked to one pulse.",
     route: "/music/two-hand",
     for: ["piano"],
@@ -74,7 +74,7 @@ export const STEPS: Record<StepId, StepDef> = {
     for: ["piano"],
   },
   voicings: {
-    label: "ii-V-I Voicings",
+    label: "ii-V-I voicings",
     description: "Rootless voicings through the keys.",
     route: "/music/changes/voicings",
     for: ["piano"],
@@ -218,7 +218,7 @@ export function pickShelfSong(
   return (
     pick && {
       title: pick.song.title,
-      description: `${pick.song.artist}, from level ${level!.level.id} of the ${progress.path.title} shelf.`,
+      description: `${pick.song.artist}. A level ${level!.level.id} song on the ${progress.path.title}.`,
       href: `/music/songs/shelf/${pick.key}`,
       shelf: pick.key,
     }

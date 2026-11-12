@@ -161,8 +161,8 @@ export function achievements(input: {
     },
     {
       id: "level-5",
-      title: "Level 5",
-      description: "Reach level 5.",
+      title: "XP level 5",
+      description: "Reach XP level 5.",
       unlocked: levelFor(input.xp) >= 5,
     },
     {
@@ -174,13 +174,13 @@ export function achievements(input: {
     {
       id: "first-skill-50",
       title: "Halfway there",
-      description: "Bring any skill to 50% mastery.",
+      description: "Bring any skill score to 50%.",
       unlocked: peak >= 0.5,
     },
     {
       id: "first-skill-mastered",
       title: "First skill mastered",
-      description: "Bring any skill to 80% mastery.",
+      description: "Bring any skill score to 80%.",
       unlocked: peak >= 0.8,
     },
     {
@@ -235,7 +235,7 @@ export function dailyChallenges(input: {
     challenge({
       id: "daily-xp",
       title: "Earn today's XP",
-      description: "Finish one focused block and keep the day moving.",
+      description: "Earn 100 XP today.",
       href: "/music",
       target: 100,
       progress: sessions.reduce((sum, s) => sum + s.xp, 0),
@@ -244,15 +244,15 @@ export function dailyChallenges(input: {
       ? challenge({
           id: "weak-spot-reps",
           title: weakSpot.name,
-          description: "Run a few reps against the skill that needs the next signal.",
+          description: "Answer three questions on your weak spot.",
           href: weakSpot.href,
           target: 3,
           progress: events.filter((e) => e.skillIds.includes(weakSpot.skillId)).length,
         })
       : challenge({
           id: "weak-spot-reps",
-          title: "Three answers in Check mode",
-          description: "Answer three in Check mode so the coach can find your weak spot.",
+          title: "Three answers in Check",
+          description: "Answer three questions in Check so the coach can find your weak spot.",
           href: "/music",
           target: 3,
           progress: events.filter((e) => e.assistance === "independent").length,
@@ -260,7 +260,7 @@ export function dailyChallenges(input: {
     challenge({
       id: "capability-variety",
       title: "Practise two different skills",
-      description: "Touch two capability areas so practice does not collapse into one lane.",
+      description: "Practise skills from two areas, such as rhythm and reading.",
       href: "/music",
       target: 2,
       progress: capabilities.size,

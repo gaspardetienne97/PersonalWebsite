@@ -88,7 +88,7 @@ export function coach(input: {
   if (attempts < COACH_MIN_ATTEMPTS) {
     return {
       headline: "Not measured yet",
-      summary: `The coach names a weak spot after ${COACH_MIN_ATTEMPTS} answers in Check mode on ${on}. You have ${attempts} so far.`,
+      summary: `The coach names a weak spot after ${COACH_MIN_ATTEMPTS} answers in Check on ${on}. You have ${attempts} so far.`,
       measured: false,
       insights,
       action: {
@@ -102,7 +102,7 @@ export function coach(input: {
   if (!weakest) {
     return {
       headline: "Spread thin so far",
-      summary: `No skill on ${on} has ${COACH_MIN_SKILL_ATTEMPTS} answers in Check mode yet, so nothing is singled out.`,
+      summary: `No skill on ${on} has ${COACH_MIN_SKILL_ATTEMPTS} answers in Check yet, so the coach names no weak spot.`,
       measured: false,
       insights,
       action: {
@@ -117,8 +117,8 @@ export function coach(input: {
   return {
     headline: solid ? `Everything measured is solid` : `Coach focus: ${name}`,
     summary: solid
-      ? `Your lowest skill on ${on} is ${name}, at ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check mode.`
-      : `${name} is at ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check mode on ${on}, the lowest you have measured.`,
+      ? `Even your weak spot on ${on}, ${name}, is at ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check.`
+      : `${name} is your weak spot on ${on}: ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check.`,
     measured: true,
     focus: {
       skillId: weakest.skillId,

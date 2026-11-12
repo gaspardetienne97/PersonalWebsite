@@ -49,7 +49,7 @@ describe("coach", () => {
     expect(a.focus).toBeUndefined();
     expect(a.headline).toBe("Not measured yet");
     expect(a.summary).toBe(
-      "The coach names a weak spot after 5 answers in Check mode on piano. You have 4 so far.",
+      "The coach names a weak spot after 5 answers in Check on piano. You have 4 so far.",
     );
     // No instrument-wide percentage: it read as a second score for the focus skill.
     expect(a.insights.some((l) => l.includes("%"))).toBe(false);
@@ -102,15 +102,15 @@ describe("coach", () => {
       }),
     ];
     const piano = advise(events);
-    expect(piano.headline).toBe("Coach focus: Treble Landmark Notes");
+    expect(piano.headline).toBe("Coach focus: Treble landmark notes");
     expect(piano.focus).toEqual({
       skillId: "reading.treble.landmarks",
-      name: "Treble Landmark Notes",
+      name: "Treble landmark notes",
       accuracy: 0,
       attempts: 3,
     });
     expect(piano.summary).toBe(
-      "Treble Landmark Notes is at 0% across 3 answers in Check mode on piano, the lowest you have measured.",
+      "Treble landmark notes is your weak spot on piano: 0% across 3 answers in Check.",
     );
     expect(piano.action.href).toBe("/music/reading?instrument=piano");
     const guitar = advise(events, "guitar");
@@ -122,8 +122,8 @@ describe("coach", () => {
   it("names a drill's umbrella and instrument twins once, by the drill", () => {
     expect(practiceName("technique.strings.note-finder")).toBe("Note finder");
     expect(practiceName("technique.guitar.note-finder")).toBe("Note finder");
-    expect(practiceName("technique.strings.spider.permutations")).toBe("Spider Permutations");
-    expect(practiceName("reading.treble.landmarks")).toBe("Treble Landmark Notes");
+    expect(practiceName("technique.strings.spider.permutations")).toBe("Spider permutations");
+    expect(practiceName("reading.treble.landmarks")).toBe("Treble landmark notes");
     // One answer tagged with the umbrella and the guitar skill: one name, one count.
     const a = coach({
       instrument: "guitar",
@@ -145,7 +145,7 @@ describe("coach", () => {
       checkedAnswers: 4,
     });
     expect(a.summary).toBe(
-      "The coach names a weak spot after 5 answers in Check mode on Guitar. You have 4 so far.",
+      "The coach names a weak spot after 5 answers in Check on Guitar. You have 4 so far.",
     );
   });
 });
