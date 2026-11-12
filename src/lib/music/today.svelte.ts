@@ -188,7 +188,7 @@ export function nextDrill(plan: ReturnType<typeof todayPlan>) {
 }
 
 /**
- * The row's one line: the first sentence of why the block is in the set ("Next on the Piano Path.",
+ * The row's one line: the first sentence of why the block is in the set ("Next on the Piano path.",
  * "Due for review: Intervals."). The rest waits behind the row's details.
  */
 export function blockSummary(step: RoutineStep): string {

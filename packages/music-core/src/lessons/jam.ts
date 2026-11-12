@@ -458,7 +458,7 @@ const setCard = (id: string, intro: string): Lesson => {
     screens: [
       {
         title: "The notes you may use",
-        text: `${intro} The numbers count up the key's scale from its tonic, and b means a half step lower. In the key of C that's ${join(names)}.`,
+        text: `${intro} These numbers count up the key's scale from its tonic (b means a half step lower), so in the key of C that's ${join(names)}. On the stage, the ringed keys are numbered from the current chord's root instead.`,
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
         sound: { notes: notes.map((m, i) => ({ midi: [m], at: i * 0.45, dur: 0.4 })) },
       },

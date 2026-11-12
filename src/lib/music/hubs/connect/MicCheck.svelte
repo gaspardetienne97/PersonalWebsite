@@ -66,7 +66,7 @@
       <button type="button" class={btn} onclick={stop}>Stop microphone</button>
     {:else}
       <!-- Filled only as the next step, so it never competes with Enable MIDI. -->
-      <button type="button" class={primary ? btnPrimary : btn} onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting" : "Start microphone"}</button>
+      <button type="button" class={primary ? btnPrimary : btn} onclick={start} disabled={mic.state === "starting"}>{mic.state === "starting" ? "Starting…" : "Start microphone"}</button>
     {/if}
   </div>
   {#if !named}<p class="text-sm text-ws-soft">Start the microphone once and the browser shows each device's name.</p>{/if}

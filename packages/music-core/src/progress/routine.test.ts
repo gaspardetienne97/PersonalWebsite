@@ -29,7 +29,7 @@ const roles = (r: ReturnType<typeof buildRoutine>) => r.steps.map((s) => s.role)
 const route = (href: string) => href.split("?")[0];
 
 const focus: PathFocus = {
-  pathTitle: "Piano Path",
+  pathTitle: "Piano path",
   title: "Five-finger pattern, one hand",
   summary: "C position, steady quarters.",
   href: "/music/two-hand?mode=five-finger&bpm=60",
@@ -120,7 +120,7 @@ describe("buildRoutine", () => {
       skillIds: focus.skillIds,
       href: "/music/two-hand?mode=five-finger&bpm=60&instrument=piano&routine=day-1&step=2",
     });
-    expect(f.description).toContain("Piano Path");
+    expect(f.description).toContain("Piano path");
     expect(roleLabel(f)).toBe("Path");
     // The warm-up does not repeat the focus route.
     expect(route(r.steps[0].href)).not.toBe("/music/two-hand");
@@ -331,7 +331,7 @@ describe("the song block", () => {
     const song = pickShelfSong(fresh, new Set([key(hard), key(easy)]))!;
     expect(song.shelf).toBe(key(easy));
     expect(song.href).toBe(`/music/songs/shelf/${key(easy)}`);
-    expect(song.description).toContain("A level 1 song on the Guitar Path");
+    expect(song.description).toContain("A level 1 song on the Guitar path");
   });
 
   it("keeps to a song already started over a fresh one, and plays a song not yet played first", () => {

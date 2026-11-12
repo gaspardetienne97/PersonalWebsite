@@ -77,7 +77,7 @@ function play(page: Page, steps: Step[], onGo = false) {
 async function runTimed(page: Page, steps: Step[]) {
   await pickMode(page, "Practice");
   const playing = play(page, steps, true);
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await playing;
 }
 

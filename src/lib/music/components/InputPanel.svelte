@@ -109,7 +109,7 @@
   <section class="flex flex-col gap-2 border-t border-ws-line pt-3" aria-labelledby="input-mic">
     <div class="flex items-center justify-between gap-2">
       <h2 id="input-mic" class="text-sm font-semibold">Microphone</h2>
-      <span class="text-[13px] text-ws-soft">{mic.state === "on" ? "On" : mic.state === "starting" ? "Starting" : "Off"}</span>
+      <span class="text-[13px] text-ws-soft">{mic.state === "on" ? "On" : mic.state === "starting" ? "Starting…" : "Off"}</span>
     </div>
     {#if mic.state === "on"}
       <div class="h-2 overflow-hidden rounded-full bg-ws-raised" role="meter" aria-label="Input level" aria-valuemin="-60" aria-valuemax="0" aria-valuenow={Math.round(mic.level)}>

@@ -86,7 +86,7 @@
   {:else if off}
     <!-- The clause is the fix. Its name stays the action ("Turn on the microphone"); the full sentence is its title. -->
     <button type="button" class="input-clause relative z-10 inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-md px-1 font-medium text-instr-ink hover:bg-instr-wash sm:min-h-8" title={error || text} disabled={busy} aria-busy={busy} onclick={turnOn} data-testid="input-check" data-input={kind}>
-      {#if kind === "mic"}<Mic class="size-4 shrink-0" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />Turn on MIDI{/if}
+      {#if kind === "mic"}<Mic class="size-4 shrink-0" aria-hidden="true" />{busy ? "Starting…" : "Turn on the microphone"}{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />Turn on MIDI{/if}
     </button>{#if error}<span class="text-destructive">{" "}({error})</span>{/if}
   {/if}
 {:else if after}
@@ -110,7 +110,7 @@
     <div class="flex flex-wrap items-center gap-2">
       {#if off}
         <button type="button" class={btn} disabled={busy} onclick={turnOn}>
-          {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
+          {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting…" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
         </button>
       {/if}
       <!-- Quiet buttons: the dock's Again is the screen's one primary. -->
@@ -122,7 +122,7 @@
     {#if kind === "mic"}<MicOff class="size-4 shrink-0" aria-hidden="true" />{:else}<Plug class="size-4 shrink-0" aria-hidden="true" />{/if}
     <p class="min-w-0 flex-1 basis-48 text-sm">{error || text}</p>
     <button type="button" class={btn} disabled={busy} onclick={turnOn}>
-      {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
+      {#if kind === "mic"}<Mic class="size-4" aria-hidden="true" />{busy ? "Starting…" : "Turn on the microphone"}{:else}<Plug class="size-4" aria-hidden="true" />Turn on MIDI{/if}
     </button>
   </div>
 {/if}
