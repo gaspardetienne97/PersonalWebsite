@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { CHANGES_TITLE, changesTrainer, shortStage } from "./modes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
@@ -396,50 +396,25 @@
   {/snippet}
 
   {#snippet stage()}
-    <ol class="mb-3 flex flex-wrap gap-2" aria-label="Chord chart">
-      {#each group as it (it.id)}
-        {@const i = items.indexOf(it)}
-        {@const g = grades[i]}
-        {@const now = transport.playing ? demoIndex === group.indexOf(it) : phase === "running" && i === index}
-        <li
-          class="chart-cell flex min-h-14 min-w-24 flex-col justify-center rounded-lg border px-3 py-1.5 {now ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}"
-          aria-current={now ? "step" : undefined}
-        >
-          <span class="font-display text-xl font-semibold">{it.symbol}</span>
-          <span class="text-sm text-ws-stage-soft">
-            {#if g}{g.correct ? "✓ right" : `✕ ${g.note}`}{:else if now}now{:else}&nbsp;{/if}
-          </span>
-        </li>
-      {/each}
-      {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
-    </ol>
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <StaffFold live={phase === "running"}><LineNotation maxZoom={1.1} notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} {keyFifths} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></StaffFold>
-    {/if}
-    {#if current && mode === "practice"}
-      <div class="mb-3 text-sm">
-        <p class="font-medium">{current.name}</p>
-        {#if current.hint}<p class="text-ws-stage-soft">{current.hint}</p>{/if}
-        {#if current.guide}<p class="text-ws-stage-soft">From {current.guide.fromMidi.map(nameOf).join(" and ")}: find the nearest {current.symbol} 3rd and 7th.</p>{/if}
-      </div>
-    {:else if current && mode === "check"}
-      <p class="mb-3 text-sm text-ws-stage-soft">
-        Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
-      </p>
+      <StaffFold live={phase === "running"} aside={head}><LineNotation maxZoom={shortStage.current ? 1 : 1.1} notes={toWritten(demoNotes).map((n) => (monophonic ? n : { ...n, durationBeats: 2 }))} title={`voicings-${group[0]?.group}`} {keyFifths} cursorBeat={transport.beat ?? (phase === "running" && current ? group.indexOf(current) * 2 : null)} /></StaffFold>
+    {:else}
+      <div class="mb-3 flex">{@render head()}</div>
     {/if}
     <div class="flex flex-col" data-dock="instrument">
       <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running"} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand root marked L, right hand notes R." />
+    </div>
+    <!-- One row under the keys: what the marks mean, then the note about how the chord is heard. -->
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-sm text-ws-stage-soft">
       {#if mode === "practice" && phase !== "results"}
         <!-- What the marks on the keys mean, each with its own shape so colour is never the only cue. -->
-        <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft" aria-label="Key marks">
+        <ul class="flex flex-wrap gap-x-4 gap-y-1" aria-label="Key marks">
           <li class="flex items-center gap-1.5"><span class="key-mark target" aria-hidden="true">R</span>Play this key</li>
           <li class="flex items-center gap-1.5"><span class="key-mark right" aria-hidden="true">✓</span>Right note</li>
           <li class="flex items-center gap-1.5"><span class="key-mark wrong" aria-hidden="true">✕</span>Not in the chord</li>
         </ul>
       {/if}
-    </div>
-    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-ws-stage-soft">
-      <p class="min-w-0 max-w-prose">
+      <p class="min-w-0 max-w-prose flex-[1_1_18rem]">
         {#if monophonic}
           Arpeggio mode: {settings.value.activeInstrument === "aerophone" ? "the Aerophone" : "your voice"} plays one note at a time, so each voicing is graded as an arpeggio. Play the root first, then the other tones in any order.
         {:else if phase === "running" && collectedMode}
@@ -472,6 +447,40 @@
     {/if}
   {/snippet}
 </DrillShell>
+
+{#snippet head()}
+  <!-- The chart and what to play on it share one row (and the staff's fold), so the staff and the keys keep the height. -->
+  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+    <ol class="flex flex-wrap gap-2" aria-label="Chord chart">
+      {#each group as it (it.id)}
+        {@const i = items.indexOf(it)}
+        {@const g = grades[i]}
+        {@const now = transport.playing ? demoIndex === group.indexOf(it) : phase === "running" && i === index}
+        <li
+          class="chart-cell flex min-h-14 min-w-24 flex-col justify-center rounded-lg border px-3 py-1.5 {now ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}"
+          aria-current={now ? "step" : undefined}
+        >
+          <span class="font-display text-xl font-semibold">{it.symbol}</span>
+          <span class="text-sm text-ws-stage-soft">
+            {#if g}{g.correct ? "✓ right" : `✕ ${g.note}`}{:else if now}now{:else}&nbsp;{/if}
+          </span>
+        </li>
+      {/each}
+      {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
+    </ol>
+    {#if current && mode === "practice"}
+      <div class="min-w-0 flex-[1_1_16rem] text-sm">
+        <p class="font-medium">{current.name}</p>
+        {#if current.hint}<p class="text-ws-stage-soft">{current.hint}</p>{/if}
+        {#if current.guide}<p class="text-ws-stage-soft">From {current.guide.fromMidi.map(nameOf).join(" and ")}: find the nearest {current.symbol} 3rd and 7th.</p>{/if}
+      </div>
+    {:else if current && mode === "check"}
+      <p class="min-w-0 flex-[1_1_16rem] text-sm text-ws-stage-soft">
+        Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
+      </p>
+    {/if}
+  </div>
+{/snippet}
 
 <!-- One list of the run, chord by chord, under the breakdown. -->
 {#snippet figure()}

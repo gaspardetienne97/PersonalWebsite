@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { CHANGES_TITLE, changesTrainer, shortStage } from "./modes";
   import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
@@ -117,8 +117,8 @@
   let hits = $state<{ midi: number; beat: number }[]>([]);
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   const transport = new Transport();
-  const flashes = new Flashes();
   const timedRun = new TimedRun(transport);
+  const flashes = new Flashes();
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let ctxRef: RunContext | null = null;
   /** The demo's playhead on the whole lick (a loop starts over at the chunk each time). */
@@ -402,16 +402,19 @@
   {/snippet}
 
   {#snippet stage()}
-    <!-- Text first; a long row of bar chunks wraps under it rather than squeezing it. -->
-    <div class="mb-3 flex flex-wrap gap-3 text-sm">
-      <div class="min-w-0 flex-[1_1_20rem]">
-        {#if phase !== "running" && phase !== "countin" && !ended && lineShown}<ViewSwitch class="float-right mb-1 ml-3" />{/if}
-        <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
-        <!-- The reading text steps aside while the line runs, so the lane and the keys stay in view. -->
+    <!-- Two short rows before a run, so the lane, the staff and the keys share a tablet's screen: the changes with
+         the tip beside them, then the theory (folded) with the chunks. The reading text steps aside while the line runs. -->
+    <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+      <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
+      {#if phase !== "running" && phase !== "countin" && !ended}
+        <p class="min-w-0 flex-[1_1_16rem]"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
+        {#if lineShown}<ViewSwitch />{/if}
+      {/if}
+    </div>
+    <div class="mb-3 flex flex-wrap items-start gap-x-3 gap-y-1 text-sm [&:not(:has(details,button))]:hidden">
+      <div class="min-w-0 flex-[1_1_12rem]">
         {#if phase !== "running" && phase !== "countin" && !ended}
-          <p class="mt-1"><span class="font-semibold">Tip:</span> {tx(lickTip(lick))}</p>
-          <!-- The theory folds away, so the lane, the staff and the keys fit a laptop screen before Start. -->
-          <details class="mt-1 text-ws-stage-soft">
+          <details class="text-ws-stage-soft">
             <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden"><ChevronRight class="size-4 transition-transform [details[open]>summary>&]:rotate-90" aria-hidden="true" />About this lick</summary>
             <p>Scales: {lick.scales.map(tx).join(", ")}.</p>
             {#each techniques as t (t.id)}
@@ -466,6 +469,7 @@
         hidden={mode === "check" && !transport.playing}
         outcomes={mode === "practice" || phase === "results" ? { line: outcomes } : {}}
         label="Beat lane: {chunk.length} notes over {progression.join(', ')}."
+        dense={shortStage.current}
       />
     </div>
     {/if}
@@ -488,7 +492,7 @@
       <FallingKeys score={lineScore(written)} low={span.low} high={span.high} beat={fallBeat} rest={t0} groupStates={tabStates} {marks} {flashes} />
     {:else if !fretted && (mode === "practice" || transport.playing || phase === "results")}
       <div class="mb-3">
-        <LineNotation maxZoom={1.3} notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
+        <LineNotation maxZoom={shortStage.current ? 1 : 1.3} notes={written} tuning={fretTuning(inst)} title={lickKey} cursorBeat={demoCursor} groupStates={tabStates} {keyFifths} selection={chunkRange} onselect={picking ? tapChunk : undefined} {bpm} />
       </div>
     {/if}
     </div>

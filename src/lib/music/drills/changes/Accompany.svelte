@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { CHANGES_TITLE, changesTrainer, shortStage } from "./modes";
   import { TimedRun } from "./timed-run";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   // Accompaniment (piano path drill 1, jazz rank 2, piano drill 3): hand patterns,
@@ -215,8 +215,8 @@
   let downbeat = $state(0);
   let beatMs = $state(1000);
   const transport = new Transport();
-  const flashes = new Flashes();
   const timedRun = new TimedRun(transport);
+  const flashes = new Flashes();
   let run: ReturnType<typeof practice.beginRun> | null = null;
   let band: SequenceHandle | null = null;
   const stopBand = () => {
@@ -394,6 +394,11 @@
     status = "Stopped. Nothing was recorded.";
   }
 
+  /** The staff is on screen (not the falling view): the chart rides in its fold row. */
+  const staffHasChart = $derived(
+    !(falling && (mode === "practice" || transport.playing || phase === "results")) && (tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"),
+  );
+
   onDestroy(() => {
     stopBand();
     timedRun.end();
@@ -524,7 +529,7 @@
       data-beat-ms={Math.round(beatMs)}
       data-slots={JSON.stringify(slots.map((sl) => [sl.beat, sl.midi]))}
     >
-      <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <div class="mb-2 flex flex-wrap items-end justify-between gap-3">
         <div class="min-w-0">
           <p class="text-sm text-ws-stage-soft">Now</p>
           <p class="font-display text-4xl font-bold leading-none">{rendering.chart[chordNow]?.symbol}</p>
@@ -541,13 +546,7 @@
           <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => cfg.set({ seed: s.seed + 1 })}>{charted ? "New chart" : "New melody"}</button>
         {/if}
       </div>
-      <ol class="mb-3 flex flex-wrap gap-1.5" aria-label="The chart">
-        {#each rendering.chart as c, i (i)}
-          <li class="chord-cell flex min-h-10 items-center justify-center rounded-lg px-3 font-display font-semibold" class:now={i === chordNow && transport.beat !== null} style:flex-grow={c.durationBeats} aria-current={i === chordNow && transport.beat !== null ? "step" : undefined}>
-            {c.symbol}{#if charted}<span class="slashes" aria-hidden="true">{"/".repeat(c.durationBeats)}</span>{/if}<span class="sr-only">, {c.durationBeats / bpb} bar{c.durationBeats === bpb ? "" : "s"}</span>
-          </li>
-        {/each}
-      </ol>
+      {#if !staffHasChart}<div class="mb-3 flex">{@render chart()}</div>{/if}
       {#if falling && (mode === "practice" || transport.playing || phase === "results")}
         <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
       {:else}
@@ -555,7 +554,7 @@
           <BeatLane rows={checkLanes} beats={totalBeats} beat={transport.beat} beatsPerBar={bpb} chords={rendering.chart.map((c, i) => ({ beat: rendering.chart.slice(0, i).reduce((t, x) => t + x.durationBeats, 0), symbol: c.symbol }))} hidden label="Beat lane: when each hand plays, the notes hidden." />
         {/if}
         {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
-          <StaffFold live={phase === "running" || phase === "countin"}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></StaffFold>
+          <StaffFold live={phase === "running" || phase === "countin"} aside={chart}><LineNotation maxZoom={shortStage.current ? 1 : 1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></StaffFold>
         {/if}
         <div class="flex flex-col justify-end" data-dock="instrument">
           <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
@@ -573,6 +572,17 @@
     {/if}
   {/snippet}
 </DrillShell>
+
+<!-- The chart shares the staff fold's row when the staff is drawn, so the staff and the keys keep the height. -->
+{#snippet chart()}
+  <ol class="flex min-w-0 flex-1 flex-wrap gap-1.5" aria-label="The chart">
+    {#each rendering.chart as c, i (i)}
+      <li class="chord-cell flex min-h-10 items-center justify-center rounded-lg px-3 font-display font-semibold" class:now={i === chordNow && transport.beat !== null} style:flex-grow={c.durationBeats} aria-current={i === chordNow && transport.beat !== null ? "step" : undefined}>
+        {c.symbol}{#if charted}<span class="slashes" aria-hidden="true">{"/".repeat(c.durationBeats)}</span>{/if}<span class="sr-only">, {c.durationBeats / bpb} bar{c.durationBeats === bpb ? "" : "s"}</span>
+      </li>
+    {/each}
+  </ol>
+{/snippet}
 
 <style>
   .chord-cell {

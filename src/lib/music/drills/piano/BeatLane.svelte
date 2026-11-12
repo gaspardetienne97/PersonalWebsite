@@ -38,8 +38,10 @@
     outcomes?: Record<string, readonly (LaneOutcome | undefined)[]>;
     /** Notes struck that no target wanted: counted beside the marks, so the tally and the "Wrong note" word agree. */
     wrong?: number;
+    /** A short screen: an eighth-note beat takes 4rem, not 5.5, so three bars sit on one row above the staff and the keys. */
+    dense?: boolean;
   }
-  let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {}, wrong = 0 }: Props = $props();
+  let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {}, wrong = 0, dense = false }: Props = $props();
   // The same glyphs the results breakdown uses, so a mark reads the same on the lane and after the run.
   const GLYPH = { ok: Check, early: ChevronsLeft, late: ChevronsRight, miss: X } as const;
   const SAID: Record<LaneOutcome, string> = { ok: "on time", early: "early", late: "late", miss: "missed" };
@@ -55,7 +57,9 @@
   // Bars that do not fit the width wrap onto rows of whole bars (a phone: one bar a row), as long as that
   // makes two rows at most; a longer lane keeps one row that scrolls with the playhead (the keys stay in view).
   const REM = 16;
-  const unit = $derived((eighths ? 5.5 : 3) * REM);
+  /** The least width of a beat, in rem. */
+  const beatRem = $derived(eighths ? (dense ? 4 : 5.5) : 3);
+  const unit = $derived(beatRem * REM);
   let outer = $state(0);
   const bars = $derived(Math.ceil(beats / beatsPerBar));
   const perRow = $derived(outer ? Math.max(1, Math.floor((outer - 16 - 36) / (beatsPerBar * unit))) : bars);
@@ -95,7 +99,7 @@
       onscroll={() => (scrolled = (box?.scrollLeft ?? 0) > 8)}
       class="lane flex flex-col overflow-x-auto overscroll-x-contain rounded-xl"
       class:tight={wrap}
-      data-scrolls={!wrap && outer > 0 && outer < Math.max(18, beats * (eighths ? 5.5 : 3)) * REM ? "" : undefined}
+      data-scrolls={!wrap && outer > 0 && outer < Math.max(18, beats * beatRem) * REM ? "" : undefined}
     >
       {@render system(b0, b1)}
     </div>
@@ -127,7 +131,7 @@
   <!-- A short last row keeps the bar width of the rows above it (three bars on two rows: the third is half wide). -->
   <div
     class="relative flex flex-1 flex-col"
-    style:min-width={wrap ? undefined : `${Math.max(18, beats * (eighths ? 5.5 : 3))}rem`}
+    style:min-width={wrap ? undefined : `${Math.max(18, beats * beatRem)}rem`}
     style:width={wrap ? `calc(2.25rem + (100% - 2.25rem) * ${len / (perRow * beatsPerBar)})` : undefined}
   >
     <!-- A wrapped row draws the chord row only where a chord changes in it (the first row always). -->

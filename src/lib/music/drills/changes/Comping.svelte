@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { CHANGES_TITLE, changesTrainer, shortStage } from "./modes";
   import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
@@ -80,8 +80,8 @@
   let summary = $state<RunSummary | null>(null);
   let result = $state<(CompingResult & { lhMeasured: boolean }) | null>(null);
   const transport = new Transport();
-  const flashes = new Flashes();
   const timedRun = new TimedRun(transport);
+  const flashes = new Flashes();
   let run: ReturnType<typeof practice.beginRun> | null = null;
   /** Note-ons this run in beats from the downbeat, and whether every one came over MIDI (a struck shell needs it). */
   let heard = $state<{ midi: number; beat: number }[]>([]);
@@ -381,7 +381,7 @@
 
   {#snippet stage()}
     <!-- While the line runs on a phone the lane names the chord, so this row leaves and the keys keep the room. -->
-    <div class="mb-3 flex flex-wrap items-start justify-between gap-3 text-sm {phase === 'running' || phase === 'countin' ? 'max-sm:hidden' : ''}">
+    <div class="mb-2 flex flex-wrap items-start justify-between gap-3 text-sm {phase === 'running' || phase === 'countin' ? 'max-sm:hidden' : ''}">
       <div class="min-w-0 max-w-prose">
         <p class="font-display text-2xl font-semibold">{p.chord}</p>
         <!-- The theory steps aside while the line runs, so the lane and the keys stay in view. -->
@@ -390,12 +390,16 @@
             Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
             The rest of the line stays in {root.rootName} mixolydian.
           </p>
-          {#if approach}
-            <details class="mt-1 text-ws-stage-soft">
-              <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: approach a note from a half step below</summary>
-              <p>{approach.summary}</p>
-            </details>
-          {/if}
+          <!-- The two things to open sit on one row, so the lane and the keys keep the room. -->
+          <div class="flex flex-wrap items-start gap-x-6 text-ws-stage-soft">
+            {#if approach}
+              <details class="min-w-0">
+                <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: approach a note from a half step below</summary>
+                <p>{approach.summary}</p>
+              </details>
+            {/if}
+            {@render marked()}
+          </div>
         {/if}
       </div>
       {#if phase === "ready" && mode === "practice" && !transport.playing}
@@ -405,7 +409,7 @@
     <!-- The music grows into the free height (no spacer between the lane and the keys). -->
     <div class="flex min-h-0 flex-col gap-3" data-dock="music">
     {#if mode === "practice" || transport.playing || phase === "results"}
-      <StaffFold live={phase === "running" || phase === "countin" || transport.playing}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></StaffFold>
+      <StaffFold live={phase === "running" || phase === "countin" || transport.playing} fold={shortStage.current}><LineNotation maxZoom={1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} /></StaffFold>
     {/if}
     <BeatLane
       rows={lanes}
@@ -431,12 +435,7 @@
         <p class="max-sm:hidden">Shell on one and the and-of-two; the line on top.</p>
       {:else}
         {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
-        <details>
-          <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
-          <div class="flex flex-col gap-1 pb-1">
-            <p>{FINGERING_NOTE}</p>
-          </div>
-        </details>
+        {#if !(mode === "practice" && phase === "ready" && !transport.playing)}{@render marked()}{/if}
       {/if}
     </div>
   {/snippet}
@@ -447,6 +446,15 @@
     {/if}
   {/snippet}
 </DrillShell>
+
+{#snippet marked()}
+  <details class="min-w-0">
+    <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
+    <div class="flex flex-col gap-1 pb-1">
+      <p>{FINGERING_NOTE}</p>
+    </div>
+  </details>
+{/snippet}
 
 <!-- The run as the grader claimed it, note by note on the lane, under the breakdown. -->
 {#snippet figure()}

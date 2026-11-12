@@ -6,7 +6,8 @@
   import ChevronRight from "lucide-svelte/icons/chevron-right";
 
   // `aside` shares the fold's row (the view switch, a setup toggle), so the staff starts one row higher.
-  let { children, live = false, aside }: { children: Snippet; live?: boolean; aside?: Snippet } = $props();
+  // `fold` starts it folded before a run too: a short stage where the lane, not the staff, shares the view with the keys.
+  let { children, live = false, aside, fold = false }: { children: Snippet; live?: boolean; aside?: Snippet; fold?: boolean } = $props();
   const KEY = "woodshed.staff";
   let pref = $state<"shown" | "hidden" | null>(null);
   let narrow = $state(false);
@@ -23,7 +24,7 @@
     q.addEventListener("change", set);
     return () => q.removeEventListener("change", set);
   });
-  const shown = $derived(pref ? pref === "shown" : !(live && narrow));
+  const shown = $derived(pref ? pref === "shown" : !(fold || (live && narrow)));
   function toggle() {
     pref = shown ? "hidden" : "shown";
     try {
