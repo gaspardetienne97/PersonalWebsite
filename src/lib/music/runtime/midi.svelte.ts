@@ -88,10 +88,8 @@ const profilesReady: Promise<void> = browser
   : Promise.resolve();
 
 function setProfiles(next: DeviceProfile[]) {
+  // Per-device latency offsets reach the router through calibration.svelte.ts.
   profiles = next;
-  const deviceMs: Record<string, number> = {};
-  for (const p of next) if (p.inputOffsetMs !== undefined) deviceMs[p.id] = p.inputOffsetMs;
-  input.router.setOffsets({ deviceMs });
 }
 
 function persistProfiles() {

@@ -19,7 +19,8 @@
   import DataSection from "$lib/music/hubs/tools/settings/DataSection.svelte";
   import { btn } from "$lib/music/components/ui";
   import Hint from "$lib/music/components/Hint.svelte";
-  import { audio, mic, midi, settings } from "$lib/music/runtime";
+  import { audio, calibration, mic, midi, settings } from "$lib/music/runtime";
+  import { AUDIO_INPUT, MIDI_INPUT, deviceInput } from "@repo/music-core/io/calibration";
   import Picker from "$lib/music/components/Picker.svelte";
   import { A4_CHOICES } from "$lib/music/hubs/tools/tuner/tuner";
   import { setDayInstrument, splitOptions, WEEKDAYS } from "$lib/music/today.svelte";
@@ -106,6 +107,7 @@
     else audio.playNote(67, 0.4);
   }
 
+  const midiOffset = $derived(calibration.offset(MIDI_INPUT));
   const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)} ms`;
   const sampleNote = $derived(
     s.preferredPlaybackSound !== "salamander-piano"
@@ -250,7 +252,7 @@
     </section>
 
     <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement.")}
+      {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement. Each offset is saved for the input and the sound output in use, so calibrate again on another output such as Bluetooth speakers.")}
       {@render note("latency")}
       <ul class={listCls}>
         <li class={rowCls}>
@@ -267,9 +269,9 @@
             kind="audio"
             title="Microphone"
             blurb="For guitar, ukulele and voice. Clap or pick a muted string on each click."
-            current={s.audioOffsetMs}
-            onsave={(v) => settings.update({ audioOffsetMs: v })}
-            onreset={() => settings.update({ audioOffsetMs: 0 })}
+            current={calibration.offset(AUDIO_INPUT)}
+            onsave={(v) => calibration.save(AUDIO_INPUT, v)}
+            onreset={() => calibration.reset(AUDIO_INPUT)}
             announce={announceIn("latency")}
           />
         </li>
@@ -279,24 +281,25 @@
             kind="midi"
             title="MIDI, all devices"
             blurb="Used by every MIDI device without its own offset."
-            current={s.midiOffsetMs}
-            onsave={(v) => settings.update({ midiOffsetMs: v })}
-            onreset={() => settings.update({ midiOffsetMs: 0 })}
+            current={midiOffset}
+            onsave={(v) => calibration.save(MIDI_INPUT, v)}
+            onreset={() => calibration.reset(MIDI_INPUT)}
             announce={announceIn("latency")}
           />
         </li>
         {#each midi.inputs as port (port.id)}
           {@const profile = midi.profile(port.id)}
+          {@const own = calibration.offset(deviceInput(port.id))}
           <li>
             <CalibrationPanel
               id="dev-{port.id}"
               kind="device"
               deviceId={port.id}
               title={profile?.alias || port.name || port.id}
-              blurb={profile?.inputOffsetMs !== undefined ? "Its own offset overrides the MIDI one." : `Uses the MIDI offset (${signed(s.midiOffsetMs)}) until you save one here.`}
-              current={profile?.inputOffsetMs}
-              onsave={(v) => midi.saveProfile({ ...(midi.profile(port.id) ?? { id: port.id }), inputOffsetMs: v })}
-              onreset={() => midi.saveProfile({ ...(midi.profile(port.id) ?? { id: port.id }), inputOffsetMs: undefined })}
+              blurb={own !== undefined ? "Its own offset overrides the MIDI one." : midiOffset !== undefined ? `Uses the MIDI offset (${signed(midiOffset)}) until you save one here.` : "Not calibrated on this output yet."}
+              current={own}
+              onsave={(v) => calibration.save(deviceInput(port.id), v)}
+              onreset={() => calibration.reset(deviceInput(port.id))}
               announce={announceIn("latency")}
             />
           </li>

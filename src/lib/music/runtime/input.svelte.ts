@@ -143,15 +143,7 @@ if (browser) {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) releaseAll();
   });
-  // Global offsets from settings; per-device offsets are pushed by midi.svelte.ts.
-  $effect.root(() => {
-    $effect(() => {
-      router.setOffsets({
-        audioMs: settings.value.audioOffsetMs,
-        midiMs: settings.value.midiOffsetMs,
-      });
-    });
-  });
+  // Latency offsets are pushed by calibration.svelte.ts (per input and output pair).
 }
 
 export const input = {

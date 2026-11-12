@@ -5,7 +5,8 @@
   import { PAD_PRESETS, detectInstrument, presetForMap, type PadPresetId } from "@repo/music-core/io/devices";
   import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
   import { btn } from "$lib/music/components/ui";
-  import { midi, settings, type PortInfo } from "$lib/music/runtime";
+  import { calibration, midi, type PortInfo } from "$lib/music/runtime";
+  import { MIDI_INPUT, deviceInput } from "@repo/music-core/io/calibration";
   import { padLabel } from "$lib/music/drills/pads/midi-status";
   import { INSTRUMENT_ICON, instrumentOptions } from "$lib/music/components/instrument-icons";
   import Cable from "lucide-svelte/icons/cable";
@@ -61,7 +62,7 @@
 
   // MPC layout: top row pads 13-16 down to 1-4.
   const ROWS = [12, 8, 4, 0];
-  const offset = $derived(profile?.inputOffsetMs);
+  const offset = $derived(calibration.offset(deviceInput(port.id)));
 </script>
 
 <article
@@ -151,7 +152,7 @@
       {#if offset !== undefined}
         <span class="tnum">{offset > 0 ? "+" : ""}{offset} ms</span> for this device.
       {:else}
-        default (<span class="tnum">{settings.value.midiOffsetMs} ms</span>).
+        default (<span class="tnum">{calibration.offset(MIDI_INPUT) ?? 0} ms</span>).
       {/if}
       <a href="/music/settings" class="font-medium text-instr-ink underline underline-offset-4">Calibrate in Settings</a>
     </p>

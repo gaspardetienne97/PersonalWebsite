@@ -16,6 +16,7 @@ import { untrack } from "svelte";
 import type * as ToneNS from "tone";
 import type { PlaybackSound } from "@repo/music-core";
 import { encodeWav } from "@repo/music-core/io/wav";
+import { outputKeys } from "@repo/music-core/io/calibration";
 import type { StudioChange } from "@repo/music-core/content/studio";
 import { settings } from "./settings.svelte";
 import { getBinary } from "./opfs";
@@ -875,6 +876,8 @@ async function unlock(): Promise<boolean> {
   }
   unlocked = t.getContext().state === "running";
   if (unlocked) blocked = false;
+  // The reported output latency settles a moment after the context starts, so read it then.
+  if (unlocked) setTimeout(() => void refreshOutput(), OUTPUT_SETTLE_MS);
   return unlocked;
 }
 
@@ -1531,10 +1534,63 @@ function latencyInfo() {
   };
 }
 
+// What the output answers to, for latency calibration (io/calibration outputKeys). The browser
+// reports no output latency before audio runs; until then the output last seen in this browser
+// stands in, so saved offsets show and apply.
+const OUTPUT_KEY = "woodshed.output";
+function lastOutput(): readonly string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(OUTPUT_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+let outputs = $state.raw<readonly string[]>(browser ? lastOutput() : []);
+/** True once the output was read from the running context (not the remembered one). */
+let outputMeasured = $state(false);
+async function refreshOutput(): Promise<readonly string[]> {
+  const raw = T?.getContext().rawContext as (AudioContext & { sinkId?: unknown }) | undefined;
+  if (!raw || raw.state !== "running") return outputs;
+  // The system default output's label: only shared once the browser gives out device labels.
+  const device = await navigator.mediaDevices
+    ?.enumerateDevices()
+    .then((d) => d.find((x) => x.kind === "audiooutput" && x.deviceId === "default")?.label)
+    .catch(() => undefined);
+  const next = outputKeys({
+    sinkId: typeof raw.sinkId === "string" ? raw.sinkId : undefined,
+    device,
+    latencyMs: (raw.outputLatency || raw.baseLatency || 0) * 1000,
+  });
+  if (next.join() !== outputs.join()) {
+    outputs = next;
+    try {
+      localStorage.setItem(OUTPUT_KEY, JSON.stringify(next));
+    } catch {
+      // not remembered
+    }
+  }
+  outputMeasured = true;
+  return outputs;
+}
+const OUTPUT_SETTLE_MS = 1000;
+if (browser)
+  navigator.mediaDevices?.addEventListener?.("devicechange", () =>
+    setTimeout(() => void refreshOutput(), OUTPUT_SETTLE_MS),
+  );
+
 export const audio = {
   get unlocked() {
     return unlocked;
   },
+  /** The current output's calibration keys, most specific first; the last one seen until audio runs. */
+  get outputs() {
+    return outputs;
+  },
+  get outputMeasured() {
+    return outputMeasured;
+  },
+  refreshOutput,
   /** True once a sound was asked for while audio was still locked; false again after unlock. */
   get blocked() {
     return blocked;

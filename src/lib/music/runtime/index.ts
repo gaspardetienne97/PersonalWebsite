@@ -11,3 +11,4 @@ export { mic } from "./mic.svelte";
 export type * from "./mic.svelte";
 export { input } from "./input.svelte";
 export type { KeyboardMode } from "./input.svelte";
+export { calibration } from "./calibration.svelte";

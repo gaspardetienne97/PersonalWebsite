@@ -1,6 +1,8 @@
 <script lang="ts" module>
   // One tap-along run at a time across every panel on the page.
   let active = $state<string | null>(null);
+  /** A tap-along is running: Space is its tap, not a drill's Start. */
+  export const calibrating = () => active !== null;
 </script>
 
 <script lang="ts">
@@ -9,12 +11,12 @@
   // from the panel's own source, scored by estimateOffset. The router already
   // subtracted the saved offset from MIDI and microphone events, so it is added
   // back here: calibration always measures the raw input.
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import Play from "lucide-svelte/icons/play";
   import Square from "lucide-svelte/icons/square";
   import { CALIBRATION, estimateOffset, type CalibrationResult } from "@repo/music-core/io/calibration";
   import { clamp, type InputEvent } from "@repo/music-core";
-  import { audio, input, mic, midi, settings } from "$lib/music/runtime";
+  import { audio, calibration, input, mic, midi } from "$lib/music/runtime";
   import { btn, btnPrimary } from "$lib/music/components/ui";
 
   interface Props {
@@ -28,8 +30,10 @@
     onsave: (ms: number) => Promise<void> | void;
     onreset: () => Promise<void> | void;
     announce: (msg: string) => void;
+    /** Start the tap-along as the panel opens (the drill's inline offer: its Calibrate button was the ask). */
+    autorun?: boolean;
   }
-  let { id, title, blurb, kind, deviceId, current, onsave, onreset, announce }: Props = $props();
+  let { id, title, blurb, kind, deviceId, current, onsave, onreset, announce, autorun = false }: Props = $props();
 
   const BEAT_MS = 60000 / CALIBRATION.bpm;
   const TAP_MIDI = 60;
@@ -52,11 +56,11 @@
   function rawTime(e: InputEvent): number | undefined {
     if (e.kind === "noteon" && e.source === "onscreen") return e.at;
     if (kind === "audio")
-      return e.kind === "onset" && e.source === "audio" ? e.at + bound(settings.value.audioOffsetMs) : undefined;
+      return e.kind === "onset" && e.source === "audio" ? e.at + bound(calibration.applied.audioMs) : undefined;
     if (e.kind !== "noteon" || e.source !== "midi") return undefined;
     if (kind === "device" && e.deviceId !== deviceId) return undefined;
-    const dev = e.deviceId ? midi.profile(e.deviceId)?.inputOffsetMs : undefined;
-    return e.at + bound(dev ?? settings.value.midiOffsetMs);
+    const applied = calibration.applied;
+    return e.at + bound((e.deviceId ? applied.deviceMs[e.deviceId] : undefined) ?? applied.midiMs);
   }
 
   function onEvent(e: InputEvent) {
@@ -175,6 +179,9 @@
     return `Measured ${signed(ms)}: your input arrives about ${Math.abs(ms)} ms ${ms > 0 ? "late" : "early"}.`;
   }
 
+  onMount(() => {
+    if (autorun) void run();
+  });
   onDestroy(() => {
     if (active === id) teardown();
   });
@@ -189,13 +196,13 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="tnum rounded-full bg-ws-raised px-3 py-1 text-sm" data-testid="offset-{id}">
-        {current ? `Now ${signed(current)}` : "No offset"}
+        {current === undefined ? "Not calibrated" : `Now ${signed(current)}`}
       </span>
       {#if running}
         <button type="button" class={btn} onclick={cancel}><Square class="size-4" aria-hidden="true" />Stop</button>
       {:else}
         <button type="button" class={btn} disabled={!!active} onclick={run}><Play class="size-4" aria-hidden="true" />Run</button>
-        {#if current}<button type="button" class={btn} onclick={reset}>Reset</button>{/if}
+        {#if current !== undefined}<button type="button" class={btn} onclick={reset}>Reset</button>{/if}
       {/if}
     </div>
   </div>
