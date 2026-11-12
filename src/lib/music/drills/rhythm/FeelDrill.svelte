@@ -108,7 +108,7 @@
     const fin = await run!.finish({ score, correct, headline: `${right} of ${LENGTH} right` });
     const confused = FEELS.map((f) => ({ f, missed: records.filter((r) => r.feel === f.id && !r.correct) })).filter((x) => x.missed.length);
     summary = {
-      headline: correct ? `${right} of ${LENGTH}: you hear the feel.` : `${right} of ${LENGTH} right; ${PASS} is the mark.`,
+      headline: correct ? `${right} of ${LENGTH}: you hear the feel.` : `${right} of ${LENGTH} right. A clean run needs ${PASS}.`,
       metric: pct(score),
       metricLabel: "right",
       delta: fin.delta,
@@ -121,7 +121,7 @@
         { label: "Right", value: score, text: `${right} of ${LENGTH}` },
         ...confused.map((x) => ({ label: `${x.f.label} heard as`, text: x.missed.map((r) => FEELS.find((f) => f.id === r.answered)!.label).join(", ") })),
       ],
-      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
     };
     status = summary.headline;
   }
@@ -154,7 +154,7 @@
   trainer={earTrainer("ear-feel")}
   hue="ear"
   blurb="Hear a groove and name its feel: straight, swung, shuffle or 12/8."
-  summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right to pass` }]}
+  summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right for a clean run` }]}
   bind:phase
   bind:mode
   bind:status
@@ -164,7 +164,7 @@
   onstop={stop}
   instrumentFree
   cue={phase !== "running" || !current || step === "feedback" ? "" : "Name the feel you hear"}
-  step={phase === "running" && current && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Continue" : "See results", run: next } : null}
+  step={phase === "running" && current && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Next" : "See results", run: next } : null}
 >
   {#snippet hud()}
     {#if phase === "running" && current}
@@ -183,7 +183,7 @@
           <p class="mt-3 text-lg font-semibold">{r.correct ? "Right" : "Not quite"}: {FEELS.find((f) => f.id === current!.feel)?.label}, {current.groove.label.toLowerCase()} at {current.bpm} BPM.</p>
           {#if mode === "practice"}
             <p class="mt-1 text-sm text-ws-stage-soft">{FEELS.find((f) => f.id === current!.feel)?.hint}</p>
-            <button type="button" class="{btnPrimary} mt-3 max-sm:hidden" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"} <kbd class="ml-1 text-sm opacity-80">Enter</kbd></button>
+            <button type="button" class="{btnPrimary} mt-3 max-sm:hidden" onclick={next}>{qi + 1 < LENGTH ? "Next" : "See results"} <kbd class="ml-1 text-sm opacity-80">Enter</kbd></button>
           {/if}
         {/if}
       </article>

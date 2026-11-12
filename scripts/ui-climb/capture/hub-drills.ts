@@ -204,7 +204,7 @@ export async function earQuestion(page: Page, n: number) {
 
 /** In Practice: after feedback, Continue (or See results on the last). */
 export async function earContinue(page: Page) {
-  const b = page.getByRole("button", { name: /^(Continue|See results)/ }).first();
+  const b = page.getByRole("button", { name: /^(Next|See results)/ }).first();
   if (await b.isVisible().catch(() => false)) await b.click();
   // Round 2 docks Continue under the answers on a phone; Enter continues wherever it sits.
   else await page.keyboard.press("Enter");

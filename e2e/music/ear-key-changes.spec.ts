@@ -132,7 +132,7 @@ test("analysis: a checked run of Blue Bossa, all right, records the tune", async
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const card = page.locator("article[data-mode]");
   for (let i = 0; i < 13; i++) {
-    await expect(card).toHaveAttribute("aria-label", `Prompt ${i + 1}`);
+    await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`);
     await expect(card).toHaveAttribute("data-step", "answer");
     const [k, f] = (await card.getAttribute("data-answer"))!.split("|");
     await page

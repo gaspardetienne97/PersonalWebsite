@@ -41,8 +41,8 @@ test.describe("studio ears", () => {
     }
 
     // A wrong one next, then on to the next prompt.
-    await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page.getByRole("article", { name: "Prompt 2" })).toHaveAttribute(
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByRole("article", { name: "Question 2" })).toHaveAttribute(
       "data-step",
       "answer",
     );

@@ -271,15 +271,15 @@ export function followerModeNotes(f: Follower): { practice: string; check: strin
   if (f === "wait")
     return {
       practice: "Wait for me: notes lit, the cursor waits. Practice only.",
-      check: "Wait for me: nothing lit, but it waits, so it does not count.",
+      check: "Wait for me: nothing lit, but it waits, so it doesn't count.",
     };
   if (f === "tap")
     return {
-      practice: "Tap the rhythm: hints shown, so it does not count.",
+      practice: "Tap the rhythm: hints shown, so it doesn't count.",
       check: "Tap the rhythm: no hints. This run counts.",
     };
   return {
-    practice: "Keep time: notes lit, so it does not count.",
+    practice: "Keep time: notes lit, so it doesn't count.",
     check: "Keep time: nothing lit. This run counts.",
   };
 }

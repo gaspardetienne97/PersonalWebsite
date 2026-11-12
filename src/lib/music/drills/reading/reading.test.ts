@@ -177,7 +177,7 @@ describe("plain words for the cursor's steps and the follower", () => {
       expect(n.practice.startsWith(`${FOLLOWER_NAME[f]}:`)).toBe(true);
       expect(n.check.startsWith(`${FOLLOWER_NAME[f]}:`)).toBe(true);
     }
-    expect(followerModeNotes("wait").check).toContain("does not count");
+    expect(followerModeNotes("wait").check).toContain("doesn't count");
     expect(followerModeNotes("performance").check).toContain("This run counts");
   });
   it("after a miss the right keys carry a check and the played ones a cross; a shared key keeps the check", () => {

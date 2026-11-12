@@ -380,7 +380,7 @@
   const FIXED_ROOT = 60;
   const DIRECTIONS = [
     { value: "auto", label: "Auto", hint: "Up at first, then every way as you improve." },
-    { value: "mixed", label: "Mixed", hint: "Up, down or together, from the first prompt." },
+    { value: "mixed", label: "Mixed", hint: "Up, down or together, from the first question." },
     { value: "ascending", label: "Up" },
     { value: "descending", label: "Down" },
     { value: "harmonic", label: "Together" },
@@ -746,7 +746,7 @@
     if (!p) return;
     demo = { answer: p.answer, kind: p.drill };
     demoPlaying = true;
-    status = `Listen: ${tokenLabel(p.drill, p.answer, labels)}, lit as it sounds.`;
+    status = `Demo: ${tokenLabel(p.drill, p.answer, labels)}, lit as it sounds. Not scored.`;
     const go = () => playPrompt(p, { light: true, onend: () => (demoPlaying = false) });
     const k = promptKey(p);
     if (k) playPrompt({ ...p, drill: "cadence", playback: keyCadence(k.keyPc, k.minor) }, { light: true, onend: go });
@@ -768,7 +768,7 @@
     if (droneOn) audio.drone.stop();
     else audio.drone.start(droneTonic, "sine", 0.3);
     droneOn = !droneOn;
-    status = droneOn ? `Drone on ${noteName(droneTonic, "flat", false)}. Tap a degree to hear it against home. Nothing is recorded.` : "Drone off.";
+    status = droneOn ? `Drone on ${noteName(droneTonic, "flat", false)}. Tap a degree to hear it against the tonic. Nothing saved.` : "Drone off.";
   }
   function stopWarmup() {
     if (droneOn) audio.drone.stop();
@@ -780,7 +780,7 @@
     const target = tonic + (SCALE_DEGREES.find((d) => d.label === label)?.semitones ?? 0);
     const p: Prompt = { id: "warmup", drill: "scale-degree", skillIds: [], choices: [], difficulty: 0, answer: label, playback: [{ midi: [tonic], time: 0, duration: 0.55 }, { midi: [target], time: 0.7, duration: 0.65 }] };
     playPrompt(p, { light: true });
-    status = `Home, then ${tokenLabel("scale-degree", label, labels)}.`;
+    status = `Tonic, then ${tokenLabel("scale-degree", label, labels)}.`;
   }
 
   // ---------------------------------------------------------------------------
@@ -841,15 +841,15 @@
     step = "playing";
     if (!prompts.length) {
       phase = "ready";
-      status = "Nothing to ask with this setup.";
+      status = "Nothing to ask with this setup. Pick more in Setup.";
       return;
     }
     if (answer === "voice") {
-      status = "Starting the microphone.";
+      status = "Starting the microphone…";
       const ok = await mic.start();
       if (!ok) {
         phase = "ready";
-        status = mic.error || "The microphone could not start.";
+        status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
         return;
       }
     }
@@ -1242,7 +1242,7 @@
     teardown();
     phase = "results";
     if (answer === "listen-along") {
-      status = `You listened to ${listened} prompts. Listening along is never scored.`;
+      status = `You listened to ${listened} questions. Listening along is never scored.`;
       return;
     }
     const done = records.filter(Boolean);
@@ -1261,7 +1261,7 @@
       headline:
         right === prompts.length
           ? pocket
-            ? `You heard all ${prompts.length}. Try Choice to check it.`
+            ? `You heard all ${prompts.length}. Switch to Choice for a scored run.`
             : `All ${prompts.length} right.`
           : swap
             ? `${right} of ${prompts.length} right. You played ${swap.got} for the ${swap.want}${swap.count > 1 ? ` ${times(swap.count)}` : ""}.`
@@ -1269,17 +1269,17 @@
             ? `${right} of ${prompts.length} ${pocket ? "heard" : "right"}. You heard ${tokenLabel(top.kind, top.expected, labels)} as ${tokenLabel(top.kind, top.answered, labels)}${top.count > 1 ? ` ${times(top.count)}` : ""}.`
             : `${right} of ${prompts.length} ${pocket ? "heard" : "right"}.`,
       metric: pct(score),
-      metricLabel: pocket ? "heard, self-rated" : "accuracy",
+      metricLabel: pocket ? "heard, self-rated" : "score",
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === prompts.length && !pocket,
       cleanMeans: cleanMeansFor(ladder, prompts.length),
       xp: fin.xp,
       // Pocket recall is rated by you: said in its own words, not as a Practice or Check run.
-      ...(pocket ? { assistance: "Pocket recall: you rated yourself, so this doesn't move your skill scores." } : { mode }),
-      coach: retries && !pocket ? { label: `Drill my confusions (${retries} ${retries === 1 ? "question" : "questions"})`, run: retry } : undefined,
+      ...(pocket ? { assistance: "Pocket recall: you rated yourself, so this doesn't change your skill scores." } : { mode }),
+      coach: retries && !pocket ? { label: `Again: what you mixed up (${retries} ${retries === 1 ? "question" : "questions"})`, run: retry } : undefined,
       rows: centsRows(done) ?? itemRows(done) ?? byKind.map((k) => ({ label: KIND_LABEL[k.kind as EarKind] ?? "Repertoire phrases", value: k.total ? k.correct / k.total : 0, text: `${k.correct} of ${k.total}` })),
-      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
     };
     if (slug === "fine-pitch") {
       summary.headline += ` Next time starts near ${CENT_STEPS[stair.at]} cents.`;
@@ -1342,7 +1342,7 @@
     teardown();
     phase = "ready";
     const n = records.filter(Boolean).length;
-    status = answer === "listen-along" ? "Stopped." : `Stopped after ${n} answer${n === 1 ? "" : "s"}. Answers already given are saved.`;
+    status = answer === "listen-along" ? "Stopped." : `Stopped after ${n} answer${n === 1 ? "" : "s"}. Your answers are saved.`;
   }
 
   function retry() {
@@ -1476,7 +1476,7 @@
   );
   const blocked = $derived(
     (slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0) || (fromSongs && songCount !== null && ranked.length === 0)
-      ? "Save a song with a score first."
+      ? "Save a song with notation first."
       : answer === "voice" && mic.state === "denied"
         ? "Allow the microphone to sing answers."
         : null,
@@ -1556,7 +1556,7 @@
   onstop={stop}
   {blocked}
   {cue}
-  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < prompts.length ? "Continue" : "See results", run: next } : null}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < prompts.length ? "Next" : "See results", run: next } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -1565,12 +1565,12 @@
       {/if}
       {#if LISTEN.length}
         <Choice
-          label="Or just listen"
+          label="Or listen only"
           setupKey="listen"
           options={LISTEN.map((m) => ({
             value: m as AnswerMode,
             label: MODE_LABEL[m],
-            hint: m === "listen" ? "Answer in your head, reveal, then rate yourself. Never moves mastery." : "The answers are shown and the prompts move on by themselves. Not scored.",
+            hint: m === "listen" ? "Answer in your head, reveal, then rate yourself. Never changes your skill scores." : "Answers show and the next question plays by itself. Not scored.",
           }))}
           value={answer}
           onchange={(v) => cfg.set({ answer: v })}
@@ -1592,7 +1592,7 @@
               >
             {/each}
           </div>
-          {#if isPlayback}<span class="text-ws-soft">Cadences and scales have no play-back answer, so they sit out.</span>{/if}
+          {#if isPlayback}<span class="text-ws-soft">Cadences and scales can't be played back, so they're left out.</span>{/if}
         </div>
       {/if}
       {#if slug === "progressions"}
@@ -1656,9 +1656,9 @@
           </details>
           <span class="text-ws-soft">
             {slug === "progressions"
-              ? `Every progression starts on ${kindLabel("I")}; the rest use only these ${picked.length} chords.`
+              ? `Every progression starts on ${kindLabel("I")}. The rest use only these ${picked.length} chords.`
               : picked.length === 1
-                ? `One picked: every prompt is this one, among all the answers.`
+                ? `One picked: every question is this one, among all the answers.`
                 : `${picked.length} ${SETS.unit}: only these play, and only these are the answers.`}
           </span>
         </div>
@@ -1745,9 +1745,9 @@
     </div>
     {#if answer === "listen" || answer === "listen-along" || answer === "voice"}
       <p class="mt-3 text-sm text-ws-soft">
-        {#if answer === "listen"}Pocket recall: think or sing, reveal, then rate yourself. Self-rated answers are saved but never move mastery.
-        {:else if answer === "listen-along"}Listen along: the answers are shown and the prompts move on by themselves. Nothing is scored.
-        {:else}Sing it: the microphone starts when you press Start and stops at the end. Headphones keep the prompt out of the mic.{/if}
+        {#if answer === "listen"}Pocket recall: think or sing, reveal, then rate yourself. Self-rated answers are saved but never change your skill scores.
+        {:else if answer === "listen-along"}Listen along: answers show and the next question plays by itself. Nothing is scored.
+        {:else}Sing it: the microphone starts when you press Start and stops at the end. Headphones keep the app's sound out of the mic.{/if}
       </p>
     {/if}
   {/snippet}
@@ -1894,7 +1894,7 @@
                     onclick={() => choose(t)}
                   >
                     <span class="font-semibold">{labels === "solfege" ? tokenLabel("scale-degree", d, "solfege") : d}</span>
-                    <span class="text-sm">{showAnswer && t === p.answer ? "✓ wrong" : showAnswer && rec?.answered === t ? "✕" : t}</span>
+                    <span class="text-sm">{showAnswer && t === p.answer ? "wrong" : showAnswer && rec?.answered === t ? "✕" : t}</span>
                   </button>
                 </li>
               {/each}
@@ -1959,7 +1959,7 @@
             {/if}
             <div class="voice rounded-2xl p-4" aria-label="Microphone">
               <p class="text-sm text-ws-stage-soft">
-                {step === "playing" ? "Listen first. The mic opens when the prompt ends." : step === "answer" ? "Sing now. Hold the note until it locks." : "Got it."}
+                {step === "playing" ? "Listen first. The mic opens when the question ends." : step === "answer" ? "Sing now. Hold the note until it locks." : "Got it."}
               </p>
               <div class="meter mt-2" aria-hidden="true"><span style:width="{Math.max(0, Math.min(100, ((mic.level + 60) / 60) * 100))}%"></span></div>
               <p class="mt-2 font-display text-2xl font-semibold tnum">
@@ -1969,7 +1969,7 @@
               {#if p.drill === "melody-dictation" || p.drill === "scale"}
                 <p class="mt-1 text-sm text-ws-stage-soft">
                   Sung: {played.length ? played.map((m) => tokenLabel("scale-degree", SCALE_DEGREES[pc(m - tonicOf(p))].label, labels)).join(", ") : "nothing yet"}
-                  {#if step === "answer" && played.length}<button type="button" class="{btnStage} ml-2" onclick={() => (played = [])}>Start over</button>{/if}
+                  {#if step === "answer" && played.length}<button type="button" class="{btnStage} ml-2" onclick={() => (played = [])}>Sing again</button>{/if}
                 </p>
               {/if}
               {#if sungCents.length}<p class="text-sm text-ws-stage-soft">Last note: {centsText(sungCents.at(-1)!)}{tune < 50 ? `, within ${tune} counts` : ""}.</p>{/if}
@@ -1998,17 +1998,17 @@
       </div>
       {#if step === "feedback" && mode === "practice"}
         <!-- Continue full width under the feedback from sm (across both columns beside the wheel); a phone docks it. -->
-        <button type="button" class="{btnPrimary} min-h-14 w-full text-base max-sm:hidden {degreeChoices ? 'lg:col-span-2' : ''}" onclick={next}>{qi + 1 < prompts.length ? "Continue" : "See results"}</button>
+        <button type="button" class="{btnPrimary} min-h-14 w-full text-base max-sm:hidden {degreeChoices ? 'lg:col-span-2' : ''}" onclick={next}>{qi + 1 < prompts.length ? "Next" : "See results"}</button>
       {/if}
       </div>
     {:else if phase === "results" && answer === "listen-along"}
-      <p class="font-display text-xl font-semibold">You listened to {listened} prompts.</p>
+      <p class="font-display text-xl font-semibold">You listened to {listened} questions.</p>
       <p class="text-ws-stage-soft">Listening along is never scored. Switch to Choice or Pocket recall when you want to answer.</p>
     {:else if slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0}
       <div class="py-6 text-center">
-        <p class="font-display text-xl font-semibold">No saved songs to lift phrases from yet.</p>
+        <p class="font-display text-xl font-semibold">No saved songs with a melody yet.</p>
         <p class="mt-1 text-ws-stage-soft">Phrases come from the melody of songs you keep in Studio.</p>
-        <a class="{btnPrimary} mt-4" href="/music/studio?tab=import">Import a score in Studio</a>
+        <a class="{btnPrimary} mt-4" href="/music/studio?tab=import">Import a song in Studio</a>
       </div>
     {:else}
       <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 {slug === 'scale-degrees' ? 'md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]' : ''}">
@@ -2017,8 +2017,8 @@
             <DegreeWheel available={levelDegrees(level)} {labels} center={noteName(droneTonic, "flat", false)} lit={litDegree} onpick={compare} />
           </div>
           <div class="space-y-3">
-            <p class="font-display text-xl font-semibold">Free-play warmup</p>
-            <p class="text-sm text-ws-stage-soft">Hold the tonic as a drone and tap any degree to hear it against home. Nothing here is scored or saved.</p>
+            <p class="font-display text-xl font-semibold">Free-play warm-up</p>
+            <p class="text-sm text-ws-stage-soft">Hold the tonic as a drone and tap any degree to hear it against the drone. Nothing here is scored or saved.</p>
             <div class="flex flex-wrap items-end gap-2">
               <div class="flex flex-col gap-1 text-sm">
                 <span>Tonic</span>
@@ -2032,7 +2032,7 @@
           <div class="space-y-2">
             <!-- What a run is, not the subtitle again. -->
             <p class="font-display text-xl font-semibold">
-              {answer === "listen-along" ? "Ten prompts, answers shown." : `Ten questions. Listen, then ${answer === "choice" ? "tap the answer" : answer === "play-back" ? "play it back" : answer === "voice" ? "sing it" : "answer in your head"}.`}
+              {answer === "listen-along" ? "Ten questions, answers shown." : `Ten questions. Listen, then ${answer === "choice" ? "tap the answer" : answer === "play-back" ? "play it back" : answer === "voice" ? "sing it" : "answer in your head"}.`}
             </p>
             {#if slug === "repertoire-transfer"}
               <ul class="mt-2 grid gap-2 sm:grid-cols-2">
@@ -2049,8 +2049,8 @@
               </ul>
             {:else}
               <p class="text-sm text-ws-stage-soft">
-                {answer === "choice" ? "Tap a button or press its number key." : answer === "play-back" ? "Play on the keys below or your MIDI keyboard." : answer === "voice" ? "The microphone listens once each prompt ends." : answer === "listen" ? "Reveal the answer, then say whether you heard it." : "The prompts move on by themselves."}
-                Hear it plays an example, lit as it sounds.
+                {answer === "choice" ? "Tap a button or press its number key." : answer === "play-back" ? "Play on the keys below or your MIDI keyboard." : answer === "voice" ? "The microphone listens once each question ends." : answer === "listen" ? "Reveal the answer, then say whether you heard it." : "The next question plays by itself."}
+                The headphone button plays an example, lit as it sounds.
               </p>
             {/if}
             {#if demo}<p class="font-semibold">That was {tokenLabel(demo.kind, demo.answer, labels)}.</p>{/if}

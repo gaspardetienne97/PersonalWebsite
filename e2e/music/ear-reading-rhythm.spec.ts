@@ -161,9 +161,9 @@ test.describe("ear training", () => {
         await expectNoHorizontalOverflow(page);
       }
     }
-    await expect(page.getByRole("link", { name: "Import a score in Studio" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Import a song in Studio" })).toHaveCount(0);
     await page.goto("/music/ear/repertoire-transfer");
-    await expect(page.getByRole("link", { name: "Import a score in Studio" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Import a song in Studio" })).toBeVisible();
     await page.goto("/music/ear/scale-degrees?answer=listen-along&level=anchor");
     await expect(page.getByText("Setup:").locator("..")).toContainText("Listen along, Anchor");
     await shots(page, "ear-scale-degrees-ready");
@@ -213,10 +213,10 @@ test.describe("ear training", () => {
         await expect(card).toContainText("Not quite. Compare the two.");
         await shots(page, "ear-intervals-feedback");
       }
-      await page.getByRole("button", { name: i < 9 ? "Continue" : "See results" }).click();
+      await page.getByRole("button", { name: i < 9 ? "Next" : "See results", exact: true }).click();
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 right");
-    await expect(page.getByText("What you mixed up")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What you mixed up" })).toBeVisible();
     // The mix-up as a square of the grid: played (row) against what was said (column), outlined
     // as the one the headline names.
     await expect(
@@ -224,7 +224,7 @@ test.describe("ear training", () => {
         name: /^Played .*, you said .*, once, the mix-up named above\. Play both\.$/,
       }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /Drill my confusions/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Again: what you mixed up/ })).toBeVisible();
     await shots(page, "ear-intervals-results");
   });
 
@@ -240,7 +240,7 @@ test.describe("ear training", () => {
     const label = {
       first: "The first is bigger",
       second: "The second is bigger",
-      same: "They are the same size",
+      same: "They're the same size",
     }[answer]!;
     await expect(page.locator("button.choice")).toHaveCount(2); // fresh: first or second, no "same" yet
     await page.locator("button.choice", { hasText: new RegExp(`^${label}`) }).click();
@@ -596,7 +596,7 @@ test.describe("ear training", () => {
       const label = { higher: "Higher", lower: "Lower", same: "In tune" }[pickLabel]!;
       await page.locator("button.choice", { hasText: new RegExp(`^\\s*${label}\\s*$`) }).click();
       await waitStep(page, "feedback");
-      await page.getByRole("button", { name: "Continue" }).click();
+      await page.getByRole("button", { name: "Next", exact: true }).click();
     };
     await expect(card).toContainText("50 cents off");
     await answerIt(true);
@@ -623,9 +623,9 @@ test.describe("ear training", () => {
     await expect(card).toContainText(`It was Note ${wrongAt}. You answered Note ${other}.`);
     await expect(
       page.getByRole("button", { name: new RegExp(`^Note ${wrongAt}, written`) }),
-    ).toContainText("✓ wrong");
+    ).toContainText("wrong");
     await shots(page, "ear-wrong-note");
-    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await waitStep(page, "answer");
     const next = (await card.getAttribute("data-answer"))!;
     await page.getByRole("button", { name: new RegExp(`^Note ${next}, written`) }).click();
@@ -699,7 +699,7 @@ test.describe("ear training", () => {
       await expect(page.locator("button.choice")).toHaveCount(3);
       await page.locator("button.choice").first().click();
       await waitStep(page, "feedback");
-      await page.getByRole("button", { name: "Continue" }).click();
+      await page.getByRole("button", { name: "Next", exact: true }).click();
     }
   });
 
@@ -824,7 +824,7 @@ test.describe("ear training", () => {
           new RegExp(
             `Sung: ${Array(i + 1)
               .fill("[^,]+ / [^,]+") // a degree and its syllable, never "nothing yet"
-              .join(", ")}\\s*(Start over)?$`,
+              .join(", ")}\\s*(Sing again)?$`,
           ),
           { timeout: 10_000 }, // the microphone locks slower when the machine is busy
         );
@@ -865,7 +865,7 @@ test.describe("ear training", () => {
       await page.getByRole("button", { name: i === 0 ? "Missed it" : "Heard it" }).click();
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 heard");
-    await expect(page.locator("article").first()).toContainText("doesn't move your skill scores");
+    await expect(page.locator("article").first()).toContainText("doesn't change your skill scores");
     await shots(page, "ear-cadences-pocket-results");
   });
 
@@ -939,7 +939,7 @@ test.describe("note reading and sight-reading", () => {
     }
     await expect(page.getByRole("status")).toContainText("9 of 10 read right", { timeout: 8000 });
     await expect(
-      page.getByRole("button", { name: /Practice the notes you missed \(1\)/ }),
+      page.getByRole("button", { name: /Again: the notes you missed \(1\)/ }),
     ).toBeVisible();
     await shots(page, "reading-flashcards-results");
   });
@@ -964,7 +964,7 @@ test.describe("note reading and sight-reading", () => {
     }
     await expect(page.getByRole("status")).toContainText(/right first time/, { timeout: 8000 });
     await expect(page.getByTestId("next-run")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Practice the notes you missed/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Again: the notes you missed/ })).toBeVisible();
     await shots(page, "reading-sight-results");
   });
 
@@ -981,19 +981,17 @@ test.describe("note reading and sight-reading", () => {
       "Level climb from Level 1, G major",
     );
     await page.getByRole("button", { name: "Start", exact: true }).click();
-    await expect(page.getByText("Rung").locator("..")).toContainText("3 of 43");
+    await expect(page.getByText("Level", { exact: true }).locator("..")).toContainText("3 of 43");
     // One wrong note and nothing else: heard, 0%, strike one (a silent run is not scored).
     await page.waitForTimeout(1500);
     await midiNote(page, PORTS.keys.id, 30);
     await expect(page.getByRole("status")).toContainText("strike 1 of 3", { timeout: 30_000 });
     await expect(page.locator("article").first()).toContainText(
-      "rung 3 of 43, 1 of 3 strikes, 1 phrase",
+      "level 3 of 43, 1 of 3 strikes, 1 phrase",
     );
     await shots(page, "reading-climb-strike");
     // A part phrase cannot count toward the climb.
-    await expect(page.getByRole("button", { name: /Practice the notes you missed/ })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole("button", { name: /Again: the notes you missed/ })).toHaveCount(0);
     await page.getByRole("button", { name: "Next phrase" }).click();
     await expect(page.getByText("Strikes").locator("..")).toContainText("1 of 3");
   });

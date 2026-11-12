@@ -136,7 +136,7 @@
     seed = {};
     qi = 0;
     step = "loading";
-    status = "Getting the loop ready.";
+    status = "Getting the loop ready…";
     await audio.unlock();
     buffer = await audio.studio.material(material);
     if (phase !== "running") return;
@@ -169,7 +169,7 @@
     loop?.set(p.change, trim);
     hearing = null;
     step = "answer";
-    status = `Prompt ${qi + 1} of ${LENGTH}: Flat, then Changed. Flip between them as often as you like.`;
+    status = `Question ${qi + 1} of ${LENGTH}: Flat, then Changed. Flip between them as often as you like.`;
     // Flat first, then Changed, the way most trainers present it.
     show(false);
     introTimer = setTimeout(() => step === "answer" && show(true), 1500);
@@ -278,11 +278,11 @@
       best: fin.best,
       clean: mode === "check" && right === LENGTH,
       cleanMeans: "every answer right",
-      coach: weakest ? { label: `Drill ${label(records[0].prompt, weakest)}`, run: () => drillAnswer(weakest) } : undefined,
+      coach: weakest ? { label: `Again: mostly ${label(records[0].prompt, weakest)}`, run: () => drillAnswer(weakest) } : undefined,
       xp: fin.xp,
       mode,
       rows: bandRows(choices),
-      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
       advance: await advanceAfter(score, right === LENGTH),
     };
     status = `${summary.headline} Rest your ears for a minute before the next run.`;
@@ -312,7 +312,7 @@
     const low = Math.min(...rows.map((r) => r.value));
     const weakest = rows.filter((r) => r.value === low);
     // Results draws the flag (a warning glyph and "Needs work"), so the text only names it.
-    if (low < 1 && weakest.length === 1) Object.assign(weakest[0], { text: `${weakest[0].text}, your weakest`, tone: "warn" as const });
+    if (low < 1 && weakest.length === 1) Object.assign(weakest[0], { text: `${weakest[0].text}, your weak spot`, tone: "warn" as const });
     return rows;
   }
 
@@ -384,7 +384,7 @@
             : exercise === "delay"
               ? { text: `${delays} echo times`, focus: "delays" }
               : { text: `${PAN_SETS[pans].length} positions`, focus: "pans" },
-    { text: `${LENGTH} prompts` },
+    { text: `${LENGTH} questions` },
   ]);
 </script>
 
@@ -410,7 +410,7 @@
   onstart={start}
   onstop={stop}
   cue={phase !== "running" || !current ? "" : step === "feedback" ? "" : "Flip Flat and Changed, then pick"}
-  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Continue" : "See results", run: next } : null}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Next" : "See results", run: next } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -439,7 +439,7 @@
 
   {#snippet hud()}
     {#if phase === "running" && current}
-      <Stat label="Prompt" value="{qi + 1} of {LENGTH}" />
+      <Stat label="Question" value="{qi + 1} of {LENGTH}" />
       {#if mode === "practice"}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />{/if}
     {/if}
   {/snippet}
@@ -447,7 +447,7 @@
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const p = current}
-      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Prompt {qi + 1}" data-exercise={p.exercise} data-answer={p.answer} data-step={step}>
+      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Question {qi + 1}" data-exercise={p.exercise} data-answer={p.answer} data-step={step}>
         <p class="text-sm text-ws-stage-soft">{MATERIALS.find((m) => m.value === material)?.label}</p>
         <p class="font-display text-xl font-semibold sm:text-2xl">{meta.ask}</p>
         <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Listen to">
@@ -500,7 +500,7 @@
               </p>
               {#if mode === "practice"}
                 <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
-                <button type="button" class="{btnPrimary} max-sm:hidden sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Continue" : "See results"}</button>
+                <button type="button" class="{btnPrimary} max-sm:hidden sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Next" : "See results"}</button>
               {/if}
             </div>
             {#if mode === "practice" && !r.correct && p.change.eq && (p.exercise === "peak" || p.exercise === "cut")}
@@ -515,7 +515,7 @@
         </div>
       </article>
     {:else if phase === "running"}
-      <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready.</p>
+      <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready…</p>
     {:else}
       <div class="space-y-2 py-2">
         <!-- The safety note on its own line, never cut short. -->

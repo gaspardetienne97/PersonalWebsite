@@ -180,7 +180,7 @@
       },
     });
     preview = h;
-    status = "Preview: listen, not scored.";
+    status = "Demo playing, not scored.";
     void h.done.then(() => {
       if (preview !== h) return;
       preview = null;
@@ -237,7 +237,7 @@
     if (useMic && !(await mic.start())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "The microphone could not start.";
+      status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
       return;
     }
     const octaveExact = instrument === "piano" || aero;
@@ -430,15 +430,15 @@
         ? climb.best < 0
           ? `Three strikes on ${here}. Start the climb a level lower, or slow the tempo.`
           : passed
-            ? `The top rung, ${here}, passed. Nothing higher to climb.`
-            : `Three strikes. Your level: ${rungs[climb.best].label}, rung ${climb.best + 1} of ${rungs.length}.`
+            ? `You passed the top level, ${here}. Nothing higher to climb.`
+            : `Three strikes. You reached ${rungs[climb.best].label}, level ${climb.best + 1} of ${rungs.length}.`
         : passed
-          ? `${pct(r.score)} on ${here}: up a rung to ${rungs[climb.rung].label}.`
-          : `${pct(r.score)} on ${here}: strike ${climb.strikes} of ${CLIMB.strikes}. A new phrase at the same rung.`;
+          ? `${pct(r.score)} on ${here}: up a level to ${rungs[climb.rung].label}.`
+          : `${pct(r.score)} on ${here}: strike ${climb.strikes} of ${CLIMB.strikes}. A new phrase at the same level.`;
       summary.rows = [
         ...(summary.rows ?? []),
-        { label: "Climb", text: `rung ${climb.rung + 1} of ${rungs.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
-        ...(climbBest >= 0 && rungs[climbBest] ? [{ label: "Best rung on this instrument", text: `${climbBest + 1}, ${rungs[climbBest].label}` }] : []),
+        { label: "Climb", text: `level ${climb.rung + 1} of ${rungs.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
+        ...(climbBest >= 0 && rungs[climbBest] ? [{ label: "Best level on this instrument", text: `${climbBest + 1}, ${rungs[climbBest].label}` }] : []),
       ];
     }
     status = summary.headline;
@@ -466,7 +466,7 @@
     kfs = null;
     live = null;
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   function practiceMissed() {
@@ -631,7 +631,7 @@
 
   {#snippet hud()}
     {#if climbing && climb && !climb.over}
-      <Stat label="Rung" value={`${climb.rung + 1} of ${rungs.length}`} />
+      <Stat label="Level" value={`${climb.rung + 1} of ${rungs.length}`} />
       <Stat label="Strikes" value={`${climb.strikes} of ${CLIMB.strikes}`} />
     {/if}
     {#if phase === "running" && live}
@@ -664,7 +664,7 @@
     <div class="mt-3 flex flex-wrap items-center gap-2">
       {#if fretted && tabTuning}
         <button type="button" class={btnStage} aria-pressed={showTab} aria-controls="sight-tab" onclick={() => (showTab = !showTab)}>{showTab ? "Hide tab" : "Show tab"}</button>
-        {#if !showTab}<span class="text-sm text-ws-stage-soft">Tab stays hidden so the staff does the work.</span>{/if}
+        {#if !showTab}<span class="text-sm text-ws-stage-soft">Tab stays hidden so you read the staff.</span>{/if}
       {/if}
       {#if phase === "ready"}
         <!-- Outlined, so it reads as a button on the stage, beside the staff it changes. -->
@@ -728,12 +728,12 @@
             <span class="font-display text-2xl font-bold">Tap</span>
             <span class="text-sm opacity-80">or Space</span>
           </button>
-          <p class="text-center text-sm text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is graded.</p>
+          <p class="text-center text-sm text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is scored.</p>
         </div>
         </div>
       {:else if useMic}
         <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
-          <p class="text-sm text-ws-stage-soft">The microphone listens while the run is on. Notes are graded by pitch class.</p>
+          <p class="text-sm text-ws-stage-soft">The microphone listens while the run is on. Notes are scored by name, in any octave.</p>
           <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
         </div>
       {:else if fretted && tuning}
@@ -753,7 +753,7 @@
           {#if climbing && climb}
             {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>Climb again</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>Next phrase</button>{/if}
           {/if}
-          {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>Practice the notes you missed ({missed.length})</button>{/if}
+          {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>Again: the notes you missed ({missed.length})</button>{/if}
           <button type="button" class={btn} onclick={newPhrase}>New phrase</button>
         {/snippet}
       </Results>

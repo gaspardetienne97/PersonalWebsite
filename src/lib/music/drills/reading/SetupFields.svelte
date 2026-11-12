@@ -64,7 +64,7 @@
   {/if}
   {#if activity === "flashcards"}
     <Choice
-      label="Prompt"
+      label="Card"
       setupKey="kind"
       options={[
         { value: "note", label: "Single note" },
@@ -98,7 +98,7 @@
     />
   {:else}
     <Choice
-      label="Session"
+      label="Run"
       setupKey="session"
       options={[
         { value: "one", label: "One phrase" },
@@ -117,9 +117,9 @@
         label="Pace"
         setupKey="follower"
         options={[
-          { value: "wait", label: FOLLOWER_NAME.wait, hint: "The cursor holds until you play the right notes. Guided, so it never counts toward mastery." },
-          { value: "performance", label: FOLLOWER_NAME.performance, hint: "The cursor moves with the click and grades your timing." },
-          { value: "tap", label: FOLLOWER_NAME.tap, hint: "Keep time with any key, the Tap button or Space. Only the rhythm is graded." },
+          { value: "wait", label: FOLLOWER_NAME.wait, hint: "The cursor waits until you play the right notes. Guided, so it never changes your skill scores." },
+          { value: "performance", label: FOLLOWER_NAME.performance, hint: "The cursor moves with the click. Your timing is scored." },
+          { value: "tap", label: FOLLOWER_NAME.tap, hint: "Keep time with any key, the Tap button or Space. Only the rhythm is scored." },
         ]}
         value={s.follower}
         onchange={(v) => cfg.set({ follower: v })}
@@ -130,7 +130,7 @@
           setupKey="kick"
           options={[
             { value: "off", label: "Off" },
-            { value: "on", label: "Kick every beat", hint: "A kick on every quarter under the rhythm: a kick pad (MIDI 36) or the Kick button. Both are graded." },
+            { value: "on", label: "Kick every beat", hint: "A kick on every quarter under the rhythm: a kick pad (MIDI 36) or the Kick button. Both are scored." },
           ]}
           value={s.kick ? "on" : "off"}
           onchange={(v) => cfg.set({ kick: v === "on" })}
@@ -152,7 +152,7 @@
       setupKey="mask"
       options={[
         { value: 0, label: "Off" },
-        { value: 2, label: "2 beats", hint: "Played notes hide and only the next 2 beats show, so the eyes stay ahead of the hands." },
+        { value: 2, label: "2 beats", hint: "Played notes hide and only the next 2 beats show, so your eyes stay ahead of your hands." },
         { value: 4, label: "4 beats", hint: "Played notes hide and only the next 4 beats show." },
       ]}
       value={s.mask}
@@ -210,7 +210,7 @@
 </div>
 {#if activity === "sight-reading"}
   <p class="mt-3 text-sm text-ws-soft">
-    Tempo comes from the practice strip (40 to 200 BPM).{#if climbing}
-      The climb keeps time, four bars a phrase, starting at rung {rung + 1} of {rungs.length} ({rungs[rung].label}): {Math.round(CLIMB.pass * 100)}% or better moves up a rung, less is a strike, {CLIMB.strikes} strikes end it.{/if}
+    Set the tempo in the top bar (40 to 200 BPM).{#if climbing}
+      The climb keeps time, four bars a phrase, starting at level {rung + 1} of {rungs.length} ({rungs[rung].label}). {Math.round(CLIMB.pass * 100)}% or better moves up a level, less is a strike, and {CLIMB.strikes} strikes end it.{/if}
   </p>
 {/if}

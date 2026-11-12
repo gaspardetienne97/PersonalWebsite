@@ -186,7 +186,7 @@
         ctx.stopClock();
         cap?.stop();
         phase = "ready";
-        status = mic.error || "The microphone could not start.";
+        status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
         return;
       }
       frames = [];
@@ -320,7 +320,7 @@
           { label: "Extra taps", text: String(r.extra) },
         ],
         advance: await advanceAfter(r.score, r.correct),
-        routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+        routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
       };
     } else {
       const r = gradePattern(def, taken, { startAt: downbeat, beatMs });
@@ -360,7 +360,7 @@
             : []),
         ],
         advance: await advanceAfter(r.score, r.correct),
-        routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+        routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
       };
     }
     status = summary.headline;
@@ -473,7 +473,7 @@
         { label: "Extra marks", text: String(answered.length - right) },
       ],
       advance: await advanceAfter(r.score, r.correct),
-      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
     };
     status = summary.headline;
   }
@@ -482,7 +482,7 @@
     teardown();
     writing = false;
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   // ---------------------------------------------------------------------------
@@ -503,7 +503,7 @@
         : demoNotes(plan);
     const h = audio.playSequence(notes, { onNote: (i) => notes[i].event >= 0 && (lit = notes[i].event) });
     demo = h;
-    status = "Listen: the pattern lights as it sounds. Not scored.";
+    status = "Demo playing, not scored. The pattern lights as it sounds.";
     void h.done.then(() => {
       if (demo === h) stopDemo();
     });
@@ -830,7 +830,7 @@
           setupKey="mic"
           options={[
             { value: "off", label: "Off", hint: "Taps, MIDI keys and pads count." },
-            { value: "on", label: "On", hint: "Onsets heard by the microphone count too." },
+            { value: "on", label: "On", hint: "Claps and notes the microphone hears count too." },
           ]}
           value={s.mic ? "on" : "off"}
           onchange={(v) => cfg.set({ mic: v === "on" })}
@@ -838,7 +838,7 @@
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Tempo comes from the practice strip ({RHYTHM_LIMITS.bpm[0]} to {RHYTHM_LIMITS.bpm[1]} BPM).{#if listens} Use headphones: the click in the speakers would count as a tap.{/if}
+      Set the tempo in the top bar ({RHYTHM_LIMITS.bpm[0]} to {RHYTHM_LIMITS.bpm[1]} BPM).{#if listens} Use headphones: the click in the speakers would count as a tap.{/if}
     </p>
   {/snippet}
 
@@ -862,7 +862,7 @@
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
       <div class="min-w-0 {writes ? '' : 'md:flex-1'}" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
-          <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are graded when the mic or MIDI hears pitch.</p>
+          <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are scored when the mic or MIDI hears pitch.</p>
         {/if}
         {#if writes && phase === "ready"}
           <p class="mb-2 text-sm text-ws-stage-soft">

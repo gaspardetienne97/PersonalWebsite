@@ -552,7 +552,7 @@ export function tokenLabel(
       ? "The first is bigger"
       : token === "second"
         ? "The second is bigger"
-        : "They are the same size";
+        : "They're the same size";
   if (kind === "chord-quality") return QUALITIES.find((q) => q.token === token)?.label ?? token;
   if (kind === "cadence") {
     const c = CADENCES.find((x) => x.token === token);

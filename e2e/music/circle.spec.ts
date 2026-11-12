@@ -59,7 +59,7 @@ test.describe("circle of fifths", () => {
       .click();
     await expect(card).toContainText(/Right(, but slow)?: /);
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("article", { name: "Prompt 2" })).toHaveAttribute(
+    await expect(page.getByRole("article", { name: "Question 2" })).toHaveAttribute(
       "data-step",
       "answer",
     );
@@ -70,7 +70,7 @@ test.describe("circle of fifths", () => {
     await page.keyboard.press(String(wrong + 1));
     await expect(card).toContainText(`It was ${b}.`);
     await expect(
-      card.getByRole("group", { name: "The circle, with the key of this prompt" }),
+      card.getByRole("group", { name: "The circle, with the key of this question" }),
     ).toBeVisible();
     await shots(page, "drill-count-miss");
   });
@@ -90,7 +90,7 @@ test.describe("circle of fifths", () => {
     await shots(page, "drill-signature");
     // In Practice a key can be tapped on the wheel: the right segment is marked.
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("article", { name: "Prompt 2" })).toHaveAttribute(
+    await expect(page.getByRole("article", { name: "Question 2" })).toHaveAttribute(
       "data-step",
       "answer",
     );

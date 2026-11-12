@@ -138,7 +138,7 @@ for (const width of WIDTHS)
     const card = page.locator("article[data-exercise]");
     const answers = page.getByRole("group", { name: "Answers" }).getByRole("button");
     for (let i = 0; i < 10; i++) {
-      await expect(card).toHaveAttribute("aria-label", `Prompt ${i + 1}`, { timeout: 20_000 });
+      await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`, { timeout: 20_000 });
       await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
       if (i === 0) {
         await page.waitForTimeout(1500); // Flat, then Changed
@@ -155,7 +155,7 @@ for (const width of WIDTHS)
         await page.waitForTimeout(400);
         await shot(page, flow, i === 0 ? "feedback" : "feedback-wrong", width);
       }
-      await page.getByRole("button", { name: /^(Continue|See results)$/ }).click();
+      await page.getByRole("button", { name: /^(Next|See results)$/ }).click();
     }
     await toResults(page);
     await shot(page, flow, "results", width, { full: true });

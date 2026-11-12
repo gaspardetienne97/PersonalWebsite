@@ -221,7 +221,7 @@
         { label: "Typical answer", text: median ? (median < 100 ? "under 0.1 s" : `${(median / 1000).toFixed(1)} s`) : "None right yet" },
         ...(slowKeys.length ? [{ label: "Keys to go over", text: slowKeys.join(", ") }] : []),
       ],
-      routine: page.url.searchParams.get("routine") ? { label: "Back to today's plan", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
       // Untimed: wider key bands; the order of sharps and flats has none.
       advance:
         modeId === "order" || analysing
@@ -299,9 +299,9 @@
           ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the last sharp, ${k.accidentals.at(-1)}, is a half step below ${k.major}. Its relative minor is ${k.minor}.`
           : p.fifths < -1
             ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the second-to-last flat, ${k.accidentals.at(-2)}, names the key. Its relative minor is ${k.minor}.`
-            : `${k.major} major has ${accidentalCount(p.fifths)}; its relative minor is ${k.minor}.`;
+            : `${k.major} major has ${accidentalCount(p.fifths)}. Its relative minor is ${k.minor}.`;
       case "neighbours":
-        return "Clockwise adds a sharp (a fifth up); counter-clockwise adds a flat (a fourth up). The relative minor is a minor third below.";
+        return "Clockwise adds a sharp (a fifth up). Counter-clockwise adds a flat (a fourth up). The relative minor is a minor third below.";
       case "chords":
         return `${k.major} major: ${diatonicChords(p.fifths).map((c) => `${c.numeral} ${c.name}`).join(", ")}. The wedge: IV I V outside, ii vi iii inside.`;
       case "wheel":
@@ -384,11 +384,11 @@
         </figure>
       {/if}
       {#if wheel}
-        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} dim={CHORD_MODES.includes(p.mode)} label="The circle, with the key of this prompt" /></div>
+        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} dim={CHORD_MODES.includes(p.mode)} label="The circle, with the key of this question" /></div>
       {/if}
     </div>
     <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
-    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full max-sm:hidden sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Continue" : "See results"} <kbd class="ml-1 text-sm opacity-70 pointer-coarse:hidden">Enter</kbd></button>
+    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full max-sm:hidden sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Next" : "See results"} <kbd class="ml-1 text-sm opacity-70 pointer-coarse:hidden">Enter</kbd></button>
   {/if}
 {/snippet}
 
@@ -397,7 +397,7 @@
 <DrillShell
   title="Circle of fifths"
   hue="reading"
-  blurb="Key signatures and their order, fast. Right within 2 s is fluent; slower means still working it out."
+  blurb="Key signatures and their order, fast. Right within 2 s is fluent. Slower means you're still working it out."
   summary={summaryLine}
   {tabs}
   firstTabs={4}
@@ -410,7 +410,7 @@
   bind:status
   progress={(qi + 1) / length}
   {cue}
-  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < length ? "Continue" : "See results", run: next } : null}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < length ? "Next" : "See results", run: next } : null}
   instrumentFree
   onstart={start}
   onstop={stop}
@@ -433,7 +433,7 @@
     </div>
     {#if analysing}
       <p class="mt-3 text-sm text-ws-soft">
-        Each chord of the tune, each section once: pick its key centre, then its function there. The analysis follows a few rules: a chord reached from its own V7, tritone sub or backdoor is a new key's I; a ii-V belongs to the key it resolves to; a dominant that resolves to anything else is a V of. After a miss, the rule that applies is shown.
+        Each chord of the tune, each section once: pick its key centre, then its function there. The analysis follows three rules. A chord reached from its own V7, tritone sub or backdoor is a new key's I. A ii-V belongs to the key it resolves to. A dominant that resolves to anything else is a V of. After a miss, you see the rule that applies.
       </p>
     {:else}
     <p class="mt-3 text-sm text-ws-soft">
@@ -444,7 +444,7 @@
 
   {#snippet hud()}
     {#if phase === "running" && current}
-      <Stat label="Prompt" value="{qi + 1} of {length}" />
+      <Stat label="Question" value="{qi + 1} of {length}" />
       {#if mode === "practice" && analysing}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />
       {:else if mode === "practice"}<Stat label="Fast and right" value="{records.filter((r) => r.correct && !r.slow).length} of {length}" />{/if}
     {/if}
@@ -455,7 +455,7 @@
     {#if phase === "running" && current}
       {@const p = current}
       {@const r = step === "feedback" ? records.at(-1) : undefined}
-      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Prompt {qi + 1}" data-mode={p.mode} data-answer={p.answer} data-step={step}>
+      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Question {qi + 1}" data-mode={p.mode} data-answer={p.answer} data-step={step}>
         <p class="font-display text-2xl font-semibold sm:text-3xl">{p.ask}</p>
         {#if p.staff}
           <div class="mt-3 max-w-64 overflow-hidden rounded-xl"><Staff score={signatureScore(p)} time={false} maxHeight="8rem" /></div>
@@ -500,7 +500,7 @@
               dim={false}
               onpick={step === "answer" ? (f) => tapKey(p, f) : undefined}
               marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
-              label={r ? "The circle, with the key of this prompt" : "The circle of fifths: tap the key"}
+              label={r ? "The circle, with the key of this question" : "The circle of fifths: tap the key"}
             />
             </div>
             {#if r}<div>{@render verdict(p, r, false)}</div>{/if}
@@ -551,9 +551,9 @@
         <div class="space-y-2">
           <p class="font-display text-xl font-semibold">{meta.title}</p>
           {#if analysing}
-            <p class="text-sm text-ws-stage-soft">{tuneName(tuneId)}, chord by chord: its key centre and its function there, against an analysis worked out by rule. Untimed.</p>
+            <p class="text-sm text-ws-stage-soft">{tuneName(tuneId)}, chord by chord: name each chord's key centre and its function there. Answers come from a rule-based analysis. Untimed.</p>
           {:else}
-            <p class="text-sm text-ws-stage-soft">{entry.blurb} Aim to answer within {meta.targetMs / 1000} seconds: that is recall, not working it out.</p>
+            <p class="text-sm text-ws-stage-soft">{entry.blurb} Aim to answer within {meta.targetMs / 1000} seconds: that's recall, not working it out.</p>
           {/if}
         </div>
       </div>

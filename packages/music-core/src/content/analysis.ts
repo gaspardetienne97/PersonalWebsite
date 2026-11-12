@@ -243,11 +243,11 @@ export function functionRule(fn: string): string {
   switch (fn) {
     case "I":
     case "i":
-      return "A key's I: the home chord, or a major chord reached from its own V7, tritone sub or backdoor (a minor i needs its whole iiø7 V7 and two bars).";
+      return "A key's I: the home chord, or a major chord reached from its own V7, tritone sub or backdoor. A minor i needs its whole iiø7 V7 and two bars.";
     case "V":
-      return "The V: a dominant that resolves down a fifth to the key's I, or a ii-V left hanging (it names the key a fifth below).";
+      return "The V: a dominant that resolves down a fifth to the key's I, or a ii-V left hanging. A hanging ii-V names the key a fifth below.";
     case "V of":
-      return "A secondary dominant: it resolves down a fifth to a chord that is not a key's I, and belongs to that chord's key.";
+      return "A secondary dominant: it resolves down a fifth to a chord that isn't a key's I. It belongs to that chord's key.";
     case "ii":
     case "iiø":
       return "The ii of a ii-V: a minor (or half-diminished) chord a fourth below the V.";
@@ -256,10 +256,10 @@ export function functionRule(fn: string): string {
     case "Tritone sub":
       return "A tritone sub: a dominant that resolves down a half step, in place of the V a tritone away.";
     case "Backdoor":
-      return "A backdoor: bVII7 going up a step to I; the iv7 before it pairs with it.";
+      return "A backdoor: bVII7 going up a step to I. The iv7 before it pairs with it.";
     case "Passing dim":
       return "A passing diminished 7th: it links two chords a step apart.";
     default:
-      return "Not part of a cadence: named in the key last arrived at (or the next, when it is none of the last key's chords), with iv and bVI borrowed from the minor.";
+      return "Not part of a cadence. It's named in the last key reached, or in the next key when it's none of the last key's chords. iv and bVI count as borrowed from the minor.";
   }
 }

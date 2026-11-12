@@ -72,7 +72,7 @@ const CHORD_FUNCTION_DRILLS = [
   {
     slug: "chord-functions",
     title: "Chords in a key",
-    description: "The key is set with I, IV, V, I; then one chord. Which is it, I to vii°?",
+    description: "I, IV, V, I sets the key, then one chord plays. Which is it, I to vii°?",
     drill: "chord-function",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -211,7 +211,7 @@ export const SCALE_DEGREE_LEVELS: {
   {
     id: "anchor",
     title: "Anchor",
-    summary: "Hear home and dominant: 1 and 5.",
+    summary: "Hear the tonic and the dominant: 1 and 5.",
     degrees: ["1", "5"],
   },
   {
@@ -223,25 +223,25 @@ export const SCALE_DEGREE_LEVELS: {
   {
     id: "major-diatonic",
     title: "Major diatonic",
-    summary: "Recognize all seven major-key functions.",
+    summary: "Recognise all seven major-key functions.",
     degrees: ["1", "2", "3", "4", "5", "6", "7"],
   },
   {
     id: "minor-diatonic",
     title: "Minor diatonic",
-    summary: "Recognize natural-minor functions around the tonic.",
+    summary: "Recognise natural-minor functions around the tonic.",
     degrees: ["1", "2", "b3", "4", "5", "b6", "b7"],
   },
   {
     id: "chromatic-color",
-    title: "Chromatic color",
-    summary: "Add b2 and #4 color tones around the diatonic degree map.",
+    title: "Chromatic colour",
+    summary: "Add the colour tones b2 and #4 to the seven diatonic degrees.",
     degrees: ALL_DEGREES,
   },
   {
     id: "full-current",
-    title: "Current full set",
-    summary: "Review every scale-degree skill currently seeded in the app.",
+    title: "Full set",
+    summary: "Review every scale degree Woodshed teaches so far.",
     degrees: ALL_DEGREES,
   },
 ];

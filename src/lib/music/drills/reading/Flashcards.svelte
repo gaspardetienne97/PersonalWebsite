@@ -122,7 +122,7 @@
     queued = null;
     if (useMic && !(await mic.start())) {
       phase = "ready";
-      status = mic.error || "The microphone could not start.";
+      status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
       return;
     }
     run = practice.beginRun({
@@ -238,7 +238,7 @@
       xp: fin.xp,
       mode,
       hinted: anyHint,
-      coach: missed.length ? { label: `Practice the notes you missed (${missed.length})`, run: retryMissed } : undefined,
+      coach: missed.length ? { label: `Again: the notes you missed (${missed.length})`, run: retryMissed } : undefined,
       rows: (["treble", "bass"] as const)
         .filter((c) => byClef(c).length)
         .map((c) => ({ label: c === "treble" ? "Treble clef" : "Bass clef", value: byClef(c).filter((r) => r.correct).length / byClef(c).length, text: `${byClef(c).filter((r) => r.correct).length} of ${byClef(c).length}` })),
@@ -264,7 +264,7 @@
   function stop() {
     teardown();
     phase = "ready";
-    status = "Stopped. Answers already given are saved.";
+    status = "Stopped. Your answers are saved.";
   }
 
   function retryMissed() {
@@ -386,7 +386,7 @@
           </div>
         {:else if useMic}
           <div class="mx-auto max-w-md rounded-2xl bg-ws-stage-ink/8 p-4 text-center">
-            <p class="text-sm text-ws-stage-soft">Play the note on your {instrument}; the microphone listens.</p>
+            <p class="text-sm text-ws-stage-soft">Play the note on your {instrument}. The microphone listens.</p>
             <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
           </div>
         {:else if fretted && tuning}
