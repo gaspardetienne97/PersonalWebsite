@@ -2483,7 +2483,7 @@
         {
           "id": "5.9",
           "title": "Melody balance in a ballad",
-          "setup": "Song practice, Performance, with Melody balance on (needs MIDI velocity). Play a ballad from this level's list, the melody louder than the notes struck with it.",
+          "setup": "Song practice, Performance, with Also score set to Melody balance (needs MIDI velocity). Play a ballad from this level's list, the melody louder than the notes struck with it.",
           "done": "Melody above the accompaniment on 80% of beats.",
           "feeds": "Your Song, Married Life",
           "href": "/music/songs/shelf/piano/your-song-full?mode=performance&grade=balance",
@@ -3430,7 +3430,7 @@
         {
           "id": "7.7",
           "title": "Melody balance in a full arrangement",
-          "setup": "Song practice, Performance, with Melody balance on (needs MIDI velocity). Use the song you're learning from this level's list.",
+          "setup": "Song practice, Performance, with Also score set to Melody balance (needs MIDI velocity). Use the song you're learning from this level's list.",
           "done": "Melody above the accompaniment on 85% of beats.",
           "feeds": "every ballad",
           "href": "/music/songs/shelf/piano/someone-like-you-full?mode=performance&grade=balance",
