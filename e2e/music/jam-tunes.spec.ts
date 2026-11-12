@@ -120,7 +120,7 @@ test("Jam in 3/4 over a reharmonised ii-V-I: the 3rd of each chord, graded and r
   await page.goto(
     "/music/changes/jam?progression=ii-v-i&transpose=0&backing=both&game=thirds&choruses=1&meter=3&reharm=1:tritone&bpm=160",
   );
-  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
+  await expect(page.getByLabel("Play over changes drill")).toContainText("Jam");
   // The sandbox shows the swapped chart: G7 became Db7.
   await page.getByRole("button", { name: "1 chord reharmonised" }).click();
   await expect(page.getByTestId("jam-reharm")).toContainText("Dm7 Db7 Cmaj7 A7");
