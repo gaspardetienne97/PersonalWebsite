@@ -9,7 +9,7 @@
       "id": "1",
       "title": "First chords: A, D, E and the three minors",
       "goal": "Strum a three-chord song with steady downstrokes and play a one-string riff from tab.",
-      "adds": "Tuning, A D E Am Em Dm, One Minute Changes, quarter-note downstrokes, thumb on the bass, tab, notes on strings 6 and 5.",
+      "adds": "Chords: tuning, A D E Am Em Dm, One Minute Changes, quarter-note downstrokes. Fingerpicking: thumb on the bass. Riffs: tab. Reading: notes on strings 6 and 5.",
       "pick": 2,
       "steps": [
         {
@@ -18,7 +18,7 @@
           "strand": "T",
           "href": "/music/tuner",
           "setup": "The tuner, all six strings.",
-          "done": "All six strings within 10 cents, unaided, in under 2 minutes, on two days."
+          "done": "All six strings within 10 cents, with no help, in under 2 minutes, on two days."
         },
         {
           "id": "1.2",
@@ -50,7 +50,7 @@
           "title": "Downstrokes on 1 2 3 4",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=guitar-four-on-the-floor&bpm=60",
-          "setup": "Rhythm, read and tap: four on the floor, 60 then 72.",
+          "setup": "Rhythm, read and tap: four on the floor, at 60, then 72 BPM.",
           "done": "90% on time at 72 BPM, 3 runs, on two days.",
           "threshold": 0.9,
           "minBpm": 72
@@ -61,7 +61,7 @@
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.a-major,guitar.d-major&timed=true",
           "setup": "Chords, Changes: timed, 60 seconds, one pair at a time.",
-          "done": "30 changes a minute on each pair, on two days. First tries of 6 to 9 are normal.",
+          "done": "30 changes a minute on each pair, on two days. First runs of 6 to 9 are normal.",
           "each": {
             "param": "chords",
             "values": [
@@ -143,8 +143,8 @@
           "id": "1.7",
           "title": "Strum a three-chord song form",
           "strand": "S",
-          "setup": "Strum a song: Three Little Birds or Wild Thing, downstrokes, 70% of the record's tempo.",
-          "done": "Two clean passes of the song form at 70%, then at 100%.",
+          "setup": "Strum a song: Three Little Birds or Wild Thing, downstrokes, at 70% of the recording's tempo.",
+          "done": "Two clean runs of the song form at 70%, then at 100%.",
           "needs": "Runs that count in Strum a progression, and Three Little Birds and Wild Thing among its song presets."
         },
         {
@@ -152,8 +152,8 @@
           "title": "Thumb on the bass",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=boom-chick&chords=guitar.a-major,guitar.d-major,guitar.e-major&bpm=60",
-          "setup": "Chords, Fingerpicking: boom-chick with the thumb on the root, A D E, 60.",
-          "done": "Root on the right string every beat, 3 clean runs at 70, on two days.",
+          "setup": "Chords, Fingerpicking: boom-chick with the thumb on the root, over A D E, at 60 BPM.",
+          "done": "Root on the right string every beat, 3 clean runs at 70 BPM, on two days.",
           "match": {
             "pattern": "boom-chick"
           },
@@ -166,7 +166,7 @@
           "strand": "F",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.twinkle",
           "setup": "Phrases: Twinkle, alternating i and m on strings 1 and 2.",
-          "done": "Clean at 80, alternating fingers, on two days.",
+          "done": "Clean at 80 BPM, alternating fingers, on two days.",
           "match": {
             "phrase": "guitar.twinkle"
           },
@@ -177,8 +177,8 @@
           "id": "1.10",
           "title": "Read tab, play a one-string riff",
           "strand": "R",
-          "setup": "Song practice, Performance: the Seven Nation Army riff from the shelf, then Peter Gunn.",
-          "done": "The riff at 100 BPM 3 times clean, then at the record's tempo.",
+          "setup": "Song practice, Performance: the Seven Nation Army riff from this level's list, then Peter Gunn.",
+          "done": "The riff clean 3 times at 100 BPM, then at the recording's tempo.",
           "href": "/music/songs/shelf/guitar/seven-nation-army?bars=1-4",
           "minAttempts": 3,
           "threshold": 0.9,
@@ -206,7 +206,7 @@
           "strand": "T",
           "href": "/music/chords?mode=strum&instrument=guitar&shape=guitar.a-major",
           "setup": "Chords, Strum and identify: A, D and E.",
-          "done": "80% over 20.",
+          "done": "80% over 20 answers.",
           "minAttempts": 1,
           "threshold": 0.8
         }
@@ -218,7 +218,7 @@
           "artist": "Bob Marley",
           "strand": "S",
           "teaches": "A D E with a reggae feel",
-          "detail": "A, 74 BPM, A D E; downstrokes, later off-beat chops",
+          "detail": "A, 74 BPM, A D E. Downstrokes, later off-beat chops",
           "bpm": 74,
           "diff": 1,
           "scores": [
@@ -288,7 +288,7 @@
           "title": "Free Fallin'",
           "artist": "Tom Petty",
           "strand": "S, F",
-          "teaches": "D Dsus4 A with a capo; also picked with thumb and fingers",
+          "teaches": "D Dsus4 A with a capo, also picked with thumb and fingers",
           "detail": "F (capo 3), 84 BPM",
           "bpm": 84,
           "diff": 2,
@@ -408,13 +408,13 @@
           }
         }
       ],
-      "test": "One strummed song and one riff song from the shelf at the record's tempo, with the record, without stopping; three random pairs from A D E Am Em Dm at 30 changes a minute; Ode to Joy or step 1.8 clean at 70."
+      "test": "Play one strummed song and one riff song from this level's list. Play each with the recording, at its tempo, without stopping. Change between three random pairs from A D E Am Em Dm at 30 changes a minute. Play Ode to Joy or step 8 clean at 70 BPM."
     },
     {
       "id": "2",
       "title": "C and G, Old Faithful, first arpeggios",
-      "goal": "Play the G C D Em family of songs with a real strum pattern, and pick an arpeggio through a progression.",
-      "adds": "C and G, Old Faithful (D DU UDU), the common pairs, p-i-m-a and folk arpeggios, two-string riffs, first-position notes on strings 1 to 3 from the staff.",
+      "goal": "Play the G C D Em family of songs with a real strum pattern. Pick an arpeggio through a progression.",
+      "adds": "Chords: C and G, Old Faithful (D DU UDU), the common pairs. Fingerpicking: p-i-m-a and folk arpeggios. Riffs: two strings. Reading: first-position notes on strings 1 to 3 from the staff.",
       "pick": 2,
       "steps": [
         {
@@ -422,7 +422,7 @@
           "title": "Build C and G",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major",
-          "setup": "Chords, Build: C, then G. The app's G is the three-finger shape; learn the four-finger G (320033) beside it.",
+          "setup": "Chords, Build: C, then G. The drill's G is the three-finger shape. Learn the four-finger G (320033) beside it.",
           "done": "Each shape rings clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -479,7 +479,7 @@
           "title": "Hardest five",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&hardest=true&clock=2&bpm=50",
-          "setup": "Chords, Changes: Hardest five lists your five slowest pairs. A change every 2 beats at 60 is 30 a minute.",
+          "setup": "Chords, Changes: Hardest five lists your five slowest pairs. A change every 2 beats at 60 BPM is 30 a minute.",
           "done": "The 5 slowest pairs at 30 changes a minute each.",
           "match": {
             "hardest": "true",
@@ -493,8 +493,8 @@
           "title": "Old Faithful",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=guitar-old-faithful&bpm=70",
-          "setup": "Rhythm, read and tap: Old Faithful (D DU UDU), 70 then 85.",
-          "done": "90% on time at 85, on two days.",
+          "setup": "Rhythm, read and tap: Old Faithful (D DU UDU), at 70, then 85 BPM.",
+          "done": "90% on time at 85 BPM, on two days.",
           "threshold": 0.9,
           "minBpm": 85
         },
@@ -504,7 +504,7 @@
           "strand": "S, T",
           "href": "/music/rhythm?mode=echo&earLevel=dotted",
           "setup": "Rhythm, Echo: the dotted level.",
-          "done": "5 unaided echoes, 75% on average.",
+          "done": "5 echoes in Check, 75% on average.",
           "match": {
             "level": "dotted"
           },
@@ -516,8 +516,8 @@
           "title": "Strum G-D-Em-C",
           "strand": "S",
           "href": "/music/strum?instrument=guitar&progression=guitar-g-d-em-c&bpm=80",
-          "setup": "Strum a progression: G-D-Em-C with Old Faithful at 80. Strum a progression is practice only, so this step opens it and is not judged.",
-          "done": "Chord following at 90%, 4 passes, on two days.",
+          "setup": "Strum a progression: G-D-Em-C with Old Faithful at 80 BPM. Strum a progression is practice only, so this step opens it and isn't scored.",
+          "done": "Chord following at 90%, 4 runs, on two days.",
           "exerciseIds": [],
           "feeds": "Stand by Me, Knockin' on Heaven's Door"
         },
@@ -526,8 +526,8 @@
           "title": "p-i-m-a arpeggio",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=pima&chords=guitar.c-major,guitar.a-minor,guitar.g-major,guitar.e-minor&bpm=60",
-          "setup": "Chords, Fingerpicking: p-i-m-a in eighths over C Am G Em, 60 then 80.",
-          "done": "3 clean runs at 80, on two days.",
+          "setup": "Chords, Fingerpicking: p-i-m-a in eighths over C Am G Em, at 60, then 80 BPM.",
+          "done": "3 clean runs at 80 BPM, on two days.",
           "match": {
             "pattern": "pima"
           },
@@ -540,8 +540,8 @@
           "title": "Folk arpeggio p-i-m-i",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=folk-pimi&chords=guitar.g-major,guitar.e-minor,guitar.c-major,guitar.d-major&bpm=70",
-          "setup": "Chords, Fingerpicking: folk p-i-m-i over G Em C D, 70 then 80.",
-          "done": "3 clean runs at 80, on two days.",
+          "setup": "Chords, Fingerpicking: folk p-i-m-i over G Em C D, at 70, then 80 BPM.",
+          "done": "3 clean runs at 80 BPM, on two days.",
           "match": {
             "pattern": "folk-pimi"
           },
@@ -555,7 +555,7 @@
           "strand": "R",
           "href": "/music/songs/shelf/guitar/come-as-you-are?bars=1-4",
           "setup": "Song practice, Performance: the Come As You Are riff, then Satisfaction (linked).",
-          "done": "Each at the record's tempo, 3 clean runs.",
+          "done": "Each at the recording's tempo, 3 clean runs.",
           "minAttempts": 3,
           "threshold": 0.9,
           "minBpm": 120,
@@ -571,7 +571,7 @@
           "title": "First position from the staff",
           "strand": "T",
           "href": "/music/reading?mode=flashcards&activity=flashcards&instrument=guitar&answer=play&level=level-1",
-          "setup": "Note reading, Flashcards: play each written note on the guitar, naturals. The range follows the reading level until a strings 1 to 3 setting exists.",
+          "setup": "Note reading, Flashcards: play each written note on the guitar, naturals. The range follows your reading level: there's no strings 1 to 3 setting yet.",
           "done": "20 answers, 90% right, under 3 seconds each.",
           "minAttempts": 2,
           "threshold": 0.9
@@ -582,7 +582,7 @@
           "strand": "T",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.amazing-grace",
           "setup": "Phrases: Amazing Grace from the notation, i-m strokes.",
-          "done": "Clean at 80, on two days.",
+          "done": "Clean at 80 BPM, on two days.",
           "match": {
             "phrase": "guitar.amazing-grace"
           },
@@ -595,7 +595,7 @@
           "strand": "T",
           "href": "/music/ear/chord-functions?functions=I,IV,V",
           "setup": "Ear, Chords in a key: I, IV and V (Ear path step 5).",
-          "done": "80% over 20.",
+          "done": "80% over 20 answers.",
           "minAttempts": 1,
           "threshold": 0.8,
           "feeds": "Bad Moon Rising by ear"
@@ -607,7 +607,7 @@
           "title": "Knockin' on Heaven's Door",
           "artist": "Bob Dylan",
           "strand": "S, F",
-          "teaches": "G D Am and G D C with Old Faithful; picked with the folk arpeggio",
+          "teaches": "G D Am and G D C with Old Faithful, also picked with the folk arpeggio",
           "detail": "G, 69 BPM",
           "bpm": 69,
           "diff": 1,
@@ -727,8 +727,8 @@
           "title": "Come As You Are",
           "artist": "Nirvana",
           "strand": "R",
-          "teaches": "single-note riff on strings 6 and 5 (standard-tuning version)",
-          "detail": "E (the record is a whole step down), 120 BPM",
+          "teaches": "Single-note riff on strings 6 and 5 (standard-tuning version)",
+          "detail": "E (the recording is a whole step down), 120 BPM",
           "bpm": 120,
           "diff": 2,
           "scores": [
@@ -752,7 +752,7 @@
           "title": "Satisfaction",
           "artist": "The Rolling Stones",
           "strand": "R",
-          "teaches": "three-note riff, palm feel",
+          "teaches": "Three-note riff, palm feel",
           "detail": "E, 136 BPM",
           "bpm": 136,
           "diff": 1,
@@ -779,7 +779,7 @@
           "artist": "R.E.M.",
           "strand": "F",
           "teaches": "D-G arpeggio, p-i-m-a",
-          "detail": "D, 6/8 feel at 98",
+          "detail": "D, 6/8 feel at 98 BPM",
           "bpm": 98,
           "diff": 2,
           "scores": [
@@ -798,13 +798,13 @@
           }
         }
       ],
-      "test": "One S song and one F or R song at the record's tempo; the hardest five at 30 changes a minute; p-i-m-a through G Em C D clean at 80."
+      "test": "Play one strumming song and one fingerpicking or riff song at the recording's tempo. Play your hardest five changes at 30 changes a minute. Play p-i-m-a through G Em C D clean at 80 BPM."
     },
     {
       "id": "3",
       "title": "Sevenths, sus chords, the island strum and first Travis",
       "goal": "Colour chords, a syncopated strum and a thumb that alternates on its own.",
-      "adds": "A7 D7 E7 G7 C7 B7, Fmaj7 and the mini F, sus2, sus4 and add9 with anchor fingers, the island strum, 16th strumming, an alternating-bass thumb, one-finger Travis, the open E minor pentatonic, hammer-ons and pull-offs, eighth-note rhythm reading.",
+      "adds": "Chords: A7 D7 E7 G7 C7 B7, Fmaj7 and the mini F, sus2, sus4 and add9 with anchor fingers. Strumming: the island strum and 16ths. Fingerpicking: an alternating-bass thumb, one-finger Travis. Lead: the open E minor pentatonic, hammer-ons and pull-offs. Reading: eighth-note rhythms.",
       "pick": 2,
       "steps": [
         {
@@ -812,7 +812,7 @@
           "title": "Build the open sevenths",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=guitar&shape=gen.guitar.9.7",
-          "setup": "Chords, Build: A7, D7, E7 and C7 (the app's generated open shapes), then G7 and B7.",
+          "setup": "Chords, Build: A7, D7, E7 and C7 (generated open shapes), then G7 and B7.",
           "done": "Each shape rings clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -856,7 +856,7 @@
           "title": "Fmaj7, then the mini F",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.c-major,gen.guitar.5.maj7&timed=true",
-          "setup": "Chords, Changes: C-Fmaj7, then Am-F, timed. The app's F is the full barre: fret Fmaj7 (xx3210) and the mini F (xx3211), the clock hears the chord.",
+          "setup": "Chords, Changes: C-Fmaj7, then Am-F, timed. The drill's F is the full barre. Fret Fmaj7 (xx3210) and the mini F (xx3211) instead: Woodshed hears the chord, not the shape.",
           "done": "30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
@@ -876,7 +876,7 @@
           "title": "Sus, add9 and anchor fingers",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=gen.guitar.4.m7,guitar.g-major,gen.guitar.2.sus4,gen.guitar.9.7sus4,gen.guitar.0.add9&timed=true",
-          "setup": "Chords, Changes: the cycle Em7, G, Dsus4, A7sus4, Cadd9, timed. Keep fingers 3 and 4 anchored on strings 1 and 2; the clock hears the chord, not the shape.",
+          "setup": "Chords, Changes: the cycle Em7, G, Dsus4, A7sus4, Cadd9, timed. Keep fingers 3 and 4 anchored on strings 1 and 2. Woodshed hears the chord, not the shape.",
           "done": "30 changes a minute on the cycle, on two days.",
           "match": {
             "chords": "gen.guitar.4.m7>guitar.g-major>gen.guitar.2.sus4>gen.guitar.9.7sus4>gen.guitar.0.add9"
@@ -889,8 +889,8 @@
           "title": "Island strum with a mute",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=guitar-island-strum&bpm=84",
-          "setup": "Rhythm, read and tap: the island strum at 84.",
-          "done": "90% at 84, on two days.",
+          "setup": "Rhythm, read and tap: the island strum at 84 BPM.",
+          "done": "90% at 84 BPM, on two days.",
           "threshold": 0.9,
           "minBpm": 84,
           "feeds": "Brown Eyed Girl, Riptide"
@@ -900,8 +900,8 @@
           "title": "Sixteenth strumming",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=sixteenths&bpm=60",
-          "setup": "Rhythm, read and tap: straight sixteenths, 60 then 87. The Wonderwall strum pattern is still to come; this builds the sixteenth motion.",
-          "done": "90% at 87.",
+          "setup": "Rhythm, read and tap: straight sixteenths, at 60, then 87 BPM. This builds the sixteenth motion. The Wonderwall strum pattern is still to come.",
+          "done": "90% at 87 BPM.",
           "threshold": 0.9,
           "minBpm": 87,
           "feeds": "Wonderwall"
@@ -911,8 +911,8 @@
           "title": "Thumb alternates",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis-bass&chords=guitar.c-major,guitar.g-major,guitar.a-minor&bpm=60",
-          "setup": "Chords, Fingerpicking: Travis bass over C, G and Am, 60 then 80.",
-          "done": "Thumb steady, 3 clean runs at 80, on two days.",
+          "setup": "Chords, Fingerpicking: Travis bass over C, G and Am, at 60, then 80 BPM.",
+          "done": "Thumb steady, 3 clean runs at 80 BPM, on two days.",
           "match": {
             "pattern": "travis-bass"
           },
@@ -925,8 +925,8 @@
           "title": "One finger on top",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis-middle&chords=guitar.c-major,guitar.a-minor,guitar.g-major&bpm=70",
-          "setup": "Chords, Fingerpicking: Travis with the middle finger over C Am G, 70.",
-          "done": "3 clean runs at 80.",
+          "setup": "Chords, Fingerpicking: Travis with the middle finger over C Am G, at 70 BPM.",
+          "done": "3 clean runs at 80 BPM.",
           "match": {
             "pattern": "travis-middle"
           },
@@ -939,7 +939,7 @@
           "title": "Rolling 3/4 arpeggio",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=rolling&chords=guitar.a-minor,guitar.g-major,guitar.a-minor,guitar.c-major,guitar.a-minor,guitar.d-major&perBeat=2&bpm=77",
-          "setup": "Chords, Fingerpicking: the Scarborough Fair preset (Am G Am C Am D in 3/4), 60% of its tempo, then 100%.",
+          "setup": "Chords, Fingerpicking: the Scarborough Fair preset (Am G Am C Am D in 3/4), at 60% of its tempo, then 100%.",
           "done": "Clean at 100%, on two days.",
           "match": {
             "pattern": "rolling",
@@ -954,8 +954,8 @@
           "title": "Open E minor pentatonic",
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-box-1&rootFret=0&perBeat=2&bpm=80",
-          "setup": "Fretboard, Positions: minor pentatonic box 1 at the nut, eighths at 80.",
-          "done": "Up and down 3 times clean at 80.",
+          "setup": "Fretboard, Positions: minor pentatonic box 1 at the nut, eighths at 80 BPM.",
+          "done": "Up and down 3 times clean at 80 BPM.",
           "match": {
             "pattern": "minor-pentatonic-box-1",
             "rootFret": "0"
@@ -969,8 +969,8 @@
           "title": "Hammer-ons and pull-offs",
           "strand": "L",
           "href": "/music/fretboard?mode=legato&instrument=guitar&pattern=hammer-pull&startFret=1&bpm=80",
-          "setup": "Fretboard, Hammer-ons and pull-offs: 0 2 0 at 80. The drill starts at fret 1; play the open-string version on your own first.",
-          "done": "The legato check passes 3 runs.",
+          "setup": "Fretboard, Hammer-ons and pull-offs: 0 2 0 at 80 BPM. The drill starts at fret 1, so play the open-string version on your own first.",
+          "done": "3 runs pass the legato check.",
           "match": {
             "pattern": "hammer-pull"
           },
@@ -982,8 +982,8 @@
           "title": "Riffs with a moving bass",
           "strand": "R",
           "href": "/music/songs/shelf/guitar/my-girl?bars=1-4",
-          "setup": "Song practice, Performance: the My Girl riff; Oh Pretty Woman, Sunshine of Your Love and the Brown Eyed Girl intro are linked.",
-          "done": "One riff at the record's tempo, 3 clean runs.",
+          "setup": "Song practice, Performance: the My Girl riff. Oh Pretty Woman, Sunshine of Your Love and the Brown Eyed Girl intro are linked.",
+          "done": "One riff at the recording's tempo, 3 clean runs.",
           "minAttempts": 3,
           "threshold": 0.9,
           "minBpm": 104,
@@ -1007,7 +1007,7 @@
           "title": "Read eighths and rests",
           "strand": "T",
           "href": "/music/rhythm?mode=read-and-tap&pattern=eighth-rests&bpm=80",
-          "setup": "Rhythm, read and tap: eighths and rests at 80.",
+          "setup": "Rhythm, read and tap: eighths and rests at 80 BPM.",
           "done": "90% on two days.",
           "threshold": 0.9,
           "minBpm": 80
@@ -1018,7 +1018,7 @@
           "strand": "T",
           "href": "/music/ear/chord-qualities?qualities=major,minor,dominant-7",
           "setup": "Ear, Chord qualities: major, minor and dominant 7.",
-          "done": "80% over 30.",
+          "done": "80% over 30 answers.",
           "minAttempts": 1,
           "threshold": 0.8
         }
@@ -1029,7 +1029,7 @@
           "title": "Brown Eyed Girl",
           "artist": "Van Morrison",
           "strand": "S, R",
-          "teaches": "island strum, G C D Em; intro riff in thirds",
+          "teaches": "Island strum, G C D Em, intro riff in thirds",
           "detail": "G, 150 BPM",
           "bpm": 150,
           "diff": 2,
@@ -1075,7 +1075,7 @@
           "title": "Wonderwall",
           "artist": "Oasis",
           "strand": "S",
-          "teaches": "anchor fingers 3 and 4, 16th strum",
+          "teaches": "Anchor fingers 3 and 4, 16th strum",
           "detail": "Capo 2, 87 BPM, Em7 G Dsus4 A7sus4 Cadd9",
           "bpm": 87,
           "diff": 3,
@@ -1141,7 +1141,7 @@
           "title": "Oh, Pretty Woman",
           "artist": "Roy Orbison",
           "strand": "R",
-          "teaches": "low riff, steady alternate picking",
+          "teaches": "Low riff, steady alternate picking",
           "detail": "A, 128 BPM",
           "bpm": 128,
           "diff": 2,
@@ -1161,7 +1161,7 @@
           "title": "Sunshine of Your Love",
           "artist": "Cream",
           "strand": "R",
-          "teaches": "box-shape riff, one small bend",
+          "teaches": "Box-shape riff, one small bend",
           "detail": "D, 116 BPM",
           "bpm": 116,
           "diff": 2,
@@ -1181,7 +1181,7 @@
           "title": "My Girl",
           "artist": "The Temptations",
           "strand": "R",
-          "teaches": "the soul riff on strings 5 and 4, C F",
+          "teaches": "The soul riff on strings 5 and 4, C F",
           "detail": "C, 104 BPM",
           "bpm": 104,
           "diff": 1,
@@ -1206,7 +1206,7 @@
           "title": "Scarborough Fair",
           "artist": "Simon & Garfunkel",
           "strand": "F",
-          "teaches": "rolling 3/4 arpeggio in A minor",
+          "teaches": "Rolling 3/4 arpeggio in A minor",
           "detail": "A minor, 3/4",
           "diff": 2,
           "scores": [
@@ -1225,7 +1225,7 @@
           "title": "Losing My Religion",
           "artist": "R.E.M.",
           "strand": "R, S",
-          "teaches": "the mandolin riff on guitar, Am Em Dm G",
+          "teaches": "The mandolin riff on guitar, Am Em Dm G",
           "detail": "A minor, 125 BPM",
           "bpm": 125,
           "diff": 2,
@@ -1246,13 +1246,13 @@
           }
         }
       ],
-      "test": "One S song with a 16th or island strum at the record's tempo; one R or F song at tempo; Em7-G-Dsus4-A7sus4-Cadd9 at 30 changes a minute; Travis bass clean at 80."
+      "test": "Play one strumming song with a 16th or island strum at the recording's tempo. Play one riff or fingerpicking song at tempo. Play Em7-G-Dsus4-A7sus4-Cadd9 at 30 changes a minute. Play the Travis bass clean at 80 BPM."
     },
     {
       "id": "4",
       "title": "Power chords, the 12-bar, the F chord and Travis proper",
       "goal": "Play rock riffs with palm muting, a 12-bar shuffle, and a full Travis pattern under a song.",
-      "adds": "E5 A5 G5 D5 moving along strings 6 and 5, palm-muted eighths, the boogie shuffle in A and E, dominant-7 blues strumming, the full F, Travis (alternating bass plus two fingers), the 6/8 arpeggio, minor pentatonic box 1 at fret 5, a first lick, all six strings in first position.",
+      "adds": "Riffs: E5 A5 G5 D5 moving along strings 6 and 5, palm-muted eighths. Strumming: the boogie shuffle in A and E, dominant-7 blues, the full F. Fingerpicking: Travis (alternating bass plus two fingers), the 6/8 arpeggio. Lead: minor pentatonic box 1 at fret 5, a first lick. Reading: all six strings in first position.",
       "pick": 2,
       "steps": [
         {
@@ -1260,8 +1260,8 @@
           "title": "Power chords that move",
           "strand": "R",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.e5,guitar.a5&timed=true",
-          "setup": "Chords, Changes: E5-A5, then G5-D5, timed; then Fretboard, Note finder on strings 6 and 5 up to fret 7.",
-          "done": "40 changes a minute on each pair; the note finder at 90%.",
+          "setup": "Chords, Changes: E5-A5, then G5-D5, timed. Then Fretboard, Note finder, on strings 6 and 5 up to fret 7.",
+          "done": "40 changes a minute on each pair. 90% on the note finder.",
           "each": {
             "param": "chords",
             "values": ["guitar.e5>guitar.a5", "guitar.g5>guitar.d5"]
@@ -1284,8 +1284,8 @@
           "title": "Palm-muted eighths",
           "strand": "R",
           "href": "/music/rhythm?mode=read-and-tap&pattern=eighths&bpm=100",
-          "setup": "Rhythm, read and tap: straight eighths, 100 then 130, palm-muted on the low strings. A palm-muted pattern is still to come.",
-          "done": "90% at 130.",
+          "setup": "Rhythm, read and tap: straight eighths at 100, then 130 BPM, palm-muted on the low strings. A palm-muted pattern is still to come.",
+          "done": "90% at 130 BPM.",
           "threshold": 0.9,
           "minBpm": 130,
           "feeds": "Smells Like Teen Spirit, Zombie"
@@ -1295,8 +1295,8 @@
           "title": "Boogie shuffle in A and E",
           "strand": "R, S",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.boogie-shuffle&bpm=80",
-          "setup": "Phrases: Boogie shuffle, swing feel, 80 then 110.",
-          "done": "12 bars clean at 110, on two days.",
+          "setup": "Phrases: Boogie shuffle, swing feel, at 80, then 110 BPM.",
+          "done": "12 bars clean at 110 BPM, on two days.",
           "match": {
             "phrase": "guitar.boogie-shuffle"
           },
@@ -1309,7 +1309,7 @@
           "title": "12-bar with sevenths",
           "strand": "S",
           "href": "/music/changes/jam?progression=blues&transpose=-3&bpm=90",
-          "setup": "Jam: 12-bar blues in A, strum A7 D7 E7 in swing eighths at 90. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
+          "setup": "Jam: 12-bar blues in A. Strum A7 D7 E7 in swing eighths at 90 BPM. In Check, Jam scores single notes, not strummed chords, so this step opens it and isn't scored.",
           "done": "Two choruses with no missed change.",
           "exerciseIds": [],
           "feeds": "Sweet Home Chicago"
@@ -1319,7 +1319,7 @@
           "title": "The full F",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.c-major,guitar.f-major&timed=true",
-          "setup": "Chords, Build: the F barre; then Changes C-F, F-G and Am-F, timed.",
+          "setup": "Chords, Build: the F barre. Then Changes: C-F, F-G and Am-F, timed.",
           "done": "30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
@@ -1351,8 +1351,8 @@
           "title": "Full Travis",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis&chords=guitar.c-major,guitar.a-minor,guitar.g-major,guitar.f-major&bpm=60",
-          "setup": "Chords, Fingerpicking: Travis over C Am G F (mini F), 60 then 90.",
-          "done": "3 clean runs at 90, on two days.",
+          "setup": "Chords, Fingerpicking: Travis over C Am G F (mini F), at 60, then 90 BPM.",
+          "done": "3 clean runs at 90 BPM, on two days.",
           "match": {
             "pattern": "travis"
           },
@@ -1365,7 +1365,7 @@
           "title": "The Boxer pattern",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis-pinch&chords=guitar.c-major,guitar.a-minor,guitar.g-major,guitar.g7&perBeat=2&bpm=65",
-          "setup": "Chords, Fingerpicking: The Boxer preset (Travis with a pinch, C Am G G7), 70% of its tempo, then 100%.",
+          "setup": "Chords, Fingerpicking: The Boxer preset (Travis with a pinch, C Am G G7), at 70% of its tempo, then 100%.",
           "done": "Clean at 100%, on two days.",
           "match": {
             "pattern": "travis-pinch",
@@ -1395,8 +1395,8 @@
           "title": "Minor pentatonic box 1",
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-box-1&rootFret=5&bpm=90",
-          "setup": "Fretboard, Positions: minor pentatonic box 1 at fret 5, 90.",
-          "done": "3 clean runs up and down at 90.",
+          "setup": "Fretboard, Positions: minor pentatonic box 1 at fret 5, at 90 BPM.",
+          "done": "3 clean runs up and down at 90 BPM.",
           "match": {
             "pattern": "minor-pentatonic-box-1",
             "rootFret": "5"
@@ -1410,8 +1410,8 @@
           "title": "First lick in time",
           "strand": "L",
           "href": "/music/changes/licks?instrument=guitar&category=guitar-pentatonic&lick=30&bpm=96",
-          "setup": "Licks, Guitar pentatonic: lick 30 at 96.",
-          "done": "Check mode passes 3 times.",
+          "setup": "Licks, Guitar pentatonic: lick 30 at 96 BPM.",
+          "done": "Pass it in Check 3 times.",
           "match": {
             "lick": "30"
           },
@@ -1423,7 +1423,7 @@
           "title": "All six strings, first position",
           "strand": "T",
           "href": "/music/reading?mode=flashcards&activity=flashcards&instrument=guitar&answer=play&level=level-2",
-          "setup": "Note reading, Flashcards: play each written note on the guitar. The range follows the reading level until a first-position setting exists.",
+          "setup": "Note reading, Flashcards: play each written note on the guitar. The range follows your reading level: there's no first-position setting yet.",
           "done": "90% right, under 3 seconds each.",
           "minAttempts": 2,
           "threshold": 0.9
@@ -1434,7 +1434,7 @@
           "strand": "T",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.ode-to-joy",
           "setup": "Phrases: Ode to Joy and Amazing Grace, read from the notation.",
-          "done": "Each clean at sight by the second try.",
+          "done": "Each clean at sight by the second run.",
           "each": {
             "param": "phrase",
             "values": ["guitar.ode-to-joy", "guitar.amazing-grace"]
@@ -1454,7 +1454,7 @@
           "title": "Hear the 12-bar",
           "strand": "T",
           "href": "/music/ear/progressions?functions=I,IV,V",
-          "setup": "Ear, Progressions: I, IV and V (Ear R3). A 12-bar form is still to come.",
+          "setup": "Ear, Progressions: I, IV and V. A 12-bar form is still to come.",
           "done": "Name where the IV and V arrive, 80%.",
           "threshold": 0.8,
           "feeds": "Sweet Home Chicago"
@@ -1466,7 +1466,7 @@
           "title": "Iron Man",
           "artist": "Black Sabbath",
           "strand": "R",
-          "teaches": "power chords with slides",
+          "teaches": "Power chords with slides",
           "detail": "B, 75 BPM",
           "bpm": 75,
           "diff": 1,
@@ -1491,7 +1491,7 @@
           "title": "Smells Like Teen Spirit",
           "artist": "Nirvana",
           "strand": "R, S",
-          "teaches": "power chords with muted strums",
+          "teaches": "Power chords with muted strums",
           "detail": "F minor, 117 BPM",
           "bpm": 117,
           "diff": 2,
@@ -1650,7 +1650,7 @@
           "title": "Redemption Song",
           "artist": "Bob Marley",
           "strand": "F, R",
-          "teaches": "picked bass-line riff between strummed G Em C Am D",
+          "teaches": "Picked bass-line riff between strummed G Em C Am D",
           "detail": "G, moderate",
           "diff": 2,
           "scores": [
@@ -1674,7 +1674,7 @@
           "title": "Freight Train",
           "artist": "Elizabeth Cotten",
           "strand": "F",
-          "teaches": "the classic Travis study: melody on top of an alternating thumb",
+          "teaches": "The classic Travis study: melody on top of an alternating thumb",
           "detail": "C, about 100 BPM",
           "bpm": 100,
           "diff": 3,
@@ -1695,13 +1695,13 @@
           }
         }
       ],
-      "test": "One R song with palm muting at the record's tempo; one F song (Travis or 6/8) clean at the record's tempo; the 12-bar shuffle in A for two choruses with the jam track; box 1 clean at 90."
+      "test": "Play one riff song with palm muting at the recording's tempo. Play one fingerpicking song (Travis or 6/8) clean at the recording's tempo. Play the 12-bar shuffle in A for two choruses with the Jam backing. Play box 1 clean at 90 BPM."
     },
     {
       "id": "5",
       "title": "The barre begins, 6/8, pinches and bends",
-      "goal": "A first real barre chord in songs, a 6/8 ballad strummed and picked, a pinch pattern under a melody, and bends that land in tune.",
-      "adds": "The E-shape F barre, A-shape Bm and Bb, 6/8 strumming, accents and ghost strums, Travis with a pinch, the alternating-bass p-i-m-a, a melody over a thumb bass, half and whole bends to pitch, vibrato, four stock box-1 licks, finding a melody by ear, dotted rhythms.",
+      "goal": "Play a first real barre chord in songs. Strum and pick a 6/8 ballad. Play a pinch pattern under a melody. Land bends in tune.",
+      "adds": "Chords: the E-shape F barre, A-shape Bm and Bb. Strumming: 6/8, accents and ghost strums. Fingerpicking: Travis with a pinch, the alternating-bass p-i-m-a, a melody over a thumb bass. Lead: half and whole bends to pitch, vibrato, four stock box-1 licks. Ear and reading: finding a melody by ear, dotted rhythms.",
       "pick": 2,
       "steps": [
         {
@@ -1709,8 +1709,8 @@
           "title": "E-shape F barre",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.f-major,guitar.c-major&timed=true",
-          "setup": "Chords, Build: the F barre; then Changes F-C, F-G and F-Am, timed.",
-          "done": "The barre rings clean 5 times running; 30 changes a minute on each pair, on two days.",
+          "setup": "Chords, Build: the F barre. Then Changes: F-C, F-G and F-Am, timed.",
+          "done": "The barre rings clean 5 times running. 30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
             "values": [
@@ -1741,7 +1741,7 @@
           "title": "A-shape Bm and Bb",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.b-minor,guitar.g-major&timed=true",
-          "setup": "Chords, Build: Bm and Bb; then Changes Bm-G, Bm-D and Bm-A, timed.",
+          "setup": "Chords, Build: Bm and Bb. Then Changes: Bm-G, Bm-D and Bm-A, timed.",
           "done": "30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
@@ -1777,8 +1777,8 @@
           "title": "6/8 strumming",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=triplets&bpm=50",
-          "setup": "Rhythm, read and tap: triplets, 50 then 63, the same grid as 6/8 on the dotted quarter. A 6/8 down, down-up pattern is still to come.",
-          "done": "90% at 63, on two days.",
+          "setup": "Rhythm, read and tap: triplets at 50, then 63 BPM. It's the same grid as 6/8 on the dotted quarter. A 6/8 down, down-up pattern is still to come.",
+          "done": "90% at 63 BPM, on two days.",
           "threshold": 0.9,
           "minBpm": 63,
           "feeds": "Perfect, Hallelujah strummed"
@@ -1789,7 +1789,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=guitar&pattern=guitar-backbeat-chuck&bpm=90",
           "setup": "Rhythm, read and tap: accents on 2 and 4 with a fretting-hand chuck.",
-          "done": "90% at 100.",
+          "done": "90% at 100 BPM.",
           "threshold": 0.9,
           "minBpm": 100,
           "feeds": "Sweet Home Alabama, Hit the Road Jack"
@@ -1799,8 +1799,8 @@
           "title": "Travis with a pinch",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis-pinch&chords=guitar.c-major,guitar.a-minor,guitar.g-major,guitar.f-major&bpm=70",
-          "setup": "Chords, Fingerpicking: Travis with a pinch over C Am G F, 70 then 90.",
-          "done": "3 clean runs at 90, on two days.",
+          "setup": "Chords, Fingerpicking: Travis with a pinch over C Am G F, at 70, then 90 BPM.",
+          "done": "3 clean runs at 90 BPM, on two days.",
           "match": {
             "pattern": "travis-pinch"
           },
@@ -1828,8 +1828,8 @@
           "title": "Alternating-bass p-i-m-a",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=pima-alternating&chords=guitar.a-minor,gen.guitar.4.7,guitar.d-minor&bpm=70",
-          "setup": "Chords, Fingerpicking: alternating-bass p-i-m-a over Am E7 Dm, 70.",
-          "done": "3 clean runs at 90.",
+          "setup": "Chords, Fingerpicking: alternating-bass p-i-m-a over Am E7 Dm, at 70 BPM.",
+          "done": "3 clean runs at 90 BPM.",
           "match": {
             "pattern": "pima-alternating"
           },
@@ -1842,8 +1842,8 @@
           "title": "Melody over a thumb bass",
           "strand": "F",
           "href": "/music/songs/shelf/guitar/freight-train-fingerstyle?bars=1-8",
-          "setup": "Song practice: Freight Train, the first 8 bars, 50 then 60, thumb on an alternating bass, melody with i and m.",
-          "done": "Clean at 60, on two days.",
+          "setup": "Song practice: Freight Train, the first 8 bars, at 50, then 60 BPM. Thumb on an alternating bass, melody with i and m.",
+          "done": "Clean at 60 BPM, on two days.",
           "threshold": 0.9,
           "minBpm": 60,
           "feeds": "Freight Train"
@@ -1853,7 +1853,7 @@
           "title": "Bends to pitch",
           "strand": "L",
           "href": "/music/fretboard?mode=bends&instrument=guitar&exercise=half&string=3",
-          "setup": "Fretboard, Bends: a half step, then a whole step, on strings 3 and 2. Bends is practice only, so this step opens it and is not judged.",
+          "setup": "Fretboard, Bends: a half step, then a whole step, on strings 3 and 2. Bends is practice only, so this step opens it and isn't scored.",
           "done": "8 of 10 within 20 cents, on two days.",
           "exerciseIds": [],
           "links": [
@@ -1869,7 +1869,7 @@
           "title": "Vibrato",
           "strand": "L",
           "href": "/music/fretboard?mode=bends&instrument=guitar&exercise=vibrato",
-          "setup": "Fretboard, Bends: vibrato. Bends is practice only, so this step opens it and is not judged.",
+          "setup": "Fretboard, Bends: vibrato. Bends is practice only, so this step opens it and isn't scored.",
           "done": "An even width of 20 to 50 cents at a steady rate, 3 runs.",
           "exerciseIds": [],
           "feeds": "all lead"
@@ -1879,8 +1879,8 @@
           "title": "Four stock box-1 licks",
           "strand": "L",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.root-b7-5",
-          "setup": "Phrases: root, flat seven, five; the double stop; the turnaround. The box-1 bend is not in yet, since a bend can't be graded as a phrase.",
-          "done": "Each in Check mode at 90.",
+          "setup": "Phrases: the root, flat seven, five lick, the double stop and the turnaround. The box-1 bend isn't in yet: a bend can't be scored as a phrase.",
+          "done": "Each in Check at 90 BPM.",
           "each": {
             "param": "phrase",
             "values": ["guitar.root-b7-5", "guitar.double-stop-intro", "guitar.blues-turnaround"]
@@ -1911,7 +1911,7 @@
           "title": "Pick out a melody by ear",
           "strand": "T",
           "href": "/music/ear/melody-dictation",
-          "setup": "Ear, Melody dictation, until the learn-it-by-ear player (Ear R2) exists; then the chorus of a shelf song on strings 1 to 3.",
+          "setup": "Ear, Melody dictation. Then find the chorus of a song from this level's list on strings 1 to 3.",
           "done": "4 bars found and played clean.",
           "threshold": 0.8
         },
@@ -1920,8 +1920,8 @@
           "title": "Dotted and syncopated rhythm",
           "strand": "T",
           "href": "/music/rhythm?mode=read-and-tap&pattern=dotted-quarters&bpm=80",
-          "setup": "Rhythm, read and tap: dotted quarters at 80; then Echo at the syncopation level.",
-          "done": "90% at 80.",
+          "setup": "Rhythm, read and tap: dotted quarters at 80 BPM. Then Echo at the syncopation level.",
+          "done": "90% at 80 BPM.",
           "threshold": 0.9,
           "minBpm": 80,
           "links": [
@@ -2013,7 +2013,7 @@
           "title": "Wonderful Tonight",
           "artist": "Eric Clapton",
           "strand": "L, S",
-          "teaches": "the intro lick with bends, G D C Em",
+          "teaches": "The intro lick with bends, G D C Em",
           "detail": "G, 96 BPM",
           "bpm": 96,
           "diff": 2,
@@ -2054,7 +2054,7 @@
           "title": "Do I Wanna Know?",
           "artist": "Arctic Monkeys",
           "strand": "R",
-          "teaches": "single-note riff with slides and a hammer-on",
+          "teaches": "Single-note riff with slides and a hammer-on",
           "detail": "G minor, 85 BPM",
           "bpm": 85,
           "diff": 2,
@@ -2123,7 +2123,7 @@
           "title": "The Sound of Silence",
           "artist": "Simon & Garfunkel",
           "strand": "F",
-          "teaches": "Travis with pinches in A minor shapes (capo 6 on the record)",
+          "teaches": "Travis with pinches in A minor shapes (capo 6 on the recording)",
           "detail": "A minor shapes, moderate",
           "diff": 2,
           "scores": [
@@ -2166,13 +2166,13 @@
           }
         }
       ],
-      "test": "One S song with full barres (Perfect or Hit the Road Jack) at tempo; one F song at tempo; bends, 8 of 10 within 20 cents; the Wonderful Tonight intro or two stock licks over the Jam 12-bar."
+      "test": "Play one strumming song with full barres (Perfect or Hit the Road Jack) at tempo. Play one fingerpicking song at tempo. Land 8 of 10 bends within 20 cents. Play the Wonderful Tonight intro, or two stock licks over the Jam 12-bar."
     },
     {
       "id": "6",
       "title": "Moving barres, the major scale, blues lead and the first Travis classics",
-      "goal": "Play any major or minor chord as a barre, solo over a 12-bar with the B.B. box, and play Dust in the Wind or Landslide through.",
-      "adds": "E and A shape majors, minors and sevenths anywhere, the major scale (6th-string root), the B.B. box, slides, call and response, syncopated Travis with pinches and hammer-ons, a fingerpicked riff in time (Fast Car), reading on all six strings.",
+      "goal": "Play any major or minor chord as a barre. Solo over a 12-bar with the B.B. box. Play Dust in the Wind or Landslide through.",
+      "adds": "Chords: E and A shape majors, minors and sevenths anywhere. Lead: the major scale (6th-string root), the B.B. box, slides, call and response. Fingerpicking: syncopated Travis with pinches and hammer-ons, a fingerpicked riff in time (Fast Car). Reading: all six strings.",
       "pick": 2,
       "steps": [
         {
@@ -2180,8 +2180,8 @@
           "title": "Find the root, move the shape",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.f-sharp-minor-barre,guitar.b-minor&timed=true",
-          "setup": "Fretboard, Note finder on strings 6 and 5 up to fret 12; then Chords, Changes: F#m-Bm and C#m (barre at fret 4)-A, timed.",
-          "done": "Note finder at 90% under 3 seconds; 30 changes a minute on each pair, on two days.",
+          "setup": "Fretboard, Note finder, on strings 6 and 5 up to fret 12. Then Chords, Changes: F#m-Bm and C#m (barre at fret 4)-A, timed.",
+          "done": "Note finder at 90%, under 3 seconds each. 30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
             "values": [
@@ -2207,7 +2207,7 @@
           "title": "Barre sevenths",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=guitar&shape=gen.guitar.7.7&position=2",
-          "setup": "Chords, Build: E-shape G7 and Gm7, A-shape C7 and Cm7, all at fret 3 (the app's generated barre shapes).",
+          "setup": "Chords, Build: E-shape G7 and Gm7, A-shape C7 and Cm7, all at fret 3 (generated barre shapes).",
           "done": "Each rings clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -2241,8 +2241,8 @@
           "title": "Major scale, one position",
           "strand": "L",
           "href": "/music/scales?instrument=guitar&kind=major&tonic=67&perBeat=2&bpm=80",
-          "setup": "Scales: G major on the guitar, eighths at 80. A 6th-string-root pattern in Positions is still to come.",
-          "done": "Up and down at 80 in eighths, on two days.",
+          "setup": "Scales: G major on the guitar, eighths at 80 BPM. A 6th-string-root pattern in Positions is still to come.",
+          "done": "Up and down at 80 BPM in eighths, on two days.",
           "match": {
             "kind": "major",
             "perBeat": "2"
@@ -2256,8 +2256,8 @@
           "title": "The B.B. box",
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=bb-box&rootFret=5&bpm=70",
-          "setup": "Fretboard, Positions: the B.B. box in A, the index on the root at fret 10 of string 2, 70 then 80.",
-          "done": "3 clean runs at 80.",
+          "setup": "Fretboard, Positions: the B.B. box in A, index on the root at fret 10 of string 2, at 70, then 80 BPM.",
+          "done": "3 clean runs at 80 BPM.",
           "match": {
             "pattern": "bb-box"
           },
@@ -2289,7 +2289,7 @@
           "id": "6.6",
           "title": "Call and response over the 12-bar",
           "strand": "L",
-          "setup": "Call and response, Answer: the app plays a bar of 12-bar blues, you answer from box 1. The groove is in C, not A, and an answer is graded on landing on a chord tone in time.",
+          "setup": "Call and response, Answer: Woodshed plays a bar of 12-bar blues and you answer from box 1. The groove is in C, not A. An answer scores when it lands on a chord tone in time.",
           "done": "12 answers, in time and in the scale, 80%.",
           "links": [
             {
@@ -2310,8 +2310,8 @@
           "title": "Syncopated Travis with a pinch",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=dust-pinch&chords=guitar.c-major,gen.guitar.0.maj7,gen.guitar.0.add9,gen.guitar.9.sus2,gen.guitar.9.sus4,guitar.a-minor&bpm=60",
-          "setup": "Chords, Fingerpicking: the Dust in the Wind pinch over C Cmaj7 Cadd9 Asus2 Asus4 Am, 60 then 84.",
-          "done": "3 clean runs at 84, on two days.",
+          "setup": "Chords, Fingerpicking: the Dust in the Wind pinch over C Cmaj7 Cadd9 Asus2 Asus4 Am, at 60, then 84 BPM.",
+          "done": "3 clean runs at 84 BPM, on two days.",
           "match": {
             "pattern": "dust-pinch"
           },
@@ -2324,7 +2324,7 @@
           "title": "Landslide pattern",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis&chords=guitar.c-major,guitar.g-major,gen.guitar.9.m7,guitar.g-major&perBeat=2&bpm=56",
-          "setup": "Chords, Fingerpicking: the Landslide preset (capo 3), 70% of its tempo, then 100%.",
+          "setup": "Chords, Fingerpicking: the Landslide preset (capo 3), at 70% of its tempo, then 100%.",
           "done": "Clean at 100%, on two days.",
           "match": {
             "pattern": "travis",
@@ -2339,8 +2339,8 @@
           "title": "Dust in the Wind in full",
           "strand": "F",
           "href": "/music/songs/shelf/guitar/dust-in-the-wind",
-          "setup": "Song practice: wait mode, then Performance at 70%, 85% and 100%; fix-the-spot on the instrumental.",
-          "done": "The whole song at 100% in Performance mode, 90% of notes, on two days.",
+          "setup": "Song practice: Wait mode, then Performance at 70%, 85% and 100%. Loop the trouble spots in the instrumental.",
+          "done": "The whole song at 100% in Performance, 90% of notes, on two days.",
           "threshold": 0.9,
           "minBpm": 93,
           "feeds": "Dust in the Wind"
@@ -2350,8 +2350,8 @@
           "title": "Fingerpicked riff in time",
           "strand": "F",
           "href": "/music/songs/shelf/guitar/fast-car?bars=1-4",
-          "setup": "Song practice: the Fast Car riff, 4 bars looped, 60 then 80.",
-          "done": "The riff clean at 80, on two days.",
+          "setup": "Song practice: the Fast Car riff, 4 bars looped, at 60, then 80 BPM.",
+          "done": "The riff clean at 80 BPM, on two days.",
           "threshold": 0.9,
           "minBpm": 80,
           "feeds": "Fast Car"
@@ -2362,7 +2362,7 @@
           "strand": "R",
           "href": "/music/songs/shelf/guitar/day-tripper?bars=1-4",
           "setup": "Song practice, Performance: the Day Tripper riff (simplified, then full), then Enter Sandman (linked).",
-          "done": "At the record's tempo, 3 clean runs.",
+          "done": "At the recording's tempo, 3 clean runs.",
           "minAttempts": 3,
           "threshold": 0.9,
           "minBpm": 138,
@@ -2378,8 +2378,8 @@
           "title": "Read on all six strings",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=guitar&level=level-2&follower=performance&measures=8&bpm=60",
-          "setup": "Note reading, Sight-reading: guitar, 8 bars at 60 with the follower keeping time. A first-position range setting is still to come.",
-          "done": "8 bars at 60, 90% of notes.",
+          "setup": "Note reading, Sight-reading: guitar, 8 bars at 60 BPM with the follower keeping time. A first-position range setting is still to come.",
+          "done": "8 bars at 60 BPM, 90% of notes.",
           "match": {
             "level": "level-2",
             "measures": "8"
@@ -2392,7 +2392,7 @@
           "title": "Hear minor pentatonic phrases",
           "strand": "T",
           "href": "/music/ear/melody-dictation?level=minor-diatonic",
-          "setup": "Ear, Melody dictation in a minor key (Ear R4). A minor pentatonic set is still to come.",
+          "setup": "Ear, Melody dictation in a minor key. A minor pentatonic set is still to come.",
           "done": "80% over 10 phrases.",
           "minAttempts": 1,
           "threshold": 0.8,
@@ -2430,7 +2430,7 @@
           "title": "(Sittin' On) The Dock of the Bay",
           "artist": "Otis Redding",
           "strand": "S",
-          "teaches": "soul barres G B C A, 7th shapes, the fills",
+          "teaches": "Soul barres G B C A, 7th shapes, the fills",
           "detail": "G, 104 BPM",
           "bpm": 104,
           "diff": 2,
@@ -2450,7 +2450,7 @@
           "title": "Day Tripper",
           "artist": "The Beatles",
           "strand": "R",
-          "teaches": "pentatonic riff, simplified then full",
+          "teaches": "Pentatonic riff, simplified then full",
           "detail": "E, 138 BPM",
           "bpm": 138,
           "diff": 2,
@@ -2496,7 +2496,7 @@
           "title": "Dust in the Wind",
           "artist": "Kansas",
           "strand": "F",
-          "teaches": "syncopated Travis with pinches and hammer-ons",
+          "teaches": "Syncopated Travis with pinches and hammer-ons",
           "detail": "C, 93 BPM",
           "bpm": 93,
           "diff": 3,
@@ -2546,7 +2546,7 @@
           "title": "Fast Car",
           "artist": "Tracy Chapman",
           "strand": "F, R",
-          "teaches": "the fingerpicked riff over Cmaj7 (or Cadd9), G, Em and D, capo 2",
+          "teaches": "The fingerpicked riff over Cmaj7 (or Cadd9), G, Em and D, capo 2",
           "detail": "C (capo 2), 104 BPM",
           "bpm": 104,
           "diff": 2,
@@ -2580,7 +2580,7 @@
           "title": "Jolene",
           "artist": "Dolly Parton",
           "strand": "F",
-          "teaches": "fast Travis-style picking, Am C G Em (capo 4)",
+          "teaches": "Fast Travis-style picking, Am C G Em (capo 4)",
           "detail": "C# minor, about 110 BPM",
           "bpm": 110,
           "diff": 2,
@@ -2600,7 +2600,7 @@
           "title": "Enter Sandman",
           "artist": "Metallica",
           "strand": "R",
-          "teaches": "palm-muted open-E riff, power chords",
+          "teaches": "Palm-muted open-E riff, power chords",
           "detail": "E minor, 123 BPM",
           "bpm": 123,
           "diff": 2,
@@ -2621,13 +2621,13 @@
           }
         }
       ],
-      "test": "Dust in the Wind or Landslide through at 100%; one barre song at tempo; two choruses of the 12-bar in A with call and response, then two choruses improvised with box 1 and the B.B. box; the major scale at 80."
+      "test": "Play Dust in the Wind or Landslide through at 100%. Play one barre song at tempo. Play two choruses of the 12-bar in A with call and response. Then improvise two choruses with box 1 and the B.B. box. Play the major scale at 80 BPM."
     },
     {
       "id": "7",
       "title": "CAGED, triads, funk and the big fingerstyle pieces",
-      "goal": "See chords and scales as one map across the neck, play a funk part, and play Tears in Heaven or Blackbird through.",
-      "adds": "The five CAGED shapes, triads on strings 1-3 and 2-4, minor pentatonic box 2 and the 1-2 connection, 16th funk strumming with mutes, Hendrix-style chord embellishments, Blackbird's thumb-and-finger pinch, licks in D minor, improvising two choruses.",
+      "goal": "See chords and scales as one map across the neck. Play a funk part. Play Tears in Heaven or Blackbird through.",
+      "adds": "Chords: the five CAGED shapes, triads on strings 1-3 and 2-4, Hendrix-style embellishments. Strumming: 16th funk with mutes. Lead: minor pentatonic box 2 and the 1-2 connection, licks in D minor, improvising two choruses. Fingerpicking: Blackbird's thumb-and-finger pinch.",
       "pick": 2,
       "steps": [
         {
@@ -2636,7 +2636,7 @@
           "strand": "L, T",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=caged-major-c-shape&bpm=80",
           "setup": "Fretboard, Positions: the CAGED major shapes C, A, G, E and D, in one key.",
-          "done": "Each shape at 80, on two days.",
+          "done": "Each shape at 80 BPM, on two days.",
           "each": {
             "param": "pattern",
             "values": [
@@ -2674,7 +2674,7 @@
           "title": "One chord in its five CAGED forms",
           "strand": "S, T",
           "href": "/music/chords?mode=build&instrument=guitar&shape=guitar.c-major&position=0",
-          "setup": "Chords, Build: C in its five forms up the neck, the C, A, G, E and D shapes (open, barre 3, fret 5, barre 8, fret 10). Then Am the same way.",
+          "setup": "Chords, Build: C in its five forms up the neck. They're the C, A, G, E and D shapes (open, barre 3, fret 5, barre 8, fret 10). Then Am the same way.",
           "done": "Each form rings clean 3 times running, on two days.",
           "each": {
             "param": "position",
@@ -2714,7 +2714,7 @@
           "title": "Move through the CAGED forms in time",
           "strand": "S, T",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=guitar.c-major,guitar.c-major,guitar.c-major,guitar.c-major,guitar.c-major&positions=0,1,2,3,4&timed=true",
-          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built; MIDI guitar or the on-screen frets tell them apart.",
+          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built. MIDI guitar or the on-screen frets tell them apart.",
           "done": "20 changes a minute through the cycle, clean, on two days.",
           "match": {
             "chords": "guitar.c-major>guitar.c-major>guitar.c-major>guitar.c-major>guitar.c-major"
@@ -2736,7 +2736,7 @@
           "strand": "S, T",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=triads-major-strings-1-3&rootFret=3&bpm=60",
           "setup": "Fretboard, Positions: major triads on strings 1 to 3 and 2 to 4, every inversion, rooted on G, C and D.",
-          "done": "All six for G, C and D at 60.",
+          "done": "All six for G, C and D at 60 BPM.",
           "each": {
             "param": "pattern",
             "values": ["triads-major-strings-1-3", "triads-major-strings-2-4"]
@@ -2757,7 +2757,7 @@
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-box-2&rootFret=5&bpm=90",
           "setup": "Fretboard, Positions: minor pentatonic box 2, then boxes 1 and 2 in turn. A connected run across the boxes is still to come.",
-          "done": "3 clean runs at 90.",
+          "done": "3 clean runs at 90 BPM.",
           "match": {
             "pattern": "minor-pentatonic-box-2"
           },
@@ -2776,8 +2776,8 @@
           "title": "Funk 16ths with mutes",
           "strand": "R, S",
           "href": "/music/rhythm?mode=read-and-tap&pattern=sixteenths&bpm=80",
-          "setup": "Rhythm, read and tap: straight sixteenths, 80 then 100. The muted-scratch funk pattern is still to come.",
-          "done": "90% at 100.",
+          "setup": "Rhythm, read and tap: straight sixteenths, at 80, then 100 BPM. The muted-scratch funk pattern is still to come.",
+          "done": "90% at 100 BPM.",
           "threshold": 0.9,
           "minBpm": 100,
           "feeds": "Superstition"
@@ -2787,8 +2787,8 @@
           "title": "Chord embellishments",
           "strand": "R",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.hammer-on-chords",
-          "setup": "Phrases: hammer-ons into chords and sus to major, then add9 moves (the standard decorations; no song's fills).",
-          "done": "2 phrases at 80.",
+          "setup": "Phrases: hammer-ons into chords and sus to major, then add9 moves. These are the standard decorations, not any song's fills.",
+          "done": "2 phrases at 80 BPM.",
           "each": {
             "param": "phrase",
             "values": ["guitar.hammer-on-chords", "guitar.sus-to-major"]
@@ -2827,7 +2827,7 @@
           "title": "Tears in Heaven in full",
           "strand": "F",
           "href": "/music/songs/shelf/guitar/tears-in-heaven",
-          "setup": "Song practice: wait mode, then Performance.",
+          "setup": "Song practice: Wait mode, then Performance.",
           "done": "The whole piece at 100%, 90% of notes, on two days.",
           "threshold": 0.9,
           "minBpm": 80,
@@ -2838,8 +2838,8 @@
           "title": "Blackbird thumb-and-finger",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=blackbird-pinch&chords=guitar.g-major,guitar.c-major,guitar.d-major&bpm=60",
-          "setup": "Chords, Fingerpicking: the Blackbird-style pinch, p and m together on the bass and string 2, i on the open G string between, over G C D, 60 then 70. The technique, not the song's notes.",
-          "done": "3 clean runs at 70.",
+          "setup": "Chords, Fingerpicking: the Blackbird-style pinch over G C D, at 60, then 70 BPM. Pinch p and m together on the bass and string 2, with i on the open G string between. It's the technique, not the song's notes.",
+          "done": "3 clean runs at 70 BPM.",
           "match": {
             "pattern": "blackbird-pinch"
           },
@@ -2852,8 +2852,8 @@
           "title": "Blackbird in full",
           "strand": "F",
           "href": "/music/songs/shelf/guitar/blackbird",
-          "setup": "Song practice: section A, then B, fix-the-spot on the 3/4 and 2/4 bars.",
-          "done": "The whole piece at 90 BPM (the record is 94), on two days.",
+          "setup": "Song practice: section A, then B. Loop the trouble spots in the 3/4 and 2/4 bars.",
+          "done": "The whole piece at 90 BPM (the recording is 94), on two days.",
           "threshold": 0.9,
           "minBpm": 90,
           "feeds": "Blackbird"
@@ -2864,7 +2864,7 @@
           "strand": "L",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.d-minor-long-tone",
           "setup": "Phrases: six Latin-rock licks in D minor pentatonic and Dorian, box 1 at the tenth fret.",
-          "done": "Each at 90 in Check mode.",
+          "done": "Each at 90 BPM in Check.",
           "each": {
             "param": "phrase",
             "values": [
@@ -2936,8 +2936,8 @@
           "title": "Reading in second and fifth position",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=guitar&level=level-3&follower=performance&measures=8&bpm=60",
-          "setup": "Note reading, Sight-reading: guitar, 8 bars at 60, read in fifth position. A position setting (Leavitt order) is still to come.",
-          "done": "8 bars at 60 in fifth position, 90% of notes.",
+          "setup": "Note reading, Sight-reading: guitar, 8 bars at 60 BPM, read in fifth position. A position setting (Leavitt order) is still to come.",
+          "done": "8 bars at 60 BPM in fifth position, 90% of notes.",
           "match": {
             "level": "level-3",
             "measures": "8"
@@ -2951,7 +2951,7 @@
           "title": "Hear chord qualities in progressions",
           "strand": "T",
           "href": "/music/ear/progressions?functions=I,IV,V,vi",
-          "setup": "Ear, Progressions in major and minor keys (Ear R3). Borrowed chords (I-bVII-IV, i-bVII-bVI-V) are still to come.",
+          "setup": "Ear, Progressions in major and minor keys. Borrowed chords (I-bVII-IV, i-bVII-bVI-V) aren't in the drill yet.",
           "done": "80%.",
           "threshold": 0.8,
           "links": [
@@ -2969,7 +2969,7 @@
           "title": "Tears in Heaven",
           "artist": "Eric Clapton",
           "strand": "F",
-          "teaches": "fingerstyle with the melody on top, bass walks",
+          "teaches": "Fingerstyle with the melody on top, bass walks",
           "detail": "A, 80 BPM",
           "bpm": 80,
           "diff": 2,
@@ -2994,7 +2994,7 @@
           "title": "Blackbird",
           "artist": "The Beatles",
           "strand": "F",
-          "teaches": "p and i/m pinch, tenths on strings 5 and 3, open G drone, changing meter",
+          "teaches": "P and i/m pinch, tenths on strings 5 and 3, open G drone, changing meter",
           "detail": "G, 94 BPM",
           "bpm": 94,
           "diff": 3,
@@ -3040,7 +3040,7 @@
           "title": "Superstition",
           "artist": "Stevie Wonder",
           "strand": "R",
-          "teaches": "the clavinet riff on guitar, 16th funk",
+          "teaches": "The clavinet riff on guitar, 16th funk",
           "detail": "E flat minor, 100 BPM",
           "bpm": 100,
           "diff": 2,
@@ -3120,7 +3120,7 @@
           "title": "Last Nite",
           "artist": "The Strokes",
           "strand": "S, R",
-          "teaches": "tight eighth-note rhythm, barres, a short lead",
+          "teaches": "Tight eighth-note rhythm, barres, a short lead",
           "detail": "C, 104 BPM",
           "bpm": 104,
           "diff": 2,
@@ -3165,7 +3165,7 @@
           "title": "Layla",
           "artist": "Derek and the Dominos",
           "strand": "R, L",
-          "teaches": "the D minor pentatonic riff with bends",
+          "teaches": "The D minor pentatonic riff with bends",
           "detail": "D minor, 116 BPM",
           "bpm": 116,
           "diff": 3,
@@ -3190,7 +3190,7 @@
           "title": "Back in Black",
           "artist": "AC/DC",
           "strand": "R",
-          "teaches": "open chords with pentatonic fills and mutes",
+          "teaches": "Open chords with pentatonic fills and mutes",
           "detail": "E, 94 BPM",
           "bpm": 94,
           "diff": 3,
@@ -3211,13 +3211,13 @@
           }
         }
       ],
-      "test": "Tears in Heaven or Blackbird through at 100%; the Superstition riff or Hey Joe at tempo; two improvised choruses over an A minor vamp across boxes 1 and 2; triads on strings 1-3 for one chord in three inversions."
+      "test": "Play Tears in Heaven or Blackbird through at 100%. Play the Superstition riff or Hey Joe at tempo. Improvise two choruses over an A minor vamp across boxes 1 and 2. Play triads on strings 1-3 for one chord in three inversions."
     },
     {
       "id": "8",
       "title": "All five boxes, real improvising and the intros everyone knows",
-      "goal": "Move freely across the neck in one key, improvise over pop and blues backings, and play the famous intros (Stairway, Nothing Else Matters, Sweet Child) at tempo.",
-      "adds": "Minor pentatonic boxes 3 to 5 and the full map, the major pentatonic, natural minor, target notes on chord changes, the Texas shuffle, 9th and 13th soul voicings, speed bursts, learning a solo from the score and by ear.",
+      "goal": "Move freely across the neck in one key. Improvise over pop and blues backings. Play the famous intros (Stairway, Nothing Else Matters, Sweet Child) at tempo.",
+      "adds": "Lead: minor pentatonic boxes 3 to 5 and the full map, the major pentatonic, natural minor. Improvising: target notes on chord changes. Technique: speed bursts. Strumming: the Texas shuffle, 9th and 13th soul voicings. Songs: learning a solo from the notation and by ear.",
       "pick": 2,
       "steps": [
         {
@@ -3225,8 +3225,8 @@
           "title": "Boxes 3, 4 and 5",
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-box-3&rootFret=5&bpm=90",
-          "setup": "Fretboard, Positions: minor pentatonic boxes 3, 4 and 5 in A, 90.",
-          "done": "Each at 90, on two days.",
+          "setup": "Fretboard, Positions: minor pentatonic boxes 3, 4 and 5 in A, at 90 BPM.",
+          "done": "Each at 90 BPM, on two days.",
           "each": {
             "param": "pattern",
             "values": ["minor-pentatonic-box-3", "minor-pentatonic-box-4", "minor-pentatonic-box-5"]
@@ -3251,7 +3251,7 @@
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=guitar&pattern=minor-pentatonic-connected&rootFret=5&bpm=70",
           "setup": "Fretboard, Positions: boxes 1 to 5 connected in A minor, frets 5 to 17.",
-          "done": "Up and down the neck clean at 80.",
+          "done": "Up and down the neck clean at 80 BPM.",
           "match": {
             "pattern": "minor-pentatonic-connected"
           },
@@ -3264,7 +3264,7 @@
           "title": "Major pentatonic",
           "strand": "L",
           "href": "/music/changes/jam?progression=pop-axis&transpose=7&game=chord-tones&choruses=2",
-          "setup": "Fretboard, Positions: box 1 at the nut, read from G as the G major pentatonic (a major pentatonic label is still to come); then Jam in Check, Chord tones on 1 and 3, over I-V-vi-IV in G.",
+          "setup": "Fretboard, Positions: box 1 at the nut, read from G as the G major pentatonic. Then Jam in Check, Chord tones on 1 and 3, over I-V-vi-IV in G. A major pentatonic label is still to come.",
           "done": "Two choruses over I-V-vi-IV, landing on chord tones on the 1.",
           "links": [
             {
@@ -3285,8 +3285,8 @@
           "title": "Natural minor",
           "strand": "L",
           "href": "/music/scales?instrument=guitar&kind=natural-minor&tonic=69&perBeat=2&bpm=80",
-          "setup": "Scales: A natural minor on the guitar, eighths at 80. A 6th-string-root pattern in Positions is still to come.",
-          "done": "At 80, on two days.",
+          "setup": "Scales: A natural minor on the guitar, eighths at 80 BPM. A 6th-string-root pattern in Positions is still to come.",
+          "done": "At 80 BPM, on two days.",
           "match": {
             "kind": "natural-minor",
             "perBeat": "2"
@@ -3300,7 +3300,7 @@
           "title": "Target notes on the change",
           "strand": "L",
           "href": "/music/changes/jam?progression=blues&transpose=-3&game=changes&choruses=3",
-          "setup": "Jam in Check: 12-bar in A; land on the 3rd of each new chord.",
+          "setup": "Jam in Check: 12-bar in A. Land on the 3rd of each new chord.",
           "done": "3 choruses, 80% of changes hit.",
           "feeds": "improvising",
           "match": {
@@ -3315,8 +3315,8 @@
           "title": "Texas shuffle",
           "strand": "R",
           "href": "/music/phrases?instrument=guitar&phrase=guitar.texas-shuffle&bpm=90",
-          "setup": "Phrases: the Texas shuffle in E, four bars through E, A, E and B in 12/8, 90 then 120. Three clean runs are twelve bars.",
-          "done": "12 bars clean at 120.",
+          "setup": "Phrases: the Texas shuffle in E, four bars through E, A, E and B in 12/8, at 90, then 120 BPM. Three clean runs make twelve bars.",
+          "done": "12 bars clean at 120 BPM.",
           "match": {
             "phrase": "guitar.texas-shuffle"
           },
@@ -3329,7 +3329,7 @@
           "title": "Soul voicings",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=guitar&shape=gen.guitar.4.9",
-          "setup": "Chords, Build: E9 (open), C9 (x32333) and Em9 (open), the app's generated shapes. 13th chords are still to come.",
+          "setup": "Chords, Build: E9 (open), C9 (x32333) and Em9 (open), as generated shapes. 13th chords aren't in the drill yet.",
           "done": "Each rings clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -3354,8 +3354,8 @@
           "title": "Speed bursts",
           "strand": "R, L",
           "href": "/music/fretboard?mode=spider&instrument=guitar&burst=true&perBeat=4&bpm=80",
-          "setup": "Fretboard, Spider with speed bursts: a four-note cell in sixteenths, then a rest as long; the tempo climbs while it stays even. The Sweet Child cell itself is not in the app.",
-          "done": "The Sweet Child intro cell at 120 in 16ths, even.",
+          "setup": "Fretboard, Spider with speed bursts: a four-note cell in sixteenths, then a rest as long. The tempo climbs while it stays even. The Sweet Child cell itself isn't in the drill.",
+          "done": "The Sweet Child intro cell at 120 BPM in 16ths, even.",
           "match": {
             "burst": "true",
             "perBeat": "4"
@@ -3370,7 +3370,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=rolling&chords=guitar.e-minor,guitar.d-major,guitar.c-major&perBeat=3&bpm=46",
           "setup": "Chords, Fingerpicking: the Nothing Else Matters preset (Em D C), then Song practice for the full intro.",
-          "done": "The intro at the record's tempo, on two days.",
+          "done": "The intro at the recording's tempo, on two days.",
           "match": {
             "pattern": "rolling",
             "shapes": "guitar.e-minor>guitar.d-major>guitar.c-major"
@@ -3391,17 +3391,17 @@
           "strand": "F",
           "href": "/music/songs/shelf/guitar/stairway-to-heaven?bars=1-16",
           "setup": "Song practice: the first 16 bars, the descending bass with p, the melody with i, m and a.",
-          "done": "At 72, 90% of notes.",
+          "done": "At 72 BPM, 90% of notes.",
           "threshold": 0.9,
           "minBpm": 72,
           "feeds": "Stairway to Heaven"
         },
         {
           "id": "8.11",
-          "title": "Learn a solo from the score",
+          "title": "Learn a solo from the notation",
           "strand": "L",
           "href": "/music/songs/shelf/guitar/comfortably-numb",
-          "setup": "Song practice: Comfortably Numb solo 1 in 2-bar sections, fix-the-spot. The Johnny B. Goode intro is linked but not judged here.",
+          "setup": "Song practice: Comfortably Numb solo 1 in 2-bar sections, looping the trouble spots. The Johnny B. Goode intro is linked but isn't scored here.",
           "done": "The whole solo at 100%, on two days.",
           "threshold": 0.8,
           "minBpm": 64,
@@ -3417,8 +3417,8 @@
           "id": "8.12",
           "title": "Learn a lick by ear",
           "strand": "T, L",
-          "setup": "Learn by ear: 4 bars of a shelf solo, looped and slowed down with the pitch kept. Learn runs are self-rated, so this step is not judged; Licks, By ear, grades the app's own lines.",
-          "done": "Played matching the record at 75%.",
+          "setup": "Learn by ear: 4 bars of a solo from this level's list, looped and slowed down with the pitch kept. You rate Learn runs yourself, so this step isn't scored. Licks, By ear, scores Woodshed's own lines.",
+          "done": "Played to match the recording at 75%.",
           "href": "/music/by-ear?mode=learn",
           "links": [
             {
@@ -3435,8 +3435,8 @@
           "title": "Nothing Else Matters",
           "artist": "Metallica",
           "strand": "F, L",
-          "teaches": "open-string arpeggio intro, then the solo",
-          "detail": "E minor, 6/8 at 46",
+          "teaches": "Open-string arpeggio intro, then the solo",
+          "detail": "E minor, 6/8 at 46 BPM",
           "bpm": 46,
           "diff": 2,
           "scores": [
@@ -3460,7 +3460,7 @@
           "title": "Stairway to Heaven",
           "artist": "Led Zeppelin",
           "strand": "F",
-          "teaches": "the intro: a descending bass under an arpeggio, Am",
+          "teaches": "The intro: a descending bass under an arpeggio, Am",
           "detail": "A minor, 72 BPM",
           "bpm": 72,
           "diff": 3,
@@ -3481,7 +3481,7 @@
           "title": "Under the Bridge",
           "artist": "Red Hot Chili Peppers",
           "strand": "S, F",
-          "teaches": "chord embellishment with the thumb, the intro",
+          "teaches": "Chord embellishment with the thumb, the intro",
           "detail": "E, 84 BPM",
           "bpm": 84,
           "diff": 3,
@@ -3506,7 +3506,7 @@
           "title": "Sweet Child O' Mine",
           "artist": "Guns N' Roses",
           "strand": "R, L",
-          "teaches": "string-skipping intro, alternate picking",
+          "teaches": "String-skipping intro, alternate picking",
           "detail": "D flat (standard-tuning versions in D), 125 BPM",
           "bpm": 125,
           "diff": 3,
@@ -3556,7 +3556,7 @@
           "title": "Comfortably Numb",
           "artist": "Pink Floyd",
           "strand": "L",
-          "teaches": "solo 1: bends to pitch, phrasing, B minor",
+          "teaches": "Solo 1: bends to pitch, phrasing, B minor",
           "detail": "B minor, 64 BPM",
           "bpm": 64,
           "diff": 2,
@@ -3605,7 +3605,7 @@
           "title": "Get Lucky",
           "artist": "Daft Punk",
           "strand": "R, S",
-          "teaches": "the Nile Rodgers 16th chord riff, muted scratches",
+          "teaches": "The Nile Rodgers 16th chord riff, muted scratches",
           "detail": "F# dorian, 116 BPM",
           "bpm": 116,
           "diff": 2,
@@ -3655,7 +3655,7 @@
           "title": "Johnny B. Goode",
           "artist": "Chuck Berry",
           "strand": "L, R",
-          "teaches": "double-stop intro, bends, boogie rhythm",
+          "teaches": "Double-stop intro, bends, boogie rhythm",
           "detail": "B flat, 168 BPM",
           "bpm": 168,
           "diff": 3,
@@ -3676,13 +3676,13 @@
           }
         }
       ],
-      "test": "One F intro (Stairway or Nothing Else Matters) and one R intro (Sweet Child or Get Lucky) at the record's tempo; a learned solo (Comfortably Numb solo 1 or Johnny B. Goode) at 100%; three improvised choruses over a 12-bar in a key the app picks, using at least three boxes."
+      "test": "Play one fingerpicking intro (Stairway or Nothing Else Matters) at the recording's tempo. Play one riff intro (Sweet Child or Get Lucky) at the recording's tempo. Play a learned solo (Comfortably Numb solo 1 or Johnny B. Goode) at 100%. Improvise three choruses over a 12-bar in a key picked for you, using at least three boxes."
     },
     {
       "id": "9",
       "title": "Broaden: fingerstyle arrangements, jazz shells and modes",
-      "goal": "Play a melody-on-top fingerstyle arrangement of a pop song, comp a jazz standard with shell voicings, and solo with a mode.",
-      "adds": "Melody and bass arrangements (Here Comes the Sun, Yesterday), a percussive fingerstyle arrangement (More Than Words), shell voicings with roots on strings 6 and 5, ii-V-I, Dorian and Mixolydian, Hendrix chord embellishment in full, sight-reading in fifth position.",
+      "goal": "Play a melody-on-top fingerstyle arrangement of a pop song. Comp a jazz standard with shell voicings. Solo with a mode.",
+      "adds": "Fingerpicking: melody and bass arrangements (Here Comes the Sun, Yesterday), a percussive arrangement (More Than Words). Chords: shell voicings with roots on strings 6 and 5, ii-V-I, Hendrix embellishment in full. Lead: Dorian and Mixolydian. Reading: sight-reading in fifth position.",
       "pick": 2,
       "steps": [
         {
@@ -3702,7 +3702,7 @@
           "strand": "F",
           "href": "/music/songs/shelf/guitar/more-than-words",
           "setup": "Song practice: the More Than Words intro, thumb slaps and hammer-on chords.",
-          "done": "The intro at 70, 90% of notes, on two days.",
+          "done": "The intro at 70 BPM, 90% of notes, on two days.",
           "threshold": 0.9,
           "minBpm": 70,
           "feeds": "More Than Words"
@@ -3713,7 +3713,7 @@
           "strand": "F, T",
           "href": "/music/songs/shelf/guitar/greensleeves",
           "setup": "Song practice: the Greensleeves arrangement with tab, read from the notation.",
-          "done": "The theme and one variation at 90 in 3/4.",
+          "done": "The theme and one variation at 90 BPM in 3/4.",
           "threshold": 0.8,
           "minBpm": 90,
           "feeds": "Greensleeves"
@@ -3723,7 +3723,7 @@
           "title": "Shell voicings",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&chords=shell.guitar.2.m7,shell.guitar.7.7,shell.guitar.0.maj7&positions=2,1,2&clock=1&bpm=50",
-          "setup": "Chords, shells (Voicing: Shell on a maj7, m7 or 7): 1-3-7 and 1-7-3 with roots on strings 6 and 5. Build each form, then Changes through a ii-V-I (Dm7, G7, Cmaj7) and the blues (F7, Bb7, C7, linked), a change every beat. Move the cycle to the other keys with each chord's root.",
+          "setup": "Chords, shells (Voicing: Shell on a maj7, m7 or 7): 1-3-7 and 1-7-3 with roots on strings 6 and 5. Build each form. Then Changes through a ii-V-I (Dm7, G7, Cmaj7) and the blues (F7, Bb7, C7, linked), a change every beat. Move the cycle to the other keys with each chord's root.",
           "done": "maj7, m7 and 7 in 12 keys at 60 changes a minute.",
           "match": {
             "chords": "shell.guitar.*",
@@ -3748,7 +3748,7 @@
           "title": "ii-V-I",
           "strand": "S, T",
           "href": "/music/changes/jam?progression=ii-v-i",
-          "setup": "Jam: ii-V-I and minor ii-V-i, comping; then Chord scales. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
+          "setup": "Jam: ii-V-I and minor ii-V-i, comping. Then Chord scales. In Check, Jam scores single notes, not strummed chords, so this step opens it and isn't scored.",
           "done": "Comp 4 choruses with no missed change.",
           "exerciseIds": [],
           "links": [
@@ -3768,7 +3768,7 @@
           "title": "Dorian",
           "strand": "L",
           "href": "/music/changes/jam?progression=modal",
-          "setup": "Jam: the D Dorian vamp, with Scales for D Dorian. A Dorian position pattern is still to come. Jam's Check does not grade the 6th as a colour, so this step opens it and is not judged.",
+          "setup": "Jam: the D Dorian vamp, with Scales for D Dorian. A Dorian position pattern is still to come. In Check, Jam doesn't score the 6th as a colour, so this step opens it and isn't scored.",
           "done": "Two choruses, landing on the 6th as colour.",
           "exerciseIds": [],
           "links": [
@@ -3784,7 +3784,7 @@
           "title": "Mixolydian and the blues mix",
           "strand": "L",
           "href": "/music/changes/jam?progression=blues&transpose=-3&game=thirds&choruses=2",
-          "setup": "Jam in Check, Land on the 3rd: 12-bar in A, mixing minor and major pentatonic; Scales for A Mixolydian. A Mixolydian position pattern is still to come, and the game asks for the 3rd of every chord, not only the I.",
+          "setup": "Jam in Check, Land on the 3rd: 12-bar in A, mixing minor and major pentatonic. Scales for A Mixolydian. The exercise asks for the 3rd of every chord, not only the I. A Mixolydian position pattern is still to come.",
           "done": "Two choruses, 3rds on the I chord.",
           "links": [
             {
@@ -3806,7 +3806,7 @@
           "strand": "R, F",
           "href": "/music/songs/shelf/guitar/little-wing",
           "setup": "Song practice: the Little Wing intro and verse, thumb over the neck, hammer-on decorations.",
-          "done": "The intro at 70, on two days.",
+          "done": "The intro at 70 BPM, on two days.",
           "threshold": 0.8,
           "minBpm": 70,
           "feeds": "Little Wing"
@@ -3816,8 +3816,8 @@
           "title": "A clean picking burst",
           "strand": "L",
           "href": "/music/fretboard?mode=spider&instrument=guitar&burst=true&perBeat=4&bpm=90",
-          "setup": "Fretboard, Spider with speed bursts: sixteenths at 90.",
-          "done": "Even at 100, on two days.",
+          "setup": "Fretboard, Spider with speed bursts: sixteenths at 90 BPM.",
+          "done": "Even at 100 BPM, on two days.",
           "match": {
             "burst": "true",
             "perBeat": "4"
@@ -3831,8 +3831,8 @@
           "title": "Sight-read in fifth position",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=guitar&level=level-3&follower=performance&measures=8&bpm=70",
-          "setup": "Note reading, Sight-reading: guitar, 8 bars at 70 in fifth position, twice for 16. The drill tops out at 8 bars and a position setting is still to come.",
-          "done": "90% of notes on the first try, on two days.",
+          "setup": "Note reading, Sight-reading: guitar, 8 bars at 70 BPM in fifth position, twice for 16. The drill tops out at 8 bars. A position setting is still to come.",
+          "done": "90% of notes on the first run, on two days.",
           "match": {
             "level": "level-3",
             "measures": "8"
@@ -3847,7 +3847,7 @@
           "title": "Hear ii-V-I and modal colour",
           "strand": "T",
           "href": "/music/ear/progressions?functions=I,ii,V&chordSize=sevenths",
-          "setup": "Ear, Progressions with ii, V and I in sevenths; then Ear, Scales for Dorian and Mixolydian.",
+          "setup": "Ear, Progressions with ii, V and I in sevenths. Then Ear, Scales, for Dorian and Mixolydian.",
           "done": "80%.",
           "threshold": 0.8,
           "links": [
@@ -3865,7 +3865,7 @@
           "title": "Here Comes the Sun",
           "artist": "The Beatles",
           "strand": "F, S",
-          "teaches": "melody-on-top arrangement, capo 7, a 7/8 bar",
+          "teaches": "Melody-on-top arrangement, capo 7, a 7/8 bar",
           "detail": "A (capo 7), 129 BPM",
           "bpm": 129,
           "diff": 2,
@@ -3890,7 +3890,7 @@
           "title": "Yesterday",
           "artist": "The Beatles",
           "strand": "F",
-          "teaches": "solo guitar arrangement of a vocal melody, F major shapes",
+          "teaches": "Solo guitar arrangement of a vocal melody, F major shapes",
           "detail": "F, 97 BPM",
           "bpm": 97,
           "diff": 2,
@@ -3911,7 +3911,7 @@
           "title": "More Than Words",
           "artist": "Extreme",
           "strand": "F",
-          "teaches": "percussive fingerstyle: thumb slaps, hammer-on chords, melody on top",
+          "teaches": "Percussive fingerstyle: thumb slaps, hammer-on chords, melody on top",
           "detail": "G, 94 BPM",
           "bpm": 94,
           "diff": 2,
@@ -3936,7 +3936,7 @@
           "title": "Greensleeves",
           "artist": "Traditional",
           "strand": "F, T",
-          "teaches": "arrangement in A minor with tab, 3/4",
+          "teaches": "Arrangement in A minor with tab, 3/4",
           "detail": "A minor, 90 BPM",
           "bpm": 90,
           "diff": 1,
@@ -3956,7 +3956,7 @@
           "title": "Fields of Gold",
           "artist": "Sting",
           "strand": "F",
-          "teaches": "fingerstyle arrangement, B minor family",
+          "teaches": "Fingerstyle arrangement, B minor family",
           "detail": "B minor, 100 BPM",
           "bpm": 100,
           "diff": 2,
@@ -3980,7 +3980,7 @@
           "title": "Little Wing",
           "artist": "Jimi Hendrix",
           "strand": "S, L",
-          "teaches": "chord embellishment, Em G Am Bm Bb C D, the solo",
+          "teaches": "Chord embellishment, Em G Am Bm Bb C D, the solo",
           "detail": "E minor, 70 BPM",
           "bpm": 70,
           "diff": 3,
@@ -4053,7 +4053,7 @@
           "title": "Sultans of Swing",
           "artist": "Dire Straits",
           "strand": "L, R",
-          "teaches": "fingerpicked electric fills, D minor, the first solo",
+          "teaches": "Fingerpicked electric fills, D minor, the first solo",
           "detail": "D minor, 148 BPM",
           "bpm": 148,
           "diff": 3,
@@ -4078,7 +4078,7 @@
           "title": "Blue Bossa",
           "artist": "Kenny Dorham",
           "strand": "S, L",
-          "teaches": "minor ii-V-i in C minor and D flat, bossa comping, the head",
+          "teaches": "Minor ii-V-i in C minor and D flat, bossa comping, the head",
           "detail": "C minor, 140 BPM",
           "bpm": 140,
           "diff": 2,
@@ -4098,12 +4098,12 @@
           }
         }
       ],
-      "test": "One fingerstyle arrangement (Here Comes the Sun, Yesterday or More Than Words) through at 100%; comp Autumn Leaves with shells for two choruses with the jam track and play the head; two choruses of Dorian over the modal vamp; sight-read 16 bars in fifth position at 70."
+      "test": "Play one fingerstyle arrangement (Here Comes the Sun, Yesterday or More Than Words) through at 100%. Comp Autumn Leaves with shells for two choruses with the Jam backing, and play the head. Play two choruses of Dorian over the modal vamp. Sight-read 16 bars in fifth position at 70 BPM."
     },
     {
       "id": "10",
       "title": "Capstone: RGT Grade 5 and JustinGuitar Grade 6 standard",
-      "goal": "A performance set and an exam-style check.",
+      "goal": "Play a performance set and pass an exam-style check.",
       "adds": "No new topic: higher tempos, stamina (whole pieces from memory) and unseen material.",
       "pick": 2,
       "steps": [
@@ -4112,8 +4112,8 @@
           "title": "Scales at grade tempo",
           "strand": "L",
           "href": "/music/scales?instrument=guitar&kind=major&tonic=67&perBeat=2&bpm=80",
-          "setup": "Scales: major, natural minor, Dorian and Mixolydian in eighths at 80 (the Rockschool Grade 5 click); the five pentatonic boxes in sixteenths at 70 in Positions, linked.",
-          "done": "Each clean at 80 in eighths; the pentatonic boxes in 16ths at 70.",
+          "setup": "Scales: major, natural minor, Dorian and Mixolydian in eighths at 80 BPM (the Rockschool Grade 5 tempo). Then the five pentatonic boxes in sixteenths at 70 BPM in Positions, linked.",
+          "done": "Each clean at 80 BPM in eighths. The pentatonic boxes in 16ths at 70 BPM.",
           "each": {
             "param": "kind",
             "values": ["major", "natural-minor", "dorian", "mixolydian"]
@@ -4148,7 +4148,7 @@
           "title": "Chords at grade tempo",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=guitar&hardest=true&clock=1&bpm=50",
-          "setup": "Chords, Changes: the hardest five across every shape you have timed (open, barre, 7ths, 9ths, shells). A change every beat at 60 is 60 a minute.",
+          "setup": "Chords, Changes: the hardest five across every shape you've timed (open, barre, 7ths, 9ths, shells). A change every beat at 60 BPM is 60 a minute.",
           "done": "60 changes a minute on each.",
           "match": {
             "hardest": "true",
@@ -4163,7 +4163,7 @@
           "title": "Unseen backing improvisation",
           "strand": "L",
           "href": "/music/changes/jam?game=chord-tones&choruses=2",
-          "setup": "Jam in Check, Chord tones on 1 and 3: a progression and key you did not choose (a surprise-me setting is still to come).",
+          "setup": "Jam in Check, Chord tones on 1 and 3: a progression and key you didn't choose. A surprise-me setting is still to come.",
           "done": "Two choruses in time, chord tones on the downbeats 70% of the time.",
           "feeds": "the exam",
           "match": {
@@ -4178,7 +4178,7 @@
           "title": "Unseen rhythm part",
           "strand": "S",
           "setup": "Strum a progression: an unseen 8-bar chart with a written rhythm.",
-          "done": "90% on the first try.",
+          "done": "90% on the first run.",
           "needs": "Generated 8-bar charts with a written rhythm in Strum a progression, with runs that count there.",
           "feeds": "the exam"
         },
@@ -4187,7 +4187,7 @@
           "title": "A full fingerstyle piece from memory",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, Performance with Memory set to After a look: the whole piece with the score hidden.",
+          "setup": "Song practice, Performance, with Memory set to After a look: the whole piece with the notation hidden.",
           "done": "The whole piece, 90% of notes, on two days.",
           "feeds": "Classical Gas, Blackbird",
           "match": {
@@ -4203,7 +4203,7 @@
           "title": "A full learned solo",
           "strand": "L",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, Performance: a solo from the shelf at the record's tempo. The app checks the tempo against the record only for the level's shelf songs.",
+          "setup": "Song practice, Performance: a solo from this level's list at the recording's tempo. Woodshed checks the tempo against the recording only for songs in this level's list.",
           "done": "At 100% tempo, on two days.",
           "feeds": "shelf L songs",
           "match": {
@@ -4218,8 +4218,8 @@
           "title": "Sight-reading",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=guitar&level=level-3&follower=performance&measures=8&bpm=72",
-          "setup": "Note reading, Sight-reading: guitar, first and fifth position, at 72. The drill tops out at 8 bars, so read two in a row.",
-          "done": "16 bars at 72, 90% on the first try.",
+          "setup": "Note reading, Sight-reading: guitar, first and fifth position, at 72 BPM. The drill tops out at 8 bars, so read two in a row.",
+          "done": "16 bars at 72 BPM, 90% on the first run.",
           "match": {
             "level": "level-3",
             "measures": "8"
@@ -4253,7 +4253,7 @@
           "title": "Record the set",
           "strand": "T",
           "href": "/music/record",
-          "setup": "Record: three songs, one per strand (S or R, F, L).",
+          "setup": "Record: three songs. One strumming or riff song, one fingerpicking, one lead.",
           "done": "Listen back, mark three spots, fix them, record again."
         }
       ],
@@ -4263,7 +4263,7 @@
           "title": "Classical Gas",
           "artist": "Mason Williams",
           "strand": "F",
-          "teaches": "the big fingerstyle piece: arpeggios, campanella runs, tremolo-like repeats (a stretch)",
+          "teaches": "The big fingerstyle piece: arpeggios, campanella runs, tremolo-like repeats (a stretch)",
           "detail": "A minor, 120 BPM",
           "bpm": 120,
           "diff": 3,
@@ -4289,7 +4289,7 @@
           "title": "Little Wing, complete",
           "artist": "Jimi Hendrix",
           "strand": "F, L",
-          "teaches": "chord embellishment with the thumb over the neck, hammer-ons and double stops (a stretch)",
+          "teaches": "Chord embellishment with the thumb over the neck, hammer-ons and double stops (a stretch)",
           "detail": "E minor, 70 BPM",
           "bpm": 70,
           "diff": 3,
@@ -4314,7 +4314,7 @@
           "title": "Stairway to Heaven, complete",
           "artist": "Led Zeppelin",
           "strand": "F, S, L",
-          "teaches": "the intro, the 12-string strum section, the solo in A minor pentatonic",
+          "teaches": "The intro, the 12-string strum section, the solo in A minor pentatonic",
           "detail": "A minor, 72 to 98 BPM",
           "bpm": 72,
           "diff": 3,
@@ -4335,7 +4335,7 @@
           "title": "Hotel California, the outro solo",
           "artist": "Eagles",
           "strand": "L",
-          "teaches": "harmonised B minor lines, bends, position shifts (a stretch)",
+          "teaches": "Harmonised B minor lines, bends, position shifts (a stretch)",
           "detail": "B minor, 75 BPM",
           "bpm": 75,
           "diff": 3,
@@ -4356,7 +4356,7 @@
           "title": "Comfortably Numb, solo 2",
           "artist": "Pink Floyd",
           "strand": "L",
-          "teaches": "fast bends, repeated licks, stamina (a stretch)",
+          "teaches": "Fast bends, repeated licks, stamina (a stretch)",
           "detail": "B minor, 64 BPM",
           "bpm": 64,
           "diff": 3,
@@ -4376,7 +4376,7 @@
           "title": "Sultans of Swing, first solo and fills",
           "artist": "Dire Straits",
           "strand": "L",
-          "teaches": "fingerpicked electric lead, D minor",
+          "teaches": "Fingerpicked electric lead, D minor",
           "detail": "D minor, 148 BPM",
           "bpm": 148,
           "diff": 3,
@@ -4396,7 +4396,7 @@
           "title": "Autumn Leaves, chord melody",
           "artist": "Joseph Kosma",
           "strand": "F, S",
-          "teaches": "the melody harmonised with shells and drop-2",
+          "teaches": "The melody harmonised with shells and drop-2",
           "detail": "E minor, ballad",
           "diff": 3,
           "scores": [
@@ -4415,7 +4415,7 @@
           "title": "Never Going Back Again",
           "artist": "Fleetwood Mac",
           "strand": "F",
-          "teaches": "fast Travis in an open D-style tuning, hammer-ons and pull-offs",
+          "teaches": "Fast Travis in an open D-style tuning, hammer-ons and pull-offs",
           "detail": "D, 160 BPM",
           "bpm": 160,
           "diff": 3,
@@ -4436,7 +4436,7 @@
           }
         }
       ],
-      "test": "A 15-minute set from memory: one S or R song, one fingerstyle piece (Classical Gas, Blackbird or Dust in the Wind) and one solo (learned, or improvised over an unseen backing); plus scales at 80, 8 bars sight-read at 72 and two ear items. Pass on two different days."
+      "test": "Play a 15-minute set from memory. Include one strumming or riff song and one fingerstyle piece (Classical Gas, Blackbird or Dust in the Wind). Include one solo, learned or improvised over an unseen backing. Then play scales at 80 BPM, sight-read 8 bars at 72 BPM and answer two ear questions. Pass on two different days."
     }
   ]
 }
