@@ -176,30 +176,30 @@
         <div>
           <p class="font-display text-lg font-semibold">Hit pad {padLabel(36 + learning.length)} next</p>
           <p class="text-sm text-ws-soft"><span class="tnum">{learning.length} of 16</span> pads captured</p>
-          <div class="mt-1.5 h-1.5 max-w-80 overflow-hidden rounded-full bg-ws-line" aria-hidden="true"><div class="h-full rounded-full bg-instr" style:width="{(learning.length / 16) * 100}%"></div></div>
+          <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ws-line" aria-hidden="true"><div class="h-full rounded-full bg-instr" style:width="{(learning.length / 16) * 100}%"></div></div>
         </div>
       {/if}
-      <ol class="grid max-w-80 grid-cols-4 gap-1" aria-label={learning ? "Pads captured so far" : "Saved pad map"}>
+      <ol class="grid max-w-xl grid-cols-4 gap-1.5 sm:gap-2" aria-label={learning ? "Pads captured so far" : "Saved pad map"}>
         {#each ROWS as row (row)}
           {#each [0, 1, 2, 3] as col (col)}
             {@const i = row + col}
             {@const note = learning ? learning[i] : profile?.padNotes?.[i]}
             <li
               title={note !== undefined ? `Pad ${padLabel(36 + i)} hears MIDI note ${note}` : undefined}
-              class="flex min-h-11 flex-col items-center justify-center rounded-md border text-[13px] {learning && i === learning.length
+              class="flex min-h-16 flex-col items-center justify-center rounded-xl border text-sm {learning && i === learning.length
                 ? 'target border-2 border-ws-ink bg-instr font-semibold text-ws-stage'
                 : note !== undefined
                   ? 'border-transparent bg-instr-wash'
-                  : 'border-dashed border-ws-soft text-ws-soft'}"
+                  : 'border-ws-line bg-ws-surface'}"
               aria-current={learning && i === learning.length ? "step" : undefined}
             >
-              <span class="flex items-center gap-0.5 font-semibold">{#if note !== undefined}<Check class="size-3" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
-              <span class="tnum {note === undefined && learning ? 'font-normal' : ''}">{note !== undefined ? noteName(note) : learning ? (i === learning.length ? "hit now" : "waiting") : profile?.padNotes ? "" : noteName(36 + i)}</span>
+              <span class="flex items-center gap-0.5 font-display text-base font-semibold">{#if note !== undefined}<Check class="size-3.5" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
+              <span class="tnum text-[13px] {learning && i === learning.length ? '' : 'text-ws-soft'}">{note !== undefined ? `sends ${noteName(note)}` : learning ? (i === learning.length ? "hit now" : "waiting") : profile?.padNotes ? "" : `sends ${noteName(36 + i)}`}</span>
             </li>
           {/each}
         {/each}
       </ol>
-      <p class="text-[13px] text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the note it sends.</p>
+      <p class="text-[13px] text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the MIDI note it sends.</p>
     </section>
   {/if}
 
@@ -227,7 +227,7 @@
         >
         <button type="button" class={btn} onclick={() => (confirmRemove = false)}>Keep them</button>
       {:else}
-        <button type="button" class="ml-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-destructive/50 bg-ws-surface px-4 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50" disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
+        <button type="button" class="ml-auto inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm font-medium text-ws-soft underline underline-offset-4 hover:text-destructive disabled:opacity-50 disabled:no-underline" disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
       {/if}
     </div>
     <p class="text-ws-soft">

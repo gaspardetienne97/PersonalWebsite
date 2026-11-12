@@ -13,6 +13,7 @@
   import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
   import { input, midi, mic, settings } from "$lib/music/runtime";
   import { hitLabel, tileFor, type RigTile } from "./rig";
+  import { noteName } from "@repo/music-core";
   import MicCheck from "./MicCheck.svelte";
 
   type Next = { label: string; hint: string; act?: { label: string; href?: string; run?: () => void } };
@@ -22,8 +23,6 @@
     next,
   }: { announce: (text: string) => void; fallback?: Snippet<[boolean]>; next?: Next } = $props();
   let moreOpen = $state(false);
-  // The unfinished device leads: until the microphone is on, its tile sits above the MIDI tiles.
-  const micFirst = $derived(mic.state !== "on");
   const micNext = $derived(!!next && next.act?.href === "#mic");
 
   const TILES = [
@@ -70,7 +69,15 @@
       <!-- One status line: how many are live and what to do next. -->
       <p class="mt-1 text-sm" data-testid="rig-count">
         <span class="tnum font-semibold">{litCount} of 4</span>
-        <span class="text-ws-soft">connected{midi.enabled && !midi.sysexEnabled ? ", MPC lights off (not allowed)" : ""}. {micNext ? "Next: test the microphone." : "Play something and its tile lights up."}</span>
+        <span class="text-ws-soft"
+          >inputs connected{midi.enabled && !midi.sysexEnabled ? ", MPC lights off (not allowed)" : ""}. {!midi.supported
+            ? ""
+            : !midi.enabled
+              ? "Enable MIDI for a keyboard, pads or the Aerophone (the browser asks: choose Allow), or start the microphone below."
+              : micNext
+                ? "Next: test the microphone."
+                : "Play something and its tile lights up."}</span
+        >
       </p>
     </div>
     {#if midi.supported}
@@ -93,20 +100,19 @@
       {/if}
     {/if}
   </div>
-  <div class="text-sm">
-    {#if !midi.supported}
-      <p>Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>
-    {:else if !midi.enabled}
-      <p class="text-ws-soft">For keyboards, pads and the Aerophone. Your browser will ask for permission. Choose Allow.</p>
-      <details class="group mt-1">
-        <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-          Why twice?<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <p class="text-ws-soft">The first prompt lets Woodshed hear your notes. The second lets it light the MPC's pads and link to it. Allow both; a keyboard alone needs only the first.</p>
-      </details>
-    {/if}
-    {#if midi.error}<p class="mt-1 font-medium text-destructive">{midi.error}</p>{/if}
-  </div>
+  {#if !midi.supported}<p class="text-sm">Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>{/if}
+  {#if midi.error}<p class="text-sm font-medium text-destructive">{midi.error}</p>{/if}
+
+  {@render tiles()}
+
+  {#if midi.supported && !midi.enabled}
+    <details class="group -my-2 text-sm">
+      <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
+        Why does the browser ask twice?<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <p class="text-ws-soft">The first prompt lets Woodshed hear your notes. The second lets it light the MPC's pads and link to it. Allow both; a keyboard alone needs only the first.</p>
+    </details>
+  {/if}
 
   <!-- The one setup step still to do, as this card's main action (the checklist mirrors it). -->
   {#if next && midi.enabled && !micNext}
@@ -125,15 +131,19 @@
     </div>
   {/if}
 
-  {#if micFirst}{@render micTile()}{/if}
+  {@render micPanel()}
 
-  <!-- While MIDI is off the three tiles sit in one row, so the microphone is in the first phone screen. -->
-  <ul class="grid gap-2 sm:grid-cols-3 sm:gap-3 {midi.enabled ? '' : 'max-sm:grid-cols-3'}">
+  {@render fallback?.(litCount > 0)}
+</section>
+
+<!-- The four inputs in one row under the heading, each with what it last heard: the proof sits in the first screen. -->
+{#snippet tiles()}
+  <ul class="grid gap-2 sm:grid-cols-4 sm:gap-3 {midi.enabled ? '' : 'max-sm:grid-cols-2'}">
     {#each TILES as t (t.id)}
       {@const lit = portsOn(t.id).length > 0}
       {@const hit = last[t.id]}
       {@const Icon = INSTRUMENT_ICON[t.hue]}
-      <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center {midi.enabled ? '' : 'max-sm:flex-col max-sm:gap-1 max-sm:p-2 max-sm:text-center'}" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
+      <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center {midi.enabled ? '' : 'max-sm:p-2'}" data-lit={lit || undefined} style:--instr="var(--hue-{t.hue})" data-testid="rig-{t.id}">
         <span class="chip relative grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true">
           <Icon class="size-5" />
           {#if hit}{#key hit.n}<span class="bloom absolute inset-0 rounded-xl"></span>{/key}{/if}
@@ -153,27 +163,36 @@
         </div>
       </li>
     {/each}
-  </ul>
-
-
-  {#if !micFirst}{@render micTile()}{/if}
-
-  {@render fallback?.(litCount > 0)}
-</section>
-
-{#snippet micTile()}
-  <section id="mic" class="tile flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3 rounded-2xl p-3 sm:p-4" data-next={micNext || undefined} data-lit={mic.state === "on" || undefined} style:--instr="var(--hue-guitar)" aria-labelledby="mic-title" data-testid="rig-mic">
-    <div class="flex items-center gap-3">
+    <!-- The microphone is the fourth input: same tile, lit while it listens, with the note it hears. -->
+    <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center {midi.enabled ? '' : 'max-sm:p-2'}" data-lit={mic.state === "on" || undefined} style:--instr="var(--hue-guitar)" data-testid="rig-mic-tile">
       <span class="chip grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true"><INSTRUMENT_ICON.voice class="size-5" /></span>
-      <div class="min-w-0">
-        <h3 id="mic-title" class="font-semibold">Microphone</h3>
-        <p class="text-[13px] text-ws-soft">
-          {mic.state === "on" ? `Listening on ${settings.value.audioInputLabel}` : `For guitar, ukulele and voice. Uses ${settings.value.audioInputLabel}.`}
-        </p>
-        {#if micNext}<p class="mt-0.5 text-sm font-semibold text-instr-ink">Next step: press Start microphone, then play or sing a note.</p>{/if}
+      <div class="min-w-0 flex-1 sm:w-full sm:flex-none">
+        <p class="font-semibold sm:text-base {midi.enabled ? '' : 'max-sm:text-sm'}">Microphone</p>
+        <p class="w-full text-[13px] text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{mic.state === "on" ? settings.value.audioInputLabel : "Off: start it below"}</p>
       </div>
+      <div class="flex shrink-0 flex-col items-end sm:items-center">
+        {#if mic.state === "on" && mic.pitch}
+          <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
+          <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{noteName(mic.pitch.midi)}</span>
+          {@render octave(mic.pitch.midi)}
+        {:else if mic.state === "on"}
+          <span class="text-sm text-ws-soft">Play or sing</span>
+        {/if}
+      </div>
+    </li>
+  </ul>
+{/snippet}
+
+{#snippet micPanel()}
+  <section id="mic" class="mic flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3 rounded-2xl p-3 sm:p-4" data-next={micNext || undefined} aria-labelledby="mic-title" data-testid="rig-mic">
+    <div class="min-w-0">
+      <h3 id="mic-title" class="font-semibold">Microphone</h3>
+      <p class="text-[13px] text-ws-soft">
+        {mic.state === "on" ? `Listening on ${settings.value.audioInputLabel}` : `For guitar, ukulele and voice. Uses ${settings.value.audioInputLabel}.`}
+      </p>
+      {#if micNext}<p class="mt-0.5 text-sm font-semibold text-instr-ink">Next step: press Start microphone, then play or sing a note.</p>{/if}
     </div>
-    <MicCheck {announce} />
+    <MicCheck {announce} primary={micNext} />
   </section>
 {/snippet}
 
@@ -205,14 +224,18 @@
     stroke: var(--ws-ink);
     stroke-width: 1;
   }
+  /* Solid lines: a dashed card read as disabled, or as a drop zone. Unlit tiles are quiet, not broken. */
   .tile {
-    border: 2px dashed var(--ws-line);
+    border: 2px solid var(--ws-line);
     transition:
       border-color 0.3s,
       background-color 0.3s;
   }
-  /* The next step: a solid outline in the page's ink colour, not the tile's dashed waiting line. */
-  .tile[data-next] {
+  .mic {
+    border: 1px solid var(--ws-line);
+  }
+  /* The next step: an outline in the page's ink colour. */
+  .mic[data-next] {
     border: 2px solid var(--instr-ink);
   }
   .tile .chip {

@@ -170,19 +170,19 @@
 
     <aside class="flex min-w-0 flex-col gap-6 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)]">
       <section class={panel} aria-labelledby="check-title">
-        {@render heading("check-title", "Setup checklist", ListChecks, "reading")}
-        <p class="mt-1 text-sm"><span class="tnum font-semibold">{readyCount} of {checklist.length}</span> <span class="text-ws-soft">ready</span></p>
+        {@render heading("check-title", "Setup steps", ListChecks, "reading")}
+        <!-- Steps, not devices: Your rig counts the inputs that are live, this counts what is set up. -->
+        <p class="mt-1 text-sm"><span class="tnum font-semibold">{readyCount} of {checklist.length}</span> <span class="text-ws-soft">steps done</span></p>
         <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-ws-raised" aria-hidden="true"><div class="h-full rounded-full bg-success" style:width="{(readyCount / checklist.length) * 100}%"></div></div>
-        <!-- Steps still to do in full; the finished ones fold into one line. The next step's button is at the top of Your rig. -->
+        <!-- Steps still to do in full; the finished ones fold into one line. The next step's one action lives in Your rig. -->
         <ul class="mt-3 flex flex-col gap-2">
           {#each checklist.filter((c) => !c.done) as c (c.label)}
             {@const next = c === nextStep}
             <li class="flex gap-2 text-sm {next ? '-mx-2 rounded-xl bg-ws-raised px-2 py-2' : ''}">
               <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full {next ? 'border-2 border-instr-ink' : 'border border-dashed border-ws-soft'}" aria-hidden="true"></span>
               <span class="min-w-0 flex-1">
-                <span class="font-medium">{c.label}</span><span class="sr-only">: {next ? "do this next" : "not yet"}</span>
+                <span class="font-medium">{c.label}</span>{#if next}<span class="ml-1.5 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">Next</span>{:else}<span class="sr-only">: not yet</span>{/if}
                 <span class="block text-ws-soft">{c.hint}</span>
-                {#if next && c.act}<a class="mt-1 inline-flex min-h-11 items-center font-semibold text-instr-ink underline-offset-4 hover:underline" href={c.act.href === "#mic" ? "#mic" : "#rig-title"}>{c.act.href === "#mic" ? "Go to the microphone" : "Do it in Your rig"}</a>{/if}
               </span>
             </li>
           {/each}
