@@ -1,8 +1,8 @@
 {
   "id": "reading",
-  "title": "Reading Path",
-  "subtitle": "Five reading tracks, piano, guitar, ukulele, Aerophone and rhythm, each with levels, a reading shelf and a level test.",
-  "benchmark": "ABRSM Grade 6 piano sight-reading; Leavitt Vol. 1 and ABRSM classical guitar Grade 3 to 4; JHUI Books 1 and 2; ABRSM saxophone Grade 5; Reed, Progressive Steps to Syncopation",
+  "title": "Reading path",
+  "subtitle": "Five reading tracks: piano, guitar, ukulele, Aerophone and rhythm. Each has levels, a song list and a level test.",
+  "benchmark": "ABRSM Grade 6 piano sight-reading, Leavitt Vol. 1 and ABRSM classical guitar Grade 3 to 4, JHUI Books 1 and 2, ABRSM saxophone Grade 5, and Reed's Progressive Steps to Syncopation",
   "levels": [
     {
       "id": "P1",
@@ -16,7 +16,7 @@
           "title": "Placement climb",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=level-2&climb=true",
           "setup": "Sight-reading, level climb from Level 2 (Piano Marvel rules).",
-          "done": "Pass every level-3 rung (top rung D minor) with at most 2 strikes, on two days. If the climb ends in level 2, do steps 2 and 3 first and repeat.",
+          "done": "Climb through every Level 3 key (the last is D minor) with at most 2 strikes, on two days. If the climb ends in Level 2, do steps 2 and 3 first and repeat.",
           "match": {
             "instrument": "piano",
             "climb": "true",
@@ -47,8 +47,8 @@
           "id": "P1.3",
           "title": "New keys",
           "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=level-3&key=D%20major",
-          "setup": "Flashcards in D major and E minor, then Sight-reading Level 3 in D major, keeping time. G minor is not in the drill yet.",
-          "done": "95% of cards per key; 80% on 5 of 6 phrases.",
+          "setup": "Flashcards in D major and E minor, then Sight-reading Level 3 in D major, keeping time. G minor isn't in the drill yet.",
+          "done": "95% of cards per key. 80% on 5 of 6 phrases.",
           "match": {
             "instrument": "piano",
             "answer": "play",
@@ -77,7 +77,7 @@
           "title": "Hands together, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=wait&measures=4",
           "setup": "Sight-reading, Piano 4 (hands together), Wait for me, 4 bars.",
-          "done": "5 phrases at 90% in wait mode.",
+          "done": "5 phrases at 90% in Wait for me.",
           "match": {
             "instrument": "piano",
             "level": "piano-4"
@@ -125,7 +125,7 @@
           "id": "P1.7",
           "title": "Look, hear, play",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-4&follower=performance&measures=4&look=30&bpm=72",
-          "setup": "Sight-reading, Piano 4 with Look first at 30 seconds: Start opens after the look; hum bar 1 before you play. Compare the mean with your Piano 4 runs without it.",
+          "setup": "Sight-reading, Piano 4 with Look first at 30 seconds: Start opens after the look. Hum bar 1 before you play. Compare the mean with your Piano 4 runs without it.",
           "done": "10 phrases with the pause, mean score no lower than without it.",
           "match": {
             "instrument": "piano",
@@ -141,7 +141,7 @@
           "title": "Follow a line by ear",
           "href": "/music/ear/wrong-note?level=major-diatonic",
           "setup": "Ear, Spot the wrong note: major diatonic.",
-          "done": "80% over 20 items.",
+          "done": "80% on 20 questions.",
           "match": {
             "level": "major-diatonic"
           },
@@ -150,9 +150,9 @@
         },
         {
           "id": "P1.9",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, Sight-read at 70% of the marked tempo: a 30 second look, then one scored pass that keeps going. It counts only on a song's first run here.",
-          "done": "3 different shelf pieces at 80% or better on the first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, Sight-read at 70% of the marked tempo: a 30 second look, then one scored run that keeps going. It counts only on a song's first run here.",
+          "done": "3 different pieces from the song list at 80% or better on the first run.",
           "href": "/music/songs/shelf/reading/elf-handstucke?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -203,7 +203,7 @@
         {
           "id": "P1.10",
           "title": "Read a duet part",
-          "setup": "Song practice, No-stop with the duet partner: turn on your part only and the app plays the other part in time with you.",
+          "setup": "Song practice, No-stop with the duet partner. Turn on your part only, and the app plays the other part in time with you.",
           "done": "Through to the end without stopping, 80%.",
           "feeds": "Diabelli",
           "href": "/music/songs/shelf/reading/melodious-pieces-op-149-no-1?mode=no-stop&partner=true",
@@ -219,8 +219,8 @@
           "id": "P1.11",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
-          "done": "One shelf piece at 90% on two days.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
+          "done": "One piece from the song list at 90% on two days.",
           "match": {
             "mode": "performance"
           },
@@ -233,7 +233,7 @@
           "title": "Elf Handstücke (from 120 Handstücke)",
           "artist": "Türk",
           "teaches": "Short two-hand pieces, five-finger positions",
-          "detail": "C, G, F majors; 2/4 and 3/4",
+          "detail": "C, G, F majors, 2/4 and 3/4",
           "diff": 1,
           "scores": [
             {
@@ -394,7 +394,7 @@
           ]
         }
       ],
-      "test": "All piano-4 rungs with at most 2 strikes; one unseen shelf piece at 80% on the first pass; one learned piece at the marked tempo at 90%."
+      "test": "The level climb through every Piano 4 key with at most 2 strikes. One unseen piece from the song list at 80% on the first run. One learned piece at the marked tempo at 90%."
     },
     {
       "id": "P2",
@@ -407,8 +407,8 @@
           "id": "P2.1",
           "title": "Key signatures to three",
           "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=level-3&key=Bb%20major",
-          "setup": "Flashcards, play the answer, in Bb major; Circle of fifths steps 1 to 4. A and Eb majors and B and C minors are not in the drill yet.",
-          "done": "95% of 40 cards per key; circle steps passed.",
+          "setup": "Flashcards, play the answer, in Bb major. Circle of fifths steps 1 to 4. A and Eb majors and B and C minors aren't in the drill yet.",
+          "done": "95% of 40 cards per key. Circle steps passed.",
           "match": {
             "instrument": "piano",
             "answer": "play",
@@ -526,7 +526,7 @@
           "title": "Look ahead",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-5&follower=performance&mask=2",
           "setup": "Sight-reading, Piano 5 with the 2-beat look-ahead: played notes hide, only the next 2 beats show.",
-          "done": "80% on 5 of 6 piano-5 phrases with the mask.",
+          "done": "80% on 5 of 6 Piano 5 phrases with the mask.",
           "match": {
             "instrument": "piano",
             "level": "piano-5",
@@ -539,9 +539,9 @@
         },
         {
           "id": "P2.8",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "4 different shelf pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "4 different pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/minuet-in-g-major?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -592,7 +592,7 @@
         {
           "id": "P2.9",
           "title": "Duet secondo",
-          "setup": "Song practice, No-stop with the duet partner: turn on the secondo only and the app plays the other part in time with you.",
+          "setup": "Song practice, No-stop with the duet partner. Turn on the secondo only, and the app plays the other part in time with you.",
           "done": "Through without stopping, 80%.",
           "feeds": "Diabelli",
           "href": "/music/songs/shelf/reading/allegro-alla-turca-op-149-no-26?mode=no-stop&partner=true",
@@ -608,7 +608,7 @@
           "id": "P2.10",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -778,7 +778,7 @@
           ]
         }
       ],
-      "test": "All piano-5 rungs with at most 2 strikes; one unseen shelf piece (or a Gurlitt Op. 101 piece from IMSLP) at 80% first pass; one learned piece at tempo, 90%."
+      "test": "The level climb through every Piano 5 key with at most 2 strikes. One unseen piece from the song list (or a Gurlitt Op. 101 piece from IMSLP) at 80% on the first run. One learned piece at tempo, 90%."
     },
     {
       "id": "P3",
@@ -791,7 +791,7 @@
           "id": "P3.1",
           "title": "Symbol to chord",
           "href": "/music/changes/voicings?variant=inversions&instrument=piano",
-          "setup": "Voicings, voice leading. Flashing any triad symbol in any inversion is not in the drill yet.",
+          "setup": "Voicings, voice leading. Flashing any triad symbol in any inversion isn't in the drill yet.",
           "done": "Any major or minor triad in any inversion within 2 s, 90% of 40.",
           "match": {
             "variant": "inversions"
@@ -802,8 +802,8 @@
           "id": "P3.2",
           "title": "Closest-position loops",
           "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-axis&bpm=80",
-          "setup": "Accompaniment, Block chords on 1: the right hand in closest position, the root in the left, over I-V-vi-IV, I-vi-IV-V and vi-IV-I-V; move the key in C, G, F and D.",
-          "done": "Each loop 4 times at 80 bpm with no wrong chord, on two days.",
+          "setup": "Accompaniment, Block chords on 1: the right hand in closest position, the root in the left. Play I-V-vi-IV, I-vi-IV-V and vi-IV-I-V. Move the key through C, G, F and D.",
+          "done": "Each loop 4 times at 80 BPM with no wrong chord, on two days.",
           "match": {
             "pattern": "block-1"
           },
@@ -829,8 +829,8 @@
           "id": "P3.3",
           "title": "Named patterns",
           "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1-3&progression=pop-axis&bpm=80",
-          "setup": "Accompaniment patterns over I-V-vi-IV at 80: block chords on 1 and 3, the ballad arpeggio 1-5-8-10, broken chord eighths, and half time with pushes on the and of 4.",
-          "done": "Each pattern over a 4-chord loop at 80 bpm, 90%, on two days.",
+          "setup": "Accompaniment patterns over I-V-vi-IV at 80. Block chords on 1 and 3, the ballad arpeggio 1-5-8-10, broken chord eighths, and half time with pushes on the and of 4.",
+          "done": "Each pattern over a 4-chord loop at 80 BPM, 90%, on two days.",
           "each": {
             "param": "pattern",
             "values": ["block-1-3", "ballad-arpeggio", "broken-triad", "half-time-push"]
@@ -856,8 +856,8 @@
           "id": "P3.4",
           "title": "Generated chart, one chord a bar",
           "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-1&pattern=block-1-3",
-          "setup": "Accompaniment, Patterns, progression Chart 1: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern.",
-          "done": "80% first pass on 5 of 6 charts.",
+          "setup": "Accompaniment, Patterns, progression Chart 1. New chart makes a new eight-bar chart each time. Read it in Check from the symbols and slashes, in any pattern.",
+          "done": "80% on the first run, on 5 of 6 charts.",
           "match": {
             "progression": "chart-1"
           },
@@ -868,8 +868,8 @@
           "id": "P3.5",
           "title": "Two chords a bar and hits",
           "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-2&pattern=block-1-3",
-          "setup": "Accompaniment, Patterns, progression Chart 2: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Rhythm hits are not written yet: play the pattern on the slashes.",
-          "done": "80% first pass on 5 of 6.",
+          "setup": "Accompaniment, Patterns, progression Chart 2. New chart makes a new eight-bar chart each time. Read it in Check from the symbols and slashes, in any pattern. Rhythm hits aren't written yet: play the pattern on the slashes.",
+          "done": "80% on the first run, on 5 of 6.",
           "match": {
             "progression": "chart-2"
           },
@@ -881,8 +881,8 @@
           "id": "P3.6",
           "title": "Sus, add9, slash bass, 6/8",
           "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-3&pattern=block-1-3",
-          "setup": "Accompaniment, Patterns, progression Chart 3: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Charts in 6/8 are not in it yet.",
-          "done": "80% first pass on 5 of 6.",
+          "setup": "Accompaniment, Patterns, progression Chart 3. New chart makes a new eight-bar chart each time. Read it in Check from the symbols and slashes, in any pattern. Charts in 6/8 aren't in it yet.",
+          "done": "80% on the first run, on 5 of 6.",
           "match": {
             "progression": "chart-3"
           },
@@ -894,7 +894,7 @@
           "id": "P3.7",
           "title": "Hear the loop",
           "href": "/music/ear/chord-functions",
-          "setup": "Ear: Chords in a key (I, IV, V), then Progression dictation for song loops; Harmony for songs steps 1 to 4.",
+          "setup": "Ear: Chords in a key (I, IV, V), then Progression dictation for song loops. Harmony for songs steps 1 to 4.",
           "done": "80% on Chords in a key and on Progressions.",
           "threshold": 0.8,
           "links": [
@@ -908,8 +908,8 @@
           "id": "P3.8",
           "title": "Lead sheet: melody RH, roots LH",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: a shelf lead sheet, right-hand melody graded, left hand on roots.",
-          "done": "Two shelf songs at 90% at tempo.",
+          "setup": "Song practice: a lead sheet from the song list, right-hand melody scored, left hand on roots.",
+          "done": "Two songs from the song list at 90% at tempo.",
           "match": {
             "mode": "performance"
           },
@@ -919,8 +919,8 @@
           "id": "P3.9",
           "title": "Lead sheet: melody plus chord in RH, bass LH",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: a shelf lead sheet, melody plus chord in the right hand, bass in the left.",
-          "done": "One shelf song at tempo, 90%, on two days.",
+          "setup": "Song practice: a lead sheet from the song list, melody plus chord in the right hand, bass in the left.",
+          "done": "One song from the song list at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
           },
@@ -1070,7 +1070,7 @@
           ]
         }
       ],
-      "test": "Two shelf charts at sight in a named pattern at 80% first pass; one lead sheet (melody plus chords) at tempo, 90%; one chart-3 chart at 80% first pass."
+      "test": "Two charts from the song list at sight in a named pattern, 80% on the first run. One lead sheet (melody plus chords) at tempo, 90%. One Chart 3 chart at 80% on the first run."
     },
     {
       "id": "P4",
@@ -1083,8 +1083,8 @@
           "id": "P4.1",
           "title": "Feel 6/8 first",
           "href": "/music/rhythm?mode=echo&earLevel=compound",
-          "setup": "Rhythm reading 3 (6/8). Until generated read-and-tap ships, Echo and Dictation at the compound level.",
-          "done": "75% in Echo and Dictation at compound; then rhythm reading 3 passed.",
+          "setup": "Rhythm reading 3 (6/8). Until generated read-and-tap ships, Echo and Dictation at the 6/8 level.",
+          "done": "75% in Echo and Dictation at the 6/8 level. Then rhythm reading 3 passed.",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
             "level": "compound"
@@ -1117,8 +1117,8 @@
           "id": "P4.3",
           "title": "Left-hand patterns",
           "href": "/music/two-hand?pattern=alberti-rh-holds&instrument=piano&bpm=80",
-          "setup": "Two hands: Alberti bass at 80, in 4 keys. Waltz bass and broken chords over I-IV-V-I are not in the drill yet.",
-          "done": "Each pattern at 80 bpm, 90%, on two days.",
+          "setup": "Two hands: Alberti bass at 80, in 4 keys. Waltz bass and broken chords over I-IV-V-I aren't in the drill yet.",
+          "done": "Each pattern at 80 BPM, 90%, on two days.",
           "match": {
             "pattern": "alberti-rh-holds"
           },
@@ -1144,7 +1144,7 @@
           "id": "P4.5",
           "title": "In time",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-6&follower=performance&meter=compound&bpm=78",
-          "setup": "Sight-reading, Piano 6 in 6/8, keeping time; dotted quarter = 52 to 60 is 78 to 90 on the strip's quarter-note tempo.",
+          "setup": "Sight-reading, Piano 6 in 6/8, keeping time. Dotted quarter = 52 to 60 is 78 to 90 on the top bar's quarter-note tempo.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
             "instrument": "piano",
@@ -1175,9 +1175,9 @@
         },
         {
           "id": "P4.7",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "4 pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "4 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/the-wild-horseman-op-68-no-8?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -1247,7 +1247,7 @@
           "id": "P4.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One Burgmüller study at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -1425,7 +1425,7 @@
           ]
         }
       ],
-      "test": "All piano-6 rungs with at most 2 strikes; an unseen Burgmüller Op. 100 study (IMSLP) at 80% first pass; one learned shelf piece at tempo, 90%."
+      "test": "The level climb through every Piano 6 key with at most 2 strikes. An unseen Burgmüller Op. 100 study (IMSLP) at 80% on the first run. One learned piece from the song list at tempo, 90%."
     },
     {
       "id": "P5",
@@ -1469,7 +1469,7 @@
           "id": "P5.2",
           "title": "Four-note chords",
           "href": "/music/reading?activity=flashcards&instrument=piano&clefs=treble,bass&answer=play&level=piano-7&kind=satb",
-          "setup": "Flashcards, four-part chords in chorale spacing on the grand staff; play all four notes or name the triad.",
+          "setup": "Flashcards, four-part chords in chorale spacing on the grand staff. Play all four notes or name the triad.",
           "done": "90% of 30 cards.",
           "match": {
             "instrument": "piano",
@@ -1522,8 +1522,8 @@
           "id": "P5.6",
           "title": "Syncopation",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-7&follower=performance&meter=simple",
-          "setup": "Rhythm reading 5 first, then Sight-reading, Piano 7 in 4/4, keeping time: its syncopations and dotted eighths sit in the simple-time cells.",
-          "done": "Rhythm reading 5 passed; 80% on 5 of 6.",
+          "setup": "Rhythm reading 5 first, then Sight-reading, Piano 7 in 4/4, keeping time. Its syncopations and dotted eighths sit in the simple-time cells.",
+          "done": "Rhythm reading 5 passed. 80% on 5 of 6.",
           "match": {
             "instrument": "piano",
             "level": "piano-7",
@@ -1538,8 +1538,8 @@
         {
           "id": "P5.7",
           "title": "A hymn a day",
-          "setup": "Song practice, Sight-read: one new hymn or chorale each practice day, imported as its own song (a hymnal or chorale book from the shelf, or any you own).",
-          "done": "10 hymns or chorales at 80% first pass over 2 weeks.",
+          "setup": "Song practice, Sight-read: one new hymn or chorale each practice day, imported as its own song. Use a hymnal or chorale book from the song list, or any you own.",
+          "done": "10 hymns or chorales at 80% on the first run over 2 weeks.",
           "href": "/music/library?tab=songs",
           "match": {
             "mode": "sight-read",
@@ -1596,7 +1596,7 @@
           "id": "P5.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "The Entertainer or a Clementi movement at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -1766,7 +1766,7 @@
           }
         }
       ],
-      "test": "All piano-7 rungs with at most 2 strikes; an unseen Bach chorale at 80% first pass; one learned shelf piece at tempo, 90%."
+      "test": "The level climb through every Piano 7 key with at most 2 strikes. An unseen Bach chorale at 80% on the first run. One learned piece from the song list at tempo, 90%."
     },
     {
       "id": "P6",
@@ -1790,8 +1790,8 @@
         {
           "id": "P6.2",
           "title": "ii-V-I shells round the circle",
-          "setup": "Accompaniment, Comping: ii-V-I shells round the circle, 12 keys, at 100; the key picker moves the key.",
-          "done": "All 12 at 100 bpm, 90%, on two days.",
+          "setup": "Accompaniment, Comping: ii-V-I shells round the circle, 12 keys, at 100. The key picker moves the key.",
+          "done": "All 12 at 100 BPM, 90%, on two days.",
           "feeds": "Autumn Leaves, Satin Doll",
           "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i",
           "match": {
@@ -1810,8 +1810,8 @@
           "id": "P6.3",
           "title": "Swing reading",
           "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
-          "setup": "Rhythm, read and tap: swing eighths at 100 (rhythm reading 7). Swing playback in Sight-reading is not there yet.",
-          "done": "90% at 100; rhythm reading 7 passed.",
+          "setup": "Rhythm, read and tap: swing eighths at 100 (rhythm reading 7). Swing playback in Sight-reading isn't there yet.",
+          "done": "90% at 100. Rhythm reading 7 passed.",
           "threshold": 0.9,
           "minBpm": 100
         },
@@ -1819,8 +1819,8 @@
           "id": "P6.4",
           "title": "Generated lead sheet with roots",
           "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=roots",
-          "setup": "Accompaniment, Lead sheet, Jazz lead sheet 1: a new head over the progression (New melody), melody in the right hand, roots in the left, swung.",
-          "done": "80% first pass on 5 of 6.",
+          "setup": "Accompaniment, Lead sheet, Jazz lead sheet 1. New melody makes a new head over the progression. Melody in the right hand, roots in the left, swung.",
+          "done": "80% on the first run, on 5 of 6.",
           "match": {
             "tune": "lead-1",
             "lh": "roots"
@@ -1833,7 +1833,7 @@
           "title": "Generated lead sheet with shells",
           "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=shells",
           "setup": "Jazz lead sheet 1 with left-hand shells.",
-          "done": "80% first pass on 5 of 6.",
+          "done": "80% on the first run, on 5 of 6.",
           "match": {
             "tune": "lead-1",
             "lh": "shells"
@@ -1846,7 +1846,7 @@
           "title": "Rootless left hand",
           "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-2&lh=rootless",
           "setup": "Jazz lead sheet 2 (eighth lines, anticipations) with a rootless A or B left hand.",
-          "done": "80% first pass on 5 of 6.",
+          "done": "80% on the first run, on 5 of 6.",
           "match": {
             "tune": "lead-2",
             "lh": "rootless"
@@ -1858,8 +1858,8 @@
         {
           "id": "P6.7",
           "title": "Standards at sight",
-          "setup": "Song practice, sight-read: shelf lead sheets at 100.",
-          "done": "4 shelf tunes at 80% first pass.",
+          "setup": "Song practice, sight-read: lead sheets from the song list at 100.",
+          "done": "4 tunes from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read&bpm=100",
           "match": {
             "mode": "sight-read",
@@ -2072,7 +2072,7 @@
           ]
         }
       ],
-      "test": "Two unseen shelf standards at 100 bpm with shells, 80% first pass; one learned standard with rootless voicings at tempo, 90%, and one improvised chorus over it."
+      "test": "Two unseen standards from the song list at 100 BPM with shells, 80% on the first run. One learned standard with rootless voicings at tempo, 90%, and one improvised chorus over it."
     },
     {
       "id": "P7",
@@ -2086,7 +2086,7 @@
           "title": "Triplets and mixed groups",
           "href": "/music/rhythm?mode=read-and-tap&pattern=triplets&bpm=70",
           "setup": "Rhythm, read and tap: triplets at 70 (rhythm reading 6). Mixed groups wait for generated read-and-tap.",
-          "done": "90% at 70; rhythm reading 6 passed.",
+          "done": "90% at 70. Rhythm reading 6 passed.",
           "threshold": 0.9,
           "minBpm": 70,
           "feeds": "Moonlight, Debussy"
@@ -2113,7 +2113,7 @@
           "id": "P7.3",
           "title": "Left hand in the treble clef",
           "href": "/music/reading?activity=flashcards&instrument=piano&clefs=crossed&answer=play&level=level-3",
-          "setup": "Flashcards, play the answer, clefs Crossed: notes around middle C on either clef, the left hand reading treble and the right hand bass.",
+          "setup": "Flashcards, play the answer, clefs Crossed. Notes sit around middle C on either clef: the left hand reads treble and the right hand bass.",
           "done": "95% of 40 cards.",
           "match": {
             "instrument": "piano",
@@ -2138,7 +2138,7 @@
           "id": "P7.5",
           "title": "Grade 6 phrases, first contact",
           "href": "/music/reading?activity=sight-reading&instrument=piano&clefs=treble,bass&level=piano-8&follower=wait",
-          "setup": "Sight-reading, Piano 8, Wait for me. Triplets and clef changes are not in the generator yet.",
+          "setup": "Sight-reading, Piano 8, Wait for me. Triplets and clef changes aren't in the generator yet.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "piano",
@@ -2182,8 +2182,8 @@
         {
           "id": "P7.8",
           "title": "A page a day",
-          "setup": "Song practice, Sight-read: one shelf or IMSLP piece of this grade a day, each imported as its own song.",
-          "done": "15 pieces at 80% first pass over 3 weeks.",
+          "setup": "Song practice, Sight-read: one piece of this grade a day, from the song list or IMSLP, each imported as its own song.",
+          "done": "15 pieces at 80% on the first run over 3 weeks.",
           "href": "/music/library?tab=songs",
           "match": {
             "mode": "sight-read",
@@ -2240,7 +2240,7 @@
           "id": "P7.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One Chopin prelude or Grieg piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -2426,7 +2426,7 @@
           ]
         }
       ],
-      "test": "The path's piano finish: all piano-8 rungs with at most 2 strikes on two days; an unseen Grade 6 standard piece (an ABRSM specimen sight-reading test or an IMSLP piece of that grade) at 80% first pass after a 30 second look; one learned shelf piece at tempo, 90%."
+      "test": "The path's piano finish: the level climb through every Piano 8 key with at most 2 strikes, on two days. An unseen piece of Grade 6 standard at 80% on the first run after a 30 second look. Use an ABRSM specimen sight-reading test or an IMSLP piece of that grade. One learned piece from the song list at tempo, 90%."
     },
     {
       "id": "G1",
@@ -2470,7 +2470,7 @@
           "title": "Riff rhythms",
           "href": "/music/rhythm?mode=read-and-tap&pattern=eighths&bpm=80",
           "setup": "Rhythm reading 1 and 2. Until generated read-and-tap ships: eighths, eighth rests and dotted quarters at 80.",
-          "done": "90% on each pattern at 80; rhythm reading 1 and 2 passed.",
+          "done": "90% on each pattern at 80. Rhythm reading 1 and 2 passed.",
           "exerciseIds": [
             "rhythm.pattern.eighths",
             "rhythm.pattern.eighth-rests",
@@ -2497,7 +2497,7 @@
           "id": "G1.4",
           "title": "Riff a day",
           "setup": "Song practice, sight-read: one riff a day at 70% of the tempo.",
-          "done": "6 shelf riffs at 80% first pass.",
+          "done": "6 riffs from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/seven-nation-army?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -2546,7 +2546,7 @@
           "id": "G1.5",
           "title": "Riffs at tempo",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, performance mode at the original tempo.",
+          "setup": "Song practice, Performance mode at the original tempo.",
           "done": "Two riffs at the original tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -2557,8 +2557,8 @@
           "id": "G1.6",
           "title": "Read the marks",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice on riffs with palm mutes, slides and hammer-ons: the score shows them, grading ignores them.",
-          "done": "Played as marked in two riffs (self-check against the recording afterwards).",
+          "setup": "Song practice on riffs with palm mutes, slides and hammer-ons. The notation shows them, but they aren't scored.",
+          "done": "Played as marked in two riffs. Check yourself against the recording afterwards.",
           "exerciseIds": [],
           "feeds": "Come As You Are, Enter Sandman"
         }
@@ -2702,7 +2702,7 @@
           ]
         }
       ],
-      "test": "Two shelf riffs at the original tempo, 90%; one unseen riff at 80% first pass; Sight-reading Level 1 with tab at 90 bpm, 80%."
+      "test": "Two riffs from the song list at the original tempo, 90%. One unseen riff at 80% on the first run. Sight-reading Level 1 with tab at 90 BPM, 80%."
     },
     {
       "id": "G2",
@@ -2715,8 +2715,8 @@
           "id": "G2.1",
           "title": "Patterns first",
           "href": "/music/chords?mode=fingerpick&instrument=guitar&pattern=travis&bpm=80",
-          "setup": "Chords, Fingerpicking: Travis, then p-i-m-a, at 80. 6/8 patterns are not in the drill yet.",
-          "done": "3 patterns at 80 bpm, 90%, on two days.",
+          "setup": "Chords, Fingerpicking: Travis, then p-i-m-a, at 80. 6/8 patterns aren't in the drill yet.",
+          "done": "3 patterns at 80 BPM, 90%, on two days.",
           "each": {
             "param": "pattern",
             "values": ["travis", "pima"]
@@ -2734,8 +2734,8 @@
           "id": "G2.2",
           "title": "Arpeggio tab",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: House of the Rising Sun, wait mode.",
-          "done": "First full pass.",
+          "setup": "Song practice: House of the Rising Sun, Wait mode.",
+          "done": "Once through to the end.",
           "match": {
             "shelf": "reading/house-of-the-rising-sun",
             "mode": "wait"
@@ -2749,7 +2749,7 @@
           "title": "Two voices in tab",
           "href": "/music/library?tab=songs",
           "setup": "Song practice: Amazing Grace fingerstyle, bass on the beats, melody on top.",
-          "done": "90% at 70 bpm.",
+          "done": "90% at 70 BPM.",
           "match": {
             "shelf": "reading/amazing-grace-g2"
           },
@@ -2772,9 +2772,9 @@
         },
         {
           "id": "G2.5",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read at 70% of the tempo.",
-          "done": "4 shelf pieces at 80% first pass at 70% tempo.",
+          "done": "4 pieces from the song list at 80% on the first run at 70% tempo.",
           "href": "/music/songs/shelf/reading/house-of-the-rising-sun?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -2822,8 +2822,8 @@
           "id": "G2.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
-          "done": "Two shelf pieces at tempo, 90%, on two days.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
+          "done": "Two pieces from the song list at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
           },
@@ -2982,7 +2982,7 @@
           ]
         }
       ],
-      "test": "Two learned shelf pieces at tempo, 90%; one unseen shelf piece at 80% first pass."
+      "test": "Two learned pieces from the song list at tempo, 90%. One unseen piece from the song list at 80% on the first run."
     },
     {
       "id": "G3",
@@ -2995,7 +2995,7 @@
           "id": "G3.1",
           "title": "Staff to fret, strings 1 to 3",
           "href": "/music/reading?activity=flashcards&instrument=guitar&clefs=treble&answer=play&level=level-1&key=C%20major",
-          "setup": "Flashcards, play the answer, C major, Level 1 (C4 to G5 written). A strings 1 to 3 window (G4 to G5) and a staff prompt in the note finder are not there yet.",
+          "setup": "Flashcards, play the answer, C major, Level 1 (C4 to G5 written). A strings 1 to 3 window (G4 to G5) and a staff prompt in the note finder aren't there yet.",
           "done": "95% of 40 cards, on two days.",
           "match": {
             "instrument": "guitar",
@@ -3010,7 +3010,7 @@
           "id": "G3.2",
           "title": "First contact",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading, Primer, Wait for me, tab hidden. The open-123 position setting is not there yet; the drill reads in first position.",
+          "setup": "Sight-reading, Primer, Wait for me, tab hidden. The open-123 position setting isn't there yet. The drill reads in first position.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "guitar",
@@ -3041,7 +3041,7 @@
           "title": "Follow by ear",
           "href": "/music/ear/wrong-note?level=major-diatonic",
           "setup": "Ear, Spot the wrong note: major diatonic.",
-          "done": "80% over 20 items.",
+          "done": "80% on 20 questions.",
           "match": {
             "level": "major-diatonic"
           },
@@ -3050,9 +3050,9 @@
         },
         {
           "id": "G3.5",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read, tab hidden.",
-          "done": "5 shelf melodies at 80% first pass.",
+          "done": "5 melodies from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/ode-to-joy-for-guitar-g3?mode=sight-read&view=staff",
           "match": {
             "mode": "sight-read",
@@ -3199,7 +3199,7 @@
           "id": "first-position-melodies-for-guitar",
           "title": "First Position Melodies for Guitar",
           "artist": "Various",
-          "teaches": "A page of graded first-position tunes",
+          "teaches": "A page of scored first-position tunes",
           "detail": "C, G, A minor",
           "diff": 2,
           "scores": [
@@ -3243,7 +3243,7 @@
           ]
         }
       ],
-      "test": "Sight-reading Level 1, strings 1 to 3, 80% on all three keys of the level; two unseen shelf melodies at 80% first pass, tab hidden."
+      "test": "Sight-reading Level 1, strings 1 to 3, 80% on all three keys of the level. Two unseen melodies from the song list at 80% on the first run, tab hidden."
     },
     {
       "id": "G4",
@@ -3256,7 +3256,7 @@
           "id": "G4.1",
           "title": "Staff to fret, strings 4 to 6",
           "href": "/music/reading?activity=flashcards&instrument=guitar&clefs=treble&answer=play&level=level-2",
-          "setup": "Flashcards, play the answer, Level 2. The drill reads treble from C4 up; strings 4 to 6 (E3 to G4 written) are not in it yet.",
+          "setup": "Flashcards, play the answer, Level 2. The drill reads treble from C4 up. Strings 4 to 6 (E3 to G4 written) aren't in it yet.",
           "done": "95% of 40 cards per range.",
           "match": {
             "instrument": "guitar",
@@ -3270,7 +3270,7 @@
           "id": "G4.2",
           "title": "Line reading, full range",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=level-2&follower=performance&bpm=72",
-          "setup": "Sight-reading, Level 2, wait mode first, then keeping time at 72. The drill stays in first position (G3 to G5); the open position setting is not there yet.",
+          "setup": "Sight-reading, Level 2, Wait for me first, then keeping time at 72. The drill stays in first position (G3 to G5). The open position setting isn't there yet.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
             "instrument": "guitar",
@@ -3286,8 +3286,8 @@
           "id": "G4.3",
           "title": "Keys G, D, A minor, E minor",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=level-2&key=G%20major",
-          "setup": "Sight-reading, Level 2, in G, D, A minor and E minor; Scales, guitar, open position, at 80.",
-          "done": "Each key 80% on 5 of 6; scales clean at 80.",
+          "setup": "Sight-reading, Level 2, in G, D, A minor and E minor. Scales, guitar, open position, at 80.",
+          "done": "Each key 80% on 5 of 6. Scales clean at 80.",
           "match": {
             "instrument": "guitar",
             "level": "level-2"
@@ -3323,7 +3323,7 @@
           "id": "G4.4",
           "title": "Bass and melody",
           "setup": "Song practice, Sight-read: Sagreras First Lessons 1 to 16, one a day, each lesson imported as its own song.",
-          "done": "10 lessons at 80% first pass.",
+          "done": "10 lessons at 80% on the first run.",
           "feeds": "Sagreras",
           "href": "/music/library?tab=songs",
           "match": {
@@ -3343,9 +3343,9 @@
         },
         {
           "id": "G4.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/first-lessons-book-1?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -3397,7 +3397,7 @@
           "id": "G4.6",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One study at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -3575,7 +3575,7 @@
           ]
         }
       ],
-      "test": "Sight-reading Level 2, open position, all keys of the level at 80%; one unseen Sagreras lesson at 80% first pass; one learned study at tempo, 90%."
+      "test": "Sight-reading Level 2, open position, all keys of the level at 80%. One unseen Sagreras lesson at 80% on the first run. One learned study at tempo, 90%."
     },
     {
       "id": "G5",
@@ -3632,7 +3632,7 @@
           "id": "G5.3",
           "title": "6/8 lines",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=level-2&meter=compound&follower=performance",
-          "setup": "Rhythm reading 3 first, then Sight-reading in 6/8, keeping time. line-5 (6/8 with an eighth-quarter mix) is not there yet.",
+          "setup": "Rhythm reading 3 first, then Sight-reading in 6/8, keeping time. Line 5 (6/8 with an eighth-quarter mix) isn't there yet.",
           "done": "80% on 5 of 6.",
           "match": {
             "instrument": "guitar",
@@ -3658,7 +3658,7 @@
           "id": "G5.5",
           "title": "A tune a day",
           "setup": "Song practice, sight-read: a tune a day at 70% of the tempo.",
-          "done": "8 shelf tunes at 80% first pass.",
+          "done": "8 tunes from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/red-river-valley?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -3711,7 +3711,7 @@
           "id": "G5.6",
           "title": "Learn two at session tempo",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, performance mode at session tempo.",
+          "setup": "Song practice, Performance mode at session tempo.",
           "done": "Two tunes at 90% at 100 to 110 (reels) or dotted quarter = 90 (jigs), on two days.",
           "match": {
             "mode": "performance"
@@ -3893,7 +3893,7 @@
           }
         }
       ],
-      "test": "line-4 and line-5 at 80% first pass; two unseen fiddle tunes from The Session at 80% first pass at 80 bpm; two learned tunes at session tempo, 90%."
+      "test": "Line 4 and Line 5 at 80% on the first run. Two unseen fiddle tunes from The Session at 80% on the first run at 80 BPM. Two learned tunes at session tempo, 90%."
     },
     {
       "id": "G6",
@@ -3906,8 +3906,8 @@
           "id": "G6.1",
           "title": "Scales in position",
           "href": "/music/scales?instrument=guitar&kind=major&bpm=90",
-          "setup": "Scales, guitar: C, G and F majors in second, then fifth position, at 90. Position fingerings are not in Positions yet.",
-          "done": "Clean at 90 bpm in C, G, F, on two days.",
+          "setup": "Scales, guitar: C, G and F majors in second, then fifth position, at 90. Position fingerings aren't in Positions yet.",
+          "done": "Clean at 90 BPM in C, G, F, on two days.",
           "minBpm": 90,
           "threshold": 0.9
         },
@@ -3915,7 +3915,7 @@
           "id": "G6.2",
           "title": "Note finder in position",
           "href": "/music/fretboard?mode=note-finder&instrument=guitar&region=1&questions=20",
-          "setup": "Fretboard, Note finder, frets 5 to 9, 20 questions. A 4 to 9 window is not there yet.",
+          "setup": "Fretboard, Note finder, frets 5 to 9, 20 questions. A 4 to 9 window isn't there yet.",
           "done": "95% of 40.",
           "match": {
             "region": "1"
@@ -3927,7 +3927,7 @@
           "id": "G6.3",
           "title": "Second position lines",
           "href": "/music/reading?activity=sight-reading&instrument=guitar&clefs=treble&level=line-4&position=2&follower=performance",
-          "setup": "Sight-reading, Line 4 in second position, keeping time; the tab follows the position.",
+          "setup": "Sight-reading, Line 4 in second position, keeping time. The tab follows the position.",
           "done": "80% on 5 of 6.",
           "match": {
             "instrument": "guitar",
@@ -3967,8 +3967,8 @@
         {
           "id": "G6.5",
           "title": "Violin and flute parts",
-          "setup": "Song practice, sight-read: shelf violin and flute parts in fifth position (they sound an octave lower on guitar).",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Song practice, sight-read: violin and flute parts from the song list in fifth position (they sound an octave lower on guitar).",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/minuet-in-g-g6?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -4017,7 +4017,7 @@
           "title": "Jazz heads in position",
           "href": "/music/library?tab=songs",
           "setup": "Song practice: Autumn Leaves and Blue Bossa melodies in fifth position.",
-          "done": "Both at 90% at 120 bpm.",
+          "done": "Both at 90% at 120 BPM.",
           "match": {
             "mode": "performance"
           },
@@ -4033,7 +4033,7 @@
           "id": "G6.7",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One violin piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -4168,7 +4168,7 @@
           }
         }
       ],
-      "test": "line-5 in fifth position at 80% first pass on 5 of 6; one unseen violin or flute piece in fifth position at 80% first pass; Autumn Leaves head at 120 bpm, 90%."
+      "test": "Line 5 in fifth position at 80% on the first run, on 5 of 6. One unseen violin or flute piece in fifth position at 80% on the first run. Autumn Leaves head at 120 BPM, 90%."
     },
     {
       "id": "G7",
@@ -4181,8 +4181,8 @@
           "id": "G7.1",
           "title": "Symbols to shapes",
           "href": "/music/chords?mode=pick&instrument=guitar",
-          "setup": "Chords, Pick and Changes with the guitar path's shapes, sevenths included; changes at 80.",
-          "done": "90% of 40, changes at 80 bpm.",
+          "setup": "Chords, Pick and Changes with the guitar path's shapes, sevenths included. Changes at 80.",
+          "done": "90% of 40, changes at 80 BPM.",
           "minAttempts": 5,
           "threshold": 0.9,
           "links": [
@@ -4196,8 +4196,8 @@
           "id": "G7.2",
           "title": "Strum from a chart",
           "href": "/music/strum?instrument=guitar&progression=guitar-g-d-em-c&bpm=90",
-          "setup": "Strum a progression, G D Em C at 90. The drill follows the chords; a named strum pattern is not in it yet.",
-          "done": "90% at 90 bpm, on two days.",
+          "setup": "Strum a progression, G D Em C at 90. The drill follows the chords. A named strum pattern isn't in it yet.",
+          "done": "90% at 90 BPM, on two days.",
           "minBpm": 90,
           "threshold": 0.9,
           "feeds": "Stand By Me, Wonderwall"
@@ -4205,9 +4205,9 @@
         {
           "id": "G7.3",
           "title": "Generated charts",
-          "setup": "Generated charts on guitar, chart-1 and chart-2.",
-          "done": "80% first pass on 5 of 6.",
-          "needs": "Runs that count in Strum a progression (chart-1 to chart-3 are there now)."
+          "setup": "Generated charts on guitar, Chart 1 and Chart 2.",
+          "done": "80% on the first run, on 5 of 6.",
+          "needs": "Runs that count in Strum a progression (Chart 1 to Chart 3 are there now)."
         },
         {
           "id": "G7.4",
@@ -4227,7 +4227,7 @@
           "id": "G7.5",
           "title": "Navigation",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: a shelf chart with repeats, first and second endings and D.S. al Coda.",
+          "setup": "Song practice: a chart from the song list with repeats, first and second endings and D.S. al Coda.",
           "done": "Through without getting lost, 80%.",
           "match": {
             "mode": "performance"
@@ -4240,8 +4240,8 @@
           "id": "G7.6",
           "title": "Jazz comping from a lead sheet",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice on Autumn Leaves and Blue Bossa, comping with 3-note shells. Guitar shells in Comping are not there yet.",
-          "done": "90% at 100 bpm.",
+          "setup": "Song practice on Autumn Leaves and Blue Bossa, comping with 3-note shells. Guitar shells in Comping aren't there yet.",
+          "done": "90% at 100 BPM.",
           "match": {
             "mode": "performance"
           },
@@ -4255,9 +4255,9 @@
         },
         {
           "id": "G7.7",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read: chords only, then the melody.",
-          "done": "4 charts at 80% first pass.",
+          "done": "4 charts at 80% on the first run.",
           "href": "/music/songs/shelf/reading/stand-by-me-g7?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -4449,7 +4449,7 @@
           ]
         }
       ],
-      "test": "Two unseen shelf charts at sight with the right form and rhythm, 80%; one lead sheet melody plus comping (record both) at 100 bpm, 90%."
+      "test": "Two unseen charts from the song list at sight with the right form and rhythm, 80%. One lead sheet melody plus comping (record both) at 100 BPM, 90%."
     },
     {
       "id": "G8",
@@ -4462,8 +4462,8 @@
           "id": "G8.1",
           "title": "Two voices on one staff",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: Carulli Andante, wait mode.",
-          "done": "First full pass.",
+          "setup": "Song practice: Carulli Andante, Wait mode.",
+          "done": "Once through to the end.",
           "match": {
             "shelf": "reading/andante-op-241-no-18",
             "mode": "wait"
@@ -4476,8 +4476,8 @@
           "id": "G8.2",
           "title": "Position marks and barres",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: Sor Op. 35 No. 22; read the Roman numerals before playing.",
-          "done": "90% at 60 bpm.",
+          "setup": "Song practice: Sor Op. 35 No. 22. Read the Roman numerals before playing.",
+          "done": "90% at 60 BPM.",
           "match": {
             "shelf": "reading/etude-op-35-no-22"
           },
@@ -4500,9 +4500,9 @@
         },
         {
           "id": "G8.4",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read at 60% of the tempo.",
-          "done": "4 shelf studies at 80% first pass.",
+          "done": "4 studies from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/waltz?mode=sight-read&tempo=60",
           "match": {
             "mode": "sight-read",
@@ -4554,7 +4554,7 @@
           "id": "G8.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -4565,7 +4565,7 @@
           "id": "G8.6",
           "title": "Two voices, one at a time",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: mute the bass voice, then the melody, on the shelf piece being learned.",
+          "setup": "Song practice: mute the bass voice, then the melody, on the piece you're learning.",
           "done": "Each voice alone at 90%, then both together at 80%.",
           "match": {
             "mode": "performance"
@@ -4752,7 +4752,7 @@
           }
         }
       ],
-      "test": "The path's guitar finish: one unseen Sagreras or Carulli piece at 80% first pass; line-5 in fifth position at 80% first pass; one learned two-voice piece (Lágrima, Sor Op. 35 No. 22 or the Bourrée) at tempo, 90%, on two days."
+      "test": "The path's guitar finish: one unseen Sagreras or Carulli piece at 80% on the first run. Line 5 in fifth position at 80% on the first run. One learned two-voice piece (Lágrima, Sor Op. 35 No. 22 or the Bourrée) at tempo, 90%, on two days."
     },
     {
       "id": "U1",
@@ -4796,7 +4796,7 @@
           "title": "Rhythm under tab",
           "href": "/music/rhythm?mode=read-and-tap&pattern=eighths&bpm=80",
           "setup": "Rhythm reading 1 and 2, shared with the other tracks. Until generated read-and-tap ships: eighths, eighth rests and dotted quarters at 80.",
-          "done": "90% on each pattern at 80; rhythm reading 1 and 2 passed.",
+          "done": "90% on each pattern at 80. Rhythm reading 1 and 2 passed.",
           "exerciseIds": [
             "rhythm.pattern.eighths",
             "rhythm.pattern.eighth-rests",
@@ -4821,9 +4821,9 @@
         },
         {
           "id": "U1.4",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/ode-to-joy?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -4867,7 +4867,7 @@
           "id": "U1.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -4879,7 +4879,7 @@
           "title": "Strum a chart beside the tab",
           "href": "/music/strum?instrument=ukulele&progression=pop-axis&bpm=90",
           "setup": "Strum a progression on ukulele: C G Am F at 90 with the island strum (read it first in Rhythm).",
-          "done": "90% at 90 bpm, on two days.",
+          "done": "90% at 90 BPM, on two days.",
           "exerciseIds": ["technique.ukulele.strum-progression"],
           "minBpm": 90,
           "threshold": 0.9,
@@ -5012,7 +5012,7 @@
           ]
         }
       ],
-      "test": "Two shelf pieces at tempo, 90%; Sight-reading Level 1 with tab at 90 bpm, 80% first pass."
+      "test": "Two pieces from the song list at tempo, 90%. Sight-reading Level 1 with tab at 90 BPM, 80% on the first run."
     },
     {
       "id": "U2",
@@ -5040,7 +5040,7 @@
           "id": "U2.2",
           "title": "First contact",
           "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=primer&follower=wait",
-          "setup": "Sight-reading on ukulele, Primer, tab hidden, Wait for me. The open position setting is not there yet.",
+          "setup": "Sight-reading on ukulele, Primer, tab hidden, Wait for me. The open position setting isn't there yet.",
           "done": "5 phrases at 90%.",
           "match": {
             "instrument": "ukulele",
@@ -5095,7 +5095,7 @@
           "title": "Follow by ear",
           "href": "/music/ear/wrong-note?level=major-diatonic",
           "setup": "Ear, Spot the wrong note: major diatonic.",
-          "done": "80% over 20 items.",
+          "done": "80% on 20 questions.",
           "match": {
             "level": "major-diatonic"
           },
@@ -5104,9 +5104,9 @@
         },
         {
           "id": "U2.6",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read, tab hidden.",
-          "done": "5 shelf melodies at 80% first pass.",
+          "done": "5 melodies from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/mary-had-a-little-lamb?mode=sight-read&view=staff",
           "match": {
             "mode": "sight-read",
@@ -5262,7 +5262,7 @@
           ]
         }
       ],
-      "test": "Sight-reading Level 1, open position, 80% first pass in C, F and G; two unseen shelf melodies at 80% first pass, tab hidden."
+      "test": "Sight-reading Level 1, open position, 80% on the first run in C, F and G. Two unseen melodies from the song list at 80% on the first run, tab hidden."
     },
     {
       "id": "U3",
@@ -5275,8 +5275,8 @@
           "id": "U3.1",
           "title": "Symbols to shapes",
           "href": "/music/chords?mode=pick&instrument=ukulele",
-          "setup": "Chords, Pick and Changes on ukulele; changes at 80.",
-          "done": "90% of 40; changes at 80 bpm.",
+          "setup": "Chords, Pick and Changes on ukulele. Changes at 80.",
+          "done": "90% of 40. Changes at 80 BPM.",
           "exerciseIds": ["technique.ukulele.chord-pick"],
           "minAttempts": 5,
           "threshold": 0.9,
@@ -5291,7 +5291,7 @@
           "id": "U3.2",
           "title": "6/8 lines",
           "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=level-1&meter=compound&follower=performance",
-          "setup": "Rhythm reading 3 first, then Sight-reading on ukulele in 6/8, keeping time. line-4 in 6/8 is not there yet.",
+          "setup": "Rhythm reading 3 first, then Sight-reading on ukulele in 6/8, keeping time. Line 4 in 6/8 isn't there yet.",
           "done": "80% on 5 of 6.",
           "match": {
             "instrument": "ukulele",
@@ -5315,7 +5315,7 @@
           "id": "U3.4",
           "title": "Melody then chords",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: a shelf tune's melody, then its chords strummed, then chord plus melody note pinched on the beat.",
+          "setup": "Song practice: the melody of a tune from the song list, then its chords strummed, then chord plus melody note pinched on the beat.",
           "done": "One tune all three ways at 90%.",
           "match": {
             "mode": "performance"
@@ -5324,9 +5324,9 @@
         },
         {
           "id": "U3.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf tunes at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 tunes from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/aloha-oe?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -5370,7 +5370,7 @@
           "id": "U3.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two tunes at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5494,7 +5494,7 @@
           ]
         }
       ],
-      "test": "One unseen tune at 80% first pass as melody, then as chords; one learned tune with melody and chords at tempo, 90%."
+      "test": "One unseen tune at 80% on the first run as melody, then as chords. One learned tune with melody and chords at tempo, 90%."
     },
     {
       "id": "U4",
@@ -5536,8 +5536,8 @@
           "id": "U4.3",
           "title": "Campanella",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: Cripple Creek (campanella), wait mode, on the strings given.",
-          "done": "90% at 80 bpm.",
+          "setup": "Song practice: Cripple Creek (campanella), Wait mode, on the strings given.",
+          "done": "90% at 80 BPM.",
           "match": {
             "shelf": "reading/cripple-creek"
           },
@@ -5547,9 +5547,9 @@
         },
         {
           "id": "U4.4",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read at 70% of the tempo.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/fur-elise?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -5593,7 +5593,7 @@
           "id": "U4.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5605,7 +5605,7 @@
           "title": "Fiddle-tune rhythm",
           "href": "/music/rhythm?mode=read-and-tap&pattern=sixteenths&bpm=70",
           "setup": "Rhythm reading 3 and 4. Until generated read-and-tap ships: sixteenths at 70, and 6/8 in Echo.",
-          "done": "90% on sixteenths at 70; rhythm reading 3 and 4 passed.",
+          "done": "90% on sixteenths at 70. Rhythm reading 3 and 4 passed.",
           "threshold": 0.9,
           "minBpm": 70,
           "links": [
@@ -5745,7 +5745,7 @@
           ]
         }
       ],
-      "test": "line-5 up the neck at 80% first pass; one unseen fiddle tune at 80% first pass at 80 bpm; one learned campanella piece at tempo, 90%."
+      "test": "Line 5 up the neck at 80% on the first run. One unseen fiddle tune at 80% on the first run at 80 BPM. One learned campanella piece at tempo, 90%."
     },
     {
       "id": "U5",
@@ -5758,7 +5758,7 @@
           "id": "U5.1",
           "title": "Melody note on top",
           "href": "/music/chords?mode=build&instrument=ukulele",
-          "setup": "Chords, Build on ukulele. Voicing a chord with a named top note is not in the drill yet.",
+          "setup": "Chords, Build on ukulele. Voicing a chord with a named top note isn't in the drill yet.",
           "done": "90% of 30.",
           "exerciseIds": ["technique.ukulele.chord-perfect"],
           "threshold": 0.9
@@ -5767,8 +5767,8 @@
           "id": "U5.2",
           "title": "Pinch patterns",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-two-strings&bpm=80",
-          "setup": "Chords, Fingerpicking on ukulele at 80: thumb then two strings together, and Ohta-San in 6/8. A 3/4 pinch pattern is not there yet.",
-          "done": "90% at 80 bpm.",
+          "setup": "Chords, Fingerpicking on ukulele at 80: thumb then two strings together, and Ohta-San in 6/8. A 3/4 pinch pattern isn't there yet.",
+          "done": "90% at 80 BPM.",
           "each": {
             "param": "pattern",
             "values": ["uke-two-strings", "uke-ohta"]
@@ -5787,8 +5787,8 @@
           "id": "U5.3",
           "title": "Read a solo slowly",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: one shelf solo in wait mode, staff and tab both.",
-          "done": "First full pass.",
+          "setup": "Song practice: one solo from the song list in Wait mode, staff and tab both.",
+          "done": "Once through to the end.",
           "match": {
             "mode": "wait"
           },
@@ -5797,9 +5797,9 @@
         },
         {
           "id": "U5.4",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read at 60% of the tempo.",
-          "done": "4 shelf solos at 80% first pass.",
+          "done": "4 solos from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/cant-help-falling-in-love-u5?mode=sight-read&tempo=60",
           "match": {
             "mode": "sight-read",
@@ -5843,7 +5843,7 @@
           "id": "U5.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two solos at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5977,7 +5977,7 @@
           ]
         }
       ],
-      "test": "Two learned chord-melody solos at tempo, 90%, on two days; one unseen solo at 80% first pass at 60% tempo."
+      "test": "Two learned chord-melody solos at tempo, 90%, on two days. One unseen solo at 80% on the first run at 60% tempo."
     },
     {
       "id": "U6",
@@ -6005,7 +6005,7 @@
           "title": "Swing reading",
           "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
           "setup": "Rhythm, read and tap: swing eighths at 100 (rhythm reading 7).",
-          "done": "90% at 100; rhythm reading 7 passed.",
+          "done": "90% at 100. Rhythm reading 7 passed.",
           "threshold": 0.9,
           "minBpm": 100,
           "feeds": "Ain't She Sweet, Five Foot Two"
@@ -6014,7 +6014,7 @@
           "id": "U6.3",
           "title": "Chromatic lines",
           "href": "/music/reading?activity=sight-reading&instrument=ukulele&clefs=treble&level=line-6&position=up&follower=performance",
-          "setup": "Sight-reading on ukulele, Line 6 up the neck, keeping time. Triplets are not in the generator yet.",
+          "setup": "Sight-reading on ukulele, Line 6 up the neck, keeping time. Triplets aren't in the generator yet.",
           "done": "80% on 5 of 6.",
           "match": {
             "instrument": "ukulele",
@@ -6028,9 +6028,9 @@
         },
         {
           "id": "U6.4",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/aint-she-sweet?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -6078,7 +6078,7 @@
           "id": "U6.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -6242,7 +6242,7 @@
           ]
         }
       ],
-      "test": "The path's ukulele finish: line-6 at 80% first pass; one unseen swing tune at 80% first pass; one learned piece from this shelf at tempo, 90%, on two days."
+      "test": "The path's ukulele finish: Line 6 at 80% on the first run. One unseen swing tune at 80% on the first run. One learned piece from this level's song list at tempo, 90%, on two days."
     },
     {
       "id": "A1",
@@ -6318,7 +6318,7 @@
           "title": "Follow by ear",
           "href": "/music/ear/wrong-note?level=major-diatonic",
           "setup": "Ear, Spot the wrong note: major diatonic.",
-          "done": "80% over 20 items.",
+          "done": "80% on 20 questions.",
           "match": {
             "level": "major-diatonic"
           },
@@ -6327,9 +6327,9 @@
         },
         {
           "id": "A1.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf tunes at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 tunes from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/hot-cross-buns?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -6498,7 +6498,7 @@
           ]
         }
       ],
-      "test": "Sight-reading Primer at 80% first pass on two days; two unseen shelf tunes at 80% first pass."
+      "test": "Sight-reading Primer at 80% on the first run on two days. Two unseen tunes from the song list at 80% on the first run."
     },
     {
       "id": "A2",
@@ -6597,9 +6597,9 @@
         },
         {
           "id": "A2.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf tunes at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 tunes from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/amazing-grace-a2?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -6643,7 +6643,7 @@
           "id": "A2.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two tunes at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -6771,7 +6771,7 @@
           ]
         }
       ],
-      "test": "Sight-reading Level 1 and line-4 (3/4) at 80% first pass; one learned tune at tempo, 90%; one unseen shelf tune at 80% first pass."
+      "test": "Sight-reading Level 1 and Line 4 (3/4) at 80% on the first run. One learned tune at tempo, 90%. One unseen tune from the song list at 80% on the first run."
     },
     {
       "id": "A3",
@@ -6807,7 +6807,7 @@
           "id": "A3.3",
           "title": "Line reading, full octave and a half",
           "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=level-3&key=G%20major",
-          "setup": "Sight-reading on the Aerophone, Level 3, in G, D, F and Bb. line-4 (rests and ties, written D4 to D6) is not there yet. Concert pitch until Eb transposition ships: AE-20 transpose off.",
+          "setup": "Sight-reading on the Aerophone, Level 3, in G, D, F and Bb. Line 4 (rests and ties, written D4 to D6) isn't there yet. Concert pitch until Eb transposition ships: AE-20 transpose off.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
             "instrument": "aerophone",
@@ -6837,9 +6837,9 @@
         },
         {
           "id": "A3.4",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/cant-help-falling-in-love-a3?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -6883,7 +6883,7 @@
           "id": "A3.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7035,7 +7035,7 @@
           ]
         }
       ],
-      "test": "line-4 over the full range at 80% first pass; one learned upper-register piece at tempo, 90%."
+      "test": "Line 4 over the full range at 80% on the first run. One learned upper-register piece at tempo, 90%."
     },
     {
       "id": "A4",
@@ -7049,7 +7049,7 @@
           "title": "Syncopation",
           "href": "/music/rhythm?mode=read-and-tap&pattern=sixteenths",
           "setup": "Rhythm reading 4 and 5. Until generated read-and-tap ships: sixteenths and off-beats.",
-          "done": "90% on each pattern; rhythm reading 4 and 5 passed.",
+          "done": "90% on each pattern. Rhythm reading 4 and 5 passed.",
           "exerciseIds": ["rhythm.pattern.sixteenths", "rhythm.pattern.off-beats"],
           "each": {
             "param": "pattern",
@@ -7086,7 +7086,7 @@
           "id": "A4.3",
           "title": "Syncopated lines",
           "href": "/music/reading?activity=sight-reading&instrument=aerophone&clefs=treble&level=line-6&low=62&high=86&follower=performance",
-          "setup": "Sight-reading on the Aerophone, Line 6, written D4 to D6 (capped at the Aerophone's top note), keeping time. Triplets are not in the generator yet.",
+          "setup": "Sight-reading on the Aerophone, Line 6, written D4 to D6 (capped at the Aerophone's top note), keeping time. Triplets aren't in the generator yet.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
             "instrument": "aerophone",
@@ -7099,9 +7099,9 @@
         },
         {
           "id": "A4.4",
-          "title": "Sight-read the shelf",
+          "title": "Sight-read the song list",
           "setup": "Song practice, sight-read at 70% of the tempo.",
-          "done": "5 shelf solos at 80% first pass.",
+          "done": "5 solos from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/tequila?mode=sight-read&tempo=70",
           "match": {
             "mode": "sight-read",
@@ -7145,7 +7145,7 @@
           "id": "A4.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, then play along with the record.",
+          "setup": "Song practice, then play along with the recording.",
           "done": "Two solos at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7154,10 +7154,10 @@
         },
         {
           "id": "A4.6",
-          "title": "Play with the record",
+          "title": "Play with the recording",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice performance mode to 90%, then the same solo with the original recording, outside the app.",
-          "done": "Two clean play-alongs on two days, self-checked.",
+          "setup": "Song practice, Performance mode, to 90%. Then the same solo with the original recording, outside the app.",
+          "done": "Two clean play-alongs on two days, checked by you.",
           "exerciseIds": []
         }
       ],
@@ -7285,7 +7285,7 @@
           ]
         }
       ],
-      "test": "line-6 at 80% first pass; two learned solos at tempo, 90%, on two days."
+      "test": "Line 6 at 80% on the first run. Two learned solos at tempo, 90%, on two days."
     },
     {
       "id": "A5",
@@ -7298,8 +7298,8 @@
           "id": "A5.1",
           "title": "Swing reading",
           "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
-          "setup": "Rhythm, read and tap: swing eighths at 100 (rhythm reading 7). Swing playback in Sight-reading is not there yet.",
-          "done": "90% at 100; rhythm reading 7 passed.",
+          "setup": "Rhythm, read and tap: swing eighths at 100 (rhythm reading 7). Swing playback in Sight-reading isn't there yet.",
+          "done": "90% at 100. Rhythm reading 7 passed.",
           "threshold": 0.9,
           "minBpm": 100
         },
@@ -7307,7 +7307,7 @@
           "id": "A5.2",
           "title": "Jazz lines",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=aerophone&level=line-jazz&key=F%20major&follower=performance",
-          "setup": "Sight-reading, Jazz lines (written F, C, G and Bb; Eb and D too): written straight, played and graded swung. Keep time.",
+          "setup": "Sight-reading, Jazz lines (written F, C, G and Bb, also Eb and D): written straight, played and scored swung. Keep time.",
           "done": "80% on 5 of 6, on two days.",
           "match": {
             "level": "line-jazz",
@@ -7334,23 +7334,23 @@
           "id": "A5.3",
           "title": "Blues form",
           "href": "/music/changes/jam?progression=blues&instrument=aerophone",
-          "setup": "Jam: 12-bar blues backing, a shelf head twice through. Jam's Check grades improvised lines, not a written head, so this one is a self-check.",
+          "setup": "Jam: 12-bar blues backing, a head from the song list twice through. Jam in Check scores improvised lines, not a written head, so check this one yourself.",
           "done": "Form kept without getting lost, 90%.",
           "exerciseIds": []
         },
         {
           "id": "A5.4",
           "title": "Transcribe one",
-          "setup": "Learn by ear: transcribe one shelf head from its recording, looped and slowed, then compare with the score in Song practice. Learn runs are self-rated, so this step is not judged.",
-          "done": "Transcription matches the score at 80%.",
+          "setup": "Learn by ear: transcribe one head from the song list from its recording, looped and slowed. Compare it with the notation in Song practice. You rate Learn by ear runs yourself, so this step isn't scored.",
+          "done": "Transcription matches the notation at 80%.",
           "href": "/music/by-ear?mode=learn",
           "exerciseIds": []
         },
         {
           "id": "A5.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "5 heads at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "5 heads at 80% on the first run.",
           "href": "/music/songs/shelf/reading/c-jam-blues?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -7550,7 +7550,7 @@
           ]
         }
       ],
-      "test": "Two unseen blues heads at 80% first pass, swung; three learned heads at tempo over Jam, 90%."
+      "test": "Two unseen blues heads at 80% on the first run, swung. Three learned heads at tempo over Jam, 90%."
     },
     {
       "id": "A6",
@@ -7564,7 +7564,7 @@
           "title": "Chord tones from symbols",
           "href": "/music/changes/chord-scales?instrument=aerophone&bpm=100",
           "setup": "Chord-scales on the Aerophone: m7, 7 and maj7 arpeggios through ii-V-I at 100.",
-          "done": "90% at 100 bpm.",
+          "done": "90% at 100 BPM.",
           "minBpm": 100,
           "threshold": 0.9
         },
@@ -7582,9 +7582,9 @@
         },
         {
           "id": "A6.3",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "4 standards at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "4 standards at 80% on the first run.",
           "href": "/music/songs/shelf/reading/summertime-a6?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -7641,7 +7641,7 @@
           "id": "A6.5",
           "title": "Improvise on one",
           "href": "/music/changes/jam?progression=ii-v-i&instrument=aerophone&game=chord-tones&choruses=1",
-          "setup": "Jam in Check with the tune's changes (the ii-V-I, or a standard such as Autumn Leaves), Chord tones on 1 and 3, guide tones from the jazz path.",
+          "setup": "Jam in Check with the tune's changes (the ii-V-I, or a standard such as Autumn Leaves), Chord tones on 1 and 3. Use guide tones from the jazz path.",
           "done": "One chorus kept, chord tones on beats 1 and 3 at 60%.",
           "match": {
             "game": "chord-tones"
@@ -7652,8 +7652,8 @@
         {
           "id": "A6.6",
           "title": "Read a concert-pitch lead sheet",
-          "setup": "Song practice, sight-read: a C lead sheet from the piano level 6 shelf, read a minor third down (written = concert + 9).",
-          "done": "One tune at 80% first pass.",
+          "setup": "Song practice, sight-read: a C lead sheet from the piano level 6 song list, read a minor third down (written = concert + 9).",
+          "done": "One tune at 80% on the first run.",
           "feeds": "Autumn Leaves, Blue Bossa",
           "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read",
           "match": {
@@ -7781,7 +7781,7 @@
           ]
         }
       ],
-      "test": "One unseen Eb lead sheet at 80% first pass; three learned standards at tempo, 90%; one improvised chorus kept."
+      "test": "One unseen Eb lead sheet at 80% on the first run. Three learned standards at tempo, 90%. One improvised chorus kept."
     },
     {
       "id": "A7",
@@ -7834,7 +7834,7 @@
           "id": "A7.4",
           "title": "An etude a week",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: a Ferling or Klosé study, wait mode, then performance.",
+          "setup": "Song practice: a Ferling or Klosé study, Wait mode, then Performance mode.",
           "done": "4 studies at tempo, 90%.",
           "match": {
             "mode": "performance"
@@ -7845,9 +7845,9 @@
         },
         {
           "id": "A7.5",
-          "title": "Sight-read the shelf",
-          "setup": "Song practice, sight-read: a 30 second look, then one scored pass.",
-          "done": "4 pieces at 80% first pass.",
+          "title": "Sight-read the song list",
+          "setup": "Song practice, sight-read: a 30 second look, then one scored run.",
+          "done": "4 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/the-swan?mode=sight-read",
           "match": {
             "mode": "sight-read",
@@ -7895,7 +7895,7 @@
           "id": "A7.6",
           "title": "Learn one lyrical piece",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song practice: Wait mode until you get through once, then Performance mode at the marked tempo.",
           "done": "One piece at tempo with dynamics, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -8059,7 +8059,7 @@
           ]
         }
       ],
-      "test": "The path's Aerophone finish: line-6 across the full range at 80% first pass on two days; one unseen Ferling study (from the IMSLP edition) at 80% first pass at a slow tempo; one learned lyrical piece at tempo with dynamics, 90%."
+      "test": "The path's Aerophone finish: Line 6 across the full range at 80% on the first run on two days. One unseen Ferling study (from the IMSLP edition) at 80% on the first run at a slow tempo. One learned lyrical piece at tempo with dynamics, 90%."
     },
     {
       "id": "R1",
@@ -8086,7 +8086,7 @@
           "title": "Authored patterns",
           "href": "/music/rhythm?mode=read-and-tap&pattern=quarter-pulse&bpm=80",
           "setup": "Rhythm, read and tap: quarter pulse, eighths and eighth rests at 80.",
-          "done": "90% each at 80 bpm.",
+          "done": "90% each at 80 BPM.",
           "exerciseIds": [
             "rhythm.pattern.quarter-pulse",
             "rhythm.pattern.eighths",
@@ -8141,7 +8141,7 @@
           "id": "R1.5",
           "title": "Hear it, then write it",
           "href": "/music/rhythm?mode=echo&earLevel=quarters-eighths",
-          "setup": "Rhythm, Echo and Dictation at quarters-eighths and rests-halves.",
+          "setup": "Rhythm, Echo and Dictation at two levels: Quarters and eighths, then Add rests and half notes.",
           "done": "75% at each level (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "each": {
@@ -8167,8 +8167,8 @@
         {
           "id": "R1.6",
           "title": "Read a real line",
-          "setup": "Tap the rhythm of shelf pieces at sight, then play them on any instrument.",
-          "done": "5 shelf pieces at 80% first pass.",
+          "setup": "Tap the rhythm of pieces from the song list at sight, then play them on any instrument.",
+          "done": "5 pieces from the song list at 80% on the first run.",
           "href": "/music/songs/shelf/reading/snare-drum-beginner-exercises?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -8347,7 +8347,7 @@
           ]
         }
       ],
-      "test": "Read and tap rests-halves at 90% on 8 of 10 at 100 bpm; one unseen shelf line at 80% first pass."
+      "test": "Read and tap with rests and half notes at 90% on 8 of 10 at 100 BPM. One unseen line from the song list at 80% on the first run."
     },
     {
       "id": "R2",
@@ -8360,7 +8360,7 @@
           "id": "R2.1",
           "title": "Dotted quarters",
           "href": "/music/rhythm?mode=read-and-tap&pattern=dotted-quarters",
-          "setup": "Rhythm, read and tap: dotted quarters. The generated dotted level is not there yet.",
+          "setup": "Rhythm, read and tap: dotted quarters. The generated dotted level isn't there yet.",
           "done": "90% on 8 of 10, on two days.",
           "threshold": 0.9
         },
@@ -8407,7 +8407,7 @@
           "id": "R2.4",
           "title": "Ear",
           "href": "/music/rhythm?mode=echo&earLevel=dotted",
-          "setup": "Rhythm, Echo and Dictation at dotted.",
+          "setup": "Rhythm, Echo and Dictation at the level Add dotted quarters.",
           "done": "75% in Echo and Dictation (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
@@ -8424,8 +8424,8 @@
         {
           "id": "R2.5",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/ode-to-joy-r2?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -8469,8 +8469,8 @@
         {
           "id": "R2.6",
           "title": "Sing it on one pitch",
-          "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped at sight in Song practice (Sight-read, Tap the rhythm), each lesson imported as its own song.",
-          "done": "10 lessons tapped at 80% first pass.",
+          "setup": "Sing Bona lessons 1 to 10 on \"ta\" with the click. Then tap each at sight in Song practice (Sight-read, Tap the rhythm), each lesson imported as its own song.",
+          "done": "10 lessons tapped at 80% on the first run.",
           "feeds": "Bona",
           "href": "/music/library?tab=songs",
           "match": {
@@ -8564,7 +8564,7 @@
           "id": "solfeggio-no-1",
           "title": "Solfeggio No. 1 (sung)",
           "artist": "Pozzoli",
-          "teaches": "Classic graded rhythm and pitch reading",
+          "teaches": "Classic scored rhythm and pitch reading",
           "detail": "4/4",
           "diff": 1,
           "scores": [
@@ -8602,7 +8602,7 @@
           }
         }
       ],
-      "test": "Read and tap three-four and ties at 90% on 8 of 10 at 100 bpm; two unseen Bona or Pozzoli lines at 80% first pass."
+      "test": "Read and tap in 3/4 with ties at 90% on 8 of 10 at 100 BPM. Two unseen Bona or Pozzoli lines at 80% on the first run."
     },
     {
       "id": "R3",
@@ -8614,7 +8614,7 @@
         {
           "id": "R3.1",
           "title": "Compound pulse",
-          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8: dotted quarter = 60 is 90 on the strip's quarter-note tempo.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8: dotted quarter = 60 is 90 on the top bar's quarter-note tempo.",
           "done": "90% on 8 of 10, on two days.",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=90",
           "match": {
@@ -8630,7 +8630,7 @@
           "id": "R3.2",
           "title": "Ear",
           "href": "/music/rhythm?mode=echo&earLevel=compound",
-          "setup": "Rhythm, Echo and Dictation at compound.",
+          "setup": "Rhythm, Echo and Dictation at the 6/8 level.",
           "done": "75% in Echo and Dictation (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
@@ -8647,7 +8647,7 @@
         {
           "id": "R3.3",
           "title": "Count in two",
-          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8, counting \"1 and a 2 and a\"; dotted quarter = 80 is 120 on the strip's quarter-note tempo.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8, counting \"1 and a 2 and a\". Dotted quarter = 80 is 120 on the top bar's quarter-note tempo.",
           "done": "90% at 80.",
           "feeds": "jigs",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=120",
@@ -8662,8 +8662,8 @@
         {
           "id": "R3.4",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/row-row-row-your-boat?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -8712,7 +8712,7 @@
           "id": "R3.5",
           "title": "Jig rhythm on an instrument",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice: Irish Washerwoman on any instrument, rhythm graded, dotted quarter = 80.",
+          "setup": "Song practice: Irish Washerwoman on any instrument, rhythm scored, dotted quarter = 80.",
           "done": "80% at dotted quarter = 80.",
           "match": {
             "shelf": "reading/irish-washerwoman-r3"
@@ -8723,7 +8723,7 @@
         {
           "id": "R3.6",
           "title": "Slow and fast 6/8",
-          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8 at dotted quarter = 50 and 100: 75 and 150 on the strip's quarter-note tempo. The step counts the runs at 150; the slow ones are yours to check.",
+          "setup": "Sight-reading, Tap the rhythm, Level 2 in 6/8 at dotted quarter = 50 and 100: 75 and 150 on the top bar's quarter-note tempo. The step counts the runs at 150. Check the slow ones yourself.",
           "done": "90% at both, on two days.",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=level-2&meter=compound&bpm=75",
           "match": {
@@ -8867,7 +8867,7 @@
           ]
         }
       ],
-      "test": "Read and tap compound at 90% on 8 of 10 at dotted quarter = 80; one unseen jig from The Session tapped at 80% first pass."
+      "test": "Read and tap in 6/8 at 90% on 8 of 10 at dotted quarter = 80. One unseen jig from The Session tapped at 80% on the first run."
     },
     {
       "id": "R4",
@@ -8888,7 +8888,7 @@
         {
           "id": "R4.2",
           "title": "Generated",
-          "setup": "Sight-reading, Tap the rhythm, Line 5 in 4/4: sixteenths at 70, then 90 on the strip.",
+          "setup": "Sight-reading, Tap the rhythm, Line 5 in 4/4: sixteenths at 70, then 90 on the top bar.",
           "done": "90% on 8 of 10 at 70, then 90, on two days.",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-5&meter=simple&bpm=70",
           "match": {
@@ -8928,7 +8928,7 @@
           "id": "R4.4",
           "title": "Ear",
           "href": "/music/rhythm?mode=echo&earLevel=sixteenths",
-          "setup": "Rhythm, Echo and Dictation at sixteenths.",
+          "setup": "Rhythm, Echo and Dictation at the level Add sixteenths.",
           "done": "75% in Echo and Dictation (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
@@ -8945,8 +8945,8 @@
         {
           "id": "R4.5",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/stick-control?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -9120,7 +9120,7 @@
           ]
         }
       ],
-      "test": "Read and tap sixteenths at 90% on 8 of 10 at 90 bpm; one unseen shelf line at 80% first pass."
+      "test": "Read and tap sixteenths at 90% on 8 of 10 at 90 BPM. One unseen line from the song list at 80% on the first run."
     },
     {
       "id": "R5",
@@ -9184,7 +9184,7 @@
         {
           "id": "R5.5",
           "title": "With a foot",
-          "setup": "Sight-reading, Tap the rhythm with the kick lane: Line 4, 8 bars, the rhythm in the hands and a kick on every beat (a kick pad or the Kick button).",
+          "setup": "Sight-reading, Tap the rhythm with the kick lane: Line 4, 8 bars. The hands tap the rhythm and a kick lands on every beat (a kick pad or the Kick button).",
           "done": "85% at 100.",
           "feeds": "pads path",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-4&measures=8&bpm=100&kick=true",
@@ -9200,7 +9200,7 @@
           "id": "R5.6",
           "title": "Sixteenth syncopation",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=line-6&bpm=80",
-          "setup": "Sight-reading, Tap the rhythm, Line 6: sixteenth syncopation (sixteenth, eighth, sixteenth and dotted eighth, sixteenth) among the other figures, at 80.",
+          "setup": "Sight-reading, Tap the rhythm, Line 6 at 80. Sixteenth syncopation (sixteenth, eighth, sixteenth and dotted eighth, sixteenth) sits among the other figures.",
           "done": "90% on 8 of 10 at 80.",
           "match": {
             "level": "line-6",
@@ -9214,8 +9214,8 @@
         {
           "id": "R5.7",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/progressive-steps-to-syncopation?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -9379,7 +9379,7 @@
           ]
         }
       ],
-      "test": "reed-lines at 85% at 120 bpm on two days; one unseen Reed-style page at 80% first pass at 100."
+      "test": "Reed-style lines at 85% at 120 BPM on two days. One unseen Reed-style page at 80% on the first run at 100."
     },
     {
       "id": "R6",
@@ -9430,7 +9430,7 @@
           "id": "R6.4",
           "title": "Ear",
           "href": "/music/rhythm?mode=echo&earLevel=syncopation",
-          "setup": "Rhythm, Echo and Dictation at syncopation and dotted-sixteenths.",
+          "setup": "Rhythm, Echo and Dictation at two levels: Add syncopation and triplets, then Add dotted eighth-sixteenths.",
           "done": "75% in Echo and Dictation (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "each": {
@@ -9456,8 +9456,8 @@
         {
           "id": "R6.5",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/battle-hymn-of-the-republic?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -9633,7 +9633,7 @@
           }
         }
       ],
-      "test": "triplet-2 and dotted-sixteenths at 90% on 8 of 10 at 90 bpm; one unseen march at 80% first pass."
+      "test": "Triplets and dotted eighth-sixteenths at 90% on 8 of 10 at 90 BPM. One unseen march at 80% on the first run."
     },
     {
       "id": "R7",
@@ -9646,7 +9646,7 @@
           "id": "R7.1",
           "title": "Swing feel",
           "href": "/music/rhythm?mode=read-and-tap&pattern=swing-eighths&bpm=100",
-          "setup": "Rhythm, read and tap: swing eighths at 100. The generated swing level is not there yet.",
+          "setup": "Rhythm, read and tap: swing eighths at 100. The generated swing level isn't there yet.",
           "done": "90% on 8 of 10 at 100, on two days.",
           "threshold": 0.9,
           "minBpm": 100
@@ -9655,7 +9655,7 @@
           "id": "R7.2",
           "title": "Ear",
           "href": "/music/rhythm?mode=echo&earLevel=swing",
-          "setup": "Rhythm, Echo and Dictation at swing.",
+          "setup": "Rhythm, Echo and Dictation at the level Swing eighths.",
           "done": "75% in Echo and Dictation (the ear path's threshold).",
           "exerciseIds": ["rhythm.echo", "rhythm.dictation"],
           "match": {
@@ -9705,8 +9705,8 @@
         {
           "id": "R7.5",
           "title": "Read real lines",
-          "setup": "Tap or play shelf heads at sight, swung.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap or play heads from the song list at sight, swung.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/c-jam-blues-r7?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -9902,7 +9902,7 @@
           ]
         }
       ],
-      "test": "reed-lines swung at 85% at 120; one unseen big band part (a sax or trombone part from a MuseScore big band chart) at 80% first pass."
+      "test": "Reed-style lines swung at 85% at 120. One unseen big band part (a sax or trombone part from a MuseScore big band chart) at 80% on the first run."
     },
     {
       "id": "R8",
@@ -9939,7 +9939,7 @@
           "id": "R8.2",
           "title": "Sevens",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=7%2F8",
-          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 7/8 (2+2+3). 7/4 is not in it yet.",
+          "setup": "Sight-reading, Tap the rhythm, Piano 9 on the treble clef alone, in 7/8 (2+2+3). 7/4 isn't in it yet.",
           "done": "90% on 8 of 10.",
           "match": {
             "level": "piano-9",
@@ -9954,7 +9954,7 @@
           "id": "R8.3",
           "title": "Nine and hemiola",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&follower=tap&level=piano-9&clefs=treble&meter=9%2F8",
-          "setup": "Sight-reading, Tap the rhythm, 9/8 on the treble clef. It groups 3+3+3; the 2+2+2+3 grouping and 6/8 to 3/4 switches are not in it yet.",
+          "setup": "Sight-reading, Tap the rhythm, 9/8 on the treble clef. It groups 3+3+3. The 2+2+2+3 grouping and 6/8 to 3/4 switches aren't in it yet.",
           "done": "85% on 8 of 10.",
           "match": {
             "follower": "tap",
@@ -9967,8 +9967,8 @@
         {
           "id": "R8.4",
           "title": "Read real lines",
-          "setup": "Tap the shelf rhythms at sight.",
-          "done": "5 pieces at 80% first pass.",
+          "setup": "Tap the rhythms of pieces from the song list at sight.",
+          "done": "5 pieces at 80% on the first run.",
           "href": "/music/songs/shelf/reading/take-five-r8?mode=sight-read&tap=true",
           "match": {
             "mode": "sight-read",
@@ -10163,7 +10163,7 @@
           ]
         }
       ],
-      "test": "The path's rhythm finish: Read and tap odd at 90% on 8 of 10 in three meters on two days; reed-lines at 85% at 120; one unseen odd-meter line at 80% first pass."
+      "test": "The path's rhythm finish: Read and tap in odd meters at 90% on 8 of 10, in three meters, on two days. Reed-style lines at 85% at 120. One unseen odd-meter line at 80% on the first run."
     }
   ]
 }
