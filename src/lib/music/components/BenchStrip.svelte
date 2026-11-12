@@ -136,6 +136,10 @@
   const portalTo = $derived(root?.closest<HTMLElement>(".woodshed") ?? undefined);
   const pill =
     "flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-3 text-sm disabled:opacity-60";
+  /** A label word that steps aside (still read out) where a clocked strip is narrower than its pills. */
+  const terse = "sm:@max-[76rem]:sr-only";
+  /** The same on a narrower strip still (a 1024 px tablet beside the sidebar): the tempo's unit and the count-in's label. */
+  const terser = "sm:@max-[52rem]:sr-only";
   /** Left out of a phone's slim strip while a run counts in or plays. */
   const idle = $derived(locked ? "max-sm:hidden" : "");
   /** The secondary controls: inline from sm up; on a phone a panel under the strip that More opens (the row
@@ -149,13 +153,15 @@
   );
 </script>
 
-<div bind:this={root} bind:offsetHeight={bench.stripH} class="ws-bar sticky top-0 z-30 border-b">
-  <!-- One row at every width (scrolling from sm up only if it must), so pills that come and go never change the strip's height mid-click. -->
+<div bind:this={root} bind:offsetHeight={bench.stripH} class="ws-bar @container sticky top-0 z-30 border-b">
+  <!-- One row at every width (scrolling from sm up only if it must), so pills that come and go never change the strip's height mid-click.
+       From sm up no pill shrinks (a squeezed pill let its name spill over the next one): where the strip is narrow
+       (a laptop or tablet beside the sidebar) the pills drop their label words instead and keep the value. -->
   <div class="flex flex-nowrap items-center gap-1.5 px-4 py-2 sm:gap-2 sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
     <!-- A drill that draws no instrument (answer buttons, taps) leaves the picker out. -->
     {#if !bench.instrumentFree && !quiet}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
          instrument's does (whole in its picker), so nothing spills over the page. -->
-    <div class="{pill.replace('border-ws-line bg-ws-surface', 'border-instr bg-instr-wash').replace('shrink-0', roomy ? 'shrink-0' : 'shrink')} {idle} relative min-w-0 pr-2">
+    <div class="{pill.replace('border-ws-line bg-ws-surface', 'border-instr bg-instr-wash').replace('shrink-0', roomy ? 'shrink-0' : 'shrink sm:shrink-0')} {idle} relative min-w-0 pr-2">
       <Picker
         class="-my-px min-h-11 w-auto min-w-0 pr-1 sm:min-w-28"
         tone="bare"
@@ -170,7 +176,7 @@
     {#if showTempo}<Popover.Root>
       <Popover.Trigger class={pill} disabled={locked} aria-label="Tempo {s.bpm} BPM">
         <span class="tnum font-display text-base font-semibold">{s.bpm}</span>
-        <span class="text-ws-soft">BPM</span>
+        <span class="text-ws-soft {terser}">BPM</span>
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="w-64 border-ws-line bg-ws-surface text-ws-ink">
         <label class="flex items-center justify-between gap-3 text-sm font-medium">
@@ -209,12 +215,12 @@
         onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
       >
         <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
-        <span class="whitespace-nowrap">Metronome: <span class="font-semibold">{bench.clickDuringRun ? "on" : "off"}</span></span>
+        <span class="whitespace-nowrap"><span class={terse}>Metronome:</span> <span class="font-semibold">{bench.clickDuringRun ? "on" : "off"}</span></span>
       </button>{/if}
 
       {#if showCountIn}<Popover.Root>
-        <Popover.Trigger class="{pill} {idle}" disabled={locked}>
-          <span class="whitespace-nowrap">Count-in: <span class="font-semibold">{s.countInBars === 0 ? "off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span></span>
+        <Popover.Trigger class="{pill} {idle}" disabled={locked} title="Count-in before a run">
+          <span class="whitespace-nowrap"><span class={terser}>Count-in:</span> <span class="font-semibold">{s.countInBars === 0 ? "off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span></span>
           <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
         </Popover.Trigger>
         <Popover.Content portalProps={{ to: portalTo }} class="w-60 border-ws-line bg-ws-surface text-ws-ink">
@@ -233,7 +239,7 @@
       {#if showTuning && fretted}
         <Popover.Root>
           <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Tuning: {tuningName}">
-            <span>Tuning</span>
+            <span class={terse}>Tuning</span>
             <span class="font-semibold">{tuningName}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
@@ -250,7 +256,7 @@
       {#if showReads}
         <Popover.Root>
           <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone written in {aeroKey.label}" title="The written key; the Aerophone sends concert pitch">
-            <span>Written in</span>
+            <span class={terse}>Written in</span>
             <span class="font-semibold">{aeroKey.label}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
@@ -310,7 +316,7 @@
           <span class="grid size-6 shrink-0 place-items-center rounded-full {source.kind === 'screen' ? 'border border-ws-line text-ws-soft' : 'bg-instr text-ws-stage'}" aria-hidden="true">
             {#if source.kind === "mic"}<Mic class="size-3.5" />{:else if source.kind === "midi"}<KeyboardMusic class="size-3.5" />{:else}<Pointer class="size-3.5" />{/if}
           </span>
-          <span class="whitespace-nowrap max-sm:sr-only">{source.word}</span>
+          <span class="whitespace-nowrap max-sm:sr-only {clock ? terse : ''}">{source.word}</span>
         </span>
         <!-- A phone's slim pill: the input's state in one word beside the speaker. A hub plays nothing, so there the
              speaker stands alone and the instrument keeps its whole name beside Tuner, Connect and Search. -->
