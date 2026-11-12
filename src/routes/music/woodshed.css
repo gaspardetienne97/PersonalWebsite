@@ -157,6 +157,15 @@
   --ring: var(--instr);
 }
 
+/* The theme row's second line, only where the theme is light and the page is a
+   drill: "Theme: Light" stays true and the dark page is explained. */
+.woodshed .ws-drill-note {
+  display: none;
+}
+:root:not(.dark) .woodshed:has([data-drill-page]) .ws-drill-note {
+  display: block;
+}
+
 /* The stage is dark in both themes, and so is the whole drill page: the
    judgement tones there take the dark theme's brighter values, so a green
    "Pass" or an amber mark never sits dim on a dark panel in the light theme. */

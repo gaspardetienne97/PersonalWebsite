@@ -266,7 +266,8 @@
     >
       <Sun class="size-5 shrink-0 dark:hidden" aria-hidden="true" /><Moon class="hidden size-5 shrink-0 dark:block" aria-hidden="true" />
       <!-- A quick toggle that says the theme now on. -->
-      <span class={collapsed ? "lg:sr-only" : ""}>Theme: <span class="font-medium text-ws-ink dark:hidden">Light</span><span class="hidden font-medium text-ws-ink dark:inline">Dark</span></span>
+      <!-- On a drill page in the light theme the row says why the page is dark all the same (shown by woodshed.css). -->
+      <span class="text-left leading-tight {collapsed ? 'lg:sr-only' : ''}">Theme: <span class="font-medium text-ws-ink dark:hidden">Light</span><span class="hidden font-medium text-ws-ink dark:inline">Dark</span><span class="ws-drill-note text-[13px]">Drills stay dark</span></span>
     </button>
   </li>
   <li>
