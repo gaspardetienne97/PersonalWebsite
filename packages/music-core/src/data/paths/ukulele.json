@@ -9,7 +9,7 @@
       "id": "1",
       "title": "First chords, first strums, first melodies",
       "goal": "Strum four chords in time and pick a melody on the open strings.",
-      "adds": "C, Am, F, G7, G; down strums and down-up; thumb strokes; first-position reading.",
+      "adds": "Chords: C, Am, F, G7, G. Strumming: down strums and down-up. Fingerpicking: thumb strokes. Reading: first position.",
       "pick": 2,
       "steps": [
         {
@@ -17,7 +17,7 @@
           "title": "Tune the ukulele",
           "strand": "S",
           "href": "/music/tuner?instrument=ukulele",
-          "setup": "The tuner, all four strings, high-G (re-entrant). The app does not yet ask high-G or low-G and keep it in settings.",
+          "setup": "The tuner, all four strings, high-G (re-entrant). Woodshed doesn't yet ask whether you play high-G or low-G, or keep it in Settings.",
           "done": "All four strings within 10 cents in under a minute.",
           "feeds": "all"
         },
@@ -72,8 +72,8 @@
           "title": "Down strums on four chords",
           "strand": "S",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.four-chords&bpm=60",
-          "setup": "Phrases: Four chords, 60 then 80.",
-          "done": "3 runs at 90% at 80, on two days.",
+          "setup": "Phrases: Four chords, at 60, then 80 BPM.",
+          "done": "3 runs at 90% at 80 BPM, on two days.",
           "match": {
             "phrase": "ukulele.four-chords"
           },
@@ -125,7 +125,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-d-du&bpm=70",
           "setup": "Rhythm, read and tap: D DU D DU.",
-          "done": "5 runs at 80% at 80.",
+          "done": "5 runs at 80% at 80 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 80,
@@ -136,8 +136,8 @@
           "title": "Thumb, then a pinch",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-two-strings&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=60",
-          "setup": "Chords, Fingerpicking: thumb, then two strings together, over C F G7, 60.",
-          "done": "3 runs at 80% at 70, on two days.",
+          "setup": "Chords, Fingerpicking: thumb, then two strings together, over C F G7, at 60 BPM.",
+          "done": "3 runs at 80% at 70 BPM, on two days.",
           "match": {
             "pattern": "uke-two-strings"
           },
@@ -197,9 +197,9 @@
           "id": "1.11",
           "title": "First whole song",
           "strand": "S",
-          "setup": "Strum a progression with a shelf song's chords and strum pattern.",
-          "done": "One shelf song start to end, 3 runs at 80% (chords and timing), no stops.",
-          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
+          "setup": "Strum a progression with the chords and strum pattern of a song from this level's list.",
+          "done": "One song from this level's list start to end, 3 runs at 80% (chords and timing), no stops.",
+          "needs": "Runs that count in Strum a progression. Its presets and strums are there, but chord following isn't scored on a real instrument yet.",
           "feeds": "shelf"
         }
       ],
@@ -378,13 +378,13 @@
           }
         }
       ],
-      "test": "Two shelf songs (one strummed, one picked) start to end at the listed tempo with no stops, recorded in Practice Lab; plus the C-Am-F-G7 cycle at 30 changes a minute."
+      "test": "Play two songs from this level's list, one strummed and one picked. Play each start to end at the listed tempo with no stops, recorded in Practice lab. Play the C-Am-F-G7 cycle at 30 changes a minute."
     },
     {
       "id": "2",
       "title": "Island strum, chucks and the claw",
       "goal": "The strums most pop ukulele songs use, and the first real fingerpicking patterns.",
-      "adds": "Island strum, chuck, reggae offbeat; Dm, C7, A7, D7, E7, Em, D; the claw and alternating thumb; the C major scale.",
+      "adds": "Strumming: island strum, chuck, reggae offbeat. Chords: Dm, C7, A7, D7, E7, Em, D. Fingerpicking: the claw and alternating thumb. Lead: the C major scale.",
       "pick": 2,
       "steps": [
         {
@@ -392,8 +392,8 @@
           "title": "Island strum",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-island-strum&bpm=70",
-          "setup": "Rhythm, read and tap: ukulele island strum, 70 then 90.",
-          "done": "5 runs at 80% at 90, on two days.",
+          "setup": "Rhythm, read and tap: ukulele island strum, at 70, then 90 BPM.",
+          "done": "5 runs at 80% at 90 BPM, on two days.",
           "minAttempts": 5,
           "threshold": 0.8,
           "minBpm": 90,
@@ -404,8 +404,8 @@
           "title": "Chuck on 2 and 4",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-chuck&bpm=70",
-          "setup": "Rhythm, read and tap: ukulele chuck, 70 then 90.",
-          "done": "5 runs at 75% at 90 (timing only; the chuck itself is not graded).",
+          "setup": "Rhythm, read and tap: ukulele chuck, at 70, then 90 BPM.",
+          "done": "5 runs at 75% at 90 BPM (timing only: the chuck itself isn't scored).",
           "minAttempts": 5,
           "threshold": 0.75,
           "minBpm": 90,
@@ -417,7 +417,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-reggae&bpm=66",
           "setup": "Rhythm, read and tap: the reggae strum, short strums on the and, damped on the beat.",
-          "done": "5 runs at 80% at 74.",
+          "done": "5 runs at 80% at 74 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 74,
@@ -428,7 +428,7 @@
           "title": "Second chord set",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.d-minor",
-          "setup": "Chords, Build: Dm, C7, A7, D, E7, then Em and D7. Em and D7 use the app's generated shapes until curated ones arrive.",
+          "setup": "Chords, Build: Dm, C7, A7, D, E7, then Em and D7. Em and D7 use generated shapes for now.",
           "done": "Each shape clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -520,8 +520,8 @@
           "title": "The claw",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw&chords=ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60",
-          "setup": "Chords, Fingerpicking: the claw over C Am F G, 60 to 80.",
-          "done": "3 runs at 85% at 80, on two days.",
+          "setup": "Chords, Fingerpicking: the claw over C Am F G, at 60 to 80 BPM.",
+          "done": "3 runs at 85% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-claw"
           },
@@ -535,7 +535,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw-alternating&chords=ukulele.c-major,gen.ukulele.2.7,ukulele.g7&bpm=70",
           "setup": "Chords, Fingerpicking: claw with alternating thumb over C D7 G7 C.",
-          "done": "3 runs at 80% at 80, on two days.",
+          "done": "3 runs at 80% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-claw-alternating"
           },
@@ -549,7 +549,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-outside-in&chords=ukulele.a-minor,ukulele.f-major,ukulele.c-major,ukulele.g-major&bpm=70",
           "setup": "Chords, Fingerpicking: outside in over Am F C G.",
-          "done": "3 runs at 80% at 80, on two days.",
+          "done": "3 runs at 80% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-outside-in"
           },
@@ -562,7 +562,7 @@
           "title": "A picked song",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-claw&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=80",
-          "setup": "Chords, Fingerpicking: the claw over You Are My Sunshine's chords, C F G7. A song preset is coming.",
+          "setup": "Chords, Fingerpicking: the claw over You Are My Sunshine's chords, C F G7. There's no song preset yet.",
           "done": "3 runs at 80% at the song's tempo, on two days.",
           "match": {
             "pattern": "uke-claw",
@@ -576,8 +576,8 @@
           "title": "C major scale, first position",
           "strand": "T",
           "href": "/music/scales?instrument=ukulele&kind=major&tonic=60&span=one-octave&bpm=60",
-          "setup": "Scales: C major, one octave, 60 to 80.",
-          "done": "3 runs at 95% of the notes at 80, on two days.",
+          "setup": "Scales: C major, one octave, at 60 to 80 BPM.",
+          "done": "3 runs at 95% of the notes at 80 BPM, on two days.",
           "match": {
             "kind": "major",
             "tonic": "60"
@@ -591,8 +591,8 @@
           "title": "Read first-position tunes",
           "strand": "T",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.oh-susanna",
-          "setup": "Phrases: Oh! Susanna and Camptown Races; Sight-reading at level 2 alongside.",
-          "done": "Each phrase 3 runs at 90%, on two days; sight-reading at level 2.",
+          "setup": "Phrases: Oh! Susanna and Camptown Races. Sight-reading at level 2 alongside.",
+          "done": "Each phrase 3 runs at 90%, on two days. Sight-reading at level 2.",
           "each": {
             "param": "phrase",
             "values": ["ukulele.oh-susanna", "ukulele.camptown"]
@@ -616,7 +616,7 @@
           "strand": "S",
           "setup": "Strum a progression: I'm Yours or Three Little Birds.",
           "done": "3 full runs at 80%.",
-          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
+          "needs": "Runs that count in Strum a progression. Its presets and strums are there, but chord following isn't scored on a real instrument yet.",
           "feeds": "I'm Yours, Three Little Birds"
         },
         {
@@ -812,13 +812,13 @@
           ]
         }
       ],
-      "test": "One island-strum song and one chuck or reggae song at the shelf tempo; one fingerpicked song with the claw at 80% of its tempo; the C major scale at 80."
+      "test": "Play one island-strum song and one chuck or reggae song at the listed tempo. Play one fingerpicked song with the claw at 80% of its tempo. Play the C major scale at 80 BPM."
     },
     {
       "id": "3",
       "title": "Minor keys, three-time and p-i-m-a",
       "goal": "Songs in 3/4 and 6/8, minor keys, and four-finger picking.",
-      "adds": "Waltz and 6/8 strums; p-i-m-a, rolls, Ohta-San, pinches; Gm and Bb (the first partial barre); A natural minor and A minor pentatonic.",
+      "adds": "Strumming: waltz and 6/8. Fingerpicking: p-i-m-a, rolls, Ohta-San, pinches. Chords: Gm and Bb (the first partial barre). Lead: A natural minor and A minor pentatonic.",
       "pick": 2,
       "steps": [
         {
@@ -827,7 +827,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-waltz&bpm=90",
           "setup": "Rhythm, read and tap: D DU DU in 3/4.",
-          "done": "5 runs at 80% at 100.",
+          "done": "5 runs at 80% at 100 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 100,
@@ -839,7 +839,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-six-eight&bpm=50",
           "setup": "Rhythm, read and tap: D du D du in 6/8, the click on each dotted quarter.",
-          "done": "5 runs at 80% at 60 (dotted quarter).",
+          "done": "5 runs at 80% at 60 BPM (dotted quarter).",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 60,
@@ -850,8 +850,8 @@
           "title": "Thumb on 4, then i m a",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tima&chords=ukulele.a-minor,ukulele.c-major,ukulele.d-major,ukulele.f-major&bpm=60",
-          "setup": "Chords, Fingerpicking: thumb on 4, then i m a, over Am C D F, 60 to 80.",
-          "done": "3 runs at 85% at 80, on two days.",
+          "setup": "Chords, Fingerpicking: thumb on 4, then i m a, over Am C D F, at 60 to 80 BPM.",
+          "done": "3 runs at 85% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-tima"
           },
@@ -865,7 +865,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.a-minor,ukulele.c-major,ukulele.d-major,ukulele.f-major,ukulele.a-minor,gen.ukulele.4.maj&bpm=58&perBeat=3",
           "setup": "Chords, Fingerpicking: the up and down roll, then the House of the Rising Sun preset.",
-          "done": "The preset at its tempo (58), 3 runs at 80%, on two days.",
+          "done": "The preset at its tempo (58 BPM), 3 runs at 80%, on two days.",
           "match": {
             "pattern": "uke-rolling",
             "shapes": "ukulele.a-minor>ukulele.c-major>ukulele.d-major>ukulele.f-major>ukulele.a-minor>gen.ukulele.4.maj"
@@ -880,7 +880,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,gen.ukulele.4.m,ukulele.a-minor,ukulele.f-major,ukulele.c-major,ukulele.g-major&bpm=66&perBeat=3",
           "setup": "Chords, Fingerpicking: Ohta-San, then the Can't Help Falling in Love preset.",
-          "done": "The preset at its tempo (66), 3 runs at 80%, on two days.",
+          "done": "The preset at its tempo (66 BPM), 3 runs at 80%, on two days.",
           "match": {
             "pattern": "uke-rolling",
             "shapes": "ukulele.c-major>gen.ukulele.4.m>ukulele.a-minor>ukulele.f-major>ukulele.c-major>ukulele.g-major"
@@ -897,11 +897,11 @@
         },
         {
           "id": "3.6",
-          "title": "Thumb, then a m i; pinches",
+          "title": "Thumb, then a m i, and pinches",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.c-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60&perBeat=3",
           "setup": "Chords, Fingerpicking: thumb, then a m i, then the Hallelujah preset.",
-          "done": "The preset at its tempo (60), 3 runs at 80%, on two days.",
+          "done": "The preset at its tempo (60 BPM), 3 runs at 80%, on two days.",
           "match": {
             "pattern": "uke-rolling",
             "shapes": "ukulele.c-major>ukulele.a-minor>ukulele.c-major>ukulele.a-minor>ukulele.f-major>ukulele.g-major"
@@ -922,7 +922,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-rolling&chords=ukulele.a-minor,ukulele.g-major,ukulele.a-minor,ukulele.c-major,ukulele.a-minor,ukulele.d-major&bpm=90&perBeat=2",
           "setup": "Chords, Fingerpicking: the Scarborough Fair preset.",
-          "done": "3 runs at 80% at the preset tempo (90), on two days.",
+          "done": "3 runs at 80% at the preset tempo (90 BPM), on two days.",
           "match": {
             "pattern": "uke-rolling",
             "shapes": "ukulele.a-minor>ukulele.g-major>ukulele.a-minor>ukulele.c-major>ukulele.a-minor>ukulele.d-major"
@@ -936,7 +936,7 @@
           "title": "Gm and Bb",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.f-major,gen.ukulele.10.maj&timed=true",
-          "setup": "Chords, Build: Gm and Bb (Bb uses the app's generated shape until a curated one arrives); then Changes, timed: F-Bb, Bb-C7, Dm-Gm.",
+          "setup": "Chords, Build: Gm and Bb (Bb uses a generated shape for now). Then Changes, timed: F-Bb, Bb-C7, Dm-Gm.",
           "done": "20 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
@@ -972,8 +972,8 @@
           "title": "A natural minor, A minor pentatonic",
           "strand": "T",
           "href": "/music/scales?instrument=ukulele&kind=natural-minor&tonic=69&span=one-octave&bpm=60",
-          "setup": "Scales: A natural minor, then A minor pentatonic, 60 to 80.",
-          "done": "Each 3 runs at 95% at 80, on two days.",
+          "setup": "Scales: A natural minor, then A minor pentatonic, at 60 to 80 BPM.",
+          "done": "Each 3 runs at 95% at 80 BPM, on two days.",
           "match": {
             "tonic": "69"
           },
@@ -993,11 +993,11 @@
         },
         {
           "id": "3.10",
-          "title": "A tune from a score",
+          "title": "A tune from notation",
           "strand": "T",
           "href": "/music/songs/shelf/ukulele/greensleeves",
-          "setup": "Song practice: import a shelf melody (Greensleeves or Scarborough Fair), wait mode, then performance.",
-          "done": "Wait mode 90% of the notes, then performance 80% on two days.",
+          "setup": "Song practice: import a melody from this level's list (Greensleeves or Scarborough Fair). Play it in Wait mode, then Performance.",
+          "done": "90% of the notes in Wait mode, then 80% in Performance on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
           "links": [
@@ -1013,7 +1013,7 @@
           "title": "Read in 3/4 and 6/8",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3&meter=compound",
-          "setup": "Sight-reading, level 3, compound meter (6/8). A 3/4 meter setting is coming.",
+          "setup": "Sight-reading, level 3, compound meter (6/8). There's no 3/4 setting yet.",
           "done": "80% at level 3 in 6/8, 3 runs on two days.",
           "match": {
             "level": "level-3",
@@ -1223,13 +1223,13 @@
           }
         }
       ],
-      "test": "One 6/8 fingerpicked song at the preset tempo; one strummed song in 3/4 or 6/8 at tempo; Greensleeves or Scarborough Fair at 80% in Song practice performance mode."
+      "test": "Play one 6/8 fingerpicked song at the preset tempo. Play one strummed song in 3/4 or 6/8 at tempo. Play Greensleeves or Scarborough Fair at 80% in Song practice, Performance."
     },
     {
       "id": "4",
       "title": "Swing, the Hawaiian vamp and Travis picking",
       "goal": "The old-time and Hawaiian sound, and an independent thumb.",
-      "adds": "Swing strum, calypso strum; the ragtime circle of sevenths (E7 A7 D7 G7, B7); Cmaj7, Fmaj7, Am7, C6, dim; alternating thumb, Travis, the fancy eight; melody over a moving thumb; keys of G and F.",
+      "adds": "Strumming: swing and calypso. Chords: the ragtime circle of sevenths (E7 A7 D7 G7, B7), Cmaj7, Fmaj7, Am7, C6, dim. Fingerpicking: alternating thumb, Travis, the fancy eight, melody over a moving thumb. Lead: the keys of G and F.",
       "pick": 2,
       "steps": [
         {
@@ -1238,7 +1238,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-swing&bpm=90",
           "setup": "Rhythm, read and tap: the swing strum, D then DU DU DU swung.",
-          "done": "5 runs at 80% at 120, on two days.",
+          "done": "5 runs at 80% at 120 BPM, on two days.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 120,
@@ -1249,7 +1249,7 @@
           "title": "The ragtime circle",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.e7,ukulele.a7&timed=true",
-          "setup": "Chords, Changes: timed, E7-A7, A7-D7, D7-G7, G7-C. Build B7 too (the app's generated shape until a curated one arrives).",
+          "setup": "Chords, Changes: timed, E7-A7, A7-D7, D7-G7, G7-C. Build B7 too (a generated shape for now).",
           "done": "30 changes a minute on each pair, on two days.",
           "each": {
             "param": "chords",
@@ -1286,7 +1286,7 @@
           "title": "The Hawaiian vamp",
           "strand": "S",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.hawaiian-vamp",
-          "setup": "Phrases: the Hawaiian vamp in C. The same vamp in F and G is coming.",
+          "setup": "Phrases: the Hawaiian vamp in C. The vamp in F and G isn't in Phrases yet.",
           "done": "3 runs at 85% in each key, on two days.",
           "match": {
             "phrase": "ukulele.hawaiian-vamp"
@@ -1300,7 +1300,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-calypso&bpm=90",
           "setup": "Rhythm, read and tap: the calypso strum, D DU UDU with the push on the and of 3.",
-          "done": "5 runs at 80% at 100.",
+          "done": "5 runs at 80% at 100 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 100,
@@ -1311,7 +1311,7 @@
           "title": "Major sevenths and sixths",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.0.maj7",
-          "setup": "Chords, Build: Cmaj7, Fmaj7, Am7, C6, C#dim (the app's generated shapes until curated ones arrive).",
+          "setup": "Chords, Build: Cmaj7, Fmaj7, Am7, C6, C#dim (generated shapes for now).",
           "done": "Each shape clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -1350,8 +1350,8 @@
           "title": "Alternating thumb on 3 and 4",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-alternating&chords=ukulele.c-major,ukulele.f-major,ukulele.g7&bpm=70",
-          "setup": "Chords, Fingerpicking: alternating thumb, 70 to 100.",
-          "done": "3 runs at 85% at 100, on two days.",
+          "setup": "Chords, Fingerpicking: alternating thumb, at 70 to 100 BPM.",
+          "done": "3 runs at 85% at 100 BPM, on two days.",
           "match": {
             "pattern": "uke-alternating"
           },
@@ -1365,7 +1365,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-travis&chords=ukulele.c-major,ukulele.e7,ukulele.f-major,ukulele.g7&bpm=70",
           "setup": "Chords, Fingerpicking: Travis over C E7 F G7.",
-          "done": "3 runs at 85% at 90, on two days.",
+          "done": "3 runs at 85% at 90 BPM, on two days.",
           "match": {
             "pattern": "uke-travis"
           },
@@ -1379,7 +1379,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-fancy-eight&chords=ukulele.c-major,ukulele.a-minor,ukulele.f-major,ukulele.g-major&bpm=60",
           "setup": "Chords, Fingerpicking: the fancy eight over C Am F G.",
-          "done": "3 runs at 80% at 80, on two days.",
+          "done": "3 runs at 80% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-fancy-eight"
           },
@@ -1392,8 +1392,8 @@
           "title": "Melody over the thumb",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-travis&chords=ukulele.g-major,gen.ukulele.2.7,gen.ukulele.11.7,ukulele.c-major&bpm=80",
-          "setup": "Chords, Fingerpicking: Travis over Freight Train's chords, G D7 B7 C (a song preset is coming); then the shelf score in Song practice.",
-          "done": "The pattern 3 runs at 80%, on two days; then Song practice performance at 80%.",
+          "setup": "Chords, Fingerpicking: Travis over Freight Train's chords, G D7 B7 C. There's no song preset yet. Then the notation from this level's list in Song practice.",
+          "done": "The pattern 3 runs at 80%, on two days. Then 80% in Song practice, Performance.",
           "match": {
             "pattern": "uke-travis",
             "shapes": "ukulele.g-major>gen.ukulele.2.7>gen.ukulele.11.7>ukulele.c-major"
@@ -1407,7 +1407,7 @@
           "strand": "T",
           "href": "/music/scales?instrument=ukulele&kind=major&tonic=67&span=one-octave&bpm=70",
           "setup": "Scales: G major, then F major, one octave.",
-          "done": "Each 3 runs at 95% at 90, on two days.",
+          "done": "Each 3 runs at 95% at 90 BPM, on two days.",
           "match": {
             "kind": "major"
           },
@@ -1430,8 +1430,8 @@
           "title": "Dotted and swung reading",
           "strand": "T",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=dotted-quarters&bpm=70",
-          "setup": "Rhythm, read and tap: dotted quarters. Sight-reading, level 3, alongside (the app's levels stop at 3).",
-          "done": "Rhythm 5 runs at 80%, on two days; sight-reading at level 3 to 4.",
+          "setup": "Rhythm, read and tap: dotted quarters. Sight-reading, level 3, alongside (the drill's levels stop at 3).",
+          "done": "Rhythm 5 runs at 80%, on two days. Sight-reading at level 3 to 4.",
           "minAttempts": 5,
           "threshold": 0.8,
           "links": [
@@ -1642,13 +1642,13 @@
           }
         }
       ],
-      "test": "A swing song with the ragtime circle at 120; Freight Train or Dust in the Wind at 80% in Song practice performance; the Hawaiian vamp in C, F and G."
+      "test": "Play a swing song with the ragtime circle at 120 BPM. Play Freight Train or Dust in the Wind at 80% in Song practice, Performance. Play the Hawaiian vamp in C, F and G."
     },
     {
       "id": "5",
       "title": "Closed shapes, the blues and the first solos",
       "goal": "Play in any common key and start improvising.",
-      "adds": "Barre and closed shapes (Bb, Cm, D barre, Bm, movable 7th); triplet strum; the 12-bar shuffle; A minor pentatonic box 1, first licks and a first solo; backward rolls; notes to fret 7.",
+      "adds": "Chords: barre and closed shapes (Bb, Cm, D barre, Bm, movable 7th). Strumming: the triplet strum, the 12-bar shuffle. Lead: A minor pentatonic box 1, first licks and a first solo. Fingerpicking: backward rolls. Reading: notes to fret 7.",
       "pick": 2,
       "steps": [
         {
@@ -1656,7 +1656,7 @@
           "title": "Barre and closed shapes",
           "strand": "S",
           "href": "/music/chords?mode=pick&instrument=ukulele&shape=gen.ukulele.10.maj",
-          "setup": "Chords, Pick (an arpeggio check): Bb, Cm, D, Bm. Cm and Bm use the app's generated shapes until curated ones arrive; D is the open shape until a barre position is added.",
+          "setup": "Chords, Pick (an arpeggio check): Bb, Cm, D, Bm. Cm and Bm use generated shapes for now. D is the open shape: there's no barre position yet.",
           "done": "5 of 5 clean arpeggios on each shape, on two days.",
           "each": {
             "param": "shape",
@@ -1724,7 +1724,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-triplet&bpm=70",
           "setup": "Rhythm, read and tap: the triplet strum, i down, thumb down, i up.",
-          "done": "5 runs at 80% at 90 (eighth-note triplets), on two days.",
+          "done": "5 runs at 80% at 90 BPM (eighth-note triplets), on two days.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 90,
@@ -1735,8 +1735,8 @@
           "title": "12-bar shuffle in A and C",
           "strand": "S",
           "setup": "Strum a progression: Jam's blues progression with a shuffle strum.",
-          "done": "3 choruses at 90, 80% on timing and chords.",
-          "needs": "Runs that count in Strum a progression (its presets and strums are there; chord following is not yet checked on a real instrument).",
+          "done": "3 choruses at 90 BPM, 80% on timing and chords.",
+          "needs": "Runs that count in Strum a progression. Its presets and strums are there, but chord following isn't scored on a real instrument yet.",
           "feeds": "Sweet Home Chicago"
         },
         {
@@ -1744,8 +1744,8 @@
           "title": "A minor pentatonic, box 1",
           "strand": "L",
           "href": "/music/scales?instrument=ukulele&kind=minor-pentatonic&tonic=69&span=one-octave&bpm=60",
-          "setup": "Scales: A minor pentatonic, one octave. Ukulele scale positions are coming.",
-          "done": "3 runs at 95% at 80, on two days.",
+          "setup": "Scales: A minor pentatonic, one octave. The box shape itself is in Fretboard, Positions.",
+          "done": "3 runs at 95% at 80 BPM, on two days.",
           "match": {
             "kind": "minor-pentatonic",
             "tonic": "69"
@@ -1803,7 +1803,7 @@
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-backward-roll&chords=ukulele.c-major,ukulele.g-major,ukulele.a-minor,gen.ukulele.4.m,ukulele.f-major,ukulele.c-major,ukulele.f-major,ukulele.g-major&bpm=60",
           "setup": "Chords, Fingerpicking: the backward roll over C G Am Em F C F G.",
-          "done": "3 runs at 85% at 80, on two days.",
+          "done": "3 runs at 85% at 80 BPM, on two days.",
           "match": {
             "pattern": "uke-backward-roll"
           },
@@ -1816,7 +1816,7 @@
           "title": "A fingerstyle pop arrangement",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/canon-in-c",
-          "setup": "Song practice: Canon in C or Perfect (fingerstyle), wait mode then performance.",
+          "setup": "Song practice: Canon in C or Perfect (fingerstyle), Wait mode, then Performance.",
           "done": "Performance 80% at 90% of the tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -1932,7 +1932,7 @@
           "title": "Viva la Vida",
           "artist": "Coldplay",
           "strand": "S, F",
-          "teaches": "Driving eighths; a fingerstyle version",
+          "teaches": "Driving eighths, a fingerstyle version",
           "detail": "C, about 138 BPM, C D G Em",
           "bpm": 138,
           "diff": 2,
@@ -2062,13 +2062,13 @@
           ]
         }
       ],
-      "test": "12-bar blues in A: one chorus of shuffle comping, then two improvised choruses over Jam at 90; a barre-chord song at tempo; one fingerstyle piece (Canon in C, Perfect or a blues) at 80% in performance mode."
+      "test": "Play a 12-bar blues in A over Jam at 90 BPM: one chorus of shuffle comping, then two improvised choruses. Play a barre-chord song at tempo. Play one fingerstyle piece (Canon in C, Perfect or a blues) at 80% in Performance."
     },
     {
       "id": "6",
       "title": "Campanella and the first solo arrangements",
       "goal": "The ringing re-entrant sound (high-G), and solo pieces that carry melody and harmony together.",
-      "adds": "Campanella scales and tunes; melody on top with the thumb under; first chord melody; major pentatonic soloing; notes to fret 10; playing from memory.",
+      "adds": "Fingerpicking: campanella scales and tunes, melody on top with the thumb under, a first chord melody. Lead: major pentatonic soloing. Reading: notes to fret 10. Songs: playing from memory.",
       "pick": 2,
       "steps": [
         {
@@ -2076,8 +2076,8 @@
           "title": "Campanella C major scale",
           "strand": "T",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-c-major",
-          "setup": "Phrases: the C major scale in campanella, each note on a new string (high-G). Whether the notes ring over is not checked yet.",
-          "done": "3 runs at 95% of the notes at 70.",
+          "setup": "Phrases: the C major scale in campanella, each note on a new string (high-G). Woodshed doesn't check yet whether the notes ring over.",
+          "done": "3 runs at 95% of the notes at 70 BPM.",
           "match": {
             "phrase": "ukulele.campanella-c-major"
           },
@@ -2091,7 +2091,7 @@
           "strand": "T",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-c-pentatonic",
           "setup": "Phrases: C major pentatonic in campanella.",
-          "done": "3 runs at 95% at 90 (RSL Grade 4 to 5 tempo).",
+          "done": "3 runs at 95% at 90 BPM (RSL Grade 4 to 5 tempo).",
           "match": {
             "phrase": "ukulele.campanella-c-pentatonic"
           },
@@ -2142,7 +2142,7 @@
           "title": "First chord melody",
           "strand": "F",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.chord-melody-amazing-grace",
-          "setup": "Phrases: Amazing Grace as chord melody, the tune on top of each chord. Every note of a chord is graded, not only the top one, and Aloha 'Oe is still to come.",
+          "setup": "Phrases: Amazing Grace as chord melody, the tune on top of each chord. Every note of a chord is scored, not only the top one. Aloha 'Oe is still to come.",
           "done": "3 runs at 80%.",
           "match": {
             "phrase": "ukulele.chord-melody-amazing-grace"
@@ -2155,7 +2155,7 @@
           "title": "Pinch the melody, hold the bass",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/the-lion-sleeps-tonight",
-          "setup": "Chords, Fingerpicking: thumb, then two strings together; then The Lion Sleeps Tonight in Song practice.",
+          "setup": "Chords, Fingerpicking: thumb, then two strings together. Then The Lion Sleeps Tonight in Song practice.",
           "done": "Performance 80%, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2173,7 +2173,7 @@
           "strand": "T",
           "href": "/music/reading?mode=flashcards&activity=flashcards&instrument=ukulele&level=level-1",
           "setup": "Note reading, Flashcards: level 1, C4 to G5 (frets 0 to 10). Sight-reading alongside.",
-          "done": "30 notes at 90%, under 3 seconds each; sight-reading at level 5 once the app has it.",
+          "done": "30 notes at 90%, under 3 seconds each. Sight-reading at level 5 once the drill has it.",
           "match": {
             "high": "79"
           },
@@ -2191,8 +2191,8 @@
           "title": "A campanella jig",
           "strand": "T",
           "href": "/music/songs/shelf/ukulele/cripple-creek",
-          "setup": "Song practice: Cripple Creek or the Swallowtail Jig, 80 then 100.",
-          "done": "Performance 80% at 100, on two days.",
+          "setup": "Song practice: Cripple Creek or the Swallowtail Jig, at 80, then 100 BPM.",
+          "done": "Performance 80% at 100 BPM, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
           "minBpm": 100,
@@ -2237,7 +2237,7 @@
           "title": "Memorise a solo",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, Performance with Memory set to After a look: one shelf solo from memory.",
+          "setup": "Song practice, Performance, with From memory set to After a look: one solo from this level's list.",
           "done": "2 clean takes on two days.",
           "feeds": "boss",
           "match": {
@@ -2306,7 +2306,7 @@
           "title": "Swallowtail Jig",
           "artist": "trad. Irish",
           "strand": "F",
-          "teaches": "A 6/8 jig; try campanella fingerings",
+          "teaches": "A 6/8 jig. Try campanella fingerings",
           "detail": "Em, 80 to 110 BPM (dotted quarter 60 to 80)",
           "diff": 3,
           "scores": [
@@ -2426,13 +2426,13 @@
           ]
         }
       ],
-      "test": "One solo arrangement from memory at tempo; one campanella piece at 100; the C major pentatonic in campanella style at 90."
+      "test": "Play one solo arrangement from memory at tempo. Play one campanella piece at 100 BPM. Play the C major pentatonic in campanella style at 90 BPM."
     },
     {
       "id": "7",
       "title": "Jazz chords, comping and chord melody",
       "goal": "Play standards two ways: comping and as a chord melody.",
-      "adds": "maj7, m7, 7, m7b5, dim7 and 6 shapes in two inversions; ii-V-I in four keys; swing comping, bossa; guide tones; seventh-chord arpeggios; reading lead sheets.",
+      "adds": "Chords: maj7, m7, 7, m7b5, dim7 and 6 shapes in two inversions, ii-V-I in four keys. Strumming: swing comping, bossa. Lead: guide tones, seventh-chord arpeggios. Reading: lead sheets.",
       "pick": 2,
       "steps": [
         {
@@ -2440,7 +2440,7 @@
           "title": "Seventh-chord shapes",
           "strand": "S",
           "href": "/music/chords?mode=build&instrument=ukulele&shape=gen.ukulele.0.maj7",
-          "setup": "Chords, Build: Cmaj7, Dm7, G7, Em7, A7, Fmaj7, Bm7b5, E7, Ebdim7 (the app's generated shapes until curated movable ones arrive).",
+          "setup": "Chords, Build: Cmaj7, Dm7, G7, Em7, A7, Fmaj7, Bm7b5, E7, Ebdim7 (generated shapes for now).",
           "done": "Each shape clean 5 times running, on two days.",
           "each": {
             "param": "shape",
@@ -2499,8 +2499,8 @@
           "title": "ii-V-I changes",
           "strand": "S",
           "href": "/music/chords?mode=changes&instrument=ukulele&chords=gen.ukulele.2.m7,ukulele.g7&timed=true",
-          "setup": "Chords, Changes: timed, Dm7-G7 and G7-Cmaj7. Then Jam's ii-V-I in C, F, G and Bb (not judged yet).",
-          "done": "25 changes a minute on each pair, on two days; Jam 4 choruses without a dropped change.",
+          "setup": "Chords, Changes: timed, Dm7-G7 and G7-Cmaj7. Then Jam's ii-V-I in C, F, G and Bb (not scored yet).",
+          "done": "25 changes a minute on each pair, on two days. In Jam, 4 choruses without a dropped change.",
           "each": {
             "param": "chords",
             "values": ["gen.ukulele.2.m7>ukulele.g7", "ukulele.g7>gen.ukulele.0.maj7"]
@@ -2524,7 +2524,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-swing-comp&bpm=100",
           "setup": "Rhythm, read and tap: four to the bar, chuck on 2 and 4, over Dm7 G7 Cmaj7.",
-          "done": "5 runs at 80% at 120.",
+          "done": "5 runs at 80% at 120 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 120,
@@ -2536,7 +2536,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-bossa&bpm=90",
           "setup": "Rhythm, read and tap: thumb on 1 and 3, fingers syncopated over two bars.",
-          "done": "5 runs at 80% at 110.",
+          "done": "5 runs at 80% at 110 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 110,
@@ -2546,7 +2546,7 @@
           "id": "7.5",
           "title": "Chord melody, 8 bars",
           "strand": "F",
-          "setup": "Song practice, Performance on bars 1 to 8 of the shelf's Fly Me to the Moon chord melody and Autumn Leaves. Every note of each chord is graded, not only the top note.",
+          "setup": "Song practice, Performance: bars 1 to 8 of Fly Me to the Moon (chord melody) and of Autumn Leaves. Both are in this level's list. Every note of each chord is scored, not only the top note.",
           "done": "3 runs at 80%.",
           "feeds": "Fly Me to the Moon",
           "href": "/music/library?tab=songs",
@@ -2574,7 +2574,7 @@
           "title": "A full chord melody",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/moon-river",
-          "setup": "Song practice: Moon River or La Vie en Rose, wait mode then performance.",
+          "setup": "Song practice: Moon River or La Vie en Rose, Wait mode, then Performance.",
           "done": "Performance 80% at tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2592,8 +2592,8 @@
           "title": "Read a lead sheet",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3",
-          "setup": "A lead sheet (melody with chord symbols) in Song practice or on paper; Sight-reading, level 3 (the app's levels stop at 3).",
-          "done": "80% at sight-reading level 3, 3 runs on two days; level 5 once the app has it.",
+          "setup": "A lead sheet (melody with chord symbols) in Song practice or on paper. Then Sight-reading, level 3 (the drill's levels stop at 3).",
+          "done": "80% at sight-reading level 3, 3 runs on two days. Level 5 once the drill has it.",
           "match": {
             "level": "level-3"
           },
@@ -2605,8 +2605,8 @@
           "title": "Seventh-chord arpeggios",
           "strand": "L",
           "href": "/music/scales?instrument=ukulele&pattern=arpeggio&chord=dominant-7&tonic=67&span=one-octave&bpm=60",
-          "setup": "Scales, Arpeggio: dominant 7. Ukulele arpeggio fingerings for maj7 and m7 are coming.",
-          "done": "3 runs at 95% at 80, on two days.",
+          "setup": "Scales, Arpeggio: dominant 7. Ukulele arpeggio fingerings for maj7 and m7 aren't in Scales yet.",
+          "done": "3 runs at 95% at 80 BPM, on two days.",
           "match": {
             "pattern": "arpeggio",
             "chord": "dominant-7"
@@ -2709,7 +2709,7 @@
           "title": "All of Me",
           "artist": "Gerald Marks, Seymour Simons, 1931",
           "strand": "L, F",
-          "teaches": "Comping a standard; secondary dominants",
+          "teaches": "Comping a standard, secondary dominants",
           "detail": "C, about 130 BPM, C E7 A7 Dm D7 G7",
           "bpm": 130,
           "diff": 1,
@@ -2856,13 +2856,13 @@
           ]
         }
       ],
-      "test": "One standard as a chord melody from memory (at least 32 bars); comp the same tune in swing for two choruses over Jam; ii-V-I in C, F, G and Bb at 25 changes a minute."
+      "test": "Play one standard as a chord melody from memory, at least 32 bars. Comp the same tune in swing for two choruses over Jam. Play ii-V-I in C, F, G and Bb at 25 changes a minute."
     },
     {
       "id": "8",
       "title": "The advanced right hand and classical pieces",
       "goal": "The strokes and textures that make a solo ukulele sound full.",
-      "adds": "Formby split stroke, triple stroke, fan strokes (rasgueado); tremolo; p-a-m-i arpeggio studies; slurs and slides; natural harmonics; classical reading in sharp and flat keys; campanella in a minor key.",
+      "adds": "Strumming: Formby split stroke, triple stroke, fan strokes (rasgueado). Fingerpicking: tremolo, p-a-m-i arpeggio studies, campanella in a minor key. Lead: slurs and slides, natural harmonics. Reading: classical pieces in sharp and flat keys.",
       "pick": 2,
       "steps": [
         {
@@ -2871,7 +2871,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-split-stroke&bpm=100",
           "setup": "Rhythm, read and tap: the split stroke, D dU D dU with the accent on the up after 2 and 4.",
-          "done": "5 runs at 80% at 120.",
+          "done": "5 runs at 80% at 120 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 120,
@@ -2882,8 +2882,8 @@
           "title": "Triple stroke",
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-triple-stroke&bpm=80",
-          "setup": "Rhythm, read and tap: a triple-stroke study in the RSL Grade 5 manner, triplets on 1 and 3, D U on 2 and 4.",
-          "done": "4 bars at 90, 80%.",
+          "setup": "Rhythm, read and tap: a triple-stroke study in the RSL Grade 5 manner. Triplets on 1 and 3, D U on 2 and 4.",
+          "done": "4 bars at 90 BPM, 80%.",
           "threshold": 0.8,
           "minAttempts": 1,
           "minBpm": 90,
@@ -2895,7 +2895,7 @@
           "strand": "S",
           "href": "/music/rhythm?mode=read-and-tap&instrument=ukulele&pattern=ukulele-fan&bpm=70",
           "setup": "Rhythm, read and tap: a four-finger roll on 1 and 3.",
-          "done": "5 runs at 80% at 80.",
+          "done": "5 runs at 80% at 80 BPM.",
           "threshold": 0.8,
           "minAttempts": 5,
           "minBpm": 80,
@@ -2906,8 +2906,8 @@
           "title": "Tremolo",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tremolo-pami&chords=ukulele.a-minor,ukulele.c-major&perBeat=4&bpm=60",
-          "setup": "Chords, Fingerpicking, Tremolo: p a m i on string 1 at four notes a click, graded half on evenness. Warm up with i m. Even within a fixed bar (no personal baseline yet).",
-          "done": "Even within your baseline at 4 notes a beat, 70.",
+          "setup": "Chords, Fingerpicking, Tremolo: p a m i on string 1 at four notes a click, scored half on evenness. Warm up with i m. Evenness is measured against a fixed bar: there's no personal baseline yet.",
+          "done": "Even within your baseline at 4 notes a beat, at 70 BPM.",
           "match": {
             "pattern": "uke-tremolo-pami",
             "perBeat": "4"
@@ -2927,8 +2927,8 @@
           "title": "p-a-m-i arpeggio triplets",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tami&chords=ukulele.a-minor,ukulele.e7,ukulele.a-minor,ukulele.d-minor&bpm=70&perBeat=3",
-          "setup": "Chords, Fingerpicking: thumb, then a m i, at 3 notes a click; then Spanish Romance in Song practice.",
-          "done": "The pattern 3 runs at 85% at 90, on two days; the piece at 80%.",
+          "setup": "Chords, Fingerpicking: thumb, then a m i, at 3 notes a click. Then Spanish Romance in Song practice.",
+          "done": "The pattern 3 runs at 85% at 90 BPM, on two days. The piece at 80%.",
           "match": {
             "pattern": "uke-tami",
             "perBeat": "3"
@@ -2952,7 +2952,7 @@
           "title": "Natural harmonics at frets 12, 7 and 5",
           "strand": "F",
           "href": "/music/fretboard?mode=harmonics&instrument=ukulele&bpm=60",
-          "setup": "Fretboard, Harmonics: touch each string over frets 12, 7 and 5 and let it ring, one a click; the microphone hears the harmonic.",
+          "setup": "Fretboard, Harmonics: touch each string over frets 12, 7 and 5 and let it ring, one a click. The microphone hears the harmonic.",
           "done": "12 harmonics at 90% pitch.",
           "threshold": 0.9,
           "minAttempts": 1,
@@ -2963,7 +2963,7 @@
           "title": "Classical piece one",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/lagrima",
-          "setup": "Song practice: Lágrima or Spanish Romance, with fix-the-spot loops.",
+          "setup": "Song practice: Lágrima or Spanish Romance, looping the trouble spots.",
           "done": "Performance 85% at tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.85,
@@ -2999,8 +2999,8 @@
           "title": "Classical reading",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3&key=D%20major",
-          "setup": "Sight-reading, level 3, in D major and Bb major (the app's levels stop at 3).",
-          "done": "80% in each key, 3 runs on two days; level 6 once the app has it.",
+          "setup": "Sight-reading, level 3, in D major and Bb major (the drill's levels stop at 3).",
+          "done": "80% in each key, 3 runs on two days. Level 6 once the drill has it.",
           "match": {
             "level": "level-3"
           },
@@ -3022,7 +3022,7 @@
           "strand": "T",
           "href": "/music/phrases?instrument=ukulele&phrase=ukulele.campanella-d-harmonic-minor",
           "setup": "Phrases: D harmonic minor in campanella (RSL Grade 6 to 8, high-G).",
-          "done": "3 runs at 95% at 90.",
+          "done": "3 runs at 95% at 90 BPM.",
           "match": {
             "phrase": "ukulele.campanella-d-harmonic-minor"
           },
@@ -3046,7 +3046,7 @@
           "title": "Spanish Romance",
           "artist": "anon.",
           "strand": "F",
-          "teaches": "p-a-m-i triplet arpeggios",
+          "teaches": "P-a-m-i triplet arpeggios",
           "detail": "Am to A, about 90 BPM (triplets)",
           "bpm": 90,
           "diff": 2,
@@ -3240,13 +3240,13 @@
           ]
         }
       ],
-      "test": "Two contrasting solos (one classical, one Latin or ragtime) at tempo at 85% in performance mode; the triple-stroke study at 90; Ain't She Sweet with split strokes at 120."
+      "test": "Play two contrasting solos, one classical and one Latin or ragtime, at tempo at 85% in Performance. Play the triple-stroke study at 90 BPM. Play Ain't She Sweet with split strokes at 120 BPM."
     },
     {
       "id": "9",
       "title": "Up the neck and improvising",
       "goal": "Solo freely over blues, minor tunes and simple standards, and find any chord up the neck.",
-      "adds": "Minor pentatonic in five positions, the blues scale and major pentatonic mixed over dominant chords; slides, small bends, double stops; chord-tone soloing; minor ii-V; call and response; transcribing four bars.",
+      "adds": "Lead: minor pentatonic in five positions, the blues scale and major pentatonic mixed over dominant chords. Technique: slides, small bends, double stops. Improvising: chord-tone soloing, minor ii-V, call and response. Ear: transcribing four bars.",
       "pick": 2,
       "steps": [
         {
@@ -3254,8 +3254,8 @@
           "title": "Minor pentatonic, five positions",
           "strand": "L",
           "href": "/music/fretboard?mode=positions&instrument=ukulele&pattern=ukulele-minor-pentatonic-1&rootFret=0&bpm=90",
-          "setup": "Fretboard, Positions on ukulele: minor pentatonic positions 1 to 5, root on string 1 (A at the nut, C at fret 3), in A and C.",
-          "done": "Each position 3 runs at 95% at 90.",
+          "setup": "Fretboard, Positions, on ukulele: minor pentatonic positions 1 to 5 in A and C. Root on string 1 (A at the nut, C at fret 3).",
+          "done": "Each position 3 runs at 95% at 90 BPM.",
           "each": {
             "param": "pattern",
             "values": [
@@ -3293,7 +3293,7 @@
           "title": "One chord in five places up the neck",
           "strand": "C, T",
           "href": "/music/chords?mode=build&instrument=ukulele&shape=ukulele.c-major&position=0",
-          "setup": "Chords, Build: C in its five forms from open to fret 12 (the ukulele's version of guitar CAGED: the guitar's top four strings capoed at 5, so its C A G E D forms become F D C A G here). Then Am the same way.",
+          "setup": "Chords, Build: C in its five forms from open to fret 12. It's the ukulele's version of guitar CAGED. The ukulele matches the guitar's top four strings capoed at 5. So the C A G E D forms become F D C A G here. Then Am the same way.",
           "done": "Each form rings clean 3 times running, on two days.",
           "each": {
             "param": "position",
@@ -3333,7 +3333,7 @@
           "title": "Move through the forms in time",
           "strand": "C, T",
           "href": "/music/chords?mode=changes&instrument=ukulele&chords=ukulele.c-major,ukulele.c-major,ukulele.c-major,ukulele.c-major,ukulele.c-major&positions=0,1,2,3,4&timed=true",
-          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built; MIDI or the on-screen frets tell them apart.",
+          "setup": "Chords, Changes: C through its five forms up the neck and back, timed. The microphone hears C in every form, so play the forms you built. MIDI or the on-screen frets tell them apart.",
           "done": "20 changes a minute through the cycle, clean, on two days.",
           "match": {
             "chords": "ukulele.c-major>ukulele.c-major>ukulele.c-major>ukulele.c-major>ukulele.c-major"
@@ -3354,8 +3354,8 @@
           "title": "Blues scale and major pentatonic",
           "strand": "L",
           "href": "/music/scales?instrument=ukulele&kind=blues&tonic=69&span=one-octave&bpm=70",
-          "setup": "Scales: A blues, then A major pentatonic. A second position waits for ukulele scale positions.",
-          "done": "Each 3 runs at 95% at 90, on two days.",
+          "setup": "Scales: A blues, then A major pentatonic. There's no second position in Scales yet.",
+          "done": "Each 3 runs at 95% at 90 BPM, on two days.",
           "match": {
             "tonic": "69"
           },
@@ -3397,7 +3397,7 @@
           "title": "Call and response",
           "strand": "L",
           "href": "/music/ear/melody-dictation?answer=play-back&level=minor-diatonic&instrument=ukulele",
-          "setup": "Ear, Melody dictation: play back, minor degrees (no blues level yet). The ukulele blues phrases from 5.6, in other keys, are coming.",
+          "setup": "Ear, Melody dictation: play back, minor degrees (no blues level yet). The ukulele blues phrases from level 5 aren't in other keys yet.",
           "done": "10 phrases at 80%.",
           "match": {
             "level": "minor-diatonic"
@@ -3410,7 +3410,7 @@
           "id": "9.5",
           "title": "Chord tones over I7 IV7 V7",
           "strand": "L",
-          "setup": "Jazz licks on ukulele; then Jam's blues in Check, chord tones on beats 1 and 3.",
+          "setup": "Jazz licks on ukulele. Then Jam's blues in Check, chord tones on beats 1 and 3.",
           "done": "3 choruses where the chorus report shows chord tones on beats 1 and 3 at 60%.",
           "feeds": "St. Louis Blues",
           "href": "/music/changes/jam?progression=blues&game=chord-tones&choruses=3",
@@ -3456,7 +3456,7 @@
           "title": "Comp and trade",
           "strand": "S",
           "href": "/music/changes/jam?progression=blues&instrument=ukulele",
-          "setup": "Jam: comp one chorus, solo one chorus, recorded in Practice Lab.",
+          "setup": "Jam: comp one chorus, solo one chorus, recorded in Practice lab.",
           "done": "4 alternating choruses without a stop.",
           "exerciseIds": [],
           "feeds": "all"
@@ -3465,8 +3465,8 @@
           "id": "9.9",
           "title": "Transcribe four bars",
           "strand": "T",
-          "setup": "Song practice, Performance on your own transcription of one melody line from a recorded solo, corrected in the note editor. Any song counts, so play the transcription.",
-          "done": "4 bars played back at 80% in performance mode.",
+          "setup": "Song practice, Performance: your own transcription of one melody line from a recorded solo. Correct it in the Song editor first. Any song counts, so play the transcription.",
+          "done": "4 bars played back at 80% in Performance.",
           "href": "/music/library?tab=songs",
           "match": {
             "mode": "performance"
@@ -3639,13 +3639,13 @@
           }
         }
       ],
-      "test": "Three choruses on a 12-bar blues in A and in C at 110 swung, comping one and soloing two; two improvised choruses on Summertime or Blue Bossa; a transcribed four-bar lick at tempo."
+      "test": "Play three choruses of a 12-bar blues in A and in C at 110 BPM swung: comp one, solo two. Improvise two choruses on Summertime or Blue Bossa. Play a four-bar lick you transcribed, at tempo."
     },
     {
       "id": "10",
       "title": "A concert programme",
       "goal": "Finish and perform.",
-      "adds": "Programme planning, fix-the-spot work at full length, dynamics, memory, a first arrangement of your own and a recorded performance.",
+      "adds": "Programme planning, trouble-spot loops at full length, dynamics, memory, a first arrangement of your own and a recorded performance.",
       "pick": 2,
       "steps": [
         {
@@ -3653,7 +3653,7 @@
           "title": "Choose a programme",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Three shelf pieces (pop, classical, jazz or Hawaiian), 10 to 12 minutes, from your songs.",
+          "setup": "Three pieces from the path's song lists (pop, classical, jazz or Hawaiian), 10 to 12 minutes, from your songs.",
           "done": "The list saved in the journal.",
           "exerciseIds": [],
           "feeds": "all"
@@ -3662,7 +3662,7 @@
           "id": "10.2",
           "title": "Fix the hard spots",
           "strand": "F",
-          "setup": "Song practice fix-the-spot loops (a custom range in Performance) on each piece's three hardest bars. The app counts clean loops on any spot, not per spot.",
+          "setup": "Song practice: loop each piece's three hardest bars (a custom range in Performance). Woodshed counts clean loops on any spot, not per spot.",
           "done": "3 clean loops at tempo per spot.",
           "feeds": "all",
           "href": "/music/library?tab=songs",
@@ -3677,7 +3677,7 @@
           "title": "Whole pieces at tempo",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, performance mode, each programme piece.",
+          "setup": "Song practice, Performance: each programme piece.",
           "done": "Each piece at 90% on two days.",
           "match": {
             "mode": "performance"
@@ -3690,7 +3690,7 @@
           "id": "10.4",
           "title": "Dynamics",
           "strand": "F",
-          "setup": "Song practice, Performance with Grade set to Dynamics: louder or softer where the score says, on a score with dynamics marked (experimental).",
+          "setup": "Song practice, Performance, with Also score set to Dynamics and breaths. Play louder or softer where the notation says, on notation with dynamics marked (experimental).",
           "done": "Two marked contrasts heard in the take.",
           "feeds": "all",
           "href": "/music/library?tab=songs",
@@ -3704,7 +3704,7 @@
           "title": "Memory",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song practice, No-stop with Memory set to After a look: each piece from memory.",
+          "setup": "Song practice, No-stop, with From memory set to After a look: each piece from memory.",
           "done": "2 takes per piece without a stop.",
           "feeds": "boss",
           "match": {
@@ -3737,8 +3737,8 @@
           "title": "Unprepared reading",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3",
-          "setup": "Sight-reading, level 3, a new piece (the app's levels stop at 3).",
-          "done": "One pass at 80%; level 6 once the app has it.",
+          "setup": "Sight-reading, level 3, a new piece (the drill's levels stop at 3).",
+          "done": "One run at 80%. Level 6 once the drill has it.",
           "match": {
             "level": "level-3"
           },
@@ -3751,7 +3751,7 @@
           "title": "Accompany at sight",
           "strand": "S",
           "setup": "Strum a progression with an unseen chart from Jam (LCM unprepared accompaniment).",
-          "done": "16 bars at 80% on the first try.",
+          "done": "16 bars at 80% on the first run.",
           "needs": "Runs that count in Strum a progression, and unseen generated charts there."
         },
         {
@@ -3759,7 +3759,7 @@
           "title": "Perform",
           "strand": "F",
           "href": "/music/lab?instrument=ukulele",
-          "setup": "Practice Lab: the whole programme in one take.",
+          "setup": "Practice lab: the whole programme in one take.",
           "done": "One take, listened back, three notes written in the journal.",
           "exerciseIds": [],
           "feeds": "boss"
@@ -3974,7 +3974,7 @@
           ]
         }
       ],
-      "test": "The path's end: the 10 to 12 minute programme from memory in one recorded take; one standard comped and soloed over Jam for three choruses; 16 bars of unseen accompaniment at 80%."
+      "test": "The path's end. Play the 10 to 12 minute programme from memory in one recorded take. Comp and solo one standard over Jam for three choruses. Play 16 bars of unseen accompaniment at 80%."
     }
   ]
 }
