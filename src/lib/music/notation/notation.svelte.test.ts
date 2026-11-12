@@ -108,7 +108,7 @@ describe("Staff", () => {
     render(Staff, { score: triplets, onfallback });
     await expect
       .element(
-        page.getByText(/The staff can't draw this score: it has tuplets other than triplets/),
+        page.getByText(/The staff can't draw this music: it has tuplets other than triplets/),
       )
       .toBeVisible();
     expect(onfallback).toHaveBeenCalledOnce();

@@ -117,4 +117,4 @@ export const swingBeat = (beat: number) =>
   Math.abs((beat % 1) - 0.5) < 1e-6 ? Math.floor(beat) + 2 / 3 : beat;
 
 export const FINGERING_NOTE =
-  "Finger numbers on the keys are suggestions. They are never graded: MIDI cannot see fingers.";
+  "Finger numbers on the keys are suggestions. They're never scored: MIDI can't see fingers.";

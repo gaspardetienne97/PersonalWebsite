@@ -30,5 +30,5 @@
   scoreBpm={score.bpm}
   draw={(VF, host, width) => drawTab(VF, host, { score, voiceIds, range, width, tuning, fill })}
   fallback={(reason) =>
-    `Tab can't show this score honestly for ${tuning.name ?? "this tuning"}: ${reason}. The staff and waterfall show every note.`}
+    `Tab can't show this music for ${tuning.name ?? "this tuning"}: ${reason}. The staff and falling notes show every note.`}
 />

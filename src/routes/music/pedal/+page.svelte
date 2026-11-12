@@ -94,7 +94,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Listen: a chord a bar, each ringing into the next. The pedal is yours to add.";
+    status = "Demo: a chord a bar, each ringing into the next. The pedal is yours to add.";
     await transport.demo(demoNotes, bpm);
   }
 
@@ -233,7 +233,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -296,7 +296,7 @@
       <Choice label="Times through" setupKey="rounds" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Tempo comes from the practice strip ({TEMPO.min} to {TEMPO.max}). Lift within {PEDAL.liftWithinMs} ms after the chord and be back down within {PEDAL.repressWithinMs} ms: starting values, since no one publishes pedal timing.
+      Tempo comes from the top bar ({TEMPO.min} to {TEMPO.max} BPM). Lift within {PEDAL.liftWithinMs} ms after the chord and be back down within {PEDAL.repressWithinMs} ms: starting values, since no one publishes pedal timing.
     </p>
   {/snippet}
 

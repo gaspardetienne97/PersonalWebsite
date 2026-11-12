@@ -39,5 +39,5 @@
   label="Staff notation, {score.title}"
   scoreBpm={score.bpm}
   draw={(VF, host, width) => drawStaff(VF, host, { score, voiceIds, range, width, revealLabels, grand, fill, time, oneRow })}
-  fallback={(reason) => `The staff can't draw this score: ${reason}. Falling notes shows every note.`}
+  fallback={(reason) => `The staff can't draw this music: ${reason}. Falling notes shows every note.`}
 />

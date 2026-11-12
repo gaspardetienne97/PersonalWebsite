@@ -36,8 +36,8 @@
   const ABOUT = (tonicName: string): Record<TwoHandPatternId, string> => ({
     "lh-pulse-rh-line": "Left hand holds the root on every beat while the right hand runs eighths up and down the scale.",
     "rh-pulse-lh-line": "Roles swapped: the right hand keeps the pulse, the left hand runs the eighth-note line.",
-    "lh-shell-rh-line": "Left hand walks root, fifth, seventh, fifth; the right hand plays an eighth-note fragment over it.",
-    "alberti-rh-holds": "Left hand plays an Alberti figure in eighths; the right hand holds one note per beat.",
+    "lh-shell-rh-line": "Left hand walks root, fifth, seventh, fifth. The right hand plays an eighth-note fragment over it.",
+    "alberti-rh-holds": "Left hand plays an Alberti figure in eighths. The right hand holds one note per beat.",
     "contrary-motion-scale": "Both hands run the scale in eighths, moving in opposite directions.",
     "contrary-five": `Both thumbs on ${tonicName}, an octave apart. Walk outward, then back, same finger in both hands on every beat.`,
   });
@@ -151,7 +151,7 @@
     if (phase !== "running" || transport.beat === null || transport.beat < 0) return "";
     const b = transport.beat;
     const where = `Bar ${Math.min(BARS, Math.floor(b / 4) + 1)}, beat ${(Math.floor(b) % 4) + 1}`;
-    if (mode !== "practice") return `${where}: from memory`;
+    if (mode !== "practice") return `${where}, in Check`;
     const names = [...new Set(due(b).sort((x, y) => x.midi - y.midi).map((n) => noteName(n.midi, "flat", false)))];
     return names.length ? `Beat ${(Math.floor(b) % 4) + 1}: ${names.join(" and ")}` : where;
   });
@@ -168,7 +168,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Listen: both hands at tempo. Notes in one column of the lane strike together.";
+    status = "Demo: both hands at tempo. Notes in one column of the lane strike together.";
     await transport.demo(notes, bpm);
   }
 
@@ -278,7 +278,7 @@
         ? togetherShare !== null
           ? `Clean, and the hands struck together on ${r.together!.count} of ${r.together!.beats} beats.`
           : mode === "check"
-            ? `Both parts clean at ${bpm} BPM, from memory.`
+            ? `Both parts clean at ${bpm} BPM, in Check.`
             : `Both parts clean at ${bpm} BPM.`
         : r.pitch >= 0.9 && togetherShare !== null && togetherShare < 0.8
           ? `Every note right, but the hands struck together on only ${r.together!.count} of ${r.together!.beats} beats.`
@@ -325,7 +325,7 @@
     transport.stop();
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -358,7 +358,7 @@
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
       <Choice label="Pattern" setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
       <Choice label="Tonic" options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
-      <Choice label="Practise" setupKey="hand" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.id === "both" ? "Both hands" : `${m.label} only` }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
+      <Choice label="Hands" setupKey="hand" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.id === "both" ? "Both hands" : `${m.label} only` }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
     </div>
     <div class="mt-4 sm:max-w-sm">
       <Choice
@@ -372,7 +372,7 @@
         onchange={(v) => cfg.set({ dynamics: v === "dyn" })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Mirror hands starts at 60 to 66 BPM. Dynamics asks the melody hand to play louder; velocity needs MIDI.</p>
+    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the top bar. Mirror hands starts at 60 to 66 BPM. Dynamics asks the melody hand to play louder. Velocity needs MIDI.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -416,7 +416,7 @@
     {/if}
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && live}
-        <p>Notes hidden. Keep the rhythm; keys light only where you play.</p>
+        <p>Notes hidden. Keep the rhythm. Keys light only where you play.</p>
       {:else if live || phase === "results"}
         {#if s.dynamics}<p>Play the {rendering.melodyHand} hand louder.</p>{/if}
       {:else}
@@ -425,7 +425,7 @@
           <div class="flex flex-col gap-1 pb-1">
             <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is written only for Mirror hands."}</p>
             {#if measuresTogether}<p>Hands landed together needs MIDI: both hands within 40 ms. On-screen keys play one note at a time, so an on-screen run shows it as not measured.</p>{/if}
-            {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI; on-screen keys can't measure it.</p>{/if}
+            {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI. On-screen keys can't measure it.</p>{/if}
             {#if mode === "check"}<p>Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
           </div>
         </details>

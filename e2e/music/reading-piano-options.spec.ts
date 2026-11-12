@@ -146,7 +146,7 @@ test.describe("sight-reading past Grade 6", () => {
           { intervals: [150, 150, 250, 400] },
         )
         .toBe(true);
-      await expect(page.getByText(/can't draw this score/)).toHaveCount(0);
+      await expect(page.getByText(/can't draw this music/)).toHaveCount(0);
       // Two clefs open each system; a small one in a later bar is a clef change.
       const clefs = await page.locator(".paper-wrap .vf-clef").count();
       const systems = await page.locator(".paper-wrap .vf-stave").count();
@@ -165,7 +165,7 @@ test.describe("sight-reading past Grade 6", () => {
     let tuplets = 0;
     for (let i = 0; i < 6 && !tuplets; i++) {
       await expect(page.locator(".paper-wrap svg").first()).toBeVisible({ timeout: 10_000 });
-      await expect(page.getByText(/can't draw this score/)).toHaveCount(0);
+      await expect(page.getByText(/can't draw this music/)).toHaveCount(0);
       tuplets = await page.locator(".paper-wrap .vf-tuplet").count();
       await page.getByRole("button", { name: "New phrase" }).click();
     }
@@ -227,7 +227,7 @@ test.describe("scales and voicings options", () => {
       page,
       rh.map((m, i) => ({ at: i * 1000, notes: i === 0 ? [m] : [lh[i], m], hold: 500 })),
     );
-    await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+    await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
     await playing;
     const results = page.getByRole("article");
     await expect(results.getByText("Notes right")).toBeVisible({ timeout: 8000 });

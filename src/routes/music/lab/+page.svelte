@@ -82,7 +82,7 @@
       events = [...events, e];
       if (e.kind === "noteon" && e.velocityMeasured) lastVelocity = e.velocity;
     });
-    status = "Recording. Play anything; Stop saves the take.";
+    status = "Recording. Play anything. Stop saves the take.";
     if (s.track) {
       try {
         backing = await playTrack(s.track);
@@ -201,7 +201,7 @@
 <DrillShell
   title="Practice lab"
   hue={instrument}
-  blurb="Play freely. Everything is recorded with real note lengths and saved as a take; nothing is scored."
+  blurb="Play freely. Everything is recorded with real note lengths and saved as a take. Nothing is scored."
   summary={summaryLine}
   checkable={false}
   bind:phase
@@ -281,7 +281,7 @@
       <div class="min-w-0 flex-1 basis-72">
         {#if saved}
           <p class="font-display text-2xl font-semibold">Take saved: {saved.notes.length} notes in {secs(saved.durationMs)}.</p>
-          <p class="mt-1 text-sm text-ws-soft">{stats.distinct} distinct notes, {rangeOf(stats)}. Logged as free practice; free play is never scored.</p>
+          <p class="mt-1 text-sm text-ws-soft">{stats.distinct} distinct notes, {rangeOf(stats)}. Logged as free practice. Free play is never scored.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class={btn} onclick={() => playTake(saved!)}>
               {#if playing === saved.id}<Square class="size-4" aria-hidden="true" />Stop{:else}<Play class="size-4" aria-hidden="true" />Play it back{/if}
@@ -321,7 +321,7 @@
           {/each}
         </ul>
       {:else}
-        <p class="mt-2 text-ws-soft">No takes yet. Start recording and play anything; it lands here.</p>
+        <p class="mt-2 text-ws-soft">No takes yet. Start recording and play anything. It lands here.</p>
       {/if}
     </section>
     <section aria-labelledby="drills-h">

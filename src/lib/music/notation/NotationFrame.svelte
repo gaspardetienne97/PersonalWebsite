@@ -84,7 +84,7 @@
 
   function fail(e: unknown) {
     const reason =
-      e instanceof NotationError ? e.message : `the engraver stopped (${(e as Error)?.message ?? e})`;
+      e instanceof NotationError ? e.message : `the staff drawing stopped (${(e as Error)?.message ?? e})`;
     error = reason;
     layout = null;
     host?.replaceChildren();

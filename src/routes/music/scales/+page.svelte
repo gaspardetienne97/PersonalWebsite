@@ -139,7 +139,7 @@
     }
   }
   const presetOptions = $derived([
-    ...(onPiano ? [{ value: "together", label: "Hands together, one octave, up, 80" }] : []),
+    ...(onPiano ? [{ value: "together", label: "Hands together, one octave, up, 80 BPM" }] : []),
     { value: "plain", label: "One note a click, no grade target" },
     ...ABRSM_SPEEDS.map((g) => {
       const sp = gradeSpeed(g.grade, pattern);
@@ -266,7 +266,7 @@
     });
     demo = handle;
     clock.follow(handle.startPerf, quarterMs());
-    status = "Listen: the whole line at tempo, lit as it sounds.";
+    status = "Demo: the whole line at tempo, lit as it sounds.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -348,7 +348,7 @@
     if (phase === "countin") return "Count-in: play on the next 1";
     const st = steps[stepIndex];
     if (phase !== "running" || !st) return "";
-    if (mode === "check") return `Note ${stepIndex + 1} of ${steps.length}, from memory`;
+    if (mode === "check") return `Note ${stepIndex + 1} of ${steps.length}, in Check`;
     const n = st.notes[0];
     const p = frets.get(n.midi);
     const how = tuning && p ? (p.fret ? `string ${p.string}, fret ${p.fret}` : `open string ${p.string}`) : fingerFor(n) ? `finger ${fingerFor(n)}` : "";
@@ -452,7 +452,7 @@
               ? `${r.clean} of ${r.total} notes right. Slow down until each note lands before the next.`
               : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
       metric: pct(r.score),
-      metricLabel: "85% notes + 15% evenness",
+      metricLabel: "85% notes, 15% evenness",
       // Exactly what gradeLine's correct tests: the score, and the preset's evenness floor when one is set.
       cleanMeans: `a score of 90% or more${scaleSetup.minEvenness !== undefined ? `, with evenness at ${pct(scaleSetup.minEvenness)} or more` : ""}`,
       delta: fin.delta,
@@ -494,7 +494,7 @@
   function slipText(at: number[]) {
     const name = (i: number) => `note ${i + 1} (${steps[i].notes.map((n) => noteName(n.midi, spell)).join(" + ")})`;
     const list = at.length > 2 ? `${at.length} notes` : at.map(name).join(" and ");
-    return `Slipped on ${list}: a wrong note was played for ${at.length > 1 ? "each" : "it"}.`;
+    return `Slipped on ${list}: a wrong note came first${at.length > 1 ? " on each" : ""}.`;
   }
 
   /** Notes a click as steps; goals are the fastest ABRSM speed for two and four (blocked chords have none). */
@@ -513,7 +513,7 @@
     clock.stop();
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -617,7 +617,7 @@
           setupKey="rotate"
           options={[
             { value: "one", label: "This key" },
-            { value: "circle", label: "Round the circle", hint: "After a clean checked run the tonic moves up a fifth: C, G, D and on through all 12." },
+            { value: "circle", label: "Round the circle", hint: "After a clean Check run the tonic moves up a fifth: C, G, D and on through all 12." },
           ]}
           value={s.rotate ? "circle" : "one"}
           onchange={(v) => cfg.set({ rotate: v === "circle" })}
@@ -633,7 +633,7 @@
         <!-- The tempo ladder for this exact setup: a record of what is unlocked, never a second next-run button. -->
         <div class="flex flex-col gap-2 text-sm" data-testid="tempo-ladder">
           <span class="font-semibold text-ws-soft">Tempo ladder for this setup</span>
-          <ol class="flex flex-wrap gap-1.5" aria-label="Tempo ladder rungs">
+          <ol class="flex flex-wrap gap-1.5" aria-label="Tempo ladder">
             {#each proj.rungs as r (r.bpm)}
               {@const here = r.bpm === bpm()}
               <li
@@ -645,19 +645,19 @@
                 aria-current={here ? "true" : undefined}
               >
                 {#if r.status === "unlocked"}<span aria-hidden="true">✓</span>{/if}{r.bpm}<span class="sr-only">
-                  BPM, {r.status === "unlocked" ? "unlocked" : r.status === "next" ? "next rung" : "locked"}{here ? ", this run's tempo" : ""}</span
+                  BPM, {r.status === "unlocked" ? "unlocked" : r.status === "next" ? "next tempo" : "locked"}{here ? ", this run's tempo" : ""}</span
                 >
               </li>
             {/each}
           </ol>
           <span class="text-ws-soft"
             >{bpm() < proj.rungs[0].bpm
-              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
-              : "Two clean Check runs at a rung unlock the next one. The ringed rung is the strip's tempo."}</span
+              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo. The ladder starts at ${proj.rungs[0].bpm} BPM.`
+              : "Two clean Check runs at a tempo unlock the next one. The ringed tempo is the one on the top bar."}</span
           >
         </div>
       {/if}
-      <p class="text-sm text-ws-soft">Tempo comes from the practice strip (40 to 180). Two clean runs at 85% speed you up; at 120 the next run moves from one note a click to two, then four. ABRSM's speeds are "a general guide".</p>
+      <p class="text-sm text-ws-soft">Tempo comes from the top bar (40 to 180 BPM). Two clean runs at 85% raise it. At 120 BPM the next run moves from one note a click to two, then four. ABRSM's speeds are "a general guide".</p>
     </div>
   {/snippet}
 
@@ -682,9 +682,9 @@
           <!-- One line for the ladder; its rungs are in Setup. Checked runs climb it, the strip's BPM is this run. -->
           <p class="min-w-0 flex-1 basis-64 text-sm text-ws-stage-soft" data-testid="tempo-ladder-line">
             {bpm() < proj.rungs[0].bpm
-              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo; the ladder starts at ${proj.rungs[0].bpm} BPM.`
+              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo. The ladder starts at ${proj.rungs[0].bpm} BPM.`
               : proj.rungs.some((r) => r.bpm === bpm())
-                ? `Tempo ladder: this run is the ${bpm()} BPM rung. Two clean Check runs here unlock the next.`
+                ? `Tempo ladder: this run is at ${bpm()} BPM. Two clean Check runs here unlock the next tempo.`
                 : `Tempo ladder: starts at ${proj.rungs[0].bpm} BPM, and clean Check runs climb it.`}
           </p>
         {/if}
@@ -717,7 +717,7 @@
           {/each}
         </ol>
         <p class="text-sm text-ws-stage-soft">
-          Play the {what} from memory, {steps.length} steps. No targets; the {tuning ? "frets" : "keys"} you play still light, and a slip is named.
+          Check: play the {what}, {steps.length} steps. No targets. The {tuning ? "frets" : "keys"} you play still light, and a slip is named.
         </p>
       </div>
     {/if}

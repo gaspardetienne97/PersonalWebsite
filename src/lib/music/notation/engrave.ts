@@ -157,9 +157,7 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
     for (const x of [n.startBeat, n.startBeat + n.durationBeats]) {
       if (onGrid(x)) continue;
       if (!onThird(x))
-        throw new NotationError(
-          "it has tuplets other than triplets or notes shorter than a 32nd, which are not engraved yet",
-        );
+        throw new NotationError("it has tuplets other than triplets, or notes shorter than a 32nd");
       triplets.add(Math.floor(x));
     }
   }
