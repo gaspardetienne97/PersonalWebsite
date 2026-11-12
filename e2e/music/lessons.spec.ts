@@ -159,7 +159,7 @@ test.describe("intro lessons", () => {
     await page.getByRole("button", { name: "Lesson", exact: true }).click();
     await expect(page.getByTestId("lesson")).toBeVisible();
     await closeSession(page);
-    await choose(page, page.getByLabel("Rhythm mode"), "Pulse");
+    await choose(page, page.getByLabel("Rhythm drill"), "Pulse");
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await expect(start(page)).toBeVisible();
     expect(errors).toEqual([]);
@@ -534,7 +534,7 @@ test.describe("concept cards", () => {
     const again = page.getByRole("button", { name: "Again", exact: true });
     await expect(again).toBeVisible();
     // The results offer the same setup in Check; its card shows first.
-    await page.getByRole("button", { name: "Check run, from memory" }).click();
+    await page.getByRole("button", { name: "Start a Check run" }).click();
     await expect(page.getByRole("heading", { name: "Shape the hand" })).toBeVisible();
     await expect(again).toHaveCount(0);
     await (await toEnd(page)).click();

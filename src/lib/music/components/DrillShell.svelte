@@ -192,7 +192,7 @@
     cue = "",
     step = null,
     review = false,
-    modeNotes = { practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." },
+    modeNotes = { practice: "Hints on. Clean runs move you on.", check: "Hints off. Counts in your skill scores." },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
@@ -221,7 +221,7 @@
     try {
       await unblock.run();
     } catch (e) {
-      status = e instanceof Error && e.message ? e.message : "That did not work. Try again.";
+      status = e instanceof Error && e.message ? e.message : `"${unblock.label}" didn't finish. Try it again.`;
     } finally {
       unblockBusy = false;
     }
@@ -696,7 +696,7 @@
       </h1>
       {#if trainer}
         <!-- A trainer: the mode is part of the title, and tapping it picks another. -->
-        <TrainerSwitch label="{title} mode" options={trainer.options} value={trainer.value} onpick={trainer.onpick} />
+        <TrainerSwitch label="{title} drill" options={trainer.options} value={trainer.value} onpick={trainer.onpick} />
         <span class="flex-1"></span>
       {/if}
       {#if lesson?.lessons.length}
@@ -772,7 +772,7 @@
         data-mode={checkable ? mode : undefined}
         aria-expanded={setupOpen}
         aria-controls="drill-setup"
-        title={setupOpen ? "Hide setup" : "Change the setup"}
+        title={setupOpen ? "Hide setup" : "Open setup"}
         onclick={() => (setupOpen = !setupOpen)}
       >
         <Settings2 class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
@@ -850,7 +850,7 @@
       {/if}
       <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud font-display font-semibold leading-tight sm:flex-none">{title}{#if trainerLabel}<span class="font-medium text-ws-soft">, {trainerLabel}</span>{/if}</h1>
       {#if checkable && !showing}
-        {@const modeText = mode === "check" ? "Check: from memory" : "Practice: hints on"}
+        {@const modeText = mode === "check" ? "Check run" : "Practice run"}
         <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last" title={modeText}>
           {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />{:else}<Eye class="size-4" aria-hidden="true" />{/if}<span class="max-sm:sr-only">{modeText}</span>
         </span>
@@ -931,7 +931,7 @@
           <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5 max-sm:hidden" aria-hidden="true" />Again</button>
         {/if}
         {#if checkable && checkRun && mode === "practice" && !silent}
-          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />Check run, from memory</button>
+          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />Start a Check run</button>
         {/if}
         <span class="flex-1 max-sm:hidden"></span>
         <!-- Phone, row 1: "More below" (when there is more), then the primary filling the rest of the row. -->

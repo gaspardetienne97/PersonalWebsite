@@ -155,7 +155,7 @@ test.describe("ear training", () => {
       await page.goto(`/music/ear/${slug}`);
       // The Ear trainer: the h1 is "Ear" and the drill is the title's mode picker.
       await expect(page.getByRole("heading", { level: 1, name: "Ear" })).toBeVisible();
-      await expect(page.getByLabel("Ear mode")).toContainText(title);
+      await expect(page.getByLabel("Ear drill")).toContainText(title);
       for (const width of [375, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await expectNoHorizontalOverflow(page);
@@ -232,7 +232,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/interval-compare?answer=choice");
-    await expect(page.getByLabel("Ear mode")).toContainText("Interval comparison");
+    await expect(page.getByLabel("Ear drill")).toContainText("Interval comparison");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toContainText("Which interval was bigger?");

@@ -47,7 +47,7 @@ const lastRun = (page: Page) =>
 
 test("key changes: where it goes first, then the chords, judged slot by slot", async ({ page }) => {
   await page.goto("/music/ear/progressions?answer=choice&changes=key");
-  await expect(page.getByLabel("Ear mode")).toContainText("Progression dictation");
+  await expect(page.getByLabel("Ear drill")).toContainText("Progression dictation");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const card = prompt(page);
   await expect(card).toHaveAttribute("data-drill", "key-change");

@@ -92,7 +92,7 @@ test.describe("Latency calibration per input and output", () => {
     test.setTimeout(150_000);
     await openDrill(page);
     const offer = page.getByTestId("calibration-offer");
-    await expect(offer).toContainText("Timing is not calibrated for Digital Piano on this output.");
+    await expect(offer).toContainText("Timing isn't calibrated for Digital Piano on this output.");
     // The offer never holds Start back.
     await expect(page.getByRole("button", { name: /^Start$/ }).first()).toBeEnabled();
     await offer.screenshot({ path: `${SHOTS}/offer.png` });
@@ -100,7 +100,7 @@ test.describe("Latency calibration per input and output", () => {
 
     await playRun(page);
     const note = page.getByTestId("timing-uncalibrated");
-    await expect(note).toContainText("Timing not calibrated for this setup.");
+    await expect(note).toContainText("Timing isn't calibrated for this setup.");
     await expect(note.getByRole("link", { name: "Calibrate" })).toHaveAttribute(
       "href",
       "/music/settings#latency",

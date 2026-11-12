@@ -32,7 +32,7 @@
       <p class="flex min-w-0 flex-1 basis-64 items-center gap-2 text-ws-stage-soft">
         <Timer class="size-4 shrink-0" aria-hidden="true" />
         <span>
-          {#if done}Timing is calibrated for {name} on this output.{:else}Timing is not calibrated for {name} on this output. Tap along to 20 clicks so early and late are judged fairly.{/if}
+          {#if done}Timing is calibrated for {name} on this output.{:else}Timing isn't calibrated for {name} on this output. Tap along to 20 clicks so early and late are scored fairly.{/if}
         </span>
       </p>
       {#if !done && !open}
@@ -50,7 +50,7 @@
           kind={key === AUDIO_INPUT ? "audio" : deviceId ? "device" : "midi"}
           {deviceId}
           title={name}
-          blurb="Tap along with 20 clicks. The offset is saved for this input on the sound output in use."
+          blurb="Tap along to 20 clicks. Woodshed saves the offset for this input on the sound output in use."
           current={calibration.offset(key)}
           onsave={async (ms) => {
             await calibration.save(key, ms);

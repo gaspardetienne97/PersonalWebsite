@@ -78,7 +78,7 @@ test.describe("accompaniment over fake MIDI", () => {
     await page.goto(
       "/music/changes/accompany?mode=patterns&pattern=root-fifth-octave&progression=pop-axis&transpose=2&hands=both&bpm=120",
     );
-    await expect(page.getByLabel("Play over changes mode")).toContainText("Accompaniment");
+    await expect(page.getByLabel("Play over changes drill")).toContainText("Accompaniment");
     await expect(page.getByText("over I-V-vi-IV in D")).toBeVisible();
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 120 BPM", { timeout: 30_000 });
@@ -128,7 +128,7 @@ test("every tab loads at 375 without sideways scroll", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   for (const tab of ["patterns", "comping", "lead-sheet"]) {
     await page.goto(`/music/changes/accompany?mode=${tab}`);
-    await expect(page.getByLabel("Play over changes mode")).toContainText("Accompaniment");
+    await expect(page.getByLabel("Play over changes drill")).toContainText("Accompaniment");
     await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: `${SHOTS}/accompany-${tab}-375.png`, fullPage: true });
   }

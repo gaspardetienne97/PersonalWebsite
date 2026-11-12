@@ -31,7 +31,7 @@
   async function turnOn() {
     error = "";
     const ok = kind === "mic" ? await mic.start({ deviceId: settings.value.audioInputDeviceId, pin: true }) : await midi.enable();
-    if (!ok) error = (kind === "mic" ? mic.error : midi.error) || "It did not start.";
+    if (!ok) error = (kind === "mic" ? mic.error : midi.error) || (kind === "mic" ? "The microphone didn't start. Allow it in the browser, then try again." : "MIDI didn't start. Allow it in the browser, then try again.");
   }
 
   /** The device in use, by name. */
@@ -68,7 +68,7 @@
       ? off
         ? `The microphone is off. Turn it on${orScreen}.`
         : soundSeen
-          ? "The microphone picks up sound (the level below moves), but no playing was recognised in the run. Play louder than the room, close to the microphone."
+          ? "The microphone hears sound (the level below moves), but it recognised no notes in the run. Play louder than the room, close to the microphone."
           : "The microphone is on but the level below is flat. Play close to it and watch the level move."
       : !midi.supported
         ? "This browser has no MIDI. Play on screen, or open the app in Chrome or Edge."

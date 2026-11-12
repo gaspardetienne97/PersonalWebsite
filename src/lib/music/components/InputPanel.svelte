@@ -31,7 +31,7 @@
   $effect(() => void mic.refreshDevices().catch(() => {}));
 
   async function micOn(deviceId = settings.value.audioInputDeviceId) {
-    note = (await mic.start({ deviceId, pin: true })) ? "" : mic.error || "The microphone did not start.";
+    note = (await mic.start({ deviceId, pin: true })) ? "" : mic.error || "The microphone didn't start. Allow it in the browser, then try again.";
   }
   async function pickMic(deviceId: string) {
     const label = mic.devices.find((x) => x.deviceId === deviceId)?.label ?? (deviceId ? settings.value.audioInputLabel : "Default input");
@@ -50,9 +50,9 @@
       <span class="text-[13px] text-ws-soft">{settings.value.muted ? "Off" : !audio.unlocked ? "Waiting for a tap" : "On"}</span>
     </div>
     {#if !audio.unlocked}
-      <button type="button" class={btnPrimary} onclick={() => audio.unlock()}>Enable sound</button>
+      <button type="button" class={btnPrimary} onclick={() => audio.unlock()}>Turn on sound</button>
     {:else if settings.value.muted}
-      <button type="button" class={btnPrimary} onclick={() => settings.update({ muted: false })}>Turn sound on</button>
+      <button type="button" class={btnPrimary} onclick={() => settings.update({ muted: false })}>Turn on sound</button>
     {:else}
       <button type="button" class="{btn} self-start" onclick={() => settings.update({ muted: true })}>Mute</button>
     {/if}

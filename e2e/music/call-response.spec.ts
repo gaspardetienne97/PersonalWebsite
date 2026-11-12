@@ -9,7 +9,7 @@ test.describe.configure({ retries: 2 });
 async function setUp(page: Page, url: string) {
   await installFakeMidi(page, [PORTS.keys]);
   await page.goto(url);
-  await expect(page.getByLabel("Play over changes mode")).toContainText("Call and response");
+  await expect(page.getByLabel("Play over changes drill")).toContainText("Call and response");
   await page.waitForTimeout(500);
   await page.evaluate(
     () =>
@@ -30,7 +30,7 @@ async function setUp(page: Page, url: string) {
       }),
   );
   await page.reload();
-  await expect(page.getByLabel("Play over changes mode")).toContainText("Call and response");
+  await expect(page.getByLabel("Play over changes drill")).toContainText("Call and response");
 }
 
 /** Schedule notes inside the page, each sent a little early and stamped with its real time. */

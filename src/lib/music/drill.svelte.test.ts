@@ -3,14 +3,14 @@ import { assistanceText, modeText } from "./drill.svelte";
 
 describe("modeText", () => {
   it("says what the run counts toward, one sentence per mode", () => {
-    expect(modeText("check")).toBe("Check run: counted in your skill scores.");
-    expect(modeText("practice")).toBe("Practice run: your skill scores move on Check runs only.");
+    expect(modeText("check")).toBe("Check run: counts in your skill scores.");
+    expect(modeText("practice")).toBe("Practice run: only Check runs change your skill scores.");
     expect(modeText("check", { hinted: true })).toBe(
-      "You used a hint, so this run counts as practice.",
+      "You used a hint, so this counts as a Practice run.",
     );
   });
   it("never says a Practice run counts toward skill scores", () => {
-    expect(modeText("practice")).not.toMatch(/counted in your skill/);
+    expect(modeText("practice")).not.toMatch(/counts in your skill/);
   });
 });
 

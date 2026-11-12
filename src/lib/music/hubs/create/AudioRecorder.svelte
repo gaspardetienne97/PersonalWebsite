@@ -89,7 +89,7 @@
     // Record arms the microphone itself (the browser asks the first time), then records.
     if (mic.state !== "on") {
       announce("Starting the microphone.");
-      if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || "The microphone did not start.");
+      if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
     }
     await audio.unlock();
     stopPlayback();

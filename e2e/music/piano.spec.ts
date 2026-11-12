@@ -157,7 +157,7 @@ for (const width of [375, 1280]) {
       await expect(page.getByRole("heading", { level: 1, name: r.h1 })).toBeVisible();
       // A mode of the jazz trainer: its name is the title's picker.
       if ("mode" in r)
-        await expect(page.getByLabel("Play over changes mode")).toContainText(r.mode);
+        await expect(page.getByLabel("Play over changes drill")).toContainText(r.mode);
       await expect(page).toHaveTitle(/\| Woodshed$/);
       await expectNoHorizontalOverflow(page);
       await shoot(page, r.name);

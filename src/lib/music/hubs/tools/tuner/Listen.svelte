@@ -112,7 +112,7 @@
   async function start() {
     onstatus("Starting the microphone.");
     const ok = await mic.start();
-    if (!ok) return onstatus(mic.error || "The microphone did not start.");
+    if (!ok) return onstatus(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
     reader.reset();
     intonation.reset();
     unsub?.();

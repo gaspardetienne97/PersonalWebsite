@@ -23,7 +23,7 @@
     value,
     onpick,
   }: {
-    /** The accessible name ("Rhythm mode"). */
+    /** The accessible name ("Rhythm drill"). */
     label: string;
     options: readonly TrainerMode[];
     value: string;

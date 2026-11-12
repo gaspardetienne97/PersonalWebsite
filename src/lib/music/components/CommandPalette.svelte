@@ -56,7 +56,7 @@
     if (!plan) return recent;
     const today = plan.todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes);
     const next = today.routine.steps.find((st) => !today.done.includes(st.n));
-    return [...(next ? [{ label: next.label, href: next.href, hint: "Next in today's set", group: "Up next" }] : []), ...recent];
+    return [...(next ? [{ label: next.label, href: next.href, hint: "Next in Today's set", group: "Up next" }] : []), ...recent];
   });
   // A scope with no words lists every item of its kind; with words, the matches of that kind.
   const items = $derived(

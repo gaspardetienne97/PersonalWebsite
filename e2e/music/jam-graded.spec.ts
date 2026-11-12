@@ -10,7 +10,7 @@ async function setUp(page: Page, url: string) {
   await installFakeMidi(page, [PORTS.keys]);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(url);
-  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
+  await expect(page.getByLabel("Play over changes drill")).toContainText("Jam");
   await page.waitForTimeout(500);
   await page.evaluate(
     () =>
@@ -36,7 +36,7 @@ async function setUp(page: Page, url: string) {
       }),
   );
   await page.reload();
-  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
+  await expect(page.getByLabel("Play over changes drill")).toContainText("Jam");
 }
 
 /** Notes at beats from the run's downbeat, sent a little early and stamped with their real time. */

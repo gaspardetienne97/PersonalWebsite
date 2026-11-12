@@ -65,9 +65,9 @@ export const assistanceFor = (mode: DrillMode, hinted = false) =>
  * say so); only Check runs count toward the skill scores.
  */
 export function modeText(mode: DrillMode, { hinted = false }: { hinted?: boolean } = {}): string {
-  if (hinted) return "You used a hint, so this run counts as practice.";
-  if (mode === "check") return "Check run: counted in your skill scores.";
-  return "Practice run: your skill scores move on Check runs only.";
+  if (hinted) return "You used a hint, so this counts as a Practice run.";
+  if (mode === "check") return "Check run: counts in your skill scores.";
+  return "Practice run: only Check runs change your skill scores.";
 }
 
 /**

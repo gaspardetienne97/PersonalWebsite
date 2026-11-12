@@ -119,7 +119,7 @@
       return;
     }
     if (kind === "audio" && !(await mic.start())) {
-      message = mic.error || "The microphone did not start.";
+      message = mic.error || "The microphone didn't start. Allow it in the browser, then try again.";
       announce(message);
       return;
     }

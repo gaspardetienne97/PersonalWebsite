@@ -35,7 +35,7 @@
   async function start() {
     mine = true;
     const ok = await mic.start({ deviceId: settings.value.audioInputDeviceId });
-    announce(ok ? `Microphone on (${settings.value.audioInputLabel}). Play a note to see the level.` : mic.error || "The microphone did not start.");
+    announce(ok ? `Microphone on (${settings.value.audioInputLabel}). Play a note to see the level.` : mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
     if (ok) void mic.refreshDevices().catch(() => {});
   }
   function stop() {

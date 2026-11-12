@@ -42,7 +42,7 @@
     cleanMeans?: string;
   }
 
-  export const NOT_HEARD = "Nothing was heard, so this run was not scored.";
+  export const NOT_HEARD = "Nothing was heard, so this run wasn't scored.";
   /** The results of a run where nothing was heard (`FinishResult.heard` false): nothing scored or saved. */
   export const silentRun = (): RunSummary => ({ headline: NOT_HEARD, metric: "Not measured", metricLabel: "nothing was heard", heard: false, recorded: false });
 
@@ -283,7 +283,7 @@
         {:else if delta}
           <p class="text-sm font-medium {delta.up ? 'text-success' : 'text-ws-soft'}">{delta.text}</p>
         {:else}
-          <p class="text-sm text-ws-soft">{summary.recorded === false ? "Not recorded" : "First run with this setup"}</p>
+          <p class="text-sm text-ws-soft">{summary.recorded === false ? "Nothing saved" : "First run with this setup"}</p>
         {/if}
       </div>
     </div>
@@ -397,7 +397,7 @@
               <div class="min-w-0">
                 <div class="flex items-baseline justify-between gap-3 text-sm">
                   <dt class="flex items-center gap-1.5 {row.tone ? 'font-medium text-ws-ink' : 'text-ws-soft'}">
-                    {#if row.tone}<TriangleAlert class="size-4 shrink-0 {row.tone === 'warn' ? 'text-warn' : 'text-destructive'}" aria-hidden="true" /><span class="sr-only">Needs work:</span>{/if}{row.label}
+                    {#if row.tone}<TriangleAlert class="size-4 shrink-0 {row.tone === 'warn' ? 'text-warn' : 'text-destructive'}" aria-hidden="true" /><span class="sr-only">Weak spot:</span>{/if}{row.label}
                   </dt>
                   {#if row.notMeasured}
                     <dd class="text-right font-medium">Not measured</dd>
@@ -420,7 +420,7 @@
         {#if unmeasured}<p class="text-sm text-ws-soft" data-testid="not-measured">{unmeasured}</p>{/if}
         {#if uncalibrated}
           <p class="text-sm text-ws-soft" data-testid="timing-uncalibrated">
-            Timing not calibrated for this setup. <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#latency">Calibrate</a>
+            Timing isn't calibrated for this setup. <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#latency">Calibrate</a>
           </p>
         {/if}
       </div>

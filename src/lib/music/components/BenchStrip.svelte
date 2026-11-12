@@ -211,7 +211,7 @@
         class={pill}
         aria-pressed={bench.clickDuringRun}
         aria-label="Metronome click in runs"
-        title={bench.clickDuringRun ? "Runs click. Tap to mute the click." : "Runs are silent. Tap to hear the click."}
+        title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
         onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
       >
         <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
@@ -255,14 +255,14 @@
 
       {#if showReads}
         <Popover.Root>
-          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone written in {aeroKey.label}" title="The written key; the Aerophone sends concert pitch">
+          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone written in {aeroKey.label}" title="The written key. The Aerophone sends concert pitch.">
             <span class={terse}>Written in</span>
             <span class="font-semibold">{aeroKey.label}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
             <p class="text-sm font-medium">The Aerophone's reading key</p>
-            <p class="mt-1 text-[13px] text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note; it sends concert pitch either way.</p>
+            <p class="mt-1 text-[13px] text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note. The AE-20 sends concert pitch either way.</p>
             <div class="mt-2 grid grid-cols-3 gap-1.5">
               {#each AEROPHONE_READING_KEYS as k (k.id)}
                 <Popover.Close

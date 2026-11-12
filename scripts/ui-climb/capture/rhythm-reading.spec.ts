@@ -37,7 +37,7 @@ async function intro(page: Page, flow: string, width: Width, url: string) {
 async function silent(page: Page, flow: string, width: Width) {
   await startBtn(page).click();
   await expect(
-    page.getByText("Nothing was heard, so this run was not scored.").first(),
+    page.getByText("Nothing was heard, so this run wasn't scored.").first(),
   ).toBeVisible({
     timeout: 45_000,
   });
