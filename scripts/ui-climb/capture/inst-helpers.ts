@@ -155,7 +155,11 @@ export async function showResults(page: Page) {
     const bar = [...document.querySelectorAll<HTMLElement>('[data-testid="drill-bar"]')].find(
       (b) => b.offsetParent,
     );
-    if (!bar || getComputedStyle(bar).position === "sticky") return;
+    // A bar that sticks (itself, or the dock around it) is always in view: stay at the top, so the card's
+    // head is not pushed under the top bar.
+    for (let el: HTMLElement | null = bar ?? null; el; el = el.parentElement)
+      if (["sticky", "fixed"].includes(getComputedStyle(el).position)) return;
+    if (!bar) return;
     const r = bar.getBoundingClientRect();
     if (r.bottom > innerHeight - 8) window.scrollTo(0, r.bottom - innerHeight + 24);
   });

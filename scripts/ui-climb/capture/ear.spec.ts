@@ -62,15 +62,6 @@ async function answer(page: Page, flow: EarFlow, right: boolean) {
   }
 }
 
-/**
- * Feedback as the player sees it. On a phone the page's own scroll (scroll padding keeps
- * the card top under the HUD) is the view: scrolling here parked the card top under the
- * sticky header. On a laptop, bring `focus` (Continue) into view.
- */
-async function feedbackView(page: Page, width: Width, focus: string) {
-  if (width !== "phone") await toStage(page, focus);
-}
-
 async function feedback(page: Page) {
   await expect(earCard(page)).toHaveAttribute("data-step", "feedback", { timeout: 10_000 });
   await page.waitForTimeout(500);
@@ -88,7 +79,7 @@ async function run(page: Page, flow: EarFlow, width: Width, pattern: boolean[], 
     await answer(page, flow, pattern[i]);
     await feedback(page);
     if (shots && (i === 0 || i === 1)) {
-      await feedbackView(page, width, ".prompt > button:last-child");
+      // The page's own scroll is the view: the app brings Continue into view when the answer lands.
       await shot(page, flow.id, i === 0 ? "feedback-right" : "feedback-wrong", width);
     }
     await earContinue(page);
@@ -162,7 +153,6 @@ for (const width of WIDTHS)
       await expect(card).toHaveAttribute("data-step", "feedback");
       if (i === 0 || i === 3) {
         await page.waitForTimeout(400);
-        await feedbackView(page, width, 'article[data-exercise] [data-dock="answers"]');
         await shot(page, flow, i === 0 ? "feedback" : "feedback-wrong", width);
       }
       await page.getByRole("button", { name: /^(Continue|See results)$/ }).click();
