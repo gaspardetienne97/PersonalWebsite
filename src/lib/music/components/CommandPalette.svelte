@@ -7,7 +7,7 @@
   import { drillsFor, kindOf, recentDrills, searchIndex, searchItems, splitMatch, type SearchItem } from "../search";
   import FileText from "lucide-svelte/icons/file-text";
   import House from "lucide-svelte/icons/house";
-  import Library from "lucide-svelte/icons/library";
+  import Disc from "lucide-svelte/icons/disc-3";
   import Grid from "lucide-svelte/icons/grid-3x3";
   import Chart from "lucide-svelte/icons/chart-column";
   import NotebookPen from "lucide-svelte/icons/notebook-pen";
@@ -74,11 +74,10 @@
   }
   /** One icon per section, the same as the sidebar's. */
   const PAGE_ICON: [string, typeof FileText][] = [
-    ["/music/library", Library],
+    ["/music/studio", Disc],
     ["/music/create", Grid],
     ["/music/record", CircleDot],
     ["/music/progress", Chart],
-    ["/music/journal", NotebookPen],
     ["/music/connect", Cable],
     ["/music/tuner", Gauge],
     ["/music/settings", Cog],
@@ -98,6 +97,7 @@
       return { Icon: (entry && DRILL_ICON[entry.id]) || HUE_ICON[hueForRoute(route, settings.value.activeInstrument)] };
     if (item.href.includes("tab=drills")) return { Icon: LayoutGrid };
     if (item.href.includes("tab=paths")) return { Icon: Route };
+    if (item.href.includes("view=journal")) return { Icon: NotebookPen };
     return { Icon: PAGE_ICON.find(([p]) => route.startsWith(p))?.[1] ?? FileText };
   }
 

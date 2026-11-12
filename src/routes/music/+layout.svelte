@@ -5,14 +5,10 @@
   import { afterNavigate, replaceState } from "$app/navigation";
   import { DRILL_ROUTES, noteNavigation } from "$lib/music/came-from.svelte";
   import House from "lucide-svelte/icons/house";
-  import Library from "lucide-svelte/icons/library";
+  import Disc from "lucide-svelte/icons/disc-3";
   import Drills from "lucide-svelte/icons/layout-grid";
-  import Route from "lucide-svelte/icons/route";
-  import Grid from "lucide-svelte/icons/grid-3x3";
   import Chart from "lucide-svelte/icons/chart-column";
   import CircleDot from "lucide-svelte/icons/circle-dot";
-  import Cable from "lucide-svelte/icons/cable";
-  import Gauge from "lucide-svelte/icons/gauge";
   import Cog from "lucide-svelte/icons/settings";
   import Help from "lucide-svelte/icons/circle-question-mark";
   import Collapse from "lucide-svelte/icons/panel-left-close";
@@ -32,30 +28,27 @@
 
   type NavItem = { href: string; label: string; icon: typeof House; owns?: string[]; tab?: string };
   const hubs: NavItem[] = [
-    // Today, Drills and Paths are the hub's own tabs: the tab bar names the section they share (the hub page
-    // shows its segmented control there); the sidebar lists the three, each current on its own view.
+    // Three hubs. Today owns every drill; Studio owns the songs and the making tools; Progress holds the journal.
     { href: "/music", label: "Today", icon: House, owns: DRILL_ROUTES },
-    { href: "/music/library", label: "Library", icon: Library, owns: ["/music/songs"] },
-    { href: "/music/create", label: "Create", icon: Grid, owns: [] },
-    { href: "/music/progress", label: "Progress", icon: Chart, owns: ["/music/journal"] },
+    { href: "/music/studio", label: "Studio", icon: Disc, owns: ["/music/songs", "/music/create", "/music/library"] },
+    { href: "/music/progress", label: "Progress", icon: Chart, owns: ["/music/journal", "/music/tunes"] },
   ];
+  // Tuner and Connect are icons in the top strip (BenchStrip), on every page.
   const utilities = [
     { href: "/music/record", label: "Record", icon: CircleDot },
-    { href: "/music/connect", label: "Connect", icon: Cable },
-    { href: "/music/tuner", label: "Tuner", icon: Gauge },
     { href: "/music/settings", label: "Settings", icon: Cog },
     { href: "/music/guide", label: "Guide", icon: Help },
   ];
 
+  // The sidebar lists Today's two tabs apart, each current on its own view (Paths is a view of Drills).
   const sideHubs: NavItem[] = [
     { href: "/music", label: "Today", icon: House, tab: "today" },
     { href: "/music?tab=drills", label: "Drills", icon: Drills, tab: "drills", owns: DRILL_ROUTES },
-    { href: "/music?tab=paths", label: "Paths", icon: Route, tab: "paths" },
     ...hubs.slice(1),
   ];
 
   const path = $derived(page.url.pathname.replace(/\/$/, "") || "/music");
-  const hubTab = $derived(page.url.searchParams.get("tab") ?? "today");
+  const hubTab = $derived((page.url.searchParams.get("tab") ?? "today").replace("paths", "drills"));
   const current = (item: NavItem) =>
     item.tab && path === "/music"
       ? hubTab === item.tab
@@ -128,7 +121,7 @@
     "/music",
     "/music/progress",
     "/music/journal",
-    "/music/library",
+    "/music/studio",
     "/music/settings",
     "/music/guide",
     "/music/connect",
@@ -222,7 +215,7 @@
       }}
       class="ws-bar ws-bar-bottom fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      <ul class="grid grid-cols-5">
+      <ul class="grid grid-cols-4">
         {#each hubs as item (item.href)}
           {@const on = current(item)}
           <li>

@@ -1,5 +1,5 @@
 // Where each page was opened from, so a drill can say "Back to Today" (or
-// Drills, Paths, Progress...) and take you there. Recorded on every navigation
+// Drills, Paths, Studio, Progress...) and take you there. Recorded on every navigation
 // to a different page (query-only changes on one page do not count) and kept
 // for the browser session, so a reload remembers it.
 import { CATALOG } from "@repo/music-core/content/catalog";
@@ -42,9 +42,8 @@ function nameOf(href: string): string | null {
     return tab === "drills" ? "Drills" : tab === "paths" ? "Paths" : "Today";
   }
   const hub: Record<string, string> = {
-    "/music/progress": "Progress",
-    "/music/journal": "Journal",
-    "/music/library": "Library",
+    "/music/progress": url.searchParams.get("view") === "journal" ? "Journal" : "Progress",
+    "/music/studio": "Studio",
     "/music/guide": "Guide",
     "/music/connect": "Connect",
   };
@@ -53,8 +52,8 @@ function nameOf(href: string): string | null {
 
 /** The hub that owns `pathname` when nothing recorded where it was opened from. */
 export function ownerOf(pathname: string): { href: string; label: string } {
-  if (pathname.startsWith("/music/songs")) return { href: "/music/library", label: "Library" };
-  if (pathname === "/music/journal") return { href: "/music/progress", label: "Progress" };
+  if (pathname.startsWith("/music/songs") || pathname.startsWith("/music/create"))
+    return { href: "/music/studio", label: "Studio" };
   if (DRILL_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/")))
     return { href: "/music?tab=drills", label: "Drills" };
   return { href: "/music", label: "Today" };

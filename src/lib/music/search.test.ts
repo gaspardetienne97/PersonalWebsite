@@ -90,7 +90,7 @@ describe("palette search", () => {
   it("labels pages with their real place and ends drill results with a Show all row", () => {
     const hint = (label: string) => searchIndex().find((h) => h.label === label)!.hint;
     expect(hint("All drills")).toBe("Drills");
-    expect(hint("Learning paths")).toBe("Paths");
+    expect(hint("Learning paths")).toBe("Drills");
     const hits = searchItems("interv");
     expect(hits.at(-1)).toMatchObject({ kind: "all", href: "/music?tab=drills&q=interv" });
     expect(searchItems("journal").some((h) => h.kind === "all")).toBe(false);

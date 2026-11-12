@@ -119,7 +119,7 @@ test.describe("library and song studio", () => {
     await expect(page.getByRole("alert")).toContainText("not a score this app can read");
 
     await page.getByRole("link", { name: "Songs", exact: true }).click();
-    await expect(page).toHaveURL(/\/music\/library$/);
+    await expect(page).toHaveURL(/\/music\/studio$/);
     const songs = page.getByRole("list", { name: "Saved songs" });
     await expect(songs.getByRole("link", { name: /Ode to Joy/ })).toBeVisible();
     await expect(songs.getByRole("link", { name: /low-riff/ })).toBeVisible();
@@ -413,7 +413,7 @@ test.describe("library and song studio", () => {
 
     // A low riff on a ukulele moves into range, and can be shown as written.
     await page.getByRole("link", { name: "Back to your songs" }).click();
-    await expect(page).toHaveURL(/\/music\/library$/);
+    await expect(page).toHaveURL(/\/music\/studio$/);
     await page
       .getByRole("link", { name: /low-riff/ })
       .first()
@@ -518,9 +518,9 @@ for (const width of [375, 1280]) {
       .first()
       .getAttribute("href"))!;
     for (const [path, h1, name] of [
-      ["/music/library", "Library", "songs"],
+      ["/music/library", "Studio", "songs"],
       ["/music/create/reference", "Chords and scales", "reference"],
-      ["/music/library?tab=import", "Library", "import"],
+      ["/music/library?tab=import", "Studio", "import"],
       [studio, "Ode to Joy", "studio"],
       [`${studio}?view=waterfall`, "Ode to Joy", "studio-waterfall"],
       ["/music/jam", "Jam", "jam"],

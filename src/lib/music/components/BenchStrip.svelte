@@ -22,6 +22,8 @@
   // out (its HUD carries the beat and the click).
   import * as Popover from "@repo/ui/popover";
   import Search from "lucide-svelte/icons/search";
+  import Gauge from "lucide-svelte/icons/gauge";
+  import Cable from "lucide-svelte/icons/cable";
   import Timer from "lucide-svelte/icons/timer";
   import Volume from "lucide-svelte/icons/volume-2";
   import VolumeOff from "lucide-svelte/icons/volume-off";
@@ -124,8 +126,8 @@
   // A phone row without the tempo pill has room for Search; More is only for what is left.
   const searchInline = $derived(compact || !showTempo);
   const hasMore = $derived(showMetronome || showCountIn || showTuning || showReads || !searchInline);
-  // Without Tempo and More a phone row has room for the sound pill's words.
-  const roomy = $derived(!showTempo && !hasMore);
+  // Tuner and Connect took the room a phone row had for the sound pill's words: the instrument's name gives way first.
+  const roomy = false;
   $effect(() => {
     if (locked) more = false;
   });
@@ -310,8 +312,9 @@
           </span>
           <span class="whitespace-nowrap max-sm:sr-only">{source.word}</span>
         </span>
-        <!-- A phone's slim pill: the input's state in one word beside the speaker. -->
-        <span class="whitespace-nowrap sm:hidden" aria-hidden="true">{inputWord}</span>
+        <!-- A phone's slim pill: the input's state in one word beside the speaker. A hub plays nothing, so there the
+             speaker stands alone and the instrument keeps its whole name beside Tuner, Connect and Search. -->
+        <span class="whitespace-nowrap {compact ? 'hidden' : 'sm:hidden'}" aria-hidden="true">{inputWord}</span>
         <ChevronDown class="hidden size-4 text-ws-soft sm:block" aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="max-h-[80vh] w-80 overflow-y-auto border-ws-line bg-ws-surface text-ws-ink">
@@ -332,6 +335,12 @@
 
 <!-- Words only on the widest screens, so the row never clips beside the sidebar. -->
 {#snippet search(cls: string)}
+  <!-- Tuner and Connect: two tools wanted from any page, so they ride beside Search. -->
+  {#each [{ href: "/music/tuner", label: "Tuner", Icon: Gauge }, { href: "/music/connect", label: "Connect", Icon: Cable }] as tool (tool.href)}
+    <a href={tool.href} class="{pill} {idle} {cls} w-11 justify-center px-0 aria-[current=page]:border-instr aria-[current=page]:bg-instr-wash" aria-label={tool.label} title={tool.label} aria-current={page.url.pathname.startsWith(tool.href) ? "page" : undefined}>
+      <tool.Icon class="size-4" aria-hidden="true" />
+    </a>
+  {/each}
   <button type="button" class="{pill} {idle} {cls} max-2xl:w-11 max-2xl:justify-center max-2xl:px-0" onclick={() => palette.open()} aria-label="Search" title="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
     <Search class="size-4" aria-hidden="true" />
     <span class="hidden 2xl:inline">Search</span>

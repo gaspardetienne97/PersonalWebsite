@@ -99,7 +99,9 @@ export interface RawLevelPath {
   levels: RawLevel[];
 }
 
-const ROUTE = (href: string) => href.split(/[?#]/)[0];
+// The song library is the Studio hub now (/music/library redirects there); the catalog keeps the old route.
+const ROUTE = (href: string) =>
+  href.split(/[?#]/)[0].replace(/^\/music\/studio$/, "/music/library");
 
 /** The exercise ids a drill link records, so a step needs no hand-listed skills. */
 export function exercisesForHref(href: string, instruments: Instrument[] = []): string[] {

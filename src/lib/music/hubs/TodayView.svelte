@@ -247,7 +247,7 @@
           <div class="relative mt-2 flex flex-wrap items-center gap-2">
             {#if nextUp}<a class={btnPrimary} href={nextUp.href}><Play class="size-4" aria-hidden="true" />{nextUp.label}</a>{/if}
             <a class={nextUp ? btn : btnPrimary} href={plan.repeatHref}>Repeat the set</a>
-            <a class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-instr-ink hover:underline" href="/music/journal">Open journal</a>
+            <a class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-instr-ink hover:underline" href="/music/progress?view=journal">Open journal</a>
           </div>
         </div>
       {/if}

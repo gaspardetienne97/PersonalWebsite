@@ -393,7 +393,7 @@
             {#if take.id === latest && !recording}
               <button type="button" class="{btn} px-3" onclick={() => (scrollTo({ top: 0, behavior: "smooth" }), toggle())}><RotateCcw class="size-4" aria-hidden="true" />Record again</button>
             {/if}
-            <a class="{btn} px-3" href="/music/library?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
+            <a class="{btn} px-3" href="/music/studio?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
             <Menu.Root onOpenChange={(open) => !open && confirmDelete === take.id && (confirmDelete = null)}>
               <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="More for {take.name}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
               <Menu.Content align="end" class="w-60">

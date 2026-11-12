@@ -83,7 +83,7 @@
   <section aria-labelledby="recent-title" class="mb-8">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
       <h2 id="recent-title" class="font-display text-xl font-semibold">Recent sessions</h2>
-      <a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/journal"
+      <a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/progress?view=journal"
         >All {plural(practice.sessions.length, "session")} in the journal</a
       >
     </div>

@@ -83,7 +83,7 @@
 {:else if song === null}
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">
     <h1 class="font-display text-4xl font-semibold tracking-tight">Song not found</h1>
-    <a class={btnPrimary} href="/music/library">Open your songs</a>
+    <a class={btnPrimary} href="/music/studio">Open your songs</a>
   </div>
 {:else}
   <p class="text-ws-soft">Opening the song.</p>
