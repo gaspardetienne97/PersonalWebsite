@@ -2,7 +2,8 @@
 //   taps      taps (trusted pointerdowns) to the first sound, from Today's top card and from
 //             one drill card per trainer, with lessons off and on
 //   verdict   ms from a fake MIDI note to its verdict painted (a [data-verdict] change, then
-//             two frames), p50 and p95 per drill: a regression guard, not a gate
+//             two frames), p50 and p95 per drill: a regression guard, not a gate; for ear, from
+//             the tap on an answer button to the question card's next change painted
 //   layout    clipped elements and buttons under a fixed or sticky bar, per page and size
 //   results   score, stars and verdict word agree with trend.ts on every results screen reached
 //   UI_CLIMB_ROUND=10 npx playwright test -c scripts/ui-climb/metrics/playwright.metrics.config.ts
@@ -84,6 +85,29 @@ function probes() {
   }).observe(document, { subtree: true, childList: true, characterData: true });
   w.__sends = [] as number[];
   w.__paints = [] as { mut: number; paint: number }[];
+  // Ear: a tap while the question card waits for an answer, and the card's next change (feedback
+  // in Practice, the next question in Check).
+  w.__answers = [] as number[];
+  w.__answered = [] as { mut: number; paint: number }[];
+  addEventListener(
+    "pointerdown",
+    (e) =>
+      e.isTrusted &&
+      document.querySelector('article[data-drill][data-step="answer"]') &&
+      w.__answers.push(performance.now()),
+    true,
+  );
+  new MutationObserver((ms) => {
+    if (!ms.some((m) => (m.target as Element).matches?.("article[data-drill]"))) return;
+    const mut = performance.now();
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => w.__answered.push({ mut, paint: performance.now() })),
+    );
+  }).observe(document, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["data-step", "aria-label"],
+  });
   const wrap = (m: any) => {
     if (!m || m.__wrapped) return m;
     const send = m.send.bind(m);
@@ -308,11 +332,14 @@ async function layout(page: Page) {
 // Verdict paint: real runs over fake MIDI
 
 /** Pair each note (or chord) sent with the first verdict painted after it, before the next. */
-async function verdictTimes(page: Page) {
-  const { sends, paints } = await page.evaluate(() => ({
-    sends: (window as any).__sends as number[],
-    paints: (window as any).__paints as { mut: number; paint: number }[],
-  }));
+async function verdictTimes(page: Page, from = "__sends", to = "__paints") {
+  const { sends, paints } = await page.evaluate(
+    ([from, to]) => ({
+      sends: (window as any)[from] as number[],
+      paints: (window as any)[to] as { mut: number; paint: number }[],
+    }),
+    [from, to],
+  );
   const groups = sends.filter((t, i) => i === 0 || t - sends[i - 1] > 5);
   const ms: number[] = [];
   groups.forEach((t, i) => {
@@ -466,6 +493,7 @@ test("results: ear intervals, two answers wrong", async ({ page }) => {
       await expect(card).toHaveAttribute("aria-label", `Question ${i + 1}`, { timeout: 1500 });
     }).toPass({ timeout: 20_000 });
   }
+  record("verdict", "ear answer buttons", await verdictTimes(page, "__answers", "__answered"));
   await checkResults(page, "ear intervals");
   record("layout", "results: ear intervals desktop", await layout(page));
 });
