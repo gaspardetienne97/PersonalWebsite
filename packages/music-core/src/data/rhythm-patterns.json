@@ -519,7 +519,7 @@
   },
   {
     "id": "gap-click-1-on-1-off",
-    "label": "Gap click: 1 on / 1 off",
+    "label": "Gap click: 1 bar on, 1 bar off",
     "meter": {
       "beats": 4,
       "beatUnit": 4

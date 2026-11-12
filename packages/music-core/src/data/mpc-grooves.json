@@ -17,7 +17,7 @@
     },
     {
       "id": "openhat",
-      "name": "Open Hat",
+      "name": "Open hat",
       "midi": 46
     },
     {
@@ -34,7 +34,7 @@
   "catalog": [
     {
       "value": "backbeat",
-      "label": "Kick / snare",
+      "label": "Kick and snare",
       "bars": 1,
       "sectionLabels": ["groove"],
       "targets": [
@@ -203,7 +203,7 @@
     },
     {
       "value": "boom-bap-2bar",
-      "label": "Boom bap · 2 bars",
+      "label": "Boom bap, 2 bars",
       "bars": 2,
       "sectionLabels": ["groove", "groove"],
       "targets": [

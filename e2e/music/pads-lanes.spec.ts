@@ -247,7 +247,7 @@ test("song practice: a drum part as lanes, with the pads beside marking each hit
     .getByRole("button", { name: "Lanes" })
     .click();
   const highway = page.getByRole("img", { name: /notes coming up$/ });
-  await expect(highway).toContainText("Open Hat");
+  await expect(highway).toContainText("Open hat");
   await expect(page.getByRole("group", { name: /^MPC pads, bank A/ })).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/studio-lanes-1280.png` });
 

@@ -11,27 +11,27 @@
       "degree": 9,
       "alteration": "b",
       "semitones": 13,
-      "note": "Altered; over V7."
+      "note": "Altered. Use over V7."
     },
     {
       "symbol": "#9",
       "degree": 9,
       "alteration": "#",
       "semitones": 15,
-      "note": "Altered; over V7."
+      "note": "Altered. Use over V7."
     },
     {
       "symbol": "11",
       "degree": 11,
       "semitones": 17,
-      "note": "The 4th, an octave up (m7 / V7)."
+      "note": "The 4th, an octave up. Use over m7 and V7."
     },
     {
       "symbol": "#11",
       "degree": 11,
       "alteration": "#",
       "semitones": 18,
-      "note": "The lydian colour (maj7 / V7)."
+      "note": "The lydian colour. Use over maj7 and V7."
     },
     {
       "symbol": "13",
@@ -44,7 +44,7 @@
       "degree": 13,
       "alteration": "b",
       "semitones": 20,
-      "note": "Altered; \"C7b13\" means C7 altered."
+      "note": "Altered. \"C7b13\" means C7 altered."
     }
   ],
   "CHORD_SCALE_MAP": [
@@ -191,13 +191,13 @@
     {
       "id": "rootlessB9",
       "label": "Rootless b9 (3 7 b9 5)",
-      "hint": "Diminished tension (JT10).",
+      "hint": "Diminished tension.",
       "offsets": [4, 10, 13, 19]
     },
     {
       "id": "altered",
       "label": "Altered (7 b9 3 b13)",
-      "hint": "The most tension, so it resolves strongly (JT11).",
+      "hint": "The most tension, so it resolves strongly.",
       "offsets": [10, 13, 16, 20]
     }
   ],
@@ -285,7 +285,7 @@
       "symbol": "CmMaj7",
       "name": "Minor-major 7",
       "family": "mMaj7",
-      "role": "The i chord of a minor ii-V-i. (\"The James Bond chord\" with a 9th.)",
+      "role": "The i chord of a minor ii-V-i. With a 9th, \"the James Bond chord\".",
       "extensions": ["CmMaj9"]
     },
     {
@@ -300,7 +300,7 @@
       "symbol": "Cdim7",
       "name": "Diminished 7",
       "family": "dim7",
-      "role": "Passing chord; stacks of minor 3rds (C Eb Gb A)."
+      "role": "A passing chord: stacked minor 3rds (C Eb Gb A)."
     },
     {
       "id": "maj6",
@@ -315,7 +315,7 @@
       "symbol": "Cm6",
       "name": "Minor 6",
       "family": "min6",
-      "role": "Tonic minor with a major 6th (not b6). Common minor i chord.",
+      "role": "A tonic minor with a major 6th, not b6. A common minor i chord.",
       "extensions": ["Cm6/9"]
     }
   ],
@@ -334,7 +334,7 @@
     {
       "id": "half-step-below",
       "name": "Half-step-below approach",
-      "summary": "Precede a chord tone (best of all the major 3rd) with the note a half-step below, e.g. Bb→B, Eb→E. Most effective right at the chord change."
+      "summary": "Play the note a half step below a chord tone, then the chord tone: Bb to B, Eb to E. Aim for the major 3rd, right at the chord change."
     },
     {
       "id": "chromatic-enclosure",
@@ -344,12 +344,12 @@
     {
       "id": "v7-scale-change",
       "name": "Change scale over the V7",
-      "summary": "Switch to the diminished (half-whole) or altered scale over the V7 to add b9 #9 #11 b13 tension, then resolve back into the key."
+      "summary": "Over the V7, switch to the diminished (half-whole) or altered scale. That adds b9 #9 #11 b13 tension. Then resolve back into the key."
     },
     {
       "id": "bebop-scale",
       "name": "Bebop scales",
-      "summary": "Add a chromatic passing note: dominant bebop = mixolydian + maj7; major bebop = major + #5; minor bebop = dorian + maj7 (or maj3)."
+      "summary": "Add a chromatic passing note. Dominant bebop is mixolydian plus a major 7th. Major bebop is major plus a #5. Minor bebop is dorian plus a major 7th or major 3rd."
     },
     {
       "id": "sequence",
@@ -359,17 +359,17 @@
     {
       "id": "rhythmic-variation",
       "name": "Rhythmic variation",
-      "summary": "Inject triplets and 8th-note rests to keep lines from sounding mechanical."
+      "summary": "Add triplets and 8th-note rests so lines don't sound mechanical."
     },
     {
       "id": "start-from-any-note",
       "name": "Start from any note",
-      "summary": "Begin lines from the root, 9th, 3rd, 4th… not always the root. Varies the contour."
+      "summary": "Start lines on the 9th, 3rd or 4th, not always the root. It varies the contour."
     },
     {
       "id": "lh-textures",
       "name": "Left-hand textures",
-      "summary": "Stride (bass note then chord), bossa-nova bass (root + 5th), paradiddle (L/R/L/R) and 4-note cell patterns."
+      "summary": "Stride (bass note then chord), bossa-nova bass (root and 5th), paradiddle (L R L R) and 4-note cell patterns."
     }
   ],
   "JAZZ_CURRICULUM": [
@@ -657,7 +657,7 @@
       "id": "swing-125",
       "style": "swing",
       "bpm": 125,
-      "label": "Swing — 125 bpm",
+      "label": "Swing, 125 BPM",
       "songs": ["Autumn Leaves", "Afternoon in Paris"],
       "url": "/audio/jazz/swing-125.mp3"
     },
@@ -665,7 +665,7 @@
       "id": "swing-115",
       "style": "swing",
       "bpm": 115,
-      "label": "Swing — 115 bpm",
+      "label": "Swing, 115 BPM",
       "songs": [],
       "url": "/audio/jazz/swing-115.mp3"
     },
@@ -673,7 +673,7 @@
       "id": "swing-40",
       "style": "swing",
       "bpm": 40,
-      "label": "Slow swing — 40 bpm",
+      "label": "Slow swing, 40 BPM",
       "songs": ["Georgia On My Mind"],
       "url": "/audio/jazz/swing-40.mp3"
     },
@@ -681,7 +681,7 @@
       "id": "ballad-65",
       "style": "ballad",
       "bpm": 65,
-      "label": "Ballad — 65 bpm",
+      "label": "Ballad, 65 BPM",
       "songs": ["Misty", "Tenderly", "Cry Me A River"],
       "url": "/audio/jazz/ballad-65.mp3"
     },
@@ -689,7 +689,7 @@
       "id": "bossa-125",
       "style": "bossa-nova",
       "bpm": 125,
-      "label": "Bossa nova — 125 bpm",
+      "label": "Bossa nova, 125 BPM",
       "songs": ["Girl from Ipanema", "So Nice", "Blue Bossa"],
       "url": "/audio/jazz/bossa-125.mp3"
     }
@@ -724,7 +724,7 @@
       "progression": ["Dm7", "G7", "Cmaj7"],
       "scales": ["G dominant bebop"],
       "techniques": ["bebop-scale", "rhythmic-variation"],
-      "tip": "Add a triplet to vary rhythm; the bebop chromatic note is Gb. End lines on 1 3 5 or 7 (C E G B)."
+      "tip": "Add a triplet to vary the rhythm. The bebop chromatic note is Gb. End lines on 1 3 5 or 7 (C E G B)."
     },
     {
       "number": 4,
@@ -732,7 +732,7 @@
       "progression": ["Dm7", "G7", "Cmaj7"],
       "scales": ["C major"],
       "techniques": ["half-step-below"],
-      "tip": "Half-step-below approach into the changes: Bb→B and Eb→E."
+      "tip": "Half-step-below approach into the changes: Bb to B and Eb to E."
     },
     {
       "number": 5,
@@ -748,7 +748,7 @@
       "progression": ["Dm7", "G7b9", "Cmaj7"],
       "scales": ["C major"],
       "techniques": ["half-step-below"],
-      "tip": "You can precede all 7 scale notes with the half-step-below approach (F#→G, D#→E)."
+      "tip": "The half-step-below approach works into all 7 scale notes (F# to G, D# to E)."
     },
     {
       "number": 7,
@@ -756,7 +756,7 @@
       "progression": ["Dm7", "G7#9b9", "Cmaj7"],
       "scales": ["C major", "G diminished (half-whole)"],
       "techniques": ["v7-scale-change"],
-      "tip": "Go IN (C major), then OUT over the V7 (G diminished → b9 #9 #11), then back IN."
+      "tip": "Play inside (C major), then outside over the V7 (G diminished: b9 #9 #11), then back inside."
     },
     {
       "number": 8,
@@ -780,7 +780,7 @@
       "progression": ["Dm7", "G7alt", "Cmaj7"],
       "scales": ["G altered"],
       "techniques": ["v7-scale-change", "rhythmic-variation"],
-      "tip": "Inject 8th-note rests for interesting rhythm."
+      "tip": "Add 8th-note rests to vary the rhythm."
     },
     {
       "number": 11,
@@ -796,7 +796,7 @@
       "progression": ["Dm7", "G7", "Cmaj7", "A7"],
       "scales": ["C major"],
       "techniques": ["chord-tone-soloing"],
-      "tip": "ii-V-I-VI loops: the A7 resolves back to Dm7. Great for repeated improv practice."
+      "tip": "The ii-V-I-VI loops: the A7 resolves back to Dm7. Loop it to practise improvising."
     },
     {
       "number": 13,
@@ -804,7 +804,7 @@
       "progression": ["Dm7", "G7", "Cmaj7", "A7"],
       "scales": ["D minor bebop (D dorian + Db)"],
       "techniques": ["start-from-any-note", "chromatic-enclosure"],
-      "tip": "Start lines from every possible note; use a chromatic enclosure to precede the A7."
+      "tip": "Start lines from any note. A chromatic enclosure leads into the A7."
     },
     {
       "number": 14,
@@ -812,7 +812,7 @@
       "progression": ["Dm7", "G7alt", "Cmaj7", "A7b9"],
       "scales": ["G altered"],
       "techniques": ["half-step-below", "chord-tone-soloing"],
-      "tip": "Half-step approach into G7alt; chord-tone solo (1 3 5 7 9) over A7b9."
+      "tip": "Half-step approach into G7alt. Chord-tone solo (1 3 5 7 9) over A7b9."
     },
     {
       "number": 15,
@@ -820,7 +820,7 @@
       "progression": ["Dm7", "G7", "Cmaj7", "A7"],
       "scales": ["G diminished (half-whole)"],
       "techniques": ["v7-scale-change", "chromatic-enclosure"],
-      "tip": "Diminished over G7; chromatic enclosure to precede the A7."
+      "tip": "Diminished over G7. A chromatic enclosure leads into the A7."
     },
     {
       "number": 16,
@@ -836,7 +836,7 @@
       "progression": ["Dm7", "G7b9", "Cmaj7", "A7"],
       "scales": ["C major"],
       "techniques": ["half-step-below", "chromatic-enclosure"],
-      "tip": "Half-step approaches Bb→B and Eb→E; chromatic enclosure to precede the A7."
+      "tip": "Half-step approaches Bb to B and Eb to E. A chromatic enclosure leads into the A7."
     },
     {
       "number": 18,
@@ -844,7 +844,7 @@
       "progression": ["Dm7b5", "G7", "Cm7"],
       "scales": ["chord tones"],
       "techniques": ["chord-tone-soloing"],
-      "tip": "Chord-tone solo (1 3 5 7 9). Over a minor ii-V-i you change scale on each chord."
+      "tip": "Chord-tone solo (1 3 5 7 9). Over a minor ii-V-i, the scale changes on each chord."
     },
     {
       "number": 19,
@@ -868,7 +868,7 @@
       "progression": ["Dm7b5", "G7#9b9", "Cm7"],
       "scales": ["D locrian", "G diminished", "C dorian"],
       "techniques": ["half-step-below"],
-      "tip": "Half-step-below approaches C#→D and F#→G."
+      "tip": "Half-step-below approaches: C# to D and F# to G."
     },
     {
       "number": 22,
@@ -876,7 +876,7 @@
       "progression": ["Dm7b5", "G7b9", "Cm7"],
       "scales": ["chord tones"],
       "techniques": ["rhythmic-variation", "chord-tone-soloing"],
-      "tip": "Inject 8th-note rests; chord-tone solo (1 3 5 7 9)."
+      "tip": "Add 8th-note rests. Chord-tone solo (1 3 5 7 9)."
     },
     {
       "number": 23,
@@ -900,7 +900,7 @@
       "progression": ["Cm7"],
       "scales": ["C dorian", "C minor blues"],
       "techniques": ["half-step-below"],
-      "tip": "Minor-chord lick in straight time. Half-step-below approach (B→C, E→F)."
+      "tip": "Minor-chord lick in straight time. Half-step-below approach (B to C, E to F)."
     },
     {
       "number": 26,
@@ -916,7 +916,7 @@
       "progression": ["Cm7"],
       "scales": ["C minor blues (C Eb F Gb G Bb)"],
       "techniques": ["rhythmic-variation"],
-      "tip": "Bluesy, accented minor-blues line."
+      "tip": "An accented minor-blues line."
     },
     {
       "number": 28,
@@ -948,7 +948,7 @@
       "progression": ["Am", "D"],
       "scales": ["A minor pentatonic (A C D E G)"],
       "techniques": ["sequence"],
-      "tip": "The same shape, fingers and strings at the fifth fret. Transfer, not a new lick."
+      "tip": "The same shape, fingers and strings at the fifth fret. A transfer, not a new lick."
     }
   ],
   "LICK_PHRASES": {

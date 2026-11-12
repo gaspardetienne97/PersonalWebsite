@@ -125,7 +125,7 @@
     },
     {
       "token": "half-diminished-7",
-      "label": "Half-Diminished 7th",
+      "label": "Half-diminished 7th",
       "skillId": "harmony.seventh.half-diminished",
       "intervals": [0, 3, 6, 10],
       "level": "seventh"

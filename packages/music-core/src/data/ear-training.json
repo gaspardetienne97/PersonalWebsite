@@ -99,7 +99,7 @@
     {
       "slug": "intervals",
       "title": "Intervals",
-      "description": "Two notes, name the distance. Ascending, descending, harmonic.",
+      "description": "Hear two notes and name the distance: ascending, descending or harmonic.",
       "drill": "interval",
       "answerModes": ["choice", "play-back", "listen", "listen-along"],
       "usesScaleDegreeLevel": false,
@@ -110,7 +110,7 @@
     {
       "slug": "chord-qualities",
       "title": "Chord qualities",
-      "description": "Triads and seventh chords by ear.",
+      "description": "Name triads and seventh chords by ear.",
       "drill": "chord-quality",
       "answerModes": ["choice", "play-back", "listen", "listen-along"],
       "usesScaleDegreeLevel": false,
@@ -121,7 +121,7 @@
     {
       "slug": "cadences",
       "title": "Cadences",
-      "description": "Authentic, plagal, half and deceptive cadences in a stated key.",
+      "description": "Name the cadence in a given key: authentic, plagal, half or deceptive.",
       "drill": "cadence",
       "answerModes": ["choice", "listen", "listen-along"],
       "usesScaleDegreeLevel": false,
@@ -132,7 +132,7 @@
     {
       "slug": "scale-degrees",
       "title": "Scale degrees",
-      "description": "Hear a note over the tonic and answer its function.",
+      "description": "Hear a note over the tonic and name its scale degree.",
       "drill": "scale-degree",
       "answerModes": ["choice", "play-back", "voice", "listen", "listen-along"],
       "usesScaleDegreeLevel": true,
@@ -143,7 +143,7 @@
     {
       "slug": "melody-dictation",
       "title": "Melody dictation",
-      "description": "Hear a short phrase, play it back in order.",
+      "description": "Hear a short phrase and play it back in order.",
       "drill": "melody-dictation",
       "answerModes": ["play-back"],
       "usesScaleDegreeLevel": true,
