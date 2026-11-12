@@ -118,7 +118,7 @@
   {#if list.length}
     {@const misses = list.filter((e) => !e.correct)}
     <!-- Every attempt as a dot (glyph and colour), then the misses spelled out; the rest on demand. -->
-    <ol class="mt-2 flex flex-wrap gap-1" aria-label="Attempts in order: {list.length - misses.length} right, {misses.length} missed">
+    <ol class="mt-2 flex flex-wrap gap-1" aria-label="Answers in order: {list.length - misses.length} right, {misses.length} missed">
       {#each list as e, i (e.id)}
         <li
           class="grid size-8 place-items-center rounded-full text-sm font-bold {e.correct ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}"
@@ -142,7 +142,7 @@
     {/if}
     <details class="group mt-2 text-sm">
       <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-ws-soft hover:text-ws-ink [&::-webkit-details-marker]:hidden">
-        <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Details of each attempt
+        <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Details of each answer
       </summary>
       <ol class="flex flex-col divide-y divide-ws-line rounded-xl border border-ws-line">
         {#each list as e, i (e.id)}
@@ -153,7 +153,7 @@
               {#if e.correct}<span class="text-success">Right</span>{:else}<span class="text-destructive">Missed</span>{#if e.response !== undefined}, you answered {formatLabel(e.response)}{/if}{/if}
             </span>
             <span class="text-ws-soft">
-              Credit {pct(e.partialCredit)}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Not recorded"}, {INPUT_LABEL[e.source]}{e.instrument
+              Credit {pct(e.partialCredit)}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Mode not saved"}, {INPUT_LABEL[e.source]}{e.instrument
                 ? `, ${INSTRUMENT_LABEL[e.instrument]}`
                 : ""}
             </span>
@@ -162,7 +162,7 @@
       </ol>
     </details>
   {:else}
-    <p class="mt-1 text-sm text-ws-soft">No graded attempts.</p>
+    <p class="mt-1 text-sm text-ws-soft">No scored answers.</p>
   {/if}
 {/snippet}
 
@@ -300,7 +300,7 @@
       {/each}
       {#if orphans.length}
         <div class="min-w-0">
-          <p class="font-medium">Attempts from a run that did not finish</p>
+          <p class="font-medium">Answers from a run that didn't finish</p>
           {@render evidence(orphans)}
         </div>
       {/if}

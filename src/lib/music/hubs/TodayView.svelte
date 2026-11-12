@@ -100,7 +100,7 @@
 
   const greeting = () => {
     const h = new Date().getHours();
-    return h < 12 ? "Morning session" : h < 18 ? "Afternoon session" : "Evening session";
+    return h < 12 ? "This morning" : h < 18 ? "This afternoon" : "This evening";
   };
 </script>
 
@@ -109,7 +109,7 @@
     <div class="flex items-end justify-between gap-3">
       <div class="min-w-0">
         <p class="text-ws-soft">
-          {greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}<!-- The streak at a glance where its card sits below the fold. --><span class="lg:hidden"
+          {greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, set ${plan.pass}` : ""}<!-- The streak at a glance where its card sits below the fold. --><span class="lg:hidden"
             >{plan.streak.current === 1 ? ", day 1 streak" : plan.streak.current ? `, ${plan.streak.current}-day streak` : ""}</span
           >
         </p>
@@ -240,12 +240,12 @@
           </ul>
           <!-- What the set came to: every block played (what completes a set, minutes are only the plan), with the time its runs took. -->
           <p class="tnum relative mt-4 font-semibold">Done for today: every block played</p>
-          <p class="tnum relative text-sm text-ws-soft">{formatDuration(playedTotal)} of playing. The plan's {budget} minutes are a guide; a set is complete once each block has a run.</p>
+          <p class="tnum relative text-sm text-ws-soft">{formatDuration(playedTotal)} of playing. The {budget} minutes are a guide. The set is complete once each block has a run.</p>
           <dl class="tnum relative mt-2 flex flex-wrap gap-x-6 gap-y-2">
             {#if plan.summary.accuracy !== undefined}
               <div><dt class="text-[13px] text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
             {/if}
-            <div><dt class="text-[13px] text-ws-soft">XP earned on every run</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
+            <div><dt class="text-[13px] text-ws-soft">XP earned</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
           </dl>
           {#if nextUp}<p class="relative mt-4 text-sm">{nextUp.why}</p>{/if}
           <div class="relative mt-2 flex flex-wrap items-center gap-2">
@@ -323,7 +323,7 @@
                   </a>
                 {:else}
                   <a href={step.href} class={btn}>
-                    <Play class="size-4" aria-hidden="true" />{done ? "Play again" : "Start"}<span class="sr-only">&nbsp;{step.label}</span>
+                    <Play class="size-4" aria-hidden="true" />{done ? "Again" : "Start"}<span class="sr-only">&nbsp;{step.label}</span>
                   </a>
                 {/if}
                 {#if blockReason(step) !== blockSummary(step)}<p class="text-sm text-ws-soft max-sm:hidden">{blockReason(step).slice(blockSummary(step).length).trim()}</p>{/if}
@@ -348,13 +348,13 @@
           <Ring value={plan.advice.focus.accuracy} stroke={plan.advice.focus.accuracy >= 0.85 ? "var(--success)" : "var(--warn)"} class="size-12 shrink-0" />
           <p class="text-sm">
             <span class="tnum font-semibold">{Math.round(plan.advice.focus.accuracy * 100)}% right</span> on {plan.advice.focus.name}
-            <span class="tnum text-ws-soft">({plan.advice.focus.attempts} answers, Check runs)</span>
+            <span class="tnum text-ws-soft">({plan.advice.focus.attempts} answers in Check)</span>
           </p>
         </div>
       {:else if !plan.advice.measured && plan.checked < COACH_MIN_ATTEMPTS}
         <!-- Nothing measured yet: one line and the bar; the method waits behind the info button. -->
         <p class="mt-1 flex items-start gap-1 text-sm">
-          <span class="flex-1">Answer {COACH_MIN_ATTEMPTS} questions with hints off (a Check run) to find your weak spot.</span>
+          <span class="flex-1">Answer {COACH_MIN_ATTEMPTS} questions in Check to find your weak spot.</span>
           <button
             type="button"
             class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
@@ -364,14 +364,14 @@
             onclick={() => (coachInfo = !coachInfo)}><Info class="size-5" aria-hidden="true" /></button
           >
         </p>
-        {#if coachInfo}<p id="coach-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">{plan.advice.summary} Check mode is the run that counts: no hints, every answer scored.</p>{/if}
+        {#if coachInfo}<p id="coach-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">{plan.advice.summary} A Check run has no hints and scores every answer.</p>{/if}
         <div class="mt-3 flex items-center gap-3">
           <!-- No answers yet, so no number: an empty ring that fills once the coach has measured something. -->
           <Ring class="size-11 shrink-0" />
           <div
             class="h-2 flex-1 rounded-full bg-ws-raised"
             role="progressbar"
-            aria-label="Answers in Check mode"
+            aria-label="Answers in Check"
             aria-valuemin={0}
             aria-valuemax={COACH_MIN_ATTEMPTS}
             aria-valuenow={toMeasure}
@@ -381,7 +381,7 @@
           <span class="tnum text-sm font-semibold">{toMeasure} of {COACH_MIN_ATTEMPTS}</span>
         </div>
         {#if practiceOnly}
-          <p class="mt-2 text-sm text-ws-soft">Today's set ran in Practice. Answers in Check mode count here.</p>
+          <p class="mt-2 text-sm text-ws-soft">Today's set ran in Practice. Only answers in Check count here.</p>
         {/if}
       {:else}
         <p class="mt-1 text-sm">{plan.advice.summary}</p>
@@ -414,7 +414,7 @@
           </li>
         {/each}
       </ul>
-      <p class="mt-3 text-[13px] text-ws-soft">Level {levelFor(practice.xpTotal)}, {practice.xpTotal} XP in total.</p>
+      <p class="mt-3 text-[13px] text-ws-soft">XP level {levelFor(practice.xpTotal)}, {practice.xpTotal} XP in total.</p>
     </section>
     {/if}
   </aside>

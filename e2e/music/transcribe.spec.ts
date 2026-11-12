@@ -141,7 +141,7 @@ test.describe("transcribe", () => {
   test("a MIDI take becomes a song, its tempo found from the playing", async ({ page }) => {
     await installFakeMidi(page, [PORTS.keys]);
     await page.goto("/music/record");
-    await page.getByRole("button", { name: "Enable MIDI" }).click();
+    await page.getByRole("button", { name: "Turn on MIDI" }).click();
     await expect(page.getByText("MIDI on: Digital Piano")).toBeVisible();
     await midiNote(page, PORTS.keys.id, 72, 60, 1, 150);
     await page.getByRole("button", { name: "Record", exact: true }).click();

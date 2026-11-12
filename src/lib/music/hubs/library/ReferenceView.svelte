@@ -168,7 +168,7 @@
 
   const RECIPES = [
     { id: "rooted", name: "Rooted", degrees: "1 3 5 7", semis: [0, 4, 7, 11], use: "The plain chord, root at the bottom." },
-    { id: "shell", name: "Shell", degrees: "1 3 7", semis: [0, 4, 11], use: "Just the root, 3rd and 7th: the sound of the chord with nothing extra." },
+    { id: "shell", name: "Shell", degrees: "1 3 7", semis: [0, 4, 11], use: "The root, 3rd and 7th: the sound of the chord with nothing extra." },
     { id: "rootless-a", name: "Rootless A", degrees: "3 5 7 9", semis: [4, 7, 11, 14], use: "Use when the melody note is the 9th. The left hand takes the root." },
     { id: "rootless-b", name: "Rootless B", degrees: "7 9 3 5", semis: [11, 14, 16, 19], use: "Use when the melody note is the 5th. The left hand takes the root." },
   ];
@@ -335,7 +335,7 @@
             {#each JAZZ.JAZZ_CHORD_TYPES as c (c.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label="Play {c.symbol}, {c.name}">
+                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label="Hear {c.symbol}, {c.name}">
                     <Play class="size-3.5" aria-hidden="true" /><span class="font-display text-base">{c.symbol}</span>
                   </button>
                   <span class="block text-[13px] font-normal text-ws-soft">{c.name}</span>
@@ -344,7 +344,7 @@
                 <td>
                   {#if c.extensions?.length}
                     <span class="flex flex-wrap gap-1">
-                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label="Play {e}">{e}</button>{/each}
+                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label="Hear {e}">{e}</button>{/each}
                     </span>
                   {:else}<span class="text-ws-soft">None</span>{/if}
                 </td>
@@ -369,7 +369,7 @@
 
     <section id="chord-scales" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-chord-scales">
       <h2 id="h-chord-scales" tabindex="-1" class="font-display text-2xl font-semibold">Chord-scale map</h2>
-      <p class="mt-1 text-ws-soft">Which scales sound good over each chord family. Learn the go-to first; Show puts it on the keyboard above.</p>
+      <p class="mt-1 text-ws-soft">Which scales sound good over each chord family. Learn the go-to first. Show puts it on the keyboard above.</p>
       <div class="mt-3 grid gap-3 md:grid-cols-2">
         {#each [...new Set(JAZZ.CHORD_SCALE_MAP.map((r) => r.family))] as fam (fam)}
           {@const type = JAZZ.JAZZ_CHORD_TYPES.find((t) => t.family === fam)}
@@ -396,7 +396,7 @@
 
     <section id="voicings" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-voicings">
       <h2 id="h-voicings" tabindex="-1" class="font-display text-2xl font-semibold">Voicing recipes</h2>
-      <p class="mt-1 text-ws-soft">Four ways to stack a seventh chord. Play plays each on Cmaj7.</p>
+      <p class="mt-1 text-ws-soft">Four ways to stack a seventh chord. Tap a name to hear it on Cmaj7.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label="Voicing recipes table" tabindex="0">
         <table>
@@ -405,7 +405,7 @@
             {#each RECIPES as r (r.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} Cmaj7`)} aria-label="Play {r.name} on Cmaj7">
+                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} Cmaj7`)} aria-label="Hear {r.name} on Cmaj7">
                     <Play class="size-3.5" aria-hidden="true" />{r.name}
                   </button>
                 </th>
@@ -420,7 +420,7 @@
 
     <section id="dominants" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-dominants">
       <h2 id="h-dominants" tabindex="-1" class="font-display text-2xl font-semibold">Dominant voicings</h2>
-      <p class="mt-1 text-ws-soft">Three colours for a V7, from plain to maximum tension. Play voices each on G7 over a G bass.</p>
+      <p class="mt-1 text-ws-soft">Three colours for a V7, from plain to maximum tension. Tap a name to hear it on G7 over a G bass.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label="Dominant voicings table" tabindex="0">
         <table>
@@ -429,7 +429,7 @@
             {#each JAZZ.DOMINANT_VOICINGS as d (d.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], `${d.label} on G7`)} aria-label="Play {d.label} on G7">
+                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], `${d.label} on G7`)} aria-label="Hear {d.label} on G7">
                     <Play class="size-3.5" aria-hidden="true" />{d.label}
                   </button>
                 </th>
@@ -444,7 +444,7 @@
 
     <section id="upper-structures" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-upper-structures">
       <h2 id="h-upper-structures" tabindex="-1" class="font-display text-2xl font-semibold">Upper structures over a V7</h2>
-      <p class="mt-1 text-ws-soft">Left hand plays the shell (1 3 7), right hand a triad. Play voices each over C7.</p>
+      <p class="mt-1 text-ws-soft">Left hand plays the shell (1 3 7), right hand a triad. Tap a triad to hear it over C7.</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label="Upper structures table" tabindex="0">
         <table>
@@ -454,7 +454,7 @@
               {@const triad = (u.quality === "maj" ? [0, 4, 7] : [0, 3, 7]).map((s) => 60 + u.triadRoot + s)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], `${u.triad} over C7`)} aria-label="Play {u.triad} over C7">
+                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], `${u.triad} over C7`)} aria-label="Hear {u.triad} over C7">
                     <Play class="size-3.5" aria-hidden="true" />{u.triad}
                   </button>
                   <span class="block text-[13px] font-normal text-ws-soft">{FLAT_NAMES[u.triadRoot]} {u.quality === "maj" ? "major" : "minor"} over C7</span>
@@ -517,7 +517,7 @@
     <section id="backing" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-backing">
       <h2 id="h-backing" tabindex="-1" class="font-display text-2xl font-semibold">Backing tracks</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
-        These recordings are not shipped with the app. If you have them (or any track you like), import the audio in
+        Woodshed doesn't include these recordings. If you have them (or any track you like), import the audio in
         <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Jam</a> and it plays under your solo.
       </p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->

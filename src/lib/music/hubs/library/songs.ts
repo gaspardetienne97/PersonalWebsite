@@ -33,7 +33,7 @@ export async function importScoreFile(name: string, bytes: Uint8Array): Promise<
   else if (ext === "mxl") score = await parseMxl(bytes);
   else
     throw new Error(
-      `"${name}" is not a score this app can read. Use MIDI (.mid), MusicXML (.musicxml or .xml) or compressed MusicXML (.mxl).`,
+      `"${name}" isn't a score Woodshed can read. Use MIDI (.mid), MusicXML (.musicxml or .xml) or compressed MusicXML (.mxl).`,
     );
   if (!score.voices.some((v) => v.notes.length)) throw new Error(`"${name}" has no notes in it.`);
   if (!score.title?.trim() || /^untitled/i.test(score.title))
@@ -138,7 +138,7 @@ export async function shelfScore(
   title: string,
 ): Promise<{ score: Score; name: string }> {
   const res = await fetch(`/api/music/scores/${key}`);
-  if (!res.ok) throw new Error(`The score for ${title} has not been downloaded yet.`);
+  if (!res.ok) throw new Error(`The score for ${title} hasn't been downloaded yet.`);
   const name =
     res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
     `${key.split("/")[1]}.mxl`;

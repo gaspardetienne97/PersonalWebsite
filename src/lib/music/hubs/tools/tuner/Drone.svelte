@@ -40,7 +40,7 @@
 
   async function start() {
     const ok = await audio.unlock();
-    if (!ok) return onstatus("Sound is blocked. Click Play again to allow audio.");
+    if (!ok) return onstatus("Sound is blocked. Press Play drone again to allow it.");
     audio.drone.start(midi, timbre, volume);
     onstatus(`Drone on ${describe()}.`);
   }
@@ -96,7 +96,7 @@
     <div class="mb-2 flex items-start gap-2">
       <div class="min-w-0 flex-1">
         <p class="font-display text-lg font-semibold" data-testid="drone-scale">{tonicName} major</p>
-        <p class="text-sm text-ws-stage-soft">Gold pads with a dot are in {tonicName} major. ♭3 = minor third above {tonicName}. Tap a pad to change the home note.</p>
+        <p class="text-sm text-ws-stage-soft">Gold pads with a dot are in {tonicName} major. ♭3 = minor third above {tonicName}. Tap a pad to change the tonic.</p>
       </div>
       <button
         type="button"

@@ -80,7 +80,7 @@
       </p>
       <div class="mt-auto flex flex-wrap gap-1.5">
         <button type="button" class="{btn} min-h-9 px-2.5 text-[13px]" onclick={() => hear(v.frets)}><Play class="size-3.5" aria-hidden="true" />Hear</button>
-        <a class="{btn} min-h-9 px-2.5 text-[13px]" href={practise(v.frets, i)}>Practise</a>
+        <a class="{btn} min-h-9 px-2.5 text-[13px]" href={practise(v.frets, i)}>Start drill</a>
       </div>
     </li>
   {:else}

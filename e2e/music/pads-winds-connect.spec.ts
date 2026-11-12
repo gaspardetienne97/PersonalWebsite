@@ -70,7 +70,7 @@ test("MPC: Akai Classic map, controller link, reload, rudiment and groove", asyn
   await installFakeMidi(page, [PORTS.mpcPublic, PORTS.mpcPrivate]);
   await page.goto("/music/connect");
   await expect(page.getByRole("heading", { level: 1, name: "Connect" })).toBeVisible();
-  await page.getByRole("button", { name: "Enable MIDI" }).click();
+  await page.getByRole("button", { name: "Turn on MIDI" }).click();
 
   const priv = page.getByTestId(`device-${PORTS.mpcPrivate.id}`);
   const pub = page.getByTestId(`device-${PORTS.mpcPublic.id}`);
@@ -191,7 +191,7 @@ test("Aerophone: long tone with breath on CC 2", async ({ page }) => {
   test.setTimeout(60_000);
   await installFakeMidi(page, [PORTS.aerophone]);
   await page.goto("/music/connect");
-  await page.getByRole("button", { name: "Enable MIDI" }).click();
+  await page.getByRole("button", { name: "Turn on MIDI" }).click();
   await expect(page.getByTestId(`device-${PORTS.aerophone.id}`)).toContainText("Aerophone");
 
   await page.goto("/music/aerophone?mode=long-tone&target=67&seconds=3");
@@ -234,7 +234,7 @@ test("Aerophone fingering: Roland's first lesson, a slip named, the octave cresc
   test.setTimeout(60_000);
   await installFakeMidi(page, [PORTS.aerophone]);
   await page.goto("/music/connect");
-  await page.getByRole("button", { name: "Enable MIDI" }).click();
+  await page.getByRole("button", { name: "Turn on MIDI" }).click();
   await expect(page.getByTestId(`device-${PORTS.aerophone.id}`)).toContainText("Aerophone");
   await page.goto("/music/aerophone?mode=fingering&lesson=g-a-b");
   await expect(page.getByTestId("midi-status")).toContainText("Listening on Aerophone AE-10", {

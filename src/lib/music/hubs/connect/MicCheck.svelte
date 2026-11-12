@@ -97,7 +97,7 @@
     </summary>
     <label class="flex min-h-11 items-start gap-3 pl-6">
       <input type="checkbox" role="switch" class="mt-0.5 size-5 shrink-0 accent-[var(--instr-ink)]" checked={settings.value.echoCancellation} onchange={(e) => void setEcho(e.currentTarget.checked)} />
-      <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">The browser filters the app's own sound out of the microphone, which also blurs your notes. Leave it off for pitch and timing; turn it on only if the speakers bleed into the mic.</span></span>
+      <span><span class="font-medium">Echo cancellation.</span> <span class="text-ws-soft">The browser filters the app's own sound out of the microphone, which also blurs your notes. Leave it off for pitch and timing. Turn it on only if the speakers bleed into the mic.</span></span>
     </label>
   </details>
 </div>

@@ -24,9 +24,9 @@
     !midi.supported
       ? "Blocked: this browser has no Web MIDI."
       : !midi.enabled
-        ? "Blocked: MIDI is off. Enable it above."
+        ? "Blocked: MIDI is off. Turn it on above."
         : !midi.sysexEnabled
-          ? "Blocked: pad lights (SysEx) were not allowed, so the MPC can't be linked. Turn MIDI off and on again and allow them."
+          ? "Blocked: pad lights (SysEx) weren't allowed, so the MPC can't be linked. Turn MIDI off and on again and allow them."
           : link.state === "no-output"
             ? `Blocked: the linked output (${outName(link.outputId)}) is not connected.`
             : link.state === "linked"

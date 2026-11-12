@@ -169,10 +169,10 @@
                   {#if m.value !== undefined}
                     <span class="inline-flex items-center gap-1.5"
                       ><span class="h-1.5 w-12 rounded-full bg-ws-raised" aria-hidden="true"><span class="block h-full rounded-full bg-[color:var(--h)]" style:width="{m.value * 100}%"></span></span
-                      >Mastery {pct(m.value)}</span
+                      >Skill score {pct(m.value)}</span
                     >
                   {:else if r.skillIds.length && m.checked}
-                    <span>{m.checked} of {COACH_MIN_ATTEMPTS} checked<span class="sr-only">, not measured yet</span></span>
+                    <span>{m.checked} of {COACH_MIN_ATTEMPTS} answers in Check<span class="sr-only">, not measured yet</span></span>
                   {:else if !last && ri === 0}<span class="rounded-full border border-ws-ink/40 bg-ws-surface px-2 py-0.5 font-semibold text-ws-ink">Start here</span>
                   {:else if !last}<span class="inline-flex items-center gap-1.5"><Ring class="size-5" />Not played</span>{/if}
                   {#if filter === "all"}
@@ -202,9 +202,9 @@
                     class="relative z-10 flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-ws-line bg-ws-surface px-3.5 text-sm font-medium hover:bg-ws-raised"
                     aria-expanded={modesOpen === r.key}
                     aria-controls="modes-{r.key}"
-                    aria-label="Modes for {r.title}"
+                    aria-label="Exercises in {r.title}"
                     onclick={() => (modesOpen = modesOpen === r.key ? null : r.key)}
-                    >Mode<span class="tnum text-ws-soft">&nbsp;({r.modes.length})</span><ChevronDown
+                    >Exercises<span class="tnum text-ws-soft">&nbsp;({r.modes.length})</span><ChevronDown
                       class="size-4 motion-safe:transition-transform {modesOpen === r.key ? 'rotate-180' : ''}"
                       aria-hidden="true"
                     /></button

@@ -110,7 +110,7 @@
   async function takeAudio(file: File | undefined) {
     if (!file || transcriber.busy) return;
     error = "";
-    announce(`Listening to ${file.name}. The page stays usable; Cancel stops it.`);
+    announce(`Listening to ${file.name}… Keep using the page. Cancel stops it.`);
     try {
       const r = await transcriber.run(file, engine, sensitivity);
       take(r.notes, file.name.replace(/\.[^.]+$/, ""), "transcribed");

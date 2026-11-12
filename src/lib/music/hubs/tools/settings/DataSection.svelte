@@ -27,8 +27,8 @@
 
   const LABEL: Record<BackupTable, string> = {
     sessions: "Sessions",
-    scoringEvents: "Scored attempts",
-    skillMastery: "Skill mastery",
+    scoringEvents: "Scored answers",
+    skillMastery: "Skill scores",
     skills: "Skills",
     skillRelationships: "Skill links",
     chordLibrary: "Chord library",
@@ -124,7 +124,7 @@
       const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
       const read = isZip ? await readFullBackup(bytes) : readDataBackup(bytes);
       if (!read.ok) {
-        error = `"${file.name}" cannot be restored.`;
+        error = `"${file.name}" can't be restored. Choose a Woodshed backup file.`;
         issues = read.errors;
         announce(error);
         return;
@@ -244,9 +244,9 @@
         </table>
       </div>
       <ul class="flex list-disc flex-col gap-1 pl-5 text-sm">
-        <li>All {BACKUP_TABLES.length} tables are replaced, not merged. What is here now and not in the backup is gone.</li>
+        <li>All {BACKUP_TABLES.length} tables are replaced, not merged. Anything here now that isn't in the backup is deleted.</li>
         {#if pending.kind === "data"}
-          <li>Media files are not in a data backup. Audio takes, backing tracks and kit samples it lists only play if their files already exist in this browser, unchanged.</li>
+          <li>A data backup has no media files. Audio takes, backing tracks and kit samples it lists only play if their files already exist in this browser, unchanged.</li>
         {:else}
           <li>Missing media files are added. A file that already exists here with different contents stops the restore, so nothing is overwritten.</li>
         {/if}

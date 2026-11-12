@@ -89,7 +89,7 @@
   async function record() {
     if (recording) return stop();
     await audio.unlock();
-    if (!audio.unlocked) return announce("Sound is blocked. Tap for sound in the strip above, then try again.");
+    if (!audio.unlocked) return announce("Sound is blocked. Tap for sound in the top bar, then try again.");
     session.stop();
     if (!passes.length) startedAt = performance.now();
     recording = true;
@@ -109,7 +109,7 @@
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    announce(`Recording: ${barsOf(session.pattern)} bar${barsOf(session.pattern) > 1 ? "s" : ""} at ${bpm} BPM, round and round. Each pass adds what you play; one voice a pass works best.`);
+    announce(`Recording: ${barsOf(session.pattern)} bar${barsOf(session.pattern) > 1 ? "s" : ""} at ${bpm} BPM, round and round. Each pass adds what you play. One voice a pass works best.`);
   }
 
   function stop() {
@@ -188,7 +188,7 @@
     <Choice label="Note repeat" options={[{ value: "off", label: "Off" }, ...REPEAT_RATES.map((r) => ({ value: r.id as string, label: r.id }))]} value={rate} onchange={(v) => (rate = v)} />
   </div>
   <p class="mt-3 text-[13px] text-ws-stage-soft">
-    Note repeat: hold a pad and it repeats on the loop's grid{repeater.aftertouch ? "; your pads send aftertouch, so pressure sets the level" : "; pressure sets the level when the pads send aftertouch"}. Keep this loop grades the build: in time, at least {LIVE_LOOP.passes} passes, no undo from the third on, {LIVE_LOOP.maxMinutes} minutes or less.
+    Note repeat: hold a pad and it repeats on the loop's grid{repeater.aftertouch ? "; your pads send aftertouch, so pressure sets the level" : "; pressure sets the level when the pads send aftertouch"}. Keep this loop scores the build: in time, at least {LIVE_LOOP.passes} passes, no undo from the third on, {LIVE_LOOP.maxMinutes} minutes or less.
     {#if lastScore}<span class="font-semibold text-ws-stage-ink">Last loop: {lastScore}</span>{/if}
   </p>
   <div class="mt-4 max-w-md"><Pads label="MPC pads, bank A, playing the kit. Computer keys Z X C V play the bottom row." /></div>

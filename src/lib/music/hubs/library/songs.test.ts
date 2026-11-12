@@ -48,7 +48,7 @@ describe("importScoreFile", () => {
 
   it("refuses other formats with a plain sentence", async () => {
     await expect(importScoreFile("song.mp3", new Uint8Array([1]))).rejects.toThrow(
-      /not a score this app can read/,
+      /isn't a score Woodshed can read/,
     );
   });
 });

@@ -84,7 +84,7 @@
   const soloing = $derived(host.pickedPlaying);
   async function playMelodies() {
     const ok = await host.playPicked();
-    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
     const names = doc.voices.filter((v) => host.picked.includes(v.id)).map((v) => v.name);
     announce(host.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
   }
@@ -140,7 +140,7 @@
     const c = cellOf(e);
     cursor = { midi: c.midi, step: c.step };
     if (tool === "draw") return toggleAt(c.midi, c.step);
-    if (period && c.beat >= period) return announce(`Resize notes in the loop, the first ${period / BAR_BEATS} bars; the repeats follow.`);
+    if (period && c.beat >= period) return announce(`Resize notes in the loop, the first ${period / BAR_BEATS} bars. The repeats follow.`);
     const i = noteAt(active.notes, c.midi, c.step * STEP_BEATS);
     if (i < 0) return announce("Resize mode: drag a note of the selected voice to change its length. Switch to Draw to add notes.");
     grid.setPointerCapture?.(e.pointerId);

@@ -62,7 +62,7 @@ export class Transcriber {
       buf = await ctx.decodeAudioData(await file.arrayBuffer());
     } catch {
       this.#settle(null);
-      throw new Error(`"${file.name}" could not be decoded as audio. Try a WAV or MP3.`);
+      throw new Error(`"${file.name}" isn't audio Woodshed can read. Try a WAV or MP3.`);
     } finally {
       void ctx.close();
     }

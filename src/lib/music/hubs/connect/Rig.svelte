@@ -73,7 +73,7 @@
           >inputs connected{midi.enabled && !midi.sysexEnabled ? ", MPC lights off (not allowed)" : ""}. {!midi.supported
             ? ""
             : !midi.enabled
-              ? "Enable MIDI for a keyboard, pads or the Aerophone (the browser asks: choose Allow), or start the microphone below."
+              ? "Turn on MIDI for a keyboard, pads or the Aerophone (the browser asks: choose Allow), or start the microphone below."
               : micNext
                 ? "Next: test the microphone."
                 : "Play something and its tile lights up."}</span
@@ -85,7 +85,7 @@
         <!-- Rarely needed, so it waits behind a small overflow button. -->
         <div class="flex items-center gap-2">
           {#if moreOpen}
-            <button type="button" class={btn} onclick={() => (midi.disable(), (moreOpen = false), announce("MIDI is off on this page until you enable it again."))}>Turn off MIDI</button>
+            <button type="button" class={btn} onclick={() => (midi.disable(), (moreOpen = false), announce("MIDI is off on this page until you turn it on again."))}>Turn off MIDI</button>
           {/if}
           <button
             type="button"
@@ -96,7 +96,7 @@
           >
         </div>
       {:else}
-        <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Enable MIDI</button>
+        <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Turn on MIDI</button>
       {/if}
     {/if}
   </div>
@@ -108,9 +108,9 @@
   {#if midi.supported && !midi.enabled}
     <details class="group -my-2 text-sm">
       <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-        Why does the browser ask twice?<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        Why the browser asks twice<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <p class="text-ws-soft">The first prompt lets Woodshed hear your notes. The second lets it light the MPC's pads and link to it. Allow both; a keyboard alone needs only the first.</p>
+      <p class="text-ws-soft">The first prompt is for your notes. The second is for the MPC's pad lights and its link. Allow both. A keyboard alone needs only the first.</p>
     </details>
   {/if}
 

@@ -181,13 +181,13 @@ describe("Honest figures", () => {
       "All answers: 75% right (12 answers).",
     );
     expect(skillCaption(r({ checked: 0, attempts: 2, accuracy: 1 }), now)).toBe(
-      "All answers: 100% right (2 answers). No mastery yet.",
+      "All answers: 100% right (2 answers). No skill score yet.",
     );
     expect(skillCaption(r({ estimate: 0.3, umbrella: true, direct: false, checked: 4 }), now)).toBe(
-      "4 answers in Check runs. Mastery is the average of its parts.",
+      "4 answers in Check runs. Skill score is the average of its parts.",
     );
     expect(skillCaption(r({ estimate: 0.4, accuracy: 0.9, checked: 2 }), now)).toBe(
-      "All answers: 90% right (10 answers). Mastery is an early guess until 5 answers in Check runs.",
+      "All answers: 90% right (10 answers). Skill score is an early guess until 5 answers in Check runs.",
     );
   });
 

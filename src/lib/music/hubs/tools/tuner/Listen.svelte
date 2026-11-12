@@ -110,7 +110,7 @@
   }
 
   async function start() {
-    onstatus("Starting the microphone.");
+    onstatus("Starting the microphone…");
     const ok = await mic.start();
     if (!ok) return onstatus(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
     reader.reset();
@@ -208,7 +208,7 @@
 
   {#if choosing}
     <div id="tuner-targets" class="mt-3">
-      <p class="mb-2 text-sm text-ws-stage-soft">Target note. Any note tunes to whichever note is nearest; pick one to aim at it in the octave you play.</p>
+      <p class="mb-2 text-sm text-ws-stage-soft">Target note. Any note tunes to the nearest note. Pick one to aim at it in the octave you play.</p>
       <NotePads label="Target note" noneLabel="Any note" selected={target} onselect={(p) => void chooseTarget(p)} />
     </div>
   {/if}
@@ -276,7 +276,7 @@
           >
             <span class="font-display text-lg font-semibold">{pretty(noteName(open, "flat", false))}<span class="text-[13px] opacity-70">{Math.floor(open / 12) - 1}</span></span>
             <span class="tnum text-[13px]">
-              {#if off !== null}{Math.abs(off) <= IN_TUNE_CENTS ? "✓ in tune" : `${signedCents(off)}¢`}{:else}<Volume class="inline size-3.5" aria-hidden="true" /> {i + 1}{/if}
+              {#if off !== null}{Math.abs(off) <= IN_TUNE_CENTS ? "In tune" : `${signedCents(off)}¢`}{:else}<Volume class="inline size-3.5" aria-hidden="true" /> {i + 1}{/if}
             </span>
           </button>
         </li>

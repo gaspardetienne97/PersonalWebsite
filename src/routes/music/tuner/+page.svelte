@@ -12,7 +12,7 @@
   const BLURB = {
     tune: "Play one note. The needle shows how far off it is and which way to turn.",
     intonation: "Hold notes steadily and see how well you stay on pitch over ten seconds.",
-    drone: "A held home note to play scales and long tones against. Press Play, then play along.",
+    drone: "A held tonic to play scales and long tones against. Press Play drone, then play along.",
   };
   type Mode = (typeof TABS)[number]["id"];
   const mode = $derived<Mode>(

@@ -151,14 +151,14 @@ export function lastRun<R extends { exerciseId: string; endedAt: number; score?:
 
 const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`));
 
-const EAR = "Ear training";
+const EAR = "Ear";
 
 export const DRILL_GROUPS: DrillGroup[] = [
   {
     id: "ear-notes",
     section: EAR,
     title: "Notes and melody",
-    note: "Answer by choosing, playing it back, singing, from memory or just listening along.",
+    note: "Answer by choosing, playing it back, singing, or listening along.",
     rows: ear(
       "intervals",
       "interval-compare",
@@ -217,7 +217,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
         "aerophone",
         "fingers",
         "Aerophone fingers",
-        "A set-up check, Roland's fingering lessons in order, then scales in every key, crossings over the octave and palm keys and trills.",
+        "A setup check, Roland's fingering lessons in order, then scales in every key, crossings over the octave and palm keys and trills.",
         ["calibrate", "fingering", "scales", "register", "trills"],
       ),
       part(
@@ -261,7 +261,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
   },
   {
     id: "jazz",
-    title: "Jazz and improvising",
+    title: "Play over changes",
     rows: [
       row("voicings"),
       row("comping"),
@@ -280,7 +280,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
         "pads",
         "improvise",
         "Improvise on the pads",
-        "Play anything over the band; hear the take back as played and nudged to the grid.",
+        "Play anything over the band. Hear the take back as played, then nudged to the grid.",
         ["improvise"],
       ),
     ],

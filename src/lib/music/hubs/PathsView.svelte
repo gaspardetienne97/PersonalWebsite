@@ -252,12 +252,12 @@
               {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
                 {@const tried = sp.evidence.reduce((n, e) => n + e.attempts, 0)}
                 <p class="tnum mt-1 text-[13px] text-ws-soft">
-                  {tried} checked attempt{tried === 1 ? "" : "s"} so far, the latest averaging
+                  {tried} Check run{tried === 1 ? "" : "s"} so far, the latest averaging
                   {Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100)}%.
                   {#if sp.evidence.length > 1}{sp.evidence.filter((e) => e.done).length} of {sp.evidence.length} passed.{/if}
                   {#if sp.almost}Passing now: {sp.evidence.some((e) => e.days < sp.step.minDays)
                       ? "play it again on another day to confirm."
-                      : "a few more checked attempts to confirm."}{/if}
+                      : "a few more Check runs to confirm."}{/if}
                 </p>
               {/if}
               {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-[13px] text-ws-soft">Counts at {sp.step.minBpm} BPM or faster.</p>{/if}
@@ -270,7 +270,7 @@
                       ? 'bg-[color:var(--p)] text-ws-stage hover:brightness-105'
                       : 'border border-ws-line hover:bg-ws-raised'}"
                   >
-                    <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? "Open" : st === "done" ? "Practise again" : "Practise"}<span class="sr-only">&nbsp;{sp.step.title}</span>
+                    <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? "Open" : st === "done" ? "Again" : "Start"}<span class="sr-only">&nbsp;{sp.step.title}</span>
                   </a>
                   {#each sp.step.links as l (l.href)}
                     <a href={l.href} class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:border-[color:var(--p)] hover:bg-ws-raised">{l.label}</a>
@@ -289,9 +289,9 @@
         {#snippet songFace()}<Music class="size-5" />{/snippet}
         {@render node(steps.length, enough ? "passed" : "open", songFace)}
         <div class="min-w-0">
-          {@render head("songs", "Song shelf", lv.level.pick ? `${lv.played} of ${lv.level.pick} songs played` : "Songs to play along with", false)}
+          {@render head("songs", "Song list", lv.level.pick ? `${lv.played} of ${lv.level.pick} songs played` : "Songs to play along with", false)}
           <!-- The checkpoint's songs as badges, lit once played. -->
-          <ul class="mt-1 flex flex-wrap gap-1.5" aria-label="Songs on the shelf">
+          <ul class="mt-1 flex flex-wrap gap-1.5" aria-label="Songs in the list">
             {#each lv.songs as row (row.key)}
               <li
                 class="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[13px] {row.played
@@ -303,9 +303,9 @@
             {/each}
           </ul>
           {#if openId === "songs"}
-            <section id="stop-songs" aria-label="Song shelf" class="mt-2">
+            <section id="stop-songs" aria-label="Song list" class="mt-2">
               <p class="text-sm text-ws-soft">
-                Pick any {lv.level.pick}. A song counts when you play it in Song practice's Performance mode at 80% or better, near the record's tempo, on two days.
+                Pick any {lv.level.pick}. A song counts when you play it in Song practice's Performance mode at 80% or better, near the recording's tempo, on two days.
               </p>
               {#if shelfError}<p class="mt-2 text-sm text-destructive" role="alert">{shelfError}</p>{/if}
               <ul class="mt-3 flex flex-col divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
@@ -335,7 +335,7 @@
                           type="button"
                           class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised"
                           disabled={adding === row.key}
-                          onclick={() => addToSongs(row.key, row.song.title, row.song.artist)}>{adding === row.key ? "Adding" : "Add to my songs"}</button
+                          onclick={() => addToSongs(row.key, row.song.title, row.song.artist)}>{adding === row.key ? "Adding…" : "Add to my songs"}</button
                         >
                       {:else}
                         <a
@@ -487,7 +487,7 @@
           <details class="group mt-2 text-sm">
             <summary class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-medium text-instr-ink">How check-in works</summary>
           <ol class="mt-1 flex flex-col gap-2 sm:flex-row sm:gap-4">
-            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Play each check-in step from memory (Check mode)</li>
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Play each check-in step in Check</li>
             <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><CalendarDays class="size-4" aria-hidden="true" /></span>Review each step on two different days</li>
           </ol>
           </details>

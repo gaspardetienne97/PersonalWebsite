@@ -110,11 +110,11 @@
     result = null;
     await audio.unlock();
     if (!audio.unlocked) {
-      message = "Audio did not start. Tap Enable audio above, then run again.";
+      message = "Sound didn't start. Tap anywhere on the page, then start again.";
       return;
     }
     if (kind !== "audio" && !midi.enabled && !(await midi.enable())) {
-      message = midi.error || "MIDI did not start.";
+      message = midi.error || "MIDI didn't start. Allow it in the browser, then start again.";
       announce(message);
       return;
     }
@@ -201,7 +201,7 @@
       {#if running}
         <button type="button" class={btn} onclick={cancel}><Square class="size-4" aria-hidden="true" />Stop</button>
       {:else}
-        <button type="button" class={btn} disabled={!!active} onclick={run}><Play class="size-4" aria-hidden="true" />Run</button>
+        <button type="button" class={btn} disabled={!!active} onclick={run}><Play class="size-4" aria-hidden="true" />Start</button>
         {#if current !== undefined}<button type="button" class={btn} onclick={reset}>Reset</button>{/if}
       {/if}
     </div>

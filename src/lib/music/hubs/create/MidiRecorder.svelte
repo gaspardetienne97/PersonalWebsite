@@ -107,7 +107,7 @@
     try {
       await db.midiTakes.put({ ...take });
     } catch (e) {
-      return announce(`The take could not be saved: ${(e as Error).message}`);
+      return announce(`The take didn't save: ${(e as Error).message}. Record it again.`);
     }
     takes = [take, ...takes];
     [cmpA, cmpB] = [takes[1]?.id ?? "", take.id];
@@ -161,7 +161,7 @@
     const id = crypto.randomUUID();
     await db.songs.put({ id, title: take.name, createdAt: now, updatedAt: now, score: { ...score, id }, source: "Recorded take" });
     savedSong = { ...savedSong, [take.id]: id };
-    announce(`${take.name} is in the library as a song, snapped to sixteenths at ${score.bpm} BPM.`);
+    announce(`${take.name} is saved to Song practice, snapped to sixteenths at ${score.bpm} BPM.`);
   }
 
   async function remove(take: MidiTake) {
@@ -205,7 +205,7 @@
       <span>Web MIDI is unavailable in this browser. Play the keys below or your computer keyboard.</span>
     {:else if !midi.enabled}
       <span>MIDI is off.</span>
-      <button type="button" class="min-h-11 rounded-full bg-ws-stage-ink/10 px-4 font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20" onclick={() => midi.enable()}>Enable MIDI</button>
+      <button type="button" class="min-h-11 rounded-full bg-ws-stage-ink/10 px-4 font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20" onclick={() => midi.enable()}>Turn on MIDI</button>
     {:else}
       <span>MIDI on: {midi.inputs.map((i) => midi.profile(i.id)?.alias ?? i.name).join(", ") || "no device connected yet"}.</span>
       <a class="font-semibold text-ws-stage-ink underline underline-offset-4" href="/music/connect">Devices</a>

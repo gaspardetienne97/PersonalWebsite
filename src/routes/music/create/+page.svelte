@@ -82,7 +82,7 @@
   async function playAll() {
     const was = session.playing && session.only === null;
     const ok = await session.play(null);
-    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
     announce(was ? "Stopped." : `Playing ${session.songName}: ${bars(session.loopBars)} at ${session.bpm} BPM, on a loop.`);
   }
 
@@ -99,7 +99,7 @@
   }
   function newSong() {
     session.newSong();
-    announce("New song: an empty beat and one empty melody. It is not saved until you press Save.");
+    announce("New song: an empty beat and one empty melody. It isn't saved until you press Save.");
   }
   /** New and Open ask first when there are changes that would be lost. */
   function request(next: NonNullable<typeof pending>) {
@@ -131,7 +131,7 @@
     confirmDelete = false;
     const gone = session.songName;
     await session.deleteSong();
-    announce(`Took ${gone} out of your songs. It is still open; Save puts it back.`);
+    announce(`Removed ${gone} from your songs. It's still open: Save puts it back.`);
   }
 
   function exportMidi() {
@@ -152,7 +152,7 @@
       download(await audio.renderWav(notes, session.passSec), name, "audio/wav");
       announce(`Downloading ${name}, one pass of the song with the beat.`);
     } catch (e) {
-      announce(`The WAV could not be rendered: ${(e as Error).message}`);
+      announce(`The WAV didn't render: ${(e as Error).message}. Try WAV again.`);
     } finally {
       busy = false;
     }
@@ -266,7 +266,7 @@
           <button type="button" class={btn} onclick={exportMidi}><FileMusic class="size-4" aria-hidden="true" />MIDI</button>
           <button type="button" class={btn} disabled={busy} onclick={exportWav}><AudioLines class="size-4" aria-hidden="true" />WAV</button>
         </div>
-        <p class="text-[13px] text-ws-soft">MIDI has the melodies; WAV is one pass of everything you hear.</p>
+        <p class="text-[13px] text-ws-soft">MIDI has the melodies. WAV is one pass of everything you hear.</p>
         {#if session.saved}
           <button type="button" class="{btn} self-start {confirmDelete ? 'border-destructive text-destructive' : ''}" onblur={() => (confirmDelete = false)} onclick={deleteSong}>
             <Trash class="size-4" aria-hidden="true" />{confirmDelete ? `Remove ${session.songName}?` : "Remove from your songs"}

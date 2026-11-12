@@ -302,9 +302,9 @@ test.describe("Create", () => {
 
     // A preset beat, then one more bar: the song grows with it.
     await page.getByRole("button", { name: "Sounds" }).click();
-    await choose(page, page.getByLabel("Start from a preset"), "Boom bap · 2 bars");
+    await choose(page, page.getByLabel("Start from a preset"), "Boom bap, 2 bars");
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("status")).toContainText("Boom bap · 2 bars");
+    await expect(page.getByRole("status")).toContainText("Boom bap, 2 bars");
     await page.getByRole("button", { name: "Add a bar to the beat" }).click();
     await expect(page.getByRole("status")).toContainText("The song grew to 3 bars");
     await expect(
@@ -434,7 +434,7 @@ test.describe("Create", () => {
     // Take it out of your songs (two taps); it stays open.
     await page.getByRole("button", { name: "Remove from your songs" }).click();
     await page.getByRole("button", { name: "Remove Jam in C?" }).click();
-    await expect(page.getByRole("status")).toContainText("Took Jam in C out of your songs");
+    await expect(page.getByRole("status")).toContainText("Removed Jam in C from your songs");
     await expect(song.locator("[data-save-state]")).toHaveText("Not saved");
   });
 });
@@ -446,7 +446,7 @@ test.describe("Record", () => {
     await installFakeMidi(page, [PORTS.keys]);
     await page.goto("/music/record");
     await expect(page.getByRole("heading", { level: 1, name: "Record" })).toBeVisible();
-    await page.getByRole("button", { name: "Enable MIDI" }).click();
+    await page.getByRole("button", { name: "Turn on MIDI" }).click();
     await expect(page.getByText("MIDI on: Digital Piano")).toBeVisible();
 
     // Warm-up: the first note after load arrives late while the page wakes up,
@@ -775,7 +775,7 @@ test.describe("Settings", () => {
       page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
     ).toHaveAttribute("aria-checked", "false");
     await page.getByRole("button", { name: /^Sound and input: sound off/ }).click();
-    await page.getByRole("button", { name: "Turn sound on" }).click();
+    await page.getByRole("button", { name: "Turn on sound" }).click();
     await expect(
       page.locator("section#audio").getByRole("switch", { name: "Sound", exact: true }),
     ).toHaveAttribute("aria-checked", "true");
@@ -865,7 +865,7 @@ test.describe("Settings", () => {
     const panel = page.getByTestId("cal-midi");
 
     for (let round = 0; round < 2; round++) {
-      await panel.getByRole("button", { name: "Run" }).click();
+      await panel.getByRole("button", { name: "Start" }).click();
       await page.waitForFunction(() => (window as any).__woodshedCalibration);
       // Taps scheduled in the page, 20 ms after each click, through the fake MIDI port.
       await page.evaluate(() => {

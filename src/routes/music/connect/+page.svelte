@@ -75,7 +75,7 @@
         ]
       : []),
     { done: mic.state === "on", label: "Microphone tested", hint: "For guitar, ukulele and voice.", act: { label: "Test the microphone", href: "#mic" } },
-    { done: audio.unlocked, label: "Sound on", hint: "Any tap on the page turns it on.", act: { label: "Turn sound on", run: () => void audio.unlock().then((ok) => announce(ok ? "Sound is on." : "Sound is still blocked by the browser.")) } },
+    { done: audio.unlocked, label: "Sound on", hint: "Any tap on the page turns it on.", act: { label: "Turn on sound", run: () => void audio.unlock().then((ok) => announce(ok ? "Sound is on." : "Sound is still blocked by the browser.")) } },
   ]);
   const readyCount = $derived(checklist.filter((c) => c.done).length);
   const nextStep = $derived(checklist.find((c) => !c.done && c.act));
@@ -123,7 +123,7 @@
             {#if !anyLit}
               <p class="text-sm">
                 <span class="font-semibold">Nothing connected yet.</span>
-                Plug the keyboard, the MPC or the Aerophone in by USB{midi.enabled ? "" : " and press Enable MIDI"}, or start the microphone for guitar, ukulele and voice. No hardware is fine too: every drill has on-screen keys, frets or pads, and ear drills take tap answers.
+                Plug the keyboard, the MPC or the Aerophone in by USB{midi.enabled ? "" : " and press Turn on MIDI"}, or start the microphone for guitar, ukulele and voice. No hardware is fine too: every drill has on-screen keys, frets or pads, and ear drills take tap answers.
               </p>
             {/if}
             <button type="button" class="{btn} self-start" aria-expanded={showFallback} aria-controls="fallback" onclick={() => (showFallback = !showFallback)}>
@@ -149,7 +149,7 @@
         <section class="flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3" aria-labelledby="devices-title">
           {@render heading("devices-title", "Device settings", Usb, "piano")}
           {#if !midi.inputs.length && !offline.length}
-            <p class="text-sm text-ws-soft">No MIDI inputs yet. Plug a device in; it appears here without a reload.</p>
+            <p class="text-sm text-ws-soft">No MIDI inputs yet. Plug a device in and it appears here, no reload needed.</p>
           {/if}
           {#each [...midi.inputs, ...offline] as port (port.id)}
             <DeviceCard {port} {announce} />

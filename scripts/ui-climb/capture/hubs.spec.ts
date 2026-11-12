@@ -68,7 +68,7 @@ async function pulseRun(page: Page) {
 /** Today block `n` (1-based): its row opens to its details, where its Start link sits. */
 async function startBlock(page: Page, n: number) {
   const row = page.locator(`button[aria-controls="block-${n}"]`);
-  const start = page.locator(`#block-${n}`).getByRole("link", { name: /^(Start|Play again)/ });
+  const start = page.locator(`#block-${n}`).getByRole("link", { name: /^(Start|Again)/ });
   await expect(async () => {
     if ((await row.getAttribute("aria-expanded", { timeout: 2000 })) !== "true") await row.click();
     await expect(start).toBeVisible({ timeout: 2000 });
@@ -261,7 +261,7 @@ for (const width of WIDTHS) {
     await installFakeMidi(page, [PORTS.keys, PORTS.mpcPrivate, PORTS.aerophone]);
     await installSyntheticMic(page, 220);
     await open(page, "/music/connect");
-    await page.getByRole("button", { name: "Enable MIDI" }).click();
+    await page.getByRole("button", { name: "Turn on MIDI" }).click();
     await expect(page.getByTestId(`device-${PORTS.mpcPrivate.id}`)).toBeVisible();
     await choose(
       page,

@@ -110,7 +110,7 @@
             </span>
             {#if href}
               <span class="flex shrink-0 items-center gap-1 text-sm font-semibold text-instr-ink">
-                <span class="max-sm:sr-only">Practise again</span><ChevronRight class="size-4" aria-hidden="true" />
+                <span class="max-sm:sr-only">Again</span><ChevronRight class="size-4" aria-hidden="true" />
               </span>
             {/if}
           </svelte:element>
@@ -126,8 +126,8 @@
       </section>
 
       <section aria-labelledby="setups-title">
-        <h2 id="setups-title" class="font-display text-xl font-semibold">Are you improving?</h2>
-        <p class="text-sm text-ws-soft">The same exercise with the same setup, compared across visits.</p>
+        <h2 id="setups-title" class="font-display text-xl font-semibold">Scores over time</h2>
+        <p class="text-sm text-ws-soft">The same exercise with the same setup, run by run.</p>
         {#if trends.length}
           <ul class="mt-3 flex flex-col divide-y divide-ws-line border-y border-ws-line">
             {#each trends as t (t.key)}
@@ -157,19 +157,19 @@
             {/each}
           </ul>
         {:else}
-          <p class="mt-2 text-sm">Nothing repeated yet. Run any drill twice with the same setup to see whether it improved.</p>
+          <p class="mt-2 text-sm">Nothing repeated yet. Run a drill twice with the same setup to compare the scores.</p>
         {/if}
       </section>
   </div>
 
   <!-- Level and achievements: their own section, apart from what you played. -->
   <section aria-labelledby="level-title" class="border-t border-ws-line pt-6">
-    <h2 id="level-title" class="font-display text-xl font-semibold">Level and achievements</h2>
+    <h2 id="level-title" class="font-display text-xl font-semibold">XP level and achievements</h2>
     <div class="mt-3 grid gap-8 lg:grid-cols-2">
       <div class="min-w-0">
         <dl class="tnum grid max-w-md grid-cols-2 gap-3">
           <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
-            <dt class="text-sm text-ws-soft">Level</dt>
+            <dt class="text-sm text-ws-soft">XP level</dt>
             <dd class="font-display text-3xl font-semibold">{level}</dd>
           </div>
           <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
@@ -182,14 +182,14 @@
         </div>
         <!-- One line: the weekly figure only once it differs from the total. -->
         <p class="tnum mt-2 max-w-md text-sm">
-          <span class="font-semibold">Level {level}. {xp} XP, {toNext} to level {level + 1}.</span>
+          <span class="font-semibold">XP level {level}. {xp} XP, {toNext} to level {level + 1}.</span>
           {#if summary.xp !== xp}<span class="text-ws-soft">{summary.xp} XP this week.</span>{/if}
         </p>
         <details class="group mt-1 max-w-md text-sm">
           <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
             <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
           </summary>
-          <p class="text-ws-soft">Every session earns XP. Skill scores move only on answers in Check runs, where the targets are hidden.</p>
+          <p class="text-ws-soft">Every run earns XP. Only answers in Check runs change a skill score.</p>
         </details>
       </div>
       <div class="min-w-0">

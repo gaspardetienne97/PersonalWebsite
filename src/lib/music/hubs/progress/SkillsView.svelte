@@ -38,11 +38,11 @@
   );
 
   const describe = (r: SkillRow) => {
-    if (r.estimate === undefined) return "No mastery yet";
-    const parts = [`Mastery ${pct(r.estimate)}`];
+    if (r.estimate === undefined) return "No skill score yet";
+    const parts = [`Skill score ${pct(r.estimate)}`];
     if (r.lastMeasured !== undefined) parts.push(`last measured ${pct(r.lastMeasured)}`);
     if (r.due) parts.push("due for review");
-    if (r.checked < MIN_EVIDENCE) parts.push(`only ${plural(r.checked, "answer")} in Check mode`);
+    if (r.checked < MIN_EVIDENCE) parts.push(`only ${plural(r.checked, "answer")} in Check`);
     return parts.join(", ");
   };
   const capLabel = (c: Capability) => CAPABILITY_LABEL[c];
@@ -62,33 +62,33 @@
   <!-- No key: each row names its numbers. Why there are two waits behind one disclosure. -->
   <details class="group -mt-3 text-sm">
     <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-      <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Why two numbers?
+      <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />The two numbers
     </summary>
     <div class="flex max-w-prose flex-col gap-2 text-ws-soft">
       <p>
-        <span class="font-semibold text-ws-ink">Mastery</span> is how sure the app is that you know the skill. It moves only on Check runs (no
-        hints, from memory) and fades a little each day you do not practise. Under {MIN_EVIDENCE} answers in Check runs it is an
+        <span class="font-semibold text-ws-ink">Skill score</span> is how sure Woodshed is that you know the skill. Only Check runs change it,
+        and it fades a little each day you don't practise. Under {MIN_EVIDENCE} answers in Check runs it's an
         early guess, drawn as an outlined bar.
       </p>
       <p>
         <span class="font-semibold text-ws-ink">All answers</span> is the share you got right, Practice runs included, on
-        {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}. With hints on it runs higher than mastery.
+        {scope === "all" ? "any instrument" : INSTRUMENT_LABEL[scope]}. With hints on it runs higher than the skill score.
       </p>
       <p class="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Mastery when last measured</span>
+        <span class="flex items-center gap-2"><span class="h-4 w-0 border-l-2 border-dashed border-ws-ink" aria-hidden="true"></span>Skill score when last measured</span>
         <span class="flex items-center gap-2"><span class="hatch h-2.5 w-8 rounded-full" aria-hidden="true"></span>Needs review: ten points or more lost since then</span>
       </p>
     </div>
   </details>
 
   {#if rows.some((r) => r.touched && r.estimate !== undefined && r.checked < MIN_EVIDENCE)}
-    <p class="-mt-4 text-sm text-ws-soft sm:hidden">Early guess: mastery from fewer than {MIN_EVIDENCE} answers in Check runs, drawn as an outlined bar.</p>
+    <p class="-mt-4 text-sm text-ws-soft sm:hidden">Early guess: a skill score from fewer than {MIN_EVIDENCE} answers in Check runs, drawn as an outlined bar.</p>
   {/if}
 
   {#if touchedCount === 0 && !showAll && !needle}
     <div class="rounded-2xl border border-dashed border-ws-line p-6">
       <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]} yet`}.</p>
-      <p class="text-sm text-ws-soft">Every graded attempt lands here, grouped by what it trains.</p>
+      <p class="text-sm text-ws-soft">Every scored answer lands here, grouped by what it trains.</p>
       <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
         >Start today's set</a
       >
@@ -114,16 +114,16 @@
                     {#if !r.unlocked}<Lock class="size-3.5 shrink-0 text-ws-soft" aria-label="Locked" />{:else if r.due}<span class="inline-flex shrink-0 items-center gap-1 text-[13px] font-normal text-ws-soft"><RotateCcw class="size-3.5 text-warn" aria-hidden="true" />Needs review</span>{/if}
                   </p>
                   <div class="mt-1 flex items-center gap-2">
-                    <span class="shrink-0 text-sm text-ws-soft" aria-hidden="true">Mastery</span>
+                    <span class="shrink-0 text-sm text-ws-soft" aria-hidden="true">Skill score</span>
                     {@render bar(r)}
                     <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
                   </div>
                   <!-- The early-guess rule is said once above the list; the row carries the badge. -->
-                  <p class="tnum text-sm text-ws-soft">{#each skillCaption(r, now).split(/(?<=\.) /).filter((l) => !l.startsWith("Mastery is an early guess")) as line (line)}<span class="block">{line}</span>{/each}</p>
+                  <p class="tnum text-sm text-ws-soft">{#each skillCaption(r, now).split(/(?<=\.) /).filter((l) => !l.startsWith("Skill score is an early guess")) as line (line)}<span class="block">{line}</span>{/each}</p>
                   <span class="sr-only">{describe(r)}</span>
                 </div>
                 <a href={r.href} class="inline-flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-3 text-sm font-medium hover:bg-ws-raised"
-                  >Practise<span class="sr-only">&nbsp;{r.skill.name}</span></a
+                  >Start<span class="sr-only">&nbsp;{r.skill.name}</span></a
                 >
               </li>
             {/each}
@@ -144,13 +144,13 @@
               <thead class="text-ws-soft">
                 <tr>
                   <th scope="col" class="sticky left-0 z-10 bg-ws-bg py-2 pr-3 font-medium">Skill</th>
-                  <th scope="col" class="w-44 py-2 pr-3 font-medium">Mastery</th>
+                  <th scope="col" class="w-44 py-2 pr-3 font-medium">Skill score</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">Confidence</th>
-                  <th scope="col" class="py-2 pr-3 text-right font-medium">Attempts</th>
+                  <th scope="col" class="py-2 pr-3 text-right font-medium">Answers</th>
                   <th scope="col" class="py-2 pr-3 text-right font-medium">All answers right</th>
                   <th scope="col" class="py-2 pr-3 font-medium">Last practised</th>
                   <th scope="col" class="py-2 pr-3 font-medium">Status</th>
-                  <th scope="col" class="py-2 font-medium"><span class="sr-only">Practice link</span></th>
+                  <th scope="col" class="py-2 font-medium"><span class="sr-only">Drill</span></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-ws-line">
@@ -168,8 +168,8 @@
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.estimate === undefined ? "" : pct(r.confidence)}</td>
                     <td class="tnum py-2 pr-3 text-right">
-                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} checked</span>{:else}{r.attempts}<span
-                          class="block text-[13px] text-ws-soft">{r.checked} checked</span
+                      {#if r.umbrella && !r.direct}<span class="text-ws-soft">{r.checked} in Check</span>{:else}{r.attempts}<span
+                          class="block text-[13px] text-ws-soft">{r.checked} in Check</span
                         >{/if}
                     </td>
                     <td class="tnum py-2 pr-3 text-right">{r.accuracy === undefined ? "" : pct(r.accuracy)}</td>
@@ -187,7 +187,7 @@
                       <a
                         href={r.href}
                         class="inline-flex min-h-11 items-center rounded-full border border-ws-line px-3 font-medium hover:bg-ws-raised"
-                        >Practise<span class="sr-only">&nbsp;{r.skill.name}</span></a
+                        >Start<span class="sr-only">&nbsp;{r.skill.name}</span></a
                       >
                     </td>
                   </tr>

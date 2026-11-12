@@ -15,7 +15,7 @@ test.describe("studio ears", () => {
   test("find the boost on pink noise: flip, answer, see the curve", async ({ page }) => {
     await page.goto("/music/ear/studio");
     await expect(page.getByRole("heading", { level: 1, name: "Ear" })).toBeVisible();
-    await expect(page.getByLabel("Ear mode")).toContainText("Studio ears");
+    await expect(page.getByLabel("Ear drill")).toContainText("Studio ears");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toHaveAttribute("data-step", "answer", { timeout: 15_000 });
@@ -99,11 +99,11 @@ test.describe("studio ears", () => {
     await page.getByRole("button", { name: "All instruments" }).click();
     const jump = page.getByRole("navigation", { name: "Jump to" });
     await expect(jump.getByRole("link")).toHaveText([
-      /^Ear training \(16\)$/,
+      /^Ear \(16\)$/,
       /^Reading and rhythm \(3\)$/,
       /^Technique \(9\)$/,
       /^Grooves and time \(3\)$/,
-      /^Jazz and improvising \(8\)$/,
+      /^Play over changes \(8\)$/,
       /^Theory \(1\)$/,
       /^Studio ears \(1\)$/,
       /^Phrases and songs \(5\)$/,
@@ -113,12 +113,12 @@ test.describe("studio ears", () => {
       "/music/ear/studio",
     );
     await page.screenshot({ path: `${SHOTS}/drills-tab.png`, fullPage: true });
-    await page.getByRole("button", { name: "Modes for Rhythm" }).click();
+    await page.getByRole("button", { name: "Exercises in Rhythm" }).click();
     await page.getByRole("link", { name: "Rhythm: Echo" }).click();
     await expect(page).toHaveURL(/\/music\/rhythm\?mode=echo$/);
     // The mode is the title's picker now, not part of the setup sentence.
-    await expect(page.getByLabel("Rhythm mode")).toHaveAttribute("data-value", "echo");
-    await expect(page.getByLabel("Rhythm mode")).toContainText("Echo");
+    await expect(page.getByLabel("Rhythm drill")).toHaveAttribute("data-value", "echo");
+    await expect(page.getByLabel("Rhythm drill")).toContainText("Echo");
     // Pads and the Aerophone are split by what their modes practise; a split row opens its first mode.
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "All instruments" }).click();
@@ -126,13 +126,13 @@ test.describe("studio ears", () => {
       "href",
       "/music/pads?mode=groove",
     );
-    await page.getByRole("button", { name: "Modes for Aerophone breath and tongue" }).click();
+    await page.getByRole("button", { name: "Exercises in Aerophone breath and tongue" }).click();
     await page.getByRole("link", { name: "Aerophone breath and tongue: Bite vibrato" }).click();
     await expect(page).toHaveURL(/\/music\/aerophone\?mode=vibrato$/);
     // Ear drills chip their answer styles; Scales chips what it plays.
     await page.goto("/music?tab=drills");
     await page.getByRole("button", { name: "All instruments" }).click();
-    await page.getByRole("button", { name: "Modes for Intervals" }).click();
+    await page.getByRole("button", { name: "Exercises in Intervals" }).click();
     await page.locator('a[href="/music/ear/intervals?answer=play-back"]').click();
     await expect(
       page.getByText("Play on the keys below or your MIDI keyboard.", { exact: false }),
@@ -141,7 +141,7 @@ test.describe("studio ears", () => {
     await page.getByRole("button", { name: "All instruments" }).click();
     // Two Scales cards (keys and strings) each have a Modes menu: open the one holding Arpeggio.
     const arpeggio = page.getByRole("link", { name: "Scales: Arpeggio" });
-    for (const menu of await page.getByRole("button", { name: "Modes for Scales" }).all()) {
+    for (const menu of await page.getByRole("button", { name: "Exercises in Scales" }).all()) {
       await menu.click();
       if (await arpeggio.isVisible()) break;
       await page.keyboard.press("Escape");

@@ -85,7 +85,7 @@
 <div class="flex flex-col gap-5">
   {#if shelf}
     <p class="rounded-2xl border border-ws-line bg-ws-surface px-4 py-3 text-sm">
-      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its performances in Song practice count on that level's shelf.
+      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its runs in Song practice count toward that level's song list.
     </p>
   {/if}
   <div class="flex flex-wrap items-center gap-3">
@@ -102,7 +102,7 @@
       {/each}
     </div>
     <p class="text-sm text-ws-soft">
-      {mode === "score" ? "A score you already have. MusicXML keeps the parts and bar lines as written; MIDI works too." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
+      {mode === "score" ? "A score you already have. MusicXML keeps the parts and bar lines as written. MIDI works too." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
     </p>
   </div>
 
@@ -129,7 +129,7 @@
         <Upload class="size-7" aria-hidden="true" />
         <span class="font-display text-lg font-semibold">{#if busy}Reading the score{:else}<span class="sm:hidden">Choose a score file</span><span class="max-sm:hidden">Drop a score here, or choose a file</span>{/if}</span>
         <span class="text-sm text-ws-soft">MusicXML (.musicxml, .xml, .mxl) or MIDI (.mid, .midi)</span>
-        <span class="max-w-sm text-center text-sm">No file yet? In MuseScore or a similar notation app, open a score and choose File, Export, MusicXML.</span>
+        <span class="max-w-sm text-center text-sm">No file yet: in MuseScore or a similar notation app, open a score and choose File, Export, MusicXML.</span>
         <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}

@@ -136,7 +136,7 @@ class KitStore {
       try {
         await putBinary(path, file);
       } catch (e) {
-        refused.push(`"${file.name}" could not be saved: ${(e as Error).message}`);
+        refused.push(`"${file.name}" didn't save: ${(e as Error).message}`);
         continue;
       }
       const name = file.name.replace(/\.[^.]+$/, "");

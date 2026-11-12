@@ -28,6 +28,6 @@
     <a class={btnPrimary} href="/music/studio">Open your songs</a>
   </div>
 {:else}
-  <p class="text-ws-soft">Opening the song.</p>
+  <p class="text-ws-soft">Opening the song…</p>
 {/if}
 </div>

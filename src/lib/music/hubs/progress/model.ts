@@ -413,11 +413,11 @@ export function skillCaption(r: SkillRow, now: number): string {
       : `${plural(r.checked, "answer")} in Check runs${when}`;
   const mastery =
     r.estimate === undefined
-      ? " No mastery yet."
+      ? " No skill score yet."
       : r.umbrella && !r.direct
-        ? " Mastery is the average of its parts."
+        ? " Skill score is the average of its parts."
         : r.checked < MIN_EVIDENCE
-          ? ` Mastery is an early guess until ${MIN_EVIDENCE} answers in Check runs.`
+          ? ` Skill score is an early guess until ${MIN_EVIDENCE} answers in Check runs.`
           : "";
   return `${tries}.${mastery}`;
 }

@@ -30,7 +30,7 @@ test.describe("drill back link", () => {
     // A learning path, then a reload on the drill.
     await page.goto("/music?tab=paths");
     await page
-      .getByRole("link", { name: /^Practise/ })
+      .getByRole("link", { name: /^(Start|Again)/ })
       .first()
       .click();
     await expect(back).toHaveText("Back to Paths");

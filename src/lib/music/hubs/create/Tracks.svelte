@@ -31,7 +31,7 @@
   async function solo(id: TrackId, name: string) {
     const was = session.playing && session.only === id;
     const ok = await session.play(id);
-    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
     announce(was ? "Stopped." : `Playing ${name} on its own. Play all brings the rest back.`);
   }
 
@@ -53,7 +53,7 @@
 
   function toggleBeat() {
     session.beatMuted = !session.beatMuted;
-    announce(session.beatMuted ? "Beat muted; the melodies keep playing." : "Beat on.");
+    announce(session.beatMuted ? "Beat muted. The melodies keep playing." : "Beat on.");
   }
   function toggleMelody(v: RollVoice) {
     session.updateVoice(v.id, (x) => ({ ...x, muted: !x.muted }));
@@ -105,7 +105,7 @@
   function growBeat() {
     const song = session.bars;
     session.growBeat();
-    announce(`The beat is ${count(barsOf(session.pattern), "bar")}; the new bar starts as a copy of the last one.${session.bars > song ? ` The song grew to ${count(session.bars, "bar")}.` : ""}`);
+    announce(`The beat is ${count(barsOf(session.pattern), "bar")}. The new bar starts as a copy of the last one.${session.bars > song ? ` The song grew to ${count(session.bars, "bar")}.` : ""}`);
   }
   function shrinkBeat() {
     session.setPattern(removeBar(session.pattern));

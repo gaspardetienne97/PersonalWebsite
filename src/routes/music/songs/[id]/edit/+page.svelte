@@ -58,7 +58,7 @@
     <header class="min-w-0">
       <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/songs/{song.id}"><ArrowLeft class="size-4" aria-hidden="true" />Back to Song practice</a>
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Song editor</h1>
-      <p class="mt-1 max-w-prose text-ws-soft">Fix wrong notes in {song.title}. Tap a part to draw on it; the parts, key and sections stay as they were.</p>
+      <p class="mt-1 max-w-prose text-ws-soft">Fix wrong notes in {song.title}. Tap a part to draw on it. The parts, key and sections stay as they were.</p>
     </header>
     <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-ws-line bg-ws-surface p-3">
       <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
@@ -86,5 +86,5 @@
     <a class={btnPrimary} href="/music/studio">Open your songs</a>
   </div>
 {:else}
-  <p class="text-ws-soft">Opening the song.</p>
+  <p class="text-ws-soft">Opening the song…</p>
 {/if}

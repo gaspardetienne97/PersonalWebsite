@@ -1276,7 +1276,7 @@ async function studioLoudness(buf: AudioBuffer, change: StudioChange): Promise<n
 
 function studioLoop(buf: AudioBuffer): StudioLoop {
   const t = ready();
-  if (!t || !graph) throw new Error("Enable audio first: browsers only allow sound after a tap.");
+  if (!t || !graph) throw new Error("Turn on sound first: browsers only allow sound after a tap.");
   const raw = rawCtx(t) as AudioContext;
   const src = raw.createBufferSource();
   src.buffer = buf;
@@ -1372,7 +1372,7 @@ export interface EarPlayer {
  */
 async function earPlayer(blob: Blob): Promise<EarPlayer> {
   const t = ready();
-  if (!t || !graph) throw new Error("Enable audio first: browsers only allow sound after a tap.");
+  if (!t || !graph) throw new Error("Turn on sound first: browsers only allow sound after a tap.");
   const tone = t;
   const buffer = await rawCtx(t).decodeAudioData(await blob.arrayBuffer());
   const toneBuffer = new t.ToneAudioBuffer(buffer);
@@ -1455,7 +1455,7 @@ async function earPlayer(blob: Blob): Promise<EarPlayer> {
 /** Play a recorded take or backing track. Does not stop other blobs (take over backing is normal). */
 async function playBlob(blob: Blob, gainDb = 0): Promise<SequenceHandle> {
   const t = ready();
-  if (!t || !graph) throw new Error("Enable audio first: browsers only allow sound after a tap.");
+  if (!t || !graph) throw new Error("Turn on sound first: browsers only allow sound after a tap.");
   const raw = rawCtx(t);
   const buffer = await raw.decodeAudioData(await blob.arrayBuffer());
   const c = clock(t);

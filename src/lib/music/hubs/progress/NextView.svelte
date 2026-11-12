@@ -33,10 +33,10 @@
     const parts = [plan.advice.summary];
     const { falling, holding, unmeasured } = buckets;
     if (falling.length) parts.push(fallingSentence(falling, plan.advice.focus?.skillId));
-    else if (holding.length) parts.push("Nothing you have measured is falling yet.");
+    else if (holding.length) parts.push("No measured skill is falling.");
     if (unmeasured.length)
       parts.push(
-        `${plural(unmeasured.length, "skill has", "skills have")} fewer than ${MIN_EVIDENCE} answers in Check mode, so there is no verdict on ${unmeasured.length === 1 ? "it" : "them"} yet.`,
+        `${plural(unmeasured.length, "skill has", "skills have")} fewer than ${MIN_EVIDENCE} answers in Check, so ${unmeasured.length === 1 ? "it isn't" : "they aren't"} measured yet.`,
       );
     return parts.join(" ");
   });
@@ -116,13 +116,13 @@
   <section aria-labelledby="next-title" class="grid min-w-0 gap-x-10 gap-y-4 lg:grid-cols-2">
     <!-- One line, one button: the next undone block of today's set; the why waits behind a details. -->
     <div class="min-w-0 self-start rounded-3xl border border-ws-line bg-ws-surface p-4 sm:p-5" style:--step-hue={upNext ? hueVar(hueForRoute(upNext.href, instrument)) : "var(--instr)"}>
-      <p class="text-ws-soft">{upNext || !after ? `Practise next on ${INSTRUMENT_LABEL[instrument]}` : `Today's set is done. Want more on ${INSTRUMENT_LABEL[instrument]}?`}</p>
+      <p class="text-ws-soft">{upNext || !after ? `Practise next on ${INSTRUMENT_LABEL[instrument]}` : `Today's set is done. More on ${INSTRUMENT_LABEL[instrument]} if you want it.`}</p>
       <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
         {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Next: {afterName}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
         {#if upNext}{blockReason(upNext)}{:else if after}{after.href === plan.advice.action.href
-            ? `Your lowest score so far${plan.advice.focus ? `: ${pct(plan.advice.focus.accuracy)} right over ${plural(plan.advice.focus.attempts, "answer")} without hints` : ""}.`
+            ? `Your lowest score so far${plan.advice.focus ? `: ${pct(plan.advice.focus.accuracy)} right over ${plural(plan.advice.focus.attempts, "answer")} in Check` : ""}.`
             : after.why}{:else}{plan.advice.summary}{/if}
       </p>
       {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
@@ -165,21 +165,21 @@
           <div
             class="h-2 flex-1 rounded-full bg-ws-raised"
             role="progressbar"
-            aria-label="Answers in Check mode"
+            aria-label="Answers in Check"
             aria-valuemin={0}
             aria-valuemax={MIN_EVIDENCE}
             aria-valuenow={toMeasure}
           >
             <div class="h-full rounded-full bg-instr" style:width="{(toMeasure / MIN_EVIDENCE) * 100}%"></div>
           </div>
-          <span class="tnum shrink-0 text-ws-soft">{toMeasure} of {MIN_EVIDENCE} answers in Check mode</span>
+          <span class="tnum shrink-0 text-ws-soft">{toMeasure} of {MIN_EVIDENCE} answers in Check</span>
         </div>
       {:else}
         <p class="mt-2 text-sm"><span class="font-medium">{plan.advice.headline}.</span> {plan.advice.summary}</p>
       {/if}
 
         <p class="mt-2 text-ws-soft">
-          This is a heuristic. The evidence behind it is in
+          This is a rule of thumb. The evidence is in
           <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/progress?view=skills">every skill</a>
           and
           <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/progress?view=sessions">your sessions</a>.
@@ -220,16 +220,16 @@
   <section aria-labelledby="picks-title" class="min-w-0 max-lg:order-2">
     <h2 id="picks-title" class="font-display text-xl font-semibold">Where your skills stand</h2>
     {#if anything}
-      <p class="text-sm text-ws-soft">On {INSTRUMENT_LABEL[instrument]}, by area. Rings fill to today's estimate.</p>
+      <p class="text-sm text-ws-soft">On {INSTRUMENT_LABEL[instrument]}, by area. Rings fill to today's skill score.</p>
       <details class="group mt-1 text-sm">
         <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
           <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
         </summary>
-        <p class="max-w-prose text-ws-soft">Only answers in Check mode move an estimate. A skill gets one after {MIN_EVIDENCE} of them, and it fades a little on days you do not practise.</p>
+        <p class="max-w-prose text-ws-soft">Only answers in Check change a skill score. A skill gets one after {MIN_EVIDENCE} of them. It fades a little on days you don't practise.</p>
       <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ws-soft" aria-label="Key">
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-warn" aria-hidden="true"></span>Falling: down ten points or more since last measured</li>
         <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-success" aria-hidden="true"></span>Holding</li>
-        <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border border-dashed border-ws-soft" aria-hidden="true"></span>Not measured yet: under {MIN_EVIDENCE} answers in Check mode</li>
+        <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border border-dashed border-ws-soft" aria-hidden="true"></span>Not measured yet: under {MIN_EVIDENCE} answers in Check</li>
       </ul>
       </details>
       <div class="mt-4 flex flex-col gap-5">
@@ -270,11 +270,11 @@
                         {#if trend === "falling"}
                           <span class="sr-only">Falling: </span>{pct(r.estimate ?? 0)} now, down {drop(r)} points, last practised {relativeDay(r.lastPracticed ?? now, now)}
                         {:else if trend === "holding"}
-                          <span class="sr-only">Holding: </span>{pct(r.estimate ?? 0)}, {plural(r.checked, "answer")} in Check mode
+                          <span class="sr-only">Holding: </span>{pct(r.estimate ?? 0)}, {plural(r.checked, "answer")} in Check
                         {:else}
                           <span class="sr-only">Not measured yet: </span>{r.checked
-                            ? `${plural(r.checked, "answer")} in Check mode so far`
-                            : `${plural(r.attempts, "try", "tries")} in Practice, none in Check mode`}
+                            ? `${plural(r.checked, "answer")} in Check so far`
+                            : `${plural(r.attempts, "answer")} in Practice, none in Check`}
                         {/if}
                       </span>
                     </span>
@@ -287,7 +287,7 @@
       </div>
     {:else}
       <p class="mt-2">
-        Nothing touched on {INSTRUMENT_LABEL[instrument]} yet. Five answers in Check mode on a skill give it an estimate.
+        Nothing touched on {INSTRUMENT_LABEL[instrument]} yet. Five answers in Check on a skill give it a skill score.
       </p>
     {/if}
   </section>

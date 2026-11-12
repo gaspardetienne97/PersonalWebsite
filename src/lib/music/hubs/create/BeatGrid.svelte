@@ -55,7 +55,7 @@
   const soloing = $derived(session.playing && session.only === "beat");
   async function playGroove() {
     const ok = await session.play("beat");
-    if (!ok) return announce("Sound is blocked. Tap for sound in the strip above, then play again.");
+    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
     announce(session.playing ? `Playing the beat on its own at ${session.bpm} BPM.` : "Stopped.");
   }
 

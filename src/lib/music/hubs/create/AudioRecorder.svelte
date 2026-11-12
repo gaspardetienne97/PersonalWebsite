@@ -88,7 +88,7 @@
     if (recording) return stopRecording();
     // Record arms the microphone itself (the browser asks the first time), then records.
     if (mic.state !== "on") {
-      announce("Starting the microphone.");
+      announce("Starting the microphone…");
       if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
     }
     await audio.unlock();
@@ -147,7 +147,7 @@
       await db.audioTakes.put(take);
     } catch (e) {
       unsaved = { take, blob, error: (e as Error).message };
-      return announce(`The take was recorded but could not be saved: ${(e as Error).message}. It is kept on this page until you retry.`);
+      return announce(`The take was recorded but didn't save: ${(e as Error).message}. It stays on this page until you save again.`);
     }
     unsaved = null;
     takes = [take, ...takes];
@@ -353,7 +353,7 @@
 {#if unsaved}
   <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-warn p-4" role="alert">
     <p class="min-w-0 flex-1 text-sm">"{unsaved.take.name}" is recorded but not saved: {unsaved.error}</p>
-    <button type="button" class={btn} onclick={() => unsaved && save(unsaved.take, unsaved.blob)}>Retry save</button>
+    <button type="button" class={btn} onclick={() => unsaved && save(unsaved.take, unsaved.blob)}>Save again</button>
     <button type="button" class={btn} onclick={() => unsaved && download(unsaved.blob, `${fileStem(unsaved.take.name)}.${extensionFor(unsaved.take.mimeType)}`)}>Download instead</button>
   </div>
 {/if}
@@ -450,7 +450,7 @@
         </li>
       {/each}
     </ul>
-    <p class="text-sm text-ws-soft">Gain changes only how a take plays back here; the recording itself is never changed.</p>
+    <p class="text-sm text-ws-soft">Gain changes only how a take plays back here. The recording stays as it was.</p>
   {:else if !recording}
     <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
   {/if}

@@ -37,10 +37,10 @@
   const announceIn = (section: string) => (msg: string) => say(section, msg);
 
   const SOUNDS: { value: PlaybackSound; label: string }[] = [
-    { value: "salamander-piano", label: "Sampled Piano" },
-    { value: "warm-synth", label: "Warm Synth" },
+    { value: "salamander-piano", label: "Sampled piano" },
+    { value: "warm-synth", label: "Warm synth" },
     { value: "synth", label: "Synth" },
-    { value: "e-piano", label: "E-Piano" },
+    { value: "e-piano", label: "E-piano" },
     { value: "square", label: "Square" },
     { value: "saw", label: "Saw" },
   ];
@@ -84,7 +84,7 @@
   async function playTest() {
     await audio.unlock();
     latency = audio.latencyInfo();
-    if (!audio.unlocked) return say("audio", "Audio did not start. Click again; browsers only allow sound after a tap.");
+    if (!audio.unlocked) return say("audio", "Sound didn't start. Tap again: browsers only allow sound after a tap.");
     audio.playSequence(
       CADENCE.flatMap((chord, i) => chord.map((midi) => ({ midi, time: i * 0.7, duration: i === 3 ? 1.4 : 0.65, velocity: 0.7 }))),
     );
@@ -113,12 +113,12 @@
     s.preferredPlaybackSound !== "salamander-piano"
       ? ""
       : audio.sampleState === "loading"
-        ? "Loading the piano samples. Warm Synth plays until they arrive."
+        ? "Loading the piano samples… Warm synth plays until they arrive."
         : audio.sampleState === "error"
           ? audio.sampleError
           : audio.sampleState === "ready"
             ? "Piano samples loaded."
-            : "The samples load once audio is on.",
+            : "The samples load once sound is on.",
   );
 </script>
 
@@ -210,7 +210,7 @@
           {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
         </li>
         <li class="px-4 py-3 text-sm">
-          <a class="inline-flex min-h-11 items-center font-medium text-instr-ink underline underline-offset-4" href="#latency">Sound feels late? Calibrate latency</a>
+          <a class="inline-flex min-h-11 items-center font-medium text-instr-ink underline underline-offset-4" href="#latency">If sound feels late, calibrate latency</a>
         </li>
         <li class="px-4 py-3 text-sm text-ws-soft">
           Sampled piano: Salamander Grand Piano by Alexander Holm, <a class="font-medium text-instr-ink underline underline-offset-4" href="https://creativecommons.org/licenses/by/3.0/" rel="noopener noreferrer" target="_blank">CC BY 3.0</a>.
@@ -219,7 +219,7 @@
     </section>
 
     <section id="input" aria-labelledby="input-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("input-h", "Instruments", Mic, "Which microphone and MIDI devices to use is set on Connect, with a live test for each. These rows are about reading and pitch.")}
+      {@render heading("input-h", "Instruments", Mic, "Choose the microphone and MIDI devices on Connect, with a live test for each. These rows set reading and pitch.")}
       {@render note("input")}
       <ul class={listCls}>
         <li class={rowCls}>
@@ -234,7 +234,7 @@
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">Aerophone reading key</span><Hint about="Aerophone reading key" text="Match the AE-20's transpose setting. Staffs and fingerings show the note you read and finger; the Aerophone sends concert pitch either way, and that is what is graded and played back." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">Aerophone reading key</span><Hint about="Aerophone reading key" text="Match the AE-20's transpose setting. Staffs and fingerings show the note you read and finger. The Aerophone sends concert pitch either way, and that is what Woodshed scores and plays back." /></p>
           </div>
           <div class="flex gap-1.5" role="group" aria-labelledby="aero-key-l">
             {#each AEROPHONE_READING_KEYS as k (k.id)}
@@ -252,7 +252,7 @@
     </section>
 
     <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("latency-h", "Latency calibration", Timer, "An offset says how late your input reaches Woodshed. Positive means it arrives late; Woodshed subtracts it from every note before grading. Tap along with 20 clicks and it estimates the offset. This is an estimate that includes your reaction time, not a hardware measurement. Each offset is saved for the input and the sound output in use, so calibrate again on another output such as Bluetooth speakers.")}
+      {@render heading("latency-h", "Latency calibration", Timer, "The offset is how late your input reaches Woodshed, subtracted from every note before scoring. Tap along to 20 clicks to estimate it (your reaction time is included). Each input and sound output keeps its own offset. Calibrate again on another output, such as Bluetooth speakers.")}
       {@render note("latency")}
       <ul class={listCls}>
         <li class={rowCls}>
@@ -317,7 +317,7 @@
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="motion-l">Reduce motion</span><Hint about="Reduce motion" text="Stops animations and transitions everywhere in Woodshed. Your system setting is respected either way." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="motion-l">Reduce motion</span><Hint about="Reduce motion" text="Stops animations and transitions everywhere in Woodshed. Woodshed follows your system setting either way." /></p>
           </div>
           {@render toggle("motion-l", s.reduceMotion, (v) => settings.update({ reduceMotion: v }))}
         </li>
@@ -345,7 +345,7 @@
           </div>
         </li>
         <li class="px-4 py-3">
-          <p class="flex items-center gap-1 font-medium">Weekly split<Hint about="Weekly split" text="Today builds each day's set for that day's instrument and its path. The strip changes when you open a block." /></p>
+          <p class="flex items-center gap-1 font-medium">Weekly split<Hint about="Weekly split" text="Today builds each day's set for that day's instrument and its path. The top bar switches instrument when you open a block." /></p>
           <ul class="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
             {#each WEEKDAYS as day, i (day)}
               <li class="flex min-h-11 items-center justify-between gap-3">
@@ -359,7 +359,7 @@
     </section>
 
     <section id="data" aria-labelledby="data-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep; there is no account and no server copy.")}
+      {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep. There's no account and no server copy.")}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />
     </section>

@@ -96,13 +96,13 @@
 {#snippet empty()}
   <!-- One line that points to Import. With a path shelf to show, it sits under the shelf, not above it. -->
   <section class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface px-4 py-2">
-    <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">No songs of your own yet.</span> <span class="text-ws-soft">{starters.length ? "Start with one from your path, or bring in a score." : "Bring in a MIDI or MusicXML score."}</span></h2>
+    <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">No songs of your own yet.</span> <span class="text-ws-soft">{starters.length ? "Start with one from your path, or import a score." : "Import a MIDI or MusicXML score."}</span></h2>
     <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />Import a score</a>
   </section>
 {/snippet}
 
 {#if songs === null}
-  <p class="text-ws-soft">Loading your songs.</p>
+  <p class="text-ws-soft">Loading your songs…</p>
 {:else if !songs.length}
   {#if !starters.length}{@render empty()}{/if}
 {:else}
@@ -137,8 +137,8 @@
         </a>
         <!-- Outside the cover's link: the action first, Delete small and apart. -->
         <div class="flex items-center justify-between gap-2 border-t border-ws-line px-3 py-2">
-          <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
-          <!-- Delete lives in the card's menu, two taps, away from Practise. -->
+          <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />Open</a>
+          <!-- Delete lives in the card's menu, two taps, away from Open. -->
           <Menu.Root onOpenChange={(open) => !open && confirming === song.id && (confirming = null)}>
             <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="Options for {song.title}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
             <Menu.Content align="end" class="w-64">
@@ -158,7 +158,7 @@
     <div class="flex flex-wrap items-end justify-between gap-x-4">
       <div class="min-w-0">
         <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
-        <p class="text-sm text-ws-soft">Songs on your path's shelf, easiest level first. Opening one adds it to your songs.</p>
+        <p class="text-sm text-ws-soft">Songs from your path's song list, easiest level first. Opening one adds it to your songs.</p>
       </div>
       {#if starterTotal > 6}<a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline underline-offset-4" href="/music?tab=paths">See all {starterTotal} on the path</a>{/if}
     </div>
@@ -177,7 +177,7 @@
               <ul class="flex flex-wrap gap-1.5" aria-label="About {x.song.title}">
                 {#each shelfTags(x.song) as t (t)}<li class="rounded-full bg-ws-raised px-2.5 py-0.5 text-[13px] font-medium">{t}</li>{/each}
               </ul>
-              <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Practise {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Practise</a>
+              <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Open {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Open</a>
             </div>
           </li>
         {/each}

@@ -116,13 +116,13 @@ describe("Progress", () => {
     const m3 = shown("pitch.interval.m3")!;
     expect(m3.textContent).toContain("Minor 3rd");
     // The table counts checked answers in a column; the phone card says it in a line.
-    expect(m3.textContent).toMatch(/6 checked|83% right \(6 answers/);
+    expect(m3.textContent).toMatch(/6 in Check|83% right \(6 answers/);
     expect(m3.textContent).toContain("83%"); // accuracy, 5 of 6
-    expect(m3.textContent).toContain("Mastery");
+    expect(m3.textContent).toContain("Skill score");
     // Practice-mode answers count as attempts but never move the estimate.
     const landmarks = shown("reading.treble.landmarks")!;
     expect(landmarks.textContent).toMatch(/0 checked|All answers: \d+% right/);
-    expect(landmarks.textContent).toContain("No mastery yet");
+    expect(landmarks.textContent).toContain("No skill score yet");
     // Untouched skills stay hidden until asked for.
     expect(shown("pitch.interval.P5")).toBeNull();
     await page.getByRole("button", { name: /Show all \d+ skills/ }).click();
@@ -135,8 +135,8 @@ describe("Progress", () => {
       .element(page.getByRole("heading", { name: "Where your skills stand" }))
       .toBeVisible();
     await expect.element(page.getByRole("link", { name: /Minor 3rd/ })).toBeVisible();
-    await expect.element(page.getByRole("link", { name: /Treble Landmark Notes/ })).toBeVisible();
-    expect(document.body.textContent).toContain("2 tries in Practice, none in Check mode");
+    await expect.element(page.getByRole("link", { name: /Treble landmark notes/ })).toBeVisible();
+    expect(document.body.textContent).toContain("2 answers in Practice, none in Check");
   });
 });
 

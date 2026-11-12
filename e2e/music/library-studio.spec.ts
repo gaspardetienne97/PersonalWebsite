@@ -116,7 +116,7 @@ test.describe("library and song practice", () => {
     await page
       .getByLabel("Score file")
       .setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
-    await expect(page.getByRole("alert")).toContainText("not a score this app can read");
+    await expect(page.getByRole("alert")).toContainText("isn't a score Woodshed can read");
 
     await page.getByRole("link", { name: "Songs", exact: true }).click();
     await expect(page).toHaveURL(/\/music\/studio$/);
@@ -158,7 +158,7 @@ test.describe("library and song practice", () => {
     await openOde(page, "?mode=wait");
     await expectNoHorizontalOverflow(page);
     await shoot(page, "studio");
-    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wait mode");
     // One wrong note first: it flashes and clears; the pass is still completed.
     await play(page, [
@@ -170,7 +170,7 @@ test.describe("library and song practice", () => {
     await expect(page.getByText("Right first time", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-take results" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-section results" })).toContainText(
-      "Whole score",
+      "Whole song",
     );
     await shoot(page, "studio-wait-results");
 
@@ -220,10 +220,10 @@ test.describe("library and song practice", () => {
     await page.goto(song);
     await expect(page.getByRole("heading", { level: 1, name: "Back beat" })).toBeVisible();
     // On the MPC the drums are picked, drawn as a grid with no keyboard.
-    const grid = page.getByRole("region", { name: /^Drum part: Kick, Snare, Hats, Open Hat/ });
+    const grid = page.getByRole("region", { name: /^Drum part: Kick, Snare, Hats, Open hat/ });
     await expect(grid).toBeVisible();
     await expect(page.getByRole("group", { name: "Piano keyboard" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wait mode");
     // A snare where kick and hat are due is wrong; the open hat pad counts for the
     // closed hat, the pedal hat for the open hat.
@@ -243,7 +243,7 @@ test.describe("library and song practice", () => {
     test.setTimeout(60_000);
     await importOde(page);
     await openOde(page, "?mode=wait&range=whole");
-    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wait mode");
     // A wrong note on the very first group: the slip is in bar 1.
     await play(page, [
@@ -293,7 +293,7 @@ test.describe("library and song practice", () => {
     await choose(page, section.getByLabel("Root"), "Bb");
     await list
       .locator('li[data-voicing="3 2 1 1"]')
-      .getByRole("link", { name: "Practise" })
+      .getByRole("link", { name: "Start drill" })
       .click();
     await expect(page.getByText("Setup:").locator("..")).toContainText("Bb, Barre at fret 1");
   });
@@ -301,17 +301,17 @@ test.describe("library and song practice", () => {
   test("song practice: views survive reload and Back", async ({ page }) => {
     await importOde(page);
     await openOde(page);
-    const views = page.getByRole("navigation", { name: "Score view" });
+    const views = page.getByRole("navigation", { name: "Notation view" });
     await views.getByRole("link", { name: "Tab" }).click();
     await expect(page).toHaveURL(/view=tab/);
     await expect(views.getByRole("link", { name: "Tab" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
     await page.reload();
     await expect(
-      page.getByRole("navigation", { name: "Score view" }).getByRole("link", { name: "Tab" }),
+      page.getByRole("navigation", { name: "Notation view" }).getByRole("link", { name: "Tab" }),
     ).toHaveAttribute("aria-current", "page");
     await page
-      .getByRole("navigation", { name: "Score view" })
+      .getByRole("navigation", { name: "Notation view" })
       .getByRole("link", { name: "Falling notes" })
       .click();
     await expect(page).toHaveURL(/view=waterfall/);
@@ -322,7 +322,7 @@ test.describe("library and song practice", () => {
     await page.goBack();
     await expect(page).toHaveURL(/view=tab/);
     await expect(
-      page.getByRole("navigation", { name: "Score view" }).getByRole("link", { name: "Tab" }),
+      page.getByRole("navigation", { name: "Notation view" }).getByRole("link", { name: "Tab" }),
     ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
   });
@@ -350,7 +350,7 @@ test.describe("library and song practice", () => {
     );
     await falling.getByRole("button", { name: "Plain" }).click();
 
-    await page.getByRole("button", { name: "Start in wait mode" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wait mode");
     await play(page, [{ at: 0, notes: [70] }]);
     await expect(falling.locator(".burst.wrong")).toBeAttached();
@@ -382,7 +382,7 @@ test.describe("library and song practice", () => {
     await page.keyboard.press("Escape");
 
     // Switching to Tab does not move the view picker.
-    const views = page.getByRole("navigation", { name: "Score view" });
+    const views = page.getByRole("navigation", { name: "Notation view" });
     const before = (await views.boundingBox())!;
     await views.getByRole("link", { name: "Tab" }).click();
     await expect(page.getByRole("region", { name: /^Tab,/ })).toBeVisible();
@@ -407,7 +407,7 @@ test.describe("library and song practice", () => {
     await expect(page.locator("[data-demo][data-role=right]").first()).toBeVisible({
       timeout: 5000,
     });
-    await page.getByRole("button", { name: "Stop preview" }).click();
+    await page.getByRole("button", { name: "Stop demo" }).click();
 
     // A low riff on a ukulele moves into range, and can be shown as written.
     await page.getByRole("link", { name: "Back to your songs" }).click();
@@ -454,7 +454,7 @@ test.describe("jam and lab", () => {
 
   test("jam: tone roles light, a chorus report, a logged session", async ({ page }) => {
     await page.goto("/music/changes/jam?progression=pop-axis&backing=none&transpose=0");
-    await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
+    await expect(page.getByLabel("Play over changes drill")).toContainText("Jam");
     // Over C: E is a chord tone (filled), D a scale tone, F# an avoid note (dashed).
     await expect(page.locator('[data-midi="64"][data-role="chord"]')).toHaveCount(1);
     await expect(page.locator('[data-midi="62"][data-role="scale"]')).toHaveCount(1);
