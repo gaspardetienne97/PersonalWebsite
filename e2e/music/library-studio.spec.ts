@@ -523,7 +523,7 @@ for (const width of [375, 1280]) {
       ["/music/library?tab=import", "Studio", "import"],
       [studio, "Ode to Joy", "studio"],
       [`${studio}?view=waterfall`, "Ode to Joy", "studio-waterfall"],
-      ["/music/changes/jam", "Jam", "jam"],
+      ["/music/changes/jam", "Play over changes", "jam"],
       ["/music/lab", "Practice lab", "lab"],
     ] as const) {
       await page.goto(path);
