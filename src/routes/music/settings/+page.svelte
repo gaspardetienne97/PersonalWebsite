@@ -45,7 +45,7 @@
     { value: "saw", label: "Saw" },
   ];
   const LEVELS = [
-    { key: "masterLevel", label: "Master", blurb: "" },
+    { key: "masterLevel", label: "Overall volume", blurb: "Everything the app plays." },
     { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
     { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
   ] as const;
@@ -140,7 +140,7 @@
   <!-- One row of section anchors above the content (one vertical nav on the page: the app's). On a phone the
        chips scroll sideways in one row; from sm the row wraps and sticks under the strip. -->
   <nav aria-label="Settings sections" class="min-w-0 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:z-20 sm:-mx-6 sm:bg-ws-bg sm:px-6 sm:py-2">
-    <ul class="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+    <ul class="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
       {#each SECTIONS as sec (sec.id)}
         <li>
           <a

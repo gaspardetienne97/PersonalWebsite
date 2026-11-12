@@ -191,8 +191,8 @@
     </div>
     {#if firstRepeat}
       <p class="mb-2 flex flex-wrap items-center gap-x-3 text-sm text-ws-stage-soft max-sm:hidden">
-        <span>Bar {firstRepeat.bar + 1} repeats bar {firstRepeat.beatBar + 1}.</span>
-        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique}>Make unique</button>
+        <span>Bar {firstRepeat.bar + 1} copies bar {firstRepeat.beatBar + 1}.</span>
+        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique} aria-label="Make unique">Edit bar {firstRepeat.bar + 1} on its own</button>
       </p>
     {/if}
 

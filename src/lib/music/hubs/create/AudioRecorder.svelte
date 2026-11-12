@@ -303,7 +303,9 @@
       <div class="mt-1 flex justify-between text-[0.8125rem] text-ws-stage-soft" aria-hidden="true"><span>−60 dB</span><span>−30</span><span>−6</span><span>0</span></div>
       <p class="mt-2 text-sm" data-testid="level-advice">
         {#if live}
-          <strong>{boostedAdvice.label}</strong>: {ADVICE[boostedAdvice.tone]} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
+          <!-- While a take runs, the line says so: "ready to record" would contradict the timer. -->
+          {#if recording}Recording.{/if}
+          <strong>{boostedAdvice.label}</strong>{#if recording && boostedAdvice.tone === "good"}.{:else}: {ADVICE[boostedAdvice.tone]}{/if} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
         {:else}
           <span class="text-ws-stage-soft">Press Record to start, or arm the microphone first to check the level.</span>
         {/if}

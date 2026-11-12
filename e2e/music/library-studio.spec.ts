@@ -166,9 +166,7 @@ test.describe("library and song practice", () => {
       ...ODE_NOTES.map((m, i) => ({ at: 250 + i * 160, notes: [m], hold: 80 })),
     ]);
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
-    await expect(page.getByRole("status")).toContainText(
-      "14 of 15 right first time",
-    );
+    await expect(page.getByRole("status")).toContainText("14 of 15 right first time");
     await expect(page.getByText("Right first time", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-take results" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-section results" })).toContainText(

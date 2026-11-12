@@ -16,6 +16,9 @@
   }
   let { label, selected, onselect, tonic, noneLabel }: Props = $props();
 
+  // Spelled for the key: sharps over a sharp-key tonic (G, D, A, E, B), so A major reads C♯, F♯, G♯, not D♭, G♭, A♭.
+  const SHARP_TONICS = new Set([7, 2, 9, 4, 11]);
+  const spelling = $derived(tonic !== undefined && SHARP_TONICS.has(tonic) ? "sharp" : "flat");
   const ROLE_WORD = { tonic: "tonic", fifth: "fifth", scale: "in the major scale", other: "outside the major scale" };
 </script>
 
@@ -34,10 +37,10 @@
       data-role={role}
       data-on={p === selected || undefined}
       aria-pressed={p === selected}
-      aria-label="{noteName(p, 'flat', false)}{role ? `, ${ROLE_WORD[role]}` : ''}"
+      aria-label="{noteName(p, spelling, false)}{role ? `, ${ROLE_WORD[role]}` : ''}"
       onclick={() => onselect(p)}
     >
-      <span class="font-display text-xl font-semibold">{pretty(noteName(p, "flat", false))}</span>
+      <span class="font-display text-xl font-semibold">{pretty(noteName(p, spelling, false))}</span>
       <!-- In the key: a dot as well as the tint, so colour is never the only cue. -->
       {#if role && role !== "other"}<span class="in-key" aria-hidden="true"></span>{/if}
       {#if semis !== null}<span class="tnum text-[13px] font-medium">{DEGREES[semis]}</span>{:else if noteName(p, "flat", false) !== noteName(p, "sharp", false)}<span class="text-[13px]">{pretty(noteName(p, "sharp", false))}</span>{/if}

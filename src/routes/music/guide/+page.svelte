@@ -144,7 +144,7 @@
 
   <!-- Below lg: the eight topics as one sticky row of chips, the one you are reading filled, read ones ticked. -->
   <nav aria-label="Guide topics, short list" class="min-w-0 sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 py-2 backdrop-blur sm:-mx-6 lg:hidden">
-    <ol bind:this={chips} class="flex gap-1.5 overflow-x-auto px-4 sm:px-6">
+    <ol bind:this={chips} class="flex gap-1.5 overflow-x-auto px-4 max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] sm:px-6">
       {#each TOPICS as t, i (t.id)}
         {@const done = read.includes(t.id)}
         <li class="shrink-0" data-topic={t.id}>
