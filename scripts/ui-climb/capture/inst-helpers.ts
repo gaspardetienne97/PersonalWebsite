@@ -289,14 +289,18 @@ export async function startOnGo(page: Page, steps: Step[], port = KEYS) {
             );
           }
         };
-        const status = document.querySelector('[role="status"]')!;
+        // Watch every status region: the calibration offer adds one above the drill's own.
+        const goSaid = () =>
+          [...document.querySelectorAll('[role="status"]')].some(
+            (s) => s.textContent?.trim() === "Go.",
+          );
         const obs = new MutationObserver(() => {
-          if (status.textContent?.trim() === "Go.") {
+          if (goSaid()) {
             obs.disconnect();
             run();
           }
         });
-        obs.observe(status, { childList: true, characterData: true, subtree: true });
+        obs.observe(document.body, { childList: true, characterData: true, subtree: true });
       });
     },
     { steps, port },

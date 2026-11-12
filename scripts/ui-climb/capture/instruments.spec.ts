@@ -494,9 +494,13 @@ for (const width of WIDTHS) {
         ([bars, beats]) => {
           const w = window as any;
           w.__capGo = 0;
-          const status = document.querySelector('[role="status"]')!;
+          // Watch every status region: the calibration offer adds one above the drill's own.
+          const goSaid = () =>
+            [...document.querySelectorAll('[role="status"]')].some(
+              (s) => s.textContent?.trim() === "Go.",
+            );
           const obs = new MutationObserver(() => {
-            if (status.textContent?.trim() !== "Go.") return;
+            if (!goSaid()) return;
             obs.disconnect();
             w.__capGo = performance.now();
             const beat = 60000 / 96;
@@ -505,7 +509,7 @@ for (const width of WIDTHS) {
               for (const k of beats) setTimeout(() => w.__chordMic.strum(ch), (b * 4 + k) * beat);
             });
           });
-          obs.observe(status, { childList: true, characterData: true, subtree: true });
+          obs.observe(document.body, { childList: true, characterData: true, subtree: true });
         },
         [bars, beats] as const,
       );
