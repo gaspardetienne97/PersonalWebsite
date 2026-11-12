@@ -6,6 +6,7 @@ import {
   beatsPerRow,
   cellVerdict,
   demoNotes,
+  echoTargetShown,
   lengthText,
   marksAsPattern,
   midiHits,
@@ -16,6 +17,7 @@ import {
   voicing,
 } from "./rhythm";
 import { rhythmLine } from "./notation";
+import { assistanceFor } from "$lib/music/drill.svelte";
 
 const on = (at: number, midi: number, instrument?: NoteEvent["instrument"]): NoteEvent => ({
   kind: "noteon",
@@ -226,5 +228,33 @@ describe("rhythm notation", () => {
     const last = line.ticks[0].at(-1)!;
     expect([last.vf, last.tieNext]).toEqual(["q", true]);
     expect(line.ticks[1][0]).toMatchObject({ vf: "8", attack: false });
+  });
+});
+
+describe("Echo's faint target", () => {
+  const assistance = (rhythmMode: string, target: boolean, mode: "practice" | "check") =>
+    assistanceFor(mode, echoTargetShown(rhythmMode, target, mode));
+
+  it("is drawn in Practice only, and a run that shows it is recorded as hinted", () => {
+    expect(echoTargetShown("echo", true, "practice")).toBe(true);
+    expect(assistance("echo", true, "practice")).toBe("hinted");
+  });
+
+  it("is never drawn in Check, so a Check run stays independent whatever the setup says", () => {
+    expect(echoTargetShown("echo", true, "check")).toBe(false);
+    expect(assistance("echo", true, "check")).toBe("independent");
+    expect(assistance("echo", false, "check")).toBe("independent");
+  });
+
+  it("turned off, Practice is the guided run it was", () => {
+    expect(assistance("echo", false, "practice")).toBe("guided");
+  });
+
+  it("belongs to Echo alone: no other rhythm mode draws it or changes its assistance", () => {
+    for (const m of ["pulse", "read-and-tap", "dictation", "groove"]) {
+      expect(echoTargetShown(m, true, "practice")).toBe(false);
+      expect(assistance(m, true, "practice")).toBe("guided");
+      expect(assistance(m, true, "check")).toBe("independent");
+    }
   });
 });

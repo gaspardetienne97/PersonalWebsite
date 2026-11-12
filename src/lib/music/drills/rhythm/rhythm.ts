@@ -216,3 +216,10 @@ export function landedText(
         ];
   return `${landed} of ${total} ${noun} ${verb}${parts.length ? `, ${parts.join(", ")}` : ""}.`;
 }
+
+/**
+ * Echo's faint target: the rhythm drawn as it is heard, in Practice only and only while the setup
+ * keeps it on. A run that shows it is recorded as hinted (`assistanceFor(mode, true)`); Check never does.
+ */
+export const echoTargetShown = (rhythmMode: string, target: boolean, mode: "practice" | "check") =>
+  rhythmMode === "echo" && target && mode === "practice";

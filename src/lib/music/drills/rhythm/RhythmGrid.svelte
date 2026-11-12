@@ -32,8 +32,10 @@
     label: string;
     /** Count the "&" between beats; a pulse taps beats only, so it leaves them out. */
     offbeats?: boolean;
+    /** Draw the notes as a faint target (Echo in Practice): hollow dashed heads, not written music. */
+    ghost?: boolean;
   }
-  let { bars, perBar, events, rests = [], chords = [], hits = [], verdicts = [], playhead = null, lit = null, label, offbeats = true }: Props = $props();
+  let { bars, perBar, events, rests = [], chords = [], hits = [], verdicts = [], playhead = null, lit = null, label, offbeats = true, ghost = false }: Props = $props();
 
   const W = 400;
   const x = (b: number) => 22 + (b / perBar) * (W - 40);
@@ -79,7 +81,7 @@
       {#each inBar(events, bar) as { e, i } (i)}
         {@const cx = x(e.beat - bar * perBar)}
         {@const v = verdicts[i]}
-        <g class="note" data-lit={lit === i || undefined} data-verdict={v}>
+        <g class="note" data-lit={lit === i || undefined} data-verdict={v} data-ghost={ghost || undefined}>
           {#if e.duration && e.duration >= 0.75 && e.stroke !== "mute"}
             <line x1={cx + 8} x2={x(Math.min(perBar, e.beat - bar * perBar + e.duration)) - 10} y1="70" y2="70" class="tail" />
           {/if}
@@ -179,6 +181,16 @@
   .note[data-lit] .mute {
     fill: var(--instr);
     filter: drop-shadow(0 0 6px var(--instr));
+  }
+  .note[data-ghost] .head {
+    fill: none;
+    stroke: var(--ws-stage-soft);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 2.5;
+  }
+  .note[data-ghost] .accent,
+  .note[data-ghost] .tail {
+    opacity: 0.4;
   }
   .note[data-verdict="pocket"] .head {
     fill: var(--success);

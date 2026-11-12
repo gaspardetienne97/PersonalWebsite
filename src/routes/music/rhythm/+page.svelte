@@ -33,10 +33,10 @@
   import TapKey from "$lib/music/drills/rhythm/TapKey.svelte";
   import DictationCompare from "$lib/music/drills/rhythm/DictationCompare.svelte";
   import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import { cellVerdict, demoNotes, lengthText, marksAsPattern, readPatterns, landedText, signedMs, spreadText, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
+  import { cellVerdict, demoNotes, echoTargetShown, lengthText, marksAsPattern, readPatterns, landedText, signedMs, spreadText, STROKE_MS, type Hit } from "$lib/music/drills/rhythm/rhythm";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
 
-  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock" });
+  const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock", target: true as boolean });
   const s = $derived(cfg.value);
   // A path step can ask for a tempo (?bpm=72); the practice strip owns tempo, so hand it over.
   {
@@ -81,6 +81,8 @@
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
+  /** Echo in Practice with the target on: the rhythm is drawn faintly as it is heard, and the run counts as hinted. */
+  const target = $derived(echoTargetShown(s.mode, s.target, mode));
   let status = $state("");
   let hits = $state.raw<Hit[]>([]);
   let downbeat = $state(0);
@@ -200,7 +202,7 @@
       skillIds: earMode ? earMode.skillIds : rhythmSkills(pulse ? "pulse" : def.id),
       capabilities: ["rhythm"],
       modality: "tapped",
-      assistance: assistanceFor(mode),
+      assistance: assistanceFor(mode, target),
       // By ear, each rhythm level adds 0.08, so a path step can ask for a level or harder.
       difficulty: Math.min(0.95, 0.2 + (bpm - 40) / 300 + (pulse ? 0 : 0.15) + (groove ? GROOVE_LEVELS.indexOf(grooveLevel) * 0.1 : byEar ? EAR_RHYTHM_LEVELS.indexOf(earLevel) * 0.08 : 0)),
       params: byEar ? { mode: s.mode, level: groove ? grooveLevel.id : earLevel.id, bpm } : pulse ? { mode: "pulse", beats, bpm } : { mode: "read-and-tap", pattern: def.id, bpm },
@@ -342,6 +344,7 @@
         cleanMeans: "a score of 85% or more",
         xp: fin.xp,
         mode,
+        hinted: target,
         rows: [
           timingRow(errors.filter((e): e is number => e !== null), total, plan.matchWindowMs, "Timing", POCKET_MS),
           // The timing bars count the missed notes; without them (nothing landed) the row says it.
@@ -520,7 +523,9 @@
   // What the grid draws
 
   const hidden = $derived(byEar && phase !== "results");
-  const gridEvents = $derived(hidden ? [] : pulse ? targetsRel.map((_, i) => ({ beat: i, accent: i % 4 === 0 })) : plan.events.map((e) => ({ beat: e.beat, accent: e.accent, stroke: e.stroke, duration: e.durationMs ? e.durationMs / beatMs : undefined })));
+  /** The call's notes that have sounded so far: what the faint target shows while an echo runs. */
+  const heardSoFar = $derived(target && phase === "running" ? plan.events.filter((e) => now >= downbeat - plan.lengthMs + e.atMs).length : 0);
+  const gridEvents = $derived(hidden ? plan.events.slice(0, heardSoFar).map((e) => ({ beat: e.beat, accent: e.accent })) : pulse ? targetsRel.map((_, i) => ({ beat: i, accent: i % 4 === 0 })) : plan.events.map((e) => ({ beat: e.beat, accent: e.accent, stroke: e.stroke, duration: e.durationMs ? e.durationMs / beatMs : undefined })));
   const bars = $derived(pulse ? Math.ceil(beats / 4) : plan.bars);
   const perBar = $derived(pulse ? 4 : def.meter.beats);
   const chordMarks = $derived(pulse ? [] : plan.chords.map((c) => ({ symbol: c.symbol, startBeat: c.startMs / beatMs })));
@@ -658,6 +663,7 @@
     byEar ? { text: (groove ? grooveLevel : earLevel).title, focus: "level" } : pulse ? { text: lengthText(beats, 4), focus: "beats" } : { text: def.label, focus: "pattern" },
     ...(pulse ? [] : [{ text: `${plan.bars} bar${plan.bars > 1 ? "s" : ""}` }]),
     ...(listens ? [{ text: "microphone on", focus: "mic" }] : []),
+    ...(target ? [{ text: "faint target", focus: "target" }] : []),
   ]);
   /**
    * Practice and Check in the shared two lines. By ear the pattern is never on screen until the end in
@@ -666,7 +672,7 @@
   const CHECK_NOTE = "No hints. Counts in your skill scores.";
   const modeNotes = $derived(
     echo
-      ? { practice: "Taps marked as you play. Clean runs move you on.", check: CHECK_NOTE }
+      ? { practice: s.target ? "The rhythm shows faintly as you hear it: a hint. Turn it off in Setup." : "Taps marked as you play. Clean runs move you on.", check: CHECK_NOTE }
       : writes
         ? { practice: "Hear it again any time. Clean runs move you on.", check: CHECK_NOTE }
         : undefined,
@@ -804,6 +810,18 @@
       {:else}
         <Choice label="Pattern" setupKey="pattern" select options={readPatterns(settings.value.activeInstrument)} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
       {/if}
+      {#if echo}
+        <Choice
+          label="Target"
+          setupKey="target"
+          options={[
+            { value: "on", label: "Faint", hint: "In Practice the rhythm is drawn faintly as you hear it. The run counts as hinted." },
+            { value: "off", label: "Off", hint: "Nothing is drawn until the end." },
+          ]}
+          value={s.target ? "on" : "off"}
+          onchange={(v) => cfg.set({ target: v === "on" })}
+        />
+      {/if}
       {#if !writes}
         <Choice
           label="Microphone"
@@ -890,7 +908,8 @@
             verdicts={phase === "results" ? verdicts : []}
             {playhead}
             {lit}
-            label={hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
+            ghost={hidden}
+            label={hidden && target ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the rhythm drawn faintly as it is heard` : hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
           />
         {/if}
         {#if showKey}<TapKey missed={(phase === "results" && anyMissed) || (phase === "running" && pulse)} />{/if}
