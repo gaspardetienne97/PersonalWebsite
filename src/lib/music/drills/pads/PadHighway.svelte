@@ -30,7 +30,7 @@
   // judged as it passes. The pad grid sits beside it (the `pads` snippet) on
   // a wide stage and under it on a phone.
   import type { Snippet } from "svelte";
-  import { JUDGEMENT_TEXT, gridLines, highwayScale, padCell, xAt, type Judgement } from "./lanes";
+  import { JUDGEMENT_TEXT, clusterMarks, gridLines, highwayScale, padCell, xAt, type Judgement } from "./lanes";
   import { padLabel } from "./midi-status";
 
   let {
@@ -93,7 +93,8 @@
   // The lanes together are never under 9rem (with the bar numbers, 168 px), so a phone reads them and a short
   // groove still sits above the docked Start.
   const laneRem = $derived(Math.max(9 / Math.max(1, lanes.length), lanes.length <= 2 ? 4.5 : lanes.length <= 4 ? 3.4 : lanes.length <= 7 ? 2.6 : lanes.length <= 10 ? 2 : 1.4));
-  const shownExtras = $derived(extras.filter((e) => e.lane >= 0 && e.atMs > fromMs - beatMs && e.atMs < toMs));
+  /** Stray hits in view, those that would overlap in a lane (closer than a mark's width) drawn as one mark with their count. */
+  const shownExtras = $derived(clusterMarks(extras.filter((e) => e.lane >= 0 && e.atMs > fromMs - beatMs && e.atMs < toMs), 20 / scale.pxPerMs));
 </script>
 
 <!-- The region a live stage grows (DrillShell, S3): the lanes share its height, the pads sit beside or under them. -->
@@ -131,7 +132,8 @@
         {/each}
         {#each lines as g (g.ms)}
           <span class="line" data-kind={g.kind} style:left="{x(g.ms)}px"></span>
-          {#if g.kind === "bar" && g.bar && g.bar > 0}<span class="bar-no" style:left="{x(g.ms)}px">{g.bar}</span>{/if}
+          <!-- Bars are numbered only inside the piece: past its end line there is no bar 2 of a one-bar groove. -->
+          {#if g.kind === "bar" && g.bar && g.bar > 0 && g.ms < lengthMs - 1}<span class="bar-no" style:left="{x(g.ms)}px">{g.bar}</span>{/if}
         {/each}
         {#if lengthMs > fromMs && lengthMs < toMs}<span class="line" data-kind="end" style:left="{x(lengthMs)}px"></span>{/if}
         {#each visible as n (n.i)}
@@ -142,7 +144,7 @@
           <span class="note" data-kind={n.kind} data-judged={judged[n.i]} style:--c={c} style:left="{x(n.atMs)}px" style:top="calc(({n.lane} + 0.5) * var(--lane))">{#if n.text && n.kind !== "ghost"}<b aria-hidden="true">{n.text}</b>{/if}</span>
         {/each}
         {#each shownExtras as e, k (k)}
-          <span class="extra" style:left="{x(e.atMs)}px" style:top="calc(({e.lane} + 0.5) * var(--lane))" aria-hidden="true">✕</span>
+          <span class="extra" style:left="{x(e.atMs)}px" style:top="calc(({e.lane} + 0.5) * var(--lane) + min(1.7rem, var(--lane) * 0.3))" aria-hidden="true">✕{#if e.n > 1}<b>{e.n}</b>{/if}</span>
         {/each}
         <span class="hitline" style:left="{scale.hitX}px" aria-hidden="true"></span>
         {#if flash && flash.judgement !== "extra"}
@@ -418,20 +420,32 @@
   .note[data-judged="late"] {
     box-shadow: 0 0 0 2px var(--late, var(--warn));
   }
-  /* A hit nothing asked for: a cross in its pad's lane, where it was played. */
+  /* A hit nothing asked for: a cross in its pad's lane, when it was played, under the row of notes so it never
+     covers one. */
   .extra {
     position: absolute;
     margin-top: var(--head);
     transform: translate(-50%, -50%);
     display: grid;
     place-items: center;
-    width: 1.1rem;
+    grid-auto-flow: column;
+    gap: 0.15rem;
+    min-width: 1.1rem;
     height: 1.1rem;
     border-radius: 999px;
     font-size: 0.8125rem;
     font-weight: 900;
+    line-height: 1;
     color: white;
     background: var(--destructive);
+    box-shadow: 0 0 0 1.5px var(--ws-stage);
+  }
+  /* Several stray hits in one place: one mark with their count. */
+  .extra:has(b) {
+    padding-inline: 0.3rem;
+  }
+  .extra b {
+    font-variant-numeric: tabular-nums;
   }
   .note[data-judged="miss"] {
     background: transparent;
@@ -463,8 +477,10 @@
     animation: pop 900ms ease-out both;
     white-space: nowrap;
   }
+  /* On its row, above the row's notes (as far as the lane has room), so the pill never covers the note just
+     judged or the next one coming. */
   .flash[data-row] {
-    transform: translateY(-50%);
+    transform: translateY(calc(-50% - min(1.9rem, var(--lane) * 0.4)));
     animation-name: pop-row;
   }
   .flash small {
@@ -525,21 +541,19 @@
       opacity: 0;
     }
   }
+  /* Opacity only: the pill keeps the place its transform gives it. */
   @keyframes pop-row {
     from {
       opacity: 0;
-      transform: translateY(-50%) scale(0.9);
     }
     15% {
       opacity: 1;
-      transform: translateY(-50%);
     }
     75% {
       opacity: 1;
     }
     to {
       opacity: 0;
-      transform: translateY(-50%);
     }
   }
   @keyframes count {

@@ -15,15 +15,24 @@
   }
   let { instrument, sound, since = null }: Props = $props();
 
-  let last = $state<{ text: string; used: boolean; midi: number; at: number } | null>(null);
+  const portOf = (id: string, name: string) => midi.inputs.find((p) => p.id === id) ?? { id, name, manufacturer: "" };
+  /** The newest note the runtime logged. The line is left out during a run, so without this a run full of pad
+   *  hits would come back to "no pad hit has arrived yet". */
+  function logged() {
+    for (const m of midi.rawLog) {
+      const said = explainNote(m.hex.split(" ").map((h) => parseInt(h, 16)), portOf(m.portId, m.port), midi.profile(m.portId));
+      if (said) return { ...said, at: m.at };
+    }
+    return null;
+  }
+  let last = $state<{ text: string; used: boolean; midi: number; at: number } | null>(logged());
   /** A run where nothing was heard: a note from before it must not read as part of the run. The line says
    *  what the run's own events say (contradiction 11): connected, nothing arrived during it. */
   const silentRun = $derived(since !== null && (!last || last.at < since));
 
   $effect(() =>
     midi.subscribeRaw((m) => {
-      const port = midi.inputs.find((p) => p.id === m.portId) ?? { id: m.portId, name: m.port, manufacturer: "" };
-      const said = explainNote(m.data, port, midi.profile(m.portId));
+      const said = explainNote(m.data, portOf(m.portId, m.port), midi.profile(m.portId));
       if (said) last = { ...said, at: performance.now() };
     }),
   );

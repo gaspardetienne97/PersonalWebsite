@@ -135,6 +135,25 @@ export function stepsPerBeatFor(beats: Iterable<number>): number {
   return [4, 3, 6, 8, 12].find(fits) ?? 4;
 }
 
+/**
+ * Marks in a lane that would overlap (within `withinMs` of the group's first) as one mark with a count `n`,
+ * placed at the group's middle. Lanes are kept apart.
+ */
+export function clusterMarks<T extends { lane: number; atMs: number }>(
+  marks: readonly T[],
+  withinMs: number,
+): { lane: number; atMs: number; n: number }[] {
+  const out: { lane: number; atMs: number; n: number; from: number }[] = [];
+  for (const m of [...marks].sort((a, b) => a.lane - b.lane || a.atMs - b.atMs)) {
+    const g = out[out.length - 1];
+    if (g && g.lane === m.lane && m.atMs - g.from < withinMs) {
+      g.n++;
+      g.atMs = (g.from + m.atMs) / 2;
+    } else out.push({ lane: m.lane, atMs: m.atMs, n: 1, from: m.atMs });
+  }
+  return out;
+}
+
 /** A pad's place on the 4 by 4 grid, laid out like the MPC: A01 bottom left, A16 top right. Row 0 is the top. */
 export function padCell(midi: number, base = 36): { row: number; col: number } | null {
   const i = midi - base;

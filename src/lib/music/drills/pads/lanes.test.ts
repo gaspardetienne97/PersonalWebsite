@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clusterMarks,
   gridLines,
   highwayScale,
   judgeHit,
@@ -15,6 +16,18 @@ import {
 } from "./lanes";
 
 describe("lanes", () => {
+  it("draws stray hits that would overlap as one mark with their count, lane by lane", () => {
+    const marks = [0, 50, 100, 400]
+      .map((atMs) => ({ lane: 0, atMs }))
+      .concat([{ lane: 1, atMs: 60 }]);
+    expect(clusterMarks(marks, 120)).toEqual([
+      { lane: 0, atMs: 50, n: 3, from: 0 },
+      { lane: 0, atMs: 400, n: 1, from: 400 },
+      { lane: 1, atMs: 60, n: 1, from: 60 },
+    ]);
+    expect(clusterMarks(marks, 120).reduce((n, m) => n + m.n, 0)).toBe(marks.length);
+  });
+
   it("orders lanes as drum notation reads, slices after in order", () => {
     expect(orderLanes(["kick", "hats", "snare", "crash"])).toEqual([
       "crash",

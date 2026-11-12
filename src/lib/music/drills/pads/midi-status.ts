@@ -82,13 +82,17 @@ export function waitingReason(s: {
   if (!live.length)
     return `Every ${noun} port is ignored in Connect, so none of its notes reach the drill.`;
   if (s.instrument === "mpc") {
-    if (s.link === "no-sysex")
-      return "MPC not linked, so pad hits are not heard. Allow SysEx, then link it in Connect.";
-    if (s.link === "no-output")
-      return "MPC not linked, so pad hits are not heard. Its output is not connected: check the cable, then Connect.";
-    if (s.link !== "linked")
-      return "MPC not linked, so pad hits are not heard. Link it in Connect.";
-    return `Linked and listening on ${live.map((p) => p.name).join(", ")}. Hit a pad.`;
+    if (s.link === "linked")
+      return `Linked and listening on ${live.map((p) => p.name).join(", ")}. Hit a pad.`;
+    // The port is there (the top bar names it) and MIDI is on: what is missing is the link, without which a
+    // standalone MPC keeps its pad notes to itself. Said as that, never as "not heard" (a hit that does arrive is).
+    const fix =
+      s.link === "no-sysex"
+        ? "allow SysEx, then link it in Connect."
+        : s.link === "no-output"
+          ? "its output is not connected, so check the cable, then Connect."
+          : "link it in Connect.";
+    return `${live.map((p) => p.name).join(" and ")} ${live.length > 1 ? "are" : "is"} connected, but no pad hit has arrived yet. If the pads stay silent here, ${fix}`;
   }
   return `Listening on ${live.map((p) => p.name).join(", ")}. Play a note.`;
 }

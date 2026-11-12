@@ -34,7 +34,7 @@
   let boxH = $state(0);
   // Only once the box has been laid out, so a first frame never squeezes the pads.
   const side = $derived(fit && boxW > 0 && boxH > 0 ? Math.min(boxW, boxH) : null);
-  // A glyph and a word per verdict, so colour is never the only cue. A pad under 72 px wide shows the
+  // A glyph and a word per verdict, so colour is never the only cue. A pad under 89 px wide shows the
   // glyph alone (the word is its title and is said in the live region), so a word is never cut short.
   const VERDICT = {
     early: { word: "Early", said: "Early", icon: ChevronsLeft },
@@ -291,10 +291,18 @@
     color: #140a10;
     background: var(--success);
   }
-  /* 60 px of content is a 72 px pad less its padding. */
-  @container (max-width: 60px) {
+  /* "On time" beside its glyph needs 76 px of content (an 89 px pad less its padding): under that the glyph stands
+     alone, so the word is never cut at the pad's edge. */
+  @container (max-width: 76px) {
     .when .word {
       display: none;
+    }
+  }
+  /* A small pad (under 76 px): the name a size down, so two lines ("Mid tom") fit above the pad's bottom edge. */
+  @container (max-width: 63px) {
+    .name {
+      font-size: 0.8125rem;
+      line-height: 1.05;
     }
   }
   /* --early and --late are dark in the light theme and light in the dark one, as --destructive is: its ink fits. */

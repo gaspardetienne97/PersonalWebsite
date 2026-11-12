@@ -35,6 +35,7 @@
   import GrooveGrid from "$lib/music/drills/pads/GrooveGrid.svelte";
   import StickingLane from "$lib/music/drills/pads/StickingLane.svelte";
   import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
+  import { ADVANCE } from "@repo/music-core/progress/advance";
   import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
   import { judgeHit, laneColor, orderLanes, overdue, padsDue, strokeScore, type Judgement } from "$lib/music/drills/pads/lanes";
   // The results card's stars (the advance rule's lines), so a groove's badge in the picker agrees with them.
@@ -710,7 +711,11 @@
       headline = `On your own you ${way} (${bpm} BPM asked), and ended ${Math.abs(Math.round(d.endOffsetMs))} ms ${d.endOffsetMs < 0 ? "ahead of" : "behind"} the grid. ${x.pass ? "Steady." : Math.abs(d.driftBpm) >= 3 ? "Aim to stay within 3 BPM." : ""}`.trim();
     } else if (ons.length && isSteady) headline = `${headline} Too few hits landed on your own to read the tempo.`;
     else if (ons.length && !isSteady)
-      headline = x.pass
+      // The timing can pass while extra hits pull the score under the bar: then the run did not pass, and the
+      // headline says which half held (the ring, the stars and the next run all follow the score).
+      headline = x.pass && r.score < ADVANCE.pass
+        ? `On time for level ${entry.level} at ${bpm} BPM (${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good), but ${r.extra} extra hit${r.extra === 1 ? "" : "s"} took the score to ${pct(r.score)}. Play only the notes on the chart.`
+        : x.pass
         ? `Passed level ${entry.level} at ${bpm} BPM: ${Math.round(x.tier.perfect * 100)}% perfect, ${Math.round(x.tier.good * 100)}% good.${bpm < entry.bpm.target ? "" : " At the target tempo."}`
         : `${headline} ${Math.round(x.tier.good * total)} of ${total} hits on time. You need 9 of 10 to pass.`;
     const leans = x.bias.filter((b) => b.ms !== null && Math.abs(b.ms) >= 8);
@@ -720,7 +725,8 @@
       // What the input could not measure is said once, in its own row below.
       metricLabel: "score",
       // The pass rule exactly (gradeTier), with the windows the rows and the setup line show.
-      cleanMeans: `9 of 10 hits within ${Math.round(x.tier.goodMs)} ms and 7 of 10 within ${Math.round(x.tier.perfectMs)} ms${isSteady ? ", and within 3 BPM on your own" : ""}`,
+      // And the score at the bar, as the shared rule has it: extra hits lower the score, so they can cost a clean run.
+      cleanMeans: `9 of 10 hits within ${Math.round(x.tier.goodMs)} ms and 7 of 10 within ${Math.round(x.tier.perfectMs)} ms${isSteady ? ", and within 3 BPM on your own" : ""}, with a score of ${Math.round(ADVANCE.pass * 100)}% or more (extra hits lower it)`,
       timing: ons.length ? timingBreakdown(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
         ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
@@ -910,9 +916,11 @@
       <Stat label="Bar" value="{Math.min(groove.groove.bars, Math.floor(stepNow / (perBeatStep * perBar)) + 1)} of {groove.groove.bars}" />
     {/if}
     {#if phase === "running" && guided && !waitMode && judgedCount}
-      <Stat label="On target" value="{landedCount} of {judgedCount} {isGroove ? 'hits' : 'strokes'}" tone={landedCount === judgedCount && !liveWrongPad && !liveExtra ? "success" : undefined} />
-      {#if liveWrongPad}<Stat label="Wrong pad" value={liveWrongPad} />{/if}
-      {#if liveExtra}<Stat label="Extra" value={liveExtra} />{/if}
+      <!-- Two different things, named so they cannot read as one count: the chart's notes that were hit, then the
+           hits no note asked for (on a pad the piece does not use, or on its pads between the notes). -->
+      <Stat label="Notes hit" value="{landedCount} of {judgedCount}" tone={landedCount === judgedCount && !liveWrongPad && !liveExtra ? "success" : undefined} />
+      {#if liveWrongPad}<Stat label="Other pads" value={liveWrongPad} />{/if}
+      {#if liveExtra}<Stat label="Extra hits" value={liveExtra} />{/if}
     {/if}
     <!-- After a run the HUD stays quiet: the results card says the numbers once (a silent run has none). -->
   {/snippet}

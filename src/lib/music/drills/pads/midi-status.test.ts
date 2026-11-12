@@ -58,9 +58,11 @@ describe("waitingReason", () => {
         ],
       }),
     ).toContain("ignored");
+    // Not linked: the port is connected (as the top bar says), so the line never claims hits are not heard.
     expect(waitingReason({ ...base, link: "off" })).toBe(
-      "MPC not linked, so pad hits are not heard. Link it in Connect.",
+      "MPC One+ Public and MPC One+ Private are connected, but no pad hit has arrived yet. If the pads stay silent here, link it in Connect.",
     );
+    expect(waitingReason({ ...base, link: "no-output" })).toContain("check the cable");
     expect(waitingReason({ ...base, link: "no-sysex" })).toContain("SysEx");
     expect(waitingReason({ ...base, profiles: [{ id: "pub", ignored: true }] })).toBe(
       "Linked and listening on MPC One+ Private. Hit a pad.",
