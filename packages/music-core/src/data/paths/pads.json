@@ -144,7 +144,7 @@
         {
           "id": "1.10",
           "title": "First whole song",
-          "setup": "Song Studio with a shelf song's drum part on the pads, We Will Rock You or any other: Wait mode, then Performance at 80% speed.",
+          "setup": "Song editor with a shelf song's drum part on the pads, We Will Rock You or any other: Wait mode, then Performance at 80% speed.",
           "done": "One shelf song end to end at 80% speed, 85% of notes good.",
           "links": [
             {
@@ -325,7 +325,7 @@
           ]
         }
       ],
-      "test": "Two shelf songs end to end in Song Studio Performance mode at the record's tempo (85% good), plus Hold the tempo on basic rock at 90 within 3 BPM."
+      "test": "Two shelf songs end to end in the Song editor Performance mode at the record's tempo (85% good), plus Hold the tempo on basic rock at 90 within 3 BPM."
     },
     {
       "id": "2",
@@ -1907,7 +1907,7 @@
         {
           "id": "6.9",
           "title": "Dynamics in a song",
-          "setup": "Song Studio on a drum song with dynamics marks, graded on dynamics (soft verse, loud chorus). Song Studio grades the whole take, not a band per section yet.",
+          "setup": "Song editor on a drum song with dynamics marks, graded on dynamics (soft verse, loud chorus). The Song editor grades the whole take, not a band per section yet.",
           "done": "Bands right in 4 of 4 sections.",
           "feeds": "Every song",
           "href": "/music/library?tab=songs",

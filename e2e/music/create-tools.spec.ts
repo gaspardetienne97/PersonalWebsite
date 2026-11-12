@@ -510,8 +510,8 @@ test.describe("Record", () => {
       take.getByRole("button", { name: "Export MIDI" }).click(),
     ]);
     expect(dl.suggestedFilename()).toBe("Arpeggio.mid");
-    await take.getByRole("button", { name: "Save to Song Studio" }).click();
-    await expect(take.getByRole("link", { name: "Open in Song Studio" })).toBeVisible();
+    await take.getByRole("button", { name: "Save to the Song editor" }).click();
+    await expect(take.getByRole("link", { name: "Open in the Song editor" })).toBeVisible();
     await shoot(page, "record-midi");
 
     // Open in the piano roll: the take arrives as a new melody.

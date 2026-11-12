@@ -83,7 +83,7 @@
           <p class="text-sm text-ws-soft">Play rungs a and d: the head from your score, then comp it.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a class={btn} href={rungHref(review, "a")}>Rung a in Song Studio</a>
+          <a class={btn} href={rungHref(review, "a")}>Rung a in the Song editor</a>
           {#if rungHref(review, "d")}<a class={btn} href={rungHref(review, "d")}>Rung d in Accompaniment</a>{/if}
         </div>
       </article>

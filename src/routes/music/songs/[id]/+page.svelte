@@ -14,7 +14,7 @@
   });
 </script>
 
-<svelte:head><title>{song ? song.title : "Song Studio"} | Woodshed</title></svelte:head>
+<svelte:head><title>{song ? song.title : "Song editor"} | Woodshed</title></svelte:head>
 
 {#if song}
   {#key song.id}<Studio {song} />{/key}
@@ -22,7 +22,7 @@
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">
     <h1 class="font-display text-4xl font-semibold tracking-tight">Song not found</h1>
     <p class="text-ws-soft">This song isn't saved in this browser. It may have been imported somewhere else.</p>
-    <a class={btnPrimary} href="/music/library">Open your songs</a>
+    <a class={btnPrimary} href="/music/studio">Open your songs</a>
   </div>
 {:else}
   <p class="text-ws-soft">Opening the song.</p>

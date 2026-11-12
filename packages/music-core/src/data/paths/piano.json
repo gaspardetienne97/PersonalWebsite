@@ -186,7 +186,7 @@
           "id": "0.7",
           "title": "Piece test",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode, after one week of learning each: Minuet in G minor (Grade 2), Clementi Op. 36 No. 1 first movement (Grade 3), Burgmüller Ballade Op. 100 No. 15 (Grade 4). The scores are on the L1 and L3 shelves.",
+          "setup": "Song editor, performance mode, after one week of learning each: Minuet in G minor (Grade 2), Clementi Op. 36 No. 1 first movement (Grade 3), Burgmüller Ballade Op. 100 No. 15 (Grade 4). The scores are on the L1 and L3 shelves.",
           "done": "90% at 100% tempo. A passed piece counts on its shelf; the path still runs from L1.",
           "exerciseIds": []
         }
@@ -476,7 +476,7 @@
           "id": "1.11",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
           "exerciseIds": []
         }
@@ -1004,7 +1004,7 @@
           "done": "80% on three days.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -1033,7 +1033,7 @@
           "id": "2.12",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, one with pedal.",
           "exerciseIds": []
         }
@@ -1390,7 +1390,7 @@
           "id": "3.5",
           "title": "Pattern 7: 3+3+2 grouping",
           "href": "/music/accompany?mode=patterns&instrument=piano&pattern=three-three-two&bpm=100&progression=pop-axis&transpose=0",
-          "setup": "Accompaniment, pattern 7 (3+3+2 eighths) under any loop, worked up to the record's 131; the Clocks intro itself loops in Song Studio.",
+          "setup": "Accompaniment, pattern 7 (3+3+2 eighths) under any loop, worked up to the record's 131; the Clocks intro itself loops in the Song editor.",
           "done": "Clocks intro 3 clean loops at the record's 131 BPM.",
           "match": {
             "pattern": "three-three-two"
@@ -1400,7 +1400,7 @@
           "minBpm": 131,
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -1521,7 +1521,7 @@
           "id": "3.12",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
           "exerciseIds": []
         }
@@ -2040,7 +2040,7 @@
           "id": "4.12",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, at least one blues or boogie.",
           "exerciseIds": []
         }
@@ -2461,7 +2461,7 @@
           "minBpm": 72,
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -2483,7 +2483,7 @@
         {
           "id": "5.9",
           "title": "Melody balance in a ballad",
-          "setup": "Song Studio, Performance with Melody balance graded (MIDI velocity): a shelf ballad, the melody louder than the notes struck with it.",
+          "setup": "Song editor, Performance with Melody balance graded (MIDI velocity): a shelf ballad, the melody louder than the notes struck with it.",
           "done": "Melody above the accompaniment on 80% of beats.",
           "feeds": "Your Song, Married Life",
           "href": "/music/songs/shelf/piano/your-song-full?mode=performance&grade=balance",
@@ -2551,7 +2551,7 @@
           "id": "5.13",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days.",
           "exerciseIds": []
         }
@@ -2926,7 +2926,7 @@
           "id": "6.7",
           "title": "Boogie with RH riffs",
           "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=5",
-          "setup": "Accompaniment, boogie bass with chords on 2 and 4 through the blues in F and G. The right-hand riffs come from Pinetop's Boogie Woogie, looped in Song Studio; the drill grades the bass and the chords.",
+          "setup": "Accompaniment, boogie bass with chords on 2 and 4 through the blues in F and G. The right-hand riffs come from Pinetop's Boogie Woogie, looped in the Song editor; the drill grades the bass and the chords.",
           "done": "3 clean loops at 120.",
           "match": {
             "pattern": "boogie",
@@ -2945,7 +2945,7 @@
               "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=-5"
             },
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -3031,7 +3031,7 @@
           "id": "6.13",
           "title": "Two shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "2 songs pass: 90% at 100% tempo in performance mode, on two days, one gospel or boogie.",
           "exerciseIds": []
         }
@@ -3373,11 +3373,11 @@
         {
           "id": "7.4",
           "title": "Intros by ear",
-          "setup": "Ear, phrases from your saved songs, played back: the 4-bar intros of Your Song, Piano Man, Someone Like You and Clocks, then compare in Song Studio.",
+          "setup": "Ear, phrases from your saved songs, played back: the 4-bar intros of Your Song, Piano Man, Someone Like You and Clocks, then compare in the Song editor.",
           "done": "Each intro played back at 90% before opening the score.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -3413,7 +3413,7 @@
           "id": "7.6",
           "title": "Syncopated pedal in a full arrangement",
           "href": "/music/pedal?progression=I-V-vi-IV&key=0&bpm=50",
-          "setup": "Pedal: I-V-vi-IV at 50 in 3 keys; then a shelf ballad's pedal in Song Studio.",
+          "setup": "Pedal: I-V-vi-IV at 50 in 3 keys; then a shelf ballad's pedal in the Song editor.",
           "done": "3 runs at 90%, on two days.",
           "match": {
             "progression": "I-V-vi-IV"
@@ -3421,7 +3421,7 @@
           "threshold": 0.9,
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -3430,7 +3430,7 @@
         {
           "id": "7.7",
           "title": "Melody balance in a full arrangement",
-          "setup": "Song Studio, Performance with Melody balance graded (MIDI velocity), on the shelf song in progress.",
+          "setup": "Song editor, Performance with Melody balance graded (MIDI velocity), on the shelf song in progress.",
           "done": "Melody above the accompaniment on 85% of beats.",
           "feeds": "every ballad",
           "href": "/music/songs/shelf/piano/someone-like-you-full?mode=performance&grade=balance",
@@ -3477,7 +3477,7 @@
           "done": "One full run with continuity 100% and no slip longer than a beat.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -3494,11 +3494,11 @@
         {
           "id": "7.10",
           "title": "Transcribe a 4-bar riff",
-          "setup": "Ear path: take a riff of your choice by ear, play it back, then check it against the score in Song Studio.",
+          "setup": "Ear path: take a riff of your choice by ear, play it back, then check it against the score in the Song editor.",
           "done": "The riff played at 90% from ear.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             },
             {
@@ -3512,7 +3512,7 @@
           "id": "7.11",
           "title": "Three shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical.",
           "exerciseIds": []
         }
@@ -3860,7 +3860,7 @@
           "id": "8.5",
           "title": "Ragtime A strain",
           "href": "/music/songs/shelf/piano/maple-leaf-rag?bars=1-16",
-          "setup": "Song Studio, fix-the-spot on Maple Leaf Rag, bars 1 to 16, in Performance.",
+          "setup": "Song editor, fix-the-spot on Maple Leaf Rag, bars 1 to 16, in Performance.",
           "done": "3 clean loops at crotchet 80.",
           "feeds": "Maple Leaf Rag",
           "threshold": 0.9,
@@ -3934,7 +3934,7 @@
           "id": "8.10",
           "title": "Three shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical.",
           "exerciseIds": []
         }
@@ -4318,11 +4318,11 @@
         {
           "id": "9.8",
           "title": "Play from memory",
-          "setup": "Song Studio performance mode with the score hidden.",
+          "setup": "Song editor performance mode with the score hidden.",
           "done": "One passed shelf song at 90% from memory.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -4340,7 +4340,7 @@
           "id": "9.9",
           "title": "Fugue voices",
           "href": "/music/songs/shelf/piano/prelude-and-fugue-in-c-minor-bwv-847",
-          "setup": "Song Studio, Fugue in C minor: voice-by-voice loops (the subject in each entry, then two voices, then three), then the full piece in Performance. The app does not tell the pairings apart; it counts clean Performance runs at half tempo or faster.",
+          "setup": "Song editor, Fugue in C minor: voice-by-voice loops (the subject in each entry, then two voices, then three), then the full piece in Performance. The app does not tell the pairings apart; it counts clean Performance runs at half tempo or faster.",
           "done": "Each pairing 3 clean loops at half tempo, then the full piece.",
           "feeds": "BWV 847",
           "threshold": 0.9,
@@ -4350,7 +4350,7 @@
           "id": "9.10",
           "title": "Three shelf songs",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: import, wait mode and fix-the-spot loops, then performance mode.",
+          "setup": "Song editor: import, wait mode and fix-the-spot loops, then performance mode.",
           "done": "3 songs pass: 90% at 100% tempo in performance mode, on two days, one classical and one jazz-pop.",
           "exerciseIds": []
         }
@@ -4664,11 +4664,11 @@
         {
           "id": "10.4",
           "title": "Programme run-throughs",
-          "setup": "Song Studio performance mode, the 5 pieces in order, scored for continuity.",
+          "setup": "Song editor performance mode, the 5 pieces in order, scored for continuity.",
           "done": "Three run-throughs on three days, each piece at 90% and continuity 100%.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],
@@ -4760,7 +4760,7 @@
           "done": "Played through, then checked against a score.",
           "links": [
             {
-              "label": "Song Studio",
+              "label": "Song editor",
               "href": "/music/library?tab=songs"
             }
           ],

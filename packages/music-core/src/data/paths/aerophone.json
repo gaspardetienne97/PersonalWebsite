@@ -127,7 +127,7 @@
         },
         {
           "id": "1.10",
-          "title": "First Song Studio import",
+          "title": "First the Song editor import",
           "href": "/music/library?tab=songs",
           "setup": "Import one shelf song (.mxl), play it in wait mode, then performance.",
           "done": "85% in performance mode at the score tempo.",
@@ -319,7 +319,7 @@
           }
         }
       ],
-      "test": "Two shelf songs at their tempo, 85% in Song Studio performance mode, plus a 5 s mf long tone at 80% in band."
+      "test": "Two shelf songs at their tempo, 85% in the Song editor performance mode, plus a 5 s mf long tone at 80% in band."
     },
     {
       "id": "2",
@@ -438,9 +438,9 @@
         },
         {
           "id": "2.9",
-          "title": "Two shelf songs in Song Studio",
+          "title": "Two shelf songs in the Song editor",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode, then performance.",
+          "setup": "Song editor: wait mode, then performance.",
           "done": "85% at the score tempo, on two songs.",
           "match": {
             "mode": "performance"
@@ -1271,9 +1271,9 @@
         },
         {
           "id": "4.10",
-          "title": "Riff loops in Song Studio",
+          "title": "Riff loops in the Song editor",
           "href": "/music/songs/shelf/aerophone/epic-sax-guy-run-away",
-          "setup": "Song Studio: loop the Epic Sax Guy riff at 70%, 85%, then 100% tempo.",
+          "setup": "Song editor: loop the Epic Sax Guy riff at 70%, 85%, then 100% tempo.",
           "done": "3 clean loops at 100%.",
           "threshold": 0.9,
           "minBpm": 130,
@@ -1601,7 +1601,7 @@
           "id": "5.6",
           "title": "Two heads by memory",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: two blues heads; after 3 runs, set From memory to After a look: the notes hide when the run starts.",
+          "setup": "Song editor: two blues heads; after 3 runs, set From memory to After a look: the notes hide when the run starts.",
           "done": "85% from memory, on two days.",
           "match": {
             "mode": "performance",
@@ -2100,7 +2100,7 @@
           "id": "6.10",
           "title": "Two heads with swing",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode, on a swing head from the shelf.",
+          "setup": "Song editor, performance mode, on a swing head from the shelf.",
           "done": "85% at 140.",
           "match": {
             "mode": "performance"
@@ -2551,7 +2551,7 @@
           "id": "7.10",
           "title": "A famous riff at tempo",
           "href": "/music/songs/shelf/aerophone/baker-street",
-          "setup": "Song Studio: loop the Baker Street riff from 70% to 100% tempo.",
+          "setup": "Song editor: loop the Baker Street riff from 70% to 100% tempo.",
           "done": "3 clean loops at 100%.",
           "threshold": 0.9,
           "minBpm": 115,
@@ -2867,7 +2867,7 @@
           "id": "8.7",
           "title": "Vibrato in music",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, Performance with Also grade set to Vibrato, on a ballad from the shelf: held notes of a beat or more should pulse 4 to 5 times a second (the bite as pitch bend). Half the score is the notes, half the vibrato.",
+          "setup": "Song editor, Performance with Also grade set to Vibrato, on a ballad from the shelf: held notes of a beat or more should pulse 4 to 5 times a second (the bite as pitch bend). Half the score is the notes, half the vibrato.",
           "done": "80% of held notes on one ballad.",
           "match": {
             "grade": "vibrato"
@@ -2881,7 +2881,7 @@
           "id": "8.8",
           "title": "Breath marks and dynamics in a phrase",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, Performance with Also grade set to Dynamics and breaths, on a phrase whose score marks them (the Ferling, or a shelf ballad): louder where it says louder, a break at each breath mark. Tonguing patterns, phrase, is the warm-up.",
+          "setup": "Song editor, Performance with Also grade set to Dynamics and breaths, on a phrase whose score marks them (the Ferling, or a shelf ballad): louder where it says louder, a break at each breath mark. Tonguing patterns, phrase, is the warm-up.",
           "done": "80%.",
           "match": {
             "grade": "dynamics"
@@ -3911,7 +3911,7 @@
           "id": "10.1",
           "title": "Two bebop blues heads",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Now's the Time and Billie's Bounce.",
+          "setup": "Song editor: Now's the Time and Billie's Bounce.",
           "done": "85% at 140, then from memory.",
           "each": {
             "param": "shelf",
@@ -4041,7 +4041,7 @@
           "id": "10.9",
           "title": "Transcribe four bars",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: loop a spot at 70%, play it back, then write it down.",
+          "setup": "Song editor: loop a spot at 70%, play it back, then write it down.",
           "done": "4 bars matched note for note, on 2 tunes.",
           "exerciseIds": [],
           "feeds": "Ear path"
@@ -4050,7 +4050,7 @@
           "id": "10.10",
           "title": "Memorise",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, From memory: After a look. Heads from memory, without looking at the score.",
+          "setup": "Song editor, From memory: After a look. Heads from memory, without looking at the score.",
           "done": "6 heads at 85%.",
           "match": {
             "mode": "performance",
@@ -4279,7 +4279,7 @@
           "id": "11.1",
           "title": "Pick and import the Ferling",
           "href": "/music/library?tab=import",
-          "setup": "An odd-numbered (slow) study from IMSLP or the shelf: MuseScore PDF import or MuseScore Studio entry, then Song Studio.",
+          "setup": "An odd-numbered (slow) study from IMSLP or the shelf: MuseScore PDF import or MuseScore Studio entry, then the Song editor.",
           "done": "The score imported and checked against the PDF.",
           "exerciseIds": [],
           "feeds": "Ferling"
@@ -4288,7 +4288,7 @@
           "id": "11.2",
           "title": "Plan breaths and dynamics",
           "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
-          "setup": "Mark breaths and hairpins on the score in MuseScore and import it again; Song Studio shows them on the staff. Then a Performance run with Also grade set to Dynamics and breaths.",
+          "setup": "Mark breaths and hairpins on the score in MuseScore and import it again; the Song editor shows them on the staff. Then a Performance run with Also grade set to Dynamics and breaths.",
           "done": "A marked copy.",
           "match": {
             "grade": "dynamics"
@@ -4302,7 +4302,7 @@
           "id": "11.3",
           "title": "Ferling in chunks",
           "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
-          "setup": "Song Studio: loop each 4-bar phrase, wait mode, then performance. Another Ferling from the shelf works too; this link judges No. 23.",
+          "setup": "Song editor: loop each 4-bar phrase, wait mode, then performance. Another Ferling from the shelf works too; this link judges No. 23.",
           "done": "Each phrase at 90%.",
           "threshold": 0.9,
           "feeds": "Ferling"
@@ -4311,7 +4311,7 @@
           "id": "11.4",
           "title": "Ferling whole",
           "href": "/music/songs/shelf/aerophone/slow-study-no-23-op-31",
-          "setup": "Song Studio, Performance at the marked tempo with Also grade set to Dynamics and breaths: half the score is the notes, half the dynamics and breaths as marked.",
+          "setup": "Song editor, Performance at the marked tempo with Also grade set to Dynamics and breaths: half the score is the notes, half the dynamics and breaths as marked.",
           "done": "85% notes, 80% dynamics in band.",
           "match": {
             "grade": "dynamics"

@@ -85,7 +85,7 @@
 <div class="flex flex-col gap-5">
   {#if shelf}
     <p class="rounded-2xl border border-ws-line bg-ws-surface px-4 py-3 text-sm">
-      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its performances in Song Studio count on that level's shelf.
+      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its performances in the Song editor count on that level's shelf.
     </p>
   {/if}
   <div class="flex flex-wrap items-center gap-3">
@@ -109,7 +109,7 @@
   {#if saved}
     <div class="{panel} flex flex-wrap items-center gap-3">
       <p class="min-w-0 flex-1 font-medium">{saved.title} is in your songs.</p>
-      <a class={btnPrimary} href="/music/songs/{saved.id}">Open in Song Studio</a>
+      <a class={btnPrimary} href="/music/songs/{saved.id}">Open in the Song editor</a>
       <a class={btn} href="?tab=songs">See all songs</a>
     </div>
   {/if}

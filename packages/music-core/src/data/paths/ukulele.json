@@ -996,7 +996,7 @@
           "title": "A tune from a score",
           "strand": "T",
           "href": "/music/songs/shelf/ukulele/greensleeves",
-          "setup": "Song Studio: import a shelf melody (Greensleeves or Scarborough Fair), wait mode, then performance.",
+          "setup": "Song editor: import a shelf melody (Greensleeves or Scarborough Fair), wait mode, then performance.",
           "done": "Wait mode 90% of the notes, then performance 80% on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -1223,7 +1223,7 @@
           }
         }
       ],
-      "test": "One 6/8 fingerpicked song at the preset tempo; one strummed song in 3/4 or 6/8 at tempo; Greensleeves or Scarborough Fair at 80% in Song Studio performance mode."
+      "test": "One 6/8 fingerpicked song at the preset tempo; one strummed song in 3/4 or 6/8 at tempo; Greensleeves or Scarborough Fair at 80% in the Song editor performance mode."
     },
     {
       "id": "4",
@@ -1392,8 +1392,8 @@
           "title": "Melody over the thumb",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-travis&chords=ukulele.g-major,gen.ukulele.2.7,gen.ukulele.11.7,ukulele.c-major&bpm=80",
-          "setup": "Chords, Fingerpicking: Travis over Freight Train's chords, G D7 B7 C (a song preset is coming); then the shelf score in Song Studio.",
-          "done": "The pattern 3 runs at 80%, on two days; then Song Studio performance at 80%.",
+          "setup": "Chords, Fingerpicking: Travis over Freight Train's chords, G D7 B7 C (a song preset is coming); then the shelf score in the Song editor.",
+          "done": "The pattern 3 runs at 80%, on two days; then the Song editor performance at 80%.",
           "match": {
             "pattern": "uke-travis",
             "shapes": "ukulele.g-major>gen.ukulele.2.7>gen.ukulele.11.7>ukulele.c-major"
@@ -1642,7 +1642,7 @@
           }
         }
       ],
-      "test": "A swing song with the ragtime circle at 120; Freight Train or Dust in the Wind at 80% in Song Studio performance; the Hawaiian vamp in C, F and G."
+      "test": "A swing song with the ragtime circle at 120; Freight Train or Dust in the Wind at 80% in the Song editor performance; the Hawaiian vamp in C, F and G."
     },
     {
       "id": "5",
@@ -1816,7 +1816,7 @@
           "title": "A fingerstyle pop arrangement",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/canon-in-c",
-          "setup": "Song Studio: Canon in C or Perfect (fingerstyle), wait mode then performance.",
+          "setup": "Song editor: Canon in C or Perfect (fingerstyle), wait mode then performance.",
           "done": "Performance 80% at 90% of the tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -1834,7 +1834,7 @@
           "title": "A fingerpicked blues",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/blues-for-ukulele-2",
-          "setup": "Song Studio: Blues for Ukulele #2 or Lillebjorn's Ukulele Blues.",
+          "setup": "Song editor: Blues for Ukulele #2 or Lillebjorn's Ukulele Blues.",
           "done": "Performance 80%, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2124,7 +2124,7 @@
           "title": "Melody on top, thumb under",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/you-are-my-sunshine-fingerstyle",
-          "setup": "Song Studio: You Are My Sunshine (fingerstyle, from level 2) at full tempo, then Aloha 'Oe fingerstyle.",
+          "setup": "Song editor: You Are My Sunshine (fingerstyle, from level 2) at full tempo, then Aloha 'Oe fingerstyle.",
           "done": "Performance 85% at full tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.85,
@@ -2155,7 +2155,7 @@
           "title": "Pinch the melody, hold the bass",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/the-lion-sleeps-tonight",
-          "setup": "Chords, Fingerpicking: thumb, then two strings together; then The Lion Sleeps Tonight in Song Studio.",
+          "setup": "Chords, Fingerpicking: thumb, then two strings together; then The Lion Sleeps Tonight in the Song editor.",
           "done": "Performance 80%, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2191,7 +2191,7 @@
           "title": "A campanella jig",
           "strand": "T",
           "href": "/music/songs/shelf/ukulele/cripple-creek",
-          "setup": "Song Studio: Cripple Creek or the Swallowtail Jig, 80 then 100.",
+          "setup": "Song editor: Cripple Creek or the Swallowtail Jig, 80 then 100.",
           "done": "Performance 80% at 100, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2237,7 +2237,7 @@
           "title": "Memorise a solo",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, Performance with Memory set to After a look: one shelf solo from memory.",
+          "setup": "Song editor, Performance with Memory set to After a look: one shelf solo from memory.",
           "done": "2 clean takes on two days.",
           "feeds": "boss",
           "match": {
@@ -2546,7 +2546,7 @@
           "id": "7.5",
           "title": "Chord melody, 8 bars",
           "strand": "F",
-          "setup": "Song Studio, Performance on bars 1 to 8 of the shelf's Fly Me to the Moon chord melody and Autumn Leaves. Every note of each chord is graded, not only the top note.",
+          "setup": "Song editor, Performance on bars 1 to 8 of the shelf's Fly Me to the Moon chord melody and Autumn Leaves. Every note of each chord is graded, not only the top note.",
           "done": "3 runs at 80%.",
           "feeds": "Fly Me to the Moon",
           "href": "/music/library?tab=songs",
@@ -2574,7 +2574,7 @@
           "title": "A full chord melody",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/moon-river",
-          "setup": "Song Studio: Moon River or La Vie en Rose, wait mode then performance.",
+          "setup": "Song editor: Moon River or La Vie en Rose, wait mode then performance.",
           "done": "Performance 80% at tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.8,
@@ -2592,7 +2592,7 @@
           "title": "Read a lead sheet",
           "strand": "T",
           "href": "/music/reading?mode=sight-reading&activity=sight-reading&instrument=ukulele&level=level-3",
-          "setup": "A lead sheet (melody with chord symbols) in Song Studio or on paper; Sight-reading, level 3 (the app's levels stop at 3).",
+          "setup": "A lead sheet (melody with chord symbols) in the Song editor or on paper; Sight-reading, level 3 (the app's levels stop at 3).",
           "done": "80% at sight-reading level 3, 3 runs on two days; level 5 once the app has it.",
           "match": {
             "level": "level-3"
@@ -2927,7 +2927,7 @@
           "title": "p-a-m-i arpeggio triplets",
           "strand": "F",
           "href": "/music/chords?mode=fingerpick&instrument=ukulele&pattern=uke-tami&chords=ukulele.a-minor,ukulele.e7,ukulele.a-minor,ukulele.d-minor&bpm=70&perBeat=3",
-          "setup": "Chords, Fingerpicking: thumb, then a m i, at 3 notes a click; then Spanish Romance in Song Studio.",
+          "setup": "Chords, Fingerpicking: thumb, then a m i, at 3 notes a click; then Spanish Romance in the Song editor.",
           "done": "The pattern 3 runs at 85% at 90, on two days; the piece at 80%.",
           "match": {
             "pattern": "uke-tami",
@@ -2963,7 +2963,7 @@
           "title": "Classical piece one",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/lagrima",
-          "setup": "Song Studio: Lágrima or Spanish Romance, with fix-the-spot loops.",
+          "setup": "Song editor: Lágrima or Spanish Romance, with fix-the-spot loops.",
           "done": "Performance 85% at tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.85,
@@ -2981,7 +2981,7 @@
           "title": "Classical piece two",
           "strand": "F",
           "href": "/music/songs/shelf/ukulele/gymnopedie-no-1",
-          "setup": "Song Studio: Gymnopédie, or Für Elise (low-G).",
+          "setup": "Song editor: Gymnopédie, or Für Elise (low-G).",
           "done": "Performance 85% at tempo, on two days.",
           "minAttempts": 2,
           "threshold": 0.85,
@@ -3465,7 +3465,7 @@
           "id": "9.9",
           "title": "Transcribe four bars",
           "strand": "T",
-          "setup": "Song Studio, Performance on your own transcription of one melody line from a recorded solo, corrected in the note editor. Any song counts, so play the transcription.",
+          "setup": "Song editor, Performance on your own transcription of one melody line from a recorded solo, corrected in the note editor. Any song counts, so play the transcription.",
           "done": "4 bars played back at 80% in performance mode.",
           "href": "/music/library?tab=songs",
           "match": {
@@ -3662,7 +3662,7 @@
           "id": "10.2",
           "title": "Fix the hard spots",
           "strand": "F",
-          "setup": "Song Studio fix-the-spot loops (a custom range in Performance) on each piece's three hardest bars. The app counts clean loops on any spot, not per spot.",
+          "setup": "Song editor fix-the-spot loops (a custom range in Performance) on each piece's three hardest bars. The app counts clean loops on any spot, not per spot.",
           "done": "3 clean loops at tempo per spot.",
           "feeds": "all",
           "href": "/music/library?tab=songs",
@@ -3677,7 +3677,7 @@
           "title": "Whole pieces at tempo",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode, each programme piece.",
+          "setup": "Song editor, performance mode, each programme piece.",
           "done": "Each piece at 90% on two days.",
           "match": {
             "mode": "performance"
@@ -3690,7 +3690,7 @@
           "id": "10.4",
           "title": "Dynamics",
           "strand": "F",
-          "setup": "Song Studio, Performance with Grade set to Dynamics: louder or softer where the score says, on a score with dynamics marked (experimental).",
+          "setup": "Song editor, Performance with Grade set to Dynamics: louder or softer where the score says, on a score with dynamics marked (experimental).",
           "done": "Two marked contrasts heard in the take.",
           "feeds": "all",
           "href": "/music/library?tab=songs",
@@ -3704,7 +3704,7 @@
           "title": "Memory",
           "strand": "F",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, No-stop with Memory set to After a look: each piece from memory.",
+          "setup": "Song editor, No-stop with Memory set to After a look: each piece from memory.",
           "done": "2 takes per piece without a stop.",
           "feeds": "boss",
           "match": {
@@ -3720,7 +3720,7 @@
           "strand": "F",
           "href": "/music/create",
           "setup": "A chord melody of a song you choose, 16 bars, written in Create or MuseScore and imported.",
-          "done": "Plays at 80% in Song Studio.",
+          "done": "Plays at 80% in the Song editor.",
           "feeds": "Writing path"
         },
         {

@@ -85,7 +85,7 @@ test.describe("transcribe", () => {
     await page.getByLabel("Title").fill("Chord and A");
     await page.getByRole("button", { name: "Save to songs" }).click();
     await expect(page.getByText("Chord and A is in your songs.")).toBeVisible();
-    await page.getByRole("link", { name: "Open in Song Studio" }).click();
+    await page.getByRole("link", { name: "Open in the Song editor" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Chord and A" })).toBeVisible();
 
     // Any song's notes open in the roll to fix.

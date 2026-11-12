@@ -603,7 +603,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "song-studio",
     // Song Studio lives at /music/songs/[id]; the library is where a song is picked.
     route: "/music/library?tab=songs",
-    title: "Song Studio",
+    title: "Song editor",
     blurb: "Play through one of your saved songs while the score waits for you or keeps time.",
     instruments: [...INSTRUMENTS],
     capability: "reading",

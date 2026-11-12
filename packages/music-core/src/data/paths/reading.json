@@ -151,7 +151,7 @@
         {
           "id": "P1.9",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, Sight-read at 70% of the marked tempo: a 30 second look, then one scored pass that keeps going. It counts only on a song's first run here.",
+          "setup": "Song editor, Sight-read at 70% of the marked tempo: a 30 second look, then one scored pass that keeps going. It counts only on a song's first run here.",
           "done": "3 different shelf pieces at 80% or better on the first pass.",
           "href": "/music/songs/shelf/reading/elf-handstucke?mode=sight-read&tempo=70",
           "match": {
@@ -203,7 +203,7 @@
         {
           "id": "P1.10",
           "title": "Read a duet part",
-          "setup": "Song Studio, No-stop with the duet partner: turn on your part only and the app plays the other part in time with you.",
+          "setup": "Song editor, No-stop with the duet partner: turn on your part only and the app plays the other part in time with you.",
           "done": "Through to the end without stopping, 80%.",
           "feeds": "Diabelli",
           "href": "/music/songs/shelf/reading/melodious-pieces-op-149-no-1?mode=no-stop&partner=true",
@@ -219,7 +219,7 @@
           "id": "P1.11",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One shelf piece at 90% on two days.",
           "match": {
             "mode": "performance"
@@ -540,7 +540,7 @@
         {
           "id": "P2.8",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "4 different shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/minuet-in-g-major?mode=sight-read",
           "match": {
@@ -592,7 +592,7 @@
         {
           "id": "P2.9",
           "title": "Duet secondo",
-          "setup": "Song Studio, No-stop with the duet partner: turn on the secondo only and the app plays the other part in time with you.",
+          "setup": "Song editor, No-stop with the duet partner: turn on the secondo only and the app plays the other part in time with you.",
           "done": "Through without stopping, 80%.",
           "feeds": "Diabelli",
           "href": "/music/songs/shelf/reading/allegro-alla-turca-op-149-no-26?mode=no-stop&partner=true",
@@ -608,7 +608,7 @@
           "id": "P2.10",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -908,7 +908,7 @@
           "id": "P3.8",
           "title": "Lead sheet: melody RH, roots LH",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a shelf lead sheet, right-hand melody graded, left hand on roots.",
+          "setup": "Song editor: a shelf lead sheet, right-hand melody graded, left hand on roots.",
           "done": "Two shelf songs at 90% at tempo.",
           "match": {
             "mode": "performance"
@@ -919,7 +919,7 @@
           "id": "P3.9",
           "title": "Lead sheet: melody plus chord in RH, bass LH",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a shelf lead sheet, melody plus chord in the right hand, bass in the left.",
+          "setup": "Song editor: a shelf lead sheet, melody plus chord in the right hand, bass in the left.",
           "done": "One shelf song at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -1176,7 +1176,7 @@
         {
           "id": "P4.7",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/the-wild-horseman-op-68-no-8?mode=sight-read",
           "match": {
@@ -1229,7 +1229,7 @@
           "id": "P4.8",
           "title": "Accompany",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: the piano part of The Happy Farmer for violin and piano, with the violin playing.",
+          "setup": "Song editor: the piano part of The Happy Farmer for violin and piano, with the violin playing.",
           "done": "Through without stopping, 80%.",
           "match": {
             "mode": "performance"
@@ -1247,7 +1247,7 @@
           "id": "P4.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One Burgmüller study at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -1538,7 +1538,7 @@
         {
           "id": "P5.7",
           "title": "A hymn a day",
-          "setup": "Song Studio, Sight-read: one new hymn or chorale each practice day, imported as its own song (a hymnal or chorale book from the shelf, or any you own).",
+          "setup": "Song editor, Sight-read: one new hymn or chorale each practice day, imported as its own song (a hymnal or chorale book from the shelf, or any you own).",
           "done": "10 hymns or chorales at 80% first pass over 2 weeks.",
           "href": "/music/library?tab=songs",
           "match": {
@@ -1584,7 +1584,7 @@
           "id": "P5.8",
           "title": "Accompany a melody",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: the piano part of Be Thou My Vision for violin and piano, with the violin playing.",
+          "setup": "Song editor: the piano part of Be Thou My Vision for violin and piano, with the violin playing.",
           "done": "Through without stopping, 80%.",
           "match": {
             "mode": "performance"
@@ -1596,7 +1596,7 @@
           "id": "P5.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "The Entertainer or a Clementi movement at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -1858,7 +1858,7 @@
         {
           "id": "P6.7",
           "title": "Standards at sight",
-          "setup": "Song Studio, sight-read: shelf lead sheets at 100.",
+          "setup": "Song editor, sight-read: shelf lead sheets at 100.",
           "done": "4 shelf tunes at 80% first pass.",
           "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read&bpm=100",
           "match": {
@@ -1911,7 +1911,7 @@
           "id": "P6.8",
           "title": "Learn one by reading, then improvise",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio to 90%, then Jam with the tune's changes.",
+          "setup": "Song editor to 90%, then Jam with the tune's changes.",
           "done": "One tune at tempo, 90%, plus one chorus over Jam kept.",
           "match": {
             "mode": "performance"
@@ -2182,7 +2182,7 @@
         {
           "id": "P7.8",
           "title": "A page a day",
-          "setup": "Song Studio, Sight-read: one shelf or IMSLP piece of this grade a day, each imported as its own song.",
+          "setup": "Song editor, Sight-read: one shelf or IMSLP piece of this grade a day, each imported as its own song.",
           "done": "15 pieces at 80% first pass over 3 weeks.",
           "href": "/music/library?tab=songs",
           "match": {
@@ -2240,7 +2240,7 @@
           "id": "P7.9",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One Chopin prelude or Grieg piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -2496,7 +2496,7 @@
         {
           "id": "G1.4",
           "title": "Riff a day",
-          "setup": "Song Studio, sight-read: one riff a day at 70% of the tempo.",
+          "setup": "Song editor, sight-read: one riff a day at 70% of the tempo.",
           "done": "6 shelf riffs at 80% first pass.",
           "href": "/music/songs/shelf/reading/seven-nation-army?mode=sight-read&tempo=70",
           "match": {
@@ -2546,7 +2546,7 @@
           "id": "G1.5",
           "title": "Riffs at tempo",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode at the original tempo.",
+          "setup": "Song editor, performance mode at the original tempo.",
           "done": "Two riffs at the original tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -2557,7 +2557,7 @@
           "id": "G1.6",
           "title": "Read the marks",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio on riffs with palm mutes, slides and hammer-ons: the score shows them, grading ignores them.",
+          "setup": "Song editor on riffs with palm mutes, slides and hammer-ons: the score shows them, grading ignores them.",
           "done": "Played as marked in two riffs (self-check against the recording afterwards).",
           "exerciseIds": [],
           "feeds": "Come As You Are, Enter Sandman"
@@ -2734,7 +2734,7 @@
           "id": "G2.2",
           "title": "Arpeggio tab",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: House of the Rising Sun, wait mode.",
+          "setup": "Song editor: House of the Rising Sun, wait mode.",
           "done": "First full pass.",
           "match": {
             "shelf": "reading/house-of-the-rising-sun",
@@ -2748,7 +2748,7 @@
           "id": "G2.3",
           "title": "Two voices in tab",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Amazing Grace fingerstyle, bass on the beats, melody on top.",
+          "setup": "Song editor: Amazing Grace fingerstyle, bass on the beats, melody on top.",
           "done": "90% at 70 bpm.",
           "match": {
             "shelf": "reading/amazing-grace-g2"
@@ -2761,7 +2761,7 @@
           "id": "G2.4",
           "title": "Triplet arpeggios in 3/4",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Spanish Romance, part A.",
+          "setup": "Song editor: Spanish Romance, part A.",
           "done": "90% at the marked tempo, on two days.",
           "match": {
             "shelf": "reading/spanish-romance",
@@ -2773,7 +2773,7 @@
         {
           "id": "G2.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read at 70% of the tempo.",
+          "setup": "Song editor, sight-read at 70% of the tempo.",
           "done": "4 shelf pieces at 80% first pass at 70% tempo.",
           "href": "/music/songs/shelf/reading/house-of-the-rising-sun?mode=sight-read&tempo=70",
           "match": {
@@ -2822,7 +2822,7 @@
           "id": "G2.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two shelf pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -3051,7 +3051,7 @@
         {
           "id": "G3.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read, tab hidden.",
+          "setup": "Song editor, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
           "href": "/music/songs/shelf/reading/ode-to-joy-for-guitar-g3?mode=sight-read&view=staff",
           "match": {
@@ -3100,7 +3100,7 @@
           "id": "G3.6",
           "title": "Play a duet part",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Marques, Easy Duet No. 6, one part with the app on the other.",
+          "setup": "Song editor: Marques, Easy Duet No. 6, one part with the app on the other.",
           "done": "Through, 80%.",
           "match": {
             "shelf": "reading/six-easy-duets-no-6"
@@ -3322,7 +3322,7 @@
         {
           "id": "G4.4",
           "title": "Bass and melody",
-          "setup": "Song Studio, Sight-read: Sagreras First Lessons 1 to 16, one a day, each lesson imported as its own song.",
+          "setup": "Song editor, Sight-read: Sagreras First Lessons 1 to 16, one a day, each lesson imported as its own song.",
           "done": "10 lessons at 80% first pass.",
           "feeds": "Sagreras",
           "href": "/music/library?tab=songs",
@@ -3344,7 +3344,7 @@
         {
           "id": "G4.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/first-lessons-book-1?mode=sight-read",
           "match": {
@@ -3397,7 +3397,7 @@
           "id": "G4.6",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One study at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -3657,7 +3657,7 @@
         {
           "id": "G5.5",
           "title": "A tune a day",
-          "setup": "Song Studio, sight-read: a tune a day at 70% of the tempo.",
+          "setup": "Song editor, sight-read: a tune a day at 70% of the tempo.",
           "done": "8 shelf tunes at 80% first pass.",
           "href": "/music/songs/shelf/reading/red-river-valley?mode=sight-read&tempo=70",
           "match": {
@@ -3711,7 +3711,7 @@
           "id": "G5.6",
           "title": "Learn two at session tempo",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, performance mode at session tempo.",
+          "setup": "Song editor, performance mode at session tempo.",
           "done": "Two tunes at 90% at 100 to 110 (reels) or dotted quarter = 90 (jigs), on two days.",
           "match": {
             "mode": "performance"
@@ -3967,7 +3967,7 @@
         {
           "id": "G6.5",
           "title": "Violin and flute parts",
-          "setup": "Song Studio, sight-read: shelf violin and flute parts in fifth position (they sound an octave lower on guitar).",
+          "setup": "Song editor, sight-read: shelf violin and flute parts in fifth position (they sound an octave lower on guitar).",
           "done": "5 pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/minuet-in-g-g6?mode=sight-read",
           "match": {
@@ -4016,7 +4016,7 @@
           "id": "G6.6",
           "title": "Jazz heads in position",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Autumn Leaves and Blue Bossa melodies in fifth position.",
+          "setup": "Song editor: Autumn Leaves and Blue Bossa melodies in fifth position.",
           "done": "Both at 90% at 120 bpm.",
           "match": {
             "mode": "performance"
@@ -4033,7 +4033,7 @@
           "id": "G6.7",
           "title": "Learn one by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One violin piece at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -4227,7 +4227,7 @@
           "id": "G7.5",
           "title": "Navigation",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a shelf chart with repeats, first and second endings and D.S. al Coda.",
+          "setup": "Song editor: a shelf chart with repeats, first and second endings and D.S. al Coda.",
           "done": "Through without getting lost, 80%.",
           "match": {
             "mode": "performance"
@@ -4240,7 +4240,7 @@
           "id": "G7.6",
           "title": "Jazz comping from a lead sheet",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio on Autumn Leaves and Blue Bossa, comping with 3-note shells. Guitar shells in Comping are not there yet.",
+          "setup": "Song editor on Autumn Leaves and Blue Bossa, comping with 3-note shells. Guitar shells in Comping are not there yet.",
           "done": "90% at 100 bpm.",
           "match": {
             "mode": "performance"
@@ -4256,7 +4256,7 @@
         {
           "id": "G7.7",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: chords only, then the melody.",
+          "setup": "Song editor, sight-read: chords only, then the melody.",
           "done": "4 charts at 80% first pass.",
           "href": "/music/songs/shelf/reading/stand-by-me-g7?mode=sight-read",
           "match": {
@@ -4462,7 +4462,7 @@
           "id": "G8.1",
           "title": "Two voices on one staff",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Carulli Andante, wait mode.",
+          "setup": "Song editor: Carulli Andante, wait mode.",
           "done": "First full pass.",
           "match": {
             "shelf": "reading/andante-op-241-no-18",
@@ -4476,7 +4476,7 @@
           "id": "G8.2",
           "title": "Position marks and barres",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Sor Op. 35 No. 22; read the Roman numerals before playing.",
+          "setup": "Song editor: Sor Op. 35 No. 22; read the Roman numerals before playing.",
           "done": "90% at 60 bpm.",
           "match": {
             "shelf": "reading/etude-op-35-no-22"
@@ -4489,7 +4489,7 @@
           "id": "G8.3",
           "title": "Arpeggio with melody on top",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Carcassi Op. 60 No. 1.",
+          "setup": "Song editor: Carcassi Op. 60 No. 1.",
           "done": "90% at 72.",
           "match": {
             "shelf": "reading/etude-op-60-no-1"
@@ -4501,7 +4501,7 @@
         {
           "id": "G8.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read at 60% of the tempo.",
+          "setup": "Song editor, sight-read at 60% of the tempo.",
           "done": "4 shelf studies at 80% first pass.",
           "href": "/music/songs/shelf/reading/waltz?mode=sight-read&tempo=60",
           "match": {
@@ -4554,7 +4554,7 @@
           "id": "G8.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -4565,7 +4565,7 @@
           "id": "G8.6",
           "title": "Two voices, one at a time",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: mute the bass voice, then the melody, on the shelf piece being learned.",
+          "setup": "Song editor: mute the bass voice, then the melody, on the shelf piece being learned.",
           "done": "Each voice alone at 90%, then both together at 80%.",
           "match": {
             "mode": "performance"
@@ -4822,7 +4822,7 @@
         {
           "id": "U1.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/ode-to-joy?mode=sight-read",
           "match": {
@@ -4867,7 +4867,7 @@
           "id": "U1.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5105,7 +5105,7 @@
         {
           "id": "U2.6",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read, tab hidden.",
+          "setup": "Song editor, sight-read, tab hidden.",
           "done": "5 shelf melodies at 80% first pass.",
           "href": "/music/songs/shelf/reading/mary-had-a-little-lamb?mode=sight-read&view=staff",
           "match": {
@@ -5315,7 +5315,7 @@
           "id": "U3.4",
           "title": "Melody then chords",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a shelf tune's melody, then its chords strummed, then chord plus melody note pinched on the beat.",
+          "setup": "Song editor: a shelf tune's melody, then its chords strummed, then chord plus melody note pinched on the beat.",
           "done": "One tune all three ways at 90%.",
           "match": {
             "mode": "performance"
@@ -5325,7 +5325,7 @@
         {
           "id": "U3.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
           "href": "/music/songs/shelf/reading/aloha-oe?mode=sight-read",
           "match": {
@@ -5370,7 +5370,7 @@
           "id": "U3.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two tunes at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5536,7 +5536,7 @@
           "id": "U4.3",
           "title": "Campanella",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Cripple Creek (campanella), wait mode, on the strings given.",
+          "setup": "Song editor: Cripple Creek (campanella), wait mode, on the strings given.",
           "done": "90% at 80 bpm.",
           "match": {
             "shelf": "reading/cripple-creek"
@@ -5548,7 +5548,7 @@
         {
           "id": "U4.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read at 70% of the tempo.",
+          "setup": "Song editor, sight-read at 70% of the tempo.",
           "done": "5 shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/fur-elise?mode=sight-read&tempo=70",
           "match": {
@@ -5593,7 +5593,7 @@
           "id": "U4.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5787,7 +5787,7 @@
           "id": "U5.3",
           "title": "Read a solo slowly",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: one shelf solo in wait mode, staff and tab both.",
+          "setup": "Song editor: one shelf solo in wait mode, staff and tab both.",
           "done": "First full pass.",
           "match": {
             "mode": "wait"
@@ -5798,7 +5798,7 @@
         {
           "id": "U5.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read at 60% of the tempo.",
+          "setup": "Song editor, sight-read at 60% of the tempo.",
           "done": "4 shelf solos at 80% first pass.",
           "href": "/music/songs/shelf/reading/cant-help-falling-in-love-u5?mode=sight-read&tempo=60",
           "match": {
@@ -5843,7 +5843,7 @@
           "id": "U5.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two solos at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -5854,7 +5854,7 @@
           "id": "U5.6",
           "title": "Fade the tab",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio with Show tab off on a learned solo.",
+          "setup": "Song editor with Show tab off on a learned solo.",
           "done": "90% with the tab hidden.",
           "match": {
             "mode": "performance"
@@ -6029,7 +6029,7 @@
         {
           "id": "U6.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/aint-she-sweet?mode=sight-read",
           "match": {
@@ -6078,7 +6078,7 @@
           "id": "U6.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -6328,7 +6328,7 @@
         {
           "id": "A1.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
           "href": "/music/songs/shelf/reading/hot-cross-buns?mode=sight-read",
           "match": {
@@ -6369,7 +6369,7 @@
           "id": "A1.6",
           "title": "Play a duet part",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Au Clair de la Lune duet, one part with the app on the other.",
+          "setup": "Song editor: Au Clair de la Lune duet, one part with the app on the other.",
           "done": "Through, 80%.",
           "match": {
             "shelf": "reading/au-clair-de-la-lune"
@@ -6598,7 +6598,7 @@
         {
           "id": "A2.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf tunes at 80% first pass.",
           "href": "/music/songs/shelf/reading/amazing-grace-a2?mode=sight-read",
           "match": {
@@ -6643,7 +6643,7 @@
           "id": "A2.6",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two tunes at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -6838,7 +6838,7 @@
         {
           "id": "A3.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 shelf pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/cant-help-falling-in-love-a3?mode=sight-read",
           "match": {
@@ -6883,7 +6883,7 @@
           "id": "A3.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "Two pieces at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7100,7 +7100,7 @@
         {
           "id": "A4.4",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read at 70% of the tempo.",
+          "setup": "Song editor, sight-read at 70% of the tempo.",
           "done": "5 shelf solos at 80% first pass.",
           "href": "/music/songs/shelf/reading/tequila?mode=sight-read&tempo=70",
           "match": {
@@ -7145,7 +7145,7 @@
           "id": "A4.5",
           "title": "Learn two by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, then play along with the record.",
+          "setup": "Song editor, then play along with the record.",
           "done": "Two solos at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7156,7 +7156,7 @@
           "id": "A4.6",
           "title": "Play with the record",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio performance mode to 90%, then the same solo with the original recording, outside the app.",
+          "setup": "Song editor performance mode to 90%, then the same solo with the original recording, outside the app.",
           "done": "Two clean play-alongs on two days, self-checked.",
           "exerciseIds": []
         }
@@ -7341,7 +7341,7 @@
         {
           "id": "A5.4",
           "title": "Transcribe one",
-          "setup": "Learn by ear: transcribe one shelf head from its recording, looped and slowed, then compare with the score in Song Studio. Learn runs are self-rated, so this step is not judged.",
+          "setup": "Learn by ear: transcribe one shelf head from its recording, looped and slowed, then compare with the score in the Song editor. Learn runs are self-rated, so this step is not judged.",
           "done": "Transcription matches the score at 80%.",
           "href": "/music/by-ear?mode=learn",
           "exerciseIds": []
@@ -7349,7 +7349,7 @@
         {
           "id": "A5.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "5 heads at 80% first pass.",
           "href": "/music/songs/shelf/reading/c-jam-blues?mode=sight-read",
           "match": {
@@ -7398,7 +7398,7 @@
           "id": "A5.6",
           "title": "Learn three by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, then over Jam.",
+          "setup": "Song editor, then over Jam.",
           "done": "Three heads at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7572,7 +7572,7 @@
           "id": "A6.2",
           "title": "Form reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: an AABA standard with repeats and endings.",
+          "setup": "Song editor: an AABA standard with repeats and endings.",
           "done": "Through without getting lost, 90%.",
           "match": {
             "mode": "performance"
@@ -7583,7 +7583,7 @@
         {
           "id": "A6.3",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "4 standards at 80% first pass.",
           "href": "/music/songs/shelf/reading/summertime-a6?mode=sight-read",
           "match": {
@@ -7624,7 +7624,7 @@
           "id": "A6.4",
           "title": "Learn three by reading",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio, then over Jam.",
+          "setup": "Song editor, then over Jam.",
           "done": "Three heads at tempo, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -7652,7 +7652,7 @@
         {
           "id": "A6.6",
           "title": "Read a concert-pitch lead sheet",
-          "setup": "Song Studio, sight-read: a C lead sheet from the piano level 6 shelf, read a minor third down (written = concert + 9).",
+          "setup": "Song editor, sight-read: a C lead sheet from the piano level 6 shelf, read a minor third down (written = concert + 9).",
           "done": "One tune at 80% first pass.",
           "feeds": "Autumn Leaves, Blue Bossa",
           "href": "/music/songs/shelf/reading/autumn-leaves?mode=sight-read",
@@ -7834,7 +7834,7 @@
           "id": "A7.4",
           "title": "An etude a week",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: a Ferling or Klosé study, wait mode, then performance.",
+          "setup": "Song editor: a Ferling or Klosé study, wait mode, then performance.",
           "done": "4 studies at tempo, 90%.",
           "match": {
             "mode": "performance"
@@ -7846,7 +7846,7 @@
         {
           "id": "A7.5",
           "title": "Sight-read the shelf",
-          "setup": "Song Studio, sight-read: a 30 second look, then one scored pass.",
+          "setup": "Song editor, sight-read: a 30 second look, then one scored pass.",
           "done": "4 pieces at 80% first pass.",
           "href": "/music/songs/shelf/reading/the-swan?mode=sight-read",
           "match": {
@@ -7895,7 +7895,7 @@
           "id": "A7.6",
           "title": "Learn one lyrical piece",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: wait mode to a first full pass, then performance at the marked tempo.",
+          "setup": "Song editor: wait mode to a first full pass, then performance at the marked tempo.",
           "done": "One piece at tempo with dynamics, 90%, on two days.",
           "match": {
             "mode": "performance"
@@ -8469,7 +8469,7 @@
         {
           "id": "R2.6",
           "title": "Sing it on one pitch",
-          "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped at sight in Song Studio (Sight-read, Tap the rhythm), each lesson imported as its own song.",
+          "setup": "Bona lessons 1 to 10 sung on \"ta\" with the click, then tapped at sight in the Song editor (Sight-read, Tap the rhythm), each lesson imported as its own song.",
           "done": "10 lessons tapped at 80% first pass.",
           "feeds": "Bona",
           "href": "/music/library?tab=songs",
@@ -8712,7 +8712,7 @@
           "id": "R3.5",
           "title": "Jig rhythm on an instrument",
           "href": "/music/library?tab=songs",
-          "setup": "Song Studio: Irish Washerwoman on any instrument, rhythm graded, dotted quarter = 80.",
+          "setup": "Song editor: Irish Washerwoman on any instrument, rhythm graded, dotted quarter = 80.",
           "done": "80% at dotted quarter = 80.",
           "match": {
             "shelf": "reading/irish-washerwoman-r3"
