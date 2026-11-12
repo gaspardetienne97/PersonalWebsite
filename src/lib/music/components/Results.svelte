@@ -69,7 +69,7 @@
   import { NEXT_VERB, SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
   import { ADVANCE } from "@repo/music-core/progress/advance";
   import { gradeTone } from "@repo/music-core";
-  import { audio } from "../runtime";
+  import { audio, calibration, input } from "../runtime";
   import InputCheck from "./InputCheck.svelte";
   import Star from "lucide-svelte/icons/star";
   import Trophy from "lucide-svelte/icons/trophy";
@@ -186,6 +186,14 @@
   // Rows the input cannot measure fold into one line; a row Not measured for too little evidence keeps its reason.
   const rows = $derived((summary.rows ?? []).filter((r) => !r.notMeasured || r.text));
   const unmeasured = $derived(unmeasuredLine(summary.rows ?? []));
+  // Timing evidence from an input and output pair with no latency offset: said beside it, scores unchanged.
+  const heardBy = input.activeSource;
+  const uncalibrated = $derived.by(() => {
+    if (heardBy !== "midi" && heardBy !== "audio") return false;
+    if (!timingRows.length && !rows.some((r) => /timing/i.test(r.label) && !r.notMeasured)) return false;
+    const key = calibration.input;
+    return !!key && !calibration.calibrated(key);
+  });
   const breakdown = $derived(timingRows.length > 0 || rows.length > 0 || !!unmeasured);
   /** The last six runs with this setup: six bars fit a phone. */
   const history = $derived(trend.slice(-6));
@@ -410,6 +418,11 @@
           </dl>
         {/if}
         {#if unmeasured}<p class="text-sm text-ws-soft" data-testid="not-measured">{unmeasured}</p>{/if}
+        {#if uncalibrated}
+          <p class="text-sm text-ws-soft" data-testid="timing-uncalibrated">
+            Timing not calibrated for this setup. <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#latency">Calibrate</a>
+          </p>
+        {/if}
       </div>
     {/if}
 

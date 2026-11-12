@@ -64,6 +64,8 @@
   import Choice from "./Choice.svelte";
   import TrainerSwitch, { type TrainerMode } from "./TrainerSwitch.svelte";
   import InputCheck, { inputFor } from "./InputCheck.svelte";
+  import CalibrationOffer from "./CalibrationOffer.svelte";
+  import { calibrating } from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
   import { lessonsAuto } from "../lessons.svelte";
   import { pendingLessons, type LessonRef } from "@repo/music-core/lessons/types";
   import Settings2 from "lucide-svelte/icons/sliders-horizontal";
@@ -536,7 +538,7 @@
       return;
     }
     if (showing) return;
-    if (e.code === "Space" && !onControl && !e.repeat && (phase === "ready" || phase === "results")) {
+    if (e.code === "Space" && !onControl && !e.repeat && !calibrating() && (phase === "ready" || phase === "results")) {
       e.preventDefault();
       void start();
     }
@@ -597,6 +599,8 @@
             >
           {/if}
         </div>
+        <!-- A timed drill on an input and output pair with no latency offset: the tap-along, offered once. -->
+        {#if clock && played && phase === "ready"}<CalibrationOffer />{/if}
       {/if}
       {#if showing}
         {#key shownLessons.map((l) => l.id).join()}
