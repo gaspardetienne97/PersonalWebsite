@@ -175,7 +175,7 @@ test.describe("Accompaniment comping on the new rhythms", () => {
     );
     // One clause of the setup sentence, whole.
     await expect(setupLine(page)).toContainText(
-      /(: |, )Rootless A and B on waltz: 1 and the and of 2(, |$)/,
+      /(:\s*|, )Rootless A and B on waltz: 1 and the and of 2(, |$)/,
     );
     const slots = await playSlots(page);
     expect(slots.slice(0, 2).map(([b]) => b)).toEqual([0, 1.5]);
@@ -188,7 +188,7 @@ test.describe("Accompaniment comping on the new rhythms", () => {
       "/music/accompany?mode=comping&voicing=octave-stabs&rhythm=hard-bop&meter=4&band=rhythm&choruses=1&progression=tune-well-you-neednt&transpose=0&bpm=160",
     );
     // One clause of the setup sentence, whole.
-    await expect(setupLine(page)).toContainText(/(: |, )Octave stabs on hard-bop hits(, |$)/);
+    await expect(setupLine(page)).toContainText(/(:\s*|, )Octave stabs on hard-bop hits(, |$)/);
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 160 BPM", { timeout: 60_000 });
   });

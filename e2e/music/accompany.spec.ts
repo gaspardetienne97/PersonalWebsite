@@ -101,7 +101,7 @@ test.describe("accompaniment over fake MIDI", () => {
       "/music/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
     );
     // One clause of the setup sentence, whole.
-    await expect(setupLine(page)).toContainText(/(: |, )Shells, alternating on charleston(, |$)/);
+    await expect(setupLine(page)).toContainText(/(:\s*|, )Shells, alternating on charleston(, |$)/);
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 140 BPM", { timeout: 40_000 });
     await expect(page.getByText("24 of 24", { exact: true })).toBeVisible();
