@@ -39,7 +39,7 @@ export const RUNGS: { id: Rung; label: string; done: string }[] = [
   {
     id: "f",
     label: "A second key",
-    done: "Rungs a and c in another key: 85% or better each.",
+    done: "Steps a and c in another key: 85% or better each.",
   },
 ];
 
