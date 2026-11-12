@@ -14,8 +14,11 @@
   });
 </script>
 
-<svelte:head><title>{song ? song.title : "Song editor"} | Woodshed</title></svelte:head>
+<svelte:head><title>{song ? `${song.title}, Song practice` : "Song practice"} | Woodshed</title></svelte:head>
 
+<!-- Song practice is a session screen: dark in both themes, like a drill page (woodshed.css keys the palette on
+     [data-drill-page]; the class makes `dark:` variants and components' own dark rules apply in the light theme). -->
+<div class="dark" data-drill-page>
 {#if song}
   {#key song.id}<Studio {song} />{/key}
 {:else if song === null}
@@ -27,3 +30,4 @@
 {:else}
   <p class="text-ws-soft">Opening the song.</p>
 {/if}
+</div>

@@ -196,7 +196,7 @@
           "id": "1.9",
           "title": "Learn two blues heads by ear",
           "href": "/music/songs/shelf/jazz/c-jam-blues",
-          "setup": "Learn the head from the record, then check it in the Song editor on the imported lead sheet: wait mode first, then performance. C Jam Blues is judged here; the second head counts on the shelf.",
+          "setup": "Learn the head from the record, then check it in Song practice on the imported lead sheet: wait mode first, then performance. C Jam Blues is judged here; the second head counts on the shelf.",
           "done": "C Jam Blues and one more shelf head in performance mode, 90% at 120, on two days.",
           "threshold": 0.9,
           "minBpm": 120,
@@ -215,7 +215,7 @@
           "id": "1.10",
           "title": "Head plus shells",
           "href": "/music/two-hand?pattern=lh-shell-rh-line&tonic=F4&bpm=110",
-          "setup": "Two hands: left-hand shell plus right-hand line. Then a shelf head in the Song editor with your own left hand (not counted here yet).",
+          "setup": "Two hands: left-hand shell plus right-hand line. Then a shelf head in Song practice with your own left hand (not counted here yet).",
           "done": "Two choruses of a shelf head, melody plus shells, 90% at 110.",
           "match": {
             "pattern": "lh-shell-rh-line"
@@ -672,7 +672,7 @@
           "id": "2.7",
           "title": "Rung a on two shelf tunes",
           "href": "/music/songs/shelf/jazz/autumn-leaves",
-          "setup": "Song editor on the imported lead sheet: roots in the left hand, melody in the right. Autumn Leaves is judged here; do a second tune too.",
+          "setup": "Song practice on the imported lead sheet: roots in the left hand, melody in the right. Autumn Leaves is judged here; do a second tune too.",
           "done": "Performance mode 90% at the shelf tempo, on two days, for two tunes.",
           "threshold": 0.9,
           "minBpm": 120,
@@ -1225,7 +1225,7 @@
         {
           "id": "3.11",
           "title": "Rung f: second key",
-          "setup": "Transpose the tune in the Song editor and in Accompaniment, Lead sheet: down a 4th, or the key a singer would ask for. The app does not check that the key moved.",
+          "setup": "Transpose the tune in Song practice and in Accompaniment, Lead sheet: down a 4th, or the key a singer would ask for. The app does not check that the key moved.",
           "done": "Rungs a and c in the new key at 85%, one day, on one tune.",
           "href": "/music/changes/accompany?mode=lead-sheet&instrument=piano&lh=shells&transpose=-5",
           "match": {
@@ -1588,7 +1588,7 @@
         {
           "id": "4.7",
           "title": "The Cantaloupe Island and Watermelon Man riffs",
-          "setup": "Song editor, Performance: the opening bars of each shelf score, the left-hand riff with the right-hand comp. Cantaloupe Island first, then Watermelon Man (linked).",
+          "setup": "Song practice, Performance: the opening bars of each shelf score, the left-hand riff with the right-hand comp. Cantaloupe Island first, then Watermelon Man (linked).",
           "done": "Each riff 4 times through at 110, 90%.",
           "href": "/music/songs/shelf/jazz/cantaloupe-island?bars=1-4",
           "match": {
@@ -1676,7 +1676,7 @@
         {
           "id": "4.11",
           "title": "Ladder rungs a, c, d, e on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in the Song editor on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a, c, d and e done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -1990,7 +1990,7 @@
           "id": "5.6",
           "title": "Bebop heads by ear",
           "href": "/music/songs/shelf/jazz/nows-the-time",
-          "setup": "Learn from the record, check in the Song editor. Now's the Time is judged here; do a second head too.",
+          "setup": "Learn from the record, check in Song practice. Now's the Time is judged here; do a second head too.",
           "done": "2 shelf heads in performance mode, 90% at 160.",
           "threshold": 0.9,
           "minBpm": 160,
@@ -2060,7 +2060,7 @@
         {
           "id": "5.10",
           "title": "Ladder rungs a to e on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in the Song editor on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to e done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -2109,7 +2109,7 @@
         {
           "id": "5.13",
           "title": "One bebop standard",
-          "setup": "Yardbird Suite through rungs a, c and d: the head in the Song editor, melody and shells in the lead sheet, rootless comping on its changes.",
+          "setup": "Yardbird Suite through rungs a, c and d: the head in Song practice, melody and shells in the lead sheet, rootless comping on its changes.",
           "done": "Rungs a, c and d done.",
           "feeds": "Yardbird Suite",
           "href": "/music/tunes",
@@ -2487,7 +2487,7 @@
           "id": "6.7",
           "title": "Heads at tempo",
           "href": "/music/songs/shelf/jazz/oleo",
-          "setup": "Song editor, tempo ladder 140, 160, 180. Oleo is judged here; do a second head too.",
+          "setup": "Song practice, tempo ladder 140, 160, 180. Oleo is judged here; do a second head too.",
           "done": "Two shelf heads at 180 in performance mode, 90%.",
           "threshold": 0.9,
           "minBpm": 180,
@@ -2554,7 +2554,7 @@
         {
           "id": "6.11",
           "title": "Ladder rungs a to f on two shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in the Song editor on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to f done on two tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -2823,7 +2823,7 @@
           "id": "7.3",
           "title": "Pedal and voicing balance",
           "href": "/music/pedal",
-          "setup": "Pedal: legato pedalling through a progression. The velocity check in the Song editor (melody louder than the inner voices) is still to come.",
+          "setup": "Pedal: legato pedalling through a progression. The velocity check in Song practice (melody louder than the inner voices) is still to come.",
           "done": "Pedal 90%, on two days; later the melody over 10 velocity points above the inner voices on 80% of chords.",
           "threshold": 0.9,
           "feeds": "All ballads"
@@ -2948,7 +2948,7 @@
           "id": "7.11",
           "title": "A full solo-piano ballad",
           "href": "/music/songs/shelf/jazz/misty",
-          "setup": "Song editor: one shelf arrangement (the Misty piano solo or In a Sentimental Mood) through fix-the-spot loops to performance.",
+          "setup": "Song practice: one shelf arrangement (the Misty piano solo or In a Sentimental Mood) through fix-the-spot loops to performance.",
           "done": "Performance mode 90% at the written tempo, on two days.",
           "threshold": 0.9,
           "minBpm": 60,
@@ -3356,7 +3356,7 @@
         {
           "id": "8.10",
           "title": "Ladder rungs a to e on three shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in the Song editor on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to e done on three tunes.",
           "href": "/music/tunes",
           "ladder": {
@@ -3821,7 +3821,7 @@
         {
           "id": "9.10",
           "title": "Ladder rungs a to f on three shelf tunes",
-          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in the Song editor on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
+          "setup": "The Tunes page shows each tune's ladder and opens each rung: a in Song practice on the shelf score, b and e in Jam, c in Accompaniment's lead sheet with shells, d in Accompaniment's comping.",
           "done": "Rungs a to f done on three tunes.",
           "href": "/music/tunes",
           "ladder": {

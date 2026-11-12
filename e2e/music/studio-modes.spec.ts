@@ -1,4 +1,4 @@
-// Song Studio's run modes: a no-stop run scored on continuity, a run from
+// Song practice's run modes: a no-stop run scored on continuity, a run from
 // memory in another key, and dynamics and a breath mark from MusicXML graded
 // from MIDI velocity and note lengths, over fake MIDI.
 import { expect, test, type Page } from "@playwright/test";
@@ -78,7 +78,7 @@ async function playFromGo(
   );
 }
 
-test.describe("song studio modes", () => {
+test.describe("song practice modes", () => {
   test.beforeEach(async ({ page }) => {
     await page.routeWebSocket(/\/\?token=|vite-hmr/, () => {});
     await installFakeMidi(page, [PORTS.keys]);

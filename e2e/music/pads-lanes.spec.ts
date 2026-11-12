@@ -196,7 +196,7 @@ test.describe("the lanes view on the pads", () => {
   });
 });
 
-test("song studio: a drum part as lanes, with the pads beside marking each hit", async ({
+test("song practice: a drum part as lanes, with the pads beside marking each hit", async ({
   page,
 }) => {
   test.setTimeout(60_000);

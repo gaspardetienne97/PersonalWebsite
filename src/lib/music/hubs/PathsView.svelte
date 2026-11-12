@@ -305,7 +305,7 @@
           {#if openId === "songs"}
             <section id="stop-songs" aria-label="Song shelf" class="mt-2">
               <p class="text-sm text-ws-soft">
-                Pick any {lv.level.pick}. A song counts when you play it in the Song editor's Performance mode at 80% or better, near the record's tempo, on two days.
+                Pick any {lv.level.pick}. A song counts when you play it in Song practice's Performance mode at 80% or better, near the record's tempo, on two days.
               </p>
               {#if shelfError}<p class="mt-2 text-sm text-destructive" role="alert">{shelfError}</p>{/if}
               <ul class="mt-3 flex flex-col divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
@@ -329,7 +329,7 @@
                     </div>
                     <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
                       {#if mine}
-                        <a href="/music/songs/{mine.id}" class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Play in the Song editor</a>
+                        <a href="/music/songs/{mine.id}" class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Play in Song practice</a>
                       {:else if downloaded.has(row.key)}
                         <button
                           type="button"

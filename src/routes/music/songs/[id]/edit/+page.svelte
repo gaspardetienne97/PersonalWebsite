@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Fix a saved song's notes in the piano roll. Only the notes, length and
+  // The Song editor: fix a saved song's notes in the piano roll. Only the notes, length and
   // tempo change; parts, key and sections stay as imported.
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
@@ -50,14 +50,14 @@
   const field = "min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
 </script>
 
-<svelte:head><title>{song ? `Edit ${song.title}` : "Edit notes"} | Woodshed</title></svelte:head>
+<svelte:head><title>{song ? `${song.title}, Song editor` : "Song editor"} | Woodshed</title></svelte:head>
 
 {#if song && editor}
   {@const e = editor}
   <div class="mx-auto flex max-w-6xl flex-col gap-4">
     <header class="min-w-0">
-      <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/songs/{song.id}"><ArrowLeft class="size-4" aria-hidden="true" />Back to the song</a>
-      <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Edit notes</h1>
+      <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/songs/{song.id}"><ArrowLeft class="size-4" aria-hidden="true" />Back to Song practice</a>
+      <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Song editor</h1>
       <p class="mt-1 max-w-prose text-ws-soft">Fix wrong notes in {song.title}. Tap a part to draw on it; the parts, key and sections stay as they were.</p>
     </header>
     <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-ws-line bg-ws-surface p-3">

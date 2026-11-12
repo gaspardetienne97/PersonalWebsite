@@ -1,5 +1,5 @@
 // Today: the weekly split picks today's instrument, the song block opens the path's shelf song
-// in Song Studio with the routine params, Settings holds the split and the A4, and the phone
+// in Song practice with the routine params, Settings holds the split and the A4, and the phone
 // More sheet closes on Escape.
 import { expect, test } from "@playwright/test";
 import { choose, muteHmr } from "./fixtures";

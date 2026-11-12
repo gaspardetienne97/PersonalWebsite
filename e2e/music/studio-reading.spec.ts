@@ -1,4 +1,4 @@
-// Song Studio for reading: a sight-read (a look, then one pass, counted on the
+// Song practice for reading: a sight-read (a look, then one pass, counted on the
 // song's first run only), tapping a score's rhythm, the duet partner and melody
 // balance from MIDI velocity; and the sight-reading generator's kick lane and
 // meter changes. Over fake MIDI.
@@ -80,7 +80,7 @@ async function playFromGo(
   );
 }
 
-/** The params of the last Song Studio run saved. */
+/** The params of the last Song practice run saved. */
 function lastRunParams(page: Page) {
   return page.evaluate(
     () =>
@@ -105,7 +105,7 @@ function lastRunParams(page: Page) {
   );
 }
 
-test.describe("song studio for reading", () => {
+test.describe("song practice for reading", () => {
   test.beforeEach(async ({ page }) => {
     await muteHmr(page);
     await installFakeMidi(page, [PORTS.keys]);

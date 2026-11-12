@@ -198,7 +198,7 @@ test.describe("note highway", () => {
     await expect(page.getByTestId("line-staff")).toBeVisible();
   });
 
-  test("Song Studio offers the highway on guitar", async ({ page }) => {
+  test("Song practice offers the highway on guitar", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/music/library?tab=import&instrument=guitar");
     await page.getByLabel("Score file").setInputFiles("e2e/music/fixtures/ode-to-joy.musicxml");

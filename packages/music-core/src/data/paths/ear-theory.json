@@ -172,7 +172,7 @@
           "title": "First melody by ear",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop on a melody; check it in Phrases (Ode to Joy is built in) or against the score in the Song editor.",
+          "setup": "The shelf loop on a melody; check it in Phrases (Ode to Joy is built in) or against the score in Song practice.",
           "done": "Two shelf melodies played through, at most 2 wrong notes each.",
           "exerciseIds": [],
           "links": [
@@ -586,7 +586,7 @@
           "title": "Melody with its rhythm",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "The shelf loop for a melody: write 8 bars with rhythm and compare with the score in the Song editor. The check against the score (N3) is still to come.",
+          "setup": "The shelf loop for a melody: write 8 bars with rhythm and compare with the score in Song practice. The check against the score (N3) is still to come.",
           "done": "85% of notes and rhythms against the score.",
           "exerciseIds": [],
           "feeds": "Amazing Grace, Auld Lang Syne, Leaving on a Jet Plane"
@@ -3540,7 +3540,7 @@
           "title": "Transcribe 4, then 8, then 12 bars",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the score in the Song editor. The check against the score (N3) is still to come.",
+          "setup": "Learn by ear: loop a phrase at a time, play it back, then compare with the score in Song practice. The check against the score (N3) is still to come.",
           "done": "85% of notes and rhythms per chunk.",
           "exerciseIds": [],
           "links": [
@@ -3556,7 +3556,7 @@
           "title": "Play it with the record",
           "strand": "S",
           "href": "/music/library?tab=songs",
-          "setup": "Song editor with the imported score, then with the record at 100%.",
+          "setup": "Song practice with the imported score, then with the record at 100%.",
           "done": "Clean at 100% twice.",
           "exerciseIds": [],
           "feeds": "The shelf"

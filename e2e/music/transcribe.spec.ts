@@ -50,7 +50,7 @@ test.describe("transcribe", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 
-  test("audio with chords: heard in a worker, fixed in the roll, saved, then edited from Song Studio", async ({
+  test("audio with chords: heard in a worker, fixed in the roll, saved, then edited from Song practice", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -85,13 +85,13 @@ test.describe("transcribe", () => {
     await page.getByLabel("Title").fill("Chord and A");
     await page.getByRole("button", { name: "Save to songs" }).click();
     await expect(page.getByText("Chord and A is in your songs.")).toBeVisible();
-    await page.getByRole("link", { name: "Open in the Song editor" }).click();
+    await page.getByRole("link", { name: "Open in Song practice" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Chord and A" })).toBeVisible();
 
     // Any song's notes open in the roll to fix.
     await page.getByRole("button", { name: "Song options" }).click();
-    await page.getByRole("menuitem", { name: "Edit notes" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Edit notes" })).toBeVisible();
+    await page.getByRole("menuitem", { name: "Edit in the Song editor" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Song editor" })).toBeVisible();
     await expect(page.locator("[data-save-state]")).toHaveText("Saved");
     const grid = page.getByRole("application", { name: /Note grid/ });
     await grid.focus();

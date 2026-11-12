@@ -263,9 +263,9 @@
               <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
               <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">Open in piano roll</a>
               {#if savedSong[take.id]}
-                <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">Open in the Song editor</a>
+                <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">Open in Song practice</a>
               {:else}
-                <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>Save to the Song editor</button>
+                <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>Save to Song practice</button>
               {/if}
             </div>
           </div>

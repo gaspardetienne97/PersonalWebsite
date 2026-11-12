@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Song Studio (catalog 4.11). Transport and practice actions sit above the
+  // Song practice (catalog 4.11; once "Song Studio"). Transport and practice actions sit above the
   // score; the score scrolls in its own viewport. Wait mode waits for each
   // group; Performance keeps time over 1 to 8 takes; No-stop is one take that
   // keeps going through slips, scored on what was played and how continuously.
@@ -1126,7 +1126,7 @@
       <Menu.Root>
         <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised" aria-label="Song options"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
         <Menu.Content align="start" class="w-60">
-          <Menu.Item onSelect={() => goto(`/music/songs/${song.id}/edit`)}><Pencil class="size-4" aria-hidden="true" />Edit notes</Menu.Item>
+          <Menu.Item onSelect={() => goto(`/music/songs/${song.id}/edit`)}><Pencil class="size-4" aria-hidden="true" />Edit in the Song editor</Menu.Item>
           <Menu.Item onSelect={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</Menu.Item>
           <Menu.Item disabled={settings.value.bpm === bpm} onSelect={metronomeToSong}>
             <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}

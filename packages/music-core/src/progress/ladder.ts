@@ -14,7 +14,7 @@ export const RUNGS: { id: Rung; label: string; done: string }[] = [
   {
     id: "a",
     label: "Roots and melody",
-    done: "Song editor Performance on the tune's shelf score, 90% at the shelf tempo, on two days.",
+    done: "Song practice in Performance mode on the tune's shelf score, 90% at the shelf tempo, on two days.",
   },
   {
     id: "b",

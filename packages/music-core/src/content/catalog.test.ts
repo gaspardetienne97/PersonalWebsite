@@ -139,7 +139,7 @@ describe("drill catalog", () => {
       p.steps.flatMap((s) => s.exerciseIds ?? []),
     );
     for (const id of pathIds) {
-      // Phrases record one exercise per instrument, fretted drills a ukulele variant, Song Studio
+      // Phrases record one exercise per instrument, fretted drills a ukulele variant, Song practice
       // its own, and Create (not a drill) a loop built live on the pads.
       const covered =
         ids.has(id) ||
