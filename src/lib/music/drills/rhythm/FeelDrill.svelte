@@ -9,6 +9,7 @@
   import { earLessons } from "@repo/music-core/lessons/ear";
   import { grooveTargetsFor } from "@repo/music-core/content/winds-pads";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import { earTrainer } from "$lib/music/drills/ear/trainer";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
   import { btnPrimary, btnStage } from "$lib/music/components/ui";
@@ -149,7 +150,8 @@
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  title="Feel"
+  title="Ear"
+  trainer={earTrainer("ear-feel")}
   hue="ear"
   blurb="Hear a groove and name its feel: straight, swung, shuffle or 12/8."
   summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right to pass` }]}

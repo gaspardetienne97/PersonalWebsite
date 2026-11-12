@@ -453,7 +453,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
     }
     case "/circle":
       return { kind: "circle", caption: "Keys a fifth apart, round the circle" };
-    case "/listening":
+    case "/ear/studio":
       return { kind: "eq", caption: "One band boosted: hear where it is" };
     case "/ear/intervals":
     case "/ear/interval-compare":

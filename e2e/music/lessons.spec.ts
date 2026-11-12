@@ -258,7 +258,7 @@ test.describe("tier 1 lessons", () => {
     ["sight-reading", "/music/reading?activity=sight-reading", "Five lines"],
     ["rhythm echo", "/music/rhythm?mode=echo", "Counting the beat"],
     ["rhythm dictation", "/music/rhythm?mode=dictation", "Counting the beat"],
-    ["mixing ear", "/music/listening", "Flat, then Changed"],
+    ["mixing ear", "/music/ear/studio", "Flat, then Changed"],
     ["aerophone long tone", "/music/aerophone?mode=long-tone", "One note, one even breath"],
     ["aerophone articulation", "/music/aerophone?mode=articulation", "One tongue a beat"],
     [

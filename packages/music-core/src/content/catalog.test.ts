@@ -82,7 +82,7 @@ const ROUTES = [
   "/music/pads",
   "/music/aerophone",
   "/music/circle",
-  "/music/listening",
+  "/music/ear/studio",
   "/music/by-ear",
   "/music/changes/call-response",
   "/music/ear/feel",

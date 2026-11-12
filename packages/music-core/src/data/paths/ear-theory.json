@@ -869,7 +869,7 @@
           "id": "3.6",
           "title": "Hear the low band (Studio S-1, S-2)",
           "strand": "E",
-          "href": "/music/listening?exercise=peak&bands=3&gain=12&material=noise",
+          "href": "/music/ear/studio?exercise=peak&bands=3&gain=12&material=noise",
           "setup": "Studio ears, find the boost: three bands on pink noise, then five.",
           "done": "Studio S-1 (90% on three bands) and S-2 (80% on five), on two days.",
           "match": {
@@ -884,7 +884,7 @@
           "links": [
             {
               "label": "Five bands",
-              "href": "/music/listening?exercise=peak&bands=5&gain=12&material=noise"
+              "href": "/music/ear/studio?exercise=peak&bands=5&gain=12&material=noise"
             }
           ],
           "feeds": "Bass lines in a mix"
@@ -893,7 +893,7 @@
           "id": "3.7",
           "title": "Bands on loops (Studio S-3)",
           "strand": "E",
-          "href": "/music/listening?exercise=peak&bands=9&gain=12&material=drums",
+          "href": "/music/ear/studio?exercise=peak&bands=9&gain=12&material=drums",
           "setup": "Studio ears, find the boost: nine bands on the drum loop, then the band loop.",
           "done": "Studio S-3: 70% on nine bands over a loop, on two days.",
           "match": {
@@ -904,7 +904,7 @@
           "links": [
             {
               "label": "Band loop",
-              "href": "/music/listening?exercise=peak&bands=9&gain=12&material=music"
+              "href": "/music/ear/studio?exercise=peak&bands=9&gain=12&material=music"
             }
           ]
         },
@@ -2137,7 +2137,7 @@
           "id": "6.9",
           "title": "Find the cut (Studio S-4, S-5)",
           "strand": "E",
-          "href": "/music/listening?exercise=cut&bands=9&gain=12&material=music",
+          "href": "/music/ear/studio?exercise=cut&bands=9&gain=12&material=music",
           "setup": "Studio ears: find the cut on nine bands, then smaller boosts (6 dB) on the drum loop.",
           "done": "Studio S-4 and S-5: 70% on nine bands, on two days.",
           "exerciseIds": ["studio.cut", "studio.peak"],
@@ -2153,7 +2153,7 @@
           "links": [
             {
               "label": "6 dB boosts",
-              "href": "/music/listening?exercise=peak&bands=9&gain=6&material=drums"
+              "href": "/music/ear/studio?exercise=peak&bands=9&gain=6&material=drums"
             }
           ]
         },
@@ -3304,7 +3304,7 @@
           "id": "9.12",
           "title": "Producer ears (Studio S-6, S-7, optional)",
           "strand": "E",
-          "href": "/music/listening?exercise=boost-or-cut&gain=6&material=music",
+          "href": "/music/ear/studio?exercise=boost-or-cut&gain=6&material=music",
           "setup": "Studio ears: boost or cut on the band loop, then compression on the drum loop.",
           "done": "Studio S-6 (80%) and S-7 (75%), on two days.",
           "exerciseIds": ["studio.boost-or-cut", "studio.compression"],
@@ -3317,7 +3317,7 @@
           "links": [
             {
               "label": "Compression",
-              "href": "/music/listening?exercise=compression&material=drums"
+              "href": "/music/ear/studio?exercise=compression&material=drums"
             }
           ]
         }

@@ -24,6 +24,7 @@
   } from "@repo/music-core/content/studio";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
+  import { earTrainer } from "$lib/music/drills/ear/trainer";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
   import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
@@ -393,7 +394,8 @@
 <DrillShell
   instrumentFree
   lesson={{ lessons: listeningLessons(exercise, { material, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays }) }}
-  title="Studio ears"
+  title="Ear"
+  trainer={earTrainer(entry.id)}
   hue="ear"
   blurb="Hear a loop flat and changed, and name the change."
   summary={summaryLine}

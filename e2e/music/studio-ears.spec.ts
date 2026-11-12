@@ -13,8 +13,9 @@ test.describe("studio ears", () => {
   });
 
   test("find the boost on pink noise: flip, answer, see the curve", async ({ page }) => {
-    await page.goto("/music/listening");
-    await expect(page.getByRole("heading", { level: 1, name: "Studio ears" })).toBeVisible();
+    await page.goto("/music/ear/studio");
+    await expect(page.getByRole("heading", { level: 1, name: "Ear" })).toBeVisible();
+    await expect(page.getByLabel("Ear mode")).toContainText("Studio ears");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toHaveAttribute("data-step", "answer", { timeout: 15_000 });
@@ -52,7 +53,7 @@ test.describe("studio ears", () => {
   });
 
   test("boost or cut at matched loudness, on the band loop", async ({ page }) => {
-    await page.goto("/music/listening?exercise=boost-or-cut&material=music&gain=6");
+    await page.goto("/music/ear/studio?exercise=boost-or-cut&material=music&gain=6");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
@@ -66,7 +67,7 @@ test.describe("studio ears", () => {
 
   test("compression (level-matched) and delay time on the drum loop", async ({ page }) => {
     // Pink noise is picked, but these two need hits: the drum loop plays.
-    await page.goto("/music/listening?exercise=compression&material=noise");
+    await page.goto("/music/ear/studio?exercise=compression&material=noise");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
@@ -77,7 +78,7 @@ test.describe("studio ears", () => {
     await answers.nth(["none", "light", "heavy"].indexOf(c)).click();
     await expect(card).toContainText("Right:");
 
-    await page.goto("/music/listening?exercise=delay&delays=4&material=drums");
+    await page.goto("/music/ear/studio?exercise=delay&delays=4&material=drums");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     await expect(card).toHaveAttribute("data-step", "answer", { timeout: 20_000 });
     await expect(answers).toHaveText([
@@ -109,7 +110,7 @@ test.describe("studio ears", () => {
     ]);
     await expect(page.getByRole("link", { name: "Studio ears", exact: true })).toHaveAttribute(
       "href",
-      "/music/listening",
+      "/music/ear/studio",
     );
     await page.screenshot({ path: `${SHOTS}/drills-tab.png`, fullPage: true });
     await page.getByRole("button", { name: "Modes for Rhythm" }).click();

@@ -33,7 +33,8 @@ const lastRun = (page: Page) =>
 
 test("song loops: every chord into a slot, judged chord by chord", async ({ page }) => {
   await page.goto("/music/ear/song-loops?answer=choice&loops=rock");
-  await expect(page.getByRole("heading", { level: 1, name: "Song loops" })).toBeVisible();
+  // The Ear trainer: the h1 is "Ear" and the drill is the title's mode picker.
+  await expect(page.getByLabel("Ear mode")).toContainText("Song loops");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const card = prompt(page);
   await expect(card).toHaveAttribute("data-drill", "loop");

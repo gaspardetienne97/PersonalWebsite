@@ -38,12 +38,12 @@ export interface DrillGroup {
 
 /** Which setup key picks a drill's mode, so a mode chip opens that mode directly. */
 const MODE_KEY: [RegExp, string][] = [
+  [/^\/music\/ear\/studio/, "exercise"],
   [/^\/music\/ear\//, "answer"],
   [/^\/music\/reading/, "activity"],
   [/^\/music\/changes\/voicings/, "variant"],
   [/^\/music\/changes\/licks/, "category"],
   [/^\/music\/changes\/chord-scales/, "changes"],
-  [/^\/music\/listening/, "exercise"],
   [
     /^\/music\/(rhythm|fretboard|chords|pads|aerophone|circle|accompany|by-ear|call-response)/,
     "mode",

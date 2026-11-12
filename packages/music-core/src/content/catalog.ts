@@ -526,7 +526,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "listening",
-    route: "/music/listening",
+    route: "/music/ear/studio",
     title: "Studio ears",
     blurb:
       "Hear a loop flat and changed, and name the change: an EQ band, a level, a pan, compression or a delay.",

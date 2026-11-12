@@ -153,15 +153,17 @@ test.describe("ear training", () => {
       ["mixed", "Ear training review"],
     ]) {
       await page.goto(`/music/ear/${slug}`);
-      await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+      // The Ear trainer: the h1 is "Ear" and the drill is the title's mode picker.
+      await expect(page.getByRole("heading", { level: 1, name: "Ear" })).toBeVisible();
+      await expect(page.getByLabel("Ear mode")).toContainText(title);
       for (const width of [375, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await expectNoHorizontalOverflow(page);
       }
     }
-    await expect(page.getByRole("link", { name: "Import a score in the Library" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Import a score in Studio" })).toHaveCount(0);
     await page.goto("/music/ear/repertoire-transfer");
-    await expect(page.getByRole("link", { name: "Import a score in the Library" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Import a score in Studio" })).toBeVisible();
     await page.goto("/music/ear/scale-degrees?answer=listen-along&level=anchor");
     await expect(page.getByText("Setup:").locator("..")).toContainText("Listen along, Anchor");
     await shots(page, "ear-scale-degrees-ready");
@@ -230,9 +232,7 @@ test.describe("ear training", () => {
     page,
   }) => {
     await page.goto("/music/ear/interval-compare?answer=choice");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Interval comparison" }),
-    ).toBeVisible();
+    await expect(page.getByLabel("Ear mode")).toContainText("Interval comparison");
     await page.getByRole("button", { name: "Start", exact: true }).click();
     const card = prompt(page);
     await expect(card).toContainText("Which interval was bigger?");

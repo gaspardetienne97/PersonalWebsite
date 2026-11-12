@@ -127,7 +127,7 @@ for (const flow of FLOWS)
       await shot(page, flow.id, "results-poor", width, { full: true });
     });
 
-// Studio ears (/music/listening): find the boost on pink noise, Flat then Changed.
+// Studio ears (/music/ear/studio): find the boost on pink noise, Flat then Changed.
 const hzLabel = (a: string) => (Number(a) >= 1000 ? `${Number(a) / 1000} kHz` : `${a} Hz`);
 
 for (const width of WIDTHS)
@@ -135,7 +135,7 @@ for (const width of WIDTHS)
     test.setTimeout(240_000);
     const flow = "studio-ears";
     await setup(page, width, { lessons: true });
-    await open(page, "/music/listening");
+    await open(page, "/music/ear/studio");
     if (!(await shootLesson(page, flow, width))) console.log(`${flow}: no lesson`);
     await skipLesson(page);
     await toTop(page);

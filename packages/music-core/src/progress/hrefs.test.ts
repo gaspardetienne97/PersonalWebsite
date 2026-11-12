@@ -14,6 +14,8 @@ import { STEPS } from "./routine";
 /** Old pathname to its new one, for drills that moved (the old route redirects there). */
 const MOVED: Record<string, string> = {
   "/music/library": "/music/studio",
+  // Studio ears is a mode of the Ear trainer.
+  "/music/listening": "/music/ear/studio",
   // The seven jazz drills are modes of Play over changes.
   ...Object.fromEntries(
     ["voicings", "comping", "accompany", "licks", "chord-scales", "jam", "call-response"].map(

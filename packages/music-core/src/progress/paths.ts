@@ -287,7 +287,7 @@ const THEORY_STEPS: RawStep[] = [
   },
 ];
 
-const L = (q: string) => `/music/listening?${q}`;
+const L = (q: string) => `/music/ear/studio?${q}`;
 const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-1",

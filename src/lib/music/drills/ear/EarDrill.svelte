@@ -68,6 +68,7 @@
   import { decayMastery, isDueForReview } from "@repo/music-core/progress/mastery";
   import type { Score, ScoringEvent } from "@repo/music-core";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
+  import { earTrainer } from "$lib/music/drills/ear/trainer";
   import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
   import Choice from "$lib/music/components/Choice.svelte";
   import Stat from "$lib/music/components/Stat.svelte";
@@ -1526,7 +1527,8 @@
 {/snippet}
 
 <DrillShell
-  title={def.title}
+  title="Ear"
+  trainer={earTrainer(entry.id)}
   hue="ear"
   demoLabel={slug === "chords" ? "Hear an example" : undefined}
   modeNotes={{
@@ -1998,8 +2000,8 @@
     {:else if slug === "repertoire-transfer" && songCount !== null && planPhrases.length === 0}
       <div class="py-6 text-center">
         <p class="font-display text-xl font-semibold">No saved songs to lift phrases from yet.</p>
-        <p class="mt-1 text-ws-stage-soft">Phrases come from the melody of songs in your Library.</p>
-        <a class="{btnPrimary} mt-4" href="/music/library?tab=import">Import a score in the Library</a>
+        <p class="mt-1 text-ws-stage-soft">Phrases come from the melody of songs you keep in Studio.</p>
+        <a class="{btnPrimary} mt-4" href="/music/studio?tab=import">Import a score in Studio</a>
       </div>
     {:else}
       <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 {slug === 'scale-degrees' ? 'md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]' : ''}">
