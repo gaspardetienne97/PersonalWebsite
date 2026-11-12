@@ -6,6 +6,7 @@
   import Piano from "lucide-svelte/icons/piano";
   import CircleDot from "lucide-svelte/icons/circle-dot";
   import Drum from "lucide-svelte/icons/drum";
+  import Ear from "lucide-svelte/icons/ear";
   import BookOpen from "lucide-svelte/icons/book-open";
   import { bench } from "$lib/music/bench.svelte";
   import HubTabs from "$lib/music/components/HubTabs.svelte";
@@ -20,6 +21,7 @@
     { href: "/music/create", label: "Beat", hint: "Loop drums on a grid", icon: Grid },
     { href: "/music/create?mode=roll", label: "Melody", hint: "Write lines in the piano roll", icon: Piano },
     { href: "/music/record", label: "Record", hint: "Audio and MIDI takes", icon: CircleDot },
+    { href: "/music/by-ear", label: "Learn by ear", hint: "Loop and slow a recording", icon: Ear },
     { href: "/music/create/kits", label: "Sample kits", hint: "Your own pad sounds", icon: Drum },
     { href: "/music/create/reference", label: "Chords and scales", hint: "Look one up, hear it", icon: BookOpen },
   ];
@@ -56,7 +58,7 @@
     <!-- One strip of links, not cards: names only on a phone, a line of help from sm up. -->
     <nav aria-labelledby="make-title" class="flex flex-col gap-2">
       <h2 id="make-title" class="font-display text-xl font-semibold">Make</h2>
-      <ul class="flex flex-wrap gap-2 sm:grid sm:grid-cols-3 sm:gap-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ws-line sm:bg-ws-surface lg:grid-cols-5">
+      <ul class="flex flex-wrap gap-2 sm:grid sm:grid-cols-3 sm:gap-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ws-line sm:bg-ws-surface lg:grid-cols-6">
         {#each TOOLS as tool (tool.href)}
           <li class="sm:-mr-px sm:-mb-px sm:border-r sm:border-b sm:border-ws-line">
             <a

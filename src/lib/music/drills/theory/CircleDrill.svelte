@@ -437,7 +437,7 @@
       </p>
     {:else}
     <p class="mt-3 text-sm text-ws-soft">
-      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/create/reference?section=circle">circle in the Library</a> has every key's signature and chords.
+      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/create/reference?section=circle">circle in Studio</a> has every key's signature and chords.
     </p>
     {/if}
   {/snippet}

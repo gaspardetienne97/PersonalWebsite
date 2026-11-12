@@ -192,7 +192,7 @@
     { href: "/music/chords", label: "Chords", hint: "Guitar and ukulele" },
     { href: "/music/aerophone?mode=articulation", label: "Articulation", hint: "Aerophone" },
     { href: "/music/tuner", label: "Tuner", hint: "Any instrument" },
-    { href: "/music/library", label: "Song library", hint: "Your repertoire" },
+    { href: "/music/studio", label: "Songs in Studio", hint: "Your repertoire" },
   ];
 </script>
 
