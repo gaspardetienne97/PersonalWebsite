@@ -97,3 +97,122 @@ export function estimateOffset(
     };
   return { ok: true, offsetMs, iqrMs, answered };
 }
+
+// ---------------------------------------------------------------------------
+// Where an offset applies. The tap-along measures input and output together,
+// so a saved offset belongs to one input and output pair.
+
+/** Offsets by pair: `"<input>|<output>"` to milliseconds. */
+export type CalibrationMap = Record<string, number>;
+
+/** Offsets saved before pairs existed: one per input, whatever the output was. */
+export interface LegacyOffsets {
+  audioMs: number;
+  midiMs: number;
+  deviceMs: Record<string, number>;
+}
+
+export const AUDIO_INPUT = "audio";
+export const MIDI_INPUT = "midi";
+export const deviceInput = (deviceId: string) => `midi:${deviceId}`;
+export const pairKey = (input: string, output: string) => `${input}|${output}`;
+
+/** Output latency at or above this reads as a wireless output (Bluetooth, AirPlay). */
+export const DELAYED_OUTPUT_MS = 80;
+
+/**
+ * The names an output answers to, most specific first: the sink the app was
+ * pointed at, the system default device by its label (known once the browser
+ * shares device labels; ids and group ids change between sessions), then a
+ * latency class.
+ * ponytail: the class cannot tell two wired or two wireless outputs apart; it
+ * is the fallback when the browser names no device.
+ */
+export function outputKeys(o: {
+  sinkId?: string;
+  device?: string;
+  latencyMs?: number | null;
+}): string[] {
+  const keys: string[] = [];
+  if (o.sinkId) keys.push(`sink:${o.sinkId}`);
+  const device = o.device?.replace(/^Default - /, "").trim();
+  if (device) keys.push(`dev:${device}`);
+  keys.push(
+    o.latencyMs == null || !(o.latencyMs > 0)
+      ? "out:default"
+      : o.latencyMs >= DELAYED_OUTPUT_MS
+        ? "out:delayed"
+        : "out:direct",
+  );
+  return keys;
+}
+
+/** The saved offset for an input on the current output; undefined when the pair was never calibrated. */
+export function lookupOffset(
+  map: CalibrationMap,
+  input: string,
+  outputs: readonly string[],
+): number | undefined {
+  for (const out of outputs) {
+    const v = map[pairKey(input, out)];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+  }
+  return undefined;
+}
+
+/** A MIDI device counts as calibrated through its own pair or the all-devices one. */
+export function isCalibrated(
+  map: CalibrationMap,
+  input: string,
+  outputs: readonly string[],
+): boolean {
+  if (lookupOffset(map, input, outputs) !== undefined) return true;
+  return input.startsWith("midi:") && lookupOffset(map, MIDI_INPUT, outputs) !== undefined;
+}
+
+/**
+ * Move offsets saved per input onto the current output, so they keep applying
+ * where they were measured. A pair already saved for this output wins; a zero
+ * microphone or all-devices offset was the old "none" and moves nothing.
+ */
+export function migrateOffsets(
+  map: CalibrationMap,
+  legacy: LegacyOffsets,
+  outputs: readonly string[],
+): CalibrationMap {
+  if (!outputs.length) return map;
+  const next = { ...map };
+  const move = (input: string, ms: number | undefined) => {
+    if (typeof ms !== "number" || !Number.isFinite(ms)) return;
+    if (lookupOffset(next, input, outputs) !== undefined) return;
+    next[pairKey(input, outputs[0])] = Math.round(ms);
+  };
+  move(AUDIO_INPUT, legacy.audioMs || undefined);
+  move(MIDI_INPUT, legacy.midiMs || undefined);
+  // A device's own offset was saved on purpose, so its zero moves too (it overrides the MIDI one).
+  for (const [id, ms] of Object.entries(legacy.deviceMs)) move(deviceInput(id), ms);
+  return next;
+}
+
+/**
+ * What the router subtracts on this output. Offsets not yet moved to a pair
+ * (the output is not known before audio starts) still apply.
+ */
+export function routerOffsets(
+  map: CalibrationMap,
+  legacy: LegacyOffsets,
+  outputs: readonly string[],
+): LegacyOffsets {
+  const deviceMs = { ...legacy.deviceMs };
+  for (const key of Object.keys(map)) {
+    const m = /^midi:(.+)\|/.exec(key);
+    if (!m) continue;
+    const v = lookupOffset(map, deviceInput(m[1]), outputs);
+    if (v !== undefined) deviceMs[m[1]] = v;
+  }
+  return {
+    audioMs: lookupOffset(map, AUDIO_INPUT, outputs) ?? legacy.audioMs,
+    midiMs: lookupOffset(map, MIDI_INPUT, outputs) ?? legacy.midiMs,
+    deviceMs,
+  };
+}

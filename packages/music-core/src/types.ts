@@ -360,6 +360,10 @@ export interface Settings {
   recordBoostDb: number;
   /** Ids of intro lessons already shown. */
   lessonsSeen: string[];
+  /** Latency offsets per input and output pair (io/calibration); the two offsets above are the pre-pair ones. */
+  calibration?: Record<string, number>;
+  /** Pairs whose calibration offer was skipped: not offered again. */
+  calibrationSkipped?: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
