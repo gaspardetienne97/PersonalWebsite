@@ -50,17 +50,32 @@
     });
   });
 
+  /** The meter shows sound arriving (it fills from -60 dB; from here it is plainly up): the sentence beside it must
+   *  not say the microphone hears nothing. Latched, so the sentence does not flicker with the level. */
+  const SOUND_DB = -48;
+  let soundSeen = $state(false);
+  $effect(() => {
+    if (after && kind === "mic" && !off && mic.level > SOUND_DB) soundSeen = true;
+  });
+  /** What this instrument sends, in its own words: pads are hit, a wind plays notes, a keyboard has keys. */
+  const unit = $derived.by(() => {
+    const i = settings.value.activeInstrument;
+    return i === "mpc" ? { one: "pad hit", test: "Hit a pad", any: "Hit any pad" } : i === "aerophone" ? { one: "note", test: "Play a note", any: "Play any note" } : { one: "note", test: "Play a key", any: "Play any key" };
+  });
+
   const text = $derived(
     kind === "mic"
       ? off
         ? `The microphone is off. Turn it on${orScreen}.`
-        : "The microphone is on but heard nothing. Play closer to it and watch the level below."
+        : soundSeen
+          ? "The microphone picks up sound (the level below moves), but no playing was recognised in the run. Play louder than the room, close to the microphone."
+          : "The microphone is on but the level below is flat. Play close to it and watch the level move."
       : !midi.supported
         ? "This browser has no MIDI. Play on screen, or open the app in Chrome or Edge."
         : off
           ? `MIDI is off. Turn it on${orScreen}.`
           : midi.inputs.length
-            ? "MIDI is on but no note arrived. Play a key to test it, or choose the input."
+            ? `MIDI is on but no ${unit.one} arrived. ${unit.test} to test it, or choose the input.`
             : "MIDI is on but no device is connected. Plug one in, or play on screen.",
   );
 </script>
@@ -89,7 +104,7 @@
       </div>
     {:else if !off && midi.inputs.length}
       <p class="flex min-h-8 items-center gap-2 text-sm" aria-live="polite">
-        {#if keyHeard}<CircleCheck class="size-5 text-success" aria-hidden="true" />Heard {keyHeard}. Input works.{:else}<span class="size-2.5 animate-pulse rounded-full bg-ws-soft" aria-hidden="true"></span>Play any key to test.{/if}
+        {#if keyHeard}<CircleCheck class="size-5 text-success" aria-hidden="true" />Heard {settings.value.activeInstrument === "mpc" ? "a pad hit" : keyHeard}. Input works.{:else}<span class="size-2.5 animate-pulse rounded-full bg-ws-soft" aria-hidden="true"></span>{unit.any} to test.{/if}
       </p>
     {/if}
     <div class="flex flex-wrap items-center gap-2">
