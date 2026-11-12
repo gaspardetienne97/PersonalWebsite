@@ -394,7 +394,7 @@
         {:else if aero}
           <InstrumentStage instrument="aerophone" line={card?.midi.map((m) => m + transpose) ?? []} marks={pianoMarks} {flashes} />
         {:else}
-          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
+          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} spelling={key.fifths < 0 ? "flat" : "sharp"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
         {/if}
       </div>
     </div>

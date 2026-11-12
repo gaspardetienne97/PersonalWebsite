@@ -601,10 +601,12 @@
                   <!-- Check keeps your place without a verdict: the current chip outlined, the passed ones a shade darker with a dot. -->
                   {@const checkNow = stepNow === i && mode === "check" && phase === "running"}
                   {@const checkPast = mode === "check" && phase === "running" && stepNow !== null && i < stepNow}
-                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : checkNow ? 'bg-ws-stage-ink/8 ring-2 ring-instr' : checkPast ? 'bg-ws-stage-ink/20' : 'bg-ws-stage-ink/8'}" aria-current={nowHere || checkNow ? "step" : undefined}>
+                  <!-- A wrong note sounding on the current chip rings it in the error colour, so it does not read as the plain "now" highlight. -->
+                  {@const off = nowHere && phase === "running" && sounding !== null && sounding !== n}
+                  <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {off ? 'outline-[3px] outline-offset-2 outline-destructive ' : ''}{nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : checkNow ? 'bg-ws-stage-ink/8 ring-2 ring-instr' : checkPast ? 'bg-ws-stage-ink/20' : 'bg-ws-stage-ink/8'}" aria-current={nowHere || checkNow ? "step" : undefined}>
                     {#if marks.length}<span class="text-[13px] font-bold" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
                     {spell(n)}
-                    {#if nowHere && phase === "running" && sounding !== null && sounding !== n}<span class="text-[13px] leading-none">✕ heard {spell(sounding)}</span>{/if}
+                    {#if off && sounding !== null}<span class="text-[13px] leading-none">✕ heard {spell(sounding)}</span>{/if}
                     {#if checkPast}<span class="text-[13px] leading-none" aria-hidden="true">•</span><span class="sr-only">, played</span>{/if}
                     {#if out && !nowHere}<span class="text-[13px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
                   </span>
@@ -620,7 +622,7 @@
               values={breath}
               measured={breath.length > 0}
               band={mode === "practice" ? (skill === "long-scale" ? level.band : GUIDE_BAND) : undefined}
-              bandLabel={skill === "long-scale" ? `the ${level.id} band, hold it there` : "guide, not scored"}
+              bandLabel={skill === "long-scale" ? `the ${level.id} band, hold it there` : "steady air sits in this band (a guide, not scored)"}
               label={skill === "long-scale" ? `Breath over time, the shaded band is ${level.id}` : "Breath over time"}
               grow={wide.current && (phase === "running" || phase === "countin")}
             />

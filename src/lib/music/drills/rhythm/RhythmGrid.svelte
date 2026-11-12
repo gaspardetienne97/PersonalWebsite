@@ -81,7 +81,7 @@
       {#each inBar(events, bar) as { e, i } (i)}
         {@const cx = x(e.beat - bar * perBar)}
         {@const v = verdicts[i]}
-        <g class="note" data-lit={lit === i || undefined} data-verdict={v} data-ghost={ghost || undefined}>
+        <g class="note" data-lit={lit === i || (playhead !== null && playhead >= e.beat && playhead - e.beat < 0.3) || undefined} data-verdict={v} data-ghost={ghost || undefined}>
           {#if e.duration && e.duration >= 0.75 && e.stroke !== "mute"}
             <line x1={cx + 8} x2={x(Math.min(perBar, e.beat - bar * perBar + e.duration)) - 10} y1="70" y2="70" class="tail" />
           {/if}
@@ -99,7 +99,7 @@
       {/each}
       {#each hitsIn(bar) as { e: h, i } (i)}
         {@const hx = x(h.beat - bar * perBar)}
-        <g class="hit" data-kind={h.kind} transform="translate({hx} 118) scale(1.4)">
+        <g class="hit" data-kind={h.kind} transform="translate({hx} 118) scale(1.7)">
           {#if h.kind === "early"}<path class="chev early" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />
           {:else if h.kind === "late"}<path class="chev late" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />
           {:else if h.kind === "pocket"}<path class="tick" d="M-4.5 0 L-1.5 3.5 L4.5 -4" />
@@ -182,6 +182,18 @@
     fill: var(--instr);
     filter: drop-shadow(0 0 6px var(--instr));
   }
+  /* The beat under the playhead swells as the click lands, then settles: the pulse is seen as well as heard. */
+  @media (prefers-reduced-motion: no-preference) {
+    .head {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform 260ms ease-out;
+    }
+    .note[data-lit] .head {
+      transform: scale(1.7);
+      transition-duration: 50ms;
+    }
+  }
   .note[data-ghost] .head {
     fill: none;
     stroke: var(--ws-stage-soft);
@@ -235,6 +247,7 @@
 
   .hit .tick {
     fill: none;
+    opacity: 1;
     stroke: var(--success);
     stroke-width: 2.5;
     stroke-linecap: round;
@@ -252,6 +265,8 @@
   }
   .playhead {
     stroke: var(--instr);
-    stroke-width: 2;
+    stroke-width: 3;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 4px var(--instr));
   }
 </style>

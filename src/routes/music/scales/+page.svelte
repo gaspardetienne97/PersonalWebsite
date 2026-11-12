@@ -743,7 +743,7 @@
           <p class="mt-1 text-sm text-ws-stage-soft">{unplayable.map((m) => noteName(m, spell)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
         {/if}
       {:else}
-        <InstrumentStage line={all} {low} {high} {marks} {flashes} />
+        <InstrumentStage line={all} {low} {high} {marks} {flashes} spelling={spell} />
       {/if}
       </div>
     {/if}

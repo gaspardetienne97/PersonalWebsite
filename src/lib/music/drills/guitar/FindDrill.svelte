@@ -32,7 +32,8 @@
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
   import Verdict from "$lib/music/components/Verdict.svelte";
-  import { btnStage } from "$lib/music/components/ui";
+  import { btnPrimary } from "$lib/music/components/ui";
+  import X from "lucide-svelte/icons/x";
   import { FRETBOARD_MODES, openMode } from "./modes";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
@@ -344,15 +345,16 @@
         {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
         <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
-        <Verdict
-          kind={last ? (last.correct ? "right" : "wrong") : null}
-          text={last ? (last.correct ? `Yes, ${playedText(last)}` : `That was ${playedText(last)}. ${wantedText(last.q)}.`) : undefined}
-          key={answers.length}
-          class="pb-1"
-        />
         {#if last && !last.correct}
-          <!-- The next question comes by itself; Next goes on now (in the dock on a phone). -->
-          <button type="button" class="{btnStage} mb-0.5 max-sm:hidden" onclick={goOn}>Next</button>
+          <!-- A miss stays up to be read, so it is a sentence in stage ink beside a cross (not small type on a red pill),
+               and Next, the one thing to press, is the filled button. The next question also comes by itself. -->
+          <p class="mb-0.5 flex min-h-11 items-center gap-2 rounded-xl border border-destructive/60 bg-destructive/15 px-3 py-1 font-semibold text-ws-stage-ink" aria-live="polite" data-testid="verdict" data-verdict="wrong" data-verdict-key={answers.length}>
+            <span class="grid size-6 flex-none place-items-center rounded-full bg-destructive text-[color:var(--on-destructive)]" aria-hidden="true"><X class="size-4" strokeWidth={3} /></span>
+            That was {playedText(last)}. {wantedText(last.q)}.
+          </p>
+          <button type="button" class="{btnPrimary} mb-0.5 max-sm:hidden" onclick={goOn}>Next</button>
+        {:else}
+          <Verdict kind={last ? "right" : null} text={last ? `Yes, ${playedText(last)}` : undefined} key={answers.length} class="pb-1" />
         {/if}
       {:else}
         <!-- On a phone the blurb above says this: the whole neck fits above Start instead. -->

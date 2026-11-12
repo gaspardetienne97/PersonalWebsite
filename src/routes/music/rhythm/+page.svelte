@@ -1023,8 +1023,11 @@
       height: 8rem;
     }
   }
+  /* Before the run the pad is an outline, not a second filled button beside Start: it fills when taps count. */
   .tap:disabled {
-    opacity: 0.55;
+    background: transparent;
+    color: var(--ws-stage-soft);
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--instr) 50%, transparent);
   }
   .tap.pressed,
   .tap:not(:disabled):active {
