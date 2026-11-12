@@ -201,7 +201,7 @@ test("the Tunes page lists the ladders and opens each rung", async ({ page }) =>
   await expect(page.getByRole("heading", { level: 1, name: "Tunes" })).toBeVisible();
   const ladders = page.getByTestId("ladders");
   await expect(ladders).toContainText("Yardbird Suite");
-  const yardbird = ladders.getByRole("list", { name: "Yardbird Suite: the ladder" });
+  const yardbird = ladders.getByRole("list", { name: "Yardbird Suite: the six steps" });
   await expect(yardbird.getByRole("link")).toHaveCount(6);
   await expect(yardbird.getByRole("link", { name: /^e, A solo chorus/ })).toHaveAttribute(
     "href",
