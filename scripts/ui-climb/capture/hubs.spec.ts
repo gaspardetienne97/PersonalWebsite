@@ -238,7 +238,7 @@ for (const width of WIDTHS) {
     await open(page, "/music?tab=paths");
     await shot(page, "paths", "list", width, { full: true });
     // Another path, one of its steps opened.
-    await page.getByRole("button", { name: /^Ear and Harmony Path/ }).click();
+    await page.getByRole("button", { name: /^Ear and harmony path/i }).click();
     await page.waitForTimeout(400);
     const step = page
       .getByRole("button", { name: /^Step \S+: .*(Not started|not played yet)/ })
