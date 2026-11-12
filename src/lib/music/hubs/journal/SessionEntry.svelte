@@ -220,10 +220,11 @@
     {#if !editing}
       <button
         type="button"
-        class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
+        class="-my-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-sm font-medium text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
         aria-label={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
         title={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
-        onclick={startEdit}><Pencil class="size-5" aria-hidden="true" /></button
+        onclick={startEdit}
+        ><Pencil class="size-5" aria-hidden="true" />{#if !(session.note || session.nextTime || session.tags.length)}<!-- An empty card asks for its note in words, so the journal reads as a log, not a score list. -->Add note{/if}</button
       >
     {/if}
     <!-- Deleting waits behind a small overflow button and asks first. -->

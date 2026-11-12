@@ -81,6 +81,10 @@
     </div>
   </details>
 
+  {#if rows.some((r) => r.touched && r.estimate !== undefined && r.checked < MIN_EVIDENCE)}
+    <p class="-mt-4 text-sm text-ws-soft sm:hidden">Early guess: mastery from fewer than {MIN_EVIDENCE} answers in Check runs, drawn as an outlined bar.</p>
+  {/if}
+
   {#if touchedCount === 0 && !showAll && !needle}
     <div class="rounded-2xl border border-dashed border-ws-line p-6">
       <p class="font-semibold">No skills touched {scope === "all" ? "yet" : `on ${INSTRUMENT_LABEL[scope]} yet`}.</p>
@@ -106,6 +110,7 @@
                 <div class="min-w-0 flex-1">
                   <p class="flex items-center gap-1.5 font-medium">
                     {r.skill.name}
+                    {#if r.estimate !== undefined && r.checked < MIN_EVIDENCE && !(r.umbrella && !r.direct)}<span class="shrink-0 rounded-full border border-ws-line px-2 text-[13px] font-normal text-ws-soft">Early guess</span>{/if}
                     {#if !r.unlocked}<Lock class="size-3.5 shrink-0 text-ws-soft" aria-label="Locked" />{:else if r.due}<span class="inline-flex shrink-0 items-center gap-1 text-[13px] font-normal text-ws-soft"><RotateCcw class="size-3.5 text-warn" aria-hidden="true" />Needs review</span>{/if}
                   </p>
                   <div class="mt-1 flex items-center gap-2">
@@ -113,7 +118,8 @@
                     {@render bar(r)}
                     <span class="tnum w-10 shrink-0 text-right text-sm font-semibold">{r.estimate === undefined ? "None" : pct(r.estimate)}</span>
                   </div>
-                  <p class="tnum text-sm text-ws-soft">{#each skillCaption(r, now).split(/(?<=\.) /) as line (line)}<span class="block">{line}</span>{/each}</p>
+                  <!-- The early-guess rule is said once above the list; the row carries the badge. -->
+                  <p class="tnum text-sm text-ws-soft">{#each skillCaption(r, now).split(/(?<=\.) /).filter((l) => !l.startsWith("Mastery is an early guess")) as line (line)}<span class="block">{line}</span>{/each}</p>
                   <span class="sr-only">{describe(r)}</span>
                 </div>
                 <a href={r.href} class="inline-flex min-h-11 shrink-0 items-center rounded-full border border-ws-line px-3 text-sm font-medium hover:bg-ws-raised"

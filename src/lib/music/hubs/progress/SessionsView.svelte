@@ -121,13 +121,13 @@
 
   <div class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="weeks-title">
-        <h2 id="weeks-title" class="font-display text-xl font-semibold">This week and last</h2>
+        <h2 id="weeks-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? "This week and last" : "This week"}</h2>
         <div class="max-w-md"><WeekCompare {weeks} /></div>
       </section>
 
       <section aria-labelledby="setups-title">
-        <h2 id="setups-title" class="font-display text-xl font-semibold">Same setup, later visits</h2>
-        <p class="text-sm text-ws-soft">Runs are paired only when the exercise and its whole setup match.</p>
+        <h2 id="setups-title" class="font-display text-xl font-semibold">Are you improving?</h2>
+        <p class="text-sm text-ws-soft">The same exercise with the same setup, compared across visits.</p>
         {#if trends.length}
           <ul class="mt-3 flex flex-col divide-y divide-ws-line border-y border-ws-line">
             {#each trends as t (t.key)}

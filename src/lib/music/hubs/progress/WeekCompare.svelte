@@ -26,7 +26,7 @@
       </div>
     {/each}
   </dl>
-  <p class="mt-2 text-[13px] text-ws-soft">This week so far. Next week shows the change against this one.</p>
+  <p class="mt-2 text-[13px] text-ws-soft">This week so far. An attempt is one answer or take; XP is earned on every run. Next week shows the change against this one.</p>
 {:else}
 <dl class="mt-3 flex flex-col gap-3 text-sm">
   {#each ROWS as row (row.key)}

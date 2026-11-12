@@ -179,17 +179,15 @@
           </p>
         </div>
         {#if latestToday && !composing}
-          <div class="flex flex-col items-start gap-0.5 sm:items-end">
-            <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Day note</button>
-            <span class="text-[13px] text-ws-soft">Goes on today's latest session.</span>
-          </div>
+          <!-- One plain label; where it is saved is said in the form it opens. -->
+          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note for today</button>
         {/if}
       </div>
 
       {#if composing && latestToday}
         <form id="journal-composer" class="mt-3 flex flex-col gap-3 rounded-2xl bg-instr-wash p-4" aria-label="Note on today's session" onsubmit={addToToday}>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">What went well, what to fix</span>
+            <span class="font-medium">What went well, what to fix <span class="font-normal text-ws-soft">(saved with today's latest session)</span></span>
             <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={draftNote}></textarea>
           </label>
           <TagInput bind:tags={draftTags} suggestions={knownTags} />
@@ -255,7 +253,7 @@
 
     <aside class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="rollup-title">
-        <h2 id="rollup-title" class="font-display text-xl font-semibold">This week and last</h2>
+        <h2 id="rollup-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? "This week and last" : "This week"}</h2>
         <WeekCompare {weeks} />
       </section>
 

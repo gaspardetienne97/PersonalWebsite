@@ -12,12 +12,14 @@
 
   const weeks = $derived(cells.length / 7);
   const ROWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  // Every other column is labelled by the date its week starts (Monday), "Oct 12", over two columns.
+  // Up to six weeks the cells are wide enough for every column to carry its week's date (Monday, "Oct 12");
+  // past that every other column is labelled, over two columns.
+  const roomy = $derived(weeks <= 6);
   const pairs = $derived(
-    Array.from({ length: Math.ceil(weeks / 2) }, (_, k) => {
-      const day = cells[k * 14].day;
+    Array.from({ length: roomy ? weeks : Math.ceil(weeks / 2) }, (_, k) => {
+      const day = cells[k * (roomy ? 7 : 14)].day;
       return {
-        span: Math.min(2, weeks - k * 2),
+        span: roomy ? 1 : Math.min(2, weeks - k * 2),
         label: new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
       };
     }),
@@ -51,7 +53,7 @@
       <tr>
         <td class="pr-1 text-left text-[13px] text-ws-soft">Week of</td>
         {#each pairs as c, k (k)}
-          <td colspan={c.span} class="tnum whitespace-nowrap p-0 text-left text-[13px] text-ws-soft">{c.label}</td>
+          <td colspan={c.span} class="tnum whitespace-nowrap p-0 text-[13px] text-ws-soft {roomy ? 'text-center' : 'text-left'}">{c.label}</td>
         {/each}
       </tr>
     </thead>
@@ -64,7 +66,7 @@
               {#if c.sessions && onpick}
                 <button
                   type="button"
-                  class="block size-6 rounded-md hover:ring-2 focus-visible:ring-2 hover:ring-instr-ink/40 {selected === c.day ? 'ring-2 ring-instr-ink ring-offset-1 ring-offset-ws-bg' : ''}"
+                  class="block rounded-md {roomy ? 'h-9 w-12' : 'size-6'} hover:ring-2 focus-visible:ring-2 hover:ring-instr-ink/40 {selected === c.day ? 'ring-2 ring-instr-ink ring-offset-1 ring-offset-ws-bg' : ''}"
                   style:background={fill(c.level)}
                   title={label(c)}
                   aria-pressed={selected === c.day}
@@ -72,7 +74,7 @@
                 ><span class="sr-only">{label(c)}</span></button>
               {:else}
                 <span
-                  class="block size-6 rounded-md {c.future ? 'border border-dashed border-ws-soft/60' : ''}"
+                  class="block rounded-md {roomy ? 'h-9 w-12' : 'size-6'} {c.future ? 'border border-dashed border-ws-soft/60' : ''}"
                   style:background={c.future ? "transparent" : fill(c.level)}
                   title={label(c)}
                 ><span class="sr-only">{label(c)}</span></span>

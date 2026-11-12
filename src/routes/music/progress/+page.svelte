@@ -49,13 +49,17 @@
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5 sm:gap-6">
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-    <div class="min-w-0">
+    <!-- On a phone, Your tunes shares the title's line, so the tabs are the only row under it. -->
+    <div class="flex min-w-0 items-center justify-between gap-3 max-sm:w-full">
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">Progress</h1>
+      <a class="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-instr-ink hover:underline sm:hidden" href="/music/tunes"
+        ><ListMusic class="size-4" aria-hidden="true" />Your tunes</a
+      >
     </div>
     <!-- The journal is a view of this page; Your tunes is a plain link beside the tabs. -->
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
       <HubTabs param="view" tabs={TABS} label="Progress views" class="max-sm:[&>a]:px-3" />
-      <a class="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-instr-ink hover:underline" href="/music/tunes"
+      <a class="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-instr-ink hover:underline max-sm:hidden" href="/music/tunes"
         ><ListMusic class="size-4" aria-hidden="true" />Your tunes</a
       >
     </div>
@@ -76,7 +80,6 @@
       </div>
       {#if first}<DrillPreview href={first.href} size="md" />{/if}
     </section>
-    <p class="-mt-2 text-sm text-ws-soft">After your first block you will see your streak, your minutes and the next skill to work on here.</p>
   {:else if view === "skills"}
     <SkillsView />
   {:else if view === "sessions"}

@@ -116,13 +116,13 @@
   <section aria-labelledby="next-title" class="grid min-w-0 gap-x-10 gap-y-4 lg:grid-cols-2">
     <!-- One line, one button: the next undone block of today's set; the why waits behind a details. -->
     <div class="min-w-0 self-start rounded-3xl border border-ws-line bg-ws-surface p-4 sm:p-5" style:--step-hue={upNext ? hueVar(hueForRoute(upNext.href, instrument)) : "var(--instr)"}>
-      <p class="text-ws-soft">Practise next on {INSTRUMENT_LABEL[instrument]}</p>
+      <p class="text-ws-soft">{upNext || !after ? `Practise next on ${INSTRUMENT_LABEL[instrument]}` : `Today's set is done. Want more on ${INSTRUMENT_LABEL[instrument]}?`}</p>
       <h2 id="next-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Set done. Extra: {afterName}{:else}Today's set is done{/if}
+        {#if upNext}Your next {upNext.minutes} minutes: {upNext.label}{:else if after}Next: {afterName}{:else}Today's set is done{/if}
       </h2>
       <p class="mt-1 text-sm text-ws-soft">
         {#if upNext}{blockReason(upNext)}{:else if after}{after.href === plan.advice.action.href
-            ? `Your weakest skill${plan.advice.focus ? `: ${pct(plan.advice.focus.accuracy)} right (${plural(plan.advice.focus.attempts, "answer")}, Check runs)` : ""}.`
+            ? `Your lowest score so far${plan.advice.focus ? `: ${pct(plan.advice.focus.accuracy)} right over ${plural(plan.advice.focus.attempts, "answer")} without hints` : ""}.`
             : after.why}{:else}{plan.advice.summary}{/if}
       </p>
       {#if target}<DrillPreview href={target} size="md" {instrument} class="mt-3 max-w-xs" />{/if}
