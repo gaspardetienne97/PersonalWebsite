@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placeTags, spellChord, spellDegree, spellInterval } from "./degrees";
+import { placeTags, spellChord, spellDegree, spellInKey, spellInterval } from "./degrees";
 
 describe("spellDegree", () => {
   it("spells degree 4 of Gb major as Cb, an octave number above the B it sounds as", () => {
@@ -12,6 +12,15 @@ describe("spellDegree", () => {
     expect(spellDegree(63, 60, "b3")).toBe("Eb4");
     expect(spellDegree(66, 60, "#4")).toBe("F#4");
     expect(spellDegree(73, 71, "2")).toBe("C#5");
+  });
+});
+
+describe("spellInKey", () => {
+  it("names a played note as the key spells it", () => {
+    expect([54, 59, 56].map((m) => spellInKey(m, 52))).toEqual(["F#3", "B3", "G#3"]); // in E
+    expect(spellInKey(58, 53)).toBe("Bb3"); // 4 of F
+    expect(spellInKey(51, 48)).toBe("Eb3"); // b3 of C
+    expect(spellInKey(47, 54)).toBe("Cb3"); // 4 of Gb, under the tonic
   });
 });
 

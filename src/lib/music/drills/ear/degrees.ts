@@ -48,6 +48,10 @@ export function spellDegree(midi: number, tonic: number, degree: string): string
   return LETTERS[li] + (diff > 0 ? "#" : "b").repeat(Math.abs(diff)) + octave;
 }
 
+/** A played note spelled in the key of `tonic`, by the degree it is there: F#3 in E, not Gb3 (as the answer chips spell it). */
+export const spellInKey = (midi: number, tonic: number): string =>
+  spellDegree(midi, tonic, SCALE_DEGREES[(((midi - tonic) % 12) + 12) % 12].label);
+
 /** The letter `steps` letters from `root` (signed), with the accidental that makes `midi`; null past a double. */
 function letterFor(rootName: string, steps: number, midi: number): string | null {
   const li = (((LETTERS.indexOf(rootName[0]) + steps) % 7) + 7) % 7;

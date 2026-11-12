@@ -86,7 +86,7 @@
   import Volume2 from "lucide-svelte/icons/volume-2";
   import RotateCcw from "lucide-svelte/icons/rotate-ccw";
   import Play from "lucide-svelte/icons/play";
-  import { spellDegree } from "./degrees";
+  import { spellDegree, spellInKey } from "./degrees";
   import { nextRun, type NextRun } from "$lib/music/advance.svelte";
   import KeyPicker from "$lib/music/components/KeyPicker.svelte";
   import {
@@ -564,6 +564,13 @@
   // Prompt helpers
 
   const tonicOf = (p: Prompt) => p.playback[0].midi[0];
+  /** A played or sung note by name: spelled in the question's key when it has one (F#3 in E, as the answer chips say), else with flats. */
+  const playedName = (p: Prompt, m: number) =>
+    p.drill === "melody-dictation" || p.drill === "repertoire-transfer" || p.drill === "scale-degree" || p.drill === "scale" || p.drill === "error-detect"
+      ? spellInKey(m, tonicOf(p))
+      : p.keyPc !== undefined
+        ? spellInKey(m, 48 + p.keyPc)
+        : noteName(m, "flat");
   /** Major-key degrees by semitones above the tonic. */
   const MAJOR_DEGREE: Record<number, string> = { 0: "1", 2: "2", 4: "3", 5: "4", 7: "5", 9: "6", 11: "7" };
   const keyLine = (p: Prompt) => {
@@ -1956,7 +1963,7 @@
               </p>
               <div class="meter mt-2" aria-hidden="true"><span style:width="{Math.max(0, Math.min(100, ((mic.level + 60) / 60) * 100))}%"></span></div>
               <p class="mt-2 font-display text-2xl font-semibold tnum">
-                {#if mic.pitch && p.drill === "interval"}{noteName(mic.pitch.midi, "flat")}{:else if mic.pitch && vocalDegree}{noteName(mic.pitch.midi, "flat")}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}No pitch yet{/if}
+                {#if mic.pitch && p.drill === "interval"}{noteName(mic.pitch.midi, "flat")}{:else if mic.pitch && vocalDegree}{playedName(p, mic.pitch.midi)}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}No pitch yet{/if}
               </p>
               {#if p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
               {#if p.drill === "melody-dictation" || p.drill === "scale"}
@@ -1973,7 +1980,7 @@
           {#if p.drill === "progression" || p.drill === "loop" || p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
           <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} />
           <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-ws-stage-soft">
-            <span>You played: {played.length ? played.map((m) => noteName(m, "flat")).join(", ") : "nothing yet"}{#if tonicMarked(p)}. The key marked 1 is the tonic, {noteName(tonicOf(p), "flat", false)}{/if}</span>
+            <span>You played: {played.length ? played.map((m) => playedName(p, m)).join(", ") : "nothing yet"}{#if tonicMarked(p)}. The key marked 1 is the tonic, {noteName(tonicOf(p), "flat", false)}{/if}</span>
             {#if step === "answer" && played.length}
               <button type="button" class={btnStage} onclick={() => (played = [])}>Clear</button>
               {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "loop" || p.drill === "inversion"}<button type="button" class={btnStage} onclick={submitChord}>That's my chord</button>{/if}
