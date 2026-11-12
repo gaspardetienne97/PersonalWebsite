@@ -7,7 +7,8 @@ import {
   overdue,
   padCell,
   padsDue,
-  peaks,
+  wavePath,
+  wavePeaks,
   strokeScore,
   stepsPerBeatFor,
   xAt,
@@ -133,14 +134,20 @@ describe("live judging", () => {
   });
 });
 
-describe("peaks", () => {
-  it("takes the loudest sample per part, the loudest part as 1", () => {
+describe("wavePeaks", () => {
+  it("keeps the lowest and highest sample per column, the loudest sample as 1", () => {
     const data = new Float32Array([0.1, -0.4, 0.2, 0.2, 0, -0.1, 0.8, 0.3]);
-    expect(peaks(data, 8, 4)).toEqual([0.5, 0.25, 0.125, 1]);
+    expect(wavePeaks(data, 8, 4)).toEqual({ min: [-0.5, 0, -0.125, 0], max: [0.125, 0.25, 0, 1] });
   });
   it("reads only the loop's length, and stays at 0 for silence", () => {
-    expect(peaks(new Float32Array([0.5, 0.5, 1, 1]), 2, 2)).toEqual([1, 1]);
-    expect(peaks(new Float32Array(4), 4, 2)).toEqual([0, 0]);
+    expect(wavePeaks(new Float32Array([0.5, 0.5, 1, 1]), 2, 2).max).toEqual([1, 1]);
+    expect(wavePeaks(new Float32Array(4), 4, 2)).toEqual({ min: [0, 0], max: [0, 0] });
+  });
+  it("draws columns as one closed outline, edge to edge, a hairline for silence", () => {
+    const w = { min: [-0.5, 0, -1], max: [1, 0, 0.25] };
+    expect(wavePath(w, 0, 3)).toBe("M0,-1L1.5,-0.04L3,-0.25L3,1L1.5,0.04L0,0.5Z");
+    // A slice of it starts again at x 0.
+    expect(wavePath(w, 2, 3)).toBe("M0,-0.25L0,1Z");
   });
 });
 

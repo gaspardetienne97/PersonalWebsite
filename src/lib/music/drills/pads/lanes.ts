@@ -192,23 +192,47 @@ export function padsDue(
   return out;
 }
 
+export interface WavePeaks {
+  min: number[];
+  max: number[];
+}
+
 /**
- * The loop's outline for drawing: the loudest sample in each of `bins` equal
- * parts of the first `length` samples, scaled so the loudest part is 1.
+ * A waveform for drawing: the lowest and highest sample in each of `cols`
+ * equal parts of the first `length` samples, scaled so the loudest sample is 1.
  */
-export function peaks(data: Float32Array, length: number, bins: number): number[] {
-  const out = Array.from({ length: bins }, (_, b) => {
-    let m = 0;
+export function wavePeaks(data: Float32Array, length: number, cols: number): WavePeaks {
+  const min = Array.from({ length: cols }, () => 0);
+  const max = Array.from({ length: cols }, () => 0);
+  let top = 0;
+  for (let c = 0; c < cols; c++)
     for (
-      let i = Math.floor((b * length) / bins), end = Math.floor(((b + 1) * length) / bins);
+      let i = Math.floor((c * length) / cols), end = Math.floor(((c + 1) * length) / cols);
       i < end && i < data.length;
       i++
-    )
-      m = Math.max(m, Math.abs(data[i]));
-    return m;
-  });
-  const top = Math.max(...out);
-  return top > 0 ? out.map((v) => v / top) : out;
+    ) {
+      if (data[i] < min[c]) min[c] = data[i];
+      if (data[i] > max[c]) max[c] = data[i];
+      top = Math.max(top, Math.abs(data[i]));
+    }
+  return top > 0 ? { min: min.map((v) => v / top), max: max.map((v) => v / top) } : { min, max };
+}
+
+/**
+ * Columns `from` to `to` as a filled SVG outline in a box `to - from` wide and
+ * -1 (the loudest peak up) to 1 tall. Silence keeps a hairline `floor` thick.
+ */
+export function wavePath(w: WavePeaks, from: number, to: number, floor = 0.04): string {
+  const n = to - from;
+  const r = (v: number) => Math.round(v * 100) / 100;
+  const x = (k: number) => (k === 0 ? 0 : k === n - 1 ? n : k + 0.5);
+  let up = "";
+  let down = "";
+  for (let k = 0; k < n; k++) {
+    up += `${k ? "L" : "M"}${x(k)},${r(-Math.max(floor, w.max[from + k] ?? 0))}`;
+    down = `L${x(k)},${r(Math.max(floor, -(w.min[from + k] ?? 0)))}` + down;
+  }
+  return `${up}${down}Z`;
 }
 
 /**

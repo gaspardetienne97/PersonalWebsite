@@ -8,7 +8,7 @@ import {
   slicePad,
 } from "@repo/music-core/content/pads-studio";
 import { audio } from "$lib/music/runtime";
-import { peaks } from "./lanes";
+import { wavePeaks, type WavePeaks } from "./lanes";
 import { kits } from "$lib/music/hubs/create/kitStore.svelte";
 
 /**
@@ -24,14 +24,14 @@ export const decodeLoop = async (blob: Blob) =>
 
 /**
  * Render one of the app's loops at the tempo (or take an imported one), cut it and load the slices.
- * Returns the loop's outline, `perSlice` bins a slice, for the slice picture.
+ * Returns the loop's waveform, `perSlice` columns a slice, worked out once here for the slice picture.
  */
 export async function loadSlices(
   source: { id: string; bars: number },
   bpm: number,
   file?: AudioBuffer,
-  perSlice = 12,
-): Promise<number[]> {
+  perSlice = 40,
+): Promise<WavePeaks> {
   let buffer: AudioBuffer;
   let length: number;
   if (file) {
@@ -64,7 +64,7 @@ export async function loadSlices(
   }));
   const { failed } = await audio.loadKit({ id: "chop", name: "Chop", pads });
   if (failed.length) throw new Error(`${failed.length} slices could not be read`);
-  return peaks(left, length, CHOP_SLICES * perSlice);
+  return wavePeaks(left, length, CHOP_SLICES * perSlice);
 }
 
 /** Put Create's kit back on the pads. */

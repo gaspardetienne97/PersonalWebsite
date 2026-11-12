@@ -38,7 +38,7 @@
   import { decodeLoop, loadSlices, restoreKit } from "./slices";
   import MidiStatus from "./MidiStatus.svelte";
   import PadHighway, { type HighwayLane, type HighwayNote } from "./PadHighway.svelte";
-  import { judgeHit, laneColor, overdue, type Judgement } from "./lanes";
+  import { judgeHit, laneColor, overdue, wavePath, type Judgement, type WavePeaks } from "./lanes";
 
   let { modes, onmode }: { modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
 
@@ -86,9 +86,13 @@
 
   /** What is on the pads now ("source@bpm"), and what is being cut. */
   let loaded = $state("");
-  /** The loop's outline, 12 bins a slice, for the slice picture. */
-  let outline = $state.raw<number[]>([]);
-  const PER_SLICE = 12;
+  /** The loop's waveform, 40 columns a slice, worked out once when the loop is cut. */
+  let wave = $state.raw<WavePeaks | null>(null);
+  const PER_SLICE = 40;
+  /** Each slice's piece of it as a filled outline: on the tape, and beside its lane. */
+  const slicePaths = $derived(wave ? Array.from({ length: CHOP_SLICES }, (_, i) => wavePath(wave!, i * PER_SLICE, (i + 1) * PER_SLICE)) : []);
+  /** Slices a beat: cuts on a beat are drawn brighter. */
+  const perBeat = $derived(CHOP_SLICES / (source.bars * 4));
   let cutting = $state(false);
   let cutError = $state("");
   const want = $derived(`${source.id}:${source.id === "file" ? `${file?.name}:${s.fileBars}` : bpm}`);
@@ -100,7 +104,7 @@
       const o = await loadSlices(source, bpm, source.id === "file" ? file?.buffer : undefined, PER_SLICE);
       if (key === want) {
         loaded = key;
-        outline = o;
+        wave = o;
       }
     } catch (e) {
       cutError = `The loop could not be cut: ${(e as Error).message}`;
@@ -154,7 +158,7 @@
   // The slice number alone on each pad: "Slice 13" wrapped on a small pad, the number reads at a glance.
   const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), String(i + 1)]));
   // The lanes: the slices the piece plays, in order, each ringing until the next slice starts.
-  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1) })));
+  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1), ...(slicePaths[n - 1] ? { wave: { d: slicePaths[n - 1], w: PER_SLICE } } : {}) })));
   const sliceMs = $derived((source.bars * 4 * beatMs) / CHOP_SLICES);
   const live = $derived<(HighwayNote & { pad: number })[]>(
     targets.map((t, i) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.pad === t.pad), kind: "normal", durMs: Math.min(sliceMs, (targets[i + 1]?.atMs ?? lengthMs) - t.atMs) })),
@@ -381,22 +385,29 @@
 </script>
 
 {#snippet slicePicture()}
-  <!-- The loop as a picture, cut where the pads cut it: slice 1 on A01 to 16 on A16, each in its pad's colour,
-       the one sounding now lit. On a phone beside the lanes it is left out: the lanes and pads carry the numbers. -->
+  <!-- The loop as one waveform, cut where the pads cut it: a line at each chop point with the slice's number hanging
+       under it (slice 1 on A01 to 16 on A16), each slice in its pad's colour, the one sounding now lit. On a phone
+       beside the lanes it is left out: the lanes and pads carry the numbers. -->
   <figure class="flex flex-col gap-1.5 {showLanes ? 'max-sm:hidden' : ''}" data-testid="slice-picture">
-    {#if outline.length}
-      <ol class="wave" aria-label="The loop, cut into {CHOP_SLICES} slices">
-        {#each Array.from({ length: CHOP_SLICES }, (_, i) => i) as i (i)}
-          <li data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} aria-label="Slice {i + 1}{lit === i ? ', sounding' : ''}">
-            <svg viewBox="0 0 {PER_SLICE} 2" preserveAspectRatio="none" aria-hidden="true">
-              {#each outline.slice(i * PER_SLICE, (i + 1) * PER_SLICE) as v, k (k)}
-                <rect x={k + 0.15} width="0.7" y={1 - Math.max(v, 0.04) * 0.92} height={Math.max(v, 0.04) * 1.84} />
-              {/each}
-            </svg>
-            <span>{i + 1}</span>
-          </li>
-        {/each}
-      </ol>
+    {#if slicePaths.length}
+      <div class="tape">
+        <svg viewBox="0 -1 {CHOP_SLICES * PER_SLICE} 2" preserveAspectRatio="none" aria-hidden="true">
+          {#each slicePaths as d, i (i)}
+            <g data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} transform="translate({i * PER_SLICE} 0)">
+              <rect class="bed" x="0" y="-1" width={PER_SLICE} height="2" />
+              <path {d} />
+            </g>
+          {/each}
+          {#each Array.from({ length: CHOP_SLICES + 1 }, (_, i) => i) as i (i)}
+            <line class="cut" class:beat={i % perBeat === 0} x1={i * PER_SLICE} x2={i * PER_SLICE} y1="-1" y2="1" />
+          {/each}
+        </svg>
+        <ol aria-label="The loop, cut into {CHOP_SLICES} slices">
+          {#each slicePaths as _, i (i)}
+            <li class:beat={i % perBeat === 0} data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} aria-label="Slice {i + 1}{lit === i ? ', sounding' : ''}"><span>{i + 1}</span></li>
+          {/each}
+        </ol>
+      </div>
     {/if}
     <figcaption class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{source.label}.</span> {source.detail}. Slice 1 on A01, bottom left. {cutError}</figcaption>
   </figure>
@@ -557,46 +568,74 @@
   .cell[data-done]:not([data-result]) {
     color: var(--ws-stage-soft);
   }
-  /* The slice picture: the loop's outline, a cell a slice, in its pad's colour; the one sounding lights up. */
-  .wave {
+  /* The slice picture: the loop as one waveform on a strip of tape, a line at each chop point, the slice's number
+     hanging under its line; each slice in its pad's colour, the one sounding lit. */
+  .tape {
     container-type: inline-size;
+    --cut: color-mix(in oklch, var(--ws-stage-ink) 26%, transparent);
+    --cut-beat: color-mix(in oklch, var(--ws-stage-ink) 62%, transparent);
+  }
+  .tape svg {
+    display: block;
+    width: 100%;
+    height: 3.5rem;
+    border-radius: 0.4rem 0.4rem 0 0;
+    background: color-mix(in oklch, var(--ws-stage-ink) 6%, transparent);
+  }
+  .tape path {
+    fill: color-mix(in oklch, var(--c) 82%, var(--ws-stage-ink));
+  }
+  .tape .bed {
+    fill: color-mix(in oklch, var(--c) 9%, transparent);
+  }
+  .tape g[data-on] .bed {
+    fill: color-mix(in oklch, var(--c) 42%, transparent);
+  }
+  .tape g[data-on] path {
+    fill: var(--ws-stage-ink);
+  }
+  .tape .cut {
+    stroke: var(--cut);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+  .tape .cut.beat {
+    stroke: var(--cut-beat);
+  }
+  .tape ol {
     display: grid;
     grid-template-columns: repeat(16, minmax(0, 1fr));
-    gap: 2px;
   }
-  .wave li {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.15rem;
+  .tape li {
     min-width: 0;
-    padding-top: 0.2rem;
-    border-radius: 0.3rem;
+    padding: 0.2rem 0 0.1rem 0.25rem;
+    border-left: 1px solid var(--cut);
+    border-top: 3px solid var(--c);
     font-size: 0.8125rem;
     font-weight: 700;
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
     color: var(--ws-stage-soft);
-    border-top: 3px solid var(--c);
-    background: color-mix(in oklch, var(--c) 10%, transparent);
   }
-  .wave svg {
-    width: 100%;
-    height: 2.25rem;
-    fill: color-mix(in oklch, var(--c) 75%, var(--ws-stage-ink));
+  .tape li.beat {
+    border-left-color: var(--cut-beat);
+    color: var(--ws-stage-ink);
+  }
+  .tape li[data-on] {
+    color: var(--ws-stage-ink);
+    background: color-mix(in oklch, var(--c) 42%, transparent);
   }
   /* Narrow, every other number, so none run together (the one sounding always shows its own). */
   @container (max-width: 28rem) {
-    .wave li:nth-child(even):not([data-on]) span {
+    .tape svg {
+      height: 2.75rem;
+    }
+    .tape li {
+      padding-left: 0.15rem;
+    }
+    .tape li:nth-child(even):not([data-on]) span {
       visibility: hidden;
     }
-  }
-  .wave li[data-on] {
-    color: #140a10;
-    background: var(--c);
-  }
-  .wave li[data-on] svg {
-    fill: #140a10;
   }
   .cell[data-result="ok"] {
     border-color: var(--success);

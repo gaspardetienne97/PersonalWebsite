@@ -7,6 +7,8 @@
     color: string;
     /** The pad that plays the lane (bank A note): named, and shown on a small map of the 16 pads. */
     pad?: number;
+    /** The lane's sample as a filled outline (`wavePath`), `w` columns wide: drawn beside its chip. */
+    wave?: { d: string; w: number };
   }
   export interface HighwayNote {
     lane: number;
@@ -98,7 +100,7 @@
 <div class="wrap" data-grow>
   <!-- `grid` tells the stage's rules (DrillShell) this already lays out as a grid. -->
   <div class="view grid" class:with-pads={!!pads} class:fill class:pads-only={alone === "pads" && !!pads} class:lanes-only={alone === "lanes"}>
-    <div class="highway" class:slim={lanes.every((l) => l.short)} role="img" aria-label={label} style:--lanes={lanes.length} style:--lane-base="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
+    <div class="highway" class:slim={lanes.every((l) => l.short)} class:waves={lanes.some((l) => l.wave)} role="img" aria-label={label} style:--lanes={lanes.length} style:--lane-base="{laneRem}rem" style:--name-lines={laneRem >= 2.6 ? 2 : 1}>
       <div class="labels" aria-hidden="true">
         {#each lanes as l (l.id)}
           {@const cell = l.pad === undefined ? null : padCell(l.pad)}
@@ -113,6 +115,7 @@
             {:else}
               <span class="dot"></span>
             {/if}
+            {#if l.wave}<svg class="lane-wave" viewBox="0 -1 {l.wave.w} 2" preserveAspectRatio="none"><path d={l.wave.d} /></svg>{/if}
             {#if l.short}
               {#if l.pad !== undefined}<span class="pad">{padLabel(l.pad)}</span>{/if}
             {:else}
@@ -221,13 +224,25 @@
   .highway.slim {
     grid-template-columns: 5.25rem minmax(0, 1fr);
   }
+  /* With each slice's waveform beside its chip, room to read its shape. */
+  .highway.slim.waves {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+  }
+  .lane-wave {
+    flex: 1;
+    min-width: 0;
+    height: min(1.5rem, 80%);
+    fill: color-mix(in oklch, var(--c) 80%, var(--ws-stage-ink));
+  }
   @container hw (max-width: 30rem) {
     .highway {
       grid-template-columns: 4.6rem minmax(0, 1fr);
     }
-    .highway.slim {
+    .highway.slim,
+    .highway.slim.waves {
       grid-template-columns: 3rem minmax(0, 1fr);
     }
+    .highway .lane-wave,
     .highway .map,
     .highway .pad {
       display: none;
