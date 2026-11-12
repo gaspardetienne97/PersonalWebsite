@@ -55,6 +55,8 @@
     compact?: boolean;
     /** A held note with no mark carries this name (Check, where nothing else on the neck names it). */
     heldName?: (midi: number) => string;
+    /** Inside a growing column (the shell's data-grow), the strings share the free height, up to 5.5rem a string. */
+    grow?: boolean;
   }
 
   let {
@@ -75,6 +77,7 @@
     targetString = null,
     compact = false,
     heldName,
+    grow = false,
   }: Props = $props();
 
   const strings = $derived(openStrings.map((_, i) => i + 1));
@@ -157,7 +160,7 @@
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" class:rings={fingerRings} class:compact style:--n={frets.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
+<div class="neck-wrap" class:rings={fingerRings} class:compact class:grow style:--n={frets.length} style:--rows={strings.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
     {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
   </div>
@@ -236,6 +239,22 @@
     width: 100%;
     min-width: 0;
     padding-left: 1.5rem;
+  }
+  /* Opt-in: fill a growing flex column. The rows keep their minimum, so outside one nothing changes. */
+  .grow {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(var(--rows) * 5.5rem + 2.5rem);
+  }
+  .grow .neck {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+  }
+  .grow .string-row {
+    flex: 1 1 auto;
   }
   .fret-numbers {
     display: grid;

@@ -3,6 +3,7 @@
   // Binary per question; no timing or fingering is assessed. The string and fret
   // are verified only for on-screen taps (MIDI and the microphone carry pitch).
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -282,6 +283,8 @@
   const missed = $derived(answers.filter((a) => !a.correct));
   /** Beside Stop on a phone: what to find now. */
   const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? `Find ${aOrAn(question.label)} up from the square` : `Find ${question.label}, frets ${region.start} to ${to}`) : "");
+  /** Laptop and tablet landscape: the neck is the stage's growing region and takes the free height. */
+  const wide = new MediaQuery("(min-width: 64rem)");
   const wrongShown = $derived(phase === "running" && revealing && answers.at(-1)?.correct === false);
 </script>
 
@@ -375,7 +378,7 @@
         <span class="absolute inset-y-0 rounded-full bg-instr" style:left="{(Math.max(0, region.start - 1) / tuning.fretCount) * 100}%" style:width="{((to - Math.max(0, region.start - 1)) / tuning.fretCount) * 100}%"></span>
       </div>
     </div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} compact={phase !== "running"} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument" data-grow={wide.current ? "" : undefined}><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} compact={phase !== "running"} grow={wide.current} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
     <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
   {/snippet}
 

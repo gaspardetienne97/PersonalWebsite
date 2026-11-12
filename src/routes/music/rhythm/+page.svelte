@@ -622,6 +622,8 @@
   /** The pattern the staff could not engrave falls back to the beat line. */
   let unwritten = $state<string | null>(null);
   const reduceMotion = new MediaQuery("(prefers-reduced-motion: reduce)");
+  /** Laptop and tablet landscape: the tap column asks the shell for the free height, and the pad grows with it. */
+  const wide = new MediaQuery("(min-width: 64rem)");
   /**
    * Where the click is on the drawn bars while a run plays. Reading and Pulse show
    * it in Practice only; by ear it is time, not the pattern, so it runs in Check
@@ -960,7 +962,8 @@
       {/if}
       {#if !writes}
       <!-- On a phone before Start the Tap button waits (it opens on the count-in), so the music fits above Start. -->
-      <div class="flex flex-col items-center gap-2 {phase === 'ready' ? 'max-sm:hidden' : ''}" data-dock="answers">
+      <!-- From lg up the column is the stage's growing region: the row fills the height and the pad sizes from it. -->
+      <div class="flex flex-col items-center gap-2 lg:flex-none! {phase === 'ready' ? 'max-sm:hidden' : ''}" data-dock="answers" data-grow={wide.current ? "" : undefined}>
         <!-- The word for each tap as it lands, over the button it came from. -->
         <Verdict kind={tapVerdict?.kind} text={tapVerdict?.text} key={hits.length} class="flex h-8 items-center" />
         {#if onPads}
@@ -1021,6 +1024,16 @@
     .tap {
       width: 8rem;
       height: 8rem;
+    }
+  }
+  /* Laptop and tablet landscape: the stage fills the screen, so the pad takes a third of its height. */
+  @media (min-width: 64rem) {
+    .tap {
+      width: clamp(9.5rem, 34dvh, 17rem);
+      height: clamp(9.5rem, 34dvh, 17rem);
+    }
+    .tap > :first-child {
+      font-size: 2.25rem;
     }
   }
   /* Before the run the pad is an outline, not a second filled button beside Start: it fills when taps count. */
