@@ -167,9 +167,9 @@ test.describe("library and song practice", () => {
     ]);
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
     await expect(page.getByRole("status")).toContainText(
-      "14 of 15 notes or chords right first time",
+      "14 of 15 right first time",
     );
-    await expect(page.getByText("Notes or chords right first time", { exact: true })).toBeVisible();
+    await expect(page.getByText("Right first time", { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-take results" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Per-section results" })).toContainText(
       "Whole score",
@@ -237,7 +237,7 @@ test.describe("library and song practice", () => {
       { at: 1000, notes: [36] },
     ]);
     await expect(page.getByRole("heading", { name: "Results" })).toBeAttached({ timeout: 8000 });
-    await expect(page.getByRole("status")).toContainText("3 of 4 notes or chords right first time");
+    await expect(page.getByRole("status")).toContainText("3 of 4 right first time");
     await shoot(page, "studio-drums");
   });
 

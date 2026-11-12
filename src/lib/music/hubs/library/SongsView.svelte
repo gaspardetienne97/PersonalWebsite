@@ -15,7 +15,7 @@
   import * as Menu from "@repo/ui/dropdown-menu";
   import RollThumb from "./RollThumb.svelte";
   import type { Score } from "@repo/music-core";
-  import { barsText, durationText, plainTeaches, rangeText, scoreFacts, shelfScore, shelfTags, songHistory, type Song } from "./songs";
+  import { barsText, durationText, plainTeaches, scoreFacts, shelfScore, shelfTags, songHistory, type Song } from "./songs";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
   let songs = $state.raw<Song[] | null>(null);
@@ -93,14 +93,18 @@
           : "Score";
 </script>
 
-{#if songs === null}
-  <p class="text-ws-soft">Loading your songs.</p>
-{:else if !songs.length}
-  <!-- One line: the shelf below is the content; the banner only points to Import. -->
+{#snippet empty()}
+  <!-- One line that points to Import. With a path shelf to show, it sits under the shelf, not above it. -->
   <section class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface px-4 py-2">
     <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">No songs of your own yet.</span> <span class="text-ws-soft">{starters.length ? "Start with one from your path, or bring in a score." : "Bring in a MIDI or MusicXML score."}</span></h2>
     <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />Import a score</a>
   </section>
+{/snippet}
+
+{#if songs === null}
+  <p class="text-ws-soft">Loading your songs.</p>
+{:else if !songs.length}
+  {#if !starters.length}{@render empty()}{/if}
 {:else}
   <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Saved songs">
     {#each songs as song, i (song.id)}
@@ -121,19 +125,14 @@
             {#if i === 0}<p class="text-sm font-medium text-instr-ink">{h.lastAt !== null ? "Pick up where you left off" : "Added most recently"}</p>{/if}
             <h3 id="song-{song.id}" class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
             {#if song.composer}<p class="-mt-1 text-sm text-ws-soft">{song.composer}</p>{/if}
-            <p class="text-sm" data-testid="song-history">
-              {#if h.lastAt !== null}
+            <!-- An unplayed song says so once, on the cover badge. -->
+            {#if h.lastAt !== null}
+              <p class="text-sm" data-testid="song-history">
                 {#if h.best !== null}<span class="tnum font-semibold">Best {Math.round(h.best * 100)}%</span><span class="text-ws-soft">, </span>{/if}<span class="text-ws-soft">last played {dateText(h.lastAt)}, {h.runs} run{h.runs === 1 ? "" : "s"}</span>
-              {:else}
-                <span class="text-ws-soft">Not played yet</span>
-              {/if}
-            </p>
-            <dl class="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 text-sm {i === 0 ? 'sm:grid-cols-4' : ''}">
-              <div><dt class="text-ws-soft">Tempo</dt><dd class="tnum font-medium">{song.score.bpm} BPM</dd></div>
-              <div><dt class="text-ws-soft">Length</dt><dd class="tnum font-medium">{barsText(f.bars)}, {durationText(f.seconds)}</dd></div>
-              <div><dt class="text-ws-soft">{f.key ? "Key and meter" : "Meter"}</dt><dd class="font-medium">{f.key ? `${f.key}, ` : ""}{f.meter}</dd></div>
-              <div><dt class="text-ws-soft">Notes</dt><dd class="tnum font-medium">{f.notes} in {f.voices} voice{f.voices === 1 ? "" : "s"}, {rangeText(f)}</dd></div>
-            </dl>
+              </p>
+            {/if}
+            <!-- One line of facts at every width. Voices and range live in the song editor. -->
+            <p class="tnum mt-auto text-sm text-ws-soft" data-testid="song-facts">{f.key ? `${f.key}, ` : ""}{f.meter}, {song.score.bpm} BPM, {barsText(f.bars)} ({durationText(f.seconds)})</p>
           </div>
         </a>
         <!-- Outside the cover's link: the action first, Delete small and apart. -->
@@ -185,6 +184,7 @@
       </ul>
     {/each}
   </section>
+  {#if songs && !songs.length}{@render empty()}{/if}
 {/if}
 
 <style>

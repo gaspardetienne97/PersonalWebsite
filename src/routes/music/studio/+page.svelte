@@ -55,21 +55,18 @@
   {#if tab === "import"}
     <ImportView onstatus={(s) => (status = s)} />
   {:else}
-    <!-- One strip of links, not cards: names only on a phone, a line of help from sm up. -->
-    <nav aria-labelledby="make-title" class="flex flex-col gap-2">
-      <h2 id="make-title" class="font-display text-xl font-semibold">Make</h2>
-      <ul class="flex flex-wrap gap-2 sm:grid sm:grid-cols-3 sm:gap-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-ws-line sm:bg-ws-surface lg:grid-cols-6">
+    <!-- Songs are the page's job, so the tools take one row: a line of links that scrolls sideways on a phone. -->
+    <nav aria-labelledby="make-title" class="-my-1 flex items-center gap-2">
+      <h2 id="make-title" class="shrink-0 text-sm font-semibold text-ws-soft">Make</h2>
+      <ul class="make-row -mr-4 flex min-w-0 flex-1 gap-2 overflow-x-auto py-1 pr-4 sm:mr-0 sm:pr-0">
         {#each TOOLS as tool (tool.href)}
-          <li class="sm:-mr-px sm:-mb-px sm:border-r sm:border-b sm:border-ws-line">
+          <li class="shrink-0">
             <a
               href={tool.href}
-              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-4 text-sm font-semibold hover:bg-instr-wash sm:h-full sm:items-start sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-4"
+              title={tool.hint}
+              class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface px-3.5 text-sm font-semibold whitespace-nowrap hover:bg-instr-wash"
             >
-              <tool.icon class="size-4 shrink-0 text-instr-ink sm:mt-0.5 sm:size-5" aria-hidden="true" />
-              <span class="flex min-w-0 flex-col">
-                <span class="sm:font-display sm:text-base">{tool.label}</span>
-                <span class="text-[13px] font-normal text-ws-soft max-sm:hidden">{tool.hint}</span>
-              </span>
+              <tool.icon class="size-4 shrink-0 text-instr-ink" aria-hidden="true" />{tool.label}
             </a>
           </li>
         {/each}
@@ -78,3 +75,10 @@
     <SongsView onstatus={(s) => (status = s)} />
   {/if}
 </div>
+
+<style>
+  /* The last chip peeks past the edge on a phone, which is the cue that the row scrolls. */
+  .make-row {
+    scrollbar-width: none;
+  }
+</style>

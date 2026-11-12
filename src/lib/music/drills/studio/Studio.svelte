@@ -20,6 +20,7 @@
   import Drum from "lucide-svelte/icons/drum";
   import Dots from "lucide-svelte/icons/ellipsis";
   import CircleX from "lucide-svelte/icons/circle-x";
+  import Repeat from "lucide-svelte/icons/repeat";
   import * as Menu from "@repo/ui/dropdown-menu";
   import { goto } from "$app/navigation";
   import { nextRun } from "$lib/music/advance.svelte";
@@ -614,10 +615,11 @@
         best: fin.best,
         clean: perf.every((r) => r.correct),
         xp: fin.xp,
-        assistance: "Song practice goes in your journal. Imported songs don't change skill mastery.",
+        assistance: "Song runs go in your journal. They don't move your skill levels.",
         rows: [
           { label: "Notes matched", value: expected ? matched / expected : 0, text: `${matched} of ${expected}` },
-          { label: tap ? "Taps found" : drums ? "Drums found" : "Pitch completion", value: expected ? matched / expected : 0 },
+          // The same share as the row above, so it only earns a line when it names what was listened for.
+          ...(tap || drums ? [{ label: tap ? "Taps found" : "Drums found", value: expected ? matched / expected : 0 }] : []),
           { label: "Timing error (mean)", text: matched ? `${Math.round(errMs)} ms` : "No notes matched" },
           { label: "Best take", text: `Take ${agg.bestIndex + 1}, ${pct(best.score)}` },
           { label: "Early / on time / late", text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
@@ -649,20 +651,19 @@
         headline:
           clean === total
             ? "Every note found with no wrong ones. Try it in Performance mode."
-            : `${clean} of ${total} notes or chords right first time; ${wrong} wrong note${wrong === 1 ? "" : "s"} along the way.`,
+            : `${clean} of ${total} right first time, ${wrong} wrong note${wrong === 1 ? "" : "s"}.`,
         metric: pct(mean),
         metricLabel: "right first time",
         delta: fin.delta,
         best: fin.best,
         clean: clean === total,
         xp: fin.xp,
-        assistance: "Wait mode is guided practice. Imported songs don't change skill mastery.",
+        assistance: "Wait mode never times you. For a timing score, pick Performance in Setup. Song runs go in your journal and don't move your skill levels.",
         rows: [
-          { label: "Notes or chords right first time", value: total ? clean / total : 0, text: `${clean} of ${total}` },
-          { label: drums ? "Drums found" : "Pitch completion", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
+          // Non-breaking spaces, so "14 of 15" never splits across two lines in the narrow stat column.
+          { label: "Right first time", value: total ? clean / total : 0, text: `${clean}\u00a0of\u00a0${total}` },
+          { label: drums ? "Drums found" : "Notes found", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
           { label: "Wrong notes", text: String(wrong) },
-          { label: "Timing", notMeasured: true },
-          { label: "Early / on time / late", notMeasured: true },
         ],
       };
     }
@@ -810,6 +811,8 @@
   }
 
   /** The results card holds the next run, so Again steps back to secondary. */
+  /** After a run with a slip (and not already looping one), the fix leads the row. */
+  const fixable = $derived(phase === "results" && !spot && !!trouble);
   const offersNext = $derived(phase === "results" && !!summary?.advance && !["same", "top"].includes(summary.advance.kind));
 
   // ---- Shell ------------------------------------------------------------
@@ -907,6 +910,7 @@
 
 <svelte:window onkeydown={onKey} />
 
+
 {#snippet stat(label: string, value: string)}
   <span class="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-tight" data-stat>
     <span class="text-ws-stage-soft">{label}</span>
@@ -927,184 +931,6 @@
       </div>
     </header>
 
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ws-line bg-ws-surface px-4 py-2">
-      <p class="min-w-0 flex-1 text-sm"><span class="text-ws-soft">Setup:</span> <span class="font-medium">{summaryLine}</span></p>
-      <button
-        type="button"
-        class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash"
-        aria-expanded={setupOpen}
-        aria-controls="studio-setup"
-        onclick={() => (setupOpen = !setupOpen)}
-      >
-        <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
-      </button>
-    </div>
-
-    {#if setupOpen}
-      <div id="studio-setup" class="grid gap-5 rounded-xl border border-ws-line bg-ws-surface p-4 md:grid-cols-2">
-        <div class="flex min-w-0 flex-col gap-1 text-sm md:col-span-2" role="group" aria-labelledby="voices-l">
-          <span id="voices-l" class="font-medium">{score.source?.kind === "musicxml" ? "Parts" : "Voices"}</span>
-          <div class="flex flex-wrap gap-1.5">
-            {#each choices as c (c.id)}
-              {@const on = picked.includes(c.id)}
-              <button
-                type="button"
-                class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
-                aria-pressed={on}
-                disabled={on && picked.length === 1}
-                onclick={() => toggleVoice(c.id)}>{on ? "✓ " : ""}{c.label}</button
-              >
-            {/each}
-          </div>
-          {#if choices.length > 1}<span class="text-ws-soft">At least one stays on.{mixed ? " Drums and the other parts are practised one kind at a time." : ""}</span>{/if}
-        </div>
-
-        <div class="flex min-w-0 flex-col gap-3">
-          <Choice
-            label="Range"
-            options={[
-              { value: "whole", label: "Whole score" },
-              { value: "sections", label: "Sections" },
-              { value: "custom", label: "Custom" },
-            ]}
-            value={s.range}
-            onchange={(v) => setup.set({ range: v })}
-          />
-          {#if s.range === "sections"}
-            <div class="flex min-w-0 flex-col gap-1 text-sm" role="group" aria-labelledby="sections-l">
-              <span id="sections-l" class="font-medium">Sections</span>
-              <div class="flex flex-wrap gap-1.5">
-                {#each sections as sec, i (sec.label + i)}
-                  {@const on = pickedSections.includes(i)}
-                  <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
-                {/each}
-              </div>
-              {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole score plays.</span>{/if}
-            </div>
-            <Choice
-              label="Order"
-              options={[
-                { value: "sequence", label: "In sequence" },
-                { value: "per-section", label: "One at a time" },
-              ]}
-              value={s.order}
-              onchange={(v) => setup.set({ order: v })}
-            />
-          {:else if s.range === "custom"}
-            <Choice
-              label="Snap to"
-              options={[
-                { value: "bar", label: "Measure" },
-                { value: "group", label: "Note group" },
-              ]}
-              value={s.snap}
-              onchange={(v) => setup.set({ snap: v })}
-            />
-            <p class="text-sm text-ws-soft">
-              {drums ? "The drum grid can't mark a range yet; pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the score below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
-              {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>Clear the range</button>{/if}
-            </p>
-          {/if}
-        </div>
-
-        <div class="grid min-w-0 gap-3 sm:grid-cols-2">
-          <Choice
-            label="Mode"
-            options={[
-              { value: "wait", label: "Wait" },
-              { value: "performance", label: "Performance" },
-              { value: "no-stop", label: "No-stop" },
-              { value: "sight-read", label: "Sight-read" },
-            ]}
-            value={s.mode}
-            onchange={(v) => setup.set({ mode: v })}
-          />
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">Tempo (BPM)</span>
-            <input class="tnum min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" type="number" min="20" max="300" value={bpm} onchange={(e) => setup.set({ bpm: clamp(Number(e.currentTarget.value) || score.bpm, 20, 300) })} />
-          </label>
-          <Choice
-            label="Strictness"
-            options={[
-              { value: "relaxed", label: "Relaxed" },
-              { value: "normal", label: "Normal" },
-              { value: "strict", label: "Strict" },
-            ]}
-            value={s.strictness}
-            disabled={!perfMode}
-            onchange={(v) => setup.set({ strictness: v })}
-          />
-          <Choice
-            label="Count-in"
-            options={[
-              { value: 0, label: "Off" },
-              { value: 1, label: "1 bar" },
-              { value: 2, label: "2 bars" },
-            ]}
-            value={settings.value.countInBars}
-            onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
-          />
-          <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
-          <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? "; this will be this song's." : ", and this song has been played here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
-        </div>
-
-        <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
-          <Choice
-            label="From memory"
-            options={[
-              { value: "off", label: "Off" },
-              { value: "look", label: "After a look" },
-              { value: "bars", label: "Bar by bar" },
-            ]}
-            value={memory}
-            onchange={(v) => setup.set({ memory: v })}
-          />
-          <Choice label="Key" select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
-          <Choice
-            label="Also grade"
-            options={[
-              { value: "notes", label: "Notes only" },
-              { value: "dynamics", label: "Dynamics and breaths" },
-              { value: "vibrato", label: "Vibrato" },
-              { value: "balance", label: "Melody balance" },
-            ]}
-            value={grade === "notes" ? s.grade : grade}
-            disabled={!perfMode}
-            onchange={(v) => setup.set({ grade: v })}
-          />
-          <p class="self-end text-sm text-ws-soft">
-            {memory === "look" ? "Look at the score as long as you like; it hides when the run starts and comes back for the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run; a take at 90% hides one more.` : ""}
-            {s.grade === "dynamics" && !hasMarks ? "This score has no dynamics or breath marks to grade." : s.grade === "dynamics" ? `Marked: ${marksText}. Graded loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The score marks ${marksText}; they show on the staff.` : ""}
-            {s.grade === "balance" ? "The melody (the top note of the highest part) should sound louder than the notes struck with it, read from MIDI velocity." : ""}
-            {!perfMode && s.grade !== "notes" ? " Grading dynamics, vibrato or balance needs a mode that keeps time." : ""}
-          </p>
-          <Choice
-            label="Play"
-            options={[
-              { value: "notes", label: "The notes" },
-              { value: "tap", label: "Tap the rhythm" },
-            ]}
-            value={tap ? "tap" : "notes"}
-            disabled={!perfMode}
-            onchange={(v) => setup.set({ tap: v === "tap" })}
-          />
-          <Choice
-            label="Duet partner"
-            options={[
-              { value: "off", label: "Off" },
-              { value: "on", label: "Plays the other parts" },
-            ]}
-            value={partner ? "on" : "off"}
-            disabled={!perfMode || !others.length}
-            onchange={(v) => setup.set({ partner: v === "on" })}
-          />
-          <p class="self-end text-sm text-ws-soft md:col-span-2">
-            {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is graded." : ""}
-            {!others.length ? "Turn a part off above and the partner can play it." : partner ? `The app plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, the app can play the parts you turn off."}
-          </p>
-        </div>
-      </div>
-    {/if}
   {:else}
     <h1 id="studio-run" tabindex="-1" class="sr-only">{song.title}, running</h1>
   {/if}
@@ -1116,7 +942,11 @@
       {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />Ready, count me in</button>{/if}
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
-      <button type="button" class="{offersNext ? btn : `${btnPrimary} min-h-12 px-6 font-display text-base`}" onclick={start}>
+      <!-- After a run with a slip, the loop on the slipped bars is the useful next step, so it leads and Again steps back. -->
+      {#if fixable}
+        <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={fixSpot}><Repeat class="size-5" aria-hidden="true" />Fix the trouble spot, {barsOf(trouble!.range)}</button>
+      {/if}
+      <button type="button" class="{offersNext || fixable ? btn : `${btnPrimary} min-h-12 px-6 font-display text-base`}" onclick={start}>
         <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
       </button>
       <button type="button" class={btn} aria-pressed={!!preview?.playing} disabled={unseen} onclick={togglePreview}>
@@ -1133,15 +963,189 @@
           </Menu.Item>
         </Menu.Content>
       </Menu.Root>
-      <span class="hidden text-sm text-ws-soft sm:inline">Space starts, Esc stops.</span>
+      <!-- What Start will run, in one line beside it; Setup opens the rest. -->
+      <div class="flex min-w-0 flex-1 basis-64 items-center gap-x-2 rounded-full border border-ws-line bg-ws-surface py-0.5 pr-1 pl-4">
+        <p class="min-w-0 flex-1 text-sm sm:truncate"><span class="sr-only">Setup:</span> <span class="font-medium">{summaryLine}</span></p>
+        <button
+          type="button"
+          class="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash"
+          aria-expanded={setupOpen}
+          aria-controls="studio-setup"
+          title="Space starts, Esc stops"
+          onclick={() => (setupOpen = !setupOpen)}
+        >
+          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
+        </button>
+      </div>
     {/if}
-    <div class="ml-auto flex flex-wrap items-center gap-2">
-      {#if mixed && !live}
-        <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? "Play the other parts" : "Play the drums"}</button>
-      {/if}
-      {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Score view" />{/if}
-    </div>
+    {#if live && !drums}<div class="ml-auto"><HubTabs param="view" tabs={VIEWS} label="Score view" /></div>{/if}
   </div>
+
+  {#if !live && setupOpen}
+    <div id="studio-setup" class="grid gap-5 rounded-xl border border-ws-line bg-ws-surface p-4 md:grid-cols-2">
+      <div class="flex min-w-0 flex-col gap-1 text-sm md:col-span-2" role="group" aria-labelledby="voices-l">
+        <span id="voices-l" class="font-medium">{score.source?.kind === "musicxml" ? "Parts" : "Voices"}</span>
+        <div class="flex flex-wrap gap-1.5">
+          {#each choices as c (c.id)}
+            {@const on = picked.includes(c.id)}
+            <button
+              type="button"
+              class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
+              aria-pressed={on}
+              disabled={on && picked.length === 1}
+              onclick={() => toggleVoice(c.id)}>{on ? "✓ " : ""}{c.label}</button
+            >
+          {/each}
+        </div>
+        {#if choices.length > 1}<span class="text-ws-soft">At least one stays on.{mixed ? " Drums and the other parts are practised one kind at a time." : ""}</span>{/if}
+      </div>
+
+      <div class="flex min-w-0 flex-col gap-3">
+        <Choice
+          label="Range"
+          options={[
+            { value: "whole", label: "Whole score" },
+            { value: "sections", label: "Sections" },
+            { value: "custom", label: "Custom" },
+          ]}
+          value={s.range}
+          onchange={(v) => setup.set({ range: v })}
+        />
+        {#if s.range === "sections"}
+          <div class="flex min-w-0 flex-col gap-1 text-sm" role="group" aria-labelledby="sections-l">
+            <span id="sections-l" class="font-medium">Sections</span>
+            <div class="flex flex-wrap gap-1.5">
+              {#each sections as sec, i (sec.label + i)}
+                {@const on = pickedSections.includes(i)}
+                <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
+              {/each}
+            </div>
+            {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole score plays.</span>{/if}
+          </div>
+          <Choice
+            label="Order"
+            options={[
+              { value: "sequence", label: "In sequence" },
+              { value: "per-section", label: "One at a time" },
+            ]}
+            value={s.order}
+            onchange={(v) => setup.set({ order: v })}
+          />
+        {:else if s.range === "custom"}
+          <Choice
+            label="Snap to"
+            options={[
+              { value: "bar", label: "Measure" },
+              { value: "group", label: "Note group" },
+            ]}
+            value={s.snap}
+            onchange={(v) => setup.set({ snap: v })}
+          />
+          <p class="text-sm text-ws-soft">
+            {drums ? "The drum grid can't mark a range yet; pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the score below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
+            {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>Clear the range</button>{/if}
+          </p>
+        {/if}
+      </div>
+
+      <div class="grid min-w-0 gap-3 sm:grid-cols-2">
+        <Choice
+          label="Mode"
+          options={[
+            { value: "wait", label: "Wait" },
+            { value: "performance", label: "Performance" },
+            { value: "no-stop", label: "No-stop" },
+            { value: "sight-read", label: "Sight-read" },
+          ]}
+          value={s.mode}
+          onchange={(v) => setup.set({ mode: v })}
+        />
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="font-medium">Tempo (BPM)</span>
+          <input class="tnum min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" type="number" min="20" max="300" value={bpm} onchange={(e) => setup.set({ bpm: clamp(Number(e.currentTarget.value) || score.bpm, 20, 300) })} />
+        </label>
+        <Choice
+          label="Strictness"
+          options={[
+            { value: "relaxed", label: "Relaxed" },
+            { value: "normal", label: "Normal" },
+            { value: "strict", label: "Strict" },
+          ]}
+          value={s.strictness}
+          disabled={!perfMode}
+          onchange={(v) => setup.set({ strictness: v })}
+        />
+        <Choice
+          label="Count-in"
+          options={[
+            { value: 0, label: "Off" },
+            { value: 1, label: "1 bar" },
+            { value: 2, label: "2 bars" },
+          ]}
+          value={settings.value.countInBars}
+          onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
+        />
+        <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
+        <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? "; this will be this song's." : ", and this song has been played here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
+      </div>
+
+      <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
+        <Choice
+          label="From memory"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "look", label: "After a look" },
+            { value: "bars", label: "Bar by bar" },
+          ]}
+          value={memory}
+          onchange={(v) => setup.set({ memory: v })}
+        />
+        <Choice label="Key" select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
+        <Choice
+          label="Also grade"
+          options={[
+            { value: "notes", label: "Notes only" },
+            { value: "dynamics", label: "Dynamics and breaths" },
+            { value: "vibrato", label: "Vibrato" },
+            { value: "balance", label: "Melody balance" },
+          ]}
+          value={grade === "notes" ? s.grade : grade}
+          disabled={!perfMode}
+          onchange={(v) => setup.set({ grade: v })}
+        />
+        <p class="self-end text-sm text-ws-soft">
+          {memory === "look" ? "Look at the score as long as you like; it hides when the run starts and comes back for the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run; a take at 90% hides one more.` : ""}
+          {s.grade === "dynamics" && !hasMarks ? "This score has no dynamics or breath marks to grade." : s.grade === "dynamics" ? `Marked: ${marksText}. Graded loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The score marks ${marksText}; they show on the staff.` : ""}
+          {s.grade === "balance" ? "The melody (the top note of the highest part) should sound louder than the notes struck with it, read from MIDI velocity." : ""}
+          {!perfMode && s.grade !== "notes" ? " Grading dynamics, vibrato or balance needs a mode that keeps time." : ""}
+        </p>
+        <Choice
+          label="Play"
+          options={[
+            { value: "notes", label: "The notes" },
+            { value: "tap", label: "Tap the rhythm" },
+          ]}
+          value={tap ? "tap" : "notes"}
+          disabled={!perfMode}
+          onchange={(v) => setup.set({ tap: v === "tap" })}
+        />
+        <Choice
+          label="Duet partner"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "on", label: "Plays the other parts" },
+          ]}
+          value={partner ? "on" : "off"}
+          disabled={!perfMode || !others.length}
+          onchange={(v) => setup.set({ partner: v === "on" })}
+        />
+        <p class="self-end text-sm text-ws-soft md:col-span-2">
+          {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is graded." : ""}
+          {!others.length ? "Turn a part off above and the partner can play it." : partner ? `The app plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, the app can play the parts you turn off."}
+        </p>
+      </div>
+    </div>
+  {/if}
 
   {#if phase === "results" && summary}
     <div class="results-enter flex flex-col gap-4">
@@ -1150,8 +1154,6 @@
         {#snippet actions()}
           {#if spot}
             <button type="button" class={btn} onclick={() => endSpot("Ended the loop. Your range and tempo are back.")}>End the loop</button>
-          {:else if trouble}
-            <button type="button" class={btn} onclick={fixSpot}>Fix the trouble spot, {barsOf(trouble.range)}</button>
           {/if}
         {/snippet}
       </Results>
@@ -1185,6 +1187,15 @@
   {/if}
 
   <div class="stage relative overflow-hidden rounded-2xl p-3 sm:p-5 {live ? 'lg:flex lg:flex-1 lg:flex-col' : ''}" class:dim={phase === "results"} data-testid="studio-stage" data-downbeat={(phase === "countin" || phase === "running") && perfMode ? Math.round(startAt) : undefined}>
+    {#if !live && (mixed || !drums)}
+      <!-- How the score is drawn belongs with the score, not with Start. -->
+      <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
+        {#if mixed}
+          <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? "Play the other parts" : "Play the drums"}</button>
+        {/if}
+        {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Score view" class="max-sm:flex-nowrap max-sm:whitespace-nowrap max-sm:[&>a]:px-2.5" />{/if}
+      </div>
+    {/if}
     {#if live}
       <!-- Progress in a neutral ink, so the wanted key (in the instrument hue) never reads as part of it. -->
       <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
