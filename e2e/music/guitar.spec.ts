@@ -419,7 +419,7 @@ test.describe("guitar drills", () => {
       [1, 3],
     ]);
     await expect(
-      page.getByRole("article").getByText(/All 4 target notes of C matched from memory/),
+      page.getByRole("article").getByText(/All 4 target notes of C matched in Check/),
     ).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole("article").getByText(/counts in your skill scores/)).toBeVisible();
   });
@@ -437,7 +437,7 @@ test.describe("guitar drills", () => {
       [1, 2],
     ]);
     await expect(
-      page.getByRole("article").getByText(/All 4 target notes of G7 matched from memory/),
+      page.getByRole("article").getByText(/All 4 target notes of G7 matched in Check/),
     ).toBeVisible({ timeout: 5000 });
   });
 
@@ -603,7 +603,7 @@ test.describe("guitar drills", () => {
     await expect(setupLine).toContainText("Am then C then D then F then Am then E");
     await expect(setupLine).toContainText("three notes a click");
     await expect(page.getByRole("button", { name: /^Tempo 58 BPM/ })).toBeVisible();
-    await expect(page.getByText(/no capo\. Tempo 58\./)).toBeVisible();
+    await expect(page.getByText(/No capo\. Tempo 58 BPM\./)).toBeVisible();
     await openSetup(page, false);
     await expect(
       page.getByRole("list", { name: "The chords in order" }).getByRole("listitem"),
@@ -677,7 +677,9 @@ test.describe("guitar drills", () => {
     ).toBeVisible({ timeout: 15_000 });
     // A run where the listener heard no strum is not scored, so it has no note on skills.
     if (!(await page.getByTestId("not-heard").count()))
-      await expect(page.getByRole("article").getByText(/not counted toward skills/)).toBeVisible();
+      await expect(
+        page.getByRole("article").getByText(/not counted toward your skill scores/),
+      ).toBeVisible();
     await expect(page.locator("[data-mic]")).toHaveAttribute("data-mic", "on");
     await shoot(page, "strum-results", 1280);
   });

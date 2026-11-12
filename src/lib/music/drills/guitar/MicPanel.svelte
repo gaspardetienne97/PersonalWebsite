@@ -6,7 +6,7 @@
   export const micUnblock = {
     label: "Turn on the microphone",
     run: async () => {
-      if (!(await startMic())) throw new Error(mic.error || "The microphone did not start. Check the browser allows it.");
+      if (!(await startMic())) throw new Error(mic.error || "The microphone didn't start. Check the browser allows it.");
     },
   };
 </script>
@@ -35,7 +35,7 @@
 {#if disabled && offer && mic.state !== "on"}
   <!-- Mid-run the prompt is a chip (asked once, at setup): one tap still fixes a silent run without stopping it. -->
   <button type="button" class="{btnStage} self-start" disabled={mic.state === "starting"} onclick={() => void startMic()} title={mic.error || hint}>
-    <MicOff class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Mic off: turn on"}
+    <MicOff class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting…" : "Mic off: turn on"}
   </button>
 {:else if mic.state === "on" || offer || mic.error}
   <div class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-ws-stage-ink/8 px-3 py-2" data-mic={mic.state}>
@@ -61,7 +61,7 @@
     {:else if offer}
       <!-- Starting stays open mid-run: the player can fix a silent run without stopping it. -->
       <button type="button" class={btnStage} disabled={mic.state === "starting"} onclick={() => void startMic()}>
-        <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting" : "Turn on the microphone"}
+        <Mic class="size-4" aria-hidden="true" />{mic.state === "starting" ? "Starting…" : "Turn on the microphone"}
       </button>
       <p class="min-w-48 flex-1 text-sm text-ws-stage-soft">{mic.error || hint}</p>
     {:else}

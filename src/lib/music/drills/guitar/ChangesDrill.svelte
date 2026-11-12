@@ -333,7 +333,7 @@
     if (phase === "running" && !periodMs && !s.timed) return void finish();
     halt();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -464,11 +464,11 @@
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} compact label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
       {#if phase === "running" && !periodMs && !s.timed}
-        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. Stop when you are done: the changes you played are scored.</span>
+        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. Stop when you're done: the changes you played are scored.</span>
       {:else}
         <span class="text-sm text-ws-stage-soft">How a change counts</span>
       {/if}
-      <Hint about="how a change counts" text="A change counts when the next chord's target notes all sound and nothing else does. Which string sounded each note is not measured." />
+      <Hint about="how a change counts" text="A change counts when the next chord's target notes all sound and nothing else does. Which string sounded each note isn't measured." />
     </div>
   {/snippet}
 

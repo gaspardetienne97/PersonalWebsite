@@ -127,7 +127,7 @@
     if (mic.state !== "on" && !(await mic.start())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "Bends need the microphone, and it could not start.";
+      status = mic.error || "Bends need the microphone, and it didn't start. Check the browser allows it.";
       return;
     }
     run = practice.beginRun({
@@ -163,14 +163,14 @@
       }
       summary = {
         headline: heard.length
-          ? `Vibrato at about ${avg((v) => v.rateHz!).toFixed(1)} a second, ${Math.round(avg((v) => v.widthCents!))} cents wide. Players use roughly 4 to 7 a second; keep it even.`
+          ? `Vibrato at about ${avg((v) => v.rateHz!).toFixed(1)} a second, ${Math.round(avg((v) => v.widthCents!))} cents wide. Players use roughly 4 to 7 a second. Keep it even.`
           : "No vibrato heard. Rock the string a little across the fret, steadily, while the note sounds.",
         metric: `${heard.length}/${vibratos.length}`,
         metricLabel: "with vibrato",
         delta: fin.delta,
         best: fin.best,
         xp: fin.xp,
-        assistance: "A try counts when vibrato is heard. Its rate and width are described, not judged: no published norm says what they should be.",
+        assistance: "A try counts when vibrato is heard. Its rate and width are described, not scored: no published norm says what they should be.",
         rows: vibratos.map((v, i) => ({
           label: `Try ${i + 1}`,
           text: v.rateHz === null ? "no vibrato heard" : `${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide, evenness ${pct(v.evenness ?? 0)}`,
@@ -202,7 +202,7 @@
         clean: correct,
         cleanMeans: "every bend held in tune",
         xp: fin.xp,
-        assistance: "The string, fret and target stay on screen; the microphone judges where each bend settles.",
+        assistance: "The string, fret and target stay on screen. The microphone scores where each bend settles.",
         rows: [
           { label: `In tune (within ${BEND.inTune} cents)`, value: inTune / Math.max(1, bends.length), text: `${inTune} of ${bends.length}` },
           ...bends.map((b, i) => ({ label: `Bend ${i + 1}`, text: b.verdict === "not-held" ? "not held" : `${b.verdict.replace("-", " ")}, ${centsText(b.errorCents!)}` })),
@@ -224,7 +224,7 @@
     unsub?.();
     unsub = null;
     phase = "ready";
-    status = "Stopped. The tries you finished are recorded.";
+    status = "Stopped. The tries you finished are saved.";
   }
 
   onDestroy(() => {
@@ -284,7 +284,7 @@
 
   {#snippet stage()}
     <figure class="mb-3 rounded-xl bg-ws-stage-ink/6 p-3">
-      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label="Pitch over the last four seconds, cents above {noteName(fromMidi)}{vibrato ? '' : `; the dashed line is ${noteName(toMidi)}`}">
+      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label="Pitch over the last four seconds, cents above {noteName(fromMidi)}{vibrato ? '' : `. The dashed line is ${noteName(toMidi)}`}">
         <line x1="0" x2={W} y1={yOf(0)} y2={yOf(0)} class="base" vector-effect="non-scaling-stroke" />
         {#if !vibrato}<line x1="0" x2={W} y1={yOf((toMidi - fromMidi) * 100)} y2={yOf((toMidi - fromMidi) * 100)} class="target" vector-effect="non-scaling-stroke" />{/if}
         {#if path}<path d={path} class="trace" vector-effect="non-scaling-stroke" />{/if}
@@ -301,7 +301,7 @@
       label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard, string {string} fret {fret}"
     />
     {#if picking}<p class="mt-2 text-sm text-ws-stage-soft">Tap the neck to choose the string and fret.</p>{/if}
-    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Bends are judged from the microphone: play close to it." /></div>
+    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="The microphone scores each bend: play close to it." /></div>
   {/snippet}
 
   {#snippet results()}

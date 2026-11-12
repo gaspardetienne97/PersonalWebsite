@@ -270,7 +270,7 @@
     cap?.stop();
     question = null;
     phase = "ready";
-    status = "Stopped. Answers so far were kept.";
+    status = "Stopped. Your answers so far are saved.";
     void pending.then(() => (answers.length ? run?.finish({}) : undefined));
   }
 
@@ -362,7 +362,7 @@
       {:else}
         <!-- On a phone the blurb above says this: the whole neck fits above Start instead. -->
         <p class="max-w-prose text-ws-stage-soft max-sm:hidden">
-          {isRecall ? "A square marks the starting note. Find the interval above it; sounding the square first is fine." : "A note name appears here. Tap it on the neck, or play it."}
+          {isRecall ? "A square marks the starting note. Find the interval above it. You can sound the square first." : "A note name appears here. Tap it on the neck, or play it."}
           {mode === "check" ? " Check hides the answers." : " Practice lights the answers."}
         </p>
       {/if}

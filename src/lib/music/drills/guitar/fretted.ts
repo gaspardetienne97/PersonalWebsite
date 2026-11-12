@@ -36,11 +36,11 @@ export function parseTuningNotes(text: string): number[] | string {
     .trim()
     .split(/[\s,]+/)
     .filter(Boolean);
-  if (!parts.length) return "Write the open strings, low to high, e.g. E2 A2 D3 G3 B3 E4.";
+  if (!parts.length) return "Write the open strings, low to high, for example E2 A2 D3 G3 B3 E4.";
   const midis: number[] = [];
   for (const p of parts) {
     const n = /^\d+$/.test(p) ? Number(p) : /\d$/.test(p) ? parseNote(p) : null;
-    if (n === null) return `"${p}" is not a note with an octave, like E2 or Bb3.`;
+    if (n === null) return `"${p}" isn't a note with an octave, like E2 or Bb3.`;
     midis.push(n);
   }
   return midis.reverse();

@@ -151,7 +151,7 @@
     const handle = audio.playSequence(notes, { onNote: (i: number) => (demoIndex = notes[i].chord) });
     demo = handle;
     demoAt = handle.startPerf;
-    status = `Listen: one chorus, ${strum ? strumName(strum) : "strummed on beats one and three"}. The microphone is not listening to this.`;
+    status = `Demo: one chorus, ${strum ? strumName(strum) : "strummed on beats one and three"}. The microphone isn't listening.`;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -163,7 +163,7 @@
     if (mic.state !== "on" && !(await startMic())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "The microphone did not start. Check the browser allows it, then press Start again.";
+      status = mic.error || "The microphone didn't start. Check the browser allows it, then press Start again.";
       return;
     }
     summary = null;
@@ -250,7 +250,7 @@
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
-      assistance: "Practice record only: not counted toward skills yet.",
+      assistance: "Kept as practice history, not counted toward your skill scores yet.",
       rows: [
         ...(strum && tally
           ? [
@@ -268,7 +268,7 @@
           ? { label: "Mean timing", text: `${Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length)} ms from the beat` }
           : { label: "Timing", notMeasured: true },
         { label: "Which strings rang", notMeasured: true },
-        { label: "Skill mastery", notMeasured: true },
+        { label: "Skill score", notMeasured: true },
       ],
       // The tempo climbs to the progression's own, then the next progression up.
       advance: observed.length
@@ -281,7 +281,7 @@
   function stop() {
     halt();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -438,7 +438,7 @@
             />
             <button type="button" class="min-h-11 rounded-full border border-ws-line px-4 text-sm font-medium" onclick={() => cfg.set({ seed: s.seed + 1 })}>New chart</button>
           </div>
-          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">Eight bars in C you have not seen: read it once, then strum it. Some bars change chord on beat 3.</p>{/if}
+          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">Eight bars in C you haven't seen: read it once, then strum it. Some bars change chord on beat 3.</p>{/if}
         {/if}
         {#if songs.length}
           <Choice
@@ -499,7 +499,7 @@
       <!-- From lg, over the chart, the switch shares the chords' heading row (pulled up over it, its caption left to
            the switch's own words), so the chart starts one row higher. The highway keeps the row and its caption. -->
       <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 {highway.on ? '' : 'lg:pointer-events-none lg:relative lg:z-10 lg:-mb-11'}">
-        <p class="text-sm text-ws-stage-soft max-sm:hidden {highway.on ? '' : 'lg:hidden'}">{highway.on ? "Highway: each strum slides down to the line as it is due." : "Highway: a scrolling view"}</p>
+        <p class="text-sm text-ws-stage-soft max-sm:hidden {highway.on ? '' : 'lg:hidden'}">{highway.on ? "Highway: each strum slides down to the line as it's due." : "Highway: a scrolling view"}</p>
         <div class="pointer-events-auto">{@render viewSwitch("Chart")}</div>
       </div>
     {/if}
@@ -539,7 +539,7 @@
             <span class="font-display text-2xl font-bold leading-none">{c.symbol}</span>
             <span class="text-[13px] {i === current ? '' : 'text-ws-stage-soft'}">
               {#if graded}
-                {graded.matched ? "✓ followed" : graded.verification ? "✕ tones off" : "✕ not heard"}
+                {graded.matched ? "followed" : graded.verification ? "tones off" : "not heard"}
               {:else}
                 {c.bars} bar{c.bars > 1 ? "s" : ""}
               {/if}
@@ -567,10 +567,10 @@
     </div>
     <details class="group mt-3 max-w-prose text-sm text-ws-stage-soft">
       <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">
-        <Info class="size-4" aria-hidden="true" />Why this run is not counted toward skills
+        <Info class="size-4" aria-hidden="true" />Why this run doesn't count toward skills
       </summary>
       <p class="pb-1">
-        The microphone hears which notes ring after each strum, not which strings rang them, and chord following has not yet been checked on a real {instr}. So a run keeps a practice record, with your timing, but does not move a skill score.
+        The microphone hears which notes ring after each strum, not which strings rang them. Chord following hasn't been tested on a real {instr} yet. So a run is kept as practice history, with your timing, but doesn't change a skill score.
       </p>
     </details>
   {/snippet}

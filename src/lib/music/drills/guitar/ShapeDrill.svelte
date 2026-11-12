@@ -95,7 +95,7 @@
       onNote: (i: number) => (demoMidi = i < targets.length ? targets[i].midi : null),
     });
     demo = handle;
-    status = `Listen: ${symbol}, string by string${isPick ? "" : ", then strummed"}.`;
+    status = `Demo: ${symbol}, string by string${isPick ? "" : ", then strummed"}.`;
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -127,12 +127,12 @@
       miss = near
         ? `${heardName} is ${Math.abs(near.cents)} cents ${near.cents > 0 ? "sharp" : "flat"} of a chord note: check your tuning.`
         : mode === "check"
-          ? `Wrong note: ${heardName} is not one of the notes still to play.`
+          ? `Wrong note: ${heardName} isn't one of the notes still to play.`
           : want && pc(want.midi) === pc(e.midi)
             ? `Right note, wrong octave: play ${where(want)}.`
             : want
               ? `Wrong note: play ${where(want)}.`
-              : `Wrong note: ${heardName} is not in the chord.`;
+              : `Wrong note: ${heardName} isn't in the chord.`;
       if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
     }
     if (!isPick) idle();
@@ -211,7 +211,7 @@
       headline: !ons.length
         ? "Nothing was heard during the run. Tap the strings, play into the microphone, or connect MIDI, then try again."
         : r.correct
-          ? `All ${r.total} target notes of ${symbol} matched${mode === "check" ? " from memory" : ""}.`
+          ? `All ${r.total} target notes of ${symbol} matched${mode === "check" ? " in Check" : ""}.`
           : `${r.matched} of ${r.total} target notes matched. Missed ${missedStrings.join(", ")}.`,
       metric: `${r.matched}/${r.total}`,
       metricLabel: "target notes matched",
@@ -251,7 +251,7 @@
     if (!isPick && phase === "running") return void finish();
     halt();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -358,9 +358,9 @@
       <p class="mt-3 flex items-start gap-2 text-base font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
-      {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">Stop when you are done: what you played is scored.</span>{/if}
-      <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? "Shape hidden: play it from memory." : "What is checked"}</span>
-      <Hint about="what is checked" text="Pitch matching checks which notes you sounded, not which string they came from or how clean they rang." />
+      {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">Stop when you're done: what you played is scored.</span>{/if}
+      <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? "Check: the shape is hidden." : "What is scored"}</span>
+      <Hint about="what is scored" text="Scored: which notes you sounded. Not scored: which string they came from, or how clean they rang." />
     </div>
   {/snippet}
 

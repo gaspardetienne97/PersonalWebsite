@@ -77,7 +77,7 @@
       {},
     );
     demo = handle;
-    status = `Listen: ${symbol}. The microphone is not listening to this.`;
+    status = `Demo: ${symbol}. The microphone isn't listening.`;
     void handle.done.then(() => {
       if (demo === handle) demo = null;
     });
@@ -120,8 +120,8 @@
       ungraded = !h
         ? "No strum was heard in eight seconds. Strum a little harder, close to the microphone."
         : n === 0
-          ? "The strum was too quiet to read any tones. Nothing was recorded; move closer and strum again."
-          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map(spell).join(", ")}). ${symbol} needs ${need}, so nothing was recorded.`;
+          ? "The strum was too quiet to read any tones. Nothing saved. Move closer and strum again."
+          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map(spell).join(", ")}). ${symbol} needs ${need}, so nothing was saved.`;
       status = ungraded;
       return;
     }
@@ -163,7 +163,7 @@
         ? `That rang as ${symbol}: every target tone, nothing extra.`
         : g.identified && g.identified !== symbol
           ? `That read as ${g.identified}, not ${symbol}. ${v.missing.length ? `Missing ${v.missing.map(spell).join(", ")}.` : ""} ${v.extra.length ? `Extra ${v.extra.map(spell).join(", ")}.` : ""}`.trim()
-          : `Named ${symbol}, but ${v.missing.length ? `${v.missing.map(spell).join(", ")} did not come through` : `${v.extra.map(spell).join(", ")} rang as well`}.`,
+          : `Named ${symbol}, but ${v.missing.length ? `${v.missing.map(spell).join(", ")} didn't come through` : `${v.extra.map(spell).join(", ")} rang as well`}.`,
       metric: pct(g.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -176,7 +176,7 @@
         { label: "Chord named", value: g.identified === symbol ? 1 : 0, text: g.identified ?? "None" },
         { label: "Target tones heard", value: v.coverage, text: `${expected.length - v.missing.length} of ${expected.length}` },
         { label: "Extra tones", text: v.extra.length ? v.extra.map(spell).join(", ") : "None" },
-        { label: "Identifier confidence", value: g.confidence },
+        { label: "Match confidence", value: g.confidence },
         { label: "Which strings rang", notMeasured: true },
         { label: "Tone cleanliness", notMeasured: true },
       ],
@@ -189,7 +189,7 @@
   function stop() {
     halt();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -203,7 +203,7 @@
   lesson={{ lessons: conceptCard("tips.strum", { tuning }), trigger: "check" }}
   title="Strum and identify"
   hue={instr}
-  blurb="Strum the chord once into the microphone: it names what it heard and checks each tone."
+  blurb="Strum the chord once into the microphone. Woodshed names what it heard and scores each tone."
   summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: "one strum" }]}
   tabs={CHORD_MODES}
   tab="strum"
@@ -252,7 +252,7 @@
     {#if ungraded}
       <article class="rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6">
         <p class="font-display text-xl font-semibold leading-snug sm:text-2xl">{ungraded}</p>
-        <p class="mt-1 text-sm text-ws-soft">Nothing was graded, so no score, XP or mastery changed. Strum again when you are ready.</p>
+        <p class="mt-1 text-sm text-ws-soft">Nothing was scored, so no score, XP or skill score changed. Strum again when you're ready.</p>
       </article>
     {:else if summary}<Results {summary} />{/if}
   {/snippet}

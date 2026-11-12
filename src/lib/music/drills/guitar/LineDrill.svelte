@@ -401,7 +401,7 @@
     demo = handle;
     demoAt = handle.startPerf;
     loop();
-    status = "Listen: the line at tempo, lit as it sounds.";
+    status = "Demo: the line at tempo, lit as it sounds.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -457,7 +457,7 @@
   const cue = $derived.by(() => {
     const t = steps[stepIndex];
     if (phase !== "running" || !t) return "";
-    return mode === "check" ? `Note ${stepIndex + 1} of ${steps.length}, from memory` : `Play string ${t.string}, ${t.fret ? `fret ${t.fret}` : "open"}`;
+    return mode === "check" ? `Note ${stepIndex + 1} of ${steps.length}, in Check` : `Play string ${t.string}, ${t.fret ? `fret ${t.fret}` : "open"}`;
   });
   /** On time within the highway's window: a third of a note, 35 to 60 ms. */
   const onTimeMs = () => Math.max(35, Math.min(60, stepMs() * 0.3));
@@ -637,7 +637,7 @@
     clearTimeout(timer);
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   /** The next shape or pattern in the list. */
@@ -696,7 +696,7 @@
   blurb={isHarm
     ? "Natural harmonics over frets 12, 7 and 5: touch the string, pick, and lift."
     : isLegato
-    ? "Pick only the ↓ notes; hammer, pull off or slide to the rest, as the tab writes them."
+    ? "Pick only the ↓ notes. Hammer, pull off or slide to the rest, as the tab writes them."
     : isPick
     ? "A picking pattern over two or more chords: p thumb, i index, m middle, a ring."
     : isSpider
@@ -725,7 +725,7 @@
         {#if songs.length}
           <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="song">
             <Choice label="Start from a song" options={songs.map((x) => ({ value: x.id, label: x.song, detail: x.artist }))} value={song?.id ?? ""} onchange={useSong} />
-            {#if song}<p class="text-[13px] text-ws-soft">{song.note} Tempo {song.bpm}.</p>{/if}
+            {#if song}<p class="text-[13px] text-ws-soft">{song.note} Tempo {song.bpm} BPM.</p>{/if}
           </div>
         {/if}
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
@@ -736,7 +736,7 @@
         </div>
         <ChordCycleSetup instrument={instr} {tuning} refs={pickRefs} shapes={pickShapes} positions={pickChosen} onchange={savePick} setupKey="chords" />
       {:else if isHarm}
-        <p class="text-sm text-ws-soft sm:col-span-2">Touch lightly right over the fret wire, pick near the bridge, then lift the finger. The microphone hears the harmonic; a tap on the neck at 12, 7 or 5 stands for it.</p>
+        <p class="text-sm text-ws-soft sm:col-span-2">Touch lightly right over the fret wire, pick near the bridge, then lift the finger. The microphone hears the harmonic. A tap on the neck at 12, 7 or 5 stands for it.</p>
       {:else if isLegato}
         <Choice label="Pattern" setupKey="pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label, detail: legatoText(p, legatoStart) }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
         <p class="self-end text-sm text-ws-soft">Tap the neck on the stage to choose the string and start fret.</p>
@@ -823,7 +823,7 @@
             value={target?.id ?? ""}
             onchange={(v) => cfg.set({ grade: v })}
           />
-          <p class="text-[13px] text-ws-soft">The exam's click becomes the goal the tempo climbs to. Rockschool Electric 2018 and Trinity classical minimums; neither says how many notes fall on a click.</p>
+          <p class="text-[13px] text-ws-soft">The exam's click becomes the goal the tempo climbs to. Rockschool Electric 2018 and Trinity classical minimums. Neither says how many notes fall on a click.</p>
         </div>
       {/if}
     </div>
@@ -917,9 +917,9 @@
       </dl>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-      {#if mode === "check" && phase !== "results"}<p>Check mode: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand; colours the fretting hand. ${pickNames[0]} is shown; the others follow in the run.` : isLegato ? "↓ is picked, h hammered on, p pulled off, / and \\ slid up and down; colours are your fingers." : isSpider ? "Numbers are the order you play; colours are your fingers." : isHarm ? "H marks where to touch the string, right over the fret, without pressing it." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
+      {#if mode === "check" && phase !== "results"}<p>Check: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand, colours the fretting hand. ${pickNames[0]} is shown. The others follow in the run.` : isLegato ? "↓ is picked, h hammered on, p pulled off, / and \\ slid up and down. Colours are your fingers." : isSpider ? "Numbers are the order you play. Colours are your fingers." : isHarm ? "H marks where to touch the string, right over the fret, without pressing it." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
       {#if picking}<p>{isSpider ? "Tap the neck to move the pattern's first fret." : "Tap the neck to start somewhere else: the string and the start fret."}</p>{/if}
-      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? "Triads are named by the root on string 6; each inversion sits higher up the neck." : box.instrument === "ukulele" ? "Positions are named by the root on string 1." : box.family === "blues-box" ? "The B.B. box sits five frets above the string-6 root: the index on the root, string 2." : "Shapes are named by the root on string 6."} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `On ${tuning.name}, each note keeps its pitch, so a retuned string's notes sit higher or lower than the shape you know. `}{steps.some((t) => t.stretch) ? "An arrow is a stretch: ←1 reaches back with the index, 4→ up with the pinky (more than a fret means moving the hand)." : ""}</p>{/if}
+      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? "Triads are named by the root on string 6. Each inversion sits higher up the neck." : box.instrument === "ukulele" ? "Positions are named by the root on string 1." : box.family === "blues-box" ? "The B.B. box sits five frets above the string-6 root: the index on the root, string 2." : "Shapes are named by the root on string 6."} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `On ${tuning.name}, each note keeps its pitch, so a retuned string's notes sit higher or lower than the shape you know. `}{steps.some((t) => t.stretch) ? "An arrow is a stretch: ←1 reaches back with the index, 4→ up with the pinky (more than a fret means moving the hand)." : ""}</p>{/if}
     </div>
     <!-- The run's clock rides along as data, for tests and tools. -->
     <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} offer={phase !== "ready"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
