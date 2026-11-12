@@ -1,6 +1,8 @@
-/* Woodshed palette. The chrome stays quiet; the stage is a lit dark panel in
-   both themes so the instruments read as material. Instrument hue is identity
-   only; judgement uses --success / --warn / --destructive plus a glyph or text. */
+/* Woodshed palette. Hubs follow the theme. A drill page (a DrillShell on the
+   page: [data-drill-page]) is dark in both themes, ready screen and session alike,
+   with the stage as the lit panel on it so the instruments read as material.
+   Instrument hue is identity only; judgement uses --success / --warn /
+   --destructive plus a glyph or text. */
 
 .woodshed {
   --ws-bg: oklch(0.968 0.007 280);
@@ -85,7 +87,7 @@
   --ws-strip-h: 3.75rem;
   --ws-dock-h: calc(3.5rem + 1px + env(safe-area-inset-bottom, 0px));
 
-  /* Session chrome (contract S1): bars in the page theme, opaque. */
+  /* Session chrome (contract S1): bars in the page's palette, opaque. */
   --ws-bar: var(--ws-surface);
   --ws-bar-shadow: 0 -12px 24px -18px oklch(0.2 0.045 288 / 0.45);
 
@@ -109,7 +111,11 @@
   --ws-dock-h: 0px;
 }
 
-.dark .woodshed {
+/* The dark palette: the dark theme everywhere, and every drill page in the
+   light theme too. The scope sits on the app root, so the strip, the sidebar
+   and menus drawn at the root (Picker, KeyPicker) are dark with the drill. */
+.dark .woodshed,
+.woodshed:has([data-drill-page]) {
   --ws-bg: oklch(0.185 0.035 288);
   --ws-surface: oklch(0.225 0.04 289);
   --ws-raised: oklch(0.27 0.045 290);
@@ -127,10 +133,35 @@
   --on-destructive: oklch(0.145 0.03 286);
 }
 
-/* The stage is dark in both themes: the
-   judgement tones on it take the dark theme's brighter values, so a green
-   "Pass" or an amber mark never sits dim on the dark panel in the light theme. */
-.woodshed .stage {
+/* A drill page in the light theme: native controls and scrollbars go dark, and
+   the site's own tokens (used by @repo/ui parts and a few labels) follow the
+   Woodshed ones, so nothing light is left on the dark page. */
+:root:not(.dark) .woodshed:has([data-drill-page]) {
+  color-scheme: dark;
+  --background: var(--ws-bg);
+  --foreground: var(--ws-ink);
+  --card: var(--ws-surface);
+  --card-foreground: var(--ws-ink);
+  --popover: var(--ws-surface);
+  --popover-foreground: var(--ws-ink);
+  --primary: var(--ws-ink);
+  --primary-foreground: var(--ws-bg);
+  --secondary: var(--ws-raised);
+  --secondary-foreground: var(--ws-ink);
+  --muted: var(--ws-raised);
+  --muted-foreground: var(--ws-soft);
+  --accent: var(--ws-raised);
+  --accent-foreground: var(--ws-ink);
+  --border: var(--ws-line);
+  --input: var(--ws-line);
+  --ring: var(--instr);
+}
+
+/* The stage is dark in both themes, and so is the whole drill page: the
+   judgement tones there take the dark theme's brighter values, so a green
+   "Pass" or an amber mark never sits dim on a dark panel in the light theme. */
+.woodshed .stage,
+.woodshed:has([data-drill-page]) {
   --success: oklch(0.72 0.16 152);
   --success-foreground: oklch(0.18 0.04 152);
   --warn: oklch(0.78 0.15 80);
@@ -143,25 +174,27 @@
   --on-late: oklch(0.145 0.03 286);
 }
 
-/* Deep primary fills for the pale hues, light theme only. The layout sets
-   --instr inline, so its style attribute names the hue. */
-:root:not(.dark) .woodshed[style*="var(--hue-mpc)"] {
+/* Deep primary fills for the pale hues, on the light theme's light pages only
+   (a drill page is dark, so it keeps the bright hue with dark ink). The layout
+   sets --instr inline, so its style attribute names the hue. */
+:root:not(.dark) .woodshed:not(:has([data-drill-page]))[style*="var(--hue-mpc)"] {
   --instr-strong: var(--hue-mpc-strong);
   --on-instr: var(--on-strong);
 }
-:root:not(.dark) .woodshed[style*="var(--hue-voice)"] {
+:root:not(.dark) .woodshed:not(:has([data-drill-page]))[style*="var(--hue-voice)"] {
   --instr-strong: var(--hue-voice-strong);
   --on-instr: var(--on-strong);
 }
-:root:not(.dark) .woodshed[style*="var(--hue-ear)"] {
+:root:not(.dark) .woodshed:not(:has([data-drill-page]))[style*="var(--hue-ear)"] {
   --instr-strong: var(--hue-ear-strong);
   --on-instr: var(--on-strong);
 }
-:root:not(.dark) .woodshed[style*="var(--hue-reading)"] {
+:root:not(.dark) .woodshed:not(:has([data-drill-page]))[style*="var(--hue-reading)"] {
   --instr-strong: var(--hue-reading-strong);
   --on-instr: var(--on-strong);
 }
-:root:not(.dark) .woodshed:is([style*="var(--hue-create)"], [data-hue="off"]) {
+:root:not(.dark)
+  .woodshed:not(:has([data-drill-page])):is([style*="var(--hue-create)"], [data-hue="off"]) {
   --instr-strong: var(--hue-create-strong);
   --on-instr: var(--on-strong);
 }
@@ -242,7 +275,7 @@
   --ws-soft: var(--ws-stage-soft);
 }
 
-/* Bars (HUD, docks, the tab bar): opaque, in the page theme, with a border and
+/* Bars (HUD, docks, the tab bar): opaque, in the page's palette, with a border and
    a soft shadow on a bottom bar's top edge (no fade: it read as text fading out). */
 .woodshed .ws-bar {
   background: var(--ws-bar);
@@ -256,7 +289,7 @@ html:has(.woodshed [data-session]) {
   scroll-padding-top: 4.5rem;
   scroll-padding-bottom: 8rem;
 }
-/* In a session only the stage box is dark: a rounded panel on the page. */
+/* In a session the stage box is the lit panel: rounded, a step darker than the page. */
 .woodshed [data-session] .stage-box.stage {
   border-radius: var(--ws-radius-card);
   box-shadow:

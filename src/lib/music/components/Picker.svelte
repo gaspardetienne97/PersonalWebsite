@@ -61,7 +61,8 @@
     }, []),
   );
 
-  // The open list is drawn inside the app's root so it keeps the theme's colours.
+  // The open list is drawn inside the app's root so it keeps the app's colours
+  // (on a drill page the root is dark in both themes, and so is the list).
   // Found from the trigger once it is on the page (on a fresh load the root is
   // not reachable while components are still being set up); the body when a
   // component is rendered on its own, as in tests.
@@ -135,7 +136,9 @@
   :global(.woodshed) :global(.glyph) {
     color: color-mix(in oklch, var(--c), black 35%);
   }
-  :global(.dark .woodshed) :global(.glyph) {
+  /* The dark theme, and a drill page in either theme (its menus are drawn at the app root, which is dark then). */
+  :global(.dark .woodshed) :global(.glyph),
+  :global(.woodshed:has([data-drill-page])) :global(.glyph) {
     color: var(--c);
   }
 </style>

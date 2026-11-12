@@ -4,10 +4,12 @@ import { describe, expect, it } from "vite-plus/test";
 import css from "../../routes/music/woodshed.css?raw";
 
 type Oklch = [number, number, number];
-/** The oklch tokens declared in the first rule whose selector is exactly `selector`. */
-function tokens(selector: string): Record<string, Oklch> {
-  const at = css.search(new RegExp(`(^|\\n)${selector.replace(/[.[\]()*:"]/g, "\\$&")} \\{`));
-  if (at < 0) throw new Error(`no rule ${selector}`);
+/** The oklch tokens declared in the nth rule whose selector (the last of its list) is exactly `selector`. */
+function tokens(selector: string, nth = 0): Record<string, Oklch> {
+  const at = [
+    ...css.matchAll(new RegExp(`(^|\\n)${selector.replace(/[.[\]()*:"]/g, "\\$&")} \\{`, "g")),
+  ][nth]?.index;
+  if (at === undefined) throw new Error(`no rule ${selector}`);
   const body = css.slice(at, css.indexOf("}", at));
   const out: Record<string, Oklch> = {};
   for (const m of body.matchAll(/(--[\w-]+):\s*oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)/g))
@@ -33,10 +35,15 @@ const contrast = (x: Oklch, y: Oklch) => {
   return (a + 0.05) / (b + 0.05);
 };
 
+// The dark palette's rule is shared by the dark theme and every drill page (dark in both themes);
+// the judgement tones' rule by the stage and the drill page.
+const DARK = ".woodshed:has([data-drill-page])";
 const light = tokens(".woodshed");
-const dark = { ...light, ...tokens(".dark .woodshed") };
-const stage = { ...dark, ...tokens(".woodshed .stage") };
-const stageLight = { ...light, ...tokens(".woodshed .stage") };
+const dark = { ...light, ...tokens(DARK) };
+const stage = { ...dark, ...tokens(DARK, 1) };
+const stageLight = { ...light, ...tokens(DARK, 1) };
+/** A drill page in either theme: the dark palette with the bright judgement tones. */
+const drill = stage;
 const HUES = Object.keys(light)
   .filter((k) => /^--hue-[a-z]+$/.test(k))
   .map((k) => k.slice(6));
@@ -100,5 +107,48 @@ describe("woodshed contrast", () => {
         );
       }
     }
+  });
+
+  // A drill page is dark in both themes: its chrome (ready bar, HUD, dock, menus) uses the dark
+  // palette whatever the theme, so these pairs must hold without the theme's help.
+  it("scopes the dark palette and the bright judgement tones to drill pages in both themes", () => {
+    expect(css).toMatch(
+      /\.dark \.woodshed,\n\.woodshed:has\(\[data-drill-page\]\) \{\n {2}--ws-bg:/,
+    );
+    expect(css).toMatch(
+      /\.woodshed \.stage,\n\.woodshed:has\(\[data-drill-page\]\) \{\n {2}--success:/,
+    );
+    // No light-theme rule may reach a drill page: every one names the pages it is for.
+    for (const m of css.matchAll(/:root:not\(\.dark\)\s+\.woodshed([^\s{]*)/g))
+      expect(m[1], m[0]).toMatch(
+        /^(:not\(:has\(\[data-drill-page\]\)\)|:has\(\[data-drill-page\]\)|\.ws-light-stage)/,
+      );
+  });
+
+  it("keeps text, hue ink and judgement tones at 4.5:1 on a drill page's surfaces", () => {
+    for (const bg of ["--ws-bg", "--ws-surface", "--ws-raised"]) {
+      for (const k of [
+        "--ws-ink",
+        "--ws-soft",
+        "--success",
+        "--warn",
+        "--destructive",
+        "--early",
+        "--late",
+      ])
+        expect(contrast(drill[k], drill[bg]), `${k} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      // --instr-ink is the hue itself on the dark palette (links, the title's mode picker, focus rings).
+      for (const h of HUES)
+        expect(
+          contrast(drill[`--hue-${h}`], drill[bg]),
+          `${h} ink on ${bg}`,
+        ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("gives Start a 4.5:1 label on a drill page for every hue (the bright hue, dark ink)", () => {
+    expect(drill["--instr-strong"]).toBeUndefined(); // the fill is var(--instr), never a light-theme deep fill
+    for (const h of HUES)
+      expect(contrast(drill[`--hue-${h}`], drill["--on-instr"]), h).toBeGreaterThanOrEqual(4.5);
   });
 });
