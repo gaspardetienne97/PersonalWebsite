@@ -198,7 +198,7 @@
     // The word for the step this note answered: on time, early or late by so many ms, or the note it wanted.
     const h = hits[m.findLastIndex((x) => x.at !== null)];
     if (want && mode === "practice" && (h === "wrong" || typeof h === "number")) {
-      const v = typeof h === "number" ? verdictOf(Math.abs(h) <= onTimeMs() ? "ok" : h < 0 ? "early" : "late", h) : { kind: "wrong" as const, text: `Wanted ${spell(want.notes.map((n) => n.midi))}, heard ${spell([e.midi])}` };
+      const v = typeof h === "number" ? verdictOf(Math.abs(h) <= onTimeMs() ? "ok" : h < 0 ? "early" : "late", h) : { kind: "wrong" as const, text: `Heard ${spell([e.midi])}, that one was ${spell(want.notes.map((n) => n.midi))}` };
       verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
     }
     played = m.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;

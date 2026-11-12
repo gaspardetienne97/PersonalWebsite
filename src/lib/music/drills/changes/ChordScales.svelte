@@ -308,7 +308,7 @@
           ? mode === "check"
             ? `${pattern!.label} through every chord, from memory.`
             : `${pattern!.label} through every chord, all ${r.total} notes in order.`
-          : `${r.matched} of ${r.total} right. It slipped over ${slip?.symbol ?? "a chord"}.`,
+          : `${r.matched} of ${r.total} right. It first slipped over ${slip?.symbol ?? "a chord"}.`,
       metric: pct(r.score),
       metricLabel: "notes in order",
       delta: fin.delta,
@@ -319,7 +319,7 @@
       rows: [
         { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
         // Timing is judged on the notes that came in order, so it says how many of those.
-        { label: `On time (within ${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
+        { label: `Right notes on time (${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of ${r.matched}` },
         ...perChordRows(),
       ],
       cleanMeans: "every note in order",

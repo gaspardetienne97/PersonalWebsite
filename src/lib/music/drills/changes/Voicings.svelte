@@ -469,10 +469,12 @@
       {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{group[0]?.group} of {new Set(items.map((i) => i.group)).size} keys</li>{/if}
     </ol>
     {#if current && mode === "practice"}
+      <!-- While the demo plays, the words follow the chord that is sounding, not the one the run would start on. -->
+      {@const told = (transport.playing && demoIndex !== null ? group[demoIndex] : undefined) ?? current}
       <div class="min-w-0 flex-[1_1_16rem] text-sm">
-        <p class="font-medium">{current.name}</p>
-        {#if current.hint}<p class="text-ws-stage-soft">{current.hint}</p>{/if}
-        {#if current.guide}<p class="text-ws-stage-soft">From {current.guide.fromMidi.map(nameOf).join(" and ")}: find the nearest {current.symbol} 3rd and 7th.</p>{/if}
+        <p class="font-medium">{told.name}</p>
+        {#if told.hint}<p class="text-ws-stage-soft">{told.hint}</p>{/if}
+        {#if told.guide}<p class="text-ws-stage-soft">From {told.guide.fromMidi.map(nameOf).join(" and ")}: find the nearest {told.symbol} 3rd and 7th.</p>{/if}
       </div>
     {:else if current && mode === "check"}
       <p class="min-w-0 flex-[1_1_16rem] text-sm text-ws-stage-soft">

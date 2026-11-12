@@ -169,6 +169,12 @@
   const showRoles = $derived(!(checking || (mode === "check" && phase !== "results")));
   /** The notes a set game scores (C Eb G, the guide tones), ringed on every octave above the degrees: the grader's own set. */
   const setPcs = $derived(scoredSet(game, prog.keyPc, chord.symbol));
+  /** A degree as the exercise names it: a scored minor third over a dominant chord is the blue "b3" the lesson and the hint
+   *  talk about, not the "#9" a chart would call it, so one note has one name on screen. */
+  const toneLabel = (symbol: string, p: number) => {
+    const d = degreeLabel(symbol, p);
+    return d === "#9" && setPcs.includes(p) ? "b3" : d;
+  };
   /** The key just played, lit with its degree for a moment, so the eye stays on the keys. */
   let litKey = $state<number | null>(null);
   let litTimer: ReturnType<typeof setTimeout> | undefined;
@@ -179,8 +185,9 @@
       // chord tones. The rest of the scale and the avoid notes are a dot in their colour.
       for (let m = 48; m <= 84; m++) {
         // A scored note is a target, never drawn as an avoid note even where the theory would call it one.
-        if (setPcs.includes(pc(m))) out[m] = { label: degreeLabel(chord.symbol, pc(m)), target: true };
-        else out[m] = { label: !setPcs.length && roles[pc(m)] === "chord" ? degreeLabel(chord.symbol, pc(m)) : undefined, role: roles[pc(m)] };
+        // A set game marks its notes and leaves every other key plain: the hint names only the scored set.
+        if (setPcs.includes(pc(m))) out[m] = { label: toneLabel(chord.symbol, pc(m)), target: true };
+        else if (!setPcs.length) out[m] = { label: roles[pc(m)] === "chord" ? degreeLabel(chord.symbol, pc(m)) : undefined, role: roles[pc(m)] };
       }
     if (litKey !== null && lastNote) out[litKey] = { ...out[litKey], demo: true, label: showRoles ? lastNote.label : undefined };
     return out;
@@ -243,7 +250,7 @@
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
     played = [...played, { midi: e.midi, at: e.at, chordIndex: chordIdx, chorus }];
-    lastNote = { midi: e.midi, role: roles[pc(e.midi)], label: degreeLabel(chord.symbol, pc(e.midi)), symbol: chord.symbol };
+    lastNote = { midi: e.midi, role: roles[pc(e.midi)], label: toneLabel(chord.symbol, pc(e.midi)), symbol: chord.symbol };
     litKey = e.midi;
     clearTimeout(litTimer);
     litTimer = setTimeout(() => (litKey = null), 500);
@@ -765,7 +772,7 @@
             <!-- A set game: the chips are the scored notes and nothing else, each with its degree over this chord, as the ringed keys say. -->
             <ul class="flex flex-wrap gap-1.5" aria-label="Scored notes over {chord.symbol}">
               {#each setPcs as p (p)}
-                <li class="tone-chip set"><span class="text-[0.8125rem] font-medium">{degreeLabel(chord.symbol, p)}</span>{FLAT_NAMES[p]}</li>
+                <li class="tone-chip set"><span class="text-[0.8125rem] font-medium">{toneLabel(chord.symbol, p)}</span>{FLAT_NAMES[p]}</li>
               {/each}
             </ul>
           {:else if showRoles && tones.length}
@@ -802,9 +809,11 @@
     </div>
 
     <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-ws-stage-ink" class:hidden={!showRoles}>
-      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
-      <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue dot (9, 11, 13)</span>
-      <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: muted dot, unnamed</span>
+      {#if !setPcs.length || fretted}
+        <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
+        <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue dot (9, 11, 13)</span>
+        <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: muted dot, unnamed</span>
+      {/if}
       {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>Scored notes: solid ring ({setPcs.map((p) => FLAT_NAMES[p]).join(" ")})</span>{/if}
       <span>The numbers are degrees over the chord.</span>
     </div>

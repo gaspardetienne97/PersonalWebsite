@@ -353,10 +353,12 @@
   const laneTurn = $derived(now?.turn ?? Math.max(0, turns.length - 1));
   const laneCall = $derived(phase === "running" || phase === "countin" ? (calls[laneTurn] ?? []) : sampleCall);
   /** Check hides the notes: the blocks show where in time, blank, never a name or a beat number. */
+  /** Before the run the lane holds an example, not the first call: it says so, so the ear task is not given away. */
+  const sample = $derived(phase !== "running" && phase !== "countin");
   const blankLane = $derived(mode === "check" && !demo?.playing);
   const laneRows = $derived<LaneRow[]>([
     // Named with their octave (C4, E5), so the call and your notes compare pitch for pitch.
-    { id: "call", mark: "Call", label: "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
+    { id: "call", mark: sample ? "e.g." : "Call", label: sample ? "A sample call" : "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
     ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : noteName(r.midi, "flat") })) }] : []),
   ]);
   const laneChords = $derived(
@@ -423,7 +425,7 @@
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label="Turn" value="{Math.min(CALL_TURNS, (now?.turn ?? 0) + 1)} of {CALL_TURNS}" />
-      {#if mode === "practice"}<Stat label="Right so far" value={turns.filter((t) => t.correct).length} />{/if}
+      {#if mode === "practice"}<Stat label="Turns right" value={turns.filter((t) => t.correct).length} />{/if}
     {/if}
   {/snippet}
 
@@ -483,7 +485,7 @@
       <!-- A live phone run: this region takes the free height and the keys sit at its foot, under the thumb. -->
       <div class="flex flex-col justify-end" data-dock="instrument" data-grow={phone.current && phase === "running" ? "" : undefined}><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
-        <p class="text-sm text-ws-stage-soft">Calls stay between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
+        <p class="text-sm text-ws-stage-soft">The lane shows a sample call. Each turn brings a new one between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
       {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
     </div>
   {/snippet}

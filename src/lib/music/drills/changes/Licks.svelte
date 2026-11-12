@@ -217,7 +217,7 @@
       if (want && mode === "practice") {
         const o = lineOutcomes([{ midi: want.midi, beat: want.startBeat }], [{ midi: e.midi, beat }], tolBeats(ctxRef.beatMs))[0]!;
         const samePitch = pc(e.midi) === pc(want.midi);
-        const v = o === "miss" ? { kind: "wrong" as const, text: samePitch ? `${spell(want.midi)}, too far off the beat` : `Wanted ${spell(want.midi)}, heard ${spell(e.midi)}` } : verdictOf(o, (beat - want.startBeat) * ctxRef.beatMs);
+        const v = o === "miss" ? { kind: "wrong" as const, text: samePitch ? `${spell(want.midi)}, too far off the beat` : `Heard ${spell(e.midi)}, that one was ${spell(want.midi)}` } : verdictOf(o, (beat - want.startBeat) * ctxRef.beatMs);
         verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
         slip = o === "miss" && !samePitch ? { heard: e.midi, want: want.midi } : null;
       }
@@ -287,7 +287,7 @@
     const rows: ResultRow[] = [
       { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
       // Timing is judged on the notes that came in order, so it says how many of those.
-      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
+      { label: `Right notes on time (${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of ${r.matched}` },
     ];
     if (fretted)
       rows.push(r.positions === null ? { label: "String and fret (MIDI and microphone can't see them)", notMeasured: true } : { label: "String and fret", value: r.positions / r.total, text: `${r.positions} of ${r.total}` });
@@ -396,7 +396,7 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Note" value="{Math.min(played + 1, chunk.length)} of {chunk.length}" />
+      <Stat label="Played" value="{played} of {chunk.length}" />
       {#if mode === "practice" && next}<Stat label="Next" value={spell(next.midi)} />{/if}
     {/if}
   {/snippet}
