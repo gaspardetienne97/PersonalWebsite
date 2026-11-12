@@ -449,5 +449,9 @@ export function plainPathText(text: string): string {
     .replace(/\bStudio S-(\d+)/g, "Studio ears step $1")
     .replace(/\b[TS]-(\d+)\b/g, "step $1")
     .replace(/^H\d+ /, "")
+    .replace(
+      /(\d+%) over (\d+) items, on two days/g,
+      "Score $1 on $2 questions, on two different days",
+    )
     .trim();
 }

@@ -108,7 +108,11 @@
   <section aria-labelledby="set-title" class="min-w-0">
     <div class="flex items-end justify-between gap-3">
       <div class="min-w-0">
-        <p class="text-ws-soft">{greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}</p>
+        <p class="text-ws-soft">
+          {greeting()}, {INSTRUMENT_LABEL[instrument]}{plan.pass > 1 ? `, pass ${plan.pass}` : ""}<!-- The streak at a glance where its card sits below the fold. --><span class="lg:hidden"
+            >{plan.streak.current === 1 ? ", day 1 streak" : plan.streak.current ? `, ${plan.streak.current}-day streak` : ""}</span
+          >
+        </p>
         <h2 id="set-title" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
           {#if allDone}Set complete{:else if plan.done.length}{minutesLeft} minutes to go{:else}Today's set, {budget} minutes{/if}
         </h2>
@@ -171,20 +175,14 @@
           {@const done = plan.done.includes(step.n)}
           {@const isNext = nextStep?.n === step.n}
           {@const Icon = HUE_ICON[hueOf(step.href)]}
+          <!-- A slim bar sized by minutes: it fills as the block is played. The names sit under it, so no empty pill reads as a disabled button. -->
           <div class="min-w-11 basis-0" style:flex-grow={step.minutes} style:--step-hue={hueVar(hueOf(step.href))}>
-            <div class="relative h-11 overflow-hidden rounded-full bg-ws-raised {isNext ? 'ring-2 ring-[color:var(--step-hue)] ring-offset-2 ring-offset-ws-surface' : ''}">
+            <div class="relative h-3 overflow-hidden rounded-full bg-ws-raised {isNext ? 'ring-2 ring-[color:var(--step-hue)] ring-offset-2 ring-offset-ws-surface' : ''}">
               <div
                 class="ws-fill absolute inset-y-0 left-0 rounded-full bg-[color:var(--step-hue)] {done ? '' : 'opacity-60'}"
                 style:width={done ? "100%" : `${Math.min(95, ((plan.playedMs[step.n] ?? 0) / (step.minutes * 600)))}%`}
                 style:transition-delay={fresh ? `${(step.n - 1) * 180}ms` : undefined}
               ></div>
-              <span class="relative flex h-full items-center gap-1.5 px-1.5">
-                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-surface text-ws-ink shadow-sm">
-                  {#if done}<span class={fresh ? "ws-pop" : ""} style:animation-delay={fresh ? `${(step.n - 1) * 180 + 300}ms` : undefined}
-                      ><Check class="size-4 text-success" aria-hidden="true" /></span
-                    >{:else}<Icon class="size-4" aria-hidden="true" />{/if}
-                </span>
-              </span>
             </div>
             <span class="sr-only">{step.label}{done ? ", done" : isNext ? ", now" : ""}</span>
           </div>
@@ -193,9 +191,14 @@
       <!-- Each block's name and length (or Done) sit under its segment, the same at every width. -->
       <div class="mt-1.5 flex gap-1.5" aria-hidden="true">
         {#each plan.routine.steps as step (step.n)}
-          <span class="min-w-11 basis-0 px-1 text-[13px] leading-tight [overflow-wrap:anywhere] sm:text-sm" style:flex-grow={step.minutes}>
-            <span class="block font-medium">{step.label}</span>
-            <span class="tnum block text-ws-soft">{plan.done.includes(step.n) ? "Done" : `${step.minutes} min`}</span>
+          {@const done = plan.done.includes(step.n)}
+          {@const Icon = HUE_ICON[hueOf(step.href)]}
+          <span class="min-w-11 basis-0 px-0.5 text-[13px] leading-tight [overflow-wrap:anywhere] sm:text-sm" style:flex-grow={step.minutes}>
+            <span class="flex items-start gap-1 font-medium">
+              {#if done}<span class="{fresh ? 'ws-pop' : ''} mt-px shrink-0" style:animation-delay={fresh ? `${(step.n - 1) * 180 + 300}ms` : undefined}><Check class="size-4 text-success" /></span>{:else}<Icon class="mt-px size-4 shrink-0 text-ws-soft" />{/if}
+              <span class="min-w-0">{step.label}</span>
+            </span>
+            <span class="tnum block text-ws-soft">{done ? "Done" : nextStep?.n === step.n ? `Now, ${step.minutes} min` : `${step.minutes} min`}</span>
           </span>
         {/each}
       </div>
@@ -236,17 +239,19 @@
             {/each}
           </ul>
           <!-- What the set came to: every block played (what completes a set, minutes are only the plan), with the time its runs took. -->
-          <p class="tnum relative mt-4 font-semibold">Every block played ({formatDuration(playedTotal)})</p>
+          <p class="tnum relative mt-4 font-semibold">Done for today: every block played</p>
+          <p class="tnum relative text-sm text-ws-soft">{formatDuration(playedTotal)} of playing. The plan's {budget} minutes are a guide; a set is complete once each block has a run.</p>
           <dl class="tnum relative mt-2 flex flex-wrap gap-x-6 gap-y-2">
             {#if plan.summary.accuracy !== undefined}
               <div><dt class="text-[13px] text-ws-soft">Correct</dt><dd class="font-semibold">{Math.round(plan.summary.accuracy * 100)}%</dd></div>
             {/if}
-            <div><dt class="text-[13px] text-ws-soft">XP</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
+            <div><dt class="text-[13px] text-ws-soft">XP earned on every run</dt><dd class="font-semibold">+{plan.summary.xp}</dd></div>
           </dl>
           {#if nextUp}<p class="relative mt-4 text-sm">{nextUp.why}</p>{/if}
           <div class="relative mt-2 flex flex-wrap items-center gap-2">
-            {#if nextUp}<a class={btnPrimary} href={nextUp.href}><Play class="size-4" aria-hidden="true" />{nextUp.label}</a>{/if}
-            <a class={nextUp ? btn : btnPrimary} href={plan.repeatHref}>Repeat the set</a>
+            <!-- The day is done, so nothing here is filled: more practice is an offer. -->
+            {#if nextUp}<a class={btn} href={nextUp.href}><Play class="size-4" aria-hidden="true" /><span><span class="font-normal">Extra:</span> {nextUp.label}</span></a>{/if}
+            <a class={btn} href={plan.repeatHref}>Repeat the set</a>
             <a class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-instr-ink hover:underline" href="/music/progress?view=journal">Open journal</a>
           </div>
         </div>
@@ -349,7 +354,7 @@
       {:else if !plan.advice.measured && plan.checked < COACH_MIN_ATTEMPTS}
         <!-- Nothing measured yet: one line and the bar; the method waits behind the info button. -->
         <p class="mt-1 flex items-start gap-1 text-sm">
-          <span class="flex-1">Answer {COACH_MIN_ATTEMPTS} questions in a Check run to find your weak spot.</span>
+          <span class="flex-1">Answer {COACH_MIN_ATTEMPTS} questions with hints off (a Check run) to find your weak spot.</span>
           <button
             type="button"
             class="-my-2 grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"

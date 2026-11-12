@@ -15,7 +15,6 @@
   ];
   const TITLE: Record<string, string> = { today: "Today", drills: "Drills", paths: "Paths" };
   const TAGLINE: Record<string, string> = {
-    today: "Short sessions, honest scores, and what to play next.",
     drills: "Every drill, grouped by what it trains.",
     paths: "Step by step, from first notes to a real repertoire.",
   };
@@ -30,7 +29,8 @@
   <header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
     <div class="min-w-0">
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
-      <p class="mt-1 text-ws-soft max-sm:hidden">{TAGLINE[tab] ?? TAGLINE.today}</p>
+      <!-- Today needs no tagline: the set's own heading sits right under the title. -->
+      {#if TAGLINE[tab]}<p class="mt-1 text-ws-soft max-sm:hidden">{TAGLINE[tab]}</p>{/if}
     </div>
     <div class="flex flex-wrap gap-2">
       {@render switcher("Practice views", TABS, "lg:hidden")}

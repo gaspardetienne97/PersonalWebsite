@@ -385,12 +385,12 @@
           {#if pr.levels?.length}
             {@const at = pr.levels.find((l) => l.level.id === pr.currentLevel) ?? pr.levels.at(-1)!}
             <span class="tnum block text-sm text-ws-soft">{levelStatus(at)}</span>
-            <span class="mt-1 block h-1 w-28 rounded-full bg-ws-raised" aria-hidden="true"
+            <span class="mt-1 block h-1.5 w-28 rounded-full bg-ws-line" aria-hidden="true"
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{at.total ? (at.done / at.total) * 100 : 0}%"></span></span
             >
           {:else}
             <span class="tnum block text-sm text-ws-soft">{pr.done} of {pr.total} steps</span>
-            <span class="mt-1 block h-1 w-28 rounded-full bg-ws-raised" aria-hidden="true"
+            <span class="mt-1 block h-1.5 w-28 rounded-full bg-ws-line" aria-hidden="true"
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{pr.total ? (pr.done / pr.total) * 100 : 0}%"></span></span
             >
           {/if}
@@ -452,10 +452,10 @@
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
-          {#if k}<span class="mt-5 h-1 w-3 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
+          {#if k}<span class="mt-5 h-1 w-2 shrink-0 rounded-full {current.levels[k - 1].passed ? 'bg-[color:var(--p)]' : 'bg-ws-line'}" aria-hidden="true"></span>{/if}
           <button
             type="button"
-            class="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl px-0.5"
+            class="flex min-w-[4.25rem] flex-1 basis-0 flex-col items-center gap-1 rounded-xl px-0.5"
             aria-pressed={l.level.id === level.level.id}
             aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
