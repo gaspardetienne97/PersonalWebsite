@@ -82,7 +82,7 @@ for (const width of WIDTHS) {
       { notes: [...g7.slice(0, -1), g7.at(-1)! + 1], port: KEYS },
     );
     await page.waitForTimeout(300);
-    if (width === "desktop") await top(page);
+    if (width !== "phone") await top(page);
     await shot(page, F, "running", width);
     await page.evaluate(
       ({ notes, port }) => notes.forEach((n) => (window as any).__midi.send(port, [0x80, n, 0])),
@@ -110,7 +110,7 @@ for (const width of WIDTHS) {
       .catch(() => {});
     await start();
     await page.waitForTimeout(300);
-    if (width === "desktop") await top(page);
+    if (width !== "phone") await top(page);
     await shot(page, F, "check", width);
     await page.keyboard.press("Escape");
     await mode(page, "Practice");

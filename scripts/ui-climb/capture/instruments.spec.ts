@@ -156,7 +156,7 @@ async function finderFlow(page: Page, width: Width, F: string, instrument: strin
 
   // Run A: right, wrong (light shot in its reveal), right, wrong (dark shot), right.
   await startButton(page).click();
-  if (width === "desktop") await top(page);
+  if (width !== "phone") await top(page);
   for (const [n, right] of [
     [1, true],
     [2, false],
@@ -188,7 +188,7 @@ async function finderFlow(page: Page, width: Width, F: string, instrument: strin
     .click({ timeout: 1500 })
     .catch(() => {});
   await startButton(page).click();
-  if (width === "desktop") await top(page);
+  if (width !== "phone") await top(page);
   await finderAnswer(page, 1, true);
   await expect(page.locator('[role="status"]', { hasText: "Question 2: find" })).toBeAttached();
   await page.waitForTimeout(200);
@@ -217,7 +217,7 @@ async function buildFlow(
   await page.waitForTimeout(600);
   await tapChord(page, [chord[0], chord[1], wrong]);
   await page.waitForTimeout(150);
-  if (width === "desktop") await top(page);
+  if (width !== "phone") await top(page);
   await shot(page, F, "running", width);
   await tapChord(page, chord.slice(2));
   await waitResults(page);
@@ -248,7 +248,7 @@ async function buildFlow(
   await page.waitForTimeout(600);
   await tapChord(page, chord.slice(0, 2));
   await page.waitForTimeout(150);
-  if (width === "desktop") await top(page);
+  if (width !== "phone") await top(page);
   await shot(page, F, "check", width);
   await page.getByRole("button", { name: "Stop", exact: true }).first().click();
   await waitResults(page);
@@ -431,7 +431,7 @@ for (const width of WIDTHS) {
     await tapChord(page, GUITAR_C);
     await page.waitForTimeout(700);
     await tapChord(page, GUITAR_G.slice(0, 4));
-    if (width === "desktop") await top(page);
+    if (width !== "phone") await top(page);
     await shot(page, F, "changes-running", width);
     await tapChord(page, GUITAR_G.slice(4));
     await page.waitForTimeout(700);

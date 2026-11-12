@@ -1,6 +1,7 @@
 // Shared helpers for the UI hill climb captures. Each flow writes
-//   .ui-climb/shots/<round>/<flow>/<state>--<desktop|phone>-<light|dark>.png
-// and every state is shot in both themes at the current viewport.
+//   .ui-climb/shots/<round>/<flow>/<state>--<desktop|tablet|phone>-<light|dark>.png
+// and every state is shot in both themes at the current viewport. Tablet tests (a title
+// ending "tablet") run in the config's touch project, so the context has `hasTouch`.
 //
 // Theme: the app uses mode-watcher (localStorage `mode-watcher-mode`, default "system").
 // `startTheme` keeps the mode on "system" and drives `prefers-color-scheme`, so `shot`
@@ -16,6 +17,8 @@ export const OUT = resolve(import.meta.dirname, "../../../.ui-climb/shots", ROUN
 
 export const VIEWPORTS = {
   desktop: { width: 1280, height: 800 },
+  /** Tablet landscape, with touch (see playwright.capture.config.ts). */
+  tablet: { width: 1180, height: 820 },
   phone: { width: 390, height: 844 },
 } as const;
 export type Width = keyof typeof VIEWPORTS;

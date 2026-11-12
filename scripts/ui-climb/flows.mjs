@@ -364,11 +364,14 @@ export const FLOWS = [
 /** Woodshed images for a panel: one per state, rotating viewport and theme, at most `max`. */
 export function pickShots(available, flow, max = 8) {
   // available: [{ shotFlow, state, width, theme, path }]
+  // Instrument drills have no phone shots, hubs and ear drills have all three widths.
   const combos = [
     ["desktop", "light"],
     ["phone", "dark"],
+    ["tablet", "dark"],
     ["desktop", "dark"],
     ["phone", "light"],
+    ["tablet", "light"],
   ];
   const n = flow.shots.length;
   const pool = available.filter((a) => !a.full && flow.shots.includes(a.shotFlow));
@@ -392,7 +395,7 @@ export function pickShots(available, flow, max = 8) {
     for (const st of states) {
       let pick = null;
       for (let t = 0; t < n && !pick; t++)
-        pick = take(flow.shots[(i + t) % n], st, (i + Math.floor(i / n)) % 4);
+        pick = take(flow.shots[(i + t) % n], st, (i + Math.floor(i / n)) % combos.length);
       if (!pick) continue;
       picks.push(pick);
       i++;
@@ -403,7 +406,7 @@ export function pickShots(available, flow, max = 8) {
     for (const st of states) {
       let any = false;
       flow.shots.forEach((sf, k) => {
-        const pick = take(sf, st, (i + k) % 4);
+        const pick = take(sf, st, (i + k) % combos.length);
         if (pick) {
           picks.push(pick);
           any = true;
@@ -420,6 +423,7 @@ export function pickShots(available, flow, max = 8) {
     if (add) sel.length >= max ? sel.splice(sel.length - 1, 1, add) : sel.push(add);
   };
   need((a) => a.width === "phone");
+  need((a) => a.width === "tablet");
   need((a) => a.theme === "dark");
   need((a) => a.theme === "light");
   return sel;

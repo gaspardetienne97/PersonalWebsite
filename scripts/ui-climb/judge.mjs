@@ -20,7 +20,7 @@ const PATH_ENV = `/opt/homebrew/bin:${process.env.HOME}/.local/bin:${process.env
 export const JUDGES = {
   astra: { kind: "codex", model: "gpt-6-astra", effort: "medium" },
   opus: { kind: "claude", model: "claude-opus-5-5" },
-  fable: { kind: "claude", model: "claude-fable-5-1" },
+  fable: { kind: "claude", model: "claude-fable-5-2" },
 };
 
 const DIMS = [

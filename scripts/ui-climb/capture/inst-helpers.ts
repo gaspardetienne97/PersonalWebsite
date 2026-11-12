@@ -14,7 +14,8 @@ import {
 import { hasCheck, jitter, mode, shot, think, startTheme, VIEWPORTS, type Width } from "./lib";
 
 export { hasCheck, mode, PORTS, shot, think, VIEWPORTS, type Width };
-export const WIDTHS: Width[] = ["desktop", "phone"];
+/** Instrument drills: laptop and tablet landscape (usable on a phone, but not shot there). */
+export const WIDTHS: Width[] = ["desktop", "tablet"];
 export const KEYS = PORTS.keys.id;
 export const AERO = PORTS.aerophone.id;
 
@@ -484,7 +485,7 @@ export async function runningShots(
   at: number[],
   state = "running",
 ) {
-  if (width === "desktop") await top(page);
+  if (width !== "phone") await top(page);
   if (at.length === 1) {
     await waitPerf(page, base + at[0]);
     await shot(page, F, state, width);

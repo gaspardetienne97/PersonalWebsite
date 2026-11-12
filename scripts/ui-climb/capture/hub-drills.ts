@@ -6,7 +6,8 @@ import { installFakeMidi, midiNote, muteHmr, PORTS } from "../../../e2e/music/fi
 import { jitter, lessons, mode, open, shot, startTheme, VIEWPORTS, type Width } from "./lib";
 
 export { installFakeMidi, midiNote, muteHmr, PORTS };
-export const WIDTHS: Width[] = ["desktop", "phone"];
+/** Hubs, ear, rhythm, reading and studio ears: laptop, tablet landscape and phone. */
+export const WIDTHS: Width[] = ["desktop", "tablet", "phone"];
 export const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 
 /** A fresh page at a width, theme light, HMR muted, lessons on or off. */

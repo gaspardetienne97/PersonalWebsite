@@ -20,4 +20,9 @@ export default defineConfig({
       args: ["--autoplay-policy=no-user-gesture-required", "--use-fake-ui-for-media-stream"],
     },
   },
+  // Tablet tests (titles ending "tablet") get a touch context; setViewportSize cannot add touch.
+  projects: [
+    { name: "pointer", grepInvert: / tablet$/ },
+    { name: "touch", grep: / tablet$/, use: { hasTouch: true } },
+  ],
 });

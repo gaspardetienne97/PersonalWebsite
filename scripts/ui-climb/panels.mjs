@@ -14,6 +14,14 @@ const round = opt("round", "0");
 const shotsRound = opt("shots-round", round);
 const compsPerPanel = Number(opt("comps", "3"));
 
+const WIDTH_WORDS = {
+  desktop: "laptop, 1280 px wide",
+  tablet: "tablet landscape, 1180 px wide, touch",
+  phone: "phone, 390 px wide",
+};
+
+// TODO(phase 1): the session screen is dark in both themes from phase 1, so drill panels can
+// keep one theme of a drill's session states (capture still shoots both; lib.ts `shot` themes).
 const STATE_WORDS = {
   ready: "exercise set up, before starting",
   lesson: "the lesson shown before the first try",
@@ -53,7 +61,7 @@ function scan(dir) {
       continue;
     }
     for (const f of files) {
-      const m = f.match(/^(.+)--(desktop|phone)-(light|dark)(-full)?\.png$/);
+      const m = f.match(/^(.+)--(desktop|tablet|phone)-(light|dark)(-full)?\.png$/);
       if (!m) continue;
       out.push({
         shotFlow,
@@ -85,7 +93,7 @@ for (const flow of FLOWS) {
     key: "woodshed",
     images: picks.map((p) => ({
       path: p.path,
-      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")}${flow.alternate ? " exercise" : ""}, ` : ""}${p.width === "phone" ? "phone, 390 px wide" : "laptop, 1280 px wide"}, ${p.theme} theme, ${
+      caption: `${flow.shots.length > 1 ? `${p.shotFlow.replaceAll("-", " ")}${flow.alternate ? " exercise" : ""}, ` : ""}${WIDTH_WORDS[p.width]}, ${p.theme} theme, ${
         STATE_WORDS[p.state] ?? p.state.replaceAll("-", " ")
       }`,
     })),

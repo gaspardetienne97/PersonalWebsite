@@ -68,7 +68,7 @@ async function answer(page: Page, flow: EarFlow, right: boolean) {
  * sticky header. On a laptop, bring `focus` (Continue) into view.
  */
 async function feedbackView(page: Page, width: Width, focus: string) {
-  if (width === "desktop") await toStage(page, focus);
+  if (width !== "phone") await toStage(page, focus);
 }
 
 async function feedback(page: Page) {
