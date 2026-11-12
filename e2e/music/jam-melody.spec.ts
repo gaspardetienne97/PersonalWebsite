@@ -121,7 +121,7 @@ test("Jam on your own score: its head on the lead sheet, quoted to open each A s
   test.setTimeout(60_000);
   await setUp(page, true);
   await page.goto(
-    "/music/jam?progression=song-e2e-tune&game=quote&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
+    "/music/changes/jam?progression=song-e2e-tune&game=quote&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
   );
   await expect(page.getByTestId("jam-lead-sheet")).toContainText("Test tune, A A B A (8 bars)");
   await pickMode(page, "Check");
@@ -143,7 +143,7 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
   test.setTimeout(60_000);
   await setUp(page, true);
   await page.goto(
-    "/music/jam?progression=song-e2e-tune&game=melody-fills&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
+    "/music/changes/jam?progression=song-e2e-tune&game=melody-fills&choruses=1&backing=drums&transpose=0&meter=4&bpm=200",
   );
   await pickMode(page, "Check");
   await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
@@ -161,7 +161,7 @@ test("Jam's melody and fills: the head with a fill in each of its rests", async 
 
 test("Jam says a melody game needs a tune with its melody", async ({ page }) => {
   await setUp(page);
-  await page.goto("/music/jam?progression=ii-v-i&game=quote&choruses=1");
+  await page.goto("/music/changes/jam?progression=ii-v-i&game=quote&choruses=1");
   await pickMode(page, "Check");
   await expect(page.getByText(/Quote the head needs a tune with its melody/).first()).toBeVisible();
 });
@@ -193,7 +193,7 @@ for (const [variant, label] of [
   test(`voicings: ${label.toLowerCase()}, Maiden Voyage's changes`, async ({ page }) => {
     test.setTimeout(60_000);
     await setUp(page);
-    await page.goto(`/music/voicings?variant=${variant}&tune=tune-maiden-voyage`);
+    await page.goto(`/music/changes/voicings?variant=${variant}&tune=tune-maiden-voyage`);
     await expect(page.getByText("Setup:").locator("..")).toContainText(`${label}: Maiden Voyage`);
     await startDrill(page);
     // D7sus4, F7sus4, Eb7sus4, Dbm7.

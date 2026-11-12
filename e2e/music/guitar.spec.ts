@@ -108,7 +108,7 @@ test.describe("guitar drills", () => {
       "/music/fretboard?mode=legato&instrument=ukulele",
       "/music/chords?mode=fingerpick&instrument=guitar",
       "/music/chords?mode=pick&shape=guitar.g-major&instrument=guitar",
-      "/music/licks?lick=30&instrument=guitar&bpm=96",
+      "/music/changes/licks?lick=30&instrument=guitar&bpm=96",
     ]) {
       await page.goto(url);
       await expect(page.getByTestId("line-tab").locator("svg"), url).toBeVisible();

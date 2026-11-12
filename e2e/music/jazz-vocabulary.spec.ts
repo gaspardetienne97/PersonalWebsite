@@ -116,7 +116,7 @@ test.beforeEach(async ({ page }) => {
 
 test("voicings: drop-2 through a ii-V-I, and the wrong order named in Check", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.goto("/music/voicings?variant=drop2&key=0&keys=1");
+  await page.goto("/music/changes/voicings?variant=drop2&key=0&keys=1");
   await expect(page.getByRole("button", { name: "Jazz types" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -138,7 +138,7 @@ test("voicings: drop-2 through a ii-V-I, and the wrong order named in Check", as
 
 test("voicings: So What up D dorian, the type picked from the Jazz types tab", async ({ page }) => {
   test.setTimeout(60_000);
-  await page.goto("/music/voicings?variant=major&key=2&keys=1");
+  await page.goto("/music/changes/voicings?variant=major&key=2&keys=1");
   // A long exercise row keeps its first few; the rest sit behind More exercises.
   await page.getByRole("button", { name: "More exercises" }).click();
   await page.getByRole("button", { name: "Jazz types" }).click();
@@ -152,7 +152,7 @@ test("voicings: So What up D dorian, the type picked from the Jazz types tab", a
 });
 
 test("voicings: upper structures on the jazz blues' dominants", async ({ page }) => {
-  await page.goto("/music/voicings?variant=upper&tune=tune-jazz-blues");
+  await page.goto("/music/changes/voicings?variant=upper&tune=tune-jazz-blues");
   await expect(page.getByText("Setup:").locator("..")).toContainText(
     "Upper structures on a tune: Jazz blues in F",
   );
@@ -163,7 +163,7 @@ test("voicings: upper structures on the jazz blues' dominants", async ({ page })
 });
 
 test("licks: an enclosure into the 3rd, in order", async ({ page }) => {
-  await page.goto("/music/licks?lick=101&key=C&bpm=120");
+  await page.goto("/music/changes/licks?lick=101&key=C&bpm=120");
   await expect(
     page.getByText("Into the 3rd of Cmaj7: F above, D# below, then E on the downbeat."),
   ).toBeVisible();
@@ -176,13 +176,13 @@ test("licks: an enclosure into the 3rd, in order", async ({ page }) => {
 });
 
 test("licks: Giant Steps changes two to a bar on the lane", async ({ page }) => {
-  await page.goto("/music/licks?lick=114&key=C");
+  await page.goto("/music/changes/licks?lick=114&key=C");
   await expect(page.getByText("Lick 114, Coltrane 1-2-3-5")).toBeVisible();
   await expect(page.getByText("Bmaj7 D7 Gmaj7 Bb7").first()).toBeVisible();
 });
 
 test("chord scales: 1-2-3-5 up and back through a ii-V-I", async ({ page }) => {
-  await page.goto("/music/chord-scales?changes=major&key=C&pattern=1235&keys=1&bpm=120");
+  await page.goto("/music/changes/chord-scales?changes=major&key=C&pattern=1235&keys=1&bpm=120");
   await expect(page.getByText("Setup:").locator("..")).toContainText(
     "1-2-3-5 up and back on each chord",
   );

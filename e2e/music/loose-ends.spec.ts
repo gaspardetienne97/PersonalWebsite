@@ -49,7 +49,7 @@ test("pedal: Hear it first plays the chart, not scored", async ({ page }) => {
 });
 
 test("licks: two taps on the staff mark a chunk, and it loops", async ({ page }) => {
-  await page.goto("/music/licks?lick=1&key=C&bpm=120");
+  await page.goto("/music/changes/licks?lick=1&key=C&bpm=120");
   const staff = page.getByTestId("line-staff");
   await expect(staff.getByText("Tap a note to mark where the range starts.")).toBeVisible();
   await staff.getByRole("button", { name: /^Bar 1, note 3/ }).click();

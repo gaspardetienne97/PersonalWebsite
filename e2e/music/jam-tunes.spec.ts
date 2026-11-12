@@ -118,9 +118,9 @@ test("Jam in 3/4 over a reharmonised ii-V-I: the 3rd of each chord, graded and r
   test.setTimeout(60_000);
   await setUp(page);
   await page.goto(
-    "/music/jam?progression=ii-v-i&transpose=0&backing=both&game=thirds&choruses=1&meter=3&reharm=1:tritone&bpm=160",
+    "/music/changes/jam?progression=ii-v-i&transpose=0&backing=both&game=thirds&choruses=1&meter=3&reharm=1:tritone&bpm=160",
   );
-  await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
+  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
   // The sandbox shows the swapped chart: G7 became Db7.
   await page.getByRole("button", { name: "1 chord reharmonised" }).click();
   await expect(page.getByTestId("jam-reharm")).toContainText("Dm7 Db7 Cmaj7 A7");
@@ -147,7 +147,7 @@ test("Jam's displacement game: a motif a beat later each bar over the blues", as
   test.setTimeout(60_000);
   await setUp(page);
   await page.goto(
-    "/music/jam?progression=blues&transpose=0&backing=drums&game=displacement&choruses=1&meter=4&bpm=200",
+    "/music/changes/jam?progression=blues&transpose=0&backing=drums&game=displacement&choruses=1&meter=4&bpm=200",
   );
   await pickMode(page, "Check");
   await expect(page.getByTestId("jam-game")).toContainText("Displace a motif");
@@ -171,7 +171,7 @@ test.describe("Accompaniment comping on the new rhythms", () => {
   }) => {
     await setUp(page);
     await page.goto(
-      "/music/accompany?mode=comping&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=1&progression=ii-v-i&transpose=0&bpm=140",
+      "/music/changes/accompany?mode=comping&voicing=rootless&rhythm=waltz&meter=3&band=rhythm&choruses=1&progression=ii-v-i&transpose=0&bpm=140",
     );
     // One clause of the setup sentence, whole.
     await expect(setupLine(page)).toContainText(
@@ -185,7 +185,7 @@ test.describe("Accompaniment comping on the new rhythms", () => {
   test("hard-bop hits with octave stabs on a standard's changes", async ({ page }) => {
     await setUp(page);
     await page.goto(
-      "/music/accompany?mode=comping&voicing=octave-stabs&rhythm=hard-bop&meter=4&band=rhythm&choruses=1&progression=tune-well-you-neednt&transpose=0&bpm=160",
+      "/music/changes/accompany?mode=comping&voicing=octave-stabs&rhythm=hard-bop&meter=4&band=rhythm&choruses=1&progression=tune-well-you-neednt&transpose=0&bpm=160",
     );
     // One clause of the setup sentence, whole.
     await expect(setupLine(page)).toContainText(/(:\s*|, )Octave stabs on hard-bop hits(, |$)/);

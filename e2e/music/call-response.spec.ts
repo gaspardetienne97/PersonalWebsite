@@ -9,7 +9,7 @@ test.describe.configure({ retries: 2 });
 async function setUp(page: Page, url: string) {
   await installFakeMidi(page, [PORTS.keys]);
   await page.goto(url);
-  await expect(page.getByRole("heading", { level: 1, name: "Call and response" })).toBeVisible();
+  await expect(page.getByLabel("Play over changes mode")).toContainText("Call and response");
   await page.waitForTimeout(500);
   await page.evaluate(
     () =>
@@ -30,7 +30,7 @@ async function setUp(page: Page, url: string) {
       }),
   );
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Call and response" })).toBeVisible();
+  await expect(page.getByLabel("Play over changes mode")).toContainText("Call and response");
 }
 
 /** Schedule notes inside the page, each sent a little early and stamped with its real time. */
@@ -80,7 +80,7 @@ const lastRun = (page: Page) =>
 
 test("echo: every call played back in time, a checked run", async ({ page }) => {
   test.setTimeout(60_000);
-  await setUp(page, "/music/call-response?mode=echo&groove=blues&bars=1");
+  await setUp(page, "/music/changes/call-response?mode=echo&groove=blues&bars=1");
   await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const c = await runClock(page);
@@ -109,7 +109,7 @@ test("echo: every call played back in time, a checked run", async ({ page }) => 
 
 test("answer: own phrases on the grid that land on a chord tone", async ({ page }) => {
   test.setTimeout(60_000);
-  await setUp(page, "/music/call-response?mode=answer&groove=modal&bars=1");
+  await setUp(page, "/music/changes/call-response?mode=answer&groove=modal&bars=1");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   const c = await runClock(page);
   const bar = 4 * c.beatMs;

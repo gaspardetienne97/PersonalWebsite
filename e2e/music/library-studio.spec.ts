@@ -455,8 +455,8 @@ test.describe("jam and lab", () => {
   });
 
   test("jam: tone roles light, a chorus report, a logged session", async ({ page }) => {
-    await page.goto("/music/jam?progression=pop-axis&backing=none&transpose=0");
-    await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
+    await page.goto("/music/changes/jam?progression=pop-axis&backing=none&transpose=0");
+    await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
     // Over C: E is a chord tone (filled), D a scale tone, F# an avoid note (dashed).
     await expect(page.locator('[data-midi="64"][data-role="chord"]')).toHaveCount(1);
     await expect(page.locator('[data-midi="62"][data-role="scale"]')).toHaveCount(1);
@@ -523,7 +523,7 @@ for (const width of [375, 1280]) {
       ["/music/library?tab=import", "Studio", "import"],
       [studio, "Ode to Joy", "studio"],
       [`${studio}?view=waterfall`, "Ode to Joy", "studio-waterfall"],
-      ["/music/jam", "Jam", "jam"],
+      ["/music/changes/jam", "Jam", "jam"],
       ["/music/lab", "Practice lab", "lab"],
     ] as const) {
       await page.goto(path);

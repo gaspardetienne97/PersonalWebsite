@@ -76,9 +76,9 @@ test.describe("accompaniment over fake MIDI", () => {
 
   test("patterns: root, fifth, octave over I-V-vi-IV in D", async ({ page }) => {
     await page.goto(
-      "/music/accompany?mode=patterns&pattern=root-fifth-octave&progression=pop-axis&transpose=2&hands=both&bpm=120",
+      "/music/changes/accompany?mode=patterns&pattern=root-fifth-octave&progression=pop-axis&transpose=2&hands=both&bpm=120",
     );
-    await expect(page.getByRole("heading", { level: 1, name: "Accompaniment" })).toBeVisible();
+    await expect(page.getByLabel("Play over changes mode")).toContainText("Accompaniment");
     await expect(page.getByText("over I-V-vi-IV in D")).toBeVisible();
     await playSlots(page);
     await expect(page.getByRole("status")).toContainText("Clean at 120 BPM", { timeout: 30_000 });
@@ -88,7 +88,7 @@ test.describe("accompaniment over fake MIDI", () => {
 
   test("patterns: a missed bar is named", async ({ page }) => {
     await page.goto(
-      "/music/accompany?mode=patterns&pattern=block-1-3&progression=pop-axis&transpose=0&hands=both&bpm=120",
+      "/music/changes/accompany?mode=patterns&pattern=block-1-3&progression=pop-axis&transpose=0&hands=both&bpm=120",
     );
     await playSlots(page, { drop: (beat) => beat >= 8 && beat < 12 });
     await expect(page.getByRole("status")).toContainText("bar 3 lost the most", {
@@ -98,7 +98,7 @@ test.describe("accompaniment over fake MIDI", () => {
 
   test("comping: alternating shells on the blues, Charleston, swung", async ({ page }) => {
     await page.goto(
-      "/music/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
+      "/music/changes/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
     );
     // One clause of the setup sentence, whole.
     await expect(setupLine(page)).toContainText(/(:\s*|, )Shells, alternating on charleston(, |$)/);
@@ -110,7 +110,7 @@ test.describe("accompaniment over fake MIDI", () => {
 
   test("lead sheet: Twinkle with left-hand roots", async ({ page }) => {
     await page.goto(
-      "/music/accompany?mode=lead-sheet&tune=twinkle&lh=roots&hands=both&transpose=0&bpm=140",
+      "/music/changes/accompany?mode=lead-sheet&tune=twinkle&lh=roots&hands=both&transpose=0&bpm=140",
     );
     await expect(page.getByTestId("line-staff")).toBeVisible();
     await playSlots(page);
@@ -127,8 +127,8 @@ test("every tab loads at 375 without sideways scroll", async ({ page }) => {
   await page.routeWebSocket(/.*/, () => {});
   await page.setViewportSize({ width: 375, height: 900 });
   for (const tab of ["patterns", "comping", "lead-sheet"]) {
-    await page.goto(`/music/accompany?mode=${tab}`);
-    await expect(page.getByRole("heading", { level: 1, name: "Accompaniment" })).toBeVisible();
+    await page.goto(`/music/changes/accompany?mode=${tab}`);
+    await expect(page.getByLabel("Play over changes mode")).toContainText("Accompaniment");
     await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: `${SHOTS}/accompany-${tab}-375.png`, fullPage: true });
   }

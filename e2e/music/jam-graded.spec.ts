@@ -10,7 +10,7 @@ async function setUp(page: Page, url: string) {
   await installFakeMidi(page, [PORTS.keys]);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(url);
-  await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
+  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
   await page.waitForTimeout(500);
   await page.evaluate(
     () =>
@@ -36,7 +36,7 @@ async function setUp(page: Page, url: string) {
       }),
   );
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Jam" })).toBeVisible();
+  await expect(page.getByLabel("Play over changes mode")).toContainText("Jam");
 }
 
 /** Notes at beats from the run's downbeat, sent a little early and stamped with their real time. */
@@ -85,7 +85,7 @@ test("three notes over the blues: a chorus graded and recorded as checked", asyn
   test.setTimeout(60_000);
   await setUp(
     page,
-    "/music/jam?progression=blues&transpose=0&backing=none&game=three-notes&choruses=1&bpm=200",
+    "/music/changes/jam?progression=blues&transpose=0&backing=none&game=three-notes&choruses=1&bpm=200",
   );
   await pickMode(page, "Check");
   await expect(page.getByTestId("jam-game")).toContainText("Three notes");
@@ -122,9 +122,9 @@ test("trading fours over a standard: the lead sheet, and the band's bars left al
   test.setTimeout(60_000);
   await setUp(
     page,
-    "/music/jam?progression=tune-jazz-blues&transpose=0&backing=both&game=chord-tones&choruses=1&trade=4&bpm=200",
+    "/music/changes/jam?progression=tune-jazz-blues&transpose=0&backing=both&game=chord-tones&choruses=1&trade=4&bpm=200",
   );
-  await expect(page.getByTestId("jam-lead-sheet").locator("svg")).toBeVisible();
+  await expect(page.getByTestId("jam-lead-sheet").locator("[data-bar]")).toHaveCount(12);
   await expect(page.getByTestId("jam-lead-sheet")).toContainText("Jazz blues in F");
   await pickMode(page, "Check");
   await page.getByRole("button", { name: "Start", exact: true }).click();

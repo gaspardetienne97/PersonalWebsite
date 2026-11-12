@@ -179,7 +179,7 @@ test.describe("sight-reading past Grade 6", () => {
 
 test.describe("accompaniment: charts and jazz heads", () => {
   test("a generated chart reads with slashes, and New chart draws another", async ({ page }) => {
-    await page.goto("/music/accompany?mode=patterns&progression=chart-2&pattern=block-1-3");
+    await page.goto("/music/changes/accompany?mode=patterns&progression=chart-2&pattern=block-1-3");
     const chart = page.getByRole("list", { name: "The chart" });
     await expect(chart).toBeVisible();
     await expect(chart.locator(".slashes").first()).toBeVisible();
@@ -191,7 +191,9 @@ test.describe("accompaniment: charts and jazz heads", () => {
   test("a jazz head with a rootless left hand: voicings around middle C, the melody above", async ({
     page,
   }) => {
-    await page.goto("/music/accompany?mode=lead-sheet&tune=lead-2&lh=rootless&progression=ii-v-i");
+    await page.goto(
+      "/music/changes/accompany?mode=lead-sheet&tune=lead-2&lh=rootless&progression=ii-v-i",
+    );
     await expect(page.getByText("Setup:").locator("..")).toContainText(
       "jazz lead sheet 2 over ii-V-I",
     );
@@ -239,7 +241,7 @@ test.describe("scales and voicings options", () => {
     await installFakeMidi(page, [PORTS.keys]);
     await enableMidi(
       page,
-      "/music/voicings?variant=gospel&progression=slash-walk&key=0&keys=1&strict=1",
+      "/music/changes/voicings?variant=gospel&progression=slash-walk&key=0&keys=1&strict=1",
     );
     await muteHmr(page);
     await startDrill(page);

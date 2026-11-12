@@ -242,10 +242,10 @@ test.describe("tier 1 lessons", () => {
   });
 
   const cases: [string, string, string][] = [
-    ["jazz voicing types", "/music/voicings?variant=so-what", "So What"],
+    ["jazz voicing types", "/music/changes/voicings?variant=so-what", "So What"],
     ["groove dictation", "/music/rhythm?mode=groove", "The kick"],
     ["find home", "/music/by-ear?mode=home", "Home is one note"],
-    ["call and response answer", "/music/call-response?mode=answer", "The chord's tones"],
+    ["call and response answer", "/music/changes/call-response?mode=answer", "The chord's tones"],
     ["aerophone bite vibrato", "/music/aerophone?mode=vibrato", "Vibrato from the bite"],
     ["pads improvise", "/music/pads?mode=improvise", "Play over the band"],
     ["pads rudiments", "/music/pads", "Two hands, two pads"],
@@ -372,7 +372,7 @@ test.describe("tier 1 lessons", () => {
   });
 
   test("drop-2 shows 4-way close first", async ({ page }) => {
-    await page.goto("/music/voicings?variant=drop2");
+    await page.goto("/music/changes/voicings?variant=drop2");
     await expect(page.getByRole("heading", { name: "4-way close", exact: true })).toBeVisible();
     for (let i = 0; i < 2 + 5; i++) {
       await page.getByRole("button", { name: /^Next/ }).click();
@@ -459,7 +459,7 @@ test.describe("jam game lessons", () => {
   test("Practice shows no lesson; Check shows the game's, and finishing stays in Check", async ({
     page,
   }) => {
-    await page.goto("/music/jam?game=guide-tones&backing=none");
+    await page.goto("/music/changes/jam?game=guide-tones&backing=none");
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
     await pickMode(page, "Check");
@@ -473,11 +473,11 @@ test.describe("jam game lessons", () => {
   });
 
   test("the open game has no lesson, and another game has its own", async ({ page }) => {
-    await page.goto("/music/jam?game=free&backing=none");
+    await page.goto("/music/changes/jam?game=free&backing=none");
     await pickMode(page, "Check");
     await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
     await expect(page.getByTestId("lesson")).toHaveCount(0);
-    await page.goto("/music/jam?game=approach&backing=none");
+    await page.goto("/music/changes/jam?game=approach&backing=none");
     await pickMode(page, "Check");
     await expect(page.getByRole("heading", { name: "Lean in from a half step" })).toBeVisible();
   });
@@ -485,7 +485,7 @@ test.describe("jam game lessons", () => {
   test("a Jam lesson fits at 375", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     for (const game of ["side-slip", "motif", "space"]) {
-      await page.goto(`/music/jam?game=${game}&backing=none`);
+      await page.goto(`/music/changes/jam?game=${game}&backing=none`);
       await pickMode(page, "Check");
       await expect(page.getByTestId("lesson")).toBeVisible();
       for (let i = 0; i < 4; i++) {
@@ -552,15 +552,15 @@ test.describe("concept cards", () => {
   });
 
   test("each tab gets the card for its own setup", async ({ page }) => {
-    await page.goto("/music/voicings?variant=minor");
+    await page.goto("/music/changes/voicings?variant=minor");
     await pickMode(page, "Check");
     await expect(
       page.getByRole("heading", { name: "Half-diminished, altered, minor" }),
     ).toBeVisible();
-    await page.goto("/music/voicings?variant=voice-leading");
+    await page.goto("/music/changes/voicings?variant=voice-leading");
     await pickMode(page, "Check");
     await expect(page.getByRole("heading", { name: "The 3rd and the 7th" })).toBeVisible();
-    await page.goto("/music/chord-scales?changes=minor");
+    await page.goto("/music/changes/chord-scales?changes=minor");
     await pickMode(page, "Check");
     await expect(page.getByTestId("lesson")).toContainText("Scales for a minor ii-V-i");
   });
@@ -569,8 +569,8 @@ test.describe("concept cards", () => {
     await page.setViewportSize({ width: 375, height: 800 });
     for (const url of [
       "/music/scales?instrument=piano",
-      "/music/voicings?variant=major",
-      "/music/chord-scales",
+      "/music/changes/voicings?variant=major",
+      "/music/changes/chord-scales",
     ]) {
       await page.goto(url);
       await pickMode(page, "Check");

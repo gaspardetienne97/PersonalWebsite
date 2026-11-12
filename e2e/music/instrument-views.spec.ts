@@ -57,7 +57,7 @@ test.describe("instrument views", () => {
   });
 
   test("chord scales on the Aerophone list the notes that fit", async ({ page }) => {
-    await page.goto("/music/chord-scales");
+    await page.goto("/music/changes/chord-scales");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await pick(page, "Aerophone");
     await expect(page.getByRole("list", { name: "The notes that fit" })).toBeVisible();
@@ -101,11 +101,11 @@ test.describe("instrument views", () => {
     test.setTimeout(90_000);
     for (const path of [
       "/music/two-hand",
-      "/music/comping",
-      "/music/voicings?variant=cadence",
+      "/music/changes/comping",
+      "/music/changes/voicings?variant=cadence",
       "/music/pedal",
-      "/music/licks",
-      "/music/chord-scales",
+      "/music/changes/licks",
+      "/music/changes/chord-scales",
     ]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

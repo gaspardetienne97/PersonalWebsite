@@ -16,17 +16,43 @@ const ROUTES = [
     name: "two-hand",
     h1: "Two hands",
   },
-  { path: "/music/comping?pattern=blue-third-c7&bpm=90", name: "comping", h1: "Comping" },
-  { path: "/music/pedal?progression=I-vi-IV-V&key=0", name: "pedal", h1: "Pedal" },
-  { path: "/music/voicings?variant=major&key=0&keys=1", name: "voicings", h1: "Voicings" },
   {
-    path: "/music/voicings?variant=inversions&key=0",
-    name: "voicings-closest",
-    h1: "Voicings",
+    path: "/music/changes/comping?pattern=blue-third-c7&bpm=90",
+    name: "comping",
+    h1: "Play over changes",
+    mode: "Comping",
   },
-  { path: "/music/licks?lick=1&key=C", name: "licks", h1: "Jazz licks" },
-  { path: "/music/licks?lick=30&instrument=guitar&bpm=96", name: "licks-guitar", h1: "Jazz licks" },
-  { path: "/music/chord-scales?changes=major&key=C", name: "chord-scales", h1: "Chord scales" },
+  { path: "/music/pedal?progression=I-vi-IV-V&key=0", name: "pedal", h1: "Pedal" },
+  {
+    path: "/music/changes/voicings?variant=major&key=0&keys=1",
+    name: "voicings",
+    h1: "Play over changes",
+    mode: "Voicings",
+  },
+  {
+    path: "/music/changes/voicings?variant=inversions&key=0",
+    name: "voicings-closest",
+    h1: "Play over changes",
+    mode: "Voicings",
+  },
+  {
+    path: "/music/changes/licks?lick=1&key=C",
+    name: "licks",
+    h1: "Play over changes",
+    mode: "Jazz licks",
+  },
+  {
+    path: "/music/changes/licks?lick=30&instrument=guitar&bpm=96",
+    name: "licks-guitar",
+    h1: "Play over changes",
+    mode: "Jazz licks",
+  },
+  {
+    path: "/music/changes/chord-scales?changes=major&key=C",
+    name: "chord-scales",
+    h1: "Play over changes",
+    mode: "Chord scales",
+  },
 ];
 
 /** Remember MIDI as enabled (as the Connect page would), so the app re-opens it on load. */
@@ -129,6 +155,9 @@ for (const width of [375, 1280]) {
     for (const r of ROUTES) {
       await page.goto(r.path);
       await expect(page.getByRole("heading", { level: 1, name: r.h1 })).toBeVisible();
+      // A mode of the jazz trainer: its name is the title's picker.
+      if ("mode" in r)
+        await expect(page.getByLabel("Play over changes mode")).toContainText(r.mode);
       await expect(page).toHaveTitle(/\| Woodshed$/);
       await expectNoHorizontalOverflow(page);
       await shoot(page, r.name);
@@ -184,7 +213,10 @@ test("falling notes: two hands, scales, licks and accompaniment fall onto the ke
   await expect(falling.locator(".note").first()).toHaveText("1");
   await falling.getByRole("button", { name: "Plain" }).click();
 
-  for (const path of ["/music/licks?lick=1&key=C&view=falling", "/music/accompany?view=falling"]) {
+  for (const path of [
+    "/music/changes/licks?lick=1&key=C&view=falling",
+    "/music/changes/accompany?view=falling",
+  ]) {
     await page.goto(path);
     await expect(falling.locator(".note").first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -196,7 +228,7 @@ test("falling notes: two hands, scales, licks and accompaniment fall onto the ke
 });
 
 test("licks: Check hides the targets and the lane notes", async ({ page }) => {
-  await page.goto("/music/licks?lick=1&key=C");
+  await page.goto("/music/changes/licks?lick=1&key=C");
   await expect(page.locator(".piano [data-target]")).toHaveCount(1);
   await pickMode(page, "Check");
   await expect(page.locator(".piano [data-target]")).toHaveCount(0);
@@ -314,7 +346,7 @@ test.describe("piano drills over fake MIDI", () => {
   });
 
   test("voicings: one major ii-V-I", async ({ page }) => {
-    await page.goto("/music/voicings?variant=major&key=0&keys=1&strict=1");
+    await page.goto("/music/changes/voicings?variant=major&key=0&keys=1&strict=1");
     await startDrill(page);
     await expect(page.getByRole("status")).toContainText("Play Dm7");
     const chords = [
@@ -334,7 +366,7 @@ test.describe("piano drills over fake MIDI", () => {
   });
 
   test("voicings: the I IV I V7 I cadence in C", async ({ page }) => {
-    await page.goto("/music/voicings?variant=cadence&key=0&keys=1&strict=1");
+    await page.goto("/music/changes/voicings?variant=cadence&key=0&keys=1&strict=1");
     await startDrill(page);
     await expect(page.getByRole("status")).toContainText("Play C.");
     const chords = [
@@ -353,7 +385,7 @@ test.describe("piano drills over fake MIDI", () => {
   });
 
   test("licks: lick 1 in order", async ({ page }) => {
-    await page.goto("/music/licks?lick=1&key=C&bpm=120");
+    await page.goto("/music/changes/licks?lick=1&key=C&bpm=120");
     await expect(page.getByText("Solo using only the 1 3 5 7 of each chord.")).toBeVisible();
     const line = [
       62, 65, 69, 72, 69, 65, 62, 65, 67, 71, 74, 77, 74, 71, 67, 71, 72, 71, 67, 64, 67, 72, 76,
@@ -369,7 +401,7 @@ test.describe("piano drills over fake MIDI", () => {
   });
 
   test("chord scales: one chord's scale", async ({ page }) => {
-    await page.goto("/music/chord-scales?changes=major&key=C&beats=4&bpm=120");
+    await page.goto("/music/changes/chord-scales?changes=major&key=C&beats=4&bpm=120");
     await expect(page.getByText("Chord tone (filled, named R 3 5 7)")).toBeVisible();
     // D dorian over Dm7 only, then let G7 and Cmaj7 pass.
     await runTimed(
@@ -384,7 +416,7 @@ test.describe("piano drills over fake MIDI", () => {
   });
 
   test("comping: blue third over C7 with a Charleston left hand", async ({ page }) => {
-    await page.goto("/music/comping?pattern=blue-third-c7&bpm=90");
+    await page.goto("/music/changes/comping?pattern=blue-third-c7&bpm=90");
     const beat = 60000 / 90;
     const lick: [number, number][] = [
       [67, 0],
