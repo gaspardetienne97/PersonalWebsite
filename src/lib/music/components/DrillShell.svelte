@@ -258,6 +258,22 @@
       .filter(Boolean)
       .join(", "),
   );
+  // On a short, wide screen the bar sits beside the title. A sentence that would take more than two lines there
+  // (its width on one line against the room beside the title) keeps a row of its own instead, in one or two lines.
+  let topW = $state(0);
+  let headW = $state(0);
+  let barEl: HTMLElement | undefined = $state();
+  let lineEl: HTMLElement | undefined = $state();
+  let longSetup = $state(false);
+  $effect(() => {
+    const pen = lineEl && document.createElement("canvas").getContext("2d");
+    if (!pen || !barEl || !lineEl || !topW) return;
+    const cs = getComputedStyle(lineEl);
+    pen.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    // What the bar holds beside the words (icons, padding, Start), the same wherever the bar sits.
+    const chrome = barEl.offsetWidth - lineEl.offsetWidth;
+    longSetup = pen.measureText(sentence).width > 1.85 * (topW - headW - 16 - chrome);
+  });
   /** A trainer's current mode, named beside the title in the session's top bar. */
   const trainerLabel = $derived(trainer?.options.find((o) => o.id === trainer.value)?.label);
   const canDemo = $derived(!!ondemo && mode !== "check" && !demoPlaying);
@@ -522,6 +538,21 @@
     scrollBy({ top: innerHeight * 0.7, behavior: still ? "instant" : "smooth" });
   }
 
+  // From sm up the drill's go-on action (Continue, Next) sits in the stage, not the dock. When it is below the fold
+  // (`more`, which follows the layout as the feedback settles) the page scrolls to its end once, so the next action
+  // is in view with no "More below" bar over it; the page goes back to the top with the next question.
+  const stepping = $derived(live && !!step && !step.disabled);
+  let nudged = false;
+  $effect(() => {
+    if (!stepping) {
+      if (nudged) scrollTo({ top: 0 });
+      nudged = false;
+    } else if (more && !nudged && matchMedia("(min-width: 40rem)").matches) {
+      nudged = true;
+      scrollTo({ top: document.documentElement.scrollHeight });
+    }
+  });
+
   function onKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     const onControl = t?.closest("button, a, input, select, textarea, [contenteditable], [role=slider]");
@@ -550,7 +581,7 @@
 
 <!-- One section in both views, so the stage below stays mounted from the ready screen into the run. -->
 <section
-  class="dark {session ? 'session relative flex min-h-dvh w-full flex-col bg-ws-bg text-ws-ink' : `ready mx-auto flex w-full max-w-6xl flex-col gap-3 ${docked ? 'max-lg:pb-[calc(var(--ws-dock-h)+5.5rem)]' : ''}`}"
+  class="dark {session ? 'session relative flex min-h-dvh w-full flex-col bg-ws-bg text-ws-ink' : `ready mx-auto flex w-full max-w-6xl flex-col gap-3 lg:min-h-[calc(100dvh-var(--ws-strip-h)-3.5rem-1px)] ${docked ? 'max-lg:pb-[calc(var(--ws-dock-h)+5.5rem)]' : ''}`}"
   aria-labelledby="drill-title"
   data-drill-page
   data-session={session ? "" : undefined}
@@ -558,10 +589,11 @@
   {#if session}
     {@render hudBar()}
   {:else}
-    {@render readyHeader()}
+    <div class="top flex flex-col gap-3" bind:clientWidth={topW}>{@render readyHeader()}</div>
   {/if}
 
-  <div class={session ? "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 pt-3 sm:px-6 lg:px-8" : "contents"}>
+  <!-- Before a run the body takes the height the page has left (from lg), so a stage with a growing region fills it. -->
+  <div class={session ? "mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-4 pt-3 sm:px-6 lg:px-8" : "flex min-h-0 flex-1 flex-col gap-3"}>
     {#if afterRun && results}
       <!-- The results own the screen; a silent run's card sits at the top of it. -->
       <div class="results-enter">
@@ -575,6 +607,7 @@
       class="stage-box relative {phase === 'results' && (silent || !review) && !showing ? 'hidden' : showing ? 'flex flex-1 flex-col' : session ? 'stage flex flex-col p-3 sm:p-5' : 'stage overflow-hidden rounded-2xl p-3 sm:p-5'}"
       class:demo={demoPlaying}
       data-live={live ? "" : undefined}
+      data-fill={live || !session ? "" : undefined}
     >
       <!-- The stage's top rail before a run: what the stage needs to say (the drill's counters, which a session
            shows in the HUD; an input caveat with its own fix; the demo's note) and Hear it as an icon at the
@@ -653,7 +686,7 @@
 
 <!-- Ready screen, row 1: back, the title and the Lesson; then one line of blurb (the lesson has the rest). -->
 {#snippet readyHeader()}
-  <header class="flex flex-col gap-1">
+  <header class="flex flex-col gap-1" bind:clientWidth={headW}>
     <div class="flex items-center gap-1 sm:gap-2">
       <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title="Back to {back.label}">
         <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">Back to {back.label}</span>
@@ -730,7 +763,7 @@
 <!-- Row 3, the ready bar: the setup as one sentence, the mode last, and Start. The sentence is the one way into
      Setup (no chips, no mode buttons before the first run). Below lg Start docks at the bottom. -->
 {#snippet readyBar()}
-  <div class="bar flex items-stretch gap-3">
+  <div class="bar flex items-stretch gap-3" class:long={longSetup} bind:this={barEl}>
     {#if setup || checkable}
       <button
         type="button"
@@ -743,7 +776,7 @@
         onclick={() => (setupOpen = !setupOpen)}
       >
         <Settings2 class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
-        <span class="min-w-0 flex-1 font-medium leading-snug"><span class="sr-only">Setup: </span>{sentence}</span>
+        <span class="min-w-0 flex-1 font-medium leading-snug" bind:this={lineEl}><span class="sr-only">Setup: </span>{sentence}</span>
         {#if setupOpen}<ChevronUp class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{:else}<ChevronDown class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{/if}
       </button>
     {:else}
@@ -890,7 +923,7 @@
     {@const againLeads = !next && !unblocking}
     {@const small = "max-sm:min-h-11 max-sm:flex-auto max-sm:whitespace-nowrap max-sm:px-3 max-sm:text-sm"}
     {@const lead = `max-sm:order-first ${more ? "max-sm:basis-[calc(100%-3.5rem)]" : "max-sm:basis-full"}`}
-    <div class="ws-bar ws-bar-bottom relative border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
+    <div class="ws-bar ws-bar-bottom sticky bottom-0 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
         {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
         <button type="button" class="{quiet} {small}" onclick={close}>Done</button>
@@ -973,19 +1006,22 @@
      line, the blurb steps aside (the Lesson holds it), and the stage keeps a tighter margin. */
   @media (min-width: 64rem) and (max-height: 56rem) {
     .ready {
+      gap: 0.5rem;
+    }
+    .top {
       display: grid;
       grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
       align-items: center;
       gap: 0.5rem 1rem;
     }
-    .ready > :global(*),
-    .ready > :global(.contents > *) {
+    .top > :global(*) {
       grid-column: 1 / -1;
     }
-    .ready > header {
+    .top > header {
       grid-column: 1;
     }
-    .ready > .bar {
+    /* A setup sentence too long to sit beside the title in two lines keeps its own row (after the tabs). */
+    .top > .bar:not(.long) {
       grid-column: 2;
       grid-row: 1;
     }
@@ -1023,6 +1059,15 @@
   .stage-box[data-live]:has(:global([data-grow])) {
     flex: 1 1 auto;
   }
+  /* Laptop and tablet: the same before a run, so the stage fills the height under the ready bar (bigger pads and
+     lanes, and nothing jumps when the run starts). */
+  @media (min-width: 64rem) {
+    .stage-box[data-fill]:has(:global([data-grow])) {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+    }
+  }
   @media (max-width: 63.999rem) {
     .stage-box[data-live] :global(:is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not([class*=":hidden"]):has([data-grow])) {
       display: flex;
@@ -1032,7 +1077,7 @@
     }
   }
   @media (min-width: 64rem) {
-    .stage-box[data-live]
+    .stage-box[data-fill]
       :global(
         :is(:not(.flex, .inline-flex, .grid, .contents, .hidden), .flex-col):not(
             [class*=":grid"],
@@ -1047,17 +1092,23 @@
       flex: 1 1 auto;
       min-height: 0;
     }
-    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]):has([data-grow])) {
+    .stage-box[data-fill] :global(:is(.grid, [class*="lg:grid"]):has([data-grow])) {
       flex: 1 1 auto;
       align-items: stretch;
     }
     /* Beside the music in a grid, the answers stay at the top of their column. */
-    .stage-box[data-live] :global(:is(.grid, [class*="lg:grid"]) > :is([data-dock="answers"], [data-dock="instrument"])) {
+    .stage-box[data-fill] :global(:is(.grid, [class*="lg:grid"]) > :is([data-dock="answers"], [data-dock="instrument"])) {
       align-self: start;
     }
   }
   .stage-box[data-live] :global([data-grow]) {
     flex: 1 1 auto;
     min-height: 0;
+  }
+  @media (min-width: 64rem) {
+    .stage-box[data-fill] :global([data-grow]) {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
   }
 </style>
