@@ -36,7 +36,7 @@ async function enableMidi(page: Page, url: string) {
 /** Start, then play every target at its time, `lateMs` late (stamped, scheduled early). */
 async function play(page: Page, lateMs = 0) {
   const stage = page.getByTestId("pads-stage");
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
   const targets = JSON.parse((await stage.getAttribute("data-targets"))!) as [
     number,
@@ -173,7 +173,7 @@ test.describe("the lanes view on the pads", () => {
     await expect(pads).toBeHidden();
     // During the run the pads join the lanes, stacked under them.
     await page
-      .getByRole("button", { name: /^(Start|Again)/ })
+      .getByRole("button", { name: /^(Start|Again)$/ })
       .first()
       .click();
     await expect(pads).toBeVisible();

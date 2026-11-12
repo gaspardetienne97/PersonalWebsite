@@ -65,8 +65,7 @@ export function waitingReason(s: {
   profiles: readonly DeviceProfile[];
   link: "off" | "no-sysex" | "no-output" | "linked";
 }): string {
-  if (!s.supported)
-    return "Web MIDI is unavailable in this browser. Use Chromium, or the on-screen surface.";
+  if (!s.supported) return "This browser has no Web MIDI. Use Chrome or Edge, or play on screen.";
   if (!s.enabled) return "MIDI is off, so no hardware notes reach this drill.";
   const mine = s.inputs.filter(
     (p) =>
@@ -90,7 +89,7 @@ export function waitingReason(s: {
       s.link === "no-sysex"
         ? "allow SysEx, then link it in Connect."
         : s.link === "no-output"
-          ? "its output is not connected, so check the cable, then Connect."
+          ? "its output isn't connected, so check the cable, then Connect."
           : "link it in Connect.";
     return `${live.map((p) => p.name).join(" and ")} ${live.length > 1 ? "are" : "is"} connected, but no pad hit has arrived yet. If the pads stay silent here, ${fix}`;
   }

@@ -348,7 +348,7 @@
         { label: "Wrong pads", text: String(wrongPads) },
         { label: "Longest run without a wrong pad", text: String(bestStreak) },
       ],
-      assistance: "Wait mode waits for you, so it is learning, not timing: nothing is recorded.",
+      assistance: "Wait mode waits for you, so it's for learning, not timing. Nothing saved.",
       recorded: false,
     };
     status = summary.headline;
@@ -410,7 +410,7 @@
     isSteady ? `steady:${s.steady}:${bpm}` : isGroove ? `groove:${s.groove}:${bpm}${swing !== writtenSwing ? `:swing${swing}` : ""}` : `rudiment:${pattern.id}:${perBeat}:${hitCount}:${pads.join("-")}:${bpm}`,
   );
 
-  const DEMO_STATUS = "Listen: the pattern at tempo, pads lit as they sound. Not scored.";
+  const DEMO_STATUS = "Demo: the pattern at tempo, pads lit as they sound. Not scored.";
   function stopDemo() {
     demo?.stop();
     demo = null;
@@ -485,7 +485,7 @@
       wrongPads = 0;
       run = null;
       cap = capture(performance.now() - 50, (e) => e.kind === "noteon" && onHit(e));
-      status = "Wait mode: hit the glowing pads; each note waits for you.";
+      status = "Wait mode: hit the glowing pads. Each note waits for you.";
       return;
     }
     run = practice.beginRun({
@@ -659,8 +659,8 @@
           : r.pad < 0.875
             ? `${wrongPads} stroke${wrongPads === 1 ? "" : "s"} on the wrong pad. Slow down and say the sticking.`
             : ms > 90
-              ? `Right pads, but ${ms} ms off the click on average. Aim for 90 or less.`
-              : "Timing and pads are right; the accents missed their velocity bands.";
+              ? `Right pads, but ${ms} ms off the click on average. Aim for 90 ms or less.`
+              : "Timing and pads are right, but the accents missed their velocity bands.";
     // Timing and velocity speak only when at least half the strokes landed (K3), never a full bar from a few.
     const errs = r.perStroke.flatMap((p) => (p ? [p.errorMs] : []));
     return {
@@ -671,7 +671,7 @@
       rows: [
         { label: "Correct pad", value: r.pad, text: `${r.matched - wrongPads} of ${r.total}` },
         // 180 ms is where the rudiment grader's timing credit reaches zero.
-        timingRow(errs, r.total, 180, "Timing vs the click", Math.min(60, stepMs / 3)),
+        timingRow(errs, r.total, 180, "Timing against the click", Math.min(60, stepMs / 3)),
         r.velocity === null
           ? { label: `Velocity: ${velocityWhy(ons)}`, notMeasured: true }
           : evennessRow(r.velocity, r.matched, r.total, hits.some((h) => h.velocityBand) ? "Accents in band" : "Velocity evenness"),
@@ -703,7 +703,7 @@
       headline = parts.charAt(0).toUpperCase() + parts.slice(1) + ".";
     } else if (r.correct) headline = `Clean: all ${total} hits in the window, ${ms} ms off on average.`;
     else if (r.missed || r.extra) headline = `${r.missed ? `${r.missed} missed` : ""}${r.missed && r.extra ? " and " : ""}${r.extra ? `${r.extra} extra` : ""} out of ${total}. The grid shows where.`;
-    else headline = `Every hit landed, ${ms} ms off on average. Tighten it under 90.`;
+    else headline = `Every hit landed, ${ms} ms off on average. Tighten it under 90 ms.`;
     const x = extra!;
     if (ons.length && isSteady && x.drift) {
       const d = x.drift;
@@ -729,7 +729,7 @@
       cleanMeans: `9 of 10 hits within ${Math.round(x.tier.goodMs)} ms and 7 of 10 within ${Math.round(x.tier.perfectMs)} ms${isSteady ? ", and within 3 BPM on your own" : ""}, with a score of ${Math.round(ADVANCE.pass * 100)}% or more (extra hits lower it)`,
       timing: ons.length ? timingBreakdown(r.perTarget, x.tier.goodMs) : undefined,
       rows: [
-        ...(faded ? [{ label: "Graded", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
+        ...(faded ? [{ label: "Scored", text: `the ${played.bars / entry.groove.bars - FADE_PLAYS} plays on your own, after the guide faded` }] : []),
         { label: `Perfect (within ${Math.round(x.tier.perfectMs)} ms)`, value: x.tier.perfect, text: `${Math.round(x.tier.perfect * 100)}%, 70% to pass` },
         { label: `Good (within ${Math.round(x.tier.goodMs)} ms)`, value: x.tier.good, text: `${Math.round(x.tier.good * 100)}%, 90% to pass` },
         ...(x.swing !== null ? [{ label: "Swing played", value: Math.max(0, 1 - Math.abs(x.swing - swing) / 10), text: `${x.swing}%, aiming for ${swing}%` }] : []),
@@ -751,7 +751,7 @@
     band = null;
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   function setMode(m: string) {
@@ -823,7 +823,7 @@
   blurb={isSteady
     ? "Play a groove with the click, then keep it going when the click stops."
     : isGroove
-      ? "Play the groove as the notes come at you. Each level tightens the timing; a pass moves the tempo up."
+      ? "Play the groove as the notes come at you. Each level tightens the timing. A pass moves the tempo up."
       : "Finger technique on the click: strokes, rolls, accents and ghosts."}
   summary={summaryLine}
   tabs={MODES.map(([id, label]) => ({ id, label }))}
@@ -866,13 +866,13 @@
           setupKey="sub"
         />
         {#if pattern.hits}
-          <p class="text-sm text-ws-soft sm:pt-6">Stick Control: {pattern.hits / pattern.unit.length} repetitions of {pattern.label.replace("Stick Control: ", "")}, one pad a hand, so the app can check the sticking.</p>
+          <p class="text-sm text-ws-soft sm:pt-6">Stick Control: {pattern.hits / pattern.unit.length} repetitions of {pattern.label.replace("Stick Control: ", "")}, one pad a hand, so Woodshed can score the sticking.</p>
         {:else}
           <Choice label="Hits" options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} setupKey="hits" />
         {/if}
       {/if}
       {#if isGroove && !isSteady && mode === "check"}
-        <Choice label="Feedback" setupKey="fade" options={[{ value: "off", label: "None: from memory" }, { value: "on", label: `Fades after ${FADE_PLAYS} plays` }]} value={s.fade ? "on" : "off"} onchange={(v) => cfg.set({ fade: v === "on" })} />
+        <Choice label="Feedback" setupKey="fade" options={[{ value: "off", label: "None" }, { value: "on", label: `Fades after ${FADE_PLAYS} plays` }]} value={s.fade ? "on" : "off"} onchange={(v) => cfg.set({ fade: v === "on" })} />
       {/if}
       {#if !isSteady && mode !== "check"}
         <Choice label="Wait mode (learn it)" options={[{ value: "off", label: "Off" }, { value: "on", label: "On: no click, notes wait" }]} value={s.wait ? "on" : "off"} onchange={(v) => cfg.set({ wait: v === "on" })} />
@@ -929,8 +929,8 @@
     <div class="flex flex-col gap-4" data-downbeat={phase === "running" || phase === "countin" ? downbeat : undefined} data-targets={isGroove ? JSON.stringify(groove.targets.map((t) => [t.pad, Math.round(t.atMs), t.accent ? "a" : t.ghost ? "g" : "n"])) : undefined} data-testid="pads-stage" data-view={notesShown && showLanes ? "lanes" : "grid"}>
       {#if !notesShown}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm text-ws-stage-soft">
-          {#if faded}{phase === "running" ? "The guide has faded: keep it going. " : `Check, faded: the notes and judgements for ${FADE_PLAYS} plays, then summary only; the plays after the fade count. `}{/if}
-          Check: from memory, no grid.
+          {#if faded}{phase === "running" ? "The guide has faded: keep it going. " : `Check with a fading guide: notes and timing marks show for ${FADE_PLAYS} plays. Only the plays after that are scored. `}{/if}
+          Check: no grid.
           {#if isGroove}{groove.groove.label}, {groove.groove.bars} bar{groove.groove.bars > 1 ? "s" : ""} after the count-in.{:else if pattern.onePad}{pattern.label} on {padLabel(pads[1])}.{:else}{pattern.label}, left on {padLabel(pads[0])}, right on {padLabel(pads[1])}.{/if}
         </p>
       {:else}
@@ -945,7 +945,7 @@
             <p class="mt-1 text-ws-stage-soft">{entry.feel}</p>
             <p class="mt-1"><span class="text-ws-stage-soft">Fingers:</span> {entry.fingers}</p>
             <p class="mt-1 text-ws-stage-soft">
-              {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target}; two clean runs in a row move it up. Now {bpm}.{/if}
+              {#if isSteady}Four bars with the click, then {STEADY_BARS - CLICK_BARS} on your own: stay within 3 BPM.{:else}Starts at {entry.bpm.start} BPM, aims for {entry.bpm.target} BPM. Two clean runs in a row move it up. Now {bpm} BPM.{/if}
             </p>
           </details>
         {/if}
@@ -969,7 +969,7 @@
             fill={phase === "running" || phase === "countin"}
             alone={phase === "running" || phase === "countin" ? null : isGroove ? "lanes" : "pads"}
           />
-          {#if waitMode}<p class="text-sm text-ws-stage-soft">Wait mode: no click; the notes stop until their pads are hit.</p>{/if}
+          {#if waitMode}<p class="text-sm text-ws-stage-soft">Wait mode: no click. The notes stop until you hit their pads.</p>{/if}
         {:else if isGroove}
           <GrooveGrid
             targets={groove.targets}
@@ -984,7 +984,7 @@
         {:else}
           <StickingLane hits={hits} {beatMs} current={phase === "running" ? strokeNow : demo?.playing ? strokeNow : null} outcomes={rud?.perStroke} windowMs={Math.min(60, stepMs / 3)} />
         {/if}
-        {#if !isGroove && hits.some((h) => h.grace)}<p class="text-sm text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are graded.</p>{/if}
+        {#if !isGroove && hits.some((h) => h.grace)}<p class="text-sm text-ws-stage-soft">Flam: a grace note on the other pad just before each stroke. Only the main strokes are scored.</p>{/if}
         {#if !isGroove && phase === "ready"}<p class="text-sm text-ws-stage-soft">{pattern.onePad ? `One pad, both fingers: tap a pad to pick it (now ${padLabel(pads[1])}).` : `Tap a pad to set the ${assign} hand (left ${padLabel(pads[0])}, right ${padLabel(pads[1])}).`}</p>{/if}
       {/if}
       {#if !(notesShown && showLanes)}{@render padGrid()}{/if}

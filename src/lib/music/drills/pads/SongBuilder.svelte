@@ -97,6 +97,6 @@
   <p class="text-sm" data-testid="set-check">
     {piece.bars} bars, {time(check.minutes)} at {bpm} BPM.
     {check.ok ? "In the set's shape: an intro, grooves from three levels, a chop, a solo, an end, 3 to 5 minutes." : `For the set (the path's last step) it still needs ${check.missing.join(", ")}.`}
-    <span class="text-ws-soft">Saved as you change it. A chop plays the loop's slices on A01 to A16; a solo is yours over the loop, graded on time and on keeping every bar going.</span>
+    <span class="text-ws-soft">Saved as you change it. A chop plays the loop's slices on A01 to A16. A solo is yours over the loop, scored on time and on keeping every bar going.</span>
   </p>
 </div>

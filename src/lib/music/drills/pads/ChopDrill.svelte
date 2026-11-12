@@ -107,7 +107,7 @@
         wave = o;
       }
     } catch (e) {
-      cutError = `The loop could not be cut: ${(e as Error).message}`;
+      cutError = `The loop couldn't be cut: ${(e as Error).message}`;
     } finally {
       cutting = false;
     }
@@ -127,9 +127,9 @@
     try {
       file = { name: f.name.replace(/\.[^.]+$/, ""), buffer: await decodeLoop(f) };
       cfg.set({ source: "file" });
-      status = `${file.name}: ${file.buffer.duration.toFixed(2)} s. Set how many bars it is; the tempo follows.`;
+      status = `${file.name}: ${file.buffer.duration.toFixed(2)} s. Set how many bars it is. The tempo follows.`;
     } catch {
-      status = "That file could not be read as audio. Try a WAV or MP3.";
+      status = "That file couldn't be read as audio. Try a WAV or MP3.";
     }
   }
 
@@ -204,7 +204,7 @@
       : Array.from({ length: CHOP_SLICES * 2 }, (_, i) => ({ midi: slicePad(i % CHOP_SLICES), time: (i * source.bars * 4 * beatMs) / CHOP_SLICES / 1000, duration: 0.2, velocity: 0.9, voice: "kit" as const }));
     const handle = audio.playSequence(notes, { onNote: (i) => light(notes[i].midi - 36) });
     demo = handle;
-    status = piece ? "Listen: the slices as written. Not scored." : "Listen: the loop, slice by slice. Not scored.";
+    status = piece ? "Demo: the slices as written. Not scored." : "Demo: the loop, slice by slice. Not scored.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -297,7 +297,7 @@
         : r.correct
           ? `Every slice in its place, ${Math.round(r.meanAbsErrorMs)} ms off on average.`
           : r.extra && wrong
-            ? `${r.missed} slices missed and ${r.extra} extra: some went to the wrong pad. The strip shows which.`
+            ? `${r.missed} slices missed and ${r.extra} extra: some went to the wrong pad. The play order shows which.`
             : `${r.matched} of ${piece.targets.length} slices in place${r.extra ? `, ${r.extra} extra` : ""}.`;
     } else {
       take = ons.map((n) => ({ at: n.at, midi: n.midi, velocity: n.velocity }));
@@ -317,7 +317,7 @@
             ? `A chop of ${g.first} hits, played again ${pct(g.repeat)} the same, in time.`
             : g.repeat < FREE_CHOP.repeatPass
               ? `The second take matched ${pct(g.repeat)} of the first: keep the pattern simple enough to play twice.`
-              : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25.`;
+              : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25 ms.`;
     }
     if (!ons.length) {
       // Nothing played: the standard not-heard card, no 0% and no bars measured from zero hits.
@@ -360,7 +360,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -442,7 +442,7 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={source.id === "file" && !file ? "Import your loop first, or pick one of the app's." : cutting || loaded !== want ? "Cutting the loop into slices…" : cutError || null}
+  blocked={source.id === "file" && !file ? "Import your loop first, or pick one of Woodshed's." : cutting || loaded !== want ? "Cutting the loop into slices…" : cutError || null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -502,7 +502,7 @@
         {@render slicePicture()}
         <!-- The order to play, a cell a step: the slice number, and after a run how it landed. The step due now is
              ringed in both modes (it is the clock, not a hint: the order is written). -->
-        <p class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">Play order.</span> {exercise === "order" ? "In order, a slice each step" : `${edit.every === 0.5 ? "An eighth" : edit.every === 1 ? "A beat" : "A sixteenth"} a step; a dot lets the slice before ring`}.</p>
+        <p class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">Play order.</span> {exercise === "order" ? "In order, a slice each step" : `${edit.every === 0.5 ? "An eighth" : edit.every === 1 ? "A beat" : "A sixteenth"} a step. A dot lets the slice before ring`}.</p>
         <ol class="chop-strip" aria-label="Play order">
           {#each cells as c, i (i)}
             <li
@@ -519,7 +519,7 @@
         </ol>
       {:else}
         {@render slicePicture()}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Bars 1 to {FREE_BARS}: play any slices, in any rhythm, to the click. Bars {FREE_BARS + 1} to {FREE_BARS * 2}: play the same again. Graded on playing it again and on time; hear it back after.</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Bars 1 to {FREE_BARS}: play any slices, in any rhythm, to the click. Bars {FREE_BARS + 1} to {FREE_BARS * 2}: play the same again. Scored on playing it again and on time. Hear it back after.</p>
       {/if}
       {#if !showLanes}{@render padGrid()}{/if}
     </div>

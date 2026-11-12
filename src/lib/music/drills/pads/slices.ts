@@ -63,7 +63,7 @@ export async function loadSlices(
     chokeGroup: 1,
   }));
   const { failed } = await audio.loadKit({ id: "chop", name: "Chop", pads });
-  if (failed.length) throw new Error(`${failed.length} slices could not be read`);
+  if (failed.length) throw new Error(`${failed.length} slices couldn't be read`);
   return wavePeaks(left, length, CHOP_SLICES * perSlice);
 }
 

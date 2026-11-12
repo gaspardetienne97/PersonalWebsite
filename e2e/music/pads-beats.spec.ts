@@ -60,7 +60,7 @@ async function playTargets(
   velocity = (kind: string) => (kind === "a" ? 110 : kind === "g" ? 30 : 75),
 ) {
   const stage = page.getByTestId(testId);
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
   const targets = JSON.parse((await stage.getAttribute("data-targets"))!) as [
     number,
