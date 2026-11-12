@@ -339,7 +339,7 @@ export const NOTE_REPEAT_EXERCISES = [
   {
     id: "rolls",
     label: "Four written roll bars: 1/16, 1/32, 1/16T",
-    detail: "Hats in eighths; hold the pad for each roll, at the rate it is written",
+    detail: "Hats in eighths. Hold the pad for each roll, at the written rate",
   },
 ] as const;
 export type NoteRepeatExercise = (typeof NOTE_REPEAT_EXERCISES)[number]["id"];

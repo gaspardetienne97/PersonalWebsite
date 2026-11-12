@@ -198,7 +198,7 @@ export interface ScaleSetup {
 
 /** The one-tap preset; it keeps the chosen scale and tonic. */
 export const HANDS_TOGETHER_PRESET = {
-  label: "Hands together, one octave, 80",
+  label: "Hands together, one octave, 80 BPM",
   span: "one-octave",
   motion: "up",
   hands: "both",
@@ -732,7 +732,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "C", "D", "F", "Am", "E"],
     bpm: 58,
     perBeat: 3,
-    note: "The 8-bar verse is cut to 6 by merging the closing C E E into one E bar; no capo.",
+    note: "The 8-bar verse is cut to 6 by merging the closing C E E into one E bar. No capo.",
     source:
       "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/learn-to-play-house-of-the-rising-sun/",
   },
@@ -745,7 +745,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am", "G", "Dm", "Am"],
     bpm: 94,
     perBeat: 2,
-    note: "Verse progression; G/B is played as G and the intro's Cmaj7, Cadd9 and Asus2 colour chords are left out.",
+    note: "Verse progression. G/B is played as G. The intro's Cmaj7, Cadd9 and Asus2 colour chords are left out.",
     source: "https://nationalguitaracademy.com/?p=14276",
   },
   {
@@ -757,7 +757,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am7", "G"],
     bpm: 80,
     perBeat: 2,
-    note: "Capo 3; G/B becomes G; the original is closer to an inside-out roll than true Travis.",
+    note: "Capo 3. G/B becomes G. The original is closer to an inside-out roll than true Travis.",
     source: "https://andyguitar.co.uk/videos/fleetwood-mac-landslide",
   },
   {
@@ -769,7 +769,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["G", "Em", "G", "Em", "C", "D"],
     bpm: 60,
     perBeat: 3,
-    note: "Capo 5 with G shapes (sounds in C); the first half of the verse, and the roll is an approximation.",
+    note: "Capo 5 with G shapes (sounds in C). The first half of the verse. The roll is an approximation.",
     source: "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/hallelujah/",
   },
   {
@@ -781,7 +781,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["D", "G"],
     bpm: 63,
     perBeat: 3,
-    note: "Verse only (bass then strings 3 2 1 2 3); the walkdown and the Em A chorus are left out.",
+    note: "Verse only (bass then strings 3 2 1 2 3). The walkdown and the Em A chorus are left out.",
     source: "https://laurenbateman.com/?p=5038",
   },
   {
@@ -793,7 +793,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Am", "G", "G7"],
     bpm: 93,
     perBeat: 2,
-    note: "Verse in C shapes with no capo; the record sounds lower (a detuned guitar) and the C to Am bass walk is dropped.",
+    note: "Verse in C shapes with no capo. The recording sounds lower (a detuned guitar). The C to Am bass walk is dropped.",
     source: "https://pg.zachmanson.com/tab/simon-garfunkel/the-boxer-chords-1744664",
   },
   {
@@ -805,7 +805,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 129,
     perBeat: 2,
-    note: "3/4 in Am shapes (capo 7 to match the record); G/B becomes G and the melody is not included.",
+    note: "3/4 in Am shapes (capo 7 to match the recording). G/B becomes G and the melody isn't included.",
     source: "https://jgmusiclessons.com/scarborough-fair-guitar-tabs-chords-and-arrangement",
   },
   {
@@ -817,7 +817,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["A", "E", "F#m", "A", "D", "E7"],
     bpm: 80,
     perBeat: 2,
-    note: "Slash bass notes (E/G#, A/E, D/F#) and E7sus4 are dropped; the song changes chord every two beats and p i m a only approximates Clapton's picking.",
+    note: "Slash bass notes (E/G#, A/E, D/F#) and E7sus4 are dropped. The song changes chord every two beats, and p i m a only approximates Clapton's picking.",
     source: "https://www.licklibrary.com/learn/lessons/eric-clapton/tears-in-heaven",
   },
   {
@@ -829,7 +829,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Em", "D", "C"],
     bpm: 46,
     perBeat: 3,
-    note: "Only the verse chord loop; the intro's open-string melody and hammer-ons are not included.",
+    note: "Only the verse chord loop. The intro's open-string melody and hammer-ons aren't included.",
     source: "https://www.licklibrary.com/learn/lessons/metallica/nothing-else-matters",
   },
   {
@@ -841,7 +841,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Am", "C", "Am", "F", "G"],
     bpm: 60,
     perBeat: 3,
-    note: "12/8 felt as 6/8; the taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
+    note: "12/8 felt as 6/8. The taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
     source:
       "https://ukulelemagazine.com/lessons/watch-sarah-maisel-perform-leonard-cohens-hallelujah",
   },
@@ -854,7 +854,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Em", "Am", "F", "C", "G"],
     bpm: 66,
     perBeat: 3,
-    note: "In C (the original is in D); 12/8 at a dotted quarter of about 66.",
+    note: "In C (the original is in D). 12/8 at a dotted quarter of about 66 BPM.",
     source: "https://ukulelego.com/lessons/cant-help-falling-in-love-by-twenty-one-pilots/",
   },
   {
@@ -866,7 +866,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "C", "D", "F", "Am", "E"],
     bpm: 58,
     perBeat: 3,
-    note: "Thumb on string 4, then i m a; the verse is shortened to 6 bars.",
+    note: "Thumb on string 4, then i m a. The verse is shortened to 6 bars.",
     source: "https://ukulelego.com/lessons/house-of-the-rising-sun-ukulele-lesson/",
   },
   {
@@ -878,7 +878,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 90,
     perBeat: 2,
-    note: "3/4 in Am at a slower practice tempo with open strings ringing; the melody is not included.",
+    note: "3/4 in Am at a slower practice tempo with open strings ringing. The melody isn't included.",
     source: "https://ukutabs.com/pl/s/simon-and-garfunkel/scarborough-fair/",
   },
 ];

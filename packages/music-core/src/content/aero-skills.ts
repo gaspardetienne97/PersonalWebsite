@@ -50,9 +50,9 @@ export const patternFits = (scaleId: string) =>
  * syllabus: a crotchet click with one, two or four notes to it.
  */
 export const AERO_GRADE_SPEEDS = [
-  { id: "grade-1", label: "Grade 1: 100, a note a click", bpm: 100, perBeat: 1 },
-  { id: "grade-3", label: "Grade 3: 72, two notes a click", bpm: 72, perBeat: 2 },
-  { id: "grade-5", label: "Grade 5: 66, four notes a click", bpm: 66, perBeat: 4 },
+  { id: "grade-1", label: "Grade 1: 100 BPM, a note a click", bpm: 100, perBeat: 1 },
+  { id: "grade-3", label: "Grade 3: 72 BPM, two notes a click", bpm: 72, perBeat: 2 },
+  { id: "grade-5", label: "Grade 5: 66 BPM, four notes a click", bpm: 66, perBeat: 4 },
 ] as const;
 
 /** The lowest tonic of `pcOf` whose scale fits the chart, so every note has a fingering. */
