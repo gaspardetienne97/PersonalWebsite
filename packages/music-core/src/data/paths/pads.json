@@ -1,8 +1,8 @@
 {
   "id": "mpc",
-  "title": "Finger Drumming Path",
+  "title": "Finger drumming path",
   "subtitle": "MPC finger drumming to about Melodics stage 10, beat making woven in.",
-  "benchmark": "Melodics Stage 10 of 15 (pads); about Drumeo Method level 5 and Rockschool Drums Grade 4 to 5 grooves, on fingers",
+  "benchmark": "Melodics Stage 10 of 15 (pads), or about Drumeo Method level 5 and Rockschool Drums Grade 4 to 5 grooves, on fingers",
   "instruments": ["mpc"],
   "levels": [
     {
@@ -17,7 +17,7 @@
           "title": "Set up the pads",
           "href": "/music/pads?mode=dynamics&dyn=even",
           "setup": "Pads, Dynamics: calibrate soft and loud on the MPC once, then Even (16 hits at one level). Full Level off.",
-          "done": "Calibration saved; 16 even hits with 80% inside one velocity band.",
+          "done": "Calibration saved. 16 even hits with 80% inside one velocity band.",
           "match": {
             "setup": "even"
           },
@@ -29,7 +29,7 @@
           "id": "1.2",
           "title": "First beat, no clock",
           "href": "/music/pads?mode=groove&groove=basic-rock&wait=1",
-          "setup": "Grooves: basic rock in Wait mode (no click, each note waits for its pads). Wait mode is practice; a Check run at any tempo counts.",
+          "setup": "Grooves: basic rock in Wait mode (no click, each note waits for its pads). Wait mode is practice. A Check run at any tempo counts.",
           "done": "4 bars with no wrong pad, on two days.",
           "match": {
             "groove": "basic-rock"
@@ -98,7 +98,7 @@
           "title": "Echo kick and snare",
           "href": "/music/pads?mode=echo&echo=kick-snare",
           "setup": "Play it back: Kick and snare.",
-          "done": "5 unaided echoes averaging 75%.",
+          "done": "5 echoes in Check averaging 75%.",
           "match": {
             "setup": "echo-kick-snare"
           },
@@ -144,8 +144,8 @@
         {
           "id": "1.10",
           "title": "First whole song",
-          "setup": "Song practice with a shelf song's drum part on the pads, We Will Rock You or any other: Wait mode, then Performance at 80% speed.",
-          "done": "One shelf song end to end at 80% speed, 85% of notes good.",
+          "setup": "Song practice: the drum part of a song from the song list on the pads, We Will Rock You or any other. Wait mode, then Performance mode at 80% speed.",
+          "done": "One song from the song list end to end at 80% speed, 85% of notes good.",
           "links": [
             {
               "label": "Billie Jean",
@@ -294,7 +294,7 @@
           "title": "Be My Baby",
           "artist": "The Ronettes",
           "teaches": "The pop intro: kick on 1, kick and snare on 2-and",
-          "detail": "130 BPM; an app groove be-my-baby is planned",
+          "detail": "130 BPM, an app groove be-my-baby is planned",
           "bpm": 130,
           "diff": 2,
           "scores": [
@@ -325,7 +325,7 @@
           ]
         }
       ],
-      "test": "Two shelf songs end to end in Song practice Performance mode at the record's tempo (85% good), plus Hold the tempo on basic rock at 90 within 3 BPM."
+      "test": "Two songs from the song list end to end in Song practice, Performance mode, at the recording's tempo (85% good). Hold the tempo on basic rock at 90, within 3 BPM."
     },
     {
       "id": "2",
@@ -436,7 +436,7 @@
           "title": "Write a groove down",
           "href": "/music/rhythm?mode=groove&grooveLevel=rock",
           "setup": "Rhythm, Groove dictation: rock beats.",
-          "done": "5 unaided dictations averaging 75%.",
+          "done": "5 dictations in Check averaging 75%.",
           "match": {
             "level": "rock"
           },
@@ -449,7 +449,7 @@
           "id": "2.9",
           "title": "Open hat on the & of 4",
           "href": "/music/pads?mode=groove&groove=rock-open-hat&bpm=80",
-          "setup": "Grooves: rock with an open hat, basic rock with the hat opened on the & of 4 and closed by the next bar's first hat, 80 to 100.",
+          "setup": "Grooves: rock with an open hat, 80 to 100. It's basic rock with the hat opened on the & of 4 and closed by the next bar's first hat.",
           "done": "Pass at 100.",
           "match": {
             "groove": "rock-open-hat"
@@ -463,8 +463,8 @@
           "id": "2.10",
           "title": "Four bars with a fill",
           "href": "/music/pads?mode=groove&groove=turnaround-fill&bpm=80",
-          "setup": "Grooves: turnaround fill, 80 to 100, in Check mode with the notes hidden.",
-          "done": "2 omissions at most, the fill in time, from memory.",
+          "setup": "Grooves: turnaround fill, 80 to 100, in Check with the notes hidden.",
+          "done": "2 omissions at most, the fill in time, in Check.",
           "match": {
             "groove": "turnaround-fill"
           },
@@ -647,12 +647,12 @@
           ]
         }
       ],
-      "test": "Two shelf songs at the record's tempo (85% good) with every fill landed, plus the turnaround fill at 100 from memory."
+      "test": "Two songs from the song list at the recording's tempo (85% good) with every fill landed. The turnaround fill at 100 in Check."
     },
     {
       "id": "3",
       "title": "Boom bap, swing and the first breaks",
-      "goal": "Two-bar hip hop beats with a moving kick and a little MPC swing, the first sampled breaks, and playing over a loop. About Melodics stage 3 to 4.",
+      "goal": "Two-bar hip hop beats with a moving kick and a little MPC swing. The first sampled breaks, and playing over a loop. About Melodics stage 3 to 4.",
       "adds": "Two-bar memory, swing 54 to 58, sixteenth singles, playing over a sampled loop, the first chop.",
       "pick": 2,
       "steps": [
@@ -769,7 +769,7 @@
           "id": "3.9",
           "title": "Play over a loop",
           "href": "/music/pads?mode=groove&groove=boom-bap-b&backing=true&plays=16&bpm=80",
-          "setup": "Grooves: boom bap played 16 times with the band (a bass and chord loop on the app's sounds) under it. A sampled loop from the Library, a typed BPM and a downbeat nudge are not there yet, and drift is not measured while the click plays.",
+          "setup": "Grooves: play boom bap 16 times over the band, a bass and chord loop on the app's sounds. A sampled loop from the Library, a typed BPM and a downbeat nudge aren't there yet. Drift isn't measured while the click plays.",
           "done": "16 bars of boom bap over the loop, pass, drift under 2 BPM.",
           "match": {
             "groove": "boom-bap-b",
@@ -784,7 +784,7 @@
           "id": "3.10",
           "title": "First chop: slices in order",
           "href": "/music/pads?mode=chop&exercise=order&source=boom-bap-b",
-          "setup": "Chop, in order: a 1-bar loop (the boom bap break, Funky Drummer or your own) cut onto A01 to A16, replayed slice by slice to the click.",
+          "setup": "Chop, in order: a 1-bar loop (the boom bap break, Funky Drummer or your own) cut onto A01 to A16. Replay it slice by slice to the click.",
           "done": "Pass at the loop's tempo.",
           "match": {
             "exercise": "order"
@@ -803,7 +803,7 @@
           "id": "3.11",
           "title": "Grooves from memory",
           "href": "/music/pads?mode=groove&groove=boom-bap-b",
-          "setup": "Grooves in Check mode (notes hidden): boom bap, then Impeach the President.",
+          "setup": "Grooves in Check (notes hidden): boom bap, then Impeach the President.",
           "done": "Each passes with the notes hidden.",
           "each": {
             "param": "groove",
@@ -866,7 +866,7 @@
           "title": "Walk This Way",
           "artist": "Run-DMC and Aerosmith",
           "teaches": "The break that opened rap to rock, kick-snare intro",
-          "detail": "108 BPM; also in the Breakbeat Bible",
+          "detail": "108 BPM, also in the Breakbeat Bible",
           "bpm": 108,
           "diff": 2,
           "scores": [
@@ -983,7 +983,7 @@
           "title": "When the Levee Breaks",
           "artist": "Led Zeppelin",
           "teaches": "Huge slow break, the most sampled rock beat",
-          "detail": "72 BPM; no MuseScore score; the app's groove levee",
+          "detail": "72 BPM, not on MuseScore, the app's groove levee",
           "bpm": 72,
           "diff": 2,
           "scores": [],
@@ -997,7 +997,7 @@
           "title": "Juicy",
           "artist": "The Notorious B.I.G.",
           "teaches": "Soft boom bap over a sample (Mtume)",
-          "detail": "96 BPM; no MuseScore score; an app groove is planned",
+          "detail": "96 BPM, not on MuseScore, an app groove is planned",
           "bpm": 96,
           "diff": 1,
           "scores": [],
@@ -1007,12 +1007,12 @@
           }
         }
       ],
-      "test": "Two shelf songs at tempo, Impeach the President or When the Levee Breaks from memory over the loop (once loop backing ships), and a 1-bar chop replayed in order."
+      "test": "Two songs from the song list at tempo. Impeach the President or When the Levee Breaks in Check over the loop (once loop backing ships). A 1-bar chop replayed in order."
     },
     {
       "id": "4",
       "title": "Sixteenths and ghost notes: funk and R&B",
-      "goal": "Sixteenth hats and soft ghost snares between loud backbeats; the James Brown and Stevie Wonder grooves. About Melodics stage 4 to 5.",
+      "goal": "Sixteenth hats and soft ghost snares between loud backbeats. The James Brown and Stevie Wonder grooves. About Melodics stage 4 to 5.",
       "adds": "Accents and ghosts, moving accents, paradiddles, one-hand and two-hand sixteenths, Stick Control permutations.",
       "pick": 2,
       "steps": [
@@ -1141,7 +1141,7 @@
           "id": "4.10",
           "title": "Stick Control, page one",
           "href": "/music/pads?mode=rudiment&pattern=stick-rlrl&bpm=90",
-          "setup": "Technique, Stick Control: the 16 four-note R/L stickings on two pads, eighth notes, 20 repetitions each. The left pad is L, the right pad R, so the sticking is graded.",
+          "setup": "Technique, Stick Control: the 16 four-note R/L stickings on two pads, eighth notes, 20 repetitions each. The left pad is L, the right pad R, so the sticking is scored.",
           "done": "All 16 stickings at 90, 90% on the right pad.",
           "each": {
             "param": "pattern",
@@ -1258,7 +1258,7 @@
           "title": "Think (About It)",
           "artist": "Lyn Collins",
           "teaches": "The Yeah! Woo! break, ghosts, tambourine sixteenths",
-          "detail": "113 BPM; no MuseScore score; the app's groove think",
+          "detail": "113 BPM, not on MuseScore, the app's groove think",
           "bpm": 113,
           "diff": 3,
           "scores": [
@@ -1395,7 +1395,7 @@
           "title": "Use Me",
           "artist": "Bill Withers",
           "teaches": "Bill Withers' hi-hat funk, ghosted snare",
-          "detail": "76 BPM; MuseScore has only band arrangements",
+          "detail": "76 BPM, MuseScore has only band arrangements",
           "bpm": 76,
           "diff": 3,
           "scores": [
@@ -1410,12 +1410,12 @@
           }
         }
       ],
-      "test": "Funky Drummer at 100 and one shelf song with ghosts under 40% of the accents, plus the moving accent at 90."
+      "test": "Funky Drummer at 100 and one song from the song list with ghosts under 40% of the accents. The moving accent at 90."
     },
     {
       "id": "5",
-      "title": "Four on the floor: disco, house, electro; loops and chops",
-      "goal": "Dance grooves at 110 to 128 with open hats, claps and builds; play over loops and arrange a chop. About Melodics stage 5 to 6.",
+      "title": "Four on the floor: disco, house, electro, loops and chops",
+      "goal": "Dance grooves at 110 to 128 with open hats, claps and builds. Play over loops and arrange a chop. About Melodics stage 5 to 6.",
       "adds": "Endurance at tempo, the build and drop, Note Repeat, reordering chops, 16 to 32 bar forms.",
       "pick": 2,
       "steps": [
@@ -1458,7 +1458,7 @@
           "title": "Endurance",
           "href": "/music/pads?mode=steady&steady=house&bpm=124",
           "setup": "Hold the tempo: house at 124.",
-          "done": "12 bars within 2 BPM (the app flags 3; aim for 2).",
+          "done": "12 bars within 2 BPM. The app flags 3, so aim for 2.",
           "match": {
             "groove": "house"
           },
@@ -1484,7 +1484,7 @@
           "id": "5.5",
           "title": "Note repeat",
           "href": "/music/pads?mode=repeat&rep=build&bpm=110",
-          "setup": "Note repeat, the build: hold the snare at 1/8 for two bars, then 1/16 for two, louder all the way, and land the drop; pressure (aftertouch) sets the level when the MPC sends it. Needs the MPC's velocity.",
+          "setup": "Note repeat, the build: hold the snare at 1/8 for two bars, then 1/16 for two. Get louder all the way and land the drop. Pressure (aftertouch) sets the level when the MPC sends it. Needs the MPC's velocity.",
           "done": "A 4-bar build with rising velocity.",
           "match": {
             "setup": "repeat-build"
@@ -1504,7 +1504,7 @@
           "id": "5.6",
           "title": "Over a loop, house",
           "href": "/music/pads?mode=groove&groove=house&backing=true&plays=32&bpm=110",
-          "setup": "Grooves: house played 32 times with the band (a pad and bass loop on the app's sounds) under it. A sampled 4-bar loop from the Library is not there yet, and drift is not measured while the click plays.",
+          "setup": "Grooves: play house 32 times over the band, a pad and bass loop on the app's sounds. A sampled 4-bar loop from the Library isn't there yet. Drift isn't measured while the click plays.",
           "done": "32 bars, drift under 2 BPM.",
           "match": {
             "groove": "house",
@@ -1533,7 +1533,7 @@
           "id": "5.8",
           "title": "Song form",
           "href": "/music/pads?mode=song&form=house-drop&bpm=110",
-          "setup": "Song form: House, build to the drop. Intro 4 bars soft, groove 8, a 4-bar build rising, drop 12 loud with the crash, outro 4 soft: 32 bars, each section graded with its level.",
+          "setup": "Song form: House, build to the drop. Intro 4 bars soft, groove 8, a 4-bar build rising, drop 12 loud with the crash, outro 4 soft. That's 32 bars, each section scored with its level.",
           "done": "Every section passed in one take.",
           "match": {
             "setup": "song-house-drop"
@@ -1725,7 +1725,7 @@
           "title": "Blue Monday",
           "artist": "New Order",
           "teaches": "Sixteenth kick intro, drum machine",
-          "detail": "130 BPM; MuseScore has only band arrangements",
+          "detail": "130 BPM, MuseScore has only band arrangements",
           "bpm": 130,
           "diff": 3,
           "scores": [
@@ -1740,7 +1740,7 @@
           }
         }
       ],
-      "test": "A 32-bar song-form piece over a loop in one take, plus two shelf songs at tempo."
+      "test": "A 32-bar song-form piece over a loop in one take. Two songs from the song list at tempo."
     },
     {
       "id": "6",
@@ -1870,7 +1870,7 @@
           "id": "6.7",
           "title": "Reading interpretations",
           "href": "/music/pads?mode=ostinato&line=read&interp=snare",
-          "setup": "Ostinato and a line, new lines to read: two bars of hats alone, then four new Syncopation-style bars, read by the snare over the hats, then by the kick under them.",
+          "setup": "Ostinato and a line, new lines to read. Two bars of hats alone, then four new Syncopation-style bars. The snare reads them over the hats, then the kick reads them under.",
           "done": "8 lines read in 2 interpretations.",
           "match": {
             "line": "read"
@@ -1907,7 +1907,7 @@
         {
           "id": "6.9",
           "title": "Dynamics in a song",
-          "setup": "Song practice on a drum song with dynamics marks, graded on dynamics (soft verse, loud chorus). Song practice grades the whole take, not a band per section yet.",
+          "setup": "Song practice on a drum song with dynamics marks, scored on dynamics (soft verse, loud chorus). Song practice scores the whole take, not a band per section yet.",
           "done": "Bands right in 4 of 4 sections.",
           "feeds": "Every song",
           "href": "/music/library?tab=songs",
@@ -2108,7 +2108,7 @@
           ]
         }
       ],
-      "test": "Two shelf songs end to end with every fill landed, plus 32 bars of improvised fills from step 6.10."
+      "test": "Two songs from the song list end to end with every fill landed. 32 bars of improvised fills from step 6.10."
     },
     {
       "id": "7",
@@ -2149,7 +2149,7 @@
           "id": "7.3",
           "title": "Triplet roll",
           "href": "/music/pads?mode=rudiment&pattern=roll-16t&bpm=80",
-          "setup": "Technique: 1/16 triplet roll, 80 to 120. The rudiment works today; inside a groove it needs the triplet grid.",
+          "setup": "Technique: 1/16 triplet roll, 80 to 120. The rudiment works today. Inside a groove it needs the triplet grid.",
           "done": "35 ms or less at 120.",
           "match": {
             "pattern": "roll-16t"
@@ -2191,7 +2191,7 @@
           "title": "Swing 62 and Dilla",
           "href": "/music/pads?mode=groove&groove=swing-62&bpm=78",
           "setup": "Grooves: boom bap at swing 62%, then Dilla feel, 78 to 88.",
-          "done": "Swing read within 3 points; the Dilla snare early.",
+          "done": "Swing read within 3 points. The Dilla snare early.",
           "each": {
             "param": "groove",
             "values": ["swing-62", "dilla"]
@@ -2210,7 +2210,7 @@
           "id": "7.7",
           "title": "Note repeat rolls",
           "href": "/music/pads?mode=repeat&rep=rolls&bpm=120",
-          "setup": "Note repeat, four written roll bars: hats in eighths with rolls at 1/16, 1/32 and 1/16T, the rate set by the chart; hold the hats pad for each roll.",
+          "setup": "Note repeat, four written roll bars: hats in eighths with rolls at 1/16, 1/32 and 1/16T. The chart sets the rate. Hold the hats pad for each roll.",
           "done": "4 written roll bars, pass.",
           "match": {
             "setup": "repeat-rolls"
@@ -2223,7 +2223,7 @@
           "id": "7.8",
           "title": "Live beat, 2 bars",
           "href": "/music/create?live=1",
-          "setup": "Create, Play it live: a 2-bar beat at 140, recorded a pass at a time: kick, then snare, then hats. Undo takes back a pass; Keep this loop grades the build.",
+          "setup": "Create, Play it live: a 2-bar beat at 140, recorded a pass at a time. Kick, then snare, then hats. Undo takes back a pass. Keep this loop scores the build.",
           "done": "A 2-bar loop at 140 with no undo after the third pass.",
           "exerciseIds": ["technique.mpc.live-loop"],
           "match": {
@@ -2239,7 +2239,7 @@
           "id": "7.9",
           "title": "Chop a melody",
           "href": "/music/pads?mode=chop&exercise=free&source=keys",
-          "setup": "Chop, free: the keys riff (or your own loop) on 16 pads. Four bars of your own pattern, then the same four again; hear it back after.",
+          "setup": "Chop, free: the keys riff (or your own loop) on 16 pads. Four bars of your own pattern, then the same four again. Hear it back after.",
           "done": "A 4-bar chop pattern repeated twice, in time.",
           "match": {
             "exercise": "free"
@@ -2372,7 +2372,7 @@
           "title": "Lucid Dreams",
           "artist": "Juice WRLD",
           "teaches": "Triplet hat rolls",
-          "detail": "84 BPM; needs the triplet grid",
+          "detail": "84 BPM, needs the triplet grid",
           "bpm": 84,
           "diff": 3,
           "scores": [
@@ -2388,7 +2388,7 @@
           "title": "SICKO MODE",
           "artist": "Travis Scott",
           "teaches": "Beat switches, triplet hats",
-          "detail": "155 then 78 BPM; needs the triplet grid",
+          "detail": "155 then 78 BPM, needs the triplet grid",
           "bpm": 155,
           "diff": 3,
           "scores": [
@@ -2403,7 +2403,7 @@
           "title": "Mask Off",
           "artist": "Future",
           "teaches": "Flute-loop trap, rolls",
-          "detail": "75 BPM; MuseScore has only band arrangements",
+          "detail": "75 BPM, MuseScore has only band arrangements",
           "bpm": 75,
           "diff": 2,
           "scores": [],
@@ -2413,12 +2413,12 @@
           }
         }
       ],
-      "test": "Two shelf songs at tempo, trap with a 1/32 roll at 140 with the roll velocity rising, and a live 2-bar beat built from silence in under 5 minutes."
+      "test": "Two songs from the song list at tempo. Trap with a 1/32 roll at 140, the roll's velocity rising. A live 2-bar beat built from silence in under 5 minutes."
     },
     {
       "id": "8",
       "title": "Shuffles, triplets and swing",
-      "goal": "The shuffle family: blues shuffle, rock and roll swing, the 12/8 slow blues, the half-time shuffle. About Melodics stage 8; most of it waits for the triplet grid.",
+      "goal": "The shuffle family: blues shuffle, rock and roll swing, the 12/8 slow blues, the half-time shuffle. About Melodics stage 8. Most of it waits for the triplet grid.",
       "adds": "Triplet subdivision, swung eighths, ghosted triplet partials, MPC swing 66 as the bridge from straight to triplet.",
       "pick": 2,
       "steps": [
@@ -2441,7 +2441,7 @@
           "id": "8.2",
           "title": "Swing 66 as a bridge",
           "href": "/music/pads?mode=groove&groove=swing-62&swing=66&bpm=80",
-          "setup": "Grooves: boom bap with the Swing setting at 66% instead of 62; the results show the swing played.",
+          "setup": "Grooves: boom bap with the Swing setting at 66% instead of 62. The results show the swing played.",
           "done": "Swing read 64 to 68%.",
           "match": {
             "groove": "swing-62",
@@ -2455,7 +2455,7 @@
           "id": "8.3",
           "title": "Blues shuffle",
           "href": "/music/pads?mode=groove&groove=blues-shuffle&bpm=90",
-          "setup": "Grooves, on the triplet grid: blues shuffle, hats on the first and third of each triplet, kick on 1 and 3, snare on 2 and 4, 90 to 120.",
+          "setup": "Grooves, on the triplet grid: blues shuffle, 90 to 120. Hats on the first and third of each triplet, kick on 1 and 3, snare on 2 and 4.",
           "done": "Pass at 120.",
           "match": {
             "groove": "blues-shuffle"
@@ -2594,7 +2594,7 @@
           "title": "Rock Around the Clock",
           "artist": "Bill Haley",
           "teaches": "Swung eighths, snare on 2 and 4",
-          "detail": "182 BPM; needs the triplet grid",
+          "detail": "182 BPM, needs the triplet grid",
           "bpm": 182,
           "diff": 1,
           "scores": [
@@ -2614,7 +2614,7 @@
           "title": "Pride and Joy",
           "artist": "Stevie Ray Vaughan",
           "teaches": "Texas blues shuffle",
-          "detail": "120 BPM; needs the triplet grid",
+          "detail": "120 BPM, needs the triplet grid",
           "bpm": 120,
           "diff": 1,
           "scores": [
@@ -2634,7 +2634,7 @@
           "title": "Tush",
           "artist": "ZZ Top",
           "teaches": "Rock shuffle, crash accents",
-          "detail": "140 BPM; needs the triplet grid",
+          "detail": "140 BPM, needs the triplet grid",
           "bpm": 140,
           "diff": 2,
           "scores": [
@@ -2649,7 +2649,7 @@
           "title": "La Grange",
           "artist": "ZZ Top",
           "teaches": "Boogie shuffle on the toms, then the hats",
-          "detail": "160 BPM; needs the triplet grid",
+          "detail": "160 BPM, needs the triplet grid",
           "bpm": 160,
           "diff": 2,
           "scores": [
@@ -2669,7 +2669,7 @@
           "title": "Everybody Wants to Rule the World",
           "artist": "Tears for Fears",
           "teaches": "12/8 pop shuffle",
-          "detail": "112 BPM; needs the triplet grid and meter support",
+          "detail": "112 BPM, needs the triplet grid and meter support",
           "bpm": 112,
           "diff": 2,
           "scores": [
@@ -2684,7 +2684,7 @@
           "title": "Hold the Line",
           "artist": "Toto",
           "teaches": "Porcaro's piano-driving shuffle",
-          "detail": "96 BPM; needs the triplet grid",
+          "detail": "96 BPM, needs the triplet grid",
           "bpm": 96,
           "diff": 2,
           "scores": [
@@ -2699,7 +2699,7 @@
           "title": "Sing, Sing, Sing",
           "artist": "Benny Goodman",
           "teaches": "Krupa's swing tom beat",
-          "detail": "210 BPM; needs the triplet grid",
+          "detail": "210 BPM, needs the triplet grid",
           "bpm": 210,
           "diff": 2,
           "scores": [
@@ -2719,7 +2719,7 @@
           "title": "Red House",
           "artist": "Jimi Hendrix",
           "teaches": "Slow 12/8 blues",
-          "detail": "60 BPM in 12/8; needs the triplet grid and meter support",
+          "detail": "60 BPM in 12/8, needs the triplet grid and meter support",
           "bpm": 60,
           "diff": 2,
           "scores": [
@@ -2735,7 +2735,7 @@
           "title": "Rosanna",
           "artist": "Toto",
           "teaches": "The half-time shuffle",
-          "detail": "86 BPM; needs the triplet grid",
+          "detail": "86 BPM, needs the triplet grid",
           "bpm": 86,
           "diff": 3,
           "scores": [
@@ -2758,7 +2758,7 @@
           "title": "Home at Last",
           "artist": "Steely Dan",
           "teaches": "The Purdie shuffle",
-          "detail": "92 BPM; the song itself is only in band arrangements; needs the triplet grid",
+          "detail": "92 BPM, the song itself is only in band arrangements, needs the triplet grid",
           "bpm": 92,
           "diff": 3,
           "scores": [
@@ -2777,7 +2777,7 @@
           "title": "Fool in the Rain",
           "artist": "Led Zeppelin",
           "teaches": "Bonham's half-time shuffle and the samba break",
-          "detail": "130 BPM; no MuseScore score; needs the triplet grid",
+          "detail": "130 BPM, not on MuseScore, needs the triplet grid",
           "bpm": 130,
           "diff": 3,
           "scores": [],
@@ -2787,12 +2787,12 @@
           }
         }
       ],
-      "test": "Pride and Joy or Tush at tempo, Rosanna or Home at Last at 80% of tempo with ghosts under 40%, plus triplet singles at 100."
+      "test": "Pride and Joy or Tush at tempo. Rosanna or Home at Last at 80% of tempo with ghosts under 40%. Triplet singles at 100."
     },
     {
       "id": "9",
       "title": "Latin, Caribbean, Brazilian and Afro grooves",
-      "goal": "The clave-based and dance-hall families, with the right hand on cowbell, rim or shaker and the left keeping the bass pattern. About Melodics stage 8 to 9.",
+      "goal": "The clave-based and dance-hall families. The right hand plays cowbell, rim or shaker and the left keeps the bass pattern. About Melodics stage 8 to 9.",
       "adds": "Clave as an ostinato, 3+3+2, cross-stick, the one drop's half time, samba surdo, afrobeat kicks in double strokes.",
       "pick": 2,
       "steps": [
@@ -2997,7 +2997,7 @@
           "id": "9.12",
           "title": "Songo",
           "href": "/music/pads?mode=groove&groove=songo&bpm=85",
-          "setup": "Grooves: songo, the bell on the beat, the kick on the & of 2 and on 4 (a provisional teaching version), 85 to 100.",
+          "setup": "Grooves: songo (a provisional teaching version), 85 to 100. The bell on the beat, the kick on the & of 2 and on 4.",
           "done": "Pass at 100.",
           "match": {
             "groove": "songo"
@@ -3040,7 +3040,7 @@
           "title": "Gasolina",
           "artist": "Daddy Yankee",
           "teaches": "Classic reggaeton",
-          "detail": "96 BPM; no MuseScore drum part; the app's groove reggaeton",
+          "detail": "96 BPM, no drum part on MuseScore, the app's groove reggaeton",
           "bpm": 96,
           "diff": 1,
           "scores": [],
@@ -3226,12 +3226,12 @@
           }
         }
       ],
-      "test": "One reggaeton or reggae song and one Brazilian or afrobeat item at tempo, plus son clave held on the rim for 16 bars while the other hand plays the Tony Allen kicks (a new combination the app does not grade yet)."
+      "test": "One reggaeton or reggae song and one Brazilian or afrobeat item at tempo. Son clave held on the rim for 16 bars while the other hand plays the Tony Allen kicks. The app doesn't score that combination yet."
     },
     {
       "id": "10",
       "title": "Breaks at tempo, linear funk, drum and bass",
-      "goal": "The canonical breaks at record tempo, linear grooves, and drum and bass at 170 to 175 with chopped breaks. About Melodics stage 9 to 10.",
+      "goal": "The canonical breaks at the recording's tempo, linear grooves, and drum and bass at 170 to 175 with chopped breaks. About Melodics stage 9 to 10.",
       "adds": "Speed (sixteenths at 138), linear sticking, three over four, cutting the Amen into slices and resequencing it.",
       "pick": 2,
       "steps": [
@@ -3253,7 +3253,7 @@
           "id": "10.2",
           "title": "Linear grooves",
           "href": "/music/pads?mode=groove&groove=linear-singles&bpm=70",
-          "setup": "Grooves: four linear grooves from Stick Control's first page (singles, doubles, paradiddle, inverted paradiddle), the right hand on hats, the left on snare, the kick taking some strokes.",
+          "setup": "Grooves: four linear grooves from Stick Control's first page (singles, doubles, paradiddle, inverted paradiddle). The right hand plays hats, the left snare, and the kick takes some strokes.",
           "done": "4 grooves at 90.",
           "each": {
             "param": "groove",
@@ -3337,7 +3337,7 @@
           "id": "10.7",
           "title": "Chop the Amen",
           "href": "/music/pads?mode=chop&exercise=reorder&source=amen&edit=jungle&bpm=160",
-          "setup": "Chop: the Amen's four bars on 16 slices, a beat each; play the written jungle edit, cut on the eighths, 160 to 170.",
+          "setup": "Chop: the Amen's four bars on 16 slices, a beat each. Play the written jungle edit, cut on the eighths, 160 to 170.",
           "done": "Pass at 160.",
           "match": {
             "exercise": "reorder",
@@ -3353,7 +3353,7 @@
           "title": "Hold the tempo at speed",
           "href": "/music/pads?mode=steady&steady=dnb&bpm=172",
           "setup": "Hold the tempo: drum and bass at 172.",
-          "done": "12 bars within 2 BPM (the app flags 3; aim for 2).",
+          "done": "12 bars within 2 BPM. The app flags 3, so aim for 2.",
           "match": {
             "groove": "dnb"
           },
@@ -3381,8 +3381,8 @@
           "id": "10.10",
           "title": "Tempo ladder",
           "href": "/music/pads?mode=groove&groove=funky-drummer&bpm=100",
-          "setup": "Grooves: Funky Drummer, then the Amen; Next run raises the tempo after each clean pass.",
-          "done": "The record's tempo plus 10%: Funky Drummer at 110, the Amen at 150.",
+          "setup": "Grooves: Funky Drummer, then the Amen. Next run raises the tempo after each clean run.",
+          "done": "The recording's tempo plus 10%: Funky Drummer at 110, the Amen at 150.",
           "each": {
             "param": "groove",
             "values": ["funky-drummer", "amen"]
@@ -3566,7 +3566,7 @@
           "title": "Tarantula",
           "artist": "Pendulum",
           "teaches": "Drum and bass two-step",
-          "detail": "174 BPM; no MuseScore score; the app's groove dnb",
+          "detail": "174 BPM, not on MuseScore, the app's groove dnb",
           "bpm": 174,
           "diff": 3,
           "scores": [],
@@ -3576,12 +3576,12 @@
           }
         }
       ],
-      "test": "The Amen at 138 from memory, one linear funk item at tempo, a jungle edit from Amen chops at 160, and drum and bass held for 12 bars at 172."
+      "test": "The Amen at 138 in Check. One linear funk item at tempo. A jungle edit from Amen chops at 160. Drum and bass held for 12 bars at 172."
     },
     {
       "id": "11",
       "title": "Odd meters, live sets and improvising",
-      "goal": "Play in 5 and 7, build a beat live and perform a 3 to 5 minute set with improvisation. About Melodics stage 10, the capstone; most of it waits for meter support.",
+      "goal": "Play in 5 and 7, build a beat live and perform a 3 to 5 minute set with improvisation. About Melodics stage 10, the capstone. Most of it waits for meter support.",
       "adds": "Counting groups of 2 and 3, metric modulation awareness, a set structure, soloing over a loop.",
       "pick": 2,
       "steps": [
@@ -3589,7 +3589,7 @@
           "id": "11.1",
           "title": "Count in 5 and 7",
           "href": "/music/pads?mode=rudiment&pattern=fives&sub=2&hits=16&bpm=80",
-          "setup": "Technique: alternating singles in eighths, accented 3 + 2, then 2 + 2 + 3; the accents are judged by velocity.",
+          "setup": "Technique: alternating singles in eighths, accented 3 + 2, then 2 + 2 + 3. The accents are scored by velocity.",
           "done": "Accents right 14 of 16 at 100.",
           "each": {
             "param": "pattern",
@@ -3651,7 +3651,7 @@
         {
           "id": "11.5",
           "title": "Improvise 16 bars",
-          "setup": "Improvise over the funk vamp, the results played back raw.",
+          "setup": "Improvise over the funk vamp. The results play back raw.",
           "done": "16 bars, drift under 2 BPM, at least 3 different fills.",
           "links": [
             {
@@ -3671,7 +3671,7 @@
         {
           "id": "11.6",
           "title": "Improvise over a loop",
-          "setup": "A chosen loop under Improvise; raw and half-quantised playback reviewed.",
+          "setup": "Improvise over a loop you choose. Review the raw and half-quantised playback.",
           "done": "32 bars over the loop.",
           "links": [
             {
@@ -3692,7 +3692,7 @@
           "id": "11.7",
           "title": "Live beat, 4 bars",
           "href": "/music/create?live=1",
-          "setup": "Create, Play it live: a 4-bar beat with swing 56 and Note Repeat on a held pad, built in passes in under 5 minutes. Then 16 bars of fills over it; Improvise plays its own loops, not yours, so the fills are not judged here.",
+          "setup": "Create, Play it live: a 4-bar beat with swing 56 and Note Repeat on a held pad. Build it in passes in under 5 minutes. Then 16 bars of fills over it. Improvise plays its own loops, not yours, so the fills aren't scored here.",
           "done": "Built in under 5 minutes, then 16 bars of fills over it.",
           "exerciseIds": ["technique.mpc.live-loop"],
           "match": {
@@ -3715,7 +3715,7 @@
           "id": "11.8",
           "title": "Faded feedback",
           "href": "/music/pads?mode=groove&fade=true",
-          "setup": "Grooves in Check with Feedback set to fade: the notes and judgements for two plays, then summary only; the plays after the fade are graded. Five grooves you know.",
+          "setup": "Grooves in Check with Feedback set to fade: the notes and judgements for two plays, then summary only. The plays after the fade are scored. Five grooves you know.",
           "done": "Pass with summary-only feedback.",
           "match": {
             "fade": "2"
@@ -3728,7 +3728,7 @@
           "id": "11.9",
           "title": "The set",
           "href": "/music/pads?mode=song",
-          "setup": "Song form, Write a new piece: an intro, 3 grooves from 3 levels, a chop section on the slices, a solo over a loop and an end (a fill or a stop), each with its bars and level. Only a piece in that shape lasting 3 to 5 minutes at the run's tempo counts. Record the take in Record if you want to keep the audio.",
+          "setup": "Song form, Write a new piece. It needs an intro, 3 grooves from 3 levels, a chop section on the slices, a solo over a loop and an end (a fill or a stop). Give each its bars and level. Only a piece in that shape lasting 3 to 5 minutes at the run's tempo counts. Record the take in Record if you want to keep the recording.",
           "done": "One take, 3 to 5 minutes, most sections passed.",
           "match": {
             "skill": "song",
@@ -3756,7 +3756,7 @@
           "title": "All You Need Is Love",
           "artist": "The Beatles",
           "teaches": "7/4 bars inside 4/4",
-          "detail": "103 BPM; needs meter support",
+          "detail": "103 BPM, needs meter support",
           "bpm": 103,
           "diff": 1,
           "scores": [
@@ -3776,7 +3776,7 @@
           "title": "Mission: Impossible theme",
           "artist": "Lalo Schifrin",
           "teaches": "5/4 groove",
-          "detail": "170 BPM; needs meter support",
+          "detail": "170 BPM, needs meter support",
           "bpm": 170,
           "diff": 1,
           "scores": [
@@ -3791,7 +3791,7 @@
           "title": "Take Five",
           "artist": "Dave Brubeck",
           "teaches": "5/4 jazz, ride and cross-stick",
-          "detail": "172 BPM, swung; needs the triplet grid and meter support",
+          "detail": "172 BPM, swung, needs the triplet grid and meter support",
           "bpm": 172,
           "diff": 2,
           "scores": [
@@ -3811,7 +3811,7 @@
           "title": "Money",
           "artist": "Pink Floyd",
           "teaches": "7/4 rock, then a 4/4 solo",
-          "detail": "120 BPM, shuffle feel; needs the triplet grid and meter support",
+          "detail": "120 BPM, shuffle feel, needs the triplet grid and meter support",
           "bpm": 120,
           "diff": 2,
           "scores": [
@@ -3831,7 +3831,7 @@
           "title": "Seven Days",
           "artist": "Sting",
           "teaches": "5/4 pop groove (Vinnie Colaiuta)",
-          "detail": "120 BPM; needs meter support",
+          "detail": "120 BPM, needs meter support",
           "bpm": 120,
           "diff": 2,
           "scores": [
@@ -3846,7 +3846,7 @@
           "title": "Spoonman",
           "artist": "Soundgarden",
           "teaches": "7/4 riff groove",
-          "detail": "110 BPM; needs meter support",
+          "detail": "110 BPM, needs meter support",
           "bpm": 110,
           "diff": 3,
           "scores": [
@@ -3866,7 +3866,7 @@
           "title": "Tom Sawyer",
           "artist": "Rush",
           "teaches": "Peart's 4/4 with a 7/8 bridge and tom fills",
-          "detail": "88 BPM; needs meter support",
+          "detail": "88 BPM, needs meter support",
           "bpm": 88,
           "diff": 3,
           "scores": [
@@ -3886,7 +3886,7 @@
           "title": "15 Step",
           "artist": "Radiohead",
           "teaches": "5/4 electronic beat with claps",
-          "detail": "189 BPM; no MuseScore score; needs meter support",
+          "detail": "189 BPM, not on MuseScore, needs meter support",
           "bpm": 189,
           "diff": 3,
           "scores": [
@@ -3905,7 +3905,7 @@
           "title": "Schism",
           "artist": "Tool",
           "teaches": "Shifting odd meters (the stretch goal)",
-          "detail": "108 BPM; needs meter support",
+          "detail": "108 BPM, needs meter support",
           "bpm": 108,
           "diff": 4,
           "scores": [
@@ -3921,7 +3921,7 @@
           ]
         }
       ],
-      "test": "The recorded set from step 11.9, two shelf songs (one in an odd meter) at tempo, and three grooves drawn at random from levels 3 to 10 played from memory at the record's tempo with faded feedback."
+      "test": "The recorded set from step 11.9. Two songs from the song list (one in an odd meter) at tempo. Three grooves drawn at random from levels 3 to 10, in Check at the recording's tempo with faded feedback."
     }
   ]
 }
