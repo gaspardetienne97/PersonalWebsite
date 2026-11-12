@@ -160,7 +160,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = pattern ? `Listen: ${pattern.label} up and back on each chord, the chord in the left hand.` : "Listen: each chord in the left hand with its go-to scale on top.";
+    status = pattern ? `Demo playing, not scored: ${pattern.label} up and back on each chord, the chord in the left hand.` : "Demo playing, not scored: each chord in the left hand with its go-to scale on top.";
     await transport.demo(demoNotes, bpm);
   }
 
@@ -217,7 +217,7 @@
     return out;
   });
   /** Beside Stop on a phone: the chord now and, in Practice, its scale. */
-  const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? `${current.symbol}${mode === "practice" ? `: ${pattern ? `${pattern.label} pattern` : current.scaleLabel}` : ", from memory"}` : "");
+  const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? `${current.symbol}${mode === "practice" ? `: ${pattern ? `${pattern.label} pattern` : current.scaleLabel}` : ", names hidden"}` : "");
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -253,7 +253,7 @@
     summary = {
       headline:
         r.graded === 0
-          ? "Nothing was played over the changes. Start on the first beat after the count-in."
+          ? "No notes heard over the changes. Start on the first beat after the count-in."
           : r.correct
             ? `Every chord got its scale: ${r.chords.map((c) => c.chord + c.scale).reduce((a, b) => a + b, 0)} notes inside, ${outside} outside.`
             : r.graded < targets.length
@@ -306,7 +306,7 @@
         ? "No notes matched. Hear it first, then start on the first beat after the count-in."
         : r.correct
           ? mode === "check"
-            ? `${pattern!.label} through every chord, from memory.`
+            ? `${pattern!.label} through every chord, in Check.`
             : `${pattern!.label} through every chord, all ${r.total} notes in order.`
           : `${r.matched} of ${r.total} right. It first slipped over ${slip?.symbol ?? "a chord"}.`,
       metric: pct(r.score),
@@ -342,7 +342,7 @@
   function stop() {
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   onDestroy(() => {
@@ -355,7 +355,7 @@
   title={CHANGES_TITLE}
   trainer={changesTrainer("chord-scales")}
   hue="piano"
-  blurb="As the ii-V-I moves, play the scale of the chord you are on, or a 1-2-3-5 or 3-5-7-9 pattern on each chord."
+  blurb="As the ii-V-I moves, play the scale of the chord you're on, or a 1-2-3-5 or 3-5-7-9 pattern on each chord."
   summary={summaryLine}
   tabs={[
     { id: "major", label: "Major ii-V-I" },
@@ -436,7 +436,7 @@
             <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
             {#if scaleTip(t.scaleLabel) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleLabel)}</p>{/if}
           {/if}
-          {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? `✕ ${done.avoid} outside` : done.chord + done.scale ? "✓ all inside" : "not played"}</p>{/if}
+          {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? `${done.avoid} outside` : done.chord + done.scale ? "all inside" : "not played"}</p>{/if}
         </li>
       {/each}
     </ol>
@@ -446,7 +446,7 @@
         {plainHint(current.hint)}{current.others.length ? ` These also count as inside: ${current.others.join(", ")}.` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}
-      <p class="mb-3 text-sm text-ws-stage-soft">Check mode: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
+      <p class="mb-3 text-sm text-ws-stage-soft">Check: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
       <!-- Each chord's symbol over its bars, so the change is read on the music itself. -->

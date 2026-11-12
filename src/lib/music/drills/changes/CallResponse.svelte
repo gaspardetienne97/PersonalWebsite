@@ -166,7 +166,7 @@
     verdict = {
       // In the call is not yet right (order and time are judged as the turn ends): a neutral mark, not a tick.
       kind: callMode === "echo" ? (good ? "in" : "wrong") : good ? "right" : "wrong",
-      text: callMode === "echo" ? `${name}${good ? " is in the call" : " is not in the call"}` : `${name}${good ? ", a chord tone" : ", off the chord"}`,
+      text: callMode === "echo" ? `${name}${good ? " is in the call" : " isn't in the call"}` : `${name}${good ? ", a chord tone" : ", off the chord"}`,
       key: (verdict?.key ?? 0) + 1,
     };
   }
@@ -231,7 +231,7 @@
     cap = null;
     phase = "results";
     if (!turns.length) {
-      status = "Stopped before the first answer: nothing recorded.";
+      status = "Stopped before the first answer. Nothing saved.";
       return;
     }
     const right = turns.filter((t) => t.correct).length;
@@ -262,7 +262,7 @@
     // Played past the goal: say the tempo played and the goal in one breath, not "clean at the goal".
     if (bpm > goal && advance.reason.startsWith("clean at the goal")) advance.reason = `clean at ${bpm} BPM, past the ${goal} goal`;
     summary = {
-      headline: `${right} of ${turns.length} ${callMode === "echo" ? "calls echoed" : "answers landed in time"} at ${bpm} BPM.${all.length ? " The take is saved in Record." : ""}`,
+      headline: `${right} of ${turns.length} ${callMode === "echo" ? "calls echoed" : "answers landed in time"} at ${bpm} BPM.${all.length ? " Take saved in Record." : ""}`,
       metric: pct(score),
       metricLabel: callMode === "echo" ? "notes and timing" : "landing and timing",
       delta: fin.delta,
@@ -288,7 +288,7 @@
       cap = null;
       run = null;
       phase = "ready";
-      status = "Stopped before the first answer: nothing recorded.";
+      status = "Stopped before the first answer. Nothing saved.";
     }
   }
 
@@ -419,7 +419,7 @@
       <Choice label="Groove" setupKey="groove" options={CALL_GROOVES.map((g) => ({ value: g.id, label: g.label }))} value={groove.id} onchange={(v) => cfg.set({ groove: v })} />
       <Choice label="Call length" setupKey="bars" options={[{ value: "1", label: "One bar" }, { value: "2", label: "Two bars" }]} value={String(bars)} onchange={(v) => cfg.set({ bars: v })} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">The tempo is the strip's. The run is kept as a take you can hear in Record.</p>
+    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. Each run is saved as a take you can hear in Record.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -486,7 +486,7 @@
       <div class="flex flex-col justify-end" data-dock="instrument" data-grow={phone.current && phase === "running" ? "" : undefined}><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
         <p class="text-sm text-ws-stage-soft">The lane shows a sample call. Each turn brings a new one between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
-      {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays; your notes flash with a tick or a cross.</p>{/if}
+      {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays. Your notes flash with a tick or a cross.</p>{/if}
     </div>
   {/snippet}
 

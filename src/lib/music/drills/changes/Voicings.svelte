@@ -120,7 +120,7 @@
   });
 
   /** Beside Stop on a phone: the chord to find now. */
-  const cue = $derived(phase === "running" && current ? `Chord ${index + 1} of ${items.length}: ${current.symbol}${mode === "practice" ? "" : ", from memory"}` : "");
+  const cue = $derived(phase === "running" && current ? `Chord ${index + 1} of ${items.length}: ${current.symbol}${mode === "practice" ? "" : ", voicing hidden"}` : "");
   const variantLabel = $derived(jazzType?.label ?? VARIANTS.find((v) => v.value === variant)!.label);
   const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
   /** What the key picker names for a jazz type: a major key, a dorian tonic or a blues. */
@@ -140,7 +140,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = `Listen: ${group.map((g) => g.symbol).join(", ")}, lit as each chord sounds.`;
+    status = `Demo playing, not scored: ${group.map((g) => g.symbol).join(", ")}, lit as each chord sounds.`;
     await transport.demo(demoNotes, 80);
   }
 
@@ -255,7 +255,7 @@
     summary = {
       headline: correct
         ? mode === "check"
-          ? `All ${items.length} chords right from memory.`
+          ? `All ${items.length} chords right, in Check.`
           : `All ${items.length} chords right.`
         : worst
           ? `${right} of ${items.length} right. ${worst.symbol} needs another look: ${grades[items.indexOf(worst)]?.note ?? "skipped"}.`
@@ -275,7 +275,7 @@
           ? { label: "Held together (arpeggio mode)", notMeasured: true }
           : onScreen
             ? { label: "Held together (on-screen keys)", notMeasured: true }
-            : { label: "Grading", text: "graded on the chord while all its notes were held down together" },
+            : { label: "Scoring", text: "each chord scored while you held all its notes together" },
       ],
       // Untimed: the ladder is one key, three, then all 12. Inversions has one key only.
       advance:
@@ -293,7 +293,7 @@
     cap?.stop();
     phase = "ready";
     index = 0;
-    status = "Stopped. The chords you finished are recorded; the rest were not.";
+    status = "Stopped. The chords you finished are saved. The rest aren't.";
   }
 
   onDestroy(() => {
@@ -384,7 +384,7 @@
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Over MIDI each chord is graded as you hold it, with no extra notes. On-screen keys collect the notes one at a time; a one-note instrument plays each voicing as an arpeggio.
+      Over MIDI each chord is scored as you hold it, with no extra notes. On-screen keys collect the notes one at a time. A one-note instrument plays each voicing as an arpeggio.
     </p>
   {/snippet}
 
@@ -416,9 +416,9 @@
       {/if}
       <p class="min-w-0 max-w-prose flex-[1_1_18rem]">
         {#if monophonic}
-          Arpeggio mode: {settings.value.activeInstrument === "aerophone" ? "the Aerophone" : "your voice"} plays one note at a time, so each voicing is graded as an arpeggio. Play the root first, then the other tones in any order.
+          Arpeggio mode: {settings.value.activeInstrument === "aerophone" ? "the Aerophone" : "your voice"} plays one note at a time, so each voicing is scored as an arpeggio. Play the root first, then the other tones in any order.
         {:else if phase === "running" && collectedMode}
-          Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. On-screen keys play one at a time, so held together is not measured.
+          Notes collected: {collected.length ? collected.map(nameOf).join(" ") : "nothing yet"}. On-screen keys play one at a time, so held together isn't measured.
         {:else if mode === "check" && phase === "running"}
           The voicing is hidden: keys light only where you play.
         {:else}
@@ -428,8 +428,8 @@
       {#if phase === "running"}
         <!-- The chord grades itself once all its notes are held; this is the way on when it will not. -->
         <span class="flex flex-wrap items-center gap-x-2">
-          <span>Stuck on a chord?</span>
-          <button type="button" class="min-h-11 rounded-full px-2 font-medium text-ws-stage-ink underline underline-offset-4 hover:bg-ws-stage-ink/10" onclick={skip}>Grade what I played</button>
+          <span>Stuck on a chord:</span>
+          <button type="button" class="min-h-11 rounded-full px-2 font-medium text-ws-stage-ink underline underline-offset-4 hover:bg-ws-stage-ink/10" onclick={skip}>Score what I played</button>
         </span>
       {/if}
     </div>
@@ -478,7 +478,7 @@
       </div>
     {:else if current && mode === "check"}
       <p class="min-w-0 flex-[1_1_16rem] text-sm text-ws-stage-soft">
-        Check mode: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
+        Check: the voicing and the hints are hidden. {current.ask ?? (current.guide ? `From ${current.guide.fromMidi.map(nameOf).join(" and ")}, find the ${current.symbol} guide tones.` : `Play ${current.symbol}, root in the left hand.`)}
       </p>
     {/if}
   </div>

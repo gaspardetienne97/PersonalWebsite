@@ -151,7 +151,7 @@
     return out;
   });
   /** Beside Stop on a phone: the step to play now. */
-  const cue = $derived(phase === "running" && next ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}${mode === "practice" ? `: ${spell(next.notes.map((n) => n.midi))}` : ", from memory"}` : "");
+  const cue = $derived(phase === "running" && next ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}${mode === "practice" ? `: ${spell(next.notes.map((n) => n.midi))}` : ", notes hidden"}` : "");
   const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? "As saved" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : "semitones" }));
   const summaryLine = $derived<SetupClause[] | string>(
     phrase
@@ -180,7 +180,7 @@
 
   async function demo(speed = 1) {
     if (transport.playing) return transport.stop();
-    status = `Listen: ${phrase.title}${speed < 1 ? " at half speed" : ""}.`;
+    status = `Demo playing, not scored: ${phrase.title}${speed < 1 ? " at half speed" : ""}.`;
     await transport.demo(timed, bpm, speed);
   }
 
@@ -266,7 +266,7 @@
         ? "Nothing matched. Hear it at half speed, then try again."
         : r.correct
           ? mode === "check"
-            ? `All ${r.total} ${what}, from memory.`
+            ? `All ${r.total} ${what} in order, in Check.`
             : `All ${r.total} ${what} in order.`
           : `${r.matched} of ${r.total} right. It slipped at ${chords ? "step" : "note"} ${(r.firstWrong ?? 0) + 1}${wrong ? `, ${wrong.notes.length > 1 ? `the chord ${spell(wrong.notes.map((n) => n.midi))}` : `the ${spell([wrong.notes[0].midi])}`}` : ""}.`,
       metric: pct(r.score),
@@ -290,7 +290,7 @@
     transport.stop();
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
   onDestroy(() => {
     clearTimeout(timer);
@@ -324,7 +324,7 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <CatalogPicker label="Phrase" setupKey="phrase" noun="phrase" recentKey="phrases.{own}" {items} value={phrase?.id ?? ""} onchange={pickPhrase} />
-      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the practice strip; on MPC pads the phrases are drum phrases. Save a lick in Learn by ear or from a transcription and it joins the list under Your licks.</p>
+      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the top bar. On MPC pads the phrases are drum phrases. Save a lick in Learn by ear or from a transcription and it joins the list under Your licks.</p>
       {#if isUser}
         <div class="flex min-w-0 flex-col gap-2 sm:col-span-2" data-setup="transpose">
           <Choice label="Key" options={KEYS} value={transpose} onchange={(v) => cfg.set({ transpose: v })} />
@@ -384,7 +384,7 @@
               {/each}
             </ol>
             <p class="text-sm text-ws-stage-soft">
-              {phase === "running" ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}. Play it from memory.` : `Check: the notes are hidden. ${events.length} ${chords ? "steps" : "notes"}: hear it, then play it from memory.`}
+              {phase === "running" ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}. The notes are hidden.` : `Check: the notes are hidden. ${events.length} ${chords ? "steps" : "notes"}: hear it, then play it back.`}
             </p>
           </div>
           {#if phase !== "running" && phase !== "countin"}

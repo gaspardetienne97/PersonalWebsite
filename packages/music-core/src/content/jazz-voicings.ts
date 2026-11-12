@@ -339,7 +339,7 @@ export function jazzVoicingChords(
         right: id === "so-what" ? notes.slice(2) : [],
         name:
           id === "so-what"
-            ? `So What chord on ${bottom}: ${names}. 4ths up from ${bottom} in ${group}, a 3rd on top; ${names.split(" ").slice(0, 2).join(" ")} in the left hand.`
+            ? `So What chord on ${bottom}: ${names}. 4ths up from ${bottom} in ${group}, a 3rd on top. ${names.split(" ").slice(0, 2).join(" ")} in the left hand.`
             : `Stack of 4ths on ${bottom}: ${names}, all in the left hand, every note in ${group}.`,
         ask:
           id === "so-what"
@@ -504,7 +504,7 @@ export function jazzVoicingChords(
         symbol: `${symbol} (${mel})`,
         left,
         right,
-        name: `Bar ${i + 1}: ${left.map(tone).join(" ")} (3-7-9) in the left hand; ${mel} in octaves with ${tone(melody - 5)} inside in the right.`,
+        name: `Bar ${i + 1}: ${left.map(tone).join(" ")} (3-7-9) in the left hand. ${mel} in octaves with ${tone(melody - 5)} inside in the right.`,
         ask: `Bar ${i + 1}, ${symbol} with ${mel} on top: Garland block chord.`,
       });
     });
@@ -544,7 +544,7 @@ export function jazzVoicingChords(
         symbol: c.symbol,
         left,
         right,
-        name: `${c.symbol}: the ${us.label} triad, ${nm(r + us.triad)} major, over a 1-3-7 shell; it adds ${us.adds}. Any inversion on top.`,
+        name: `${c.symbol}: the ${us.label} triad, ${nm(r + us.triad)} major, over a 1-3-7 shell. It adds ${us.adds}. Any inversion on top.`,
         ask: `${c.symbol}: an upper-structure triad over a 1-3-7 shell.`,
         order: false,
       }),

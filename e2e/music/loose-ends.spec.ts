@@ -59,7 +59,9 @@ test("licks: two taps on the staff mark a chunk, and it loops", async ({ page })
   // The three notes are tinted on the whole lick, and the lane holds just them.
   await expect(staff.getByRole("button", { name: /^Bar 1, note 4, in range/ })).toBeVisible();
   await page.getByRole("button", { name: "Loop chunk 3 times" }).click();
-  await expect(page.getByRole("status")).toContainText("Listen: notes 3 to 5, three times.");
+  await expect(page.getByRole("status")).toContainText(
+    "Demo playing, not scored: notes 3 to 5, three times.",
+  );
   await page.getByRole("button", { name: "Stop demo" }).click();
 });
 

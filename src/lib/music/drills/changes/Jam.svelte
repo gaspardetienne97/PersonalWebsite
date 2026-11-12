@@ -148,7 +148,7 @@
     try {
       const song = (await shelfSong(key)) ?? (await addShelfSong(key, entry?.title ?? id, entry?.artist));
       await loadLibrary();
-      if (!library.some((l) => l.progression.id === `song-${song.id}`)) throw new Error(`${song.title} has no chord symbols, so Jam cannot read its changes.`);
+      if (!library.some((l) => l.progression.id === `song-${song.id}`)) throw new Error(`${song.title} has no chord symbols, so Jam can't read its changes.`);
       pickProgression(`song-${song.id}`);
     } catch (e) {
       libraryNote = (e as Error).message;
@@ -217,7 +217,7 @@
     await audio.unlock();
     try {
       if (backingMode === "track") {
-        if (!s.track) throw new Error("Pick or import a backing track in the setup first.");
+        if (!s.track) throw new Error("Pick or import a backing track in Setup first.");
         seq = await playTrack(s.track);
       } else {
         const band = backingNotes(prog, { bpm, mode: backingMode, choruses: checking ? runChoruses : 64, fromChord: chordIdx, windows: checking ? windows : undefined });
@@ -347,7 +347,7 @@
     const count = played.length;
     if (checking) return finishCheck(events, endAt);
     if (!count) {
-      status = "Nothing was played, so nothing was saved.";
+      status = "No notes heard. Nothing saved.";
       return;
     }
     const inst = runInstrument(events);
@@ -381,7 +381,7 @@
       },
       ["jam", prog.group],
     );
-    status = `${headline}. Saved as a take and logged in your journal.`;
+    status = `${headline}. Take saved and added to your journal.`;
   }
 
   /** Pair each note-on with its release, in beats from the top of the form. */
@@ -408,7 +408,7 @@
     const done = Math.min(runChoruses, Math.floor((endAt - downbeat + beatMs / 2) / (barsTotal * bpb * beatMs)));
     const notes = improvNotes(events);
     if (!done || !notes.length) {
-      status = !notes.length ? "Nothing was played, so nothing was recorded." : "Stopped before the first chorus ended, so nothing was graded.";
+      status = !notes.length ? "No notes heard. Nothing saved." : "Stopped before the first chorus ended, so nothing was scored.";
       return;
     }
     const g = gradeImprov(prog, notes, { game, choruses: done, swing: swings(prog), bpm, windows: s.trade ? windows : undefined, head: head ?? undefined });
@@ -487,7 +487,7 @@
     // Three short chips by default (the tune, the game, the length); the rest only when changed from it.
     { text: prog.name.includes(prog.key) ? prog.name : `${prog.name} in ${prog.key}`, focus: "progression" },
     { text: game.id === "free" ? "solo over the changes" : game.label.toLowerCase(), focus: "game" },
-    { text: `test run: ${runChoruses} chorus${runChoruses === 1 ? "" : "es"}`, focus: "choruses" },
+    { text: `short run: ${runChoruses} chorus${runChoruses === 1 ? "" : "es"}`, focus: "choruses" },
     ...(s.trade && !game.windows ? [{ text: `trading ${s.trade === 4 ? "fours" : "twos"}`, focus: "trade" }] : []),
     ...(backingMode === "both" ? [] : [{ text: backingMode === "none" ? "no backing, chords by hand" : backingMode === "track" ? "your backing track" : backingMode === "rhythm" ? "drums and bass" : backingMode === "drums" ? "drums only" : "chords only", focus: "backing" }]),
     ...(meter === 3 ? [{ text: "in 3/4", focus: "meter" }] : []),
@@ -592,14 +592,14 @@
   hue={instrument}
   blurb="Solo over a progression or a standard's form as the changes slide by."
   summary={summaryLine}
-  modeNotes={{ practice: "Tone roles lit, each chorus described. Nothing is graded.", check: "Tone roles hidden. The form runs for the choruses you set, each graded on the game." }}
+  modeNotes={{ practice: "Tone roles lit, each chorus described. Nothing is scored.", check: "Tone roles hidden. The form runs for the choruses you set, each scored on the game." }}
   clock={{ bpm, beatsPerBar: bpb }}
   bind:phase
   bind:mode
   bind:status
   progress={checking ? ((chorus - 1) * barsTotal + formBeat / bpb) / (runChoruses * barsTotal) : formBeat / bpb / barsTotal}
   lesson={{ lessons: jamGameLesson(game.id), trigger: "check" }}
-  blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in the setup first." : game.head && !head ? `${game.label} needs a tune with its melody: pick one of your scores in Progression.` : null}
+  blocked={backingMode === "track" && !s.track ? "Pick or import a backing track in Setup first." : game.head && !head ? `${game.label} needs a tune with its melody: pick one of your songs in Progression.` : null}
   onstart={start}
   onstop={stop}
 >
@@ -612,16 +612,16 @@
           value={base.id}
           options={[
             ...JAM_GROUPS.flatMap((g) => POOL.filter((p) => p.group === g.id).map((p) => ({ value: p.id, label: `${p.name} (${p.difficulty})`, group: g.label }))),
-            ...library.map((l) => ({ value: l.progression.id, label: l.progression.name, group: "Your scores with chords and melody" })),
+            ...library.map((l) => ({ value: l.progression.id, label: l.progression.name, group: "Your songs with chords and melody" })),
           ]}
           onchange={pickProgression}
         />
-        <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.{base.composer ? ` ${base.composer}: the changes only, read the head from your book.` : head ? " Your score: its chords and its melody." : ""}</span>
-        {#if libraryNote}<p role="alert" class="font-medium text-destructive">{libraryNote} <a class="underline underline-offset-4" href="/music/studio?tab=import">Import a score</a></p>{/if}
+        <span class="text-ws-soft">Written at {base.bpm} BPM. Change the tempo in the top bar.{base.composer ? ` ${base.composer}: the changes only. Read the head from your book.` : head ? " Your song: its chords and its melody." : ""}</span>
+        {#if libraryNote}<p role="alert" class="font-medium text-destructive">{libraryNote} <a class="underline underline-offset-4" href="/music/studio?tab=import">Import a song</a></p>{/if}
       </div>
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="game">
         <span class="font-medium">Game</span>
-        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.head ? "On the head (your scores)" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
+        <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.head ? "On the head (your songs)" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
         <span class="text-ws-soft">{game.about}</span>
         {#if game.head && !head}<span class="text-ws-soft">Import a lead sheet with chord symbols (MusicXML from MuseScore) in Studio, then pick it in Progression.</span>{/if}
       </div>
@@ -657,7 +657,7 @@
         setupKey="meter"
         options={[
           { value: 4, label: "4/4" },
-          { value: 3, label: "3/4 waltz", hint: "Three beats a bar; the band plays a jazz waltz." },
+          { value: 3, label: "3/4 waltz", hint: "Three beats a bar. The band plays a jazz waltz." },
         ]}
         value={meter}
         onchange={(v) => cfg.set({ meter: v })}
@@ -670,7 +670,7 @@
     </div>
     <div class="mt-4 border-t border-ws-line pt-4" data-setup="reharm">
       <p class="text-sm font-medium">Reharmonise</p>
-      <p class="text-sm text-ws-soft">Swap a chord for a substitute, hear the chart, then play over it. To grade your comping on it, open it in Accompaniment.</p>
+      <p class="text-sm text-ws-soft">Swap a chord for a substitute, hear the chart, then play over it. To have your comping scored, open it in Accompaniment.</p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <Picker class="w-auto min-w-40" label="Chord to swap" value={String(swapIndex)} options={writtenProg.chords.map((c, i) => ({ value: String(i), label: `${i + 1}. ${c.symbol}${swaps.has(i) ? " (swapped)" : ""}` }))} onchange={(v) => (swapAt = Number(v))} />
         {#each REHARM_DEVICES.filter((d) => reharmOptions(writtenProg, swapIndex).includes(d.id)) as d (d.id)}
@@ -688,7 +688,7 @@
     </div>
     <div class="mt-4 border-t border-ws-line pt-4" id="backing-tracks">
       <p class="text-sm font-medium">Your backing tracks</p>
-      <p class="text-sm text-ws-soft">Audio files you bring (the jazz tracks in the Reference aren't shipped). They stay in this browser.</p>
+      <p class="text-sm text-ws-soft">Your own audio files. They stay in this browser. The jazz tracks listed in Reference aren't included.</p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         {#if tracks.length}
           <Picker class="w-auto min-w-40" label="Backing track" placeholder="Choose a track" value={s.track} options={tracks.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => cfg.set({ track: v, backing: "track" })} />
@@ -784,10 +784,10 @@
           {/if}
         </div>
         <!-- One claim (contradiction 13): a set game names its scored set and only those notes, never a scale that lights others. -->
-        <p class="mt-2 text-ws-stage-soft">{#if showRoles}<span data-testid="jam-hint">{jamHint(game, prog.keyPc, chord)}</span>{" "}{/if}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
+        <p class="mt-2 text-ws-stage-soft">{#if showRoles}<span data-testid="jam-hint">{jamHint(game, prog.keyPc, chord)}{game.set && "key" in game.set ? " The game scores this set over every chord." : ""}</span>{" "}{/if}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
+        <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Hear the chord</button>
         {#if phase === "running"}
           {#if !checking && !backingOn}<button type="button" class={btnStage} onclick={nextChord}><SkipForward class="size-4" aria-hidden="true" />Next chord <kbd class="text-[0.8125rem] text-ws-stage-soft">N</kbd></button>{/if}
           {#if backingMode !== "none" && !checking}
@@ -815,13 +815,13 @@
         <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: muted dot, unnamed</span>
       {/if}
       {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>Scored notes: solid ring ({setPcs.map((p) => FLAT_NAMES[p]).join(" ")})</span>{/if}
-      <span>The numbers are degrees over the chord.</span>
+      <span>Numbers count from the chord's root.</span>
     </div>
 
     {#if phase === "running"}
       <!-- The last notes heard, newest last: role colours in Practice, plain in Check (no verdict on them). -->
       <ol class="mt-3 flex min-h-9 flex-wrap items-center gap-1.5 text-sm" aria-label="Notes heard so far" data-testid="jam-trail">
-        {#if !played.length}<li class="text-ws-stage-soft">Play: the notes you play show here.</li>{/if}
+        {#if !played.length}<li class="text-ws-stage-soft">The notes you play show here.</li>{/if}
         {#each played.slice(-10) as n, i (played.length - Math.min(played.length, 10) + i)}
           <li class="trail-note rounded-full px-3 py-1.5 text-base font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/15'}" data-role={showRoles ? roles[pc(n.midi)] : undefined}>{noteName(n.midi, "flat", false)}</li>
         {/each}
@@ -852,8 +852,8 @@
           <p class="font-display text-2xl font-semibold leading-snug">
             {played.length} notes over {choruses.length} chorus{choruses.length === 1 ? "" : "es"}.
           </p>
-          <p class="mt-1 text-sm text-ws-soft">Jam is not scored. The reports below describe where your notes landed, chorus by chorus.</p>
-          {#if savedTake}<p class="mt-2 flex flex-wrap items-center gap-2 text-sm">Saved as a take. <a class={btn} href="/music/record">Open it in Record</a></p>{/if}
+          <p class="mt-1 text-sm text-ws-soft">A Practice run in Jam isn't scored. The reports below describe where your notes landed, chorus by chorus.</p>
+          {#if savedTake}<p class="mt-2 flex flex-wrap items-center gap-2 text-sm">Take saved. <a class={btn} href="/music/record">Open it in Record</a></p>{/if}
         </div>
         {#if played.length}
           {@const t = choruses.reduce((a, c) => ({ chord: a.chord + c.report.chord, notes: a.notes + c.report.notes }), { chord: 0, notes: 0 })}
@@ -898,14 +898,14 @@
 {#snippet choruses_()}
   {#if graded}
     <div class="flex flex-col gap-3" data-testid="jam-graded">
-      <p class="text-sm text-ws-soft">{game.combine === "min" ? "A chorus scores its weakest part against its aim; the run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims; the run is the mean of its choruses."}</p>
+      <p class="text-sm text-ws-soft">{game.combine === "min" ? "A chorus scores its weakest part against its aim. The run is the mean of its choruses." : "A chorus scores the mean of its parts against their aims. The run is the mean of its choruses."}</p>
       {#if savedTake}
         <div class="flex flex-wrap items-center gap-2 text-sm">
-          <span>Saved as a take.</span>
+          <span>Take saved.</span>
           <a class={btn} href="/music/record">Open it in Record</a>
         </div>
       {/if}
-      <ol class="flex flex-col gap-3" aria-label="Choruses graded">
+      <ol class="flex flex-col gap-3" aria-label="Choruses scored">
         {#each graded.choruses as c (c.index)}
           <li class="rounded-xl border border-ws-line p-3">
             <div class="flex flex-wrap items-center gap-3">
@@ -926,7 +926,7 @@
               {/each}
             </ul>
             <p class="mt-2 text-sm text-ws-soft">
-              {c.notes} notes, range {rangeText(c.range)}. {c.phrases.count} phrase{c.phrases.count === 1 ? "" : "s"}, {c.phrases.meanBars} bars long on average; {c.measures.rests?.detail}.
+              {c.notes} notes, range {rangeText(c.range)}. {c.phrases.count} phrase{c.phrases.count === 1 ? "" : "s"}, {c.phrases.meanBars} bars long on average, {c.measures.rests?.detail}.
               {c.measures.time?.value != null ? `${pct(c.measures.time.value)} on the ${swings(prog) ? "swing (triplet)" : "sixteenth"} grid` : ""}{c.swing !== null ? `, swing ${c.swing}:1` : ""}.
               {game.id !== "free" && c.measures.strong?.value != null ? ` Chord tones on 1 and 3: ${pct(c.measures.strong.value)}.` : ""}
             </p>

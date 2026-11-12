@@ -174,7 +174,7 @@ export async function waitSilent(page: Page, timeout = 60_000) {
       .getByTestId("not-heard")
       .or(
         page.getByText(
-          /^(Nothing was heard|No hits arrived|Nothing to measure|Nothing was played)/,
+          /^(Nothing was heard|No hits arrived|Nothing to measure|Nothing was played|No notes heard)/,
         ),
       )
       .first(),

@@ -131,7 +131,7 @@
     ...LEAD_SHEETS.map((t) => ({ value: t.id, label: t.title, group: "Lead sheets" })),
     { value: "generated", label: "A new melody over the progression", group: "Generated" },
     ...LEAD_LEVELS.map((l) => ({ value: l.id, label: l.label, group: "Generated" })),
-    ...library.map((t) => ({ value: t.id, label: t.title, group: "Your scores with chord symbols" })),
+    ...library.map((t) => ({ value: t.id, label: t.title, group: "Your songs with chord symbols" })),
   ]);
   const sheet = $derived<LeadSheet>(
     jazzHead ? jazzLeadSheet(s.tune, base, 0, s.seed) : s.tune === "generated" ? generatedLeadSheet(base, 0, s.seed) : ([...LEAD_SHEETS, ...library].find((t) => t.id === s.tune) ?? LEAD_SHEETS[0]),
@@ -227,7 +227,7 @@
   /** Beside Stop on a phone: the bar and the chord to play now. */
   const cue = $derived(
     phase === "running" && transport.beat !== null && transport.beat >= 0
-      ? `Bar ${Math.min(totalBeats / bpb, Math.floor(transport.beat / bpb) + 1)} of ${totalBeats / bpb}: ${rendering.chart[chordNow]?.symbol ?? ""}${mode === "check" ? ", from memory" : ""}`
+      ? `Bar ${Math.min(totalBeats / bpb, Math.floor(transport.beat / bpb) + 1)} of ${totalBeats / bpb}: ${rendering.chart[chordNow]?.symbol ?? ""}${mode === "check" ? ", notes hidden" : ""}`
       : "",
   );
 
@@ -291,7 +291,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Listen: both hands at tempo, the chords in step with the chart.";
+    status = "Demo playing, not scored: both hands at tempo, in step with the chart.";
     await transport.demo(notes, bpm);
   }
 
@@ -365,8 +365,8 @@
       headline: r.correct
         ? `Clean at ${bpm} BPM: ${r.hands.map((h) => `${h.matched} of ${h.total} ${h.hand}-hand`).join(", ")}.`
         : r.weakBar !== null && weak && weak.matched < weak.total
-          ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}; bar ${r.weakBar + 1} lost the most.${loopBar === null ? " Loop it on its own." : ""}`
-          : `Every chord landed, but the timing wandered. Keep the hands on the click.`,
+          ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total}. Bar ${r.weakBar + 1} lost the most.${loopBar === null ? " Loop it on its own." : ""}`
+          : `Every chord landed, but the timing wandered. Keep your hands on the click.`,
       metric: pct(r.score),
       metricLabel: "score",
       delta: fin.delta,
@@ -391,7 +391,7 @@
     stopBand();
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   /** The staff is on screen (not the falling view): the chart rides in its fold row. */
@@ -415,10 +415,10 @@
   ];
   const blurb = $derived(
     tab === "comping"
-      ? "Comp through the changes on a rhythm: shells or rootless voicings, every chord graded in any octave."
+      ? "Comp through the changes on a rhythm: shells or rootless voicings, every chord scored in any octave."
       : tab === "lead-sheet"
         ? "Read the melody and the chord symbols: the tune in the right hand, the chords in the left."
-        : "A left- and right-hand pattern over a chord loop. Any inversion counts; the rhythm has to land.",
+        : "A left- and right-hand pattern over a chord loop. Any inversion counts. The rhythm has to land.",
   );
 </script>
 
@@ -442,7 +442,7 @@
   onstart={start}
   onstop={stop}
   {cue}
-  requires={midi.inputs.length ? [] : [{ text: "chords on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so they grade single notes only)", run: () => goto("/music/connect") } }]}
+  requires={midi.inputs.length ? [] : [{ text: "chords on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so only single notes are scored)", run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -508,10 +508,10 @@
         <KeyPicker label="Key" value={keyPc} onchange={pickKey} name={(k) => `${FLAT_NAMES[k]}${k === writtenKey ? " (written)" : ""}`} />
       </div>
       {#if tab !== "comping"}
-        <Choice label="Practise" setupKey="hands" options={handOptions} value={hands} onchange={(v) => cfg.set({ hands: v })} />
+        <Choice label="Hands" setupKey="hands" options={handOptions} value={hands} onchange={(v) => cfg.set({ hands: v })} />
       {/if}
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. Any inversion or octave of a chord counts; extra notes are not marked down.</p>
+    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. Any inversion or octave of a chord counts. Extra notes don't lower your score.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -561,7 +561,7 @@
         </div>
       {/if}
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
-        {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check mode: read the melody and the symbols; the keys stay dark." : "Check mode: play the pattern from the chart; the notes are hidden."}</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p>{tab === "lead-sheet" ? "Check: read the melody and the symbols. The keys stay dark." : "Check: play the pattern from the chart. The notes are hidden."}</p>{/if}
       </div>
     </div>
   {/snippet}

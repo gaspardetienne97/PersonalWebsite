@@ -27,8 +27,11 @@ export async function importTrack(file: File): Promise<BackingTrack> {
     !file.type.startsWith("audio/") &&
     !/\.(mp3|wav|m4a|aac|ogg|oga|flac|aiff?)$/i.test(file.name)
   )
-    throw new Error(`"${file.name}" is not an audio file.`);
-  if (file.size > MAX_TRACK_BYTES) throw new Error(`"${file.name}" is over 250 MB.`);
+    throw new Error(
+      `"${file.name}" isn't an audio file. Pick an audio file, such as an MP3 or WAV.`,
+    );
+  if (file.size > MAX_TRACK_BYTES)
+    throw new Error(`"${file.name}" is over 250 MB. Pick a smaller file.`);
   const row: BackingTrack = {
     id: crypto.randomUUID(),
     name: file.name.replace(/\.[^.]+$/, ""),
@@ -44,6 +47,6 @@ export async function importTrack(file: File): Promise<BackingTrack> {
 
 export async function playTrack(id: string): Promise<SequenceHandle> {
   const blob = await getBinary(trackKey(id));
-  if (!blob) throw new Error("That track's audio file is missing from this browser.");
+  if (!blob) throw new Error("That track's audio is missing from this browser. Import it again.");
   return audio.playBlob(blob);
 }

@@ -91,7 +91,7 @@ test.describe("accompaniment over fake MIDI", () => {
       "/music/changes/accompany?mode=patterns&pattern=block-1-3&progression=pop-axis&transpose=0&hands=both&bpm=120",
     );
     await playSlots(page, { drop: (beat) => beat >= 8 && beat < 12 });
-    await expect(page.getByRole("status")).toContainText("bar 3 lost the most", {
+    await expect(page.getByRole("status")).toContainText("Bar 3 lost the most", {
       timeout: 30_000,
     });
   });

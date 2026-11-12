@@ -162,7 +162,7 @@
   const cue = $derived.by(() => {
     if (phase !== "running" || transport.beat === null || transport.beat < 0) return "";
     const bar = Math.min(p.bars, Math.floor(transport.beat / BEATS_PER_BAR) + 1);
-    if (mode !== "practice") return `Bar ${bar} of ${p.bars}: from memory`;
+    if (mode !== "practice") return `Bar ${bar} of ${p.bars}: notes hidden`;
     const now = due(transport.beat);
     const line = [...new Set(now.filter((n) => n.hand === "right").map((n) => noteName(n.midi, "flat", false)))];
     const shell = now.some((n) => n.hand === "left");
@@ -178,7 +178,7 @@
 
   async function playDemo(speed = 1) {
     if (transport.playing) return transport.stop();
-    status = speed < 1 ? "Listen: slowly, both hands. The lane shows what lands together." : "Listen: both hands at tempo. The lane shows what lands together.";
+    status = speed < 1 ? "Demo playing slowly, not scored. The lane shows what lands together." : "Demo playing, not scored. The lane shows what lands together.";
     await transport.demo(notes, bpm, speed);
   }
 
@@ -325,7 +325,7 @@
   function stop() {
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   onDestroy(() => {
@@ -350,7 +350,7 @@
   onstart={start}
   onstop={stop}
   {cue}
-  requires={midi.inputs.length ? [] : [{ text: "left hand on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so they grade the right-hand line only)", run: () => goto("/music/connect") } }]}
+  requires={midi.inputs.length ? [] : [{ text: "left hand on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so only the right-hand line is scored)", run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
@@ -373,7 +373,7 @@
         onchange={(v) => cfg.set({ feel: v })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip; this lick sits well from 76 to 104 BPM.</p>
+    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. This lick sits well from 76 to 104 BPM.</p>
   {/snippet}
 
   {#snippet hud()}
@@ -421,7 +421,7 @@
       beat={transport.beat}
       chords={[{ beat: 0, symbol: p.chord }]}
       hidden={mode === "check" && !transport.playing}
-      label="Beat lane: right hand lick of {p.lick.length} notes; left hand shell on one and the and-of-two in each bar."
+      label="Beat lane: right hand lick of {p.lick.length} notes. Left hand shell on one and the and-of-two in each bar."
       {outcomes}
       wrong={phase === "running" && mode === "practice" ? liveWrong : 0}
       strays={phase === "running" && mode === "practice" ? strays : []}
@@ -434,10 +434,10 @@
     </div>
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
-        <p>Notes hidden. Keep the rhythm on the lane; keys light only where you play.</p>
+        <p>Notes hidden. Keep the rhythm on the lane. Keys light only where you play.</p>
       {:else if phase === "running" || phase === "countin"}
         <!-- A phone has the cue beside Stop; this line would only sit under the dock. -->
-        <p class="max-sm:hidden">Shell on one and the and-of-two; the line on top.</p>
+        <p class="max-sm:hidden">Shell on one and the and-of-two, the line on top.</p>
       {:else}
         {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
         {#if !(mode === "practice" && phase === "ready" && !transport.playing)}{@render marked()}{/if}
@@ -454,7 +454,7 @@
 
 {#snippet marked()}
   <details class="min-w-0">
-    <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
+    <summary class="flex min-h-11 cursor-pointer items-center">How this is scored</summary>
     <div class="flex flex-col gap-1 pb-1">
       <p>{FINGERING_NOTE}</p>
     </div>

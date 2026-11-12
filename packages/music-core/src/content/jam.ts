@@ -178,7 +178,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["D", 1],
       ["G", 2],
     ],
-    "The record is in A: capo 2.",
+    "The recording is in A: capo 2.",
   ),
   song(
     "horse-with-no-name",
@@ -192,7 +192,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Em", 1],
       ["D", 1],
     ],
-    "The record's second chord is D6/9 over F#; plain D here.",
+    "The recording's second chord is D6/9 over F#. Plain D here.",
   ),
   song("brown-eyed-girl", "Brown Eyed Girl", "Van Morrison", "G major", 150, [
     ["G", 1],
@@ -212,7 +212,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Am", 1],
       ["F", 1],
     ],
-    "The record is in B: capo 4.",
+    "The recording is in B: capo 4.",
   ),
   song("riptide", "Riptide", "Vance Joy", "C major", 102, [
     ["Am", 1],
@@ -235,7 +235,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 1],
     ],
-    "The record is in A: capo 2.",
+    "The recording is in A: capo 2.",
   ),
   song(
     "zombie",
@@ -249,7 +249,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["G", 1],
       ["D", 1],
     ],
-    "The record has D over F#; plain D here.",
+    "The recording has D over F#. Plain D here.",
   ),
   song("with-or-without-you", "With or Without You", "U2", "D major", 110, [
     ["D", 1],
@@ -273,7 +273,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["F", 1],
       ["C", 1],
     ],
-    "The record changes chord every two beats; one a bar here.",
+    "The recording changes chord every two beats. One a bar here.",
   ),
   song(
     "sweet-home-alabama",
@@ -286,7 +286,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 2],
     ],
-    "The record plays C and G in one bar, with Cadd9; plain chords here.",
+    "The recording plays C and G in one bar, with Cadd9. Plain chords here.",
   ),
 ];
 

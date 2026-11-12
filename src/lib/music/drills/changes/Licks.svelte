@@ -150,7 +150,7 @@
   });
   const ended = $derived(phase === "results");
   /** Beside Stop on a phone: which note is next and, in Practice, what it is. */
-  const cue = $derived(phase === "running" && next ? `Note ${Math.min(played + 1, chunk.length)} of ${chunk.length}${mode === "practice" && !hideNotes ? `: ${spell(next.midi)}` : ", from memory"}` : "");
+  const cue = $derived(phase === "running" && next ? `Note ${Math.min(played + 1, chunk.length)} of ${chunk.length}${mode === "practice" && !hideNotes ? `: ${spell(next.midi)}` : ", notes hidden"}` : "");
 
   /** The last wrong note in Practice: the key heard (its X) and the key wanted (ringed), from the one event the pill names. */
   let slip = $state<{ heard: number; want: number } | null>(null);
@@ -197,7 +197,7 @@
     if (transport.playing) return transport.stop();
     const gap = chunkBeats + 1;
     const notes = Array.from({ length: times }, (_, r) => timed.map((n) => ({ ...n, beat: n.beat + r * gap }))).flat();
-    status = times > 3 ? `Looping ${whole ? "the lick" : `notes ${lo + 1} to ${hi + 1}`} at ${Math.round(speed * 100)}%, ${times} times. Press it again to stop.` : times > 1 ? `Listen: notes ${lo + 1} to ${hi + 1}, three times.` : `Listen: ${whole ? "the whole lick" : `notes ${lo + 1} to ${hi + 1}`}${speed < 1 ? " at half speed" : " at tempo"}.`;
+    status = times > 3 ? `Looping ${whole ? "the lick" : `notes ${lo + 1} to ${hi + 1}`} at ${Math.round(speed * 100)}%, ${times} times. Press it again to stop.` : times > 1 ? `Demo playing, not scored: notes ${lo + 1} to ${hi + 1}, three times.` : `Demo playing, not scored: ${whole ? "the whole lick" : `notes ${lo + 1} to ${hi + 1}`}${speed < 1 ? " at half speed" : " at tempo"}.`;
     await transport.demo(notes, bpm, speed);
   }
 
@@ -297,7 +297,7 @@
         ? "No notes matched. Hear it at half speed, then try a chunk."
         : r.correct
           ? mode === "check"
-            ? `All ${r.total} notes in order, from memory.`
+            ? `All ${r.total} notes in order, in Check.`
             : `All ${r.total} notes in order.`
           : `${r.matched} of ${r.total} right. It slipped at note ${lo + (r.firstWrong ?? 0) + 1}${wrong ? `, the ${spell(wrong.midi)}` : ""}.`,
       metric: pct(r.score),
@@ -338,7 +338,7 @@
   function stop() {
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
   }
 
   onDestroy(() => {
@@ -370,7 +370,7 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <CatalogPicker label="Lick" setupKey="lick" noun="lick" recentKey="licks" items={lickItems} value={lick.number} onchange={(v) => cfg.set({ lick: v, category: LICKS.find((l) => l.number === v)?.category ?? "" })} />
       {#if fretted}
-        <p class="self-end text-sm text-ws-soft">A guitar lick on its fretboard position; it stays in its own key. Lick 31 is lick 30's shape moved to the fifth fret.</p>
+        <p class="self-end text-sm text-ws-soft">A guitar lick in its fretboard position. It stays in its own key. Lick 31 is lick 30's shape moved to the fifth fret.</p>
       {:else}
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">Key</span>
@@ -390,8 +390,8 @@
         onchange={(v) => cfg.set({ ear: v === "ear" })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the practice strip. The licks are written in C; the key moves the line, the chords and the text together.</p>
-    {#if !fretted}<p class="mt-1 text-sm text-ws-soft">The licks carry no fingering. Any octave counts; the order is what's graded.</p>{/if}
+    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. The licks are written in C. Changing the key moves the line, the chords and the text together.</p>
+    {#if !fretted}<p class="mt-1 text-sm text-ws-soft">The licks have no fingering. Any octave counts. Only the order is scored.</p>{/if}
   {/snippet}
 
   {#snippet hud()}
@@ -457,7 +457,7 @@
     <div class="flex min-h-0 flex-col" data-dock="music">
     {#if hideNotes}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/8 p-4 text-sm" data-testid="licks-by-ear">
-        By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes the run practice.
+        By ear: loop the {whole ? "lick" : "chunk"} slowed down until you can sing it, find it on your instrument, then Start and play it back. Showing the notes makes it a Practice run.
       </p>
     {:else}
     <div class="relative">
@@ -501,7 +501,7 @@
     {:else if fretted}
       <Fretboard openStrings={GUITAR.openStrings} from={frets.from} to={frets.to} marks={fretMarks} {flashes} label="Guitar fretboard, standard tuning" />
       <p class="mt-3 text-sm text-ws-stage-soft">
-        Numbers on the dots are the authored fingers, never graded. Taps on the fretboard also check the string and fret; MIDI and the microphone only know the pitch.
+        Numbers on the dots are suggested fingers, never scored. Taps on the fretboard also check the string and fret. MIDI and the microphone hear only the pitch.
       </p>
     {:else}
       {#if !falling && !ended}
@@ -512,7 +512,7 @@
         </div>
       {/if}
     {/if}
-    {#if mode === "check" && !ended}<p class="mt-1 text-sm text-ws-stage-soft">Check mode: the notes are hidden. Play the line from memory.</p>{/if}
+    {#if mode === "check" && !ended}<p class="mt-1 text-sm text-ws-stage-soft">Check: the notes are hidden. Play the line back.</p>{/if}
   {/snippet}
 
   {#snippet results()}

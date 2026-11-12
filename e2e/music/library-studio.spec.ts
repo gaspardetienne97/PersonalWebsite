@@ -478,7 +478,7 @@ test.describe("jam and lab", () => {
     );
     await page.getByRole("button", { name: /^Stop/ }).click();
     await expect(page.getByRole("list", { name: "Chorus reports" })).toContainText("Chorus 1.");
-    await expect(page.getByRole("status")).toContainText("logged in your journal");
+    await expect(page.getByRole("status")).toContainText("added to your journal");
     await expect(page.getByRole("button", { name: "Hear this chorus" })).toBeVisible();
     await shoot(page, "jam-results");
   });

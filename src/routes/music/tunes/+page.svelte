@@ -36,7 +36,7 @@
 <svelte:head><title>Tunes | Woodshed</title></svelte:head>
 
 {#snippet ladder(l: TuneLadderState)}
-  <ol class="flex flex-wrap gap-1.5" aria-label="{l.tune.name}: the ladder">
+  <ol class="flex flex-wrap gap-1.5" aria-label="{l.tune.name}: the six steps">
     {#each RUNGS as r (r.id)}
       {@const st = l.rungs[r.id]}
       {@const href = rungHref(l, r.id)}
@@ -46,7 +46,7 @@
             {#if st.done}<Check class="size-3.5" aria-hidden="true" />{/if}{r.id}
           </a>
         {:else}
-          <span class="rung" data-done="false" data-off="true" title="{r.label}: the tune player has no changes for this tune yet." aria-label="{r.id}, {r.label}, waits for the tune's changes" role="img">{r.id}</span>
+          <span class="rung" data-done="false" data-off="true" title="{r.label}: Jam has no changes for this tune yet." aria-label="{r.id}, {r.label}, needs the tune's changes in Jam" role="img">{r.id}</span>
         {/if}
       </li>
     {/each}
@@ -57,7 +57,7 @@
   <header>
     <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Tunes</h1>
     <p class="mt-1 max-w-prose text-ws-soft">
-      Every standard is learned in six rungs, read from your checked runs. A tune with rung a done joins your repertoire and comes back for review as a skill does. <a
+      You learn every standard in six steps, a to f. Your Check runs mark each step done. A tune with step a done joins your repertoire and comes back for review, as a skill does. <a
         class="font-semibold text-instr-ink underline underline-offset-4"
         href="/music/progress">Back to Progress</a
       >
@@ -65,7 +65,7 @@
   </header>
 
   <section class={panel} aria-labelledby="rungs-h">
-    <h2 id="rungs-h" class="font-display text-xl font-semibold">The ladder</h2>
+    <h2 id="rungs-h" class="font-display text-xl font-semibold">The six steps</h2>
     <dl class="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
       {#each RUNGS as r (r.id)}
         <div class="flex gap-2"><dt class="font-semibold">{r.id}. {r.label}:</dt><dd class="text-ws-soft">{r.done}</dd></div>
@@ -80,11 +80,11 @@
         <div class="min-w-0 flex-1 basis-64">
           <p class="text-sm text-ws-soft">{review.review!.due ? "Due for review" : "Next to review"}</p>
           <p class="font-display text-2xl font-semibold">{review.tune.name}</p>
-          <p class="text-sm text-ws-soft">Play rungs a and d: the head from your score, then comp it.</p>
+          <p class="text-sm text-ws-soft">Play steps a and d: the head from the notation, then comp it.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a class={btn} href={rungHref(review, "a")}>Rung a in Song practice</a>
-          {#if rungHref(review, "d")}<a class={btn} href={rungHref(review, "d")}>Rung d in Accompaniment</a>{/if}
+          <a class={btn} href={rungHref(review, "a")}>Step a in Song practice</a>
+          {#if rungHref(review, "d")}<a class={btn} href={rungHref(review, "d")}>Step d in Accompaniment</a>{/if}
         </div>
       </article>
       <ul class="flex flex-col gap-2">
@@ -97,21 +97,21 @@
         {/each}
       </ul>
     {:else}
-      <p class="text-ws-soft">No tune is in the repertoire yet. Rung a on two days puts it there.</p>
+      <p class="text-ws-soft">No tune is in your repertoire yet. Pass step a on two days to add one.</p>
     {/if}
   </section>
 
   <section class="flex flex-col gap-3" aria-labelledby="learn-h" data-testid="ladders">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <h2 id="learn-h" class="font-display text-2xl font-semibold">Learning</h2>
-      <button type="button" class={btn} aria-pressed={all} onclick={() => (all = !all)}>{all ? "Your tunes and the tune player's" : "Every jazz shelf tune"}</button>
+      <button type="button" class={btn} aria-pressed={all} onclick={() => (all = !all)}>{all ? "Your tunes and Jam's" : "Every tune on the jazz song list"}</button>
     </div>
     <ul class="flex flex-col gap-2">
       {#each shown as l (l.tune.id)}
         <li class="{panel} flex flex-wrap items-center gap-x-4 gap-y-2">
           <div class="min-w-0 flex-1 basis-48">
             <p class="font-semibold">{l.tune.name}</p>
-            <p class="tnum text-sm text-ws-soft">{l.played ? `${l.played} checked run${l.played === 1 ? "" : "s"}, last on ${dateText(l.lastPlayed!)}` : "Not played yet"}{l.tune.bpm ? `. Shelf tempo ${l.tune.bpm}` : ""}</p>
+            <p class="tnum text-sm text-ws-soft">{l.played ? `${l.played} Check run${l.played === 1 ? "" : "s"}, last on ${dateText(l.lastPlayed!)}` : "Not played yet"}{l.tune.bpm ? `. Tempo ${l.tune.bpm} BPM` : ""}</p>
           </div>
           {@render ladder(l)}
         </li>

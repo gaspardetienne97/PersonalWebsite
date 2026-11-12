@@ -443,7 +443,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     label: "3+3+2 eighths",
     group: "pop",
     about:
-      "The right hand runs down the chord in groups of three, three and two; the root lands with each group.",
+      "The right hand runs down the chord in groups of three, three and two. The root lands with each group.",
     bar: ({ v }) => {
       const down = [...v.rh].sort((a, b) => b - a).slice(0, 3);
       return [
@@ -770,7 +770,7 @@ export const COMP_VOICINGS: CompVoicing[] = [
     id: "rootless",
     label: "Rootless A and B",
     about:
-      "Left hand: 3 5 7 9 or 7 9 3 5 (3 13 7 9 or 7 9 3 13 on a dominant), whichever moves least; the bass player has the root.",
+      "Left hand: 3 5 7 9 or 7 9 3 5 (3 13 7 9 or 7 9 3 13 on a dominant), whichever moves least. The bass player has the root.",
   },
   {
     id: "root-rootless",
@@ -1217,7 +1217,7 @@ export function leadSheetFromScore(score: Score): LeadSheet | null {
   return {
     id: `song-${score.id}`,
     title: score.title,
-    source: "Your library",
+    source: "Your songs",
     bpm: score.bpm,
     keyPc: [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5][(((score.keyFifths ?? 0) % 12) + 12) % 12],
     melody,
@@ -1243,7 +1243,7 @@ export const LEAD_LEFT: { id: LeadLeft; label: string; about: string }[] = [
     id: "chords",
     label: "Chords under the melody",
     about:
-      "The left hand on roots; on each chord change the right hand adds the chord below the melody note.",
+      "The left hand on roots. On each chord change the right hand adds the chord below the melody note.",
   },
 ];
 

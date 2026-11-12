@@ -152,7 +152,7 @@ export function voicingItems(opts: {
         ],
         name: `${b.symbol}: the right hand in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. ${b.symbol.includes("/") ? "The bass after the slash" : "The root"} in the left hand.`,
         hint: i
-          ? `${prog.about} Keep the common tones; move the others the shortest way.`
+          ? `${prog.about} Keep the common tones. Move the others the shortest way.`
           : prog.about,
         pcs: [...new Set([...b.rightHand.map(pc), b.bassPc])],
         count: 4,
@@ -188,7 +188,7 @@ export function voicingItems(opts: {
           b.roman === "V7"
             ? "Three notes: root, 3rd and 7th, the 5th left out. The 7th falls to the tonic's 3rd next."
             : i
-              ? "Keep the common tones; move the others the shortest way."
+              ? "Keep the common tones. Move the others the shortest way."
               : "Start in root position.",
         pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
         count: 4,

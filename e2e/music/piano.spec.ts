@@ -137,7 +137,7 @@ function play(page: Page, steps: Step[], onGo = false) {
 async function runTimed(page: Page, steps: Step[]) {
   await pickMode(page, "Practice");
   const playing = play(page, steps, true);
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await playing;
 }
 
@@ -232,7 +232,7 @@ test("licks: Check hides the targets and the lane notes", async ({ page }) => {
   await expect(page.locator(".piano [data-target]")).toHaveCount(1);
   await pickMode(page, "Check");
   await expect(page.locator(".piano [data-target]")).toHaveCount(0);
-  await expect(page.getByText("Check mode: the notes are hidden.")).toBeVisible();
+  await expect(page.getByText("Check: the notes are hidden.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Hear it", exact: true })).toHaveCount(0);
 });
 
@@ -360,7 +360,7 @@ test.describe("piano drills over fake MIDI", () => {
     );
     await expect(page.getByRole("status")).toContainText("All 3 chords right.", { timeout: 5000 });
     await expect(
-      page.getByText("graded on the chord while all its notes were held down together"),
+      page.getByText("each chord scored while you held all its notes together"),
     ).toBeVisible();
     await shoot(page, "voicings-results");
   });
