@@ -1332,3 +1332,46 @@ Six rounds of screenshot judging against competitor apps (branch `ge/woodshed-ui
 ### 9.5 Type and contrast
 
 - `src/lib/music/type-floor.test.ts` fails any label under 13 px in the music app (Tailwind sizes, CSS and SVG font sizes); `hues.test.ts` checks the run fill against its text in both themes.
+
+## 10. The next pass (2026-11-12)
+
+Built with the owner after the climb (plan in the local `.ui-climb/next-plan.md`, branch `ge/woodshed-next-pass`). Where this section and section 9 disagree, this one is current. Every old URL still works (308 redirects keep the query), and every exercise id, `DrillSetup` id and key is unchanged, so history carries over.
+
+### 10.1 Drill pages
+
+- **Dark in both themes**: a drill page (ready screen, run, results, lesson) is dark whatever the theme; hubs follow the theme. One palette: `.woodshed:has([data-drill-page])` shares the `.dark .woodshed` rule, and DrillShell carries `dark` so `dark:` variants and Picker menus portaled to the root follow. Song practice (`/music/songs/<id>`) uses the same scope; the Song editor follows the theme. In light theme the sidebar's theme row adds "Drills stay dark".
+- **Ready bar**: one sentence with the mode last ("C major scale, one octave, up, right hand, Practice"), a button that opens Setup; Practice and Check are the first group in Setup (names kept). When the sentence needs more than two lines beside the title, the bar takes its own row. "Hear it" is an icon on the stage's top rail.
+- **TrainerSwitch** (`components/TrainerSwitch.svelte`): the drill title is a picker over a trainer's modes. Rhythm, Ear and Play over changes use it.
+- **Tablet landscape** (1180x820, touch): on wide, short windows the title and ready bar share a row; scales, strum, Aerophone, pedal and every Play over changes mode fit one view, ready and running, on their default setups. Stages with a `[data-grow]` region (rhythm's tap pad, Note finder's neck via `Fretboard`'s `grow` prop, pads, two-hand, call and response) fill the free height from lg up.
+- **Strip**: no pill shrinks from sm up; label words step aside when the strip is narrow. Tuner and Connect are icons in the strip.
+
+### 10.2 Trainers
+
+- **Play over changes** (`/music/changes/<mode>`, `drills/changes/`): Voicings, Comping, Accompaniment, Jazz licks, Chord scales, Jam, Call and response, one mode mounted at a time, each with its own catalog entry. `timed-run.ts` holds the shared capture, follow, end-timer and stop block for chord scales, licks, comping and accompaniment. The old routes redirect.
+- **Ear** (`/music/ear/<drill>`): every `ear.ts` drill, Feel, and Studio ears (moved from `/music/listening` to `/music/ear/studio`).
+- **Rhythm**: its modes moved from a tab row to the title picker. Echo in Practice shows a faint target (Setup, "Target: Faint / Off"); a run with it shown is recorded as hinted (`echoTargetShown`), Check never shows it.
+- Phrases, Practice lab, Tunes and Learn by ear stay their own pages (owner's choice).
+
+### 10.3 Hubs
+
+- **Three hubs**: Today (Today and Drills tabs; Paths is a view inside Drills at the same URL), Studio (`/music/studio`: songs, import, and a Make row with Beat, Melody, Record, Learn by ear, Sample kits, Chords and scales; `/music/library` redirects), Progress (journal as a tab; `/music/journal` redirects to `?view=journal`). Record, Settings and Guide stay in the sidebar and the phone More menu.
+- **Names**: `/music/songs/<id>` is "Song practice"; `/music/songs/<id>/edit` is the "Song editor".
+- **Connect** puts the device tiles with the last note heard under "Your rig", counts "inputs connected" and "setup steps done" separately, and explains echo cancellation inside the options.
+
+### 10.4 Content and numbers
+
+- **Jam**: each hint makes one claim and names only the scored set ("Only the C minor triad: C, Eb, G." over C7); a scored minor third over a dominant is "b3" everywhere; the ringed notes come from the grader's set. The lead sheet is always on the stage (`drills/jam/LeadSheet.svelte`: bar lines, a slash per beat, section letters, the current bar and beat lit).
+- **Chop**: the loop is one waveform strip with a line at every cut point and each slice's shape beside its lane (peaks computed once per cut).
+- **Strum results** count each expected strum once: on time on the chord, on the wrong chord, early or late, missed; the rows add up to the headline.
+- **Pads** live counts read "Notes hit", "Other pads", "Extra hits"; the MPC status messages agree with the strip.
+- **Spelling**: played and sung notes in ear drills, and scales and flashcards keyboards, use the exercise's key.
+- **Licks** header says "Played N of M"; a wrong note reads "Heard Db, that one was E".
+
+### 10.5 Sound and timing
+
+- **Backing**: layered synth drums with a pitched body and noise layers, a plucked bass (Jam's bass line uses it), a softer tine electric piano, a short generated room, about 10% level variation on drum hits and cymbals up to 5 ms late (kick, snare, toms, bass and chords stay on the grid), and a soft master ceiling with no added delay. `?backing=classic` or `?backing=new` compares; grading reads input against the grid, never the backing.
+- **Calibration per input and output** (`io/calibration.ts`, `runtime/calibration.svelte.ts`): offsets live in `settings.calibration` keyed `"<input>|<output>"`; the output is the sink id, else the default output's label, else a latency class (under or over 80 ms). Old offsets are copied to the current output once (`calibrationMigrated`) and kept saved for older builds. A timed drill's ready screen offers a tap-along once per uncalibrated pair (skippable, never blocks Start); timing results say "Timing not calibrated for this setup".
+
+### 10.6 Measurement
+
+- `scripts/ui-climb/metrics/` (taps to first sound, verdict paint p50/p95 via `data-verdict`, cut and spill and covered buttons per size, contradictions on results), `scripts/ui-climb/capabilities.mjs --diff` (every catalog entry, mode, `DrillSetup` key and Setup control), and `packages/music-core/src/progress/hrefs.test.ts` (every drill href resolves to the same exercise ids; moves go in its `MOVED` map).

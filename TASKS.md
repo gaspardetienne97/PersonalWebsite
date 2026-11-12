@@ -8,12 +8,20 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 - **Official MuseScore scores.** MuseScore's Official scores can be viewed and played but never downloaded, on any plan (PRO+ only adds viewing them). An agent found community scores for 112 shelf songs that had only official ones; 97 still have none (mostly licensed songs such as the Beatles, Einaudi, Hotel California and Stairway). Each shelf has other songs to pick.
 
 - **UI hill climb (2026-11-04), owner levers.** Branch `ge/woodshed-ui-hill-climb-1`, not merged or pushed; read `.ui-climb/summary.md` and open `.ui-climb/report.html` (both local). Choices left to you:
-  - The instrument panel stays dark in light theme (your "lit bench"); judges still name it in about 18 flaws a round. A light stage variant would likely lift visual scores.
-  - From results, the exercise tabs and the Lesson button are one Close away instead of on screen.
+  - Settled 2026-11-12: drill pages are dark in both themes (next pass, catalog 10.1).
+  - From results, the exercise tabs and the Lesson button are one Close away instead of on screen (the next pass made the mode a title picker).
   - A Practice run can only go to "Check run, from memory" from results when it heard something.
   - Saved "Any strum" setups now get the starter pattern (D DU UDU); kit pads keep the MPC layout.
   - The scales tempo ladder lives in Setup with a line on the ready screen saying when the run is below it.
   - Known leftovers from the climb: the Voice path-focus ear block uses `answer=choice` (`routine.ts`); `coach()`'s fallback double-counts multi-skill answers when `checkedAnswers` is absent; answers saved with no instrument count toward every instrument; `paths.ts` and `ear-theory.json` still link `?tab=reference` (it redirects).
+
+- **Next pass (2026-11-12), owner checks.** Branch `ge/woodshed-next-pass` (from the climb branch), not merged or pushed; plan and judge results in the local `.ui-climb/next-plan.md`. To look at:
+  - Listen to the new backing: `.ui-climb/audio/*-old.wav` against `*-new.wav` (jam swing and straight, pads funk and house), or `?backing=classic` / `?backing=new` in the app. It was tuned by spectrum only. Say if you want CC0 drum samples proposed.
+  - Comping now opens with its grand staff folded on short screens (one tap shows it, the choice is kept).
+  - Jam's ringed notes now come from the grader's own set, so on sus and sixth chords the lit notes differ from before; scoring is unchanged.
+  - Rhythm pulse: the tap pad grew to fill the height, but the beat lanes did not (stacking them would push the pad down on long patterns). Say if you want pulse stacked.
+  - Calibration on a new output: the app cannot tell two wired (or two wireless) outputs apart unless the browser shares device labels (after microphone permission); offsets are kept per label or per latency class.
+  - Two `jazz.json` path steps keep "Song editor" because they are about writing notes down.
 
 ## In progress
 
@@ -23,6 +31,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Done
 
+- **Next pass (2026-11-12)**, branch `ge/woodshed-next-pass` (not merged or pushed), built by Fable 5.2 implementers from a plan made with the owner and reviewed by Fable 5.2. Drill pages dark in both themes with a one-sentence ready bar and Hear it on the stage; three trainers (Play over changes at `/music/changes/<mode>`, Ear with Studio ears, Rhythm) with a title picker; three hubs (Today, Studio, Progress); tablet landscape fit; Jam hints and an always-on lead sheet, Chop waveforms, Echo's faint target; new backing sounds; calibration per input and output with an inline offer. Catalog section 10. Judges (Claude Opus, Fable 5.2) on the new baseline: 7.77 (round 10, before) to 7.85 (round 12); GPT 7.55 on its 22 flows, flat; no flow at 9. Gates: lint, check, svelte-check 23, 1477 unit, build, e2e 329 of 329.
 - **UI hill climb, six rounds (2026-11-04)**, branch `ge/woodshed-ui-hill-climb-1` (not merged or pushed). Screenshot judges (Claude Opus, Claude Fable, GPT) scored 39 flows beside competitor screens each round. Claude mean 7.01 to 7.83 with every flow up; GPT 6.58 to 7.58 on the 24 flows it scored both times. Above the best competitor on 38 of 39 flows (Create is 0.2 under Chrome Music Lab); no flow reached 9 from every judge. Stopped after round 6 on a plateau (about +0.05 a round from round 3). What changed is in the catalog, section 9; scores, per-round changes and reasons below 9 in `.ui-climb/summary.md` and `.ui-climb/report.html` (local). Gates at the end: lint, check, svelte-check 23, 1453 unit, build, e2e 327 of 327.
 - Domain contract and IO boundary in `packages/music-core` (types, MIDI parsing, device profiles and pad maps, MPC Controller Mode frames, input router)
 - Theory, content generators and the drill catalog (90 tests; the two-hand and voicing generators reproduce the verified JSON exactly; every emitted skill id exists in the seed)
@@ -118,6 +127,7 @@ The builder keeps this file current. Sections: Needs the owner · In progress ·
 
 ## Needs hardware
 
+- **Detection recordings (next pass, phase 6).** About 15 minutes of clips on your instruments (open chords on guitar and ukulele, piano chords and runs, Aerophone notes, pad hits) to test and fix pitch, chord and onset detection against, starting with the open G heard as G and B. Ask for the numbered recording list when ready; the clips stay git-ignored.
 The owner's checks, grouped by instrument. Everything below passed in the browser with fake MIDI or synthetic audio; none of it has been heard or played on the real thing.
 
 **Strum and chord following (from the UI climb, 2026-11-04)**
