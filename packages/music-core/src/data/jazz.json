@@ -377,7 +377,7 @@
       "id": "intervals",
       "order": 1,
       "title": "Memorize your intervals",
-      "summary": "Every jazz technique is an interval pattern. Learn all ascending intervals first — set a 30–60 day deadline.",
+      "summary": "Every jazz technique is an interval pattern. Learn every ascending interval first. Give yourself 30 to 60 days.",
       "resources": ["JT1"],
       "href": "/music/learn/ear/intervals",
       "skillId": "pitch.intervals"
@@ -386,7 +386,7 @@
       "id": "chord-symbols",
       "order": 2,
       "title": "Read every chord symbol",
-      "summary": "maj7, m7, 7, mMaj7, m7b5, dim7, 6/9 and the slash chords — what each means and its role in a ii-V-I.",
+      "summary": "maj7, m7, 7, mMaj7, m7b5, dim7, 6/9 and the slash chords: what each means and its role in a ii-V-I.",
       "resources": ["JT2"],
       "kind": "reference",
       "href": "/music/learn/jazz",
@@ -453,7 +453,7 @@
     {
       "id": "rootless-voicings",
       "order": 6,
-      "title": "Rootless voicings — ii-V-I in 12 keys",
+      "title": "Rootless voicings: ii-V-I in 12 keys",
       "summary": "Positions A (3 5 7 9) and B (7 9 3 5). \"If you only learn one voicing type, make it this.\" Drill all 12 keys (graded).",
       "resources": ["JT9", "JT6"],
       "href": "/music/play/voicings",
@@ -852,7 +852,7 @@
       "progression": ["Dm7b5", "G7", "Cm7"],
       "scales": ["D locrian", "G diminished", "C dorian"],
       "techniques": ["v7-scale-change"],
-      "tip": "The standard minor ii-V-i scale set: D locrian – G diminished/altered – C dorian."
+      "tip": "The standard minor ii-V-i scale set: D locrian, then G diminished or altered, then C dorian."
     },
     {
       "number": 20,
@@ -924,7 +924,7 @@
       "progression": ["Cm7"],
       "scales": ["C dorian"],
       "techniques": ["lh-textures"],
-      "tip": "Paradiddle texture — the L/R/L/R pattern works over any chord or set of notes."
+      "tip": "Paradiddle texture: the L/R/L/R pattern works over any chord or set of notes."
     },
     {
       "number": 29,
