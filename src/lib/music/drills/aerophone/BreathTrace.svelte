@@ -39,7 +39,7 @@
     {#if targetPath}<path d={targetPath} class="target" />{/if}
     {#if measured && path}<path d={path} class="breath" />{/if}
   </svg>
-  {#if !measured}<p class="text-sm text-ws-stage-soft">No breath data: the chart and computer keys cannot blow. Play the Aerophone to see it.</p>{/if}
+  {#if !measured}<p class="text-sm text-ws-stage-soft">No breath data: the chart and computer keys can't send breath. Play the Aerophone to see it.</p>{/if}
 </figure>
 
 <style>

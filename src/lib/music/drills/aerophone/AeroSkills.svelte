@@ -200,7 +200,7 @@
   );
   /** Beside Stop on a phone: the note to play now, or how the untimed skills start. */
   const cue = $derived(
-    phase !== "running" ? "" : timed ? (stepNow === null ? "Play on the next 1" : mode === "check" ? "From memory: play the line in time" : `Play ${spell(line[stepNow])}`) : skill === "trills" ? `Trill ${trillPair.label}` : `Hold ${spell(vibNote)}, pulse the bite`,
+    phase !== "running" ? "" : timed ? (stepNow === null ? "Play on the next 1" : mode === "check" ? "Check: play the line in time" : `Play ${spell(line[stepNow])}`) : skill === "trills" ? `Trill ${trillPair.label}` : `Hold ${spell(vibNote)}, pulse the bite`,
   );
   let demo = $state<{ stop(): void; playing: boolean } | null>(null);
   let demoAt = $state(0);
@@ -238,7 +238,7 @@
     const handle = audio.playSequence(notes);
     demoAt = now = performance.now();
     demo = handle;
-    status = "Listen: how it goes. Not scored.";
+    status = "Demo playing, not scored.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -381,18 +381,18 @@
       }
       headline = !r.correct
         ? slips.length
-          ? `${r.clean} of ${r.total} right; ${slips.length} came out an octave off: ${slips[0]}.`
+          ? `${r.clean} of ${r.total} right. ${slips.length} came out an octave off: ${slips[0]}.`
           : r.pitch < 0.9
             ? `${r.clean} of ${r.total} notes right. Slow down until every fingering lands.`
-            : `Every note right; the spacing wandered ${Math.round(r.evennessErrorMs)} ms. Keep it even.`
+            : `Every note right, but the spacing wandered ${Math.round(r.evennessErrorMs)} ms. Keep it even.`
         : skill === "tonguing" && lateTongue
           ? `Right notes, but ${lateTongue}`
           : skill === "tonguing" && !correct
-          ? "The notes were right; the tonguing wasn't as marked. Stop the air (the tongue) only where it says T."
+          ? "Right notes, but the tonguing wasn't as marked. Tongue (stop the air) only where it says T."
           : skill === "register" && !correct
             ? "Right notes, but the crossing left glitches between them."
             : skill === "long-scale" && !correct
-              ? `Every note right; the breath sat at ${level.id} for only ${rows[1]?.value == null ? "none" : pct(rows[1].value)} of the scale. Aim for the shaded band.`
+              ? `Every note right, but the breath sat at ${level.id} for only ${rows[1]?.value == null ? "none" : pct(rows[1].value)} of the scale. Aim for the shaded band.`
               : skill === "long-scale"
                 ? `Every note held at ${level.id}.`
                 : `Clean and even at ${bpm} BPM.`;
@@ -436,7 +436,7 @@
       return;
     }
     const makeUp =
-      skill === "long-scale" ? "half the line, half the breath band" : skill === "scales" || skill === "register" ? "85% notes + 15% evenness" : skill === "tonguing" ? "80% notes and tonguing, 20% on the click" : "score";
+      skill === "long-scale" ? "half the line, half the breath band" : skill === "scales" || skill === "register" ? "85% notes, 15% evenness" : skill === "tonguing" ? "80% notes and tonguing, 20% on the click" : "score";
     summary = { headline, metric: pct(score), metricLabel: ons.length ? makeUp : "score", cleanMeans: CLEAN_MEANS[skill], delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, advance: ons.length ? await advanceAfter(score, correct) : undefined };
     status = headline;
   }
@@ -475,7 +475,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
   onDestroy(() => {
     clearTimeout(timer);
@@ -496,7 +496,7 @@
   actions={wide.current && phase === "ready" ? undefined : statusLine}
   title="Aerophone"
   hue="aerophone"
-  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time, in patterns and over two octaves." : skill === "swing" ? "Swung eighths after Niehaus: long-short, each off-beat tongued and slurred into the beat." : skill === "long-scale" ? "Each scale note held four beats at one breath level, in the band from bottom to top." : skill === "tonguing" ? "Slurred and tongued on purpose: tongued stops the air, slurred keeps it going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time: so many pulses a click."}
+  blurb={skill === "scales" ? "Scales and arpeggios in any key, in time, in patterns and over two octaves." : skill === "swing" ? "Swung eighths after Niehaus: long-short, each off-beat tongued and slurred into the beat." : skill === "long-scale" ? "Each scale note held four beats at one breath level, in the band from bottom to top." : skill === "tonguing" ? "Slurred and tongued on purpose: tongued stops the air, slurred keeps it going." : skill === "register" ? "Across the break and over the octave keys, back and forth, with no glitch notes in between." : skill === "trills" ? "Two fingerings back and forth as fast and even as you can." : "Vibrato with the bite, pulsed in time, a set number of pulses a click."}
   summary={shownLine}
   tabs={modes}
   tab={skill}
@@ -527,7 +527,7 @@
         {#if skill === "long-scale"}
           <Choice label="Level" options={BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={level.id} onchange={(v) => cfg.set({ level: v })} setupKey="level" />
         {:else}
-          <p class="self-end text-sm text-ws-soft">Swung eighths at the strip's tempo: tongue each off-beat (doo) and slur into the beat (DAH). Written straight; play it long-short.</p>
+          <p class="self-end text-sm text-ws-soft">Swung eighths at the top bar's tempo: tongue each off-beat (doo) and slur into the beat (DAH). Written straight, played long-short.</p>
         {/if}
       {:else if skill === "scales"}
         <div class="flex min-w-0 flex-col gap-3">
@@ -606,7 +606,7 @@
                   <span class="flex min-h-12 min-w-11 flex-col items-center justify-center rounded-lg px-1.5 text-sm font-semibold {off ? 'outline-[3px] outline-offset-2 outline-destructive ' : ''}{nowHere ? 'bg-instr-strong text-on-instr' : out === 'miss' ? 'bg-destructive/25 ring-1 ring-destructive' : out === 'ok' ? 'bg-success/25 ring-1 ring-success' : checkNow ? 'bg-ws-stage-ink/8 ring-2 ring-instr' : checkPast ? 'bg-ws-stage-ink/20' : 'bg-ws-stage-ink/8'}" aria-current={nowHere || checkNow ? "step" : undefined}>
                     {#if marks.length}<span class="text-[13px] font-bold" title={marks[i] === "T" ? "tongued" : "slurred"}>{marks[i] === "T" ? "T" : "⌒"}{#if joins.length && joins[i] !== undefined}{joins[i] === marks[i] ? " ✓" : " ✕"}{/if}</span>{/if}
                     {spell(n)}
-                    {#if off && sounding !== null}<span class="text-[13px] leading-none">✕ heard {spell(sounding)}</span>{/if}
+                    {#if off && sounding !== null}<span class="text-[13px] leading-none">heard {spell(sounding)}</span>{/if}
                     {#if checkPast}<span class="text-[13px] leading-none" aria-hidden="true">•</span><span class="sr-only">, played</span>{/if}
                     {#if out && !nowHere}<span class="text-[13px] leading-none" aria-hidden="true">{out === "ok" ? "✓" : heardOn[i] !== undefined ? `✕ ${spell(heardOn[i])}` : "✕"}</span><span class="sr-only">{out === "ok" ? ", right" : heardOn[i] !== undefined ? `, played ${spell(heardOn[i])}` : ", missed"}</span>{/if}
                   </span>
@@ -614,7 +614,7 @@
               </li>
             {/each}
           </ol>
-          {#if marks.length}<p class="text-sm text-ws-stage-soft">T: tongue it (stop the air); ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
+          {#if marks.length}<p class="text-sm text-ws-stage-soft">T: tongue it (stop the air). ⌒: slur into it from the note before.{skill === "swing" ? " Doo on the off-beat, DAH into the beat." : ""}</p>{/if}
           <!-- Live breath over time, in the free height on a laptop. The long-tone scale's band is its target (Practice
                only); elsewhere a guide band that is not scored shows where steady air sits. -->
           <div class="max-md:order-last">
@@ -643,7 +643,7 @@
             <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden.</p>
           {/if}
         {:else}
-          <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Hold {spell(vibNote)} steadily and pulse the bite {vib.pulses} times a click: the click plays at {vib.bpm} BPM. The bite reaches the app as pitch bend.</p>
+          <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Hold {spell(vibNote)} steadily and pulse the bite {vib.pulses} times a click: the click plays at {vib.bpm} BPM. The bite reaches Woodshed as pitch bend.</p>
         {/if}
       </div>
       {#if skill !== "trills"}

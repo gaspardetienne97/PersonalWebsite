@@ -39,7 +39,7 @@ async function enableMidi(page: Page, url: string) {
 /** Start, then play the stage's line in time; `tongue` marks which notes start with a stop. */
 async function playLine(page: Page, tongue?: string) {
   const stage = page.getByTestId("aero-skills");
-  await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+  await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
   await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
   const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
   const stepMs = Number(await stage.getAttribute("data-step-ms"));
@@ -217,7 +217,7 @@ test.describe("aerophone skills", () => {
     await enableMidi(page, "/music/aerophone?mode=swing&scale=major&key=7&bpm=120");
     await pickMode(page, "Practice");
     const stage = page.getByTestId("aero-skills");
-    await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+    await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
     await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
     const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
     const beatMs = Number(await stage.getAttribute("data-beat-ms"));
@@ -254,7 +254,7 @@ test.describe("aerophone skills", () => {
     await enableMidi(page, "/music/aerophone?mode=long-scale&scale=major&key=0&level=p&bpm=240");
     await pickMode(page, "Practice");
     const stage = page.getByTestId("aero-skills");
-    await page.getByRole("button", { name: /^(Start|Again)/ }).click();
+    await page.getByRole("button", { name: /^(Start|Again)$/ }).click();
     await expect(stage).toHaveAttribute("data-downbeat", /\d/, { timeout: 10_000 });
     const line = (await stage.getAttribute("data-line"))!.split(",").map(Number);
     const stepMs = Number(await stage.getAttribute("data-step-ms"));
@@ -312,7 +312,7 @@ test.describe("aerophone skills", () => {
     await hold(62, 35);
     await expect(page.getByRole("status")).toContainText("as loud as you can");
     await hold(62, 105);
-    await expect(page.getByRole("status")).toContainText("Set up: the key matches", {
+    await expect(page.getByRole("status")).toContainText("Setup is right: the key matches", {
       timeout: 10_000,
     });
     await page.screenshot({ path: `${SHOTS}/calibrate-1280.png`, fullPage: true });

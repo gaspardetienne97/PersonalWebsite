@@ -126,7 +126,7 @@
         ? "No note arrived. The line under the stage says whether the Aerophone is connected."
         : !r.keyOk
           ? r.keyFits
-            ? `Written G4 came in as concert ${noteName(received)}: the AE-20 reads as ${AEROPHONE_READING_KEYS.find((k) => k.id === r.keyFits)!.label}, the app as ${keyLabel}. Match one to the other.`
+            ? `Written G4 came in as concert ${noteName(received)}: the AE-20 reads as ${AEROPHONE_READING_KEYS.find((k) => k.id === r.keyFits)!.label}, Woodshed as ${keyLabel}. Match one to the other.`
             : `Written G4 came in as concert ${noteName(received)}, which no reading key explains. Check the AE-20's transpose and octave settings.`
           : !r.breathSeen
             ? "The key matches, but no breath arrived (CC 2). Check the AE-20's breath output."
@@ -136,7 +136,7 @@
                 ? r.clipped > 0.1
                   ? `The loud note pinned at the top for ${pct(r.clipped)} of it. Turn the AE-20's breath sensitivity down a step.`
                   : `Your loudest note reached ${pct(r.ceiling ?? 0)}, under f (${pct(BREATH_LEVELS[3].band[0])}). Turn the breath sensitivity up a step.`
-                : "Set up: the key matches and the breath reaches from p to f without clipping.";
+                : "Setup is right: the key matches and the breath reaches from p to f without clipping.";
     const fin = await run!.finish({
       score: r.score,
       correct: r.correct,
@@ -157,13 +157,13 @@
       xp: fin.xp,
       clean: r.correct,
       cleanMeans: "every check passed",
-      assistance: "A set-up check: it does not change skill mastery.",
+      assistance: "A setup check: it doesn't change your skill scores.",
       rows: [
         { label: `Key: written G4 in ${keyLabel}`, value: r.keyOk ? 1 : 0, text: received === null ? "no note" : `${name(received + shift)} as read${r.keyOk ? ", right" : ""}` },
         { label: "Breath (CC 2) arrives", value: r.breathSeen ? 1 : 0, text: r.breathSeen ? "yes" : "no" },
         r.floor === null ? { label: "Softest note", notMeasured: true } : { label: "Softest note, p or under", value: r.floorOk ? 1 : 0, text: pct(r.floor) },
         r.ceiling === null ? { label: "Loudest note", notMeasured: true } : { label: "Loudest note, f without clipping", value: r.ceilingOk ? 1 : 0, text: `${pct(r.ceiling)}${r.clipped ? `, ${pct(r.clipped)} pinned` : ""}` },
-        { label: "Bite (pitch bend)", text: bite ? "arrives, so vibrato can be read" : "none seen; set the bite to send pitch bend for vibrato" },
+        { label: "Bite (pitch bend)", text: bite ? "arrives, so vibrato can be read" : "none seen. Set the bite to send pitch bend for vibrato" },
       ],
     };
     status = headline;
@@ -173,7 +173,7 @@
     clearTimeout(timer);
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   onDestroy(() => {
@@ -185,8 +185,8 @@
 <DrillShell
   title="Aerophone"
   hue="aerophone"
-  blurb="Check the AE-20 set-up: the note it sends, the breath, and soft to loud without clipping."
-  summary={[{ text: `Set-up check, reading in ${keyLabel}` }, { text: "a written G4, then softest and loudest" }]}
+  blurb="Check the AE-20 setup: the note it sends, the breath, and soft to loud without clipping."
+  summary={[{ text: `Setup check, reading in ${keyLabel}` }, { text: "a written G4, then softest and loudest" }]}
   tabs={modes}
   tab="calibrate"
   ontab={onmode}
@@ -199,7 +199,7 @@
 >
   {#snippet setup()}
     <p class="text-sm text-ws-soft">
-      On the AE-20: Sax mode and the scene you play. The app reads in {keyLabel}; change it on the strip's Reads in pill or in Settings. With the AE-20's transpose at C, read in C; at Eb (alto) or Bb (tenor), read in that key.
+      On the AE-20, choose Sax mode and the scene you play. Woodshed reads in {keyLabel}. Change it with Reads in on the top bar, or in Settings. With the AE-20's transpose at C, read in C. At Eb (alto) or Bb (tenor), read in that key.
     </p>
   {/snippet}
 
@@ -223,7 +223,7 @@
           </li>
         {/each}
       </ol>
-      <BreathTrace values={breath} target={Array(64).fill(BREATH_LEVELS[3].band[0])} measured={breath.length > 0} label="Breath, last 64 samples; the dashed line is f" />
+      <BreathTrace values={breath} target={Array(64).fill(BREATH_LEVELS[3].band[0])} measured={breath.length > 0} label="Breath, last 64 samples. The dashed line is f" />
       {#if result && !result.keyOk && result.keyFits}
         {@const fits = result.keyFits}
         <button type="button" class={btn} onclick={() => void settings.update({ aerophoneKey: fits })}>Read in {AEROPHONE_READING_KEYS.find((k) => k.id === fits)!.label}</button>

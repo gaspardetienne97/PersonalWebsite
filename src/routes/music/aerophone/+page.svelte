@@ -214,7 +214,7 @@
     if (m === "interval-landing") audio.drone.start(drone);
     const handle = audio.playSequence(notes);
     demo = handle;
-    status = m === "interval-landing" ? `Listen: the ${chartName(drone)} drone, then ${chartName(targetMidi)} landing on it. Not scored.` : "Listen: how it should sound. Not scored.";
+    status = m === "interval-landing" ? `Demo: the ${chartName(drone)} drone, then ${chartName(targetMidi)} landing on it. Not scored.` : "Demo playing, not scored.";
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -406,7 +406,7 @@
 
   const signedMs = (o: number) => `${o > 0 ? "+" : ""}${Math.round(o)}`;
   const onScreen = (ons: NoteEvent[]) => ons.some((n) => n.source !== "midi");
-  const whyNot = (ons: NoteEvent[]) => (onScreen(ons) ? "the chart and keys have no breath" : "no breath reached the app from the breath sensor");
+  const whyNot = (ons: NoteEvent[]) => (onScreen(ons) ? "the chart and keys have no breath" : "no breath arrived from the breath sensor");
 
   function describe(r: BreathResult | SwellResult | ArticulationResult, ons: NoteEvent[]): Pick<RunSummary, "headline" | "rows"> {
     const played = ons[0]?.midi;
@@ -430,7 +430,7 @@
           : t && t.timing < 0.75
             ? `Right notes, but ${s.count - t.onTime} of ${s.count} attacks missed the click${drift ? `, ${drift}` : ""}. Tongue each note with the click.`
             : r.articulation === null
-            ? `Every pitch right${t ? " and on the click" : ""}. Articulation needs the Aerophone to be measured.`
+            ? `Every pitch right${t ? " and on the click" : ""}. Articulation is measured only on the Aerophone.`
             : r.correct
               ? `Clean ${style}: every ${chartName(targetMidi)} right, ${Math.round((r.meanSoundingFraction ?? 0) * 100)}% of each beat sounding.`
               : (r.meanSoundingFraction ?? 0) > ARTICULATION_TARGET[style]
@@ -451,13 +451,13 @@
     let headline: string;
     if (!r.pitchCorrect) {
       const hint = played === undefined ? null : slipHint(targetMidi, played);
-      headline = `That was ${played !== undefined ? chartName(played) : "no note"}; the target is ${chartName(targetMidi)}. ${hint ? `${hint.text}.` : "Check the fingering on the right."}`;
+      headline = `That was ${played !== undefined ? chartName(played) : "no note"}. The target is ${chartName(targetMidi)}. ${hint ? `${hint.text}.` : "Check the fingering on the right."}`;
     }
     else if (r.progress < 1) headline = `Right note, but it stopped at ${secs} of ${holdMs / 1000} seconds.`;
     else if ("shape" in r && r.shape !== null && !r.correct)
-      headline = r.shape < 0.8 ? `Full swell on ${chartName(targetMidi)}, but the curve missed the shape (${pct(r.shape)}). Peak in the middle.` : `The shape was there; the air moved in steps (smoothness ${pct(r.smoothness ?? 0)}).`;
+      headline = r.shape < 0.8 ? `Full swell on ${chartName(targetMidi)}, but the curve missed the shape (${pct(r.shape)}). Peak in the middle.` : `The shape was there, but the air moved in steps (smoothness ${pct(r.smoothness ?? 0)}).`;
     else if (r.steadiness !== null && !r.correct) headline = `Right note, full hold, but the breath wobbled (steadiness ${pct(r.steadiness)}).`;
-    else if (r.notMeasured.length) headline = `${chartName(targetMidi)} held for ${holdMs / 1000} s. Breath needs the Aerophone to be measured.`;
+    else if (r.notMeasured.length) headline = `${chartName(targetMidi)} held for ${holdMs / 1000} s. Breath is measured only on the Aerophone.`;
     else headline = m === "interval-landing" ? `Landed the ${intervalLabel.toLowerCase()} and held it steady.` : m === "swell" ? `A smooth swell on ${chartName(targetMidi)}.` : `Steady ${chartName(targetMidi)} for ${holdMs / 1000} seconds.`;
     return { headline, rows };
   }
@@ -467,7 +467,7 @@
     cap?.stop();
     audio.drone.stop();
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Nothing saved.";
   }
 
   /** Before a run, a chart note tapped becomes the target (holds, swells and articulation); `midi` is concert, the target written. */
@@ -508,11 +508,11 @@
   const envelope = Array.from({ length: TRACE_SAMPLES }, (_, i) => swellEnvelope(i / (TRACE_SAMPLES - 1)));
   const showTargets = $derived(mode === "practice" || phase === "results");
   const BLURB: Record<string, string> = {
-    fingering: "Fingerings in Roland's lesson order: each note waits until it is right.",
+    fingering: "Fingerings in Roland's lesson order: each note waits until it's right.",
     "long-tone": "Hold one note steady: the breath should sit still, at a level if you set one.",
     swell: "One note from soft to loud and back: the breath should rise and fall in a smooth arc.",
     articulation: "Repeated attacks on one note: staccato sounds a third of each beat, legato nearly all.",
-    "interval-landing": `A drone sounds; land the interval on it and hold it steady for ${LANDING_HOLD_MS / 1000} seconds.`,
+    "interval-landing": `A drone sounds. Land the interval on it and hold it steady for ${LANDING_HOLD_MS / 1000} seconds.`,
   };
 </script>
 
@@ -593,7 +593,7 @@
       <div class="flex min-w-0 flex-col gap-3 max-md:contents">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
-            <p class="text-sm text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it is right` : "up and back down"}</p>
+            <p class="text-sm text-ws-stage-soft">{lesson.label}, {"line" in lesson ? `${seq.length} notes, each waiting until it's right` : "up and back down"}</p>
             <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Lesson notes">
               {#each seq as n, i (i)}
                 {@const done = phase === "results" || (phase === "running" && i < step)}
@@ -640,7 +640,7 @@
           <AerophoneKeys midi={targetMidi} heldMidi={sounding} compact name={chartName} />
           <p class="name text-center font-display text-2xl font-semibold">{chartName(targetMidi)}</p>
           <p class="text-center text-sm text-ws-stage-soft">
-            {fingering?.verified ? "Fingering verified on your instrument." : "Best-effort fingering, not yet confirmed on the unit."}
+            {fingering?.verified ? "Fingering verified on your instrument." : "Fingering not yet confirmed on your instrument."}
           </p>
         {:else}
           <p class="rounded-xl bg-ws-stage-ink/8 p-3 text-center text-sm text-ws-stage-soft">Check: fingering hidden. Target {chartName(targetMidi)}.</p>

@@ -292,7 +292,7 @@ test("Aerophone and pads with on-screen input only say what they cannot measure"
   await page
     .getByRole("button", { name: "Play G4", includeHidden: true })
     .dispatchEvent("pointerup", { pointerId: 7, button: 0, bubbles: true });
-  await expect(page.getByRole("status")).toContainText("Breath needs the Aerophone", {
+  await expect(page.getByRole("status")).toContainText("Breath is measured only on the Aerophone", {
     timeout: 10_000,
   });
   await expect(page.locator("article").first()).toContainText("Not measured");
