@@ -25,6 +25,7 @@ import { settings } from "./settings.svelte";
 const map = () => settings.value.calibration ?? {};
 /** Offsets saved before pairs existed; moved to the current output once it is known. */
 function legacy(): LegacyOffsets {
+  if (settings.value.calibrationMigrated) return { audioMs: 0, midiMs: 0, deviceMs: {} };
   const deviceMs: Record<string, number> = {};
   for (const p of midi.profiles)
     if (p.inputOffsetMs !== undefined) deviceMs[p.id] = p.inputOffsetMs;
@@ -40,16 +41,12 @@ async function migrate() {
     !(old.audioMs || old.midiMs || Object.keys(old.deviceMs).length)
   )
     return;
-  // One write carries the pairs and clears the old fields, so an offset is never applied twice.
+  // One write carries the pairs and the flag, so an offset is never applied twice. The old
+  // fields stay saved (not cleared) so a build from before pairs still finds its calibration.
   await settings.update({
     calibration: migrateOffsets(map(), old, outputs),
-    audioOffsetMs: 0,
-    midiOffsetMs: 0,
+    calibrationMigrated: true,
   });
-  for (const id of Object.keys(old.deviceMs)) {
-    const p = midi.profile(id);
-    if (p) await midi.saveProfile({ ...p, inputOffsetMs: undefined });
-  }
 }
 
 if (browser) {

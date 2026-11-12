@@ -364,6 +364,8 @@ export interface Settings {
   calibration?: Record<string, number>;
   /** Pairs whose calibration offer was skipped: not offered again. */
   calibrationSkipped?: string[];
+  /** The pre-pair offsets were copied into `calibration`. They stay saved so an older build still reads them. */
+  calibrationMigrated?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
