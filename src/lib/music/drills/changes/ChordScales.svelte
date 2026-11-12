@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
@@ -22,7 +23,7 @@
   import { Transport, benchFromUrl, sounding, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { toneLabel } from "$lib/music/drills/piano/tones";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct, runInstrument, runSource } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -67,13 +68,12 @@
   let patternResult = $state<LickResult | null>(null);
   let played = 0;
   const transport = new Transport();
+  const timedRun = new TimedRun(transport);
   const flashes = new Flashes<FlashKind | "order">();
   /** Pattern mode: the notes played, in beats from the downbeat, for the marks on the run's staff. */
   let hits = $state<{ midi: number; beat: number }[]>([]);
   let beatMsRun = $state(500);
-  let cap: Capture | null = null;
   let run: ReturnType<typeof practice.beginRun> | null = null;
-  let timer: ReturnType<typeof setTimeout> | undefined;
   let ctxRef: RunContext | null = null;
 
   // Each chord's go-to scale written out (the demo's line), on the strip's instrument, an octave up where the stage moves it.
@@ -205,9 +205,7 @@
       instrument: settings.value.activeInstrument,
       params: { bpm, changes, key, beatsPerChord: perChord, ...(pattern ? { pattern: pattern.id, keys: keyCount } : {}) },
     });
-    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
-    transport.follow(ctx.downbeat, ctx.beatMs);
-    timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + totalBeats * ctx.beatMs + 200);
+    timedRun.begin(ctx, totalBeats, onNote, () => void finish(), 200);
   }
 
   /** Pattern mode, after the run: each note right, wrong or missed, graded by position as the run is. */
@@ -223,12 +221,8 @@
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
-    clearTimeout(timer);
-    ctxRef?.stopClock();
-    transport.stop();
-    cap?.stop();
+    const ons = timedRun.end(true).filter((n) => n.kind === "noteon");
     const ctx = ctxRef!;
-    const ons = (cap?.notes ?? []).filter((n) => n.kind === "noteon");
     if (pattern) return finishPattern(ctx, ons);
     const byChord = targets.map(() => [] as number[]);
     for (const n of ons) byChord[chordIndexAt((n.at - ctx.downbeat) / ctx.beatMs)].push(n.midi);
@@ -346,17 +340,13 @@
   }
 
   function stop() {
-    clearTimeout(timer);
-    transport.stop();
-    cap?.stop();
+    timedRun.end();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
   }
 
   onDestroy(() => {
-    clearTimeout(timer);
-    cap?.stop();
-    transport.stop();
+    timedRun.end();
   });
 </script>
 

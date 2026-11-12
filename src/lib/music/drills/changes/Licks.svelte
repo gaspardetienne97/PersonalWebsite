@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
@@ -29,7 +30,7 @@
   import { lineOutcomes, timingOf, verdictOf } from "$lib/music/drills/piano/lane-outcomes";
   import { Transport, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct, runInstrument, runSource } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { settings } from "$lib/music/runtime";
   import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
@@ -117,9 +118,8 @@
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   const transport = new Transport();
   const flashes = new Flashes();
-  let cap: Capture | null = null;
+  const timedRun = new TimedRun(transport);
   let run: ReturnType<typeof practice.beginRun> | null = null;
-  let timer: ReturnType<typeof setTimeout> | undefined;
   let ctxRef: RunContext | null = null;
   /** The demo's playhead on the whole lick (a loop starts over at the chunk each time). */
   const demoCursor = $derived(transport.playing && transport.beat !== null ? (transport.beat % (chunkBeats + 1)) + t0 : null);
@@ -233,8 +233,7 @@
     }
     // Grading is positional and ignores extras past the phrase: done once every note has a place.
     if (played >= chunk.length) {
-      clearTimeout(timer);
-      timer = setTimeout(() => void finish(), 350);
+      timedRun.endIn(350);
     }
   }
 
@@ -260,18 +259,12 @@
       instrument: fretted ? "guitar" : settings.value.activeInstrument,
       params: { bpm, lick: lick.number, transpose, first: lo, last: hi, ...(s.ear ? { byEar: true } : {}) },
     });
-    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
-    transport.follow(ctx.downbeat, ctx.beatMs);
-    timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + (chunkBeats + 2) * ctx.beatMs);
+    timedRun.begin(ctx, chunkBeats + 2, onNote, () => void finish());
   }
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
-    clearTimeout(timer);
-    ctxRef?.stopClock();
-    transport.stop();
-    cap?.stop();
-    const notes = cap?.notes ?? [];
+    const notes = timedRun.end(true);
     const r = gradeLick({ expected: chunk, notes, beatMs: ctxRef!.beatMs, startAt: ctxRef!.downbeat });
     result = r;
     phase = "results";
@@ -343,17 +336,13 @@
   }
 
   function stop() {
-    clearTimeout(timer);
-    transport.stop();
-    cap?.stop();
+    timedRun.end();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
   }
 
   onDestroy(() => {
-    clearTimeout(timer);
-    cap?.stop();
-    transport.stop();
+    timedRun.end();
   });
 
   const lickItems = LICKS.map((l) => ({ value: l.number, title: `Lick ${l.number}: ${l.progression.join(" ")}`, meta: lickTip(l), group: CATEGORY_LABEL[l.category] ?? l.category, keywords: l.scales.join(" ") }));

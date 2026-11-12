@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
@@ -24,7 +25,7 @@
   import StaffFold from "$lib/music/notation/StaffFold.svelte";
   import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct, runInstrument, runSource } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { midi, settings } from "$lib/music/runtime";
   import { goto } from "$app/navigation";
@@ -80,10 +81,8 @@
   let result = $state<(CompingResult & { lhMeasured: boolean }) | null>(null);
   const transport = new Transport();
   const flashes = new Flashes();
-  let cap: Capture | null = null;
+  const timedRun = new TimedRun(transport);
   let run: ReturnType<typeof practice.beginRun> | null = null;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let stopClock: (() => void) | null = null;
   /** Note-ons this run in beats from the downbeat, and whether every one came over MIDI (a struck shell needs it). */
   let heard = $state<{ midi: number; beat: number }[]>([]);
   let allMidi = $state(true);
@@ -209,7 +208,6 @@
     verdict = null;
     liveWrong = 0;
     clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
-    stopClock = ctx.stopClock;
     run = practice.beginRun({
       exerciseId: "comping",
       setupKey,
@@ -221,18 +219,12 @@
       instrument: "piano",
       params: { bpm, pattern: p.id, lh: s.lh, feel: s.feel },
     });
-    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
-    transport.follow(ctx.downbeat, ctx.beatMs);
-    timer = setTimeout(() => void finish(ctx), Math.max(0, ctx.downbeat - performance.now()) + (totalBeats + 1) * ctx.beatMs);
+    timedRun.begin(ctx, totalBeats + 1, onNote, () => void finish(ctx));
   }
 
   async function finish(ctx: RunContext) {
     if (phase !== "running" && phase !== "countin") return;
-    clearTimeout(timer);
-    stopClock?.();
-    transport.stop();
-    cap?.stop();
-    const played = cap?.notes ?? [];
+    const played = timedRun.end(true);
     // On-screen keys play one note at a time, so a struck shell can't be seen: grade the line only.
     const lhMeasured = played.length > 0 && played.every((n) => n.source === "midi");
     const r = gradeComping({
@@ -327,17 +319,13 @@
   }
 
   function stop() {
-    clearTimeout(timer);
-    transport.stop();
-    cap?.stop();
+    timedRun.end();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
   }
 
   onDestroy(() => {
-    clearTimeout(timer);
-    cap?.stop();
-    transport.stop();
+    timedRun.end();
   });
 </script>
 

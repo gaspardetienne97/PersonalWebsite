@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CHANGES_TITLE, changesTrainer } from "./modes";
+  import { TimedRun } from "./timed-run";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   // Accompaniment (piano path drill 1, jazz rank 2, piano drill 3): hand patterns,
   // comping and lead sheets over a chord chart in any key, every slot graded on
@@ -59,7 +60,7 @@
     import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
   import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
   import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
+  import { assistanceFor, pct, runInstrument, runSource } from "$lib/music/drill.svelte";
   import { practice } from "$lib/music/practice.svelte";
   import { audio, db, midi, settings, type SequenceHandle } from "$lib/music/runtime";
   import { goto } from "$app/navigation";
@@ -215,10 +216,8 @@
   let beatMs = $state(1000);
   const transport = new Transport();
   const flashes = new Flashes();
-  let cap: Capture | null = null;
+  const timedRun = new TimedRun(transport);
   let run: ReturnType<typeof practice.beginRun> | null = null;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let stopClock: (() => void) | null = null;
   let band: SequenceHandle | null = null;
   const stopBand = () => {
     band?.stop();
@@ -307,7 +306,6 @@
     summary = null;
     result = null;
     flashes.clear();
-    stopClock = ctx.stopClock;
     downbeat = ctx.downbeat;
     beatMs = ctx.beatMs;
     run = practice.beginRun({
@@ -321,25 +319,19 @@
       instrument: "piano",
       params: loopBar === null ? runParams : { ...runParams, loopBar: loopBar + 1 },
     });
-    cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
-    transport.follow(ctx.downbeat, ctx.beatMs);
+    timedRun.begin(ctx, totalBeats + 1, onNote, () => void finish(ctx));
     // Comping over a band: drums and bass from the downbeat, as many times as the chart runs.
     if (tab === "comping" && s.band === "rhythm" && loopBar === null) {
       const p = transposeProgression(compProg, s.transpose);
       const times = Math.ceil(totalBeats / (chorusBars(p) * barBeats(p)) - 1e-9);
       void audio.unlock().then(() => (band = audio.playSequence(backingNotes({ ...p, feel: rendering.swing ? "swing" : "straight" }, { bpm, mode: "rhythm", choruses: times }), { startPerf: ctx.downbeat })));
     }
-    timer = setTimeout(() => void finish(ctx), Math.max(0, ctx.downbeat - performance.now()) + (totalBeats + 1) * ctx.beatMs);
   }
 
   async function finish(ctx: RunContext) {
     if (phase !== "running" && phase !== "countin") return;
-    clearTimeout(timer);
-    stopClock?.();
-    transport.stop();
     stopBand();
-    cap?.stop();
-    const played = cap?.notes ?? [];
+    const played = timedRun.end(true);
     const r = gradeAccompaniment({ slots, splitMidi: rendering.splitMidi, swing: rendering.swing, beatMs: ctx.beatMs, startAt: ctx.downbeat, notes: played, beatsPerBar: bpb });
     result = r;
     phase = "results";
@@ -396,19 +388,15 @@
   }
 
   function stop() {
-    clearTimeout(timer);
-    transport.stop();
     stopBand();
-    cap?.stop();
+    timedRun.end();
     phase = "ready";
     status = "Stopped. Nothing was recorded.";
   }
 
   onDestroy(() => {
-    clearTimeout(timer);
     stopBand();
-    cap?.stop();
-    transport.stop();
+    timedRun.end();
   });
 
   const progressionOptions = $derived([
