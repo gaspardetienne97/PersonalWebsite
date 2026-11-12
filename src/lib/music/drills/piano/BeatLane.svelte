@@ -38,10 +38,12 @@
     outcomes?: Record<string, readonly (LaneOutcome | undefined)[]>;
     /** Notes struck that no target wanted: counted beside the marks, so the tally and the "Wrong note" word agree. */
     wrong?: number;
+    /** Where those wrong notes fell, in beats from the downbeat: a cross under the rows at each, so the lane shows them too. */
+    strays?: readonly number[];
     /** A short screen: an eighth-note beat takes 4rem, not 5.5, so three bars sit on one row above the staff and the keys. */
     dense?: boolean;
   }
-  let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {}, wrong = 0, dense = false }: Props = $props();
+  let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {}, wrong = 0, strays = [], dense = false }: Props = $props();
   // The same glyphs the results breakdown uses, so a mark reads the same on the lane and after the run.
   const GLYPH = { ok: Check, early: ChevronsLeft, late: ChevronsRight, miss: X } as const;
   const SAID: Record<LaneOutcome, string> = { ok: "on time", early: "early", late: "late", miss: "missed" };
@@ -155,7 +157,7 @@
       {/each}
     </div>
     {#each rows as row (row.id)}
-      <div class="row flex flex-1 items-center py-0.5">
+      <div class="row flex flex-1 items-center py-0.5" style:--row-max={beat === null && !marked ? undefined : rows.length === 1 ? "9rem" : rows.length === 2 ? "7.5rem" : undefined}>
         <span class="gutter"><span class="hand-mark" data-hand={row.hand} title={row.label}>{row.mark}</span></span>
         <!-- Rows share the height the stage gives the lane (a live run), never under 40 px nor over 96. -->
         <div class="track relative flex-1 self-stretch rounded-md {wrap ? 'min-h-10' : 'min-h-[clamp(2.5rem,5.5dvh,4.5rem)]'}">
@@ -181,6 +183,18 @@
         </div>
       </div>
     {/each}
+    {#if strays.some((b) => b >= b0 && b < b1)}
+      <div class="flex h-5 items-center" data-strays>
+        <span class="gutter self-stretch" aria-hidden="true"></span>
+        <div class="relative flex-1 self-stretch" role="img" aria-label="Wrong notes: {strays.filter((b) => b >= b0 && b < b1).length}">
+          {#each strays as b, i (i)}
+            {#if b >= b0 && b < b1}
+              <span class="mark stray" style:left={pos(Math.max(b0, b))} aria-hidden="true"><X class="size-3" strokeWidth={3} /></span>
+            {/if}
+          {/each}
+        </div>
+      </div>
+    {/if}
     {#if beat !== null && beat >= b0 && (beat < b1 || (b1 === beats && beat <= beats))}
       <span class="playhead" style:left="calc(2.25rem + (100% - 2.25rem) * {(beat - b0) / len})" aria-hidden="true"></span>
     {/if}
@@ -193,8 +207,9 @@
     background: color-mix(in oklch, var(--ws-stage-ink, white) 5%, transparent);
     padding: 0.4rem 0.5rem 0.5rem;
   }
+  /* In a run, one or two rows take more of the lane's height than three would each, so a single line is not a strip in an empty card. */
   .row {
-    max-height: 6rem;
+    max-height: var(--row-max, 6rem);
   }
   /* The left column (hand marks, the chord now) stays put while a long lane scrolls under it. */
   .gutter {
@@ -319,8 +334,11 @@
   .chip[data-outcome="late"] {
     box-shadow: inset 0 0 0 2px var(--late, var(--warn));
   }
-  .chip[data-outcome="miss"] {
-    opacity: 0.45;
+  /* A missed note goes dark with light ink (not a faded chip), so its name and its cross still read. */
+  .chip[data-outcome="miss"],
+  .chip[data-outcome="miss"][data-hand] {
+    background: color-mix(in oklch, var(--destructive) 22%, var(--ws-stage, #15121c));
+    color: var(--ws-stage-ink, white);
     box-shadow: inset 0 0 0 2px var(--destructive);
   }
   /* The mark sits in the chip's corner, clear of the note name. */
@@ -338,6 +356,13 @@
   }
   .mark.static {
     position: static;
+  }
+  .mark.stray {
+    background: var(--destructive);
+    color: var(--on-destructive, white);
+    top: 2px;
+    right: auto;
+    translate: -50% 0;
   }
   [data-outcome="early"] .mark {
     background: var(--early, var(--warn));

@@ -90,6 +90,8 @@
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   /** Wrong keys struck so far in Practice: the lane counts them, so the tally and the word agree. */
   let liveWrong = $state(0);
+  /** Where each wrong key fell, in beats: the lane draws a cross there, so its ticks never read as a clean run. */
+  let strays = $state<number[]>([]);
   /** After a run: each lane note's error in ms from the grader's own claims (null missed), so the lane, the breakdown and the score agree. */
   let graded = $state<{ right: (number | null)[]; left?: (number | null)[]; onTimeMs: number } | null>(null);
 
@@ -185,9 +187,10 @@
     const beat = (e.at - clock0.downbeat) / clock0.beatMs;
     heard = [...heard, { midi: e.midi, beat }];
     if (e.source !== "midi") allMidi = false;
-    if (mode !== "practice") return;
     // The note judged as the lane will mark it: the written beat, with the swing slack.
     const want = [...laneTargets.right, ...laneTargets.left].find((t) => t.midi === e.midi && beat > t.beat - t.dur / 2 && beat < t.beat + slack(t.beat) + t.dur / 2);
+    if (!want) strays = [...strays, beat];
+    if (mode !== "practice") return;
     flashes.add(e.midi, want ? "correct" : "wrong");
     if (!want) liveWrong++;
     const err = want ? (beat < want.beat ? beat - want.beat : Math.max(0, beat - want.beat - slack(want.beat))) : 0;
@@ -207,6 +210,7 @@
     allMidi = true;
     verdict = null;
     liveWrong = 0;
+    strays = [];
     clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     run = practice.beginRun({
       exerciseId: "comping",
@@ -420,6 +424,7 @@
       label="Beat lane: right hand lick of {p.lick.length} notes; left hand shell on one and the and-of-two in each bar."
       {outcomes}
       wrong={phase === "running" && mode === "practice" ? liveWrong : 0}
+      strays={phase === "running" && mode === "practice" ? strays : []}
     />
     </div>
     <div class="flex flex-col" data-dock="instrument">
@@ -461,7 +466,7 @@
   {#if graded}
     <div class="stage rounded-2xl p-3">
       <p class="mb-2 text-sm font-medium text-ws-stage-soft">Each note as it landed</p>
-      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: p.chord }]} label="Your run on the beat lane, each note marked on time, early, late or missed." {outcomes} wrong={result?.lick.extra ?? 0} />
+      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: p.chord }]} label="Your run on the beat lane, each note marked on time, early, late or missed." {outcomes} wrong={result?.lick.extra ?? 0} strays={strays.length === (result?.lick.extra ?? 0) ? strays : []} />
     </div>
   {/if}
 {/snippet}

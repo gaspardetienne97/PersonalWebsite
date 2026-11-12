@@ -101,6 +101,8 @@
   let verdict = $state<{ kind: VerdictKind; text?: string; key: number } | null>(null);
   /** Wrong keys struck so far in Practice (the lane's tally says the same as the word above the keys). */
   let liveWrong = $state(0);
+  /** Where each wrong key fell, in beats: the lane draws a cross there, so its ticks never read as a clean run. */
+  let strays = $state<number[]>([]);
   const wrongShown = $derived(phase === "results" ? (result?.wrong ?? 0) : liveWrong);
 
   const markFor = (n: TimedNote, demo: boolean): CellMarks => ({
@@ -173,14 +175,15 @@
   function onNote(e: NoteEvent) {
     if (e.kind !== "noteon" || phase !== "running") return;
     heard = [...heard, { midi: e.midi, beat: (e.at - clock0.downbeat) / clock0.beatMs }];
-    if (mode !== "practice") return;
     const b = transport.beat ?? 0;
     const dueNow = due(b);
     const want = dueNow.find((n) => n.midi === e.midi);
+    const beat = heard.at(-1)!.beat;
+    if (!want) strays = [...strays, beat];
+    if (mode !== "practice") return;
     flashes.add(e.midi, want ? "correct" : "wrong");
     if (!want) liveWrong++;
     // The word for the note, as the lane will mark it: on time within a quarter of the hand's spacing.
-    const beat = heard.at(-1)!.beat;
     const v = want
       ? verdictOf(Math.abs(beat - want.beat) <= want.dur / 4 ? "ok" : beat < want.beat ? "early" : "late", (beat - want.beat) * clock0.beatMs)
       : { kind: "wrong" as const, text: wrongText(e.midi, dueNow) };
@@ -201,6 +204,7 @@
     heard = [];
     verdict = null;
     liveWrong = 0;
+    strays = [];
     clock0 = { downbeat: ctx.downbeat, beatMs: ctx.beatMs };
     stopClock = ctx.stopClock;
     run = practice.beginRun({
@@ -401,6 +405,7 @@
           label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
           {outcomes}
           wrong={phase === "running" && mode === "practice" ? wrongShown : 0}
+          strays={phase === "running" && mode === "practice" ? strays : []}
         />
       </div>
       <div class="flex flex-col" data-dock="instrument">
@@ -447,7 +452,7 @@
   {#if heard.length}
     <div class="stage rounded-2xl p-3">
       <p class="mb-2 text-sm font-medium text-ws-stage-soft">Each note as it landed</p>
-      <BeatLane rows={lanes} beats={totalBeats} {eighths} label="Your run on the beat lane: {lanes.map((l) => `${l.label}`).join(' and ')}, each note marked on time, early, late or missed." {outcomes} wrong={wrongShown} />
+      <BeatLane rows={lanes} beats={totalBeats} {eighths} label="Your run on the beat lane: {lanes.map((l) => `${l.label}`).join(' and ')}, each note marked on time, early, late or missed." {outcomes} wrong={wrongShown} strays={strays.length === wrongShown ? strays : []} />
     </div>
   {/if}
 {/snippet}
