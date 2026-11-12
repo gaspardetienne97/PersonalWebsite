@@ -15,6 +15,8 @@ import {
   findQuotes,
   gameOf,
   gradeImprov,
+  jamHint,
+  scoredSet,
   tradeWindows,
   type ImprovNote,
 } from "./improv";
@@ -35,6 +37,62 @@ const n = (midi: number, bar: number, beat = 0, len = 1): ImprovNote => ({
   midi,
   beat: bar * 4 + beat,
   end: bar * 4 + beat + len,
+});
+
+describe("jamHint: one claim, naming only the scored set", () => {
+  const C7 = blues.chords[0];
+  const F7 = blues.chords[1];
+  const names = (pcs: number[]) => pcs.map((p) => "C Db D Eb E F Gb G Ab A Bb B".split(" ")[p]);
+
+  it("names a key set once, in the key, whatever the chord", () => {
+    expect(jamHint(gameOf("three-notes"), blues.keyPc, C7)).toBe(
+      "Only the C minor triad: C, Eb, G.",
+    );
+    expect(jamHint(gameOf("three-notes"), blues.keyPc, F7)).toBe(
+      "Only the C minor triad: C, Eb, G.",
+    );
+    expect(jamHint(gameOf("blues-scale"), blues.keyPc, C7)).toBe(
+      "Only the C blues scale: C, Eb, F, Gb, G, Bb.",
+    );
+    expect(jamHint(gameOf("pentatonic-2"), 2, iiVI.chords[0])).toBe(
+      "Only the E minor pentatonic: E, G, A, B, D.",
+    );
+  });
+
+  it("names the guide tones of the chord sounding", () => {
+    expect(jamHint(gameOf("guide-tones"), blues.keyPc, C7)).toBe(
+      "Only the 3rd and 7th of C7: E, Bb.",
+    );
+    expect(jamHint(gameOf("guide-tones"), blues.keyPc, F7)).toBe(
+      "Only the 3rd and 7th of F7: A, Eb.",
+    );
+  });
+
+  it("names the chord's scale when no set is scored", () => {
+    expect(jamHint(gameOf("free"), 0, iiVI.chords[0])).toBe("D dorian fits.");
+  });
+
+  it("never names a note outside the scored set, for every set game over every chord", () => {
+    for (const p of PROGRESSIONS)
+      for (const g of ["three-notes", "blues-scale", "pentatonic-1", "pentatonic-5", "guide-tones"])
+        for (const ch of p.chords) {
+          const set = names(scoredSet(gameOf(g), p.keyPc, ch.symbol));
+          const said = jamHint(gameOf(g), p.keyPc, ch).split(": ")[1].replace(".", "").split(", ");
+          expect(said).toEqual(set);
+        }
+  });
+
+  it("scores exactly the set it names: those notes pass the set game, any other fails it", () => {
+    const set = scoredSet(gameOf("three-notes"), blues.keyPc, C7.symbol);
+    const inside = grade(
+      blues,
+      set.map((p, i) => n(60 + p, i)),
+      "three-notes",
+    );
+    expect(part(inside, "set").value).toBe(1);
+    const outside = grade(blues, [n(64, 0)], "three-notes"); // E, the chord's own 3rd, is not in the set
+    expect(part(outside, "set").value).toBe(0);
+  });
 });
 
 describe("gradeImprov: the three-note game", () => {

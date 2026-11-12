@@ -75,8 +75,8 @@ export const METRIC_LABEL: Record<MetricId, string> = {
 export const isCount = (m: MetricId) =>
   m === "rests" || m === "displaced" || m === "slips" || m === "fills";
 
-/** A key-relative set: semitones above the key's tonic. */
-type KeySet = { key: number[] };
+/** A key-relative set: semitones above the key's tonic, from the set's own root up, and what it is called on that root. */
+type KeySet = { key: number[]; name: string };
 type ChordSet = { chord: "guide" | "chord" };
 
 export interface Game {
@@ -160,7 +160,7 @@ export const IMPROV_GAMES: Game[] = [
     label: "Three notes",
     about:
       "Only the key's 1, b3 and 5 (F, Ab, C in F), 90% of your notes, with at least six two-beat rests a chorus.",
-    set: { key: [0, 3, 7] },
+    set: { key: [0, 3, 7], name: "minor triad" },
     aims: [
       { metric: "set", aim: 0.9 },
       { metric: "rests", aim: 6 },
@@ -172,7 +172,7 @@ export const IMPROV_GAMES: Game[] = [
     label: "Only the blues scale",
     about:
       "Only the key's blues scale (1, b3, 4, b5, 5, b7). The score is the share of notes in it.",
-    set: { key: [0, 3, 5, 6, 7, 10] },
+    set: { key: [0, 3, 5, 6, 7, 10], name: "blues scale" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
@@ -180,7 +180,7 @@ export const IMPROV_GAMES: Game[] = [
     id: "pentatonic-1",
     label: "Minor pentatonic on the 1st",
     about: "Only the minor pentatonic on the key's tonic (D minor pentatonic over D dorian).",
-    set: { key: MINOR_PENT },
+    set: { key: MINOR_PENT, name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
@@ -188,7 +188,7 @@ export const IMPROV_GAMES: Game[] = [
     id: "pentatonic-2",
     label: "Minor pentatonic on the 2nd",
     about: "Only the minor pentatonic a step above the tonic (E minor pentatonic over D dorian).",
-    set: { key: shift(MINOR_PENT, 2) },
+    set: { key: shift(MINOR_PENT, 2), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
@@ -196,7 +196,7 @@ export const IMPROV_GAMES: Game[] = [
     id: "pentatonic-5",
     label: "Minor pentatonic on the 5th",
     about: "Only the minor pentatonic a fifth above the tonic (A minor pentatonic over D dorian).",
-    set: { key: shift(MINOR_PENT, 7) },
+    set: { key: shift(MINOR_PENT, 7), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
@@ -403,6 +403,39 @@ export function guideTones(symbol: string): {
     third: third === undefined ? undefined : rel(third),
     guide: [third, seventh].flatMap((i) => (i === undefined ? [] : [rel(i)])),
   };
+}
+
+/**
+ * The pitch classes a set game scores over a chord, from the set's root up: what the grader counts,
+ * so what Jam rings on the instrument and names in its hint. Empty when the game has no set.
+ */
+export function scoredSet(game: Pick<Game, "set">, keyPc: number, symbol: string): number[] {
+  const set = game.set;
+  if (!set) return [];
+  if ("key" in set) return set.key.map((s) => pc(keyPc + s));
+  return set.chord === "guide" ? guideTones(symbol).guide : (parseChordSymbol(symbol)?.pcs ?? []);
+}
+
+/**
+ * Jam's one line of advice over a chord. It makes one claim. A set game names its scored set and
+ * those notes only ("Only the C minor triad: C, Eb, G."); with no set it names the chord's scale.
+ */
+export function jamHint(
+  game: Pick<Game, "set">,
+  keyPc: number,
+  chord: { symbol: string; scale: { rootPc: number; name: string } },
+): string {
+  const set = game.set;
+  const notes = scoredSet(game, keyPc, chord.symbol).map((p) => FLAT_NAMES[p]);
+  if (!set || !notes.length)
+    return `${FLAT_NAMES[pc(chord.scale.rootPc)]} ${chord.scale.name} fits.`;
+  const what =
+    "key" in set
+      ? `the ${notes[0]} ${set.name}`
+      : set.chord === "guide"
+        ? `the 3rd and 7th of ${chord.symbol}`
+        : `the chord tones of ${chord.symbol}`;
+  return `Only ${what}: ${notes.join(", ")}.`;
 }
 
 function timeline(p: Progression): { slots: Slot[]; beats: number } {

@@ -26,7 +26,7 @@
   import { rng } from "@repo/music-core/content/random";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { chorusReport, type ChorusReport } from "@repo/music-core/scoring/jam";
-  import { IMPROV_GAMES, gameOf, gradeImprov, isCount, rangeText, restBar, tradeWindows, type ImprovGrade, type ImprovNote } from "@repo/music-core/scoring/improv";
+  import { IMPROV_GAMES, gameOf, gradeImprov, isCount, jamHint, scoredSet, rangeText, restBar, tradeWindows, type ImprovGrade, type ImprovNote } from "@repo/music-core/scoring/improv";
   import type { Score } from "@repo/music-core";
   import { clamp } from "@repo/music-core/theory/notes";
   import { page } from "$app/state";
@@ -53,6 +53,7 @@
   import { chordToneNames, formPosition, laneBlocks, laneScale } from "$lib/music/drills/jam/lane";
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "$lib/music/takes";
   import Picker from "$lib/music/components/Picker.svelte";
+  import LeadSheet from "$lib/music/drills/jam/LeadSheet.svelte";
 
   /** Jam's loops, the accompaniment's (minor blues, Bird blues, rhythm changes...) and the standards. */
   const POOL = [...ACCOMP_PROGRESSIONS, ...TUNES];
@@ -166,14 +167,8 @@
 
   /** Check hides the tone roles: the targets are the player's to hear. */
   const showRoles = $derived(!(checking || (mode === "check" && phase !== "results")));
-  /** The notes a set game scores (C Eb G, the guide tones), ringed on every octave above the degrees. */
-  const setPcs = $derived.by((): number[] => {
-    const st = game.set;
-    if (!st) return [];
-    if ("key" in st) return st.key.map((x) => pc(prog.keyPc + x));
-    const all = Array.from({ length: 12 }, (_, p) => p).filter((p) => roles[p] === "chord");
-    return st.chord === "chord" ? all : all.filter((p) => /(3|7)$/.test(degreeLabel(chord.symbol, p)));
-  });
+  /** The notes a set game scores (C Eb G, the guide tones), ringed on every octave above the degrees: the grader's own set. */
+  const setPcs = $derived(scoredSet(game, prog.keyPc, chord.symbol));
   /** The key just played, lit with its degree for a moment, so the eye stays on the keys. */
   let litKey = $state<number | null>(null);
   let litTimer: ReturnType<typeof setTimeout> | undefined;
@@ -200,7 +195,6 @@
   });
 
   const ROLE_TEXT: Record<ToneRole, string> = { chord: "chord tone", scale: "scale tone", avoid: "avoid note" };
-  const scaleName = (c: typeof chord) => `${FLAT_NAMES[c.scale.rootPc]} ${c.scale.name}`;
 
   // ---- Backing ------------------------------------------------------------
   function tick() {
@@ -497,16 +491,16 @@
   /** Where the form is now, in beats from the top of the chorus. */
   const formBeat = $derived(prog.chords.slice(0, chordIdx).reduce((n, c) => n + c.bars, 0) * bpb + beatInChord);
   const sections = $derived(sectionStarts(prog));
-  /** A tune's lead sheet: the changes over empty bars, read with the player's own melody, or your score's head. */
+  /** Your score's head, engraved over its changes. Every other progression is drawn as a slash chart (LeadSheet). */
   const leadSheet = $derived<Score | null>(
-    base.sections || head
+    head
       ? {
           id: `lead-${prog.id}-${s.transpose}-${meter}-${s.reharm}`,
           title: prog.name,
           bpm,
           meter: { beats: bpb, beatUnit: 4 },
           keyFifths: signatureFor(prog.keyPc, /minor/.test(prog.key) ? "natural-minor" : /dorian/.test(prog.key) ? "dorian" : "major"),
-          voices: [{ id: "line", name: "Melody", notes: (head ?? []).map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.end - n.beat })) }],
+          voices: [{ id: "line", name: "Melody", notes: head.map((n) => ({ midi: n.midi, startBeat: n.beat, durationBeats: n.end - n.beat })) }],
           lengthBeats: barsTotal * bpb,
           chords: prog.chords.map((c, i) => ({ symbol: c.symbol, startBeat: prog.chords.slice(0, i).reduce((n, x) => n + x.bars, 0) * bpb, durationBeats: c.bars * bpb })),
           source: { kind: "generated" },
@@ -616,13 +610,13 @@
           onchange={pickProgression}
         />
         <span class="text-ws-soft">Written at {base.bpm} BPM; the tempo is in the practice strip.{base.composer ? ` ${base.composer}: the changes only, read the head from your book.` : head ? " Your score: its chords and its melody." : ""}</span>
-        {#if libraryNote}<p role="alert" class="font-medium text-destructive">{libraryNote} <a class="underline underline-offset-4" href="/music/library?tab=import">Import a score</a></p>{/if}
+        {#if libraryNote}<p role="alert" class="font-medium text-destructive">{libraryNote} <a class="underline underline-offset-4" href="/music/studio?tab=import">Import a score</a></p>{/if}
       </div>
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="game">
         <span class="font-medium">Game</span>
         <Picker label="Game" value={game.id} options={IMPROV_GAMES.map((g) => ({ value: g.id, label: g.label, group: g.id === "free" || g.id === "changes" || g.id === "chord-tones" ? "Over the changes" : g.head ? "On the head (your scores)" : g.windows || g.only ? "Space and answers" : g.set ? "Note sets" : "Targets and rhythm" }))} onchange={(v) => cfg.set({ game: v })} />
         <span class="text-ws-soft">{game.about}</span>
-        {#if game.head && !head}<span class="text-ws-soft">Import a lead sheet with chord symbols (MusicXML from MuseScore) in Library, then pick it in Progression.</span>{/if}
+        {#if game.head && !head}<span class="text-ws-soft">Import a lead sheet with chord symbols (MusicXML from MuseScore) in Studio, then pick it in Progression.</span>{/if}
       </div>
       <Choice label="Choruses in Check" setupKey="choruses" options={CHORUS_COUNTS.map((n) => ({ value: n, label: String(n) }))} value={runChoruses} onchange={(v) => cfg.set({ choruses: v })} />
       <Choice
@@ -722,21 +716,24 @@
         {#if phase === "running" && checking}<span class="text-ws-stage-soft">{chorusName(chorus - 1, runChoruses)}, {chorus} of {runChoruses}</span>{/if}
       </p>
     {/if}
-    {#if leadSheet}
-      <div class="mb-4" data-testid="jam-lead-sheet">
-        <p class="mb-1 text-sm text-ws-stage-soft">
-          {prog.name}, {sections.map((x) => x.label).join(" ")} ({barsTotal} bars){phase === "running" && !checking ? `. ${chorusName(chorus - 1, chorus + 2)}` : ""}
-        </p>
+    <!-- The lead sheet is always there: your score's head engraved, any other changes as slashes between bar lines. -->
+    <div class="mb-2" data-testid="jam-lead-sheet">
+      <p class="mb-1 text-sm text-ws-stage-soft">
+        {prog.name}{sections.length ? `, ${sections.map((x) => x.label).join(" ")}` : ""} ({barsTotal} bars){phase === "running" && !checking && sections.length ? `. ${chorusName(chorus - 1, chorus + 2)}` : ""}
+      </p>
+      {#if leadSheet}
         <Staff score={leadSheet} cursorBeat={phase === "running" ? formBeat : null} highlights={sections.map((x) => ({ startBeat: x.bar * bpb, endBeat: (x.bar + x.bars) * bpb, label: x.label }))} maxHeight="24rem" />
-      </div>
-    {/if}
+      {:else}
+        <LeadSheet chords={prog.chords} beatsPerBar={bpb} {sections} at={phase === "running" ? formBeat : null} />
+      {/if}
+    </div>
     <ol class="sr-only" aria-label="The form, {prog.name}">
       {#each prog.chords as c, i (i)}
         <li aria-current={i === chordIdx ? "step" : undefined}>{c.symbol}, {c.bars} bar{c.bars > 1 ? "s" : ""}{i === chordIdx ? ", now" : ""}</li>
       {/each}
     </ol>
     <!-- The form lane: chords as wide as their beats slide left past a fixed playhead, so the next one is always arriving. -->
-    <div class="lane mb-4" class:glide={!clockOn && !still} bind:clientWidth={laneW} aria-hidden="true" data-testid="jam-lane" data-truncate-ok>
+    <div class="lane mb-3" class:glide={!clockOn && !still} bind:clientWidth={laneW} aria-hidden="true" data-testid="jam-lane" data-truncate-ok>
       <div class="track" style:transform="translateX({scale.playheadX - laneAt * scale.pxPerBeat}px)">
         {#each lane as b (b.key)}
           {@const sym = prog.chords[b.index].symbol}
@@ -757,14 +754,21 @@
       <div class="playhead" style:left="{scale.playheadX}px"></div>
     </div>
 
-    <div class="mb-4 flex flex-wrap items-end gap-x-6 gap-y-3">
+    <div class="mb-3 flex flex-wrap items-end gap-x-6 gap-y-3">
       <div class="min-w-0">
         <p class="text-sm text-ws-stage-soft">Now</p>
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
           {#key chord.symbol}
             <p class="now-chord font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chord.symbol}</p>
           {/key}
-          {#if showRoles && tones.length}
+          {#if showRoles && setPcs.length}
+            <!-- A set game: the chips are the scored notes and nothing else, each with its degree over this chord, as the ringed keys say. -->
+            <ul class="flex flex-wrap gap-1.5" aria-label="Scored notes over {chord.symbol}">
+              {#each setPcs as p (p)}
+                <li class="tone-chip set"><span class="text-[0.8125rem] font-medium">{degreeLabel(chord.symbol, p)}</span>{FLAT_NAMES[p]}</li>
+              {/each}
+            </ul>
+          {:else if showRoles && tones.length}
             <ul class="flex flex-wrap gap-1.5" aria-label="Chord tones of {chord.symbol}">
               {#each tones as t (t.label)}
                 <li class="tone-chip"><span class="text-[0.8125rem] font-medium">{t.label}</span>{t.name}</li>
@@ -772,8 +776,8 @@
             </ul>
           {/if}
         </div>
-        <!-- With a scored set, the set is the advice (contradiction 13): never a scale that lights other notes. -->
-        <p class="mt-2 text-ws-stage-soft">{showRoles ? (setPcs.length ? `Use ${setPcs.map((p) => FLAT_NAMES[p]).join(", ")}. ` : `${scaleName(chord)} fits. `) : ""}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
+        <!-- One claim (contradiction 13): a set game names its scored set and only those notes, never a scale that lights others. -->
+        <p class="mt-2 text-ws-stage-soft">{#if showRoles}<span data-testid="jam-hint">{jamHint(game, prog.keyPc, chord)}</span>{" "}{/if}Next: {prog.chords[(chordIdx + 1) % prog.chords.length].symbol}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />Play the chord</button>
@@ -797,7 +801,7 @@
       {/if}
     </div>
 
-    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ws-stage-ink" class:hidden={!showRoles}>
+    <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-ws-stage-ink" class:hidden={!showRoles}>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-chord)" aria-hidden="true"></span>Chord tone: gold (root, 3rd, 5th, 7th)</span>
       <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>Scale tone: blue dot (9, 11, 13)</span>
       <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>Avoid: muted dot, unnamed</span>
@@ -1059,6 +1063,12 @@
     font-weight: 600;
     background: var(--tone-chord);
     color: var(--ws-stage);
+  }
+  /* A scored note wears the ring its key wears. */
+  .tone-chip.set {
+    background: transparent;
+    color: var(--ws-stage-ink);
+    box-shadow: inset 0 0 0 2px var(--instr);
   }
   @media (prefers-reduced-motion: reduce) {
     .now-chord,

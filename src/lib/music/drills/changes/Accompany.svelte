@@ -492,7 +492,7 @@
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tune">
           <span class="font-medium">Tune</span>
           <Picker label="Tune" value={s.tune} options={tunes} onchange={(v) => cfg.set({ tune: v, transpose: 0, ...(isLeadLevel(v) && base.group !== "jazz" ? { progression: "ii-v-i" } : {}) })} />
-          <span class="text-ws-soft">{s.tune === "generated" ? "Chord tones on 1 and 3, steps between." : jazzHead ? `${LEAD_LEVELS.find((l) => l.id === s.tune)!.about} Written straight, played swung` : sheet.source}. Import a MusicXML lead sheet in the Library and it appears here.</span>
+          <span class="text-ws-soft">{s.tune === "generated" ? "Chord tones on 1 and 3, steps between." : jazzHead ? `${LEAD_LEVELS.find((l) => l.id === s.tune)!.about} Written straight, played swung` : sheet.source}. Import a MusicXML lead sheet in Studio and it appears here.</span>
         </div>
         <Choice label="Left hand" setupKey="lh" options={LEAD_LEFT.map((l) => ({ value: l.id, label: l.label, hint: l.about }))} value={lh} onchange={(v) => cfg.set({ lh: v })} />
       {/if}
