@@ -380,7 +380,7 @@
       fstate = waitStart(pass.groups, octaveExact);
       startAt = performance.now();
       phase = "running";
-      status = `Wait mode: play ${pass.label.toLowerCase()} at your own pace. The score waits for each note.${memory === "look" ? " The notes are hidden: play from memory." : ""}`;
+      status = `Wait mode: play ${pass.label.toLowerCase()} at your own pace. Woodshed waits for each note.${memory === "look" ? " The notes are hidden: play from memory." : ""}`;
       cap = capture(startAt, onInput);
       void tick().then(() => document.getElementById("studio-run")?.focus());
       return;
@@ -476,7 +476,7 @@
     fstate = null;
     active = null;
     phase = "ready";
-    status = "Stopped. Nothing was recorded.";
+    status = "Stopped. Nothing saved.";
     if (spot) endSpot("Stopped the loop. Your range and tempo are back.");
   }
 
@@ -605,17 +605,17 @@
       summary = {
         headline:
           best.correct
-            ? `Clean take at ${bpm} BPM: ${pct(best.score)} on your best try.`
+            ? `Clean take at ${bpm} BPM: ${pct(best.score)} on your best take.`
             : best.pitchCompletion < 0.7
               ? `You found ${best.matched} of ${best.expected} notes on your best take. Try Wait mode or 8 BPM slower.`
-              : `The notes are there; timing drifted ${Math.round(best.meanAbsErrorMs)} ms on average. Same tempo again.`,
+              : `The notes are there. Timing drifted ${Math.round(best.meanAbsErrorMs)} ms on average. Same tempo again.`,
         metric: pct(agg.meanScore),
         metricLabel: perf.length > 1 ? `mean of ${perf.length} takes` : "score",
         delta: fin.delta,
         best: fin.best,
         clean: perf.every((r) => r.correct),
         xp: fin.xp,
-        assistance: "Song runs go in your journal. They don't move your skill levels.",
+        assistance: "Song runs go in your journal. They don't change your skill scores.",
         rows: [
           { label: "Notes matched", value: expected ? matched / expected : 0, text: `${matched} of ${expected}` },
           // The same share as the row above, so it only earns a line when it names what was listened for.
@@ -638,10 +638,10 @@
       } else if (grade !== "notes" && x.measure !== null && x.measure < 0.8)
         summary.headline =
           grade === "balance"
-            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; the melody came out above the accompaniment on ${pct(x.measure)} of its notes. Play the top note with more weight and the rest lighter.`
+            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. The melody came out above the accompaniment on ${pct(x.measure)} of its notes. Play the top note with more weight and the rest lighter.`
             : grade === "vibrato"
-            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; vibrato on ${pct(x.measure)} of the held notes. Pulse the bite 4 to 5 times a second on every long note.`
-            : `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}; ${pct(x.measure)} of the dynamics and breaths came out. Make the changes bigger than feels natural.`;
+            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. Vibrato on ${pct(x.measure)} of the held notes. Pulse the bite 4 to 5 times a second on every long note.`
+            : `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. ${pct(x.measure)} of the dynamics and breaths came out. Make the changes bigger than feels natural.`;
     } else {
       const w = all.map((d) => d.result as WaitResult);
       const clean = sum(w.map((r) => r.cleanGroups));
@@ -658,7 +658,7 @@
         best: fin.best,
         clean: clean === total,
         xp: fin.xp,
-        assistance: "Wait mode never times you. For a timing score, pick Performance in Setup. Song runs go in your journal and don't move your skill levels.",
+        assistance: "Wait mode never times you. For a timing score, pick Performance in Setup. Song runs go in your journal and don't change your skill scores.",
         rows: [
           // Non-breaking spaces, so "14 of 15" never splits across two lines in the narrow stat column.
           { label: "Right first time", value: total ? clean / total : 0, text: `${clean}\u00a0of\u00a0${total}` },
@@ -899,9 +899,9 @@
       picked.length === choices.length ? "all voices" : choices.filter((c) => picked.includes(c.id)).map((c) => c.label).join(" and "),
       ...(transpose ? [`${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitone${Math.abs(transpose) === 1 ? "" : "s"}${keyAt(transpose) ? ` (${keyAt(transpose)})` : ""}`] : []),
       ...(memory === "look" ? ["from memory"] : memory === "bars" ? [`from memory, bars 1 to ${memBars} hidden`] : []),
-      ...(grade === "dynamics" ? ["dynamics and breaths graded"] : grade === "vibrato" ? ["vibrato graded"] : grade === "balance" ? ["melody balance graded"] : []),
+      ...(grade === "dynamics" ? ["dynamics and breaths scored"] : grade === "vibrato" ? ["vibrato scored"] : grade === "balance" ? ["melody balance scored"] : []),
       ...(tap ? ["tapping the rhythm"] : []),
-      ...(partner ? [`the app plays ${others.map((c) => c.label).join(" and ")}`] : []),
+      ...(partner ? [`Woodshed plays ${others.map((c) => c.label).join(" and ")}`] : []),
     ].join(", "),
   );
   const progress = $derived(ls && fstate ? Math.min(1, ls.index / Math.max(1, fstate.groups.length)) : 0);
@@ -947,10 +947,10 @@
         <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={fixSpot}><Repeat class="size-5" aria-hidden="true" />Fix the trouble spot, {barsOf(trouble!.range)}</button>
       {/if}
       <button type="button" class="{offersNext || fixable ? btn : `${btnPrimary} min-h-12 px-6 font-display text-base`}" onclick={start}>
-        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start in wait mode"}
+        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start"}
       </button>
       <button type="button" class={btn} aria-pressed={!!preview?.playing} disabled={unseen} onclick={togglePreview}>
-        {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop preview{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
+        {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop demo{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
       </button>
       <!-- Editing, export and the metronome are not part of playing along: one menu. -->
       <Menu.Root>
@@ -978,7 +978,7 @@
         </button>
       </div>
     {/if}
-    {#if live && !drums}<div class="ml-auto"><HubTabs param="view" tabs={VIEWS} label="Score view" /></div>{/if}
+    {#if live && !drums}<div class="ml-auto"><HubTabs param="view" tabs={VIEWS} label="Notation view" /></div>{/if}
   </div>
 
   {#if !live && setupOpen}
@@ -1004,7 +1004,7 @@
         <Choice
           label="Range"
           options={[
-            { value: "whole", label: "Whole score" },
+            { value: "whole", label: "Whole song" },
             { value: "sections", label: "Sections" },
             { value: "custom", label: "Custom" },
           ]}
@@ -1020,7 +1020,7 @@
                 <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
               {/each}
             </div>
-            {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole score plays.</span>{/if}
+            {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole song plays.</span>{/if}
           </div>
           <Choice
             label="Order"
@@ -1042,7 +1042,7 @@
             onchange={(v) => setup.set({ snap: v })}
           />
           <p class="text-sm text-ws-soft">
-            {drums ? "The drum grid can't mark a range yet; pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the score below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
+            {drums ? "The drum grid can't mark a range yet. Pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the notation below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
             {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>Clear the range</button>{/if}
           </p>
         {/if}
@@ -1086,7 +1086,7 @@
           onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
         />
         <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
-        <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? "; this will be this song's." : ", and this song has been played here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It is scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time; a count-in of at least one bar always plays." : "Wait mode is one take and never rushes you; strictness and takes apply to Performance."}</p>
+        <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? ". This is this song's first." : ", and you've played this song here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It's scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time. A count-in of at least one bar always plays." : "Wait mode is one take and never rushes you. Strictness and takes apply to Performance."}</p>
       </div>
 
       <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
@@ -1102,7 +1102,7 @@
         />
         <Choice label="Key" select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
         <Choice
-          label="Also grade"
+          label="Also score"
           options={[
             { value: "notes", label: "Notes only" },
             { value: "dynamics", label: "Dynamics and breaths" },
@@ -1114,10 +1114,10 @@
           onchange={(v) => setup.set({ grade: v })}
         />
         <p class="self-end text-sm text-ws-soft">
-          {memory === "look" ? "Look at the score as long as you like; it hides when the run starts and comes back for the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run; a take at 90% hides one more.` : ""}
-          {s.grade === "dynamics" && !hasMarks ? "This score has no dynamics or breath marks to grade." : s.grade === "dynamics" ? `Marked: ${marksText}. Graded loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The score marks ${marksText}; they show on the staff.` : ""}
+          {memory === "look" ? "Look at the notation as long as you like. It hides when the run starts and comes back with the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run. A take at 90% hides one more.` : ""}
+          {s.grade === "dynamics" && !hasMarks ? "This song has no dynamics or breath marks to score." : s.grade === "dynamics" ? `Marked: ${marksText}. Scored loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The song marks ${marksText}. They show on the staff.` : ""}
           {s.grade === "balance" ? "The melody (the top note of the highest part) should sound louder than the notes struck with it, read from MIDI velocity." : ""}
-          {!perfMode && s.grade !== "notes" ? " Grading dynamics, vibrato or balance needs a mode that keeps time." : ""}
+          {!perfMode && s.grade !== "notes" ? " Scoring dynamics, vibrato or balance needs a mode that keeps time." : ""}
         </p>
         <Choice
           label="Play"
@@ -1140,8 +1140,8 @@
           onchange={(v) => setup.set({ partner: v === "on" })}
         />
         <p class="self-end text-sm text-ws-soft md:col-span-2">
-          {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is graded." : ""}
-          {!others.length ? "Turn a part off above and the partner can play it." : partner ? `The app plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, the app can play the parts you turn off."}
+          {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is scored." : ""}
+          {!others.length ? "Turn a part off above and the partner can play it." : partner ? `Woodshed plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, Woodshed can play the parts you turn off."}
         </p>
       </div>
     </div>
@@ -1193,7 +1193,7 @@
         {#if mixed}
           <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? "Play the other parts" : "Play the drums"}</button>
         {/if}
-        {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Score view" class="max-sm:flex-nowrap max-sm:whitespace-nowrap max-sm:[&>a]:px-2.5" />{/if}
+        {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Notation view" class="max-sm:flex-nowrap max-sm:whitespace-nowrap max-sm:[&>a]:px-2.5" />{/if}
       </div>
     {/if}
     {#if live}
@@ -1211,11 +1211,11 @@
       </div>
       {#if lastMiss && memory === "off"}<p class="mb-2 flex items-center gap-2 text-base font-semibold text-destructive" aria-live="polite"><CircleX class="size-5 shrink-0" aria-hidden="true" />{lastMiss}</p>{/if}
     {:else if preview?.playing}
-      <p class="mb-2 text-sm text-ws-stage-soft">Listening, not scored. The cursor follows the sound.</p>
+      <p class="mb-2 text-sm text-ws-stage-soft">Demo playing, not scored. The cursor follows the sound.</p>
     {/if}
     {#if staffFailed && view === "staff"}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/10 p-3 text-sm">
-        Staff preview unavailable for this score. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open Falling notes</a>, which shows every note.
+        The staff can't draw this song. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open Falling notes</a>, which shows every note.
       </p>
     {/if}
     {#if (view === "tab" || fretted) && !live}
@@ -1261,10 +1261,10 @@
       <p class="mt-3 text-sm text-ws-stage-soft">The notes stay hidden until you start: then {SIGHT_LOOK_S} seconds to look, and one pass in time.</p>
     {:else if !live && phase !== "results"}
       {#if drums}
-        <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the strip on MPC pads. Graded by drum: any hat counts for a hat, kick and snare must be exact.</p>
+        <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the top bar set to MPC pads. Scored by drum: any hat counts for a hat, kick and snare must be exact.</p>
       {:else}
         <!-- A phone leaves this out so the staff and keys end above the tab bar; the strip names the input. -->
-        <p class="mt-3 text-sm text-ws-stage-soft max-sm:hidden">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : "; octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
+        <p class="mt-3 text-sm text-ws-stage-soft max-sm:hidden">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : ", and octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
       {/if}
     {/if}
   </div>

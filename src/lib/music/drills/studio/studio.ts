@@ -30,7 +30,7 @@ export function planPasses(
     custom: BeatRange | null;
   },
 ): Segment[][] {
-  const whole: Segment = { label: "Whole score", startBeat: 0, endBeat: score.lengthBeats };
+  const whole: Segment = { label: "Whole song", startBeat: 0, endBeat: score.lengthBeats };
   if (opts.mode === "custom" && opts.custom && opts.custom.endBeat > opts.custom.startBeat)
     return [[{ label: "Custom range", ...opts.custom }]];
   if (opts.mode === "sections") {

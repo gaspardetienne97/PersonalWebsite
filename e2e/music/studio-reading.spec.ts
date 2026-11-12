@@ -198,7 +198,7 @@ test.describe("song practice for reading", () => {
     await page.goto(base + "?mode=no-stop&grade=notes&partner=true&bpm=240");
     await page.getByRole("button", { name: "Setup" }).click();
     await page.getByRole("button", { name: "✓ Bass" }).click();
-    await expect(page.getByText("the app plays Bass").first()).toBeVisible();
+    await expect(page.getByText("Woodshed plays Bass").first()).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/duet-partner-1280.png`, fullPage: true });
     await page.getByRole("button", { name: "Start no-stop run" }).click();
     await playFromGo(

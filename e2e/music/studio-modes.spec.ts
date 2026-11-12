@@ -136,7 +136,7 @@ test.describe("song practice modes", () => {
     test.setTimeout(60_000);
     await importSong(page, "e2e/music/fixtures/ode-dynamics.musicxml", "Ode with dynamics");
     await page.goto(page.url().split("?")[0] + "?mode=performance&takes=1&grade=dynamics&bpm=240");
-    await expect(page.getByText("dynamics and breaths graded")).toBeVisible();
+    await expect(page.getByText("dynamics and breaths scored")).toBeVisible();
     // The marks are drawn on the staff: p, f and the breath comma.
     await expect(page.locator("svg text", { hasText: /^f$/ }).first()).toBeAttached();
     await page.screenshot({ path: `${SHOTS}/dynamics-ready-1280.png`, fullPage: true });
@@ -162,7 +162,7 @@ test.describe("song practice modes", () => {
     await page.getByRole("button", { name: "Setup", exact: true }).click();
     for (const name of ["No-stop", "After a look", "Bar by bar", "Dynamics and breaths", "Vibrato"])
       await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
-    await expect(page.getByText("The score marks 2 dynamics, 1 breath mark")).toBeVisible();
+    await expect(page.getByText("The song marks 2 dynamics, 1 breath mark")).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.screenshot({ path: `${SHOTS}/setup-375.png`, fullPage: true });
   });

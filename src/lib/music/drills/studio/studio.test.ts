@@ -73,7 +73,7 @@ describe("planPasses", () => {
         order: "sequence",
         custom: null,
       }),
-    ).toEqual([[{ label: "Whole score", startBeat: 0, endBeat: 16 }]]);
+    ).toEqual([[{ label: "Whole song", startBeat: 0, endBeat: 16 }]]);
   });
   it("joins sections in score order, or splits them per section", () => {
     const seq = planPasses(score, sections, {
@@ -125,7 +125,7 @@ describe("buildPass", () => {
     const whole = buildPass(
       score,
       ["p-v1"],
-      [{ label: "Whole score", startBeat: 0, endBeat: 16 }],
+      [{ label: "Whole song", startBeat: 0, endBeat: 16 }],
       sections,
     );
     expect(whole.sections.map((s) => s.label)).toEqual(["A", "B", "C"]);
@@ -219,7 +219,7 @@ describe("fitting a score to an instrument", () => {
 
 describe("fix the trouble spot", () => {
   it("loops the slip's bar and its run-up, slower, then full tempo, then wider, then done", () => {
-    const pass = buildPass(score, ["p-v1"], [{ label: "Whole score", startBeat: 0, endBeat: 16 }]);
+    const pass = buildPass(score, ["p-v1"], [{ label: "Whole song", startBeat: 0, endBeat: 16 }]);
     // Groups 0..5 clean, group 6 (beat 6, bar 2) slipped.
     expect(firstSlip(pass, (i) => i < 6)).toBe(6);
     expect(firstSlip(pass, () => true)).toBeNull();
@@ -318,7 +318,7 @@ describe("no-stop, memory, dynamics and vibrato", () => {
     source: "midi",
     confidence: 1,
   });
-  const pass = buildPass(score, ["p-v1"], [{ label: "Whole score", startBeat: 0, endBeat: 16 }]);
+  const pass = buildPass(score, ["p-v1"], [{ label: "Whole song", startBeat: 0, endBeat: 16 }]);
 
   it("measures continuity: bars played and the longest silent stretch", () => {
     const all = Array.from({ length: 16 }, (_, i) => i * beat);
