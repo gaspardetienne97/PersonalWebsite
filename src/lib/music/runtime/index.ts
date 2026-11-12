@@ -3,7 +3,7 @@ export { db, plain, getSetting, putSetting } from "./db.svelte";
 export type * from "./db.svelte";
 export { putBinary, getBinary, deleteBinary } from "./opfs";
 export { settings } from "./settings.svelte";
-export { audio } from "./audio.svelte";
+export { audio, classicBacking } from "./audio.svelte";
 export type * from "./audio.svelte";
 export { midi } from "./midi.svelte";
 export type * from "./midi.svelte";

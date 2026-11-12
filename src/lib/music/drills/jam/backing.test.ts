@@ -24,6 +24,9 @@ describe("backingNotes", () => {
     const last = Math.max(...notes.map((n) => n.time));
     expect(last).toBeLessThan(8); // four bars at 120 BPM = 8 s
     expect(notes.some((n) => !n.voice && n.midi === 48)).toBe(true); // C in the bass
+    // The bass line plays on the bass sound; the chords stay on the player's own.
+    expect(notes.find((n) => !n.voice && n.midi === 48)?.sound).toBe("bass");
+    expect(notes.filter((n) => !n.voice && n.midi > 52).every((n) => !n.sound)).toBe(true);
   });
   it("drums only has no pitched notes", () => {
     expect(

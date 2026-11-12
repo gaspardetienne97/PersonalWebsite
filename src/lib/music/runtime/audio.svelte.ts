@@ -122,6 +122,54 @@ const ready = (): Tone | null => {
 const rawCtx = (t: Tone) => t.getContext().rawContext as unknown as BaseAudioContext;
 
 // ---------------------------------------------------------------------------
+// Backing style. "classic" keeps the earlier drum, bass and electric piano
+// sounds, dry and unhumanised, to compare against. Set it with
+// `?backing=classic` (or `=new`) on any music URL; it is remembered.
+
+const BACKING_KEY = "woodshed:backing";
+let classic = false;
+if (browser)
+  try {
+    const q = new URLSearchParams(location.search).get("backing");
+    if (q === "classic" || q === "new") localStorage.setItem(BACKING_KEY, q);
+    classic = localStorage.getItem(BACKING_KEY) === "classic";
+  } catch {
+    // storage blocked: the new sounds
+  }
+/** True while the earlier backing sounds are chosen. */
+export const classicBacking = () => classic;
+
+/**
+ * A small shared room for drums and the electric piano: a send into a short
+ * generated impulse, one per audio context. Only the wet signal passes through
+ * it, so it adds no delay to what is heard dry.
+ */
+const rooms = new WeakMap<BaseAudioContext, GainNode>();
+function room(t: Tone, raw: BaseAudioContext): GainNode {
+  let send = rooms.get(raw);
+  if (!send) {
+    send = raw.createGain();
+    send.gain.value = 0.5;
+    const len = Math.round(raw.sampleRate * 0.4);
+    const ir = raw.createBuffer(2, len, raw.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp((-7 * i) / len);
+    }
+    const conv = raw.createConvolver();
+    conv.buffer = ir;
+    const lp = raw.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 4500;
+    send.connect(conv).connect(lp);
+    const live = graph && (graph.playback.context.rawContext as unknown) === raw;
+    t.connect(lp, live ? graph!.playback : t.getDestination());
+    rooms.set(raw, send);
+  }
+  return send;
+}
+
+// ---------------------------------------------------------------------------
 // Voices
 
 function makeVoice(t: Tone, sound: PlaybackSound): Voice {
@@ -145,6 +193,15 @@ function makeVoice(t: Tone, sound: PlaybackSound): Voice {
         volume: -6,
       });
     case "e-piano":
+      // A tine: a 1:1 FM pair whose brightness falls away after the attack.
+      if (!classic)
+        return new t.PolySynth(t.FMSynth, {
+          harmonicity: 1,
+          modulationIndex: 3.2,
+          envelope: { attack: 0.003, decay: 1.8, sustain: 0.12, release: 0.9 },
+          modulationEnvelope: { attack: 0.002, decay: 0.5, sustain: 0.15, release: 0.5 },
+          volume: -9,
+        }) as unknown as Voice;
       return new t.PolySynth(t.FMSynth, {
         harmonicity: 3.01,
         modulationIndex: 14,
@@ -165,6 +222,22 @@ function makeVoice(t: Tone, sound: PlaybackSound): Voice {
         volume: -18,
       });
     case "bass":
+      // A fingered bass: few harmonics, a filter that opens on the pluck and closes fast.
+      if (!classic)
+        return new t.PolySynth(t.MonoSynth, {
+          oscillator: { type: "sawtooth8" },
+          filter: { Q: 1, type: "lowpass", rolloff: -24 },
+          filterEnvelope: {
+            attack: 0.002,
+            decay: 0.16,
+            sustain: 0.15,
+            release: 0.2,
+            baseFrequency: 90,
+            octaves: 3.6,
+          },
+          envelope: { attack: 0.004, decay: 0.9, sustain: 0.35, release: 0.12 },
+          volume: -11,
+        } as never) as unknown as Voice;
       return new t.PolySynth(t.MonoSynth, {
         oscillator: { type: "fatsawtooth", count: 2, spread: 12 },
         filter: { Q: 2, type: "lowpass", rolloff: -24 },
@@ -237,7 +310,7 @@ function noise(raw: BaseAudioContext) {
   return b;
 }
 
-type Hit = { when: number; decay: number; peak: number; attack?: number };
+type Hit = { when: number; decay: number; peak: number; attack?: number; room?: boolean };
 
 function envelope(t: Tone, raw: BaseAudioContext, out: ToneNS.Gain, h: Hit) {
   const attack = h.attack ?? 0.002;
@@ -246,6 +319,7 @@ function envelope(t: Tone, raw: BaseAudioContext, out: ToneNS.Gain, h: Hit) {
   g.gain.linearRampToValueAtTime(Math.max(0.0002, h.peak), h.when + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, h.when + attack + h.decay);
   t.connect(g, out);
+  if (h.room) g.connect(room(t, raw));
   return { g, end: h.when + attack + h.decay + 0.05 };
 }
 
@@ -253,14 +327,14 @@ function tone(
   t: Tone,
   raw: BaseAudioContext,
   out: ToneNS.Gain,
-  h: Hit & { type: OscillatorType; f0: number; f1?: number },
+  h: Hit & { type: OscillatorType; f0: number; f1?: number; sweep?: number },
 ) {
   const { g, end } = envelope(t, raw, out, h);
   const osc = raw.createOscillator();
   osc.type = h.type;
   osc.frequency.setValueAtTime(h.f0, h.when);
   if (h.f1 && h.f1 !== h.f0)
-    osc.frequency.exponentialRampToValueAtTime(h.f1, h.when + h.decay * 0.8);
+    osc.frequency.exponentialRampToValueAtTime(h.f1, h.when + (h.sweep ?? h.decay * 0.8));
   osc.connect(g);
   osc.start(h.when);
   osc.stop(end);
@@ -286,6 +360,114 @@ function hiss(
 // 47 is the kit's cowbell (pad A12): GM puts it on 56, off bank A, and kompa and the Latin grooves need one.
 const TOMS: Record<number, number> = { 41: 95, 43: 115, 45: 135, 48: 185, 50: 215 };
 
+/**
+ * The synth kit, layered: each drum is a pitched body with a fast pitch drop
+ * plus one or two bands of noise (beater, wires, stick), sent lightly to the
+ * room. Returns false for a pad it has no recipe for.
+ */
+function layeredHit(
+  t: Tone,
+  raw: BaseAudioContext,
+  out: ToneNS.Gain,
+  midi: number,
+  v: number,
+  when: number,
+): boolean {
+  const at = { when, room: true };
+  const body = (h: Omit<Parameters<typeof tone>[3], "when" | "room">) =>
+    tone(t, raw, out, { ...at, ...h });
+  const air = (h: Omit<Parameters<typeof hiss>[3], "when" | "room">, dry = false) =>
+    hiss(t, raw, out, { ...at, room: !dry, ...h });
+  switch (midi) {
+    case 35: // 808: long sub with a short knock
+      body({ type: "sine", f0: 110, f1: 43, sweep: 0.07, decay: 1.1, peak: 0.9 * v });
+      air({ filter: "lowpass", freq: 1800, decay: 0.012, peak: 0.25 * v }, true);
+      return true;
+    case 36: // kick: beater click, a drop from 160 Hz, a short low body (kept out of the room)
+      tone(t, raw, out, {
+        when,
+        type: "sine",
+        f0: 160,
+        f1: 55,
+        sweep: 0.06,
+        decay: 0.28,
+        peak: 0.85 * v,
+      });
+      tone(t, raw, out, {
+        when,
+        type: "triangle",
+        f0: 90,
+        f1: 55,
+        sweep: 0.04,
+        decay: 0.09,
+        peak: 0.3 * v,
+      });
+      air({ filter: "bandpass", freq: 3200, decay: 0.012, peak: 0.3 * v }, true);
+      return true;
+    case 38:
+    case 40: // snare: two shell tones, wires, a bright crack
+      body({ type: "triangle", f0: 200, f1: 175, sweep: 0.03, decay: 0.09, peak: 0.4 * v });
+      body({ type: "sine", f0: 335, f1: 290, sweep: 0.03, decay: 0.05, peak: 0.18 * v });
+      air({ filter: "highpass", freq: 1800, decay: 0.17, peak: 0.42 * v });
+      air({ filter: "bandpass", freq: 5200, decay: 0.06, peak: 0.3 * v });
+      return true;
+    case 39: // clap: three quick bursts, then the tail
+      for (const [d, p] of [
+        [0, 0.5],
+        [0.011, 0.4],
+        [0.022, 0.6],
+      ])
+        hiss(t, raw, out, {
+          when: when + d,
+          room: true,
+          filter: "bandpass",
+          freq: 1400,
+          decay: d === 0.022 ? 0.18 : 0.012,
+          peak: p * v,
+        });
+      return true;
+    case 42: // closed hat: a tick and a short sizzle
+      air({ filter: "highpass", freq: 9000, decay: 0.045, peak: 0.36 * v });
+      air({ filter: "bandpass", freq: 6500, decay: 0.02, peak: 0.2 * v });
+      return true;
+    case 44: // pedal hat: darker and shorter
+      air({ filter: "bandpass", freq: 6000, decay: 0.035, peak: 0.4 * v });
+      return true;
+    case 46: // open hat
+      air({ filter: "highpass", freq: 7000, decay: 0.32, peak: 0.24 * v });
+      air({ filter: "bandpass", freq: 9500, decay: 0.14, peak: 0.14 * v });
+      return true;
+    case 49:
+    case 52:
+    case 55:
+    case 57: // crash
+      air({ filter: "highpass", freq: 4200, decay: 1.4, peak: 0.24 * v, attack: 0.004 });
+      air({ filter: "bandpass", freq: 8000, decay: 0.5, peak: 0.18 * v });
+      return true;
+    case 51:
+    case 53:
+    case 59: // ride: stick, two bell partials, a long wash
+      air({ filter: "highpass", freq: 9000, decay: 0.015, peak: 0.2 * v });
+      body({ type: "triangle", f0: 3100, decay: 0.3, peak: 0.035 * v });
+      body({ type: "triangle", f0: 4370, decay: 0.22, peak: 0.03 * v });
+      air({ filter: "bandpass", freq: 7200, decay: 0.9, peak: 0.13 * v });
+      return true;
+  }
+  if (TOMS[midi]) {
+    body({
+      type: "sine",
+      f0: TOMS[midi] * 1.5,
+      f1: TOMS[midi],
+      sweep: 0.05,
+      decay: 0.34,
+      peak: 0.8 * v,
+    });
+    air({ filter: "bandpass", freq: 2500, decay: 0.015, peak: 0.2 * v });
+    return true;
+  }
+  return false;
+}
+
 /** GM-ish synth kit for pads without samples. */
 function drumHit(
   t: Tone,
@@ -295,6 +477,7 @@ function drumHit(
   v: number,
   when: number,
 ) {
+  if (!classic && layeredHit(t, raw, out, midi, v, when)) return;
   const at = { when };
   switch (midi) {
     case 35: // 808
@@ -402,6 +585,13 @@ function clickAt(t: Tone, raw: BaseAudioContext, out: ToneNS.Gain, when: number,
   });
 }
 
+/** A repeatable 0..1 from a number, so a part sounds the same each time it plays. */
+const unit = (x: number) => {
+  const s = Math.sin(x * 12.9898) * 43758.5453;
+  return s - Math.floor(s);
+};
+const CYMBALS = new Set([42, 44, 46, 51, 53, 59]);
+
 function trigger(
   t: Tone,
   raw: BaseAudioContext,
@@ -411,8 +601,14 @@ function trigger(
   when: number,
 ) {
   const v = n.velocity ?? 0.8;
-  if (n.voice === "drum") drumHit(t, raw, bus, n.midi, v, when);
-  else if (n.voice === "kit") kitHit(t, raw, bus, n.midi, v, when);
+  if (n.voice === "drum") {
+    // A player's hand on a written part: each hit a little louder or softer, and
+    // cymbals up to 5 ms behind. Kick, snare and toms stay exactly on the grid.
+    if (classic) return drumHit(t, raw, bus, n.midi, v, when);
+    const r = unit(n.time * 1000 + n.midi * 7.3);
+    const late = CYMBALS.has(n.midi) ? unit(n.time * 733 + n.midi) * 0.005 : 0;
+    drumHit(t, raw, bus, n.midi, Math.min(1, v * (0.9 + 0.2 * r)), when + late);
+  } else if (n.voice === "kit") kitHit(t, raw, bus, n.midi, v, when);
   else if (n.voice === "click") clickAt(t, raw, bus, when, v >= 0.9);
   else voiceFor(n.sound).triggerAttackRelease(mtof(n.midi), Math.max(0.05, n.duration), when, v);
 }
@@ -426,6 +622,7 @@ function runVoices(t: Tone, run: Run) {
     if (!v) {
       v = makeVoice(t, sound);
       v.connect(run.bus);
+      if (!classic && sound === "e-piano") t.connect(v as never, room(t, rawCtx(t)));
       voices.set(sound, v);
     }
     return v;
@@ -648,7 +845,13 @@ async function unlock(): Promise<boolean> {
   const t = T ?? (await loadTone());
   await t.start();
   if (!graph) {
-    const master = new t.Gain(1).toDestination();
+    // A soft ceiling instead of hard clipping: straight below 0.8, bending to 1 above.
+    // A wave shaper, not a compressor, because it adds no delay to the output.
+    const ceiling = new t.WaveShaper((x) => {
+      const a = Math.abs(x);
+      return a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2));
+    }, 4096).toDestination();
+    const master = new t.Gain(1).connect(ceiling);
     graph = { master, playback: new t.Gain(0.8), metronome: new t.Gain(0.7) };
     graph.playback.connect(master);
     graph.metronome.connect(master);
@@ -907,6 +1110,7 @@ async function renderNotes(notes: SequenceNote[], durationSec: number) {
         if (!v) {
           v = makeVoice(t, x);
           v.connect(bus);
+          if (!classic && x === "e-piano") t.connect(v as never, room(t, rawCtx(t)));
           voices.set(x, v);
         }
         return v;
@@ -1382,6 +1586,15 @@ export const audio = {
   stopAll,
   latencyInfo,
   renderWav,
+  /** Switch the backing sounds (see classicBacking); voices made afterwards use it. */
+  setBackingStyle(style: "classic" | "new") {
+    classic = style === "classic";
+    try {
+      localStorage.setItem(BACKING_KEY, style);
+    } catch {
+      // not remembered
+    }
+  },
   playBlob,
   earPlayer,
   studio: { material: studioMaterial, loudness: studioLoudness, loop: studioLoop },

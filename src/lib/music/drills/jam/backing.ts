@@ -5,7 +5,7 @@ import { barBeats, swings, type Progression } from "@repo/music-core/content/jam
 import { callPhrase } from "@repo/music-core/content/call-response";
 import type { Rand } from "@repo/music-core/content/random";
 import { bandBar, type Windows } from "@repo/music-core/scoring/improv";
-import type { SequenceNote } from "$lib/music/runtime";
+import { classicBacking, type SequenceNote } from "$lib/music/runtime";
 
 /** "rhythm" is drums and bass with no chords, for comping over. */
 export type BackingMode = "none" | "drums" | "chords" | "both" | "rhythm";
@@ -57,6 +57,8 @@ export function backingNotes(
   const chords = opts.mode === "chords" || opts.mode === "both";
   const bassOn = chords || opts.mode === "rhythm";
   const comp = bpb === 3 ? [0, 1.5] : [0, 2];
+  // The bass line on the bass sound, not the player's own (a piano by default).
+  const bassSound = classicBacking() ? undefined : ("bass" as const);
   const breakAt = (b: number) =>
     opts.windows?.bandPlays === "drums" && bandBar(opts.windows, Math.floor(b / bpb + 1e-9));
   let at = 0;
@@ -80,6 +82,7 @@ export function backingNotes(
           time: t,
           duration: (bpb === 3 ? Math.min(2.8, len - off - 0.1) : dur) * beat,
           velocity: 0.6,
+          ...(bassSound && { sound: bassSound }),
         });
       }
     at += len;
