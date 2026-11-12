@@ -151,7 +151,7 @@
         {
           "id": "0.5",
           "title": "Cadences",
-          "href": "/music/voicings?instrument=piano&variant=cadence&key=0&keys=4",
+          "href": "/music/changes/voicings?instrument=piano&variant=cadence&key=0&keys=4",
           "setup": "Voicings, cadences I IV I V7 I, in 4 keys.",
           "done": "20 chords at 85% or better.",
           "match": {
@@ -165,7 +165,7 @@
         {
           "id": "0.6",
           "title": "Chord chart",
-          "href": "/music/voicings?instrument=piano&variant=inversions&key=0",
+          "href": "/music/changes/voicings?instrument=piano&variant=inversions&key=0",
           "setup": "Play I-V-vi-IV in C at 80 in Jam: RH triads in closest position, LH root, as a self-check. Judged on Voicings, closest chords, until the pattern drill exists (Jam runs are practice).",
           "done": "Two choruses without a stop or a wrong chord.",
           "match": {
@@ -177,7 +177,7 @@
           "links": [
             {
               "label": "Jam: pop-axis at 80",
-              "href": "/music/jam?progression=pop-axis&bpm=80"
+              "href": "/music/changes/jam?progression=pop-axis&bpm=80"
             }
           ],
           "covers": ["1.6", "1.7"]
@@ -368,7 +368,7 @@
         {
           "id": "1.6",
           "title": "Closest-position chords from a chart",
-          "href": "/music/voicings?instrument=piano&variant=inversions&key=0",
+          "href": "/music/changes/voicings?instrument=piano&variant=inversions&key=0",
           "setup": "Voicings, closest chords, in C, G, D and F. The drill plays I IV V I; I-V-vi-IV and the top-voice limit wait for the pattern drill.",
           "done": "48 chords at 90%, top voice moving 4 semitones or less per change.",
           "match": {
@@ -382,15 +382,15 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=7"
+              "href": "/music/changes/voicings?instrument=piano&variant=inversions&key=7"
             },
             {
               "label": "D",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=2"
+              "href": "/music/changes/voicings?instrument=piano&variant=inversions&key=2"
             },
             {
               "label": "F",
-              "href": "/music/voicings?instrument=piano&variant=inversions&key=5"
+              "href": "/music/changes/voicings?instrument=piano&variant=inversions&key=5"
             }
           ],
           "feeds": "Let It Be, Perfect, Hallelujah"
@@ -409,7 +409,7 @@
           "links": [
             {
               "label": "Jam: pop-axis at 80",
-              "href": "/music/jam?progression=pop-axis&bpm=80"
+              "href": "/music/changes/jam?progression=pop-axis&bpm=80"
             }
           ],
           "feeds": "Let It Be, Imagine"
@@ -417,7 +417,7 @@
         {
           "id": "1.8",
           "title": "Pattern 3: LH root-fifth-octave",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 3 (root, fifth, octave) under I-V-vi-IV, in C, then G.",
           "done": "Two clean choruses in C and G at 72.",
           "match": {
@@ -434,7 +434,7 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=root-fifth-octave&bpm=72&progression=pop-axis&transpose=-5"
             }
           ],
           "feeds": "Hallelujah, Perfect"
@@ -934,7 +934,7 @@
         {
           "id": "2.7",
           "title": "Pattern 6: LH ballad arpeggio (1-5-8-10)",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 6 (ballad arpeggio 1-5-8-10) under I-V-vi-IV in C, G and F. Pedal is not graded.",
           "done": "Two clean choruses of I-V-vi-IV in C, G and F at 72.",
           "match": {
@@ -951,11 +951,11 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=-5"
             },
             {
               "label": "F",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=ballad-arpeggio&bpm=72&progression=pop-axis&transpose=5"
             }
           ],
           "feeds": "Your Song, Make You Feel My Love"
@@ -963,7 +963,7 @@
         {
           "id": "2.8",
           "title": "Pattern 5: RH broken triad eighths",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 5 (broken chord eighths) under any progression, in C and G.",
           "done": "Two clean choruses at 80 in 2 keys.",
           "match": {
@@ -979,7 +979,7 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=broken-triad&bpm=80&progression=pop-axis&transpose=-5"
             }
           ],
           "feeds": "Someone Like You (L7), The Scientist"
@@ -1389,7 +1389,7 @@
         {
           "id": "3.5",
           "title": "Pattern 7: 3+3+2 grouping",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=three-three-two&bpm=100&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=three-three-two&bpm=100&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 7 (3+3+2 eighths) under any loop, worked up to the record's 131; the Clocks intro itself loops in the Song editor.",
           "done": "Clocks intro 3 clean loops at the record's 131 BPM.",
           "match": {
@@ -1409,7 +1409,7 @@
         {
           "id": "3.6",
           "title": "Pattern 8: pop syncopation (1, and-of-2, 4)",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 8 (1, and-of-2, 4 in both hands) under any progression, in C and G.",
           "done": "Two choruses at 90 in 2 keys.",
           "match": {
@@ -1425,7 +1425,7 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&bpm=90&progression=pop-axis&transpose=-5"
             }
           ],
           "feeds": "Fix You, Hey Jude"
@@ -1464,7 +1464,7 @@
         {
           "id": "3.8",
           "title": "Pattern 4: rock octave eighths",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&bpm=110&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&bpm=110&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, pattern 4 (left-hand octave eighths) under any progression.",
           "done": "Two choruses at 110.",
           "match": {
@@ -1478,7 +1478,7 @@
         {
           "id": "3.9",
           "title": "Cadences in every key",
-          "href": "/music/voicings?instrument=piano&variant=cadence&key=0&keys=12",
+          "href": "/music/changes/voicings?instrument=piano&variant=cadence&key=0&keys=12",
           "setup": "Voicings, cadences, all 12 keys.",
           "done": "60 chords at 85%, on two days.",
           "match": {
@@ -1860,7 +1860,7 @@
           "links": [
             {
               "label": "Jam: blues backing",
-              "href": "/music/jam?progression=blues"
+              "href": "/music/changes/jam?progression=blues"
             }
           ],
           "feeds": "all blues songs",
@@ -1912,7 +1912,7 @@
         {
           "id": "4.6",
           "title": "Boogie LH plus RH chords on 2 and 4",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=0",
           "setup": "Accompaniment, boogie bass with right-hand chords on 2 and 4, through the 12-bar blues in C and F.",
           "done": "Two choruses at 100 in C and F.",
           "match": {
@@ -1929,11 +1929,11 @@
           "links": [
             {
               "label": "F",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=100&progression=blues&transpose=5"
             },
             {
               "label": "Jam: blues backing",
-              "href": "/music/jam?progression=blues"
+              "href": "/music/changes/jam?progression=blues"
             }
           ],
           "feeds": "boogie shelf songs"
@@ -1941,7 +1941,7 @@
         {
           "id": "4.7",
           "title": "Blues licks over the changes",
-          "href": "/music/comping?instrument=piano&pattern=blue-third-c7",
+          "href": "/music/changes/comping?instrument=piano&pattern=blue-third-c7",
           "setup": "Comping: blue third over C7, F7 and G7; Phrases, C blues lick.",
           "done": "3 runs at 85% on each, on two days.",
           "threshold": 0.85,
@@ -1952,11 +1952,11 @@
           "links": [
             {
               "label": "F7",
-              "href": "/music/comping?instrument=piano&pattern=blue-third-f7"
+              "href": "/music/changes/comping?instrument=piano&pattern=blue-third-f7"
             },
             {
               "label": "G7",
-              "href": "/music/comping?instrument=piano&pattern=blue-third-g7"
+              "href": "/music/changes/comping?instrument=piano&pattern=blue-third-g7"
             },
             {
               "label": "Phrases: C blues lick",
@@ -1986,7 +1986,7 @@
         {
           "id": "4.9",
           "title": "Rock eighths and pushes under a song",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&progression=song-with-or-without-you&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=rock-octaves&progression=song-with-or-without-you&transpose=0",
           "setup": "Accompaniment, patterns 4 and 8 over a song chart from the Songs group. Don't Stop Believin' and Viva la Vida are not charted yet; any song chart counts.",
           "done": "Two clean choruses at the record's tempo.",
           "each": {
@@ -1998,7 +1998,7 @@
           "links": [
             {
               "label": "Pattern 8",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=song-with-or-without-you&transpose=0"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=song-with-or-without-you&transpose=0"
             }
           ],
           "feeds": "rock shelf songs"
@@ -2027,11 +2027,11 @@
           "links": [
             {
               "label": "Jam: blues backing",
-              "href": "/music/jam?progression=blues"
+              "href": "/music/changes/jam?progression=blues"
             },
             {
               "label": "Comping: Charleston shells",
-              "href": "/music/comping?instrument=piano&pattern=blue-third-c7&lh=shell"
+              "href": "/music/changes/comping?instrument=piano&pattern=blue-third-c7&lh=shell"
             }
           ],
           "feeds": "cross-link"
@@ -2389,7 +2389,7 @@
         {
           "id": "5.5",
           "title": "Add9 and sus chords",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=0",
           "setup": "Accompaniment, block chords on 1 and 3 over I-V-vi-IV with add9 and sus chords (Cadd9, Gsus4, Asus2, Fadd9), the root in the left hand, in C, G, F and D: 16 chords a run.",
           "done": "48 chords at 90%.",
           "match": {
@@ -2406,15 +2406,15 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=-5"
             },
             {
               "label": "F",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=5"
             },
             {
               "label": "D",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=2"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=block-1-3&progression=pop-add9-sus&transpose=2"
             }
           ],
           "feeds": "Fallin', Kiss the Rain"
@@ -2422,7 +2422,7 @@
         {
           "id": "5.6",
           "title": "Slash chords and walking bass lines",
-          "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=0&keys=1",
+          "href": "/music/changes/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=0&keys=1",
           "setup": "Voicings, Gospel, Slash chords: C, G/B, Am, Am/G, F, C/E, Dm7, G, the right hand moving least, the bass in the left; in C, G and F. Untimed, so take 72 to Jam once it is clean.",
           "done": "2 clean passes in C, G and F at 72.",
           "match": {
@@ -2438,11 +2438,11 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=7&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=7&keys=1"
             },
             {
               "label": "F",
-              "href": "/music/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=5&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=gospel&progression=slash-walk&key=5&keys=1"
             }
           ],
           "feeds": "Your Song, Rocket Man"
@@ -2450,7 +2450,7 @@
         {
           "id": "5.7",
           "title": "Lead sheet, step 1: LH root, RH melody",
-          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=roots&bpm=72",
+          "href": "/music/changes/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=roots&bpm=72",
           "setup": "Accompaniment, lead sheet with left-hand roots. Import Let It Be or If I Ain't Got You from MuseScore as MusicXML (the chord symbols come with it) and pick it as the tune; Twinkle and Ode to Joy are there to learn the mode.",
           "done": "Let It Be or If I Ain't Got You from the lead sheet, two clean passes at 72.",
           "match": {
@@ -2470,7 +2470,7 @@
         {
           "id": "5.8",
           "title": "Lead sheet, step 2: melody on top of RH chords",
-          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
+          "href": "/music/changes/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
           "setup": "Accompaniment, lead sheet with chords under the melody: the right hand adds the chord below the melody note on each change, the left hand plays the bass.",
           "done": "The same tune, two clean passes; chords right on 90% of bars.",
           "match": {
@@ -2847,7 +2847,7 @@
         {
           "id": "6.3",
           "title": "IV/I and the 1-4-1 rock",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=0",
           "setup": "Accompaniment, gospel 1-4-1: each chord, its IV over the same bass on the and of 2, and back on 4, under I-V-vi-IV in C, F, G and Bb: 24 chords a run.",
           "done": "40 chords at 90%.",
           "match": {
@@ -2863,15 +2863,15 @@
           "links": [
             {
               "label": "F",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=5"
             },
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-5"
             },
             {
               "label": "Bb",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-2"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=gospel-1-4-1&progression=pop-axis&transpose=-2"
             }
           ],
           "feeds": "Lean on Me, Let It Be"
@@ -2879,7 +2879,7 @@
         {
           "id": "6.4",
           "title": "4-5-1 passing chord and walk-ups",
-          "href": "/music/voicings?instrument=piano&variant=gospel&progression=four-five-one&key=0&keys=3",
+          "href": "/music/changes/voicings?instrument=piano&variant=gospel&progression=four-five-one&key=0&keys=3",
           "setup": "Voicings, Gospel, Walk-up and the 4-5-1: I, ii7, I/3, IV, V/IV, I/3, IV, V7, I, three keys a run (27 chords).",
           "done": "40 chords at 90% in 4 keys.",
           "match": {
@@ -2893,7 +2893,7 @@
         {
           "id": "6.5",
           "title": "Passing diminished",
-          "href": "/music/voicings?instrument=piano&variant=gospel&progression=passing-dim&key=0&keys=3",
+          "href": "/music/changes/voicings?instrument=piano&variant=gospel&progression=passing-dim&key=0&keys=3",
           "setup": "Voicings, Gospel, Passing diminished: I-#Idim7-ii7-V7 and IV-#IVdim7-I/5-V7-I, three keys a run.",
           "done": "40 chords at 90%.",
           "match": {
@@ -2925,7 +2925,7 @@
         {
           "id": "6.7",
           "title": "Boogie with RH riffs",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=5",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=5",
           "setup": "Accompaniment, boogie bass with chords on 2 and 4 through the blues in F and G. The right-hand riffs come from Pinetop's Boogie Woogie, looped in the Song editor; the drill grades the bass and the chords.",
           "done": "3 clean loops at 120.",
           "match": {
@@ -2942,7 +2942,7 @@
           "links": [
             {
               "label": "G",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=-5"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=boogie&bpm=120&progression=blues&transpose=-5"
             },
             {
               "label": "Song editor",
@@ -2967,7 +2967,7 @@
         {
           "id": "6.9",
           "title": "Pattern 13: stride-lite",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-vi-ii-v&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-vi-ii-v&transpose=0",
           "setup": "Accompaniment, pattern 13 (stride-lite, left hand only) over I-vi-ii-V and I-IV-V.",
           "done": "Two choruses at 100.",
           "match": {
@@ -2983,7 +2983,7 @@
           "links": [
             {
               "label": "I-IV-V",
-              "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-iv-v&transpose=0"
+              "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=stride-lite&bpm=100&progression=pop-i-iv-v&transpose=0"
             }
           ],
           "feeds": "Linus and Lucy, Lady Madonna"
@@ -2991,7 +2991,7 @@
         {
           "id": "6.10",
           "title": "Chord charts with slash chords",
-          "href": "/music/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
+          "href": "/music/changes/accompany?mode=lead-sheet&instrument=piano&tune=twinkle&lh=chords",
           "setup": "Accompaniment, lead sheet with chords under the melody, on a slash-chord chart: import Lean on Me or Tiny Dancer as MusicXML. The left hand plays the slash bass.",
           "done": "Two clean passes.",
           "match": {
@@ -3845,7 +3845,7 @@
         {
           "id": "8.4",
           "title": "Stride LH: bass, chord; octave, tenth",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=stride&bpm=80&progression=pop-i-vi-ii-v&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=stride&bpm=80&progression=pop-i-vi-ii-v&transpose=0",
           "setup": "Accompaniment, stride (the root in octaves on 1, a tenth on 3, the chord on 2 and 4) over I-vi-ii-V. The Maple Leaf Rag A strain is not charted yet.",
           "done": "3 clean runs at 80.",
           "match": {
@@ -3896,7 +3896,7 @@
             }
           ],
           "feeds": "arranging, L10 recital",
-          "href": "/music/accompany?mode=lead-sheet&lh=chords",
+          "href": "/music/changes/accompany?mode=lead-sheet&lh=chords",
           "match": {
             "lh": "chords"
           },
@@ -4258,7 +4258,7 @@
         {
           "id": "9.5",
           "title": "Jazz-pop voicings",
-          "href": "/music/voicings?instrument=piano&variant=major&key=0&keys=1",
+          "href": "/music/changes/voicings?instrument=piano&variant=major&key=0&keys=1",
           "setup": "Jazz path: rootless ii-V-I in Voicings, major and minor, in C, F, Bb and Eb.",
           "done": "The Jazz path's pass mark (85%) in those 4 keys.",
           "match": {
@@ -4272,19 +4272,19 @@
           "links": [
             {
               "label": "F",
-              "href": "/music/voicings?instrument=piano&variant=major&key=5&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=major&key=5&keys=1"
             },
             {
               "label": "Bb",
-              "href": "/music/voicings?instrument=piano&variant=major&key=10&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=major&key=10&keys=1"
             },
             {
               "label": "Eb",
-              "href": "/music/voicings?instrument=piano&variant=major&key=3&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=major&key=3&keys=1"
             },
             {
               "label": "Minor",
-              "href": "/music/voicings?instrument=piano&variant=minor&key=0&keys=1"
+              "href": "/music/changes/voicings?instrument=piano&variant=minor&key=0&keys=1"
             }
           ],
           "feeds": "New York State of Mind, Georgia"
@@ -4718,7 +4718,7 @@
             }
           ],
           "feeds": "recital (can be the fifth piece)",
-          "href": "/music/accompany?mode=lead-sheet&lh=chords",
+          "href": "/music/changes/accompany?mode=lead-sheet&lh=chords",
           "match": {
             "lh": "chords"
           },
@@ -4745,7 +4745,7 @@
         {
           "id": "10.7",
           "title": "Chord chart at first sight",
-          "href": "/music/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=pop-fifties&transpose=0",
+          "href": "/music/changes/accompany?mode=patterns&instrument=piano&pattern=pop-syncopation&progression=pop-fifties&transpose=0",
           "setup": "Accompaniment in Check: a progression and key you have not played, with a pattern of your choice. The app does not pick the key for you yet.",
           "done": "Chords right on 95% of bars, no stop.",
           "threshold": 0.95,

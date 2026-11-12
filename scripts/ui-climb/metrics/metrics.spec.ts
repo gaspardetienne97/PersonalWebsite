@@ -425,7 +425,7 @@ test("verdict paint: scales (piano)", async ({ page }) => {
 });
 
 test("verdict paint: voicings (jazz)", async ({ page }) => {
-  await midiPage(page, "/music/voicings?variant=major&key=0&keys=1&strict=1", "piano");
+  await midiPage(page, "/music/changes/voicings?variant=major&key=0&keys=1&strict=1", "piano");
   await startButton(page).click();
   await expect(page.getByRole("status")).toContainText("Play", { timeout: 10_000 });
   for (let i = 0; i < 3; i++) {

@@ -114,7 +114,7 @@
   });
 
   // Pages that run no clock: the strip leaves out Metronome, Tempo and Count-in there.
-  const UNTIMED = ["/music/ear", "/music/circle", "/music/listening", "/music/voicings", "/music/lab", "/music/create"];
+  const UNTIMED = ["/music/ear", "/music/circle", "/music/listening", "/music/changes/voicings", "/music/lab", "/music/create"];
   // Hubs and tools where nothing is played to a click: the strip is just
   // the instrument, sound and input, and search.
   const COMPACT = [

@@ -790,7 +790,7 @@
         {
           "id": "P3.1",
           "title": "Symbol to chord",
-          "href": "/music/voicings?variant=inversions&instrument=piano",
+          "href": "/music/changes/voicings?variant=inversions&instrument=piano",
           "setup": "Voicings, voice leading. Flashing any triad symbol in any inversion is not in the drill yet.",
           "done": "Any major or minor triad in any inversion within 2 s, 90% of 40.",
           "match": {
@@ -801,7 +801,7 @@
         {
           "id": "P3.2",
           "title": "Closest-position loops",
-          "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-axis&bpm=80",
+          "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-axis&bpm=80",
           "setup": "Accompaniment, Block chords on 1: the right hand in closest position, the root in the left, over I-V-vi-IV, I-vi-IV-V and vi-IV-I-V; move the key in C, G, F and D.",
           "done": "Each loop 4 times at 80 bpm with no wrong chord, on two days.",
           "match": {
@@ -816,11 +816,11 @@
           "links": [
             {
               "label": "I-vi-IV-V",
-              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-fifties&bpm=80"
+              "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-fifties&bpm=80"
             },
             {
               "label": "vi-IV-I-V",
-              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-vi-iv-i-v&bpm=80"
+              "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1&progression=pop-vi-iv-i-v&bpm=80"
             }
           ],
           "feeds": "Let It Be, Stand By Me"
@@ -828,7 +828,7 @@
         {
           "id": "P3.3",
           "title": "Named patterns",
-          "href": "/music/accompany?instrument=piano&mode=patterns&pattern=block-1-3&progression=pop-axis&bpm=80",
+          "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=block-1-3&progression=pop-axis&bpm=80",
           "setup": "Accompaniment patterns over I-V-vi-IV at 80: block chords on 1 and 3, the ballad arpeggio 1-5-8-10, broken chord eighths, and half time with pushes on the and of 4.",
           "done": "Each pattern over a 4-chord loop at 80 bpm, 90%, on two days.",
           "each": {
@@ -840,22 +840,22 @@
           "links": [
             {
               "label": "Ballad arpeggio",
-              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=ballad-arpeggio&progression=pop-axis&bpm=80"
+              "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=ballad-arpeggio&progression=pop-axis&bpm=80"
             },
             {
               "label": "Broken chord eighths",
-              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=broken-triad&progression=pop-axis&bpm=80"
+              "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=broken-triad&progression=pop-axis&bpm=80"
             },
             {
               "label": "Pushes on the and of 4",
-              "href": "/music/accompany?instrument=piano&mode=patterns&pattern=half-time-push&progression=pop-axis&bpm=80"
+              "href": "/music/changes/accompany?instrument=piano&mode=patterns&pattern=half-time-push&progression=pop-axis&bpm=80"
             }
           ]
         },
         {
           "id": "P3.4",
           "title": "Generated chart, one chord a bar",
-          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-1&pattern=block-1-3",
+          "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-1&pattern=block-1-3",
           "setup": "Accompaniment, Patterns, progression Chart 1: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern.",
           "done": "80% first pass on 5 of 6 charts.",
           "match": {
@@ -867,7 +867,7 @@
         {
           "id": "P3.5",
           "title": "Two chords a bar and hits",
-          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-2&pattern=block-1-3",
+          "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-2&pattern=block-1-3",
           "setup": "Accompaniment, Patterns, progression Chart 2: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Rhythm hits are not written yet: play the pattern on the slashes.",
           "done": "80% first pass on 5 of 6.",
           "match": {
@@ -880,7 +880,7 @@
         {
           "id": "P3.6",
           "title": "Sus, add9, slash bass, 6/8",
-          "href": "/music/accompany?instrument=piano&mode=patterns&progression=chart-3&pattern=block-1-3",
+          "href": "/music/changes/accompany?instrument=piano&mode=patterns&progression=chart-3&pattern=block-1-3",
           "setup": "Accompaniment, Patterns, progression Chart 3: a new eight-bar chart each time (New chart), read in Check from the symbols and slashes, any pattern. Charts in 6/8 are not in it yet.",
           "done": "80% first pass on 5 of 6.",
           "match": {
@@ -1780,7 +1780,7 @@
           "title": "Shells",
           "setup": "Accompaniment, Comping: root-3-7 shells for m7, 7 and maj7 through the ii-V-I, one chord a bar, moving round the keys. The symbols come in ii-V-I order, not at random.",
           "done": "Any symbol to shell within 2 s, 90% of 40.",
-          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shell-137&rhythm=whole&progression=ii-v-i",
+          "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=shell-137&rhythm=whole&progression=ii-v-i",
           "match": {
             "voicing": "shell-137"
           },
@@ -1793,7 +1793,7 @@
           "setup": "Accompaniment, Comping: ii-V-I shells round the circle, 12 keys, at 100; the key picker moves the key.",
           "done": "All 12 at 100 bpm, 90%, on two days.",
           "feeds": "Autumn Leaves, Satin Doll",
-          "href": "/music/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i",
+          "href": "/music/changes/accompany?mode=comping&instrument=piano&voicing=shells&rhythm=halves&bpm=100&progression=ii-v-i",
           "match": {
             "voicing": "shells",
             "progression": "ii-v-i"
@@ -1818,7 +1818,7 @@
         {
           "id": "P6.4",
           "title": "Generated lead sheet with roots",
-          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=roots",
+          "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=roots",
           "setup": "Accompaniment, Lead sheet, Jazz lead sheet 1: a new head over the progression (New melody), melody in the right hand, roots in the left, swung.",
           "done": "80% first pass on 5 of 6.",
           "match": {
@@ -1831,7 +1831,7 @@
         {
           "id": "P6.5",
           "title": "Generated lead sheet with shells",
-          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=shells",
+          "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-1&lh=shells",
           "setup": "Jazz lead sheet 1 with left-hand shells.",
           "done": "80% first pass on 5 of 6.",
           "match": {
@@ -1844,7 +1844,7 @@
         {
           "id": "P6.6",
           "title": "Rootless left hand",
-          "href": "/music/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-2&lh=rootless",
+          "href": "/music/changes/accompany?instrument=piano&mode=lead-sheet&progression=ii-v-i&tune=lead-2&lh=rootless",
           "setup": "Jazz lead sheet 2 (eighth lines, anticipations) with a rootless A or B left hand.",
           "done": "80% first pass on 5 of 6.",
           "match": {
@@ -1920,7 +1920,7 @@
           "links": [
             {
               "label": "Jam",
-              "href": "/music/jam?progression=ii-v-i&instrument=piano"
+              "href": "/music/changes/jam?progression=ii-v-i&instrument=piano"
             }
           ]
         }
@@ -7333,7 +7333,7 @@
         {
           "id": "A5.3",
           "title": "Blues form",
-          "href": "/music/jam?progression=blues&instrument=aerophone",
+          "href": "/music/changes/jam?progression=blues&instrument=aerophone",
           "setup": "Jam: 12-bar blues backing, a shelf head twice through. Jam's Check grades improvised lines, not a written head, so this one is a self-check.",
           "done": "Form kept without getting lost, 90%.",
           "exerciseIds": []
@@ -7407,7 +7407,7 @@
           "links": [
             {
               "label": "Jam, blues",
-              "href": "/music/jam?progression=blues&instrument=aerophone"
+              "href": "/music/changes/jam?progression=blues&instrument=aerophone"
             }
           ]
         }
@@ -7562,7 +7562,7 @@
         {
           "id": "A6.1",
           "title": "Chord tones from symbols",
-          "href": "/music/chord-scales?instrument=aerophone&bpm=100",
+          "href": "/music/changes/chord-scales?instrument=aerophone&bpm=100",
           "setup": "Chord-scales on the Aerophone: m7, 7 and maj7 arpeggios through ii-V-I at 100.",
           "done": "90% at 100 bpm.",
           "minBpm": 100,
@@ -7633,14 +7633,14 @@
           "links": [
             {
               "label": "Jam",
-              "href": "/music/jam?progression=ii-v-i&instrument=aerophone"
+              "href": "/music/changes/jam?progression=ii-v-i&instrument=aerophone"
             }
           ]
         },
         {
           "id": "A6.5",
           "title": "Improvise on one",
-          "href": "/music/jam?progression=ii-v-i&instrument=aerophone&game=chord-tones&choruses=1",
+          "href": "/music/changes/jam?progression=ii-v-i&instrument=aerophone&game=chord-tones&choruses=1",
           "setup": "Jam in Check with the tune's changes (the ii-V-I, or a standard such as Autumn Leaves), Chord tones on 1 and 3, guide tones from the jazz path.",
           "done": "One chorus kept, chord tones on beats 1 and 3 at 60%.",
           "match": {

@@ -85,7 +85,13 @@
   interface Props {
     title: string;
     /** A trainer's modes: the title becomes a picker for them (Rhythm; Ear and the jazz trainer next). */
-    trainer?: { options: readonly TrainerMode[]; value: string; onpick?: (id: string) => void } | null;
+    trainer?: {
+      options: readonly TrainerMode[];
+      value: string;
+      onpick?: (id: string) => void;
+      /** A long family name ("Play over changes"): where the title shares its row or the screen is a phone, only the mode is drawn. */
+      fold?: boolean;
+    } | null;
     hue: Hue;
     blurb?: string;
     /** The current setup as one line, or as clauses; the shell joins them into one sentence that opens Setup. */
@@ -648,7 +654,7 @@
       <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title="Back to {back.label}">
         <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">Back to {back.label}</span>
       </a>
-      <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 font-display font-semibold tracking-tight {trainer ? 'shrink-0' : 'flex-1'}">
+      <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 font-display font-semibold tracking-tight {trainer ? 'shrink-0' : 'flex-1'}" class:fold={trainer?.fold}>
         {title}
       </h1>
       {#if trainer}
@@ -984,6 +990,18 @@
     }
     .ready .stage-box {
       padding: 0.75rem;
+    }
+  }
+  /* A trainer with a long family name keeps it for screen readers and draws only the mode picker where the
+     title has no row of its own. */
+  @media (max-width: 39.999rem), (min-width: 64rem) and (max-height: 56rem) {
+    h1.fold {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
   }
   .stage-box.demo {

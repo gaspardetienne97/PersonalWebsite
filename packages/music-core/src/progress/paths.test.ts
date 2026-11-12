@@ -138,7 +138,7 @@ describe("pathProgress", () => {
       step("chord-symbols", { skillIds: [], kind: "reference" }),
       step("chord-scales", {
         skillIds: ["harmony.ii-v-i.chord-scales"],
-        href: "/music/chord-scales?changes=major",
+        href: "/music/changes/chord-scales?changes=major",
         instruments: undefined,
       }),
       step("altered-voicings", {
@@ -164,7 +164,7 @@ describe("pathProgress", () => {
       "chord-scales": "next",
       "altered-voicings": "not-assessed",
     });
-    expect(p.continueHref).toBe("/music/chord-scales?changes=major");
+    expect(p.continueHref).toBe("/music/changes/chord-scales?changes=major");
     expect(p).toMatchObject({ done: 1, total: 3 });
   });
 

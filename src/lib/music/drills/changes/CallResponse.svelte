@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   // Call and response over a groove: six turns of a call (one or two bars) and
   // your answer in the bars after it, the band playing throughout. Echo is
   // graded like Phrases (notes in order, in time); Answer on landing on a chord
@@ -382,11 +383,10 @@
   ]);
 </script>
 
-<svelte:head><title>Call and response | Woodshed</title></svelte:head>
-
 <DrillShell
   lesson={callMode === "answer" ? { lessons: [chordTonesLesson(chordAtBar(groove, 0).symbol)] } : null}
-  title="Call and response"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("call-response")}
   hue="ear"
   blurb="A short call over the band, then your turn: echo it back, or answer with your own phrase."
   modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}

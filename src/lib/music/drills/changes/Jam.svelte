@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   // Jam (catalog 4.10): solo over a progression or a standard's form with every
   // pitch class of the current chord lit as chord tone, scale tone or avoid.
   // Practice describes each chorus. Check hides the tone roles, keeps the form
@@ -539,7 +540,7 @@
     preview = h;
     setTimeout(() => preview === h && (preview = null), chorusBars(prog) * bpb * beatMs + 500);
   }
-  const compHref = $derived(`/music/accompany?mode=comping&progression=${base.id}&transpose=${s.transpose}${s.reharm ? `&reharm=${s.reharm}` : ""}`);
+  const compHref = $derived(`/music/changes/accompany?mode=comping&progression=${base.id}&transpose=${s.transpose}${s.reharm ? `&reharm=${s.reharm}` : ""}`);
   const pctOf = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
   // ---- Form lane ----------------------------------------------------------
@@ -582,11 +583,11 @@
   );
 </script>
 
-<svelte:head><title>Jam | Woodshed</title></svelte:head>
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  title="Jam"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("jam")}
   hue={instrument}
   blurb="Solo over a progression or a standard's form as the changes slide by."
   summary={summaryLine}

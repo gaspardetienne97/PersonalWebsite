@@ -40,9 +40,9 @@ export interface DrillGroup {
 const MODE_KEY: [RegExp, string][] = [
   [/^\/music\/ear\//, "answer"],
   [/^\/music\/reading/, "activity"],
-  [/^\/music\/voicings/, "variant"],
-  [/^\/music\/licks/, "category"],
-  [/^\/music\/chord-scales/, "changes"],
+  [/^\/music\/changes\/voicings/, "variant"],
+  [/^\/music\/changes\/licks/, "category"],
+  [/^\/music\/changes\/chord-scales/, "changes"],
   [/^\/music\/listening/, "exercise"],
   [
     /^\/music\/(rhythm|fretboard|chords|pads|aerophone|circle|accompany|by-ear|call-response)/,

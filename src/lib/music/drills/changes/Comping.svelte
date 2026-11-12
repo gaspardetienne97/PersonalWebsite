@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
@@ -316,7 +317,7 @@
       timing: timingBreakdown([...graded.right, ...(graded.left ?? [])], graded.onTimeMs),
       next:
         r.correct && mode === "check" && nextPattern
-          ? { label: nextPattern.label, href: `/music/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
+          ? { label: nextPattern.label, href: `/music/changes/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
           : undefined,
       advance: played.some((n) => n.kind === "noteon")
         ? await nextRun(`comping.${p.id}.${s.feel}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max }, steps: LH_STEPS, step: s.lh === "guide" ? 1 : 0 }, r, tempoAnd((i) => cfg.set({ lh: LH_STEPS[i].id })))
@@ -340,11 +341,10 @@
   });
 </script>
 
-<svelte:head><title>Comping | Woodshed</title></svelte:head>
-
 <DrillShell
   lesson={{ lessons: conceptCard("comping.charleston"), trigger: "check" }}
-  title="Comping"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("comping")}
   hue="piano"
   blurb="A blues line in the right hand over a Charleston shell in the left: one, and-of-two, nothing else."
   summary={summaryLine}

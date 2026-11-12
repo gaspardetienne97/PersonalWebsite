@@ -491,7 +491,7 @@
           </div>
         {/each}
       </dl>
-      <p class="mt-4 text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/jam">Try them in Jam</a>, with the chord tones lit.</p>
+      <p class="mt-4 text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Try them in Jam</a>, with the chord tones lit.</p>
     </section>
 
     <section id="repertoire" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-repertoire">
@@ -518,7 +518,7 @@
       <h2 id="h-backing" tabindex="-1" class="font-display text-2xl font-semibold">Backing tracks</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
         These recordings are not shipped with the app. If you have them (or any track you like), import the audio in
-        <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/jam">Jam</a> and it plays under your solo.
+        <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Jam</a> and it plays under your solo.
       </p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label="Backing tracks table" tabindex="0">

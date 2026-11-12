@@ -849,18 +849,18 @@
           "id": "3.5",
           "title": "H5 One loop, four rotations",
           "strand": "H",
-          "href": "/music/jam?progression=pop-axis",
+          "href": "/music/changes/jam?progression=pop-axis",
           "setup": "Library reference, then Jam with the pop axis in C, G and D: play the loop starting on each chord.",
           "done": "Loop played in three keys along Jam, two choruses each, no lost place.",
           "exerciseIds": [],
           "links": [
             {
               "label": "In G",
-              "href": "/music/jam?progression=pop-axis&transpose=-5"
+              "href": "/music/changes/jam?progression=pop-axis&transpose=-5"
             },
             {
               "label": "In D",
-              "href": "/music/jam?progression=pop-axis&transpose=2"
+              "href": "/music/changes/jam?progression=pop-axis&transpose=2"
             }
           ],
           "feeds": "Let It Be, No Woman, No Cry, Don't Stop Believin'"
@@ -915,7 +915,7 @@
           "setup": "Call and response, Echo: two-bar calls; sing first, then play back. The calls are made up over a groove, not taken from real tunes.",
           "done": "75% per note and onset.",
           "feeds": "Choruses",
-          "href": "/music/call-response?mode=echo&groove=pop-axis&bars=2",
+          "href": "/music/changes/call-response?mode=echo&groove=pop-axis&bars=2",
           "match": {
             "bars": "2"
           },
@@ -987,7 +987,7 @@
           "links": [
             {
               "label": "Pop axis in Jam",
-              "href": "/music/jam?progression=pop-axis"
+              "href": "/music/changes/jam?progression=pop-axis"
             }
           ]
         },
@@ -1231,25 +1231,25 @@
           "id": "4.1",
           "title": "H6 The 12-bar blues",
           "strand": "H",
-          "href": "/music/jam?progression=blues&game=changes&choruses=3",
+          "href": "/music/changes/jam?progression=blues&game=changes&choruses=3",
           "setup": "Library reference, then Jam in Check, Make the changes, blues: A and E (guitar, ukulele), C and F (piano), Bb and F concert (Aerophone).",
           "done": "Three choruses along Jam without losing the form.",
           "links": [
             {
               "label": "In A",
-              "href": "/music/jam?progression=blues&transpose=-3&game=changes&choruses=3"
+              "href": "/music/changes/jam?progression=blues&transpose=-3&game=changes&choruses=3"
             },
             {
               "label": "In E",
-              "href": "/music/jam?progression=blues&transpose=4&game=changes&choruses=3"
+              "href": "/music/changes/jam?progression=blues&transpose=4&game=changes&choruses=3"
             },
             {
               "label": "In F",
-              "href": "/music/jam?progression=blues&transpose=5&game=changes&choruses=3"
+              "href": "/music/changes/jam?progression=blues&transpose=5&game=changes&choruses=3"
             },
             {
               "label": "In Bb",
-              "href": "/music/jam?progression=blues&transpose=-2&game=changes&choruses=3"
+              "href": "/music/changes/jam?progression=blues&transpose=-2&game=changes&choruses=3"
             }
           ],
           "feeds": "Every shelf song",
@@ -1342,7 +1342,7 @@
           "links": [
             {
               "label": "Call and response, echo",
-              "href": "/music/call-response?mode=echo&groove=blues&bars=1"
+              "href": "/music/changes/call-response?mode=echo&groove=blues&bars=1"
             },
             {
               "label": "Guitar A blues lick",
@@ -1350,7 +1350,7 @@
             },
             {
               "label": "Licks",
-              "href": "/music/licks"
+              "href": "/music/changes/licks"
             }
           ],
           "feeds": "Improvising"
@@ -1361,7 +1361,7 @@
           "strand": "E",
           "setup": "Call and response, Answer, over the 12-bar blues: answer each call in the bars after it, on the grid, and land on a chord tone. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers kept, 75% end on a chord tone in time.",
-          "href": "/music/call-response?mode=answer&groove=blues&bars=1",
+          "href": "/music/changes/call-response?mode=answer&groove=blues&bars=1",
           "match": {
             "groove": "blues"
           },
@@ -1370,7 +1370,7 @@
           "links": [
             {
               "label": "Jam blues",
-              "href": "/music/jam?progression=blues"
+              "href": "/music/changes/jam?progression=blues"
             }
           ],
           "feeds": "Improvising"
@@ -1789,7 +1789,7 @@
           "strand": "E",
           "setup": "Call and response, Answer, over the minor ii-V-i. Checked runs of 6 turns; the take is kept.",
           "done": "12 answers, 75% end on a chord tone.",
-          "href": "/music/call-response?mode=answer&groove=minor-ii-v-i&bars=1",
+          "href": "/music/changes/call-response?mode=answer&groove=minor-ii-v-i&bars=1",
           "match": {
             "groove": "minor-ii-v-i"
           },
@@ -1798,7 +1798,7 @@
           "links": [
             {
               "label": "Jam minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i"
+              "href": "/music/changes/jam?progression=minor-ii-v-i"
             }
           ]
         }
@@ -2550,15 +2550,15 @@
           "links": [
             {
               "label": "Voice leading",
-              "href": "/music/voicings?mode=inversions"
+              "href": "/music/changes/voicings?mode=inversions"
             },
             {
               "label": "Jam ii-V-I",
-              "href": "/music/jam?progression=ii-v-i"
+              "href": "/music/changes/jam?progression=ii-v-i"
             }
           ],
           "feeds": "Jazz Path shell voicings",
-          "href": "/music/jam?progression=ii-v-i&game=guide-tones&choruses=2",
+          "href": "/music/changes/jam?progression=ii-v-i&game=guide-tones&choruses=2",
           "match": {
             "game": "guide-tones",
             "progression": "ii-v-i",
@@ -2833,7 +2833,7 @@
           "links": [
             {
               "label": "Jam modal",
-              "href": "/music/jam?progression=modal"
+              "href": "/music/changes/jam?progression=modal"
             }
           ],
           "feeds": "Oye Como Va, So What"
@@ -2862,7 +2862,7 @@
           "id": "8.6",
           "title": "H13 Chord-scale basics",
           "strand": "H",
-          "href": "/music/chord-scales?mode=major&changes=major",
+          "href": "/music/changes/chord-scales?mode=major&changes=major",
           "setup": "Chord scales: the major ii-V-I, then the minor; Library chord-scale map.",
           "done": "The chord-scale drill passed for both: 3 checked runs each at 66%, on two days.",
           "each": {
@@ -2872,7 +2872,7 @@
           "links": [
             {
               "label": "Minor ii-V-i",
-              "href": "/music/chord-scales?mode=minor&changes=minor"
+              "href": "/music/changes/chord-scales?mode=minor&changes=minor"
             },
             {
               "label": "Chord-scale map",
@@ -2885,13 +2885,13 @@
           "id": "8.7",
           "title": "Improvise on a modal vamp",
           "strand": "E",
-          "href": "/music/jam?progression=modal&game=chord-tones&choruses=3",
+          "href": "/music/changes/jam?progression=modal&game=chord-tones&choruses=3",
           "setup": "Jam in Check, modal, Chord tones on 1 and 3 (the game counts chord tones only). Call and response, Answer, judges landing on a chord tone.",
           "done": "Three choruses, 75% of strong-beat notes chord or scale tones.",
           "links": [
             {
               "label": "Call and response, Answer",
-              "href": "/music/call-response?mode=answer&groove=modal&bars=1"
+              "href": "/music/changes/call-response?mode=answer&groove=modal&bars=1"
             }
           ],
           "match": {
@@ -2928,7 +2928,7 @@
           "strand": "E",
           "setup": "Call and response over the Dorian vamp: Echo first, then Answer. Checked runs of 6 turns.",
           "done": "12 answers, 75%.",
-          "href": "/music/call-response?mode=answer&groove=modal&bars=1",
+          "href": "/music/changes/call-response?mode=answer&groove=modal&bars=1",
           "match": {
             "groove": "modal"
           },
@@ -2937,11 +2937,11 @@
           "links": [
             {
               "label": "Echo the calls",
-              "href": "/music/call-response?mode=echo&groove=modal&bars=1"
+              "href": "/music/changes/call-response?mode=echo&groove=modal&bars=1"
             },
             {
               "label": "Jam modal",
-              "href": "/music/jam?progression=modal"
+              "href": "/music/changes/jam?progression=modal"
             }
           ]
         }
@@ -3168,13 +3168,13 @@
           "id": "9.3",
           "title": "H15 ii-V chains and turnarounds",
           "strand": "H",
-          "href": "/music/jam?progression=ii-v-i&game=changes&choruses=2",
+          "href": "/music/changes/jam?progression=ii-v-i&game=changes&choruses=2",
           "setup": "Library reference; Jam in Check, Make the changes, with the ii-V-I and the minor ii-V-i in 4 keys, one run per key.",
           "done": "Two choruses each, no lost place.",
           "links": [
             {
               "label": "Minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i&game=changes&choruses=2"
+              "href": "/music/changes/jam?progression=minor-ii-v-i&game=changes&choruses=2"
             },
             {
               "label": "Reference",
@@ -3239,11 +3239,11 @@
           "links": [
             {
               "label": "Jam ii-V-I",
-              "href": "/music/jam?progression=ii-v-i"
+              "href": "/music/changes/jam?progression=ii-v-i"
             }
           ],
           "feeds": "Autumn Leaves",
-          "href": "/music/jam?progression=tune-autumn-leaves&game=guide-tones&choruses=2",
+          "href": "/music/changes/jam?progression=tune-autumn-leaves&game=guide-tones&choruses=2",
           "match": {
             "game": "guide-tones",
             "progression": "tune-autumn-leaves",
@@ -3289,7 +3289,7 @@
           "id": "9.11",
           "title": "Improvise a chorus on a shelf tune",
           "strand": "S",
-          "href": "/music/jam?progression=tune-autumn-leaves&game=chord-tones&choruses=2",
+          "href": "/music/changes/jam?progression=tune-autumn-leaves&game=chord-tones&choruses=2",
           "setup": "Jam in Check with a shelf tune's changes (Autumn Leaves here; any of the tune charts counts).",
           "done": "Two choruses, 75% strong-beat chord tones.",
           "feeds": "Jazz Path improv",
@@ -3565,7 +3565,7 @@
           "id": "10.4",
           "title": "Analyse the solo",
           "strand": "H",
-          "href": "/music/jam",
+          "href": "/music/changes/jam",
           "setup": "Write each note's role over the chord (chord tone, tension, approach); check with Jam's tone roles.",
           "done": "Every note labelled; two licks marked.",
           "exerciseIds": []
@@ -3588,7 +3588,7 @@
           "id": "10.6",
           "title": "Use the licks",
           "strand": "E",
-          "href": "/music/jam",
+          "href": "/music/changes/jam",
           "setup": "Jam over the solo's changes, with at least two of your licks per chorus.",
           "done": "Three choruses kept.",
           "exerciseIds": []
@@ -3632,7 +3632,7 @@
           "strand": "E",
           "setup": "Licks, By ear: jazz lines looped at 50, 75 or 100%, notes hidden until the results. The lines run one to four bars and are not picked for their approach notes.",
           "done": "75% per note.",
-          "href": "/music/licks?ear=1",
+          "href": "/music/changes/licks?ear=1",
           "match": {
             "byEar": "true"
           },

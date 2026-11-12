@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc, pcOf } from "@repo/music-core";
@@ -305,11 +306,10 @@
   const nameOf = (m: number) => noteName(m, "flat", false);
 </script>
 
-<svelte:head><title>Voicings | Woodshed</title></svelte:head>
-
 <DrillShell
   lesson={lessonRef}
-  title="Voicings"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("voicings")}
   hue="piano"
   blurb="Jazz voicings, closest inversions and cadences through the keys. Untimed: take the time to find each chord."
   summary={summaryLine}

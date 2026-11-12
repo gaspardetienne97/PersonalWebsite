@@ -12,7 +12,15 @@ import { LEARNING_PATHS } from "./paths";
 import { STEPS } from "./routine";
 
 /** Old pathname to its new one, for drills that moved (the old route redirects there). */
-const MOVED: Record<string, string> = { "/music/library": "/music/studio" };
+const MOVED: Record<string, string> = {
+  "/music/library": "/music/studio",
+  // The seven jazz drills are modes of Play over changes.
+  ...Object.fromEntries(
+    ["voicings", "comping", "accompany", "licks", "chord-scales", "jam", "call-response"].map(
+      (m) => [`/music/${m}`, `/music/changes/${m}`],
+    ),
+  ),
+};
 const BACK = Object.fromEntries(Object.entries(MOVED).map(([a, b]) => [b, a]));
 
 const oldHref = (href: string) => {

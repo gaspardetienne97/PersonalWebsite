@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   // Accompaniment (piano path drill 1, jazz rank 2, piano drill 3): hand patterns,
   // comping and lead sheets over a chord chart in any key, every slot graded on
@@ -428,11 +429,10 @@
   );
 </script>
 
-<svelte:head><title>Accompaniment | Woodshed</title></svelte:head>
-
 <DrillShell
   lesson={tab === "lead-sheet" ? { lessons: conceptCard("accompany.chord-symbols"), trigger: "check" } : null}
-  title="Accompaniment"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("accompany")}
   hue="piano"
   {blurb}
   summary={summaryLine}

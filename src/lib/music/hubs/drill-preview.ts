@@ -341,7 +341,7 @@ function qualityPreview(q: URLSearchParams): Preview {
 export function drillPreview(href: string, strip?: Instrument): Preview {
   const u = new URL(href, "http://x");
   const q = u.searchParams;
-  const route = u.pathname.replace(/^\/music/, "");
+  const route = u.pathname.replace(/^\/music(\/changes)?/, "");
   const instrument = isInstrument(q.get("instrument"))
     ? (q.get("instrument") as Instrument)
     : strip;

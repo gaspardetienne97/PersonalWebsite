@@ -1789,7 +1789,7 @@
           "setup": "Jam in Check: blues in A on ukulele, the minor pentatonic lit.",
           "done": "3 choruses where the chorus report shows 80% scale tones and phrases ending on chord tones.",
           "feeds": "boss",
-          "href": "/music/jam?progression=blues&transpose=-3&game=free&choruses=3",
+          "href": "/music/changes/jam?progression=blues&transpose=-3&game=free&choruses=3",
           "match": {
             "game": "free",
             "choruses": "3"
@@ -1965,7 +1965,7 @@
           ],
           "fallback": {
             "label": "In the app: Jam, blues",
-            "url": "/music/jam?progression=blues&instrument=ukulele"
+            "url": "/music/changes/jam?progression=blues&instrument=ukulele"
           }
         },
         {
@@ -2211,7 +2211,7 @@
           "setup": "Jam in Check: a pop I IV V, C major pentatonic lit.",
           "done": "3 choruses at 80% scale tones.",
           "feeds": "Hawaiian solos",
-          "href": "/music/jam?progression=pop-i-iv-v&game=free&choruses=3",
+          "href": "/music/changes/jam?progression=pop-i-iv-v&game=free&choruses=3",
           "match": {
             "game": "free",
             "choruses": "3"
@@ -2513,7 +2513,7 @@
             },
             {
               "label": "Jam, ii-V-I",
-              "href": "/music/jam?progression=ii-v-i&instrument=ukulele"
+              "href": "/music/changes/jam?progression=ii-v-i&instrument=ukulele"
             }
           ],
           "feeds": "Autumn Leaves, Satin Doll"
@@ -2618,14 +2618,14 @@
           "id": "7.9",
           "title": "Guide tones over ii-V-I",
           "strand": "L",
-          "href": "/music/licks?mode=major-ii-V-I&category=major-ii-V-I&instrument=ukulele",
+          "href": "/music/changes/licks?mode=major-ii-V-I&category=major-ii-V-I&instrument=ukulele",
           "setup": "Jazz licks: major ii-V-I, on ukulele. Chord scales: Dorian and Mixolydian over the ii-V-I.",
           "done": "3 licks at 85% in two keys, on two days.",
           "threshold": 0.85,
           "links": [
             {
               "label": "Chord scales",
-              "href": "/music/chord-scales?mode=major&changes=major&instrument=ukulele"
+              "href": "/music/changes/chord-scales?mode=major&changes=major&instrument=ukulele"
             }
           ],
           "feeds": "soloing"
@@ -3413,7 +3413,7 @@
           "setup": "Jazz licks on ukulele; then Jam's blues in Check, chord tones on beats 1 and 3.",
           "done": "3 choruses where the chorus report shows chord tones on beats 1 and 3 at 60%.",
           "feeds": "St. Louis Blues",
-          "href": "/music/jam?progression=blues&game=chord-tones&choruses=3",
+          "href": "/music/changes/jam?progression=blues&game=chord-tones&choruses=3",
           "match": {
             "game": "chord-tones",
             "choruses": "3"
@@ -3428,7 +3428,7 @@
           "setup": "Jam in Check: minor ii-V-i, then modal, on ukulele.",
           "done": "4 choruses at 80% scale tones.",
           "feeds": "Summertime, Blue Bossa",
-          "href": "/music/jam?progression=minor-ii-v-i&game=free&choruses=4",
+          "href": "/music/changes/jam?progression=minor-ii-v-i&game=free&choruses=4",
           "match": {
             "game": "free",
             "choruses": "4"
@@ -3443,7 +3443,7 @@
           "setup": "Jam on a progression taken from a song's chord chart.",
           "done": "2 choruses on Summertime at 80%.",
           "feeds": "Summertime",
-          "href": "/music/jam?progression=tune-summertime&choruses=2",
+          "href": "/music/changes/jam?progression=tune-summertime&choruses=2",
           "match": {
             "progression": "tune-summertime",
             "choruses": "2"
@@ -3455,7 +3455,7 @@
           "id": "9.8",
           "title": "Comp and trade",
           "strand": "S",
-          "href": "/music/jam?progression=blues&instrument=ukulele",
+          "href": "/music/changes/jam?progression=blues&instrument=ukulele",
           "setup": "Jam: comp one chorus, solo one chorus, recorded in Practice Lab.",
           "done": "4 alternating choruses without a stop.",
           "exerciseIds": [],
@@ -3501,7 +3501,7 @@
           ],
           "fallback": {
             "label": "In the app: Jam, blues",
-            "url": "/music/jam?progression=blues&instrument=ukulele"
+            "url": "/music/changes/jam?progression=blues&instrument=ukulele"
           }
         },
         {
@@ -3544,7 +3544,7 @@
           ],
           "fallback": {
             "label": "In the app: Jam, minor ii-V-i",
-            "url": "/music/jam?progression=minor-ii-v-i&instrument=ukulele"
+            "url": "/music/changes/jam?progression=minor-ii-v-i&instrument=ukulele"
           }
         },
         {
@@ -3635,7 +3635,7 @@
           ],
           "fallback": {
             "label": "In the app: Jam, ii-V-I",
-            "url": "/music/jam?progression=ii-v-i&instrument=ukulele"
+            "url": "/music/changes/jam?progression=ii-v-i&instrument=ukulele"
           }
         }
       ],
@@ -3727,7 +3727,7 @@
           "id": "10.7",
           "title": "Improvise an intro and a tag",
           "strand": "L",
-          "href": "/music/jam?instrument=ukulele",
+          "href": "/music/changes/jam?instrument=ukulele",
           "setup": "Jam on the piece's chords: a 4-bar intro and a 4-bar ending.",
           "done": "Recorded with the piece.",
           "exerciseIds": []

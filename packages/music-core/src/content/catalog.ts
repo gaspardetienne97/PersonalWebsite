@@ -220,7 +220,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "comping",
-    route: "/music/comping",
+    route: "/music/changes/comping",
     title: "Comping",
     blurb: "Play a blues phrase in the right hand over a Charleston shell in the left.",
     instruments: ["piano"],
@@ -231,7 +231,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "accompany",
-    route: "/music/accompany",
+    route: "/music/changes/accompany",
     title: "Accompaniment",
     blurb:
       "Play pop, blues and gospel patterns, jazz comping or a lead sheet over a chord chart in any key.",
@@ -250,7 +250,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "voicings",
-    route: "/music/voicings",
+    route: "/music/changes/voicings",
     title: "Voicings",
     blurb: "Play rootless jazz voicings through a ii-V-I in all twelve keys.",
     instruments: ["piano"],
@@ -279,7 +279,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "licks",
-    route: "/music/licks",
+    route: "/music/changes/licks",
     title: "Jazz licks",
     blurb: "Hear a transcribed line over the changes, then play it back.",
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
@@ -308,7 +308,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "chord-scales",
-    route: "/music/chord-scales",
+    route: "/music/changes/chord-scales",
     title: "Chord scales",
     blurb: "As a ii-V-I moves, play the go-to scale for each chord.",
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
@@ -554,7 +554,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "call-response",
-    route: "/music/call-response",
+    route: "/music/changes/call-response",
     title: "Call and response",
     blurb:
       "Hear a short call over a groove and play it back in time, or answer it with your own phrase that lands on a chord tone.",
@@ -590,7 +590,7 @@ export const CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: "jam",
-    route: "/music/jam",
+    route: "/music/changes/jam",
     title: "Jam",
     blurb: "Solo over a progression with the chord tones lit for each chord.",
     instruments: [...INSTRUMENTS],

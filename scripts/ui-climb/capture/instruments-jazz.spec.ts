@@ -55,7 +55,7 @@ for (const width of WIDTHS) {
     test.setTimeout(240_000);
     await prep(page, width, { midi: [PORTS.keys], instrument: "piano" });
     const F = "voicings";
-    const url = "/music/voicings?variant=major&key=0&keys=1&strict=1";
+    const url = "/music/changes/voicings?variant=major&key=0&keys=1&strict=1";
     await open(page, url);
     await shot(page, F, "ready", width);
     await captureLesson(page, F, url, width);
@@ -133,7 +133,7 @@ for (const width of WIDTHS) {
     await goFlow(page, {
       F: "licks",
       width,
-      url: "/music/licks?lick=1&key=C&bpm=80",
+      url: "/music/changes/licks?lick=1&key=C&bpm=80",
       steps: line(lick, 375, 250),
       wrong: { midi: 61, at: [2440, 5440], ms: 560 },
       poor: line(lick.slice(0, 5), 520, 250),
@@ -151,7 +151,7 @@ for (const width of WIDTHS) {
     await goFlow(page, {
       F: "chord-scales",
       width,
-      url: "/music/chord-scales?changes=major&key=C&pattern=1235&keys=1&bpm=80",
+      url: "/music/changes/chord-scales?changes=major&key=C&pattern=1235&keys=1&bpm=80",
       steps: line(run, 375, 250),
       wrong: { midi: 61, at: [2440, 5440], ms: 560 },
       poor: line(run.slice(0, 4), 375, 250),
@@ -183,7 +183,7 @@ for (const width of WIDTHS) {
     await goFlow(page, {
       F: "comping",
       width,
-      url: "/music/comping?pattern=blue-third-c7&bpm=90",
+      url: "/music/changes/comping?pattern=blue-third-c7&bpm=90",
       steps,
       wrong: { midi: 73, at: [2.1 * beat, 4.6 * beat], ms: 420 },
       poor: steps.filter((_, i) => i % 3 === 0),
@@ -203,7 +203,7 @@ for (const width of WIDTHS) {
     await attrFlow(page, {
       F: "accompany",
       width,
-      url: "/music/accompany?mode=patterns&pattern=root-fifth-octave&progression=pop-axis&transpose=2&hands=both&bpm=100",
+      url: "/music/changes/accompany?mode=patterns&pattern=root-fifth-octave&progression=pop-axis&transpose=2&hands=both&bpm=100",
       testId: "accompany",
       build,
       poor: keep(4),
@@ -217,12 +217,12 @@ for (const width of WIDTHS) {
         // Comping over the blues, and a lead sheet: the other two tabs, ready.
         await open(
           page,
-          "/music/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
+          "/music/changes/accompany?mode=comping&voicing=shells&rhythm=charleston&feel=swing&progression=blues&transpose=0&bpm=140",
         );
         await shot(page, "accompany", "comping-ready", width);
         await open(
           page,
-          "/music/accompany?mode=lead-sheet&tune=twinkle&lh=roots&hands=both&transpose=0&bpm=140",
+          "/music/changes/accompany?mode=lead-sheet&tune=twinkle&lh=roots&hands=both&transpose=0&bpm=140",
         );
         await shot(page, "accompany", "lead-sheet-ready", width);
       },
@@ -234,7 +234,7 @@ for (const width of WIDTHS) {
     await prep(page, width, { midi: [PORTS.keys], instrument: "piano", countIn: 0 });
     const F = "jam";
     const url =
-      "/music/jam?progression=blues&transpose=0&backing=both&game=three-notes&choruses=1&bpm=160";
+      "/music/changes/jam?progression=blues&transpose=0&backing=both&game=three-notes&choruses=1&bpm=160";
     // C and Eb on beats 1 and 2 of every bar of the blues.
     const notes = Array.from({ length: 12 }, (_, b) => [
       [60, b * 4],
@@ -278,7 +278,7 @@ for (const width of WIDTHS) {
     // A standard's lead sheet, trading fours.
     await open(
       page,
-      "/music/jam?progression=tune-jazz-blues&transpose=0&backing=both&game=chord-tones&choruses=1&trade=4&bpm=160",
+      "/music/changes/jam?progression=tune-jazz-blues&transpose=0&backing=both&game=chord-tones&choruses=1&trade=4&bpm=160",
     );
     await shot(page, F, "lead-sheet-ready", width);
   });
@@ -298,7 +298,7 @@ for (const width of WIDTHS) {
     await attrFlow(page, {
       F: "call-response",
       width,
-      url: "/music/call-response?mode=echo&groove=blues&bars=1",
+      url: "/music/changes/call-response?mode=echo&groove=blues&bars=1",
       testId: "call-response",
       build,
       poor: (n) => n.slice(0, 3),

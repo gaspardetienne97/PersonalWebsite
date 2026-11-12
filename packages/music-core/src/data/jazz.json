@@ -506,7 +506,7 @@
       "title": "Improvise over ii-V-I",
       "summary": "Chord tones + approach patterns + bebop/altered/diminished scales. Work the 29 licks.",
       "resources": ["JT5"],
-      "href": "/music/jam",
+      "href": "/music/changes/jam",
       "applies": "pitched"
     },
     {
@@ -515,7 +515,7 @@
       "title": "Learn repertoire from a Real Book",
       "summary": "Apply everything to standards. Practice with the swing / ballad / bossa backing tracks.",
       "resources": ["JT13", "JT14", "JT15", "JT16", "JT17", "JT18"],
-      "href": "/music/jam"
+      "href": "/music/changes/jam"
     }
   ],
   "JAZZ_REPERTOIRE": [

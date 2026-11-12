@@ -70,25 +70,25 @@ export const STEPS: Record<StepId, StepDef> = {
   comping: {
     label: "Comping",
     description: "A line over a left-hand comp rhythm.",
-    route: "/music/comping",
+    route: "/music/changes/comping",
     for: ["piano"],
   },
   voicings: {
     label: "ii-V-I Voicings",
     description: "Rootless voicings through the keys.",
-    route: "/music/voicings",
+    route: "/music/changes/voicings",
     for: ["piano"],
   },
   licks: {
     label: "Lick recall",
     description: "Hear a line, play it back.",
-    route: "/music/licks",
+    route: "/music/changes/licks",
     for: ["none", ...PITCHED],
   },
   "chord-scales": {
     label: "Chord-scale review",
     description: "One go-to scale per chord in a ii-V-I.",
-    route: "/music/chord-scales",
+    route: "/music/changes/chord-scales",
     for: ["none", ...PITCHED],
   },
   phrases: {
@@ -100,7 +100,7 @@ export const STEPS: Record<StepId, StepDef> = {
   jam: {
     label: "Jam",
     description: "Improvise over a progression with the chord tones lit.",
-    route: "/music/jam",
+    route: "/music/changes/jam",
     for: ["none", ...PITCHED, "mpc", "voice"],
   },
 };

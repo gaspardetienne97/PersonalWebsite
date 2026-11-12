@@ -1510,7 +1510,7 @@
         {
           "id": "5.1",
           "title": "Hear the form",
-          "href": "/music/jam?progression=blues",
+          "href": "/music/changes/jam?progression=blues",
           "setup": "Jam: the 12-bar blues, listen and count the bars aloud; then Ear, progression dictation.",
           "done": "Name the IV bar and the turnaround on 5 of 5 tracks.",
           "exerciseIds": [],
@@ -1626,7 +1626,7 @@
           "setup": "Call and response, Echo: the app plays 2 bars of blues; you echo them. A run is six calls, about two choruses.",
           "done": "80% of echoes right over 2 choruses.",
           "feeds": "Improvising",
-          "href": "/music/call-response?mode=echo&groove=blues&bars=2",
+          "href": "/music/changes/call-response?mode=echo&groove=blues&bars=2",
           "match": {
             "groove": "blues",
             "bars": "2"
@@ -1637,7 +1637,7 @@
         {
           "id": "5.8",
           "title": "First choruses",
-          "href": "/music/jam?progression=blues&transpose=2&bpm=100&game=blues-scale&choruses=3",
+          "href": "/music/changes/jam?progression=blues&transpose=2&bpm=100&game=blues-scale&choruses=3",
           "setup": "Jam in Check, Only the blues scale: blues with the backing in D (alto D), 100 BPM, 3 choruses. Stay in the scale, land on the root at bars 1, 5 and 9; the game grades the scale, the roots are yours to hear.",
           "done": "A recorded take with no lost bars, 3 choruses.",
           "feeds": "Level test",
@@ -2058,7 +2058,7 @@
         {
           "id": "6.7",
           "title": "Dorian over a vamp",
-          "href": "/music/jam?progression=modal&game=free&choruses=4",
+          "href": "/music/changes/jam?progression=modal&game=free&choruses=4",
           "setup": "Jam in Check, Over the changes: the modal vamp, about 2 minutes, D Dorian as written.",
           "done": "A recorded take with no lost bars.",
           "feeds": "So What (Level 10)",
@@ -2091,7 +2091,7 @@
           "links": [
             {
               "label": "Jam: minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i"
+              "href": "/music/changes/jam?progression=minor-ii-v-i"
             }
           ],
           "feeds": "Autumn Leaves, Blue Bossa"
@@ -3934,7 +3934,7 @@
         {
           "id": "10.2",
           "title": "Chord tones",
-          "href": "/music/chord-scales?changes=major&key=D",
+          "href": "/music/changes/chord-scales?changes=major&key=D",
           "setup": "Chord scales: a major ii-V-I in D (alto D, concert F). Blues changes are not in the drill yet.",
           "done": "85% of tone roles right.",
           "threshold": 0.85,
@@ -3946,7 +3946,7 @@
           "setup": "Jam in Check, Guide tones only: the 3rd and 7th of each chord, one per bar.",
           "done": "85% correct guide tones over 2 choruses.",
           "feeds": "Improvising",
-          "href": "/music/jam?progression=blues&game=guide-tones&choruses=2",
+          "href": "/music/changes/jam?progression=blues&game=guide-tones&choruses=2",
           "match": {
             "game": "guide-tones",
             "choruses": "2"
@@ -3957,7 +3957,7 @@
         {
           "id": "10.4",
           "title": "ii-V vocabulary in 12 keys",
-          "href": "/music/licks?category=major-ii-V-I",
+          "href": "/music/changes/licks?category=major-ii-V-I",
           "setup": "Jazz licks: major ii-V-I, transposed with the key picker.",
           "done": "3 licks in 6 keys at 120.",
           "minAttempts": 18,
@@ -3980,13 +3980,13 @@
         {
           "id": "10.6",
           "title": "Blues improvisation, two keys",
-          "href": "/music/jam?progression=blues&transpose=2&bpm=120&game=free&choruses=3",
+          "href": "/music/changes/jam?progression=blues&transpose=2&bpm=120&game=free&choruses=3",
           "setup": "Jam in Check, Over the changes: blues in alto D, then G, 120 swing, 3 choruses. The lick in each chorus is yours to check.",
           "done": "A recorded take with no lost bars and a lick in each chorus.",
           "links": [
             {
               "label": "Alto G",
-              "href": "/music/jam?progression=blues&transpose=7&bpm=120&game=free&choruses=3"
+              "href": "/music/changes/jam?progression=blues&transpose=7&bpm=120&game=free&choruses=3"
             }
           ],
           "feeds": "Level test",
@@ -4003,7 +4003,7 @@
         {
           "id": "10.7",
           "title": "Modal and minor",
-          "href": "/music/jam?progression=tune-so-what&game=free&choruses=3",
+          "href": "/music/changes/jam?progression=tune-so-what&game=free&choruses=3",
           "setup": "Jam in Check, Over the changes: the So What form, then the minor blues for Mr. P.C.",
           "done": "3 choruses, no lost bars.",
           "feeds": "So What",
@@ -4019,7 +4019,7 @@
           "links": [
             {
               "label": "Minor blues (Mr. P.C.)",
-              "href": "/music/jam?progression=tune-minor-blues&game=free&choruses=3"
+              "href": "/music/changes/jam?progression=tune-minor-blues&game=free&choruses=3"
             }
           ]
         },
@@ -4029,7 +4029,7 @@
           "setup": "Jam in Check, trading fours: four bars from you, four from the drums, two choruses of So What (8 trades).",
           "done": "8 trades in time.",
           "feeds": "Improvising",
-          "href": "/music/jam?progression=tune-so-what&trade=4&choruses=2",
+          "href": "/music/changes/jam?progression=tune-so-what&trade=4&choruses=2",
           "match": {
             "trade": "4",
             "choruses": "2"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
@@ -358,10 +359,9 @@
   const lickItems = LICKS.map((l) => ({ value: l.number, title: `Lick ${l.number}: ${l.progression.join(" ")}`, meta: lickTip(l), group: CATEGORY_LABEL[l.category] ?? l.category, keywords: l.scales.join(" ") }));
 </script>
 
-<svelte:head><title>Jazz licks | Woodshed</title></svelte:head>
-
 <DrillShell
-  title="Jazz licks"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("licks")}
   hue="piano"
   blurb="Hear a transcribed line over the changes, then play it back. Chunk it, loop it, and move it through the keys."
   summary={summaryLine}

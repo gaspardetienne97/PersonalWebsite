@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANGES_TITLE, changesTrainer } from "./modes";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc, pcOf } from "@repo/music-core";
@@ -359,11 +360,10 @@
   });
 </script>
 
-<svelte:head><title>Chord scales | Woodshed</title></svelte:head>
-
 <DrillShell
   lesson={{ lessons: conceptCard(pattern ? "chord-scales.patterns" : changes === "major" ? "chord-scales.why" : "chord-scales.minor"), trigger: "check" }}
-  title="Chord scales"
+  title={CHANGES_TITLE}
+  trainer={changesTrainer("chord-scales")}
   hue="piano"
   blurb="As the ii-V-I moves, play the scale of the chord you are on, or a 1-2-3-5 or 3-5-7-9 pattern on each chord."
   summary={summaryLine}

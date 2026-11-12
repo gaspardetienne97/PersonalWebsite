@@ -311,7 +311,7 @@
       timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
         r.correct && mirror && mode === "check"
-          ? { label: "Closest chords, I IV V I", href: "/music/voicings?variant=inversions&key=0", reason: "the next harmony step on the piano path" }
+          ? { label: "Closest chords, I IV V I", href: "/music/changes/voicings?variant=inversions&key=0", reason: "the next harmony step on the piano path" }
           : undefined,
     };
   }

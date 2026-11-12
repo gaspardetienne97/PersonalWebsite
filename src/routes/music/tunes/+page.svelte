@@ -23,12 +23,12 @@
   /** Where each rung is practised; undefined when the tune has no changes in the tune player yet. */
   function rungHref(l: TuneLadderState, r: Rung): string | undefined {
     const id = l.tune.id;
-    const jam = `/music/jam?progression=tune-${id}&bpm=${l.tune.bpm}`;
+    const jam = `/music/changes/jam?progression=tune-${id}&bpm=${l.tune.bpm}`;
     if (r === "a" || r === "f") return `/music/songs/shelf/jazz/${id}`;
-    if (r === "c") return "/music/accompany?mode=lead-sheet&lh=shells";
+    if (r === "c") return "/music/changes/accompany?mode=lead-sheet&lh=shells";
     if (!l.tune.changes) return undefined;
-    if (r === "b") return `/music/jam?progression=tune-${id}&bpm=${Math.round(l.tune.bpm * 0.8)}&game=guide-tones&choruses=2`;
-    if (r === "d") return `/music/accompany?mode=comping&progression=tune-${id}&voicing=rootless`;
+    if (r === "b") return `/music/changes/jam?progression=tune-${id}&bpm=${Math.round(l.tune.bpm * 0.8)}&game=guide-tones&choruses=2`;
+    if (r === "d") return `/music/changes/accompany?mode=comping&progression=tune-${id}&voicing=rootless`;
     return `${jam}&game=changes`;
   }
 </script>

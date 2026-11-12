@@ -100,8 +100,16 @@ export interface RawLevelPath {
 }
 
 // The song library is the Studio hub now (/music/library redirects there); the catalog keeps the old route.
+// The seven jazz drills are modes of Play over changes (/music/changes/<mode>); a saved link to an
+// old route still names the same drill.
 const ROUTE = (href: string) =>
-  href.split(/[?#]/)[0].replace(/^\/music\/studio$/, "/music/library");
+  href
+    .split(/[?#]/)[0]
+    .replace(/^\/music\/studio$/, "/music/library")
+    .replace(
+      /^\/music\/(voicings|comping|accompany|licks|chord-scales|jam|call-response)$/,
+      "/music/changes/$1",
+    );
 
 /** The exercise ids a drill link records, so a step needs no hand-listed skills. */
 export function exercisesForHref(href: string, instruments: Instrument[] = []): string[] {

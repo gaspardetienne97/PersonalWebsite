@@ -162,7 +162,7 @@ describe("buildRoutine", () => {
     expect(r.steps.reduce((m, s) => m + s.minutes, 0)).toBe(90);
     const piano = buildRoutine({ id: "r", instrument: "piano", budgetMinutes: 90 });
     expect(route(piano.steps.find((s) => s.role === "song")!.href)).toBe("/music/phrases");
-    expect(route(piano.steps.find((s) => s.role === "create")!.href)).toBe("/music/jam");
+    expect(route(piano.steps.find((s) => s.role === "create")!.href)).toBe("/music/changes/jam");
   });
 
   it("never repeats a route when another is left", () => {

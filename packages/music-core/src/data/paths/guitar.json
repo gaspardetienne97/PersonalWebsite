@@ -1308,7 +1308,7 @@
           "id": "4.4",
           "title": "12-bar with sevenths",
           "strand": "S",
-          "href": "/music/jam?progression=blues&transpose=-3&bpm=90",
+          "href": "/music/changes/jam?progression=blues&transpose=-3&bpm=90",
           "setup": "Jam: 12-bar blues in A, strum A7 D7 E7 in swing eighths at 90. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
           "done": "Two choruses with no missed change.",
           "exerciseIds": [],
@@ -1409,7 +1409,7 @@
           "id": "4.10",
           "title": "First lick in time",
           "strand": "L",
-          "href": "/music/licks?instrument=guitar&category=guitar-pentatonic&lick=30&bpm=96",
+          "href": "/music/changes/licks?instrument=guitar&category=guitar-pentatonic&lick=30&bpm=96",
           "setup": "Licks, Guitar pentatonic: lick 30 at 96.",
           "done": "Check mode passes 3 times.",
           "match": {
@@ -2294,11 +2294,11 @@
           "links": [
             {
               "label": "Jam, 12-bar in A",
-              "href": "/music/jam?progression=blues&transpose=-3"
+              "href": "/music/changes/jam?progression=blues&transpose=-3"
             }
           ],
           "feeds": "blues improvising",
-          "href": "/music/call-response?mode=answer&groove=blues&bars=1",
+          "href": "/music/changes/call-response?mode=answer&groove=blues&bars=1",
           "match": {
             "groove": "blues"
           },
@@ -2906,17 +2906,17 @@
           "id": "7.11",
           "title": "Improvise two choruses",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=4&game=pentatonic-1&choruses=2",
+          "href": "/music/changes/jam?progression=blues&transpose=4&game=pentatonic-1&choruses=2",
           "setup": "Jam in Check, Minor pentatonic on the 1st: 12-bar in E and in A, and a minor vamp, with boxes 1 and 2.",
           "done": "Two choruses, no stops, in time.",
           "links": [
             {
               "label": "12-bar in A",
-              "href": "/music/jam?progression=blues&transpose=-3&game=pentatonic-1&choruses=2"
+              "href": "/music/changes/jam?progression=blues&transpose=-3&game=pentatonic-1&choruses=2"
             },
             {
               "label": "A minor vamp",
-              "href": "/music/jam?progression=modal&transpose=-5&game=pentatonic-1&choruses=2"
+              "href": "/music/changes/jam?progression=modal&transpose=-5&game=pentatonic-1&choruses=2"
             }
           ],
           "feeds": "Level 8",
@@ -3263,7 +3263,7 @@
           "id": "8.3",
           "title": "Major pentatonic",
           "strand": "L",
-          "href": "/music/jam?progression=pop-axis&transpose=7&game=chord-tones&choruses=2",
+          "href": "/music/changes/jam?progression=pop-axis&transpose=7&game=chord-tones&choruses=2",
           "setup": "Fretboard, Positions: box 1 at the nut, read from G as the G major pentatonic (a major pentatonic label is still to come); then Jam in Check, Chord tones on 1 and 3, over I-V-vi-IV in G.",
           "done": "Two choruses over I-V-vi-IV, landing on chord tones on the 1.",
           "links": [
@@ -3299,7 +3299,7 @@
           "id": "8.5",
           "title": "Target notes on the change",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=-3&game=changes&choruses=3",
+          "href": "/music/changes/jam?progression=blues&transpose=-3&game=changes&choruses=3",
           "setup": "Jam in Check: 12-bar in A; land on the 3rd of each new chord.",
           "done": "3 choruses, 80% of changes hit.",
           "feeds": "improvising",
@@ -3423,7 +3423,7 @@
           "links": [
             {
               "label": "Licks, by ear",
-              "href": "/music/licks?instrument=guitar&category=guitar-pentatonic&ear=1"
+              "href": "/music/changes/licks?instrument=guitar&category=guitar-pentatonic&ear=1"
             }
           ],
           "exerciseIds": []
@@ -3747,18 +3747,18 @@
           "id": "9.5",
           "title": "ii-V-I",
           "strand": "S, T",
-          "href": "/music/jam?progression=ii-v-i",
+          "href": "/music/changes/jam?progression=ii-v-i",
           "setup": "Jam: ii-V-I and minor ii-V-i, comping; then Chord scales. Jam's Check grades single notes, not strummed chords, so this step opens it and is not judged.",
           "done": "Comp 4 choruses with no missed change.",
           "exerciseIds": [],
           "links": [
             {
               "label": "Minor ii-V-i",
-              "href": "/music/jam?progression=minor-ii-v-i"
+              "href": "/music/changes/jam?progression=minor-ii-v-i"
             },
             {
               "label": "Chord scales",
-              "href": "/music/chord-scales"
+              "href": "/music/changes/chord-scales"
             }
           ],
           "feeds": "Autumn Leaves, Summertime"
@@ -3767,7 +3767,7 @@
           "id": "9.6",
           "title": "Dorian",
           "strand": "L",
-          "href": "/music/jam?progression=modal",
+          "href": "/music/changes/jam?progression=modal",
           "setup": "Jam: the D Dorian vamp, with Scales for D Dorian. A Dorian position pattern is still to come. Jam's Check does not grade the 6th as a colour, so this step opens it and is not judged.",
           "done": "Two choruses, landing on the 6th as colour.",
           "exerciseIds": [],
@@ -3783,7 +3783,7 @@
           "id": "9.7",
           "title": "Mixolydian and the blues mix",
           "strand": "L",
-          "href": "/music/jam?progression=blues&transpose=-3&game=thirds&choruses=2",
+          "href": "/music/changes/jam?progression=blues&transpose=-3&game=thirds&choruses=2",
           "setup": "Jam in Check, Land on the 3rd: 12-bar in A, mixing minor and major pentatonic; Scales for A Mixolydian. A Mixolydian position pattern is still to come, and the game asks for the 3rd of every chord, not only the I.",
           "done": "Two choruses, 3rds on the I chord.",
           "links": [
@@ -4162,7 +4162,7 @@
           "id": "10.3",
           "title": "Unseen backing improvisation",
           "strand": "L",
-          "href": "/music/jam?game=chord-tones&choruses=2",
+          "href": "/music/changes/jam?game=chord-tones&choruses=2",
           "setup": "Jam in Check, Chord tones on 1 and 3: a progression and key you did not choose (a surprise-me setting is still to come).",
           "done": "Two choruses in time, chord tones on the downbeats 70% of the time.",
           "feeds": "the exam",
