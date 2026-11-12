@@ -3,6 +3,7 @@ import { followChords, onChord } from "@repo/music-core/scoring/chord-follower";
 import {
   pairStrums,
   slotAt,
+  strokeTally,
   strokeVerdict,
   strumScore,
   strumSlots,
@@ -85,6 +86,17 @@ describe("on the chord: one rule for strums and chords followed", () => {
     expect(s).toEqual({ landed: 2, total: 4, score: 0.5 });
     // The ring can never read full while a chord was not followed.
     expect(s.score < 1).toBe(r.matched < r.total);
+  });
+
+  it("the tally puts every strum in one place, and its on time is the score's count", () => {
+    // The round 11 case: 24 strums all on the beat, 16 of them on the wrong chord.
+    const hits = [...Array(8).fill(5), ...Array(16).fill("wrong")];
+    const t = strokeTally(hits, 40);
+    expect(t).toEqual({ ontime: 8, early: 0, late: 0, wrong: 16, miss: 0 });
+    expect(t.ontime).toBe(strumScore(hits, 40).landed);
+    const mixed = strokeTally([0, -90, 70, "wrong", undefined], 40);
+    expect(mixed).toEqual({ ontime: 1, early: 1, late: 1, wrong: 1, miss: 1 });
+    expect(Object.values(mixed).reduce((a, b) => a + b)).toBe(5);
   });
 
   it("a full voicing with one extra tone is on the chord; a lone shared tone is not", () => {

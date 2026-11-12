@@ -27,7 +27,7 @@
   import { ChordListener, type Heard } from "$lib/music/drills/guitar/strum.svelte";
   import MicPanel, { startMic } from "$lib/music/drills/guitar/MicPanel.svelte";
   import StrumSlots, { type SlotMark } from "$lib/music/drills/guitar/StrumSlots.svelte";
-  import { pairStrums, slotAt, strokeVerdict, strumScore, strumSlots, timingCounts } from "$lib/music/drills/guitar/strum-slots";
+  import { pairStrums, slotAt, strokeTally, strokeVerdict, strumScore, strumSlots } from "$lib/music/drills/guitar/strum-slots";
   import Verdict from "$lib/music/components/Verdict.svelte";
   import Info from "lucide-svelte/icons/info";
   import ShapeBoard from "$lib/music/drills/guitar/ShapeBoard.svelte";
@@ -94,6 +94,8 @@
   let observed = $state.raw<Heard[]>([]);
   let result = $state<ChordFollowResult | null>(null);
   let summary = $state<RunSummary | null>(null);
+  /** The last run's strums by where they landed (strokeTally): the results' tally, on the bar grid's own marks. */
+  let tally = $state<ReturnType<typeof strokeTally> | null>(null);
   let demo: { stop(): void; playing: boolean } | null = $state(null);
   let demoIndex = $state<number | null>(null);
   let demoAt = $state<number | null>(null);
@@ -230,8 +232,10 @@
       return;
     }
     const timed = r.chords.filter((c) => c.errorMs !== undefined);
-    // With a pattern each stroke is a target: on time, early, late or missed, from the heard onsets.
-    const strokes = strum ? timingCounts(pairStrums(blockTimes, observed.map((h) => h.at), beatMs), onTimeMs()) : undefined;
+    // With a pattern each stroke is a target, in one of five places (the bar grid's marks): on time, early or late on
+    // its chord, on the wrong chord, or missed. They add up to the strums expected, and on time is the score's count,
+    // so the breakdown and the headline tell one story (a strum on the beat on the wrong chord is not "on time").
+    tally = strum ? strokeTally(blocks.map((_, k) => blockHits[k]), onTimeMs()) : null;
     summary = {
       headline: !observed.length
         ? "No strums were heard. Check the level meter moves when you play, then try again."
@@ -247,9 +251,16 @@
       best: fin.best,
       xp: fin.xp,
       assistance: "Practice record only: not counted toward skills yet.",
-      ...(strokes ? { timing: strokes } : {}),
       rows: [
-        ...(strum ? [{ label: "Strums on time on the chord", value: landed.score, text: `${landed.landed} of ${landed.total}` }] : []),
+        ...(strum && tally
+          ? [
+              // Four counts that add up to the strums expected; the first is the headline's and the ring's.
+              { label: "On time on the chord", value: landed.score, text: `${landed.landed} of ${landed.total}` },
+              { label: "On the wrong chord", text: `${tally.wrong} of ${landed.total}` },
+              { label: "Early or late", text: `${tally.early + tally.late} of ${landed.total}` },
+              { label: "Missed", text: `${tally.miss} of ${landed.total}` },
+            ]
+          : []),
         { label: "Chords followed", value: r.total ? r.matched / r.total : 0, text: `${r.matched} of ${r.total}` },
         { label: "Chord tones heard", value: r.score, text: pct(r.score) },
         { label: "Strums heard", text: String(observed.length) },
@@ -574,7 +585,8 @@
             {#each barMarks as b, i (b.bar)}
               <li class="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2">
                 <span class="pt-0.5 font-display text-lg font-bold">{b.chord}</span>
-                <div><StrumSlots slots={b.slots} marks={b.marks} compact legend={i === barMarks.length - 1} label="Bar {b.bar + 1}, {b.chord}" /></div>
+                <!-- Under the last bar, the marks' key is the run's tally: the same glyphs, each with its count. -->
+                <div><StrumSlots slots={b.slots} marks={b.marks} compact legend={i === barMarks.length - 1} counts={tally ?? undefined} label="Bar {b.bar + 1}, {b.chord}" /></div>
               </li>
             {/each}
           </ol>

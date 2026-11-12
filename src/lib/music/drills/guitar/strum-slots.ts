@@ -96,3 +96,16 @@ export function strumScore(hits: readonly (number | string | undefined)[], onTim
   const landed = hits.filter((h) => typeof h === "number" && Math.abs(h) <= onTimeMs).length;
   return { landed, total: hits.length, score: hits.length ? landed / hits.length : 0 };
 }
+
+/**
+ * Every expected strum in one of the five places the bar grid marks it: on time, early or late on its chord,
+ * on the wrong chord (whatever its timing), or missed. They add up to the total, and `ontime` is the score's count.
+ */
+export function strokeTally(hits: readonly (number | string | undefined)[], onTimeMs: number) {
+  const out = { ontime: 0, early: 0, late: 0, wrong: 0, miss: 0 };
+  for (const h of hits)
+    out[
+      h === undefined ? "miss" : typeof h === "number" ? strokeVerdict(h, onTimeMs).kind : "wrong"
+    ]++;
+  return out;
+}

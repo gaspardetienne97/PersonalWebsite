@@ -18,7 +18,8 @@
 
   // `legend`: what the marks mean, before the run (and in the demo); during a run each mark carries its own word.
   // `compact` (results): one short row, each stroke's mark in its slot (the arrow where nothing was judged).
-  let { slots, lit = null, marks = {}, label, legend = false, compact = false }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string; legend?: boolean; compact?: boolean } = $props();
+  // `counts` (results): the legend becomes the run's tally, each mark with how many strums got it, so the tally and the grid share one set of glyphs.
+  let { slots, lit = null, marks = {}, label, legend = false, compact = false, counts }: { slots: Slot[]; lit?: number | null; marks?: Record<number, SlotMark>; label: string; legend?: boolean; compact?: boolean; counts?: Record<SlotMark["kind"], number> } = $props();
 
   const per = $derived(Math.max(1, Math.round(slots.length / 4)));
   const icon = $derived(slots.length > 16 ? "size-3.5" : slots.length > 8 ? "size-4" : "size-6");
@@ -67,12 +68,15 @@
   {/each}
 </ol>
 {#if legend}
-  <!-- What the marks mean, shown once before the run: the same glyphs the strokes get as they are judged. -->
+  <!-- What the marks mean, shown once before the run: the same glyphs the strokes get as they are judged. With
+       `counts` it is the run's tally: every strum is in one of the five, so they add up to the strums expected. -->
   <!-- One row at every width: from sm the glyph beside its word, on a phone above it in five equal columns. -->
-  <ul class="mt-2 grid grid-cols-5 gap-x-1 text-sm text-ws-stage-soft sm:flex sm:gap-x-4" aria-hidden="true">
-    {#each [["ontime", "On time"], ["early", "Early"], ["late", "Late"], ["miss", "Missed"], ["wrong", "Wrong"]] as const as [k, word] (k)}
+  <ul class="mt-2 grid grid-cols-5 gap-x-1 text-sm text-ws-stage-soft sm:flex sm:flex-wrap sm:gap-x-4 sm:gap-y-1" aria-hidden={counts ? undefined : "true"} aria-label={counts ? "Where each strum landed" : undefined} data-testid={counts ? "strum-tally" : undefined}>
+    {#each [["ontime", "On time"], ["early", "Early"], ["late", "Late"], ["miss", "Missed"], ["wrong", "Wrong chord"]] as const as [k, word] (k)}
       {@const Icon = MARK_ICON[k]}
-      <li class="flex items-center gap-1.5 whitespace-nowrap max-sm:flex-col max-sm:gap-0.5"><span class="grid size-5 place-items-center rounded-full {MARK_TONE[k]}"><Icon class="size-3.5" strokeWidth={3} /></span>{word}</li>
+      <li class="flex items-center gap-1.5 whitespace-nowrap max-sm:flex-col max-sm:gap-0.5 max-sm:whitespace-normal max-sm:text-center" data-kind={k}>
+        <span class="grid size-5 shrink-0 place-items-center rounded-full {MARK_TONE[k]}"><Icon class="size-3.5" strokeWidth={3} aria-hidden="true" /></span>{word}{#if counts}<span class="tnum font-semibold text-ws-stage-ink">{counts[k]}</span>{/if}
+      </li>
     {/each}
   </ul>
 {/if}
