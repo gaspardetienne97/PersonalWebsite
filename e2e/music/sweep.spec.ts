@@ -39,6 +39,7 @@ const ROUTES = [
   "/music/tuner",
   "/music/tuner?mode=drone",
   "/music/settings",
+  "/music/clips",
   "/music/guide",
 ];
 

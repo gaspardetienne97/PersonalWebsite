@@ -126,6 +126,7 @@
     "/music/guide",
     "/music/connect",
     "/music/tuner",
+    "/music/clips",
   ];
   $effect(() => {
     bench.timed = !UNTIMED.some((r) => path === r || path.startsWith(r + "/"));

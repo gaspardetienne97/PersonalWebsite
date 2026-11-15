@@ -234,6 +234,13 @@
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
+            <p class="font-medium">Test recordings</p>
+            <p class="text-sm text-ws-soft">Record 42 short clips through each microphone, to test how Woodshed hears your instruments.</p>
+          </div>
+          <a class={btn} href="/music/clips">Record test clips</a>
+        </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
             <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">Aerophone reading key</span><Hint about="Aerophone reading key" text="Match the AE-20's transpose setting. Staffs and fingerings show the note you read and finger. The Aerophone sends concert pitch either way, and that is what Woodshed scores and plays back." /></p>
           </div>
           <div class="flex gap-1.5" role="group" aria-labelledby="aero-key-l">

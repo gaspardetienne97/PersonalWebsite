@@ -82,6 +82,12 @@ const PAGES: SearchItem[] = [
   { label: "Intonation", href: "/music/tuner?mode=intonation", hint: "Tuner" },
   { label: "Drone", href: "/music/tuner?mode=drone", hint: "Tuner" },
   {
+    label: "Test recordings",
+    href: "/music/clips",
+    hint: "Settings",
+    keywords: "clips microphone wav",
+  },
+  {
     label: "Settings",
     href: "/music/settings",
     hint: "Sound, latency, data",
