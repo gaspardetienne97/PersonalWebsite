@@ -109,9 +109,16 @@ describe("readChord", () => {
     expect(r.pcs).toEqual([]);
   });
 
-  it("reads a guitar that is in tune with itself but 20 cents flat", () => {
-    const flat = OPEN_C.flatMap((m) => string(m - 0.2));
-    expect(readChord(ring(flat), SR).pcs).toEqual([0, 4, 7]);
+  it("reads a guitar that is in tune with itself but 20 or 40 cents flat", () => {
+    for (const flat of [0.2, 0.4])
+      expect(readChord(ring(OPEN_C.flatMap((m) => string(m - flat))), SR).pcs).toEqual([0, 4, 7]);
+  });
+
+  it("leaves out a background tone a quarter tone off the strings", () => {
+    // A steady 474 Hz line (between B flat and B) under an open G must not make it G minor.
+    const line = [{ hz: 474, amp: 0.03 }];
+    const r = readChord(ring([...line, ...OPEN_G.flatMap((m) => string(m, 0.05))]), SR);
+    expect(r.pcs).toEqual([2, 7, 11]);
   });
 
   it("answers nothing for a smear across neighbouring semitones", () => {

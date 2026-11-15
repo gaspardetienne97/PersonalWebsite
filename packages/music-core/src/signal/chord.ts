@@ -61,6 +61,8 @@ export const CHORD_READ = {
   minExplained: 0.66,
   /** Peaks further than this from one shared tuning (cents, weighted mean) are not strings in tune. */
   maxSpreadCents: 17,
+  /** A single peak further than this from the shared tuning is left out. */
+  outlierCents: 25,
 };
 export type ChordReadSettings = typeof CHORD_READ;
 
@@ -156,7 +158,6 @@ export interface ExplainedPeak {
 }
 
 const hzToMidi = (hz: number) => 69 + 12 * Math.log2(hz / 440);
-const pcOfHz = (hz: number) => ((Math.round(hzToMidi(hz)) % 12) + 12) % 12;
 
 /**
  * For each peak, which pitch classes could have made it. Always its own. Also
@@ -170,7 +171,10 @@ const pcOfHz = (hz: number) => ((Math.round(hzToMidi(hz)) % 12) + 12) % 12;
 export function explainPeaks(
   peaks: SpectralPeak[],
   s: ChordReadSettings = CHORD_READ,
+  /** The instrument's tuning, semitones from A440 (see `sharedTuning`). */
+  centre = 0,
 ): ExplainedPeak[] {
+  const pcOfHz = (hz: number) => ((Math.round(hzToMidi(hz) - centre) % 12) + 12) % 12;
   const has = (hz: number, floor: number) => {
     const tol = Math.max(hz * (2 ** (s.partialCents / 1200) - 1), s.partialHz);
     for (const p of peaks) {
@@ -204,12 +208,13 @@ export function explainPeaks(
 }
 
 /**
- * How far the peaks sit from one shared tuning, in cents (weighted mean
- * distance from the semitone grid, after the grid is moved to fit them best).
- * Strings in tune with each other stay within a few cents whatever the
- * instrument's overall pitch; damped strings and speech land anywhere.
+ * The tuning the peaks share and how far they sit from it. `centre` is where
+ * the semitone grid fits them best (semitones from A440, -0.5..0.5) and
+ * `spreadCents` the weighted mean distance from that grid. Strings in tune with
+ * each other stay within a few cents whatever the instrument's overall pitch;
+ * damped strings and speech land anywhere.
  */
-export function tuningSpread(peaks: SpectralPeak[], s: ChordReadSettings = CHORD_READ): number {
+export function sharedTuning(peaks: SpectralPeak[], s: ChordReadSettings = CHORD_READ) {
   let x = 0;
   let y = 0;
   const off = peaks.map((p) => {
@@ -228,7 +233,7 @@ export function tuningSpread(peaks: SpectralPeak[], s: ChordReadSettings = CHORD
     sum += w * Math.abs(r - Math.round(r));
     total += w;
   }
-  return total ? (100 * sum) / total : 0;
+  return { centre, spreadCents: total ? (100 * sum) / total : 0 };
 }
 
 const SHAPES = new Map<number, number>();
@@ -281,7 +286,7 @@ export interface ChordReading {
   chroma: number[];
   /** Share of the spectrum the heard tones explain, 0..1. */
   explained: number;
-  /** How far the peaks sit from one shared tuning, cents (see `tuningSpread`). */
+  /** How far the peaks sit from one shared tuning, cents (see `sharedTuning`). */
   spreadCents: number;
   /** True when nothing stood clear of the level floor and the noise, so nothing was read. */
   quiet: boolean;
@@ -308,11 +313,18 @@ export function readChord(
     s,
   );
   if (!peaks.length) return { ...none, quiet: true };
-  const cover = coverPeaks(explainPeaks(peaks, s), s);
+  const { centre, spreadCents } = sharedTuning(peaks, s);
+  // A peak a quarter tone from the others' tuning has no pitch class to give
+  // (a background tone, or a high partial that sits between the notes).
+  const tuned = peaks.filter((p) => {
+    const d = hzToMidi(p.hz) - centre;
+    return Math.abs(d - Math.round(d)) * 100 <= s.outlierCents;
+  });
+  if (!tuned.length) return { ...none, quiet: false };
+  const cover = coverPeaks(explainPeaks(tuned, s, centre), s);
   const max = Math.max(...cover.own);
   // Chords hold at most one pair of neighbouring semitones (the 7 and 1 of a maj7).
   const smeared = cover.pcs.filter((p) => cover.pcs.includes((p + 1) % 12)).length >= 2;
-  const spreadCents = tuningSpread(peaks, s);
   const chord = !smeared && cover.explained >= s.minExplained && spreadCents <= s.maxSpreadCents;
   return {
     pcs: chord ? [...cover.pcs].sort((a, b) => a - b) : [],
