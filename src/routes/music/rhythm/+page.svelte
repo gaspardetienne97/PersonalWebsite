@@ -13,7 +13,7 @@
   import { gradeOnsets, gradePattern, gradePulse, type PatternResult, type PulseResult } from "@repo/music-core/scoring/rhythm";
   import { timingVerdict } from "@repo/music-core/scoring/timing";
   import { timingBreakdown, timingRow } from "@repo/music-core/scoring/evidence";
-  import { chroma, chromaToPcs } from "@repo/music-core/signal/chroma";
+  import { framesWindow, readChord, type TimedFrame } from "@repo/music-core/signal/chord";
   import { grooveDictationLesson } from "@repo/music-core/lessons/tier1";
   import { rhythmLessons } from "@repo/music-core/lessons/reading";
   import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
@@ -96,7 +96,9 @@
   let stopClockRef: (() => void) | null = null;
   let timers: ReturnType<typeof setTimeout>[] = [];
   let unsubFrames: (() => void) | null = null;
-  let frames: { at: number; wide: Float32Array; sr: number; pitched: boolean }[] = [];
+  let frames: TimedFrame[] = [];
+  /** Audio strums whose chord has not been read yet (the window after the attack is still arriving). */
+  let unread: Hit[] = [];
   let pressed = $state(false);
 
   const targetsRel = $derived(pulse ? pulseTargets(beats, bpm) : plan.events.map((e) => e.atMs));
@@ -135,16 +137,27 @@
     } else if (e.kind === "onset" && e.source === "audio") {
       const h: Hit = { at: e.at, source: "audio" };
       addHit(h);
-      // Pitch at a strum: chroma of a pitched frame just after the onset. A muted
-      // stroke has no pitched frame, so it stays unpitched (and counts as a mute).
-      if (def.chords && !pulse)
-        timers.push(
-          setTimeout(() => {
-            const f = frames.find((x) => x.pitched && x.at >= e.at + 10 && x.at <= e.at + 160);
-            if (f) h.pcs = chromaToPcs(chroma(f.wide, f.sr), 0.5);
-          }, 180),
-        );
+      // Pitch at a strum: the chord read from the sound after the attack. A muted
+      // stroke rings no tones, so it stays unpitched (and counts as a mute).
+      if (def.chords && !pulse) {
+        unread.push(h);
+        timers.push(setTimeout(() => readStrum(h), STRUM_READ_MS + 2 * STRUM_FRAME_MS));
+      }
     }
+  }
+
+  /** How much sound after the attack a strum's chord is read from, and one mic frame of delay. */
+  const STRUM_READ_MS = 400;
+  const STRUM_FRAME_MS = 45;
+
+  function readStrum(h: Hit) {
+    if (!unread.includes(h)) return;
+    unread = unread.filter((x) => x !== h);
+    const buf = framesWindow(frames, h.at, STRUM_READ_MS);
+    // A strum just before the end is read from what has arrived; under 150 ms is too little to name tones.
+    if (!frames.length || buf.length < frames[0].sampleRate * 0.15) return;
+    const pcs = readChord(buf, frames[0].sampleRate).pcs;
+    if (pcs.length) h.pcs = pcs;
   }
 
   function onKey(e: KeyboardEvent) {
@@ -190,8 +203,9 @@
         return;
       }
       frames = [];
+      unread = [];
       unsubFrames = mic.subscribeFrames((f) => {
-        frames.push({ at: f.at, wide: f.wide, sr: f.sampleRate, pitched: !!f.pitch });
+        frames.push({ at: f.at, frame: f.frame, sampleRate: f.sampleRate });
         if (frames.length > 24) frames.shift();
       });
     }
@@ -275,6 +289,8 @@
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
     const notes = cap?.notes ?? [];
+    // Strums still waiting for their window are read from what has arrived.
+    for (const h of [...unread]) readStrum(h);
     teardown();
     phase = "results";
     const taken = hits;
