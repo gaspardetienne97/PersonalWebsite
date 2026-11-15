@@ -6,7 +6,7 @@
 // window), then onFrame (pitch with the 0.6 clarity floor, the onset detector,
 // the two-frame note tracker with re-strikes). And the three things drills do
 // with frames: ChordListener (drills/guitar/strum.svelte.ts), the rhythm
-// page's chroma at a strum (routes/music/rhythm/+page.svelte), and the pitch
+// page's chord read at a strum (routes/music/rhythm/+page.svelte), and the pitch
 // trace. Times are milliseconds from the start of the file.
 export const FRAME = 2048;
 export const WIDE = 4096;
@@ -15,7 +15,6 @@ const SILENT_FRAMES = 2;
 const RESTRIKE_MS = 120;
 const BLOCK = 128;
 const HISTORY_MS = 2500;
-export const CHORD_FLOOR_DB = -50;
 
 const rmsOf = (buf) => {
   let s = 0;
@@ -142,21 +141,18 @@ export function simulateLive(channels, sr, sig, a4 = 440) {
   return { frames, events, switches, frameMs, sampleRate: sr };
 }
 
-/** ChordListener.#read: the frames joined, a -50 dB floor, the last 600 ms as chroma. */
-function readChord(frames, at, sig) {
-  const buf = new Float32Array(frames.reduce((n, f) => n + f.frame.length, 0));
-  let o = 0;
-  for (const f of frames) {
-    buf.set(f.frame, o);
-    o += f.frame.length;
-  }
-  if (!frames.length || sig.rmsDb(buf) < CHORD_FLOOR_DB)
-    return { at, pcs: [], chroma: Array(12).fill(0), quiet: true };
-  const c = sig.chroma(sig.chordWindow([buf], frames[0].sampleRate), sig.CHORD_SAMPLE_RATE);
-  return { at, pcs: sig.chromaToPcs(c), chroma: c, quiet: false };
+/** ChordListener.#read: the 600 ms from `from`, cut to the sample, through the chord reader. */
+function readChord(frames, from, sig) {
+  const frameMs = frames.length ? (frames[0].frame.length / frames[0].sampleRate) * 1000 : 0;
+  const win = frames.filter((f) => f.at + frameMs > from && f.at < from + sig.CHORD_WINDOW_MS);
+  const r = sig.readChord(
+    sig.framesWindow(win, from, sig.CHORD_WINDOW_MS),
+    win[0]?.sampleRate ?? 48000,
+  );
+  return { at: from, pcs: r.pcs, chroma: r.chroma, quiet: r.quiet };
 }
 
-/** One reading per audio onset (the 600 ms after it), as ChordListener hands to onStrum. */
+/** One reading per audio onset (the 600 ms from it), as ChordListener hands to onStrum. */
 export function strumReadings(sim, sig) {
   const { frames, frameMs } = sim;
   const last = frames[frames.length - 1];
@@ -165,49 +161,58 @@ export function strumReadings(sim, sig) {
     if (e.kind !== "onset") continue;
     // The live listener waits for the window to fill; a strum too close to the end never reads.
     if (!last || last.at + frameMs < e.at + sig.CHORD_WINDOW_MS) continue;
-    const win = frames.filter((f) => f.at + frameMs > e.at && f.at < e.at + sig.CHORD_WINDOW_MS);
-    out.push(readChord(win, e.at, sig));
+    out.push(readChord(frames, e.at, sig));
   }
   return out;
 }
 
-/** The "Hearing" readout: every fourth frame, the last 600 ms. */
+/** The "Hearing" readout: every fourth frame, the last 600 ms (of the 2.5 s the listener keeps). */
 export function liveReadouts(sim, sig) {
   const { frames, frameMs } = sim;
   const out = [];
   for (let i = 3; i < frames.length; i += 4) {
     const end = frames[i].at + frameMs;
-    const win = frames
-      .slice(0, i + 1)
-      .filter(
-        (x) => frames[i].at - x.at <= HISTORY_MS && x.at + frameMs > end - sig.CHORD_WINDOW_MS,
-      );
-    out.push({ ...readChord(win, end - sig.CHORD_WINDOW_MS, sig), end });
+    const kept = frames.slice(Math.max(0, i - 63), i + 1);
+    out.push({
+      ...readChord(
+        kept.filter((x) => frames[i].at - x.at <= HISTORY_MS),
+        end - sig.CHORD_WINDOW_MS,
+        sig,
+      ),
+      end,
+    });
   }
   return out;
 }
 
+/** The rhythm page keeps 24 frames and reads a strum from the 400 ms after its attack. */
+const RHYTHM_READ_MS = 400;
+const RHYTHM_FRAME_MS = 45;
+const RHYTHM_RING = 24;
+
 /**
- * The rhythm page at a strum: 180 ms after the onset is delivered, the first
- * pitched frame 10 to 160 ms after it, chroma of its 4096 window at the mic's
- * own rate. Null is "no pitched frame" (the page counts that as a muted stroke).
+ * The rhythm page at a strum: once 400 ms and two frames have passed since the
+ * onset was delivered, the chord reader over the 400 ms from the attack, out
+ * of the last 24 frames. Null is "no tones" (the page counts that as a muted
+ * stroke). A strum too close to the end is read from what arrived, if 150 ms did.
  */
 export function rhythmReadings(sim, sig) {
   const { frames, frameMs } = sim;
   const out = [];
   frames.forEach((f, i) => {
     if (f.onsetAt === undefined) return;
-    const seenBy = f.at + frameMs + 180;
-    const recent = frames
-      .slice(Math.max(0, i - 23), i + 24)
-      .filter((x) => x.at + frameMs <= seenBy);
-    const hit = recent
-      .slice(-24)
-      .find((x) => x.pitch && x.at >= f.onsetAt + 10 && x.at <= f.onsetAt + 160);
-    out.push({
-      at: f.onsetAt,
-      pcs: hit ? sig.chromaToPcs(sig.chroma(hit.wide, sim.sampleRate), 0.5) : null,
-    });
+    // The onset is delivered with frame i; the timer fires this long after.
+    const firesAt = f.at + frameMs + RHYTHM_READ_MS + 2 * RHYTHM_FRAME_MS;
+    let j = i;
+    while (j + 1 < frames.length && frames[j + 1].at + frameMs <= firesAt) j++;
+    const ring = frames.slice(Math.max(0, j + 1 - RHYTHM_RING), j + 1);
+    const buf = sig.framesWindow(ring, f.onsetAt, RHYTHM_READ_MS);
+    let pcs = null;
+    if (buf.length >= sim.sampleRate * 0.15) {
+      const r = sig.readChord(buf, sim.sampleRate);
+      if (r.pcs.length) pcs = r.pcs;
+    }
+    out.push({ at: f.onsetAt, pcs });
   });
   return out;
 }

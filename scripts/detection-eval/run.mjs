@@ -55,6 +55,7 @@ const S = "packages/music-core/src/signal/";
 const [
   pitch,
   chromaMod,
+  chordMod,
   onset,
   level,
   biquad,
@@ -67,6 +68,7 @@ const [
 ] = await Promise.all([
   load(`${S}pitch.ts`),
   load(`${S}chroma.ts`),
+  load(`${S}chord.ts`),
   load(`${S}onset.ts`),
   load(`${S}level.ts`),
   load(`${S}biquad.ts`),
@@ -77,7 +79,7 @@ const [
   load("packages/music-core/src/scoring/bends.ts"),
   load("src/lib/music/clips/clips.ts"),
 ]);
-const sig = { ...pitch, ...chromaMod, ...onset, ...level, ...biquad };
+const sig = { ...pitch, ...chromaMod, ...chordMod, ...onset, ...level, ...biquad };
 const { CLIPS, clipFile } = clipsMod;
 
 // ---------------------------------------------------------------------------
@@ -479,7 +481,7 @@ function chordMetrics(exp, sim, onsets) {
     live.push({ ...grade(want[a], r.pcs), pcs: r.pcs });
   }
 
-  // Rhythm page: chroma of one pitched 4096 frame after each onset; a chord is
+  // Rhythm page: the chord reader over the 400 ms after each onset; a chord is
   // "held" when the tones heard across its strums cover it (extras allowed).
   const rhythm = rhythmReadings(sim, sig).map((r) => {
     const e = want[Math.max(0, chordAt(r.at))];
@@ -702,9 +704,9 @@ md.push(
   "- **notes a/b +c**: note-ons from the live note tracker (what Reading, scales, lines and the fretboard drills receive). a of b expected notes arrived in order; +c extra note-ons (o = octave of an expected note, r = repeat of an expected note, s = a semitone off, x = anything else).",
   "- **frames**: of the frames with a pitch reading, the share on an expected note / an octave of one / anything else. Membership in the clip's note set, not time-aligned, so it flatters slightly.",
   "- **onsets a/b +c**: a of b expected attacks matched, +c extra onsets. Timing error is shown only for clips played to a click and includes the player.",
-  "- **strum a/b**: chord readings (600 ms after each onset, the Strum & identify and Changes path) whose pitch classes are exactly the chord, of all readings. `named` is the chord identifier's top answer being the chord. `-X` lists chord tones missing, `+X` tones that should not be there.",
+  "- **strum a/b**: chord readings (the chord reader over the 600 ms from each onset, the Strum & identify and Changes path) whose pitch classes are exactly the chord, of all readings. `named` is the chord identifier's top answer being the chord. `-X` lists chord tones missing, `+X` tones that should not be there.",
   "- **live**: the on-screen Hearing readout while the chord rings: share of readouts that are exactly the chord.",
-  "- **rhythm**: the rhythm page's own chord read (one 4096-sample frame after each onset): chords whose tones were all heard across their strums.",
+  "- **rhythm**: the rhythm page's own chord read (the chord reader over the 400 ms from each onset; `unpitched` strums read no tones and count as muted strokes): chords whose tones were all heard across their strums.",
   "- Flags: `clipped` (samples at full scale), `quiet` (peak under -30 dBFS), `speaker click`.",
   "",
 );
