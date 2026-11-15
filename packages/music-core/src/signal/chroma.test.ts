@@ -4,7 +4,6 @@ import {
   CHORD_SAMPLE_RATE,
   chordWindow,
   chroma,
-  chromaToPcs,
   createNoteGate,
   noteEnergies,
   resample,
@@ -45,9 +44,15 @@ describe("fft and resampling", () => {
 });
 
 describe("chroma", () => {
-  it("names the pitch classes of a C major triad", () => {
+  it("puts a C major triad's energy on its pitch classes", () => {
     const c = chroma(chordWin([60, 64, 67]), SR);
-    expect(chromaToPcs(c)).toEqual([0, 4, 7]);
+    const strongest = c.map((v, pc) => ({ v, pc })).sort((a, b) => b.v - a.v);
+    expect(
+      strongest
+        .slice(0, 3)
+        .map((x) => x.pc)
+        .sort((a, b) => a - b),
+    ).toEqual([0, 4, 7]);
     expect(Math.max(...c)).toBe(1);
   });
 

@@ -58,7 +58,12 @@ export function noteEnergies(
   return out;
 }
 
-/** 12 pitch-class energies (C = 0), normalised so the strongest is 1; all zero on silence. */
+/**
+ * 12 pitch-class energies (C = 0), normalised so the strongest is 1; all zero on silence.
+ * A profile for key finding, not a chord reader: it counts harmonics as notes and
+ * real strings differ by far more than any fixed cut. To name the tones of a chord
+ * use `readChord` in ./chord.
+ */
 export function chroma(buf: Float32Array, sampleRate: number): number[] {
   const e = noteEnergies(buf, sampleRate);
   const c = Array<number>(12).fill(0);
@@ -66,9 +71,6 @@ export function chroma(buf: Float32Array, sampleRate: number): number[] {
   const max = Math.max(...c);
   return max > 0 ? c.map((v) => v / max) : c;
 }
-
-export const chromaToPcs = (c: number[], threshold = 0.5) =>
-  c.flatMap((v, pc) => (v >= threshold ? [pc] : []));
 
 export const GATE_SETTINGS = {
   signalFloorRms: 0.01,
