@@ -3,7 +3,7 @@
 // then the catalog's cleanup (4.11). Monophonic only: a chord comes out as
 // whichever note the detector locks onto, frame by frame.
 import type { Score, ScoreNote } from "../types";
-import { createHighPass } from "./biquad";
+import { createInputFilter } from "./biquad";
 import { createOnsetDetector } from "./onset";
 import { analyzePitch, FRAME_SIZE, SILENCE_RMS, WIDE_FRAME_SIZE } from "./pitch";
 
@@ -33,7 +33,7 @@ export function transcribe(
   opts: { bpm?: number; title?: string; a4?: number } = {},
 ): Score {
   const x = samples.slice();
-  createHighPass(sampleRate).processBlock(x);
+  createInputFilter(sampleRate).processBlock(x);
   const hopS = HOP / sampleRate;
 
   const onsets: number[] = [];

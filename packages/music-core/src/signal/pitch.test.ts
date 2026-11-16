@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createHighPass } from "./biquad";
+import { createHighPass, createInputFilter } from "./biquad";
 import { stringTone, synth, type Partial } from "./fixtures";
 import {
   analyzePitch,
+  clearEnough,
   createIntonationStats,
   createTunerReader,
   mpm,
@@ -13,10 +14,10 @@ import {
 const RATES = [44100, 48000];
 const toMidi = (hz: number) => Math.round(69 + 12 * Math.log2(hz / 440));
 
-/** One second of audio, high-passed like the worklet, framed at 1024 hop with a 4096 wide window. */
-function run(sr: number, parts: Partial[], { hp = true, from = 4096, dc = 0 } = {}) {
-  const x = synth(sr, 1, parts, { noise: 0.01, dc });
-  if (hp) createHighPass(sr).processBlock(x);
+/** One second of audio, filtered like the worklet, framed at 1024 hop with a 4096 wide window. */
+function run(sr: number, parts: Partial[], { hp = true, from = 4096, dc = 0, noise = 0.01 } = {}) {
+  const x = synth(sr, 1, parts, { noise, dc });
+  if (hp) createInputFilter(sr).processBlock(x);
   const frames: (PitchReading | null)[] = [];
   for (let end = from; end <= x.length; end += 1024)
     frames.push(analyzePitch(x.subarray(end - 2048, end), sr, x.subarray(end - 4096, end)));
@@ -25,13 +26,17 @@ function run(sr: number, parts: Partial[], { hp = true, from = 4096, dc = 0 } = 
 const count = (frames: (PitchReading | null)[], midi: number) =>
   frames.filter((f) => f?.midi === midi).length;
 
-/** Frame-only MPM at an explicit ratio, to show each fixture has teeth. */
-function runRatio(sr: number, parts: Partial[], ratio: number) {
+/**
+ * Frame-only MPM at an explicit ratio, to show each fixture has teeth. Through
+ * the old 40 Hz high-pass alone, so the hum the input filter now notches out is
+ * still in it.
+ */
+function runRatio(sr: number, parts: Partial[], ratio: number, minHz?: number) {
   const x = synth(sr, 1, parts, { noise: 0.01 });
   createHighPass(sr).processBlock(x);
   const out: number[] = [];
   for (let end = 4096; end <= x.length; end += 1024) {
-    const r = mpm(x.subarray(end - 2048, end), sr, { ratio });
+    const r = mpm(x.subarray(end - 2048, end), sr, { ratio, minHz });
     out.push(r ? toMidi(r.hz) : -1);
   }
   return out;
@@ -69,8 +74,11 @@ describe("the interference fixtures from the lessons file", () => {
       const frames = run(sr, humA2);
       expect(count(frames, 33)).toBe(0);
       expect(count(frames, 45)).toBe(frames.length);
-      // Control: at the classic 0.9 the same fixture flips to A1 (14/40 and 13/43 measured).
-      expect(runRatio(sr, humA2, 0.9).filter((m) => m === 33).length).toBeGreaterThanOrEqual(10);
+      // Control: with the hum left in, the classic 0.9 and the old 50 Hz low
+      // limit, the same fixture flips to A1 (14/40 and 13/43 measured).
+      expect(runRatio(sr, humA2, 0.9, 50).filter((m) => m === 33).length).toBeGreaterThanOrEqual(
+        10,
+      );
     });
 
   // Fundamental at a tenth of the octave partial: NSDF at T/2 ~0.81 of the T peak.
@@ -80,8 +88,9 @@ describe("the interference fixtures from the lessons file", () => {
       const frames = run(sr, weak);
       expect(count(frames, 57)).toBe(0);
       expect(count(frames, 45)).toBe(frames.length);
-      // Control: at 0.8 every frame flips up to A3.
-      expect(runRatio(sr, weak, 0.8).every((m) => m === 57)).toBe(true);
+      // At 0.8 the octave's period is plausible first (every frame used to flip
+      // up to A3 there); the fundamental's own partials now bring it back down.
+      expect(runRatio(sr, weak, 0.8).every((m) => m === 45)).toBe(true);
     });
 
   const ringing = [
@@ -108,15 +117,67 @@ describe("the interference fixtures from the lessons file", () => {
   };
   for (const sr of RATES)
     for (const hz of [82.41, 110])
-      it(`20-30 Hz rumble plus DC biases ${hz} Hz by at most 2 cents through the high-pass at ${sr}`, () => {
+      it(`20-30 Hz rumble plus DC biases ${hz} Hz by at most 2 cents through the input filter at ${sr}`, () => {
         const filtered = run(sr, rumble(hz), { from: 8192, dc: 0.06 });
         expect(filtered.every(Boolean)).toBe(true);
         expect(Math.abs(meanCents(filtered))).toBeLessThanOrEqual(2);
-        // Control: unfiltered, the same fixture reads 3.8 to 8.5 cents sharp.
+        // Control: unfiltered, the same fixture reads 2.8 to 8.5 cents sharp.
         expect(meanCents(run(sr, rumble(hz), { from: 8192, dc: 0.06, hp: false }))).toBeGreaterThan(
-          3,
+          2.5,
         );
       });
+});
+
+describe("what a microphone with little bass hears", () => {
+  // The Aerophone through a laptop microphone: the third partial holds nine
+  // tenths of the energy, so its period (A4 for a D3) is plausible first.
+  const thirdHeavy = (f0: number) => stringTone(f0, [0.12, 0.12, 1, 0.1, 0.1, 0.05]);
+  for (const sr of RATES)
+    it(`a tone whose third partial dominates reads at its fundamental at ${sr}`, () => {
+      const frames = run(sr, thirdHeavy(146.83));
+      expect(count(frames, 50)).toBe(frames.length);
+      // Control: the bare third partial, with nothing under it, is its own note.
+      const bare = run(sr, [{ hz: 440.49, amp: 0.3 }]);
+      expect(count(bare, 69)).toBe(bare.length);
+    });
+});
+
+describe("hum, room rumble and the low limit", () => {
+  for (const mains of [50, 60])
+    it(`${mains} Hz hum with its harmonics reads as nothing through the input filter`, () => {
+      const hum = [1, 0.3, 0.1, 0.1].map((amp, i) => ({ hz: mains * (i + 1), amp: amp * 0.003 }));
+      const frames = run(48000, hum, { noise: 0.0002 });
+      expect(frames.filter((f) => f && clearEnough(f))).toEqual([]);
+      // Control: through the old 40 Hz high-pass, with the old 50 Hz limit, 60 Hz hum is a clear B1.
+      if (mains === 60) {
+        const x = synth(48000, 1, hum, { noise: 0.0002 });
+        createHighPass(48000).processBlock(x);
+        const r = mpm(x.subarray(40000, 42048), 48000, { minHz: 50 });
+        expect(r && r.clarity).toBeGreaterThan(0.8);
+      }
+    });
+
+  it("still reads C2, the lowest note, through the filter", () => {
+    const frames = run(48000, stringTone(65.41), { from: 8192 });
+    expect(frames.filter((f) => f?.midi === 36 && clearEnough(f)).length).toBe(frames.length);
+  });
+
+  it("asks for more clarity under 90 Hz", () => {
+    expect(clearEnough({ hz: 70, clarity: 0.75 })).toBe(false);
+    expect(clearEnough({ hz: 70, clarity: 0.85 })).toBe(true);
+    expect(clearEnough({ hz: 110, clarity: 0.65 })).toBe(true);
+    expect(clearEnough({ hz: 110, clarity: 0.55 })).toBe(false);
+  });
+
+  it("reads under the fixed -60 dB gate when the caller's gate is lower", () => {
+    const quiet = synth(
+      48000,
+      2048 / 48000,
+      stringTone(220).map((p) => ({ ...p, amp: p.amp / 600 })),
+    );
+    expect(analyzePitch(quiet, 48000)).toBeNull();
+    expect(analyzePitch(quiet, 48000, undefined, 440, 1e-4)?.midi).toBe(57);
+  });
 });
 
 describe("mpm gates and the wide pass", () => {
