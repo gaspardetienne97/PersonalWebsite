@@ -1,30 +1,91 @@
 // The app's live microphone path, replayed over a recording.
 //
-// Mirrors src/lib/music/runtime/mic.svelte.ts line for line: the capture
-// worklet (128-sample blocks, follow the louder of two channels with a 6 dB
-// margin, 40 Hz high-pass, contiguous 2048-sample frames plus a 4096 "wide"
-// window), then onFrame (pitch with the 0.6 clarity floor, the onset detector,
-// the two-frame note tracker with re-strikes). And the three things drills do
-// with frames: ChordListener (drills/guitar/strum.svelte.ts), the rhythm
-// page's chord read at a strum (routes/music/rhythm/+page.svelte), and the pitch
-// trace. Times are milliseconds from the start of the file.
+// The capture worklet is mirrored here line for line from
+// src/lib/music/runtime/mic.svelte.ts: 128-sample blocks, follow the louder of
+// two channels with a 6 dB margin, the input filter (a 60 Hz high-pass and the
+// two mains notches), contiguous 2048-sample frames. Everything after the
+// worklet is not mirrored but shared: the app and this replay both run the
+// listener in packages/music-core/src/signal/listen.ts (the app's own click
+// taken out, the level gate, pitch, onsets, the note tracker). On the two clips
+// recorded with the metronome through the speakers the listener is given the
+// click schedule the app would have had, rebuilt from the take (clickSchedule).
+// And the three things drills do with frames: ChordListener
+// (drills/guitar/strum.svelte.ts), the rhythm page's chord read at a strum
+// (routes/music/rhythm/+page.svelte), and the pitch trace. Times are
+// milliseconds from the start of the file.
 export const FRAME = 2048;
-export const WIDE = 4096;
-const STABLE_FRAMES = 2;
-const SILENT_FRAMES = 2;
-const RESTRIKE_MS = 120;
 const BLOCK = 128;
 const HISTORY_MS = 2500;
 
-const rmsOf = (buf) => {
-  let s = 0;
-  for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
-  return Math.sqrt(s / Math.max(1, buf.length));
-};
+/** Power of `hz` in x[from, from + n) (Goertzel). */
+function tonePower(x, sr, hz, from, n) {
+  const c = 2 * Math.cos((2 * Math.PI * hz) / sr);
+  let s1 = 0;
+  let s2 = 0;
+  for (let i = from; i < from + n; i++) {
+    const s0 = x[i] + c * s1 - s2;
+    s2 = s1;
+    s1 = s0;
+  }
+  return s1 * s1 + s2 * s2 - c * s1 * s2;
+}
 
-export function simulateLive(channels, sr, sig, a4 = 440) {
-  const hp = sig.createHighPass(sr, 40);
-  const onsets = sig.createOnsetDetector(sr);
+/**
+ * The clicks the app would have known about on a take recorded with its
+ * metronome through the speakers. The app knows when it scheduled each click
+ * and which are accents; the take does not say, so the schedule is rebuilt from
+ * the take: the first click is found by its own tone, the rest follow at the
+ * tempo, and the bar's phase (which click in four is the accent) is the one
+ * that fits the accent tone best. Each click is then expected `leadMs` before
+ * it is actually heard, standing in for the input latency and the trip through
+ * the room that the app cannot know, so the replay does not get a better
+ * schedule than the app has. Times in ms from the start of the file.
+ */
+export function clickSchedule(channels, sr, bpm, sig, { leadMs = 60, beatsPerBar = 4 } = {}) {
+  const x = channels[0];
+  const hop = 256;
+  const tone = (hz) => {
+    const out = [];
+    for (let i = 0; i + hop <= x.length; i += hop) out.push(tonePower(x, sr, hz, i, hop));
+    return out;
+  };
+  const beat = tone(sig.CLICK_HZ.beat);
+  const accent = tone(sig.CLICK_HZ.accent);
+  const both = beat.map((v, i) => v + accent[i]);
+  const top = both.reduce((a, b) => Math.max(a, b), 0);
+  const first = both.findIndex((v) => v >= 0.1 * top);
+  if (first < 0 || top <= 0) return [];
+  const period = 60000 / bpm;
+  const hopMs = (hop / sr) * 1000;
+  const times = [];
+  for (let t = first * hopMs; t < (x.length / sr) * 1000; t += period) times.push(t);
+  // How much of each click is the accent tone, over the 60 ms from its start.
+  const share = times.map((t) => {
+    const i = Math.round(t / hopMs);
+    const span = Math.ceil(60 / hopMs);
+    let a = 0;
+    let b = 0;
+    for (let j = i; j < i + span && j < both.length; j++) {
+      a += accent[j];
+      b += beat[j];
+    }
+    return a / (a + b || 1);
+  });
+  let phase = 0;
+  let best = -1;
+  for (let p = 0; p < beatsPerBar; p++) {
+    const mine = share.filter((_, k) => k % beatsPerBar === p);
+    const m = mine.reduce((u, v) => u + v, 0) / (mine.length || 1);
+    if (m > best) [best, phase] = [m, p];
+  }
+  return times.map((t, k) => ({
+    at: t - leadMs,
+    hz: k % beatsPerBar === phase ? sig.CLICK_HZ.accent : sig.CLICK_HZ.beat,
+  }));
+}
+
+export function simulateLive(channels, sr, sig, a4 = 440, { clicks } = {}) {
+  const hp = sig.createInputFilter(sr);
   const frameMs = (FRAME / sr) * 1000;
   const frames = [];
   const events = [];
@@ -32,81 +93,40 @@ export function simulateLive(channels, sr, sig, a4 = 440) {
   let chan = 0;
   const energy = [0, 0];
   let frame = new Float32Array(FRAME);
-  let prev = new Float32Array(FRAME);
   let n = 0;
 
-  let candidate;
-  let candidateAt = 0;
-  let candidateRun = 0;
-  let silentRun = 0;
-  let sounding;
-  let soundingAt = 0;
-  let restrike = null;
-  const noteOff = (at) => {
-    if (sounding === undefined) return;
-    events.push({ kind: "noteoff", midi: sounding, at });
-    sounding = undefined;
-  };
-  const noteOn = (heard, at) => {
-    noteOff(at);
-    sounding = heard.midi;
-    soundingAt = at;
-    events.push({
-      kind: "noteon",
-      midi: heard.midi,
-      at,
-      cents: heard.cents,
-      clarity: heard.clarity,
-    });
-  };
-
-  function onFrame(f, wide, at) {
-    const p = sig.analyzePitch(f, sr, wide, a4);
-    const heard = p && p.clarity >= sig.TUNER_CLARITY_FLOOR ? p : null;
-    const onset = onsets.push(f, at);
-    if (onset)
-      events.push({ kind: "onset", at: onset.at, strength: onset.strength, midi: heard?.midi });
-
-    if (onset && heard && sounding === heard.midi && onset.at - soundingAt > RESTRIKE_MS)
-      restrike = { at: onset.at, midi: heard.midi, frames: 0 };
-    else if (restrike) {
-      if (heard?.midi !== restrike.midi) restrike = null;
-      else if (++restrike.frames >= STABLE_FRAMES) {
-        noteOn(heard, restrike.at);
-        restrike = null;
-      }
+  // Everything after the worklet is the app's own listener (signal/listen.ts).
+  const listener = sig.createListener(sr);
+  function onFrame(raw, at) {
+    // `emitted`: when the app learns of it (the end of the frame that was pushed).
+    const emitted = at + frameMs;
+    for (const h of listener.push(raw, at, { a4, clicks })) {
+      if (h.onset)
+        events.push({
+          kind: "onset",
+          at: h.onset.at,
+          strength: h.onset.strength,
+          midi: h.pitch?.midi,
+          emitted,
+        });
+      for (const n of h.notes) events.push({ ...n, emitted });
+      frames.push({
+        at: h.at,
+        frame: h.frame,
+        wide: h.wide,
+        sampleRate: sr,
+        pitch: h.pitch && {
+          midi: h.pitch.midi,
+          cents: h.pitch.cents,
+          hz: h.pitch.hz,
+          clarity: h.pitch.clarity,
+        },
+        rms: h.rms,
+        gateRms: h.gateRms,
+        db: sig.rmsDb(h.frame),
+        onsetAt: h.onset?.at,
+      });
     }
-    if (heard) {
-      silentRun = 0;
-      if (heard.midi === candidate) candidateRun++;
-      else {
-        candidate = heard.midi;
-        candidateAt = at;
-        candidateRun = 1;
-      }
-      if (candidateRun >= STABLE_FRAMES && sounding !== heard.midi) noteOn(heard, candidateAt);
-    } else {
-      candidate = undefined;
-      candidateRun = 0;
-      if (++silentRun >= SILENT_FRAMES) noteOff(at);
-    }
-    const rms = rmsOf(f);
-    frames.push({
-      at,
-      frame: f,
-      wide,
-      sampleRate: sr,
-      pitch: heard && {
-        midi: heard.midi,
-        cents: heard.cents,
-        hz: heard.hz,
-        clarity: heard.clarity,
-      },
-      raw: p && { midi: p.midi, clarity: p.clarity },
-      rms,
-      db: sig.rmsDb(f),
-      onsetAt: onset?.at,
-    });
   }
 
   const len = channels[0].length;
@@ -128,11 +148,9 @@ export function simulateLive(channels, sr, sig, a4 = 440) {
     for (let i = 0; i < BLOCK; i++) {
       frame[n++] = hp.process(ch[b + i]);
       if (n === FRAME) {
-        const wide = new Float32Array(WIDE);
-        wide.set(prev, 0);
-        wide.set(frame, FRAME);
-        prev = frame;
-        onFrame(frame, wide, ((b + i + 1 - FRAME) / sr) * 1000);
+        // The worklet also posts a 4096 window; the listener builds its own
+        // from the frames it has cleaned, so only the frame matters here.
+        onFrame(frame, ((b + i + 1 - FRAME) / sr) * 1000);
         frame = new Float32Array(FRAME);
         n = 0;
       }

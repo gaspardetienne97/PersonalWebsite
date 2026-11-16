@@ -7,6 +7,7 @@
 //   node scripts/detection-eval/run.mjs --inputs scarlett-2i2-4th-gen
 //   node scripts/detection-eval/run.mjs --rate 44100    another AudioContext rate (default 48000)
 //   node scripts/detection-eval/run.mjs --no-transcribe skip the offline melody transcriber
+//   node scripts/detection-eval/run.mjs --out /tmp/x    write the report and JSON to another folder
 //   node scripts/detection-eval/run.mjs --gain 20       boost every take 20 dB first (a diagnostic:
 //                                                       what changes is a level problem); writes report-gain20.md
 //
@@ -26,17 +27,23 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { tsImport } from "tsx/esm/api";
 import { readWav, resampleSinc } from "./wav.mjs";
-import { liveReadouts, rhythmReadings, simulateLive, strumReadings } from "./live.mjs";
+import {
+  clickSchedule,
+  liveReadouts,
+  rhythmReadings,
+  simulateLive,
+  strumReadings,
+} from "./live.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const REC = join(ROOT, ".recordings/detection");
-const OUT = join(ROOT, ".ui-climb/detection");
-
 const args = process.argv.slice(2);
 const opt = (name) => {
   const i = args.indexOf(`--${name}`);
   return i < 0 ? undefined : args[i + 1];
 };
+/** `--out <dir>` writes the report somewhere else (two people measuring at once). */
+const OUT = resolve(opt("out") ?? join(ROOT, ".ui-climb/detection"));
 const LIVE_RATE = Number(opt("rate") ?? 48000);
 const ONLY_CLIPS = opt("clips")?.split(",").map(Number);
 const ONLY_INPUTS = opt("inputs")?.split(",");
@@ -59,6 +66,7 @@ const [
   onset,
   level,
   biquad,
+  listen,
   key,
   transcribeMod,
   chordsMod,
@@ -72,6 +80,7 @@ const [
   load(`${S}onset.ts`),
   load(`${S}level.ts`),
   load(`${S}biquad.ts`),
+  load(`${S}listen.ts`),
   load(`${S}key.ts`),
   load(`${S}transcribe.ts`),
   load("packages/music-core/src/theory/chords.ts"),
@@ -79,7 +88,7 @@ const [
   load("packages/music-core/src/scoring/bends.ts"),
   load("src/lib/music/clips/clips.ts"),
 ]);
-const sig = { ...pitch, ...chromaMod, ...chordMod, ...onset, ...level, ...biquad };
+const sig = { ...pitch, ...chromaMod, ...chordMod, ...onset, ...level, ...biquad, ...listen };
 const { CLIPS, clipFile } = clipsMod;
 
 // ---------------------------------------------------------------------------
@@ -358,7 +367,7 @@ function monoMetrics(clip, exp, sim) {
       floorDb,
       loudDb,
       // Loud frames the pitch reader's silence gate (RMS 0.001) throws away.
-      gatedPct: pct(loud.filter((f) => f.rms < sig.SILENCE_RMS).length, loud.length),
+      gatedPct: pct(loud.filter((f) => f.rms < f.gateRms).length, loud.length),
       heardPct: pct(loud.filter((f) => f.pitch).length, loud.length),
       heard: heard.length,
       exactPct: pct(exact.length, heard.length),
@@ -627,7 +636,14 @@ for (const clip of clips) {
     const chans = wav.channels.map((c) =>
       resampleSinc(c, wav.sampleRate, LIVE_RATE).map((v) => v * gain),
     );
-    const sim = simulateLive(chans, LIVE_RATE, sig);
+    // The app knows when its own metronome clicks; see clickSchedule for how the take stands in.
+    const clicks =
+      clip.click === "speakers" ? clickSchedule(chans, LIVE_RATE, clip.bpm, sig) : undefined;
+    const sim = simulateLive(chans, LIVE_RATE, sig, 440, { clicks });
+    if (clicks) row.clicksExpected = clicks.length;
+    row.noteLatency = sim.events
+      .filter((e) => e.kind === "noteon")
+      .map((e) => Math.round(e.emitted - e.at));
     row.followed = {
       channel: sim.switches.at(-1)?.to ?? 0,
       switches: sim.switches.map((s) => Math.round(s.at)),
@@ -707,7 +723,8 @@ md.push(
   "- **strum a/b**: chord readings (the chord reader over the 600 ms from each onset, the Strum & identify and Changes path) whose pitch classes are exactly the chord, of all readings. `named` is the chord identifier's top answer being the chord. `-X` lists chord tones missing, `+X` tones that should not be there.",
   "- **live**: the on-screen Hearing readout while the chord rings: share of readouts that are exactly the chord.",
   "- **rhythm**: the rhythm page's own chord read (the chord reader over the 400 ms from each onset; `unpitched` strums read no tones and count as muted strokes): chords whose tones were all heard across their strums.",
-  "- Flags: `clipped` (samples at full scale), `quiet` (peak under -30 dBFS), `speaker click`.",
+  "- **Note-on latency**: from the start of the first frame that read the note to the end of the frame in which the app pushes the note-on. Two frames (85 ms) is the least; it does not include the attack itself or the browser's input latency.",
+  "- Flags: `clipped` (samples at full scale), `quiet` (peak under -30 dBFS), `speaker click` (the app's metronome through the speakers; the listener is given the click schedule, rebuilt from the take: first click found by its tone, the rest at the tempo, each expected 60 ms before it is heard).",
   "",
 );
 
@@ -745,6 +762,17 @@ table(
       ...inputs.map((i) => {
         const a = agg(i, (r) => r.onsets);
         return `${pct(a.sum("hits"), a.sum("expected"))}% (+${a.sum("extra")} on ${a.sum("expected")})`;
+      }),
+    ],
+    [
+      "Note-on latency: median / 9 in 10 within (ms from the note's first frame to the app knowing)",
+      ...inputs.map((i) => {
+        const xs = sortNum(
+          results.filter((r) => r.input === i && r.noteLatency).flatMap((r) => r.noteLatency),
+        );
+        return xs.length
+          ? `${Math.round(xs[xs.length >> 1])} / ${Math.round(xs[Math.floor(xs.length * 0.9)])}`
+          : "n/a";
       }),
     ],
     [
