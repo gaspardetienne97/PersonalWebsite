@@ -1,8 +1,10 @@
 // Microphone capture (hardware notes 4, 5). getUserMedia with every processing
 // stage off, an AudioWorklet following whichever of two input channels has
-// the signal and running the 40 Hz high-pass and posting 2048-sample
-// frames plus a rolling 4096-sample wide window, analysis on the main thread,
-// notes and onsets pushed into the shared router.
+// the signal, running the input filter (a 60 Hz high-pass and the two mains
+// notches) and posting 2048-sample frames. Analysis is on the main thread, in
+// the listener from music-core (signal/listen.ts): the app's own metronome
+// taken out, the level gate, pitch, onsets and the note tracker. Notes and
+// onsets are pushed into the shared router.
 //
 // Test hooks:
 // - `mic.startSynthetic(t => 0.5 * Math.sin(2 * Math.PI * 110 * t))` renders the
@@ -20,13 +22,15 @@
 //   (or launch Chromium with --use-fake-ui-for-media-stream
 //   --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=take.wav).
 import { browser } from "$app/environment";
-import { createHighPass } from "@repo/music-core/signal/biquad";
-import { analyzePitch, TUNER_CLARITY_FLOOR } from "@repo/music-core/signal/pitch";
-import { createOnsetDetector } from "@repo/music-core/signal/onset";
+import { createInputFilter } from "@repo/music-core/signal/biquad";
+import { createListener } from "@repo/music-core/signal/listen";
+import { CLICK_EARLY_MS, CLICK_LATE_MS } from "@repo/music-core/signal/click";
+import type { TrackedNote } from "@repo/music-core/signal/tracker";
 import { rmsDb, peakDb, levelAdvice, LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
 import { clamp } from "@repo/music-core";
 import { settings } from "./settings.svelte";
 import { input } from "./input.svelte";
+import { clickLog } from "./clicks";
 
 export type MicState = "off" | "starting" | "on" | "denied" | "error";
 export interface MicPitch {
@@ -36,6 +40,7 @@ export interface MicPitch {
   clarity: number;
 }
 export interface MicFrame {
+  /** The newest 2048 samples and the newest 4096, with the app's own metronome click taken out. */
   frame: Float32Array;
   wide: Float32Array;
   sampleRate: number;
@@ -46,19 +51,15 @@ export interface MicFrame {
 }
 
 const FRAME = 2048;
-const WIDE = 4096;
-const STABLE_FRAMES = 2;
-const SILENT_FRAMES = 2; // ponytail: hysteresis knob; one dropped frame should not end a note
 
 // The worklet is a Blob of self-contained JS, so dev and `vp build` behave the same.
 const WORKLET = `
-const createHighPass = ${createHighPass.toString()};
+const createInputFilter = ${createInputFilter.toString()};
 class WoodshedCapture extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.hp = createHighPass(sampleRate, 40);
+    this.hp = createInputFilter(sampleRate);
     this.frame = new Float32Array(${FRAME});
-    this.prev = new Float32Array(${FRAME});
     this.n = 0;
     this.chan = 0;
     this.energy = [0, 0];
@@ -83,11 +84,7 @@ class WoodshedCapture extends AudioWorkletProcessor {
       this.frame[this.n++] = this.hp.process(ch[i]);
       if (this.n === ${FRAME}) {
         const frame = this.frame.slice();
-        const wide = new Float32Array(${WIDE});
-        wide.set(this.prev, 0);
-        wide.set(frame, ${FRAME});
-        this.prev = frame.slice();
-        this.port.postMessage({ frame, wide, end: currentTime + (i + 1) / sampleRate }, [frame.buffer, wide.buffer]);
+        this.port.postMessage({ frame, end: currentTime + (i + 1) / sampleRate }, [frame.buffer]);
         this.n = 0;
       }
     }
@@ -115,112 +112,65 @@ let ownsStream = false;
 let synthCtx: AudioContext | null = null;
 const frameListeners = new Set<(f: MicFrame) => void>();
 
-// Note tracking
-let candidate: number | undefined;
-let candidateAt = 0;
-let candidateRun = 0;
-let silentRun = 0;
-let sounding: number | undefined;
-let soundingAt = 0;
-/** A re-attack closer than this to the note's start is the same stroke. */
-const RESTRIKE_MS = 120;
-let restrike: { at: number; midi: number; frames: number } | null = null;
-let onsets: ReturnType<typeof createOnsetDetector> | null = null;
+let listener: ReturnType<typeof createListener> | null = null;
 
-function noteOff(at: number) {
-  if (sounding === undefined) return;
-  input.router.push({
-    kind: "noteoff",
-    midi: sounding,
-    velocity: 0,
-    at,
-    source: "audio",
-    confidence: 0.7,
-  });
-  sounding = undefined;
+/** The tracker's note-ons and note-offs, into the router. `db` is the level of the frame they came from. */
+function pushNotes(notes: TrackedNote[], db: number) {
+  for (const n of notes)
+    if (n.kind === "noteon")
+      input.router.push({
+        kind: "noteon",
+        midi: n.midi,
+        velocity: clamp((db + 60) / 60, 0, 1),
+        at: n.at,
+        source: "audio",
+        confidence: clamp(n.clarity, 0, 1),
+        cents: n.cents,
+        velocityMeasured: false,
+      });
+    else
+      input.router.push({
+        kind: "noteoff",
+        midi: n.midi,
+        velocity: 0,
+        at: n.at,
+        source: "audio",
+        confidence: 0.7,
+      });
 }
 
-function onFrame(msg: { frame: Float32Array; wide: Float32Array; end: number }) {
-  if (!ctx) return;
+function onFrame(msg: { frame: Float32Array; end: number }) {
+  if (!ctx || !listener) return;
   const sr = ctx.sampleRate;
+  const frameMs = (FRAME / sr) * 1000;
   // Project the frame onto the performance clock (hardware notes 6).
-  const at = performance.now() - (ctx.currentTime - msg.end) * 1000 - (FRAME / sr) * 1000;
-  const db = rmsDb(msg.frame);
-  level = db;
+  const at = performance.now() - (ctx.currentTime - msg.end) * 1000 - frameMs;
+  level = rmsDb(msg.frame);
   peak = peakDb(msg.frame);
   advice = levelAdvice(peak); // the -1 / -6 dB bands are peak bands
-  const p = analyzePitch(msg.frame, sr, msg.wide, settings.value.a4Hz);
-  const heard = p && p.clarity >= TUNER_CLARITY_FLOOR ? p : null;
-  pitch = heard && { midi: heard.midi, cents: heard.cents, hz: heard.hz, clarity: heard.clarity };
-
-  const onset = onsets?.push(msg.frame, at);
-  if (onset)
-    input.router.push({
-      kind: "onset",
-      at: onset.at,
-      source: "audio",
-      strength: onset.strength,
-      midi: heard?.midi,
-    });
-
-  // The same pitch struck again (a re-picked note) never drops out, so only the
-  // attack says it is a new note. But a new note's attack often arrives while the
-  // pitch still reads as the old one, so the re-strike waits until the same pitch
-  // holds for a couple more frames, and is dropped if the pitch moves on.
-  if (onset && heard && sounding === heard.midi && onset.at - soundingAt > RESTRIKE_MS)
-    restrike = { at: onset.at, midi: heard.midi, frames: 0 };
-  else if (restrike) {
-    if (heard?.midi !== restrike.midi) restrike = null;
-    else if (++restrike.frames >= STABLE_FRAMES) {
-      noteOff(restrike.at);
-      sounding = heard.midi;
-      soundingAt = restrike.at;
+  // The app's own clicks due around this frame: the listener takes them out.
+  // Usually one frame comes back; around a click it is the frame before this one.
+  const heard = listener.push(msg.frame, at, {
+    a4: settings.value.a4Hz,
+    clicks: clickLog.between(at - CLICK_LATE_MS - frameMs, at + CLICK_EARLY_MS + 2 * frameMs),
+  });
+  for (const h of heard) {
+    const p = h.pitch;
+    pitch = p && { midi: p.midi, cents: p.cents, hz: p.hz, clarity: p.clarity };
+    const db = rmsDb(h.frame);
+    if (h.onset)
       input.router.push({
-        kind: "noteon",
-        midi: heard.midi,
-        velocity: clamp((db + 60) / 60, 0, 1),
-        at: restrike.at,
+        kind: "onset",
+        at: h.onset.at,
         source: "audio",
-        confidence: clamp(heard.clarity, 0, 1),
-        cents: heard.cents,
-        velocityMeasured: false,
+        strength: h.onset.strength,
+        midi: p?.midi,
       });
-      restrike = null;
+    pushNotes(h.notes, db);
+    if (frameListeners.size) {
+      const f: MicFrame = { frame: h.frame, wide: h.wide, sampleRate: sr, at: h.at, pitch, db };
+      for (const l of frameListeners) l(f);
     }
-  }
-
-  if (heard) {
-    silentRun = 0;
-    if (heard.midi === candidate) candidateRun++;
-    else {
-      candidate = heard.midi;
-      candidateAt = at;
-      candidateRun = 1;
-    }
-    if (candidateRun >= STABLE_FRAMES && sounding !== heard.midi) {
-      noteOff(candidateAt);
-      sounding = heard.midi;
-      soundingAt = candidateAt;
-      input.router.push({
-        kind: "noteon",
-        midi: heard.midi,
-        velocity: clamp((db + 60) / 60, 0, 1),
-        at: candidateAt,
-        source: "audio",
-        confidence: clamp(heard.clarity, 0, 1),
-        cents: heard.cents,
-        velocityMeasured: false,
-      });
-    }
-  } else {
-    candidate = undefined;
-    candidateRun = 0;
-    if (++silentRun >= SILENT_FRAMES) noteOff(at);
-  }
-
-  if (frameListeners.size) {
-    const f: MicFrame = { frame: msg.frame, wide: msg.wide, sampleRate: sr, at, pitch, db };
-    for (const l of frameListeners) l(f);
   }
 }
 
@@ -288,7 +238,7 @@ async function start(
     if (stale()) return false;
     node = new AudioWorkletNode(own, "woodshed-capture", { numberOfInputs: 1, numberOfOutputs: 0 });
     node.port.onmessage = (e) => onFrame(e.data);
-    onsets = createOnsetDetector(own.sampleRate);
+    listener = createListener(own.sampleRate);
     // To the worklet only, never to the destination: that is feedback.
     own.createMediaStreamSource(stream!).connect(node);
     state = "on";
@@ -324,7 +274,7 @@ function stop(opts: { unpin?: boolean } = {}) {
 
 function halt() {
   startToken++;
-  noteOff(performance.now());
+  if (listener) pushNotes(listener.stop(performance.now()), LEVEL_FLOOR_DB);
   if (node) {
     node.port.onmessage = null;
     node.disconnect();
@@ -336,10 +286,7 @@ function halt() {
   synthCtx = null;
   node = null;
   stream = null;
-  onsets = null;
-  candidate = undefined;
-  restrike = null;
-  candidateRun = silentRun = 0;
+  listener = null;
   pitch = null;
   level = peak = LEVEL_FLOOR_DB;
   if (state !== "denied" && state !== "error") state = "off";

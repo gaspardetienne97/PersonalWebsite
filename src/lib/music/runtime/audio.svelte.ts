@@ -18,7 +18,9 @@ import type { PlaybackSound } from "@repo/music-core";
 import { encodeWav } from "@repo/music-core/io/wav";
 import { outputKeys } from "@repo/music-core/io/calibration";
 import type { StudioChange } from "@repo/music-core/content/studio";
+import { CLICK_HZ } from "@repo/music-core/signal/listen";
 import { settings } from "./settings.svelte";
+import { clickLog } from "./clicks";
 import { getBinary } from "./opfs";
 import { bench } from "../bench.svelte";
 
@@ -576,10 +578,18 @@ function drumHit(
 }
 
 function clickAt(t: Tone, raw: BaseAudioContext, out: ToneNS.Gain, when: number, accent: boolean) {
+  const f0 = accent ? CLICK_HZ.accent : CLICK_HZ.beat;
+  // Tell the microphone path when this click leaves the speakers, so it is not
+  // heard as playing (a live context only: an offline render has no speakers).
+  if ("outputLatency" in raw) {
+    const live = raw as AudioContext;
+    const latency = live.outputLatency || live.baseLatency || 0;
+    clickLog.add(performance.now() + (when - live.currentTime + latency) * 1000, f0);
+  }
   tone(t, raw, out, {
     when,
     type: "sine",
-    f0: accent ? 1760 : 1320,
+    f0,
     attack: 0.001,
     decay: 0.04,
     peak: accent ? 1 : 0.6,
