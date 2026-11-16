@@ -23,3 +23,41 @@ export function levelAdvice(db: number): { tone: LevelTone; label: string } {
   if (db >= -30) return { tone: "good", label: "Good level" };
   return { tone: "quiet", label: "Quiet" };
 }
+
+/**
+ * A running estimate of the input's noise floor, as the gate the pitch reader
+ * should use. The floor is the quietest frame of the last `horizonMs` (kept as
+ * one minimum per bucket), and the gate sits `marginDb` over it, held between
+ * -80 and -50 dBFS: a silent line input is read down to its faint notes, a
+ * laptop microphone in a room is not read at room level, and playing without
+ * a pause for the whole horizon can never close the gate on a healthy signal.
+ */
+export function createNoiseGate({
+  marginDb = 9,
+  horizonMs = 12000,
+  bucketMs = 1500,
+  minRms = 1e-4,
+  maxRms = 0.01,
+} = {}) {
+  const margin = 10 ** (marginDb / 20);
+  const keep = Math.ceil(horizonMs / bucketMs);
+  let buckets: number[] = [];
+  let bucketStart = -Infinity;
+  return {
+    /** Feed one frame's RMS; returns the gate to read that frame with. */
+    push(rms: number, at: number): number {
+      if (at - bucketStart >= bucketMs || at < bucketStart) {
+        buckets.push(rms);
+        if (buckets.length > keep) buckets.shift();
+        bucketStart = at;
+      } else if (rms < buckets[buckets.length - 1]) buckets[buckets.length - 1] = rms;
+      let floor = Infinity;
+      for (const b of buckets) floor = Math.min(floor, b);
+      return Math.min(maxRms, Math.max(minRms, floor * margin));
+    },
+    reset() {
+      buckets = [];
+      bucketStart = -Infinity;
+    },
+  };
+}
