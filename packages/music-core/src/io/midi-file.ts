@@ -2,6 +2,7 @@
 // Beats are quarter notes (MIDI ticks / PPQ).
 import { Midi } from "@tonejs/midi";
 import type { Score, ScoreNote, ScoreVoice } from "../types";
+import { m } from "@repo/i18n/messages.js";
 
 const FIFTHS = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
@@ -73,7 +74,10 @@ export function midiToScore(bytes: Uint8Array, title: string): Score {
       const drums = t.channel === 9;
       return {
         id: `track-${i + 1}-ch${t.channel + 1}`,
-        name: t.name || (drums ? "Drums" : t.instrument.name) || `Track ${i + 1}`,
+        name:
+          t.name ||
+          (drums ? m.music_content_midi_file_drums() : t.instrument.name) ||
+          m.music_content_midi_file_track({ n: i + 1 }),
         ...(drums ? { drums } : { clef: avg < 60 ? ("bass" as const) : ("treble" as const) }),
         notes,
       };

@@ -111,6 +111,51 @@
   "music_content_analysis_rule_secondary": "Una dominante secundaria: resuelve una quinta abajo a un acorde que no es el I de una tonalidad. Pertenece a la tonalidad de ese acorde.",
   "music_content_analysis_rule_tonic": "El I de una tonalidad: el acorde de casa, o un acorde mayor al que se llega desde su propio V7, sustituto tritonal o backdoor. Un i menor necesita su iiø7 V7 completo y dos compases.",
   "music_content_analysis_rule_tritone_sub": "Un sustituto tritonal: una dominante que resuelve un semitono abajo, en lugar del V que está a un tritono.",
+  "music_content_backup_array_of_rows": "debe ser un arreglo de filas",
+  "music_content_backup_damaged": "no coincide con su SHA-256; el archivo está dañado",
+  "music_content_backup_duplicate_key": "repite una clave anterior",
+  "music_content_backup_duplicates_field": "repite un {field} anterior",
+  "music_content_backup_full_over_250": "La copia completa supera el límite de 250 MiB.",
+  "music_content_backup_hex_sha": "debe ser un SHA-256 hexadecimal",
+  "music_content_backup_holds_more": "contiene más de {max} archivos de medios",
+  "music_content_backup_iso_date": "debe ser una fecha ISO",
+  "music_content_backup_key_kind": "debe ser una clave de texto o número",
+  "music_content_backup_listed_twice": "incluye un archivo dos veces",
+  "music_content_backup_malformed": "Algunos datos guardados están mal formados, así que no se hizo la copia de seguridad.",
+  "music_content_backup_manifest_over_50": "El manifiesto supera el límite de 50 MiB.",
+  "music_content_backup_media_key": "La clave de medios \"{key}\" está vacía o repetida.",
+  "music_content_backup_media_missing": "falta media/{i} en el archivo",
+  "music_content_backup_media_over_250": "Los medios superan el límite de 250 MiB de la copia completa.",
+  "music_content_backup_missing": "falta",
+  "music_content_backup_missing_expected": "falta (se esperaba {kind})",
+  "music_content_backup_must_be_a": "debe ser de tipo {kind}",
+  "music_content_backup_must_be_an": "debe ser de tipo {kind}",
+  "music_content_backup_must_be_array": "debe ser un arreglo",
+  "music_content_backup_must_be_media": "debe ser media/{i}",
+  "music_content_backup_must_be_object": "debe ser un objeto",
+  "music_content_backup_must_be_string": "debe ser un texto",
+  "music_content_backup_no_media": "debe ser false: una copia de datos no contiene medios",
+  "music_content_backup_non_empty_string": "debe ser un texto no vacío",
+  "music_content_backup_not_backup": "no es un objeto de copia de seguridad",
+  "music_content_backup_not_data_backup": "no es una copia de seguridad de datos de Woodshed",
+  "music_content_backup_not_full_backup": "no es una copia de seguridad completa de Woodshed",
+  "music_content_backup_not_in_manifest": "está en el archivo pero no en el manifiesto",
+  "music_content_backup_not_json": "no es un JSON válido",
+  "music_content_backup_not_zip": "no es un ZIP legible",
+  "music_content_backup_object_of_tables": "debe ser un objeto de tablas",
+  "music_content_backup_over_250": "supera el límite de 250 MiB",
+  "music_content_backup_over_50": "supera el límite de 50 MiB",
+  "music_content_backup_size_mismatch": "indica {size} bytes pero el archivo contiene {listed}",
+  "music_content_backup_too_big": "La copia de seguridad pesa {size} MiB y supera el límite de 50 MiB.",
+  "music_content_backup_too_many_files": "{count} archivos de medios superan el límite de {max} archivos.",
+  "music_content_backup_unreadable_json": "no se pudo leer como JSON",
+  "music_content_backup_version": "la versión {version} no es compatible",
+  "music_content_backup_whole_number": "debe ser un número entero ≥ 0",
+  "music_content_backup_wrong_size": "tiene {actual} bytes, se esperaban {size}",
+  "music_content_calibration_loose": "Tus toques estaban demasiado dispersos para ser confiables (variaron {spread} ms; se necesitan {max} ms o menos). Inténtalo de nuevo con un toque firme por clic.",
+  "music_content_calibration_missed": "Marca una vez en cada clic. {answered} de los últimos {total} clics tuvieron un toque; se necesitan {needed}.",
+  "music_content_calibration_out_of_range": "El resultado fue {offset} ms, más de los {max} ms que esto puede corregir. Revisa el dispositivo e inténtalo de nuevo.",
+  "music_content_calibration_too_few": "La prueba se detuvo antes de tiempo. Deja que suenen los {clicks} clics y vuelve a marcar al ritmo.",
   "music_content_catalog_accompany_blurb": "Toca patrones de pop, blues y gospel, acompañamiento de jazz o un lead sheet sobre un cifrado de acordes en cualquier tonalidad.",
   "music_content_catalog_accompany_title": "Acompañamiento",
   "music_content_catalog_aerophone_blurb": "Aprende las digitaciones en el orden de las lecciones de Roland; luego sostén notas, hazlas crecer, articúlalas con la lengua y llega a intervalos sobre un bordón.",
@@ -347,6 +392,9 @@
   "music_content_circle_ordinal_6": "sexto",
   "music_content_circle_ordinal_7": "séptimo",
   "music_content_circle_shown": "{key} mayor: {chords}",
+  "music_content_devices_akai_classic": "Mapa Akai Classic MPC",
+  "music_content_devices_chromatic_36": "Cromático desde 36 (C1)",
+  "music_content_devices_chromatic_37": "Cromático desde 37",
   "music_content_ear_bass_caption": "Bajo {degrees}: {chords}",
   "music_content_ear_bass_inversions": "Líneas por inversiones",
   "music_content_ear_bass_lines_description": "Acordes desde I: anota el bajo, grado por grado.",
@@ -673,6 +721,10 @@
   "music_content_jv_upper_ask": "{symbol}: una tríada de estructura superior sobre un shell 1-3-7.",
   "music_content_jv_upper_label": "Estructuras superiores en un tema",
   "music_content_jv_upper_name": "{symbol}: la tríada de {numeral}, {triad} mayor, sobre un shell 1-3-7. Agrega {adds}. Cualquier inversión arriba.",
+  "music_content_level_clipping": "Saturación",
+  "music_content_level_good": "Buen nivel",
+  "music_content_level_hot": "Un poco alto",
+  "music_content_level_quiet": "Bajo",
   "music_content_loops_borrowed_hint": "iv, bVI, bVII y bIII junto a I, IV, V y vi.",
   "music_content_loops_borrowed_label": "Acordes prestados",
   "music_content_loops_caption": "{name}. En {key}: {chords}",
@@ -696,6 +748,16 @@
   "music_content_loops_tritone_label": "Sustitutos tritonales",
   "music_content_loops_turnarounds_hint": "I-vi-ii-V, iii-VI-ii-V y el backdoor.",
   "music_content_loops_turnarounds_label": "Turnarounds",
+  "music_content_midi_file_drums": "Batería",
+  "music_content_midi_file_track": "Pista {n}",
+  "music_content_mpc_kit_bad_sample": "\"{file}\" no es una muestra que la MPC pueda cargar. Usa {formats}.",
+  "music_content_mpc_kit_missing_sample": "El pad {note} apunta a una muestra que no está en el kit.",
+  "music_content_musicxml_empty": "Documento XML vacío",
+  "music_content_musicxml_malformed_near": "XML mal formado cerca del carácter {at}",
+  "music_content_musicxml_missing_token": "XML mal formado: falta \"{token}\" después del carácter {at}",
+  "music_content_musicxml_mxl_empty": "Este archivo .mxl no contiene una partitura MusicXML.",
+  "music_content_musicxml_not_score": "Este archivo no es una partitura MusicXML.",
+  "music_content_musicxml_timewise": "MusicXML timewise no es compatible. Exporta como score-partwise (lo habitual).",
   "music_content_piano_gospel_four_five_one_about": "El bajo camina 1-2-3-4 hasta IV, luego V sobre el bajo de IV pasa de vuelta a I/3.",
   "music_content_piano_gospel_four_five_one_label": "Subida caminando y el 4-5-1",
   "music_content_piano_gospel_passing_dim_about": "I-#Idim7-ii y IV-#IVdim7-I/5: un acorde disminuido un semitono arriba une dos acordes.",
@@ -861,6 +923,37 @@
   "music_content_technique_song_uke_hallelujah_note": "12/8 sentido como 6/8. La versión que se enseña pinza las cuerdas 4 y 1 en cada tiempo fuerte, así que el roll es una aproximación.",
   "music_content_technique_song_uke_house_note": "Pulgar en la cuerda 4, luego i m a. La estrofa se acorta a 6 compases.",
   "music_content_technique_song_uke_scarborough_note": "3/4 en Am a un tempo de práctica más lento con las cuerdas al aire sonando. La melodía no está incluida.",
+  "music_content_theory_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bemol",
+        "countPlural=other": "{count} bemoles"
+      }
+    }
+  ],
+  "music_content_theory_circle_no_accidentals": "sin sostenidos ni bemoles",
+  "music_content_theory_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sostenido",
+        "countPlural=other": "{count} sostenidos"
+      }
+    }
+  ],
   "music_content_tunes_all_of_me_composer": "Gerald Marks y Seymour Simons",
   "music_content_tunes_chorus": "Chorus {n}",
   "music_content_tunes_chorus_head": "Tema",

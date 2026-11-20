@@ -111,6 +111,51 @@
   "music_content_analysis_rule_secondary": "Yon dominant segondè: li rezoud yon kent pi ba sou yon akò ki pa I yon tonalite. Li fè pati tonalite akò sa a.",
   "music_content_analysis_rule_tonic": "I yon tonalite: akò lakay la, oswa yon akò majè ou rive sou li apati pwòp V7 li, sibstitisyon triton li oswa backdoor li. Yon i minè bezwen tout iiø7 V7 li ak de mezi.",
   "music_content_analysis_rule_tritone_sub": "Yon sibstitisyon triton: yon dominant ki rezoud yon demi ton pi ba, nan plas V ki yon triton lwen an.",
+  "music_content_backup_array_of_rows": "dwe yon lis ranje",
+  "music_content_backup_damaged": "pa koresponn ak SHA-256 li; fichye a domaje",
+  "music_content_backup_duplicate_key": "repete yon kle ki te deja la",
+  "music_content_backup_duplicates_field": "repete yon {field} ki te deja la",
+  "music_content_backup_full_over_250": "Sovgad konplè a depase limit 250 MiB lan.",
+  "music_content_backup_hex_sha": "dwe yon SHA-256 egzadesimal",
+  "music_content_backup_holds_more": "gen plis pase {max} fichye medya",
+  "music_content_backup_iso_date": "dwe yon dat ISO",
+  "music_content_backup_key_kind": "dwe yon kle tèks oswa nimewo",
+  "music_content_backup_listed_twice": "gen yon fichye de fwa",
+  "music_content_backup_malformed": "Gen kèk done ki sove ki pa byen fòme, kidonk pa gen sovgad ki fèt.",
+  "music_content_backup_manifest_over_50": "Manifès la depase limit 50 MiB lan.",
+  "music_content_backup_media_key": "Kle medya \"{key}\" la vid oswa li repete.",
+  "music_content_backup_media_missing": "media/{i} pa nan achiv la",
+  "music_content_backup_media_over_250": "Medya yo depase limit 250 MiB sovgad konplè a.",
+  "music_content_backup_missing": "manke",
+  "music_content_backup_missing_expected": "manke (yo te tann {kind})",
+  "music_content_backup_must_be_a": "dwe kalite {kind}",
+  "music_content_backup_must_be_an": "dwe kalite {kind}",
+  "music_content_backup_must_be_array": "dwe yon lis",
+  "music_content_backup_must_be_media": "dwe media/{i}",
+  "music_content_backup_must_be_object": "dwe yon objè",
+  "music_content_backup_must_be_string": "dwe yon tèks",
+  "music_content_backup_no_media": "dwe false: yon sovgad done pa gen medya ladan l",
+  "music_content_backup_non_empty_string": "dwe yon tèks ki pa vid",
+  "music_content_backup_not_backup": "se pa yon objè sovgad",
+  "music_content_backup_not_data_backup": "se pa yon sovgad done Woodshed",
+  "music_content_backup_not_full_backup": "se pa yon sovgad konplè Woodshed",
+  "music_content_backup_not_in_manifest": "nan achiv la men li pa nan manifès la",
+  "music_content_backup_not_json": "se pa yon JSON ki valab",
+  "music_content_backup_not_zip": "se pa yon ZIP ki ka li",
+  "music_content_backup_object_of_tables": "dwe yon objè ki gen tab",
+  "music_content_backup_over_250": "depase limit 250 MiB lan",
+  "music_content_backup_over_50": "depase limit 50 MiB lan",
+  "music_content_backup_size_mismatch": "di {size} byte men achiv la gen {listed}",
+  "music_content_backup_too_big": "Sovgad la fè {size} MiB, li depase limit 50 MiB lan.",
+  "music_content_backup_too_many_files": "{count} fichye medya depase limit {max} fichye a.",
+  "music_content_backup_unreadable_json": "pa t ka li l kòm JSON",
+  "music_content_backup_version": "vèsyon {version} pa sipòte",
+  "music_content_backup_whole_number": "dwe yon nonm antye ≥ 0",
+  "music_content_backup_wrong_size": "fè {actual} byte, yo te tann {size}",
+  "music_content_calibration_loose": "Tap ou yo te twò gaye pou nou ka fè yo konfyans (yo te varye {spread} ms; fòk se {max} ms oswa mwens). Eseye ankò ak yon tap ki fèm sou chak klik.",
+  "music_content_calibration_missed": "Tape yon fwa sou chak klik. {answered} nan {total} dènye klik yo te gen yon tap; fòk gen {needed}.",
+  "music_content_calibration_out_of_range": "Rezilta a se {offset} ms, plis pase {max} ms sa a ka korije. Verifye aparèy la epi eseye ankò.",
+  "music_content_calibration_too_few": "Esè a kanpe twò bonè. Kite tout {clicks} klik yo jwe, apre sa tape ankò ansanm ak yo.",
   "music_content_catalog_accompany_blurb": "Jwe patwon pop, blues ak gospel, akonpayman djaz oswa yon lead sheet sou yon tablo akò nan nenpòt tonalite.",
   "music_content_catalog_accompany_title": "Akonpayman",
   "music_content_catalog_aerophone_blurb": "Aprann dwate yo nan lòd leson Roland yo, apre sa kenbe nòt, fè yo gonfle, atake yo ak lang ou epi ateri sou entèval sou yon son fiks.",
@@ -347,6 +392,9 @@
   "music_content_circle_ordinal_6": "Sizyèm",
   "music_content_circle_ordinal_7": "Setyèm",
   "music_content_circle_shown": "{key} majè: {chords}",
+  "music_content_devices_akai_classic": "Kat Akai Classic MPC",
+  "music_content_devices_chromatic_36": "Kromatik apati 36 (C1)",
+  "music_content_devices_chromatic_37": "Kromatik apati 37",
   "music_content_ear_bass_caption": "Bas {degrees}: {chords}",
   "music_content_ear_bass_inversions": "Liy atravè envèsyon yo",
   "music_content_ear_bass_lines_description": "Akò apati I: ekri bas la, degre pa degre.",
@@ -673,6 +721,10 @@
   "music_content_jv_upper_ask": "{symbol}: yon triyad estrikti siperyè sou yon shell 1-3-7.",
   "music_content_jv_upper_label": "Estrikti siperyè sou yon mizik",
   "music_content_jv_upper_name": "{symbol}: triyad {numeral} a, {triad} majè, sou yon shell 1-3-7. Li ajoute {adds}. Nenpòt envèsyon anwo.",
+  "music_content_level_clipping": "Satire",
+  "music_content_level_good": "Bon nivo",
+  "music_content_level_hot": "Yon ti jan twò fò",
+  "music_content_level_quiet": "Ba",
   "music_content_loops_borrowed_hint": "iv, bVI, bVII ak bIII bò kote I, IV, V ak vi.",
   "music_content_loops_borrowed_label": "Akò prete",
   "music_content_loops_caption": "{name}. An {key}: {chords}",
@@ -696,6 +748,16 @@
   "music_content_loops_tritone_label": "Sibstitisyon triton",
   "music_content_loops_turnarounds_hint": "I-vi-ii-V, iii-VI-ii-V ak backdoor la.",
   "music_content_loops_turnarounds_label": "Turnaround",
+  "music_content_midi_file_drums": "Batri",
+  "music_content_midi_file_track": "Pis {n}",
+  "music_content_mpc_kit_bad_sample": "\"{file}\" se pa yon echantiyon MPC a ka chaje. Sèvi ak {formats}.",
+  "music_content_mpc_kit_missing_sample": "Pad {note} lan lonje sou yon echantiyon ki pa nan kit la.",
+  "music_content_musicxml_empty": "Dokiman XML vid",
+  "music_content_musicxml_malformed_near": "XML ki mal fòme toupre karaktè {at}",
+  "music_content_musicxml_missing_token": "XML ki mal fòme: \"{token}\" manke apre karaktè {at}",
+  "music_content_musicxml_mxl_empty": "Fichye .mxl sa a pa gen patisyon MusicXML ladan l.",
+  "music_content_musicxml_not_score": "Fichye sa a se pa yon patisyon MusicXML.",
+  "music_content_musicxml_timewise": "MusicXML timewise pa sipòte. Ekspòte l an score-partwise (sa ki abityèl la).",
   "music_content_piano_gospel_four_five_one_about": "Bas la mache 1-2-3-4 rive sou IV, apre sa V sou bas IV a pase tounen sou I/3.",
   "music_content_piano_gospel_four_five_one_label": "Monte mache ak 4-5-1 la",
   "music_content_piano_gospel_passing_dim_about": "I-#Idim7-ii ak IV-#IVdim7-I/5: yon akò diminye yon demi ton pi wo konekte de akò.",
@@ -861,6 +923,37 @@
   "music_content_technique_song_uke_hallelujah_note": "12/8 ou santi tankou 6/8. Vèsyon yo anseye a pense kòd 4 ak 1 sou chak tan fò, kidonk woulo a se yon apwoksimasyon.",
   "music_content_technique_song_uke_house_note": "Pous sou kòd 4, apre sa i m a. Kouplè a vin pi kout, 6 mezi.",
   "music_content_technique_song_uke_scarborough_note": "3/4 an Am nan yon tempo pratik ki pi dousman ak kòd ouvè yo k ap sonnen. Melodi a pa ladan l.",
+  "music_content_theory_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bemòl",
+        "countPlural=other": "{count} bemòl"
+      }
+    }
+  ],
+  "music_content_theory_circle_no_accidentals": "okenn dyèz ni bemòl",
+  "music_content_theory_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} dyèz",
+        "countPlural=other": "{count} dyèz"
+      }
+    }
+  ],
   "music_content_tunes_all_of_me_composer": "Gerald Marks ak Seymour Simons",
   "music_content_tunes_chorus": "Chorus {n}",
   "music_content_tunes_chorus_head": "Tèm",

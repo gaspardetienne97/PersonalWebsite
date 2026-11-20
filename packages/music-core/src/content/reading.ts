@@ -12,6 +12,7 @@ import {
   diatonicNames,
   enharmonicEqual,
   keyByName,
+  keyNameLabel,
   spellInKey,
   type KeySignature,
 } from "../theory/spelling";
@@ -1303,20 +1304,13 @@ export function practiceMissedScore(score: Score, missed: ScoreGroup[]): Score {
 
 export const CLIMB = { pass: 0.8, strikes: 3, measures: 4 } as const;
 /** The climb's rungs for an instrument: each of its levels through the level's climb keys. */
-/** "D major" as shown: the note and the mode in the current language. */
-const keyLabel = (key: string) => {
-  const [note, mode] = key.split(" ");
-  if (mode === "major") return m.music_content_ear_key_major({ note });
-  if (mode === "minor") return m.music_content_ear_key_minor({ note });
-  return key;
-};
 export const readingRungs = (instrument: string) =>
   levelsFor(instrument).flatMap((l) =>
     l.climbKeys.map((key) => ({
       level: l.id,
       key,
       clefs: l.recommendedClefs,
-      label: m.music_content_reading_rung_label({ level: l.label, key: keyLabel(key) }),
+      label: m.music_content_reading_rung_label({ level: l.label, key: keyNameLabel(key) }),
     })),
   );
 export const READING_RUNGS = readingRungs("piano");

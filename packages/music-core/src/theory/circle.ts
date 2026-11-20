@@ -3,6 +3,7 @@
 // chords that belong to a key, and the neighbours one step either way.
 
 import { pcOf } from "./notes";
+import { m } from "@repo/i18n/messages.js";
 
 /**
  * The note `fifths` fifths from C, spelled along the circle: ... Bb F C G D
@@ -98,8 +99,10 @@ export const opposite = (fifths: number) => CIRCLE[(wheelIndex(fifths) + 6) % 12
 /** "2 sharps", "1 flat", "no sharps or flats". */
 export const accidentalCount = (fifths: number) =>
   fifths === 0
-    ? "no sharps or flats"
-    : `${Math.abs(fifths)} ${fifths > 0 ? "sharp" : "flat"}${Math.abs(fifths) === 1 ? "" : "s"}`;
+    ? m.music_content_theory_circle_no_accidentals()
+    : (fifths > 0 ? m.music_content_theory_circle_sharps : m.music_content_theory_circle_flats)({
+        count: Math.abs(fifths),
+      });
 
 /** Semitones from a scale's tonic to its parent major's (D dorian is C major's). */
 const PARENT_MAJOR: Record<string, number> = {

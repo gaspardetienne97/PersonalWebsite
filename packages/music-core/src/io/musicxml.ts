@@ -3,6 +3,7 @@
 import JSZip from "jszip";
 import type { Score, ScoreNote, ScoreVoice } from "../types";
 import { transposeFifths } from "../theory/transposition";
+import { m as messages } from "@repo/i18n/messages.js";
 
 interface XmlNode {
   name: string;
@@ -28,7 +29,7 @@ function parseXml(xml: string): XmlNode {
   /** Index just past `token`, searching from `from`; unterminated markup is an error. */
   const past = (token: string, from: number) => {
     const at = xml.indexOf(token, from);
-    if (at < 0) throw new Error(`Malformed XML: missing "${token}" after character ${from}`);
+    if (at < 0) throw new Error(messages.music_content_musicxml_missing_token({ token, at: from }));
     return at + token.length;
   };
   let i = 0;
@@ -51,7 +52,7 @@ function parseXml(xml: string): XmlNode {
       const m = /^<([\w:.-]+)((?:\s+[\w:.-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/.exec(
         xml.slice(lt, lt + 4096),
       );
-      if (!m) throw new Error(`Malformed XML near character ${lt}`);
+      if (!m) throw new Error(messages.music_content_musicxml_malformed_near({ at: lt }));
       const node: XmlNode = { name: m[1], attrs: {}, children: [], text: "" };
       for (const a of m[2].matchAll(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g))
         node.attrs[a[1]] = decode(a[2] ?? a[3]);
@@ -61,7 +62,7 @@ function parseXml(xml: string): XmlNode {
     }
   }
   const el = root.children[0];
-  if (!el) throw new Error("Empty XML document");
+  if (!el) throw new Error(messages.music_content_musicxml_empty());
   return el;
 }
 
@@ -109,9 +110,9 @@ export function parseMusicXml(xml: string): Score {
   const doc = parseXml(xml);
   if (doc.name === "score-timewise")
     throw new Error(
-      "Timewise MusicXML is not supported. Export as score-partwise (the usual default).",
+      messages.music_content_musicxml_timewise(),
     );
-  if (doc.name !== "score-partwise") throw new Error("This file is not a MusicXML score.");
+  if (doc.name !== "score-partwise") throw new Error(messages.music_content_musicxml_not_score());
 
   const scoreParts = kids(kid(doc, "part-list"), "score-part");
   const partNames = new Map(scoreParts.map((p) => [p.attrs.id, txt(p, "part-name") || p.attrs.id]));
@@ -376,6 +377,6 @@ export async function parseMxl(bytes: Uint8Array): Promise<Score> {
     (container && kid(kid(parseXml(container), "rootfiles"), "rootfile")?.attrs["full-path"]) ||
     Object.keys(zip.files).find((f) => !f.startsWith("META-INF/") && /\.(musicxml|xml)$/i.test(f));
   const xml = path && (await zip.file(path)?.async("string"));
-  if (!xml) throw new Error("This .mxl file has no MusicXML score inside.");
+  if (!xml) throw new Error(messages.music_content_musicxml_mxl_empty());
   return parseMusicXml(xml);
 }

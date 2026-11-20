@@ -111,6 +111,51 @@
   "music_content_analysis_rule_secondary": "A secondary dominant: it resolves down a fifth to a chord that isn't a key's I. It belongs to that chord's key.",
   "music_content_analysis_rule_tonic": "A key's I: the home chord, or a major chord reached from its own V7, tritone sub or backdoor. A minor i needs its whole iiø7 V7 and two bars.",
   "music_content_analysis_rule_tritone_sub": "A tritone sub: a dominant that resolves down a half step, in place of the V a tritone away.",
+  "music_content_backup_array_of_rows": "must be an array of rows",
+  "music_content_backup_damaged": "does not match its SHA-256; the file is damaged",
+  "music_content_backup_duplicate_key": "duplicates an earlier key",
+  "music_content_backup_duplicates_field": "duplicates an earlier {field}",
+  "music_content_backup_full_over_250": "The full backup is over the 250 MiB limit.",
+  "music_content_backup_hex_sha": "must be a hex SHA-256",
+  "music_content_backup_holds_more": "holds more than {max} media files",
+  "music_content_backup_iso_date": "must be an ISO date",
+  "music_content_backup_key_kind": "must be a string or number key",
+  "music_content_backup_listed_twice": "lists a file twice",
+  "music_content_backup_malformed": "Some saved data is malformed, so no backup was made.",
+  "music_content_backup_manifest_over_50": "The manifest is over the 50 MiB limit.",
+  "music_content_backup_media_key": "Media key \"{key}\" is empty or repeated.",
+  "music_content_backup_media_missing": "media/{i} is missing from the archive",
+  "music_content_backup_media_over_250": "The media is over the 250 MiB full-backup limit.",
+  "music_content_backup_missing": "is missing",
+  "music_content_backup_missing_expected": "is missing (expected {kind})",
+  "music_content_backup_must_be_a": "must be a {kind}",
+  "music_content_backup_must_be_an": "must be an {kind}",
+  "music_content_backup_must_be_array": "must be an array",
+  "music_content_backup_must_be_media": "must be media/{i}",
+  "music_content_backup_must_be_object": "must be an object",
+  "music_content_backup_must_be_string": "must be a string",
+  "music_content_backup_no_media": "must be false: a data backup holds no media",
+  "music_content_backup_non_empty_string": "must be a non-empty string",
+  "music_content_backup_not_backup": "is not a backup object",
+  "music_content_backup_not_data_backup": "is not a Woodshed data backup",
+  "music_content_backup_not_full_backup": "is not a Woodshed full backup",
+  "music_content_backup_not_in_manifest": "is in the archive but not in the manifest",
+  "music_content_backup_not_json": "is not valid JSON",
+  "music_content_backup_not_zip": "is not a readable ZIP",
+  "music_content_backup_object_of_tables": "must be an object of tables",
+  "music_content_backup_over_250": "is over the 250 MiB limit",
+  "music_content_backup_over_50": "is over the 50 MiB limit",
+  "music_content_backup_size_mismatch": "says {size} bytes but the archive holds {listed}",
+  "music_content_backup_too_big": "The backup is {size} MiB, over the 50 MiB limit.",
+  "music_content_backup_too_many_files": "{count} media files is over the {max} file limit.",
+  "music_content_backup_unreadable_json": "could not be read as JSON",
+  "music_content_backup_version": "version {version} is not supported",
+  "music_content_backup_whole_number": "must be a whole number ≥ 0",
+  "music_content_backup_wrong_size": "is {actual} bytes, expected {size}",
+  "music_content_calibration_loose": "Your taps were too spread out to trust (they varied by {spread} ms; {max} ms or less is needed). Try again with one steady tap per click.",
+  "music_content_calibration_missed": "Tap once on every click. {answered} of the last {total} clicks had a tap; {needed} are needed.",
+  "music_content_calibration_out_of_range": "That came out at {offset} ms, beyond the {max} ms this can correct. Check the device and try again.",
+  "music_content_calibration_too_few": "The run stopped early. Let all {clicks} clicks play, then tap along again.",
   "music_content_catalog_accompany_blurb": "Play pop, blues and gospel patterns, jazz comping or a lead sheet over a chord chart in any key.",
   "music_content_catalog_accompany_title": "Accompaniment",
   "music_content_catalog_aerophone_blurb": "Learn the fingerings in Roland's lesson order, then hold, swell and tongue notes and land intervals against a drone.",
@@ -347,6 +392,9 @@
   "music_content_circle_ordinal_6": "sixth",
   "music_content_circle_ordinal_7": "seventh",
   "music_content_circle_shown": "{key} major: {chords}",
+  "music_content_devices_akai_classic": "Akai Classic MPC map",
+  "music_content_devices_chromatic_36": "Chromatic from 36 (C1)",
+  "music_content_devices_chromatic_37": "Chromatic from 37",
   "music_content_ear_bass_caption": "Bass {degrees}: {chords}",
   "music_content_ear_bass_inversions": "Lines through inversions",
   "music_content_ear_bass_lines_description": "Chords from I: write down the bass, degree by degree.",
@@ -673,6 +721,10 @@
   "music_content_jv_upper_ask": "{symbol}: an upper-structure triad over a 1-3-7 shell.",
   "music_content_jv_upper_label": "Upper structures on a tune",
   "music_content_jv_upper_name": "{symbol}: the {numeral} triad, {triad} major, over a 1-3-7 shell. It adds {adds}. Any inversion on top.",
+  "music_content_level_clipping": "Clipping",
+  "music_content_level_good": "Good level",
+  "music_content_level_hot": "A little hot",
+  "music_content_level_quiet": "Quiet",
   "music_content_loops_borrowed_hint": "iv, bVI, bVII and bIII beside I, IV, V and vi.",
   "music_content_loops_borrowed_label": "Borrowed chords",
   "music_content_loops_caption": "{name}. In {key}: {chords}",
@@ -696,6 +748,16 @@
   "music_content_loops_tritone_label": "Tritone subs",
   "music_content_loops_turnarounds_hint": "I-vi-ii-V, iii-VI-ii-V and the backdoor.",
   "music_content_loops_turnarounds_label": "Turnarounds",
+  "music_content_midi_file_drums": "Drums",
+  "music_content_midi_file_track": "Track {n}",
+  "music_content_mpc_kit_bad_sample": "\"{file}\" is not a sample the MPC can load. Use {formats}.",
+  "music_content_mpc_kit_missing_sample": "Pad {note} points at a sample that is not in the kit.",
+  "music_content_musicxml_empty": "Empty XML document",
+  "music_content_musicxml_malformed_near": "Malformed XML near character {at}",
+  "music_content_musicxml_missing_token": "Malformed XML: missing \"{token}\" after character {at}",
+  "music_content_musicxml_mxl_empty": "This .mxl file has no MusicXML score inside.",
+  "music_content_musicxml_not_score": "This file is not a MusicXML score.",
+  "music_content_musicxml_timewise": "Timewise MusicXML is not supported. Export as score-partwise (the usual default).",
   "music_content_piano_gospel_four_five_one_about": "The bass walks 1-2-3-4 into IV, then V over the IV bass passes back to I/3.",
   "music_content_piano_gospel_four_five_one_label": "Walk-up and the 4-5-1",
   "music_content_piano_gospel_passing_dim_about": "I-#Idim7-ii and IV-#IVdim7-I/5: a diminished chord a half step up joins two chords.",
@@ -861,6 +923,37 @@
   "music_content_technique_song_uke_hallelujah_note": "12/8 felt as 6/8. The taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
   "music_content_technique_song_uke_house_note": "Thumb on string 4, then i m a. The verse is shortened to 6 bars.",
   "music_content_technique_song_uke_scarborough_note": "3/4 in Am at a slower practice tempo with open strings ringing. The melody isn't included.",
+  "music_content_theory_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} flat",
+        "countPlural=other": "{count} flats"
+      }
+    }
+  ],
+  "music_content_theory_circle_no_accidentals": "no sharps or flats",
+  "music_content_theory_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sharp",
+        "countPlural=other": "{count} sharps"
+      }
+    }
+  ],
   "music_content_tunes_all_of_me_composer": "Gerald Marks and Seymour Simons",
   "music_content_tunes_chorus": "Chorus {n}",
   "music_content_tunes_chorus_head": "Head",
