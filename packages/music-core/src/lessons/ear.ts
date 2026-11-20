@@ -37,13 +37,29 @@ import { rng } from "../content/random";
 import { noteName, pc } from "../theory/notes";
 import { keys } from "./tier1";
 import type { Lesson, LessonScreen, LessonSound } from "./types";
+import { m } from "@repo/i18n/messages.js";
+import { formatList } from "@repo/i18n/format";
 
 const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
 const CADENCES = CADENCES_AND_QUALITIES.cadences;
 const MAJOR = SCALE_DATA.semitonesByKind.major;
 
-const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
-const hs = (n: number) => (n === 1 ? "1 half step" : `${n} half steps`);
+const ORDINAL = [
+  m.music_cards_ear_ordinal_1,
+  m.music_cards_ear_ordinal_2,
+  m.music_cards_ear_ordinal_3,
+  m.music_cards_ear_ordinal_4,
+  m.music_cards_ear_ordinal_5,
+  m.music_cards_ear_ordinal_6,
+  m.music_cards_ear_ordinal_7,
+  m.music_cards_ear_ordinal_8,
+];
+const hs = (n: number) => m.music_cards_half_steps({ count: n });
+/** A data token as a message key part: "half-diminished-7" is "half_diminished_7". */
+const keyPart = (token: string) => token.replaceAll("-", "_");
+/** A message by name, for a token that names it; undefined when there is none. */
+const byKey = (key: string) =>
+  (m as unknown as Record<string, (() => string) | undefined>)[`music_cards_${key}`];
 const name = (m: number) => noteName(m, "flat", false);
 const sound = (events: PlaybackEvent[], shift = 0): LessonSound => ({
   notes: events.map((e) => ({
@@ -60,7 +76,7 @@ const afterSetup = (minor: boolean, chord: PlaybackEvent[]): LessonSound => {
     ...chord.map((e) => ({ ...e, time: e.time + setup.length * 0.9 + 0.6 })),
   ]);
 };
-const marksOf = (midis: number[]) => Object.fromEntries(midis.map((m) => [m, name(m)]));
+const marksOf = (midis: number[]) => Object.fromEntries(midis.map((x) => [x, name(x)]));
 /** C major from middle C, each key marked with its degree or with the chord built on it. */
 const C_DEGREES = keys(Object.fromEntries(MAJOR.map((s, i) => [60 + s, String(i + 1)])));
 const C_NUMERALS = keys(
@@ -75,11 +91,17 @@ const card = (id: string, title: string, ...screens: LessonScreen[]): Lesson => 
 /** The quality's name and whether it is a triad: "major triad", "dominant 7th chord". */
 function chordWord(intervals: number[]) {
   const q = QUALITIES.find((x) => x.intervals.join() === intervals.join());
-  return q ? `${q.label.toLowerCase()} ${q.level === "triad" ? "triad" : "chord"}` : "chord";
+  if (!q) return m.music_cards_ear_chord_word();
+  const word = byKey(`ear_quality_word_${keyPart(q.token)}`);
+  return word ? word() : `${q.label.toLowerCase()} ${q.level === "triad" ? "triad" : "chord"}`;
 }
+/** A quality's name as a title ("Major 7th"), from its token. */
+const qualityTitle = (q: (typeof QUALITIES)[number]) =>
+  byKey(`ear_quality_title_${keyPart(q.token)}`)?.() ??
+  q.label.charAt(0) + q.label.slice(1).toLowerCase();
 /** Where a chord's root sits above the tonic, in words. */
 const rootAbove = (n: number) =>
-  n === 0 ? "Its root is the tonic" : `Its root is ${hs(n)} above the tonic`;
+  n === 0 ? m.music_cards_ear_root_is_tonic() : m.music_cards_ear_root_above({ steps: hs(n) });
 
 // ---------------------------------------------------------------------------
 // Intervals
@@ -101,15 +123,24 @@ const intervals = {
         Object.fromEntries(Array.from({ length: n + 1 }, (_, k) => [60 + sign * k, String(k)])),
         [60, 60 + sign * 12],
       );
-    return card("ear.intervals", "Intervals", {
-      title: "Distance in half steps",
-      text: `An interval is the distance between two notes, counted in half steps: one key to the very next, black keys included. ${name(60)} ${sign > 0 ? "up" : "down"} to ${name(60 + sign * 4)} is 4. Tap Next to count some, then the quiz plays two notes and you name the distance.`,
+    return card("ear.intervals", m.music_cards_ear_intervals_title(), {
+      title: m.music_cards_ear_intervals_intro_title(),
+      text: (sign > 0 ? m.music_cards_ear_intervals_intro_up : m.music_cards_ear_intervals_intro_down)(
+        { from: name(60), to: name(60 + sign * 4) },
+      ),
       // Two notes with the count between them, from the first screen: the idea drawn before Next.
       figure: counted(4),
       steps: ["m2", "P5", "P8"].map((t) => {
         const i = EAR_INTERVALS.find((x) => x.token === t)!;
+        const next = i.semitones === 1;
         return {
-          text: `${i.name}: ${hs(i.semitones)} ${sign > 0 ? "up" : "down"}${i.semitones === 1 ? ", the very next key" : ""}.`,
+          text: (sign > 0
+            ? next
+              ? m.music_cards_ear_intervals_step_up_next
+              : m.music_cards_ear_intervals_step_up
+            : next
+              ? m.music_cards_ear_intervals_step_down_next
+              : m.music_cards_ear_intervals_step_down)({ name: i.name, steps: hs(i.semitones) }),
           figure: counted(i.semitones),
           sound: intervalSound(t, dir),
         };
@@ -122,19 +153,19 @@ const intervals = {
     const dir = fixedDirection(o.direction);
     const n = hs(i.semitones);
     const text = !i.semitones
-      ? "The same note twice, 0 half steps apart. Nothing moves between the two."
+      ? m.music_cards_ear_intervals_unison()
       : dir === "descending"
-        ? `The second note is ${n} below the first, as the quiz plays it.`
+        ? m.music_cards_ear_intervals_descending({ steps: n })
         : dir === "harmonic"
-          ? `The two notes sound together, ${n} apart, as the quiz plays them.`
+          ? m.music_cards_ear_intervals_harmonic({ steps: n })
           : dir === "ascending"
-            ? `The second note is ${n} above the first, as the quiz plays it.`
-            : `The second note is ${n} above the first. The quiz can also play it coming down or together, with the same ${n}.`;
+            ? m.music_cards_ear_intervals_ascending({ steps: n })
+            : m.music_cards_ear_intervals_any({ steps: n });
     const second = 60 + (dir === "descending" ? -i.semitones : i.semitones);
     return card(`ear.intervals:${token}`, i.name, {
       title: i.name,
       text,
-      figure: keys({ 60: "1st", [second]: "2nd" }),
+      figure: keys({ 60: ORDINAL[0](), [second]: ORDINAL[1]() }),
       sound: intervalSound(token, dir ?? "ascending"),
     });
   },
@@ -150,13 +181,17 @@ const pair = (a: number, b: number) =>
   sound([ev(60, 0, 0.5), ev(60 + a, 0.6, 0.5), ev(60, 1.8, 0.5), ev(60 + b, 2.4, 0.5)]);
 const compare = {
   intro: () =>
-    card("ear.interval-compare", "Interval comparison", {
-      title: "Which is bigger?",
-      text: "Two intervals play one after the other, and you say which one is bigger. Compare the distance between the notes in each, not how high they sound. Later the second interval can start on a different note.",
-      figure: keys({ 60: "Start", 64: "4 up", 67: "7 up" }),
+    card("ear.interval-compare", m.music_cards_ear_compare_title(), {
+      title: m.music_cards_ear_compare_intro_title(),
+      text: m.music_cards_ear_compare_intro_text(),
+      figure: keys({
+        60: m.music_cards_ear_mark_start(),
+        64: m.music_cards_ear_mark_4_up(),
+        67: m.music_cards_ear_mark_7_up(),
+      }),
       options: [
-        { label: "First is bigger", sound: pair(7, 4) },
-        { label: "Second is bigger", sound: pair(4, 7) },
+        { label: m.music_cards_ear_compare_first(), sound: pair(7, 4) },
+        { label: m.music_cards_ear_compare_second(), sound: pair(4, 7) },
       ],
     }),
 };
@@ -164,16 +199,19 @@ const compare = {
 // ---------------------------------------------------------------------------
 // Chord qualities
 
-const THIRDS: Record<number, string> = { 3: "minor 3rd", 4: "major 3rd" };
-const FIFTHS: Record<number, string> = {
-  6: "diminished 5th",
-  7: "perfect 5th",
-  8: "augmented 5th",
+const THIRDS: Record<number, () => string> = {
+  3: m.music_cards_ear_part_minor_3rd,
+  4: m.music_cards_ear_part_major_3rd,
 };
-const SEVENTHS: Record<number, string> = {
-  9: "diminished 7th",
-  10: "minor 7th",
-  11: "major 7th",
+const FIFTHS: Record<number, () => string> = {
+  6: m.music_cards_ear_part_diminished_5th,
+  7: m.music_cards_ear_part_perfect_5th,
+  8: m.music_cards_ear_part_augmented_5th,
+};
+const SEVENTHS: Record<number, () => string> = {
+  9: m.music_cards_ear_part_diminished_7th,
+  10: m.music_cards_ear_part_minor_7th,
+  11: m.music_cards_ear_part_major_7th,
 };
 /** What a cue can name: a chord's 3rd, 5th or 7th (its half steps above the root), or the lack of a 7th. */
 export type CueElement =
@@ -215,8 +253,7 @@ const cueCode = (cue: CueElement[]) =>
   cue
     .map((c) => (c.kind === "none7" ? "no7" : (CUE_CODE[c.kind] as Record<number, string>)[c.n]))
     .join("|");
-const plainList = (xs: (string | number)[]) =>
-  xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : `${xs[0]}`;
+const plainList = (xs: (string | number)[]) => formatList(xs.map(String));
 const qualities = {
   intro: (o: EarOptions = {}) => {
     const triad = (label: string, midi: number[], marks: Record<number, string>) => ({
@@ -225,31 +262,38 @@ const qualities = {
       figure: keys(marks, [60, 68]),
     });
     // Root, 3rd and 5th on every key: the body text says how far each one sits.
-    const RT5 = (r: number, t: number, f: number) => ({ [r]: "Root", [t]: "3rd", [f]: "5th" });
-    const major = triad("Major: C, E, G", [60, 64, 67], RT5(60, 64, 67));
+    const RT5 = (r: number, t: number, f: number) => ({
+      [r]: m.music_cards_ear_mark_root(),
+      [t]: m.music_cards_ear_mark_3rd(),
+      [f]: m.music_cards_ear_mark_5th(),
+    });
+    const major = triad(m.music_cards_ear_qualities_major_label(), [60, 64, 67], RT5(60, 64, 67));
     // Diminished and augmented get their own screen, named by the quality, when the quiz asks them.
     const odd = [
       {
         token: "diminished",
-        title: "Diminished",
-        text: "Diminished is minor with the 5th a half step lower: C, Eb, Gb. It sounds tight and unsettled.",
-        ...triad("Diminished: C, Eb, Gb", [60, 63, 66], RT5(60, 63, 66)),
+        title: m.music_cards_ear_quality_title_diminished(),
+        text: m.music_cards_ear_qualities_dim_text(),
+        ...triad(m.music_cards_ear_qualities_dim_label(), [60, 63, 66], RT5(60, 63, 66)),
       },
       {
         token: "augmented",
-        title: "Augmented",
-        text: "Augmented is major with the 5th a half step higher: C, E, G#. It sounds stretched, as if it wants to move.",
-        ...triad("Augmented: C, E, G#", [60, 64, 68], RT5(60, 64, 68)),
+        title: m.music_cards_ear_quality_title_augmented(),
+        text: m.music_cards_ear_qualities_aug_text(),
+        ...triad(m.music_cards_ear_qualities_aug_label(), [60, 64, 68], RT5(60, 64, 68)),
       },
     ].filter((x) => o.items?.includes(x.token));
     return card(
       "ear.chord-qualities",
-      "Chord qualities",
+      m.music_cards_ear_qualities_title(),
       {
-        title: "Major and minor",
-        text: "A chord's quality comes from the notes stacked above its root: the 3rd and the 5th. The quiz plays one chord with all its notes at once, and you name the quality. Tap each to hear it: only the 3rd moves, 4 half steps above the root in major, 3 in minor.",
+        title: m.music_cards_ear_qualities_mm_title(),
+        text: m.music_cards_ear_qualities_mm_text(),
         figure: major.figure,
-        options: [major, triad("Minor: C, Eb, G", [60, 63, 67], RT5(60, 63, 67))],
+        options: [
+          major,
+          triad(m.music_cards_ear_qualities_minor_label(), [60, 63, 67], RT5(60, 63, 67)),
+        ],
       },
       ...odd.map((x) => ({ title: x.title, text: x.text, figure: x.figure, sound: x.sound })),
     );
@@ -258,19 +302,29 @@ const qualities = {
     const q = QUALITIES.find((x) => x.token === token);
     if (!q) return null;
     const [, third, fifth, seventh] = q.intervals;
-    const parts = ["root", THIRDS[third], FIFTHS[fifth], ...(seventh ? [SEVENTHS[seventh]] : [])];
+    const parts = [
+      m.music_cards_ear_part_root(),
+      THIRDS[third](),
+      FIFTHS[fifth](),
+      ...(seventh ? [SEVENTHS[seventh]()] : []),
+    ];
     const cue = qualityCue(token, o.items ?? [token]);
     const heard = cue.filter((c) => c.kind !== "none7");
     const words = heard.map(
-      (c) => ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n],
+      (c) => ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n](),
     );
     // The cue is part of the id: a set that needs another cue shows the item again.
     const no7 = cue.some((c) => c.kind === "none7");
     const chord = q.intervals.map((i) => 60 + i);
-    const title = q.label.charAt(0) + q.label.slice(1).toLowerCase();
+    const title = qualityTitle(q);
     return card(`ear.chord-qualities:${token}|${cueCode(cue)}`, title, {
       title,
-      text: `It stacks the ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}. Listen for the ${plainList(words)}: ${plainList(heard.map((c) => c.n))} half steps above the root${no7 ? ", with no 7th on top" : ""}.`,
+      text: m.music_cards_ear_qualities_item({
+        parts: formatList(parts),
+        words: plainList(words),
+        numbers: plainList(heard.map((c) => c.n)),
+        no7: no7 ? m.music_cards_ear_qualities_no7() : "",
+      }),
       figure: keys(marksOf(chord)),
       sound: { notes: [{ midi: chord, at: 0, dur: 0.9 }] },
     });
@@ -280,17 +334,17 @@ const qualities = {
 // ---------------------------------------------------------------------------
 // Cadences
 
-const CADENCE_LINE: Record<string, string> = {
-  authentic: "It lands on I, home, so it sounds finished.",
-  plagal: "It also lands on I, but it comes from IV instead of V.",
-  half: "It ends on V, so it sounds unfinished, like a pause.",
-  deceptive: "V leads you to expect I, but it goes to vi instead.",
+const CADENCE_LINE: Record<string, () => string> = {
+  authentic: m.music_cards_ear_cadence_line_authentic,
+  plagal: m.music_cards_ear_cadence_line_plagal,
+  half: m.music_cards_ear_cadence_line_half,
+  deceptive: m.music_cards_ear_cadence_line_deceptive,
 };
 const cadences = {
   intro: () =>
-    card("ear.cadences", "Cadences", {
-      title: "Two chords that close a phrase",
-      text: "A cadence is two chords that end a phrase, like punctuation. The quiz plays two chords and you name the cadence by where they go. Here V goes to I, the cadence that sounds most finished.",
+    card("ear.cadences", m.music_cards_ear_cadences_title(), {
+      title: m.music_cards_ear_cadences_intro_title(),
+      text: m.music_cards_ear_cadences_intro_text(),
       figure: keys({ 55: "V", 59: "V", 62: "V", 60: "I", 64: "I", 67: "I" }),
       sound: {
         notes: [
@@ -302,9 +356,13 @@ const cadences = {
   item: (token: string) => {
     const c = CADENCES.find((x) => x.token === token);
     if (!c) return null;
-    return card(`ear.cadences:${token}`, `${c.label} cadence`, {
-      title: `${c.label} cadence`,
-      text: `${c.romanProgression.join(" to ")}. ${CADENCE_LINE[token]} Here it is in C, and the quiz moves it to other keys.`,
+    const title = byKey(`ear_cadence_title_${keyPart(token)}`)?.() ?? `${c.label} cadence`;
+    return card(`ear.cadences:${token}`, title, {
+      title,
+      text: m.music_cards_ear_cadences_item({
+        progression: c.romanProgression.join(m.music_cards_ear_to()),
+        line: CADENCE_LINE[token]?.() ?? "",
+      }),
       sound: {
         notes: c.playback.map((e) => ({
           midi: e.midiNotes,
@@ -333,10 +391,17 @@ function chordItem(
   },
 ) {
   const rootPc = pc(o.chord[0]);
-  const key = o.minor ? "C minor" : "C major";
+  const key = o.minor ? m.music_cards_ear_key_c_minor() : m.music_cards_ear_key_c_major();
   return card(id, title, {
     title,
-    text: `${o.label} in ${key} is ${o.symbol}: a ${chordWord(o.intervals)}. ${rootAbove(rootPc)}. Here the key is set first with ${o.minor ? "i, iv, V, i" : CALL}.`,
+    text: m.music_cards_ear_chord_item({
+      label: o.label,
+      key,
+      symbol: o.symbol,
+      word: chordWord(o.intervals),
+      root: rootAbove(rootPc),
+      call: o.minor ? "i, iv, V, i" : CALL,
+    }),
     figure: keys(marksOf(o.chord.slice(1))),
     sound: afterSetup(o.minor, [{ midi: o.chord, time: 0, duration: 1.1 }]),
   });
@@ -356,27 +421,27 @@ const functionItem = (drill: string) => (token: string) => {
 };
 const functions = {
   intro: () =>
-    card("ear.chord-functions", "Chords in a key", {
-      title: "Each chord has a place in the key",
-      text: "The key is set with I, IV, V, I, then one chord plays and you name its numeral. The numeral is the chord's place in the key: I is built on the tonic, V on the 5th degree. The keys below show the chord built on each note of C major.",
+    card("ear.chord-functions", m.music_cards_ear_functions_title(), {
+      title: m.music_cards_ear_functions_intro_title(),
+      text: m.music_cards_ear_functions_intro_text(),
       figure: C_NUMERALS,
     }),
   item: functionItem("chord-functions"),
 };
 const progressions = {
   intro: () =>
-    card("ear.progressions", "Progression dictation", {
-      title: "Write down the chords",
-      text: "A progression of three or four chords plays, always starting on I, and you write down the rest as numerals. Hearing where each chord sits in the key tells you which numeral it is. The keys below show each numeral's root in C major.",
+    card("ear.progressions", m.music_cards_ear_progressions_title(), {
+      title: m.music_cards_ear_progressions_intro_title(),
+      text: m.music_cards_ear_progressions_intro_text(),
       figure: C_NUMERALS,
     }),
   item: functionItem("progressions"),
 };
 const loops = {
   intro: () =>
-    card("ear.song-loops", "Song loops", {
-      title: "A loop of chords",
-      text: "The key is set, then a loop of chords plays as a groove, and you name every chord as a numeral. A flat sign, as in bVII, means the chord's root is a half step lower than that degree in the major scale. The keys below show each numeral's root in C major.",
+    card("ear.song-loops", m.music_cards_ear_loops_title(), {
+      title: m.music_cards_ear_loops_intro_title(),
+      text: m.music_cards_ear_loops_intro_text(),
       figure: C_NUMERALS,
     }),
   item: (id: string) => {
@@ -387,7 +452,9 @@ const loops = {
     if (!n) return null;
     return chordItem(
       `ear.song-loops:${id}`,
-      `${numeralLabel(numeral)}${minor ? " in a minor key" : ""}`,
+      minor
+        ? m.music_cards_ear_loops_minor_title({ numeral: numeralLabel(numeral) })
+        : numeralLabel(numeral),
       {
         minor,
         chord: numeralChord(0, numeral),
@@ -422,15 +489,20 @@ const keyChanges = {
   intro: () =>
     card(
       "ear.key-changes",
-      "Key changes",
+      m.music_cards_ear_key_changes_title(),
       {
-        title: "The key moves",
-        text: "The old key is set with I, IV, V, I, then a few chords take the music to a new key. You answer where it went, then name the chords as numerals in the new key. The last chord is the new tonic: here C moves up a whole step to D.",
+        title: m.music_cards_ear_key_changes_moves_title(),
+        text: m.music_cards_ear_key_changes_moves_text(),
         figure: keys({ 60: "C", 64: "E", 67: "G", 62: "D", 66: "F#", 69: "A" }),
       },
       {
-        title: "Ways in",
-        text: `A ii-V, a V7 or a backdoor leads into a major key, here a whole step up. To a minor key the quiz uses ${KEY_CHANGE_PATHS.minor.map((p) => p.replaceAll(" ", ", ")).join(" or ")}.`,
+        title: m.music_cards_ear_key_changes_ways_title(),
+        text: m.music_cards_ear_key_changes_ways_text({
+          paths: formatList(
+            KEY_CHANGE_PATHS.minor.map((p) => p.replaceAll(" ", ", ")),
+            "disjunction",
+          ),
+        }),
         options: KEY_CHANGE_PATHS.major.map((path) => ({
           label: WAYS[path] ?? path,
           sound: sound(keyChangePlayback(0, `up-step ${path}`)),
@@ -444,9 +516,9 @@ const keyChanges = {
 
 const bassLines = {
   intro: () =>
-    card("ear.bass-lines", "Bass lines", {
-      title: "The lowest note of each chord",
-      text: "Chords play from I with their bass, and you write down the bass note of each as a scale degree. The bass is the chord's root, and at a higher level it can be another chord tone. Here the bass walks 1, 4, 5 under I, IV and V in C.",
+    card("ear.bass-lines", m.music_cards_ear_bass_title(), {
+      title: m.music_cards_ear_bass_intro_title(),
+      text: m.music_cards_ear_bass_intro_text(),
       figure: keys({ 48: "1", 53: "4", 55: "5" }),
       sound: {
         notes: [
@@ -466,13 +538,17 @@ const bassLines = {
     const [, ...upper] = functionChord(0, token);
     const semis = MAJOR[d - 1];
     const bass = 43 + ((((semis - 43) % 12) + 12) % 12);
-    const above = semis === 0 ? "the tonic" : `${hs(semis)} above the tonic`;
+    const above =
+      semis === 0
+        ? m.music_cards_ear_bass_the_tonic()
+        : m.music_cards_ear_bass_above_tonic({ steps: hs(semis) });
     const here = position
-      ? `Here the ${token} chord has its 3rd in the bass: degree ${degree}, ${above}.`
-      : `Here the bass plays degree ${degree}, the root of the ${functionLabel(token)} chord: ${above}.`;
-    return card(`ear.bass-lines:${degree}`, `Bass on degree ${degree}`, {
-      title: `Bass on degree ${degree}`,
-      text: `${here} The key is set first with ${CALL}.`,
+      ? m.music_cards_ear_bass_third({ token, degree, above })
+      : m.music_cards_ear_bass_root({ degree, chord: functionLabel(token), above });
+    const title = m.music_cards_ear_bass_item_title({ degree });
+    return card(`ear.bass-lines:${degree}`, title, {
+      title,
+      text: `${here} ${m.music_cards_ear_key_set_first({ call: CALL })}`,
       figure: keys(marksOf([bass, ...upper])),
       sound: afterSetup(false, [{ midi: [bass, ...upper], time: 0, duration: 0.8 }]),
     });
@@ -483,25 +559,25 @@ const bassLines = {
 // Scales and modes
 
 /** What gives each scale its colour: the notes, and which half-step counts are in or out of it. */
-const COLOUR: Record<string, string> = {
-  major: "the major 3rd, 4 half steps above the tonic",
-  "natural-minor": "the minor 3rd, 3 half steps above the tonic",
-  "harmonic-minor": "the jump from the 6th, 8 half steps up, to the 7th, 11 half steps up",
-  "melodic-minor": "the minor 3rd with a major 6th and 7th, 9 and 11 half steps up",
-  "major-pentatonic": "five notes, with no 4th and no 7th",
-  "minor-pentatonic": "five notes, with no 2nd and no 6th",
-  blues: "the flat 5th, 6 half steps up, between the 4th and the 5th",
-  mixolydian: "the major 3rd with a minor 7th, 10 half steps up",
-  dorian: "the minor 3rd with a major 6th, 9 half steps up",
-  lydian: "the raised 4th, 6 half steps up",
-  phrygian: "the minor 2nd, 1 half step up",
-  locrian: "the minor 2nd and the flat 5th, 1 and 6 half steps up",
+const COLOUR: Record<string, () => string> = {
+  major: m.music_cards_ear_colour_major,
+  "natural-minor": m.music_cards_ear_colour_natural_minor,
+  "harmonic-minor": m.music_cards_ear_colour_harmonic_minor,
+  "melodic-minor": m.music_cards_ear_colour_melodic_minor,
+  "major-pentatonic": m.music_cards_ear_colour_major_pentatonic,
+  "minor-pentatonic": m.music_cards_ear_colour_minor_pentatonic,
+  blues: m.music_cards_ear_colour_blues,
+  mixolydian: m.music_cards_ear_colour_mixolydian,
+  dorian: m.music_cards_ear_colour_dorian,
+  lydian: m.music_cards_ear_colour_lydian,
+  phrygian: m.music_cards_ear_colour_phrygian,
+  locrian: m.music_cards_ear_colour_locrian,
 };
 const scales = {
   intro: () =>
-    card("ear.scales", "Scales and modes", {
-      title: "A scale from its tonic",
-      text: "The quiz holds the tonic low and plays a scale from it, and you name the scale. Each scale is a set of steps from the tonic, and one or two notes give it its colour. Here is C major, counted up from its tonic.",
+    card("ear.scales", m.music_cards_ear_scales_title(), {
+      title: m.music_cards_ear_scales_intro_title(),
+      text: m.music_cards_ear_scales_intro_text(),
       figure: C_DEGREES,
       sound: sound(scalePlayback(60, "major", "ascending")),
     }),
@@ -511,7 +587,7 @@ const scales = {
     const run = scaleRun60(token);
     return card(`ear.scales:${token}`, s.name, {
       title: s.name,
-      text: `Listen for ${COLOUR[token]}. A low tonic holds under the scale, which here goes up.`,
+      text: m.music_cards_ear_scales_item({ colour: COLOUR[token]?.() ?? "" }),
       figure: keys(marksOf(run)),
       sound: sound(scalePlayback(60, token, "ascending")),
     });
@@ -525,13 +601,22 @@ const scaleRun60 = (token: string) =>
 // ---------------------------------------------------------------------------
 // Inversions
 
-const BASS_TONE = ["root", "3rd", "5th", "7th"];
+const BASS_TONE = [
+  m.music_cards_ear_bass_tone_root,
+  m.music_cards_ear_bass_tone_3rd,
+  m.music_cards_ear_bass_tone_5th,
+  m.music_cards_ear_bass_tone_7th,
+];
 const inversions = {
   intro: () =>
-    card("ear.inversions", "Inversions", {
-      title: "Which note is lowest",
-      text: "An inversion is which note of the chord sits lowest. The quiz plays one chord, and you name the inversion by the note in the bass. Here C major has its 3rd, E, at the bottom: first inversion.",
-      figure: keys({ 64: "3rd", 67: "5th", 72: "Root" }),
+    card("ear.inversions", m.music_cards_ear_inversions_title(), {
+      title: m.music_cards_ear_inversions_intro_title(),
+      text: m.music_cards_ear_inversions_intro_text(),
+      figure: keys({
+        64: m.music_cards_ear_mark_3rd(),
+        67: m.music_cards_ear_mark_5th(),
+        72: m.music_cards_ear_mark_root(),
+      }),
       sound: { notes: [{ midi: [64, 67, 72], at: 0, dur: 1.2 }] },
     }),
   item: (token: string) => {
@@ -547,7 +632,11 @@ const inversions = {
     ];
     return card(`ear.inversions:${token}`, inv.name, {
       title: inv.name,
-      text: `The ${BASS_TONE[inv.position]} of the chord is the lowest note, with the same note again an octave higher. Here, in ${inv.seventh ? "C7" : "C major"}, that's ${name(bass)}.`,
+      text: m.music_cards_ear_inversions_item({
+        tone: BASS_TONE[inv.position](),
+        chord: inv.seventh ? "C7" : m.music_cards_ear_key_c_major(),
+        note: name(bass),
+      }),
       figure: keys(marksOf(voicing)),
       sound: { notes },
     });
@@ -566,13 +655,13 @@ const finePitch = {
         { midi: [second], at: 1.1, dur: 0.8 },
       ],
     });
-    return card("ear.fine-pitch", "Fine pitch", {
-      title: "Smaller than a half step",
-      text: `A cent is a hundredth of a half step. The quiz plays a note, then the same note a few cents higher or lower, or sometimes in tune, and you say which. The widest step is ${cents} cents, and the steps run down to ${CENT_STEPS.at(-1)}.`,
+    return card("ear.fine-pitch", m.music_cards_ear_fine_title(), {
+      title: m.music_cards_ear_fine_intro_title(),
+      text: m.music_cards_ear_fine_intro_text({ cents, smallest: String(CENT_STEPS.at(-1)) }),
       figure: keys({ 69: "A" }),
       options: [
-        { label: `Higher by ${cents} cents`, sound: two(69 + cents / 100) },
-        { label: `Lower by ${cents} cents`, sound: two(69 - cents / 100) },
+        { label: m.music_cards_ear_fine_higher({ cents }), sound: two(69 + cents / 100) },
+        { label: m.music_cards_ear_fine_lower({ cents }), sound: two(69 - cents / 100) },
       ],
     });
   },
@@ -595,23 +684,33 @@ const degreeItem =
     });
     const [tonic, target] = p.playback.map((e) => e.midi[0]);
     const minor = !!o.minor;
-    const setup = keyed ? ` The key is set first with ${minor ? "i, iv, V, i" : CALL}.` : "";
-    return card(`ear.${drill}:${label}`, `Degree ${label}`, {
-      title: `Degree ${label}`,
+    const setup = keyed
+      ? ` ${m.music_cards_ear_key_set_first({ call: minor ? "i, iv, V, i" : CALL })}`
+      : "";
+    const then = keyed
+      ? d.semitones
+        ? m.music_cards_ear_degree_next_note()
+        : m.music_cards_ear_degree_next_same()
+      : d.semitones
+        ? m.music_cards_ear_degree_first_note()
+        : m.music_cards_ear_degree_first_same();
+    const title = m.music_cards_ear_degree_title({ label });
+    return card(`ear.${drill}:${label}`, title, {
+      title,
       text: `${
         d.semitones
-          ? `Degree ${label} (${d.solfege}) is ${hs(d.semitones)} above the tonic.`
-          : `Degree 1 (${d.solfege}) is the tonic itself.`
-      }${setup} The tonic plays ${keyed ? "next" : "first"}, then ${d.semitones ? "this note" : "the same note again"}.`,
+          ? m.music_cards_ear_degree_above({ label, solfege: d.solfege, steps: hs(d.semitones) })
+          : m.music_cards_ear_degree_tonic({ solfege: d.solfege })
+      }${setup} ${then}`,
       figure: keys({ [tonic]: "1", [target]: label === "1" ? "1" : label }),
       sound: keyed ? afterSetup(minor, p.playback) : sound(p.playback),
     });
   };
 const scaleDegrees = {
   intro: () =>
-    card("ear.scale-degrees", "Scale degrees", {
-      title: "Every note has a number",
-      text: "In a key, each note has a degree: 1 is the tonic, home, and the rest count up the scale. The quiz plays the tonic, then one more note, and you name its degree. Here are the degrees of C major.",
+    card("ear.scale-degrees", m.music_cards_ear_degrees_title(), {
+      title: m.music_cards_ear_degrees_intro_title(),
+      text: m.music_cards_ear_degrees_intro_text(),
       figure: C_DEGREES,
       sound: sound(scalePlayback(60, "major", "ascending")),
     }),
@@ -626,22 +725,28 @@ const melodyDictation = {
     });
     const tonic = p.playback[0].midi[0];
     const degrees = p.answer.split(" ");
-    return card("ear.melody-dictation", "Melody dictation", {
-      title: "A phrase in degrees",
-      text: `The key is set first, then the tonic plays and a short phrase follows. You answer with its degrees in order, by playing or singing them back. This one is ${p.answer}.`,
+    const TONIC = m.music_cards_ear_mark_tonic();
+    return card("ear.melody-dictation", m.music_cards_ear_melody_title(), {
+      title: m.music_cards_ear_melody_intro_title(),
+      text: m.music_cards_ear_melody_intro_text({ answer: p.answer }),
       figure: keys({
-        ...Object.fromEntries(p.expectedMidi!.map((m, i) => [m, degrees[i]])),
-        [tonic]: "Tonic",
+        ...Object.fromEntries(p.expectedMidi!.map((x, i) => [x, degrees[i]])),
+        [tonic]: TONIC,
       }),
       sound: afterSetup(p.minor, p.playback),
       // Next walks the phrase in play order, so the order is drawn, not only the degrees.
-      steps: p.expectedMidi!.map((m, i) => {
-        const marks: Record<number, string> = { [tonic]: "Tonic" };
+      steps: p.expectedMidi!.map((_, i) => {
+        const marks: Record<number, string> = { [tonic]: TONIC };
         p.expectedMidi!.slice(0, i + 1).forEach(
-          (x, j) => (marks[x] = marks[x] && x !== tonic ? `${marks[x]} ${ORDINAL[j]}` : ORDINAL[j]),
+          (x, j) =>
+            (marks[x] = marks[x] && x !== tonic ? `${marks[x]} ${ORDINAL[j]()}` : ORDINAL[j]()),
         );
+        const ordinal = ORDINAL[i]();
         return {
-          text: `${ORDINAL[i][0].toUpperCase()}${ORDINAL[i].slice(1)} note: degree ${degrees[i]}.`,
+          text: m.music_cards_ear_melody_step({
+            ordinal: `${ordinal[0].toUpperCase()}${ordinal.slice(1)}`,
+            degree: degrees[i],
+          }),
           figure: keys(marks, [tonic, ...p.expectedMidi!]),
           sound: sound(p.playback.slice(0, i + 2)),
         };
@@ -660,13 +765,13 @@ const wrongNote = {
     const written = p.playback.map((e, i) =>
       i === 0 ? e : { ...e, midi: [p.expectedMidi![i - 1]] },
     );
-    return card("ear.wrong-note", "Spot the wrong note", {
-      title: "One note is changed",
-      text: `A melody is written as degrees, here ${p.written!.join(" ")}. It plays after its tonic with one note changed, here note ${at}, and you say which place. Later it can also play exactly as written.`,
-      figure: keys(Object.fromEntries(p.expectedMidi!.map((m, i) => [m, p.written![i]]))),
+    return card("ear.wrong-note", m.music_cards_ear_wrong_title(), {
+      title: m.music_cards_ear_wrong_intro_title(),
+      text: m.music_cards_ear_wrong_intro_text({ written: p.written!.join(" "), at }),
+      figure: keys(Object.fromEntries(p.expectedMidi!.map((x, i) => [x, p.written![i]]))),
       options: [
-        { label: "As written", sound: sound(written) },
-        { label: "One note changed", sound: sound(p.playback) },
+        { label: m.music_cards_ear_wrong_as_written(), sound: sound(written) },
+        { label: m.music_cards_ear_wrong_changed(), sound: sound(p.playback) },
       ],
     });
   },
@@ -697,9 +802,9 @@ function feelSound(feel: string): { sound: LessonSound; label: string; bpm: numb
 }
 const feel = {
   intro: () =>
-    card("ear.feel", "Feel", {
-      title: "How the beat is divided",
-      text: "A groove's feel is how it divides each beat. The quiz plays a groove and you name its feel from where the notes between the beats fall. Below, each beat split straight in two.",
+    card("ear.feel", m.music_cards_ear_feel_title(), {
+      title: m.music_cards_ear_feel_intro_title(),
+      text: m.music_cards_ear_feel_intro_text(),
       figure: {
         kind: "rhythm",
         bars: 1,
@@ -714,7 +819,7 @@ const feel = {
     if (!f || !s) return null;
     return card(`ear.feel:${id}`, f.label, {
       title: f.label,
-      text: `${f.hint} Played here: ${s.label}, ${s.bpm} BPM.`,
+      text: m.music_cards_ear_feel_item({ hint: f.hint, groove: s.label, bpm: s.bpm }),
       sound: s.sound,
     });
   },
