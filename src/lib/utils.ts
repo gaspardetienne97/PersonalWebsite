@@ -82,6 +82,14 @@ const CREOLE_MONTHS = [
   "desanm",
 ];
 
+/**
+ * The tag to hand `Intl` for a site locale. The Spanish here is Latin American,
+ * and plain "es" would format dates and numbers the way Spain does.
+ */
+export function intlLocale(locale: string = getLocale()) {
+  return locale === "es" ? "es-419" : locale;
+}
+
 /** A date in the visitor's language (or the given locale). */
 export function formatDate(
   date: string,
@@ -92,5 +100,5 @@ export function formatDate(
   const dateToFormat = new Date(date.replaceAll("-", "/"));
   if (locale === "ht")
     return `${dateToFormat.getDate()} ${CREOLE_MONTHS[dateToFormat.getMonth()]} ${dateToFormat.getFullYear()}`;
-  return new Intl.DateTimeFormat(locale, { dateStyle }).format(dateToFormat);
+  return new Intl.DateTimeFormat(intlLocale(locale), { dateStyle }).format(dateToFormat);
 }

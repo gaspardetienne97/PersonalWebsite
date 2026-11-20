@@ -3,7 +3,7 @@ import en from "../../messages/en.json";
 import es from "../../messages/es.json";
 import fr from "../../messages/fr.json";
 import ht from "../../messages/ht.json";
-import { formatDate } from "./utils.ts";
+import { formatDate, intlLocale } from "./utils.ts";
 
 const MESSAGES: Record<string, Record<string, string>> = { en, es, fr, ht };
 const LOCALES = Object.keys(MESSAGES);
@@ -33,5 +33,10 @@ describe("formatDate", () => {
   it("uses Intl for the other languages", () => {
     expect(formatDate("2024-9-16", "long", "es")).toBe("16 de septiembre de 2024");
     expect(formatDate("2024-9-16", "long", "fr")).toBe("16 septembre 2024");
+  });
+
+  it("formats Spanish the Latin American way", () => {
+    expect(intlLocale("es")).toBe("es-419");
+    expect(new Intl.NumberFormat(intlLocale("es")).format(12345.6)).toBe("12,345.6");
   });
 });
