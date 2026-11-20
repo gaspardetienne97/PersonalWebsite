@@ -19,6 +19,7 @@ import type { Score, ScoreNote } from "../types";
 import { FLAT_NAMES, SHARP_NAMES, pc, pcOf } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Two-hand independence
@@ -151,7 +152,7 @@ export function compingScore(id: string, bpm?: number): Score {
     voices: [
       {
         id: COMPING.rightHandVoice,
-        name: "Right hand",
+        name: m.music_content_piano_right_hand(),
         clef: "treble",
         hand: "right",
         notes: p.lick.map((n) => ({
@@ -161,7 +162,7 @@ export function compingScore(id: string, bpm?: number): Score {
           finger: n.finger,
         })),
       },
-      { id: COMPING.leftHandVoice, name: "Left hand", clef: "bass", hand: "left", notes: lh },
+      { id: COMPING.leftHandVoice, name: m.music_content_piano_left_hand(), clef: "bass", hand: "left", notes: lh },
     ],
     lengthBeats: p.bars * 4,
     chords: [{ symbol: p.chord, startBeat: 0, durationBeats: p.bars * 4 }],
@@ -511,9 +512,9 @@ export const GOSPEL_PROGRESSIONS: {
 }[] = [
   {
     id: "slash-walk",
-    label: "Slash chords, a walking bass",
+    label: m.music_content_piano_gospel_slash_walk_label(),
     about:
-      "I, V/7, vi, vi/5, IV, I/3, ii7, V: the bass walks down while the right hand barely moves.",
+      m.music_content_piano_gospel_slash_walk_about(),
     chords: [
       ["", 0, MAJ],
       ["", 7, MAJ, 11],
@@ -527,8 +528,8 @@ export const GOSPEL_PROGRESSIONS: {
   },
   {
     id: "four-five-one",
-    label: "Walk-up and the 4-5-1",
-    about: "The bass walks 1-2-3-4 into IV, then V over the IV bass passes back to I/3.",
+    label: m.music_content_piano_gospel_four_five_one_label(),
+    about: m.music_content_piano_gospel_four_five_one_about(),
     chords: [
       ["", 0, MAJ],
       ["m7", 2, MINOR_SEVENTH],
@@ -543,8 +544,8 @@ export const GOSPEL_PROGRESSIONS: {
   },
   {
     id: "passing-dim",
-    label: "Passing diminished",
-    about: "I-#Idim7-ii and IV-#IVdim7-I/5: a diminished chord a half step up joins two chords.",
+    label: m.music_content_piano_gospel_passing_dim_label(),
+    about: m.music_content_piano_gospel_passing_dim_about(),
     chords: [
       ["", 0, MAJ],
       ["dim7", 1, DIM],
@@ -662,11 +663,11 @@ export const LICK_CATEGORIES = [
   ...VOCABULARY.categories.map((c) => c.id),
 ];
 export const LICK_CATEGORY_LABEL: Record<string, string> = {
-  "major-ii-V-I": "Major ii-V-I",
-  "major-ii-V-I-VI": "Major ii-V-I-VI",
-  "minor-ii-V-i": "Minor ii-V-i",
-  "minor-chord": "Minor chord",
-  "guitar-pentatonic": "Guitar pentatonic",
+  "major-ii-V-I": m.music_content_piano_lick_cat_major(),
+  "major-ii-V-I-VI": m.music_content_piano_lick_cat_major_vi(),
+  "minor-ii-V-i": m.music_content_piano_lick_cat_minor(),
+  "minor-chord": m.music_content_piano_lick_cat_minor_chord(),
+  "guitar-pentatonic": m.music_content_piano_lick_cat_guitar_pentatonic(),
   ...Object.fromEntries(VOCABULARY.categories.map((c) => [c.id, c.label])),
 };
 /** The chord sounding at a beat of a lick (chords one bar each unless `bars` says otherwise; the last one held). */
@@ -695,15 +696,15 @@ export interface LickNote {
  * or joined with dashes.
  */
 const LICK_TIPS: Record<number, string> = {
-  8: "Diminished line over G7.",
-  9: "Altered scale over G7.",
-  16: "Diminished over G7.",
-  19: "The standard minor ii-V-i scale set: D locrian, G diminished or altered, C dorian.",
-  20: "Locrian, diminished, then dorian: a new scale on each chord.",
-  23: "Altered scale over G7.",
-  26: "Dorian over each chord: C dorian, then F dorian.",
-  28: "Paradiddle texture, played here as one line.",
-  29: "Ascending minor pentatonic in 4-note cells.",
+  8: m.music_content_piano_lick_tip_8(),
+  9: m.music_content_piano_lick_tip_altered(),
+  16: m.music_content_piano_lick_tip_16(),
+  19: m.music_content_piano_lick_tip_19(),
+  20: m.music_content_piano_lick_tip_20(),
+  23: m.music_content_piano_lick_tip_altered(),
+  26: m.music_content_piano_lick_tip_26(),
+  28: m.music_content_piano_lick_tip_28(),
+  29: m.music_content_piano_lick_tip_29(),
 };
 export const lickTip = (lick: { number: number; tip: string }) =>
   LICK_TIPS[lick.number] ?? lick.tip;
@@ -754,10 +755,13 @@ export function lickScore(lickNumber: number, opts: { bpm: number; transpose?: n
     : 0;
   return {
     id: `lick-${lickNumber}${t ? `-t${t}` : ""}`,
-    title: `Lick ${lickNumber}: ${lick.progression.map((s) => transposeSymbol(s, t)).join(" ")}`,
+    title: m.music_content_piano_lick_title({
+      n: lickNumber,
+      chords: lick.progression.map((s) => transposeSymbol(s, t)).join(" "),
+    }),
     bpm: opts.bpm,
     meter: { beats: 4, beatUnit: 4 },
-    voices: [{ id: "lick", name: "Lick", notes: notes.map(({ index: _, ...n }) => n) }],
+    voices: [{ id: "lick", name: m.music_content_piano_lick_voice(), notes: notes.map(({ index: _, ...n }) => n) }],
     lengthBeats: Math.max(4, Math.ceil(end / 4) * 4),
     source: { kind: "generated" },
   };
