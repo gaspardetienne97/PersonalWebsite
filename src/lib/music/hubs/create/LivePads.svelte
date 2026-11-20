@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Play the beat in live, as on the MPC: the loop goes round with a click and
   // every pass records what the pads play (kick, then snare, then hats), with
   // input quantise off, 50% or 100%, undo of the last pass, swing on the loop
@@ -83,13 +84,13 @@
     }
     session.setPattern({ ...before, steps, live, swing });
     passes = [...passes, { hits, undone: false, before }];
-    announce(`Pass ${kept.length} kept: ${hits.length} hits.`);
+    announce(m.music_hubs_live_pass_kept({ n: kept.length, hits: hits.length }));
   }
 
   async function record() {
     if (recording) return stop();
     await audio.unlock();
-    if (!audio.unlocked) return announce("Sound is blocked. Tap for sound in the top bar, then try again.");
+    if (!audio.unlocked) return announce(m.music_hubs_live_blocked());
     session.stop();
     if (!passes.length) startedAt = performance.now();
     recording = true;
@@ -109,7 +110,7 @@
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    announce(`Recording: ${barsOf(session.pattern)} bar${barsOf(session.pattern) > 1 ? "s" : ""} at ${bpm} BPM, round and round. Each pass adds what you play. One voice a pass works best.`);
+    announce(m.music_hubs_live_recording({ count: barsOf(session.pattern), bpm }));
   }
 
   function stop() {
@@ -129,13 +130,13 @@
     if (!last) return;
     session.setPattern(last.before);
     passes = passes.map((p) => (p === last ? { ...p, undone: true } : p));
-    announce("Undid the last pass.");
+    announce(m.music_hubs_live_undid());
   }
 
   /** The build is graded and recorded; the loop stays in the beat. */
   async function keep() {
     stop();
-    if (!kept.length) return announce("Record a pass first.");
+    if (!kept.length) return announce(m.music_hubs_live_record_first());
     const minutes = Math.round(((performance.now() - startedAt) / 60000) * 10) / 10;
     const g = gradeLiveLoop(passes, { bpm, swing, minutes });
     const run = practice.beginRun({
@@ -151,16 +152,16 @@
     });
     await run.attempt({ promptId: `live:${barsOf(session.pattern)}`, correct: g.correct, partialCredit: g.score, metrics: [], source: "midi", instrument: "mpc" });
     const headline = g.correct
-      ? `A ${barsOf(session.pattern)}-bar loop in ${g.kept} passes, in time, in ${minutes} minutes.`
+      ? m.music_hubs_live_good({ bars: barsOf(session.pattern), passes: g.kept, minutes })
       : g.kept < LIVE_LOOP.passes
-        ? `${g.kept} passes kept: build it in at least ${LIVE_LOOP.passes} (kick, snare, hats).`
+        ? m.music_hubs_live_few({ kept: g.kept, passes: LIVE_LOOP.passes })
         : g.lateUndo
-          ? "A pass from the third on was undone: aim to keep every pass once the groove is there."
+          ? m.music_hubs_live_late_undo()
           : g.time < LIVE_LOOP.timePass
-            ? "The hits wandered off the grid: steady the passes, or set Quantise to 50%."
-            : `Built in ${minutes} minutes: aim for ${LIVE_LOOP.maxMinutes} or less.`;
+            ? m.music_hubs_live_off_grid()
+            : m.music_hubs_live_slow({ minutes, max: LIVE_LOOP.maxMinutes });
     await run.finish({ score: g.score, correct: g.correct, headline });
-    lastScore = `${pct(g.score)}: ${headline}`;
+    lastScore = m.music_hubs_pair({ a: pct(g.score), b: headline });
     announce(headline);
     passes = [];
   }
@@ -172,24 +173,24 @@
   });
 </script>
 
-<section class="stage rounded-3xl p-3 sm:p-5" aria-label="Play it live" data-testid="live-pads" data-loop-at={recording ? Math.round(loopAt) : undefined} data-passes={kept.length}>
+<section class="stage rounded-3xl p-3 sm:p-5" aria-label={m.music_hubs_live_label()} data-testid="live-pads" data-loop-at={recording ? Math.round(loopAt) : undefined} data-passes={kept.length}>
   <div class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-    <button type="button" class={btnPrimary} aria-pressed={recording} onclick={record}>{recording ? "Stop" : passes.length ? "Record more" : "Record"}</button>
-    <button type="button" class={btn} disabled={!kept.length} onclick={undo}>Undo last pass</button>
-    <button type="button" class={btn} disabled={!kept.length && !recording} onclick={keep}>Keep this loop</button>
+    <button type="button" class={btnPrimary} aria-pressed={recording} onclick={record}>{recording ? m.music_hubs_stop() : passes.length ? m.music_hubs_live_record_more() : m.music_hubs_record()}</button>
+    <button type="button" class={btn} disabled={!kept.length} onclick={undo}>{m.music_hubs_live_undo()}</button>
+    <button type="button" class={btn} disabled={!kept.length && !recording} onclick={keep}>{m.music_hubs_live_keep()}</button>
     <p class="min-w-0 flex-1 basis-48 text-sm text-ws-stage-soft" aria-live="polite">
-      {recording ? `Pass ${kept.length + 1}, beat ${beatNow === null ? "-" : Math.floor(beatNow) + 1} of ${loopBeats}.` : `${barsOf(session.pattern)} bar${barsOf(session.pattern) > 1 ? "s" : ""} at ${bpm} BPM: the beat's length (set on the beat grid) and the song's tempo.`}
-      {kept.length ? ` ${kept.length} kept.` : ""}
+      {recording ? m.music_hubs_live_pass_beat({ pass: kept.length + 1, beat: beatNow === null ? "-" : Math.floor(beatNow) + 1, total: loopBeats }) : m.music_hubs_live_length({ count: barsOf(session.pattern), bpm })}
+      {kept.length ? m.music_hubs_live_kept({ count: kept.length }) : ""}
     </p>
   </div>
   <div class="grid gap-4 sm:grid-cols-3">
-    <Choice label="Quantise" options={[{ value: 0, label: "Off" }, { value: 0.5, label: "50%" }, { value: 1, label: "100%" }]} value={quantise} onchange={(v) => (quantise = v)} />
-    <Choice label="Swing" options={[50, 54, 56, 58, 60, 62, 66].map((n) => ({ value: n, label: n === 50 ? "Straight" : `${n}%` }))} value={swing} onchange={(v) => (swing = v)} />
-    <Choice label="Note repeat" options={[{ value: "off", label: "Off" }, ...REPEAT_RATES.map((r) => ({ value: r.id as string, label: r.id }))]} value={rate} onchange={(v) => (rate = v)} />
+    <Choice label={m.music_hubs_live_quantise()} options={[{ value: 0, label: m.music_hubs_off() }, { value: 0.5, label: "50%" }, { value: 1, label: "100%" }]} value={quantise} onchange={(v) => (quantise = v)} />
+    <Choice label={m.music_hubs_live_swing()} options={[50, 54, 56, 58, 60, 62, 66].map((n) => ({ value: n, label: n === 50 ? m.music_hubs_live_straight() : `${n}%` }))} value={swing} onchange={(v) => (swing = v)} />
+    <Choice label={m.music_hubs_live_note_repeat()} options={[{ value: "off", label: m.music_hubs_off() }, ...REPEAT_RATES.map((r) => ({ value: r.id as string, label: r.id }))]} value={rate} onchange={(v) => (rate = v)} />
   </div>
   <p class="mt-3 text-[13px] text-ws-stage-soft">
-    Note repeat: hold a pad and it repeats on the loop's grid{repeater.aftertouch ? "; your pads send aftertouch, so pressure sets the level" : "; pressure sets the level when the pads send aftertouch"}. Keep this loop scores the build: in time, at least {LIVE_LOOP.passes} passes, no undo from the third on, {LIVE_LOOP.maxMinutes} minutes or less.
-    {#if lastScore}<span class="font-semibold text-ws-stage-ink">Last loop: {lastScore}</span>{/if}
+    {(repeater.aftertouch ? m.music_hubs_live_repeat_hint_on : m.music_hubs_live_repeat_hint_off)({ passes: LIVE_LOOP.passes, minutes: LIVE_LOOP.maxMinutes })}
+    {#if lastScore}<span class="font-semibold text-ws-stage-ink">{m.music_hubs_live_last({ score: lastScore })}</span>{/if}
   </p>
-  <div class="mt-4 max-w-md"><Pads label="MPC pads, bank A, playing the kit. Computer keys Z X C V play the bottom row." /></div>
+  <div class="mt-4 max-w-md"><Pads label={m.music_hubs_live_pads()} /></div>
 </section>

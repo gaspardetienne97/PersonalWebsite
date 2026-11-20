@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The row of twelve notes every Tuner tab shares. With a `tonic`, each pad is
   // coloured by its degree above it (the drone); without one, only the chosen
   // note lights (a tuning target). Colour is paired with the degree label.
@@ -19,7 +20,12 @@
   // Spelled for the key: sharps over a sharp-key tonic (G, D, A, E, B), so A major reads C♯, F♯, G♯, not D♭, G♭, A♭.
   const SHARP_TONICS = new Set([7, 2, 9, 4, 11]);
   const spelling = $derived(tonic !== undefined && SHARP_TONICS.has(tonic) ? "sharp" : "flat");
-  const ROLE_WORD = { tonic: "tonic", fifth: "fifth", scale: "in the major scale", other: "outside the major scale" };
+  const ROLE_WORD = {
+    tonic: m.music_hubs_tuner_role_tonic(),
+    fifth: m.music_hubs_tuner_role_fifth(),
+    scale: m.music_hubs_tuner_role_scale(),
+    other: m.music_hubs_tuner_role_other(),
+  };
 </script>
 
 <div class="pads grid gap-2" class:with-none={!!noneLabel} role="group" aria-label={label}>

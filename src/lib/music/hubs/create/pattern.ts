@@ -1,6 +1,7 @@
 // The beat grid's pattern: 16 sixteenth-note steps per bar, one or more bars,
 // rows keyed by MIDI note so a row plays the kit pad with that note, or the
 // synth kit. Pure.
+import { m } from "@repo/i18n/messages.js";
 import { DRUM_KITS, type GrooveDef } from "@repo/music-core/data/index";
 import { PAD_LEVELS, PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
 import { swungBeat } from "@repo/music-core/content/pads-grid";
@@ -183,7 +184,7 @@ export const PRESETS: BeatPreset[] = [...PAD_REPERTOIRE]
           {
             id: r.groove.value,
             name: r.groove.label,
-            group: `Level ${r.level}: ${level?.title ?? ""}`,
+            group: m.music_hubs_preset_level({ n: r.level, title: level?.title ?? "" }),
             bars: r.groove.bars,
             steps,
           },

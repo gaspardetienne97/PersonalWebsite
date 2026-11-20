@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The one big control on Record: a round button that reads Record or Stop.
   let { recording, disabled = false, onclick }: { recording: boolean; disabled?: boolean; onclick: () => void } = $props();
 </script>
@@ -12,7 +13,7 @@
   {onclick}
 >
   <span class="mark" aria-hidden="true"></span>
-  <span class="absolute -bottom-6 text-sm font-semibold text-ws-stage-ink">{recording ? "Stop" : "Record"}</span>
+  <span class="absolute -bottom-6 text-sm font-semibold text-ws-stage-ink">{recording ? m.music_hubs_stop() : m.music_hubs_record()}</span>
 </button>
 
 <style>

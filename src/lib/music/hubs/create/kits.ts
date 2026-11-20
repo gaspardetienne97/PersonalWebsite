@@ -1,6 +1,7 @@
 // Sample kits as stored in the setting `music.sample-kits` (a list of kits).
 // Pure: the page reads and writes OPFS and Dexie; this decides where samples
 // go, what the audio runtime plays and what the MPC export receives.
+import { m } from "@repo/i18n/messages.js";
 import {
   autoMapNote,
   autoMapSamples,
@@ -57,22 +58,22 @@ export function padLabel(note: number): string {
  */
 export const BUILT_IN_DRUM: Record<number, string> = {
   35: "808",
-  36: "Kick",
-  37: "Rim",
-  38: "Snare",
-  39: "Clap",
-  40: "Snare 2",
-  41: "Low tom",
-  42: "Hats",
-  43: "Floor tom",
-  44: "Pedal hat",
-  45: "Mid tom",
-  46: "Open hat",
-  47: "Cowbell",
-  48: "High tom",
-  49: "Crash",
-  50: "Top tom",
-  51: "Ride",
+  36: m.music_hubs_drum_kick(),
+  37: m.music_hubs_drum_rim(),
+  38: m.music_hubs_drum_snare(),
+  39: m.music_hubs_drum_clap(),
+  40: m.music_hubs_drum_snare2(),
+  41: m.music_hubs_drum_low_tom(),
+  42: m.music_hubs_drum_hats(),
+  43: m.music_hubs_drum_floor_tom(),
+  44: m.music_hubs_drum_pedal_hat(),
+  45: m.music_hubs_drum_mid_tom(),
+  46: m.music_hubs_drum_open_hat(),
+  47: m.music_hubs_drum_cowbell(),
+  48: m.music_hubs_drum_high_tom(),
+  49: m.music_hubs_drum_crash(),
+  50: m.music_hubs_drum_top_tom(),
+  51: m.music_hubs_drum_ride(),
 };
 
 export function samplePath(kitId: string, sampleId: string, fileName: string): string {

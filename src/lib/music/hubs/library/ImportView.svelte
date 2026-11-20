@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Import a score (MIDI, MusicXML, .mxl), or turn a recording or a MIDI take
   // into a draft fixed in the piano roll (TranscribeView), and save it.
   import Upload from "@lucide/svelte/icons/upload";
@@ -52,7 +53,7 @@
       preview = { score, file: file.name };
       title = score.title;
       composer = score.composer ?? "";
-      onstatus?.(`Read ${file.name}: ${scoreFacts(score).notes} notes. Check the preview, then save.`);
+      onstatus?.(m.music_hubs_import_read({ file: file.name, count: scoreFacts(score).notes }));
     } catch (e) {
       preview = null;
       fail((e as Error).message);
@@ -65,7 +66,7 @@
     const song = { ...songFromScore(score, meta), ...(shelf ? { shelf } : {}) };
     await db.songs.put(song);
     saved = song;
-    onstatus?.(`Saved ${song.title} to your songs.`);
+    onstatus?.(m.music_hubs_import_saved_status({ title: song.title }));
   }
 
   async function saveImport() {
@@ -85,13 +86,13 @@
 <div class="flex flex-col gap-5">
   {#if shelf}
     <p class="rounded-2xl border border-ws-line bg-ws-surface px-4 py-3 text-sm">
-      Importing for the path song <strong>{shelfFor ?? shelf}</strong>. Its runs in Song practice count toward that level's song list.
+      {m.music_hubs_import_for_before()} <strong>{shelfFor ?? shelf}</strong>{m.music_hubs_import_for_after()}
     </p>
   {/if}
   <div class="flex flex-wrap items-center gap-3">
-    <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label="What to import">
+    <div class="flex rounded-full border border-ws-line bg-ws-surface p-1" role="group" aria-label={m.music_hubs_import_what()}>
       <!-- Short labels on the buttons; the full name (which contains them) is read out. -->
-      {#each [["score", "File", undefined], ["audio", "Audio", "Transcribe audio"], ["take", "MIDI take", "From a MIDI take"]] as const as [id, label, name] (id)}
+      {#each [["score", m.music_hubs_import_file(), undefined], ["audio", m.music_hubs_import_audio(), m.music_hubs_import_audio_name()], ["take", m.music_hubs_import_take(), m.music_hubs_import_take_name()]] as const as [id, label, name] (id)}
         <button
           type="button"
           class="min-h-11 rounded-full px-4 text-sm font-medium {mode === id ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}"
@@ -102,15 +103,15 @@
       {/each}
     </div>
     <p class="text-sm text-ws-soft">
-      {mode === "score" ? "A score you already have. MusicXML keeps the parts and bar lines as written. MIDI works too." : mode === "audio" ? "A recording becomes a draft you fix in the piano roll." : "Something you played on a MIDI keyboard becomes a draft you fix in the piano roll."}
+      {mode === "score" ? m.music_hubs_import_desc_score() : mode === "audio" ? m.music_hubs_import_desc_audio() : m.music_hubs_import_desc_take()}
     </p>
   </div>
 
   {#if saved}
     <div class="{panel} flex flex-wrap items-center gap-3">
-      <p class="min-w-0 flex-1 font-medium">{saved.title} is in your songs.</p>
-      <a class={btnPrimary} href="/music/songs/{saved.id}">Open in Song practice</a>
-      <a class={btn} href="?tab=songs">See all songs</a>
+      <p class="min-w-0 flex-1 font-medium">{m.music_hubs_import_in_songs({ title: saved.title })}</p>
+      <a class={btnPrimary} href="/music/songs/{saved.id}">{m.music_hubs_import_open()}</a>
+      <a class={btn} href="?tab=songs">{m.music_hubs_import_see_all()}</a>
     </div>
   {/if}
 
@@ -127,10 +128,10 @@
         ondrop={(e) => drop(e, takeScore)}
       >
         <Upload class="size-7" aria-hidden="true" />
-        <span class="font-display text-lg font-semibold">{#if busy}Reading the score{:else}<span class="sm:hidden">Choose a score file</span><span class="max-sm:hidden">Drop a score here, or choose a file</span>{/if}</span>
-        <span class="text-sm text-ws-soft">MusicXML (.musicxml, .xml, .mxl) or MIDI (.mid, .midi)</span>
-        <span class="max-w-sm text-center text-sm">No file yet: in MuseScore or a similar notation app, open a score and choose File, Export, MusicXML.</span>
-        <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label="Score file" data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
+        <span class="font-display text-lg font-semibold">{#if busy}{m.music_hubs_import_reading()}{:else}<span class="sm:hidden">{m.music_hubs_import_choose()}</span><span class="max-sm:hidden">{m.music_hubs_import_drop()}</span>{/if}</span>
+        <span class="text-sm text-ws-soft">{m.music_hubs_import_formats()}</span>
+        <span class="max-w-sm text-center text-sm">{m.music_hubs_import_no_file()}</span>
+        <input class="sr-only" type="file" accept={SCORE_ACCEPT} aria-label={m.music_hubs_import_score_file()} data-testid="score-file" onchange={(e) => takeScore(e.currentTarget.files?.[0])} />
       </label>
     {:else}
       <div class="flex min-w-0 flex-col gap-4 md:col-span-2">
@@ -149,25 +150,25 @@
   {#if preview && mode === "score"}
     {@const f = scoreFacts(preview.score)}
     <section class="{panel} flex flex-col gap-4" aria-labelledby="preview-h">
-      <h2 id="preview-h" class="font-display text-xl font-semibold">Preview</h2>
+      <h2 id="preview-h" class="font-display text-xl font-semibold">{m.music_hubs_import_preview()}</h2>
       <div class="grid gap-4 sm:grid-cols-2">
-        <label class="flex flex-col gap-1 text-sm"><span class="font-medium">Title</span><input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={title} /></label>
-        <label class="flex flex-col gap-1 text-sm"><span class="font-medium">Composer</span><input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={composer} placeholder="Optional" /></label>
+        <label class="flex flex-col gap-1 text-sm"><span class="font-medium">{m.music_hubs_import_title()}</span><input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={title} /></label>
+        <label class="flex flex-col gap-1 text-sm"><span class="font-medium">{m.music_hubs_import_composer()}</span><input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={composer} placeholder={m.music_hubs_optional()} /></label>
       </div>
       <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-        <div><dt class="text-ws-soft">Tempo</dt><dd class="tnum font-semibold">{preview.score.bpm} BPM</dd></div>
-        <div><dt class="text-ws-soft">Meter</dt><dd class="font-semibold">{f.meter}</dd></div>
-        <div><dt class="text-ws-soft">Key</dt><dd class="font-semibold">{f.key ?? "Not marked"}</dd></div>
-        <div><dt class="text-ws-soft">Length</dt><dd class="tnum font-semibold">{barsText(f.bars)}, {durationText(f.seconds)}</dd></div>
-        <div><dt class="text-ws-soft">Notes</dt><dd class="tnum font-semibold">{f.notes}</dd></div>
-        <div><dt class="text-ws-soft">Range</dt><dd class="font-semibold">{rangeText(f)}</dd></div>
-        <div class="col-span-2"><dt class="text-ws-soft">Voices</dt><dd class="font-semibold">{preview.score.voices.map((v) => v.name).join(", ")}</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_tempo()}</dt><dd class="tnum font-semibold">{preview.score.bpm} BPM</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_meter()}</dt><dd class="font-semibold">{f.meter}</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_key()}</dt><dd class="font-semibold">{f.key ?? m.music_hubs_import_not_marked()}</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_length()}</dt><dd class="tnum font-semibold">{barsText(f.bars)}, {durationText(f.seconds)}</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_notes()}</dt><dd class="tnum font-semibold">{f.notes}</dd></div>
+        <div><dt class="text-ws-soft">{m.music_hubs_import_range()}</dt><dd class="font-semibold">{rangeText(f)}</dd></div>
+        <div class="col-span-2"><dt class="text-ws-soft">{m.music_hubs_import_voices()}</dt><dd class="font-semibold">{preview.score.voices.map((v) => v.name).join(", ")}</dd></div>
       </dl>
       <div class="stage rounded-xl p-3"><RollThumb score={preview.score} height={80} /></div>
       <Staff score={preview.score} maxHeight="22rem" />
       <div class="flex flex-wrap gap-2">
-        <button type="button" class={btnPrimary} onclick={saveImport}>Save to songs</button>
-        <button type="button" class={btn} onclick={() => (preview = null)}>Discard</button>
+        <button type="button" class={btnPrimary} onclick={saveImport}>{m.music_hubs_import_save()}</button>
+        <button type="button" class={btn} onclick={() => (preview = null)}>{m.music_hubs_discard()}</button>
       </div>
     </section>
   {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Each path is a road map: a node per step, lit when passed, with "Up next" pulsing. A node opens
   // to what the step adds, what done means and its drill. Levelled paths show one level at a time:
   // its steps, then its song shelf and its test as checkpoints on the same road.
@@ -84,37 +85,37 @@
 
 
   const statusText: Record<StepStatus, string> = {
-    done: "Done",
-    review: "Review",
-    next: "Up next",
-    "in-progress": "In progress",
-    "not-assessed": "Not started",
-    locked: "Locked",
-    todo: "Read and play",
+    done: m.music_hubs_done(),
+    review: m.music_hubs_paths_status_review(),
+    next: m.music_hubs_up_next(),
+    "in-progress": m.music_hubs_paths_status_in_progress(),
+    "not-assessed": m.music_hubs_paths_status_not_started(),
+    locked: m.music_hubs_locked(),
+    todo: m.music_hubs_paths_status_todo(),
   };
   // Strand letters mean different things per path (S is strumming on guitar, songs on the ear
   // path). A code with no name here is left out rather than printed.
   const STRUMMING = {
-    S: "Chords and strumming",
-    C: "Chords and strumming",
-    F: "Fingerpicking",
-    L: "Lead",
-    R: "Riffs",
-    T: "Reading, theory and ear",
+    S: m.music_hubs_paths_strand_chords(),
+    C: m.music_hubs_paths_strand_chords(),
+    F: m.music_hubs_paths_strand_fingerpicking(),
+    L: m.music_hubs_paths_strand_lead(),
+    R: m.music_hubs_paths_strand_riffs(),
+    T: m.music_hubs_paths_strand_reading(),
   };
   const STRANDS: Partial<Record<PathId, Record<string, string>>> = {
     guitar: STRUMMING,
     ukulele: STRUMMING,
-    ear: { E: "Ear", H: "Harmony", S: "Songs by ear" },
+    ear: { E: m.music_hubs_paths_strand_ear(), H: m.music_hubs_paths_strand_harmony(), S: m.music_hubs_paths_strand_songs() },
   };
   const strands = (code: string) => [
     ...new Set(code.split(/,\s*/).flatMap((c) => STRANDS[selected]?.[c] ?? [])),
   ];
   /** "Level 3"; a placement level 0 goes by its own name ("Check-in"). */
-  const levelName = (l: LevelProgress) => (l.level.id === "0" ? l.level.title : `Level ${l.level.id}`);
+  const levelName = (l: LevelProgress) => (l.level.id === "0" ? l.level.title : m.music_hubs_paths_level({ id: l.level.id }));
   const passed = (st: StepStatus) => st === "done" || st === "review";
   /** One status format everywhere: "Check-in: 0 of 6 steps", "Level 1: 3 of 10 steps". */
-  const levelStatus = (l: LevelProgress) => `${levelName(l)}: ${l.done} of ${l.total} steps`;
+  const levelStatus = (l: LevelProgress) => m.music_hubs_paths_level_status({ name: levelName(l), done: l.done, total: l.total });
   /** A level's name on the map in two words at most, the full title in its label and heading. */
   const STOP = new Set(["a", "an", "and", "the", "from", "of", "to", "with", "for", "in", "on", "by"]);
   const shortTitle = (t: string) => {
@@ -151,7 +152,7 @@
   /** A path's goal in a few words: its benchmark up to the first comma or semicolon. */
   const goal = (id: PathId) => {
     const b = LEARNING_PATHS[id].benchmark;
-    return b ? `Goal: ${b.split(/[;,]\s*/)[0]}` : "";
+    return b ? m.music_hubs_paths_goal({ goal: b.split(/[;,]\s*/)[0] }) : "";
   };
 </script>
 
@@ -217,9 +218,9 @@
           {@render head(
             sp.step.id,
             plainPathText(sp.step.title),
-            coming ? "Coming" : sp.almost ? "Almost there" : statusText[st],
+            coming ? m.music_hubs_paths_coming() : sp.almost ? m.music_hubs_paths_almost() : statusText[st],
             st === "next",
-            `Step ${stepLabel(i)}: `,
+            m.music_hubs_paths_step_sr({ n: stepLabel(i) }),
             look,
             coming ? "" : (sp.step.href ?? ""),
             // An open step says what it teaches, not "not started" on every row; the ring is the status.
@@ -242,26 +243,25 @@
               <p class="mt-1.5 text-sm">{plain(sp.step.summary)}</p>
               {#if sp.step.detail}
                 <p class="mt-2 flex gap-2 rounded-xl bg-ws-raised px-3 py-2 text-sm">
-                  <Target class="mt-0.5 size-4 shrink-0 text-instr-ink" aria-hidden="true" /><span><span class="font-semibold">To pass:</span> {plainPathText(sp.step.detail)}</span>
+                  <Target class="mt-0.5 size-4 shrink-0 text-instr-ink" aria-hidden="true" /><span><span class="font-semibold">{m.music_hubs_paths_to_pass()}</span> {plainPathText(sp.step.detail)}</span>
                 </p>
               {/if}
               {#if coming}
-                <p class="mt-1 text-[13px] text-ws-soft">Waits for: {plainPathText(sp.step.needs ?? "")}</p>
+                <p class="mt-1 text-[13px] text-ws-soft">{m.music_hubs_paths_waits_for({ needs: plainPathText(sp.step.needs ?? "") })}</p>
               {:else if st === "review"}
-                <p class="mt-1 text-[13px] text-ws-soft">A later step you passed covers this. Use it to review.</p>
+                <p class="mt-1 text-[13px] text-ws-soft">{m.music_hubs_paths_review_note()}</p>
               {:else if sp.evidence.length && st !== "done" && sp.evidence.some((e) => e.attempts)}
                 {@const tried = sp.evidence.reduce((n, e) => n + e.attempts, 0)}
                 <p class="tnum mt-1 text-[13px] text-ws-soft">
-                  {tried} Check run{tried === 1 ? "" : "s"} so far, the latest averaging
-                  {Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100)}%.
-                  {#if sp.evidence.length > 1}{sp.evidence.filter((e) => e.done).length} of {sp.evidence.length} passed.{/if}
-                  {#if sp.almost}Passing now: {sp.evidence.some((e) => e.days < sp.step.minDays)
-                      ? "play it again on another day to confirm."
-                      : "a few more Check runs to confirm."}{/if}
+                  {m.music_hubs_paths_runs_so_far({ count: tried, pct: Math.round((sp.evidence.reduce((n, e) => n + e.mean, 0) / sp.evidence.length) * 100) })}
+                  {#if sp.evidence.length > 1}{m.music_hubs_paths_runs_passed({ done: sp.evidence.filter((e) => e.done).length, total: sp.evidence.length })}{/if}
+                  {#if sp.almost}{sp.evidence.some((e) => e.days < sp.step.minDays)
+                      ? m.music_hubs_paths_passing_days()
+                      : m.music_hubs_paths_passing_runs()}{/if}
                 </p>
               {/if}
-              {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-[13px] text-ws-soft">Counts at {sp.step.minBpm} BPM or faster.</p>{/if}
-              {#if st === "locked"}<p class="mt-1 text-[13px] text-ws-soft">Opens once the steps before it pass.</p>{/if}
+              {#if sp.step.minBpm && st !== "done"}<p class="tnum mt-1 text-[13px] text-ws-soft">{m.music_hubs_paths_min_bpm({ bpm: sp.step.minBpm })}</p>{/if}
+              {#if st === "locked"}<p class="mt-1 text-[13px] text-ws-soft">{m.music_hubs_paths_locked_note()}</p>{/if}
               {#if st !== "locked" && sp.step.href && !coming}
                 <div class="mt-3 flex flex-wrap gap-2">
                   <a
@@ -270,7 +270,7 @@
                       ? 'bg-[color:var(--p)] text-ws-stage hover:brightness-105'
                       : 'border border-ws-line hover:bg-ws-raised'}"
                   >
-                    <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? "Open" : st === "done" ? "Again" : "Start"}<span class="sr-only">&nbsp;{sp.step.title}</span>
+                    <Play class="size-4" aria-hidden="true" />{sp.step.kind === "reference" ? m.music_hubs_open() : st === "done" ? m.music_hubs_again() : m.music_hubs_start()}<span class="sr-only">&nbsp;{sp.step.title}</span>
                   </a>
                   {#each sp.step.links as l (l.href)}
                     <a href={l.href} class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:border-[color:var(--p)] hover:bg-ws-raised">{l.label}</a>
@@ -289,23 +289,23 @@
         {#snippet songFace()}<Music class="size-5" />{/snippet}
         {@render node(steps.length, enough ? "passed" : "open", songFace)}
         <div class="min-w-0">
-          {@render head("songs", "Song list", lv.level.pick ? `${lv.played} of ${lv.level.pick} songs played` : "Songs to play along with", false)}
+          {@render head("songs", m.music_hubs_paths_song_list(), lv.level.pick ? m.music_hubs_paths_songs_played_of({ played: lv.played, pick: lv.level.pick }) : m.music_hubs_paths_songs_along(), false)}
           <!-- The checkpoint's songs as badges, lit once played. -->
-          <ul class="mt-1 flex flex-wrap gap-1.5" aria-label="Songs in the list">
+          <ul class="mt-1 flex flex-wrap gap-1.5" aria-label={m.music_hubs_paths_songs_label()}>
             {#each lv.songs as row (row.key)}
               <li
                 class="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[13px] {row.played
                   ? 'border-transparent bg-[color:var(--p)] text-ws-stage'
                   : 'border-ws-line text-ws-soft'}"
               >
-                {#if row.played}<Check class="size-3" aria-hidden="true" /><span class="sr-only">Played: </span>{/if}{row.song.title}
+                {#if row.played}<Check class="size-3" aria-hidden="true" /><span class="sr-only">{m.music_hubs_paths_played_sr()}</span>{/if}{row.song.title}
               </li>
             {/each}
           </ul>
           {#if openId === "songs"}
-            <section id="stop-songs" aria-label="Song list" class="mt-2">
+            <section id="stop-songs" aria-label={m.music_hubs_paths_song_list()} class="mt-2">
               <p class="text-sm text-ws-soft">
-                Pick any {lv.level.pick}. A song counts when you play it in Song practice's Performance mode at 80% or better, near the recording's tempo, on two days.
+                {m.music_hubs_paths_pick_any({ pick: lv.level.pick })}
               </p>
               {#if shelfError}<p class="mt-2 text-sm text-destructive" role="alert">{shelfError}</p>{/if}
               <ul class="mt-3 flex flex-col divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
@@ -314,7 +314,7 @@
                   <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0">
                       <p class="font-semibold">
-                        {#if row.played}<Check class="mr-1 inline size-4 text-success" aria-hidden="true" /><span class="sr-only">Played: </span>{/if}{row.song.title}<span class="font-normal text-ws-soft">, {row.song.artist}</span>
+                        {#if row.played}<Check class="mr-1 inline size-4 text-success" aria-hidden="true" /><span class="sr-only">{m.music_hubs_paths_played_sr()}</span>{/if}{row.song.title}<span class="font-normal text-ws-soft">, {row.song.artist}</span>
                       </p>
                       <p class="text-sm">{row.song.teaches}</p>
                       {#if row.song.detail}<p class="text-sm text-ws-soft">{row.song.detail}</p>{/if}
@@ -329,21 +329,21 @@
                     </div>
                     <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
                       {#if mine}
-                        <a href="/music/songs/{mine.id}" class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Play in Song practice</a>
+                        <a href="/music/songs/{mine.id}" class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">{m.music_hubs_paths_play_in_songs()}</a>
                       {:else if downloaded.has(row.key)}
                         <button
                           type="button"
                           class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised"
                           disabled={adding === row.key}
-                          onclick={() => addToSongs(row.key, row.song.title, row.song.artist)}>{adding === row.key ? "Adding…" : "Add to my songs"}</button
+                          onclick={() => addToSongs(row.key, row.song.title, row.song.artist)}>{adding === row.key ? m.music_hubs_paths_adding() : m.music_hubs_paths_add_to_songs()}</button
                         >
                       {:else}
                         <a
                           href="/music/studio?tab=import&shelf={encodeURIComponent(row.key)}&for={encodeURIComponent(row.song.title)}"
-                          class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">Import its score</a
+                          class="flex min-h-11 items-center rounded-full border border-ws-line px-4 text-sm font-medium hover:bg-ws-raised">{m.music_hubs_paths_import_score()}</a
                         >
                       {/if}
-                      <span class="tnum text-[13px] text-ws-soft">{row.days ? `${Math.min(row.days, 2)} of 2 days` : "Not played yet"}</span>
+                      <span class="tnum text-[13px] text-ws-soft">{row.days ? m.music_hubs_paths_days_of_2({ n: Math.min(row.days, 2) }) : m.music_hubs_paths_not_played()}</span>
                     </div>
                   </li>
                 {/each}
@@ -356,7 +356,7 @@
         {#snippet testFace()}<Flag class="size-5" />{/snippet}
         {@render node(steps.length + 1, lv.passed ? "passed" : "open", testFace)}
         <div class="min-w-0">
-          {@render head("test", "Level test", lv.passed ? "Level passed" : "The checkpoint at the end of the level", false)}
+          {@render head("test", m.music_hubs_paths_level_test(), lv.passed ? m.music_hubs_paths_level_passed() : m.music_hubs_paths_checkpoint(), false)}
           {#if openId === "test"}
             <p id="stop-test" class="mt-2 rounded-2xl border-l-4 border-[color:var(--p)] bg-ws-surface p-4 text-sm shadow-sm">{plainPathText(lv.level.test)}</p>
           {/if}
@@ -367,7 +367,7 @@
 {/snippet}
 
 <div class="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-  <nav aria-label="Learning paths" class="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+  <nav aria-label={m.music_hubs_paths_nav()} class="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
     {#each ORDER as p (p.id)}
       {@const pr = progress[p.id]}
       <button
@@ -389,7 +389,7 @@
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{at.total ? (at.done / at.total) * 100 : 0}%"></span></span
             >
           {:else}
-            <span class="tnum block text-sm text-ws-soft">{pr.done} of {pr.total} steps</span>
+            <span class="tnum block text-sm text-ws-soft">{m.music_hubs_paths_steps_of({ done: pr.done, total: pr.total })}</span>
             <span class="mt-1 block h-1.5 w-28 rounded-full bg-ws-line" aria-hidden="true"
               ><span class="block h-full rounded-full bg-[color:var(--p)]" style:width="{pr.total ? (pr.done / pr.total) * 100 : 0}%"></span></span
             >
@@ -408,30 +408,34 @@
       <div class="min-w-0">
         <h2 id="path-title" class="truncate font-display text-xl font-semibold tracking-tight sm:text-2xl">{current.path.title}</h2>
         <p class="tnum truncate text-sm text-ws-soft">
-          {#if level}{levelStatus(level)} passed{:else}{current.done} of {current.total} steps passed{/if}
+          {#if level}{m.music_hubs_paths_level_status_passed({ name: levelName(level), done: level.done, total: level.total })}{:else}{m.music_hubs_paths_steps_passed({ done: current.done, total: current.total })}{/if}
         </p>
       </div>
       {#if current.continueHref}
         <!-- Named by where it goes. While a step card is open its Practise is the one primary, so this one steps back. -->
         {@const target = current.levels?.find((l) => l.level.id === current.currentLevel)}
-        {@const go = target?.level.id === "0" && !target.done ? "Start check-in" : current.done === 0 && !target?.done ? "Start the path" : "Continue"}
+        {@const go = target?.level.id === "0" && !target.done
+          ? { first: m.music_hubs_paths_go_start(), rest: m.music_hubs_paths_go_checkin() }
+          : current.done === 0 && !target?.done
+            ? { first: m.music_hubs_paths_go_start(), rest: m.music_hubs_paths_go_path() }
+            : { first: m.music_hubs_paths_go_continue(), rest: "" }}
         <a
           href={current.continueHref}
           class="flex min-h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold {openId
             ? 'border border-ws-line bg-ws-surface hover:bg-ws-raised'
             : 'bg-[color:var(--p)] text-ws-stage hover:brightness-105'}"
-          ><Play class="size-4" aria-hidden="true" />{go.split(" ")[0]}<span class="max-sm:sr-only">{go.includes(" ") ? ` ${go.split(" ").slice(1).join(" ")}` : ""}</span></a
+          ><Play class="size-4" aria-hidden="true" />{go.first}<span class="max-sm:sr-only">{go.rest ? ` ${go.rest}` : ""}</span></a
         >
       {/if}
     </div>
     <p class="mt-2 flex items-start gap-1 text-ws-soft">
       <span class="min-w-0 flex-1">
-        {#each oneLine(current.path.subtitle).split(/(ABRSM Grade \d+)/) as part, k (k)}{#if k % 2}<button type="button" popovertarget="abrsm-{selected}" class="font-medium text-ws-ink underline decoration-dotted underline-offset-4">{part}</button><span id="abrsm-{selected}" popover class="m-auto max-w-sm rounded-2xl border border-ws-line bg-ws-surface p-4 text-sm text-ws-ink shadow-lg">ABRSM is a UK exam board. Its piano grades run from 1 (first year) to 8 (advanced); {part.replace("ABRSM ", "")} is a confident intermediate player.</span>{:else}{part}{/if}{/each}
+        {#each oneLine(current.path.subtitle).split(/(ABRSM Grade \d+)/) as part, k (k)}{#if k % 2}<button type="button" popovertarget="abrsm-{selected}" class="font-medium text-ws-ink underline decoration-dotted underline-offset-4">{part}</button><span id="abrsm-{selected}" popover class="m-auto max-w-sm rounded-2xl border border-ws-line bg-ws-surface p-4 text-sm text-ws-ink shadow-lg">{m.music_hubs_paths_abrsm({ grade: part.replace("ABRSM ", "") })}</span>{:else}{part}{/if}{/each}
       </span>
       <button
         type="button"
         class="-my-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised hover:text-ws-ink"
-        aria-label="About this path"
+        aria-label={m.music_hubs_paths_about()}
         aria-expanded={pathInfo}
         aria-controls="path-info"
         onclick={() => (pathInfo = !pathInfo)}><Info class="size-5" aria-hidden="true" /></button
@@ -440,15 +444,15 @@
     {#if pathInfo}
       <p id="path-info" class="mt-1 rounded-xl bg-ws-raised px-3 py-2 text-sm">
         {plainPathText(current.path.subtitle)}
-        {#if current.path.benchmark}By the end it sits around {current.path.benchmark}.{/if}
-        <span class="tnum">{current.levels?.length ? `${current.levels.length} levels, ` : ""}{current.steps.length} steps in all.</span>
+        {#if current.path.benchmark}{m.music_hubs_paths_benchmark({ benchmark: current.path.benchmark })}{/if}
+        <span class="tnum">{current.levels?.length ? m.music_hubs_paths_levels_steps({ levels: current.levels.length, steps: current.steps.length }) : m.music_hubs_paths_steps_all({ steps: current.steps.length })}</span>
       </p>
     {/if}
 
     {#if current.levels?.length && level}
       <!-- The levels as stops on one line: a check when passed, a ring on the current one, a lock ahead.
            The current and the next level carry their names. -->
-      <div class="levels -mx-1 mt-4 flex items-start overflow-x-auto pb-2 pl-1 pr-10 pt-2" role="group" aria-label="Levels">
+      <div class="levels -mx-1 mt-4 flex items-start overflow-x-auto pb-2 pl-1 pr-10 pt-2" role="group" aria-label={m.music_hubs_paths_levels()}>
         {#each current.levels as l, k (l.level.id)}
           {@const isCurrent = l.level.id === current.currentLevel}
           {@const ahead = !l.passed && !isCurrent}
@@ -457,7 +461,7 @@
             type="button"
             class="flex min-w-[4.25rem] flex-1 basis-0 flex-col items-center gap-1 rounded-xl px-0.5"
             aria-pressed={l.level.id === level.level.id}
-            aria-label="{levelName(l)}: {l.level.title}{l.passed ? ', passed' : isCurrent ? ', current' : ', ahead'}"
+            aria-label={(l.passed ? m.music_hubs_paths_level_passed_label : isCurrent ? m.music_hubs_paths_level_current_label : m.music_hubs_paths_level_ahead_label)({ name: levelName(l), title: l.level.title })}
             onclick={() => (pickedLevel = { ...pickedLevel, [selected]: l.level.id })}
           >
             <span
@@ -480,35 +484,35 @@
       </div>
 
       <div class="mt-4">
-        <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : `${levelName(level)}: ${level.level.title}`}</h3>
+        <h3 class="font-display text-xl font-semibold">{level.level.id === "0" ? level.level.title : m.music_hubs_paths_level_heading({ name: levelName(level), title: level.level.title })}</h3>
         {#if level.level.id === "0"}
           <!-- One sentence; the rules wait behind a disclosure. -->
-          <p class="mt-1">A short test of what you already play, so those steps become short reviews.</p>
+          <p class="mt-1">{m.music_hubs_paths_checkin_intro()}</p>
           <details class="group mt-2 text-sm">
-            <summary class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-medium text-instr-ink">How check-in works</summary>
+            <summary class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-medium text-instr-ink">{m.music_hubs_paths_checkin_how()}</summary>
           <ol class="mt-1 flex flex-col gap-2 sm:flex-row sm:gap-4">
-            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>Play each check-in step in Check</li>
-            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><CalendarDays class="size-4" aria-hidden="true" /></span>Review each step on two different days</li>
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><Target class="size-4" aria-hidden="true" /></span>{m.music_hubs_paths_checkin_play()}</li>
+            <li class="flex items-center gap-2"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-ws-raised text-instr-ink"><CalendarDays class="size-4" aria-hidden="true" /></span>{m.music_hubs_paths_checkin_review()}</li>
           </ol>
           </details>
         {:else}
           <p class="mt-1">{plain(level.level.goal)}</p>
         {/if}
-        {#if level.level.adds && level.level.id !== "0"}<p class="mt-1 text-sm text-ws-soft">New here: {plain(level.level.adds)}</p>{/if}
+        {#if level.level.adds && level.level.id !== "0"}<p class="mt-1 text-sm text-ws-soft">{m.music_hubs_paths_new_here({ adds: plain(level.level.adds) })}</p>{/if}
         <!-- The level's progress as one bar, with the map's three marks named once. -->
         <div class="mt-3 flex flex-col gap-2">
           <div class="flex items-center gap-3">
-            <div class="h-2 max-w-sm flex-1 rounded-full bg-ws-raised" role="progressbar" aria-label="Steps passed" aria-valuemin={0} aria-valuemax={level.total} aria-valuenow={level.done}>
+            <div class="h-2 max-w-sm flex-1 rounded-full bg-ws-raised" role="progressbar" aria-label={m.music_hubs_paths_steps_passed_label()} aria-valuemin={0} aria-valuemax={level.total} aria-valuenow={level.done}>
               <div class="ws-fill h-full rounded-full bg-[color:var(--p)]" style:width="{level.total ? (level.done / level.total) * 100 : 0}%"></div>
             </div>
-            <span class="tnum text-sm font-semibold">{level.done} of {level.total} done</span>
-            {#if level.passed}<span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Check class="size-4" aria-hidden="true" />Level passed</span>{/if}
+            <span class="tnum text-sm font-semibold">{m.music_hubs_paths_done_of({ done: level.done, total: level.total })}</span>
+            {#if level.passed}<span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1 text-sm font-semibold text-success"><Check class="size-4" aria-hidden="true" />{m.music_hubs_paths_level_passed()}</span>{/if}
           </div>
           <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ws-soft" aria-hidden="true">
-            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-[color:var(--p)] text-ws-stage"><Check class="size-3" /></span>Passed</span>
-            <span class="inline-flex items-center gap-1"><span class="size-5 rounded-full bg-ws-surface ring-2 ring-[color:var(--p)]"></span>Up next</span>
-            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-ws-raised"><Lock class="size-3" /></span>Locked</span>
-            {#if level.level.pick && level.songs.length}<span class="tnum">Songs played: {level.played} of {level.level.pick}</span>{/if}
+            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-[color:var(--p)] text-ws-stage"><Check class="size-3" /></span>{m.music_hubs_paths_passed()}</span>
+            <span class="inline-flex items-center gap-1"><span class="size-5 rounded-full bg-ws-surface ring-2 ring-[color:var(--p)]"></span>{m.music_hubs_up_next()}</span>
+            <span class="inline-flex items-center gap-1"><span class="grid size-5 place-items-center rounded-full bg-ws-raised"><Lock class="size-3" /></span>{m.music_hubs_locked()}</span>
+            {#if level.level.pick && level.songs.length}<span class="tnum">{m.music_hubs_paths_songs_played({ played: level.played, pick: level.level.pick })}</span>{/if}
           </p>
         </div>
       </div>

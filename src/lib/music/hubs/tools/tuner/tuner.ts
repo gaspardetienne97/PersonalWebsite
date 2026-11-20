@@ -1,5 +1,6 @@
 // Small pure helpers behind the Tuner views.
 import { hzToMidiFloat } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
 /** One tolerance for the gauge's zone, the intonation band, the In tune stat and the words. */
 export const IN_TUNE_CENTS = 5;
@@ -121,22 +122,28 @@ export function intonationVerdict(
 ): { tone: "good" | "close" | "off"; text: string } {
   const drift = Math.round(st.avgDriftCents);
   const off = Math.abs(drift) > tol;
-  const way = drift > 0 ? "sharp" : "flat";
-  const fix = drift > 0 ? "Tune down" : "Tune up";
+  const sharp = drift > 0;
+  const cents = Math.abs(drift);
   if (st.inTunePct >= 80)
-    return { tone: "good", text: `In tune ${st.inTunePct}% of the time. Centred and steady.` };
+    return { tone: "good", text: m.music_hubs_tuner_verdict_good({ pct: st.inTunePct }) };
   if (st.steadinessPct >= 70 && off)
     return {
       tone: "close",
-      text: `Steady, but ${Math.abs(drift)} cents ${way}. ${fix}, then hold it again.`,
+      text: sharp
+        ? m.music_hubs_tuner_verdict_steady_sharp({ cents })
+        : m.music_hubs_tuner_verdict_steady_flat({ cents }),
     };
   if (st.steadinessPct < 70)
     return {
       tone: "off",
-      text: `The pitch wanders${off ? `, ${Math.abs(drift)} cents ${way} on average` : ""}. Hold one even note, a little softer.`,
+      text: !off
+        ? m.music_hubs_tuner_verdict_wanders()
+        : sharp
+          ? m.music_hubs_tuner_verdict_wanders_sharp({ cents })
+          : m.music_hubs_tuner_verdict_wanders_flat({ cents }),
     };
   return {
     tone: "close",
-    text: `In tune ${st.inTunePct}% of the time. Hold it longer in the green band.`,
+    text: m.music_hubs_tuner_verdict_longer({ pct: st.inTunePct }),
   };
 }

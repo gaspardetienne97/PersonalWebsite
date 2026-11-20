@@ -1,5 +1,6 @@
 // The piano roll's document: voices of notes on a sixteenth grid, convertible
 // to and from the canonical score. Pure.
+import { m } from "@repo/i18n/messages.js";
 import type { PlaybackSound, Score, ScoreNote } from "@repo/music-core";
 import type { SequenceNote } from "#lib/music/runtime/audio.svelte.ts";
 import { STEP_BEATS } from "#lib/music/takes.ts";
@@ -58,14 +59,14 @@ export const expandLoops = (doc: RollDoc): RollDoc => ({
 
 /** What a voice can sound like. Bass and pad are here for backing tracks. */
 export const ROLL_SOUNDS: { value: PlaybackSound; label: string }[] = [
-  { value: "salamander-piano", label: "Piano" },
+  { value: "salamander-piano", label: m.music_hubs_sound_piano() },
   { value: "e-piano", label: "E-Piano" },
-  { value: "warm-synth", label: "Warm synth" },
-  { value: "synth", label: "Synth" },
-  { value: "bass", label: "Bass" },
-  { value: "pad", label: "Pad" },
-  { value: "square", label: "Square lead" },
-  { value: "saw", label: "Saw lead" },
+  { value: "warm-synth", label: m.music_hubs_sound_warm() },
+  { value: "synth", label: m.music_hubs_sound_synth() },
+  { value: "bass", label: m.music_hubs_sound_bass() },
+  { value: "pad", label: m.music_hubs_sound_pad() },
+  { value: "square", label: m.music_hubs_sound_square() },
+  { value: "saw", label: m.music_hubs_sound_saw() },
 ];
 export const soundOf = (v: Pick<RollVoice, "sound">): PlaybackSound =>
   v.sound ?? "salamander-piano";
@@ -117,11 +118,16 @@ export const trackColour = (i: number) =>
 export const BAR_BEATS = 4;
 
 export function newVoice(n: number, id: string): RollVoice {
-  return { id, name: `Melody ${n}`, velocity: 0.8, notes: [] };
+  return { id, name: m.music_hubs_roll_melody_n({ n }), velocity: 0.8, notes: [] };
 }
 
 export function emptyDoc(id: string): RollDoc {
-  return { title: "Sketch", bpm: 100, lengthBeats: 2 * BAR_BEATS, voices: [newVoice(1, id)] };
+  return {
+    title: m.music_hubs_roll_sketch(),
+    bpm: 100,
+    lengthBeats: 2 * BAR_BEATS,
+    voices: [newVoice(1, id)],
+  };
 }
 
 const EPS = 1e-6;
@@ -234,7 +240,7 @@ export function scoreToDoc(score: Score): RollDoc {
     ),
     voices: score.voices.map((v, i) => ({
       id: v.id || `voice-${i + 1}`,
-      name: v.name || `Voice ${i + 1}`,
+      name: v.name || m.music_hubs_roll_voice_n({ n: i + 1 }),
       velocity: 0.8,
       notes: v.notes
         .filter((n) => !n.tieFrom)

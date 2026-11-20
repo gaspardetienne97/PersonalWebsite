@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Chord and scale reference on the one keyboard, then the jazz tables.
   // Every section has an id; ?section=<id> (used by the Jazz Path reference
   // steps) scrolls to it and moves focus to its heading.
@@ -20,6 +21,7 @@
   import { chordVoicing } from "#lib/music/drills/jam/backing.ts";
   import CircleOfFifths from "#lib/music/components/CircleOfFifths.svelte";
   import ChordFinder from "./ChordFinder.svelte";
+  import { scaleKindName } from "../drill-preview";
   import KeyPicker from "#lib/music/components/KeyPicker.svelte";
   import Staff from "#lib/music/notation/Staff.svelte";
   import { accidentalCount, diatonicChords, keyAt, neighbour, opposite } from "@repo/music-core/theory/circle";
@@ -29,23 +31,26 @@
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 
   const SECTIONS = [
-    { id: "explorer", label: "Chords and scales" },
-    { id: "circle", label: "Circle of fifths" },
-    { id: "fretted-chords", label: "Guitar and ukulele chords" },
-    { id: "vocabulary", label: "Chord vocabulary" },
-    { id: "chord-scales", label: "Chord-scale map" },
-    { id: "voicings", label: "Voicing recipes" },
-    { id: "dominants", label: "Dominant voicings" },
-    { id: "upper-structures", label: "Upper structures" },
-    { id: "cycle", label: "12-key cycle" },
-    { id: "techniques", label: "Improv techniques" },
-    { id: "repertoire", label: "Repertoire" },
-    { id: "backing", label: "Backing tracks" },
+    { id: "explorer", label: m.music_hubs_ref_sec_explorer() },
+    { id: "circle", label: m.music_hubs_ref_sec_circle() },
+    { id: "fretted-chords", label: m.music_hubs_ref_sec_fretted() },
+    { id: "vocabulary", label: m.music_hubs_ref_sec_vocabulary() },
+    { id: "chord-scales", label: m.music_hubs_ref_sec_chord_scales() },
+    { id: "voicings", label: m.music_hubs_ref_sec_voicings() },
+    { id: "dominants", label: m.music_hubs_ref_sec_dominants() },
+    { id: "upper-structures", label: m.music_hubs_ref_sec_upper() },
+    { id: "cycle", label: m.music_hubs_ref_sec_cycle() },
+    { id: "techniques", label: m.music_hubs_ref_sec_techniques() },
+    { id: "repertoire", label: m.music_hubs_ref_sec_repertoire() },
+    { id: "backing", label: m.music_hubs_ref_sec_backing() },
   ] as const;
 
   // Data text uses spaced dashes; render them as a colon.
   const tidy = (s: string) => s.replace(/\s+[—–]\s+/g, ": ");
   const titleCase = (k: string) => k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const capital = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
+  /** A scale named in words: "natural minor", "locrian #2". */
+  const scaleWord = (k: string) => (k === "locrian #2" ? m.music_hubs_ref_scale_locrian_sharp2() : scaleKindName(k));
 
   // ---- Explorer ---------------------------------------------------------
   let kind = $state<"scale" | "chord">("scale");
@@ -63,15 +68,15 @@
   const chordSteps = $derived(template.intervals.map((i) => (template.intervals.length >= 5 && i === 2 ? 14 : i)));
   const shown = $derived(kind === "scale" ? scaleSteps.map((s) => tonic + s) : chordSteps.map((s) => tonic + s));
   const shownLabel = $derived(
-    kind === "scale" ? `${FLAT_NAMES[tonicPc]} ${titleCase(scaleName).toLowerCase()}` : `${FLAT_NAMES[tonicPc]}${template.suffix}`,
+    kind === "scale" ? m.music_hubs_ref_scale_label({ tonic: FLAT_NAMES[tonicPc], kind: scaleWord(scaleName) }) : `${FLAT_NAMES[tonicPc]}${template.suffix}`,
   );
 
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
-    shown.forEach((m, i) => {
-      const semi = m - tonic;
+    shown.forEach((midi, i) => {
+      const semi = midi - tonic;
       const deg = kind === "scale" ? (semi === 6 && scaleSteps.includes(5) ? "#4" : semi === 8 && !scaleSteps.includes(9) && scaleSteps.includes(7) ? "b6" : SCALE_DEG[semi % 12]) : CHORD_DEG[semi] ?? CHORD_DEG[semi % 12];
-      out[m] = lit === i ? { demo: true } : { target: true, label: deg, role: kind === "chord" || semi % 12 === 0 ? "chord" : "scale" };
+      out[midi] = lit === i ? { demo: true } : { target: true, label: deg, role: kind === "chord" || semi % 12 === 0 ? "chord" : "scale" };
     });
     return out;
   });
@@ -97,7 +102,7 @@
       },
     });
     handle = h;
-    onstatus?.(`Playing ${shownLabel}.`);
+    onstatus?.(m.music_hubs_ref_playing({ label: shownLabel }));
     void h.done.then(() => {
       if (handle === h) stop();
     });
@@ -111,11 +116,11 @@
   // The signature on a staff, with the tonic chord, spelled in the key.
   const ckScore = $derived<Score>({
     id: `circle-${circleKey}`,
-    title: `${ck.major} major`,
+    title: m.music_hubs_songs_key_major({ tonic: ck.major }),
     bpm: 60,
     keyFifths: circleKey,
     meter: { beats: 4, beatUnit: 4 },
-    voices: [{ id: "v", name: "Tonic chord", notes: functionChord(ck.pc, "I").slice(1).map((midi) => ({ midi, startBeat: 0, durationBeats: 4 })) }],
+    voices: [{ id: "v", name: m.music_hubs_ref_tonic_chord(), notes: functionChord(ck.pc, "I").slice(1).map((midi) => ({ midi, startBeat: 0, durationBeats: 4 })) }],
     lengthBeats: 4,
   });
   async function hearCircle(what: "scale" | "cadence" | number) {
@@ -127,7 +132,13 @@
         ? [0, 2, 4, 5, 7, 9, 11, 12].map((s, i) => ({ midi: tonic + s, time: i * 0.3, duration: 0.28 }))
         : (what === "cadence" ? ["I", "IV", "V", "I"] : [TOKENS[what]]).flatMap((t, i) => functionChord(ck.pc, t).map((midi) => ({ midi, time: i * 0.8, duration: 0.75 })));
     audio.playSequence(notes);
-    onstatus?.(what === "scale" ? `${ck.major} major scale.` : what === "cadence" ? `I, IV, V, I in ${ck.major} major.` : `${ckChords[what].name}, the ${ckChords[what].numeral} of ${ck.major} major.`);
+    onstatus?.(
+      what === "scale"
+        ? m.music_hubs_ref_major_scale({ key: ck.major })
+        : what === "cadence"
+          ? m.music_hubs_ref_cadence({ key: ck.major })
+          : m.music_hubs_ref_chord_of({ chord: ckChords[what].name, numeral: ckChords[what].numeral, key: ck.major }),
+    );
   }
 
   // Chord-scale matches for the chord on show.
@@ -141,14 +152,14 @@
     kind = "scale";
     scaleName = rowScale(r);
     tonicPc = root;
-    onstatus?.(`${FLAT_NAMES[root]} ${r.label} on the keyboard.`);
+    onstatus?.(m.music_hubs_ref_on_keyboard({ tonic: FLAT_NAMES[root], label: r.label }));
     await tick();
     document.getElementById("explorer")?.scrollIntoView({ block: "start" });
   }
 
   const scaleOptions = $derived([
-    ...[...SCALE_GROUPS.modes, ...SCALE_GROUPS.jazz].map((k) => ({ value: k as string, label: titleCase(k) + (SCALE_GROUPS.jazz.includes(k) ? " (jazz)" : "") })),
-    ...((SCALE_KINDS as string[]).includes(scaleName) ? [] : [{ value: scaleName, label: titleCase(scaleName.replace(/ /g, "-")) }]),
+    ...[...SCALE_GROUPS.modes, ...SCALE_GROUPS.jazz].map((k) => ({ value: k as string, label: SCALE_GROUPS.jazz.includes(k) ? m.music_hubs_ref_jazz_option({ name: capital(scaleWord(k)) }) : capital(scaleWord(k)) })),
+    ...((SCALE_KINDS as string[]).includes(scaleName) ? [] : [{ value: scaleName, label: capital(scaleWord(scaleName)) }]),
   ]);
 
   // ---- Playback of table rows -------------------------------------------
@@ -156,7 +167,7 @@
     stop();
     void audio.unlock().then(() => {
       audio.playChord(midis, 1.6);
-      onstatus?.(`Playing ${label}.`);
+      onstatus?.(m.music_hubs_ref_playing({ label }));
     });
   }
   function playSymbol(symbol: string) {
@@ -167,10 +178,10 @@
   }
 
   const RECIPES = [
-    { id: "rooted", name: "Rooted", degrees: "1 3 5 7", semis: [0, 4, 7, 11], use: "The plain chord, root at the bottom." },
-    { id: "shell", name: "Shell", degrees: "1 3 7", semis: [0, 4, 11], use: "The root, 3rd and 7th: the sound of the chord with nothing extra." },
-    { id: "rootless-a", name: "Rootless A", degrees: "3 5 7 9", semis: [4, 7, 11, 14], use: "Use when the melody note is the 9th. The left hand takes the root." },
-    { id: "rootless-b", name: "Rootless B", degrees: "7 9 3 5", semis: [11, 14, 16, 19], use: "Use when the melody note is the 5th. The left hand takes the root." },
+    { id: "rooted", name: m.music_hubs_ref_recipe_rooted(), degrees: "1 3 5 7", semis: [0, 4, 7, 11], use: m.music_hubs_ref_recipe_rooted_use() },
+    { id: "shell", name: m.music_hubs_ref_recipe_shell(), degrees: "1 3 7", semis: [0, 4, 11], use: m.music_hubs_ref_recipe_shell_use() },
+    { id: "rootless-a", name: m.music_hubs_ref_recipe_rootless_a(), degrees: "3 5 7 9", semis: [4, 7, 11, 14], use: m.music_hubs_ref_recipe_rootless_a_use() },
+    { id: "rootless-b", name: m.music_hubs_ref_recipe_rootless_b(), degrees: "7 9 3 5", semis: [11, 14, 16, 19], use: m.music_hubs_ref_recipe_rootless_b_use() },
   ];
 
   const repertoire = $derived(
@@ -198,10 +209,10 @@
 
 <div class="grid gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
   <!-- Below lg the twelve sections are one "Jump to" list (nothing cut off); from lg a sticky side list. -->
-  <nav aria-label="Reference sections" class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)] lg:z-20 lg:self-start">
+  <nav aria-label={m.music_hubs_ref_nav()} class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)] lg:z-20 lg:self-start">
     <div class="flex items-center gap-2 text-sm lg:hidden">
-      <span class="font-medium">Jump to</span>
-      <Picker class="min-w-0 flex-1" label="Jump to a reference section" value={section ?? ""} placeholder="Chords and scales" options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?section=${id}`, { reset: false })} />
+      <span class="font-medium">{m.music_hubs_ref_jump_to()}</span>
+      <Picker class="min-w-0 flex-1" label={m.music_hubs_ref_jump_label()} value={section ?? ""} placeholder={m.music_hubs_ref_sec_explorer()} options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?section=${id}`, { reset: false })} />
     </div>
     <ul class="hidden lg:flex lg:flex-col lg:gap-0.5">
       {#each SECTIONS as s (s.id)}
@@ -220,14 +231,14 @@
 
   <div class="flex min-w-0 flex-col gap-10">
     <section id="explorer" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-explorer">
-      <h2 id="h-explorer" tabindex="-1" class="font-display text-2xl font-semibold">Chords and scales on the keyboard</h2>
-      <p class="mt-1 max-w-prose text-ws-soft">All 17 scales and every chord quality, on any tonic. Labels are degrees from the tonic. Tap Hear it, or play along.</p>
+      <h2 id="h-explorer" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_explorer_title()}</h2>
+      <p class="mt-1 max-w-prose text-ws-soft">{m.music_hubs_ref_explorer_intro()}</p>
       <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Choice
-          label="Show"
+          label={m.music_hubs_cf_show()}
           options={[
-            { value: "scale", label: "Scale" },
-            { value: "chord", label: "Chord" },
+            { value: "scale", label: m.music_hubs_ref_scale() },
+            { value: "chord", label: m.music_hubs_ref_chord() },
           ]}
           value={kind}
           onchange={(v) => {
@@ -236,13 +247,13 @@
           }}
         />
         <div class="flex min-w-0 flex-col gap-1 text-sm">
-          <span class="font-medium">Tonic</span>
-          <KeyPicker label="Tonic" value={tonicPc} name={(p) => FLAT_NAMES[p]} onchange={(p) => (stop(), (tonicPc = p))} />
+          <span class="font-medium">{m.music_hubs_ref_tonic()}</span>
+          <KeyPicker label={m.music_hubs_ref_tonic()} value={tonicPc} name={(p) => FLAT_NAMES[p]} onchange={(p) => (stop(), (tonicPc = p))} />
         </div>
         {#if kind === "scale"}
-          <Choice label="Scale" select options={scaleOptions} value={scaleName} onchange={(v) => (stop(), (scaleName = v))} />
+          <Choice label={m.music_hubs_ref_scale()} select options={scaleOptions} value={scaleName} onchange={(v) => (stop(), (scaleName = v))} />
         {:else}
-          <Choice label="Quality" select options={CHORD_TEMPLATES.map((t) => ({ value: t.quality as string, label: `${FLAT_NAMES[tonicPc]}${t.suffix}` }))} value={quality} onchange={(v) => (stop(), (quality = v))} />
+          <Choice label={m.music_hubs_cf_quality()} select options={CHORD_TEMPLATES.map((t) => ({ value: t.quality as string, label: `${FLAT_NAMES[tonicPc]}${t.suffix}` }))} value={quality} onchange={(v) => (stop(), (quality = v))} />
         {/if}
       </div>
 
@@ -250,25 +261,25 @@
         <div class="mb-3 flex flex-wrap items-center gap-3">
           <p class="min-w-0 flex-1 font-display text-2xl font-semibold">{shownLabel}</p>
           <button type="button" class={btnStage} aria-pressed={!!handle?.playing} onclick={hear}>
-            {#if handle?.playing}<Square class="size-4" aria-hidden="true" />Stop{:else}<Play class="size-4" aria-hidden="true" />Hear it{/if}
+            {#if handle?.playing}<Square class="size-4" aria-hidden="true" />{m.music_hubs_stop()}{:else}<Play class="size-4" aria-hidden="true" />{m.music_hubs_ref_hear_it()}{/if}
           </button>
         </div>
-        <Piano low={60} high={84} {marks} names="c" label="Keyboard showing {shownLabel}" />
+        <Piano low={60} high={84} {marks} names="c" label={m.music_hubs_ref_keyboard({ label: shownLabel })} />
         <p class="mt-3 text-sm text-ws-stage-soft">
-          Notes: {shown.map((m) => noteName(m, "flat").replace(/-?\d+$/, "")).join(" ")}.
-          <span class="ml-1 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-chord)" aria-hidden="true"></span>{kind === "chord" ? "chord tones" : "the tonic"}</span>
-          {#if kind === "scale"}<span class="ml-2 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-scale)" aria-hidden="true"></span>scale tones</span>{/if}
+          {m.music_hubs_ref_notes({ notes: shown.map((midi) => noteName(midi, "flat").replace(/-?\d+$/, "")).join(" ") })}
+          <span class="ml-1 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-chord)" aria-hidden="true"></span>{kind === "chord" ? m.music_hubs_ref_chord_tones() : m.music_hubs_ref_the_tonic()}</span>
+          {#if kind === "scale"}<span class="ml-2 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-scale)" aria-hidden="true"></span>{m.music_hubs_ref_scale_tones()}</span>{/if}
         </p>
       </div>
 
       {#if kind === "chord" && matches.length}
         <div class="mt-4">
-          <p class="text-sm font-medium">Scales that fit {shownLabel}</p>
+          <p class="text-sm font-medium">{m.music_hubs_ref_scales_fit({ label: shownLabel })}</p>
           <ul class="mt-2 flex flex-wrap gap-2">
             {#each matches as r (r.label)}
               <li>
                 <button type="button" class={btn} onclick={() => showScale(r)}>
-                  {#if r.recommended}<span class="rounded-full bg-instr px-2 py-0.5 text-[13px] font-semibold text-ws-stage">Go-to</span>{/if}
+                  {#if r.recommended}<span class="rounded-full bg-instr px-2 py-0.5 text-[13px] font-semibold text-ws-stage">{m.music_hubs_ref_go_to()}</span>{/if}
                   {FLAT_NAMES[tonicPc]} {r.label}
                 </button>
               </li>
@@ -279,23 +290,23 @@
     </section>
 
     <section id="circle" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-circle">
-      <h2 id="h-circle" tabindex="-1" class="font-display text-2xl font-semibold">Circle of fifths</h2>
+      <h2 id="h-circle" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_circle()}</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
-        Each step clockwise is a fifth up and one more sharp; counter-clockwise is a fourth up and one more flat, the way ii-V-I chains move. A key's chords are the wedge around it: I, IV and V on the outside, ii, vi and iii inside, vii° at the centre.
+        {m.music_hubs_ref_circle_intro()}
       </p>
       <div class="mt-4 grid items-start gap-6 md:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-        <CircleOfFifths selected={circleKey} onpick={(f) => (circleKey = f)} label="Circle of fifths: pick a key" />
+        <CircleOfFifths selected={circleKey} onpick={(f) => (circleKey = f)} label={m.music_hubs_ref_circle_pick()} />
         <div class="min-w-0 space-y-4">
           <div>
-            <p class="font-display text-2xl font-semibold">{ck.major} major <span class="text-ws-soft">· {ck.minor} minor</span></p>
+            <p class="font-display text-2xl font-semibold">{m.music_hubs_songs_key_major({ tonic: ck.major })} <span class="text-ws-soft">· {m.music_hubs_songs_key_minor({ tonic: ck.minor })}</span></p>
             <p class="text-sm text-ws-soft">
               {accidentalCount(circleKey).replace(/^./, (c) => c.toUpperCase())}{ck.accidentals.length ? `: ${ck.accidentals.join(" ")}` : ""}.
-              {#if circleKey > 0}The last sharp, {ck.accidentals.at(-1)}, is a half step below {ck.major}.{:else if circleKey < -1}The second-to-last flat, {ck.accidentals.at(-2)}, names the key.{/if}
+              {#if circleKey > 0}{m.music_hubs_ref_last_sharp({ note: ck.accidentals.at(-1) ?? "", key: ck.major })}{:else if circleKey < -1}{m.music_hubs_ref_second_flat({ note: ck.accidentals.at(-2) ?? "" })}{/if}
             </p>
           </div>
           <div class="max-w-72 rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink"><Staff score={ckScore} maxHeight="9rem" /></div>
           <div>
-            <p class="text-sm font-medium">Its chords</p>
+            <p class="text-sm font-medium">{m.music_hubs_ref_its_chords()}</p>
             <ul class="mt-1 flex flex-wrap gap-1.5">
               {#each ckChords as c, i (c.numeral)}
                 <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-[13px] text-ws-soft">{c.numeral}</span> {c.name}</button></li>
@@ -303,39 +314,39 @@
             </ul>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button type="button" class={btn} onclick={() => hearCircle("scale")}><Play class="size-4" aria-hidden="true" />Scale</button>
+            <button type="button" class={btn} onclick={() => hearCircle("scale")}><Play class="size-4" aria-hidden="true" />{m.music_hubs_ref_scale()}</button>
             <button type="button" class={btn} onclick={() => hearCircle("cadence")}><Play class="size-4" aria-hidden="true" />I, IV, V, I</button>
           </div>
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-            <dt class="text-ws-soft">One more sharp</dt><dd>{circleKey < 7 ? `${neighbour(circleKey, 1).major} major (its V)` : "None: 7 is the most"}</dd>
-            <dt class="text-ws-soft">One more flat</dt><dd>{circleKey > -7 ? `${neighbour(circleKey, -1).major} major (its IV)` : "None: 7 is the most"}</dd>
-            <dt class="text-ws-soft">Across the circle</dt><dd>{opposite(circleKey).major}: its dominant is the tritone substitute for {neighbour(circleKey, 1).major}7</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_sharp()}</dt><dd>{circleKey < 7 ? m.music_hubs_ref_its_v({ key: neighbour(circleKey, 1).major }) : m.music_hubs_ref_none_most()}</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_flat()}</dt><dd>{circleKey > -7 ? m.music_hubs_ref_its_iv({ key: neighbour(circleKey, -1).major }) : m.music_hubs_ref_none_most()}</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_across()}</dt><dd>{m.music_hubs_ref_across_text({ key: opposite(circleKey).major, chord: neighbour(circleKey, 1).major })}</dd>
           </dl>
-          <p class="text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/circle">Practise the circle</a>: key signatures, the order of sharps and flats, and the chords of each key.</p>
+          <p class="text-sm">{@html m.music_hubs_ref_practise_circle({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/circle">${m.music_hubs_ref_practise_circle_link()}</a>` })}</p>
         </div>
       </div>
     </section>
 
     <section id="fretted-chords" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-fretted-chords">
-      <h2 id="h-fretted-chords" tabindex="-1" class="font-display text-2xl font-semibold">Guitar and ukulele chords</h2>
+      <h2 id="h-fretted-chords" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_fretted()}</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
-        Any chord, everywhere on the neck you can play it. Woodshed works the shapes out from the notes, so open chords, barre chords and closed shapes up the neck all follow the same rules.
+        {m.music_hubs_ref_fretted_intro()}
       </p>
       <div class="mt-4"><ChordFinder {onstatus} /></div>
     </section>
 
     <section id="vocabulary" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-vocabulary">
-      <h2 id="h-vocabulary" tabindex="-1" class="font-display text-2xl font-semibold">Chord vocabulary</h2>
-      <p class="mt-1 text-ws-soft">The eight jazz families, all on C, with the extensions each one takes.</p>
+      <h2 id="h-vocabulary" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_vocabulary()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_vocabulary_intro()}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-3" role="region" aria-label="Chord vocabulary table" tabindex="0">
+      <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_vocabulary_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Chord</th><th scope="col">Role</th><th scope="col">Extensions</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_chord()}</th><th scope="col">{m.music_hubs_ref_col_role()}</th><th scope="col">{m.music_hubs_ref_col_extensions()}</th></tr></thead>
           <tbody>
             {#each JAZZ.JAZZ_CHORD_TYPES as c (c.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label="Hear {c.symbol}, {c.name}">
+                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label={m.music_hubs_ref_hear_named({ symbol: c.symbol, name: c.name })}>
                     <Play class="size-3.5" aria-hidden="true" /><span class="font-display text-base">{c.symbol}</span>
                   </button>
                   <span class="block text-[13px] font-normal text-ws-soft">{c.name}</span>
@@ -344,20 +355,20 @@
                 <td>
                   {#if c.extensions?.length}
                     <span class="flex flex-wrap gap-1">
-                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label="Hear {e}">{e}</button>{/each}
+                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label={m.music_hubs_ref_hear_symbol({ symbol: e })}>{e}</button>{/each}
                     </span>
-                  {:else}<span class="text-ws-soft">None</span>{/if}
+                  {:else}<span class="text-ws-soft">{m.music_hubs_skills_none()}</span>{/if}
                 </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
-      <h3 class="mt-5 font-semibold">Extensions</h3>
+      <h3 class="mt-5 font-semibold">{m.music_hubs_ref_col_extensions()}</h3>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-2" role="region" aria-label="Extensions table" tabindex="0">
+      <div class="table-wrap mt-2" role="region" aria-label={m.music_hubs_ref_extensions_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Symbol</th><th scope="col">Semitones</th><th scope="col">What it is</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_col_symbol()}</th><th scope="col">{m.music_hubs_ref_col_semitones()}</th><th scope="col">{m.music_hubs_ref_col_what()}</th></tr></thead>
           <tbody>
             {#each JAZZ.CHORD_EXTENSIONS as e (e.symbol)}
               <tr><th scope="row" class="font-display">{e.symbol}</th><td class="tnum">{e.semitones}</td><td>{tidy(e.note)}</td></tr>
@@ -368,8 +379,8 @@
     </section>
 
     <section id="chord-scales" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-chord-scales">
-      <h2 id="h-chord-scales" tabindex="-1" class="font-display text-2xl font-semibold">Chord-scale map</h2>
-      <p class="mt-1 text-ws-soft">Which scales sound good over each chord family. Learn the go-to first. Show puts it on the keyboard above.</p>
+      <h2 id="h-chord-scales" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_chord_scales()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_chord_scales_intro()}</p>
       <div class="mt-3 grid gap-3 md:grid-cols-2">
         {#each [...new Set(JAZZ.CHORD_SCALE_MAP.map((r) => r.family))] as fam (fam)}
           {@const type = JAZZ.JAZZ_CHORD_TYPES.find((t) => t.family === fam)}
@@ -381,11 +392,11 @@
                   <div class="min-w-0 flex-1">
                     <p class="font-medium">
                       {r.label}
-                      {#if r.recommended}<span class="ml-1 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">Go-to</span>{/if}
+                      {#if r.recommended}<span class="ml-1 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">{m.music_hubs_ref_go_to()}</span>{/if}
                     </p>
                     {#if r.hint}<p class="text-sm text-ws-soft">{tidy(r.hint)}</p>{/if}
                   </div>
-                  <button type="button" class="{btn} shrink-0" onclick={() => showScale(r, 0)} aria-label="Show C {r.label} for {type?.symbol ?? fam} on the keyboard">Show</button>
+                  <button type="button" class="{btn} shrink-0" onclick={() => showScale(r, 0)} aria-label={m.music_hubs_ref_show_scale({ label: r.label, chord: type?.symbol ?? fam })}>{m.music_hubs_cf_show()}</button>
                 </li>
               {/each}
             </ul>
@@ -395,17 +406,17 @@
     </section>
 
     <section id="voicings" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-voicings">
-      <h2 id="h-voicings" tabindex="-1" class="font-display text-2xl font-semibold">Voicing recipes</h2>
-      <p class="mt-1 text-ws-soft">Four ways to stack a seventh chord. Tap a name to hear it on Cmaj7.</p>
+      <h2 id="h-voicings" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_voicings()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_voicings_intro()}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-3" role="region" aria-label="Voicing recipes table" tabindex="0">
+      <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_voicings_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Voicing</th><th scope="col">Degrees</th><th scope="col">When</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_col_voicing()}</th><th scope="col">{m.music_hubs_ref_col_degrees()}</th><th scope="col">{m.music_hubs_ref_col_when()}</th></tr></thead>
           <tbody>
             {#each RECIPES as r (r.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} Cmaj7`)} aria-label="Hear {r.name} on Cmaj7">
+                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} Cmaj7`)} aria-label={m.music_hubs_ref_hear_on_cmaj7({ name: r.name })}>
                     <Play class="size-3.5" aria-hidden="true" />{r.name}
                   </button>
                 </th>
@@ -419,17 +430,17 @@
     </section>
 
     <section id="dominants" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-dominants">
-      <h2 id="h-dominants" tabindex="-1" class="font-display text-2xl font-semibold">Dominant voicings</h2>
-      <p class="mt-1 text-ws-soft">Three colours for a V7, from plain to maximum tension. Tap a name to hear it on G7 over a G bass.</p>
+      <h2 id="h-dominants" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_dominants()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_dominants_intro()}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-3" role="region" aria-label="Dominant voicings table" tabindex="0">
+      <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_dominants_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Voicing</th><th scope="col">Semitones above the root</th><th scope="col">Sound</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_col_voicing()}</th><th scope="col">{m.music_hubs_ref_col_above_root()}</th><th scope="col">{m.music_hubs_ref_col_sound()}</th></tr></thead>
           <tbody>
             {#each JAZZ.DOMINANT_VOICINGS as d (d.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], `${d.label} on G7`)} aria-label="Hear {d.label} on G7">
+                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], m.music_hubs_ref_on_g7({ label: d.label }))} aria-label={m.music_hubs_ref_hear_on_g7({ label: d.label })}>
                     <Play class="size-3.5" aria-hidden="true" />{d.label}
                   </button>
                 </th>
@@ -443,24 +454,24 @@
     </section>
 
     <section id="upper-structures" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-upper-structures">
-      <h2 id="h-upper-structures" tabindex="-1" class="font-display text-2xl font-semibold">Upper structures over a V7</h2>
-      <p class="mt-1 text-ws-soft">Left hand plays the shell (1 3 7), right hand a triad. Tap a triad to hear it over C7.</p>
+      <h2 id="h-upper-structures" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_upper_title()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_upper_intro()}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-3" role="region" aria-label="Upper structures table" tabindex="0">
+      <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_upper_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Triad</th><th scope="col">Adds</th><th scope="col">Favourite</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_col_triad()}</th><th scope="col">{m.music_hubs_ref_col_adds()}</th><th scope="col">{m.music_hubs_ref_favourite()}</th></tr></thead>
           <tbody>
             {#each JAZZ.UPPER_STRUCTURES as u (u.id)}
               {@const triad = (u.quality === "maj" ? [0, 4, 7] : [0, 3, 7]).map((s) => 60 + u.triadRoot + s)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], `${u.triad} over C7`)} aria-label="Hear {u.triad} over C7">
+                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], m.music_hubs_ref_over_c7({ triad: u.triad }))} aria-label={m.music_hubs_ref_hear_over_c7({ triad: u.triad })}>
                     <Play class="size-3.5" aria-hidden="true" />{u.triad}
                   </button>
-                  <span class="block text-[13px] font-normal text-ws-soft">{FLAT_NAMES[u.triadRoot]} {u.quality === "maj" ? "major" : "minor"} over C7</span>
+                  <span class="block text-[13px] font-normal text-ws-soft">{u.quality === "maj" ? m.music_hubs_ref_major_over_c7({ root: FLAT_NAMES[u.triadRoot] }) : m.music_hubs_ref_minor_over_c7({ root: FLAT_NAMES[u.triadRoot] })}</span>
                 </th>
                 <td class="tnum font-medium">{u.adds}</td>
-                <td>{u.favorite ? "Favourite" : ""}</td>
+                <td>{u.favorite ? m.music_hubs_ref_favourite() : ""}</td>
               </tr>
             {/each}
           </tbody>
@@ -469,8 +480,8 @@
     </section>
 
     <section id="cycle" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-cycle">
-      <h2 id="h-cycle" tabindex="-1" class="font-display text-2xl font-semibold">The 12-key cycle</h2>
-      <p class="mt-1 text-ws-soft">The order the voicing drills walk through every key.</p>
+      <h2 id="h-cycle" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_cycle_title()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_cycle_intro()}</p>
       <ol class="mt-3 flex flex-wrap gap-2">
         {#each JAZZ.TWELVE_KEY_CYCLE as k, i (k)}
           <li class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface py-1 pl-1.5 pr-4">
@@ -482,7 +493,7 @@
     </section>
 
     <section id="techniques" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-techniques">
-      <h2 id="h-techniques" tabindex="-1" class="font-display text-2xl font-semibold">Improv techniques</h2>
+      <h2 id="h-techniques" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_techniques()}</h2>
       <dl class="mt-3 grid gap-x-8 gap-y-4 md:grid-cols-2">
         {#each JAZZ.IMPROV_TECHNIQUES as t (t.id)}
           <div class="border-l-2 border-instr pl-3">
@@ -491,12 +502,12 @@
           </div>
         {/each}
       </dl>
-      <p class="mt-4 text-sm"><a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Try them in Jam</a>, with the chord tones lit.</p>
+      <p class="mt-4 text-sm">{@html m.music_hubs_ref_try_jam({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">${m.music_hubs_ref_try_jam_link()}</a>` })}</p>
     </section>
 
     <section id="repertoire" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-repertoire">
-      <h2 id="h-repertoire" tabindex="-1" class="font-display text-2xl font-semibold">Repertoire</h2>
-      <p class="mt-1 text-ws-soft">{JAZZ.JAZZ_REPERTOIRE.length} standards to learn, swing first, then Latin.</p>
+      <h2 id="h-repertoire" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_repertoire()}</h2>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_standards({ count: JAZZ.JAZZ_REPERTOIRE.length })}</p>
       <div class="mt-3 grid gap-4 md:grid-cols-2">
         {#each repertoire as [feel, titles] (feel)}
           <div>
@@ -505,7 +516,7 @@
               {#each titles as t (t)}
                 {@const b = trackFor(t)}
                 <li class="break-inside-avoid py-1">
-                  {t}{#if b}<span class="block text-[13px] text-ws-soft">Backing: {b.style.replace("-", " ")}, {b.bpm} BPM</span>{/if}
+                  {t}{#if b}<span class="block text-[13px] text-ws-soft">{m.music_hubs_ref_backing_line({ style: b.style.replace("-", " "), bpm: b.bpm })}</span>{/if}
                 </li>
               {/each}
             </ul>
@@ -515,21 +526,20 @@
     </section>
 
     <section id="backing" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-backing">
-      <h2 id="h-backing" tabindex="-1" class="font-display text-2xl font-semibold">Backing tracks</h2>
+      <h2 id="h-backing" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_backing()}</h2>
       <p class="mt-1 max-w-prose text-ws-soft">
-        Woodshed doesn't include these recordings. If you have them (or any track you like), import the audio in
-        <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Jam</a> and it plays under your solo.
+        {@html m.music_hubs_ref_backing_intro({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/changes/jam">Jam</a>` })}
       </p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
-      <div class="table-wrap mt-3" role="region" aria-label="Backing tracks table" tabindex="0">
+      <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_backing_table()} tabindex="0">
         <table>
-          <thead><tr><th scope="col">Style</th><th scope="col">Tempo</th><th scope="col">Suits</th></tr></thead>
+          <thead><tr><th scope="col">{m.music_hubs_ref_col_style()}</th><th scope="col">{m.music_hubs_import_tempo()}</th><th scope="col">{m.music_hubs_ref_col_suits()}</th></tr></thead>
           <tbody>
             {#each JAZZ.JAZZ_BACKING_TRACKS as b (b.id)}
               <tr>
-                <th scope="row">{titleCase(b.style)}{b.bpm < 60 ? ", slow" : ""}</th>
+                <th scope="row">{titleCase(b.style)}{b.bpm < 60 ? m.music_hubs_ref_slow() : ""}</th>
                 <td class="tnum">{b.bpm} BPM</td>
-                <td>{b.songs.length ? b.songs.join(", ") : "Anything at this tempo"}</td>
+                <td>{b.songs.length ? b.songs.join(", ") : m.music_hubs_ref_anything()}</td>
               </tr>
             {/each}
           </tbody>

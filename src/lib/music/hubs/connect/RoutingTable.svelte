@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Per instrument: where input should come from and which on-screen surface
   // stands in. Scrolls inside its own box on a phone (the old one was 482 px).
   import { INSTRUMENTS, type InputSource, type Instrument, type PreferredSurface } from "@repo/music-core";
@@ -12,24 +13,24 @@
 
   const SOURCES: { value: InputSource; label: string }[] = [
     { value: "midi", label: "MIDI" },
-    { value: "audio", label: "Microphone" },
-    { value: "onscreen", label: "On-screen" },
+    { value: "audio", label: m.music_hubs_input_audio() },
+    { value: "onscreen", label: m.music_hubs_route_onscreen() },
   ];
   const SURFACES: { value: PreferredSurface; label: string }[] = [
-    { value: "keyboard", label: "Keyboard" },
-    { value: "guitar", label: "Guitar neck" },
-    { value: "ukulele", label: "Ukulele neck" },
-    { value: "mpc", label: "Pads" },
+    { value: "keyboard", label: m.music_hubs_route_keyboard() },
+    { value: "guitar", label: m.music_hubs_route_guitar() },
+    { value: "ukulele", label: m.music_hubs_route_ukulele() },
+    { value: "mpc", label: m.music_hubs_route_pads() },
   ];
   const defaultSource = (i: Instrument): InputSource => (i === "guitar" || i === "ukulele" || i === "voice" ? "audio" : "midi");
 
   function setSource(i: Instrument, v: InputSource) {
     void settings.update({ preferredSource: { ...settings.value.preferredSource, [i]: v } });
-    announce(`${INSTRUMENT_LABEL[i]} prefers ${SOURCES.find((x) => x.value === v)?.label}.`);
+    announce(m.music_hubs_route_prefers({ instrument: INSTRUMENT_LABEL[i], source: SOURCES.find((x) => x.value === v)?.label ?? v }));
   }
   function setSurface(i: Instrument, v: PreferredSurface) {
     void settings.update({ preferredSurface: { ...settings.value.preferredSurface, [i]: v } });
-    announce(`${INSTRUMENT_LABEL[i]} falls back to the ${SURFACES.find((x) => x.value === v)?.label.toLowerCase()}.`);
+    announce(m.music_hubs_route_falls_back({ instrument: INSTRUMENT_LABEL[i], surface: SURFACES.find((x) => x.value === v)?.label.toLowerCase() ?? v }));
   }
 </script>
 
@@ -37,9 +38,9 @@
   <table class="w-full min-w-[30rem] text-sm">
     <thead class="bg-ws-raised/60 text-left text-ws-soft">
       <tr>
-        <th scope="col" class="px-3 py-2 font-medium">Instrument</th>
-        <th scope="col" class="px-3 py-2 font-medium">Preferred source</th>
-        <th scope="col" class="px-3 py-2 font-medium">On-screen surface</th>
+        <th scope="col" class="px-3 py-2 font-medium">{m.music_hubs_instrument()}</th>
+        <th scope="col" class="px-3 py-2 font-medium">{m.music_hubs_route_col_source()}</th>
+        <th scope="col" class="px-3 py-2 font-medium">{m.music_hubs_route_col_surface()}</th>
       </tr>
     </thead>
     <tbody>
@@ -55,10 +56,10 @@
             </span>
           </th>
           <td class="px-3 py-1.5">
-            <Picker label="{INSTRUMENT_LABEL[i]} preferred source" value={src} options={SOURCES} onchange={(v) => setSource(i, v as InputSource)} />
+            <Picker label={m.music_hubs_route_source_label({ instrument: INSTRUMENT_LABEL[i] })} value={src} options={SOURCES} onchange={(v) => setSource(i, v as InputSource)} />
           </td>
           <td class="px-3 py-1.5">
-            <Picker label="{INSTRUMENT_LABEL[i]} on-screen surface" value={surf} options={SURFACES} onchange={(v) => setSurface(i, v as PreferredSurface)} />
+            <Picker label={m.music_hubs_route_surface_label({ instrument: INSTRUMENT_LABEL[i] })} value={surf} options={SURFACES} onchange={(v) => setSurface(i, v as PreferredSurface)} />
           </td>
         </tr>
       {/each}

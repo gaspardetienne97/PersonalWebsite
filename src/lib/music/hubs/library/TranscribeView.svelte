@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Turn a recording or a MIDI take into a draft song, then fix it in the
   // piano roll before saving. The listening runs in a worker, so the page
   // stays responsive, with progress and Cancel. The tempo is detected from
@@ -68,7 +69,7 @@
   /** A recording from Record, read back from storage and transcribed like a file. */
   async function transcribeTake(t: AudioTake) {
     const blob = await getBinary(takeKey(t.id));
-    if (!blob) return void (error = `The audio for ${t.name} is no longer stored. Record it again.`);
+    if (!blob) return void (error = m.music_hubs_tv_audio_gone({ name: t.name }));
     await takeAudio(new File([blob], `${t.name}.${extensionFor(t.mimeType)}`, { type: t.mimeType }));
   }
   onDestroy(() => {
@@ -102,21 +103,21 @@
     const e = editor!;
     announce(
       e.noteCount
-        ? `Heard ${e.noteCount} notes at about ${bpm} BPM. Fix any in the roll, then save.`
-        : "No clear notes were found. Try more sensitivity, or draw them in the roll.",
+        ? m.music_hubs_tv_heard({ count: e.noteCount, bpm })
+        : m.music_hubs_tv_none_heard(),
     );
   }
 
   async function takeAudio(file: File | undefined) {
     if (!file || transcriber.busy) return;
     error = "";
-    announce(`Listening to ${file.name}… Keep using the page. Cancel stops it.`);
+    announce(m.music_hubs_tv_listening_to({ name: file.name }));
     try {
       const r = await transcriber.run(file, engine, sensitivity);
       take(r.notes, file.name.replace(/\.[^.]+$/, ""), "transcribed");
     } catch (e) {
       const msg = (e as Error).message;
-      if (msg === "cancelled") return announce("Stopped listening.");
+      if (msg === "cancelled") return announce(m.music_hubs_tv_stopped());
       error = msg;
       announce(msg);
     }
@@ -134,7 +135,7 @@
       const notes = await transcriber.renote(sensitivity);
       heard = { ...heard, notes };
       build();
-      announce(`${editor!.noteCount} notes at this sensitivity.`);
+      announce(m.music_hubs_tv_at_sensitivity({ count: editor!.noteCount }));
     } catch (e) {
       if ((e as Error).message !== "cancelled") error = (e as Error).message;
     }
@@ -153,25 +154,25 @@
     editor?.stop();
     const score: Score = {
       id: crypto.randomUUID(),
-      title: "My song",
+      title: m.music_hubs_tr_my_song(),
       bpm,
       meter: { beats: 4, beatUnit: 4 },
-      voices: [{ id: "melody", name: "Melody", notes: [] }],
+      voices: [{ id: "melody", name: m.music_hubs_tr_melody(), notes: [] }],
       lengthBeats: 16,
       source: { kind: "transcribed" },
     };
     editor = new ScoreEditor(score);
-    announce("An empty roll, four bars long. Click cells to add notes.");
+    announce(m.music_hubs_tv_empty_roll());
   }
 
   async function save() {
     if (!editor) return;
-    if (!editor.noteCount) return announce("Add at least one note before saving.");
+    if (!editor.noteCount) return announce(m.music_hubs_tv_add_one());
     editor.stop();
     const score = { ...editor.toScore(), id: crypto.randomUUID(), source: { kind: heard?.kind ?? "transcribed" } } as Score;
     const song = songFromScore(score, { source: heard?.kind === "take" ? "MIDI take" : "transcribed" });
     await db.songs.put(song);
-    announce(`Saved ${song.title} to your songs.`);
+    announce(m.music_hubs_import_saved_status({ title: song.title }));
     editor = null;
     heard = null;
     onsaved?.(song);
@@ -179,10 +180,10 @@
 
   /** The first four bars of the top part as a lick, to drill in Phrases in any key. */
   async function saveLick() {
-    if (!editor?.noteCount) return announce("Add at least one note before saving a lick.");
+    if (!editor?.noteCount) return announce(m.music_hubs_tv_add_one_lick());
     const score = editor.toScore();
-    const id = await saveUserLick({ title: `${score.title || "Transcription"}, first bars`, from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
-    announce(id ? "Saved the first four bars as a lick. Find it in Phrases under Your licks." : "The top part has no notes to save.");
+    const id = await saveUserLick({ title: m.music_hubs_tv_lick_title({ title: score.title || m.music_hubs_tr_transcription() }), from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
+    announce(id ? m.music_hubs_tv_lick_saved() : m.music_hubs_tv_lick_empty());
   }
 
   const field = "min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
@@ -191,25 +192,25 @@
 {#if from === "audio"}
   <div class="flex flex-col gap-3">
     <Choice
-      label="What's in the recording"
+      label={m.music_hubs_tv_whats_in()}
       options={[
-        { value: "chords", label: "Chords and parts", hint: "A machine-learning model (Spotify's Basic Pitch) that hears several notes at once, on any instrument. Slower, much better on piano and guitar." },
-        { value: "melody", label: "One melody line", hint: "Follows one note at a time: a sung line, a whistle, a single-note riff. Fast." },
+        { value: "chords", label: m.music_hubs_tv_chords(), hint: m.music_hubs_tv_chords_hint() },
+        { value: "melody", label: m.music_hubs_tv_melody(), hint: m.music_hubs_tv_melody_hint() },
       ]}
       value={engine}
       disabled={transcriber.busy}
       onchange={(v) => (engine = v as Engine)}
     />
     <p class="max-w-prose text-sm text-ws-soft">
-      Works best on one instrument recorded cleanly. A full band mix with vocals comes out rough: every sound becomes notes. If you have the song as MusicXML or MIDI, import that instead.
+      {m.music_hubs_tv_works_best()}
     </p>
     {#if transcriber.busy}
       <div class="{panel} flex flex-col gap-3" aria-live="polite">
         <div class="flex flex-wrap items-center gap-3">
           <p class="min-w-0 flex-1 font-medium">{transcriber.step}{transcriber.progress !== null ? `, ${Math.round(transcriber.progress * 100)}%` : ""}…</p>
-          <button type="button" class={btn} onclick={() => transcriber.cancel()}>Cancel</button>
+          <button type="button" class={btn} onclick={() => transcriber.cancel()}>{m.music_hubs_cancel()}</button>
         </div>
-        <div class="h-2 overflow-hidden rounded-full bg-ws-raised" role="progressbar" aria-label="Transcription progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={transcriber.progress === null ? undefined : Math.round(transcriber.progress * 100)}>
+        <div class="h-2 overflow-hidden rounded-full bg-ws-raised" role="progressbar" aria-label={m.music_hubs_tv_progress()} aria-valuemin="0" aria-valuemax="100" aria-valuenow={transcriber.progress === null ? undefined : Math.round(transcriber.progress * 100)}>
           <div class="h-full rounded-full bg-instr transition-[width]" class:indeterminate={transcriber.progress === null} style:width="{(transcriber.progress ?? 0.3) * 100}%"></div>
         </div>
       </div>
@@ -229,21 +230,21 @@
         }}
       >
         <Upload class="size-7" aria-hidden="true" />
-        <span class="font-display text-lg font-semibold">Drop an audio file here, or choose one</span>
-        <span class="text-sm text-ws-soft">WAV, MP3, M4A or OGG</span>
-        <input class="sr-only" type="file" accept="audio/*" aria-label="Audio file to transcribe" onchange={(e) => takeAudio(e.currentTarget.files?.[0])} />
+        <span class="font-display text-lg font-semibold">{m.music_hubs_tv_drop()}</span>
+        <span class="text-sm text-ws-soft">{m.music_hubs_tv_formats()}</span>
+        <input class="sr-only" type="file" accept="audio/*" aria-label={m.music_hubs_tv_audio_file()} onchange={(e) => takeAudio(e.currentTarget.files?.[0])} />
       </label>
       {#if audioTakes.length}
         <div class="flex flex-col gap-2">
-          <h3 class="text-sm font-medium">Or one of your recordings from <a class="text-instr-ink underline underline-offset-4" href="/music/record">Record</a></h3>
-          <ul class="grid gap-2 sm:grid-cols-2" aria-label="Audio takes">
+          <h3 class="text-sm font-medium">{@html m.music_hubs_tv_from_record({ link: `<a class="text-instr-ink underline underline-offset-4" href="/music/record">${m.music_hubs_record_page()}</a>` })}</h3>
+          <ul class="grid gap-2 sm:grid-cols-2" aria-label={m.music_hubs_tv_audio_takes()}>
             {#each audioTakes as t (t.id)}
               <li class="flex items-center gap-3 rounded-xl border border-ws-line bg-ws-surface p-3">
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium">{t.name}</p>
                   <p class="text-[13px] text-ws-soft">{takeLength(t.durationMs)}</p>
                 </div>
-                <button type="button" class={btn} onclick={() => transcribeTake(t)}>Transcribe</button>
+                <button type="button" class={btn} onclick={() => transcribeTake(t)}>{m.music_hubs_tv_transcribe()}</button>
               </li>
             {/each}
           </ul>
@@ -253,21 +254,21 @@
   </div>
 {:else}
   <div class="flex flex-col gap-3">
-    <p class="max-w-prose text-sm text-ws-soft">Play it on a MIDI keyboard in <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Record</a>, then turn the take into a song here. The tempo is found from your playing.</p>
+    <p class="max-w-prose text-sm text-ws-soft">{@html m.music_hubs_tv_take_intro({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">${m.music_hubs_record_page()}</a>` })}</p>
     {#if takes.length}
-      <ul class="grid gap-2 sm:grid-cols-2" aria-label="MIDI takes">
+      <ul class="grid gap-2 sm:grid-cols-2" aria-label={m.music_hubs_tv_midi_takes()}>
         {#each takes as t (t.id)}
           <li class="flex items-center gap-3 rounded-xl border border-ws-line bg-ws-surface p-3">
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{t.name}</p>
-              <p class="text-[13px] text-ws-soft">{t.notes.length} notes, {takeLength(t.durationMs)}</p>
+              <p class="text-[13px] text-ws-soft">{m.music_hubs_tv_take_line({ count: t.notes.length, length: takeLength(t.durationMs) })}</p>
             </div>
-            <button type="button" class={btn} onclick={() => useTake(t)}>Use this take</button>
+            <button type="button" class={btn} onclick={() => useTake(t)}>{m.music_hubs_tv_use_take()}</button>
           </li>
         {/each}
       </ul>
     {:else}
-      <p class={panel}>No MIDI takes yet. <a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">Record one</a>, then come back.</p>
+      <p class={panel}>{@html m.music_hubs_tv_no_takes({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/record">${m.music_hubs_tv_record_one()}</a>` })}</p>
     {/if}
   </div>
 {/if}
@@ -277,20 +278,20 @@
 {/if}
 
 {#if !editor && !transcriber.busy}
-  <button type="button" class="{btn} self-start" onclick={blank}>Start from an empty roll</button>
+  <button type="button" class="{btn} self-start" onclick={blank}>{m.music_hubs_tv_empty_roll_button()}</button>
 {/if}
 
 {#if editor}
   {@const e = editor}
   <section class="{panel} flex flex-col gap-4" aria-labelledby="draft-h">
-    <h2 id="draft-h" class="font-display text-xl font-semibold">Draft</h2>
+    <h2 id="draft-h" class="font-display text-xl font-semibold">{m.music_hubs_tv_draft()}</h2>
     <div class="flex flex-wrap items-end gap-3">
       <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
-        <span class="font-medium">Title</span>
+        <span class="font-medium">{m.music_hubs_import_title()}</span>
         <input class={field} value={e.doc.title} onchange={(ev) => (e.doc = { ...e.doc, title: ev.currentTarget.value })} />
       </label>
       <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Tempo (BPM){heard ? ", detected" : ""}</span>
+        <span class="font-medium">{heard ? m.music_hubs_tv_tempo_detected() : m.music_hubs_tv_tempo()}</span>
         <input
           class="{field} tnum w-28"
           type="number"
@@ -307,33 +308,33 @@
       {#if heard}
         <label class="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" class="size-4 accent-[var(--instr)]" checked={split} onchange={(ev) => { const v = ev.currentTarget.checked; resnap(() => void (split = v)); }} />
-          Split into two hands at middle C
+          {m.music_hubs_tv_split()}
         </label>
       {/if}
       {#if heard?.kind === "transcribed" && engine === "chords"}
         <label class="flex flex-col gap-1 text-sm">
-          <span class="font-medium">Sensitivity</span>
-          <span class="flex items-center gap-2 text-[13px] text-ws-soft">Fewer<input type="range" min="0" max="1" step="0.1" class="w-32 accent-[var(--instr)]" value={sensitivity} disabled={transcriber.busy} onchange={(ev) => setSensitivity(ev.currentTarget.valueAsNumber)} aria-label="Sensitivity" aria-valuetext="{Math.round(sensitivity * 10)} of 10" />More notes</span>
+          <span class="font-medium">{m.music_hubs_tv_sensitivity()}</span>
+          <span class="flex items-center gap-2 text-[13px] text-ws-soft">{m.music_hubs_tv_fewer()}<input type="range" min="0" max="1" step="0.1" class="w-32 accent-[var(--instr)]" value={sensitivity} disabled={transcriber.busy} onchange={(ev) => setSensitivity(ev.currentTarget.valueAsNumber)} aria-label={m.music_hubs_tv_sensitivity()} aria-valuetext={m.music_hubs_tv_of_10({ n: Math.round(sensitivity * 10) })} />{m.music_hubs_tv_more_notes()}</span>
         </label>
       {/if}
-      <div class="flex items-center gap-1 text-sm" role="group" aria-label="Length">
-        <button type="button" class="{btn} w-11 px-0" aria-label="Remove the last bar" disabled={e.doc.lengthBeats <= e.barBeats} onclick={() => e.setBars(e.doc.lengthBeats / e.barBeats - 1)}><Minus class="size-4" aria-hidden="true" /></button>
-        <span class="tnum w-16 text-center font-medium">{Math.round(e.doc.lengthBeats / e.barBeats)} {Math.round(e.doc.lengthBeats / e.barBeats) === 1 ? "bar" : "bars"}</span>
-        <button type="button" class="{btn} w-11 px-0" aria-label="Add a bar" onclick={() => e.setBars(e.doc.lengthBeats / e.barBeats + 1)}><Plus class="size-4" aria-hidden="true" /></button>
+      <div class="flex items-center gap-1 text-sm" role="group" aria-label={m.music_hubs_tv_length()}>
+        <button type="button" class="{btn} w-11 px-0" aria-label={m.music_hubs_tv_remove_bar()} disabled={e.doc.lengthBeats <= e.barBeats} onclick={() => e.setBars(e.doc.lengthBeats / e.barBeats - 1)}><Minus class="size-4" aria-hidden="true" /></button>
+        <span class="tnum w-16 text-center font-medium">{m.music_hubs_songs_bars({ count: Math.round(e.doc.lengthBeats / e.barBeats) })}</span>
+        <button type="button" class="{btn} w-11 px-0" aria-label={m.music_hubs_tv_add_bar()} onclick={() => e.setBars(e.doc.lengthBeats / e.barBeats + 1)}><Plus class="size-4" aria-hidden="true" /></button>
       </div>
     </div>
     {#if pendingSnap}
-      <div class="flex flex-wrap items-center gap-2 rounded-xl border border-instr bg-instr-wash p-3 text-sm" role="group" aria-label="Re-snap the draft">
-        <p class="min-w-0 flex-1 font-medium">Re-snapping rebuilds the draft from what was heard, and drops your edits in the roll.</p>
-        <button type="button" class={btnPrimary} onclick={async () => { const run = pendingSnap!; pendingSnap = null; await run(); }}>Re-snap</button>
-        <button type="button" class={btn} onclick={() => (pendingSnap = null)}>Keep my edits</button>
+      <div class="flex flex-wrap items-center gap-2 rounded-xl border border-instr bg-instr-wash p-3 text-sm" role="group" aria-label={m.music_hubs_tv_resnap_label()}>
+        <p class="min-w-0 flex-1 font-medium">{m.music_hubs_tv_resnap_text()}</p>
+        <button type="button" class={btnPrimary} onclick={async () => { const run = pendingSnap!; pendingSnap = null; await run(); }}>{m.music_hubs_tv_resnap()}</button>
+        <button type="button" class={btn} onclick={() => (pendingSnap = null)}>{m.music_hubs_tv_keep_edits()}</button>
       </div>
     {/if}
     <PianoRoll host={e} {announce} noun="parts" />
     <div class="flex flex-wrap gap-2">
-      <button type="button" class={btnPrimary} onclick={save}>Save to songs</button>
-      <button type="button" class={btn} onclick={saveLick}>Save the first bars as a lick</button>
-      <button type="button" class={btn} onclick={() => { e.stop(); editor = null; heard = null; }}>Discard</button>
+      <button type="button" class={btnPrimary} onclick={save}>{m.music_hubs_import_save()}</button>
+      <button type="button" class={btn} onclick={saveLick}>{m.music_hubs_tv_save_lick()}</button>
+      <button type="button" class={btn} onclick={() => { e.stop(); editor = null; heard = null; }}>{m.music_hubs_discard()}</button>
     </div>
   </section>
 {/if}

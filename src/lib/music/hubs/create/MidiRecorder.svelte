@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Record MIDI takes: note-ons and note-offs from MIDI, the on-screen keys and
   // the computer keyboard. Takes persist in db.midiTakes (shared with the Lab).
   import { onDestroy, onMount } from "svelte";
@@ -9,6 +10,7 @@
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import { compareTakes } from "@repo/music-core/scoring/compare";
   import { savedTakesLabel } from "./audioTakes";
+  import { monthDayTime } from "../dates";
   import Piano from "#lib/music/components/Piano.svelte";
   import { btn } from "#lib/music/components/ui.ts";
   import { runInstrument } from "#lib/music/drill.svelte.ts";
@@ -81,9 +83,9 @@
     });
     timer = setInterval(() => {
       elapsed = performance.now() - t0;
-      if (elapsed >= TAKE_LIMIT_MS) void stop("The take reached the 60-minute limit and was saved.");
+      if (elapsed >= TAKE_LIMIT_MS) void stop(m.music_hubs_mr_limit());
     }, 200);
-    announce("Recording. Play, then press Stop.");
+    announce(m.music_hubs_mr_recording());
   }
 
   async function stop(reason?: string) {
@@ -94,11 +96,11 @@
     clearInterval(timer);
     const end = performance.now();
     const notes = pairNotes(events, t0, end);
-    if (!notes.length) return announce("Nothing was played, so no take was saved.");
+    if (!notes.length) return announce(m.music_hubs_mr_nothing());
     const take: MidiTake = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      name: `Take ${takes.length + 1}`,
+      name: m.music_hubs_mr_take_n({ n: takes.length + 1 }),
       notes,
       durationMs: Math.round(end - t0),
       instrument: runInstrument(events),
@@ -107,11 +109,11 @@
     try {
       await db.midiTakes.put({ ...take });
     } catch (e) {
-      return announce(`The take didn't save: ${(e as Error).message}. Record it again.`);
+      return announce(m.music_hubs_mr_not_saved({ reason: (e as Error).message }));
     }
     takes = [take, ...takes];
     [cmpA, cmpB] = [takes[1]?.id ?? "", take.id];
-    announce(reason ?? `Saved ${take.name}: ${notes.length} notes, ${takeLength(take.durationMs)}.`);
+    announce(reason ?? m.music_hubs_mr_saved({ name: take.name, count: notes.length, length: takeLength(take.durationMs) }));
   }
 
   function stopPlayback() {
@@ -124,7 +126,7 @@
       const pos = (performance.now() - player.handle.startPerf) / 1000 + player.from;
       stopPlayback();
       paused = { ...paused, [take.id]: pos };
-      return announce(`Paused ${take.name} at ${clock(pos * 1000)}.`);
+      return announce(m.music_hubs_mr_paused({ name: take.name, time: clock(pos * 1000) }));
     }
     stopPlayback();
     await audio.unlock();
@@ -134,7 +136,7 @@
       .map((n) => ({ ...n, time: Math.max(0, n.time - from) }));
     const handle = audio.playSequence(seq);
     player = { id: take.id, handle, from };
-    announce(`Playing ${take.name}${from ? ` from ${clock(from * 1000)}` : ""}.`);
+    announce(from ? m.music_hubs_mr_playing_from({ name: take.name, time: clock(from * 1000) }) : m.music_hubs_mr_playing({ name: take.name }));
     void handle.done.then(() => {
       if (player?.handle === handle) {
         player = null;
@@ -152,7 +154,7 @@
   function exportMidi(take: MidiTake) {
     const name = `${fileStem(take.name)}.mid`;
     download(scoreToMidi(takeToScore(take)), name, "audio/midi");
-    announce(`Downloading ${name}.`);
+    announce(m.music_hubs_mr_downloading({ name }));
   }
 
   async function toSongStudio(take: MidiTake) {
@@ -161,7 +163,7 @@
     const id = crypto.randomUUID();
     await db.songs.put({ id, title: take.name, createdAt: now, updatedAt: now, score: { ...score, id }, source: "Recorded take" });
     savedSong = { ...savedSong, [take.id]: id };
-    announce(`${take.name} is saved to Song practice, snapped to sixteenths at ${score.bpm} BPM.`);
+    announce(m.music_hubs_mr_to_songs({ name: take.name, bpm: score.bpm }));
   }
 
   async function remove(take: MidiTake) {
@@ -170,7 +172,7 @@
     if (player?.id === take.id) stopPlayback();
     await db.midiTakes.delete(take.id);
     takes = takes.filter((t) => t.id !== take.id);
-    announce(`Deleted ${take.name}.`);
+    announce(m.music_hubs_tracks_deleted({ name: take.name }));
   }
 
   const cmp = $derived.by(() => {
@@ -181,8 +183,7 @@
     return { a, b, ...compareTakes(on(a), on(b)) };
   });
 
-  const when = (ms: number) =>
-    new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const when = (ms: number) => monthDayTime(new Date(ms));
 
   onDestroy(() => {
     if (recording) void stop();
@@ -190,32 +191,32 @@
   });
 </script>
 
-<section class="stage relative flex flex-col gap-4 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label="MIDI recorder">
+<section class="stage relative flex flex-col gap-4 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label={m.music_hubs_mr_label()}>
   <div class="flex flex-wrap items-center gap-5">
     <RecordButton {recording} onclick={toggle} />
     <div class="min-w-0 flex-1">
-      <p class="tnum font-display text-5xl font-semibold tracking-tight sm:text-6xl" aria-label="Elapsed {clock(elapsed)}">{clock(recording ? elapsed : 0)}</p>
+      <p class="tnum font-display text-5xl font-semibold tracking-tight sm:text-6xl" aria-label={m.music_hubs_mr_elapsed({ time: clock(elapsed) })}>{clock(recording ? elapsed : 0)}</p>
       <p class="text-sm text-ws-stage-soft">
-        {#if recording}{liveCount} {liveCount === 1 ? "note" : "notes"} so far. Takes stop by themselves at 60 minutes.{:else}Record from a MIDI keyboard or pads, the keys below, or your computer keyboard.{/if}
+        {#if recording}{m.music_hubs_mr_so_far({ count: liveCount })}{:else}{m.music_hubs_mr_idle()}{/if}
       </p>
     </div>
   </div>
   <div class="flex flex-wrap items-center gap-2 text-sm text-ws-stage-soft">
     {#if !midi.supported}
-      <span>Web MIDI is unavailable in this browser. Play the keys below or your computer keyboard.</span>
+      <span>{m.music_hubs_mr_no_webmidi()}</span>
     {:else if !midi.enabled}
-      <span>MIDI is off.</span>
-      <button type="button" class="min-h-11 rounded-full bg-ws-stage-ink/10 px-4 font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20" onclick={() => midi.enable()}>Turn on MIDI</button>
+      <span>{m.music_hubs_conn_midi_off()}</span>
+      <button type="button" class="min-h-11 rounded-full bg-ws-stage-ink/10 px-4 font-semibold text-ws-stage-ink hover:bg-ws-stage-ink/20" onclick={() => midi.enable()}>{m.music_hubs_rig_turn_on()}</button>
     {:else}
-      <span>MIDI on: {midi.inputs.map((i) => midi.profile(i.id)?.alias ?? i.name).join(", ") || "no device connected yet"}.</span>
-      <a class="font-semibold text-ws-stage-ink underline underline-offset-4" href="/music/connect">Devices</a>
+      <span>{m.music_hubs_mr_midi_on({ devices: midi.inputs.map((i) => midi.profile(i.id)?.alias ?? i.name).join(", ") || m.music_hubs_mr_no_device() })}</span>
+      <a class="font-semibold text-ws-stage-ink underline underline-offset-4" href="/music/connect">{m.music_hubs_mr_devices()}</a>
     {/if}
   </div>
-  <Piano low={48} high={84} label="On-screen keys for recording" />
+  <Piano low={48} high={84} label={m.music_hubs_mr_keys()} />
 </section>
 
 <section aria-labelledby="midi-takes" class="flex flex-col gap-3">
-  <h2 id="midi-takes" class="font-display text-2xl font-semibold tracking-tight">MIDI takes <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
+  <h2 id="midi-takes" class="font-display text-2xl font-semibold tracking-tight">{m.music_hubs_mr_takes()} <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
   {#if takes.length}
     <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
       {#each takes as take (take.id)}
@@ -225,7 +226,7 @@
             <button
               type="button"
               class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
-              aria-label="{isPlaying ? 'Pause' : 'Play'} {take.name}"
+              aria-label={isPlaying ? m.music_hubs_mr_pause({ name: take.name }) : m.music_hubs_mr_play({ name: take.name })}
               aria-pressed={isPlaying}
               onclick={() => play(take)}
             >
@@ -234,20 +235,20 @@
             <input
               class="min-h-11 min-w-0 flex-1 basis-40 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
               value={take.name}
-              aria-label="Take name"
+              aria-label={m.music_hubs_mr_take_name()}
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
             <span class="text-sm text-ws-soft">
-              <span class="tnum">{take.notes.length}</span> notes, <span class="tnum">{takeLength(take.durationMs)}</span>, {when(take.createdAt)}{take.instrument ? `, ${INSTRUMENT_LABEL[take.instrument]}` : ""}
+              {@html m.music_hubs_mr_take_line({ count: take.notes.length, notes: `<span class="tnum">${take.notes.length}</span>`, length: `<span class="tnum">${takeLength(take.durationMs)}</span>` })}, {when(take.createdAt)}{take.instrument ? `, ${INSTRUMENT_LABEL[take.instrument]}` : ""}
             </span>
             <button
               type="button"
               class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm {confirmDelete === take.id ? 'bg-destructive font-semibold text-white' : 'text-ws-soft hover:bg-ws-raised'}"
-              aria-label={confirmDelete === take.id ? `Confirm: delete ${take.name}` : `Delete ${take.name}`}
+              aria-label={confirmDelete === take.id ? m.music_hubs_mr_confirm_delete({ name: take.name }) : m.music_hubs_mr_delete({ name: take.name })}
               onclick={() => remove(take)}
               onblur={() => confirmDelete === take.id && (confirmDelete = null)}
             >
-              <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? "Delete?" : ""}
+              <Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? m.music_hubs_mr_delete_q() : ""}
             </button>
           </div>
           <TakeThumb notes={take.notes} durationMs={take.durationMs} progress={progress(take)} />
@@ -255,17 +256,17 @@
             <input
               class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
               value={take.note ?? ""}
-              placeholder="Add a note: what to fix next time"
-              aria-label="Note for {take.name}"
+              placeholder={m.music_hubs_mr_note_placeholder()}
+              aria-label={m.music_hubs_mr_note_for({ name: take.name })}
               onchange={(e) => patch(take, { note: e.currentTarget.value })}
             />
             <div class="flex flex-wrap gap-1.5">
-              <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />Export MIDI</button>
-              <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">Open in piano roll</a>
+              <button type="button" class="{btn} px-3" onclick={() => exportMidi(take)}><FileMusic class="size-4" aria-hidden="true" />{m.music_hubs_mr_export()}</button>
+              <a class="{btn} px-3" href="/music/create?mode=roll&take={take.id}">{m.music_hubs_mr_open_roll()}</a>
               {#if savedSong[take.id]}
-                <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">Open in Song practice</a>
+                <a class="{btn} px-3 text-instr-ink" href="/music/songs/{savedSong[take.id]}">{m.music_hubs_import_open()}</a>
               {:else}
-                <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>Save to Song practice</button>
+                <button type="button" class="{btn} px-3" onclick={() => toSongStudio(take)}>{m.music_hubs_mr_save_songs()}</button>
               {/if}
             </div>
           </div>
@@ -273,16 +274,16 @@
       {/each}
     </ul>
   {:else}
-    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No MIDI takes yet. Press the record button and play.</p>
+    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">{m.music_hubs_mr_none()}</p>
   {/if}
 </section>
 
 {#if takes.length >= 2}
   <section aria-labelledby="compare-title" class="rounded-2xl bg-ws-raised/60 p-4 sm:p-5">
-    <h2 id="compare-title" class="font-display text-xl font-semibold">Compare takes</h2>
-    <p class="max-w-prose text-sm text-ws-soft">Lines the second take up with the first (a slower or faster take is stretched to fit) and counts the notes that match in pitch and time.</p>
+    <h2 id="compare-title" class="font-display text-xl font-semibold">{m.music_hubs_mr_compare()}</h2>
+    <p class="max-w-prose text-sm text-ws-soft">{m.music_hubs_mr_compare_intro()}</p>
     <div class="mt-3 flex flex-wrap items-end gap-3">
-      {#each [["First", "a"], ["Second", "b"]] as [label, which] (which)}
+      {#each [[m.music_hubs_mr_first(), "a"], [m.music_hubs_mr_second(), "b"]] as [label, which] (which)}
         <div class="flex min-w-0 flex-col gap-1 text-sm">
           <span class="text-ws-soft">{label}</span>
           <Picker class="min-w-40" {label} value={which === "a" ? cmpA : cmpB} options={takes.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => (which === "a" ? (cmpA = v) : (cmpB = v))} />
@@ -291,10 +292,10 @@
       {#if cmp}
         <p class="flex items-baseline gap-2">
           <span class="tnum font-display text-4xl font-semibold">{Math.round(cmp.accuracy * 100)}%</span>
-          <span class="text-sm text-ws-soft"><span class="tnum">{cmp.matched}</span> of <span class="tnum">{cmp.total}</span> notes line up</span>
+          <span class="text-sm text-ws-soft">{@html m.music_hubs_mr_line_up({ matched: `<span class="tnum">${cmp.matched}</span>`, total: `<span class="tnum">${cmp.total}</span>` })}</span>
         </p>
       {:else}
-        <p class="text-sm text-ws-soft">Pick two different takes.</p>
+        <p class="text-sm text-ws-soft">{m.music_hubs_mr_pick_two()}</p>
       {/if}
     </div>
   </section>

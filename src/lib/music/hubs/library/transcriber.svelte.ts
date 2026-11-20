@@ -1,6 +1,7 @@
 // The page's side of transcription: decode the file, resample it for the
 // engine (the browser does both natively, off the main thread), and hand it
 // to the worker. Progress and Cancel live here; the page stays responsive.
+import { m } from "@repo/i18n/messages.js";
 import type { HeardNote } from "./transcription";
 import type { WorkerIn, WorkerOut } from "./transcribe.worker";
 
@@ -20,12 +21,12 @@ export class Transcriber {
     if (this.#worker) return this.#worker;
     const w = new Worker(new URL("./transcribe.worker.ts", import.meta.url), { type: "module" });
     w.onmessage = (e: MessageEvent<WorkerOut>) => {
-      const m = e.data;
-      if (m.type === "progress") this.progress = m.value;
-      else if (m.type === "notes") this.#settle(null, m.notes);
-      else this.#settle(new Error(m.message));
+      const msg = e.data;
+      if (msg.type === "progress") this.progress = msg.value;
+      else if (msg.type === "notes") this.#settle(null, msg.notes);
+      else this.#settle(new Error(msg.message));
     };
-    w.onerror = (e) => this.#settle(new Error(e.message || "The transcriber stopped."));
+    w.onerror = (e) => this.#settle(new Error(e.message || m.music_hubs_tr_stopped()));
     this.#worker = w;
     return w;
   }
@@ -55,14 +56,14 @@ export class Transcriber {
   ): Promise<{ notes: HeardNote[]; seconds: number }> {
     this.busy = true;
     this.progress = null;
-    this.step = "Reading the audio";
+    this.step = m.music_hubs_tr_reading();
     let buf: AudioBuffer;
     const ctx = new AudioContext();
     try {
       buf = await ctx.decodeAudioData(await file.arrayBuffer());
     } catch {
       this.#settle(null);
-      throw new Error(`"${file.name}" isn't audio Woodshed can read. Try a WAV or MP3.`);
+      throw new Error(m.music_hubs_tr_not_audio({ name: file.name }));
     } finally {
       void ctx.close();
     }
@@ -75,7 +76,7 @@ export class Transcriber {
     src.start();
     const mono = (await off.startRendering()).getChannelData(0);
     if (!this.busy) throw new Error("cancelled"); // cancelled while decoding
-    this.step = engine === "chords" ? "Listening for every note" : "Following the melody";
+    this.step = engine === "chords" ? m.music_hubs_tr_listening() : m.music_hubs_tr_following();
     this.progress = engine === "chords" ? 0 : null;
     const samples = mono.slice();
     const notes = await this.#ask({ type: "run", engine, samples, sampleRate: rate, sensitivity }, [
@@ -87,7 +88,7 @@ export class Transcriber {
   /** New sensitivity on the last chords run: only the note picking is redone. */
   renote(sensitivity: number) {
     this.busy = true;
-    this.step = "Picking the notes again";
+    this.step = m.music_hubs_tr_repicking();
     return this.#ask({ type: "renote", sensitivity });
   }
 

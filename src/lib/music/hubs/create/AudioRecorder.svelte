@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Audio takes from the microphone. The mic starts only when armed, stops on
   // leaving; takes go to OPFS (music-take-<id>) with a row in db.audioTakes.
   // Playback gain never rewrites the recording.
@@ -15,7 +16,7 @@
   import * as Menu from "@repo/ui/dropdown-menu";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "#lib/music/components/ui.ts";
-  import { micOptions } from "#lib/music/hubs/connect/rig.ts";
+  import { inputName, micOptions } from "#lib/music/hubs/connect/rig.ts";
   import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "#lib/music/runtime/index.ts";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
@@ -78,18 +79,18 @@
     if (mic.state === "on") {
       if (recording) await stopRecording();
       mic.stop();
-      return announce("Microphone off.");
+      return announce(m.music_hubs_mic_off());
     }
     const ok = await mic.start(deviceId ? { deviceId } : {});
-    announce(ok ? "Microphone on. Check the meter, then record." : mic.error);
+    announce(ok ? m.music_hubs_ar_mic_on() : mic.error);
   }
 
   async function toggle() {
     if (recording) return stopRecording();
     // Record arms the microphone itself (the browser asks the first time), then records.
     if (mic.state !== "on") {
-      announce("Starting the microphone…");
-      if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
+      announce(m.music_hubs_tuner_starting());
+      if (!(await mic.start(deviceId ? { deviceId } : {}))) return announce(mic.error || m.music_hubs_mic_failed());
     }
     await audio.unlock();
     stopPlayback();
@@ -104,9 +105,9 @@
     recording = true;
     timer = setInterval(() => {
       elapsed = performance.now() - t0;
-      if (elapsed >= TAKE_LIMIT_MS) void stopRecording("The take reached the 60-minute limit and was saved.");
+      if (elapsed >= TAKE_LIMIT_MS) void stopRecording(m.music_hubs_mr_limit());
     }, 200);
-    announce("Recording from the microphone.");
+    announce(m.music_hubs_ar_recording());
   }
 
   async function stopRecording(reason?: string) {
@@ -127,7 +128,7 @@
     const take: Take = {
       id,
       createdAt: Date.now(),
-      name: `Audio take ${takes.length + 1}`,
+      name: m.music_hubs_ar_take_n({ n: takes.length + 1 }),
       durationMs,
       envelope: env,
       mimeType: blob.type || "audio/webm",
@@ -147,12 +148,12 @@
       await db.audioTakes.put(take);
     } catch (e) {
       unsaved = { take, blob, error: (e as Error).message };
-      return announce(`The take was recorded but didn't save: ${(e as Error).message}. It stays on this page until you save again.`);
+      return announce(m.music_hubs_ar_not_saved({ reason: (e as Error).message }));
     }
     unsaved = null;
     takes = [take, ...takes];
     latest = take.id;
-    announce(reason ?? `Saved ${take.name}, ${takeLength(take.durationMs)}.`);
+    announce(reason ?? m.music_hubs_ar_saved({ name: take.name, length: takeLength(take.durationMs) }));
     // Bring the new take, with its Transcribe and Download, into view above the tab bar.
     await tick();
     document.querySelector(`[data-audio-take="${take.id}"]`)?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
@@ -166,17 +167,17 @@
   async function play(take: Take) {
     if (player?.id === take.id) {
       stopPlayback();
-      return announce(`Stopped ${take.name}.`);
+      return announce(m.music_hubs_ar_stopped({ name: take.name }));
     }
     stopPlayback();
     await audio.unlock();
     const blob = await getBinary(takeKey(take.id));
-    if (!blob) return announce(`The file for ${take.name} is missing from this browser's storage.`);
+    if (!blob) return announce(m.music_hubs_ar_missing_storage({ name: take.name }));
     try {
       const handle = await audio.playBlob(blob, take.gainDb ?? 0);
       player = { id: take.id, handle, durationMs: take.durationMs };
       if (take.envelope.length < ENVELOPE_BUCKETS) void refine(take, blob);
-      announce(`Playing ${take.name} at ${signedDb(take.gainDb ?? 0)}.`);
+      announce(m.music_hubs_ar_playing({ name: take.name, gain: signedDb(take.gainDb ?? 0) }));
       void handle.done.then(() => {
         if (player?.handle === handle) player = null;
       });
@@ -217,10 +218,10 @@
 
   async function downloadTake(take: Take) {
     const blob = await getBinary(takeKey(take.id));
-    if (!blob) return announce(`The file for ${take.name} is missing.`);
+    if (!blob) return announce(m.music_hubs_ar_missing({ name: take.name }));
     const name = `${fileStem(take.name)}.${extensionFor(take.mimeType)}`;
     download(blob, name);
-    announce(`Downloading ${name}.`);
+    announce(m.music_hubs_mr_downloading({ name }));
   }
 
   async function remove(take: Take, e?: Event) {
@@ -233,15 +234,15 @@
     await db.audioTakes.delete(take.id);
     await deleteBinary(takeKey(take.id)).catch(() => {});
     takes = takes.filter((t) => t.id !== take.id);
-    announce(`Deleted ${take.name}.`);
+    announce(m.music_hubs_tracks_deleted({ name: take.name }));
   }
 
   const pct = (db: number) => Math.max(0, Math.min(100, ((db - LEVEL_FLOOR_DB) / -LEVEL_FLOOR_DB) * 100));
   const ADVICE: Record<string, string> = {
-    clipping: "the loudest notes distort. Turn the input down or move the mic away.",
-    hot: "fine, but there is little room left for a loud accent.",
-    good: "ready to record.",
-    quiet: "move closer or turn the input up. A quiet take can be lifted on playback, but its noise comes up with it.",
+    clipping: m.music_hubs_ar_advice_clipping(),
+    hot: m.music_hubs_ar_advice_hot(),
+    good: m.music_hubs_ar_advice_good(),
+    quiet: m.music_hubs_ar_advice_quiet(),
   };
   const live = $derived(mic.state === "on");
   // What the recording will actually get: the input plus the boost.
@@ -256,16 +257,16 @@
   });
 </script>
 
-<section class="stage relative flex flex-col gap-5 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label="Microphone recorder">
+<section class="stage relative flex flex-col gap-5 overflow-hidden rounded-3xl p-4 sm:p-6" aria-label={m.music_hubs_ar_label()}>
   <div class="flex flex-wrap items-end gap-3">
     {#if live}
-      <p class="min-w-0 flex-1 basis-56 text-sm"><span class="text-ws-stage-soft">Input:</span> <span class="font-medium">{settings.value.audioInputLabel}</span></p>
+      <p class="min-w-0 flex-1 basis-56 text-sm"><span class="text-ws-stage-soft">{m.music_hubs_ar_input_colon()}</span> <span class="font-medium">{inputName(settings.value.audioInputDeviceId, settings.value.audioInputLabel)}</span></p>
     {:else}
     <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
-      <span class="text-ws-stage-soft">Input</span>
+      <span class="text-ws-stage-soft">{m.music_hubs_ar_input()}</span>
       <Picker
         tone="stage"
-        label="Input"
+        label={m.music_hubs_ar_input()}
         value={deviceId}
         disabled={live}
         options={micOptions(mic.devices, settings.value.audioInputDeviceId, settings.value.audioInputLabel)}
@@ -278,7 +279,7 @@
     </div>
     {/if}
     <button type="button" class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold {live ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/10 text-ws-stage-ink hover:bg-ws-stage-ink/20'}" aria-pressed={live} onclick={arm}>
-      <Mic class="size-4" aria-hidden="true" />{live ? "Microphone on" : mic.state === "starting" ? "Starting…" : "Arm microphone"}
+      <Mic class="size-4" aria-hidden="true" />{live ? m.music_hubs_ar_mic_on_button() : mic.state === "starting" ? m.music_hubs_mic_starting() : m.music_hubs_ar_arm()}
     </button>
   </div>
 
@@ -293,7 +294,7 @@
       <!-- During a take: where it is in bars, counted at the strip's tempo in 4/4 (no click plays). -->
       {#if recording}
         {@const beat = Math.floor(elapsed / (60000 / settings.value.bpm))}
-        <p class="tnum mt-1 text-sm"><span class="font-semibold">Bar {Math.floor(beat / 4) + 1}, beat {(beat % 4) + 1}</span> <span class="text-ws-stage-soft">at {settings.value.bpm} BPM</span></p>
+        <p class="tnum mt-1 text-sm"><span class="font-semibold">{m.music_hubs_ar_bar_beat({ bar: Math.floor(beat / 4) + 1, beat: (beat % 4) + 1 })}</span> <span class="text-ws-stage-soft">{m.music_hubs_ar_at_bpm({ bpm: settings.value.bpm })}</span></p>
       {/if}
       <div class="meter mt-2" data-tone={live ? boostedAdvice.tone : undefined} aria-hidden="true">
         <span class="fill" style:width="{live ? pct(boostedPeak) : 0}%"></span>
@@ -304,10 +305,10 @@
       <p class="mt-2 text-sm" data-testid="level-advice">
         {#if live}
           <!-- While a take runs, the line says so: "ready to record" would contradict the timer. -->
-          {#if recording}Recording.{/if}
-          <strong>{boostedAdvice.label}</strong>{#if recording && boostedAdvice.tone === "good"}.{:else}: {ADVICE[boostedAdvice.tone]}{/if} Peak <span class="tnum">{Math.round(boostedPeak)}</span> dB{boost ? ` with the ${signedDb(boost)} boost` : ""}.
+          {#if recording}{m.music_hubs_ar_recording_short()}{/if}
+          <strong>{boostedAdvice.label}</strong>{#if recording && boostedAdvice.tone === "good"}.{:else}: {ADVICE[boostedAdvice.tone]}{/if} {m.music_hubs_ar_peak()} <span class="tnum">{Math.round(boostedPeak)}</span> {boost ? m.music_hubs_ar_db_boost({ boost: signedDb(boost) }) : m.music_hubs_ar_db()}
         {:else}
-          <span class="text-ws-stage-soft">Press Record to start, or arm the microphone first to check the level.</span>
+          <span class="text-ws-stage-soft">{m.music_hubs_ar_press_record()}</span>
         {/if}
       </p>
     </div>
@@ -322,13 +323,13 @@
           <rect x={TRACE - trace.length + k + 0.15} y={10 - h} width="0.7" height={2 * h} class={recording ? "live rec" : "live"} />
         {/each}
       </svg>
-      <figcaption class="text-[0.8125rem] text-ws-stage-soft">{recording ? "Recording: the take as it comes in" : "Live input: play a little to check the level"}</figcaption>
+      <figcaption class="text-[0.8125rem] text-ws-stage-soft">{recording ? m.music_hubs_ar_trace_rec() : m.music_hubs_ar_trace_live()}</figcaption>
     </figure>
   {/if}
 
   <div class="flex flex-wrap items-center gap-3">
         <label class="flex items-center gap-2 text-sm">
-          <span class="text-ws-stage-soft">Record boost</span>
+          <span class="text-ws-stage-soft">{m.music_hubs_ar_boost()}</span>
           <input
             type="range"
             min={BOOST_RANGE.min}
@@ -343,7 +344,7 @@
         </label>
         {#if live && suggestion > boost + 2}
           <button type="button" class="min-h-11 rounded-full bg-instr px-4 text-sm font-semibold text-ws-stage" onclick={() => setBoost(suggestion)}>
-            Boost to {signedDb(suggestion)}
+            {m.music_hubs_ar_boost_to({ db: signedDb(suggestion) })}
           </button>
         {/if}
   </div>
@@ -352,17 +353,17 @@
 
 {#if unsaved}
   <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-warn p-4" role="alert">
-    <p class="min-w-0 flex-1 text-sm">"{unsaved.take.name}" is recorded but not saved: {unsaved.error}</p>
-    <button type="button" class={btn} onclick={() => unsaved && save(unsaved.take, unsaved.blob)}>Save again</button>
-    <button type="button" class={btn} onclick={() => unsaved && download(unsaved.blob, `${fileStem(unsaved.take.name)}.${extensionFor(unsaved.take.mimeType)}`)}>Download instead</button>
+    <p class="min-w-0 flex-1 text-sm">{m.music_hubs_ar_unsaved({ name: unsaved.take.name, reason: unsaved.error })}</p>
+    <button type="button" class={btn} onclick={() => unsaved && save(unsaved.take, unsaved.blob)}>{m.music_hubs_ar_save_again()}</button>
+    <button type="button" class={btn} onclick={() => unsaved && download(unsaved.blob, `${fileStem(unsaved.take.name)}.${extensionFor(unsaved.take.mimeType)}`)}>{m.music_hubs_ar_download_instead()}</button>
   </div>
 {/if}
 
 <section aria-labelledby="audio-takes" class="flex flex-col gap-3">
-  <h2 id="audio-takes" class="font-display text-2xl font-semibold tracking-tight">Audio takes <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
+  <h2 id="audio-takes" class="font-display text-2xl font-semibold tracking-tight">{m.music_hubs_ar_takes()} <span class="tnum text-base font-normal text-ws-soft">{savedTakesLabel(takes.length)}</span></h2>
   <!-- The take being recorded sits apart from the saved list, so the count never disagrees with it. -->
   {#if recording}
-    <p class="flex items-center gap-2 rounded-2xl border border-dashed border-ws-line p-4 font-medium"><span class="rec-dot shrink-0" aria-hidden="true"></span><span>Recording a new take, <span class="tnum">{clock(elapsed)}</span>. It joins the list when you stop.</span></p>
+    <p class="flex items-center gap-2 rounded-2xl border border-dashed border-ws-line p-4 font-medium"><span class="rec-dot shrink-0" aria-hidden="true"></span><span>{m.music_hubs_ar_recording_new()} <span class="tnum">{clock(elapsed)}</span>{m.music_hubs_ar_joins()}</span></p>
   {/if}
   {#if takes.length}
     <ul class="divide-y divide-ws-line rounded-2xl border border-ws-line bg-ws-surface">
@@ -377,7 +378,7 @@
             <button
               type="button"
               class="grid size-12 shrink-0 place-items-center rounded-full {isPlaying ? 'bg-ws-ink text-ws-bg' : 'bg-instr text-ws-stage hover:brightness-105'}"
-              aria-label="{isPlaying ? 'Stop' : 'Play'} {take.name}"
+              aria-label={isPlaying ? m.music_hubs_ar_stop_name({ name: take.name }) : m.music_hubs_mr_play({ name: take.name })}
               aria-pressed={isPlaying}
               onclick={() => play(take)}
             >
@@ -386,22 +387,22 @@
             <input
               class="min-h-11 min-w-0 flex-1 basis-40 rounded-lg border border-transparent bg-transparent px-2 font-display text-lg font-semibold hover:border-ws-line focus:border-ws-line"
               value={take.name}
-              aria-label="Take name"
+              aria-label={m.music_hubs_mr_take_name()}
               onchange={(e) => patch(take, { name: e.currentTarget.value.trim() || take.name })}
             />
             <span class="tnum text-sm text-ws-soft">{takeLength(take.durationMs)}</span>
-            {#if take.id === latest}<span class="flex items-center gap-1 rounded-full bg-instr-wash px-2.5 py-1 text-[13px] font-semibold text-instr-ink"><Check class="size-3.5" aria-hidden="true" />Just recorded</span>{/if}
+            {#if take.id === latest}<span class="flex items-center gap-1 rounded-full bg-instr-wash px-2.5 py-1 text-[13px] font-semibold text-instr-ink"><Check class="size-3.5" aria-hidden="true" />{m.music_hubs_ar_just()}</span>{/if}
             <!-- The next step after listening: record it again, or turn it into notes. The rest waits in the menu. -->
             {#if take.id === latest && !recording}
-              <button type="button" class="{btn} px-3" onclick={() => (scrollTo({ top: 0, behavior: "smooth" }), toggle())}><RotateCcw class="size-4" aria-hidden="true" />Record again</button>
+              <button type="button" class="{btn} px-3" onclick={() => (scrollTo({ top: 0, behavior: "smooth" }), toggle())}><RotateCcw class="size-4" aria-hidden="true" />{m.music_hubs_ar_again()}</button>
             {/if}
-            <a class="{btn} px-3" href="/music/studio?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />Transcribe</a>
+            <a class="{btn} px-3" href="/music/studio?tab=import&from=audio&take={take.id}"><FileMusic class="size-4" aria-hidden="true" />{m.music_hubs_tv_transcribe()}</a>
             <Menu.Root onOpenChange={(open) => !open && confirmDelete === take.id && (confirmDelete = null)}>
-              <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="More for {take.name}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+              <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label={m.music_hubs_ar_more_for({ name: take.name })}><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
               <Menu.Content align="end" class="w-60">
-                <Menu.Item onSelect={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />Download</Menu.Item>
+                <Menu.Item onSelect={() => downloadTake(take)}><Download class="size-4" aria-hidden="true" />{m.music_hubs_ar_download()}</Menu.Item>
                 <Menu.Item class={confirmDelete === take.id ? "text-destructive" : ""} onSelect={(e) => remove(take, e)}
-                  ><Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? `Delete ${take.name}? Tap again` : `Delete ${take.name}`}</Menu.Item
+                  ><Trash class="size-4" aria-hidden="true" />{confirmDelete === take.id ? m.music_hubs_ar_delete_tap({ name: take.name }) : m.music_hubs_mr_delete({ name: take.name })}</Menu.Item
                 >
               </Menu.Content>
             </Menu.Root>
@@ -423,7 +424,7 @@
           </svg>
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <label class="flex items-center gap-2 text-sm">
-              <span class="text-ws-soft">Playback gain</span>
+              <span class="text-ws-soft">{m.music_hubs_ar_gain()}</span>
               <input
                 type="range"
                 min={GAIN_RANGE.min}
@@ -437,12 +438,12 @@
               />
               <span class="tnum w-14 font-semibold">{signedDb(gain)}</span>
             </label>
-            {#if gain > 0}<span class="text-sm text-ws-soft">Plays {gain} dB louder here, so you can hear a quiet take</span>{:else if gain < 0}<span class="text-sm text-ws-soft">Plays {-gain} dB quieter here</span>{/if}
+            {#if gain > 0}<span class="text-sm text-ws-soft">{m.music_hubs_ar_louder({ db: gain })}</span>{:else if gain < 0}<span class="text-sm text-ws-soft">{m.music_hubs_ar_quieter({ db: -gain })}</span>{/if}
             <input
               class="min-h-11 min-w-0 flex-1 basis-48 rounded-lg border border-ws-line bg-transparent px-2 text-sm"
               value={take.note ?? ""}
-              placeholder="Add a note"
-              aria-label="Note for {take.name}"
+              placeholder={m.music_hubs_ar_add_note()}
+              aria-label={m.music_hubs_mr_note_for({ name: take.name })}
               onchange={(e) => patch(take, { note: e.currentTarget.value })}
             />
           </div>
@@ -450,9 +451,9 @@
         </li>
       {/each}
     </ul>
-    <p class="text-sm text-ws-soft">Gain changes only how a take plays back here. The recording stays as it was.</p>
+    <p class="text-sm text-ws-soft">{m.music_hubs_ar_gain_hint()}</p>
   {:else if !recording}
-    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">No audio takes yet. Arm the microphone, then press Record.</p>
+    <p class="rounded-2xl border border-dashed border-ws-line p-5 text-ws-soft">{m.music_hubs_ar_none()}</p>
   {/if}
 </section>
 

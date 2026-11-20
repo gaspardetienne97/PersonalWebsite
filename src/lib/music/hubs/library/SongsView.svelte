@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Saved repertoire. The most recently touched song leads, wide, as the one
   // to pick up again; the rest follow as object cards with their facts.
   import { onMount } from "svelte";
@@ -16,6 +17,7 @@
   import RollThumb from "./RollThumb.svelte";
   import type { Score } from "@repo/music-core";
   import { barsText, durationText, plainTeaches, scoreFacts, shelfScore, shelfTags, songHistory, type Song } from "./songs";
+  import { monthDay } from "../dates";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
   let songs = $state.raw<Song[] | null>(null);
@@ -30,13 +32,13 @@
     confirming = null;
     await db.songs.delete(song.id);
     songs = songs!.filter((x) => x.id !== song.id);
-    onstatus?.(`Deleted ${song.title}. ${songs.length ? `${songs.length} song${songs.length === 1 ? "" : "s"} left.` : "No saved songs now."}`);
+    onstatus?.(songs.length ? m.music_hubs_songs_deleted_left({ title: song.title, count: songs.length }) : m.music_hubs_songs_deleted_none({ title: song.title }));
   }
 
   onMount(async () => {
     songs = (await db.songs.orderBy("updatedAt").reverse().toArray()) as unknown as Song[];
-    registerSearchItems(songs.map((s) => ({ label: s.title, href: `/music/songs/${s.id}`, hint: "Song", keywords: s.composer })));
-    onstatus?.(songs.length ? `${songs.length} saved song${songs.length === 1 ? "" : "s"}.` : "No saved songs yet.");
+    registerSearchItems(songs.map((s) => ({ label: s.title, href: `/music/songs/${s.id}`, hint: m.music_hubs_source_song(), keywords: s.composer })));
+    onstatus?.(songs.length ? m.music_hubs_songs_saved_count({ count: songs.length }) : m.music_hubs_songs_none_saved());
   });
 
   // Starter songs: the shelf of the strip instrument's path, only scores this server has
@@ -77,7 +79,7 @@
           .catch(() => {});
   });
   const runs = $derived(practice.sessions.flatMap((x) => x.runs));
-  const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const dateText = (ms: number) => monthDay(new Date(ms));
 
   // Each cover gets its own light, picked from the song's title, so the shelf does not read as one picture repeated.
   const TINTS = ["piano", "guitar", "ear", "reading", "create", "voice", "rhythm"];
@@ -89,24 +91,24 @@
       : s.score.source?.kind === "midi"
         ? "MIDI"
         : s.score.source?.kind === "transcribed"
-          ? "Transcribed"
-          : "Score";
+          ? m.music_hubs_songs_transcribed()
+          : m.music_hubs_songs_score();
 </script>
 
 {#snippet empty()}
   <!-- One line that points to Import. With a path shelf to show, it sits under the shelf, not above it. -->
   <section class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-ws-line bg-ws-surface px-4 py-2">
-    <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">No songs of your own yet.</span> <span class="text-ws-soft">{starters.length ? "Start with one from your path, or import a score." : "Import a MIDI or MusicXML score."}</span></h2>
-    <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />Import a score</a>
+    <h2 class="min-w-0 flex-1 basis-56 text-sm"><span class="font-semibold">{m.music_hubs_songs_none_own()}</span> <span class="text-ws-soft">{starters.length ? m.music_hubs_songs_start_path() : m.music_hubs_songs_import_hint()}</span></h2>
+    <a href="?tab=import" class={starters.length ? btn : btnPrimary}><Upload class="size-4" aria-hidden="true" />{m.music_hubs_songs_import()}</a>
   </section>
 {/snippet}
 
 {#if songs === null}
-  <p class="text-ws-soft">Loading your songs…</p>
+  <p class="text-ws-soft">{m.music_hubs_songs_loading()}</p>
 {:else if !songs.length}
   {#if !starters.length}{@render empty()}{/if}
 {:else}
-  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Saved songs">
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label={m.music_hubs_songs_saved_label()}>
     {#each songs as song, i (song.id)}
       {@const f = scoreFacts(song.score)}
       {@const h = songHistory(runs, song)}
@@ -118,17 +120,17 @@
           <div class="stage cover relative px-3 pb-2 pt-10" style:--tint={tint(song.title)}>
             <RollThumb score={song.score} height={i === 0 ? 120 : 64} beats={i === 0 ? undefined : 16} />
             <!-- Where you stand with it, on the cover: a best score, or not started yet. -->
-            <span class="tnum absolute left-3 top-2 rounded-full px-2.5 py-0.5 text-[13px] font-semibold {h.best !== null ? 'bg-success text-success-foreground' : 'bg-ws-stage-ink/15 text-ws-stage-ink'}">{h.best !== null ? `Best ${Math.round(h.best * 100)}%` : h.lastAt !== null ? "In progress" : "Not started"}</span>
+            <span class="tnum absolute left-3 top-2 rounded-full px-2.5 py-0.5 text-[13px] font-semibold {h.best !== null ? 'bg-success text-success-foreground' : 'bg-ws-stage-ink/15 text-ws-stage-ink'}">{h.best !== null ? m.music_hubs_songs_best({ pct: Math.round(h.best * 100) }) : h.lastAt !== null ? m.music_hubs_songs_in_progress() : m.music_hubs_songs_not_started()}</span>
             <span class="absolute right-3 top-2 rounded-full bg-ws-stage-ink/10 px-2.5 py-0.5 text-[13px] text-ws-stage-soft">{sourceLabel(song)}</span>
           </div>
           <div class="flex flex-1 flex-col gap-2 p-4 pb-3">
-            {#if i === 0}<p class="text-sm font-medium text-instr-ink">{h.lastAt !== null ? "Pick up where you left off" : "Added most recently"}</p>{/if}
+            {#if i === 0}<p class="text-sm font-medium text-instr-ink">{h.lastAt !== null ? m.music_hubs_songs_pick_up() : m.music_hubs_songs_added_recently()}</p>{/if}
             <h3 id="song-{song.id}" class="font-display font-semibold leading-tight {i === 0 ? 'text-2xl' : 'text-lg'} group-hover:underline group-hover:underline-offset-4">{song.title}</h3>
             {#if song.composer}<p class="-mt-1 text-sm text-ws-soft">{song.composer}</p>{/if}
             <!-- An unplayed song says so once, on the cover badge. -->
             {#if h.lastAt !== null}
               <p class="text-sm" data-testid="song-history">
-                {#if h.best !== null}<span class="tnum font-semibold">Best {Math.round(h.best * 100)}%</span><span class="text-ws-soft">, </span>{/if}<span class="text-ws-soft">last played {dateText(h.lastAt)}, {h.runs} run{h.runs === 1 ? "" : "s"}</span>
+                {#if h.best !== null}<span class="tnum font-semibold">{m.music_hubs_songs_best({ pct: Math.round(h.best * 100) })}</span><span class="text-ws-soft">, </span>{/if}<span class="text-ws-soft">{m.music_hubs_songs_last_played({ date: dateText(h.lastAt), count: h.runs })}</span>
               </p>
             {/if}
             <!-- One line of facts at every width. Voices and range live in the song editor. -->
@@ -137,13 +139,13 @@
         </a>
         <!-- Outside the cover's link: the action first, Delete small and apart. -->
         <div class="flex items-center justify-between gap-2 border-t border-ws-line px-3 py-2">
-          <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />Open</a>
+          <a href="/music/songs/{song.id}" aria-describedby="song-{song.id}" class="{btnPrimary} min-h-11 px-4"><Play class="size-4 fill-current" aria-hidden="true" />{m.music_hubs_open()}</a>
           <!-- Delete lives in the card's menu, two taps, away from Open. -->
           <Menu.Root onOpenChange={(open) => !open && confirming === song.id && (confirming = null)}>
-            <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label="Options for {song.title}"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+            <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink" aria-label={m.music_hubs_songs_options({ title: song.title })}><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
             <Menu.Content align="end" class="w-64">
               <Menu.Item class={confirming === song.id ? "text-destructive" : ""} onSelect={(e) => remove(song, e)}
-                ><Trash class="size-4" aria-hidden="true" />{confirming === song.id ? `Delete ${song.title}? Tap again to delete` : `Delete ${song.title}`}</Menu.Item
+                ><Trash class="size-4" aria-hidden="true" />{confirming === song.id ? m.music_hubs_songs_delete_confirm({ title: song.title }) : m.music_hubs_songs_delete({ title: song.title })}</Menu.Item
               >
             </Menu.Content>
           </Menu.Root>
@@ -157,14 +159,14 @@
   <section class="flex flex-col gap-3" aria-labelledby="starters-h">
     <div class="flex flex-wrap items-end justify-between gap-x-4">
       <div class="min-w-0">
-        <h2 id="starters-h" class="font-display text-xl font-semibold">From the {LEARNING_PATHS[pathId].title}</h2>
-        <p class="text-sm text-ws-soft">Songs from your path's song list, easiest level first. Opening one adds it to your songs.</p>
+        <h2 id="starters-h" class="font-display text-xl font-semibold">{m.music_hubs_songs_from_path({ path: LEARNING_PATHS[pathId].title })}</h2>
+        <p class="text-sm text-ws-soft">{m.music_hubs_songs_from_path_intro()}</p>
       </div>
-      {#if starterTotal > 6}<a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline underline-offset-4" href="/music?tab=paths">See all {starterTotal} on the path</a>{/if}
+      {#if starterTotal > 6}<a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline underline-offset-4" href="/music?tab=paths">{m.music_hubs_songs_see_all_path({ count: starterTotal })}</a>{/if}
     </div>
     {#each starterLevels as g (g.level)}
-      <h3 class="font-display text-base font-semibold">Level {g.level}: {g.title}</h3>
-      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Songs from level {g.level} of your path">
+      <h3 class="font-display text-base font-semibold">{m.music_hubs_songs_level_heading({ n: g.level, title: g.title })}</h3>
+      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label={m.music_hubs_songs_level_label({ n: g.level })}>
         {#each g.items as x (x.key)}
           <li class="flex flex-col overflow-hidden rounded-2xl border border-ws-line bg-ws-surface">
             <div class="stage cover px-3 pb-2 pt-3" style:--tint={tint(x.song.title)}>
@@ -174,10 +176,10 @@
               <h4 class="font-display text-lg leading-tight font-semibold">{x.song.title}</h4>
               <p class="-mt-1 text-sm text-ws-soft">{x.song.artist}</p>
               <p class="text-sm">{plainTeaches(x.song.teaches)}</p>
-              <ul class="flex flex-wrap gap-1.5" aria-label="About {x.song.title}">
+              <ul class="flex flex-wrap gap-1.5" aria-label={m.music_hubs_songs_about({ title: x.song.title })}>
                 {#each shelfTags(x.song) as t (t)}<li class="rounded-full bg-ws-raised px-2.5 py-0.5 text-[13px] font-medium">{t}</li>{/each}
               </ul>
-              <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label="Open {x.song.title}"><Play class="size-4 fill-current" aria-hidden="true" />Open</a>
+              <a class="{btnPrimary} mt-auto self-start" href="/music/songs/shelf/{x.key}" aria-label={m.music_hubs_songs_open({ title: x.song.title })}><Play class="size-4 fill-current" aria-hidden="true" />{m.music_hubs_open()}</a>
             </div>
           </li>
         {/each}

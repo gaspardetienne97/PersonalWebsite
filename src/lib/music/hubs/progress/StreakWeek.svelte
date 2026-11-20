@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The streak as this week's seven days: a glyph per state so colour is never the only cue
   // (check practised, dash missed, snowflake frozen, ring today, dotted outline still to come),
   // a one-line key, and the freeze rules behind an info button.
@@ -8,6 +9,7 @@
   import Info from "@lucide/svelte/icons/info";
   import Flame from "@lucide/svelte/icons/flame";
   import type { DotState } from "@repo/music-core/progress/rewards";
+  import { weekdayLetter, weekdayName } from "../dates";
   let {
     week,
     current,
@@ -31,17 +33,15 @@
 
   let rules = $state(false);
   const id = $props.id();
-  const LETTER = ["M", "T", "W", "T", "F", "S", "S"];
-  const date = (d: string) => new Date(`${d}T00:00:00Z`);
-  const letter = (d: string) => LETTER[(date(d).getUTCDay() + 6) % 7];
-  const weekday = (d: string) => date(d).toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
+  const letter = weekdayLetter;
+  const weekday = weekdayName;
   const WORD: Record<DotState | "before", string> = {
-    before: "before you started",
-    practised: "practised",
-    frozen: "covered by a streak freeze",
-    missed: "missed",
-    today: "today, not practised yet",
-    upcoming: "still to come",
+    before: m.music_hubs_streak_word_before(),
+    practised: m.music_hubs_streak_word_practised(),
+    frozen: m.music_hubs_streak_word_frozen(),
+    missed: m.music_hubs_streak_word_missed(),
+    today: m.music_hubs_streak_word_today(),
+    upcoming: m.music_hubs_strip_still_to_come(),
   };
   const practisedDays = $derived(week.filter((d) => d.state === "practised").length);
   const frozenShown = $derived(week.some((d) => d.state === "frozen"));
@@ -56,19 +56,19 @@
     >
     <div class="min-w-0 flex-1">
       <h2 id="{id}-title" class="font-display text-xl font-semibold">
-        {current === 1 ? "Day 1 streak" : current ? `${current}-day streak` : "Start a streak today"}
+        {current === 1 ? m.music_hubs_streak_day1() : current ? m.music_hubs_streak_days({ count: current }) : m.music_hubs_streak_start()}
       </h2>
       <!-- Best and freezes only when they add something: a best equal to today's streak, or no freezes, says nothing. -->
       {#if (longest ?? 0) > current || freezes}
         <p class="text-sm text-ws-soft">
-          {#if (longest ?? 0) > current}Best streak: {longest} day{longest === 1 ? "" : "s"}.{" "}{/if}{#if freezes}{freezes === 1 ? "You can miss one day without losing your streak." : `You can miss ${freezes} days without losing your streak.`}{/if}
+          {#if (longest ?? 0) > current}{m.music_hubs_streak_best({ count: longest ?? 0 })}{" "}{/if}{#if freezes}{m.music_hubs_streak_freezes({ count: freezes })}{/if}
         </p>
       {/if}
     </div>
     <button
       type="button"
       class="grid size-11 shrink-0 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
-      aria-label="How streak freezes work"
+      aria-label={m.music_hubs_streak_rules_label()}
       aria-expanded={rules}
       aria-controls="{id}-rules"
       onclick={() => (rules = !rules)}><Info class="size-5" aria-hidden="true" /></button
@@ -76,15 +76,14 @@
   </div>
   {#if rules}
     <p id="{id}-rules" class="mt-2 rounded-xl bg-ws-raised px-3 py-2 text-sm">
-      You earn one streak freeze for each week you practise. If you miss a day, a saved freeze covers it so the streak
-      carries on.
+      {m.music_hubs_streak_rules()}
     </p>
   {/if}
 
-  <ol class="mt-3 grid max-w-sm grid-cols-7 gap-1 text-center text-[13px] text-ws-soft" aria-label="This week">
+  <ol class="mt-3 grid max-w-sm grid-cols-7 gap-1 text-center text-[13px] text-ws-soft" aria-label={m.music_hubs_this_week()}>
     {#each week as d (d.day)}
       {@const st = stateOf(d)}
-      <li class="flex flex-col items-center gap-1" title="{weekday(d.day)}: {WORD[st]}">
+      <li class="flex flex-col items-center gap-1" title={m.music_hubs_pair({ a: weekday(d.day), b: WORD[st] })}>
         <span
           class="grid size-9 place-items-center rounded-full {pop === d.day && d.state === 'practised' ? 'ws-pop [animation-delay:600ms]' : ''} {d.state === 'practised'
             ? 'bg-instr text-ws-stage'
@@ -102,15 +101,15 @@
             />{:else if st === "missed"}<Minus class="size-4" />{/if}
         </span>
         <span aria-hidden="true" class={d.state === "today" ? "font-semibold text-ws-ink" : ""}>{letter(d.day)}</span>
-        <span class="sr-only">{weekday(d.day)}: {WORD[st]}</span>
+        <span class="sr-only">{m.music_hubs_pair({ a: weekday(d.day), b: WORD[st] })}</span>
       </li>
     {/each}
   </ol>
   <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ws-soft" aria-hidden="true">
-    <span class="tnum font-semibold text-ws-ink">{practisedDays} of 7 days</span>
-    <span class="inline-flex items-center gap-1"><Check class="size-3.5" />Practised</span>
-    {#if missedShown}<span class="inline-flex items-center gap-1"><Minus class="size-3.5" />Missed</span>{/if}
-    {#if frozenShown}<span class="inline-flex items-center gap-1"><Snowflake class="size-3.5" />Freeze used</span>{/if}
-    <span class="inline-flex items-center gap-1"><span class="size-3 rounded-full border-2 border-instr-ink"></span>Today</span>
+    <span class="tnum font-semibold text-ws-ink">{m.music_hubs_streak_days_of_7({ count: practisedDays })}</span>
+    <span class="inline-flex items-center gap-1"><Check class="size-3.5" />{m.music_hubs_streak_key_practised()}</span>
+    {#if missedShown}<span class="inline-flex items-center gap-1"><Minus class="size-3.5" />{m.music_hubs_streak_key_missed()}</span>{/if}
+    {#if frozenShown}<span class="inline-flex items-center gap-1"><Snowflake class="size-3.5" />{m.music_hubs_streak_key_freeze()}</span>{/if}
+    <span class="inline-flex items-center gap-1"><span class="size-3 rounded-full border-2 border-instr-ink"></span>{m.music_hubs_streak_key_today()}</span>
   </p>
 </div>

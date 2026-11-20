@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The drone, drawn: a live scope of what is actually sounding (tapped off
   // the drone's output), held still on each cycle so a steady tone looks
   // steady, with a glow that breathes with its level. Reduced motion redraws
@@ -10,6 +11,13 @@
 
   let { midi, timbre, playing }: { midi: number; timbre: DroneTimbre; playing: boolean } = $props();
 
+  /** Each sounding layer's part, named. */
+  const ROLE: Record<string, string> = {
+    tonic: m.music_hubs_tuner_role_tonic(),
+    fifth: m.music_hubs_tuner_role_fifth(),
+    octave: m.music_hubs_tuner_role_octave(),
+    "bowed tonic": m.music_hubs_tuner_role_bowed(),
+  };
   const W = 600;
   const H = 160;
   let path = $state(`M0 ${H / 2}L${W} ${H / 2}`);
@@ -70,7 +78,7 @@
 </script>
 
 <figure class="scope" data-playing={playing || undefined} style:--level={level}>
-  <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-28 w-full sm:h-40" role="img" aria-label={playing ? `Waveform of the drone on ${noteName(midi)}` : "The drone is silent"}>
+  <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-28 w-full sm:h-40" role="img" aria-label={playing ? m.music_hubs_tuner_scope_label({ note: noteName(midi) }) : m.music_hubs_tuner_scope_silent()}>
     <line x1="0" x2={W} y1={H / 2} y2={H / 2} class="axis" vector-effect="non-scaling-stroke" />
     <path d={path} class="wave glow" vector-effect="non-scaling-stroke" />
     <path d={path} class="wave" vector-effect="non-scaling-stroke" />
@@ -78,10 +86,10 @@
   <figcaption class="mt-3 flex flex-wrap items-center gap-2 text-sm">
     {#if playing}
       {#each layers as l (l.role)}
-        <span class="layer"><span class="font-display font-semibold">{pretty(noteName(l.midi))}</span> {l.role}</span>
+        <span class="layer"><span class="font-display font-semibold">{pretty(noteName(l.midi))}</span> {ROLE[l.role]}</span>
       {/each}
     {:else}
-      <span class="text-ws-stage-soft">Press Play drone to see it.</span>
+      <span class="text-ws-stage-soft">{m.music_hubs_tuner_scope_hint()}</span>
     {/if}
   </figcaption>
 </figure>

@@ -4,6 +4,7 @@
 import { noteName, type Instrument } from "@repo/music-core";
 import type { PickOption } from "#lib/music/components/Picker.svelte";
 import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
+import { m } from "@repo/i18n/messages.js";
 
 export type RigTile = "keyboard" | "mpc" | "aerophone";
 
@@ -27,16 +28,20 @@ export function micOptions(
 ): PickOption[] {
   const named = devices.filter((d) => d.deviceId && d.deviceId !== "default");
   const options = [
-    { value: "", label: "Default input" },
+    { value: "", label: m.music_hubs_rig_default_input() },
     ...named.map((d) => ({ value: d.deviceId, label: d.label })),
   ];
   if (savedId && !named.some((d) => d.deviceId === savedId))
     options.push({
       value: savedId,
-      label: named.length ? `${savedLabel} (not connected)` : savedLabel,
+      label: named.length ? m.music_hubs_rig_not_connected({ name: savedLabel }) : savedLabel,
     });
   return options;
 }
+
+/** The saved microphone's name: its device name, or "Default input" in the visitor's language. */
+export const inputName = (deviceId: string | undefined, label: string) =>
+  deviceId ? label : m.music_hubs_rig_default_input();
 
 /**
  * A raw MIDI message ("99 2A 64") in words, for the activity feed: "Note on F#2,
@@ -52,34 +57,43 @@ export function describeMidi(
     .split(/\s+/)
     .map((x) => parseInt(x, 16));
   const s = b[0];
-  if (!Number.isFinite(s)) return "Unreadable message";
-  if (s === 0xf0) return `System message (SysEx, ${b.length} bytes)`;
-  if (s === 0xf8) return "Clock tick";
-  if (s === 0xfe) return "Still connected (active sensing)";
-  if (s >= 0xf0) return "System message";
+  if (!Number.isFinite(s)) return m.music_hubs_midi_unreadable();
+  if (s === 0xf0) return m.music_hubs_midi_sysex({ count: b.length });
+  if (s === 0xf8) return m.music_hubs_midi_clock();
+  if (s === 0xfe) return m.music_hubs_midi_sensing();
+  if (s >= 0xf0) return m.music_hubs_midi_system();
   const ch = (s & 0x0f) + 1;
   const [d1 = 0, d2 = 0] = b.slice(1);
   switch (s & 0xf0) {
     case 0x90:
-      return d2 ? `${name(d1)} played, ${strength(d2).toLowerCase()}` : `${name(d1)} released`;
+      return d2
+        ? m.music_hubs_midi_played({ note: name(d1), strength: strength(d2).toLowerCase() })
+        : m.music_hubs_midi_released({ note: name(d1) });
     case 0x80:
-      return `${name(d1)} released`;
+      return m.music_hubs_midi_released({ note: name(d1) });
     case 0xa0:
-      return `${name(d1)} pressure ${d2}`;
+      return m.music_hubs_midi_pressure_note({ note: name(d1), value: d2 });
     case 0xb0:
-      return d1 === 2 ? `Breath ${d2}` : `Controller ${d1} set to ${d2}`;
+      return d1 === 2
+        ? m.music_hubs_midi_breath({ value: d2 })
+        : m.music_hubs_midi_controller({ cc: d1, value: d2 });
     case 0xc0:
-      return `Sound changed to program ${d1 + 1}`;
+      return m.music_hubs_midi_program({ n: d1 + 1 });
     case 0xd0:
-      return `Pressure ${d1}`;
+      return m.music_hubs_midi_pressure({ value: d1 });
     case 0xe0:
-      return `Pitch bend ${((d2 << 7) | d1) - 8192}`;
+      return m.music_hubs_midi_bend({ value: ((d2 << 7) | d1) - 8192 });
   }
-  return `Channel ${ch} message`;
+  return m.music_hubs_midi_channel({ ch });
 }
 
 /** A note's velocity (1 to 127) in a player's word; the raw number waits behind Show details. */
-export const strength = (v: number) => (v < 50 ? "Soft" : v < 96 ? "Medium" : "Hard");
+export const strength = (v: number) =>
+  v < 50
+    ? m.music_hubs_midi_soft()
+    : v < 96
+      ? m.music_hubs_midi_medium()
+      : m.music_hubs_midi_hard();
 
 /** The velocity of a note-on with sound, else null (releases, controllers, system messages). */
 export function velocityOf(hex: string): number | null {

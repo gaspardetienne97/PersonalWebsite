@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Twelve weeks of practice, one row per weekday (Monday first), one column per week.
   // A practised day is a button: it filters the session list to that day.
   import { HEAT_BANDS, type HeatCell } from "@repo/music-core/progress/journal";
-  import { minutesText, plural } from "../progress/model";
+  import { minutesText } from "../progress/model";
+  import { longDay, monthDay } from "../dates";
 
   let {
     cells,
@@ -11,7 +13,7 @@
   }: { cells: HeatCell[]; selected?: string; onpick?: (day: string) => void } = $props();
 
   const weeks = $derived(cells.length / 7);
-  const ROWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const ROWS = m.music_hubs_weekday_short().split(" ");
   // Up to six weeks the cells are wide enough for every column to carry its week's date (Monday, "Oct 12");
   // past that every other column is labelled, over two columns.
   const roomy = $derived(weeks <= 6);
@@ -20,38 +22,36 @@
       const day = cells[k * (roomy ? 7 : 14)].day;
       return {
         span: roomy ? 1 : Math.min(2, weeks - k * 2),
-        label: new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
+        label: monthDay(new Date(`${day}T00:00:00Z`), true),
       };
     }),
   );
   // Five shades spread evenly from empty to the full hue, so neighbouring bands read apart.
   const SHADE = [0, 25, 50, 75, 100];
   // The legend names each shade's minute band (HEAT_BANDS), so a shade means the same every week.
-  const BANDS = ["None", `Under ${HEAT_BANDS[0]} min`, ...HEAT_BANDS.map((m) => `${m} min or more`)];
+  const BANDS = [
+    m.music_hubs_heat_none(),
+    m.music_hubs_heat_under({ minutes: HEAT_BANDS[0] }),
+    ...HEAT_BANDS.map((minutes) => m.music_hubs_heat_or_more({ minutes })),
+  ];
   const fill = (level: number) =>
     level === 0 ? "var(--ws-raised)" : `color-mix(in oklab, var(--instr) ${SHADE[level]}%, var(--ws-raised))`;
-  const long = (day: string) =>
-    new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      timeZone: "UTC",
-    });
+  const long = longDay;
   const label = (c: HeatCell) =>
     c.future
-      ? `${long(c.day)}: still to come`
+      ? m.music_hubs_heat_day_future({ day: long(c.day) })
       : c.sessions
-        ? `${long(c.day)}: ${minutesText(c.minutes, c.sessions)}, ${plural(c.sessions, "session")}, ${c.xp} XP`
-        : `${long(c.day)}: no practice`;
+        ? m.music_hubs_heat_day({ day: long(c.day), time: minutesText(c.minutes, c.sessions), count: c.sessions, xp: c.xp })
+        : m.music_hubs_heat_day_none({ day: long(c.day) });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="relative overflow-x-auto" role="region" aria-label="Practice heatmap" tabindex="0">
+<div class="relative overflow-x-auto" role="region" aria-label={m.music_hubs_heat_label()} tabindex="0">
   <table class="border-separate border-spacing-0.5">
-    <caption class="sr-only">Practice over the last {weeks} weeks, one row per weekday</caption>
+    <caption class="sr-only">{m.music_hubs_heat_caption({ weeks })}</caption>
     <thead aria-hidden="true">
       <tr>
-        <td class="pr-1 text-left text-[13px] text-ws-soft">Week of</td>
+        <td class="pr-1 text-left text-[13px] text-ws-soft">{m.music_hubs_heat_week_of()}</td>
         {#each pairs as c, k (k)}
           <td colspan={c.span} class="tnum whitespace-nowrap p-0 text-[13px] text-ws-soft {roomy ? 'text-center' : 'text-left'}">{c.label}</td>
         {/each}
@@ -90,12 +90,12 @@
 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ws-soft">
   <span class="flex items-center gap-2">
     <span aria-hidden="true">{BANDS[0]}</span>
-    <ul class="flex overflow-hidden rounded-md" aria-label="Time a day">
+    <ul class="flex overflow-hidden rounded-md" aria-label={m.music_hubs_heat_time_a_day()}>
       {#each BANDS as band, level (level)}
         <li class="h-4 w-7" style:background={fill(level)} title={band}><span class="sr-only">{band}</span></li>
       {/each}
     </ul>
     <span aria-hidden="true">{BANDS.at(-1)}</span>
   </span>
-  <span class="flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-soft/60" aria-hidden="true"></span>Still to come</span>
+  <span class="flex items-center gap-1.5"><span class="size-3.5 rounded-[4px] border border-dashed border-ws-soft/60" aria-hidden="true"></span>{m.music_hubs_heat_still_to_come()}</span>
 </div>

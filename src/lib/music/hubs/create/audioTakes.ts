@@ -1,4 +1,5 @@
 // Audio takes (db.audioTakes, bytes in OPFS at music-take-<id>). Pure helpers.
+import { m } from "@repo/i18n/messages.js";
 export const GAIN_RANGE = { min: -12, max: 18 } as const;
 /** Peak level at which playback starts to clip (catalog: clipping at -1 dB). */
 export const CLIP_DB = -1;
@@ -31,7 +32,11 @@ export const peakDbOf = (env: readonly number[]) => {
 export function clipWarning(peakDb: number, gainDb: number): string | null {
   if (!Number.isFinite(peakDb) || peakDb + gainDb < CLIP_DB) return null;
   const safe = Math.floor(CLIP_DB - peakDb);
-  return `At ${signedDb(gainDb)} the loudest moment would clip (the take peaks at ${Math.round(peakDb)} dB). ${safe > GAIN_RANGE.min ? `${signedDb(Math.max(GAIN_RANGE.min, safe))} or less stays clean.` : ""}`.trim();
+  const gain = signedDb(gainDb);
+  const peak = Math.round(peakDb);
+  return safe > GAIN_RANGE.min
+    ? m.music_hubs_audio_clip_safe({ gain, peak, safe: signedDb(Math.max(GAIN_RANGE.min, safe)) })
+    : m.music_hubs_audio_clip({ gain, peak });
 }
 
 export const signedDb = (db: number) =>
@@ -61,4 +66,5 @@ export function suggestedBoost(heldPeakDb: number, currentBoost: number): number
 }
 
 /** The takes heading's count: saved takes only, so a take still recording never reads as one of them. */
-export const savedTakesLabel = (saved: number) => (saved ? `${saved} saved` : "none saved yet");
+export const savedTakesLabel = (saved: number) =>
+  saved ? m.music_hubs_takes_saved({ count: saved }) : m.music_hubs_takes_none_saved();

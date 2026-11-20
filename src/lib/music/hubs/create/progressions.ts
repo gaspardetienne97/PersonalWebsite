@@ -1,6 +1,7 @@
 // Chord progressions to start a backing track from: one chord a bar, voiced
 // in the middle of the keyboard with each chord moving as little as it can
 // from the last. Pure.
+import { m } from "@repo/i18n/messages.js";
 import { FLAT_NAMES } from "@repo/music-core";
 import { parseChordSymbol, transposeSymbol } from "@repo/music-core/theory/chords";
 import type { RollVoice } from "./roll";
@@ -15,19 +16,19 @@ export interface Progression {
 }
 
 export const PROGRESSIONS: Progression[] = [
-  { id: "pop", name: "Pop, I-V-vi-IV", chords: ["C", "G", "Am", "F"] },
-  { id: "fifties", name: "Fifties, I-vi-IV-V", chords: ["C", "Am", "F", "G"] },
-  { id: "jazz", name: "Jazz, ii-V-I", chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"] },
-  { id: "minor", name: "Minor, i-VI-III-VII", chords: ["Cm", "Ab", "Eb", "Bb"], minor: true },
+  { id: "pop", name: m.music_hubs_prog_pop(), chords: ["C", "G", "Am", "F"] },
+  { id: "fifties", name: m.music_hubs_prog_fifties(), chords: ["C", "Am", "F", "G"] },
+  { id: "jazz", name: m.music_hubs_prog_jazz(), chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"] },
+  { id: "minor", name: m.music_hubs_prog_minor(), chords: ["Cm", "Ab", "Eb", "Bb"], minor: true },
   {
     id: "andalusian",
-    name: "Andalusian, i-VII-VI-V",
+    name: m.music_hubs_prog_andalusian(),
     chords: ["Cm", "Bb", "Ab", "G"],
     minor: true,
   },
   {
     id: "blues",
-    name: "12-bar blues",
+    name: m.music_hubs_prog_blues(),
     chords: ["C7", "C7", "C7", "C7", "F7", "F7", "C7", "C7", "G7", "F7", "C7", "G7"],
   },
 ];
@@ -75,7 +76,10 @@ export function progressionVoice(p: Progression, key: number, id: string): RollV
   });
   return {
     id,
-    name: `${p.name.split(",")[0]} in ${KEYS[key]}${p.minor ? " minor" : ""}`,
+    name: (p.minor ? m.music_hubs_prog_voice_minor : m.music_hubs_prog_voice)({
+      name: p.name.split(",")[0],
+      key: KEYS[key],
+    }),
     velocity: 0.7,
     sound: "e-piano",
     notes,
