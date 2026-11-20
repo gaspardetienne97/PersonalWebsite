@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { getAuth } from "$lib/server/auth";
+import { getAuth } from "#lib/server/auth.ts";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = ({ locals, url }) => {

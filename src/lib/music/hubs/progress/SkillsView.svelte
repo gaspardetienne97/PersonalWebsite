@@ -1,6 +1,6 @@
 <script lang="ts">
   // Skills: what is solid and what is stale, one row per skill, grouped by capability.
-  import Lock from "lucide-svelte/icons/lock";
+  import Lock from "@lucide/svelte/icons/lock";
   import type { Capability, Instrument } from "@repo/music-core";
   import { INSTRUMENTS } from "@repo/music-core";
   import { SKILL_GRAPH, capabilitySummary } from "@repo/music-core/progress/graph";

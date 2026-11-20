@@ -4,8 +4,8 @@
   import { Button } from "@repo/ui/button";
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro } from "./intro.svelte";
-  import { isFullscreenApp, name, nav, socials } from "$lib/config";
-  import { projects } from "$lib/content/projects";
+  import { isFullscreenApp, name, nav, socials } from "#lib/config.ts";
+  import { projects } from "#lib/content/projects.ts";
 
   const path = $derived(page.url?.pathname ?? "/");
   const year = new Date().getFullYear();

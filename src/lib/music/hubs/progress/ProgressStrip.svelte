@@ -1,7 +1,7 @@
 <script lang="ts">
   // Pinned above every Progress view: the streak as a week calendar and this
   // week's minutes as seven day bars.
-  import Check from "lucide-svelte/icons/check";
+  import Check from "@lucide/svelte/icons/check";
   import { computeStreak, dayKey, freezesEarned, practicedDays } from "@repo/music-core/progress/rewards";
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";

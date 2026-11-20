@@ -13,8 +13,8 @@
     "build": "tsc --noEmit --project ./tsconfig.json"
   },
   "dependencies": {
-    "@tonejs/midi": "^2.0.28",
-    "jszip": "^3.10.1"
+    "@tonejs/midi": "catalog:",
+    "jszip": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

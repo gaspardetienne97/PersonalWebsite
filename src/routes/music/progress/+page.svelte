@@ -1,10 +1,10 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import ProgressStrip from "$lib/music/hubs/progress/ProgressStrip.svelte";
-  import NextView from "$lib/music/hubs/progress/NextView.svelte";
-  import SkillsView from "$lib/music/hubs/progress/SkillsView.svelte";
-  import SessionsView from "$lib/music/hubs/progress/SessionsView.svelte";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import ProgressStrip from "#lib/music/hubs/progress/ProgressStrip.svelte";
+  import NextView from "#lib/music/hubs/progress/NextView.svelte";
+  import SkillsView from "#lib/music/hubs/progress/SkillsView.svelte";
+  import SessionsView from "#lib/music/hubs/progress/SessionsView.svelte";
 
   const TABS = [
     { id: "next", label: "What next" },

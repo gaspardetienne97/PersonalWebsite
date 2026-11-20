@@ -9,7 +9,7 @@
   import * as Carousel from "@repo/ui/carousel";
   import * as Dialog from "@repo/ui/dialog";
   import StudioCover from "./StudioCover.svelte";
-  import { kindInfo, type StudioItem } from "$lib/content/studio";
+  import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
 
   let {
     items,

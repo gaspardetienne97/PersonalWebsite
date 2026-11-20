@@ -1,18 +1,19 @@
-import { building } from "$app/environment";
-import { sequence } from "@sveltejs/kit/hooks";
+import { json } from "@sveltejs/kit";
+import { building } from "$app/env";
+import { sequence, type Handle } from "@sveltejs/kit/hooks";
 import { svelteKitHandler } from "better-auth/svelte-kit";
-import * as auth from "$lib/server/auth";
-import { json, type Handle } from "@sveltejs/kit";
-import { paraglideMiddleware } from "$lib/paraglide/server";
+import * as auth from "#lib/server/auth.ts";
+import { paraglideMiddleware } from "#lib/paraglide/server.js";
 
+// Paraglide picks the locale per request. Its strategy here is cookie, then the
+// base locale (no locale in the URL), so the request itself never changes, which
+// matters because SvelteKit 3 makes event.request read-only.
 const handleParaglide: Handle = ({ event, resolve }) =>
-  paraglideMiddleware(event.request, ({ request, locale }) => {
-    event.request = request;
-
-    return resolve(event, {
+  paraglideMiddleware(event.request, ({ locale }) =>
+    resolve(event, {
       transformPageChunk: ({ html }) => html.replace("%paraglide.lang%", locale),
-    });
-  });
+    }),
+  );
 
 // Better Auth answers its own routes (/api/auth/*) and tells every page who's
 // signed in. Where sign-in isn't configured, everyone is simply signed out.

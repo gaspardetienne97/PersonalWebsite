@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { T0, ev } from "./fixtures";
 import { ingestAnalytics, skillSummaries, topConfusions, weakestSkills } from "./analytics";
 import { DAY_MS } from "./mastery";

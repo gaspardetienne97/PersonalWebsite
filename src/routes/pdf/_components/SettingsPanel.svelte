@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Check from "lucide-svelte/icons/check";
+  import Check from "@lucide/svelte/icons/check";
 
-  import ArrowRight from "lucide-svelte/icons/arrow-right";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
 
   import { kokoroSupported } from "@repo/pdf-core";
   import { ACCENT_OPTIONS, type ReaderSettings, type VoiceEngine } from "@repo/pdf-core/stores/settings";

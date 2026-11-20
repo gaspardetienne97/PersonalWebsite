@@ -4,27 +4,27 @@
   // take (db.midiTakes, the shape Record uses) and logged as free practice.
   // Unscored by design.
   import { onDestroy, onMount } from "svelte";
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
-  import Upload from "lucide-svelte/icons/upload";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
+  import Upload from "@lucide/svelte/icons/upload";
   import { noteName, type InputSource, type NoteEvent } from "@repo/music-core";
   import { LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
   import { TUNINGS } from "@repo/music-core/data/index";
-  import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import Fretboard from "$lib/music/components/Fretboard.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import { btn, btnStage, panel } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { capture, runInstrument, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
-  import { audio, mic, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { importTrack, listTracks, playTrack, type BackingTrack } from "$lib/music/drills/jam/tracks";
-  import { pairNotes, recentTakes, saveTake, takeToSequence, takeStats, type MidiTake } from "$lib/music/takes";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import DrillShell, { type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import Fretboard from "#lib/music/components/Fretboard.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import { btn, btnStage, panel } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { capture, runInstrument, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { INSTRUMENT_LABEL } from "#lib/music/bench.svelte.ts";
+  import { audio, mic, settings, type SequenceHandle } from "#lib/music/runtime/index.ts";
+  import { importTrack, listTracks, playTrack, type BackingTrack } from "#lib/music/drills/jam/tracks.ts";
+  import { pairNotes, recentTakes, saveTake, takeToSequence, takeStats, type MidiTake } from "#lib/music/takes.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   const cfg = new DrillSetup("lab", { track: "" });
   const s = $derived(cfg.value);

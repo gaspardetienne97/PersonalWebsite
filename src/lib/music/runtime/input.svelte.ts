@@ -10,7 +10,7 @@
 //          Q W E R  -> pads  9-12
 //          A S D F  -> pads  5-8
 //          Z X C V  -> pads  1-4
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { createInputRouter } from "@repo/music-core/io/router";
 import type { InputEvent, InputSource } from "@repo/music-core";
 import { settings } from "./settings.svelte";

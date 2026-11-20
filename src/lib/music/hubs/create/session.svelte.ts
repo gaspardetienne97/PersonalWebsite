@@ -2,7 +2,13 @@
 // tempo, so a backing track can be built and jammed over. What is open is a
 // working copy (it survives a reload); it joins the songs list only on Save.
 // The library keeps beats and melodies to reuse in any song.
-import { audio, getSetting, putSetting, settings, type SequenceHandle } from "$lib/music/runtime";
+import {
+  audio,
+  getSetting,
+  putSetting,
+  settings,
+  type SequenceHandle,
+} from "#lib/music/runtime/index.ts";
 import {
   addBar,
   barsOf,

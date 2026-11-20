@@ -6,7 +6,7 @@ import Page from "./+page.svelte";
 describe("/pdf/+page.svelte", () => {
   it("renders the narrator library", async () => {
     localStorage.clear();
-    render(Page);
+    await render(Page);
 
     expect(document.querySelector("h1")?.textContent).toContain("narrator");
     expect(document.body.textContent).toContain("Your Library");

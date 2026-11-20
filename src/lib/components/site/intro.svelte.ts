@@ -6,7 +6,7 @@
  * board the intro grew stays on as the site background.
  */
 import { goto } from "$app/navigation";
-import { growCircuit, ringRoots, type Board } from "$lib/circuit/router";
+import { growCircuit, ringRoots, type Board } from "#lib/circuit/router.ts";
 
 /** localStorage key set once the intro has been seen. */
 export const SEEN_KEY = "gm.intro.seen";

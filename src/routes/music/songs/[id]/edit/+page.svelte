@@ -4,14 +4,14 @@
   import { onDestroy } from "svelte";
   import { page } from "$app/state";
   import { beforeNavigate } from "$app/navigation";
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import Plus from "lucide-svelte/icons/plus";
-  import Minus from "lucide-svelte/icons/minus";
-  import { db } from "$lib/music/runtime";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
-  import { ScoreEditor } from "$lib/music/hubs/library/score-editor.svelte";
-  import type { Song } from "$lib/music/hubs/library/songs";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Minus from "@lucide/svelte/icons/minus";
+  import { db } from "#lib/music/runtime/index.ts";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import PianoRoll from "#lib/music/hubs/create/PianoRoll.svelte";
+  import { ScoreEditor } from "#lib/music/hubs/library/score-editor.svelte.ts";
+  import type { Song } from "#lib/music/hubs/library/songs.ts";
 
   let song = $state.raw<Song | null | undefined>(undefined);
   let editor = $state.raw<ScoreEditor | null>(null);
@@ -22,7 +22,7 @@
     const id = page.params.id!;
     void db.songs.get(id).then((row) => {
       if (page.params.id !== id) return;
-      song = (row as unknown as Song) ?? null;
+      song = row as unknown as Song ?? null;
       editor = song ? new ScoreEditor(song.score) : null;
     });
   });
@@ -30,6 +30,7 @@
 
   // Leaving with unsaved edits asks once.
   beforeNavigate((nav) => {
+    if (nav.shallow && nav.type === 'goto') return;
     if (!editor?.changed || leaving) return;
     nav.cancel();
     leaving = true;
@@ -63,11 +64,27 @@
     <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-ws-line bg-ws-surface p-3">
       <label class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
         <span class="font-medium">Title</span>
-        <input class={field} value={e.doc.title} onchange={(ev) => (e.doc = { ...e.doc, title: ev.currentTarget.value })} />
+
+        <input
+          class={field}
+          value={e.doc.title}
+          onchange={(ev) => e.doc = { ...e.doc, title: ev.currentTarget.value }}
+        />
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">Tempo (BPM)</span>
-        <input class="{field} tnum w-24" type="number" min="20" max="300" value={e.doc.bpm} onchange={(ev) => (e.doc = { ...e.doc, bpm: Math.min(300, Math.max(20, Math.round(ev.currentTarget.valueAsNumber) || e.doc.bpm)) })} />
+
+        <input
+          class="{field} tnum w-24"
+          type="number"
+          min="20"
+          max="300"
+          value={e.doc.bpm}
+          onchange={(ev) => e.doc = {
+            ...e.doc,
+            bpm: Math.min(300, Math.max(20, Math.round(ev.currentTarget.valueAsNumber) || e.doc.bpm))
+          }}
+        />
       </label>
       <div class="flex items-center gap-1 text-sm" role="group" aria-label="Length">
         <button type="button" class="{btn} w-11 px-0" aria-label="Remove the last bar" disabled={e.doc.lengthBeats <= e.barBeats} onclick={() => e.setBars(e.doc.lengthBeats / e.barBeats - 1)}><Minus class="size-4" aria-hidden="true" /></button>
@@ -78,7 +95,7 @@
       <button type="button" class={btnPrimary} disabled={!e.changed} onclick={save}>Save changes</button>
     </div>
     <p role="status" class="min-h-6 text-sm font-medium">{status}</p>
-    <PianoRoll host={e} announce={(m) => (status = m)} noun="parts" />
+    <PianoRoll host={e} announce={(m) => status = m} noun="parts" />
   </div>
 {:else if song === null}
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">

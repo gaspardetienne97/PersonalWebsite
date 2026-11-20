@@ -1,7 +1,7 @@
 // Today's plan, streak, coach and challenges, derived from the practice store.
 // One routine builder (lessons: it once existed three times).
 import type { Instrument } from "@repo/music-core";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import {
   buildRoutine,
   completedSteps,
@@ -135,6 +135,7 @@ export function setDayInstrument(weekday: number, value: string) {
 export function blockReason(step: RoutineStep): string {
   if (!step.skillId || (step.reason !== "due" && step.reason !== "weak-spot"))
     return step.description;
+
   const name = practiceName(step.skillId);
   const why = step.reason === "due" ? "Due for review" : "Your weak spot";
   return name === step.label ? `${why}.` : `${why}: ${name}.`;

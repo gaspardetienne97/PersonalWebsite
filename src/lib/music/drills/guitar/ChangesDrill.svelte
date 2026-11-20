@@ -7,23 +7,23 @@
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { page } from "$app/state";
-  import { replaceState } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import { noteName, type NoteEvent } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { CHANGES_SETUP, chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { gradeChanges, type ChangesResult } from "@repo/music-core/scoring/technique";
   import { CHANGE_GAP_MS } from "@repo/music-core/scoring/timing";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btnStage, panel } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { assistanceFor, assistanceText, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { mic, settings } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes } from "#lib/music/components/feedback.svelte.ts";
+  import { btnStage, panel } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { assistanceFor, assistanceText, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { mic, settings } from "#lib/music/runtime/index.ts";
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
@@ -32,8 +32,8 @@
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
-  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "$lib/music/notation/NoteHighway.svelte";
-  import type { Hit } from "$lib/music/notation/highway";
+  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "#lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "#lib/music/notation/highway.ts";
   import { CHORD_MODES, openMode } from "./modes";
 
   const IDLE_MS = 20_000;
@@ -72,17 +72,20 @@
   const pcs = $derived(shapes.map((sh) => shapePcs(sh, tuning)));
   const names = $derived(refs.map(chordLabel));
   /** Two chords go there and back (a round trip); more go round the cycle. */
-  const roundsText = (k: number) => (n === 2 ? `${k} round trip${k > 1 ? "s" : ""}` : `${k} time${k > 1 ? "s" : ""} round`);
+  const roundsText = (k: number) => n === 2
+    ? `${k} round trip${k > 1 ? "s" : ""}`
+    : `${k} time${k > 1 ? "s" : ""} round`;
+
   const cycleText = $derived(n === 2 ? `${names[0]} and ${names[1]}` : names.join(", "));
   /** The history key: the pair's own key for two chords, so older history carries on. */
   const cycleKey = $derived(shapes.map((x) => x.id).join(">"));
 
   function save(list: ChordRef[], positions: (number | null)[]) {
     if (pairLink) {
-      const url = new URL(page.url);
+      const url = new URL(page.url.href);
       url.searchParams.delete("shape");
       url.searchParams.delete("to");
-      replaceState(url, page.state);
+      goto(url, { shallow: true, replace: true, state: page.state });
     }
     cfg.set({ chords: list.map((r) => chordId(instr, r)).join(","), positions: positions.map((p) => p ?? "").join(",") });
   }
@@ -148,10 +151,13 @@
 
   // Against a clock, the highway: a block per chord over the strings it sounds on, scrolling into the line.
   const timedView = $derived(beatsPerChord > 0 && highway.on);
-  const blockCount = $derived(s.timed ? Math.ceil((CHANGES_SETUP.timedSeconds * bpm()) / 60 / beatsPerChord) + 1 : trips * n + 1);
-  const blocks = $derived(
-    Array.from({ length: blockCount }, (_, k): HighwayChord => {
-      const i = k % n;
+
+  const blockCount = $derived(s.timed
+    ? Math.ceil(CHANGES_SETUP.timedSeconds * bpm() / 60 / beatsPerChord) + 1
+    : trips * n + 1);
+
+  const blocks = $derived(Array.from({ length: blockCount }, (_, k): HighwayChord => {
+    const i = k % n;
       return { startBeat: k * beatsPerChord, durationBeats: beatsPerChord, strings: chordPerfectTargets(shapes[i], tuning).map((t) => t.string), name: names[i] };
     }),
   );
@@ -231,7 +237,15 @@
       assistance: assistanceFor(mode),
       difficulty: Math.min(1, shapes.reduce((a, x) => a + x.difficulty, 0) / n / 5 + (periodMs ? 0.1 : 0) + (s.timed ? 0.1 : 0)),
       instrument: instr,
-      params: { from: shapes[0].id, to: shapes[1].id, chords: cycleKey, timed: s.timed, trips, ...(periodMs ? { bpm: ctx.bpm, beatsPerChord } : {}), ...(inHardest ? { hardest: true } : {}) },
+      params: {
+        from: shapes[0].id,
+        to: shapes[1].id,
+        chords: cycleKey,
+        timed: s.timed,
+        trips,
+        ...periodMs ? { bpm: ctx.bpm, beatsPerChord } : {},
+        ...inHardest ? { hardest: true } : {}
+      }
     });
     cap = capture(ctx.downbeat - (ctx.beatMs || 0) / 2, (e) => e.kind === "noteon" && onNote(e));
     usedMic = mic.state === "on";
@@ -299,7 +313,7 @@
       metric: String(perMinute),
       metricLabel: "changes per minute",
       delta: fin.delta,
-      best: fin.best || (perMinute > bestBefore && bestBefore > 0),
+      best: fin.best || perMinute > bestBefore && bestBefore > 0,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       assistance: assistanceText(mode),
@@ -357,8 +371,20 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <ChordCycleSetup instrument={instr} {tuning} {refs} {shapes} positions={chosen} onchange={save} setupKey="from" />
-      <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="hardest">
+      <ChordCycleSetup
+        instrument={instr}
+        tuning={tuning}
+        refs={refs}
+        shapes={shapes}
+        positions={chosen}
+        onchange={save}
+        setupKey="from"
+      />
+
+      <div
+        class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3"
+        data-setup="hardest"
+      >
         {#if hardest.length}
           <Choice label="Hardest five" options={hardest.map((h) => ({ value: h.key, label: pairName(h), detail: `${h.perMinute} a minute` }))} value={inHardest ? cycleKey : ""} onchange={(k) => useHard(hardest.find((h) => h.key === k)!)} />
           <p class="text-xs text-ws-soft">Your slowest pairs, by changes a minute over each one's last three runs.</p>
@@ -403,7 +429,11 @@
 
   {#snippet stage()}
     {#if mode === "practice"}
-      <ChordStrip {shapes} {names} current={live ? target : null} />
+      <ChordStrip
+        shapes={shapes}
+        names={names}
+        current={live ? target : null}
+      />
     {/if}
     {#if beatsPerChord && phase !== "results"}
       <div class="mb-2 flex justify-end">{@render viewSwitch("Chord")}</div>
@@ -413,7 +443,7 @@
         <NoteHighway
           chords={blocks}
           strings={tuning.openStrings.map((m) => noteName(m, "flat", false))}
-          beat={live && periodMs ? ((now - downbeat) / periodMs) * beatsPerChord : null}
+          beat={live && periodMs ? (now - downbeat) / periodMs * beatsPerChord : null}
           chordHits={blockHits}
           judge={phase === "running"}
           perfectMs={Math.round(periodMs / beatsPerChord / 8) || 60}
@@ -425,7 +455,15 @@
         <p class="text-lg text-ws-stage-soft">then {live ? names[(target + 1) % n] : names[1]}</p>
       </div>
     {/if}
-    <ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} label="{live ? names[target] : names[0]} on the {instr} neck" />
+
+    <ShapeBoard
+      shape={live ? shown : from}
+      tuning={tuning}
+      show={mode === "practice" || phase === "results"}
+      flashes={flashes}
+      label="{live ? names[target] : names[0]} on the {instr} neck"
+    />
+
     {#if phase === "running" && !periodMs && !s.timed}
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <button type="button" class={btnStage} onclick={() => void finish()}>Finish now</button>
@@ -438,7 +476,7 @@
 
   {#snippet results()}
     {#if summary}
-      <Results {summary} />
+      <Results summary={summary} />
       {#if pairRuns.length}
         <section class="{panel} mt-3" aria-labelledby="pair-history">
           <h3 id="pair-history" class="font-display text-lg font-semibold">{cycleText}: changes per minute</h3>
@@ -446,7 +484,13 @@
             {#each pairRuns.slice(-16) as r, i (r.date + i)}
               <li class="flex h-full w-8 shrink-0 flex-col items-center justify-end gap-1">
                 <span class="tnum text-xs">{r.perMinute}</span>
-                <span class="w-full rounded-t bg-instr" style:height="{Math.max(4, (r.perMinute / maxRun) * 72)}px" aria-hidden="true"></span>
+
+                <span
+                  class="w-full rounded-t bg-instr"
+                  style:height="{Math.max(4, r.perMinute / maxRun * 72)}px"
+                  aria-hidden="true"
+                ></span>
+
                 <span class="sr-only">{new Date(r.date).toLocaleDateString()}: {r.perMinute} per minute, {r.clean} of {r.completed} with every note</span>
               </li>
             {/each}

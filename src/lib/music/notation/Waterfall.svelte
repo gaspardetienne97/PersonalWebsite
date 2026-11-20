@@ -6,7 +6,7 @@
   // the clock the audio runs on, and ends where the keyboard begins: a bar
   // lights its key's lane as it reaches the hit line.
   import { noteName, type Score } from "@repo/music-core";
-  import { settings } from "$lib/music/runtime";
+  import { settings } from "#lib/music/runtime/index.ts";
   import { selectedVoices, voiceSides, whiteKeyLayout } from "./groups";
   import { fallingNotes, gridInView, inView, laneGuides, sounding } from "./falling";
   import type { GroupState } from "./NotationFrame.svelte";

@@ -3,21 +3,21 @@
   // leaving; takes go to OPFS (music-take-<id>) with a row in db.audioTakes.
   // Playback gain never rewrites the recording.
   import { onDestroy, onMount } from "svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
-  import Mic from "lucide-svelte/icons/mic";
-  import Download from "lucide-svelte/icons/download";
-  import FileMusic from "lucide-svelte/icons/file-music";
-  import Trash from "lucide-svelte/icons/trash-2";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Download from "@lucide/svelte/icons/download";
+  import FileMusic from "@lucide/svelte/icons/file-music";
+  import Trash from "@lucide/svelte/icons/trash-2";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
-  import { btn } from "$lib/music/components/ui";
-  import { micOptions } from "$lib/music/hubs/connect/rig";
-  import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "$lib/music/runtime";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { micOptions } from "#lib/music/hubs/connect/rig.ts";
+  import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "#lib/music/runtime/index.ts";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
   import { autoGainDb, BOOST_RANGE, clipWarning, envelope, ENVELOPE_BUCKETS, extensionFor, GAIN_RANGE, peakDbOf, signedDb, suggestedBoost, takeKey } from "./audioTakes";
-  import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "$lib/music/takes";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { clock, fileStem, takeLength, TAKE_LIMIT_MS } from "#lib/music/takes.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 

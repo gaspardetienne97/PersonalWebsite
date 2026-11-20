@@ -1,23 +1,19 @@
-<!--
-  Home: a short intro, the newest post and the newest piece side by side, then
-  one equal door for every kind of thing on the site, Writing included.
--->
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { Button } from "@repo/ui/button";
-  import CircuitArt from "$lib/components/site/CircuitArt.svelte";
-  import StudioCover from "$lib/components/site/StudioCover.svelte";
-  import StudioDoors from "$lib/components/site/StudioDoors.svelte";
-  import { MARKERS } from "$lib/circuit/router";
-  import { description, title } from "$lib/config";
-  import { kindInfo, newest } from "$lib/content/studio";
-  import { formatDate } from "$lib/utils";
+  import CircuitArt from "#lib/components/site/CircuitArt.svelte";
+  import StudioCover from "#lib/components/site/StudioCover.svelte";
+  import StudioDoors from "#lib/components/site/StudioDoors.svelte";
+  import { MARKERS } from "#lib/circuit/router.ts";
+  import { description, title } from "#lib/config.ts";
+  import { kindInfo, newest } from "#lib/content/studio.ts";
+  import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
   const posts = $derived(data.posts);
   const latestPost = $derived(posts[0]);
 
-  const studio = resolve("/studio");
+  const studio = resolve('studio');
   const piece = newest();
   const pieceInfo = piece && kindInfo(piece.kind);
   // A project opens itself; anything else opens its kind in the Studio.
@@ -27,6 +23,11 @@
       : `${studio}?type=${piece.kind}`
     : studio;
 </script>
+
+<!--
+  Home: a short intro, the newest post and the newest piece side by side, then
+  one equal door for every kind of thing on the site, Writing included.
+-->
 
 <svelte:head>
   <title>{title}</title>
@@ -44,7 +45,12 @@
         I like owning a feature from end to end: the schema, the API, the interface and the server
         it runs on. This site is where I keep what I make.
       </p>
-      <Button variant="link" href={resolve("/about")} class="h-auto px-0">More about me</Button>
+
+      <Button
+        variant="link"
+        href={resolve('about')}
+        class="h-auto px-0"
+      >More about me</Button>
     </div>
   </header>
 

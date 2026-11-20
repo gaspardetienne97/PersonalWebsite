@@ -43,7 +43,7 @@
   import { gradeTone } from "@repo/music-core";
   import { audio } from "../runtime";
   import InputCheck from "./InputCheck.svelte";
-  import Star from "lucide-svelte/icons/star";
+  import Star from "@lucide/svelte/icons/star";
   import { practice } from "../practice.svelte";
   import { setupTrend, sparkPoints } from "./trend";
 

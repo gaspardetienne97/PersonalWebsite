@@ -1,5 +1,5 @@
 // App settings: one reactive object persisted to the settings row `music.settings`.
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { DEFAULT_SETTINGS, type Settings } from "@repo/music-core";
 import { getSetting, putSetting } from "./db.svelte";
 

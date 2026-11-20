@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { SkillMastery } from "../types";
 import { T0, ev } from "./fixtures";
 import {

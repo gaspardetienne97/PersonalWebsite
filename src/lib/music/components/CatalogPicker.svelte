@@ -18,8 +18,8 @@
   // not a dropdown: the setup shows the current item; Change opens a list
   // with search, group filter chips and the last few picks on top.
   import * as Sheet from "@repo/ui/sheet";
-  import Search from "lucide-svelte/icons/search";
-  import { getSetting, putSetting } from "$lib/music/runtime";
+  import Search from "@lucide/svelte/icons/search";
+  import { getSetting, putSetting } from "#lib/music/runtime/index.ts";
 
   interface Props {
     label: string;

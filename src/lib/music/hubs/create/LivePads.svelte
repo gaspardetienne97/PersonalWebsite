@@ -7,13 +7,13 @@
   import { onDestroy } from "svelte";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
   import { gradeLiveLoop, quantiseBeat, REPEAT_RATES, LIVE_LOOP, type LivePass } from "@repo/music-core/content/pads-studio";
-  import Pads from "$lib/music/components/Pads.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { pct } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, input, type SequenceHandle } from "$lib/music/runtime";
-  import { NoteRepeat } from "$lib/music/drills/pads/note-repeat";
+  import Pads from "#lib/music/components/Pads.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { pct } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, input, type SequenceHandle } from "#lib/music/runtime/index.ts";
+  import { NoteRepeat } from "#lib/music/drills/pads/note-repeat.ts";
   import { barsOf, beatNotes, type BeatPattern } from "./pattern";
   import { session } from "./session.svelte";
 

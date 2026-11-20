@@ -1,8 +1,8 @@
 <script lang="ts">
-  import KeyRound from "lucide-svelte/icons/key-round";
+  import KeyRound from "@lucide/svelte/icons/key-round";
   import * as Card from "@repo/ui/card";
   import { Button } from "@repo/ui/button";
-  import LogoMark from "$lib/components/site/LogoMark.svelte";
+  import LogoMark from "#lib/components/site/LogoMark.svelte";
 
   let { data, form } = $props();
 

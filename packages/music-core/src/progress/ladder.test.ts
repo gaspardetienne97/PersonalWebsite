@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { RunRecord } from "../types";
 import { run, T0 } from "./fixtures";
 import { LADDER_TUNES, ladderEvidence, nextReview, tuneLadders, type Rung } from "./ladder";

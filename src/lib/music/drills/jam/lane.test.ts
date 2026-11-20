@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { chordToneNames, formPosition, laneBlocks, laneScale } from "./lane";
 
 // ii-V-I-VI: a bar each in 4/4.

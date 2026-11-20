@@ -1,19 +1,19 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import LayoutGrid from "lucide-svelte/icons/layout-grid";
-  import Shapes from "lucide-svelte/icons/shapes";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Shapes from "@lucide/svelte/icons/shapes";
   import * as ToggleGroup from "@repo/ui/toggle-group";
   import { Empty } from "@repo/ui/empty";
-  import StudioDoors from "$lib/components/site/StudioDoors.svelte";
-  import StudioTile from "$lib/components/site/StudioTile.svelte";
-  import StudioViewer from "$lib/components/site/StudioViewer.svelte";
+  import StudioDoors from "#lib/components/site/StudioDoors.svelte";
+  import StudioTile from "#lib/components/site/StudioTile.svelte";
+  import StudioViewer from "#lib/components/site/StudioViewer.svelte";
   import {
     STUDIO,
     STUDIO_KINDS,
     everything,
     kindInfo,
     type StudioItem,
-  } from "$lib/content/studio";
+  } from "#lib/content/studio.ts";
 
   let { data } = $props();
 
@@ -26,7 +26,7 @@
   const heading = $derived(type === "all" ? "Everything" : kindInfo(type).label);
 
   const go = (query: string) =>
-    goto(query ? `?${query}` : "?", { replaceState: true, noScroll: true, keepFocus: true });
+    goto(query ? `?${query}` : "?", { replace: true, reset: false });
 
   // Clicking the active option again would clear it; keep it selected instead.
   function chooseType(value: string) {

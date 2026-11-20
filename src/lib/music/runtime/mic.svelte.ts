@@ -19,7 +19,7 @@
 //     });
 //   (or launch Chromium with --use-fake-ui-for-media-stream
 //   --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=take.wav).
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { createHighPass } from "@repo/music-core/signal/biquad";
 import { analyzePitch, TUNER_CLARITY_FLOOR } from "@repo/music-core/signal/pitch";
 import { createOnsetDetector } from "@repo/music-core/signal/onset";

@@ -17,23 +17,23 @@
   // the live input source. One row that wraps; on a phone the secondary
   // controls sit behind "More" so nothing is off-screen.
   import * as Popover from "@repo/ui/popover";
-  import Search from "lucide-svelte/icons/search";
-  import Timer from "lucide-svelte/icons/timer";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import VolumeOff from "lucide-svelte/icons/volume-off";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import KeyboardMusic from "lucide-svelte/icons/keyboard-music";
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
+  import Search from "@lucide/svelte/icons/search";
+  import Timer from "@lucide/svelte/icons/timer";
+  import Volume from "@lucide/svelte/icons/volume-2";
+  import VolumeOff from "@lucide/svelte/icons/volume-off";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import KeyboardMusic from "@lucide/svelte/icons/keyboard-music";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
   import InputPanel from "./InputPanel.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { bench, INSTRUMENT_LABEL } from "../bench.svelte";
   import { audio, input, midi, mic, settings } from "../runtime";
   import { palette } from "./palette.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import TuningPicker from "$lib/music/drills/guitar/TuningPicker.svelte";
-  import { tunings } from "$lib/music/drills/guitar/instrument.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import TuningPicker from "#lib/music/drills/guitar/TuningPicker.svelte";
+  import { tunings } from "#lib/music/drills/guitar/instrument.svelte.ts";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];

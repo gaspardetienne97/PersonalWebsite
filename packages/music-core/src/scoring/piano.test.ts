@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import comping from "../data/comping-patterns.json";
 import twoHand from "../data/two-hand-patterns.json";
 import type { NoteEvent } from "../types";

@@ -4,18 +4,18 @@
 </script>
 
 <script lang="ts">
-  import Hint from "$lib/music/components/Hint.svelte";
+  import Hint from "#lib/music/components/Hint.svelte";
   // Tap-along latency calibration (hardware notes 7): 20 clicks at 90 BPM, taps
   // from the panel's own source, scored by estimateOffset. The router already
   // subtracted the saved offset from MIDI and microphone events, so it is added
   // back here: calibration always measures the raw input.
   import { onDestroy, tick } from "svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
   import { CALIBRATION, estimateOffset, type CalibrationResult } from "@repo/music-core/io/calibration";
   import { clamp, type InputEvent } from "@repo/music-core";
-  import { audio, input, mic, midi, settings } from "$lib/music/runtime";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { audio, input, mic, midi, settings } from "#lib/music/runtime/index.ts";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
 
   interface Props {
     id: string;

@@ -8,21 +8,21 @@
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { JAZZ } from "@repo/music-core/data/index";
   import { gradeComping, type CompingResult } from "@repo/music-core/scoring/piano";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
-  import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import type { SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import BeatLane, { type LaneRow } from "#lib/music/drills/piano/BeatLane.svelte";
+  import { FINGERING_NOTE, Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
 
   const TEMPO = { min: 60, max: 140 };
   const LH_STEPS = [

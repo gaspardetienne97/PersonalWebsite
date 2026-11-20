@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { homeTonics, rankKeys, regionChroma } from "./key";
 
 const RATE = 22050;

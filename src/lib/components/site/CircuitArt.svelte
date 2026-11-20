@@ -4,8 +4,8 @@
   the same on the server and in the browser. An optional icon sits on the main chip.
 -->
 <script lang="ts">
-  import type Piano from "lucide-svelte/icons/piano";
-  import { growCircuit, hashString, mulberry32, toPathData } from "$lib/circuit/router";
+  import type Piano from "@lucide/svelte/icons/piano";
+  import { growCircuit, hashString, mulberry32, toPathData } from "#lib/circuit/router.ts";
 
   let {
     seed,

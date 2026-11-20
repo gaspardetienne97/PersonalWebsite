@@ -2,7 +2,7 @@
   // The same chord at other places up the neck as a row of chord boxes, so the
   // shapes are seen before one is picked (position 0 is the open or curated shape).
   import type { ChordPosition } from "@repo/music-core/data/index";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
+  import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import { shortPosition } from "./chords";
 
   let { positions, index, onchange, symbol, disabled = false }: { positions: ChordPosition[]; index: number; onchange: (i: number) => void; symbol: string; disabled?: boolean } = $props();

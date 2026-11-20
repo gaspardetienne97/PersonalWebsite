@@ -1,11 +1,11 @@
 <script lang="ts">
   // A sustained reference pitch to play against. No microphone.
   import { onDestroy } from "svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
   import { noteName } from "@repo/music-core";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import { audio, type DroneTimbre } from "$lib/music/runtime";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import { audio, type DroneTimbre } from "#lib/music/runtime/index.ts";
   import { pretty } from "./tuner";
   import NotePads from "./NotePads.svelte";
   import DroneScope from "./DroneScope.svelte";

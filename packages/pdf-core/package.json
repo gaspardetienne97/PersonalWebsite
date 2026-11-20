@@ -18,9 +18,9 @@
     "build": "tsc --noEmit --project ./tsconfig.json"
   },
   "dependencies": {
-    "jszip": "^3.10.1",
-    "kokoro-js": "^1.2.1",
-    "pdfjs-dist": "^5.4.530",
+    "jszip": "catalog:",
+    "kokoro-js": "catalog:",
+    "pdfjs-dist": "catalog:",
     "svelte": "catalog:"
   },
   "devDependencies": {

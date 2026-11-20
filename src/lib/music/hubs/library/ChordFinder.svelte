@@ -3,15 +3,15 @@
   // open position first, then up the neck, each marked open, barre or closed,
   // and whether it needs a barre to be playable at all. Hear it, or open it in
   // the Build drill at that position.
-  import Play from "lucide-svelte/icons/play";
+  import Play from "@lucide/svelte/icons/play";
   import { FLAT_NAMES } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { chordName, chordVoicings, generatedChordId, QUALITY_NAMES, VOICING_QUALITIES } from "@repo/music-core/theory/voicings";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
-  import { chordId, positionsOn } from "$lib/music/drills/guitar/chords";
-  import { btn } from "$lib/music/components/ui";
-  import { audio, settings } from "$lib/music/runtime";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
+  import { chordId, positionsOn } from "#lib/music/drills/guitar/chords.ts";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { audio, settings } from "#lib/music/runtime/index.ts";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 

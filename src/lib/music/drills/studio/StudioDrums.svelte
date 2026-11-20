@@ -6,15 +6,15 @@
   // notes sliding onto a hit line with the pads beside (the pads drills' view).
   import type { Score } from "@repo/music-core";
   import { GROOVE_VOICES, drumKey, hitDrumKey, scoreDrumPad, scoreDrumVoice } from "@repo/music-core/content/winds-pads";
-  import { barBeats, scoreGroups } from "$lib/music/notation/groups";
-  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import { Flashes } from "$lib/music/components/feedback.svelte";
-  import Pads from "$lib/music/components/Pads.svelte";
-  import { input } from "$lib/music/runtime";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import PadHighway, { type HighwayLane, type HighwayNote } from "$lib/music/drills/pads/PadHighway.svelte";
-  import { laneColor, orderLanes, padsDue, stepsPerBeatFor, type Judgement } from "$lib/music/drills/pads/lanes";
-  import { padLabel } from "$lib/music/drills/pads/midi-status";
+  import { barBeats, scoreGroups } from "#lib/music/notation/groups.ts";
+  import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
+  import { Flashes } from "#lib/music/components/feedback.svelte.ts";
+  import Pads from "#lib/music/components/Pads.svelte";
+  import { input } from "#lib/music/runtime/index.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import PadHighway, { type HighwayLane, type HighwayNote } from "#lib/music/drills/pads/PadHighway.svelte";
+  import { laneColor, orderLanes, padsDue, stepsPerBeatFor, type Judgement } from "#lib/music/drills/pads/lanes.ts";
+  import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
 
   let {
     score,

@@ -2,8 +2,8 @@
   // Curated tunings plus the player's own, with a small form to add one
   // (validated by validateCustomTuning: custom. id, 6 or 4 strings, 1 to 36 frets).
   import { noteName } from "@repo/music-core";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import { btn } from "$lib/music/components/ui";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import { btn } from "#lib/music/components/ui.ts";
   import { customTuningId, parseTuningNotes, type Fretted } from "./fretted";
   import { tunings } from "./instrument.svelte";
 

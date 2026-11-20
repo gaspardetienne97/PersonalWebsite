@@ -1,4 +1,4 @@
-import { isStudioKind, type StudioKind } from "$lib/content/studio";
+import { isStudioKind, type StudioKind } from "#lib/content/studio.ts";
 import type { PageLoad } from "./$types";
 
 // ?type=drawings filters the wall; ?view=kinds shows one card per kind instead.

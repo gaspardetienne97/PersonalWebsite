@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SCALE_DATA } from "../data";
 import { fingeringForOctaves, SCALE_FINGERINGS, scaleFingerMap } from "./piano-fingering";
 

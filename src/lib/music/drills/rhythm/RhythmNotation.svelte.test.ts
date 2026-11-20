@@ -6,7 +6,7 @@ import RhythmNotation from "./RhythmNotation.svelte";
 describe("RhythmNotation", () => {
   it.each(RHYTHM_PATTERNS.map((p) => [p.id, p] as const))("engraves %s", async (_, p) => {
     const fallback = vi.fn();
-    const { container } = render(RhythmNotation, {
+    const { container } = await render(RhythmNotation, {
       pattern: p,
       label: p.label,
       cursorBeat: 0.5,

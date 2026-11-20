@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Play from "lucide-svelte/icons/play";
-  import Check from "lucide-svelte/icons/check";
-  import PartyPopper from "lucide-svelte/icons/party-popper";
+  import Play from "@lucide/svelte/icons/play";
+  import Check from "@lucide/svelte/icons/check";
+  import PartyPopper from "@lucide/svelte/icons/party-popper";
   import { BUDGET_OPTIONS, roleLabel } from "@repo/music-core/progress/routine";
   import { levelFor } from "@repo/music-core/progress/rewards";
   import { INSTRUMENT_LABEL } from "../bench.svelte";

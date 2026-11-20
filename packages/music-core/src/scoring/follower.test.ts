@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { NoteEvent, Score } from "../types";
 import { followChords } from "./chord-follower";
 import { compareTakes } from "./compare";

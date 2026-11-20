@@ -2,7 +2,7 @@
   // A mini piano roll of a MIDI take: one bar per note, pitch up, time across.
   // Each note name keeps one colour (every C looks alike), louder notes are
   // brighter, and a cursor shows where playback is (or where it paused).
-  import type { TakeNote } from "$lib/music/takes";
+  import type { TakeNote } from "#lib/music/takes.ts";
   let { notes, durationMs, progress = null }: { notes: TakeNote[]; durationMs: number; progress?: number | null } = $props();
   const lo = $derived(Math.min(...notes.map((n) => n.midi), 60) - 1);
   const hi = $derived(Math.max(...notes.map((n) => n.midi), 72) + 1);

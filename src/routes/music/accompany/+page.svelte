@@ -11,7 +11,7 @@
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { JAM_GROUPS, barBeats, chorusBars, transposeProgression } from "@repo/music-core/content/jam";
   import { TUNES, formatReharm, parseReharm, reharmDevice, reharmonise } from "@repo/music-core/content/tunes";
-  import { backingNotes } from "$lib/music/drills/jam/backing";
+  import { backingNotes } from "#lib/music/drills/jam/backing.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import {
     ACCOMP_PATTERNS,
@@ -41,25 +41,25 @@
     wholeBars,
   } from "@repo/music-core/content/accompany";
   import { gradeAccompaniment, type AccompanimentResult } from "@repo/music-core/scoring/piano";
-  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore, NOTE_VIEWS } from "$lib/music/notation/falling";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-    import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { nextRun } from "$lib/music/advance.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "#lib/music/notation/FallingKeys.svelte";
+  import { lineScore, NOTE_VIEWS } from "#lib/music/notation/falling.ts";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+    import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { modeFrom, openMode } from "#lib/music/drills/guitar/modes.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, db, settings, type SequenceHandle } from "#lib/music/runtime/index.ts";
+  import { nextRun } from "#lib/music/advance.svelte.ts";
 
   const TEMPO = { min: 40, max: 180 };
   const ENTRY = catalogEntry("accompany")!;

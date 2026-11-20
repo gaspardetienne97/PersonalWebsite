@@ -19,8 +19,8 @@ describe("PWA configuration", () => {
         expect.objectContaining({ src: "/pwa-512x512.png", sizes: "512x512" }),
       ]),
     );
-    expect(pwaOptions?.workbox?.navigateFallback).toBeUndefined();
-    expect(pwaOptions?.workbox?.globIgnores).toContain(
+    expect(pwaOptions?.generateSW?.navigateFallback).toBeUndefined();
+    expect(pwaOptions?.generateSW?.globIgnores).toContain(
       "client/_app/immutable/assets/web back*.svg",
     );
   });

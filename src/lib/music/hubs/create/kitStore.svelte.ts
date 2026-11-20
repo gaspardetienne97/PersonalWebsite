@@ -9,7 +9,7 @@ import {
   getSetting,
   putBinary,
   putSetting,
-} from "$lib/music/runtime";
+} from "#lib/music/runtime/index.ts";
 import {
   KITS_KEY,
   newKit,

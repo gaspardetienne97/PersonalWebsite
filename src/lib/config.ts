@@ -1,9 +1,17 @@
-import Github from "lucide-svelte/icons/github";
-import Linkedin from "lucide-svelte/icons/linkedin";
+import type { Component } from "svelte";
+// Lucide dropped brand icons in 1.0, so these are local, drawn in Lucide's style.
+import Github from "#lib/components/site/icons/Github.svelte";
+import Linkedin from "#lib/components/site/icons/Linkedin.svelte";
 // For the commented-out socials below: uncomment with them.
-// import Instagram from "lucide-svelte/icons/instagram";
-// import Youtube from "lucide-svelte/icons/youtube";
-// import Mail from "lucide-svelte/icons/mail";
+// import Instagram from "#lib/components/site/icons/Instagram.svelte";
+// import Youtube from "#lib/components/site/icons/Youtube.svelte";
+// import Mail from "@lucide/svelte/icons/mail";
+
+type Icon = Component<{
+  size?: number | string;
+  class?: string;
+  "aria-hidden"?: boolean | "true" | "false";
+}>;
 
 export const name = "Gaspard Michel Etienne";
 export const shortName = "Gaspard Etienne";
@@ -15,7 +23,7 @@ export const description =
  * Links shown on the About page and in the footer, each with its icon. Nothing
  * renders while the list is empty.
  */
-export const socials: { label: string; href: string; icon: typeof Github }[] = [
+export const socials: { label: string; href: string; icon: Icon }[] = [
   { label: "GitHub", href: "https://github.com/gaspardetienne97", icon: Github },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/gaspardetienne", icon: Linkedin },
   // Fill in and uncomment to show them:

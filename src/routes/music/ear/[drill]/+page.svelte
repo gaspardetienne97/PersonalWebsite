@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import EarDrill from "$lib/music/drills/ear/EarDrill.svelte";
+  import EarDrill from "#lib/music/drills/ear/EarDrill.svelte";
 
   let { data } = $props();
 </script>

@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { musicLoginRequired } from "$lib/server/auth";
+import { musicLoginRequired } from "#lib/server/auth.ts";
 import type { LayoutServerLoad } from "./$types";
 
 // A server load, so client-side navigation into /music asks the server too.

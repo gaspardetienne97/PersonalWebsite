@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Hint from "$lib/music/components/Hint.svelte";
+  import Hint from "#lib/music/components/Hint.svelte";
   // Your data (catalog 5.14): journal export, data backup, full backup with
   // media, restore of either, and the one place that may delete user data.
-  import Download from "lucide-svelte/icons/download";
-  import Upload from "lucide-svelte/icons/upload";
-  import TriangleAlert from "lucide-svelte/icons/triangle-alert";
+  import Download from "@lucide/svelte/icons/download";
+  import Upload from "@lucide/svelte/icons/upload";
+  import TriangleAlert from "@lucide/svelte/icons/triangle-alert";
   import {
     BACKUP_TABLES,
     BackupError,
@@ -19,8 +19,8 @@
     type RestoredAsset,
     type Row,
   } from "@repo/music-core/io/backup";
-  import { db, deleteBinary, getBinary, putBinary } from "$lib/music/runtime";
-  import { btn } from "$lib/music/components/ui";
+  import { db, deleteBinary, getBinary, putBinary } from "#lib/music/runtime/index.ts";
+  import { btn } from "#lib/music/components/ui.ts";
   import { mediaCounts, mediaKeys, restoreAssets, undoWrites, type BinaryStore } from "./media";
 
   let { announce, rowCls }: { announce: (msg: string) => void; rowCls: string } = $props();

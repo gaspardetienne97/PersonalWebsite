@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { ReadingLevelId } from "../data";
 import type { Score } from "../types";
 import { pc } from "../theory/notes";

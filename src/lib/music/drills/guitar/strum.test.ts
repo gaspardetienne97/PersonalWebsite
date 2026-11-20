@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 // The listener only needs the frame feed and the onset feed.
 const feeds = vi.hoisted(() => ({
   frame: [] as ((f: unknown) => void)[],
   input: [] as ((e: unknown) => void)[],
 }));
-vi.mock("$lib/music/runtime", () => ({
+vi.mock("#lib/music/runtime/index.ts", () => ({
   mic: { subscribeFrames: (fn: (f: unknown) => void) => (feeds.frame.push(fn), () => true) },
   input: { subscribe: (fn: (e: unknown) => void) => (feeds.input.push(fn), () => {}) },
 }));

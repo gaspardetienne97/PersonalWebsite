@@ -1,4 +1,4 @@
-// Browser runtime for the music app. Import from `$lib/music/runtime`.
+// Browser runtime for the music app. Import from `#lib/music/runtime/index.ts`.
 export { db, plain, getSetting, putSetting } from "./db.svelte";
 export type * from "./db.svelte";
 export { putBinary, getBinary, deleteBinary } from "./opfs";

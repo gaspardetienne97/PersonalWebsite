@@ -4,8 +4,8 @@
   // instrument, so neither is a control here.
   import { CLIMB, levelMeter, levelsFor, READING_LEVELS, READING_METERS, readingLevel, readingLevelId, readingRungs } from "@repo/music-core/content/reading";
   import { noteName } from "@repo/music-core";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import type { DrillSetup } from "$lib/music/setup.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import type { DrillSetup } from "#lib/music/setup.svelte.ts";
   import { FRET_POSITIONS, type ReadingSetup } from "./reading";
 
   /** `oneLine`: one treble staff (fretted instruments and the Aerophone). `limits`: the written range the instrument reads. */

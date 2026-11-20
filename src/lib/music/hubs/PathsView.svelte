@@ -2,10 +2,10 @@
   // Each path is a road map: a node per step, lit when passed, with "Up next" pulsing. A node opens
   // to what the step adds, what done means and its drill. Levelled paths show one level at a time:
   // its steps, then its song shelf and its test as checkpoints on the same road.
-  import Check from "lucide-svelte/icons/check";
-  import Lock from "lucide-svelte/icons/lock";
-  import Music from "lucide-svelte/icons/music";
-  import Flag from "lucide-svelte/icons/flag";
+  import Check from "@lucide/svelte/icons/check";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Music from "@lucide/svelte/icons/music";
+  import Flag from "@lucide/svelte/icons/flag";
   import type { Snippet } from "svelte";
   import {
     LEARNING_PATHS,

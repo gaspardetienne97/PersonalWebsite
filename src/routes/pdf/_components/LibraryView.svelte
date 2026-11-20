@@ -1,15 +1,15 @@
 <script lang="ts">
-  import BookOpen from "lucide-svelte/icons/book-open";
-  import FileText from "lucide-svelte/icons/file-text";
-  import Headphones from "lucide-svelte/icons/headphones";
-  import Mic from "lucide-svelte/icons/mic";
-  import Play from "lucide-svelte/icons/play";
-  import Plus from "lucide-svelte/icons/plus";
-  import Quote from "lucide-svelte/icons/quote";
-  import Search from "lucide-svelte/icons/search";
-  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
-  import Type from "lucide-svelte/icons/type";
-  import Upload from "lucide-svelte/icons/upload";
+  import BookOpen from "@lucide/svelte/icons/book-open";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Headphones from "@lucide/svelte/icons/headphones";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Play from "@lucide/svelte/icons/play";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Quote from "@lucide/svelte/icons/quote";
+  import Search from "@lucide/svelte/icons/search";
+  import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
+  import Type from "@lucide/svelte/icons/type";
+  import Upload from "@lucide/svelte/icons/upload";
 
   import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import type { NarratorLibrary } from "@repo/pdf-core/stores/library";

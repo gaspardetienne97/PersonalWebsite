@@ -6,25 +6,25 @@
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { jazzVoicingLesson } from "@repo/music-core/lessons/tier1";
   import { conceptCard } from "@repo/music-core/lessons/cards";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
-  import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { gradeItem, isJazzType, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "$lib/music/drills/piano/voicings";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import type { SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnStage } from "#lib/music/components/ui.ts";
+  import { Transport, toWritten, benchFromUrl, sounding, spanOf, type TimedNote } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { gradeItem, isJazzType, voicingItems, type ItemGrade, type Variant, type VoicingItem } from "#lib/music/drills/piano/voicings.ts";
   import { JAZZ_VOICING_TYPES, UPPER_TUNES } from "@repo/music-core/content/jazz-voicings";
   import { TUNES } from "@repo/music-core/content/tunes";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
-  import { nextRun } from "$lib/music/advance.svelte";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, assistanceText, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import { nextRun } from "#lib/music/advance.svelte.ts";
 
   const VARIANTS: { value: Variant; label: string; tab: string }[] = [
     { value: "major", label: "Major ii-V-I", tab: "Major ii-V-I" },

@@ -2,7 +2,7 @@
 	import { Button } from '@repo/ui/button';
 	import * as Avatar from '@repo/ui/avatar';
 	import { fly } from 'svelte/transition';
-	import PlayListIcon from 'lucide-svelte/icons/list';
+	import PlayListIcon from '@lucide/svelte/icons/list';
 	import { readSpotifyStore } from './spotifyStore';
 	import { Separator } from '@repo/ui/separator';
 	import { ScrollArea } from '@repo/ui/scroll-area';

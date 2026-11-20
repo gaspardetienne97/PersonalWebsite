@@ -1,5 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { AUTHENTIK, authentikConfigured, getAuth } from "$lib/server/auth";
+import { AUTHENTIK, authentikConfigured, authentikOrigin, getAuth } from "#lib/server/auth.ts";
 import type { Actions, PageServerLoad } from "./$types";
 
 /** A same-site path to come back to after signing in; anything else goes to /private. */
@@ -23,19 +23,23 @@ export const actions: Actions = {
     const to = returnTo(url);
     let target: string;
     try {
-      const result = await auth.api.signInWithOAuth2({
+      // Better Auth 1.7 serves generic OAuth providers through the social sign-in endpoint.
+      const result = await auth.api.signInSocial({
         body: {
-          providerId: AUTHENTIK,
+          provider: AUTHENTIK,
           callbackURL: to,
           errorCallbackURL: `/login?redirectTo=${encodeURIComponent(to)}`,
         },
         headers: request.headers,
       });
+      if (!result.url) throw new Error("Better Auth returned no Authentik URL");
       target = result.url;
     } catch (error) {
       console.error("[auth] Could not start the Authentik sign-in", error);
       return fail(502, { message: "Authentik didn't answer. Check it's running, then try again." });
     }
-    redirect(303, target);
+    // SvelteKit 3 only redirects off-site when told where to: Authentik, nowhere else.
+    const origin = authentikOrigin();
+    redirect(303, target, { external: origin ? [origin] : false });
   },
 };

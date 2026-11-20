@@ -2,8 +2,8 @@
 // conversions between takes, the canonical score and audio sequences.
 // Durations come from real note-offs (lessons A7).
 import type { InputSource, Instrument, NoteEvent, Score } from "@repo/music-core";
-import { db } from "$lib/music/runtime";
-import type { SequenceNote } from "$lib/music/runtime/audio.svelte";
+import { db } from "#lib/music/runtime/index.ts";
+import type { SequenceNote } from "#lib/music/runtime/audio.svelte.ts";
 
 export interface TakeNote {
   midi: number;

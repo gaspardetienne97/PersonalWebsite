@@ -78,7 +78,7 @@
   import { noteName } from "@repo/music-core";
   import { fingeringFor as chartEntry } from "@repo/music-core/content/winds-pads";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
-  import { settings } from "$lib/music/runtime";
+  import { settings } from "#lib/music/runtime/index.ts";
 
   interface Props {
     midi: number | null;

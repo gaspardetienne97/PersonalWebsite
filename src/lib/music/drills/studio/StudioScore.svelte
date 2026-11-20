@@ -8,20 +8,20 @@
   // same white-key grid (whiteKeyLayout) so every falling note lands on its key.
   import type { Score } from "@repo/music-core";
   import { transposeScore } from "@repo/music-core/theory/transposition";
-  import Staff from "$lib/music/notation/Staff.svelte";
-  import Tab from "$lib/music/notation/Tab.svelte";
-  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import FingeringRow from "$lib/music/notation/FingeringRow.svelte";
+  import Staff from "#lib/music/notation/Staff.svelte";
+  import Tab from "#lib/music/notation/Tab.svelte";
+  import FallingKeys from "#lib/music/notation/FallingKeys.svelte";
+  import FingeringRow from "#lib/music/notation/FingeringRow.svelte";
   import StudioDrums from "./StudioDrums.svelte";
-  import NoteHighway, { type HighwayNote } from "$lib/music/notation/NoteHighway.svelte";
-  import type { Hit } from "$lib/music/notation/highway";
+  import NoteHighway, { type HighwayNote } from "#lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "#lib/music/notation/highway.ts";
   import { noteName } from "@repo/music-core";
   import { hideBefore } from "./studio";
-  import { assignTab, barBeats, scoreGroups, type BeatRange, type TabTuning } from "$lib/music/notation/groups";
-  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import type { Snap } from "$lib/music/notation/selection.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import type { CellMarks, Flashes } from "$lib/music/components/feedback.svelte";
+  import { assignTab, barBeats, scoreGroups, type BeatRange, type TabTuning } from "#lib/music/notation/groups.ts";
+  import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
+  import type { Snap } from "#lib/music/notation/selection.svelte.ts";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import type { CellMarks, Flashes } from "#lib/music/components/feedback.svelte.ts";
 
   let {
     score,

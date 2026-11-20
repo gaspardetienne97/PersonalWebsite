@@ -23,16 +23,16 @@
     type StudioPrompt,
   } from "@repo/music-core/content/studio";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, assistanceText, pct } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { nextRun } from "$lib/music/advance.svelte";
-  import { audio } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { type RunSummary } from "#lib/music/components/Results.svelte";
+  import { btnPrimary, btnStage } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, assistanceText, pct } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { nextRun } from "#lib/music/advance.svelte.ts";
+  import { audio } from "#lib/music/runtime/index.ts";
   import { listeningLessons } from "@repo/music-core/lessons/reading";
 
   const LENGTH = 10;

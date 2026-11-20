@@ -2,10 +2,10 @@
   // Every drill, grouped by what you practise (drills-layout), filterable by instrument.
   // A card per drill: its icon in its hue inside a mastery ring, then the modes.
   import { onMount } from "svelte";
-  import EarIcon from "lucide-svelte/icons/ear";
-  import FileMusicIcon from "lucide-svelte/icons/file-music";
-  import ActivityIcon from "lucide-svelte/icons/activity";
-  import SparklesIcon from "lucide-svelte/icons/sparkles";
+  import EarIcon from "@lucide/svelte/icons/ear";
+  import FileMusicIcon from "@lucide/svelte/icons/file-music";
+  import ActivityIcon from "@lucide/svelte/icons/activity";
+  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
   import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
   import { INSTRUMENT_LABEL, type Hue } from "../bench.svelte";

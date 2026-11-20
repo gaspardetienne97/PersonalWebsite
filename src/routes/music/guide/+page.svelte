@@ -2,18 +2,18 @@
   // The guide: how Woodshed works, in plain words, one short topic each. Each
   // topic has its own colour and a small picture of the thing it describes,
   // drawn the way the app draws it.
-  import Layers from "lucide-svelte/icons/layers";
-  import Eye from "lucide-svelte/icons/eye";
-  import CircleSlash from "lucide-svelte/icons/circle-slash";
-  import Cable from "lucide-svelte/icons/cable";
-  import Keyboard from "lucide-svelte/icons/keyboard";
-  import Command from "lucide-svelte/icons/command";
-  import CalendarDays from "lucide-svelte/icons/calendar-days";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import Check from "lucide-svelte/icons/check";
-  import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Eye from "@lucide/svelte/icons/eye";
+  import CircleSlash from "@lucide/svelte/icons/circle-slash";
+  import Cable from "@lucide/svelte/icons/cable";
+  import Keyboard from "@lucide/svelte/icons/keyboard";
+  import Command from "@lucide/svelte/icons/command";
+  import CalendarDays from "@lucide/svelte/icons/calendar-days";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Check from "@lucide/svelte/icons/check";
+  import { INSTRUMENT_ICON } from "#lib/music/components/instrument-icons.ts";
   import { onMount } from "svelte";
-  import { SectionSpy } from "$lib/music/section-spy.svelte";
+  import { SectionSpy } from "#lib/music/section-spy.svelte.ts";
 
   const TOPICS = [
     { id: "session", label: "How a session works", hue: "piano", icon: Layers },

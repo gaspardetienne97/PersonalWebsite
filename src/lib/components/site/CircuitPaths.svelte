@@ -3,7 +3,7 @@
   distance from the roots, so the board spreads outward the way it was grown.
 -->
 <script lang="ts">
-  import { toPathData, type Board } from "$lib/circuit/router";
+  import { toPathData, type Board } from "#lib/circuit/router.ts";
 
   let {
     board,

@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string | number">
   import * as Tooltip from "@repo/ui/tooltip";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
   // A labelled setup choice: buttons that wrap for up to a dozen options (all
   // visible, one tap), a list only past that. Never overflows at 375 px. Long
   // catalogues with search belong in CatalogPicker.

@@ -36,7 +36,7 @@ export const beatToMs = (beat: number, bpm: number) => (beat * 60000) / bpm;
 export function bars(score: Pick<Score, "meter" | "lengthBeats" | "meterChanges">): Bar[] {
   if (score.meterChanges?.length) {
     const out: Bar[] = [];
-    for (let at = 0; at < score.lengthBeats - EPS; ) {
+    for (let at = 0; at < score.lengthBeats - EPS;) {
       const c = score.meterChanges.findLast((m) => m.startBeat <= at + EPS);
       const meter = c ? { beats: c.beats, beatUnit: c.beatUnit } : score.meter;
       const len = barBeats(meter);

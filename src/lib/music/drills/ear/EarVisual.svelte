@@ -11,7 +11,7 @@
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import { inversionOf } from "@repo/music-core/scoring/ear";
   import type { Score } from "@repo/music-core";
-  import Staff from "$lib/music/notation/Staff.svelte";
+  import Staff from "#lib/music/notation/Staff.svelte";
   import { degreeColor } from "./degrees";
   import { tokenLabel } from "./session";
 

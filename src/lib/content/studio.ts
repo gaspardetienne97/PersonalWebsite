@@ -12,32 +12,32 @@
  *   Bandcamp, Spotify or YouTube embed), and optionally a `cover` image.
  * Anything without a picture gets generated circuit art as its cover.
  */
-import d01sm from "$lib/images/studio/drawing-01-sm.webp";
-import d01lg from "$lib/images/studio/drawing-01-lg.webp";
-import d02sm from "$lib/images/studio/drawing-02-sm.webp";
-import d02lg from "$lib/images/studio/drawing-02-lg.webp";
-import d03sm from "$lib/images/studio/drawing-03-sm.webp";
-import d03lg from "$lib/images/studio/drawing-03-lg.webp";
-import d04sm from "$lib/images/studio/drawing-04-sm.webp";
-import d04lg from "$lib/images/studio/drawing-04-lg.webp";
-import d05sm from "$lib/images/studio/drawing-05-sm.webp";
-import d05lg from "$lib/images/studio/drawing-05-lg.webp";
-import d06sm from "$lib/images/studio/drawing-06-sm.webp";
-import d06lg from "$lib/images/studio/drawing-06-lg.webp";
-import d07sm from "$lib/images/studio/drawing-07-sm.webp";
-import d07lg from "$lib/images/studio/drawing-07-lg.webp";
-import d08sm from "$lib/images/studio/drawing-08-sm.webp";
-import d08lg from "$lib/images/studio/drawing-08-lg.webp";
-import d09sm from "$lib/images/studio/drawing-09-sm.webp";
-import d09lg from "$lib/images/studio/drawing-09-lg.webp";
+import d01sm from "#lib/images/studio/drawing-01-sm.webp";
+import d01lg from "#lib/images/studio/drawing-01-lg.webp";
+import d02sm from "#lib/images/studio/drawing-02-sm.webp";
+import d02lg from "#lib/images/studio/drawing-02-lg.webp";
+import d03sm from "#lib/images/studio/drawing-03-sm.webp";
+import d03lg from "#lib/images/studio/drawing-03-lg.webp";
+import d04sm from "#lib/images/studio/drawing-04-sm.webp";
+import d04lg from "#lib/images/studio/drawing-04-lg.webp";
+import d05sm from "#lib/images/studio/drawing-05-sm.webp";
+import d05lg from "#lib/images/studio/drawing-05-lg.webp";
+import d06sm from "#lib/images/studio/drawing-06-sm.webp";
+import d06lg from "#lib/images/studio/drawing-06-lg.webp";
+import d07sm from "#lib/images/studio/drawing-07-sm.webp";
+import d07lg from "#lib/images/studio/drawing-07-lg.webp";
+import d08sm from "#lib/images/studio/drawing-08-sm.webp";
+import d08lg from "#lib/images/studio/drawing-08-lg.webp";
+import d09sm from "#lib/images/studio/drawing-09-sm.webp";
+import d09lg from "#lib/images/studio/drawing-09-lg.webp";
 
-import Camera from "lucide-svelte/icons/camera";
-import Clapperboard from "lucide-svelte/icons/clapperboard";
-import CodeXml from "lucide-svelte/icons/code-xml";
-import MusicIcon from "lucide-svelte/icons/music";
-import Palette from "lucide-svelte/icons/palette";
-import PenTool from "lucide-svelte/icons/pen-tool";
-import PencilLine from "lucide-svelte/icons/pencil-line";
+import Camera from "@lucide/svelte/icons/camera";
+import Clapperboard from "@lucide/svelte/icons/clapperboard";
+import CodeXml from "@lucide/svelte/icons/code-xml";
+import MusicIcon from "@lucide/svelte/icons/music";
+import Palette from "@lucide/svelte/icons/palette";
+import PenTool from "@lucide/svelte/icons/pen-tool";
+import PencilLine from "@lucide/svelte/icons/pencil-line";
 import { projects, type Project } from "./projects";
 
 type Common = { id: string; title: string; year?: number; note?: string };

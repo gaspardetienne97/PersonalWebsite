@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { BREATH_LEVELS, REGISTER_PAIRS } from "../content/aero-skills";
 import {
   ARTICULATION_TARGET as WINDS_TARGET,

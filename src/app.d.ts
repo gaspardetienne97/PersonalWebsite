@@ -6,8 +6,8 @@
 declare global {
   namespace App {
     interface Locals {
-      user: import("$lib/server/auth").SessionUser | null;
-      session: import("$lib/server/auth").Session | null;
+      user: import("#lib/server/auth.ts").SessionUser | null;
+      session: import("#lib/server/auth.ts").Session | null;
     }
   } // interface Error {}
   // interface Locals {}

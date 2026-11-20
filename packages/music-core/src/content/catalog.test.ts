@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CHORD_SHAPES, SCALE_DATA, SKILL_IDS, TWO_HAND } from "../data";
 import { LEARNING_PATHS } from "../progress/paths";
 import { tuningById } from "../theory/fretboard";

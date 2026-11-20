@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CHORD_SHAPES } from "../data";
 import { tuningById } from "../theory/fretboard";
 import { parseChordSymbol } from "../theory/chords";

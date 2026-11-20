@@ -2,10 +2,10 @@
   // The microphone step on a fretted stage: nothing listens until the player
   // presses Start microphone; then a level meter with plain advice. Silent to
   // screen readers except through its own controls (the route owns role=status).
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
-  import { mic } from "$lib/music/runtime";
-  import { btnStage } from "$lib/music/components/ui";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
+  import { mic } from "#lib/music/runtime/index.ts";
+  import { btnStage } from "#lib/music/components/ui.ts";
 
   /** `disabled` locks Stop during a run; Start is always allowed. */
   let { hint = "Sit close to the sound hole, about a hand's width away.", disabled = false }: { hint?: string; disabled?: boolean } = $props();

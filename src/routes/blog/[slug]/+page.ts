@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { Component } from "svelte";
-import { getPosts } from "$lib/posts";
+import { getPosts } from "#lib/posts.ts";
 import type { PageLoad } from "./$types";
 
 const modules = import.meta.glob<{ default: Component }>("/src/lib/blog-posts/*.md");

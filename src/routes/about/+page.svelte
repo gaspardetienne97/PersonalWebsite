@@ -1,12 +1,12 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import Shuffle from "lucide-svelte/icons/shuffle";
+  import Shuffle from "@lucide/svelte/icons/shuffle";
   import { Button } from "@repo/ui/button";
   import { Separator } from "@repo/ui/separator";
-  import CircuitArt from "$lib/components/site/CircuitArt.svelte";
-  import LogoMark from "$lib/components/site/LogoMark.svelte";
-  import { socials } from "$lib/config";
-  import { MARKERS } from "$lib/circuit/router";
+  import CircuitArt from "#lib/components/site/CircuitArt.svelte";
+  import LogoMark from "#lib/components/site/LogoMark.svelte";
+  import { socials } from "#lib/config.ts";
+  import { MARKERS } from "#lib/circuit/router.ts";
 
   const work = [
     {
@@ -90,8 +90,10 @@
       <p class="gm-text">
         I also doodle here and there, paint sometimes and do a ton of other things. Mostly as a way to relax and try to connect with my creative side, which you'll find in my <a
           class="gm-inline-link"
-          href="{resolve('/studio')}?type=drawings">Studio</a
-        >.
+          href="{resolve('studio')}?type=drawings"
+        >Studio</a>
+
+        .
       </p>
     </div>
   </section>
@@ -109,21 +111,37 @@
       <h3>What's here</h3>
       <dl class="map">
         <div>
-          <dt><Button variant="link" href={resolve("/studio")} class="h-auto px-0">Studio</Button></dt>
+          <dt>
+            <Button
+              variant="link"
+              href={resolve('studio')}
+              class="h-auto px-0"
+            >Studio</Button>
+          </dt>
+
           <dd>
             Everything I make, from apps to doodles, each kind given the same space. See it as one
             wall or kind by kind.
           </dd>
         </div>
         <div>
-          <dt><Button variant="link" href={resolve("/blog")} class="h-auto px-0">Blog</Button></dt>
+          <dt>
+            <Button
+              variant="link"
+              href={resolve('blog')}
+              class="h-auto px-0"
+            >Blog</Button>
+          </dt>
+
           <dd>Notes on what I'm building and learning.</dd>
         </div>
         <div>
           <dt>
-            <Button variant="link" href="{resolve('/studio')}?type=projects" class="h-auto px-0">
-              Projects
-            </Button>
+            <Button
+              variant="link"
+              href="{resolve('studio')}?type=projects"
+              class="h-auto px-0"
+            >Projects</Button>
           </dt>
           <dd>
             Apps and Tools that I want to use. some expamples are: <a class="gm-inline-link" href="/music"

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import LogOut from "lucide-svelte/icons/log-out";
-  import Lock from "lucide-svelte/icons/lock";
+  import LogOut from "@lucide/svelte/icons/log-out";
+  import Lock from "@lucide/svelte/icons/lock";
   import * as Avatar from "@repo/ui/avatar";
   import { Button } from "@repo/ui/button";
   import { Empty } from "@repo/ui/empty";

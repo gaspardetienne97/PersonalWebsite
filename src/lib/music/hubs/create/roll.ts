@@ -1,8 +1,8 @@
 // The piano roll's document: voices of notes on a sixteenth grid, convertible
 // to and from the canonical score. Pure.
 import type { PlaybackSound, Score, ScoreNote } from "@repo/music-core";
-import type { SequenceNote } from "$lib/music/runtime/audio.svelte";
-import { STEP_BEATS } from "$lib/music/takes";
+import type { SequenceNote } from "#lib/music/runtime/audio.svelte.ts";
+import { STEP_BEATS } from "#lib/music/takes.ts";
 
 export const ROLL_KEY = "music.piano-roll";
 

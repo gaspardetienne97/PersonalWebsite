@@ -10,9 +10,9 @@
   // that answer would have landed. Notes light as they sound.
   import { noteName } from "@repo/music-core";
   import type { EarPrompt } from "@repo/music-core/content/ear";
-  import InstrumentStage, { fretTuning } from "$lib/music/components/InstrumentStage.svelte";
-  import type { CellMarks } from "$lib/music/components/feedback.svelte";
-  import { settings } from "$lib/music/runtime";
+  import InstrumentStage, { fretTuning } from "#lib/music/components/InstrumentStage.svelte";
+  import type { CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
   import EarVisual from "./EarVisual.svelte";
   import { tokenLabel } from "./session";
 

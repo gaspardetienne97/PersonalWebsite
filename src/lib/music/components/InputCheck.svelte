@@ -8,9 +8,9 @@
   // One line on the instrument's input, with one button to fix it. Before a run
   // it shows only when that input is off; after a silent run it says why
   // nothing was heard. On-screen play always works, so it never blocks Start.
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
-  import Plug from "lucide-svelte/icons/plug";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
+  import Plug from "@lucide/svelte/icons/plug";
   import { midi, mic, settings } from "../runtime";
   import { btn, btnPrimary } from "./ui";
 

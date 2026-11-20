@@ -1,15 +1,15 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import FileText from "lucide-svelte/icons/file-text";
+  import FileText from "@lucide/svelte/icons/file-text";
   import * as Card from "@repo/ui/card";
   import * as ToggleGroup from "@repo/ui/toggle-group";
   import { Badge } from "@repo/ui/badge";
   import { Empty } from "@repo/ui/empty";
   import { Separator } from "@repo/ui/separator";
-  import CircuitArt from "$lib/components/site/CircuitArt.svelte";
-  import { MARKERS } from "$lib/circuit/router";
-  import { parseDate } from "$lib/posts";
-  import { formatDate } from "$lib/utils";
+  import CircuitArt from "#lib/components/site/CircuitArt.svelte";
+  import { MARKERS } from "#lib/circuit/router.ts";
+  import { parseDate } from "#lib/posts.ts";
+  import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
 

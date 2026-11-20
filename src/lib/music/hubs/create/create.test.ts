@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { NoteEvent } from "@repo/music-core";
 import { buildKitFiles } from "@repo/music-core/io/mpc-kit";
 import { PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
@@ -45,7 +45,7 @@ import {
   trackColour,
 } from "./roll";
 import { chordsIn, progressionVoice, PROGRESSIONS } from "./progressions";
-import { clock, pairNotes, takeToScore, type MidiTake } from "$lib/music/takes";
+import { clock, pairNotes, takeToScore, type MidiTake } from "#lib/music/takes.ts";
 
 const on = (midi: number, at: number, velocity = 0.8): NoteEvent => ({
   kind: "noteon",
@@ -375,10 +375,18 @@ describe("chord progressions", () => {
           .map((n) => n.midi % 12),
       ),
     ).toEqual(new Set([2, 6, 9]));
-    const blues = progressionVoice(PROGRESSIONS.find((p) => p.id === "blues")!, 7, "b");
-    expect(Math.max(...blues.notes.map((n) => n.startBeat))).toBe(44); // twelve bars
-    expect(progressionVoice(PROGRESSIONS.find((p) => p.id === "minor")!, 9, "m").name).toBe(
-      "Minor in A minor",
+    const blues = progressionVoice(
+      PROGRESSIONS.find((p) => p.id === "blues")!,
+      7,
+      "b",
     );
+    expect(Math.max(...blues.notes.map((n) => n.startBeat))).toBe(44); // twelve bars
+    expect(
+      progressionVoice(
+        PROGRESSIONS.find((p) => p.id === "minor")!,
+        9,
+        "m",
+      ).name,
+    ).toBe("Minor in A minor");
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { scaleSemitones } from "../theory/scales";
 import { parseChordSymbol } from "../theory/chords";
 import {

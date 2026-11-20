@@ -28,7 +28,7 @@ Branch: `ge/personal-website-redesign` (not merged or pushed yet). Code:
 
 1. **Applications > Providers > Create > OAuth2/OpenID Provider.**
    - Client type: **Confidential**.
-   - Redirect URI (strict): `https://<site-host>/api/auth/oauth2/callback/authentik`
+   - Redirect URI (strict): `https://<site-host>/api/auth/callback/authentik`
      (the provider id `authentik` is part of the path).
    - Scopes: the defaults that cover `openid`, `email` and `profile`.
    - Signing key: any RSA key (the default certificate is fine).
@@ -139,20 +139,22 @@ otherwise answer no and leave them.
 
 ## 4. Nix build
 
-Two things in `flake.nix` need attention before the flake builds this branch:
+- **`pnpmDeps` hash.** `pnpm-lock.yaml` changed a lot (Better Auth, and every
+  dependency updated to its latest version), so the fixed-output hash in
+  `flake.nix` is stale. Build once, take the `got: sha256-...` value from the
+  hash-mismatch error, and put it in `pnpmDeps.hash`. It couldn't be computed
+  here because Nix isn't installed on the machine that made the change.
+- **The `apps/` lines are gone.** `installPhase` used to copy `apps/pdf` and
+  `apps/drums`, which no longer exist (removed in commit `43cf68e4`), along with
+  the `pdf` and `drums` packages built from them. They've been removed;
+  `/pdf` is served by the main `web` build.
+- **Node.** The site now needs Node `^22.18 || ^24.11 || >=26` (`package.json`
+  `engines`); the flake's `nodejs_24` qualifies if nixpkgs has 24.11 or later.
+- **SvelteKit 3.** There's no `svelte.config.js` any more; its settings live in
+  `vite.config.ts`. Environment variables are declared in `src/env.ts`.
 
-1. **`pnpmDeps` hash.** The branch changed `pnpm-lock.yaml` (added `better-auth`,
-   removed `@node-rs/argon2` and `@oslojs/*`), so the fixed-output hash changes.
-   Build once, take the `got: sha256-...` value from the hash-mismatch error, and
-   put it in `pnpmDeps.hash`.
-2. **Stale `apps/` copies (already broken before this change).** `installPhase`
-   copies `apps/pdf/package.json` and `apps/drums/package.json`, but `apps/` was
-   removed in commit `43cf68e4`, and so were the `pdf` and `drums` packages it
-   builds. Drop those lines and packages; `/pdf` is served by the main `web` build.
-
-Don't run `pnpm add` or a non-frozen `pnpm install` to "fix" the lockfile: the
-workspace pins the Vite+ toolchain to `@latest`, so any re-resolution also bumps
-the toolchain. Build with the frozen lockfile.
+Build with the frozen lockfile. The toolchain (Vite+, Vite, Vitest) is now pinned
+to exact versions, so installs no longer drift on their own.
 
 ## 5. Check it works
 
@@ -170,7 +172,7 @@ the toolchain. Build with the frozen lockfile.
 |---|---|
 | `/login` says "Sign-in isn't set up" | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `AUTHENTIK_ISSUER` or `AUTHENTIK_CLIENT_ID` missing |
 | "Authentik didn't answer" on `/login` | The site's server can't fetch the discovery URL (DNS, TLS, firewall) |
-| Authentik says the redirect URI is invalid | Redirect URI in Authentik doesn't exactly match `{BETTER_AUTH_URL}/api/auth/oauth2/callback/authentik` |
+| Authentik says the redirect URI is invalid | Redirect URI in Authentik doesn't exactly match `{BETTER_AUTH_URL}/api/auth/callback/authentik` |
 | `403 Cross-site POST form submissions are forbidden` | `ORIGIN` not set, or not the public URL |
 | Signed in, but bounced back to `/login` | Cookies not sticking: site not on HTTPS, or `BETTER_AUTH_URL` points at a different host |
 | Back on `/login` with "didn't work" | Look in the site's logs for `[auth]` lines and in Authentik's event log |

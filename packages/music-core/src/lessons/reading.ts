@@ -585,12 +585,10 @@ export function cellOnsets(cells: RhythmCell[]): { onsets: number[]; beats: numb
 }
 /** A bar as it is said: "1 e & a 2 e & a". */
 const allCounts = (perBeat: PerBeat, beatsPerBar: number) =>
-  Array.from(
-    { length: perBeat * beatsPerBar },
-    (_, i) =>
-      countName(i / perBeat, perBeat, beatsPerBar)
-        .split(" ")
-        .at(-1)!,
+  Array.from({ length: perBeat * beatsPerBar }, (_, i) =>
+    countName(i / perBeat, perBeat, beatsPerBar)
+      .split(" ")
+      .at(-1)!,
   );
 const countLine = (names: string[]) => names.join(" ");
 

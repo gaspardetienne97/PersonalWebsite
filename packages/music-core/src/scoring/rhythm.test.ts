@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import patterns from "../data/rhythm-patterns.json";
 import { gradeOnsets, gradePattern, gradePulse, type RhythmPattern } from "./rhythm";
 

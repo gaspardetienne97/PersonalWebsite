@@ -4,9 +4,9 @@
   the viewer.
 -->
 <script lang="ts">
-  import Maximize from "lucide-svelte/icons/maximize-2";
+  import Maximize from "@lucide/svelte/icons/maximize-2";
   import StudioCover from "./StudioCover.svelte";
-  import { kindInfo, type StudioItem } from "$lib/content/studio";
+  import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
 
   let { item, onopen }: { item: StudioItem; onopen: (item: StudioItem) => void } = $props();
 

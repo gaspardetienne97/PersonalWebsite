@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { readScore } from "$lib/server/scores";
+import { readScore } from "#lib/server/scores.ts";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params }) => {

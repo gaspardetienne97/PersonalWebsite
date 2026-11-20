@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PlaylistCard from '../../PlaylistCard.svelte';
 	import { readSpotifyStore } from '../../spotifyStore';
-	const { data } = $props<{ data: { id: string } }>();
+	const { data }: { data: { id: string } } = $props();
 
 	const spotify = readSpotifyStore();
 </script>

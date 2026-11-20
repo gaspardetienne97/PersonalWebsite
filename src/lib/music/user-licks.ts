@@ -1,7 +1,7 @@
 // Your licks: lines saved from Learn by ear or a transcription, kept in this
 // browser and drilled in Phrases in any key.
 import { stepsFromNotes, type UserLick } from "@repo/music-core/content/phrases";
-import { getSetting, putSetting } from "$lib/music/runtime";
+import { getSetting, putSetting } from "#lib/music/runtime/index.ts";
 
 const KEY = "music.user-licks";
 

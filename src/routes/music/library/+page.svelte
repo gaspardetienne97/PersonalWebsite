@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import SongsView from "$lib/music/hubs/library/SongsView.svelte";
-  import ReferenceView from "$lib/music/hubs/library/ReferenceView.svelte";
-  import ImportView from "$lib/music/hubs/library/ImportView.svelte";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import SongsView from "#lib/music/hubs/library/SongsView.svelte";
+  import ReferenceView from "#lib/music/hubs/library/ReferenceView.svelte";
+  import ImportView from "#lib/music/hubs/library/ImportView.svelte";
 
   const TABS = [
     { id: "songs", label: "Songs" },

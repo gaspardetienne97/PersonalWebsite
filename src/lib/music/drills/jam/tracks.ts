@@ -7,7 +7,7 @@ import {
   putBinary,
   type BackingTrackRow,
   type SequenceHandle,
-} from "$lib/music/runtime";
+} from "#lib/music/runtime/index.ts";
 
 export const MAX_TRACK_BYTES = 250 * 1024 * 1024;
 

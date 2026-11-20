@@ -8,30 +8,41 @@
  * - BETTER_AUTH_URL: the site's public address, e.g. https://example.com.
  * - AUTHENTIK_ISSUER, AUTHENTIK_CLIENT_ID, AUTHENTIK_CLIENT_SECRET: the Authentik
  *   OAuth2/OpenID provider. Its redirect URI is
- *   {BETTER_AUTH_URL}/api/auth/oauth2/callback/authentik.
+ *   {BETTER_AUTH_URL}/api/auth/callback/authentik.
  */
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { getRequestEvent } from "$app/server";
-import { env } from "$env/dynamic/private";
+
+import {
+  AUTHENTIK_ISSUER,
+  AUTHENTIK_CLIENT_ID,
+  AUTHENTIK_CLIENT_SECRET,
+  BETTER_AUTH_URL,
+  ORIGIN,
+  BETTER_AUTH_SECRET,
+  DATABASE_URL,
+  MUSIC_LOGIN,
+} from "$app/env/private";
+
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { genericOAuth } from "better-auth/plugins";
 import { sveltekitCookies } from "better-auth/svelte-kit";
-import { db } from "$lib/server/db";
-import * as schema from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.ts";
+import * as schema from "#lib/server/db/schema.ts";
 
 export const AUTHENTIK = "authentik";
 
 /** The Authentik provider, when its settings are present. */
 function authentikProvider() {
-  const issuer = env.AUTHENTIK_ISSUER?.replace(/\/+$/, "");
-  if (!issuer || !env.AUTHENTIK_CLIENT_ID) return [];
+  const issuer = AUTHENTIK_ISSUER?.replace(/\/+$/, "");
+  if (!issuer || !AUTHENTIK_CLIENT_ID) return [];
   return [
     {
       providerId: AUTHENTIK,
       discoveryUrl: `${issuer}/.well-known/openid-configuration`,
-      clientId: env.AUTHENTIK_CLIENT_ID,
-      clientSecret: env.AUTHENTIK_CLIENT_SECRET,
+      clientId: AUTHENTIK_CLIENT_ID,
+      clientSecret: AUTHENTIK_CLIENT_SECRET,
       scopes: ["openid", "profile", "email"],
       pkce: true,
     },
@@ -40,8 +51,8 @@ function authentikProvider() {
 
 function createAuth() {
   return betterAuth({
-    baseURL: env.BETTER_AUTH_URL || env.ORIGIN || undefined,
-    secret: env.BETTER_AUTH_SECRET || undefined,
+    baseURL: BETTER_AUTH_URL || ORIGIN || undefined,
+    secret: BETTER_AUTH_SECRET || undefined,
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {
@@ -74,17 +85,20 @@ let instance: Auth | null | undefined;
  */
 export function getAuth(): Auth | null {
   if (instance !== undefined) return instance;
-  if (!env.DATABASE_URL) return (instance = null);
-  if (!dev && !env.BETTER_AUTH_SECRET) {
+  if (!DATABASE_URL) return (instance = null);
+  if (!dev && !BETTER_AUTH_SECRET) {
     console.error("[auth] BETTER_AUTH_SECRET is not set, so sign-in is turned off.");
     return (instance = null);
   }
   return (instance = createAuth());
 }
 
+/** Authentik's origin: the one external place sign-in may redirect the browser to. */
+export const authentikOrigin = () => (AUTHENTIK_ISSUER ? new URL(AUTHENTIK_ISSUER).origin : null);
+
 /** Whether the Authentik button can work on this server. */
 export const authentikConfigured = () => getAuth() !== null && authentikProvider().length > 0;
 
 /** This deployment keeps the music app behind a login. Off by default, so local dev and the
  * e2e preview run without a database. */
-export const musicLoginRequired = () => env.MUSIC_LOGIN === "required";
+export const musicLoginRequired = () => MUSIC_LOGIN === "required";

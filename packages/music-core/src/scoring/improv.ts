@@ -323,7 +323,7 @@ export function findQuotes(
   const l = squash(line);
   const h = squash(head).map((x) => x.m);
   const out: { from: number; to: number; length: number }[] = [];
-  for (let i = 0; i < l.length; ) {
+  for (let i = 0; i < l.length;) {
     let best = 0;
     for (let j = 0; j < h.length; j++) {
       if (pc(l[i].m) !== pc(h[j])) continue;

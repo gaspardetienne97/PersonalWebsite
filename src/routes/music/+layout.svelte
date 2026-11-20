@@ -2,24 +2,24 @@
   import "./woodshed.css";
   import { page } from "$app/state";
   import { onMount } from "svelte";
-  import { afterNavigate, replaceState } from "$app/navigation";
-  import { DRILL_ROUTES, noteNavigation } from "$lib/music/came-from.svelte";
-  import House from "lucide-svelte/icons/house";
-  import Library from "lucide-svelte/icons/library";
-  import Grid from "lucide-svelte/icons/grid-3x3";
-  import Chart from "lucide-svelte/icons/chart-column";
-  import CircleDot from "lucide-svelte/icons/circle-dot";
-  import Cable from "lucide-svelte/icons/cable";
-  import Gauge from "lucide-svelte/icons/gauge";
-  import Cog from "lucide-svelte/icons/settings";
-  import Help from "lucide-svelte/icons/circle-question-mark";
-  import Collapse from "lucide-svelte/icons/panel-left-close";
-  import Expand from "lucide-svelte/icons/panel-left-open";
-  import Ellipsis from "lucide-svelte/icons/ellipsis";
-  import BenchStrip from "$lib/music/components/BenchStrip.svelte";
-  import CommandPalette from "$lib/music/components/CommandPalette.svelte";
-  import { bench } from "$lib/music/bench.svelte";
-  import { audio, input, midi, settings } from "$lib/music/runtime";
+  import { afterNavigate, goto } from "$app/navigation";
+  import { DRILL_ROUTES, noteNavigation } from "#lib/music/came-from.svelte.ts";
+  import House from "@lucide/svelte/icons/house";
+  import Library from "@lucide/svelte/icons/library";
+  import Grid from "@lucide/svelte/icons/grid-3x3";
+  import Chart from "@lucide/svelte/icons/chart-column";
+  import CircleDot from "@lucide/svelte/icons/circle-dot";
+  import Cable from "@lucide/svelte/icons/cable";
+  import Gauge from "@lucide/svelte/icons/gauge";
+  import Cog from "@lucide/svelte/icons/settings";
+  import Help from "@lucide/svelte/icons/circle-question-mark";
+  import Collapse from "@lucide/svelte/icons/panel-left-close";
+  import Expand from "@lucide/svelte/icons/panel-left-open";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import BenchStrip from "#lib/music/components/BenchStrip.svelte";
+  import CommandPalette from "#lib/music/components/CommandPalette.svelte";
+  import { bench } from "#lib/music/bench.svelte.ts";
+  import { audio, input, midi, settings } from "#lib/music/runtime/index.ts";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
 
   let { children } = $props();
@@ -39,13 +39,14 @@
   ];
 
   const path = $derived(page.url.pathname.replace(/\/$/, "") || "/music");
-  const current = (item: { href: string; owns?: string[] }) =>
-    path === item.href ||
-    (item.href !== "/music" && path.startsWith(item.href + "/")) ||
-    (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
+  const current = (item: { href: string; owns?: string[] }) => path === item.href || item.href !== "/music" && path.startsWith(item.href + "/") || (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
 
   // Remember where each page was opened from (drills show "Back to ...").
-  afterNavigate((nav) => noteNavigation(nav.from?.url, nav.to?.url));
+  afterNavigate((nav) => {
+    if (nav.shallow && nav.type === 'goto') return;
+
+    return noteNavigation(nav.from?.url, nav.to?.url);
+  });
 
   let collapsed = $state(false);
   let moreOpen = $state(false);
@@ -87,15 +88,15 @@
     const want = page.url.searchParams.get("instrument");
     if (want && (INSTRUMENTS as readonly string[]).includes(want) && !bench.locked)
       void settings.ready.then(() => {
-        if (settings.value.activeInstrument !== want) void settings.update({ activeInstrument: want as Instrument });
-        const url = new URL(page.url);
-        url.searchParams.delete("instrument");
-        try {
-          replaceState(url, page.state);
-        } catch {
-          /* before the router starts: the next navigation drops it */
-        }
-      });
+      if (settings.value.activeInstrument !== want) void settings.update({ activeInstrument: want as Instrument });
+      const url = new URL(page.url.href);
+      url.searchParams.delete("instrument");
+      try {
+        goto(url, { shallow: true, replace: true, state: page.state });
+      } catch {
+        /* before the router starts: the next navigation drops it */
+      }
+    });
   });
 
   // Pages that run no clock: the strip dims Tempo and Count-in there.
@@ -191,10 +192,8 @@
             aria-expanded={moreOpen}
             aria-controls="woodshed-more"
             bind:this={moreButton}
-            onclick={() => (moreOpen = !moreOpen)}
-          >
-            <Ellipsis class="size-5" aria-hidden="true" />More
-          </button>
+            onclick={() => moreOpen = !moreOpen}
+          ><Ellipsis class="size-5" aria-hidden="true" />More</button>
         </li>
       </ul>
       {#if moreOpen}

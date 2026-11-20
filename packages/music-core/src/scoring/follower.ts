@@ -127,13 +127,11 @@ export function waitResult(state: WaitState): WaitResult {
     score,
     correct: completed === total && score >= 0.9,
     metrics: state.groups.flatMap((g, i) =>
-      g.notes.map(
-        (n): Metric => ({
-          kind: "pitch",
-          expectedMidi: n.midi,
-          actualMidi: i < completed ? n.midi : undefined,
-        }),
-      ),
+      g.notes.map((n): Metric => ({
+        kind: "pitch",
+        expectedMidi: n.midi,
+        actualMidi: i < completed ? n.midi : undefined,
+      })),
     ),
     notMeasured: [],
     completed,

@@ -1,28 +1,28 @@
+<script lang="ts">
+  import { resolve } from "$app/paths";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import { Badge } from "@repo/ui/badge";
+  import CircuitArt from "./CircuitArt.svelte";
+  import StudioCover from "./StudioCover.svelte";
+  import { STUDIO, STUDIO_KINDS, everything } from "#lib/content/studio.ts";
+
+  let { headingLevel = 3, writing
+
+  /** Show Writing as the last door: the newest titles and how many posts there are. */
+   }: { 
+    headingLevel?: 2 | 3;
+    writing?: { titles: string[]; count: number }
+   } = $props();
+
+  const studio = resolve('studio');
+  const all = everything();
+</script>
+
 <!--
   The Studio by kind: one equal card per kind, each with a peek at up to four of
   its pieces. The last card is everything together (the Studio's "Kinds" view),
   or, given `writing`, the blog as one more door (the home page).
 -->
-<script lang="ts">
-  import { resolve } from "$app/paths";
-  import ArrowRight from "lucide-svelte/icons/arrow-right";
-  import { Badge } from "@repo/ui/badge";
-  import CircuitArt from "./CircuitArt.svelte";
-  import StudioCover from "./StudioCover.svelte";
-  import { STUDIO, STUDIO_KINDS, everything } from "$lib/content/studio";
-
-  let {
-    headingLevel = 3,
-    writing,
-  }: {
-    headingLevel?: 2 | 3;
-    /** Show Writing as the last door: the newest titles and how many posts there are. */
-    writing?: { titles: string[]; count: number };
-  } = $props();
-
-  const studio = resolve("/studio");
-  const all = everything();
-</script>
 
 <ul class="doors">
   {#each STUDIO_KINDS as info (info.kind)}
@@ -31,7 +31,7 @@
       <a class="door" href="{studio}?type={info.kind}">
         <span class="peek n{Math.min(items.length, 4)}" aria-hidden="true">
           {#each items.slice(0, 4) as item (item.media.id)}
-            <span class="cell"><StudioCover {item} size={240} /></span>
+            <span class="cell"><StudioCover item={item} size={240} /></span>
           {:else}
             <span class="cell empty">
               <CircuitArt seed="door-{info.kind}" colors={info.colors} icon={info.icon} width={320} height={320} />
@@ -53,7 +53,7 @@
   {/each}
   {#if writing}
     <li>
-      <a class="door" href={resolve("/blog")}>
+      <a class="door" href={resolve('blog')}>
         <span class="peek n1" aria-hidden="true">
           <span class="cell page">
             {#each writing.titles.slice(0, 4) as title (title)}
@@ -74,7 +74,7 @@
       <a class="door all" href={studio}>
         <span class="peek n{Math.min(all.length, 4)}" aria-hidden="true">
           {#each all.slice(0, 4) as item (item.kind + item.media.id)}
-            <span class="cell"><StudioCover {item} size={240} /></span>
+            <span class="cell"><StudioCover item={item} size={240} /></span>
           {/each}
         </span>
         <span class="label">

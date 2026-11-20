@@ -1,13 +1,13 @@
 <script lang="ts">
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import BookOpen from "lucide-svelte/icons/book-open";
-  import Check from "lucide-svelte/icons/check";
-  import FileText from "lucide-svelte/icons/file-text";
-  import Mic from "lucide-svelte/icons/mic";
-  import Quote from "lucide-svelte/icons/quote";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Type from "lucide-svelte/icons/type";
-  import X from "lucide-svelte/icons/x";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import BookOpen from "@lucide/svelte/icons/book-open";
+  import Check from "@lucide/svelte/icons/check";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Quote from "@lucide/svelte/icons/quote";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Type from "@lucide/svelte/icons/type";
+  import X from "@lucide/svelte/icons/x";
 
   import type { DocKind, NarratorDoc } from "@repo/pdf-core/domain";
   import {

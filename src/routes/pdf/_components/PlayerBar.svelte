@@ -1,13 +1,13 @@
 <script lang="ts">
-  import Check from "lucide-svelte/icons/check";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Gauge from "lucide-svelte/icons/gauge";
-  import List from "lucide-svelte/icons/list";
-  import Mic from "lucide-svelte/icons/mic";
-  import Pause from "lucide-svelte/icons/pause";
-  import Play from "lucide-svelte/icons/play";
-  import SkipBack from "lucide-svelte/icons/skip-back";
-  import SkipForward from "lucide-svelte/icons/skip-forward";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Gauge from "@lucide/svelte/icons/gauge";
+  import List from "@lucide/svelte/icons/list";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Pause from "@lucide/svelte/icons/pause";
+  import Play from "@lucide/svelte/icons/play";
+  import SkipBack from "@lucide/svelte/icons/skip-back";
+  import SkipForward from "@lucide/svelte/icons/skip-forward";
 
   import { KOKORO_VOICES } from "@repo/pdf-core";
   import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";

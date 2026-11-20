@@ -54,10 +54,10 @@
     "./tooltip/index.js": "./src/tooltip/index.ts"
   },
   "dependencies": {
+    "@lucide/svelte": "catalog:",
     "bits-ui": "catalog:",
     "clsx": "catalog:",
     "embla-carousel-svelte": "catalog:",
-    "lucide-svelte": "catalog:",
     "mode-watcher": "catalog:",
     "svelte": "catalog:",
     "svelte-sonner": "catalog:",

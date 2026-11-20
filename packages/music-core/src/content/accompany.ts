@@ -1278,7 +1278,7 @@ export function leadSheetRendering(
       prev = lh;
     }
     const end = c.startBeat + c.durationBeats;
-    for (let t = c.startBeat; t < end - 1e-6; ) {
+    for (let t = c.startBeat; t < end - 1e-6;) {
       const nextBar = (Math.floor(t / BEATS_PER_BAR + 1e-6) + 1) * BEATS_PER_BAR;
       const until = Math.min(end, nextBar);
       slots.push(L(t, until - t, ...lh));

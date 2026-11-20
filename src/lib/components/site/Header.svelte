@@ -3,15 +3,15 @@
   import { resolve } from "$app/paths";
   import { MediaQuery } from "svelte/reactivity";
   import { toggleMode } from "mode-watcher";
-  import Sun from "lucide-svelte/icons/sun";
-  import Moon from "lucide-svelte/icons/moon";
-  import Menu from "lucide-svelte/icons/menu";
+  import Sun from "@lucide/svelte/icons/sun";
+  import Moon from "@lucide/svelte/icons/moon";
+  import Menu from "@lucide/svelte/icons/menu";
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
   import { Button, buttonVariants } from "@repo/ui/button";
   import CircuitBackground from "./CircuitBackground.svelte";
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro, shortcutListener } from "./intro.svelte";
-  import { isFullscreenApp, nav, shortName } from "$lib/config";
+  import { isFullscreenApp, nav, shortName } from "#lib/config.ts";
 
   const path = $derived(page.url?.pathname ?? "/");
   const narrow = new MediaQuery("(width < 640px)");
@@ -58,11 +58,11 @@
         </nav>
 
         {#if narrow.current}
-          <DropdownMenu.Root modal={false}>
+          <DropdownMenu.Root>
             <DropdownMenu.Trigger class={buttonVariants({ variant: "ghost" })}>
               <Menu class="size-4" aria-hidden="true" /><span>Site menu</span>
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" class="min-w-44">
+            <DropdownMenu.Content align="end" class="min-w-44" preventScroll={false}>
               {#each nav as link (link.href)}
                 <DropdownMenu.Item class="min-h-11 text-base">
                   {#snippet child({ props })}

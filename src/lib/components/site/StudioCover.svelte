@@ -4,9 +4,9 @@
   anything without one. Videos and music get a play mark.
 -->
 <script lang="ts">
-  import Play from "lucide-svelte/icons/play";
+  import Play from "@lucide/svelte/icons/play";
   import CircuitArt from "./CircuitArt.svelte";
-  import { kindInfo, type StudioItem } from "$lib/content/studio";
+  import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
 
   let { item, size = 400 }: { item: StudioItem; size?: number } = $props();
 

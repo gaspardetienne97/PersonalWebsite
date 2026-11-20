@@ -3,8 +3,8 @@
 import { noteName, type Score, type ScoreSection } from "@repo/music-core";
 import { midiToScore } from "@repo/music-core/io/midi-file";
 import { parseMusicXml, parseMxl } from "@repo/music-core/io/musicxml";
-import { barBeats } from "$lib/music/notation/groups";
-import { db } from "$lib/music/runtime";
+import { barBeats } from "#lib/music/notation/groups.ts";
+import { db } from "#lib/music/runtime/index.ts";
 
 export type Song = {
   id: string;

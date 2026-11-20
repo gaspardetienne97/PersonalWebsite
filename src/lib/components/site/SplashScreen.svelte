@@ -11,9 +11,9 @@
 -->
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import ChevronsDown from "lucide-svelte/icons/chevrons-down";
+  import ChevronsDown from "@lucide/svelte/icons/chevrons-down";
   import { Button } from "@repo/ui/button";
-  import type { Board } from "$lib/circuit/router";
+  import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
   import { SEEN_CLASS, SEEN_KEY, growSiteBoard, randomSeed, site } from "./intro.svelte";

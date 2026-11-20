@@ -11,7 +11,7 @@ import {
   CHORD_WINDOW_MS,
 } from "@repo/music-core/signal/chroma";
 import { rmsDb } from "@repo/music-core/signal/level";
-import { input, mic, type MicFrame } from "$lib/music/runtime";
+import { input, mic, type MicFrame } from "#lib/music/runtime/index.ts";
 
 const HISTORY_MS = 2500;
 /** Below this RMS the window is silence, not a chord (a quiet room still has a strongest bin). */

@@ -5,21 +5,21 @@
   // the notes; changing it, the hands split or the sensitivity re-snaps the
   // draft (and asks first once you have edited it).
   import { onDestroy, onMount } from "svelte";
-  import Upload from "lucide-svelte/icons/upload";
-  import Plus from "lucide-svelte/icons/plus";
-  import Minus from "lucide-svelte/icons/minus";
+  import Upload from "@lucide/svelte/icons/upload";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Minus from "@lucide/svelte/icons/minus";
   import type { Score } from "@repo/music-core";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import PianoRoll from "$lib/music/hubs/create/PianoRoll.svelte";
-  import { btn, btnPrimary, panel } from "$lib/music/components/ui";
-  import { db, getBinary } from "$lib/music/runtime";
-  import { extensionFor, takeKey } from "$lib/music/hubs/create/audioTakes";
-  import { recentTakes, takeLength, type MidiTake } from "$lib/music/takes";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import PianoRoll from "#lib/music/hubs/create/PianoRoll.svelte";
+  import { btn, btnPrimary, panel } from "#lib/music/components/ui.ts";
+  import { db, getBinary } from "#lib/music/runtime/index.ts";
+  import { extensionFor, takeKey } from "#lib/music/hubs/create/audioTakes.ts";
+  import { recentTakes, takeLength, type MidiTake } from "#lib/music/takes.ts";
   import { ScoreEditor } from "./score-editor.svelte";
   import { Transcriber, type Engine } from "./transcriber.svelte";
   import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
   import { songFromScore, type Song } from "./songs";
-  import { saveUserLick } from "$lib/music/user-licks";
+  import { saveUserLick } from "#lib/music/user-licks.ts";
 
   let {
     from,

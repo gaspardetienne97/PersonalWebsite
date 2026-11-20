@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { PROGRESSIONS } from "@repo/music-core/content/jam";
 import { backingNotes, chordVoicing, degreeLabel, positionAt } from "./backing";
 

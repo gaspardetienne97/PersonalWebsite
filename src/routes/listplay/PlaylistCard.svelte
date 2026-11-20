@@ -1,11 +1,11 @@
 <script lang="ts">
 	import * as Card from '@repo/ui/card';
-	const { name, imageUrl, trackCount, id } = $props<{
+	const { name, imageUrl, trackCount, id }: {
 		name: string;
 		imageUrl: string;
 		trackCount?: number;
 		id: string;
-	}>();
+	} = $props();
 </script>
 
 <Card.Root class="overflow-hidden rounded">

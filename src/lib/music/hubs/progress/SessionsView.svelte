@@ -1,7 +1,7 @@
 <script lang="ts">
   // Sessions: what you actually did, and whether the same setup improved.
-  import Lock from "lucide-svelte/icons/lock";
-  import Check from "lucide-svelte/icons/check";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Check from "@lucide/svelte/icons/check";
   import {
     achievements,
     computeStreak,

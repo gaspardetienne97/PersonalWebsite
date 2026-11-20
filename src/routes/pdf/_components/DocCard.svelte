@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Clock from "lucide-svelte/icons/clock";
-  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
 
   import { fmt, type NarrationModel, type NarratorDoc } from "@repo/pdf-core/domain";
 

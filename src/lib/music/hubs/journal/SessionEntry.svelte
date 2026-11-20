@@ -2,7 +2,7 @@
   // One journal entry as a card named for its drills, with the drill's icon and a score
   // sparkline; on demand its runs and attempt evidence. Delete lives in the edit view,
   // behind a confirm, so it is never one tap from the main actions.
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { tick } from "svelte";
   import type { PracticeSession, ScoringEvent } from "@repo/music-core";
   import { sessionMinutes } from "@repo/music-core/progress/journal";

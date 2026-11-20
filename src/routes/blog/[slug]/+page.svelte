@@ -1,14 +1,14 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import ChevronLeft from "lucide-svelte/icons/chevron-left";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import * as Card from "@repo/ui/card";
   import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import { Separator } from "@repo/ui/separator";
-  import CircuitArt from "$lib/components/site/CircuitArt.svelte";
-  import { MARKERS } from "$lib/circuit/router";
-  import { name } from "$lib/config";
-  import { formatDate } from "$lib/utils";
+  import CircuitArt from "#lib/components/site/CircuitArt.svelte";
+  import { MARKERS } from "#lib/circuit/router.ts";
+  import { name } from "#lib/config.ts";
+  import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
   const post = $derived(data.post);
@@ -30,8 +30,13 @@
 </svelte:head>
 
 <article class="gm-page post">
-  <Button variant="ghost" href={resolve("/blog")} class="-ml-3">
-    <ChevronLeft data-icon="inline-start" aria-hidden="true" />All posts
+  <Button
+    variant="ghost"
+    href={resolve('blog')}
+    class="-ml-3"
+  >
+    <ChevronLeft data-icon="inline-start" aria-hidden="true" />
+    All posts
   </Button>
 
   <header class="head">

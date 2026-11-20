@@ -3,9 +3,9 @@
   // shows the same stored name). It starts only on a tap and stops on leaving.
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { mic, settings } from "$lib/music/runtime";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { mic, settings } from "#lib/music/runtime/index.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
   import { micOptions } from "./rig";
 
   let { announce }: { announce: (text: string) => void } = $props();

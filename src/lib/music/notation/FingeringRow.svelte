@@ -2,7 +2,7 @@
   import { noteName, type Score } from "@repo/music-core";
   import { AEROPHONE_FINGERINGS } from "@repo/music-core/data/index";
   import { transposeFifths, writtenOffset } from "@repo/music-core/theory/transposition";
-  import { settings } from "$lib/music/runtime";
+  import { settings } from "#lib/music/runtime/index.ts";
   import { scoreGroups, type BeatRange } from "./groups";
   import type { GroupState } from "./NotationFrame.svelte";
 

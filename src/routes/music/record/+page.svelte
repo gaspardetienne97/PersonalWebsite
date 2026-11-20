@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import MidiRecorder from "$lib/music/hubs/create/MidiRecorder.svelte";
-  import AudioRecorder from "$lib/music/hubs/create/AudioRecorder.svelte";
-  import { bench } from "$lib/music/bench.svelte";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import MidiRecorder from "#lib/music/hubs/create/MidiRecorder.svelte";
+  import AudioRecorder from "#lib/music/hubs/create/AudioRecorder.svelte";
+  import { bench } from "#lib/music/bench.svelte.ts";
 
   const TABS = [
     { id: "midi", label: "MIDI notes" },

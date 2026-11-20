@@ -2,12 +2,12 @@
   // Write a song-form piece: sections in order (an intro, grooves from any
   // level, a chop on the slices, a solo over a loop, an end), each with its
   // bars and its level. Every change is saved; the run plays and grades it.
-  import ArrowUp from "lucide-svelte/icons/arrow-up";
-  import ArrowDown from "lucide-svelte/icons/arrow-down";
-  import Trash from "lucide-svelte/icons/trash-2";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import ArrowDown from "@lucide/svelte/icons/arrow-down";
+  import Trash from "@lucide/svelte/icons/trash-2";
   import { CHOP_EDITS, CHOP_SOURCES, WRITTEN_ENDS, WRITTEN_GROOVES, setCheck, writtenPiece, type Dyn, type WrittenRole, type WrittenSection, type WrittenSong } from "@repo/music-core/content/pads-studio";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import { btn } from "$lib/music/components/ui";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import { btn } from "#lib/music/components/ui.ts";
 
   let { song, bpm, onchange, ondelete }: { song: WrittenSong; bpm: number; onchange: (song: WrittenSong) => void; ondelete: () => void } = $props();
 

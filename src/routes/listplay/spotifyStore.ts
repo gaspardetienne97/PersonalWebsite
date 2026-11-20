@@ -1,4 +1,4 @@
-import { env } from "$env/dynamic/public";
+import { PUBLIC_SPOTIFY_CLIENT_ID } from "$app/env/public";
 import { Scopes, SpotifyApi, type UserProfile } from "@spotify/web-api-ts-sdk";
 import { getContext, setContext } from "svelte";
 
@@ -8,9 +8,10 @@ export class Spotify {
   private redirectURL;
   constructor(redirectURL?: string) {
     this.redirectURL = redirectURL;
+
     this.sdk =
-      redirectURL && env.PUBLIC_SPOTIFY_CLIENT_ID
-        ? SpotifyApi.withUserAuthorization(env.PUBLIC_SPOTIFY_CLIENT_ID, redirectURL, [
+      redirectURL && PUBLIC_SPOTIFY_CLIENT_ID
+        ? SpotifyApi.withUserAuthorization(PUBLIC_SPOTIFY_CLIENT_ID, redirectURL, [
             ...Scopes.playlist,
             ...Scopes.userDetails,
           ])
@@ -25,12 +26,8 @@ export class Spotify {
   login() {
     if (!this.sdk) {
       this.sdk =
-        this.redirectURL && env.PUBLIC_SPOTIFY_CLIENT_ID
-          ? SpotifyApi.withUserAuthorization(
-              env.PUBLIC_SPOTIFY_CLIENT_ID,
-              this.redirectURL,
-              Scopes.all,
-            )
+        this.redirectURL && PUBLIC_SPOTIFY_CLIENT_ID
+          ? SpotifyApi.withUserAuthorization(PUBLIC_SPOTIFY_CLIENT_ID, this.redirectURL, Scopes.all)
           : undefined;
     }
   }

@@ -1,7 +1,7 @@
 // The scale on the neck: every target with its fretting finger, the root
 // marked, the step to play now lit, and each played step green or red.
 import { pc } from "@repo/music-core";
-import type { FretMark } from "$lib/music/components/Fretboard.svelte";
+import type { FretMark } from "#lib/music/components/Fretboard.svelte";
 
 export type Outcome = "correct" | "wrong" | "missed";
 // A place played on the way up and again on the way down shows its worse take.

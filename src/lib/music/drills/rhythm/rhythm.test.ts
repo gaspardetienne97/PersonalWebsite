@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { NoteEvent } from "@repo/music-core";
 import { expandRhythm, RHYTHM_PATTERNS, rhythmPattern } from "@repo/music-core/content/rhythm";
 import { gradePattern } from "@repo/music-core/scoring/rhythm";

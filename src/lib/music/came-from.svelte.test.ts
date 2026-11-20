@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { backFor, DRILL_ROUTES, noteNavigation, ownerOf } from "./came-from.svelte";
 
 describe("back links", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import { SKILL_GRAPH } from "../progress/graph";

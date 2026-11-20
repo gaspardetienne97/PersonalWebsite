@@ -13,8 +13,8 @@
   import { parseTags, plural, signed } from "../progress/model";
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import { instrumentOptions } from "$lib/music/components/instrument-icons";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import { instrumentOptions } from "#lib/music/components/instrument-icons.ts";
 
   let { announce = () => {}, now = Date.now() }: { announce?: (msg: string) => void; now?: number } = $props();
 

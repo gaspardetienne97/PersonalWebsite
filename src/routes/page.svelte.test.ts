@@ -4,7 +4,7 @@ import Page from "./+page.svelte";
 
 describe("/+page.svelte", () => {
   it("shows the newest post and piece, then a door for every kind", async () => {
-    render(Page, {
+    await render(Page, {
       data: {
         posts: [
           {

@@ -1,10 +1,10 @@
 <script lang="ts">
   // Tunes (jazz path ranks 1 and 11): each standard's ladder, rungs a to f read from checked
   // runs, and the repertoire, where a tune with rung a done comes back for review.
-  import Check from "lucide-svelte/icons/check";
+  import Check from "@lucide/svelte/icons/check";
   import { RUNGS, nextReview, tuneLadders, type Rung, type TuneLadderState } from "@repo/music-core/progress/ladder";
-  import { practice } from "$lib/music/practice.svelte";
-  import { btn, panel } from "$lib/music/components/ui";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { btn, panel } from "#lib/music/components/ui.ts";
 
   let all = $state(false);
   const runs = $derived(practice.sessions.flatMap((s) => s.runs));

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import JournalView from "$lib/music/hubs/journal/JournalView.svelte";
+  import JournalView from "#lib/music/hubs/journal/JournalView.svelte";
 
   let status = $state("");
   const announce = (msg: string) => {

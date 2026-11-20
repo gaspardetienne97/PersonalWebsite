@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import TodayView from "$lib/music/hubs/TodayView.svelte";
-  import DrillsView from "$lib/music/hubs/DrillsView.svelte";
-  import PathsView from "$lib/music/hubs/PathsView.svelte";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import TodayView from "#lib/music/hubs/TodayView.svelte";
+  import DrillsView from "#lib/music/hubs/DrillsView.svelte";
+  import PathsView from "#lib/music/hubs/PathsView.svelte";
 
   const TABS = [
     { id: "today", label: "Today" },

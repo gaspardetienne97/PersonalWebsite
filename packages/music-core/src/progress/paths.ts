@@ -573,14 +573,12 @@ function stepEvidence(
         (step.minBpm === undefined || Number(r.params.bpm ?? 0) >= step.minBpm - 1e-9) &&
         matches((k) => String(r.params[k] ?? "")),
     );
-    const items = runs.map(
-      (r): Evidence => ({
-        at: r.endedAt,
-        score: r.score ?? (r.correct ? 1 : 0),
-        session: r.id,
-        param: (k) => String(r.params[k] ?? ""),
-      }),
-    );
+    const items = runs.map((r): Evidence => ({
+      at: r.endedAt,
+      score: r.score ?? (r.correct ? 1 : 0),
+      session: r.id,
+      param: (k) => String(r.params[k] ?? ""),
+    }));
     return evidenceRows(step, items, eachOf, eachKeys ?? ["drill"]);
   }
 

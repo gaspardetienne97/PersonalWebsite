@@ -15,7 +15,7 @@ visitors to a page that no longer exists. Point it at `/login`:
 
 ```ts
 import { redirect } from "@sveltejs/kit";
-import { musicLoginRequired } from "$lib/server/auth";
+import { musicLoginRequired } from "#lib/server/auth.ts";
 import type { LayoutServerLoad } from "./$types";
 
 // A server load, so client-side navigation into /music asks the server too.
@@ -42,10 +42,10 @@ Better Auth's session (`id`, `token`, `userId`, `expiresAt`, ...). Both are
 
 **3. Anything that used the old auth module or tables directly.** These are gone:
 
-- From `$lib/server/auth`: `sessionCookieName`, `generateSessionToken`,
+- From `#lib/server/auth`: `sessionCookieName`, `generateSessionToken`,
   `createSession`, `validateSessionToken`, `invalidateSession`,
   `setSessionTokenCookie`, `deleteSessionTokenCookie`, `SessionValidationResult`.
-- From `$lib/server/db/schema`: the `user` and `session` tables and the `User` and
+- From `#lib/server/db/schema`: the `user` and `session` tables and the `User` and
   `Session` types.
 - The packages `@node-rs/argon2`, `@oslojs/crypto` and `@oslojs/encoding`.
 
@@ -57,7 +57,7 @@ grep -rnE "demo/lucia|validateSessionToken|sessionCookieName|auth-session|Sessio
 
 ## What stays the same
 
-- `musicLoginRequired()` in `$lib/server/auth` (true when `MUSIC_LOGIN=required`).
+- `musicLoginRequired()` in `#lib/server/auth` (true when `MUSIC_LOGIN=required`).
 - `hooks.server.ts` still answers `/api/music/*` with `401 { message: "Sign in first" }`
   when the login is required and nobody is signed in.
 - Without `DATABASE_URL` (local dev, the e2e preview) everyone is signed out and
@@ -66,7 +66,7 @@ grep -rnE "demo/lucia|validateSessionToken|sessionCookieName|auth-session|Sessio
 ## The new auth API, if the music app needs more
 
 ```ts
-import { getAuth } from "$lib/server/auth";
+import { getAuth } from "#lib/server/auth.ts";
 
 // Server side. null when sign-in isn't configured here.
 const auth = getAuth();
@@ -79,17 +79,35 @@ In pages and endpoints, prefer `locals.user` and `locals.session`, which
 
 ## Merging with this branch
 
-This branch rewrote these files. If your branch also touched them, take this
-branch's version and reapply your change on top:
+Besides sign-in, this branch updated **every dependency to its latest version**,
+including major upgrades, and that touched music files too. Before merging your
+branch, bring it up to the same versions or the merge will fight you:
+
+- **SvelteKit 3.** `svelte.config.js` is gone (settings are in `vite.config.ts`),
+  `$lib` is replaced by `#lib/...` imports with file extensions, `$app/stores` by
+  `$app/state`, hook types come from `@sveltejs/kit/hooks`, `goto` takes
+  `{ replace, reset }` instead of `{ replaceState, noScroll, keepFocus }`, and
+  `page.url` is read-only (copy it with `new URL(page.url.href)` /
+  `new URLSearchParams(page.url.search)`). Run `npx sv migrate sveltekit-3 --tasks all`
+  on your branch, then fix what `svelte-check` reports.
+- **Vite+ 1.7 with Vitest 5.** `render()` from `vitest-browser-svelte` is async
+  (`await render(...)`), and browser test helpers come from
+  `vite-plus/test/browser`. `vp migrate` rewrites most of this.
+- **Lucide.** `lucide-svelte` is deprecated: imports are now
+  `@lucide/svelte/icons/<name>`.
+- **TypeScript 6** (SvelteKit 3 doesn't support 7 yet), **Svelte 5.58** (the
+  generic `$props<T>()` form is gone; annotate instead), **TensorFlow.js stays on
+  3.21** because `@spotify/basic-pitch` needs it.
+
+Sign-in specifically rewrote these files; take this branch's version and reapply
+any change of yours on top:
 
 - `src/lib/server/auth.ts`, `src/hooks.server.ts`, `src/app.d.ts`,
   `src/lib/server/db/schema.ts`
-- `package.json` (adds `better-auth`, removes the three packages above)
-- `pnpm-lock.yaml`: take this branch's version, then run
-  `vp install --frozen-lockfile` to confirm it. If your branch added its own
-  dependencies, be aware that any non-frozen install re-resolves the workspace's
-  `@latest` Vite+ toolchain and bumps it too.
 - `src/routes/demo/lucia/` is deleted; don't bring it back.
+- `pnpm-lock.yaml`: take this branch's version and run
+  `vp install --frozen-lockfile`. If your branch adds dependencies, add them on
+  top afterwards; the toolchain is pinned now, so that no longer bumps it.
 
 ## Testing the music login locally
 
