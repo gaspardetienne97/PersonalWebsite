@@ -36,6 +36,7 @@
   import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
   import { cellVerdict, demoNotes, echoTargetShown, lengthText, marksAsPattern, readPatterns, landedText, signedMs, spreadText, STROKE_MS, type Hit } from "#lib/music/drills/rhythm/rhythm.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { chord } from "#lib/music/names.svelte.ts";
 
   const cfg = new DrillSetup("rhythm", { mode: "pulse", pattern: "eighths", beats: 4, mic: false as boolean, earLevel: "quarters-eighths", grooveLevel: "rock", target: true as boolean });
   const s = $derived(cfg.value);
@@ -370,7 +371,7 @@
           ...(def.chords?.length
             ? [
                 r.chords
-                  ? { label: m.music_drills_rhythm_row_chords(), text: r.chords.map((c) => (c.held ? m.music_drills_rhythm_chord_held : m.music_drills_rhythm_chord_missed)({ chord: c.symbol })).join(", ") }
+                  ? { label: m.music_drills_rhythm_row_chords(), text: r.chords.map((c) => (c.held ? m.music_drills_rhythm_chord_held : m.music_drills_rhythm_chord_missed)({ chord: chord(c.symbol) })).join(", ") }
                   : { label: m.music_drills_rhythm_row_chords(), text: m.music_drills_rhythm_chords_no_pitch() },
               ]
             : []),

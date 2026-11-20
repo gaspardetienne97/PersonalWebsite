@@ -6,14 +6,14 @@
   // chords and cadences on a grand staff (named underneath), degrees in their
   // one neutral colour with a melody's contour (green and red only for right and wrong).
   import { m } from "@repo/i18n/messages.js";
-  import { noteName, pc } from "@repo/music-core";
+  import { noteName, pc, showChord, showKeyName, showNote } from "@repo/music-core";
   import { functionLabel, functionSymbol, parseFunction, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
   import { CADENCES_AND_QUALITIES } from "@repo/music-core/data/index";
   import { inversionOf } from "@repo/music-core/scoring/ear";
   import type { Score } from "@repo/music-core";
   import Staff from "#lib/music/notation/Staff.svelte";
-  import { placeTags } from "./degrees";
+  import { namingKeyOf, placeTags } from "./degrees";
   import { cadenceShift, tokenLabel } from "./session";
   import Volume2 from "@lucide/svelte/icons/volume-2";
 
@@ -65,6 +65,8 @@
   const noteH = $derived(Math.max(10, Math.min(16, row * 1.6)));
 
   const tonic = $derived(events[0]?.midi[0] ?? 60);
+  /** Names count from the prompt's own key in movable do (a run's results show prompts in several keys). */
+  const namingKey = $derived(namingKeyOf(prompt));
   const degreeOf = (m: number) => SCALE_DEGREES[pc(m - tonic)].label;
   const usesDegrees = $derived(["scale-degree", "melody-dictation", "repertoire-transfer", "scale", "error-detect"].includes(prompt.drill));
   /** Played before the answer: the tonic in the degree drills, the key-setting chords in a key. */
@@ -90,7 +92,11 @@
   function pipText(ei: number): string {
     if (isFilled(ei)) return filled[slotOf(ei)];
     const one = events[ei].midi.length === 1;
-    if (ei === 0 && named && one && events.length > 1) return noteName(events[0].midi[0], "flat", false);
+    if (ei === 0 && named && one && events.length > 1) {
+      // The tonic is the key's name (absolute); an interval's first note a note like any other.
+      const first = noteName(events[0].midi[0], "flat", false);
+      return isTonic(0) ? showKeyName(first) : showNote(first, namingKey);
+    }
     if (ei < (prompt.keyEvents ?? 0)) return m.music_drills_ear_visual_key_short();
     // Chords and unnamed notes count in order ("Chord 1, then chord 2"): a number, never a "?" that looks tappable.
     return named ? "?" : String(slotOf(ei) + 1);
@@ -162,12 +168,12 @@
       const where = [m.music_drills_ear_visual_root_position, m.music_drills_ear_visual_first_inversion, m.music_drills_ear_visual_second_inversion, m.music_drills_ear_visual_third_inversion][found.position]();
       // Sharp names for the roots whose major chords are spelled with sharps (B major's third is D#).
       const prefer = [2, 4, 7, 9, 11].includes(found.rootPc) ? "sharp" : "flat";
-      return m.music_drills_ear_visual_inversion({ root: noteName(48 + found.rootPc, "flat", false), quality: name.toLowerCase(), position: where.toLowerCase(), bass: noteName(Math.min(...ms), prefer, false) });
+      return m.music_drills_ear_visual_inversion({ root: showNote(noteName(48 + found.rootPc, "flat", false), namingKey), quality: name.toLowerCase(), position: where.toLowerCase(), bass: showNote(noteName(Math.min(...ms), prefer, false), namingKey) });
     }
     if (prompt.drill === "chord-function" || prompt.drill === "progression") {
-      const key = (minorKey ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: noteName(48 + tonicPc, "flat", false) });
+      const key = (minorKey ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: showKeyName(noteName(48 + tonicPc, "flat", false)) });
       const tokens = prompt.answer.split(" ");
-      const names = tokens.map((t) => functionSymbol(tonicPc, t));
+      const names = tokens.map((t) => showChord(functionSymbol(tonicPc, t), namingKey));
       return m.music_drills_ear_visual_chords_in_key({ chords: tokens.map(functionLabel).join(", "), key, names: names.join(", ") });
     }
     if (prompt.drill === "cadence") {

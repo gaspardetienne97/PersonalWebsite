@@ -7,6 +7,7 @@
   import Choice from "#lib/music/components/Choice.svelte";
   import type { DrillSetup } from "#lib/music/setup.svelte.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { note } from "#lib/music/names.svelte.ts";
   import { FOLLOWER_NAME, FRET_POSITIONS, keyLabel, type ReadingSetup } from "./reading";
 
   /** `oneLine`: one treble staff (fretted instruments and the Aerophone). `limits`: the written range the instrument reads. */
@@ -28,7 +29,7 @@
   const rung = $derived(Math.max(0, rungs.findIndex((r) => r.level === level.id && r.key === s.key), rungs.findIndex((r) => r.level === level.id)));
   // Range by note: the naturals the instrument reads, and the level's own range first.
   const naturals = $derived(Array.from({ length: limits[1] - limits[0] + 1 }, (_, i) => limits[0] + i).filter((n) => !noteName(n).includes("#")));
-  const rangeOptions = (label: string) => [{ value: 0, label }, ...naturals.map((n) => ({ value: n, label: noteName(n) }))];
+  const rangeOptions = (label: string) => [{ value: 0, label }, ...naturals.map((n) => ({ value: n, label: note(noteName(n)) }))];
 </script>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

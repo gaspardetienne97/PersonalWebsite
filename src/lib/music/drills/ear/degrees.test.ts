@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
-import { placeTags, spellChord, spellDegree, spellInKey, spellInterval } from "./degrees";
+import { setNoteNaming, showNote } from "@repo/music-core";
+import type { EarPrompt } from "@repo/music-core/content/ear";
+import {
+  namingKeyOf,
+  placeTags,
+  spellChord,
+  spellDegree,
+  spellInKey,
+  spellInterval,
+} from "./degrees";
 
 describe("spellDegree", () => {
   it("spells degree 4 of Gb major as Cb, an octave number above the B it sounds as", () => {
@@ -64,5 +73,53 @@ describe("placeTags", () => {
     expect(placeTags([{ x: 0, above: 100, below: 130, w: 20 }], [{ x: 0, y: 103, w: 30 }])).toEqual(
       [130],
     );
+  });
+});
+
+describe("namingKeyOf", () => {
+  const prompt = (p: Partial<EarPrompt> & Record<string, unknown>) =>
+    ({
+      id: "x",
+      drill: "interval",
+      skillIds: [],
+      choices: [],
+      difficulty: 0,
+      answer: "",
+      playback: [{ midi: [60], time: 0, duration: 1 }],
+      ...p,
+    }) as EarPrompt;
+  it("names a prompt's key with flats, minor when its chords or degrees are", () => {
+    expect(namingKeyOf(prompt({ drill: "chord-function", answer: "IV", keyPc: 3 }))).toEqual({
+      tonic: "Eb",
+      minor: false,
+    });
+    expect(namingKeyOf(prompt({ drill: "chord-function", answer: "m:IV", keyPc: 9 }))).toEqual({
+      tonic: "A",
+      minor: true,
+    });
+    expect(
+      namingKeyOf(prompt({ drill: "scale-degree", answer: "b3", keyPc: 7, choices: ["1", "b3"] })),
+    ).toEqual({ tonic: "G", minor: true });
+  });
+  it("takes a tonic drill's key from its first note, and a cadence's from its shift", () => {
+    expect(
+      namingKeyOf(prompt({ drill: "scale", playback: [{ midi: [54], time: 0, duration: 1 }] })),
+    ).toEqual({
+      tonic: "Gb",
+      minor: false,
+    });
+    expect(namingKeyOf(prompt({ drill: "cadence", id: "cadence-half-5" }))).toEqual({ tonic: "F" });
+  });
+  it("has no key for an interval", () => {
+    expect(namingKeyOf(prompt({ drill: "interval" }))).toBeUndefined();
+  });
+  it("counts names from it in movable do", () => {
+    setNoteNaming("movable");
+    try {
+      const key = namingKeyOf(prompt({ drill: "melody-dictation", keyPc: 7, minor: false }));
+      expect(showNote(spellInKey(66, 55), key)).toBe("Si4");
+    } finally {
+      setNoteNaming("letters");
+    }
   });
 });

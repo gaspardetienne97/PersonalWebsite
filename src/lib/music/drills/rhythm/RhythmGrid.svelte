@@ -19,6 +19,8 @@
   // strokes, drawn rests, chord symbols, counting underneath, and the taps
   // that landed (shape and colour both say early, on time, late or extra; a
   // missed note is a hollow head, explained by the TapKey under the stage).
+  import { chord } from "#lib/music/names.svelte.ts";
+
   interface Props {
     bars: number;
     perBar: number;
@@ -66,7 +68,7 @@
       </defs>
       {#if bars > 1}<text x="4" y={top + 14} class="bar-no">{bar + 1}</text>{/if}
       {#each chords.filter((c) => c.startBeat >= bar * perBar && c.startBeat < (bar + 1) * perBar) as c (c.startBeat)}
-        <text x={x(c.startBeat - bar * perBar)} y="16" class="chord">{c.symbol}</text>
+        <text x={x(c.startBeat - bar * perBar)} y="16" class="chord">{chord(c.symbol)}</text>
       {/each}
       {#each rests.filter((r) => r.startBeat >= bar * perBar - 1e-6 && r.startBeat < (bar + 1) * perBar - 1e-6) as r (r.startBeat)}
         <rect x={x(r.startBeat - bar * perBar) - 6} y="58" width={x(r.endBeat - bar * perBar) - x(r.startBeat - bar * perBar)} height="24" rx="4" fill="url(#{uid}-hatch)" class="rest" />

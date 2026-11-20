@@ -4,7 +4,8 @@
   import { onDestroy } from "svelte";
   import { m } from "@repo/i18n/messages.js";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName, pc, pcOf } from "@repo/music-core";
+  import { noteName, pc, pcOf, showChord } from "@repo/music-core";
+  import { chord, keyName as namedKey, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { KEY_CYCLE, LICKS, LICK_CATEGORY_LABEL, cycleTranspose, lickChordAt, lickChunk, lickChunkIn, lickNotes, lickSkills, lickTip, transposeText, type LickNote } from "@repo/music-core/content/piano";
   import { JAZZ, TUNINGS } from "@repo/music-core/data/index";
   import { gradeLick, type LickResult } from "@repo/music-core/scoring/piano";
@@ -55,11 +56,15 @@
   const keyName = $derived(fretted || !KEY_CYCLE.includes(s.key) ? "C" : s.key);
   const transpose = $derived(fretted ? 0 : cycleTranspose(keyName));
   const minor = $derived(lick.category.startsWith("minor"));
+  // Movable do counts from the key the lick is played in.
+  useNamingKey(() => ({ tonic: keyName, minor }));
   // Spelled the way the key's signature is: sharps in sharp keys, flats otherwise.
   const keyFifths = $derived(signatureFor(pcOf(keyName) ?? 0, minor ? "natural-minor" : "major"));
   const sharps = $derived(keyFifths > 0);
   const tx = (text: string) => transposeText(text, transpose, sharps);
-  const spell = (m: number) => noteName(m, sharps ? "sharp" : "flat", false);
+  const spell = (m: number) => note(noteName(m, sharps ? "sharp" : "flat", false));
+  /** A scale as the lick names it ("D dorian"), its root named as the user reads notes. */
+  const scaleText = (text: string) => text.replace(/^[A-G][#b♯♭]?/, (root) => note(root));
   const all = $derived(lickNotes(lick.number, transpose));
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
 
@@ -189,8 +194,8 @@
 
   const summaryLine = $derived<SetupClause[]>([
     { text: m.music_drills_licks_summary_lick({ number: lick.number, category: CATEGORY_LABEL[lick.category] ?? lick.category }), focus: "lick" },
-    fretted ? { text: progression.join(" ") } : { text: transpose ? m.music_drills_licks_summary_in_key({ progression: progression.join(" "), key: keyName }) : progression.join(" "), focus: "key" },
-    ...(whole ? [] : [{ text: `notes ${lo + 1} to ${hi + 1}` }]),
+    fretted ? { text: progression.map(chord).join(" ") } : { text: transpose ? m.music_drills_licks_summary_in_key({ progression: progression.map(chord).join(" "), key: namedKey(keyName) }) : progression.map(chord).join(" "), focus: "key" },
+    ...(whole ? [] : [{ text: m.music_drills_licks_summary_notes({ first: lo + 1, last: hi + 1 }) }]),
   ]);
   const setupKey = $derived(`lick:${lick.number}:${transpose}:${lo}-${hi}:${bpm}`);
 
@@ -339,7 +344,7 @@
   /** The licks carry no tempo: climb to 75% of the top. Piano licks then move round the key cycle; guitar licks stay in their key. */
   function advanceAfter(score: number, correct: boolean) {
     const plan = { bpm, tempo: { min: TEMPO.min, goal: Math.round(TEMPO.max * 0.75), max: TEMPO.max } };
-    const keys = fretted ? {} : { steps: KEY_CYCLE.map((k) => ({ label: m.music_drills_licks_key_of({ key: k }) })), step: Math.max(0, KEY_CYCLE.indexOf(s.key)) };
+    const keys = fretted ? {} : { steps: KEY_CYCLE.map((k) => ({ label: m.music_drills_licks_key_of({ key: namedKey(k) }) })), step: Math.max(0, KEY_CYCLE.indexOf(s.key)) };
     return nextRun(`licks.${lick.number}.${lo}-${hi}`, { ...plan, ...keys }, { score, correct }, tempoAnd((i) => cfg.set({ key: KEY_CYCLE[i] })));
   }
 
@@ -363,7 +368,7 @@
     timedRun.end();
   });
 
-  const lickItems = LICKS.map((l) => ({ value: l.number, title: m.music_drills_licks_item_title({ number: l.number, progression: l.progression.join(" ") }), meta: lickTip(l), group: CATEGORY_LABEL[l.category] ?? l.category, keywords: l.scales.join(" ") }));
+  const lickItems = LICKS.map((l) => ({ value: l.number, title: m.music_drills_licks_item_title({ number: l.number, progression: l.progression.map((c) => showChord(c, { tonic: "C", minor: l.category.startsWith("minor") })).join(" ") }), meta: lickTip(l), group: CATEGORY_LABEL[l.category] ?? l.category, keywords: l.scales.join(" ") }));
 </script>
 
 <DrillShell
@@ -392,7 +397,7 @@
       {:else}
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">{m.music_drills_licks_key()}</span>
-        <KeyPicker label={m.music_drills_licks_key()} value={pcOf(KEY_CYCLE.includes(s.key) ? s.key : "C")!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
+        <KeyPicker label={m.music_drills_licks_key()} value={pcOf(KEY_CYCLE.includes(s.key) ? s.key : "C")!} name={(p) => namedKey(KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C")} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
       {/if}
     </div>
@@ -408,7 +413,7 @@
         onchange={(v) => cfg.set({ ear: v === "ear" })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">{m.music_drills_licks_setup_tempo()}</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_drills_licks_setup_tempo({ key: namedKey("C") })}</p>
     {#if !fretted}<p class="mt-1 text-sm text-ws-soft">{m.music_drills_licks_setup_fingering()}</p>{/if}
   {/snippet}
 
@@ -423,7 +428,7 @@
     <!-- Two short rows before a run, so the lane, the staff and the keys share a tablet's screen: the changes with
          the tip beside them, then the theory (folded) with the chunks. The reading text steps aside while the line runs. -->
     <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <p class="font-display text-xl font-semibold">{progression.join("  ")}</p>
+      <p class="font-display text-xl font-semibold">{progression.map(chord).join("  ")}</p>
       {#if phase !== "running" && phase !== "countin" && !ended}
         <p class="min-w-0 flex-[1_1_16rem]"><span class="font-semibold">{m.music_drills_licks_tip()}</span> {tx(lickTip(lick))}</p>
         {#if lineShown}<ViewSwitch />{/if}
@@ -434,7 +439,7 @@
         {#if phase !== "running" && phase !== "countin" && !ended}
           <details class="text-ws-stage-soft">
             <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden"><ChevronRight class="size-4 transition-transform [details[open]>summary>&]:rotate-90" aria-hidden="true" />{m.music_drills_licks_about()}</summary>
-            <p>{m.music_drills_licks_scales({ scales: lick.scales.map(tx).join(", ") })}</p>
+            <p>{m.music_drills_licks_scales({ scales: lick.scales.map((x) => scaleText(tx(x))).join(", ") })}</p>
             {#each techniques as t (t.id)}
               <p class="mt-1"><span class="font-semibold text-ws-stage-ink">{t.name}.</span> {tx(t.summary)}</p>
             {/each}
@@ -483,10 +488,10 @@
         rows={[{ id: "line", mark: "♪", label: m.music_drills_licks_lane_row(), hand: fretted ? undefined : "right", notes: timed.map((n) => ({ beat: n.beat, dur: n.dur, text: spell(n.midi) })) }]}
         beats={chunkBeats}
         beat={transport.beat}
-        chords={laneChords}
+        chords={laneChords.map((c) => ({ ...c, symbol: chord(c.symbol) }))}
         hidden={mode === "check" && !transport.playing}
         outcomes={mode === "practice" || phase === "results" ? { line: outcomes } : {}}
-        label={m.music_drills_licks_lane_label({ count: chunk.length, progression: progression.join(", ") })}
+        label={m.music_drills_licks_lane_label({ count: chunk.length, progression: progression.map(chord).join(", ") })}
         dense={shortStage.current}
       />
     </div>

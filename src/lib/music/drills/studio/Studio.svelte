@@ -58,6 +58,7 @@
   import Picker from "#lib/music/components/Picker.svelte";
   import { stripUnused } from "#lib/music/components/BenchStrip.svelte";
   import { m } from "@repo/i18n/messages.js";
+  import { keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.
@@ -261,7 +262,7 @@
     }
     // From memory the keys don't show what comes next.
     // The wanted key carries its name ("E4"), so the eye goes from the staff straight to it.
-    if (live && ls && memory === "off" && !tap) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat), label: drums ? undefined : noteName(m + written) };
+    if (live && ls && memory === "off" && !tap) for (const m of ls.expected) out[m] = { target: true, role: handAt(m, cursorBeat), label: drums ? undefined : note(noteName(m + written)) };
     return out;
   });
 
@@ -444,7 +445,7 @@
       const expected = liveState(fstate, performance.now()).expected;
       const hit = expected.some((m) => (octaveExact ? m === ev.midi : pc(m) === pc(ev.midi)));
       flashes.add(tap ? raw.midi : ev.midi, hit ? "correct" : "wrong");
-      if (!tap && !drums) lastMiss = hit || !expected.length ? "" : m.music_drills_studio_last_miss({ played: noteName(ev.midi + written), expected: expected.map((x) => noteName(x + written)).join(" ") });
+      if (!tap && !drums) lastMiss = hit || !expected.length ? "" : m.music_drills_studio_last_miss({ played: note(noteName(ev.midi + written)), expected: expected.map((x) => note(noteName(x + written))).join(" ") });
     }
     fstate = followerInput(fstate, ev);
     if (fstate.mode === "wait" && fstate.index >= fstate.groups.length) endTake();
@@ -904,8 +905,15 @@
   const keyAt = (t: number) => {
     if (score.keyFifths === undefined) return "";
     const f = transposeFifths(score.keyFifths, t);
-    return score.keyMode === "minor" ? m.music_drills_studio_key_minor({ key: MINOR_BY_FIFTHS[f + 7] }) : m.music_drills_studio_key_major({ key: MAJOR_BY_FIFTHS[f + 7] });
+    return score.keyMode === "minor" ? m.music_drills_studio_key_minor({ key: keyName(MINOR_BY_FIFTHS[f + 7]) }) : m.music_drills_studio_key_major({ key: keyName(MAJOR_BY_FIFTHS[f + 7]) });
   };
+  // Movable do counts from the key the player reads: the song's, moved by the transposition and the instrument's written offset.
+  useNamingKey(() => {
+    if (score.keyFifths === undefined || drums) return undefined;
+    const f = transposeFifths(score.keyFifths, transpose + written);
+    const minor = score.keyMode === "minor";
+    return { tonic: (minor ? MINOR_BY_FIFTHS : MAJOR_BY_FIFTHS)[f + 7], minor };
+  });
   const transposeLabel = (t: number) =>
     t
       ? `${(t > 0 ? m.music_drills_studio_tr_up : m.music_drills_studio_tr_down)({ n: Math.abs(t) })}${keyAt(t) ? `, ${keyAt(t)}` : ""}`
@@ -954,7 +962,7 @@
         <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/library"><ArrowLeft class="size-4" aria-hidden="true" />{m.music_drills_studio_back_songs()}</a>
         <h1 id="studio-title" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{song.title}</h1>
         <p class="mt-1 text-ws-soft max-sm:text-sm">
-          {song.composer ? `${song.composer}. ` : ""}{m.music_drills_studio_facts({ bars: barsText(facts.bars), meter: facts.meter, key: facts.key ? `, ${facts.key}` : "", bpm: score.bpm, duration: durationText(facts.seconds) })}
+          {song.composer ? `${song.composer}. ` : ""}{m.music_drills_studio_facts({ bars: barsText(facts.bars), meter: facts.meter, key: facts.key ? `, ${keyAt(0)}` : "", bpm: score.bpm, duration: durationText(facts.seconds) })}
         </p>
       </div>
     </header>
@@ -1233,7 +1241,7 @@
       <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-base">
         {#if phase === "look"}{@render stat(m.music_drills_studio_stat_look(), `${lookLeft} s`)}{:else}{@render stat(perfMode ? m.music_drills_studio_stat_take() : m.music_drills_studio_mode(), perfMode ? m.music_drills_studio_of({ a: (queue[qi]?.take ?? 0) + 1, b: takes }) : m.music_drills_studio_mode_wait())}{/if}
         {#if ls && fstate}{@render stat(m.music_drills_studio_stat_note(), m.music_drills_studio_of({ a: Math.min(ls.index + 1, fstate.groups.length), b: fstate.groups.length }))}{/if}
-        {#if ls?.expected.length && memory === "off" && !tap}{@render stat(m.music_drills_studio_next(), ls.expected.map((x) => (drums ? (GROOVE_VOICES.find((v) => v.midi === x)?.name ?? "") : noteName(x + written))).join(drums ? ", " : " "))}{/if}
+        {#if ls?.expected.length && memory === "off" && !tap}{@render stat(m.music_drills_studio_next(), ls.expected.map((x) => (drums ? (GROOVE_VOICES.find((v) => v.midi === x)?.name ?? "") : note(noteName(x + written)))).join(drums ? ", " : " "))}{/if}
         {@render stat("Tempo", `${bpm} BPM`)}
         {#if spot}{@render stat(m.music_drills_studio_stat_loop({ where: barsOf(spot.range) }), m.music_drills_studio_stat_clean({ streak: spot.streak, count: SPOT.clean }))}{/if}
       </div>

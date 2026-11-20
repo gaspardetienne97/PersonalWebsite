@@ -88,7 +88,8 @@
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import Play from "@lucide/svelte/icons/play";
-  import { spellDegree, spellInKey } from "./degrees";
+  import { namingKeyOf, spellDegree, spellInKey } from "./degrees";
+  import { keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { nextRun, type NextRun } from "#lib/music/advance.svelte.ts";
   import KeyPicker from "#lib/music/components/KeyPicker.svelte";
   import {
@@ -528,6 +529,8 @@
   const rand = rng(Math.floor(Math.random() * 2 ** 31));
 
   const current = $derived(prompts[qi]);
+  // Movable do counts from the key the question is heard in (none for intervals and chord qualities).
+  useNamingKey(() => (phase === "running" && current ? namingKeyOf(current) : undefined));
   const rec = $derived(records[qi]);
   const isPlayback = $derived(answer === "play-back");
 
@@ -575,10 +578,10 @@
   /** A played or sung note by name: spelled in the question's key when it has one (F#3 in E, as the answer chips say), else with flats. */
   const playedName = (p: Prompt, m: number) =>
     p.drill === "melody-dictation" || p.drill === "repertoire-transfer" || p.drill === "scale-degree" || p.drill === "scale" || p.drill === "error-detect"
-      ? spellInKey(m, tonicOf(p))
+      ? note(spellInKey(m, tonicOf(p)))
       : p.keyPc !== undefined
-        ? spellInKey(m, 48 + p.keyPc)
-        : noteName(m, "flat");
+        ? note(spellInKey(m, 48 + p.keyPc))
+        : note(noteName(m, "flat"));
   /** Major-key degrees by semitones above the tonic. */
   const MAJOR_DEGREE: Record<number, string> = { 0: "1", 2: "2", 4: "3", 5: "4", 7: "5", 9: "6", 11: "7" };
   const keyLine = (p: Prompt) => {
@@ -600,24 +603,26 @@
     }
     if (p.drill === "inversion") return m.music_drills_eardrill_line_one_chord();
     if (p.drill === "pitch-compare") return p.choices.includes("same") ? m.music_drills_eardrill_line_pitch_same({ cents: centsOf(p) }) : m.music_drills_eardrill_line_pitch({ cents: centsOf(p) });
-    if (p.drill === "scale") return m.music_drills_eardrill_line_scale({ note: noteName(p.playback[0].midi[0], "flat", false) });
+    if (p.drill === "scale") return m.music_drills_eardrill_line_scale({ note: tonicName(p.playback[0].midi[0]) });
     if (p.drill === "cadence") {
       const shift = cadenceShift(p.id);
       return keyOf(shift, false);
     }
     if (p.drill === "error-detect") {
-      const note = noteName(tonicOf(p), "flat", false);
+      const note = tonicName(tonicOf(p));
       return p.songTitle ? m.music_drills_eardrill_line_error_song({ note, song: p.songTitle }) : m.music_drills_eardrill_line_error({ note });
     }
     if (p.drill === "scale-degree" || p.drill === "melody-dictation" || p.drill === "repertoire-transfer") {
-      const note = noteName(tonicOf(p), "flat", false);
+      const note = tonicName(tonicOf(p));
       return p.phrase ? m.music_drills_eardrill_line_tonic_from({ note, title: p.phrase.title }) : m.music_drills_eardrill_line_tonic({ note });
     }
     return p.drill === "interval" ? m.music_drills_eardrill_line_two_notes() : p.drill === "interval-compare" ? m.music_drills_eardrill_line_two_intervals() : m.music_drills_eardrill_line_one_chord();
   };
+  /** A tonic or key by name ("Eb", "Mib"): keys are absolute, even in movable do. */
+  const tonicName = (midi: number) => keyName(noteName(midi, "flat", false));
   /** "Key of E♭ major", from a pitch class. */
   const keyOf = (keyPc: number, minor: boolean) => {
-    const note = noteName(48 + keyPc, "flat", false);
+    const note = tonicName(48 + keyPc);
     return minor ? m.music_drills_eardrill_key_minor({ note }) : m.music_drills_eardrill_key_major({ note });
   };
   const scaleName = (t: string) => EAR_SCALES.find((x) => x.token === t)?.name ?? t;
@@ -785,7 +790,7 @@
     if (droneOn) audio.drone.stop();
     else audio.drone.start(droneTonic, "sine", 0.3);
     droneOn = !droneOn;
-    status = droneOn ? m.music_drills_eardrill_status_drone_on({ note: noteName(droneTonic, "flat", false) }) : m.music_drills_eardrill_status_drone_off();
+    status = droneOn ? m.music_drills_eardrill_status_drone_on({ note: tonicName(droneTonic) }) : m.music_drills_eardrill_status_drone_off();
   }
   function stopWarmup() {
     if (droneOn) audio.drone.stop();
@@ -1681,7 +1686,7 @@
                   label={m.music_drills_eardrill_first_note()}
                   options={[
                     { value: "random", label: m.music_drills_eardrill_random() },
-                    { value: String(FIXED_ROOT), label: m.music_drills_eardrill_middle_c(), hint: m.music_drills_eardrill_middle_c_hint() },
+                    { value: String(FIXED_ROOT), label: m.music_drills_eardrill_middle_c({ note: note("C") }), hint: m.music_drills_eardrill_middle_c_hint() },
                   ]}
                   value={s.root === "random" ? "random" : String(FIXED_ROOT)}
                   onchange={(v) => cfg.set({ root: v })}
@@ -1888,7 +1893,7 @@
                 {@const state = got === undefined || step !== "feedback" ? null : got === d ? "right" : "wrong"}
                 <li class="phrase-note" data-state={state}>
                   <span class="font-semibold">{labels === "solfege" ? tokenLabel("scale-degree", d, "solfege") : d}</span>
-                  <span class="text-sm">{spellDegree(p.expectedMidi![i], tonicOf(p), d)}</span>
+                  <span class="text-sm">{note(spellDegree(p.expectedMidi![i], tonicOf(p), d))}</span>
                   {#if state}<span class="text-sm font-semibold">{state === "right" ? "✓" : m.music_drills_eardrill_you_got({ degree: deg(got!) })}</span>{/if}
                 </li>
               {/each}
@@ -1908,7 +1913,7 @@
             <DegreeWheel
               available={p.choices}
               {labels}
-              center={noteName(tonicOf(p), "flat", false)}
+              center={tonicName(tonicOf(p))}
               lit={litDegree}
               expected={showAnswer ? p.answer : null}
               answered={rec && !rec.correct && showAnswer ? (rec.answered ?? null) : null}
@@ -1987,7 +1992,7 @@
             <DegreeWheel
               available={levelDegrees(level)}
               {labels}
-              center={noteName(tonicOf(p), "flat", false)}
+              center={tonicName(tonicOf(p))}
               lit={step === "answer" ? vocalDegree : null}
               expected={showAnswer ? p.answer : null}
               answered={showAnswer && rec && !rec.correct && p.drill === "scale-degree" ? (rec.answered ?? null) : null}
@@ -1999,7 +2004,7 @@
               </p>
               <div class="meter mt-2" aria-hidden="true"><span style:width="{Math.max(0, Math.min(100, ((mic.level + 60) / 60) * 100))}%"></span></div>
               <p class="mt-2 font-display text-2xl font-semibold tnum">
-                {#if mic.pitch && p.drill === "interval"}{noteName(mic.pitch.midi, "flat")}{:else if mic.pitch && vocalDegree}{playedName(p, mic.pitch.midi)}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}{m.music_drills_eardrill_no_pitch()}{/if}
+                {#if mic.pitch && p.drill === "interval"}{note(noteName(mic.pitch.midi, "flat"))}{:else if mic.pitch && vocalDegree}{playedName(p, mic.pitch.midi)}, {tokenLabel("scale-degree", vocalDegree, labels)}{:else}{m.music_drills_eardrill_no_pitch()}{/if}
               </p>
               {#if p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
               {#if p.drill === "melody-dictation" || p.drill === "scale"}
@@ -2016,7 +2021,7 @@
           {#if p.drill === "progression" || p.drill === "loop" || p.drill === "bass-line"}{@render progressionSlots(p)}{/if}
           <InstrumentStage line={earLine} low={48} high={84} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} />
           <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-ws-stage-soft">
-            <span>{tonicMarked(p) ? m.music_drills_eardrill_you_played_tonic({ notes: playedList(p), note: noteName(tonicOf(p), "flat", false) }) : m.music_drills_eardrill_you_played_notes({ notes: playedList(p) })}</span>
+            <span>{tonicMarked(p) ? m.music_drills_eardrill_you_played_tonic({ notes: playedList(p), note: tonicName(tonicOf(p)) }) : m.music_drills_eardrill_you_played_notes({ notes: playedList(p) })}</span>
             {#if step === "answer" && played.length}
               <button type="button" class={btnStage} onclick={() => (played = [])}>{m.music_drills_eardrill_clear()}</button>
               {#if p.drill === "chord-quality" || p.drill === "chord-function" || p.drill === "progression" || p.drill === "loop" || p.drill === "inversion"}<button type="button" class={btnStage} onclick={submitChord}>{m.music_drills_eardrill_thats_my_chord()}</button>{/if}
@@ -2050,7 +2055,7 @@
       <div class="grid grid-cols-[minmax(0,1fr)] items-center gap-5 {slug === 'scale-degrees' ? 'md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]' : ''}">
         {#if slug === "scale-degrees"}
           <div>
-            <DegreeWheel available={levelDegrees(level)} {labels} center={noteName(droneTonic, "flat", false)} lit={litDegree} onpick={compare} />
+            <DegreeWheel available={levelDegrees(level)} {labels} center={tonicName(droneTonic)} lit={litDegree} onpick={compare} />
           </div>
           <div class="space-y-3">
             <p class="font-display text-xl font-semibold">{m.music_drills_eardrill_warmup_title()}</p>
@@ -2058,7 +2063,7 @@
             <div class="flex flex-wrap items-end gap-2">
               <div class="flex flex-col gap-1 text-sm">
                 <span>{m.music_drills_eardrill_tonic()}</span>
-                <KeyPicker class="min-w-24" tone="stage" label={m.music_drills_eardrill_tonic()} value={droneTonic - 48} name={(pc) => noteName(48 + pc, "flat", false)} onchange={(pc) => { droneTonic = 48 + pc; if (droneOn) { audio.drone.stop(); audio.drone.start(droneTonic, "sine", 0.3); } }} />
+                <KeyPicker class="min-w-24" tone="stage" label={m.music_drills_eardrill_tonic()} value={droneTonic - 48} name={(pc) => tonicName(48 + pc)} onchange={(pc) => { droneTonic = 48 + pc; if (droneOn) { audio.drone.stop(); audio.drone.start(droneTonic, "sine", 0.3); } }} />
               </div>
               <button type="button" class={btnStage} aria-pressed={droneOn} onclick={toggleDrone}>{droneOn ? m.music_drills_eardrill_drone_stop() : m.music_drills_eardrill_drone_start()}</button>
             </div>

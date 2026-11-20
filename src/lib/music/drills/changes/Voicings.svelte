@@ -28,6 +28,7 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun } from "#lib/music/advance.svelte.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { chord, keyName as namedKey, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const VARIANTS: { value: Variant; label: string; tab: string }[] = [
     { value: "major", label: m.music_drills_voicings_v_major(), tab: m.music_drills_voicings_v_major() },
@@ -121,16 +122,18 @@
   });
 
   /** Beside Stop on a phone: the chord to find now. */
-  const cue = $derived(phase === "running" && current ? (mode === "practice" ? m.music_drills_voicings_cue : m.music_drills_voicings_cue_hidden)({ n: index + 1, total: items.length, symbol: current.symbol }) : "");
+  const cue = $derived(phase === "running" && current ? (mode === "practice" ? m.music_drills_voicings_cue : m.music_drills_voicings_cue_hidden)({ n: index + 1, total: items.length, symbol: chord(current.symbol) }) : "");
   const variantLabel = $derived(jazzType?.label ?? VARIANTS.find((v) => v.value === variant)!.label);
   const keyName = (p: number) => KEY_CYCLE.find((k) => pcOf(k) === pc(p)) ?? FLAT_NAMES[pc(p)];
+  // Movable do counts from the key of the chords on screen.
+  useNamingKey(() => (group[0] ? { tonic: keyName(group[0].keyPc), minor: group[0].minor } : undefined));
   /** What the key picker names for a jazz type: a major key, a dorian tonic or a blues. */
   const keyWord = $derived(jazzType?.key === "dorian" ? (variant === "sus" ? m.music_drills_voicings_kw_set_from() : m.music_drills_voicings_kw_dorian_on()) : jazzType?.key === "blues" ? m.music_drills_voicings_kw_blues_in() : variant === "inversions" ? m.music_drills_voicings_kw_key() : m.music_drills_voicings_kw_start_key());
   const summaryLine = $derived<SetupClause[]>([
     onTune
       ? { text: m.music_drills_voicings_summary_tune({ label: variantLabel, tune: tune.name }), focus: "tune" }
       : {
-          text: (variant === "inversions" ? m.music_drills_voicings_summary_in : jazzType?.key === "dorian" && variant !== "sus" ? m.music_drills_voicings_summary_from_dorian : m.music_drills_voicings_summary_from)({ label: variant === "gospel" ? gospel.label : variantLabel, key: keyName(s.key) }),
+          text: (variant === "inversions" ? m.music_drills_voicings_summary_in : jazzType?.key === "dorian" && variant !== "sus" ? m.music_drills_voicings_summary_from_dorian : m.music_drills_voicings_summary_from)({ label: variant === "gospel" ? gospel.label : variantLabel, key: namedKey(keyName(s.key)) }),
           focus: variant === "gospel" ? "progression" : "key",
         },
     ...(oneKey ? [] : [{ text: s.keys === 12 ? m.music_drills_voicings_summary_all_keys() : m.music_drills_voicings_summary_keys({ count: s.keys }), focus: "keys" }]),
@@ -144,7 +147,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = m.music_drills_voicings_demo({ chords: group.map((g) => g.symbol).join(", ") });
+    status = m.music_drills_voicings_demo({ chords: group.map((g) => chord(g.symbol)).join(", ") });
     await transport.demo(demoNotes, 80);
   }
 
@@ -154,7 +157,7 @@
     // Held and strict on MIDI; on-screen keys and one-note instruments collect the notes instead.
     collectedMode = monophonic;
     promptAt = performance.now();
-    if (current) status = m.music_drills_voicings_play({ symbol: current.symbol });
+    if (current) status = m.music_drills_voicings_play({ symbol: chord(current.symbol) });
   }
 
   function onEvent(e: NoteEvent) {
@@ -189,7 +192,7 @@
     const g = gradeItem(item, played, { strict: !collectedMode, arpeggio: monophonic });
     grades[index] = g;
     if (mode === "practice") for (const m of new Set(played)) flashes.add(m, item.pcs.includes(pc(m)) ? "correct" : "wrong", 600);
-    status = g.correct ? m.music_drills_voicings_status_right({ symbol: item.symbol }) : m.music_drills_voicings_status_note({ symbol: item.symbol, note: g.note });
+    status = g.correct ? m.music_drills_voicings_status_right({ symbol: chord(item.symbol) }) : m.music_drills_voicings_status_note({ symbol: chord(item.symbol), note: g.note });
     void run!.attempt({
       promptId: item.id,
       correct: g.correct,
@@ -262,7 +265,7 @@
           ? m.music_drills_voicings_h_all_check({ count: items.length })
           : m.music_drills_voicings_h_all({ count: items.length })
         : worst
-          ? m.music_drills_voicings_h_worst({ right, total: items.length, symbol: worst.symbol, note: grades[items.indexOf(worst)]?.note ?? m.music_drills_voicings_skipped() })
+          ? m.music_drills_voicings_h_worst({ right, total: items.length, symbol: chord(worst.symbol), note: grades[items.indexOf(worst)]?.note ?? m.music_drills_voicings_skipped() })
           : m.music_drills_voicings_h_some({ right, total: items.length }),
       metric: `${right}/${items.length}`,
       metricLabel: m.music_drills_voicings_metric_label(),
@@ -307,7 +310,7 @@
     transport.stop();
   });
 
-  const nameOf = (n: number) => noteName(n, "flat", false);
+  const nameOf = (n: number) => note(noteName(n, "flat", false));
   /** "A and B", "A and B and C", each pair joined by the locale's "and". */
   const andList = (xs: string[]) => (xs.length ? xs.reduce((a, b) => m.music_drills_voicings_and({ a, b })) : "");
 </script>
@@ -357,7 +360,7 @@
       {:else}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
           <span class="font-medium">{keyWord}</span>
-          <KeyPicker label={keyWord} value={pc(s.key)} name={keyName} onchange={(p) => cfg.set({ key: p })} />
+          <KeyPicker label={keyWord} value={pc(s.key)} name={(p) => namedKey(keyName(p))} onchange={(p) => cfg.set({ key: p })} />
         </div>
       {/if}
       {#if !oneKey}
@@ -406,7 +409,7 @@
       <div class="mb-3 flex">{@render head()}</div>
     {/if}
     <div class="flex flex-col" data-dock="instrument">
-      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running"} label={m.music_drills_voicings_piano_label({ low: noteName(span.low), high: noteName(span.high) })} />
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running"} label={m.music_drills_voicings_piano_label({ low: note(noteName(span.low)), high: note(noteName(span.high)) })} />
     </div>
     <!-- One row under the keys: what the marks mean, then the note about how the chord is heard. -->
     <div class="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-sm text-ws-stage-soft">
@@ -444,7 +447,7 @@
       <Results {summary} {figure}>
         {#snippet actions()}
           {#if variant === "inversions"}
-            <button type="button" class={btn} onclick={() => { cfg.set({ key: s.key === 0 ? 7 : 0 }); phase = "ready"; }}>{m.music_drills_voicings_same_in({ key: s.key === 0 ? "G" : "C" })}</button>
+            <button type="button" class={btn} onclick={() => { cfg.set({ key: s.key === 0 ? 7 : 0 }); phase = "ready"; }}>{m.music_drills_voicings_same_in({ key: namedKey(s.key === 0 ? "G" : "C") })}</button>
           {/if}
         {/snippet}
       </Results>
@@ -464,13 +467,13 @@
           class="chart-cell flex min-h-14 min-w-24 flex-col justify-center rounded-lg border px-3 py-1.5 {now ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}"
           aria-current={now ? "step" : undefined}
         >
-          <span class="font-display text-xl font-semibold">{it.symbol}</span>
+          <span class="font-display text-xl font-semibold">{chord(it.symbol)}</span>
           <span class="text-sm text-ws-stage-soft">
             {#if g}{g.correct ? m.music_drills_voicings_cell_right() : `✕ ${g.note}`}{:else if now}{m.music_drills_voicings_cell_now()}{:else}&nbsp;{/if}
           </span>
         </li>
       {/each}
-      {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{m.music_drills_voicings_group_of({ group: group[0]?.group ?? "", count: new Set(items.map((i) => i.group)).size })}</li>{/if}
+      {#if items.length > group.length}<li class="self-center text-sm text-ws-stage-soft">{m.music_drills_voicings_group_of({ group: namedKey(group[0]?.group ?? ""), count: new Set(items.map((i) => i.group)).size })}</li>{/if}
     </ol>
     {#if current && mode === "practice"}
       <!-- While the demo plays, the words follow the chord that is sounding, not the one the run would start on. -->
@@ -478,11 +481,11 @@
       <div class="min-w-0 flex-[1_1_16rem] text-sm">
         <p class="font-medium">{told.name}</p>
         {#if told.hint}<p class="text-ws-stage-soft">{told.hint}</p>{/if}
-        {#if told.guide}<p class="text-ws-stage-soft">{m.music_drills_voicings_guide_hint({ notes: andList(told.guide.fromMidi.map(nameOf)), symbol: told.symbol })}</p>{/if}
+        {#if told.guide}<p class="text-ws-stage-soft">{m.music_drills_voicings_guide_hint({ notes: andList(told.guide.fromMidi.map(nameOf)), symbol: chord(told.symbol) })}</p>{/if}
       </div>
     {:else if current && mode === "check"}
       <p class="min-w-0 flex-[1_1_16rem] text-sm text-ws-stage-soft">
-        {m.music_drills_voicings_check_hidden()} {current.ask ?? (current.guide ? m.music_drills_voicings_check_guide({ notes: andList(current.guide.fromMidi.map(nameOf)), symbol: current.symbol }) : m.music_drills_voicings_check_play({ symbol: current.symbol }))}
+        {m.music_drills_voicings_check_hidden()} {current.ask ?? (current.guide ? m.music_drills_voicings_check_guide({ notes: andList(current.guide.fromMidi.map(nameOf)), symbol: chord(current.symbol) }) : m.music_drills_voicings_check_play({ symbol: chord(current.symbol) }))}
       </p>
     {/if}
   </div>
@@ -497,9 +500,9 @@
       {@const g = grades[i]}
       <li class="flex flex-col gap-2 rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-sm">
         <div class="flex items-baseline justify-between gap-3">
-          <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? m.music_drills_voicings_symbol_in({ symbol: it.symbol, group: it.group }) : it.symbol}</span>
+          <span class="font-semibold">{it.group !== it.symbol && variant !== "inversions" ? m.music_drills_voicings_symbol_in({ symbol: chord(it.symbol), group: namedKey(it.group) }) : chord(it.symbol)}</span>
           <span class={g?.correct ? "text-success" : "text-ws-soft"}>
-            {g ? (g.correct ? m.music_drills_voicings_cell_right() : g.missing.length ? m.music_drills_voicings_cell_missed({ notes: g.missing.map((p) => FLAT_NAMES[p]).join(" ") }) : `✕ ${g.note}`) : m.music_drills_voicings_not_played()}
+            {g ? (g.correct ? m.music_drills_voicings_cell_right() : g.missing.length ? m.music_drills_voicings_cell_missed({ notes: g.missing.map((p) => note(FLAT_NAMES[p])).join(" ") }) : `✕ ${g.note}`) : m.music_drills_voicings_not_played()}
           </span>
         </div>
         <!-- Each played chord drawn as it should sit: ✓ on the notes you had, the missed ones named in a red ring. -->
@@ -515,7 +518,7 @@
             names="none"
             minKey={18}
             compact
-            label={g.correct ? m.music_drills_voicings_label_right({ symbol: it.symbol }) : g.missing.length ? m.music_drills_voicings_label_missing({ symbol: it.symbol, notes: g.missing.map((p) => FLAT_NAMES[p]).join(", ") }) : m.music_drills_voicings_label_wants({ symbol: it.symbol })}
+            label={g.correct ? m.music_drills_voicings_label_right({ symbol: chord(it.symbol) }) : g.missing.length ? m.music_drills_voicings_label_missing({ symbol: chord(it.symbol), notes: g.missing.map((p) => note(FLAT_NAMES[p])).join(", ") }) : m.music_drills_voicings_label_wants({ symbol: chord(it.symbol) })}
           />
         {/if}
       </li>

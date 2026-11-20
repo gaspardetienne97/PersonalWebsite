@@ -37,6 +37,8 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import PadSkills from "#lib/music/drills/pads/PadSkills.svelte";
+  import { keyAt } from "@repo/music-core/theory/circle";
+  import { note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const TEMPO = { min: 40, max: 200 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -69,7 +71,10 @@
   const positions = $derived(fretted ? new Map(notes.flatMap((n) => (n.string !== undefined && n.fret !== undefined ? [[n.midi, { string: n.string, fret: n.fret }] as const] : []))) : undefined);
   /** Notes that start together are one step: a chord or a double stop. */
   const events = $derived(phraseEvents(clicked));
-  const spell = (midis: number[]) => midis.map((m) => noteName(m + shift, phrase?.keyFifths < 0 ? "flat" : "sharp", false)).join(" ");
+  const spell = (midis: number[]) => midis.map((m) => note(noteName(m + shift, phrase?.keyFifths < 0 ? "flat" : "sharp", false))).join(" ");
+  // Movable do counts from the phrase's written key (a minor phrase reads la-based, the same names as its
+  // relative major's). Your licks have no key of their own, so they read as fixed do.
+  useNamingKey(() => (phrase && !isUser ? { tonic: keyAt(phrase.keyFifths).major } : undefined));
   const chords = $derived(events.some((e) => e.notes.length > 1));
   const timed = $derived<TimedNote[]>(clicked.map((n) => ({ midi: n.midi, beat: n.startBeat, dur: n.durationBeats })));
 
@@ -387,7 +392,7 @@
         {@const beat = transport.beat === null ? null : transport.beat * click}
         <div class="mb-3">
           {#if fretted && tuning}
-            <NoteHighway notes={hwNotes} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} {beat} {noteHits} judge={phase === "running"} perfectMs={Math.max(40, Math.round(60000 / bpm / 8))} barBeats={phrase.beatsPerBar} clickBeats={click} />
+            <NoteHighway notes={hwNotes} strings={tuning.openStrings.map((m) => note(noteName(m, "flat", false)))} {beat} {noteHits} judge={phase === "running"} perfectMs={Math.max(40, Math.round(60000 / bpm / 8))} barBeats={phrase.beatsPerBar} clickBeats={click} />
           {:else}
             <!-- Falling notes bring their own keyboard, lined up lane for key. -->
             <FallingKeys score={fallScore} low={pianoLow} high={pianoHigh} {beat} {marks} {flashes} height="min(34dvh, 16rem)" />

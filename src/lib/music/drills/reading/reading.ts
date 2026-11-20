@@ -4,7 +4,7 @@
 import type { Score, ScoreGroup, ScoreNote, ScoreVoice } from "@repo/music-core";
 import type { FlashcardPrompt } from "@repo/music-core/content/reading";
 import type { Tuning } from "@repo/music-core/data/index";
-import { pc } from "@repo/music-core";
+import { pc, showKeyName } from "@repo/music-core";
 import { m } from "@repo/i18n/messages.js";
 
 /** The card's notes on its clef; a four-part chord across the grand staff, split at middle C. */
@@ -156,11 +156,11 @@ export function clefClause(clefs: readonly string[]): string {
   return m.music_drills_reading_clef_treble_clause();
 }
 
-/** A key's name as shown ("C major"); the stored name stays as it is. */
+/** A key's name as shown ("C major", "Do mayor"); the stored name stays as it is. */
 export function keyLabel(name: string): string {
   const [note, quality] = name.split(" ");
-  if (quality === "major") return m.music_drills_reading_key_major({ note });
-  if (quality === "minor") return m.music_drills_reading_key_minor({ note });
+  if (quality === "major") return m.music_drills_reading_key_major({ note: showKeyName(note) });
+  if (quality === "minor") return m.music_drills_reading_key_minor({ note: showKeyName(note) });
   return name;
 }
 export const fretPosition = (instrument: string, value: string) =>

@@ -31,6 +31,7 @@
   import { clampRange, clefClause, comparisonScore, flashcardScore, instrumentName, keyboardSpan, keyLabel, missMarks, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
+  import { note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
@@ -41,6 +42,10 @@
 
   const s = $derived(cfg.value);
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
+  // Movable do counts the cards' names from the key they're read in.
+  useNamingKey(() => ({ tonic: key.tonic, minor: key.mode === "minor" }));
+  /** An answer as it reads: a note ("F#"), or a chord's notes ("C-E-G", "C4-E4-G4"). */
+  const names = (t: string) => t.split("-").map(note).join("-");
   const level = $derived(readingLevel(readingLevelId(s.level)));
   const fretted = $derived(instrument !== "piano" && !!tuning);
   // The Aerophone reads one treble line in its own written range, by exact pitch like the piano.
@@ -178,10 +183,10 @@
     const src: InputSource | "mixed" = typeof response === "string" ? "click" : runSource(notes);
     const assistance: Assistance | undefined = hinted ? "hinted" : undefined;
     status = correct
-      ? m.music_drills_reading_flash_right({ answer: p.answer })
+      ? m.music_drills_reading_flash_right({ answer: names(p.answer) })
       : typeof response === "string"
-        ? m.music_drills_reading_flash_wrong_answered({ name, expected: fullName(p) })
-        : m.music_drills_reading_flash_wrong_played({ name, expected: fullName(p) });
+        ? m.music_drills_reading_flash_wrong_answered({ name: names(name), expected: names(fullName(p)) })
+        : m.music_drills_reading_flash_wrong_played({ name: names(name), expected: names(fullName(p)) });
     await run?.attempt({
       promptId: p.id,
       correct,
@@ -233,7 +238,7 @@
       headline:
         right === answers.length
           ? m.music_drills_reading_flash_all_right({ count: answers.length })
-          : m.music_drills_reading_flash_some_right({ right, total: answers.length, missed: missed.map((p) => p.answer).join(", ") }),
+          : m.music_drills_reading_flash_some_right({ right, total: answers.length, missed: missed.map((p) => names(p.answer)).join(", ") }),
       metric: pct(score),
       metricLabel: m.music_drills_reading_flash_metric(),
       delta: fin.delta,
@@ -286,7 +291,7 @@
     { text: kind === "note" ? (accidentals ? m.music_drills_reading_flash_kind_notes_acc() : m.music_drills_reading_flash_kind_notes()) : kind === "satb" ? m.music_drills_reading_flash_kind_satb() : m.music_drills_reading_flash_kind_triads(), focus: "kind" },
     { text: crossed ? m.music_drills_reading_flash_crossed_clefs() : clefClause(clefs), focus: fretted || aero ? undefined : "clefs" },
     { text: keyLabel(key.name), focus: "key" },
-    { text: m.music_drills_reading_flash_range({ low: noteName(range[0]), high: noteName(range[1]) }) },
+    { text: m.music_drills_reading_flash_range({ low: note(noteName(range[0])), high: note(noteName(range[1])) }) },
     { text: byPlay ? (useMic ? m.music_drills_reading_flash_answer_mic() : m.music_drills_reading_flash_answer_play()) : m.music_drills_reading_flash_answer_name(), focus: "answer" },
     { text: instrumentName(instrument) },
   ]);
@@ -355,12 +360,12 @@
         <p class="flex min-h-7 flex-wrap items-center justify-center gap-x-6 gap-y-1 px-1 text-base font-semibold" aria-live="polite">
           {#if missedCard && answered}
             <!-- In the staff's order: the card's note first, then what was played. -->
-            <span class="inline-flex items-center gap-1.5"><span class="glyph right" aria-hidden="true">✓</span>{m.music_drills_reading_flash_it_was({ name: expectedName })}</span>
-            <span class="inline-flex items-center gap-1.5"><span class="glyph wrong" aria-hidden="true">✕</span>{byPlay ? m.music_drills_reading_flash_you_played({ name: answered.name }) : m.music_drills_reading_flash_you_answered({ name: answered.name })}</span>
+            <span class="inline-flex items-center gap-1.5"><span class="glyph right" aria-hidden="true">✓</span>{m.music_drills_reading_flash_it_was({ name: names(expectedName) })}</span>
+            <span class="inline-flex items-center gap-1.5"><span class="glyph wrong" aria-hidden="true">✕</span>{byPlay ? m.music_drills_reading_flash_you_played({ name: names(answered.name) }) : m.music_drills_reading_flash_you_answered({ name: names(answered.name) })}</span>
           {:else if answered}
-            <span class="glyph right" aria-hidden="true">✓</span> {card?.answer}
+            <span class="glyph right" aria-hidden="true">✓</span> {names(card?.answer ?? "")}
           {:else if hinted}
-            {m.music_drills_reading_flash_hint_answer({ answer: card?.answer ?? "" })}
+            {m.music_drills_reading_flash_hint_answer({ answer: names(card?.answer ?? "") })}
           {:else if phase !== "running"}
             <span class="font-normal text-ws-stage-soft">{m.music_drills_reading_flash_sample({ count: LENGTH })}</span>
           {/if}
@@ -385,21 +390,21 @@
                 class="name min-h-14 rounded-xl text-base font-semibold"
                 data-state={answered && c === card?.answer ? "expected" : answered && !answered.correct && c === answered.name ? "answered" : null}
                 disabled={phase !== "running" || !!answered}
-                onclick={() => void answer(c)}>{c}</button
+                onclick={() => void answer(c)}>{names(c)}</button
               >
             {/each}
           </div>
         {:else if useMic}
           <div class="mx-auto max-w-md rounded-2xl bg-ws-stage-ink/8 p-4 text-center">
             <p class="text-sm text-ws-stage-soft">{m.music_drills_reading_flash_mic_prompt({ instrument: instrumentName(instrument) })}</p>
-            <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : m.music_drills_reading_no_pitch()}</p>
+            <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? note(noteName(mic.pitch.midi)) : m.music_drills_reading_no_pitch()}</p>
           </div>
         {:else if fretted && tuning}
           <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} {flashes} label={m.music_drills_reading_fretboard_label({ instrument: instrumentName(instrument) })} />
         {:else if aero}
           <InstrumentStage instrument="aerophone" line={card?.midi.map((n) => n + transpose) ?? []} marks={pianoMarks} {flashes} />
         {:else}
-          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} spelling={key.fifths < 0 ? "flat" : "sharp"} label={m.music_drills_reading_piano_label({ low: noteName(low), high: noteName(high) })} />
+          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} spelling={key.fifths < 0 ? "flat" : "sharp"} label={m.music_drills_reading_piano_label({ low: note(noteName(low)), high: note(noteName(high)) })} />
         {/if}
       </div>
     </div>

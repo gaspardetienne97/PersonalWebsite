@@ -19,7 +19,9 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import EarVisual from "./EarVisual.svelte";
   import { tokenLabel } from "./session";
-  import { spellChord, spellDegree, spellInterval } from "./degrees";
+  import { namingKeyOf, spellChord, spellDegree, spellInterval } from "./degrees";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  import { showNote } from "@repo/music-core";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   let {
@@ -100,21 +102,24 @@
   const inst = $derived(settings.value.activeInstrument);
   const onKeys = $derived(!fretTuning(inst) && inst !== "aerophone");
 
+  /** A note by name, counted from the prompt's key in movable do (a degree's tonic). */
+  const key = $derived(namingKeyOf(prompt));
+  const say = (name: string) => showNote(name, key);
   /** Bass to top, each spelled by its place in the chord (E G# B#, not E Ab C), each name once. */
-  const names = (ms: number[]) => [...new Set(spellChord(ms))].join(" ");
-  const bass = (ms: number[]) => spellChord(ms)[0];
+  const names = (ms: number[]) => [...new Set(spellChord(ms))].map(say).join(" ");
+  const bass = (ms: number[]) => say(spellChord(ms)[0]);
   const playedText = $derived.by(() => {
     if (ends) {
       const [a, b] = spellInterval(from, ends[1]);
       const msg = prompt.direction === "harmonic" ? m.music_drills_ear_reveal_interval_harmonic : way > 0 ? m.music_drills_ear_reveal_interval_up : m.music_drills_ear_reveal_interval_down;
-      return msg({ name: tokenLabel("interval", prompt.answer), a, b, count: steps });
+      return msg({ name: tokenLabel("interval", prompt.answer), a: say(a), b: say(b), count: steps });
     }
     if (prompt.drill === "inversion") return m.music_drills_ear_reveal_inversion({ name: tokenLabel("inversion", prompt.answer), notes: names(played), bass: bass(played) });
     if (degree)
       return m.music_drills_ear_reveal_degree({
         name: tokenLabel("scale-degree", prompt.answer),
-        notes: played.map((n) => spellDegree(n, tonic, prompt.answer).replace(/-?\d+$/, "")).join(" "),
-        tonic: noteName(tonic, "flat", false),
+        notes: played.map((n) => say(spellDegree(n, tonic, prompt.answer).replace(/-?\d+$/, ""))).join(" "),
+        tonic: keyName(noteName(tonic, "flat", false)),
       });
     return m.music_drills_ear_reveal_notes({ name: tokenLabel(prompt.drill, prompt.answer), notes: names(played) });
   });

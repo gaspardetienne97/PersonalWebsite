@@ -12,9 +12,11 @@
   import { noteName } from "@repo/music-core";
   import { FLAT_NAMES, pc } from "@repo/music-core/theory/notes";
   import { signatureFor } from "@repo/music-core/theory/circle";
-  import { JAM_GROUPS, barBeats, chorusBars, keyText as progKeyText, transposeProgression } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, barBeats, chorusBars, transposeProgression } from "@repo/music-core/content/jam";
   import { TUNES, formatReharm, parseReharm, reharmDevice, reharmonise } from "@repo/music-core/content/tunes";
   import { backingNotes } from "#lib/music/drills/jam/backing.ts";
+  import { keyLabel, namingKey } from "#lib/music/drills/jam/naming.ts";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import {
     ACCOMP_PATTERNS,
@@ -141,6 +143,8 @@
   const writtenKey = $derived(tab === "lead-sheet" && !genTune ? sheet.keyPc : base.keyPc);
   const keyPc = $derived(pc(writtenKey + s.transpose));
   const minor = $derived(tab !== "lead-sheet" || genTune ? /minor/.test(base.key) : false);
+  // Movable do counts from the key played in: the progression's mode moved to it, or a lead sheet's major key.
+  useNamingKey(() => (tab !== "lead-sheet" || genTune ? namingKey([FLAT_NAMES[keyPc], ...base.key.split(" ").slice(1)].join(" ")) : { tonic: FLAT_NAMES[keyPc] }));
 
   const full = $derived.by((): Rendering => {
     if (tab === "comping") return compingRendering(chartOf(compProg, s.transpose, compChoruses), voicing.id, rhythm.id, s.feel === "swing", bpb);
@@ -228,7 +232,7 @@
   /** Beside Stop on a phone: the bar and the chord to play now. */
   const cue = $derived(
     phase === "running" && transport.beat !== null && transport.beat >= 0
-      ? (mode === "check" ? m.music_drills_accompany_cue_hidden : m.music_drills_accompany_cue)({ bar: Math.min(totalBeats / bpb, Math.floor(transport.beat / bpb) + 1), total: totalBeats / bpb, chord: rendering.chart[chordNow]?.symbol ?? "" })
+      ? (mode === "check" ? m.music_drills_accompany_cue_hidden : m.music_drills_accompany_cue)({ bar: Math.min(totalBeats / bpb, Math.floor(transport.beat / bpb) + 1), total: totalBeats / bpb, chord: chord(rendering.chart[chordNow]?.symbol ?? "") })
       : "",
   );
 
@@ -248,7 +252,7 @@
   });
 
   const handsText = $derived(hands === "both" ? m.music_drills_accompany_hands_both_lc() : hands === "left" ? m.music_drills_accompany_hands_left_only_lc() : m.music_drills_accompany_hands_right_only_lc());
-  const keyText = $derived(minor ? m.music_drills_accompany_key_minor({ key: FLAT_NAMES[keyPc] }) : FLAT_NAMES[keyPc]);
+  const keyText = $derived(minor ? m.music_drills_accompany_key_minor({ key: keyName(FLAT_NAMES[keyPc]) }) : keyName(FLAT_NAMES[keyPc]));
   const loopClause = $derived<SetupClause[]>(loopBar === null ? [] : [{ text: m.music_drills_accompany_loop_clause({ bar: loopBar + 1, loops: LOOPS }) }]);
   const summaryLine = $derived<SetupClause[]>([...loopClause, ...(
     tab === "comping"
@@ -416,7 +420,7 @@
   ];
   const progressionHint = $derived.by(() => {
     if (charted) return m.music_drills_accompany_prog_charted({ about: CHART_LEVELS.find((l) => l.id === base.id)!.about });
-    const p = { chords: (tab === "comping" ? compProg : base).chords.map((c) => c.symbol).join(" "), key: progKeyText(base.key) };
+    const p = { chords: (tab === "comping" ? compProg : base).chords.map((c) => chord(c.symbol)).join(" "), key: keyLabel(base.key) };
     const artist = base.song?.artist;
     if (artist) return swaps.size ? m.music_drills_accompany_prog_written_artist_reharm({ ...p, artist }) : m.music_drills_accompany_prog_written_artist({ ...p, artist });
     return swaps.size ? m.music_drills_accompany_prog_written_reharm(p) : m.music_drills_accompany_prog_written(p);
@@ -513,7 +517,7 @@
       {/if}
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">{m.music_drills_accompany_key()}</span>
-        <KeyPicker label={m.music_drills_accompany_key()} value={keyPc} onchange={pickKey} name={(k) => (k === writtenKey ? m.music_drills_accompany_key_written({ key: FLAT_NAMES[k] }) : FLAT_NAMES[k])} />
+        <KeyPicker label={m.music_drills_accompany_key()} value={keyPc} onchange={pickKey} name={(k) => (k === writtenKey ? m.music_drills_accompany_key_written({ key: keyName(FLAT_NAMES[k]) }) : keyName(FLAT_NAMES[k]))} />
       </div>
       {#if tab !== "comping"}
         <Choice label={m.music_drills_accompany_hands()} setupKey="hands" options={handOptions} value={hands} onchange={(v) => cfg.set({ hands: v })} />
@@ -540,7 +544,7 @@
       <div class="mb-2 flex flex-wrap items-end justify-between gap-3">
         <div class="min-w-0">
           <p class="text-sm text-ws-stage-soft">{m.music_drills_accompany_now()}</p>
-          <p class="font-display text-4xl font-bold leading-none">{rendering.chart[chordNow]?.symbol}</p>
+          <p class="font-display text-4xl font-bold leading-none">{chord(rendering.chart[chordNow]?.symbol ?? "")}</p>
         </div>
         {#if phase !== "running" && phase !== "countin"}
           <p class="max-w-prose text-sm text-ws-stage-soft">
@@ -556,16 +560,16 @@
       </div>
       {#if !staffHasChart}<div class="mb-3 flex">{@render chart()}</div>{/if}
       {#if falling && (mode === "practice" || transport.playing || phase === "results")}
-        <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={m.music_drills_accompany_piano_label({ low: noteName(span.low), high: noteName(span.high) })} />
+        <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={m.music_drills_accompany_piano_label({ low: note(noteName(span.low)), high: note(noteName(span.high)) })} />
       {:else}
         {#if mode === "check" && tab !== "lead-sheet" && !transport.playing && phase !== "results"}
-          <BeatLane rows={checkLanes} beats={totalBeats} beat={transport.beat} beatsPerBar={bpb} chords={rendering.chart.map((c, i) => ({ beat: rendering.chart.slice(0, i).reduce((t, x) => t + x.durationBeats, 0), symbol: c.symbol }))} hidden label={m.music_drills_accompany_lane_hidden()} />
+          <BeatLane rows={checkLanes} beats={totalBeats} beat={transport.beat} beatsPerBar={bpb} chords={rendering.chart.map((c, i) => ({ beat: rendering.chart.slice(0, i).reduce((t, x) => t + x.durationBeats, 0), symbol: chord(c.symbol) }))} hidden label={m.music_drills_accompany_lane_hidden()} />
         {/if}
         {#if tab === "lead-sheet" || mode === "practice" || transport.playing || phase === "results"}
           <StaffFold live={phase === "running" || phase === "countin"} aside={chart}><LineNotation maxZoom={shortStage.current ? 1 : 1.1} notes={written} title={setupKey} cursorBeat={transport.beat} {keyFifths} beatsPerBar={bpb} instrument="piano" oneRow chords={tab === "lead-sheet" ? rendering.chart : undefined} /></StaffFold>
         {/if}
         <div class="flex flex-col justify-end" data-dock="instrument">
-          <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label={m.music_drills_accompany_piano_label({ low: noteName(span.low), high: noteName(span.high) })} />
+          <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label={m.music_drills_accompany_piano_label({ low: note(noteName(span.low)), high: note(noteName(span.high)) })} />
         </div>
       {/if}
       <div class="mt-3 flex flex-col gap-1 text-sm text-ws-stage-soft">
@@ -586,7 +590,7 @@
   <ol class="flex min-w-0 flex-1 flex-wrap gap-1.5" aria-label={m.music_drills_accompany_chart_label()}>
     {#each rendering.chart as c, i (i)}
       <li class="chord-cell flex min-h-10 items-center justify-center rounded-lg px-3 font-display font-semibold" class:now={i === chordNow && transport.beat !== null} style:flex-grow={c.durationBeats} aria-current={i === chordNow && transport.beat !== null ? "step" : undefined}>
-        {c.symbol}{#if charted}<span class="slashes" aria-hidden="true">{"/".repeat(c.durationBeats)}</span>{/if}<span class="sr-only">{m.music_drills_accompany_chord_bars({ count: c.durationBeats / bpb })}</span>
+        {chord(c.symbol)}{#if charted}<span class="slashes" aria-hidden="true">{"/".repeat(c.durationBeats)}</span>{/if}<span class="sr-only">{m.music_drills_accompany_chord_bars({ count: c.durationBeats / bpb })}</span>
       </li>
     {/each}
   </ol>

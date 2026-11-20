@@ -3,7 +3,8 @@
   import { TimedRun } from "./timed-run";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
-  import { noteName } from "@repo/music-core";
+  import { noteName, showChord } from "@repo/music-core";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { COMPING_PATTERNS } from "@repo/music-core/content/piano";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
@@ -72,6 +73,8 @@
   const span = $derived(spanOf(notes.map((n) => n.midi)));
   const tight = $derived(spanOf(notes.map((n) => n.midi), 0, false));
   const root = $derived(parseChordSymbol(p.chord)!);
+  // Movable do counts from the chord's root: a C7 blues line is in C.
+  useNamingKey(() => ({ tonic: root.rootName }));
   // A dominant's line sits in its mixolydian (C7 in F major's signature), so the 7th reads as a flat.
   const keyFifths = $derived(signatureFor(root.rootPc, "mixolydian"));
   const approach = JAZZ.IMPROV_TECHNIQUES.find((t) => t.id === "half-step-below");
@@ -120,7 +123,7 @@
       mark: "R",
       label: m.music_drills_comping_lane_right(),
       hand: "right",
-      notes: notes.filter((n) => n.hand === "right").map((n) => ({ beat: n.beat, dur: n.dur, text: noteName(n.midi, "flat", false) })),
+      notes: notes.filter((n) => n.hand === "right").map((n) => ({ beat: n.beat, dur: n.dur, text: note(noteName(n.midi, "flat", false)) })),
     },
     {
       id: "left",
@@ -130,7 +133,7 @@
       notes: notes
         .filter((n) => n.hand === "left" && n.midi === lhMidi[0])
         // The shell named by its chord: "C+Bb" would be cut short in a narrow cell.
-        .map((n) => ({ beat: n.beat, dur: n.dur, text: p.chord })),
+        .map((n) => ({ beat: n.beat, dur: n.dur, text: chord(p.chord) })),
     },
   ]);
 
@@ -165,9 +168,9 @@
     const bar = Math.min(p.bars, Math.floor(transport.beat / BEATS_PER_BAR) + 1);
     if (mode !== "practice") return m.music_drills_comping_cue_hidden({ bar, bars: p.bars });
     const now = due(transport.beat);
-    const line = [...new Set(now.filter((n) => n.hand === "right").map((n) => noteName(n.midi, "flat", false)))];
+    const line = [...new Set(now.filter((n) => n.hand === "right").map((n) => note(noteName(n.midi, "flat", false))))];
     const shell = now.some((n) => n.hand === "left");
-    return m.music_drills_comping_cue({ bar, items: [...line, ...(shell ? [m.music_drills_comping_cue_shell({ chord: p.chord })] : [])].join(m.music_drills_comping_cue_join()) || m.music_drills_comping_cue_rest() });
+    return m.music_drills_comping_cue({ bar, items: [...line, ...(shell ? [m.music_drills_comping_cue_shell({ chord: chord(p.chord) })] : [])].join(m.music_drills_comping_cue_join()) || m.music_drills_comping_cue_rest() });
   });
 
   const summaryLine = $derived<SetupClause[]>([
@@ -197,7 +200,7 @@
     const err = want ? (beat < want.beat ? beat - want.beat : Math.max(0, beat - want.beat - slack(want.beat))) : 0;
     const v = want
       ? verdictOf(Math.abs(err) <= want.dur / 4 ? "ok" : err < 0 ? "early" : "late", err * clock0.beatMs)
-      : { kind: "wrong" as const, text: m.music_drills_comping_wrong_note({ note: noteName(e.midi, "flat") }) };
+      : { kind: "wrong" as const, text: m.music_drills_comping_wrong_note({ note: note(noteName(e.midi, "flat")) }) };
     verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
 
@@ -355,7 +358,7 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
-      <Choice label={m.music_drills_comping_choice_key()} setupKey="pattern" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: parseChordSymbol(x.chord)!.rootName, detail: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
+      <Choice label={m.music_drills_comping_choice_key()} setupKey="pattern" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: keyName(parseChordSymbol(x.chord)!.rootName), detail: showChord(x.chord, { tonic: parseChordSymbol(x.chord)!.rootName }) }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
       <Choice
         label={m.music_drills_comping_choice_lh()}
         setupKey="lh"
@@ -388,11 +391,11 @@
     <!-- While the line runs on a phone the lane names the chord, so this row leaves and the keys keep the room. -->
     <div class="mb-2 flex flex-wrap items-start justify-between gap-3 text-sm {phase === 'running' || phase === 'countin' ? 'max-sm:hidden' : ''}">
       <div class="min-w-0 max-w-prose">
-        <p class="font-display text-2xl font-semibold">{p.chord}</p>
+        <p class="font-display text-2xl font-semibold">{chord(p.chord)}</p>
         <!-- The theory steps aside while the line runs, so the lane and the keys stay in view. -->
         {#if mode === "practice" && phase === "ready" && !transport.playing}
           <p class="text-ws-stage-soft">
-            {m.music_drills_comping_theory({ from: noteName(p.lick[6].midiNote, "flat", false), to: noteName(p.lick[7].midiNote, "flat", false), root: root.rootName })}
+            {m.music_drills_comping_theory({ from: note(noteName(p.lick[6].midiNote, "flat", false)), to: note(noteName(p.lick[7].midiNote, "flat", false)), root: note(root.rootName) })}
           </p>
           <!-- The two things to open sit on one row, so the lane and the keys keep the room. -->
           <div class="flex flex-wrap items-start gap-x-6 text-ws-stage-soft">
@@ -419,7 +422,7 @@
       rows={lanes}
       beats={totalBeats}
       beat={transport.beat}
-      chords={[{ beat: 0, symbol: p.chord }]}
+      chords={[{ beat: 0, symbol: chord(p.chord) }]}
       hidden={mode === "check" && !transport.playing}
       label={m.music_drills_comping_lane_label({ count: p.lick.length })}
       {outcomes}
@@ -430,7 +433,7 @@
     <div class="flex flex-col" data-dock="instrument">
       <!-- The word for the last note has its own row between the lane and the keys, never over them. -->
       {#if phase === "running"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
-      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label={m.music_drills_comping_piano_label({ low: noteName(span.low), high: noteName(span.high) })} />
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label={m.music_drills_comping_piano_label({ low: note(noteName(span.low)), high: note(noteName(span.high)) })} />
     </div>
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
@@ -466,7 +469,7 @@
   {#if graded}
     <div class="stage rounded-2xl p-3">
       <p class="mb-2 text-sm font-medium text-ws-stage-soft">{m.music_drills_comping_figure_title()}</p>
-      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: p.chord }]} label={m.music_drills_comping_figure_label()} {outcomes} wrong={result?.lick.extra ?? 0} strays={strays.length === (result?.lick.extra ?? 0) ? strays : []} />
+      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: chord(p.chord) }]} label={m.music_drills_comping_figure_label()} {outcomes} wrong={result?.lick.extra ?? 0} strays={strays.length === (result?.lick.extra ?? 0) ? strays : []} />
     </div>
   {/if}
 {/snippet}
