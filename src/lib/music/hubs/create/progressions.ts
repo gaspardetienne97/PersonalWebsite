@@ -2,7 +2,7 @@
 // in the middle of the keyboard with each chord moving as little as it can
 // from the last. Pure.
 import { m } from "@repo/i18n/messages.js";
-import { FLAT_NAMES } from "@repo/music-core";
+import { FLAT_NAMES, showKeyName } from "@repo/music-core";
 import { parseChordSymbol, transposeSymbol } from "@repo/music-core/theory/chords";
 import type { RollVoice } from "./roll";
 import { BAR_BEATS } from "./roll";
@@ -78,7 +78,7 @@ export function progressionVoice(p: Progression, key: number, id: string): RollV
     id,
     name: (p.minor ? m.music_hubs_prog_voice_minor : m.music_hubs_prog_voice)({
       name: p.name.split(",")[0],
-      key: KEYS[key],
+      key: showKeyName(KEYS[key]),
     }),
     velocity: 0.7,
     sound: "e-piano",

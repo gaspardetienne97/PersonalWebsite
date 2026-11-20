@@ -12,7 +12,10 @@
   import Volume from "@lucide/svelte/icons/volume-2";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import Piano from "#lib/music/components/Piano.svelte";
-  import { hzToMidiFloat, midiToHz, noteName } from "@repo/music-core";
+  import { hzToMidiFloat, midiToHz, noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège, never counted from a key (the tuner's pitches are absolute). */
+  const noteName = (midi: number, prefer: "flat" | "sharp" = "flat", octave = true) => keyName(letters(midi, prefer, octave));
   import { TUNINGS } from "@repo/music-core/data/index";
   import {
     createIntonationStats,
@@ -180,8 +183,8 @@
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
   <div class="flex items-center gap-2">
-    <span class="font-medium whitespace-nowrap">{m.music_hubs_tuner_reference()}</span>
-    <Picker class="tnum" label={m.music_hubs_tuner_reference()} value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_hubs_tuner_hz_standard({ hz }) : m.music_hubs_tuner_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+    <span class="font-medium whitespace-nowrap">{m.music_hubs_tuner_reference({ a4: noteName(69) })}</span>
+    <Picker class="tnum" label={m.music_hubs_tuner_reference({ a4: noteName(69) })} value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_hubs_tuner_hz_standard({ hz }) : m.music_hubs_tuner_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
   </div>
   {#if fretted}
     <div class="flex items-center gap-2">

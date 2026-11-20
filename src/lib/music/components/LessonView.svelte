@@ -16,6 +16,7 @@
   import { countName } from "@repo/music-core/lessons/count";
   import Staff from "../notation/Staff.svelte";
   import { noteName } from "@repo/music-core";
+  import { chord, note } from "#lib/music/names.svelte.ts";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
   import { btn, btnPrimary } from "./ui";
   import Volume2 from "@lucide/svelte/icons/volume-2";
@@ -214,10 +215,10 @@
     const words = {
       clef: clefName(f.clef),
       count: Math.abs(f.fifths ?? 0),
-      notes: f.notes.map((n) => (n.midi === null ? m.music_shell_lesson_rest() : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", "),
+      notes: f.notes.map((n) => (n.midi === null ? m.music_shell_lesson_rest() : note(noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp")))).join(", "),
     };
     const staff = !f.fifths ? m.music_shell_lesson_staff(words) : (f.fifths < 0 ? m.music_shell_lesson_staff_flat : m.music_shell_lesson_staff_sharp)(words);
-    return f.chords?.length ? m.music_shell_lesson_staff_over({ chords: [...new Set(f.chords.map((c) => c.symbol))].join(", "), staff }) : staff;
+    return f.chords?.length ? m.music_shell_lesson_staff_over({ chords: [...new Set(f.chords.map((c) => chord(c.symbol)))].join(", "), staff }) : staff;
   };
   const pianoMarks = (marks: Record<number, string>) => Object.fromEntries(Object.entries(marks).map(([k, label]) => [k, { target: true, label }]));
   const padMarks = (marks: Record<number, string>) => Object.fromEntries(Object.entries(marks).map(([k, label]) => [k, { target: true, label }]));

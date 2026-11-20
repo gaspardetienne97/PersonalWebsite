@@ -18,6 +18,7 @@
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { input, midi, mic, settings } from "../runtime";
   import { noteName } from "@repo/music-core/theory/notes";
+  import { note } from "#lib/music/names.svelte.ts";
   import { btn } from "./ui";
 
   /** `required`: the drill cannot be played on screen (Start waits for the input).
@@ -47,7 +48,7 @@
   $effect(() => {
     if (!after || kind !== "midi") return;
     return input.subscribe((e) => {
-      if (e.kind === "noteon" && e.source === "midi") keyHeard = noteName(e.midi);
+      if (e.kind === "noteon" && e.source === "midi") keyHeard = note(noteName(e.midi));
     });
   });
 

@@ -4,6 +4,7 @@
   // syllables to sing. The step sounding in the example is lit; with no example
   // playing, the step the player picked is.
   import { noteName } from "@repo/music-core";
+  import { chord, note } from "../names.svelte";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
   import ChordDiagram from "../components/ChordDiagram.svelte";
   import Fretboard, { type FretMark } from "../components/Fretboard.svelte";
@@ -37,8 +38,8 @@
   };
   /** Each shape once: a progression that comes back to a chord shows its box once, lit both times. */
   const shapes = $derived([...new Set(v.shapes ?? [])]);
-  const shapeLabel = (chord: string) =>
-    instrument === "ukulele" ? m.music_runtime_clipvisual_ukulele_shape({ chord }) : m.music_runtime_clipvisual_guitar_shape({ chord });
+  const shapeLabel = (name: string) =>
+    instrument === "ukulele" ? m.music_runtime_clipvisual_ukulele_shape({ chord: chord(name) }) : m.music_runtime_clipvisual_guitar_shape({ chord: chord(name) });
 
   // The neck: every position of the clip, the one sounding (or picked) marked as the note to play now.
   const fretMarks = $derived.by((): FretMark[] => {
@@ -48,7 +49,7 @@
       const key = n.string * 100 + n.fret;
       const now = i === shown && (playing || clip.steps.length > 1);
       const old = seen.get(key);
-      if (!old) seen.set(key, { string: n.string, fret: n.fret, label: n.label, role: "scale", state: now ? "now" : undefined, demo: now && playing });
+      if (!old) seen.set(key, { string: n.string, fret: n.fret, label: note(n.label), role: "scale", state: now ? "now" : undefined, demo: now && playing });
       else if (now) Object.assign(old, { state: "now", demo: playing });
     });
     return [...seen.values()];
@@ -61,9 +62,9 @@
     const single = k.steps.every((s) => s.length === 1);
     const out: Record<number, CellMarks> = {};
     const role = (m: number) => (k.left ? (k.left.includes(m) ? "left" : "right") : undefined);
-    if (single) for (const [m] of k.steps) out[m] = { target: true, label: noteName(m, "flat", false), role: role(m) };
+    if (single) for (const [m] of k.steps) out[m] = { target: true, label: note(noteName(m, "flat", false)), role: role(m) };
     for (const m of k.steps[shown] ?? [])
-      if (!single || playing) out[m] = { target: true, demo: playing, label: noteName(m, "flat", false), role: role(m) };
+      if (!single || playing) out[m] = { target: true, demo: playing, label: note(noteName(m, "flat", false)), role: role(m) };
     return out;
   });
 
@@ -100,7 +101,7 @@
       {#each shapes as s (s)}
         {@const current = shapes.length > 1 && v.shapes[shown] === s}
         <li class="{shapes.length > 1 ? 'w-[7.75rem]' : 'w-40'} rounded-xl border bg-ws-surface p-2 {current ? 'border-instr-ink ring-2 ring-instr-ink' : 'border-ws-line'}" data-current={current || undefined}>
-          <p class="text-center font-display text-xl font-semibold">{s.name}</p>
+          <p class="text-center font-display text-xl font-semibold">{chord(s.name)}</p>
           <ChordDiagram frets={s.frets} fingers={s.fingers} label={shapeLabel(s.name)} />
         </li>
       {/each}
@@ -136,7 +137,7 @@
         <text x={TAB.left + 30 + i * TAB.col} y={TAB.top + 5 * TAB.row + 30} text-anchor="middle" class="tab-count" class:beat={i % 2 === 0}>{c}</text>
       {/each}
       {#each [1, 2, 3, 4, 5, 6] as s (s)}
-        <text x={TAB.left - 22} y={TAB.top + (s - 1) * TAB.row + 5} text-anchor="middle" class="tab-count">{noteName(OPEN_STRINGS.guitar[s - 1], "flat", false)}</text>
+        <text x={TAB.left - 22} y={TAB.top + (s - 1) * TAB.row + 5} text-anchor="middle" class="tab-count">{note(noteName(OPEN_STRINGS.guitar[s - 1], "flat", false))}</text>
         <line x1={TAB.left} x2={TAB.w - 8} y1={TAB.top + (s - 1) * TAB.row} y2={TAB.top + (s - 1) * TAB.row} class="tab-line" />
       {/each}
       <line x1={TAB.left} x2={TAB.left} y1={TAB.top} y2={TAB.top + 5 * TAB.row} class="tab-bar" />
@@ -148,7 +149,7 @@
         <text {x} y={y + 5} text-anchor="middle" class="tab-fret" class:now={playing && n.slot === step}>{n.fret}</text>
       {/each}
     </svg>
-    <p class="text-sm text-ws-soft">{m.music_runtime_clipvisual_tab_note()}</p>
+    <p class="text-sm text-ws-soft">{m.music_runtime_clipvisual_tab_note({ e: note("E") })}</p>
   {/if}
 
   {#if v.keys}
@@ -160,7 +161,7 @@
     <div class="flex flex-wrap items-start gap-4">
       <AerophoneKeys midi={written - aeroShift} compact name={() => noteName(written, "flat")} />
       <p class="max-w-xs text-sm text-ws-soft">
-        {m.music_runtime_clipvisual_fingering({ note: noteName(written, "flat") })}
+        {m.music_runtime_clipvisual_fingering({ note: note(noteName(written, "flat")) })}
         {#if clip.steps.length > 1}{m.music_runtime_clipvisual_pick_note()}{/if}
       </p>
     </div>

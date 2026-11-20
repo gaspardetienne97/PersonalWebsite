@@ -6,6 +6,7 @@
   // chords light as one wedge, with their numerals; the centre names its
   // signature. Drills can blank keys out and mark answers.
   import { CIRCLE, keyAt, noteAtFifths, wheelIndex } from "@repo/music-core/theory/circle";
+  import { keyName } from "#lib/music/names.svelte.ts";
 
   let {
     selected = null,
@@ -91,7 +92,7 @@
       aria-label={hidden
         ? m.music_shell_circle_slot_hidden({ n: i + 1 })
         : m.music_shell_circle_slot({
-            name: k.enharmonic ? m.music_shell_circle_major_enh({ key: k.major, enharmonic: k.enharmonic.major }) : m.music_shell_circle_major({ key: k.major }),
+            name: k.enharmonic ? m.music_shell_circle_major_enh({ key: keyName(k.major), enharmonic: keyName(k.enharmonic.major) }) : m.music_shell_circle_major({ key: keyName(k.major) }),
             signature:
               k.fifths === 0
                 ? m.music_shell_circle_no_accidentals()
@@ -102,8 +103,8 @@
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onpick?.(k.fifths))}
     >
       <path class="ring major" class:in={roleOf("major", i) !== null} class:tonic={roleOf("major", i) === "I"} d={wedge(i, R.major, R.outer)} />
-      <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : k.major}</text>
-      {#if k.enharmonic && !hidden && !mark && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{k.enharmonic.major}</text>{/if}
+      <text x={p.x} y={p.y - (roleOf("major", i) && numerals ? 6 : 0)} class="name">{hidden ? "?" : keyName(k.major)}</text>
+      {#if k.enharmonic && !hidden && !mark && !(numerals && roleOf("major", i))}<text x={p.x} y={p.y + 15} class="enh">{keyName(k.enharmonic.major)}</text>{/if}
       {#if numerals && roleOf("major", i)}<text x={p.x} y={p.y + 14} class="numeral">{roleOf("major", i)}</text>{/if}
       <!-- A marked answer carries a glyph, not colour alone. -->
       {#if mark === "right" || mark === "wrong"}<text x={p.x} y={p.y + 17} class="glyph" aria-hidden="true">{mark === "right" ? "✓" : "✕"}</text>{/if}
@@ -111,18 +112,21 @@
     {#if !compact}
       <!-- Middle ring: its relative minor. -->
       <path style:--h={hue(i)} class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
-      <text x={mid.x} y={mid.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
+      {@const minorName = hidden ? "" : `${keyName(k.minor)}m`}
+      <text x={mid.x} y={mid.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name" textLength={dim && minorName.length > 3 ? 36 : undefined} lengthAdjust="spacingAndGlyphs">{minorName}</text>
       {#if numerals && roleOf("minor", i)}<text x={mid.x} y={mid.y + 9} class="numeral">{roleOf("minor", i)}</text>{/if}
       {#if dim}
         <!-- Inner ring: the key's diminished chord (its vii°). -->
         <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
-        <text x={d.x} y={d.y} class="dim-name">{hidden ? "" : `${noteAtFifths(k.fifths + 5)}°`}</text>
+        {@const dimName = hidden ? "" : `${keyName(noteAtFifths(k.fifths + 5))}°`}
+        <!-- A long name (solfège: "Sol#°") is narrowed to its wedge rather than run into the next. -->
+        <text x={d.x} y={d.y} class="dim-name" textLength={dimName.length > 3 ? 26 : undefined} lengthAdjust="spacingAndGlyphs">{dimName}</text>
       {/if}
     {/if}
   {/each}
   <circle class="hub" cx={C} cy={C} r={R.dim - 2} />
   {#if picked}
-    <text x={C} y={C - 7} class="hub-key">{picked.major}</text>
+    <text x={C} y={C - 7} class="hub-key">{keyName(picked.major)}</text>
     <text x={C} y={C + 12} class="hub-sig">{picked.fifths === 0 ? m.music_shell_circle_hub_none() : `${Math.abs(picked.fifths)}${picked.fifths > 0 ? "♯" : "♭"}`}</text>
   {:else}
     <text x={C} y={C - 8} class="hub-sig">{m.music_shell_circle_hub_sharps_go()}</text>

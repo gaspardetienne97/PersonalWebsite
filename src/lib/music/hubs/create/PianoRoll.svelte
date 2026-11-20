@@ -32,7 +32,10 @@
   import MoveH from "@lucide/svelte/icons/move-horizontal";
   import Play from "@lucide/svelte/icons/play";
   import Square from "@lucide/svelte/icons/square";
-  import { isBlackKey, noteName } from "@repo/music-core";
+  import { isBlackKey, noteName as letters } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
+  /** A row's note as the player reads names (letters or solfège). */
+  const noteName = (midi: number) => note(letters(midi));
   import { audio } from "#lib/music/runtime/index.ts";
   import { btnStage } from "#lib/music/components/ui.ts";
   import { loopBeats, voiceNotes, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";

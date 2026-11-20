@@ -1,7 +1,7 @@
 // The Connect rig: which tile a MIDI input or note lights, what a hit reads
 // as, and the microphone choices. Connect is the one place the input device
 // is picked; Settings only shows the stored label.
-import { noteName, type Instrument } from "@repo/music-core";
+import { noteName, showKeyName, type Instrument } from "@repo/music-core";
 import type { PickOption } from "#lib/music/components/Picker.svelte";
 import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
 import { m } from "@repo/i18n/messages.js";
@@ -14,7 +14,7 @@ export const tileFor = (instrument?: Instrument): RigTile =>
 
 /** A hit as the player knows it: a bank A pad on the MPC, a note name elsewhere. */
 export const hitLabel = (tile: RigTile, midi: number) =>
-  tile === "mpc" && midi >= 36 && midi <= 51 ? padLabel(midi) : noteName(midi);
+  tile === "mpc" && midi >= 36 && midi <= 51 ? padLabel(midi) : showKeyName(noteName(midi));
 
 /**
  * The microphone picker's options. Before the browser grants the microphone it
@@ -57,7 +57,7 @@ export const inputName = (deviceId: string | undefined, label: string) =>
  */
 export function describeMidi(
   hex: string,
-  name: (note: number) => string = (n) => noteName(n),
+  name: (note: number) => string = (n) => showKeyName(noteName(n)),
 ): string {
   const b = hex
     .trim()

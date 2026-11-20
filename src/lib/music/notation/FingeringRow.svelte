@@ -1,6 +1,7 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
   import { noteName, type Score } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { AEROPHONE_FINGERINGS } from "@repo/music-core/data/index";
   import { transposeFifths, writtenOffset } from "@repo/music-core/theory/transposition";
   import { settings } from "#lib/music/runtime/index.ts";
@@ -31,7 +32,7 @@
     scoreGroups(score, voiceIds, range).map((g) => {
       const midi = g.notes[g.notes.length - 1].midi + shift;
       const f = AEROPHONE_FINGERINGS.fingeringsByMidi[String(midi)];
-      const name = noteName(midi, flats ? "flat" : "sharp");
+      const name = note(noteName(midi, flats ? "flat" : "sharp"));
       const extras = f ? f.keys.filter((k) => !LH.includes(k) && !RH.includes(k)) : [];
       const spoken = f
         ? [...f.keys.map((k) => labelOf[k] ?? k), ...(f.octave ? [m.music_shell_nt_octave_key()] : [])].join(", ") ||

@@ -77,6 +77,7 @@
   // same one its tab cursor reads.
   import { MediaQuery } from "svelte/reactivity";
   import { settings } from "#lib/music/runtime/index.ts";
+  import { chord, note as noteText } from "#lib/music/names.svelte.ts";
   import { NOW_X, ballY, beatX, behindBeats, chordBlock, hitVerdict, inView, laneY, spanX, type Hit, type HitVerdict } from "./highway";
 
   let {
@@ -180,7 +181,7 @@
       <div class="tick" class:bar={g.bar} style:left={x(g.b)}></div>
     {/each}
     {#each shownLabels as l (l.beat)}
-      <span class="label" style:left="max({x(l.beat)}, calc({NOW_X * 100}% + 0.5rem))">{l.text}</span>
+      <span class="label" style:left="max({x(l.beat)}, calc({NOW_X * 100}% + 0.5rem))">{chord(l.text)}</span>
     {/each}
     {#each shownChords as c (c.i)}
       <div
@@ -194,7 +195,7 @@
         style:top="calc(var(--sky) + {c.box.top * n} * var(--lane) + 3px)"
         style:height="calc({c.box.height * n} * var(--lane) - 6px)"
       >
-        {#if c.name}<span class="name">{c.name}</span>{/if}
+        {#if c.name}<span class="name">{chord(c.name)}</span>{/if}
         {#if c.strum}<span class="arrow">{c.strum === "down" ? "↓" : c.strum === "up" ? "↑" : "✕"}</span>{/if}
       </div>
       {#if fresh(c.startBeat, c.v)}<span class="bloom" data-tone={tone(c.v)} style:top="calc(var(--sky) + {(c.box.top + c.box.height / 2) * n} * var(--lane))"></span>{/if}
@@ -208,7 +209,7 @@
     {/each}
     <div class="past"></div>
     {#each strings as name, k (k)}
-      <span class="open" style:top={lane(k + 1)}>{name}</span>
+      <span class="open" style:top={lane(k + 1)}>{noteText(name)}</span>
     {/each}
     <div class="now"></div>
     {#if ball !== null}<span class="ball" style:top="max(0px, calc(var(--sky) + {ball * n} * var(--lane) - var(--pill) / 2 - 0.8rem))"></span>{/if}

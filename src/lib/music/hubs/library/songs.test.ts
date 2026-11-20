@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { setNoteNaming } from "@repo/music-core";
 import type { Score } from "@repo/music-core";
 import { scoreToMidi } from "@repo/music-core/io/midi-file";
 import {
@@ -68,6 +69,16 @@ describe("songSections", () => {
 it("names minor keys", () => {
   expect(keyName({ keyFifths: -3, keyMode: "minor" })).toBe("C minor");
   expect(keyName({})).toBeNull();
+});
+
+it("names keys and ranges in solfège when the setting asks", () => {
+  setNoteNaming("fixed");
+  try {
+    expect(keyName({ keyFifths: -3, keyMode: "minor" })).toBe("Do minor");
+    expect(keyName({ keyFifths: -2, keyMode: "major" })).toBe("Sib major");
+  } finally {
+    setNoteNaming("letters");
+  }
 });
 
 describe("songHistory", () => {

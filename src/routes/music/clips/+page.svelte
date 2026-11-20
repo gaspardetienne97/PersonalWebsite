@@ -27,6 +27,7 @@
   import { formatList } from "@repo/i18n/format";
   import { CLIPS, SECTIONS, clipFile, exampleSeconds, inputSlug, pad2, sectionLabel, type Clip } from "#lib/music/clips/clips.ts";
   import { CLIP_DB, ClipInput, listInputs, type RawTake } from "#lib/music/clips/capture.svelte.ts";
+  import { keyName } from "#lib/music/names.svelte.ts";
   import {
     canPickFolder,
     canWrite,
@@ -579,7 +580,7 @@
         <div class="flex flex-col gap-3 pb-1">
           <label class="text-sm font-medium">{m.music_runtime_clipspage_mic_position()}<input class={field} bind:value={notes.micPosition} oninput={notesChanged} placeholder={m.music_runtime_clipspage_mic_position_placeholder()} /></label>
           <label class="text-sm font-medium">{m.music_runtime_clipspage_piano_model()}<input class={field} bind:value={notes.pianoModel} oninput={notesChanged} /></label>
-          <label class="text-sm font-medium">{m.music_runtime_clipspage_aerophone_setup()}<input class={field} bind:value={notes.aerophone} oninput={notesChanged} placeholder={m.music_runtime_clipspage_aerophone_placeholder()} /></label>
+          <label class="text-sm font-medium">{m.music_runtime_clipspage_aerophone_setup()}<input class={field} bind:value={notes.aerophone} oninput={notesChanged} placeholder={m.music_runtime_clipspage_aerophone_placeholder({ key: keyName("Eb") })} /></label>
           <p class="text-sm text-ws-soft">
             {#if !folder}{picker ? m.music_runtime_clipspage_notes_after_folder() : ""}{:else if notesSaved}{m.music_runtime_clipspage_notes_saved()}{:else}{m.music_runtime_clipspage_notes_saving()}{/if}
           </p>

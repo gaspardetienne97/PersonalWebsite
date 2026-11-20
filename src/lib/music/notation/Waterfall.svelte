@@ -7,6 +7,7 @@
   // the clock the audio runs on, and ends where the keyboard begins: a bar
   // lights its key's lane as it reaches the hit line.
   import { noteName, type Score } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { settings } from "#lib/music/runtime/index.ts";
   import { selectedVoices, voiceSides, whiteKeyLayout } from "./groups";
   import { fallingNotes, gridInView, inView, laneGuides, sounding } from "./falling";
@@ -79,7 +80,7 @@
 
   const pct = (b: number) => `${(b / look) * 100}%`;
   const labelOf = (n: (typeof notes)[number]) =>
-    labels === "names" ? noteName(n.midi, "flat", false) : labels === "fingers" && n.finger !== undefined ? String(n.finger) : "";
+    labels === "names" ? note(noteName(n.midi, "flat", false)) : labels === "fingers" && n.finger !== undefined ? String(n.finger) : "";
   // A label needs about 14 px each way to read.
   const fits = (n: (typeof notes)[number]) => (n.dur / look) * laneH - 2 >= 14 && Math.min(n.width * BAR_SHARE * laneW, BAR_MAX_PX) >= 12;
 

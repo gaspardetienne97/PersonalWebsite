@@ -1,7 +1,15 @@
 // What a drill's link plays, as a picture spec for DrillPreview: the scale on the keys, the chord
 // box, the strum's arrows, the groove's first bar. It reads the route and its query, never the
 // player's history, so a preview shows the target and nothing else.
-import { INSTRUMENTS, type Instrument, noteName, parseNote, pc } from "@repo/music-core";
+import {
+  INSTRUMENTS,
+  type Instrument,
+  noteName,
+  parseNote,
+  pc,
+  showChord,
+  showNote,
+} from "@repo/music-core";
 import { RHYTHM_PATTERNS, MPC_GROOVES, SCALE_DATA, TUNINGS } from "@repo/music-core/data/index";
 import { STRUM_PATTERNS } from "@repo/music-core/content/strums";
 import { PROGRESSIONS } from "@repo/music-core/content/jam";
@@ -80,7 +88,27 @@ function tonicOf(raw: string | null, fallback = 60): number {
   return m === null ? fallback : 60 + pc(m);
 }
 
-const name = (m: number) => noteName(m, "flat", false);
+/** A note as the player reads names (letters or solfège). */
+const name = (m: number) => showNote(noteName(m, "flat", false));
+/** Several notes, each as the player reads names. */
+const names = (...letters: string[]) => letters.map((l) => showNote(l));
+
+const voicingNames = () => {
+  const [d, f, a, c] = names("D", "F", "A", "C");
+  return { chord: showChord("Dm7"), d, f, a, c };
+};
+const lickNames = () => {
+  const [d, f, a, c] = names("D", "F", "A", "C");
+  return { d, f, a, c };
+};
+const fingerNames = () => {
+  const [g, a, b, c] = names("G", "A", "B", "C");
+  return { g, a, b, c };
+};
+const inversionNames = () => {
+  const [e, g, c] = names("E", "G", "C");
+  return { e, g, c };
+};
 
 /** Keys from the C at or below the lowest note, at least an octave, ending on a white key. */
 function keysFor(notes: number[], caption: string, labels?: Record<number, string>): Preview {
@@ -220,7 +248,12 @@ function strumPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"): Pre
         ...r,
         chords: chords?.slice(0, 4),
         caption: chords?.length
-          ? m.music_hubs_preview_strum_chords({ chords: chords.slice(0, 4).join(" ") })
+          ? m.music_hubs_preview_strum_chords({
+              chords: chords
+                .slice(0, 4)
+                .map((c) => showChord(c))
+                .join(" "),
+            })
           : m.music_hubs_preview_strum_pattern(),
       }
     : r;
@@ -236,7 +269,7 @@ function chordsPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"): Pr
     frets: shape.frets,
     fingers: shape.fingers,
     name: shape.name,
-    caption: m.music_hubs_preview_chord_fingers({ name: shape.name }),
+    caption: m.music_hubs_preview_chord_fingers({ name: showChord(shape.name) }),
   };
 }
 
@@ -339,7 +372,7 @@ function intervalPreview(q: URLSearchParams, instrument: Instrument | undefined)
   const tokens = (q.get("intervals") ?? "P5").split(",");
   const iv = INTERVALS.find((i) => i.token === tokens.at(-1)) ?? INTERVALS[6];
   const top = name(60 + iv.semitones);
-  const caption = m.music_hubs_preview_interval({ interval: iv.name, top });
+  const caption = m.music_hubs_preview_interval({ interval: iv.name, from: name(60), top });
   if (STRINGED(instrument)) {
     const f = intervalFrets(instrument, iv.semitones);
     return {
@@ -348,14 +381,14 @@ function intervalPreview(q: URLSearchParams, instrument: Instrument | undefined)
       from: f.from,
       to: f.to,
       dots: [
-        { ...f.root, label: "C" },
+        { ...f.root, label: name(60) },
         { ...f.top, label: top },
       ],
       caption,
     };
   }
   // Both keys named, so the picture says which two notes make the interval.
-  return keysFor([60, 60 + iv.semitones], caption, { 60: "C", [60 + iv.semitones]: top });
+  return keysFor([60, 60 + iv.semitones], caption, { 60: name(60), [60 + iv.semitones]: top });
 }
 
 function qualityPreview(q: URLSearchParams): Preview {
@@ -400,7 +433,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       );
     }
     case "/voicings":
-      return keysFor([62, 65, 69, 72], m.music_hubs_preview_voicing(), {
+      return keysFor([62, 65, 69, 72], m.music_hubs_preview_voicing(voicingNames()), {
         62: "R",
         65: "3",
         69: "5",
@@ -410,11 +443,15 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
     case "/accompany":
       return keysFor([48, 52, 58], m.music_hubs_preview_shell(), { 48: "R", 52: "3", 58: "7" });
     case "/pedal":
-      return keysFor([48, 60, 64, 67], m.music_hubs_preview_pedal());
+      return keysFor([48, 60, 64, 67], m.music_hubs_preview_pedal({ c: name(60) }));
     case "/chord-scales":
-      return keysFor([62, 64, 65, 67, 69, 71, 72, 74], m.music_hubs_preview_chord_scale(), {
-        62: "1",
-      });
+      return keysFor(
+        [62, 64, 65, 67, 69, 71, 72, 74],
+        m.music_hubs_preview_chord_scale({ d: name(62), chord: showChord("Dm7") }),
+        {
+          62: "1",
+        },
+      );
     case "/licks":
     case "/call-response":
     case "/jam":
@@ -424,14 +461,15 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
           return {
             kind: "changes",
             chords: p.chords.slice(0, 4).map((c) => c.symbol),
-            caption: `${p.name}, ${p.key}`,
+            caption: `${p.name}, ${showChord(p.key)}`,
           };
       }
       return {
         kind: "staff",
         clef: "treble",
         notes: [62, 65, 69, 72, 71, 67],
-        caption: route === "/licks" ? m.music_hubs_preview_lick() : m.music_hubs_preview_call(),
+        caption:
+          route === "/licks" ? m.music_hubs_preview_lick(lickNames()) : m.music_hubs_preview_call(),
       };
     case "/phrases":
       return {
@@ -469,7 +507,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         kind: "staff",
         clef: "treble",
         notes: [67, 69, 71, 72],
-        caption: m.music_hubs_preview_fingers(),
+        caption: m.music_hubs_preview_fingers(fingerNames()),
       };
     }
     case "/rhythm":
@@ -508,7 +546,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
     case "/ear/chord-qualities":
       return qualityPreview(q);
     case "/ear/inversions":
-      return keysFor([64, 67, 72], m.music_hubs_preview_inversion(), { 64: "3" });
+      return keysFor([64, 67, 72], m.music_hubs_preview_inversion(inversionNames()), { 64: "3" });
     case "/ear/scales":
       return keysFor(
         SCALE_DATA.semitonesByKind.major.map((s) => 60 + s),

@@ -2,7 +2,15 @@
 // splitting, the system packing and the layout they hand to the overlay.
 // Colour is never set here: the frame's CSS paints every glyph currentColor.
 
-import { noteName, pc, type Score, type ScoreGroup, type ScoreNote } from "@repo/music-core";
+import {
+  noteName,
+  pc,
+  showChord,
+  showNote,
+  type Score,
+  type ScoreGroup,
+  type ScoreNote,
+} from "@repo/music-core";
 import {
   assignTab,
   bars,
@@ -692,7 +700,7 @@ export function drawStaff(
         const t = ticks
           .flat()
           .find((x) => c.startBeat >= x.start - EPS && c.startBeat < x.start + x.dur - EPS);
-        if (t) t.symbol = t.symbol ? `${t.symbol} ${c.symbol}` : c.symbol;
+        if (t) t.symbol = t.symbol ? `${t.symbol} ${showChord(c.symbol)}` : showChord(c.symbol);
       }
     // Dynamics under the top staff (between the hands on a grand staff), breaths above it.
     let marked = false;
@@ -782,7 +790,9 @@ export function drawStaff(
         if (revealLabels && t.attack && !rest)
           n.addModifier(
             new VF.Annotation(
-              t.midis.map((m) => noteName(m, fifths < 0 ? "flat" : "sharp", false)).join(" "),
+              t.midis
+                .map((m) => showNote(noteName(m, fifths < 0 ? "flat" : "sharp", false)))
+                .join(" "),
             ).setVerticalJustification(VF.AnnotationVerticalJustify.BOTTOM),
             0,
           );

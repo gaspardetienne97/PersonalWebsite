@@ -18,6 +18,7 @@
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { note } from "#lib/music/names.svelte.ts";
 
   const TOPICS = [
     { id: "session", label: m.music_shell_guide_topic_session(), hue: "piano", icon: Layers },
@@ -251,12 +252,12 @@
       </div>
       <div class="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
         <figure class="min-w-0">
-          <figcaption class="mb-2 text-sm font-medium">{m.music_shell_guide_piano_caption()}</figcaption>
+          <figcaption class="mb-2 text-sm font-medium">{m.music_shell_guide_piano_caption({ c: note("C") })}</figcaption>
           <div class="stage overflow-x-auto rounded-2xl p-4">
-            <div class="relative mx-auto flex w-max gap-1" aria-label={m.music_shell_guide_piano_map()} role="img">
+            <div class="relative mx-auto flex w-max gap-1" aria-label={m.music_shell_guide_piano_map({ from: note("C4"), to: note("D5") })} role="img">
               {#each WHITE as [k, n], i (i)}
                 <div class="flex h-28 w-10 flex-col items-center justify-end gap-1 rounded-b-lg bg-ws-stage-ink pb-2 text-[13px] font-medium text-ws-stage {k ? '' : 'opacity-40'}">
-                  {#if k}<kbd class="kbd-light">{k}</kbd>{/if}{n}
+                  {#if k}<kbd class="kbd-light">{k}</kbd>{/if}{note(n)}
                 </div>
               {/each}
               {#each BLACK as [k, n, after] (k)}
@@ -264,7 +265,7 @@
                   class="absolute top-0 flex h-16 w-8 flex-col items-center justify-end gap-0.5 rounded-b-md bg-ws-stage pb-1 text-[13px] text-ws-stage-ink ring-1 ring-ws-stage-ink/30"
                   style:left="calc({after + 1} * 2.75rem - 1.125rem)"
                 >
-                  <kbd class="kbd-dark">{k}</kbd>{n}
+                  <kbd class="kbd-dark">{k}</kbd>{note(n)}
                 </div>
               {/each}
             </div>

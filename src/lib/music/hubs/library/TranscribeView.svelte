@@ -21,6 +21,7 @@
   import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
   import { songFromScore, type Song } from "./songs";
   import { LICK_FROM, saveUserLick } from "#lib/music/user-licks.ts";
+  import { note } from "#lib/music/names.svelte.ts";
 
   let {
     from,
@@ -308,7 +309,7 @@
       {#if heard}
         <label class="flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" class="size-4 accent-[var(--instr)]" checked={split} onchange={(ev) => { const v = ev.currentTarget.checked; resnap(() => void (split = v)); }} />
-          {m.music_hubs_tv_split()}
+          {m.music_hubs_tv_split({ c: note("C") })}
         </label>
       {/if}
       {#if heard?.kind === "transcribed" && engine === "chords"}

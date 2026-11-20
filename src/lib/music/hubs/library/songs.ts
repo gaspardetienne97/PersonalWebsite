@@ -1,7 +1,7 @@
 // Saved repertoire: the db.songs row shape, file import into the canonical
 // score, and the facts a song card or Song Studio shows about a score.
 import { m } from "@repo/i18n/messages.js";
-import { noteName, type Score, type ScoreSection } from "@repo/music-core";
+import { noteName, showKeyName, showNote, type Score, type ScoreSection } from "@repo/music-core";
 import { midiToScore } from "@repo/music-core/io/midi-file";
 import { parseMusicXml, parseMxl } from "@repo/music-core/io/musicxml";
 import { barBeats } from "#lib/music/notation/groups.ts";
@@ -63,7 +63,7 @@ const MINOR = ["Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#", 
 export function keyName(score: Pick<Score, "keyFifths" | "keyMode">): string | null {
   if (score.keyFifths === undefined) return null;
   const minor = score.keyMode === "minor";
-  const tonic = (minor ? MINOR : MAJOR)[score.keyFifths + 7];
+  const tonic = showKeyName((minor ? MINOR : MAJOR)[score.keyFifths + 7]);
   return minor ? m.music_hubs_songs_key_minor({ tonic }) : m.music_hubs_songs_key_major({ tonic });
 }
 
@@ -100,7 +100,10 @@ export const rangeText = (f: ScoreFacts) =>
     ? f.notes
       ? m.music_hubs_songs_drums_only()
       : m.music_hubs_songs_no_notes_range()
-    : m.music_hubs_songs_range({ low: noteName(f.low), high: noteName(f.high) });
+    : m.music_hubs_songs_range({
+        low: showNote(noteName(f.low)),
+        high: showNote(noteName(f.high)),
+      });
 
 export const durationText = (s: number) =>
   s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;

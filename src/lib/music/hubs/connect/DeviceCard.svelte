@@ -13,7 +13,10 @@
   import Cable from "@lucide/svelte/icons/cable";
   import Check from "@lucide/svelte/icons/check";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège (a device check names absolute pitches). */
+  const noteName = (midi: number) => keyName(letters(midi));
   import Picker from "#lib/music/components/Picker.svelte";
 
   let { port, announce }: { port: PortInfo; announce: (text: string) => void } = $props();

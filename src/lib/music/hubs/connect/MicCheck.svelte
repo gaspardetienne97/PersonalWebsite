@@ -3,7 +3,10 @@
   // The microphone tile: the one place the input device is picked (Settings
   // shows the same stored name). It starts only on a tap and stops on leaving.
   import { onDestroy } from "svelte";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège (a device check names absolute pitches). */
+  const noteName = (midi: number) => keyName(letters(midi));
   import { btn, btnPrimary } from "#lib/music/components/ui.ts";
   import { mic, settings } from "#lib/music/runtime/index.ts";
   import Picker from "#lib/music/components/Picker.svelte";

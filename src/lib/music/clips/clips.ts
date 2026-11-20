@@ -2,7 +2,7 @@
 // data: what to play, how long, what the page draws for it, and a synthesized
 // example for Hear it. Nothing here is scored and nothing is saved to practice
 // data: the page at /music/clips records these to WAV files in a folder.
-import { noteName, type PlaybackSound } from "@repo/music-core";
+import { noteName, showChord, type PlaybackSound } from "@repo/music-core";
 import { m } from "@repo/i18n/messages.js";
 import type { Locale } from "@repo/i18n/runtime.js";
 import { strumSlots, type Slot, type Stroke } from "../drills/guitar/strum-slots";
@@ -204,11 +204,39 @@ const text =
   (locale) =>
     msg({}, { locale });
 
+/** Note and chord names as the player reads them ("C4" may read "Do4"). */
+const shownNames = <T extends Record<string, string>>(names: T): T =>
+  Object.fromEntries(Object.entries(names).map(([k, v]) => [k, showChord(v)])) as T;
+/**
+ * A title with note or chord names in it. On screen the names follow the note-name setting;
+ * in a given language (the manifest's English title) they stay letters.
+ */
+const named =
+  <T extends Record<string, string>>(
+    msg: (inputs: T, options?: { locale?: Locale }) => string,
+    names: T,
+  ): Text =>
+  (locale) =>
+    msg(locale ? names : shownNames(names), { locale });
+/** Instructions with note or chord names in them, named when shown. */
+const say =
+  <T extends Record<string, string>>(msg: (inputs: T) => string, names: T) =>
+  () =>
+    msg(shownNames(names));
+
+/** Read when shown, so names follow the note-name setting (applied after this module loads). */
+type Lazy<T> = T | (() => T);
+const read = <T>(v: Lazy<T>): T => (typeof v === "function" ? (v as () => T)() : v);
+
 type Draft = Omit<
   Clip,
-  "n" | "section" | "sound" | "steps" | "example" | "visual" | "title" | "fileTitle"
+  "n" | "section" | "sound" | "steps" | "example" | "visual" | "title" | "fileTitle" | "play"
 > &
-  Partial<Pick<Clip, "sound" | "steps" | "example" | "visual">> & { title: Text };
+  Partial<Pick<Clip, "sound" | "example" | "visual">> & {
+    title: Text;
+    play: Lazy<string>;
+    steps?: Lazy<string[]>;
+  };
 
 function slowStrums(
   instrument: Fretted,
@@ -223,10 +251,13 @@ function slowStrums(
     title: (locale) =>
       extra
         ? m.music_runtime_clips_chord_title_extra(
-            { chord: s.name, extra: extra(locale) },
+            { chord: locale ? s.name : showChord(s.name), extra: extra(locale) },
             { locale },
           )
-        : m.music_runtime_clips_chord_title({ chord: s.name }, { locale }),
+        : m.music_runtime_clips_chord_title(
+            { chord: locale ? s.name : showChord(s.name) },
+            { locale },
+          ),
     play:
       ring === 2
         ? m.music_runtime_clips_slow_strums_guitar_play()
@@ -243,10 +274,13 @@ function progression(instrument: Fretted, shapes: Shape[], slug: string): Draft 
     slug,
     title: (locale) =>
       m.music_runtime_clips_progression_title(
-        { chords: shapes.map((s) => s.name).join(", ") },
+        { chords: shapes.map((s) => (locale ? s.name : showChord(s.name))).join(", ") },
         { locale },
       ),
-    play: m.music_runtime_clips_progression_play({ chords: shapes.map((s) => s.name).join(", ") }),
+    play: () =>
+      m.music_runtime_clips_progression_play({
+        chords: shapes.map((s) => showChord(s.name)).join(", "),
+      }),
     seconds: 15,
     bpm: 80,
     click: "headphones",
@@ -265,7 +299,7 @@ function pattern(instrument: Fretted, s: Shape, slug: string, title: Text): Draf
   return {
     slug,
     title,
-    play: m.music_runtime_clips_pattern_play({ chord: s.name }),
+    play: () => m.music_runtime_clips_pattern_play({ chord: showChord(s.name) }),
     seconds: 15,
     bpm: 80,
     click: "headphones",
@@ -335,7 +369,7 @@ const openStrings = (
   order: number[],
   slug: string,
   seconds: number,
-  play: string,
+  play: Lazy<string>,
 ): Draft => {
   const open = OPEN_STRINGS[instrument];
   const midis = order.map((s) => open[s - 1]);
@@ -426,12 +460,18 @@ const DRAFTS: Record<Section, Draft[]> = {
       [6, 5, 4, 3, 2, 1],
       "guitar-open-strings",
       15,
-      m.music_runtime_clips_open_strings_guitar_play(),
+      say(m.music_runtime_clips_open_strings_guitar_play, { e: "E" }),
     ),
     slowStrums("guitar", G.G, "guitar-g", 10, () => "320003"),
     {
-      ...slowStrums("guitar", G.G33, "guitar-g-320033", 10, text(m.music_runtime_clips_g33_extra)),
-      play: m.music_runtime_clips_g33_play(),
+      ...slowStrums(
+        "guitar",
+        G.G33,
+        "guitar-g-320033",
+        10,
+        named(m.music_runtime_clips_g33_extra, { b: "B" }),
+      ),
+      play: say(m.music_runtime_clips_g33_play, { g: "G", b: "B" }),
     },
     slowStrums("guitar", G.C, "guitar-c", 10),
     slowStrums("guitar", G.D, "guitar-d", 10),
@@ -445,12 +485,12 @@ const DRAFTS: Record<Section, Draft[]> = {
       "guitar",
       G.G,
       "guitar-g-strum-pattern",
-      text(m.music_runtime_clips_pattern_guitar_title),
+      named(m.music_runtime_clips_pattern_guitar_title, { g: "G" }),
     ),
     {
       slug: "guitar-g-click-speakers",
-      title: text(m.music_runtime_clips_guitar_click_title),
-      play: m.music_runtime_clips_guitar_click_play(),
+      title: named(m.music_runtime_clips_guitar_click_title, { g: "G" }),
+      play: say(m.music_runtime_clips_guitar_click_play, { g: "G" }),
       seconds: 10,
       bpm: 80,
       click: "speakers",
@@ -470,28 +510,28 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     scale("guitar", upAndDown(GUITAR_C_SCALE), 1, {
       slug: "guitar-c-scale-slow",
-      title: text(m.music_runtime_clips_c_scale_slow_title),
-      play: m.music_runtime_clips_c_scale_slow_play(),
+      title: named(m.music_runtime_clips_c_scale_slow_title, { c: "C" }),
+      play: say(m.music_runtime_clips_c_scale_slow_play, { c: "C" }),
       seconds: 18,
     }),
     scale("guitar", upAndDown(GUITAR_C_SCALE), 0.5, {
       slug: "guitar-c-scale-fast",
-      title: text(m.music_runtime_clips_c_scale_fast_title),
+      title: named(m.music_runtime_clips_c_scale_fast_title, { c: "C" }),
       play: m.music_runtime_clips_c_scale_fast_play(),
       seconds: 10,
     }),
     {
       slug: "guitar-bends",
-      title: text(m.music_runtime_clips_bends_title),
-      play: m.music_runtime_clips_bends_play(),
+      title: named(m.music_runtime_clips_bends_title, { g: "G" }),
+      play: say(m.music_runtime_clips_bends_play, { g: "G", d: "D", d_sharp: "D#", e: "E" }),
       seconds: 10,
-      steps: [
+      steps: () => [
         "D",
-        m.music_runtime_clips_step_bend_to({ note: "D#" }),
-        m.music_runtime_clips_step_back_to({ note: "D" }),
+        m.music_runtime_clips_step_bend_to({ note: showChord("D#") }),
+        m.music_runtime_clips_step_back_to({ note: showChord("D") }),
         "D",
-        m.music_runtime_clips_step_bend_to({ note: "E" }),
-        m.music_runtime_clips_step_back_to({ note: "D" }),
+        m.music_runtime_clips_step_bend_to({ note: showChord("E") }),
+        m.music_runtime_clips_step_back_to({ note: showChord("D") }),
       ],
       visual: {
         instrument: "guitar",
@@ -501,8 +541,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "guitar-fingerpick-c",
-      title: text(m.music_runtime_clips_fingerpick_title),
-      play: m.music_runtime_clips_fingerpick_play(),
+      title: named(m.music_runtime_clips_fingerpick_title, { c: "C" }),
+      play: say(m.music_runtime_clips_fingerpick_play, { c: "C" }),
       seconds: 15,
       bpm: 70,
       click: "headphones",
@@ -524,7 +564,7 @@ const DRAFTS: Record<Section, Draft[]> = {
       [4, 3, 2, 1],
       "ukulele-open-strings",
       10,
-      m.music_runtime_clips_open_strings_ukulele_play(),
+      say(m.music_runtime_clips_open_strings_ukulele_play, { g: "G", a: "A" }),
     ),
     slowStrums("ukulele", U.C, "ukulele-c", 8),
     slowStrums("ukulele", U.Am, "ukulele-am", 8),
@@ -536,20 +576,20 @@ const DRAFTS: Record<Section, Draft[]> = {
       "ukulele",
       U.C,
       "ukulele-c-island-strum",
-      text(m.music_runtime_clips_pattern_ukulele_title),
+      named(m.music_runtime_clips_pattern_ukulele_title, { c: "C" }),
     ),
     scale("ukulele", UKULELE_C_SCALE, 1, {
       slug: "ukulele-c-scale",
-      title: text(m.music_runtime_clips_uke_scale_title),
-      play: m.music_runtime_clips_uke_scale_play(),
+      title: named(m.music_runtime_clips_uke_scale_title, { c: "C" }),
+      play: say(m.music_runtime_clips_uke_scale_play, { c: "C" }),
       seconds: 10,
     }),
   ],
   Piano: [
     {
       slug: "piano-c4-to-c5",
-      title: text(m.music_runtime_clips_piano_white_title),
-      play: m.music_runtime_clips_piano_white_play(),
+      title: named(m.music_runtime_clips_piano_white_title, { c4: "C4", c5: "C5" }),
+      play: say(m.music_runtime_clips_piano_white_play, { c: "C" }),
       seconds: 10,
       steps: names(C4_TO_C5, true),
       visual: { keys: { low: 57, high: 76, steps: C4_TO_C5.map((m) => [m]) } },
@@ -557,8 +597,19 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-low-notes",
-      title: text(m.music_runtime_clips_piano_low_title),
-      play: m.music_runtime_clips_piano_low_play(),
+      title: named(m.music_runtime_clips_piano_low_title, {
+        c2: "C2",
+        e2: "E2",
+        g2: "G2",
+        c3: "C3",
+      }),
+      play: say(m.music_runtime_clips_piano_low_play, {
+        c2: "C2",
+        e2: "E2",
+        g2: "G2",
+        c3: "C3",
+        c: "C",
+      }),
       seconds: 10,
       steps: names([36, 40, 43, 48], true),
       visual: { keys: { low: 33, high: 52, steps: [[36], [40], [43], [48]] } },
@@ -566,7 +617,7 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-triads",
-      title: text(m.music_runtime_clips_piano_triads_title),
+      title: named(m.music_runtime_clips_piano_triads_title, { c: "C", f: "F", g: "G", am: "Am" }),
       play: m.music_runtime_clips_piano_triads_play(),
       seconds: 10,
       steps: ["C", "F", "G", "Am"],
@@ -575,7 +626,7 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-seventh-chords",
-      title: () => "Cmaj7, Dm7, G7",
+      title: (locale) => ["Cmaj7", "Dm7", "G7"].map((c) => (locale ? c : showChord(c))).join(", "),
       play: m.music_runtime_clips_piano_sevenths_play(),
       seconds: 8,
       steps: ["Cmaj7", "Dm7", "G7"],
@@ -584,8 +635,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-scale-two-octaves",
-      title: text(m.music_runtime_clips_piano_two_octaves_title),
-      play: m.music_runtime_clips_piano_two_octaves_play(),
+      title: named(m.music_runtime_clips_piano_two_octaves_title, { c: "C" }),
+      play: say(m.music_runtime_clips_piano_two_octaves_play, { c: "C" }),
       seconds: 15,
       bpm: 100,
       click: "headphones",
@@ -595,8 +646,15 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-bass-and-triads",
-      title: text(m.music_runtime_clips_piano_bass_title),
-      play: m.music_runtime_clips_piano_bass_play(),
+      title: named(m.music_runtime_clips_piano_bass_title, { c: "C", f: "F", g: "G" }),
+      play: say(m.music_runtime_clips_piano_bass_play, {
+        c2: "C2",
+        f2: "F2",
+        g2: "G2",
+        c: "C",
+        f: "F",
+        g: "G",
+      }),
       seconds: 8,
       steps: ["C", "F", "G"],
       visual: {
@@ -611,8 +669,8 @@ const DRAFTS: Record<Section, Draft[]> = {
   Aerophone: [
     {
       slug: "aerophone-c-scale",
-      title: text(m.music_runtime_clips_aero_scale_title),
-      play: m.music_runtime_clips_aero_scale_play(),
+      title: named(m.music_runtime_clips_aero_scale_title, { c: "C" }),
+      play: say(m.music_runtime_clips_aero_scale_play, { c: "C" }),
       seconds: 10,
       steps: names(C4_TO_C5, true),
       visual: { written: C4_TO_C5 },
@@ -621,7 +679,7 @@ const DRAFTS: Record<Section, Draft[]> = {
     {
       slug: "aerophone-long-note",
       title: text(m.music_runtime_clips_aero_long_title),
-      play: m.music_runtime_clips_aero_long_play(),
+      play: say(m.music_runtime_clips_aero_long_play, { g: "G" }),
       seconds: 10,
       steps: ["G4"],
       visual: { written: [67] },
@@ -629,8 +687,20 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "aerophone-tongued",
-      title: text(m.music_runtime_clips_aero_tongued_title),
-      play: m.music_runtime_clips_aero_tongued_play(),
+      title: named(m.music_runtime_clips_aero_tongued_title, {
+        c: "C",
+        d: "D",
+        e: "E",
+        f: "F",
+        g: "G",
+      }),
+      play: say(m.music_runtime_clips_aero_tongued_play, {
+        c: "C",
+        d: "D",
+        e: "E",
+        f: "F",
+        g: "G",
+      }),
       seconds: 5,
       steps: names(C4_TO_C5.slice(0, 5), true),
       visual: { written: C4_TO_C5.slice(0, 5) },
@@ -638,8 +708,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "aerophone-octave-jump",
-      title: text(m.music_runtime_clips_aero_octave_title),
-      play: m.music_runtime_clips_aero_octave_play(),
+      title: named(m.music_runtime_clips_aero_octave_title, { c4: "C4", c5: "C5" }),
+      play: say(m.music_runtime_clips_aero_octave_play, { c4: "C4", c5: "C5" }),
       seconds: 8,
       steps: names(OCTAVE_JUMP, true),
       visual: { written: OCTAVE_JUMP },
@@ -683,17 +753,28 @@ const SOUND: Record<Section, PlaybackSound> = {
 /** Every clip, numbered 1 to 42 in the README's order. */
 export const CLIPS: Clip[] = SECTIONS.flatMap((section) =>
   DRAFTS[section].map((d) => ({ section, d })),
-).map(({ section, d }, i) => ({
-  steps: [],
-  visual: {},
-  example: [],
-  sound: SOUND[section],
-  ...d,
-  title: d.title(),
-  fileTitle: d.title("en"),
-  n: i + 1,
-  section,
-}));
+).map(({ section, d }, i) => {
+  const { title, play, steps = [], ...rest } = d;
+  return {
+    visual: {},
+    example: [],
+    sound: SOUND[section],
+    ...rest,
+    // Read when shown: the note names follow the setting, which is applied after this module loads.
+    get title() {
+      return title();
+    },
+    fileTitle: title("en"),
+    get play() {
+      return read(play);
+    },
+    get steps() {
+      return read(steps).map((s) => showChord(s));
+    },
+    n: i + 1,
+    section,
+  };
+});
 
 export const pad2 = (n: number) => String(n).padStart(2, "0");
 /** `05-guitar-g.wav`. */

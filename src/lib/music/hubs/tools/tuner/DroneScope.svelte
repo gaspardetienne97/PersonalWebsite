@@ -5,7 +5,10 @@
   // steady, with a glow that breathes with its level. Reduced motion redraws
   // twice a second instead of every frame.
   import { onDestroy } from "svelte";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège, never counted from a key (the tuner's pitches are absolute). */
+  const noteName = (midi: number, prefer: "flat" | "sharp" = "flat", octave = true) => keyName(letters(midi, prefer, octave));
   import { audio, type DroneTimbre } from "#lib/music/runtime/index.ts";
   import { pretty, scopePath } from "./tuner";
 

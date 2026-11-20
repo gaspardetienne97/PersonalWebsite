@@ -7,7 +7,10 @@
   import Minus from "@lucide/svelte/icons/minus";
   import Plus from "@lucide/svelte/icons/plus";
   import Info from "@lucide/svelte/icons/info";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège, never counted from a key (the tuner's pitches are absolute). */
+  const noteName = (midi: number, prefer: "flat" | "sharp" = "flat", octave = true) => keyName(letters(midi, prefer, octave));
   import Choice from "#lib/music/components/Choice.svelte";
   import { audio, type DroneTimbre } from "#lib/music/runtime/index.ts";
   import { pretty } from "./tuner";

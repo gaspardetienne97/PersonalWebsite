@@ -43,6 +43,7 @@
   // it so guitar, ukulele and Aerophone players see their own instrument.
   import type { Instrument } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { AEROPHONE_RANGE, fingeringFor } from "@repo/music-core/content/winds-pads";
   import { input, settings } from "#lib/music/runtime/index.ts";
   import Piano from "./Piano.svelte";
@@ -115,7 +116,7 @@
       .filter(([, mk]) => mk.role === "chord" || mk.role === "scale")
       .sort((a, b) => a[0] - b[0]),
   );
-  const fingerFor = (m: number) => fingeringFor(m + aeroShift)?.name ?? noteName(m + aeroShift);
+  const fingerFor = (m: number) => note(fingeringFor(m + aeroShift)?.name ?? noteName(m + aeroShift));
   const held = $derived(input.held.size ? Math.max(...input.held) : null);
 </script>
 
@@ -132,12 +133,12 @@
     {/if}
   </div>
 {:else}
-  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} {fill} {spelling} label={m.music_shell_stage_piano({ low: noteName(pianoLow), high: noteName(pianoHigh) })} />
+  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} {fill} {spelling} label={m.music_shell_stage_piano({ low: note(noteName(pianoLow)), high: note(noteName(pianoHigh)) })} />
 {/if}
 {#if unplayable.length}
   <p class="mt-1 text-sm text-ws-stage-soft">{m.music_shell_stage_out_of_range({
       count: unplayable.length,
-      notes: [...new Set(unplayable)].map((n) => (inst === "aerophone" ? fingerFor(n) : noteName(n))).join(", "),
+      notes: [...new Set(unplayable)].map((n) => (inst === "aerophone" ? fingerFor(n) : note(noteName(n)))).join(", "),
       instrument: INSTRUMENT_LABEL[inst].toLowerCase(),
     })}</p>
 {/if}

@@ -10,7 +10,10 @@
   import Activity from "@lucide/svelte/icons/activity";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import X from "@lucide/svelte/icons/x";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège (a device check names absolute pitches). */
+  const noteName = (midi: number) => keyName(letters(midi));
   import { formatNumber } from "@repo/i18n/format";
   import { btn, panel } from "#lib/music/components/ui.ts";
   import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
@@ -138,7 +141,7 @@
                 {:else if surface === "guitar" || surface === "ukulele"}
                   <Fretboard openStrings={tuning(surface)} from={0} to={5} label={surface === "guitar" ? m.music_hubs_conn_guitar_neck() : m.music_hubs_conn_ukulele_neck()} />
                 {:else}
-                  <Piano low={48} high={72} label={m.music_hubs_conn_piano()} />
+                  <Piano low={48} high={72} label={m.music_hubs_conn_piano({ low: noteName(48), high: noteName(72) })} />
                 {/if}
                 <p class="mt-3 text-sm text-ws-stage-soft">{surface === "keyboard" ? m.music_hubs_conn_fallback_keyboard() : surface === "mpc" ? m.music_hubs_conn_fallback_pads() : surface === "guitar" ? m.music_hubs_conn_fallback_guitar() : m.music_hubs_conn_fallback_ukulele()}</p>
               </div>

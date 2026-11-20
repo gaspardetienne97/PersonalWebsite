@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { setNoteNaming } from "@repo/music-core";
 import guitar from "@repo/music-core/data/chord-positions-guitar-standard.json";
 import ukulele from "@repo/music-core/data/chord-positions-ukulele-high-g.json";
 import {
@@ -159,5 +160,30 @@ describe("takes", () => {
       "b/05-guitar-g.wav -3",
     ]);
     expect(next.version).toBe(1);
+  });
+});
+
+describe("clip names in solfège", () => {
+  it("names notes and chords on screen as the setting reads them, and keeps letters in the manifest", () => {
+    setNoteNaming("fixed");
+    try {
+      const white = CLIPS.find((c) => c.slug === "piano-c4-to-c5")!;
+      expect(white.title).toBe("Do4 to Do5 on the white keys");
+      expect(white.fileTitle).toBe("C4 to C5 on the white keys");
+      expect(white.play).toBe(
+        "Play the white keys from middle Do up to the next Do. One note a second.",
+      );
+      expect(white.steps.slice(0, 3)).toEqual(["Do4", "Re4", "Mi4"]);
+      const triads = CLIPS.find((c) => c.slug === "piano-triads")!;
+      expect(triads.steps).toEqual(["Do", "Fa", "Sol", "Lam"]);
+      const bends = CLIPS.find((c) => c.slug === "guitar-bends")!;
+      expect(bends.steps[1]).toBe("bend to Re#");
+      expect(CLIPS.find((c) => c.slug === "guitar-am")!.fileTitle).toBe("Am chord");
+    } finally {
+      setNoteNaming("letters");
+    }
+    expect(CLIPS.find((c) => c.slug === "piano-c4-to-c5")!.title).toBe(
+      "C4 to C5 on the white keys",
+    );
   });
 });
