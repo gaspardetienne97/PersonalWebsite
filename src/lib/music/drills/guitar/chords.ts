@@ -197,9 +197,30 @@ export function symbolRef(symbol: string): ChordRef | null {
   return q ? { root: p.rootPc, quality: q.quality } : null;
 }
 
+// The chord data names positions in English ("Open position", "Barre at fret 3", "Fret 10"): read them back as words.
+const POSITION = /^(?:(Open position)|Barre at fret (\d+)|Fret (\d+))$/;
+
+/** A position's name in the player's language ("Open position", "Barre at fret 3", "Fret 10"). */
+export function positionText(label: string) {
+  const p = POSITION.exec(label);
+  if (!p) return label;
+  return p[1]
+    ? m.music_strings_open_position()
+    : p[2]
+      ? m.music_strings_pos_barre({ n: p[2] })
+      : m.music_strings_pos_fret({ n: p[3] });
+}
+
 /** "Open", "Barre 3", "Fret 10": a position's short name. */
-export const shortPosition = (label: string) =>
-  label.replace("Open position", "Open").replace("Barre at fret", "Barre");
+export function shortPosition(label: string) {
+  const p = POSITION.exec(label);
+  if (!p) return label.replace("Open position", "Open").replace("Barre at fret", "Barre");
+  return p[1]
+    ? m.music_strings_pos_open_short()
+    : p[2]
+      ? m.music_strings_pos_barre_short({ n: p[2] })
+      : m.music_strings_pos_fret({ n: p[3] });
+}
 
 // ---------------------------------------------------------------------------
 // Untimed changes: a pause alone is not a change.

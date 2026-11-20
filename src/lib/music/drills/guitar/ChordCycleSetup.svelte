@@ -6,7 +6,7 @@
   import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
-  import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, shortPosition, type ChordRef } from "./chords";
+  import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, positionText, shortPosition, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
 
   interface Props {
@@ -57,7 +57,7 @@
           type="button"
           class="flex w-20 flex-col items-center gap-0.5 rounded-xl border bg-ws-surface p-1.5 {edit === i ? 'border-instr ring-2 ring-instr' : 'border-ws-line hover:bg-ws-raised'}"
           aria-pressed={edit === i}
-          aria-label={m.music_strings_cycle_chord_change({ n: i + 1, name: names[i], position: sh.positionLabel })}
+          aria-label={m.music_strings_cycle_chord_change({ n: i + 1, name: names[i], position: positionText(sh.positionLabel) })}
           onclick={() => (editing = i)}
         >
           <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="" />

@@ -24,7 +24,7 @@
   import { audio, mic, settings } from "#lib/music/runtime/index.ts";
   import { exerciseFor, neckLabel, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
+  import { chordId, chordLabel, chordRef, positionsOn, positionText, shapesFor, toneName } from "./chords";
   import MicPanel from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
@@ -242,7 +242,7 @@
 
   /** The chord's positions up the neck, low to high; Pick also climbs the tempo to 100 first. */
   function advanceAfter(score: number, correct: boolean) {
-    const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex };
+    const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${positionText(p.positionLabel)}` })), step: posIndex };
     const setPos = (i: number) => cfg.set({ position: i });
     if (isPick) return nextRun(`${instr}.chords.pick.${baseId}`, { ...plan, bpm: bpm(), tempo: { min: 40, goal: 100, max: 160 } }, { score, correct }, tempoAnd(setPos));
     return nextRun(`${instr}.chords.build.${baseId}`, plan, { score, correct }, ({ step }) => step !== undefined && setPos(step));
@@ -262,7 +262,7 @@
     mic.stop();
   });
 
-  const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? m.music_strings_open_position() }, { text: isPick ? m.music_strings_shape_one_per_click() : m.music_strings_untimed() }]);
+  const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position() }, { text: isPick ? m.music_strings_shape_one_per_click() : m.music_strings_untimed() }]);
   const showShape = $derived(mode === "practice" || phase === "results");
   /** Beside Stop on a phone: the string to sound now (its note too in Practice). */
   const cue = $derived.by(() => {
@@ -372,7 +372,7 @@
       <!-- The shape and each string's take: the marks the count above is made of. -->
       {#snippet figure()}
         <div class="flex flex-wrap items-start gap-5" data-testid="shape-marked">
-          <div class="w-28 shrink-0"><ChordDiagram frets={shape.frets} fingers={shape.fingers} barre={shape.barre} label="{symbol}, {shape.positionLabel ?? m.music_strings_open_position_lower()}" /></div>
+          <div class="w-28 shrink-0"><ChordDiagram frets={shape.frets} fingers={shape.fingers} barre={shape.barre} label="{symbol}, {shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position_lower()}" /></div>
           <ol class="flex min-w-0 flex-1 flex-col gap-1.5 text-sm" aria-label={m.music_strings_each_string()}>
             {#each targets as t (t.string)}
               {@const ok = !missedStrings.includes(t.string)}

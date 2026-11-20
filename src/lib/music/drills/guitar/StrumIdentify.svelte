@@ -20,7 +20,7 @@
   import { audio, mic } from "#lib/music/runtime/index.ts";
   import { exerciseFor, neckLabel, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
+  import { chordId, chordLabel, chordRef, positionsOn, positionText, shapesFor, toneName } from "./chords";
   import { ChordListener, type Heard } from "./strum.svelte";
   import MicPanel, { micUnblock } from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
@@ -184,7 +184,7 @@
         { label: m.music_strings_row_tone_clean(), notMeasured: true },
       ],
       // The chord's positions up the neck, low to high.
-      advance: await nextRun(`${instr}.chords.strum.${baseId}`, { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
+      advance: await nextRun(`${instr}.chords.strum.${baseId}`, { steps: positions.map((p) => ({ label: `${symbol}, ${positionText(p.positionLabel)}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
     };
     status = summary.headline;
   }
@@ -207,7 +207,7 @@
   title={m.music_strings_strumid_title()}
   hue={instr}
   blurb={m.music_strings_strumid_blurb()}
-  summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? m.music_strings_open_position() }, { text: m.music_strings_strumid_one_strum() }]}
+  summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position() }, { text: m.music_strings_strumid_one_strum() }]}
   tabs={CHORD_MODES}
   tab="strum"
   ontab={(id) => openMode(CHORD_MODES, id)}

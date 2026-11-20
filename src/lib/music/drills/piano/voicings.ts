@@ -81,7 +81,9 @@ function joinHints(...hints: (string | undefined)[]) {
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);
-  return sc ? joinHints(m.music_strings_voicing_go_to_scale({ scale: sc.label }), strip(sc.hint)) : undefined;
+  return sc
+    ? joinHints(m.music_strings_voicing_go_to_scale({ scale: sc.label }), strip(sc.hint))
+    : undefined;
 }
 
 /** Keys of the cycle from `startPc`, `count` of them. */
@@ -137,7 +139,12 @@ export function voicingItems(opts: {
   if (opts.variant === "gospel") {
     const prog =
       GOSPEL_PROGRESSIONS.find((p) => p.id === opts.progression) ?? GOSPEL_PROGRESSIONS[0];
-    const inv = [m.music_strings_inv_root(), m.music_strings_inv_first(), m.music_strings_inv_second(), m.music_strings_inv_third()];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+      m.music_strings_inv_third(),
+    ];
     return keys.flatMap((key) => {
       const bars = gospelChords(pcOf(key)!, prog.id, CLOSEST_REGISTER);
       return bars.map((b, i) => ({
@@ -152,8 +159,16 @@ export function voicingItems(opts: {
           ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
         ],
         name: i
-          ? (b.symbol.includes("/") ? m.music_strings_voicing_gospel_slash_moving : m.music_strings_voicing_gospel_root_moving)({ symbol: b.symbol, inv: inv[b.inversion], n: b.movement })
-          : (b.symbol.includes("/") ? m.music_strings_voicing_gospel_slash : m.music_strings_voicing_gospel_root)({ symbol: b.symbol, inv: inv[b.inversion] }),
+          ? (b.symbol.includes("/")
+              ? m.music_strings_voicing_gospel_slash_moving
+              : m.music_strings_voicing_gospel_root_moving)({
+              symbol: b.symbol,
+              inv: inv[b.inversion],
+              n: b.movement,
+            })
+          : (b.symbol.includes("/")
+              ? m.music_strings_voicing_gospel_slash
+              : m.music_strings_voicing_gospel_root)({ symbol: b.symbol, inv: inv[b.inversion] }),
         hint: i ? `${prog.about} ${m.music_strings_voicing_keep_common()}` : prog.about,
         pcs: [...new Set([...b.rightHand.map(pc), b.bassPc])],
         count: 4,
@@ -169,7 +184,12 @@ export function voicingItems(opts: {
   }
   if (opts.variant === "cadence" || opts.variant === "cadence-minor") {
     const minor = opts.variant === "cadence-minor";
-    const inv = [m.music_strings_inv_root(), m.music_strings_inv_first(), m.music_strings_inv_second(), m.music_strings_inv_third()];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+      m.music_strings_inv_third(),
+    ];
     return keys.flatMap((key) => {
       const bars = cadenceChords(pcOf(key)!, minor, CLOSEST_REGISTER);
       const group = minor ? m.music_strings_voicing_key_minor({ key }) : key;
@@ -185,8 +205,17 @@ export function voicingItems(opts: {
           ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
         ],
         name: i
-          ? m.music_strings_voicing_cadence_moving({ symbol: b.symbol, roman: b.roman, inv: inv[b.inversion], n: b.movement })
-          : m.music_strings_voicing_cadence({ symbol: b.symbol, roman: b.roman, inv: inv[b.inversion] }),
+          ? m.music_strings_voicing_cadence_moving({
+              symbol: b.symbol,
+              roman: b.roman,
+              inv: inv[b.inversion],
+              n: b.movement,
+            })
+          : m.music_strings_voicing_cadence({
+              symbol: b.symbol,
+              roman: b.roman,
+              inv: inv[b.inversion],
+            }),
         hint:
           b.roman === "V7"
             ? m.music_strings_voicing_v7_hint()
@@ -207,7 +236,11 @@ export function voicingItems(opts: {
   }
   if (opts.variant === "inversions") {
     const bars = closestChords(opts.keyPc, CLOSEST_REGISTER);
-    const inv = [m.music_strings_inv_root(), m.music_strings_inv_first(), m.music_strings_inv_second()];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+    ];
     return bars.map((b, i) => ({
       id: b.id,
       symbol: b.symbol,
@@ -220,7 +253,11 @@ export function voicingItems(opts: {
         ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
       ],
       name: i
-        ? m.music_strings_voicing_inv_name_moving({ symbol: b.symbol, inv: inv[b.inversion], n: b.movement })
+        ? m.music_strings_voicing_inv_name_moving({
+            symbol: b.symbol,
+            inv: inv[b.inversion],
+            n: b.movement,
+          })
         : m.music_strings_voicing_inv_name({ symbol: b.symbol, inv: inv[b.inversion] }),
       hint: i ? m.music_strings_voicing_top_near_g() : m.music_strings_voicing_start_root(),
       pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
@@ -265,7 +302,8 @@ export function voicingItems(opts: {
     mode: opts.arpeggio ? "arpeggio" : "chord",
   });
   const [p1, p2] = opts.startPosition === "B" ? ["B", "A"] : ["A", "B"];
-  const rootless = (p: string) => (p === "A" ? m.music_strings_voicing_rootless_a() : m.music_strings_voicing_rootless_b());
+  const rootless = (p: string) =>
+    p === "A" ? m.music_strings_voicing_rootless_a() : m.music_strings_voicing_rootless_b();
   const names: Record<VoicingVariant, string[]> = {
     major: [rootless(p1), rootless(p2), rootless(p1)],
     minor: [m.music_strings_voicing_rootless_half_dim(), DOM.altered.label, rootless("B")],
@@ -409,7 +447,10 @@ export function gradeItem(
       note: r.correct
         ? m.music_strings_grade_right()
         : r.membership
-          ? m.music_strings_grade_moved({ actual: String(r.actualSemitones), least: String(r.minimumSemitones) })
+          ? m.music_strings_grade_moved({
+              actual: String(r.actualSemitones),
+              least: String(r.minimumSemitones),
+            })
           : m.music_strings_grade_not_guide(),
     };
   }
