@@ -29,6 +29,7 @@ import {
   type FretPosition,
 } from "../theory/fretboard";
 import { pick, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Scales
@@ -48,16 +49,16 @@ export type ScalePattern =
   | "blocked"
   | "triad-pairs";
 export const SCALE_PATTERNS: { id: ScalePattern; label: string; hint?: string }[] = [
-  { id: "scale", label: "Scale" },
-  { id: "thirds", label: "Double thirds", hint: "The scale in thirds in one hand" },
-  { id: "octaves", label: "Octaves", hint: "The scale in octaves in each hand" },
-  { id: "arpeggio", label: "Arpeggio" },
-  { id: "broken", label: "Broken", hint: "Broken chords through the inversions" },
-  { id: "blocked", label: "Blocked", hint: "Blocked chords through the inversions" },
+  { id: "scale", label: m.music_content_technique_pattern_scale() },
+  { id: "thirds", label: m.music_content_technique_pattern_thirds(), hint: m.music_content_technique_pattern_thirds_hint() },
+  { id: "octaves", label: m.music_content_technique_pattern_octaves(), hint: m.music_content_technique_pattern_octaves_hint() },
+  { id: "arpeggio", label: m.music_content_technique_pattern_arpeggio() },
+  { id: "broken", label: m.music_content_technique_pattern_broken(), hint: m.music_content_technique_pattern_broken_hint() },
+  { id: "blocked", label: m.music_content_technique_pattern_blocked(), hint: m.music_content_technique_pattern_blocked_hint() },
   {
     id: "triad-pairs",
-    label: "Triad pairs",
-    hint: "The tonic's triad, then the one a whole step up, in turn",
+    label: m.music_content_technique_pattern_triad_pairs(),
+    hint: m.music_content_technique_pattern_triad_pairs_hint(),
   },
 ];
 /** Scale-like patterns walk the scale's degrees; the others walk the chord. */
@@ -69,31 +70,31 @@ export type HandsApart = "octave" | "contrary" | "third" | "sixth";
 export const HANDS_APART: { id: HandsApart; label: string; hint: string }[] = [
   {
     id: "octave",
-    label: "An octave apart",
-    hint: "Similar motion, the left hand an octave below.",
+    label: m.music_content_technique_apart_octave(),
+    hint: m.music_content_technique_apart_octave_hint(),
   },
   {
     id: "contrary",
-    label: "Contrary motion",
-    hint: "Both hands start on the tonic and move apart, then back.",
+    label: m.music_content_technique_apart_contrary(),
+    hint: m.music_content_technique_apart_contrary_hint(),
   },
   {
     id: "third",
-    label: "A third apart",
-    hint: "The left hand on the tonic, the right hand from the 3rd above.",
+    label: m.music_content_technique_apart_third(),
+    hint: m.music_content_technique_apart_third_hint(),
   },
   {
     id: "sixth",
-    label: "A sixth apart",
-    hint: "The right hand on the tonic, the left hand from the 3rd below.",
+    label: m.music_content_technique_apart_sixth(),
+    hint: m.music_content_technique_apart_sixth_hint(),
   },
 ];
 export type ChordKind = "major" | "minor" | "dominant-7" | "diminished-7";
 export const CHORD_KINDS: { id: ChordKind; label: string; intervals: number[] }[] = [
-  { id: "major", label: "Major", intervals: [0, 4, 7] },
-  { id: "minor", label: "Minor", intervals: [0, 3, 7] },
-  { id: "dominant-7", label: "Dominant 7th", intervals: [0, 4, 7, 10] },
-  { id: "diminished-7", label: "Diminished 7th", intervals: [0, 3, 6, 9] },
+  { id: "major", label: m.music_content_technique_chord_major(), intervals: [0, 4, 7] },
+  { id: "minor", label: m.music_content_technique_chord_minor(), intervals: [0, 3, 7] },
+  { id: "dominant-7", label: m.music_content_technique_chord_dominant_7(), intervals: [0, 4, 7, 10] },
+  { id: "diminished-7", label: m.music_content_technique_chord_diminished_7(), intervals: [0, 3, 6, 9] },
 ];
 
 /**
@@ -113,6 +114,13 @@ export const ABRSM_SPEEDS: { grade: string; scale: [number, 2 | 4]; arpeggio: [n
     { grade: "Grade 7", scale: [80, 4], arpeggio: [56, 4] },
     { grade: "Grade 8", scale: [88, 4], arpeggio: [66, 4] },
   ];
+/** An exam grade as shown ("Grade 3", "Initial"); the English stays the grade's id. */
+export function gradeLabel(grade: string): string {
+  if (grade === "Initial") return m.music_content_technique_grade_initial();
+  if (grade === "Debut") return m.music_content_technique_grade_debut();
+  const n = /^Grade (\d+)$/.exec(grade)?.[1];
+  return n ? m.music_content_technique_grade_n({ n }) : grade;
+}
 /** A grade's speed for a pattern: [clicks per minute, notes per click]; none for blocked chords. */
 export const gradeSpeed = (grade: string, pattern: ScalePattern) => {
   const g = ABRSM_SPEEDS.find((x) => x.grade === grade);
@@ -198,7 +206,7 @@ export interface ScaleSetup {
 
 /** The one-tap preset; it keeps the chosen scale and tonic. */
 export const HANDS_TOGETHER_PRESET = {
-  label: "Hands together, one octave, 80 BPM",
+  label: m.music_content_technique_preset_hands_together(),
   span: "one-octave",
   motion: "up",
   hands: "both",
@@ -364,7 +372,7 @@ export interface LegatoPattern {
 export const LEGATO_PATTERNS: LegatoPattern[] = [
   {
     id: "hammer-pull",
-    label: "Hammer on, pull off",
+    label: m.music_content_technique_legato_hammer_pull(),
     steps: [
       [0, "P"],
       [2, "h"],
@@ -373,7 +381,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "trill",
-    label: "Trill",
+    label: m.music_content_technique_legato_trill(),
     steps: [
       [0, "P"],
       [2, "h"],
@@ -383,7 +391,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "three-note",
-    label: "Three notes",
+    label: m.music_content_technique_legato_three_note(),
     steps: [
       [0, "P"],
       [2, "h"],
@@ -393,7 +401,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "slide",
-    label: "Slide up and back",
+    label: m.music_content_technique_legato_slide(),
     steps: [
       [0, "P", 3],
       [2, "s", 3],
@@ -402,7 +410,7 @@ export const LEGATO_PATTERNS: LegatoPattern[] = [
   },
   {
     id: "slide-shift",
-    label: "Position shift",
+    label: m.music_content_technique_legato_slide_shift(),
     steps: [
       [0, "P", 1],
       [2, "P", 3],
@@ -482,28 +490,28 @@ const stepParts = (step: string) => (step === "-" ? [] : step.split("+"));
 export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
   {
     id: "travis-bass",
-    label: "Alternating bass, thumb only",
+    label: m.music_content_technique_pick_travis_bass(),
     instrument: "guitar",
     strings: ["B", "A", "B", "A", "B", "A", "B", "A"],
     fingers: ["p", "p", "p", "p", "p", "p", "p", "p"],
   },
   {
     id: "travis-middle",
-    label: "Travis with one finger",
+    label: m.music_content_technique_pick_travis_one(),
     instrument: "guitar",
     strings: ["B", "2", "A", "2", "B", "2", "A", "2"],
     fingers: ["p", "m", "p", "m", "p", "m", "p", "m"],
   },
   {
     id: "travis",
-    label: "Travis picking, alternating bass",
+    label: m.music_content_technique_pick_travis(),
     instrument: "guitar",
     strings: ["B", "3", "A", "2", "B", "3", "A", "2"],
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
     id: "travis-syncopated",
-    label: "Syncopated Travis, one note at a time",
+    label: m.music_content_technique_pick_travis_sync(),
     instrument: "guitar",
     strings: ["B", "2", "A", "3", "B", "2", "A", "3"],
     fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
@@ -517,63 +525,63 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
   },
   {
     id: "pima-alternating",
-    label: "p i m a, alternating bass",
+    label: m.music_content_technique_pick_pima_bass(),
     instrument: "guitar",
     strings: ["B", "3", "2", "1", "A", "3", "2", "1"],
     fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
   },
   {
     id: "folk-pimi",
-    label: "Folk arpeggio, p i m i",
+    label: m.music_content_technique_pick_folk(),
     instrument: "guitar",
     strings: ["B", "3", "2", "3", "A", "3", "2", "3"],
     fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
   },
   {
     id: "pmim",
-    label: "Reverse folk arpeggio, p m i m",
+    label: m.music_content_technique_pick_folk_reverse(),
     instrument: "guitar",
     strings: ["B", "2", "3", "2", "A", "2", "3", "2"],
     fingers: ["p", "m", "i", "m", "p", "m", "i", "m"],
   },
   {
     id: "pimiaimi",
-    label: "Eight-note arpeggio, p i m i a i m i",
+    label: m.music_content_technique_pick_eight(),
     instrument: "guitar",
     strings: ["B", "3", "2", "3", "1", "3", "2", "3"],
     fingers: ["p", "i", "m", "i", "a", "i", "m", "i"],
   },
   {
     id: "pami",
-    label: "p a m i, down from the top",
+    label: m.music_content_technique_pick_pami(),
     instrument: "guitar",
     strings: ["B", "1", "2", "3", "A", "1", "2", "3"],
     fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
   },
   {
     id: "rolling",
-    label: "Up and down, p i m a m i",
+    label: m.music_content_technique_pick_up_down(),
     instrument: "guitar",
     strings: ["B", "3", "2", "1", "2", "3"],
     fingers: ["p", "i", "m", "a", "m", "i"],
   },
   {
     id: "travis-pinch",
-    label: "Travis with a pinch on one",
+    label: m.music_content_technique_pick_travis_pinch(),
     instrument: "guitar",
     strings: ["B+2", "3", "A", "2", "B", "3", "A", "2"],
     fingers: ["p+m", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
     id: "dust-pinch",
-    label: "Syncopated Travis with a pinch (Dust in the Wind)",
+    label: m.music_content_technique_pick_travis_sync_pinch(),
     instrument: "guitar",
     strings: ["B+2", "-", "A", "3", "B", "2", "A", "3"],
     fingers: ["p+m", "-", "p", "i", "p", "m", "p", "i"],
   },
   {
     id: "boom-chick",
-    label: "Boom chick: thumb, then three fingers together",
+    label: m.music_content_technique_pick_boom_chick(),
     instrument: "guitar",
     strings: ["B", "-", "3+2+1", "-", "A", "-", "3+2+1", "-"],
     fingers: ["p", "-", "i+m+a", "-", "p", "-", "i+m+a", "-"],
@@ -582,91 +590,91 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
     // The Blackbird technique (not the song's notes): thumb and middle pluck tenths
     // together, the index sounds the open G between them as a drone.
     id: "blackbird-pinch",
-    label: "Blackbird-style pinch: p and m together, i on string 3",
+    label: m.music_content_technique_pick_blackbird(),
     instrument: "guitar",
     strings: ["B+2", "3", "B+2", "3", "B+2", "3", "B+2", "3"],
     fingers: ["p+m", "i", "p+m", "i", "p+m", "i", "p+m", "i"],
   },
   {
     id: "travis-high",
-    label: "Travis picking on strings 2 and 1",
+    label: m.music_content_technique_pick_travis_21(),
     instrument: "guitar",
     strings: ["B", "2", "A", "1", "B", "2", "A", "1"],
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
     id: "uke-claw",
-    label: "The claw",
+    label: m.music_content_technique_pick_claw(),
     instrument: "ukulele",
     strings: ["4", "2", "1", "2", "4", "2", "1", "2"],
     fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
   },
   {
     id: "uke-claw-alternating",
-    label: "Claw with alternating thumb",
+    label: m.music_content_technique_pick_claw_alt(),
     instrument: "ukulele",
     strings: ["4", "2", "1", "2", "3", "2", "1", "2"],
     fingers: ["p", "i", "m", "i", "p", "i", "m", "i"],
   },
   {
     id: "uke-outside-in",
-    label: "Outside in",
+    label: m.music_content_technique_pick_outside_in(),
     instrument: "ukulele",
     strings: ["4", "1", "3", "2", "4", "1", "3", "2"],
     fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
   },
   {
     id: "uke-tima",
-    label: "Thumb on 4, then i m a",
+    label: m.music_content_technique_pick_thumb4_ima(),
     instrument: "ukulele",
     strings: ["4", "3", "2", "1", "4", "3", "2", "1"],
     fingers: ["p", "i", "m", "a", "p", "i", "m", "a"],
   },
   {
     id: "uke-alternating",
-    label: "Alternating thumb on 3 and 4",
+    label: m.music_content_technique_pick_alt_thumb(),
     instrument: "ukulele",
     strings: ["3", "1", "4", "2", "3", "1", "4", "2"],
     fingers: ["p", "m", "p", "i", "p", "m", "p", "i"],
   },
   {
     id: "uke-tami",
-    label: "Thumb on 4, then a m i",
+    label: m.music_content_technique_pick_thumb4_ami(),
     instrument: "ukulele",
     strings: ["4", "1", "2", "3", "4", "1", "2", "3"],
     fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
   },
   {
     id: "uke-travis",
-    label: "Travis: thumb on 4 and 3, i and m on 2 and 1",
+    label: m.music_content_technique_pick_travis_uke(),
     instrument: "ukulele",
     strings: ["4", "2", "3", "1", "4", "2", "3", "1"],
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
     id: "uke-fancy-eight",
-    label: "Fancy eight, 3 3 2 feel",
+    label: m.music_content_technique_pick_fancy_eight(),
     instrument: "ukulele",
     strings: ["1", "4", "2", "1", "4", "2", "3", "2"],
     fingers: ["m", "p", "i", "m", "p", "i", "p", "i"],
   },
   {
     id: "uke-linear",
-    label: "Low to high, C E G A",
+    label: m.music_content_technique_pick_low_high(),
     instrument: "ukulele",
     strings: ["3", "2", "4", "1", "3", "2", "4", "1"],
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
   },
   {
     id: "uke-rolling",
-    label: "Up and down, p i m a m i",
+    label: m.music_content_technique_pick_up_down(),
     instrument: "ukulele",
     strings: ["4", "3", "2", "1", "2", "3"],
     fingers: ["p", "i", "m", "a", "m", "i"],
   },
   {
     id: "uke-backward-roll",
-    label: "Backward roll, m i p",
+    label: m.music_content_technique_pick_backward_roll(),
     instrument: "ukulele",
     strings: ["1", "2", "3", "1", "2", "4"],
     fingers: ["m", "i", "p", "m", "i", "p"],
@@ -681,21 +689,21 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
   // Tremolo on string 1, graded mostly on how even the notes are.
   {
     id: "uke-tremolo-im",
-    label: "Tremolo, i m on string 1",
+    label: m.music_content_technique_pick_tremolo_im(),
     instrument: "ukulele",
     strings: ["1", "1", "1", "1", "1", "1", "1", "1"],
     fingers: ["i", "m", "i", "m", "i", "m", "i", "m"],
   },
   {
     id: "uke-tremolo-pami",
-    label: "Tremolo, p a m i on string 1",
+    label: m.music_content_technique_pick_tremolo_pami(),
     instrument: "ukulele",
     strings: ["1", "1", "1", "1", "1", "1", "1", "1"],
     fingers: ["p", "a", "m", "i", "p", "a", "m", "i"],
   },
   {
     id: "uke-two-strings",
-    label: "Thumb, then two strings together",
+    label: m.music_content_technique_pick_thumb_two(),
     instrument: "ukulele",
     strings: ["4", "2+1", "2+1", "2+1", "4", "2+1", "2+1", "2+1"],
     fingers: ["p", "i+m", "i+m", "i+m", "p", "i+m", "i+m", "i+m"],
@@ -732,7 +740,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "C", "D", "F", "Am", "E"],
     bpm: 58,
     perBeat: 3,
-    note: "The 8-bar verse is cut to 6 by merging the closing C E E into one E bar. No capo.",
+    note: m.music_content_technique_song_house_note(),
     source:
       "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/learn-to-play-house-of-the-rising-sun/",
   },
@@ -745,7 +753,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am", "G", "Dm", "Am"],
     bpm: 94,
     perBeat: 2,
-    note: "Verse progression. G/B is played as G. The intro's Cmaj7, Cadd9 and Asus2 colour chords are left out.",
+    note: m.music_content_technique_song_dust_note(),
     source: "https://nationalguitaracademy.com/?p=14276",
   },
   {
@@ -757,7 +765,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am7", "G"],
     bpm: 80,
     perBeat: 2,
-    note: "Capo 3. G/B becomes G. The original is closer to an inside-out roll than true Travis.",
+    note: m.music_content_technique_song_landslide_note(),
     source: "https://andyguitar.co.uk/videos/fleetwood-mac-landslide",
   },
   {
@@ -769,7 +777,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["G", "Em", "G", "Em", "C", "D"],
     bpm: 60,
     perBeat: 3,
-    note: "Capo 5 with G shapes (sounds in C). The first half of the verse. The roll is an approximation.",
+    note: m.music_content_technique_song_hallelujah_note(),
     source: "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/hallelujah/",
   },
   {
@@ -781,7 +789,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["D", "G"],
     bpm: 63,
     perBeat: 3,
-    note: "Verse only (bass then strings 3 2 1 2 3). The walkdown and the Em A chorus are left out.",
+    note: m.music_content_technique_song_everybody_hurts_note(),
     source: "https://laurenbateman.com/?p=5038",
   },
   {
@@ -793,7 +801,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Am", "G", "G7"],
     bpm: 93,
     perBeat: 2,
-    note: "Verse in C shapes with no capo. The recording sounds lower (a detuned guitar). The C to Am bass walk is dropped.",
+    note: m.music_content_technique_song_boxer_note(),
     source: "https://pg.zachmanson.com/tab/simon-garfunkel/the-boxer-chords-1744664",
   },
   {
@@ -805,7 +813,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 129,
     perBeat: 2,
-    note: "3/4 in Am shapes (capo 7 to match the recording). G/B becomes G and the melody isn't included.",
+    note: m.music_content_technique_song_scarborough_note(),
     source: "https://jgmusiclessons.com/scarborough-fair-guitar-tabs-chords-and-arrangement",
   },
   {
@@ -817,7 +825,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["A", "E", "F#m", "A", "D", "E7"],
     bpm: 80,
     perBeat: 2,
-    note: "Slash bass notes (E/G#, A/E, D/F#) and E7sus4 are dropped. The song changes chord every two beats, and p i m a only approximates Clapton's picking.",
+    note: m.music_content_technique_song_tears_note(),
     source: "https://www.licklibrary.com/learn/lessons/eric-clapton/tears-in-heaven",
   },
   {
@@ -829,7 +837,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Em", "D", "C"],
     bpm: 46,
     perBeat: 3,
-    note: "Only the verse chord loop. The intro's open-string melody and hammer-ons aren't included.",
+    note: m.music_content_technique_song_nothing_else_note(),
     source: "https://www.licklibrary.com/learn/lessons/metallica/nothing-else-matters",
   },
   {
@@ -841,7 +849,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Am", "C", "Am", "F", "G"],
     bpm: 60,
     perBeat: 3,
-    note: "12/8 felt as 6/8. The taught version pinches strings 4 and 1 on each downbeat, so the roll is an approximation.",
+    note: m.music_content_technique_song_uke_hallelujah_note(),
     source:
       "https://ukulelemagazine.com/lessons/watch-sarah-maisel-perform-leonard-cohens-hallelujah",
   },
@@ -854,7 +862,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Em", "Am", "F", "C", "G"],
     bpm: 66,
     perBeat: 3,
-    note: "In C (the original is in D). 12/8 at a dotted quarter of about 66 BPM.",
+    note: m.music_content_technique_song_uke_cant_help_note(),
     source: "https://ukulelego.com/lessons/cant-help-falling-in-love-by-twenty-one-pilots/",
   },
   {
@@ -866,7 +874,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "C", "D", "F", "Am", "E"],
     bpm: 58,
     perBeat: 3,
-    note: "Thumb on string 4, then i m a. The verse is shortened to 6 bars.",
+    note: m.music_content_technique_song_uke_house_note(),
     source: "https://ukulelego.com/lessons/house-of-the-rising-sun-ukulele-lesson/",
   },
   {
@@ -878,7 +886,7 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 90,
     perBeat: 2,
-    note: "3/4 in Am at a slower practice tempo with open strings ringing. The melody isn't included.",
+    note: m.music_content_technique_song_uke_scarborough_note(),
     source: "https://ukutabs.com/pl/s/simon-and-garfunkel/scarborough-fair/",
   },
 ];
@@ -965,7 +973,7 @@ export const GUITAR_GRADE_TEMPOS: { id: string; label: string; bpm: number }[] =
     ] as const
   ).map(([g, bpm]) => ({
     id: `rsl-${g.toLowerCase().replace(" ", "-")}`,
-    label: `Rockschool ${g}`,
+    label: m.music_content_technique_grade_rockschool({ grade: gradeLabel(g) }),
     bpm,
   })),
   ...(
@@ -982,7 +990,7 @@ export const GUITAR_GRADE_TEMPOS: { id: string; label: string; bpm: number }[] =
     ] as const
   ).map(([g, bpm]) => ({
     id: `trinity-${g.toLowerCase().replace(" ", "-")}`,
-    label: `Trinity classical ${g}`,
+    label: m.music_content_technique_grade_trinity({ grade: gradeLabel(g) }),
     bpm,
   })),
 ];
@@ -1094,7 +1102,7 @@ function connectedBoxes(): PositionPattern {
   });
   return {
     id: "minor-pentatonic-connected",
-    label: "Boxes 1 to 5 connected",
+    label: m.music_content_technique_shape_connected(),
     family: "connected",
     ordered: true,
     offsets,
@@ -1111,7 +1119,7 @@ function connectedBoxes(): PositionPattern {
 const TRIADS: PositionPattern[] = [
   {
     id: "triads-major-strings-1-3",
-    label: "Major triads, strings 1 to 3",
+    label: m.music_content_technique_shape_major_13(),
     family: "triads",
     ordered: true,
     segment: 3,
@@ -1130,7 +1138,7 @@ const TRIADS: PositionPattern[] = [
   },
   {
     id: "triads-major-strings-2-4",
-    label: "Major triads, strings 2 to 4",
+    label: m.music_content_technique_shape_major_24(),
     family: "triads",
     ordered: true,
     segment: 3,
@@ -1149,7 +1157,7 @@ const TRIADS: PositionPattern[] = [
   },
   {
     id: "triads-minor-strings-1-3",
-    label: "Minor triads, strings 1 to 3",
+    label: m.music_content_technique_shape_minor_13(),
     family: "triads",
     ordered: true,
     segment: 3,
@@ -1168,7 +1176,7 @@ const TRIADS: PositionPattern[] = [
   },
   {
     id: "triads-minor-strings-2-4",
-    label: "Minor triads, strings 2 to 4",
+    label: m.music_content_technique_shape_minor_24(),
     family: "triads",
     ordered: true,
     segment: 3,
@@ -1194,7 +1202,7 @@ const TRIADS: PositionPattern[] = [
  */
 const BB_BOX: PositionPattern = {
   id: "bb-box",
-  label: "The B.B. box",
+  label: m.music_content_technique_shape_bb_box(),
   family: "blues-box",
   offsets: offs([
     [3, 6],
@@ -1246,7 +1254,7 @@ const UKE_PENTATONIC: PositionPattern[] = (
   ] as const
 ).map((perString, k) => ({
   id: `ukulele-minor-pentatonic-${k + 1}`,
-  label: `Minor pentatonic position ${k + 1}`,
+  label: m.music_content_technique_shape_minor_pentatonic({ n: k + 1 }),
   family: "minor-pentatonic",
   instrument: "ukulele",
   rootString: 1,
@@ -1414,10 +1422,10 @@ export function noteFinderPrompt(
 }
 
 export const RECALL_INTERVALS = [
-  { semitones: 3, label: "Minor third" },
-  { semitones: 4, label: "Major third" },
-  { semitones: 7, label: "Perfect fifth" },
-  { semitones: 12, label: "Octave" },
+  { semitones: 3, label: m.music_content_technique_recall_minor_third() },
+  { semitones: 4, label: m.music_content_technique_recall_major_third() },
+  { semitones: 7, label: m.music_content_technique_recall_perfect_fifth() },
+  { semitones: 12, label: m.music_content_technique_recall_octave() },
 ] as const;
 export const RECALL_REGIONS = [
   { start: 0, end: 4 },
