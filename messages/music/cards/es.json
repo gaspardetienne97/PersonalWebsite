@@ -1,5 +1,103 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_ach_100_text": "Gana 100 XP.",
+  "music_cards_ach_100_title": "Primeros 100 XP",
+  "music_cards_ach_freeze_text": "Un protector de racha mantuvo viva tu racha.",
+  "music_cards_ach_freeze_title": "Salvado por un protector de racha",
+  "music_cards_ach_half_text": "Lleva cualquier habilidad al 50%.",
+  "music_cards_ach_half_title": "A mitad de camino",
+  "music_cards_ach_level5_text": "Llega al nivel de XP 5.",
+  "music_cards_ach_level5_title": "Nivel de XP 5",
+  "music_cards_ach_mastered_text": "Lleva cualquier habilidad al 80%.",
+  "music_cards_ach_mastered_title": "Primera habilidad dominada",
+  "music_cards_ach_streak_text": "Practica siete días seguidos.",
+  "music_cards_ach_streak_title": "Racha de siete días",
+  "music_cards_adv_at_only": "a {bpm} BPM",
+  "music_cards_adv_at_tempo": "{label} a {bpm} BPM",
+  "music_cards_adv_clean_goal": "limpio en la meta, {bpm} BPM",
+  "music_cards_adv_clean_hardest": "limpio en la versión más difícil",
+  "music_cards_adv_fails": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pasada por debajo del {pct}%",
+        "countPlural=other": "{count} pasadas por debajo del {pct}%"
+      }
+    }
+  ],
+  "music_cards_adv_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pasada limpia más para avanzar",
+        "countPlural=other": "{count} pasadas limpias más para avanzar"
+      }
+    }
+  ],
+  "music_cards_adv_past_goal": "más allá de la meta en la versión más difícil",
+  "music_cards_adv_rule": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "con {count} pasada limpia seguida ({pct}% o más) avanzas",
+        "countPlural=other": "con {count} pasadas limpias seguidas ({pct}% o más) avanzas"
+      }
+    }
+  ],
+  "music_cards_adv_runs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pasada limpia",
+        "countPlural=other": "{count} pasadas limpias"
+      }
+    }
+  ],
+  "music_cards_adv_runs_at": [
+    {
+      "declarations": [
+        "input count",
+        "input bpm",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pasada limpia a {bpm} BPM",
+        "countPlural=other": "{count} pasadas limpias a {bpm} BPM"
+      }
+    }
+  ],
+  "music_cards_adv_same_again": "Lo mismo otra vez",
+  "music_cards_adv_slower": "más lento hasta que salga limpio",
+  "music_cards_adv_top": "la versión más difícil a {bpm} BPM, el tempo más alto",
   "music_cards_altered_three_text": "Cada voicing pone notas de tensión sobre la dominante G de un ii-V-I en C. Las notas se nombran respecto al acorde: b9 es la 9.ª bajada un semitono, #11 la 11.ª subida, y 13 la 6.ª una octava arriba. Toca Siguiente para cada voicing.",
   "music_cards_altered_three_title": "Tres formas de colorear el V",
   "music_cards_altered_title": "Voicings de dominante alterada",
@@ -37,6 +135,15 @@
   "music_cards_caged_five_title": "Cinco formas para un acorde",
   "music_cards_caged_step": "La forma de {letter} usa las cuerdas {first} a {last}, y su traste más bajo está {place}.",
   "music_cards_caged_title": "Las cinco formas CAGED",
+  "music_cards_ch_check_text": "Responde tres preguntas en el modo Prueba para que el coach encuentre tu punto débil.",
+  "music_cards_ch_check_title": "Tres respuestas en el modo Prueba",
+  "music_cards_ch_streak_text": "Practica lo que sea hoy.",
+  "music_cards_ch_streak_title": "Practica hoy para mantener tu racha",
+  "music_cards_ch_variety_text": "Practica habilidades de dos áreas, como ritmo y lectura.",
+  "music_cards_ch_variety_title": "Practica dos habilidades distintas",
+  "music_cards_ch_weak_text": "Responde tres preguntas sobre tu punto débil.",
+  "music_cards_ch_xp_text": "Gana 100 XP hoy.",
+  "music_cards_ch_xp_title": "Gana el XP de hoy",
   "music_cards_charleston_count_text": "El modo Prueba oculta qué tocar, así que cuéntalo tú: {counts}, y nada más en el compás. Dejar vacíos los otros pulsos es lo que hace resaltar la línea de la mano derecha.",
   "music_cards_charleston_count_title": "Cuéntalo en el modo Prueba",
   "music_cards_charleston_hits_text": "El Charleston son dos golpes de la mano izquierda por compás: {hits}. Cada golpe son las dos notas de la mano izquierda juntas, como {a} y {b} sobre {chord}. Luego la mano descansa hasta el compás siguiente.",
@@ -203,6 +310,49 @@
   "music_cards_circle_wheel_title": "La rueda de memoria",
   "music_cards_circle_worked_flats": "{key} mayor tiene {count} bemoles: {names}.",
   "music_cards_circle_worked_sharps": "{key} mayor tiene {count} sostenidos: {names}.",
+  "music_cards_coach_due": "Para repasar: {skills}.",
+  "music_cards_coach_due_more": "Para repasar: {skills} y {count} más.",
+  "music_cards_coach_focus_title": "Foco del coach: {name}",
+  "music_cards_coach_pick_drill": "Elige un ejercicio para probarte",
+  "music_cards_coach_practise": "Practicar {name}",
+  "music_cards_coach_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "input on",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sesión guardada en {on}.",
+        "countPlural=other": "{count} sesiones guardadas en {on}."
+      }
+    }
+  ],
+  "music_cards_coach_solid_text": "Incluso tu punto débil en {on}, {name}, está en {pct} en {count} respuestas en el modo Prueba.",
+  "music_cards_coach_solid_title": "Todo lo medido está firme",
+  "music_cards_coach_streak": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} día en tu racha actual.",
+        "countPlural=other": "{count} días en tu racha actual."
+      }
+    }
+  ],
+  "music_cards_coach_thin_text": "Ninguna habilidad en {on} tiene todavía {min} respuestas en el modo Prueba, así que el coach no señala ningún punto débil.",
+  "music_cards_coach_thin_title": "Muy repartido por ahora",
+  "music_cards_coach_unmeasured_text": "El coach señala un punto débil después de {min} respuestas en el modo Prueba en {on}. Llevas {count} hasta ahora.",
+  "music_cards_coach_unmeasured_title": "Todavía sin medir",
+  "music_cards_coach_weak_text": "{name} es tu punto débil en {on}: {pct} en {count} respuestas en el modo Prueba.",
   "music_cards_connected_check_text": "El modo Prueba oculta las notas, así que debes saber el orden de las cajas y en qué dirección va cada una.",
   "music_cards_connected_high_low": "de la cuerda aguda a la grave",
   "music_cards_connected_low_high": "de la cuerda grave a la aguda",
@@ -661,6 +811,26 @@
   "music_cards_minor_v_kinds_text_top": "El ii-V-i menor es {chords} en C menor. El ii es semidisminuido (m7b5: 3.ª bemol, 5.ª bemol, 7.ª bemol), con la fundamental arriba. El V es alterado, y el i es un acorde menor con séptima sin fundamental.",
   "music_cards_minor_v_kinds_title": "Semidisminuido, alterado, menor",
   "music_cards_minor_v_title": "Voicings del ii-V-i menor",
+  "music_cards_path_aerophone_subtitle": "Un programa de saxofón en el Aerophone, alto o tenor, hasta cerca del grado 5, con temas de jazz y blues.",
+  "music_cards_path_aerophone_title": "Ruta de Aerophone",
+  "music_cards_path_ear_subtitle": "Once niveles, de oír la tónica a sacar canciones enteras de oído. El entrenamiento auditivo y la armonía de las canciones se turnan, con una lista de canciones en cada nivel.",
+  "music_cards_path_ear_title": "Ruta de oído y armonía",
+  "music_cards_path_guitar_subtitle": "Diez niveles, de los primeros acordes a tocar bastante bien: rasgueo, fingerpicking, solos y riffs, con canciones en cada nivel.",
+  "music_cards_path_guitar_title": "Ruta de guitarra",
+  "music_cards_path_jazz_subtitle": "Diez niveles guiados por el piano, de los shells sobre el blues a 40 standards desde una partitura guía. Acompañas, improvisas, tocas baladas, Monk y Silver, rearmonizas y llegas al jazz moderno.",
+  "music_cards_path_jazz_title": "Ruta de jazz",
+  "music_cards_path_mpc_subtitle": "Finger drumming en MPC hasta cerca de la etapa 10 de Melodics, con producción de beats incluida.",
+  "music_cards_path_mpc_title": "Ruta de finger drumming",
+  "music_cards_path_piano_subtitle": "De nivel intermedio a ABRSM Grado 7, pop y clásico; una evaluación inicial convierte lo que ya tocas en repasos rápidos.",
+  "music_cards_path_piano_title": "Ruta de piano",
+  "music_cards_path_reading_subtitle": "Cinco recorridos de lectura: piano, guitarra, ukelele, Aerophone y ritmo. Cada uno tiene niveles, una lista de canciones y una prueba de nivel.",
+  "music_cards_path_reading_title": "Ruta de lectura",
+  "music_cards_path_studio_subtitle": "Escucha la ecualización, el nivel y el paneo como lo hace un productor: primero ruido, luego loops y al final los cambios más pequeños.",
+  "music_cards_path_studio_title": "Ruta de oído de estudio",
+  "music_cards_path_theory_subtitle": "Conoce las armaduras y el círculo de memoria, sin errores y rápido. Luego lleva el círculo a tu instrumento.",
+  "music_cards_path_theory_title": "Ruta del círculo de quintas",
+  "music_cards_path_ukulele_subtitle": "Ukelele tenor con G agudo, de los primeros acordes a solos con los dedos y chord melody.",
+  "music_cards_path_ukulele_title": "Ruta de ukelele",
   "music_cards_patterns_minor_text": "El ii-V-i menor funciona igual. En un acorde alterado la 5.ª es su 13.ª bemol, y la 2.ª o 9.ª es la 9.ª bemol. En el modo Prueba las teclas quedan apagadas, así que debes saber las notas de cada patrón.",
   "music_cards_patterns_minor_title": "Sobre la armonía menor",
   "music_cards_patterns_step": "{symbol}: 1-2-3-5 es {a}, y 3-5-7-9 es {b}.",
@@ -707,10 +877,19 @@
   "music_cards_role_4th": "4.ª",
   "music_cards_role_5th": "5.ª",
   "music_cards_role_6th": "6.ª",
+  "music_cards_role_create": "Crear",
+  "music_cards_role_ear": "Oído",
   "music_cards_role_flat_3rd": "3.ª bemol",
   "music_cards_role_flat_5th": "5.ª bemol",
   "music_cards_role_flat_7th": "7.ª bemol",
+  "music_cards_role_focus": "Foco",
+  "music_cards_role_path": "Ruta",
+  "music_cards_role_reading": "Lectura",
+  "music_cards_role_review": "Repaso",
   "music_cards_role_root": "fundamental",
+  "music_cards_role_song": "Canción",
+  "music_cards_role_variety": "Variedad",
+  "music_cards_role_warm_up": "Calentamiento",
   "music_cards_root_label": "fund.",
   "music_cards_rootless_251_text": "Toca Siguiente para cada acorde. El ejercicio también puede empezar en la posición B, lo que intercambia A y B.",
   "music_cards_rootless_251_title": "Un ii-V-I en C",
@@ -723,6 +902,79 @@
   "music_cards_rootless_step": "{symbol}: posición {pos}, {degrees} ({notes}) en la mano derecha sobre {root} en la izquierda.",
   "music_cards_rootless_step_arp": "{symbol}: posición {pos}, {degrees} ({notes}) encima de {root}.",
   "music_cards_rootless_title": "Voicings sin fundamental",
+  "music_cards_routine_aerophone_label": "Técnica de Aerophone",
+  "music_cards_routine_aerophone_text": "Respiración, articulación, dinámica e intervalos precisos.",
+  "music_cards_routine_chord_perfect_label": "Trabajo de acordes",
+  "music_cards_routine_chord_perfect_text": "Limpia las formas y los cambios de acordes, y nombra acordes.",
+  "music_cards_routine_chord_scales_label": "Repaso de escalas por acorde",
+  "music_cards_routine_chord_scales_text": "Una escala de referencia por acorde en un ii-V-I.",
+  "music_cards_routine_comping_label": "Acompañamiento",
+  "music_cards_routine_comping_text": "Una línea sobre un ritmo de acompañamiento de la mano izquierda.",
+  "music_cards_routine_ear_label": "Repaso de entrenamiento auditivo",
+  "music_cards_routine_ear_text": "Nombra lo que oyes y repasa tus puntos débiles.",
+  "music_cards_routine_jam_label": "Jam",
+  "music_cards_routine_jam_text": "Improvisa sobre una progresión con las notas del acorde iluminadas.",
+  "music_cards_routine_licks_label": "Memoria de licks",
+  "music_cards_routine_licks_text": "Escucha una línea y tócala de vuelta.",
+  "music_cards_routine_mpc_label": "Rudimentos en MPC",
+  "music_cards_routine_mpc_text": "Desarrolla el tiempo en los pads y el control de rudimentos.",
+  "music_cards_routine_next_on": "Lo siguiente en la {path}. {summary}",
+  "music_cards_routine_phrases_label": "Toca un tema",
+  "music_cards_routine_phrases_text": "Un tema famoso o un lick clásico, escuchado y luego tocado de vuelta.",
+  "music_cards_routine_reading_label": "Lectura de notas",
+  "music_cards_routine_reading_text": "Lee notas y tócalas por MIDI o en pantalla.",
+  "music_cards_routine_rhythm_label": "Ritmo",
+  "music_cards_routine_rhythm_text": "Ajusta el tiempo a un pulso estable.",
+  "music_cards_routine_scales_label": "Escalas y técnica",
+  "music_cards_routine_scales_text": "Termina con una pasada de técnica limpia.",
+  "music_cards_routine_song_text": "{artist}. Una canción del nivel {level} de la {path}.",
+  "music_cards_routine_spider_label": "Independencia de cuerdas",
+  "music_cards_routine_spider_text": "Patrones de digitación por las cuerdas, luego notas en el diapasón.",
+  "music_cards_routine_two_hand_label": "Piano a dos manos",
+  "music_cards_routine_two_hand_text": "Manos independientes, unidas a un mismo pulso.",
+  "music_cards_routine_voicings_label": "Voicings ii-V-I",
+  "music_cards_routine_voicings_text": "Voicings sin fundamental por todas las tonalidades.",
+  "music_cards_rung_a_done": "Práctica de canción en modo Interpretación con la partitura del tema: 90% o más al 90% de su tempo o más rápido, en dos días.",
+  "music_cards_rung_a_label": "Fundamentales y melodía",
+  "music_cards_rung_b_done": "El juego de notas guía de Jam sobre el tema: dos chorus, 90% o más, al 80% de su tempo o más rápido.",
+  "music_cards_rung_b_label": "Notas guía",
+  "music_cards_rung_c_done": "La partitura guía de Acompañamiento con la notación del tema, shells en la mano izquierda: 90% o más.",
+  "music_cards_rung_c_label": "Melodía y shells",
+  "music_cards_rung_d_done": "El acompañamiento de Acompañamiento sobre la armonía del tema con voicings sin fundamental: 90% o más.",
+  "music_cards_rung_d_label": "Acompañamiento sin fundamental",
+  "music_cards_rung_e_done": "El juego de seguir la armonía de Jam sobre el tema, con cada chorus cumpliendo sus metas.",
+  "music_cards_rung_e_label": "Un chorus de solo",
+  "music_cards_rung_f_done": "Los pasos a y c en otra tonalidad: 85% o más en cada uno.",
+  "music_cards_rung_f_label": "Una segunda tonalidad",
+  "music_cards_s1_detail": "Diez respuestas en el modo Prueba al 90% o más.",
+  "music_cards_s1_summary": "250 Hz, 1 kHz o 4 kHz, realzados 12 dB. Alterna entre Plano y Cambiado tantas veces como quieras.",
+  "music_cards_s1_title": "Tres bandas sobre ruido rosa",
+  "music_cards_s2_detail": "Veinte respuestas en el modo Prueba con cinco bandas o más, al 80% o más.",
+  "music_cards_s2_link": "Las nueve octavas",
+  "music_cards_s2_summary": "Más bandas, todavía 12 dB sobre ruido. Nueve son todas las octavas de 63 Hz a 16 kHz.",
+  "music_cards_s2_title": "Cinco bandas, luego nueve",
+  "music_cards_s3_detail": "Veinte respuestas en el modo Prueba con nueve bandas sobre un loop, al 70% o más.",
+  "music_cards_s3_link": "El loop de banda",
+  "music_cards_s3_summary": "El loop de batería, luego el loop de banda. La música es más difícil que el ruido. Fallar por una octava cuenta la mitad.",
+  "music_cards_s3_title": "Nueve bandas sobre loops",
+  "music_cards_s4_detail": "Veinte respuestas en el modo Prueba con nueve bandas, al 70% o más.",
+  "music_cards_s4_link": "Sobre el loop de banda",
+  "music_cards_s4_summary": "Una banda recortada 12 dB: más difícil que un realce, porque escuchas lo que falta.",
+  "music_cards_s4_title": "Encuentra el recorte",
+  "music_cards_s5_detail": "Veinte respuestas en el modo Prueba con nueve bandas a 6 dB o menos, al 70% o más.",
+  "music_cards_s5_link": "3 dB",
+  "music_cards_s5_summary": "6 dB, luego 3 dB: más cerca de los ajustes que haces en una mezcla real.",
+  "music_cards_s5_title": "Realces más pequeños",
+  "music_cards_s6_detail": "Diez respuestas en el modo Prueba de cada uno, al 80% o más.",
+  "music_cards_s6_link_level": "Cuántos dB",
+  "music_cards_s6_link_pan": "Posición de paneo",
+  "music_cards_s6_summary": "Realce o recorte con el volumen igualado, cuántos dB más fuerte, y dónde está en el campo estéreo.",
+  "music_cards_s6_title": "Realce o recorte, nivel y paneo",
+  "music_cards_s7_detail": "Diez respuestas en el modo Prueba de cada uno, al 75% o más.",
+  "music_cards_s7_link_delay": "Tiempo de delay",
+  "music_cards_s7_link_dotted": "Con corchea con puntillo",
+  "music_cards_s7_summary": "Qué tan fuerte se comprime un loop de batería (con el volumen igualado), y cuánto dura su eco en valores de nota.",
+  "music_cards_s7_title": "Compresión y delay",
   "music_cards_scale_step": "{symbol} lleva {scale}: {notes}.",
   "music_cards_step_15": "1½",
   "music_cards_step_h": "S",
@@ -733,6 +985,35 @@
   "music_cards_symbols_slash_title": "Barras",
   "music_cards_symbols_step": "{symbol} es {notes}.",
   "music_cards_symbols_title": "Leer cifrados de acordes",
+  "music_cards_t1_summary": "F C G D A E B para los sostenidos (Fui Con Gabriel De Aventura En Bicicleta), al revés para los bemoles.",
+  "music_cards_t1_title": "El orden de los sostenidos y los bemoles",
+  "music_cards_t2_link": "Empieza con C, G y F",
+  "music_cards_t2_summary": "C, G, F, D y Bb: de la tonalidad a su cantidad, y de la cantidad a la tonalidad.",
+  "music_cards_t2_title": "Tonalidades de hasta dos sostenidos o bemoles",
+  "music_cards_t3_detail": "Veinte preguntas sobre las quince tonalidades en dos días, 95% de aciertos en menos de 2 segundos.",
+  "music_cards_t3_link": "Hasta cuatro",
+  "music_cards_t3_summary": "Hasta cuatro, luego las quince con las tonalidades enarmónicas, sostenidos y bemoles mezclados.",
+  "music_cards_t3_title": "Todas las tonalidades, en los dos sentidos",
+  "music_cards_t4_detail": "Veinte preguntas sobre tonalidades de hasta cuatro en dos días, 95% de aciertos en menos de 3 segundos.",
+  "music_cards_t4_link": "Fa y sol",
+  "music_cards_t4_summary": "Nombra la tonalidad por su armadura, primero en clave de sol y luego en clave de fa.",
+  "music_cards_t4_title": "Lee armaduras en el pentagrama",
+  "music_cards_t5_detail": "Veinte preguntas sobre tonalidades de hasta cuatro, 95% de aciertos en menos de 2,5 segundos.",
+  "music_cards_t5_link": "Armaduras de las tonalidades menores",
+  "music_cards_t5_summary": "Un sostenido más, un bemol más, la relativa menor una tercera menor abajo, y la tonalidad opuesta.",
+  "music_cards_t5_title": "Vecinas y relativas menores",
+  "music_cards_t6_detail": "Veinte preguntas sobre tonalidades de hasta cuatro, 95% de aciertos en menos de 5 segundos.",
+  "music_cards_t6_summary": "Léelos en la cuña: IV, I y V afuera, ii, vi y iii adentro, vii° en el centro.",
+  "music_cards_t6_title": "Los acordes de una tonalidad",
+  "music_cards_t7_detail": "Veinte preguntas sobre las quince tonalidades, 95% de aciertos en menos de 3 segundos.",
+  "music_cards_t7_summary": "Una rueda en blanco: pon cada tonalidad en su lugar.",
+  "music_cards_t7_title": "El círculo de memoria",
+  "music_cards_t8_link_changes": "Cambios de acorde",
+  "music_cards_t8_link_scales": "Escalas",
+  "music_cards_t8_link_voicings": "Voicings ii-V-I",
+  "music_cards_t8_summary": "Escalas en el sentido del reloj desde C: C, G, D, A y E comparten digitación en el piano. ii-V-I en sentido contrario, como se mueve la armonía. En guitarra, cambios de acorde por cuartas.",
+  "music_cards_t8_title": "El círculo en tu instrumento",
+  "music_cards_t_detail_20_2": "Veinte preguntas en dos días, 95% de aciertos en menos de 2 segundos.",
   "music_cards_thumb_left_text": "Subiendo, el 3.er o 4.º dedo de la mano izquierda cruza por encima de su pulgar. Bajando, su pulgar pasa por debajo. Los dedos son los mismos cada vez, así que aprende dónde cae el cruce en cada tonalidad.",
   "music_cards_thumb_left_title": "La mano izquierda hace lo contrario",
   "music_cards_thumb_step_1": "En C mayor la mano derecha toca {fingers}.",

@@ -3,6 +3,7 @@
 import type { Capability, PracticeSession, ScoringEvent, SkillMastery } from "../types";
 import { clamp01 } from "../theory/notes";
 import { DAY_MS } from "./mastery";
+import { m } from "@repo/i18n/messages.js";
 
 /** Decision in TASKS.md: a wrong answer earns 5, a perfect hard answer 60 plus improvement. */
 export const xpForAttempt = (partialCredit: number, difficulty: number, improvement: number) => {
@@ -155,38 +156,38 @@ export function achievements(input: {
   return [
     {
       id: "first-100-xp",
-      title: "First 100 XP",
-      description: "Earn 100 XP.",
+      title: m.music_cards_ach_100_title(),
+      description: m.music_cards_ach_100_text(),
       unlocked: input.xp >= 100,
     },
     {
       id: "level-5",
-      title: "XP level 5",
-      description: "Reach XP level 5.",
+      title: m.music_cards_ach_level5_title(),
+      description: m.music_cards_ach_level5_text(),
       unlocked: levelFor(input.xp) >= 5,
     },
     {
       id: "seven-day-streak",
-      title: "Seven-day streak",
-      description: "Practise on seven days in a row.",
+      title: m.music_cards_ach_streak_title(),
+      description: m.music_cards_ach_streak_text(),
       unlocked: input.longestStreak >= 7,
     },
     {
       id: "first-skill-50",
-      title: "Halfway there",
-      description: "Bring any skill score to 50%.",
+      title: m.music_cards_ach_half_title(),
+      description: m.music_cards_ach_half_text(),
       unlocked: peak >= 0.5,
     },
     {
       id: "first-skill-mastered",
-      title: "First skill mastered",
-      description: "Bring any skill score to 80%.",
+      title: m.music_cards_ach_mastered_title(),
+      description: m.music_cards_ach_mastered_text(),
       unlocked: peak >= 0.8,
     },
     {
       id: "first-freeze-save",
-      title: "Saved by a freeze",
-      description: "A streak freeze kept your streak alive.",
+      title: m.music_cards_ach_freeze_title(),
+      description: m.music_cards_ach_freeze_text(),
       unlocked: input.frozenDays.length > 0,
     },
   ];
@@ -234,8 +235,8 @@ export function dailyChallenges(input: {
   return [
     challenge({
       id: "daily-xp",
-      title: "Earn today's XP",
-      description: "Earn 100 XP today.",
+      title: m.music_cards_ch_xp_title(),
+      description: m.music_cards_ch_xp_text(),
       href: "/music",
       target: 100,
       progress: sessions.reduce((sum, s) => sum + s.xp, 0),
@@ -244,31 +245,31 @@ export function dailyChallenges(input: {
       ? challenge({
           id: "weak-spot-reps",
           title: weakSpot.name,
-          description: "Answer three questions on your weak spot.",
+          description: m.music_cards_ch_weak_text(),
           href: weakSpot.href,
           target: 3,
           progress: events.filter((e) => e.skillIds.includes(weakSpot.skillId)).length,
         })
       : challenge({
           id: "weak-spot-reps",
-          title: "Three answers in Check",
-          description: "Answer three questions in Check so the coach can find your weak spot.",
+          title: m.music_cards_ch_check_title(),
+          description: m.music_cards_ch_check_text(),
           href: "/music",
           target: 3,
           progress: events.filter((e) => e.assistance === "independent").length,
         }),
     challenge({
       id: "capability-variety",
-      title: "Practise two different skills",
-      description: "Practise skills from two areas, such as rhythm and reading.",
+      title: m.music_cards_ch_variety_title(),
+      description: m.music_cards_ch_variety_text(),
       href: "/music",
       target: 2,
       progress: capabilities.size,
     }),
     challenge({
       id: "keep-streak",
-      title: "Practise today to keep your streak",
-      description: "Practise anything today.",
+      title: m.music_cards_ch_streak_title(),
+      description: m.music_cards_ch_streak_text(),
       target: 1,
       progress: sessions.some((s) => s.runs.length || s.eventIds.length) ? 1 : 0,
     }),

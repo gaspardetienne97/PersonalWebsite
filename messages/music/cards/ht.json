@@ -1,5 +1,103 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_ach_100_text": "Genyen 100 XP.",
+  "music_cards_ach_100_title": "Premye 100 XP",
+  "music_cards_ach_freeze_text": "Yon pwotèj seri kenbe seri w la vivan.",
+  "music_cards_ach_freeze_title": "Sove pa yon pwotèj seri",
+  "music_cards_ach_half_text": "Mennen nenpòt konpetans rive 50%.",
+  "music_cards_ach_half_title": "Mwatye wout",
+  "music_cards_ach_level5_text": "Rive nan nivo XP 5.",
+  "music_cards_ach_level5_title": "Nivo XP 5",
+  "music_cards_ach_mastered_text": "Mennen nenpòt konpetans rive 80%.",
+  "music_cards_ach_mastered_title": "Premye konpetans metrize",
+  "music_cards_ach_streak_text": "Pratike sèt jou youn dèyè lòt.",
+  "music_cards_ach_streak_title": "Seri sèt jou",
+  "music_cards_adv_at_only": "a {bpm} BPM",
+  "music_cards_adv_at_tempo": "{label} a {bpm} BPM",
+  "music_cards_adv_clean_goal": "pwòp nan objektif la, {bpm} BPM",
+  "music_cards_adv_clean_hardest": "pwòp sou vèsyon ki pi difisil la",
+  "music_cards_adv_fails": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pase anba {pct}%",
+        "countPlural=other": "{count} pase anba {pct}%"
+      }
+    }
+  ],
+  "music_cards_adv_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pase pwòp anplis pou avanse",
+        "countPlural=other": "{count} pase pwòp anplis pou avanse"
+      }
+    }
+  ],
+  "music_cards_adv_past_goal": "pi lwen pase objektif la sou vèsyon ki pi difisil la",
+  "music_cards_adv_rule": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pase pwòp youn dèyè lòt ({pct}% oswa plis) fè w avanse",
+        "countPlural=other": "{count} pase pwòp youn dèyè lòt ({pct}% oswa plis) fè w avanse"
+      }
+    }
+  ],
+  "music_cards_adv_runs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pase pwòp",
+        "countPlural=other": "{count} pase pwòp"
+      }
+    }
+  ],
+  "music_cards_adv_runs_at": [
+    {
+      "declarations": [
+        "input count",
+        "input bpm",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} pase pwòp a {bpm} BPM",
+        "countPlural=other": "{count} pase pwòp a {bpm} BPM"
+      }
+    }
+  ],
+  "music_cards_adv_same_again": "Menm bagay ankò",
+  "music_cards_adv_slower": "pi dousman jiskaske li pwòp",
+  "music_cards_adv_top": "vèsyon ki pi difisil la a {bpm} BPM, tempo ki pi wo a",
   "music_cards_altered_three_text": "Chak voicing mete nòt tansyon sou dominant G yon ii-V-I nan C. Nòt yo nonmen dapre akò a: b9 se nevyèm nan desann yon demi ton, #11 se onzyèm nan monte, epi 13 se sizyèm nan yon oktav pi wo. Peze Pwochen pou chak voicing.",
   "music_cards_altered_three_title": "Twa fason pou bay V a koulè",
   "music_cards_altered_title": "Voicing dominant altere",
@@ -37,6 +135,15 @@
   "music_cards_caged_five_title": "Senk fòm pou yon akò",
   "music_cards_caged_step": "Fòm {letter} a sèvi ak kòd {first} rive {last}, epi frèt ki pi ba li a se {place}.",
   "music_cards_caged_title": "Senk fòm CAGED yo",
+  "music_cards_ch_check_text": "Reponn twa kesyon nan mòd Tès pou antrenè a ka jwenn pwen fèb ou.",
+  "music_cards_ch_check_title": "Twa repons nan mòd Tès",
+  "music_cards_ch_streak_text": "Pratike nenpòt bagay jodi a.",
+  "music_cards_ch_streak_title": "Pratike jodi a pou kenbe seri w",
+  "music_cards_ch_variety_text": "Pratike konpetans nan de domèn, tankou ritm ak lekti.",
+  "music_cards_ch_variety_title": "Pratike de konpetans diferan",
+  "music_cards_ch_weak_text": "Reponn twa kesyon sou pwen fèb ou.",
+  "music_cards_ch_xp_text": "Genyen 100 XP jodi a.",
+  "music_cards_ch_xp_title": "Genyen XP jodi a",
   "music_cards_charleston_count_text": "Mòd Tès kache sa pou w jwe, kidonk konte l ou menm: {counts}, epi anyen lòt nan mezi a. Se lè w kite lòt tan yo vid ki fè liy men dwat la parèt.",
   "music_cards_charleston_count_title": "Konte l nan mòd Tès",
   "music_cards_charleston_hits_text": "Charleston lan se de kou men gòch nan yon mezi: {hits}. Chak kou se de nòt men gòch la ansanm, tankou {a} ak {b} sou {chord}. Apre sa men an repoze jiska pwochen mezi a.",
@@ -203,6 +310,49 @@
   "music_cards_circle_wheel_title": "Wou a pa kè",
   "music_cards_circle_worked_flats": "{key} majè gen {count} bemòl: {names}.",
   "music_cards_circle_worked_sharps": "{key} majè gen {count} dyèz: {names}.",
+  "music_cards_coach_due": "Pou revize: {skills}.",
+  "music_cards_coach_due_more": "Pou revize: {skills} ak {count} lòt.",
+  "music_cards_coach_focus_title": "Antrenè a konsantre sou: {name}",
+  "music_cards_coach_pick_drill": "Chwazi yon egzèsis pou teste",
+  "music_cards_coach_practise": "Pratike {name}",
+  "music_cards_coach_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "input on",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} seyans anrejistre sou {on}.",
+        "countPlural=other": "{count} seyans anrejistre sou {on}."
+      }
+    }
+  ],
+  "music_cards_coach_solid_text": "Menm pwen fèb ou sou {on}, {name}, nan {pct} sou {count} repons nan mòd Tès.",
+  "music_cards_coach_solid_title": "Tout sa ki mezire solid",
+  "music_cards_coach_streak": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} jou nan seri w ap fè kounye a.",
+        "countPlural=other": "{count} jou nan seri w ap fè kounye a."
+      }
+    }
+  ],
+  "music_cards_coach_thin_text": "Pa gen okenn konpetans sou {on} ki gen {min} repons nan mòd Tès ankò, kidonk antrenè a pa nonmen okenn pwen fèb.",
+  "music_cards_coach_thin_title": "Twò gaye pou kounye a",
+  "music_cards_coach_unmeasured_text": "Antrenè a nonmen yon pwen fèb apre {min} repons nan mòd Tès sou {on}. Ou gen {count} pou kounye a.",
+  "music_cards_coach_unmeasured_title": "Poko mezire",
+  "music_cards_coach_weak_text": "{name} se pwen fèb ou sou {on}: {pct} sou {count} repons nan mòd Tès.",
   "music_cards_connected_check_text": "Mòd Tès kache nòt yo, kidonk konnen lòd bwat yo ak nan ki sans chak ale.",
   "music_cards_connected_high_low": "depi kòd wo rive nan kòd grav",
   "music_cards_connected_low_high": "depi kòd grav rive nan kòd wo",
@@ -661,6 +811,26 @@
   "music_cards_minor_v_kinds_text_top": "ii-V-i minè a se {chords} nan C minè. ii a mwatye diminye (m7b5: tyès bemòl, kent bemòl, sèt bemòl), ak rasin lan anwo. V a altere, epi i a se yon akò minè sèt san rasin.",
   "music_cards_minor_v_kinds_title": "Mwatye diminye, altere, minè",
   "music_cards_minor_v_title": "Voicing ii-V-i minè",
+  "music_cards_path_aerophone_subtitle": "Yon pwogram saksofòn sou Aerophone la, alto oswa tenò, jiska anviwon grade 5, ak tèm djaz ak blues.",
+  "music_cards_path_aerophone_title": "Chemen Aerophone",
+  "music_cards_path_ear_subtitle": "Onz nivo, depi tande tonik la rive jwe chante antye pa zòrèy. Fòmasyon zòrèy ak amoni chante yo pran tou, ak yon lis chante nan chak nivo.",
+  "music_cards_path_ear_title": "Chemen zòrèy ak amoni",
+  "music_cards_path_guitar_subtitle": "Dis nivo, depi premye akò yo rive jwe byen: grate, fingerpicking, solo ak riff, ak chante nan chak nivo.",
+  "music_cards_path_guitar_title": "Chemen gita",
+  "music_cards_path_jazz_subtitle": "Dis nivo ki mennen ak pyano, depi shell sou blues la rive nan 40 estanda sou yon lead sheet. Ou akonpaye, ou fè solo, ou jwe balad, Monk ak Silver, ou reamonize epi ou rive nan djaz modèn.",
+  "music_cards_path_jazz_title": "Chemen djaz",
+  "music_cards_path_mpc_subtitle": "Finger drumming sou MPC jiska anviwon etap 10 Melodics, ak fabrikasyon beat ladan l.",
+  "music_cards_path_mpc_title": "Chemen finger drumming",
+  "music_cards_path_piano_subtitle": "Soti nan nivo mwayen rive nan ABRSM Grade 7, pop ak klasik; yon evalyasyon kòmansman fè sa ou deja jwe tounen revizyon rapid.",
+  "music_cards_path_piano_title": "Chemen pyano",
+  "music_cards_path_reading_subtitle": "Senk wout lekti: pyano, gita, ukulele, Aerophone ak ritm. Chak gen nivo, yon lis chante ak yon tès nivo.",
+  "music_cards_path_reading_title": "Chemen lekti",
+  "music_cards_path_studio_subtitle": "Tande EQ, nivo ak pan jan yon pwodiktè fè l: bri anvan, apre sa bouk, epi pi piti chanjman yo alafen.",
+  "music_cards_path_studio_title": "Chemen zòrèy estidyo",
+  "music_cards_path_theory_subtitle": "Konnen armi yo ak sik la pa kè, san erè e vit. Apre sa mennen sik la sou enstriman w.",
+  "music_cards_path_theory_title": "Chemen sik kent yo",
+  "music_cards_path_ukulele_subtitle": "Ukulele tenò ak G wo, depi premye akò yo rive nan solo ak dwèt ak chord melody.",
+  "music_cards_path_ukulele_title": "Chemen ukulele",
   "music_cards_patterns_minor_text": "ii-V-i minè a mache menm jan an. Sou yon akò altere, kent lan se trèzyèm bemòl li, epi dezyèm oswa nevyèm nan se nevyèm bemòl la. Nan mòd Tès touch yo rete etenn, kidonk konnen nòt chak modèl.",
   "music_cards_patterns_minor_title": "Sou pwogresyon minè a",
   "music_cards_patterns_step": "{symbol}: 1-2-3-5 se {a}, epi 3-5-7-9 se {b}.",
@@ -707,10 +877,19 @@
   "music_cards_role_4th": "kat",
   "music_cards_role_5th": "kent",
   "music_cards_role_6th": "sizyèm",
+  "music_cards_role_create": "Kreye",
+  "music_cards_role_ear": "Zòrèy",
   "music_cards_role_flat_3rd": "tyès bemòl",
   "music_cards_role_flat_5th": "kent bemòl",
   "music_cards_role_flat_7th": "sèt bemòl",
+  "music_cards_role_focus": "Konsantrasyon",
+  "music_cards_role_path": "Chemen",
+  "music_cards_role_reading": "Lekti",
+  "music_cards_role_review": "Revizyon",
   "music_cards_role_root": "rasin",
+  "music_cards_role_song": "Chante",
+  "music_cards_role_variety": "Varyete",
+  "music_cards_role_warm_up": "Chofe",
   "music_cards_root_label": "rasin",
   "music_cards_rootless_251_text": "Peze Pwochen pou chak akò. Egzèsis la ka kòmanse sou pozisyon B pito, sa ki chanje A ak B.",
   "music_cards_rootless_251_title": "Yon ii-V-I nan C",
@@ -723,6 +902,79 @@
   "music_cards_rootless_step": "{symbol}: pozisyon {pos}, {degrees} ({notes}) nan men dwat sou {root} nan men gòch.",
   "music_cards_rootless_step_arp": "{symbol}: pozisyon {pos}, {degrees} ({notes}) anwo {root}.",
   "music_cards_rootless_title": "Voicing san rasin",
+  "music_cards_routine_aerophone_label": "Teknik Aerophone",
+  "music_cards_routine_aerophone_text": "Souf, kou lang, nyans ak entèval ki tonbe jis.",
+  "music_cards_routine_chord_perfect_label": "Travay akò",
+  "music_cards_routine_chord_perfect_text": "Netwaye fòm akò ak chanjman akò, epi nonmen akò.",
+  "music_cards_routine_chord_scales_label": "Revizyon gam pou chak akò",
+  "music_cards_routine_chord_scales_text": "Yon gam prensipal pou chak akò nan yon ii-V-I.",
+  "music_cards_routine_comping_label": "Akonpayman",
+  "music_cards_routine_comping_text": "Yon liy sou yon ritm akonpayman men gòch.",
+  "music_cards_routine_ear_label": "Revizyon fòmasyon zòrèy",
+  "music_cards_routine_ear_text": "Nonmen sa ou tande epi revize pwen fèb ou yo.",
+  "music_cards_routine_jam_label": "Jam",
+  "music_cards_routine_jam_text": "Enpwovize sou yon pwogresyon ak nòt akò yo ki limen.",
+  "music_cards_routine_licks_label": "Sonje lick",
+  "music_cards_routine_licks_text": "Tande yon liy, jwe l ankò.",
+  "music_cards_routine_mpc_label": "Rudiman MPC",
+  "music_cards_routine_mpc_text": "Devlope tan sou pad yo ak kontwòl rudiman yo.",
+  "music_cards_routine_next_on": "Pwochen etap nan {path} an. {summary}",
+  "music_cards_routine_phrases_label": "Jwe yon mizik",
+  "music_cards_routine_phrases_text": "Yon mizik ki popilè oswa yon lick klasik, ou tande l epi ou jwe l ankò.",
+  "music_cards_routine_reading_label": "Li nòt",
+  "music_cards_routine_reading_text": "Li nòt epi jwe yo ak MIDI oswa sou ekran an.",
+  "music_cards_routine_rhythm_label": "Ritm",
+  "music_cards_routine_rhythm_text": "Kole tan ou sou yon pou ki estab.",
+  "music_cards_routine_scales_label": "Gam ak teknik",
+  "music_cards_routine_scales_text": "Fini ak yon pase teknik ki pwòp.",
+  "music_cards_routine_song_text": "{artist}. Yon chante nivo {level} nan {path} an.",
+  "music_cards_routine_spider_label": "Endepandans kòd",
+  "music_cards_routine_spider_text": "Modèl dwate sou kòd yo, apre sa nòt sou manch lan.",
+  "music_cards_routine_two_hand_label": "Pyano de men",
+  "music_cards_routine_two_hand_text": "De men endepandan, kole sou yon sèl pou.",
+  "music_cards_routine_voicings_label": "Voicing ii-V-I",
+  "music_cards_routine_voicings_text": "Voicing san rasin nan tout tonalite yo.",
+  "music_cards_rung_a_done": "Pratik chante nan mòd Pèfòmans sou nòtasyon mizik la: 90% oswa plis a 90% tempo li oswa pi vit, sou de jou.",
+  "music_cards_rung_a_label": "Rasin ak melodi",
+  "music_cards_rung_b_done": "Jwèt nòt gid Jam nan sou mizik la: de chorus, 90% oswa plis, a 80% tempo li oswa pi vit.",
+  "music_cards_rung_b_label": "Nòt gid",
+  "music_cards_rung_c_done": "Lead sheet Akonpayman an sou nòtasyon mizik la, shell nan men gòch: 90% oswa plis.",
+  "music_cards_rung_c_label": "Melodi ak shell",
+  "music_cards_rung_d_done": "Akonpayman nan Akonpayman sou pwogresyon mizik la ak voicing san rasin: 90% oswa plis.",
+  "music_cards_rung_d_label": "Akonpayman san rasin",
+  "music_cards_rung_e_done": "Jwèt swiv pwogresyon Jam nan sou mizik la, chak chorus rive nan objektif li.",
+  "music_cards_rung_e_label": "Yon chorus solo",
+  "music_cards_rung_f_done": "Etap a ak c nan yon lòt tonalite: 85% oswa plis chak.",
+  "music_cards_rung_f_label": "Yon dezyèm tonalite",
+  "music_cards_s1_detail": "Dis repons nan mòd Tès a 90% oswa plis.",
+  "music_cards_s1_summary": "250 Hz, 1 kHz oswa 4 kHz, ogmante 12 dB. Chanje ant Plat ak Chanje otan ou vle.",
+  "music_cards_s1_title": "Twa bann sou bri woz",
+  "music_cards_s2_detail": "Ven repons nan mòd Tès sou senk bann oswa plis, a 80% oswa plis.",
+  "music_cards_s2_link": "Tout nèf oktav yo",
+  "music_cards_s2_summary": "Plis bann, toujou 12 dB sou bri. Nèf se chak oktav soti 63 Hz rive 16 kHz.",
+  "music_cards_s2_title": "Senk bann, apre sa nèf",
+  "music_cards_s3_detail": "Ven repons nan mòd Tès sou nèf bann ak yon bouk, a 70% oswa plis.",
+  "music_cards_s3_link": "Bouk gwoup la",
+  "music_cards_s3_summary": "Bouk batri a, apre sa bouk gwoup la. Mizik pi difisil pase bri. Si w rate pa yon oktav, li konte mwatye.",
+  "music_cards_s3_title": "Nèf bann sou bouk",
+  "music_cards_s4_detail": "Ven repons nan mòd Tès sou nèf bann, a 70% oswa plis.",
+  "music_cards_s4_link": "Sou bouk gwoup la",
+  "music_cards_s4_summary": "Yon bann ki koupe 12 dB: pi difisil pase yon ogmantasyon, paske ou koute sa ki manke.",
+  "music_cards_s4_title": "Jwenn koupe a",
+  "music_cards_s5_detail": "Ven repons nan mòd Tès sou nèf bann a 6 dB oswa mwens, a 70% oswa plis.",
+  "music_cards_s5_link": "3 dB",
+  "music_cards_s5_summary": "6 dB, apre sa 3 dB: pi pre chanjman ou fè nan yon vrè miks.",
+  "music_cards_s5_title": "Ogmantasyon pi piti",
+  "music_cards_s6_detail": "Dis repons nan mòd Tès pou chak, a 80% oswa plis.",
+  "music_cards_s6_link_level": "Konbyen dB",
+  "music_cards_s6_link_pan": "Pozisyon pan",
+  "music_cards_s6_summary": "Ogmante oswa koupe ak menm volim, konbyen dB pi fò, ak kote son an chita nan espas estereyo a.",
+  "music_cards_s6_title": "Ogmante oswa koupe, nivo ak pan",
+  "music_cards_s7_detail": "Dis repons nan mòd Tès pou chak, a 75% oswa plis.",
+  "music_cards_s7_link_delay": "Tan delay",
+  "music_cards_s7_link_dotted": "Ak kwòch pwente",
+  "music_cards_s7_summary": "Konbyen yon bouk batri konprese (ak menm volim), ak konbyen tan eko li dire an valè nòt.",
+  "music_cards_s7_title": "Konpresyon ak delay",
   "music_cards_scale_step": "{symbol} pran {scale}: {notes}.",
   "music_cards_step_15": "1½",
   "music_cards_step_h": "½T",
@@ -733,6 +985,35 @@
   "music_cards_symbols_slash_title": "Bawo yo",
   "music_cards_symbols_step": "{symbol} se {notes}.",
   "music_cards_symbols_title": "Li senbòl akò yo",
+  "music_cards_t1_summary": "F C G D A E B pou dyèz (Fò Chak Gason Danse Avèk Elegans Byen), lanvè pou bemòl.",
+  "music_cards_t1_title": "Lòd dyèz ak bemòl yo",
+  "music_cards_t2_link": "Kòmanse ak C, G ak F",
+  "music_cards_t2_summary": "C, G, F, D ak Bb: depi tonalite a rive nan kantite a, epi depi kantite a rive nan tonalite a.",
+  "music_cards_t2_title": "Tonalite jiska de dyèz oswa bemòl",
+  "music_cards_t3_detail": "Ven kesyon sou tout kenz tonalite yo sou de jou, 95% bon repons nan mwens pase 2 segonn.",
+  "music_cards_t3_link": "Jiska kat",
+  "music_cards_t3_summary": "Jiska kat, apre sa tout kenz yo ak tonalite anarmonik yo, dyèz ak bemòl melanje.",
+  "music_cards_t3_title": "Tout tonalite, nan de sans yo",
+  "music_cards_t4_detail": "Ven kesyon sou tonalite jiska kat sou de jou, 95% bon repons nan mwens pase 3 segonn.",
+  "music_cards_t4_link": "Fa ak sòl",
+  "music_cards_t4_summary": "Nonmen tonalite a dapre armi li, kle sòl anvan, apre sa kle fa.",
+  "music_cards_t4_title": "Li armi sou pòte a",
+  "music_cards_t5_detail": "Ven kesyon sou tonalite jiska kat, 95% bon repons nan mwens pase 2,5 segonn.",
+  "music_cards_t5_link": "Armi tonalite minè yo",
+  "music_cards_t5_summary": "Yon dyèz anplis, yon bemòl anplis, relatif minè a yon tyès minè pi ba, ak tonalite ki anfas la.",
+  "music_cards_t5_title": "Vwazen ak relatif minè",
+  "music_cards_t6_detail": "Ven kesyon sou tonalite jiska kat, 95% bon repons nan mwens pase 5 segonn.",
+  "music_cards_t6_summary": "Li yo sou kwen an: IV, I ak V deyò, ii, vi ak iii anndan, vii° nan mitan.",
+  "music_cards_t6_title": "Akò yon tonalite",
+  "music_cards_t7_detail": "Ven kesyon sou tout kenz tonalite yo, 95% bon repons nan mwens pase 3 segonn.",
+  "music_cards_t7_summary": "Yon wou vid: mete chak tonalite nan plas li.",
+  "music_cards_t7_title": "Sik la pa kè",
+  "music_cards_t8_link_changes": "Chanjman akò",
+  "music_cards_t8_link_scales": "Gam",
+  "music_cards_t8_link_voicings": "Voicing ii-V-I",
+  "music_cards_t8_summary": "Gam nan sans revèy la depi C: C, G, D, A ak E gen menm dwate sou pyano. ii-V-I nan sans kontrè, jan pwogresyon yo deplase. Sou gita, chanjman akò pa kat.",
+  "music_cards_t8_title": "Fè wonn sik la sou enstriman w",
+  "music_cards_t_detail_20_2": "Ven kesyon sou de jou, 95% bon repons nan mwens pase 2 segonn.",
   "music_cards_thumb_left_text": "Lè w ap monte, 3yèm oswa 4yèm dwèt men gòch la travèse anlè pous li. Lè w ap desann, pous li pase anba. Dwèt yo menm bagay chak fwa, kidonk aprann kote travèse a tonbe nan chak tonalite.",
   "music_cards_thumb_left_title": "Men gòch fè lekontrè",
   "music_cards_thumb_step_1": "Nan C majè men dwat la jwe {fingers}.",

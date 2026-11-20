@@ -7,40 +7,28 @@ import { TUNES } from "../content/tunes";
 import jazz from "../data/paths/jazz.json";
 import { applyEvidence, DAY_MS, isDueForReview, REVIEW_DROP } from "./mastery";
 import { dayKey } from "./rewards";
+import { m } from "@repo/i18n/messages.js";
 
 export type Rung = "a" | "b" | "c" | "d" | "e" | "f";
 
+/** Getters, so each read is in the player's language. */
+const rung = (id: Rung, label: () => string, done: () => string) => ({
+  id,
+  get label() {
+    return label();
+  },
+  get done() {
+    return done();
+  },
+});
+
 export const RUNGS: { id: Rung; label: string; done: string }[] = [
-  {
-    id: "a",
-    label: "Roots and melody",
-    done: "Song practice in Performance mode on the tune's notation: 90% or better at 90% of its tempo or faster, on two days.",
-  },
-  {
-    id: "b",
-    label: "Guide tones",
-    done: "Jam's guide-tones game on the tune: two choruses, 90% or better, at 80% of its tempo or faster.",
-  },
-  {
-    id: "c",
-    label: "Melody and shells",
-    done: "Accompaniment's lead sheet on the tune's notation, shells in the left hand: 90% or better.",
-  },
-  {
-    id: "d",
-    label: "Rootless comping",
-    done: "Accompaniment's comping on the tune's changes with rootless voicings: 90% or better.",
-  },
-  {
-    id: "e",
-    label: "A solo chorus",
-    done: "Jam's make-the-changes game on the tune, every chorus meeting its aims.",
-  },
-  {
-    id: "f",
-    label: "A second key",
-    done: "Steps a and c in another key: 85% or better each.",
-  },
+  rung("a", m.music_cards_rung_a_label, m.music_cards_rung_a_done),
+  rung("b", m.music_cards_rung_b_label, m.music_cards_rung_b_done),
+  rung("c", m.music_cards_rung_c_label, m.music_cards_rung_c_done),
+  rung("d", m.music_cards_rung_d_label, m.music_cards_rung_d_done),
+  rung("e", m.music_cards_rung_e_label, m.music_cards_rung_e_done),
+  rung("f", m.music_cards_rung_f_label, m.music_cards_rung_f_done),
 ];
 
 export interface LadderTune {

@@ -1,5 +1,103 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_ach_100_text": "Earn 100 XP.",
+  "music_cards_ach_100_title": "First 100 XP",
+  "music_cards_ach_freeze_text": "A streak freeze kept your streak alive.",
+  "music_cards_ach_freeze_title": "Saved by a freeze",
+  "music_cards_ach_half_text": "Bring any skill score to 50%.",
+  "music_cards_ach_half_title": "Halfway there",
+  "music_cards_ach_level5_text": "Reach XP level 5.",
+  "music_cards_ach_level5_title": "XP level 5",
+  "music_cards_ach_mastered_text": "Bring any skill score to 80%.",
+  "music_cards_ach_mastered_title": "First skill mastered",
+  "music_cards_ach_streak_text": "Practise on seven days in a row.",
+  "music_cards_ach_streak_title": "Seven-day streak",
+  "music_cards_adv_at_only": "at {bpm} BPM",
+  "music_cards_adv_at_tempo": "{label} at {bpm} BPM",
+  "music_cards_adv_clean_goal": "clean at the goal, {bpm} BPM",
+  "music_cards_adv_clean_hardest": "clean on the hardest version",
+  "music_cards_adv_fails": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} run under {pct}%",
+        "countPlural=other": "{count} runs under {pct}%"
+      }
+    }
+  ],
+  "music_cards_adv_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} more clean run to move on",
+        "countPlural=other": "{count} more clean runs to move on"
+      }
+    }
+  ],
+  "music_cards_adv_past_goal": "past the goal on the hardest version",
+  "music_cards_adv_rule": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} clean run in a row ({pct}% or better) moves on",
+        "countPlural=other": "{count} clean runs in a row ({pct}% or better) move on"
+      }
+    }
+  ],
+  "music_cards_adv_runs": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} clean run",
+        "countPlural=other": "{count} clean runs"
+      }
+    }
+  ],
+  "music_cards_adv_runs_at": [
+    {
+      "declarations": [
+        "input count",
+        "input bpm",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} clean run at {bpm} BPM",
+        "countPlural=other": "{count} clean runs at {bpm} BPM"
+      }
+    }
+  ],
+  "music_cards_adv_same_again": "Same again",
+  "music_cards_adv_slower": "slower until it's clean",
+  "music_cards_adv_top": "the hardest version at {bpm} BPM, the top tempo",
   "music_cards_altered_three_text": "Each voicing puts tension tones on the G dominant of a ii-V-I in C. The tones are named against the chord: b9 is the 9th lowered a half step, #11 the 11th raised, and 13 the 6th an octave up. Tap Next for each voicing.",
   "music_cards_altered_three_title": "Three ways to colour the V",
   "music_cards_altered_title": "Altered dominant voicings",
@@ -37,6 +135,15 @@
   "music_cards_caged_five_title": "Five shapes for one chord",
   "music_cards_caged_step": "The {letter} shape uses strings {first} to {last}, and its lowest fret is {place}.",
   "music_cards_caged_title": "The five CAGED shapes",
+  "music_cards_ch_check_text": "Answer three questions in Check so the coach can find your weak spot.",
+  "music_cards_ch_check_title": "Three answers in Check",
+  "music_cards_ch_streak_text": "Practise anything today.",
+  "music_cards_ch_streak_title": "Practise today to keep your streak",
+  "music_cards_ch_variety_text": "Practise skills from two areas, such as rhythm and reading.",
+  "music_cards_ch_variety_title": "Practise two different skills",
+  "music_cards_ch_weak_text": "Answer three questions on your weak spot.",
+  "music_cards_ch_xp_text": "Earn 100 XP today.",
+  "music_cards_ch_xp_title": "Earn today's XP",
   "music_cards_charleston_count_text": "Check hides what to play, so count it yourself: {counts}, and nothing else in the bar. Leaving the other beats empty is what lets the right hand's line stand out.",
   "music_cards_charleston_count_title": "Count it in Check",
   "music_cards_charleston_hits_text": "The Charleston is two left-hand hits in a bar: {hits}. Each hit is the left hand's two notes together, such as {a} and {b} over {chord}. Then the hand rests until the next bar.",
@@ -203,6 +310,49 @@
   "music_cards_circle_wheel_title": "The wheel by heart",
   "music_cards_circle_worked_flats": "{key} major has {count} flats: {names}.",
   "music_cards_circle_worked_sharps": "{key} major has {count} sharps: {names}.",
+  "music_cards_coach_due": "Due for review: {skills}.",
+  "music_cards_coach_due_more": "Due for review: {skills} and {count} more.",
+  "music_cards_coach_focus_title": "Coach focus: {name}",
+  "music_cards_coach_pick_drill": "Pick a drill to check",
+  "music_cards_coach_practise": "Practise {name}",
+  "music_cards_coach_sessions": [
+    {
+      "declarations": [
+        "input count",
+        "input on",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} saved session on {on}.",
+        "countPlural=other": "{count} saved sessions on {on}."
+      }
+    }
+  ],
+  "music_cards_coach_solid_text": "Even your weak spot on {on}, {name}, is at {pct} across {count} answers in Check.",
+  "music_cards_coach_solid_title": "Everything measured is solid",
+  "music_cards_coach_streak": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} day in your current streak.",
+        "countPlural=other": "{count} days in your current streak."
+      }
+    }
+  ],
+  "music_cards_coach_thin_text": "No skill on {on} has {min} answers in Check yet, so the coach names no weak spot.",
+  "music_cards_coach_thin_title": "Spread thin so far",
+  "music_cards_coach_unmeasured_text": "The coach names a weak spot after {min} answers in Check on {on}. You have {count} so far.",
+  "music_cards_coach_unmeasured_title": "Not measured yet",
+  "music_cards_coach_weak_text": "{name} is your weak spot on {on}: {pct} across {count} answers in Check.",
   "music_cards_connected_check_text": "Check hides the notes, so know the order of the boxes and which way each one runs.",
   "music_cards_connected_high_low": "high string to low",
   "music_cards_connected_low_high": "low string to high",
@@ -661,6 +811,26 @@
   "music_cards_minor_v_kinds_text_top": "The minor ii-V-i is {chords} in C minor. The ii is half-diminished (m7b5: flat 3rd, flat 5th, flat 7th), voiced with the root on top. The V is altered, and the i is a rootless minor 7th.",
   "music_cards_minor_v_kinds_title": "Half-diminished, altered, minor",
   "music_cards_minor_v_title": "Minor ii-V-i voicings",
+  "music_cards_path_aerophone_subtitle": "A saxophone curriculum on the Aerophone, alto or tenor, to about grade 5 with jazz heads and blues.",
+  "music_cards_path_aerophone_title": "Aerophone path",
+  "music_cards_path_ear_subtitle": "Eleven levels, from hearing the tonic to whole songs by ear. Ear training and the harmony of songs take turns, with a song list at every level.",
+  "music_cards_path_ear_title": "Ear and harmony path",
+  "music_cards_path_guitar_subtitle": "Ten levels from first chords to playing pretty well: strumming, fingerpicking, lead and riffs, with songs at every level.",
+  "music_cards_path_guitar_title": "Guitar path",
+  "music_cards_path_jazz_subtitle": "Ten piano-led levels, from shells on the blues to 40 standards from a lead sheet. You comp, solo, play ballads, Monk and Silver, reharmonise and reach modern jazz.",
+  "music_cards_path_jazz_title": "Jazz path",
+  "music_cards_path_mpc_subtitle": "MPC finger drumming to about Melodics stage 10, beat making woven in.",
+  "music_cards_path_mpc_title": "Finger drumming path",
+  "music_cards_path_piano_subtitle": "From intermediate to ABRSM Grade 7, pop and classical; a check-in turns what you already play into quick reviews.",
+  "music_cards_path_piano_title": "Piano path",
+  "music_cards_path_reading_subtitle": "Five reading tracks: piano, guitar, ukulele, Aerophone and rhythm. Each has levels, a song list and a level test.",
+  "music_cards_path_reading_title": "Reading path",
+  "music_cards_path_studio_subtitle": "Hear EQ, level and pan the way a producer does: noise first, then loops, smaller moves last.",
+  "music_cards_path_studio_title": "Studio ears path",
+  "music_cards_path_theory_subtitle": "Know key signatures and the circle from memory, right and fast. Then take the circle to your instrument.",
+  "music_cards_path_theory_title": "Circle of fifths path",
+  "music_cards_path_ukulele_subtitle": "High-G tenor ukulele from first chords to fingerstyle solos and chord melody.",
+  "music_cards_path_ukulele_title": "Ukulele path",
   "music_cards_patterns_minor_text": "The minor ii-V-i works the same way. On an altered chord the 5th is its flat 13th, and the 2nd or 9th is the flat 9th. In Check the keys stay dark, so know each pattern's notes.",
   "music_cards_patterns_minor_title": "On the minor changes",
   "music_cards_patterns_step": "{symbol}: 1-2-3-5 is {a}, and 3-5-7-9 is {b}.",
@@ -707,10 +877,19 @@
   "music_cards_role_4th": "4th",
   "music_cards_role_5th": "5th",
   "music_cards_role_6th": "6th",
+  "music_cards_role_create": "Create",
+  "music_cards_role_ear": "Ear",
   "music_cards_role_flat_3rd": "flat 3rd",
   "music_cards_role_flat_5th": "flat 5th",
   "music_cards_role_flat_7th": "flat 7th",
+  "music_cards_role_focus": "Focus",
+  "music_cards_role_path": "Path",
+  "music_cards_role_reading": "Reading",
+  "music_cards_role_review": "Review",
   "music_cards_role_root": "root",
+  "music_cards_role_song": "Song",
+  "music_cards_role_variety": "Variety",
+  "music_cards_role_warm_up": "Warm-up",
   "music_cards_root_label": "root",
   "music_cards_rootless_251_text": "Tap Next for each chord. The drill can start on position B instead, which swaps A and B.",
   "music_cards_rootless_251_title": "A ii-V-I in C",
@@ -723,6 +902,79 @@
   "music_cards_rootless_step": "{symbol}: position {pos}, {degrees} ({notes}) in the right hand over {root} in the left.",
   "music_cards_rootless_step_arp": "{symbol}: position {pos}, {degrees} ({notes}) above {root}.",
   "music_cards_rootless_title": "Rootless voicings",
+  "music_cards_routine_aerophone_label": "Aerophone technique",
+  "music_cards_routine_aerophone_text": "Breath, tonguing, dynamics and landing intervals.",
+  "music_cards_routine_chord_perfect_label": "Chord work",
+  "music_cards_routine_chord_perfect_text": "Clean up chord shapes and changes, and name chords.",
+  "music_cards_routine_chord_scales_label": "Chord-scale review",
+  "music_cards_routine_chord_scales_text": "One go-to scale per chord in a ii-V-I.",
+  "music_cards_routine_comping_label": "Comping",
+  "music_cards_routine_comping_text": "A line over a left-hand comp rhythm.",
+  "music_cards_routine_ear_label": "Ear training review",
+  "music_cards_routine_ear_text": "Name what you hear and review your weak spots.",
+  "music_cards_routine_jam_label": "Jam",
+  "music_cards_routine_jam_text": "Improvise over a progression with the chord tones lit.",
+  "music_cards_routine_licks_label": "Lick recall",
+  "music_cards_routine_licks_text": "Hear a line, play it back.",
+  "music_cards_routine_mpc_label": "MPC rudiments",
+  "music_cards_routine_mpc_text": "Build pad timing and rudiment control.",
+  "music_cards_routine_next_on": "Next on the {path}. {summary}",
+  "music_cards_routine_phrases_label": "Play a tune",
+  "music_cards_routine_phrases_text": "A famous tune or a stock lick, heard then played back.",
+  "music_cards_routine_reading_label": "Note reading",
+  "music_cards_routine_reading_text": "Read notes and play them by MIDI or on screen.",
+  "music_cards_routine_rhythm_label": "Rhythm",
+  "music_cards_routine_rhythm_text": "Lock timing to a steady pulse.",
+  "music_cards_routine_scales_label": "Scales and technique",
+  "music_cards_routine_scales_text": "Finish with a clean technique run.",
+  "music_cards_routine_song_text": "{artist}. A level {level} song on the {path}.",
+  "music_cards_routine_spider_label": "String independence",
+  "music_cards_routine_spider_text": "Fretting patterns across the strings, then notes on the neck.",
+  "music_cards_routine_two_hand_label": "Two-hand piano",
+  "music_cards_routine_two_hand_text": "Independent hands, locked to one pulse.",
+  "music_cards_routine_voicings_label": "ii-V-I voicings",
+  "music_cards_routine_voicings_text": "Rootless voicings through the keys.",
+  "music_cards_rung_a_done": "Song practice in Performance mode on the tune's notation: 90% or better at 90% of its tempo or faster, on two days.",
+  "music_cards_rung_a_label": "Roots and melody",
+  "music_cards_rung_b_done": "Jam's guide-tones game on the tune: two choruses, 90% or better, at 80% of its tempo or faster.",
+  "music_cards_rung_b_label": "Guide tones",
+  "music_cards_rung_c_done": "Accompaniment's lead sheet on the tune's notation, shells in the left hand: 90% or better.",
+  "music_cards_rung_c_label": "Melody and shells",
+  "music_cards_rung_d_done": "Accompaniment's comping on the tune's changes with rootless voicings: 90% or better.",
+  "music_cards_rung_d_label": "Rootless comping",
+  "music_cards_rung_e_done": "Jam's make-the-changes game on the tune, every chorus meeting its aims.",
+  "music_cards_rung_e_label": "A solo chorus",
+  "music_cards_rung_f_done": "Steps a and c in another key: 85% or better each.",
+  "music_cards_rung_f_label": "A second key",
+  "music_cards_s1_detail": "Ten answers in Check at 90% or higher.",
+  "music_cards_s1_summary": "250 Hz, 1 kHz or 4 kHz, boosted 12 dB. Flip Flat and Changed as often as you like.",
+  "music_cards_s1_title": "Three bands on pink noise",
+  "music_cards_s2_detail": "Twenty answers in Check on five bands or more, at 80% or higher.",
+  "music_cards_s2_link": "All nine octaves",
+  "music_cards_s2_summary": "More bands, still 12 dB on noise. Nine is every octave from 63 Hz to 16 kHz.",
+  "music_cards_s2_title": "Five bands, then nine",
+  "music_cards_s3_detail": "Twenty answers in Check on nine bands over a loop, at 70% or higher.",
+  "music_cards_s3_link": "The band loop",
+  "music_cards_s3_summary": "The drum loop, then the band loop. Music is harder than noise. An octave off counts half.",
+  "music_cards_s3_title": "Nine bands on loops",
+  "music_cards_s4_detail": "Twenty answers in Check on nine bands, at 70% or higher.",
+  "music_cards_s4_link": "On the band loop",
+  "music_cards_s4_summary": "A band cut by 12 dB: harder than a boost, since you listen for what's missing.",
+  "music_cards_s4_title": "Find the cut",
+  "music_cards_s5_detail": "Twenty answers in Check on nine bands at 6 dB or less, at 70% or higher.",
+  "music_cards_s5_link": "3 dB",
+  "music_cards_s5_summary": "6 dB, then 3 dB: closer to the moves you make in a real mix.",
+  "music_cards_s5_title": "Smaller boosts",
+  "music_cards_s6_detail": "Ten answers in Check each, at 80% or higher.",
+  "music_cards_s6_link_level": "How many dB",
+  "music_cards_s6_link_pan": "Pan position",
+  "music_cards_s6_summary": "Boost or cut at matched loudness, how many dB louder, and where it sits in the stereo field.",
+  "music_cards_s6_title": "Boost or cut, level and pan",
+  "music_cards_s7_detail": "Ten answers in Check each, at 75% or higher.",
+  "music_cards_s7_link_delay": "Delay time",
+  "music_cards_s7_link_dotted": "With dotted 1/8",
+  "music_cards_s7_summary": "How hard a drum loop is squashed (at matched loudness), and how long its echo is in note values.",
+  "music_cards_s7_title": "Compression and delay",
   "music_cards_scale_step": "{symbol} takes {scale}: {notes}.",
   "music_cards_step_15": "1.5",
   "music_cards_step_h": "H",
@@ -733,6 +985,35 @@
   "music_cards_symbols_slash_title": "Slashes",
   "music_cards_symbols_step": "{symbol} is {notes}.",
   "music_cards_symbols_title": "Reading chord symbols",
+  "music_cards_t1_summary": "F C G D A E B for sharps (Father Charles Goes Down And Ends Battle), backwards for flats.",
+  "music_cards_t1_title": "The order of sharps and flats",
+  "music_cards_t2_link": "Start with C, G and F",
+  "music_cards_t2_summary": "C, G, F, D and Bb: from the key to its count, and from the count to the key.",
+  "music_cards_t2_title": "Keys up to two sharps or flats",
+  "music_cards_t3_detail": "Twenty questions on all fifteen keys over two days, 95% right within 2 seconds.",
+  "music_cards_t3_link": "Up to four",
+  "music_cards_t3_summary": "Up to four, then all fifteen with the enharmonic keys, sharps and flats mixed.",
+  "music_cards_t3_title": "Every key, both ways",
+  "music_cards_t4_detail": "Twenty questions on keys up to four over two days, 95% right within 3 seconds.",
+  "music_cards_t4_link": "Bass and treble",
+  "music_cards_t4_summary": "Name the key from its signature, treble clef first, then bass.",
+  "music_cards_t4_title": "Read signatures on the staff",
+  "music_cards_t5_detail": "Twenty questions on keys up to four, 95% right within 2.5 seconds.",
+  "music_cards_t5_link": "Minor keys' signatures",
+  "music_cards_t5_summary": "One more sharp, one more flat, the relative minor a minor third down, and the key across.",
+  "music_cards_t5_title": "Neighbours and relative minors",
+  "music_cards_t6_detail": "Twenty questions on keys up to four, 95% right within 5 seconds.",
+  "music_cards_t6_summary": "Read them off the wedge: IV, I and V outside, ii, vi and iii inside, vii° at the centre.",
+  "music_cards_t6_title": "A key's chords",
+  "music_cards_t7_detail": "Twenty questions on all fifteen keys, 95% right within 3 seconds.",
+  "music_cards_t7_summary": "A blank wheel: put each key in its place.",
+  "music_cards_t7_title": "The circle from memory",
+  "music_cards_t8_link_changes": "Chord changes",
+  "music_cards_t8_link_scales": "Scales",
+  "music_cards_t8_link_voicings": "ii-V-I voicings",
+  "music_cards_t8_summary": "Scales clockwise from C: C, G, D, A and E share a piano fingering. ii-V-I counter-clockwise, the way the changes move. On guitar, chord changes by fourths.",
+  "music_cards_t8_title": "Round the circle on your instrument",
+  "music_cards_t_detail_20_2": "Twenty questions over two days, 95% right within 2 seconds.",
   "music_cards_thumb_left_text": "Going up, the left hand's 3rd or 4th finger crosses over its thumb. Going down, its thumb passes under. The fingers are the same each time round, so learn where the crossing falls in each key.",
   "music_cards_thumb_left_title": "The left hand does the reverse",
   "music_cards_thumb_step_1": "In C major the right hand plays {fingers}.",

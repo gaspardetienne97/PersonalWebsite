@@ -6,6 +6,7 @@ import { isDueForReview } from "./mastery";
 import { SKILL_GRAPH, skillName, type SkillGraph } from "./graph";
 import { routeForSkill } from "./routine";
 import { CATALOG } from "../content/catalog";
+import { m } from "@repo/i18n/messages.js";
 
 /** Independent attempts on the instrument before the coach will name any weak spot. */
 export const COACH_MIN_ATTEMPTS = 5;
@@ -40,7 +41,6 @@ export function practiceName(skillId: string, graph: SkillGraph = SKILL_GRAPH): 
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function coach(input: {
   instrument: Instrument;
@@ -71,8 +71,8 @@ export function coach(input: {
   // No instrument-wide percentage here: next to the focus skill's own figure it read as a
   // second, contradicting score for the same skill.
   const insights: string[] = [];
-  if (input.streak) insights.push(`${plural(input.streak, "day")} in your current streak.`);
-  insights.push(`${plural(sessions.length, "saved session")} on ${on}.`);
+  if (input.streak) insights.push(m.music_cards_coach_streak({ count: input.streak }));
+  insights.push(m.music_cards_coach_sessions({ count: sessions.length, on }));
   const due = [
     ...new Set(
       all
@@ -82,17 +82,19 @@ export function coach(input: {
   ];
   if (due.length)
     insights.push(
-      `Due for review: ${due.slice(0, 3).join(", ")}${due.length > 3 ? ` and ${due.length - 3} more` : ""}.`,
+      due.length > 3
+        ? m.music_cards_coach_due_more({ skills: due.slice(0, 3).join(", "), count: due.length - 3 })
+        : m.music_cards_coach_due({ skills: due.join(", ") }),
     );
 
   if (attempts < COACH_MIN_ATTEMPTS) {
     return {
-      headline: "Not measured yet",
-      summary: `The coach names a weak spot after ${COACH_MIN_ATTEMPTS} answers in Check on ${on}. You have ${attempts} so far.`,
+      headline: m.music_cards_coach_unmeasured_title(),
+      summary: m.music_cards_coach_unmeasured_text({ min: COACH_MIN_ATTEMPTS, on, count: attempts }),
       measured: false,
       insights,
       action: {
-        label: "Pick a drill to check",
+        label: m.music_cards_coach_pick_drill(),
         href: `/music?tab=drills&instrument=${instrument}`,
       },
     };
@@ -101,12 +103,12 @@ export function coach(input: {
   const weakest = rankWeakest(all, COACH_MIN_SKILL_ATTEMPTS)[0];
   if (!weakest) {
     return {
-      headline: "Spread thin so far",
-      summary: `No skill on ${on} has ${COACH_MIN_SKILL_ATTEMPTS} answers in Check yet, so the coach names no weak spot.`,
+      headline: m.music_cards_coach_thin_title(),
+      summary: m.music_cards_coach_thin_text({ on, min: COACH_MIN_SKILL_ATTEMPTS }),
       measured: false,
       insights,
       action: {
-        label: "Pick a drill to check",
+        label: m.music_cards_coach_pick_drill(),
         href: `/music?tab=drills&instrument=${instrument}`,
       },
     };
@@ -115,10 +117,13 @@ export function coach(input: {
   const name = practiceName(weakest.skillId, graph);
   const solid = weakest.accuracy >= 0.85;
   return {
-    headline: solid ? `Everything measured is solid` : `Coach focus: ${name}`,
-    summary: solid
-      ? `Even your weak spot on ${on}, ${name}, is at ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check.`
-      : `${name} is your weak spot on ${on}: ${pct(weakest.accuracy)} across ${weakest.attempts} answers in Check.`,
+    headline: solid ? m.music_cards_coach_solid_title() : m.music_cards_coach_focus_title({ name }),
+    summary: (solid ? m.music_cards_coach_solid_text : m.music_cards_coach_weak_text)({
+      on,
+      name,
+      pct: pct(weakest.accuracy),
+      count: weakest.attempts,
+    }),
     measured: true,
     focus: {
       skillId: weakest.skillId,
@@ -127,6 +132,6 @@ export function coach(input: {
       attempts: weakest.attempts,
     },
     insights,
-    action: { label: `Practise ${name}`, href: hrefFor(weakest.skillId) },
+    action: { label: m.music_cards_coach_practise({ name }), href: hrefFor(weakest.skillId) },
   };
 }
