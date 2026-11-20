@@ -30,6 +30,7 @@ import { m } from "@repo/i18n/messages.js";
 import { formatList } from "@repo/i18n/format";
 import { SUBS, countName, type PerBeat } from "./count";
 import { keys } from "./tier1";
+import { getNoteNaming, showKeyName } from "../theory/note-names";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
 
 type Clef = "treble" | "bass";
@@ -51,14 +52,22 @@ export const staffLines = (clef: Clef) => [0, 2, 4, 6, 8].map((s) => staffNote(c
 export const staffSpaces = (clef: Clef) => [1, 3, 5, 7].map((s) => staffNote(clef, s));
 
 const letter = (midi: number) => noteName(midi, "sharp", false);
-const letters = (ms: number[]) => ms.map(letter).join(" ");
+/**
+ * A note's name as shown. Reading names a staff position, which is the same in every key, so
+ * movable do reads as fixed do here.
+ */
+const shown = (n: string) => showKeyName(n);
+const named = (midi: number) => shown(letter(midi));
+const letters = (ms: number[]) => ms.map(named).join(" ");
 /** "F#" as it is said: "F sharp". */
 const say = (n: string) =>
   n.length > 1
     ? n[1] === "#"
-      ? m.music_lessons_reading_say_sharp({ note: n[0] })
-      : m.music_lessons_reading_say_flat({ note: n[0] })
-    : n;
+      ? m.music_lessons_reading_say_sharp({ note: shown(n[0]) })
+      : m.music_lessons_reading_say_flat({ note: shown(n[0]) })
+    : shown(n);
+/** The mnemonics spell the letters, so with solfège the lines and spaces are named without them. */
+const lettersNamed = () => getNoteNaming() === "letters";
 
 const staff = (
   clef: Clef,
@@ -100,25 +109,33 @@ function linesSpaces(clef: Clef): Lesson {
     screens: [
       {
         title: m.music_lessons_reading_ls_lines_title(),
-        text: (treble
-          ? m.music_lessons_reading_ls_lines_text_treble
-          : m.music_lessons_reading_ls_lines_text_bass)({ letters: letters(lines) }),
+        text: (lettersNamed()
+          ? treble
+            ? m.music_lessons_reading_ls_lines_text_treble
+            : m.music_lessons_reading_ls_lines_text_bass
+          : treble
+            ? m.music_lessons_reading_ls_lines_text_treble_named
+            : m.music_lessons_reading_ls_lines_text_bass_named)({ letters: letters(lines) }),
         figure: quarters(clef, lines),
         sound: run(lines),
       },
       {
         title: m.music_lessons_reading_ls_spaces_title(),
-        text: (treble
-          ? m.music_lessons_reading_ls_spaces_text_treble
-          : m.music_lessons_reading_ls_spaces_text_bass)({ letters: letters(spaces) }),
+        text: (lettersNamed()
+          ? treble
+            ? m.music_lessons_reading_ls_spaces_text_treble
+            : m.music_lessons_reading_ls_spaces_text_bass
+          : treble
+            ? m.music_lessons_reading_ls_spaces_text_treble_named
+            : m.music_lessons_reading_ls_spaces_text_bass_named)({ letters: letters(spaces) }),
         figure: quarters(clef, spaces),
         sound: run(spaces),
       },
       {
-        title: m.music_lessons_reading_ls_landmark_title({ note: letter(landmark) }),
+        title: m.music_lessons_reading_ls_landmark_title({ note: named(landmark) }),
         text: (treble
           ? m.music_lessons_reading_ls_landmark_text_treble
-          : m.music_lessons_reading_ls_landmark_text_bass)({ note: letter(landmark) }),
+          : m.music_lessons_reading_ls_landmark_text_bass)({ note: named(landmark) }),
         figure: quarters(clef, [landmark]),
         sound: run([landmark]),
       },
@@ -126,7 +143,10 @@ function linesSpaces(clef: Clef): Lesson {
         title: m.music_lessons_reading_ls_ledger_title(),
         text: (treble
           ? m.music_lessons_reading_ls_ledger_text_treble
-          : m.music_lessons_reading_ls_ledger_text_bass)({ note: letter(other) }),
+          : m.music_lessons_reading_ls_ledger_text_bass)({
+          note: named(other),
+          middle: shown("C"),
+        }),
         figure: quarters(
           clef,
           [-4, -2, 10, 12].map((s) => staffNote(clef, s)),
@@ -145,19 +165,32 @@ function accidentalsLesson(): Lesson {
     screens: [
       {
         title: m.music_lessons_reading_acc_sharp_title(),
-        text: m.music_lessons_reading_acc_sharp_text({ note: letter(60), next: say(letter(61)) }),
+        text: m.music_lessons_reading_acc_sharp_text({
+          note: named(60),
+          next: say(letter(61)),
+          key: shown("C"),
+        }),
         figure: quarters("treble", [60, 61], 0),
         sound: run([60, 61]),
       },
       {
         title: m.music_lessons_reading_acc_flat_title(),
-        text: m.music_lessons_reading_acc_flat_text({ note: letter(62), next: say(flat(61)) }),
+        text: m.music_lessons_reading_acc_flat_text({
+          note: named(62),
+          next: say(flat(61)),
+          key: shown("F"),
+        }),
         figure: quarters("treble", [62, 61], -1),
         sound: run([62, 61]),
       },
       {
         title: m.music_lessons_reading_acc_natural_title(),
-        text: m.music_lessons_reading_acc_natural_text({ flat: say(flat(70)), plain: letter(71) }),
+        text: m.music_lessons_reading_acc_natural_text({
+          flat: say(flat(70)),
+          plain: named(71),
+          key: shown("F"),
+          b: shown("B"),
+        }),
         figure: quarters("treble", [70, 71], -1),
         sound: run([70, 71]),
       },
@@ -254,6 +287,9 @@ export function readingLessons(
   ];
 }
 
+/** "C-E-G": a triad named from the root up. */
+const TRIAD = () => ["C", "E", "G"].map(shown).join("-");
+
 function stackedLesson(kind: "chord" | "satb"): Lesson {
   return {
     id: `reading.stacked.${kind === "chord" ? "triad" : "satb"}`,
@@ -265,13 +301,13 @@ function stackedLesson(kind: "chord" | "satb"): Lesson {
       kind === "chord"
         ? {
             title: m.music_lessons_reading_triad_screen_title(),
-            text: m.music_lessons_reading_triad_text(),
-            figure: keys({ 60: "C", 64: "E", 67: "G" }),
+            text: m.music_lessons_reading_triad_text({ triad: TRIAD() }),
+            figure: keys({ 60: shown("C"), 64: shown("E"), 67: shown("G") }),
           }
         : {
             title: m.music_lessons_reading_satb_screen_title(),
-            text: m.music_lessons_reading_satb_text(),
-            figure: keys({ 48: "C", 55: "G", 64: "E", 72: "C" }),
+            text: m.music_lessons_reading_satb_text({ triad: TRIAD() }),
+            figure: keys({ 48: shown("C"), 55: shown("G"), 64: shown("E"), 72: shown("C") }),
           },
     ],
   };
@@ -399,7 +435,7 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
           steps: order.map((l, i) => ({
             text: (sharp
               ? m.music_lessons_reading_ks_step_sharp
-              : m.music_lessons_reading_ks_step_flat)({ letter: l }),
+              : m.music_lessons_reading_ks_step_flat)({ letter: shown(l) }),
             figure: sig(i + 1),
           })),
         },
@@ -412,7 +448,7 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
               : m.music_lessons_reading_ks_on_staff(),
           text: (sharp
             ? m.music_lessons_reading_ks_note_sharp
-            : m.music_lessons_reading_ks_note_flat)({ letter: last }),
+            : m.music_lessons_reading_ks_note_flat)({ letter: shown(last) }),
           figure: staff(c, [{ midi: onStaff(c, last), beats: 1 }], { fifths }),
           sound: run([onStaff(c, last)]),
         })),
@@ -480,7 +516,7 @@ interface ItemText {
 const BASS_CHORDS = (): ItemText => ({
   title: m.music_lessons_reading_item_chords_lh_title(),
   text: m.music_lessons_reading_item_chords_lh_text(),
-  figure: keys({ 43: "G", 48: "C" }),
+  figure: keys({ 43: shown("G"), 48: shown("C") }),
 });
 const ITEM_TEXT = (): Record<string, ItemText> => ({
   ties: {
@@ -522,7 +558,7 @@ const ITEM_TEXT = (): Record<string, ItemText> => ({
   chords: {
     title: m.music_lessons_reading_item_chords_rh_title(),
     text: m.music_lessons_reading_item_chords_rh_text(),
-    figure: keys({ 67: "G", 72: "C", 76: "E" }),
+    figure: keys({ 67: shown("G"), 72: shown("C"), 76: shown("E") }),
   },
   "clef-change": {
     title: m.music_lessons_reading_item_clef_change_title(),

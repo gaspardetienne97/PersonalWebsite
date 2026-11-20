@@ -39,6 +39,8 @@ import { keys } from "./tier1";
 import type { Lesson, LessonScreen, LessonSound } from "./types";
 import { m } from "@repo/i18n/messages.js";
 import { formatList } from "@repo/i18n/format";
+import { showChord, showKeyName, showNote } from "../theory/note-names";
+import { IN_C, IN_C_MINOR, inKey } from "./card-kit";
 
 const QUALITIES = CADENCES_AND_QUALITIES.chordQualities;
 const CADENCES = CADENCES_AND_QUALITIES.cadences;
@@ -60,7 +62,11 @@ const keyPart = (token: string) => token.replaceAll("-", "_");
 /** A message by name, for a token that names it; undefined when there is none. */
 const byKey = (key: string) =>
   (m as unknown as Record<string, (() => string) | undefined>)[`music_cards_${key}`];
-const name = (m: number) => noteName(m, "flat", false);
+/** A note's name as shown (letters, fixed do or movable do from the lesson's key). */
+const name = (m: number) => showNote(noteName(m, "flat", false));
+/** Notes named and listed as the labels write them: "C, E, G". */
+const noteList = (ns: string[]) => ns.map((n) => showNote(n)).join(", ");
+const C_KEY = () => showKeyName("C");
 const sound = (events: PlaybackEvent[], shift = 0): LessonSound => ({
   notes: events.map((e) => ({
     midi: e.midi,
@@ -267,20 +273,32 @@ const qualities = {
       [t]: m.music_cards_ear_mark_3rd(),
       [f]: m.music_cards_ear_mark_5th(),
     });
-    const major = triad(m.music_cards_ear_qualities_major_label(), [60, 64, 67], RT5(60, 64, 67));
+    const major = triad(
+      m.music_cards_ear_qualities_major_label({ notes: noteList(["C", "E", "G"]) }),
+      [60, 64, 67],
+      RT5(60, 64, 67),
+    );
     // Diminished and augmented get their own screen, named by the quality, when the quiz asks them.
     const odd = [
       {
         token: "diminished",
         title: m.music_cards_ear_quality_title_diminished(),
-        text: m.music_cards_ear_qualities_dim_text(),
-        ...triad(m.music_cards_ear_qualities_dim_label(), [60, 63, 66], RT5(60, 63, 66)),
+        text: m.music_cards_ear_qualities_dim_text({ notes: noteList(["C", "Eb", "Gb"]) }),
+        ...triad(
+          m.music_cards_ear_qualities_dim_label({ notes: noteList(["C", "Eb", "Gb"]) }),
+          [60, 63, 66],
+          RT5(60, 63, 66),
+        ),
       },
       {
         token: "augmented",
         title: m.music_cards_ear_quality_title_augmented(),
-        text: m.music_cards_ear_qualities_aug_text(),
-        ...triad(m.music_cards_ear_qualities_aug_label(), [60, 64, 68], RT5(60, 64, 68)),
+        text: m.music_cards_ear_qualities_aug_text({ notes: noteList(["C", "E", "G#"]) }),
+        ...triad(
+          m.music_cards_ear_qualities_aug_label({ notes: noteList(["C", "E", "G#"]) }),
+          [60, 64, 68],
+          RT5(60, 64, 68),
+        ),
       },
     ].filter((x) => o.items?.includes(x.token));
     return card(
@@ -292,7 +310,11 @@ const qualities = {
         figure: major.figure,
         options: [
           major,
-          triad(m.music_cards_ear_qualities_minor_label(), [60, 63, 67], RT5(60, 63, 67)),
+          triad(
+            m.music_cards_ear_qualities_minor_label({ notes: noteList(["C", "Eb", "G"]) }),
+            [60, 63, 67],
+            RT5(60, 63, 67),
+          ),
         ],
       },
       ...odd.map((x) => ({ title: x.title, text: x.text, figure: x.figure, sound: x.sound })),
@@ -362,6 +384,7 @@ const cadences = {
       text: m.music_cards_ear_cadences_item({
         progression: c.romanProgression.join(m.music_cards_ear_to()),
         line: CADENCE_LINE[token]?.() ?? "",
+        key: C_KEY(),
       }),
       sound: {
         notes: c.playback.map((e) => ({
@@ -391,20 +414,25 @@ function chordItem(
   },
 ) {
   const rootPc = pc(o.chord[0]);
-  const key = o.minor ? m.music_cards_ear_key_c_minor() : m.music_cards_ear_key_c_major();
-  return card(id, title, {
-    title,
-    text: m.music_cards_ear_chord_item({
-      label: o.label,
-      key,
-      symbol: o.symbol,
-      word: chordWord(o.intervals),
-      root: rootAbove(rootPc),
-      call: o.minor ? "i, iv, V, i" : CALL,
-    }),
-    figure: keys(marksOf(o.chord.slice(1))),
-    sound: afterSetup(o.minor, [{ midi: o.chord, time: 0, duration: 1.1 }]),
+  const key = (o.minor ? m.music_cards_ear_key_c_minor : m.music_cards_ear_key_c_major)({
+    key: C_KEY(),
   });
+  // Named from the key the item sets: C minor's chords read la-based in movable do.
+  return inKey(o.minor ? IN_C_MINOR : IN_C, () =>
+    card(id, title, {
+      title,
+      text: m.music_cards_ear_chord_item({
+        label: o.label,
+        key,
+        symbol: showChord(o.symbol),
+        word: chordWord(o.intervals),
+        root: rootAbove(rootPc),
+        call: o.minor ? "i, iv, V, i" : CALL,
+      }),
+      figure: keys(marksOf(o.chord.slice(1))),
+      sound: afterSetup(o.minor, [{ midi: o.chord, time: 0, duration: 1.1 }]),
+    }),
+  );
 }
 const functionItem = (drill: string) => (token: string) => {
   const p = parseFunction(token);
@@ -423,7 +451,7 @@ const functions = {
   intro: () =>
     card("ear.chord-functions", m.music_cards_ear_functions_title(), {
       title: m.music_cards_ear_functions_intro_title(),
-      text: m.music_cards_ear_functions_intro_text(),
+      text: m.music_cards_ear_functions_intro_text({ key: C_KEY() }),
       figure: C_NUMERALS,
     }),
   item: functionItem("chord-functions"),
@@ -432,7 +460,7 @@ const progressions = {
   intro: () =>
     card("ear.progressions", m.music_cards_ear_progressions_title(), {
       title: m.music_cards_ear_progressions_intro_title(),
-      text: m.music_cards_ear_progressions_intro_text(),
+      text: m.music_cards_ear_progressions_intro_text({ key: C_KEY() }),
       figure: C_NUMERALS,
     }),
   item: functionItem("progressions"),
@@ -441,7 +469,7 @@ const loops = {
   intro: () =>
     card("ear.song-loops", m.music_cards_ear_loops_title(), {
       title: m.music_cards_ear_loops_intro_title(),
-      text: m.music_cards_ear_loops_intro_text(),
+      text: m.music_cards_ear_loops_intro_text({ key: C_KEY() }),
       figure: C_NUMERALS,
     }),
   item: (id: string) => {
@@ -492,8 +520,14 @@ const keyChanges = {
       m.music_cards_ear_key_changes_title(),
       {
         title: m.music_cards_ear_key_changes_moves_title(),
-        text: m.music_cards_ear_key_changes_moves_text(),
-        figure: keys({ 60: "C", 64: "E", 67: "G", 62: "D", 66: "F#", 69: "A" }),
+        text: m.music_cards_ear_key_changes_moves_text({ from: showNote("C"), to: showNote("D") }),
+        figure: keys(
+          Object.fromEntries(
+            Object.entries({ 60: "C", 64: "E", 67: "G", 62: "D", 66: "F#", 69: "A" }).map(
+              ([k, n]) => [k, showNote(n)],
+            ),
+          ),
+        ),
       },
       {
         title: m.music_cards_ear_key_changes_ways_title(),
@@ -518,7 +552,7 @@ const bassLines = {
   intro: () =>
     card("ear.bass-lines", m.music_cards_ear_bass_title(), {
       title: m.music_cards_ear_bass_intro_title(),
-      text: m.music_cards_ear_bass_intro_text(),
+      text: m.music_cards_ear_bass_intro_text({ key: C_KEY() }),
       figure: keys({ 48: "1", 53: "4", 55: "5" }),
       sound: {
         notes: [
@@ -577,7 +611,7 @@ const scales = {
   intro: () =>
     card("ear.scales", m.music_cards_ear_scales_title(), {
       title: m.music_cards_ear_scales_intro_title(),
-      text: m.music_cards_ear_scales_intro_text(),
+      text: m.music_cards_ear_scales_intro_text({ key: C_KEY() }),
       figure: C_DEGREES,
       sound: sound(scalePlayback(60, "major", "ascending")),
     }),
@@ -611,7 +645,7 @@ const inversions = {
   intro: () =>
     card("ear.inversions", m.music_cards_ear_inversions_title(), {
       title: m.music_cards_ear_inversions_intro_title(),
-      text: m.music_cards_ear_inversions_intro_text(),
+      text: m.music_cards_ear_inversions_intro_text({ key: C_KEY(), third: showNote("E") }),
       figure: keys({
         64: m.music_cards_ear_mark_3rd(),
         67: m.music_cards_ear_mark_5th(),
@@ -634,7 +668,7 @@ const inversions = {
       title: inv.name,
       text: m.music_cards_ear_inversions_item({
         tone: BASS_TONE[inv.position](),
-        chord: inv.seventh ? "C7" : m.music_cards_ear_key_c_major(),
+        chord: inv.seventh ? showChord("C7") : m.music_cards_ear_key_c_major({ key: C_KEY() }),
         note: name(bass),
       }),
       figure: keys(marksOf(voicing)),
@@ -658,7 +692,7 @@ const finePitch = {
     return card("ear.fine-pitch", m.music_cards_ear_fine_title(), {
       title: m.music_cards_ear_fine_intro_title(),
       text: m.music_cards_ear_fine_intro_text({ cents, smallest: String(CENT_STEPS.at(-1)) }),
-      figure: keys({ 69: "A" }),
+      figure: keys({ 69: showNote("A") }),
       options: [
         { label: m.music_cards_ear_fine_higher({ cents }), sound: two(69 + cents / 100) },
         { label: m.music_cards_ear_fine_lower({ cents }), sound: two(69 - cents / 100) },
@@ -710,7 +744,7 @@ const scaleDegrees = {
   intro: () =>
     card("ear.scale-degrees", m.music_cards_ear_degrees_title(), {
       title: m.music_cards_ear_degrees_intro_title(),
-      text: m.music_cards_ear_degrees_intro_text(),
+      text: m.music_cards_ear_degrees_intro_text({ key: C_KEY() }),
       figure: C_DEGREES,
       sound: sound(scalePlayback(60, "major", "ascending")),
     }),
@@ -873,5 +907,9 @@ export function earLessons(
   const b = BUILDERS[drillId];
   if (!b) return [];
   const all = { ...o, items };
-  return [b.intro(all), ...items.flatMap((i) => b.item?.(i, all) ?? [])];
+  // Every example is in C (C minor after a minor setup): movable do counts from it.
+  return inKey(o.minor ? IN_C_MINOR : IN_C, () => [
+    b.intro(all),
+    ...items.flatMap((i) => b.item?.(i, all) ?? []),
+  ]);
 }

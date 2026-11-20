@@ -16,6 +16,8 @@ import { isBlackKey, noteName, pc } from "../theory/notes";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 import { m } from "@repo/i18n/messages.js";
 import { formatList, formatNumber } from "@repo/i18n/format";
+import { showChord, showKeyName, showNote } from "../theory/note-names";
+import { IN_C, inKey } from "./card-kit";
 
 /**
  * The keys figure; `span` is every note the screen's steps will show, so the keyboard keeps its size
@@ -66,7 +68,12 @@ const IDEAS: Record<JazzVoicingId, () => string> = {
   sevenths: m.music_cards_tier1_idea_sevenths,
   "so-what": m.music_cards_tier1_idea_so_what,
   quartal: m.music_cards_tier1_idea_quartal,
-  sus: m.music_cards_tier1_idea_sus,
+  sus: () =>
+    m.music_cards_tier1_idea_sus({
+      chord: showChord("C7sus"),
+      triad: showNote("Bb"),
+      slash: showChord("Bb/C"),
+    }),
   "two-hand": m.music_cards_tier1_idea_two_hand,
   close: m.music_cards_tier1_idea_close,
   drop2: m.music_cards_tier1_idea_drop2,
@@ -79,15 +86,25 @@ const IDEAS: Record<JazzVoicingId, () => string> = {
   "slash-tune": m.music_cards_tier1_idea_slash_tune,
 };
 
-/** A chord's note names by its own symbol, so flats and sharps come out right (Bb in C7, not A#). */
+/**
+ * A voicing's symbol as the drill writes it ("Dm7 (D)" with its melody note, "on C" for a stack):
+ * each chord and note in it named, the words between left as they are.
+ */
+const showSymbol = (symbol: string) =>
+  symbol
+    .split(/([\s()]+)/)
+    .map((part) => showChord(part))
+    .join("");
+
+/** A chord's note names by its own symbol, so flats and sharps come out right (Bb in C7, not A#), as shown. */
 function voicingNamer(symbol: string): (midi: number) => string {
   const parsed = parseChordSymbol(symbol.split(" ")[0]);
-  if (!parsed) return (m) => noteName(m, "flat", false);
+  if (!parsed) return (m) => showNote(noteName(m, "flat", false));
   const speller = chordSpeller(
     parsed.rootName,
     parsed.intervals.includes(3) && !parsed.intervals.includes(4) ? "m7" : "7",
   );
-  return speller;
+  return (m) => showNote(speller(m));
 }
 
 /** The first chord the drill gives a voicing type (default key, default tune); for Monk the first with a cluster on top. */
@@ -135,7 +152,7 @@ function voicingCard(id: JazzVoicingId, lessonId: string): Lesson {
         title: m.music_cards_tier1_stacked_title(),
         text: (id === "monk"
           ? m.music_cards_tier1_stacked_text_monk
-          : m.music_cards_tier1_stacked_text)({ symbol: c.symbol }),
+          : m.music_cards_tier1_stacked_text)({ symbol: showSymbol(c.symbol) }),
         figure: marks([notes[0]]),
         steps,
       },
@@ -149,9 +166,12 @@ export function jazzVoicingLesson(type: string): Lesson[] {
   if (!id) return [];
   const lessonId = (x: JazzVoicingId) =>
     `voicing.${x === "close" ? "four-way-close" : x === "drop2" ? "drop-2" : x}`;
-  return id === "drop2"
-    ? [voicingCard("close", lessonId("close")), voicingCard(id, lessonId(id))]
-    : [voicingCard(id, lessonId(id))];
+  // The examples are in the drill's default key, C.
+  return inKey(IN_C, () =>
+    id === "drop2"
+      ? [voicingCard("close", lessonId("close")), voicingCard(id, lessonId(id))]
+      : [voicingCard(id, lessonId(id))],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -245,17 +265,20 @@ export function grooveDictationLesson(): Lesson {
 // ---------------------------------------------------------------------------
 // By ear: find home
 
-export function findHomeLesson(): Lesson {
+/** The lesson is in C: movable do names C as Do whatever key the drill is in. */
+export const findHomeLesson = (): Lesson => inKey(IN_C, homeLesson);
+
+function homeLesson(): Lesson {
   const C = 60;
   /** The triads sit between middle C and the B above it. */
   const TRIAD_SPAN = [60, 71];
   const triad = (token: string) => functionChord(0, token).slice(1);
   const names = (ms: number[]) =>
-    Object.fromEntries(ms.map((m) => [m, noteName(m, "flat", false)]));
+    Object.fromEntries(ms.map((m) => [m, showNote(noteName(m, "flat", false))]));
   const cadence = keyCadence(0);
   const step = (i: number, text: string): LessonStep => ({
     text: m.music_cards_tier1_home_step({
-      symbol: functionSymbol(0, ["I", "IV", "V", "I"][i]),
+      symbol: showChord(functionSymbol(0, ["I", "IV", "V", "I"][i])),
       numeral: ["I", "IV", "V", "I"][i],
       text,
     }),
@@ -263,7 +286,7 @@ export function findHomeLesson(): Lesson {
     sound: { notes: [{ midi: cadence[i].midi, at: 0, dur: 1.6 }] },
   });
   const run = scaleRun(C, "major", "ascending");
-  const home = noteName(C, "flat", false);
+  const home = showNote(noteName(C, "flat", false));
   /** The scale's first `n` notes by degree, the top 1 named home. */
   const scaleKeys = (n: number) =>
     keys(
@@ -316,7 +339,10 @@ export function findHomeLesson(): Lesson {
       },
       {
         title: m.music_cards_tier1_home_checked_title(),
-        text: m.music_cards_tier1_home_checked_text(),
+        text: m.music_cards_tier1_home_checked_text({
+          major: showKeyName("C"),
+          minor: showKeyName("A"),
+        }),
       },
     ],
   };
@@ -379,14 +405,14 @@ export function chordTonesLesson(chord: string): Lesson {
       Object.fromEntries(tones.slice(0, n).map((t) => [t.midi, t.label])),
       tones.map((t) => t.midi),
     );
-  const names = formatList(tones.map((t) => t.name));
+  const names = formatList(tones.map((t) => showNote(t.name)));
   return {
     id: "call-response.chord-tones",
     title: m.music_cards_tier1_tones_title(),
     screens: [
       {
         title: m.music_cards_tier1_tones_chord_title(),
-        text: m.music_cards_tier1_tones_chord_text({ chord, names }),
+        text: m.music_cards_tier1_tones_chord_text({ chord: showChord(chord), names }),
         figure: upTo(tones.length),
         sound: {
           notes: [
@@ -399,7 +425,7 @@ export function chordTonesLesson(chord: string): Lesson {
         title: m.music_cards_tier1_tones_each_title(),
         text: m.music_cards_tier1_tones_each_text(),
         steps: tones.map((t, i) => ({
-          text: (ROLES[t.label] ?? m.music_cards_tier1_role_other)({ name: t.name }),
+          text: (ROLES[t.label] ?? m.music_cards_tier1_role_other)({ name: showNote(t.name) }),
           figure: upTo(i + 1),
           sound: { notes: [{ midi: [t.midi], at: 0, dur: 1 }] },
         })),

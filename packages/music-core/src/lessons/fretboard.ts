@@ -1,4 +1,5 @@
 import { noteName } from "../theory/notes";
+import { showNote } from "../theory/note-names";
 import { m } from "@repo/i18n/messages.js";
 import { formatList } from "@repo/i18n/format";
 import type { Lesson, LessonFigure, LessonStep } from "./types";
@@ -7,6 +8,8 @@ type Instrument = "guitar" | "ukulele";
 type Mark = { string: number; fret: number; label: string };
 
 const nameOf = (midi: number) => noteName(midi, "sharp", false);
+/** A note's name as shown (letters, fixed do or movable do). */
+const shownOf = (midi: number) => showNote(nameOf(midi));
 /** A fret offset in words. */
 const rel = (d: number) =>
   d === 0
@@ -27,10 +30,11 @@ export function fretboardLessons(
   tuning: readonly number[],
 ): Lesson[] {
   const open = [...tuning];
-  const name = (s: number) => nameOf(open[s - 1]);
+  /** An open string's note name, as shown. */
+  const name = (s: number) => shownOf(open[s - 1]);
   /** "E string", or "E string (string 6)" when another string has the same note name. */
   const sn = (s: number) =>
-    open.filter((_, i) => name(i + 1) === name(s)).length > 1
+    open.filter((_, i) => nameOf(open[i]) === nameOf(open[s - 1])).length > 1
       ? m.music_cards_fb_string_numbered({ name: name(s), n: s })
       : m.music_cards_fb_string({ name: name(s) });
   const fig = (marks: Mark[]): LessonFigure => ({
@@ -127,8 +131,8 @@ export function fretboardLessons(
   if (mode === "note-finder") {
     const low = run[0];
     const naturals = [0, 1, 2, 3, 4, 5]
-      .map((f) => ({ string: low, fret: f, label: nameOf(open[low - 1] + f) }))
-      .filter((m) => !m.label.includes("#"));
+      .filter((f) => !nameOf(open[low - 1] + f).includes("#"))
+      .map((f) => ({ string: low, fret: f, label: shownOf(open[low - 1] + f) }));
     const shown = pairs.filter((p) => p.gap <= 5); // a longer gap runs off the figure
     const matchSteps: LessonStep[] = shown.map((p) => ({
       text: m.music_cards_fb_match_step({ fret: p.gap, lo: sn(p.lo), hi: sn(p.hi) }),
@@ -167,14 +171,22 @@ export function fretboardLessons(
                 count: open.length,
                 notes: [...open]
                   .reverse()
-                  .map((x) => nameOf(x))
+                  .map((x) => shownOf(x))
                   .join(" "),
               }) + highG,
-            figure: fig(open.map((m, i) => ({ string: i + 1, fret: 0, label: nameOf(m) }))),
+            figure: fig(open.map((m, i) => ({ string: i + 1, fret: 0, label: shownOf(m) }))),
           },
           {
             title: m.music_cards_fb_naturals_title(),
-            text: m.music_cards_fb_naturals_text({ name: name(low) }),
+            text: m.music_cards_fb_naturals_text({
+              name: name(low),
+              naturals: ["A", "B", "C", "D", "E", "F", "G"].map((x) => showNote(x)).join(" "),
+              a: showNote("A"),
+              b: showNote("B"),
+              c: showNote("C"),
+              e: showNote("E"),
+              f: showNote("F"),
+            }),
             figure: fig(naturals),
           },
           {
