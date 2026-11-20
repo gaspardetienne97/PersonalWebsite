@@ -2,8 +2,8 @@
   // A chord as root and quality: the common five qualities as buttons, the rest
   // a tap away. The value is a shape id: the curated shape when one sounds this
   // chord, else a generated one ("gen.guitar.11.m7").
-  import Choice from "$lib/music/components/Choice.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
   import { chordId, chordLabel, chordRef, COMMON_QUALITIES, qualityLabel, rootName, SHELL_QUALITIES, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
-import { page } from "vitest/browser";
+import { page } from "vite-plus/test/browser";
 import "../../../../app.css";
 import "../../../../routes/music/woodshed.css";
 import type { PracticeSession, ScoringEvent } from "@repo/music-core";
@@ -106,7 +106,7 @@ beforeEach(async () => {
 
 describe("Progress", () => {
   it("shows one row per touched skill with honest evidence", async () => {
-    render(SkillsView, { now });
+    await render(SkillsView, { now });
     // A table on a laptop, a card per skill on a phone: read whichever this viewport shows.
     const shown = (id: string) =>
       [...document.querySelectorAll<HTMLElement>(`[data-skill="${id}"]`)].find(
@@ -130,7 +130,7 @@ describe("Progress", () => {
   });
 
   it("splits What next into measured and not measured yet", async () => {
-    render(NextView, { now });
+    await render(NextView, { now });
     await expect
       .element(page.getByRole("heading", { name: "Where your skills stand" }))
       .toBeVisible();
@@ -142,12 +142,13 @@ describe("Progress", () => {
 
 describe("Journal", () => {
   it("expands a session to its runs and attempt evidence", async () => {
-    render(JournalView, { now });
-    const toggle = page.getByRole("button", { name: "Show every answer" });
+    await render(JournalView, { now });
+    // The toggle is the whole head; its name carries the title too, so match a part of it.
+    const toggle = page.getByRole("button", { name: "Show every answer", exact: false });
     await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
     await toggle.click();
     await expect
-      .element(page.getByRole("button", { name: "Hide answers" }))
+      .element(page.getByRole("button", { name: "Hide answers", exact: false }))
       .toHaveAttribute("aria-expanded", "true");
     const detail = document.getElementById("s1-detail")!;
     const text = detail.textContent!;

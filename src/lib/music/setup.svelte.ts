@@ -5,7 +5,7 @@
 // reload shows what the player last picked.
 import { untrack } from "svelte";
 import { page } from "$app/state";
-import { replaceState } from "$app/navigation";
+import { goto } from "$app/navigation";
 import { getSetting, putSetting } from "./runtime";
 
 type Scalar = string | number | boolean;
@@ -56,7 +56,7 @@ export class DrillSetup<T extends Record<string, Scalar>> {
     this.value = { ...this.value, ...patch };
     void putSetting(this.#key, $state.snapshot(this.value));
     // Keep the address in step with keys it already carries.
-    const url = new URL(page.url);
+    const url = new URL(page.url.href);
     let changed = false;
     for (const [k, v] of Object.entries(patch)) {
       if (url.searchParams.has(k) && url.searchParams.get(k) !== String(v)) {
@@ -66,7 +66,7 @@ export class DrillSetup<T extends Record<string, Scalar>> {
     }
     if (changed) {
       try {
-        replaceState(url, page.state);
+        goto(url, { shallow: true, replace: true, state: page.state });
       } catch {
         // Before the router starts (tests, prerender): the setup still changed.
       }

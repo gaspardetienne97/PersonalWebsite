@@ -2,16 +2,16 @@
   // Studio: the songs you play and the tools that make new ones, in one hub. Songs come first;
   // the making tools (their own pages under /music/create and /music/record) sit one tap away.
   import { page } from "$app/state";
-  import Grid from "lucide-svelte/icons/grid-3x3";
-  import Piano from "lucide-svelte/icons/piano";
-  import CircleDot from "lucide-svelte/icons/circle-dot";
-  import Drum from "lucide-svelte/icons/drum";
-  import Ear from "lucide-svelte/icons/ear";
-  import BookOpen from "lucide-svelte/icons/book-open";
-  import { bench } from "$lib/music/bench.svelte";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import SongsView from "$lib/music/hubs/library/SongsView.svelte";
-  import ImportView from "$lib/music/hubs/library/ImportView.svelte";
+  import Grid from "@lucide/svelte/icons/grid-3x3";
+  import Piano from "@lucide/svelte/icons/piano";
+  import CircleDot from "@lucide/svelte/icons/circle-dot";
+  import Drum from "@lucide/svelte/icons/drum";
+  import Ear from "@lucide/svelte/icons/ear";
+  import BookOpen from "@lucide/svelte/icons/book-open";
+  import { bench } from "#lib/music/bench.svelte.ts";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import SongsView from "#lib/music/hubs/library/SongsView.svelte";
+  import ImportView from "#lib/music/hubs/library/ImportView.svelte";
 
   const TABS = [
     { id: "songs", label: "Songs" },

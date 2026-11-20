@@ -5,7 +5,7 @@
   // reorder, or a free chop of your own that you then play again. The slices
   // are a kit for the run; Create's kit comes back when you leave.
   import { onDestroy } from "svelte";
-  import { timingFromErrors } from "$lib/music/drills/piano/lane-outcomes";
+  import { timingFromErrors } from "#lib/music/drills/piano/lane-outcomes.ts";
   import type { NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
   import { gradeGroove, type GrooveResult } from "@repo/music-core/scoring/pads";
@@ -23,18 +23,18 @@
     type ChopSource,
   } from "@repo/music-core/content/pads-studio";
   import { padLessons } from "@repo/music-core/lessons/pads";
-  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Pads from "$lib/music/components/Pads.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, input, settings } from "$lib/music/runtime";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Pads from "#lib/music/components/Pads.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, capture, pct, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, input, settings } from "#lib/music/runtime/index.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { decodeLoop, loadSlices, restoreKit } from "./slices";
   import MidiStatus from "./MidiStatus.svelte";
   import PadHighway, { type HighwayLane, type HighwayNote } from "./PadHighway.svelte";

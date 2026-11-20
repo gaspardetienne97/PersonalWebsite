@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { fretFinger, scaleFretMarks } from "./fret-marks";
 
 // G A B G up and back down, on frets 12 to 14 of the top strings.

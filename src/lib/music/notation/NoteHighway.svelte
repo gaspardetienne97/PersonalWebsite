@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { getSetting, putSetting } from "$lib/music/runtime";
+  import { getSetting, putSetting } from "#lib/music/runtime/index.ts";
 
   export interface HighwayNote {
     startBeat: number;
@@ -70,7 +70,7 @@
   // each onset as it arrives. Driven by `beat` from the caller's clock, the
   // same one its tab cursor reads.
   import { MediaQuery } from "svelte/reactivity";
-  import { settings } from "$lib/music/runtime";
+  import { settings } from "#lib/music/runtime/index.ts";
   import { NOW_X, ballY, beatX, behindBeats, chordBlock, hitVerdict, inView, laneY, spanX, type Hit, type HitVerdict } from "./highway";
 
   let {

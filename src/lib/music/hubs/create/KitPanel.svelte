@@ -3,20 +3,20 @@
   // screen at a time, laid out like the MPC (pad 1 bottom-left). Every pad has
   // a native select for its sample; "Assign to pad" is the other path in.
   import { onMount } from "svelte";
-  import Upload from "lucide-svelte/icons/upload";
-  import Download from "lucide-svelte/icons/download";
-  import FolderDown from "lucide-svelte/icons/folder-down";
-  import Plus from "lucide-svelte/icons/plus";
-  import Trash from "lucide-svelte/icons/trash-2";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Upload from "@lucide/svelte/icons/upload";
+  import Download from "@lucide/svelte/icons/download";
+  import FolderDown from "@lucide/svelte/icons/folder-down";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Trash from "@lucide/svelte/icons/trash-2";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { kitZip, kitZipName, type Bank } from "@repo/music-core/io/mpc-kit";
-  import { audio, input } from "$lib/music/runtime";
-  import { capturePointer } from "$lib/music/components/feedback.svelte";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
+  import { audio, input } from "#lib/music/runtime/index.ts";
+  import { capturePointer } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
   import { BANK_IDS, BUILT_IN_DRUM, bankNotes, padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { canPickFolder, download, writeToFolder } from "./files";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 

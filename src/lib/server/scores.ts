@@ -2,9 +2,9 @@
 // client bundle: <MUSIC_SCORES_DIR>/<path>/<song>.<mxl|musicxml|xml|mid>.
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { env } from "$env/dynamic/private";
+import { MUSIC_SCORES_DIR } from "$app/env/private";
 
-export const scoresDir = () => resolve(env.MUSIC_SCORES_DIR || ".music-scores");
+export const scoresDir = () => resolve(MUSIC_SCORES_DIR || ".music-scores");
 
 const SLUG = /^[a-z0-9-]+$/;
 export const SCORE_EXT = ["mxl", "musicxml", "xml", "mid"] as const;

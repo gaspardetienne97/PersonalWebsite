@@ -1,7 +1,7 @@
 <script lang="ts">
   // Every chord of a cycle as a diagram on the stage, the one to play now ringed.
   import type { ChordPosition } from "@repo/music-core/data/index";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
+  import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import { shortPosition } from "./chords";
 
   let { shapes, names, current = null }: { shapes: ChordPosition[]; names: string[]; current?: number | null } = $props();

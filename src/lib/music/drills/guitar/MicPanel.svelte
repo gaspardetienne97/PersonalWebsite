@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { mic, settings } from "$lib/music/runtime";
+  import { mic, settings } from "#lib/music/runtime/index.ts";
   /** Turn the microphone on as the input check does (the chosen device, kept on across pages). */
   export const startMic = () => mic.start({ deviceId: settings.value.audioInputDeviceId, pin: true });
   /** The drill shell's `unblock`: the one microphone prompt, in Start's place, while the microphone gates Start. */
@@ -17,10 +17,10 @@
   // (the shell's input check or `unblock`), so this panel offers its own button
   // only where that prompt is not drawn (`offer`: mid-run, after a run). Silent
   // to screen readers except through its own controls (the route owns role=status).
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
-  import Volume2 from "lucide-svelte/icons/volume-2";
-  import { btnStage } from "$lib/music/components/ui";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import { btnStage } from "#lib/music/components/ui.ts";
 
   /** `disabled` (a run is live) locks Stop and shrinks the prompt to a chip; `offer` draws the prompt while it is off. */
   let { hint = "Sit close to the sound hole, about a hand's width away.", disabled = false, offer = true }: { hint?: string; disabled?: boolean; offer?: boolean } = $props();

@@ -67,28 +67,28 @@
   import { skillSummaries } from "@repo/music-core/progress/analytics";
   import { decayMastery, isDueForReview } from "@repo/music-core/progress/mastery";
   import type { Score, ScoringEvent } from "@repo/music-core";
-  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import { earTrainer } from "$lib/music/drills/ear/trainer";
-  import InstrumentStage from "$lib/music/components/InstrumentStage.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, getSetting, mic, putSetting, settings } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import { earTrainer } from "#lib/music/drills/ear/trainer.ts";
+  import InstrumentStage from "#lib/music/components/InstrumentStage.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnPrimary, btnStage } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, db, getSetting, mic, putSetting, settings } from "#lib/music/runtime/index.ts";
   import DegreeWheel from "./DegreeWheel.svelte";
   import EarVisual from "./EarVisual.svelte";
   import EarReveal, { ON_INSTRUMENT } from "./EarReveal.svelte";
   import ConfusionGrid from "./ConfusionGrid.svelte";
-  import Volume2 from "lucide-svelte/icons/volume-2";
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
-  import Play from "lucide-svelte/icons/play";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Play from "@lucide/svelte/icons/play";
   import { spellDegree, spellInKey } from "./degrees";
-  import { nextRun, type NextRun } from "$lib/music/advance.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
+  import { nextRun, type NextRun } from "#lib/music/advance.svelte.ts";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
   import {
     buildSession,
     cadenceShift,

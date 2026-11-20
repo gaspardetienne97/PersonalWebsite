@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { COMPING, JAZZ, RHYTHM_PATTERNS, VOICING_DRILL } from "../data";
 import { PROGRESSIONS } from "../content/jam";
 import { CHORD_SCALE_CHANGES, voicingTargets, voiceLeadingTargets } from "../content/piano";

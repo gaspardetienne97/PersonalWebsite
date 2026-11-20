@@ -2,11 +2,11 @@
   // The streak as this week's seven days: a glyph per state so colour is never the only cue
   // (check practised, dash missed, snowflake frozen, ring today, dotted outline still to come),
   // a one-line key, and the freeze rules behind an info button.
-  import Check from "lucide-svelte/icons/check";
-  import Minus from "lucide-svelte/icons/minus";
-  import Snowflake from "lucide-svelte/icons/snowflake";
-  import Info from "lucide-svelte/icons/info";
-  import Flame from "lucide-svelte/icons/flame";
+  import Check from "@lucide/svelte/icons/check";
+  import Minus from "@lucide/svelte/icons/minus";
+  import Snowflake from "@lucide/svelte/icons/snowflake";
+  import Info from "@lucide/svelte/icons/info";
+  import Flame from "@lucide/svelte/icons/flame";
   import type { DotState } from "@repo/music-core/progress/rewards";
   let {
     week,

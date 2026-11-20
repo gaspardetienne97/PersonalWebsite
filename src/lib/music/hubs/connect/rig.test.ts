@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { describeMidi, hitLabel, isDetail, micOptions, strength, tileFor, velocityOf } from "./rig";
 
 describe("connect rig", () => {

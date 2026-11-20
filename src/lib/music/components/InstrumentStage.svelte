@@ -1,8 +1,8 @@
 <script lang="ts" module>
   import type { Instrument as Inst } from "@repo/music-core";
   import { AEROPHONE_RANGE as AE } from "@repo/music-core/content/winds-pads";
-  import { tunings as T } from "$lib/music/drills/guitar/instrument.svelte";
-  import { settings as S } from "$lib/music/runtime";
+  import { tunings as T } from "#lib/music/drills/guitar/instrument.svelte.ts";
+  import { settings as S } from "#lib/music/runtime/index.ts";
   import { positionLine } from "@repo/music-core/theory/fretboard";
   import { octaveFit, writtenOffset } from "@repo/music-core/theory/transposition";
 
@@ -43,7 +43,7 @@
   import type { Instrument } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
   import { AEROPHONE_RANGE, fingeringFor } from "@repo/music-core/content/winds-pads";
-  import { input, settings } from "$lib/music/runtime";
+  import { input, settings } from "#lib/music/runtime/index.ts";
   import Piano from "./Piano.svelte";
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import AerophoneKeys from "./AerophoneKeys.svelte";

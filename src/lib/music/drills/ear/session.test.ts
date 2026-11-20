@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { rng } from "@repo/music-core/content/random";
 import type { ScoringEvent } from "@repo/music-core";
 import { cadencePrompt } from "@repo/music-core/content/ear";

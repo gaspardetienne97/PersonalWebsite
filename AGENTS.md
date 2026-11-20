@@ -10,7 +10,7 @@ branch; `context/` holds everything known about the previous version and
 
 ## Tech Stack
 
-- **Framework**: SvelteKit 2 with Svelte 5 (using runes)
+- **Framework**: SvelteKit 3 with Svelte 5 (using runes). No `svelte.config.js`: Kit options live in `vite.config.ts`, and `#lib/...` imports replace `$lib`
 - **Styling**: Tailwind CSS 4 with custom UI components (bits-ui based)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Custom session-based auth (Oslo crypto)
@@ -122,7 +122,7 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 
 ### Content & Routing
 - Blog posts in [src/lib/blog-posts/](src/lib/blog-posts/) (markdown with frontmatter)
-- MDsveX processes `.md`, `.mdx`, `.svx` files (configured in [svelte.config.js:11](svelte.config.js#L11))
+- MDsveX processes `.md`, `.mdx`, `.svx` files (an mdsvex Vite plugin in [vite.config.ts](vite.config.ts))
 - Site config in [src/lib/config.ts](src/lib/config.ts) (title, description, projects array)
 - Routes follow SvelteKit conventions in [src/routes/](src/routes/)
 
@@ -138,7 +138,7 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 ### Server-Only Code
 - All code in `src/lib/server/` is **server-only** (never sent to client)
 - Database operations, auth logic, and sensitive operations stay here
-- Import from `$lib/server/*` in `+page.server.ts`, `+server.ts`, or `hooks.server.ts` only
+- Import from `#lib/server/*` in `+page.server.ts`, `+server.ts`, or `hooks.server.ts` only
 
 ### Type Safety
 - Generated types from Drizzle: `User`, `Session` (from schema)

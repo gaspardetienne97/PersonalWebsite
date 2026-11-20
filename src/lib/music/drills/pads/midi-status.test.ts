@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { PAD_PRESETS } from "@repo/music-core/io/devices";
 import { explainNote, waitingReason } from "./midi-status";
 

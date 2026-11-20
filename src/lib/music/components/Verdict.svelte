@@ -10,10 +10,10 @@
   // `key` shows the next one. Drills place it in the reserved rail between the music
   // and the instrument (`rail`), never over keys, pads, frets or the lane, and pass
   // only what the input measured (no timing word when timing is not measured).
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
-  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
-  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import ChevronsLeft from "@lucide/svelte/icons/chevrons-left";
+  import ChevronsRight from "@lucide/svelte/icons/chevrons-right";
   import { FLASH_MS } from "./feedback.svelte";
 
   // `compact` (a narrow pad or key, under about 72 px) draws the glyph alone: the word stays in

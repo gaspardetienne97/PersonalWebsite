@@ -19,7 +19,7 @@ const walk = (dir) =>
     d.isDirectory() ? walk(join(dir, d.name)) : [join(dir, d.name)],
   );
 const files = DIRS.flatMap((d) => walk(join(ROOT, d))).filter(
-  (f) => /\.(svelte|ts)$/.test(f) && !/\.test\.ts$/.test(f),
+  (f) => /\.(svelte|ts)$/.test(f) && !f.endsWith(".test.ts"),
 );
 
 /** The script blocks of a .svelte file (markup dropped), or the whole .ts file. */

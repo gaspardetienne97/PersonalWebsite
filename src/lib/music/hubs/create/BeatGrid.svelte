@@ -2,20 +2,20 @@
   // The beat's editor: a step sequencer of one to eight bars, rows are drum
   // voices keyed by MIDI note (a row with a kit sample plays the sample). The
   // song bar plays it; the tracks list mutes it and picks its kit.
-  import Play from "lucide-svelte/icons/play";
-  import Sliders from "lucide-svelte/icons/sliders-horizontal";
+  import Play from "@lucide/svelte/icons/play";
+  import Sliders from "@lucide/svelte/icons/sliders-horizontal";
   import * as Popover from "@repo/ui/popover";
-  import Square from "lucide-svelte/icons/square";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import Drum from "lucide-svelte/icons/drum";
+  import Square from "@lucide/svelte/icons/square";
+  import Volume from "@lucide/svelte/icons/volume-2";
+  import Drum from "@lucide/svelte/icons/drum";
   import type { Snippet } from "svelte";
-  import { audio } from "$lib/music/runtime";
-  import { btnStage } from "$lib/music/components/ui";
+  import { audio } from "#lib/music/runtime/index.ts";
+  import { btnStage } from "#lib/music/components/ui.ts";
   import { barCells } from "./pattern";
   import { padLabel, sampleName } from "./kits";
   import { kits } from "./kitStore.svelte";
   import { session } from "./session.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
   import {
     addBar,
     barsOf,

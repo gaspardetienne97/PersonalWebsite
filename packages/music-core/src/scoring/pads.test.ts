@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import grooves from "../data/mpc-grooves.json";
 import type { NoteEvent } from "../types";
 import {

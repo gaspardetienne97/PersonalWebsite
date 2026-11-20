@@ -1,9 +1,9 @@
 <script lang="ts">
   // Sessions: what you actually did, and whether the same setup improved.
-  import Lock from "lucide-svelte/icons/lock";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import {
     achievements,
     computeStreak,

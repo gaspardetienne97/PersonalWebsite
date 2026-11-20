@@ -1,37 +1,43 @@
-import { sequence } from "@sveltejs/kit/hooks";
-import * as auth from "$lib/server/auth";
-import { json, type Handle } from "@sveltejs/kit";
-import { paraglideMiddleware } from "$lib/paraglide/server";
+import { json } from "@sveltejs/kit";
+import { building } from "$app/env";
+import { sequence, type Handle } from "@sveltejs/kit/hooks";
+import { svelteKitHandler } from "better-auth/svelte-kit";
+import * as auth from "#lib/server/auth.ts";
+import { paraglideMiddleware } from "#lib/paraglide/server.js";
 
+// Paraglide picks the locale per request. Its strategy here is cookie, then the
+// base locale (no locale in the URL), so the request itself never changes, which
+// matters because SvelteKit 3 makes event.request read-only.
 const handleParaglide: Handle = ({ event, resolve }) =>
-  paraglideMiddleware(event.request, ({ request, locale }) => {
-    event.request = request;
-
-    return resolve(event, {
+  paraglideMiddleware(event.request, ({ locale }) =>
+    resolve(event, {
       transformPageChunk: ({ html }) => html.replace("%paraglide.lang%", locale),
-    });
-  });
+    }),
+  );
 
+// Better Auth answers its own routes (/api/auth/*) and tells every page who's
+// signed in. Where sign-in isn't configured, everyone is simply signed out.
 const handleAuth: Handle = async ({ event, resolve }) => {
-  const sessionToken = event.cookies.get(auth.sessionCookieName);
+  event.locals.user = null;
+  event.locals.session = null;
 
-  if (!sessionToken) {
-    event.locals.user = null;
-    event.locals.session = null;
-    return resolve(event);
+  const instance = auth.getAuth();
+  if (!instance) {
+    return event.url.pathname.startsWith("/api/auth/")
+      ? json({ message: "Sign-in isn't set up on this server" }, { status: 503 })
+      : resolve(event);
   }
 
-  const { session, user } = await auth.validateSessionToken(sessionToken);
-
-  if (session) {
-    auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-  } else {
-    auth.deleteSessionTokenCookie(event);
+  try {
+    const found = await instance.api.getSession({ headers: event.request.headers });
+    event.locals.user = found?.user ?? null;
+    event.locals.session = found?.session ?? null;
+  } catch (error) {
+    // A database hiccup shouldn't take the site down: carry on signed out.
+    console.error("[auth] Could not read the session", error);
   }
 
-  event.locals.user = user;
-  event.locals.session = session;
-  return resolve(event);
+  return svelteKitHandler({ event, resolve, auth: instance, building });
 };
 
 // Music endpoints (e.g. bundled licks) need a signed-in user when MUSIC_LOGIN=required;

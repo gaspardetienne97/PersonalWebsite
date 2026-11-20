@@ -6,7 +6,7 @@
   let { class: cls = "" }: { class?: string } = $props();
   const current = $derived(page.url.searchParams.get("view") ?? NOTE_VIEWS[0].id);
   const hrefFor = (id: string) => {
-    const q = new URLSearchParams(page.url.searchParams);
+    const q = new URLSearchParams(page.url.search);
     q.delete("instrument");
     if (id === NOTE_VIEWS[0].id) q.delete("view");
     else q.set("view", id);
@@ -23,7 +23,7 @@
       <a
         href={hrefFor(v.id)}
         aria-current={current === v.id ? "page" : undefined}
-        data-sveltekit-noscroll
+        data-sveltekit-reset="false"
         class="flex min-h-11 items-center rounded-full px-4 {current === v.id ? 'bg-ws-stage-ink text-ws-stage' : 'text-ws-stage-soft hover:text-ws-stage-ink'}">{v.label}</a
       >
     {/each}

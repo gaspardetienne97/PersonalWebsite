@@ -6,8 +6,8 @@
   import type { ChordShape, Tuning } from "@repo/music-core/data/index";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { tuningById } from "@repo/music-core/theory/fretboard";
-  import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
-  import type { Flashes } from "$lib/music/components/feedback.svelte";
+  import Fretboard, { type FretMark } from "#lib/music/components/Fretboard.svelte";
+  import type { Flashes } from "#lib/music/components/feedback.svelte.ts";
 
   interface Props {
     shape: ChordShape & { fretWindow?: { start: number; end: number } };

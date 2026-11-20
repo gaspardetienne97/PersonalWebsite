@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { TUNINGS } from "@repo/music-core/data/index";
 import { gradeChanges } from "@repo/music-core/scoring/technique";
 import { PROGRESSIONS } from "@repo/music-core/content/jam";

@@ -17,7 +17,7 @@
   import { noteName } from "@repo/music-core";
   import { tuningFor } from "../drills/guitar/instrument.svelte";
   import { btn, btnPrimary } from "./ui";
-  import Volume2 from "lucide-svelte/icons/volume-2";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
 
   /** `beforeNext`: drawn in the dock just before Next (the session's "More below", while there is more). */
   let { lessons, onfinish, onskip, beforeNext }: { lessons: Lesson[]; onfinish: () => void; onskip?: () => void; beforeNext?: Snippet } = $props();

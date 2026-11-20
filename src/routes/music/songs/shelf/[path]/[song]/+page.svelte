@@ -5,8 +5,8 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { LEARNING_PATHS, type PathId } from "@repo/music-core/progress/paths";
-  import { btnPrimary } from "$lib/music/components/ui";
-  import { addShelfSong, shelfSong } from "$lib/music/hubs/library/songs";
+  import { btnPrimary } from "#lib/music/components/ui.ts";
+  import { addShelfSong, shelfSong } from "#lib/music/hubs/library/songs.ts";
 
   const key = $derived(`${page.params.path}/${page.params.song}`);
   const entry = $derived(
@@ -21,7 +21,7 @@
       try {
         const song = (await shelfSong(k)) ?? (await addShelfSong(k, meta?.title ?? page.params.song!, meta?.artist));
         // Song Studio's setup keys pass through (?mode=sight-read&tap=true); ?tempo=70 is 70% of the score's tempo.
-        const q = new URLSearchParams(page.url.searchParams);
+        const q = new URLSearchParams(page.url.search);
         q.delete("bars");
         const tempo = Number(q.get("tempo"));
         q.delete("tempo");
@@ -34,7 +34,7 @@
           q.set("rangeStart", String((Number(bars[1]) - 1) * perBar));
           q.set("rangeEnd", String(Number(bars[2]) * perBar));
         }
-        await goto(`/music/songs/${song.id}${q.size ? `?${q}` : ""}`, { replaceState: true });
+        await goto(`/music/songs/${song.id}${q.size ? `?${q}` : ""}`, { replace: true });
       } catch (e) {
         error = (e as Error).message;
       }

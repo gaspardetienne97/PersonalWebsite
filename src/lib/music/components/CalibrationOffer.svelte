@@ -2,9 +2,9 @@
   // The tap-along, offered on a timed drill's ready screen when this input and output
   // pair has no offset (runtime/calibration). One line; Tap along opens the Settings
   // panel in place, Skip remembers the pair. It never holds Start back.
-  import Timer from "lucide-svelte/icons/timer";
+  import Timer from "@lucide/svelte/icons/timer";
   import { AUDIO_INPUT } from "@repo/music-core/io/calibration";
-  import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
+  import CalibrationPanel from "#lib/music/hubs/tools/settings/CalibrationPanel.svelte";
   import { audio, calibration, midi, settings } from "../runtime";
   import { btn } from "./ui";
 

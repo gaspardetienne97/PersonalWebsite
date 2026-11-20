@@ -1,48 +1,45 @@
+import { mdsvex } from "mdsvex";
+import adapter from "@sveltejs/adapter-node";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
-import { sveltekit } from "@sveltejs/kit/vite";
-import { SvelteKitPWA } from "@vite-pwa/sveltekit";
-import type { RollupLog } from "rollup";
+import { withPwa } from "@vite-pwa/sveltekit";
 import { defineConfig, type UserConfig } from "vite-plus";
 import { playwright } from "vite-plus/test/browser-playwright";
 
 import { pwaOptions } from "./pwa.config";
 
 function buildOptions(isSsrBuild?: boolean): UserConfig["build"] {
-  const rolldownOptions = {
-    checks: { pluginTimings: false },
-    onLog(level: string, log: RollupLog, handler: (level: string, log: RollupLog) => void) {
-      if (isIgnoredBuildLog(log)) return;
-      handler(level, log);
-    },
-  };
-  if (isSsrBuild) return { rolldownOptions };
+  // One rolldownOptions for everything: when both it and rollupOptions are set,
+  // Vite+ keeps rolldownOptions and silently drops rollupOptions.
   return {
-    rolldownOptions,
-    rollupOptions: {
+    rolldownOptions: {
+      checks: { bundlerTimings: false },
       onLog(level, log, handler) {
         if (isIgnoredBuildLog(log)) return;
         handler(level, log);
       },
-      output: {
-        // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
-        // onnxruntime) in one named, lazily-loaded chunk that only downloads
-        // when a reader opts into neural TTS. Rolldown (vite-plus) groups
-        // chunks via `advancedChunks` — rollup's `manualChunks` is silently
-        // ignored here, so don't swap this back.
-        advancedChunks: {
-          groups: [
-            {
-              name: "kokoro-tts",
-              test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
+      ...(isSsrBuild
+        ? {}
+        : {
+            output: {
+              // Keep the in-browser neural-TTS runtime (Kokoro + transformers.js +
+              // onnxruntime) in one named, lazily-loaded chunk that only downloads
+              // when a reader opts into neural TTS.
+              codeSplitting: {
+                groups: [
+                  {
+                    name: "kokoro-tts",
+                    test: /[\\/]node_modules[\\/](@huggingface[\\/]transformers|kokoro-js|onnxruntime[^\\/]*|phonemizer)[\\/]/,
+                  },
+                ],
+              },
             },
-          ],
-        },
-      },
+          }),
     },
   };
 }
 
-function isIgnoredBuildLog(log: RollupLog): boolean {
+function isIgnoredBuildLog(log: { code?: string; id?: string }): boolean {
   const id = log.id ?? "";
   return (
     (log.code === "INVALID_ANNOTATION" && id.includes("@huggingface/transformers")) ||
@@ -50,8 +47,28 @@ function isIgnoredBuildLog(log: RollupLog): boolean {
   );
 }
 
-export default defineConfig(({ isSsrBuild }) => ({
-  plugins: [tailwindcss(), sveltekit(), SvelteKitPWA(pwaOptions)],
+// Code blocks keep a language-* class for styling. mdsvex 1.0 escapes Svelte's
+// braces itself; the highlighter only has to escape HTML.
+const escapeHtml = (code: string) =>
+  code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const highlightCodeBlock = (code: string, { lang = "" }: { lang?: string | null }) => {
+  const language = (lang ?? "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const className = language ? ` class="language-${language}"` : "";
+  return `<pre${className}><code${className}>${escapeHtml(code)}</code></pre>`;
+};
+
+export default defineConfig(({ isSsrBuild }): UserConfig => ({
+  plugins: [
+    tailwindcss(),
+    // mdsvex 1.0 is a Vite plugin of its own, ahead of SvelteKit.
+    mdsvex({
+      extensions: [".md", ".mdx", ".svx"],
+      smart_punctuation: true,
+      highlight: highlightCodeBlock,
+    }),
+    // The PWA plugin wraps SvelteKit's own plugin and passes these options to it.
+    withPwa({ preprocess: [vitePreprocess()], adapter: adapter() }, pwaOptions),
+  ],
   build: buildOptions(isSsrBuild),
   ssr: {
     // svelte-sonner ships raw .svelte files; Vite must compile them for SSR
@@ -64,39 +81,39 @@ export default defineConfig(({ isSsrBuild }) => ({
       // first transcription makes Vite re-optimise and reload the page mid-run.
       "@spotify/basic-pitch",
       "@tensorflow/tfjs",
-      "lucide-svelte/icons/moon",
-      "lucide-svelte/icons/sun",
-      "lucide-svelte/icons/play",
-      "lucide-svelte/icons/search",
+      "@lucide/svelte/icons/moon",
+      "@lucide/svelte/icons/sun",
+      "@lucide/svelte/icons/play",
+      "@lucide/svelte/icons/search",
       // Narrator (/pdf) icons
-      "lucide-svelte/icons/align-left",
-      "lucide-svelte/icons/arrow-left",
-      "lucide-svelte/icons/arrow-right",
-      "lucide-svelte/icons/audio-waveform",
-      "lucide-svelte/icons/book-open",
-      "lucide-svelte/icons/check",
-      "lucide-svelte/icons/chevron-down",
-      "lucide-svelte/icons/clock",
-      "lucide-svelte/icons/cpu",
-      "lucide-svelte/icons/download",
-      "lucide-svelte/icons/file-text",
-      "lucide-svelte/icons/gauge",
-      "lucide-svelte/icons/headphones",
-      "lucide-svelte/icons/list",
-      "lucide-svelte/icons/mic",
-      "lucide-svelte/icons/mic-off",
-      "lucide-svelte/icons/pause",
-      "lucide-svelte/icons/plus",
-      "lucide-svelte/icons/quote",
-      "lucide-svelte/icons/skip-back",
-      "lucide-svelte/icons/skip-forward",
-      "lucide-svelte/icons/sliders-horizontal",
-      "lucide-svelte/icons/sparkles",
-      "lucide-svelte/icons/trash-2",
-      "lucide-svelte/icons/type",
-      "lucide-svelte/icons/upload",
-      "lucide-svelte/icons/x",
-      "lucide-svelte/icons/zap",
+      "@lucide/svelte/icons/align-left",
+      "@lucide/svelte/icons/arrow-left",
+      "@lucide/svelte/icons/arrow-right",
+      "@lucide/svelte/icons/audio-waveform",
+      "@lucide/svelte/icons/book-open",
+      "@lucide/svelte/icons/check",
+      "@lucide/svelte/icons/chevron-down",
+      "@lucide/svelte/icons/clock",
+      "@lucide/svelte/icons/cpu",
+      "@lucide/svelte/icons/download",
+      "@lucide/svelte/icons/file-text",
+      "@lucide/svelte/icons/gauge",
+      "@lucide/svelte/icons/headphones",
+      "@lucide/svelte/icons/list",
+      "@lucide/svelte/icons/mic",
+      "@lucide/svelte/icons/mic-off",
+      "@lucide/svelte/icons/pause",
+      "@lucide/svelte/icons/plus",
+      "@lucide/svelte/icons/quote",
+      "@lucide/svelte/icons/skip-back",
+      "@lucide/svelte/icons/skip-forward",
+      "@lucide/svelte/icons/sliders-horizontal",
+      "@lucide/svelte/icons/sparkles",
+      "@lucide/svelte/icons/trash-2",
+      "@lucide/svelte/icons/type",
+      "@lucide/svelte/icons/upload",
+      "@lucide/svelte/icons/x",
+      "@lucide/svelte/icons/zap",
     ],
   },
   test: {

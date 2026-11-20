@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
 
 // A deterministic wobble of up to ±12 ms, like a person playing.

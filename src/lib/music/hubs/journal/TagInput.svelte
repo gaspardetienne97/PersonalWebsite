@@ -1,7 +1,7 @@
 <script lang="ts">
   // Tags as removable chips: type one and press Enter or a comma; the browser's own list
   // (a datalist) suggests tags used before.
-  import X from "lucide-svelte/icons/x";
+  import X from "@lucide/svelte/icons/x";
   import { parseTags } from "../progress/model";
 
   let { tags = $bindable([]), suggestions = [], label = "Tags" }: { tags?: string[]; suggestions?: string[]; label?: string } = $props();

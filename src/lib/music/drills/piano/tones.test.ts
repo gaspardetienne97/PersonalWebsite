@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { parseChordSymbol } from "@repo/music-core/theory/chords";
 import { scaleTip, toneLabel } from "./tones";
 

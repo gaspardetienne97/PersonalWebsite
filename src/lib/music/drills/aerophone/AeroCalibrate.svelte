@@ -9,15 +9,15 @@
   import { fingeringFor } from "@repo/music-core/content/winds-pads";
   import { BREATH_LEVELS, gradeCalibration, type CalibrationResult } from "@repo/music-core/content/aero-skills";
   import { AEROPHONE_READING_KEYS, writtenOffset } from "@repo/music-core/theory/transposition";
-  import DrillShell, { type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import { capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
+  import DrillShell, { type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
   import BreathTrace from "./BreathTrace.svelte";
-  import MidiStatus from "$lib/music/drills/pads/MidiStatus.svelte";
+  import MidiStatus from "#lib/music/drills/pads/MidiStatus.svelte";
 
   let { modes, onmode }: { modes: readonly { id: string; label: string }[]; onmode: (m: string) => void } = $props();
 

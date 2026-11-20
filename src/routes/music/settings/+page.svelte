@@ -4,26 +4,26 @@
   // router offsets, the root attributes for motion and hue. Devices are chosen
   // on Connect only; the Instruments row shows the same stored values.
   import { onMount } from "svelte";
-  import { SectionSpy } from "$lib/music/section-spy.svelte";
+  import { SectionSpy } from "#lib/music/section-spy.svelte.ts";
   import { page } from "$app/state";
-  import Volume2 from "lucide-svelte/icons/volume-2";
-  import Mic from "lucide-svelte/icons/mic";
-  import Timer from "lucide-svelte/icons/timer";
-  import Palette from "lucide-svelte/icons/palette";
-  import Target from "lucide-svelte/icons/target";
-  import Database from "lucide-svelte/icons/database";
-  import Info from "lucide-svelte/icons/info";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Timer from "@lucide/svelte/icons/timer";
+  import Palette from "@lucide/svelte/icons/palette";
+  import Target from "@lucide/svelte/icons/target";
+  import Database from "@lucide/svelte/icons/database";
+  import Info from "@lucide/svelte/icons/info";
   import type { PlaybackSound } from "@repo/music-core";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
-  import CalibrationPanel from "$lib/music/hubs/tools/settings/CalibrationPanel.svelte";
-  import DataSection from "$lib/music/hubs/tools/settings/DataSection.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import Hint from "$lib/music/components/Hint.svelte";
-  import { audio, calibration, mic, midi, settings } from "$lib/music/runtime";
+  import CalibrationPanel from "#lib/music/hubs/tools/settings/CalibrationPanel.svelte";
+  import DataSection from "#lib/music/hubs/tools/settings/DataSection.svelte";
+  import { btn } from "#lib/music/components/ui.ts";
+  import Hint from "#lib/music/components/Hint.svelte";
+  import { audio, calibration, mic, midi, settings } from "#lib/music/runtime/index.ts";
   import { AUDIO_INPUT, MIDI_INPUT, deviceInput } from "@repo/music-core/io/calibration";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import { A4_CHOICES } from "$lib/music/hubs/tools/tuner/tuner";
-  import { setDayInstrument, splitOptions, WEEKDAYS } from "$lib/music/today.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import { A4_CHOICES } from "#lib/music/hubs/tools/tuner/tuner.ts";
+  import { setDayInstrument, splitOptions, WEEKDAYS } from "#lib/music/today.svelte.ts";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown

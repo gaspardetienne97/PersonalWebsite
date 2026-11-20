@@ -7,13 +7,13 @@
   // (or a chuck) where the hand strikes, an empty slot where it passes. During a
   // run the slot sounding now is lit on the click, and each stroke of the bar
   // gets a mark as it is judged: a glyph as well as a colour.
-  import ArrowDown from "lucide-svelte/icons/arrow-down";
-  import ArrowUp from "lucide-svelte/icons/arrow-up";
-  import X from "lucide-svelte/icons/x";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
-  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
-  import Minus from "lucide-svelte/icons/minus";
+  import ArrowDown from "@lucide/svelte/icons/arrow-down";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import X from "@lucide/svelte/icons/x";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronsLeft from "@lucide/svelte/icons/chevrons-left";
+  import ChevronsRight from "@lucide/svelte/icons/chevrons-right";
+  import Minus from "@lucide/svelte/icons/minus";
   import type { Slot } from "./strum-slots";
 
   // `legend`: what the marks mean, before the run (and in the demo); during a run each mark carries its own word.

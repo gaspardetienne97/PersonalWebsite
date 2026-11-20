@@ -4,8 +4,8 @@
 	import { readSpotifyStore } from './spotifyStore';
 	import { Button } from '@repo/ui/button';
 	import { Separator } from '@repo/ui/separator';
-	import TrendUpIcon from 'lucide-svelte/icons/trending-up';
-	import LoaderCircle from 'lucide-svelte/icons/loader';
+	import TrendUpIcon from '@lucide/svelte/icons/trending-up';
+	import LoaderCircle from '@lucide/svelte/icons/loader';
 
 	const spotify = readSpotifyStore();
 	let createTopMonthlySongPlaylistLoading = $state(false);

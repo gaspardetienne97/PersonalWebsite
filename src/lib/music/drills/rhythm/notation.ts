@@ -5,8 +5,8 @@
 
 import type { ScoreGroup, ScoreNote } from "@repo/music-core";
 import type { RhythmPatternDef } from "@repo/music-core/data/index";
-import { lineTicks, type Layout, type Tick } from "$lib/music/notation/engrave";
-import { bars, type Bar } from "$lib/music/notation/groups";
+import { lineTicks, type Layout, type Tick } from "#lib/music/notation/engrave.ts";
+import { bars, type Bar } from "#lib/music/notation/groups.ts";
 
 type VF = typeof import("vexflow/bravura");
 type StaveNote = InstanceType<VF["StaveNote"]>;

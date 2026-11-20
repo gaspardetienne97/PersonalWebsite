@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { FLAT_ORDER, SHARP_ORDER, diatonicChords } from "../theory/circle";
 import { lessonProblems } from "./check";
 import { circleLessons } from "./circle";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { expandRhythm, RHYTHM_PATTERNS, rhythmPattern, rhythmSkills } from "./rhythm";
 import { STRUM_PATTERNS, strumPattern } from "./strums";
 

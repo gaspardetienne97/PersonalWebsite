@@ -1,55 +1,51 @@
-import { dev } from "$app/environment";
+import type { Component } from "svelte";
+// Lucide dropped brand icons in 1.0, so these are local, drawn in Lucide's style.
+import Github from "#lib/components/site/icons/Github.svelte";
+import Linkedin from "#lib/components/site/icons/Linkedin.svelte";
+// For the commented-out socials below: uncomment with them.
+// import Instagram from "#lib/components/site/icons/Instagram.svelte";
+// import Youtube from "#lib/components/site/icons/Youtube.svelte";
+// import Mail from "@lucide/svelte/icons/mail";
 
-export const title = "Shakespeare";
-export const description = "SvelteKit blog for poets";
-export const url = dev ? "http://localhost:5173/" : "https://joyofcode.xyz/";
-export const projects = [
-  {
-    title: "test1",
-    subtitle: "test1",
-    description: "test1 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=1",
-  },
-  {
-    title: "test2",
-    subtitle: "test2",
-    description: "test2 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=2",
-  },
-  {
-    title: "test3",
-    subtitle: "test3",
-    description: "test3 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=3",
-  },
-  {
-    title: "test4",
-    subtitle: "test4",
-    description: "test4 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=4",
-  },
-  {
-    title: "test5",
-    subtitle: "test4",
-    description: "test4 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=4",
-  },
-  {
-    title: "test6",
-    subtitle: "test4",
-    description: "test4 and more",
-    imgURL:
-      "https://cdn.hashnode.com/res/hashnode/image/stock/unsplash/6Vg8N8u61aI/upload/1c41a9e4a644df473e8a2c7af1027f67.jpeg?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
-    projectURL: "https://picsum.photos/250/250?random=4",
-  },
+type Icon = Component<{
+  size?: number | string;
+  class?: string;
+  "aria-hidden"?: boolean | "true" | "false";
+}>;
+
+export const name = "Gaspard Michel Etienne";
+export const shortName = "Gaspard Etienne";
+export const title = "Gaspard Michel Etienne";
+export const description =
+  "Gaspard Michel Etienne, a full-stack software engineer in Boston. Projects, writing, drawings and more.";
+
+/**
+ * Links shown on the About page and in the footer, each with its icon. Nothing
+ * renders while the list is empty.
+ */
+export const socials: { label: string; href: string; icon: Icon }[] = [
+  { label: "GitHub", href: "https://github.com/gaspardetienne97", icon: Github },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/gaspardetienne", icon: Linkedin },
+  // Fill in and uncomment to show them:
+  // { label: "Instagram", href: "https://www.instagram.com/<handle>", icon: Instagram },
+  // { label: "YouTube", href: "https://www.youtube.com/@<handle>", icon: Youtube },
+  // { label: "Email", href: "mailto:<address>", icon: Mail },
 ];
+
+/** Site navigation. Big apps such as Woodshed and Narrator are reached from Projects. */
+export const nav = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/studio", label: "Studio" },
+  { href: "/blog", label: "Blog" },
+] as const;
+
+/**
+ * Route apps that take the whole screen with their own look, outside the site
+ * chrome. Woodshed (/music) joins them from its own branch, which hides the chrome
+ * in the root layout and adds its own way home.
+ */
+export const fullscreenApps = ["/pdf"] as const;
+
+export const isFullscreenApp = (path: string) =>
+  fullscreenApps.some((app) => path === app || path.startsWith(`${app}/`));

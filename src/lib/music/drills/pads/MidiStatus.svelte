@@ -2,8 +2,8 @@
   // One quiet line on the drill: what the last hardware note became, or why
   // nothing arrives. Deliberately not a live region (the route owns the status).
   import type { Instrument } from "@repo/music-core";
-  import Cable from "lucide-svelte/icons/cable";
-  import { midi } from "$lib/music/runtime";
+  import Cable from "@lucide/svelte/icons/cable";
+  import { midi } from "#lib/music/runtime/index.ts";
   import { explainNote, waitingReason } from "./midi-status";
 
   interface Props {

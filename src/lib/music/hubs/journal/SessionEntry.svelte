@@ -2,9 +2,9 @@
   // One journal entry as a card named for its drills, with the drill's icon and a score
   // sparkline; on demand its runs and attempt evidence. The note leads when there is one.
   // Add or edit the note sits on the card; Delete waits behind a small overflow button and asks first.
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Trash from "lucide-svelte/icons/trash-2";
-  import Ellipsis from "lucide-svelte/icons/ellipsis";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Trash from "@lucide/svelte/icons/trash-2";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
   import ScoreBadge from "./ScoreBadge.svelte";
   import TagInput from "./TagInput.svelte";
   import { tick } from "svelte";
@@ -13,7 +13,7 @@
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { practice } from "../../practice.svelte";
   import { btn, btnPrimary } from "../../components/ui";
-  import Pencil from "lucide-svelte/icons/pencil";
+  import Pencil from "@lucide/svelte/icons/pencil";
   import { hueForRoute, hueVar } from "../../hues";
   import { HUE_ICON } from "../hue-icons";
   import {

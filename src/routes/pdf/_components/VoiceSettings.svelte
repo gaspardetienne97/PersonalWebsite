@@ -1,13 +1,13 @@
 <script lang="ts">
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import Check from "lucide-svelte/icons/check";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import Download from "lucide-svelte/icons/download";
-  import Mic from "lucide-svelte/icons/mic";
-  import Pause from "lucide-svelte/icons/pause";
-  import Play from "lucide-svelte/icons/play";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Zap from "lucide-svelte/icons/zap";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Check from "@lucide/svelte/icons/check";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Download from "@lucide/svelte/icons/download";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Pause from "@lucide/svelte/icons/pause";
+  import Play from "@lucide/svelte/icons/play";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Zap from "@lucide/svelte/icons/zap";
   import { onDestroy } from "svelte";
 
   import {

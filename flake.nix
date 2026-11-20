@@ -123,15 +123,13 @@ JSON
           installPhase = ''
             runHook preInstall
 
-            mkdir -p "$out/bin" "$out/lib" "$out/lib/packages" "$out/lib/apps/pdf" "$out/lib/apps/drums"
+            mkdir -p "$out/bin" "$out/lib" "$out/lib/packages"
 
             cp -R "${packageDir}/build" "$out/lib/build"
             cp "${packageDir}/package.json" "$out/lib/package.json"
             cp -R node_modules "$out/lib/node_modules"
             cp -R packages/ui "$out/lib/packages/ui"
             rm -rf "$out/lib/packages/ui/node_modules"
-            cp apps/pdf/package.json "$out/lib/apps/pdf/package.json"
-            cp apps/drums/package.json "$out/lib/apps/drums/package.json"
 
             cat > "$out/bin/${binName}" <<EOF
 #!/usr/bin/env bash
@@ -152,18 +150,6 @@ EOF
           binName = "personal-website";
         };
 
-        pdf = mkSvelteKitPackage {
-          pname = "personal-website-pdf";
-          packageDir = "apps/pdf";
-          binName = "personal-website-pdf";
-        };
-
-        drums = mkSvelteKitPackage {
-          pname = "personal-website-drums";
-          packageDir = "apps/drums";
-          binName = "personal-website-drums";
-        };
-
         default = self.packages.${system}.web;
       };
 
@@ -171,16 +157,6 @@ EOF
         web = {
           type = "app";
           program = "${self.packages.${system}.web}/bin/personal-website";
-        };
-
-        pdf = {
-          type = "app";
-          program = "${self.packages.${system}.pdf}/bin/personal-website-pdf";
-        };
-
-        drums = {
-          type = "app";
-          program = "${self.packages.${system}.drums}/bin/personal-website-drums";
         };
 
         default = self.apps.${system}.web;
@@ -200,12 +176,10 @@ EOF
           echo ""
           echo "Available commands:"
           echo "  vp dev                    - Start the root app"
-          echo "  vp run dev:pdf            - Start the PDF app"
-          echo "  vp run dev:drums          - Start the drums app"
           echo "  vp check                  - Run Vite+ checks"
           echo "  vp test                   - Run Vite+ tests"
           echo "  vp build                  - Build the root app"
-          echo "  vp run --recursive build  - Build all workspace apps"
+          echo "  vp run --recursive build  - Build every workspace package"
         '';
       };
     };

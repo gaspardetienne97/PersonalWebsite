@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { laneOutcomes, lineOutcomes, timingFromErrors, timingOf, verdictOf } from "./lane-outcomes";
 
 const beats = [

@@ -2,12 +2,12 @@
   // Chord-Perfect (catalog 4.5): Build, Pick, Strum and identify, Changes.
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import ShapeDrill from "$lib/music/drills/guitar/ShapeDrill.svelte";
-  import StrumIdentify from "$lib/music/drills/guitar/StrumIdentify.svelte";
-  import ChangesDrill from "$lib/music/drills/guitar/ChangesDrill.svelte";
-  import LineDrill from "$lib/music/drills/guitar/LineDrill.svelte";
-  import { applyBenchParams } from "$lib/music/drills/guitar/instrument.svelte";
-  import { CHORD_MODES, modeFrom } from "$lib/music/drills/guitar/modes";
+  import ShapeDrill from "#lib/music/drills/guitar/ShapeDrill.svelte";
+  import StrumIdentify from "#lib/music/drills/guitar/StrumIdentify.svelte";
+  import ChangesDrill from "#lib/music/drills/guitar/ChangesDrill.svelte";
+  import LineDrill from "#lib/music/drills/guitar/LineDrill.svelte";
+  import { applyBenchParams } from "#lib/music/drills/guitar/instrument.svelte.ts";
+  import { CHORD_MODES, modeFrom } from "#lib/music/drills/guitar/modes.ts";
 
   const mode = $derived(modeFrom(CHORD_MODES, page.url.searchParams.get("mode")));
   let ready = $state(false);

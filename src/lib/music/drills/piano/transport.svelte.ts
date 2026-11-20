@@ -2,8 +2,8 @@
 // light during a demo both read `beat`, and a demo starts it from the audio
 // sequence's own start time, so what you see is what you hear (O06).
 import { page } from "$app/state";
-import type { DrillMode } from "$lib/music/components/DrillShell.svelte";
-import { audio, settings } from "$lib/music/runtime";
+import type { DrillMode } from "#lib/music/components/DrillShell.svelte";
+import { audio, settings } from "#lib/music/runtime/index.ts";
 
 export interface TimedNote {
   midi: number;

@@ -5,7 +5,7 @@ import { page } from "$app/state";
 import type { Settings } from "@repo/music-core";
 import { TUNINGS, type Tuning } from "@repo/music-core/data/index";
 import { validateCustomTuning } from "@repo/music-core/theory/fretboard";
-import { getSetting, putSetting, settings } from "$lib/music/runtime";
+import { getSetting, putSetting, settings } from "#lib/music/runtime/index.ts";
 import type { Fretted } from "./fretted";
 
 export type { Fretted } from "./fretted";

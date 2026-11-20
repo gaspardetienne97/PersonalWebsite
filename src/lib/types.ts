@@ -1,11 +1,11 @@
-export type Categories = "sveltekit" | "svelte";
-
 export type Post = {
   title: string;
   slug: string;
   description: string;
-  thumbnail: string;
   date: string;
-  categories: Categories[];
+  categories: string[];
   published: boolean;
+  /** Optional cover image URL; posts without one get generated circuit art. */
+  cover?: string;
+  readingMinutes: number;
 };

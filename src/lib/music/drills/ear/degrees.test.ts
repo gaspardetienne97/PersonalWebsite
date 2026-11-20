@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { placeTags, spellChord, spellDegree, spellInKey, spellInterval } from "./degrees";
 
 describe("spellDegree", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CATALOG } from "../content/catalog";
 import { run, T0 } from "./fixtures";
 import { SKILL_GRAPH } from "./graph";

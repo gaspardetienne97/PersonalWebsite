@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { db } from "$lib/music/runtime";
-  import { btnPrimary } from "$lib/music/components/ui";
-  import Studio from "$lib/music/drills/studio/Studio.svelte";
-  import type { Song } from "$lib/music/hubs/library/songs";
+  import { db } from "#lib/music/runtime/index.ts";
+  import { btnPrimary } from "#lib/music/components/ui.ts";
+  import Studio from "#lib/music/drills/studio/Studio.svelte";
+  import type { Song } from "#lib/music/hubs/library/songs.ts";
 
   let song = $state.raw<Song | null | undefined>(undefined);
   $effect(() => {

@@ -33,8 +33,8 @@
   // reaches them, unless the drill has its own mark for that key.
   import { onMount } from "svelte";
   import type { Score } from "@repo/music-core";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import type { CellMarks, Flashes } from "$lib/music/components/feedback.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import type { CellMarks, Flashes } from "#lib/music/components/feedback.svelte.ts";
   import Waterfall from "./Waterfall.svelte";
   import { barBeats, whiteKeyLayout } from "./groups";
   import { fallingNotes, sounding } from "./falling";

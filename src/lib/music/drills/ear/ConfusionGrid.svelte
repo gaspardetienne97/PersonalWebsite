@@ -4,7 +4,7 @@
   // shaded by how often. Tapping a square plays the two items back to back. On a
   // phone the mix-ups are a list of pairs, each with its own play button.
   import { confusionCells, OTHER_ANSWER as OTHER, times, type AnswerRecord } from "./session";
-  import Play from "lucide-svelte/icons/play";
+  import Play from "@lucide/svelte/icons/play";
 
   let {
     records,

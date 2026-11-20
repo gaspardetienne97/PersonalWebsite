@@ -2,16 +2,16 @@
   // Saved repertoire. The most recently touched song leads, wide, as the one
   // to pick up again; the rest follow as object cards with their facts.
   import { onMount } from "svelte";
-  import { db, settings } from "$lib/music/runtime";
-  import { practice } from "$lib/music/practice.svelte";
+  import { db, settings } from "#lib/music/runtime/index.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
   import { LEARNING_PATHS, PATH_FOR_INSTRUMENT } from "@repo/music-core/progress/paths";
-  import { btn } from "$lib/music/components/ui";
-  import Upload from "lucide-svelte/icons/upload";
-  import { registerSearchItems } from "$lib/music/search";
-  import { btnPrimary } from "$lib/music/components/ui";
-  import Play from "lucide-svelte/icons/play";
-  import Trash from "lucide-svelte/icons/trash-2";
-  import Dots from "lucide-svelte/icons/ellipsis";
+  import { btn } from "#lib/music/components/ui.ts";
+  import Upload from "@lucide/svelte/icons/upload";
+  import { registerSearchItems } from "#lib/music/search.ts";
+  import { btnPrimary } from "#lib/music/components/ui.ts";
+  import Play from "@lucide/svelte/icons/play";
+  import Trash from "@lucide/svelte/icons/trash-2";
+  import Dots from "@lucide/svelte/icons/ellipsis";
   import * as Menu from "@repo/ui/dropdown-menu";
   import RollThumb from "./RollThumb.svelte";
   import type { Score } from "@repo/music-core";

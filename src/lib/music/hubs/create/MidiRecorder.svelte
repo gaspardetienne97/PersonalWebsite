@@ -2,23 +2,23 @@
   // Record MIDI takes: note-ons and note-offs from MIDI, the on-screen keys and
   // the computer keyboard. Takes persist in db.midiTakes (shared with the Lab).
   import { onDestroy, onMount } from "svelte";
-  import Play from "lucide-svelte/icons/play";
-  import FileMusic from "lucide-svelte/icons/file-music";
-  import Trash from "lucide-svelte/icons/trash-2";
+  import Play from "@lucide/svelte/icons/play";
+  import FileMusic from "@lucide/svelte/icons/file-music";
+  import Trash from "@lucide/svelte/icons/trash-2";
   import type { NoteEvent } from "@repo/music-core";
   import { scoreToMidi } from "@repo/music-core/io/midi-file";
   import { compareTakes } from "@repo/music-core/scoring/compare";
   import { savedTakesLabel } from "./audioTakes";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import { runInstrument } from "$lib/music/drill.svelte";
-  import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
-  import { audio, db, input, midi, type SequenceHandle } from "$lib/music/runtime";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { runInstrument } from "#lib/music/drill.svelte.ts";
+  import { INSTRUMENT_LABEL } from "#lib/music/bench.svelte.ts";
+  import { audio, db, input, midi, type SequenceHandle } from "#lib/music/runtime/index.ts";
   import RecordButton from "./RecordButton.svelte";
   import TakeThumb from "./TakeThumb.svelte";
   import { download } from "./files";
-  import { clock, fileStem, takeLength, pairNotes, TAKE_LIMIT_MS, takeToScore, takeToSequence, type MidiTake } from "$lib/music/takes";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { clock, fileStem, takeLength, pairNotes, TAKE_LIMIT_MS, takeToScore, takeToSequence, type MidiTake } from "#lib/music/takes.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (msg: string) => void } = $props();
 

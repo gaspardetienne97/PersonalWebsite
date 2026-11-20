@@ -2,7 +2,7 @@
 // lives here, not on a page: whenever MIDI is on, SysEx is granted and a profile
 // is flagged `controllerLink`, that output gets the init handshake once and a
 // heartbeat every second until MIDI is disabled or the link is dropped.
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { parseMidiMessage, isSysex, toHex } from "@repo/music-core/io/midi-message";
 import {
   applyProfile,
@@ -276,6 +276,7 @@ function linkMpc(outputId: string) {
         controllerLink: true,
       }),
   );
+
   syncLink(true);
   return persistProfiles();
 }

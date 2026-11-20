@@ -1,10 +1,10 @@
 <script lang="ts">
   // A small badge beside a run's score: "Best yet", "Up from 72%", "Down from 90%". Glyph and word,
   // so colour is never the only cue. Nothing for a first run of a setup.
-  import Trophy from "lucide-svelte/icons/trophy";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import TrendingDown from "lucide-svelte/icons/trending-down";
-  import Equal from "lucide-svelte/icons/equal";
+  import Trophy from "@lucide/svelte/icons/trophy";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import TrendingDown from "@lucide/svelte/icons/trending-down";
+  import Equal from "@lucide/svelte/icons/equal";
   import type { RunRecord } from "@repo/music-core";
   import { practice } from "../../practice.svelte";
   import { runDelta } from "../progress/model";

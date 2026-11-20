@@ -3,7 +3,7 @@
   // label, with the text in a tooltip on hover, focus or tap. Screen readers get
   // the text as the button's description, so nothing is hidden from them.
   import * as Tooltip from "@repo/ui/tooltip";
-  import Info from "lucide-svelte/icons/info";
+  import Info from "@lucide/svelte/icons/info";
 
   let { text, about }: { text: string; about: string } = $props();
   let open = $state(false);

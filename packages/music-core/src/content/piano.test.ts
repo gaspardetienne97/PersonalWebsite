@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { COMPING, JAZZ, TWO_HAND, VOICING_DRILL, type TwoHandPatternId } from "../data";
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";

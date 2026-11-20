@@ -1,9 +1,9 @@
 <script lang="ts">
   // Skills: what is solid and what is stale, one row per skill, grouped by capability.
-  import Lock from "lucide-svelte/icons/lock";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
-  import Search from "lucide-svelte/icons/search";
+  import Lock from "@lucide/svelte/icons/lock";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Search from "@lucide/svelte/icons/search";
   import type { Capability, Instrument } from "@repo/music-core";
   import { SKILL_GRAPH, capabilitySummary } from "@repo/music-core/progress/graph";
   import { INSTRUMENT_LABEL } from "../../bench.svelte";

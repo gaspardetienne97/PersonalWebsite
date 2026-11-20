@@ -7,8 +7,8 @@
   // The notes are concert; a staff shows them at the instrument's written pitch.
   import type { Instrument, Score, ScoreVoice } from "@repo/music-core";
   import { transposeScore } from "@repo/music-core/theory/transposition";
-  import { settings } from "$lib/music/runtime";
-  import { writtenShift } from "$lib/music/components/InstrumentStage.svelte";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import { writtenShift } from "#lib/music/components/InstrumentStage.svelte";
   import Tab from "./Tab.svelte";
   import Staff from "./Staff.svelte";
   import type { GroupState } from "./NotationFrame.svelte";

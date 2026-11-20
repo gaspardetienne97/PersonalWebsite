@@ -2,7 +2,7 @@
 // their drum parts: chords by the groove's style (a bar each, cycling) and a
 // bass locked to the groove's kick (house bass takes the offbeats). Made from
 // chord symbols on the app's own sounds: no recordings.
-import type { SequenceNote } from "$lib/music/runtime";
+import type { SequenceNote } from "#lib/music/runtime/index.ts";
 import { chordVoicing } from "../jam/backing";
 
 const BY_STYLE: Record<string, { chords: string[]; keys: "e-piano" | "pad" | "synth" }> = {

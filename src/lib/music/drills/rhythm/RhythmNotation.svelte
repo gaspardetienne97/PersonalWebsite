@@ -6,9 +6,9 @@
   // note gets a hollow ring where its tap should have been).
   import { onMount } from "svelte";
   import type { RhythmPatternDef } from "@repo/music-core/data/index";
-  import { loadVexFlow, NotationError, type Layout } from "$lib/music/notation/engrave";
-  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import { cursorAt } from "$lib/music/notation/selection.svelte";
+  import { loadVexFlow, NotationError, type Layout } from "#lib/music/notation/engrave.ts";
+  import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
+  import { cursorAt } from "#lib/music/notation/selection.svelte.ts";
   import type { GridHit } from "./RhythmGrid.svelte";
   import { drawRhythm, rhythmLine, type RhythmLine } from "./notation";
 

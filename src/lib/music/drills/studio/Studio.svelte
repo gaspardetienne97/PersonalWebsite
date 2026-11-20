@@ -9,21 +9,21 @@
   // is one run.
   import { onDestroy, tick } from "svelte";
   import { page } from "$app/state";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
-  import Download from "lucide-svelte/icons/download";
-  import Headphones from "lucide-svelte/icons/headphones";
-  import Settings2 from "lucide-svelte/icons/sliders-horizontal";
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import Timer from "lucide-svelte/icons/timer";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Drum from "lucide-svelte/icons/drum";
-  import Dots from "lucide-svelte/icons/ellipsis";
-  import CircleX from "lucide-svelte/icons/circle-x";
-  import Repeat from "lucide-svelte/icons/repeat";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
+  import Download from "@lucide/svelte/icons/download";
+  import Headphones from "@lucide/svelte/icons/headphones";
+  import Settings2 from "@lucide/svelte/icons/sliders-horizontal";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Timer from "@lucide/svelte/icons/timer";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Drum from "@lucide/svelte/icons/drum";
+  import Dots from "@lucide/svelte/icons/ellipsis";
+  import CircleX from "@lucide/svelte/icons/circle-x";
+  import Repeat from "@lucide/svelte/icons/repeat";
   import * as Menu from "@repo/ui/dropdown-menu";
   import { goto } from "$app/navigation";
-  import { nextRun } from "$lib/music/advance.svelte";
+  import { nextRun } from "#lib/music/advance.svelte.ts";
   import { clamp, noteName, pc, type ControlEvent, type InputEvent, type NoteEvent } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import { transposeFifths, transposeScore, writtenOffset } from "@repo/music-core/theory/transposition";
@@ -41,22 +41,22 @@
     type WaitResult,
     type WaitState,
   } from "@repo/music-core/scoring/follower";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { bench, INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
-  import { audio, db, input, settings, type SequenceHandle } from "$lib/music/runtime";
-  import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "$lib/music/notation/groups";
-  import { barsText, durationText, scoreFacts, songSections, type Song } from "$lib/music/hubs/library/songs";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnPrimary, btnStage } from "#lib/music/components/ui.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { bench, INSTRUMENT_LABEL } from "#lib/music/bench.svelte.ts";
+  import { audio, db, input, settings, type SequenceHandle } from "#lib/music/runtime/index.ts";
+  import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "#lib/music/notation/groups.ts";
+  import { barsText, durationText, scoreFacts, songSections, type Song } from "#lib/music/hubs/library/songs.ts";
   import StudioScore, { type View } from "./StudioScore.svelte";
   import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import { stripUnused } from "$lib/music/components/BenchStrip.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import { stripUnused } from "#lib/music/components/BenchStrip.svelte";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.

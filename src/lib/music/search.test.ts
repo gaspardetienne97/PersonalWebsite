@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { drillsFor, recentDrills, searchIndex, searchItems, splitMatch } from "./search";
 
 describe("palette search", () => {

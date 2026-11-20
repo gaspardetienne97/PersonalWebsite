@@ -3,14 +3,14 @@
   // a click, keeps running when you switch between the two, and stops when this
   // view goes away (Drone, another page) or you press Stop.
   import { onDestroy } from "svelte";
-  import Mic from "lucide-svelte/icons/mic";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import ArrowUp from "lucide-svelte/icons/arrow-up";
-  import ArrowDown from "lucide-svelte/icons/arrow-down";
-  import Check from "lucide-svelte/icons/check";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
-  import Piano from "$lib/music/components/Piano.svelte";
+  import Mic from "@lucide/svelte/icons/mic";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import ArrowDown from "@lucide/svelte/icons/arrow-down";
+  import Check from "@lucide/svelte/icons/check";
+  import Volume from "@lucide/svelte/icons/volume-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Piano from "#lib/music/components/Piano.svelte";
   import { hzToMidiFloat, midiToHz, noteName } from "@repo/music-core";
   import { TUNINGS } from "@repo/music-core/data/index";
   import {
@@ -19,10 +19,10 @@
     type IntonationStats,
     type TunerState,
   } from "@repo/music-core/signal/pitch";
-  import { btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { audio, mic, settings, type MicFrame } from "$lib/music/runtime";
+  import { btnPrimary, btnStage } from "#lib/music/components/ui.ts";
+  import { audio, mic, settings, type MicFrame } from "#lib/music/runtime/index.ts";
   import NotePads from "./NotePads.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
   import {
     A4_CHOICES,
     centsToTarget,

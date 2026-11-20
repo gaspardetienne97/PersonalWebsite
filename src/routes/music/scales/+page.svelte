@@ -29,34 +29,34 @@
     type LadderState,
     type LineResult,
   } from "@repo/music-core/scoring/technique";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import InstrumentStage, { fitShift, fretTuning, linePositions } from "$lib/music/components/InstrumentStage.svelte";
-  import Fretboard from "$lib/music/components/Fretboard.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import InstrumentStage, { fitShift, fretTuning, linePositions } from "#lib/music/components/InstrumentStage.svelte";
+  import Fretboard from "#lib/music/components/Fretboard.svelte";
   import { scaleFretMarks, type Outcome } from "./fret-marks";
-  import { withSlips } from "$lib/music/drills/guitar/fretted";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore } from "$lib/music/notation/falling";
-  import Verdict, { type VerdictKind } from "$lib/music/components/Verdict.svelte";
-  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
+  import { withSlips } from "#lib/music/drills/guitar/fretted.ts";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "#lib/music/notation/FallingKeys.svelte";
+  import { lineScore } from "#lib/music/notation/falling.ts";
+  import Verdict, { type VerdictKind } from "#lib/music/components/Verdict.svelte";
+  import ViewSwitch from "#lib/music/notation/ViewSwitch.svelte";
   import { page } from "$app/state";
-  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
+  import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { scaleFingerMap } from "@repo/music-core/content/piano-fingering";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, readKeyed, runInstrument, runSource, tuningText, writeKeyed, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { benchFromUrl, Transport } from "$lib/music/drills/piano/transport.svelte";
-  import { audio, settings } from "$lib/music/runtime";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import type { SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, capture, pct, readKeyed, runInstrument, runSource, tuningText, writeKeyed, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { benchFromUrl, Transport } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { audio, settings } from "#lib/music/runtime/index.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
 
   const LADDER_KEY = "technique.tempo-ladder.v1";
   const cfg = new DrillSetup("scales", {

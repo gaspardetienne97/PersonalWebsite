@@ -7,24 +7,24 @@
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { page } from "$app/state";
-  import { replaceState } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import { noteName, type NoteEvent } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { CHANGES_SETUP, chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { gradeChanges, type ChangesResult } from "@repo/music-core/scoring/technique";
   import { CHANGE_GAP_MS } from "@repo/music-core/scoring/timing";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Hint from "$lib/music/components/Hint.svelte";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { assistanceFor, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { mic, settings } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Hint from "#lib/music/components/Hint.svelte";
+  import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes } from "#lib/music/components/feedback.svelte.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { assistanceFor, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { mic, settings } from "#lib/music/runtime/index.ts";
   import { exerciseFor, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
@@ -33,10 +33,10 @@
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
   import ShapeBoard from "./ShapeBoard.svelte";
-  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "$lib/music/notation/NoteHighway.svelte";
-  import type { Hit } from "$lib/music/notation/highway";
+  import NoteHighway, { highway, viewSwitch, type HighwayChord } from "#lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "#lib/music/notation/highway.ts";
   import { CHORD_MODES, openMode } from "./modes";
-  import ArrowRight from "lucide-svelte/icons/arrow-right";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
 
   const IDLE_MS = 20_000;
   const CLOCK_STEPS = [{ label: "A change every bar" }, { label: "A change every 2 beats" }, { label: "A change every beat" }];
@@ -81,10 +81,10 @@
 
   function save(list: ChordRef[], positions: (number | null)[]) {
     if (pairLink) {
-      const url = new URL(page.url);
+      const url = new URL(page.url.href);
       url.searchParams.delete("shape");
       url.searchParams.delete("to");
-      replaceState(url, page.state);
+      goto(url, { shallow: true, replace: true, state: page.state });
     }
     cfg.set({ chords: list.map((r) => chordId(instr, r)).join(","), positions: positions.map((p) => p ?? "").join(",") });
   }

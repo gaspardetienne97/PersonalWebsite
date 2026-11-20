@@ -5,23 +5,23 @@
   import { onDestroy, tick } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
   import { FLAT_NAMES, noteName } from "@repo/music-core";
   import { JAZZ, type ChordScaleRow } from "@repo/music-core/data/index";
   import { SCALE_GROUPS, SCALE_KINDS, scaleSemitones } from "@repo/music-core/theory/scales";
   import { CHORD_TEMPLATES, parseChordSymbol } from "@repo/music-core/theory/chords";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import type { CellMarks } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
-  import { audio, type SequenceHandle } from "$lib/music/runtime";
-  import { chordVoicing } from "$lib/music/drills/jam/backing";
-  import CircleOfFifths from "$lib/music/components/CircleOfFifths.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import type { CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnStage } from "#lib/music/components/ui.ts";
+  import { audio, type SequenceHandle } from "#lib/music/runtime/index.ts";
+  import { chordVoicing } from "#lib/music/drills/jam/backing.ts";
+  import CircleOfFifths from "#lib/music/components/CircleOfFifths.svelte";
   import ChordFinder from "./ChordFinder.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import Staff from "$lib/music/notation/Staff.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import Staff from "#lib/music/notation/Staff.svelte";
   import { accidentalCount, diatonicChords, keyAt, neighbour, opposite } from "@repo/music-core/theory/circle";
   import { functionChord } from "@repo/music-core/content/ear";
   import type { Score } from "@repo/music-core";
@@ -201,14 +201,14 @@
   <nav aria-label="Reference sections" class="min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.5rem)+1rem)] lg:z-20 lg:self-start">
     <div class="flex items-center gap-2 text-sm lg:hidden">
       <span class="font-medium">Jump to</span>
-      <Picker class="min-w-0 flex-1" label="Jump to a reference section" value={section ?? ""} placeholder="Chords and scales" options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?section=${id}`, { noScroll: true, keepFocus: true })} />
+      <Picker class="min-w-0 flex-1" label="Jump to a reference section" value={section ?? ""} placeholder="Chords and scales" options={SECTIONS.map((x) => ({ value: x.id, label: x.label }))} onchange={(id) => void goto(`?section=${id}`, { reset: false })} />
     </div>
     <ul class="hidden lg:flex lg:flex-col lg:gap-0.5">
       {#each SECTIONS as s (s.id)}
         <li>
           <a
             href="?section={s.id}"
-            data-sveltekit-noscroll
+            data-sveltekit-reset="false"
             aria-current={section === s.id ? "location" : undefined}
             class="flex min-h-11 shrink-0 items-center rounded-lg border border-ws-line px-3 text-sm whitespace-nowrap lg:border-transparent {section === s.id ? 'bg-instr-wash font-semibold text-instr-ink' : 'text-ws-soft hover:bg-ws-raised hover:text-ws-ink'}"
             >{s.label}</a

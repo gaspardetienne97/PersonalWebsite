@@ -13,7 +13,7 @@
   import { signatureFor } from "@repo/music-core/theory/circle";
   import { JAM_GROUPS, barBeats, chorusBars, transposeProgression } from "@repo/music-core/content/jam";
   import { TUNES, formatReharm, parseReharm, reharmDevice, reharmonise } from "@repo/music-core/content/tunes";
-  import { backingNotes } from "$lib/music/drills/jam/backing";
+  import { backingNotes } from "#lib/music/drills/jam/backing.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import {
     ACCOMP_PATTERNS,
@@ -43,28 +43,28 @@
     wholeBars,
   } from "@repo/music-core/content/accompany";
   import { gradeAccompaniment, type AccompanimentResult } from "@repo/music-core/scoring/piano";
-  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import StaffFold from "$lib/music/notation/StaffFold.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import FallingKeys from "$lib/music/notation/FallingKeys.svelte";
-  import { lineScore } from "$lib/music/notation/falling";
-  import ViewSwitch from "$lib/music/notation/ViewSwitch.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type ResultRow, type RunSummary } from "$lib/music/components/Results.svelte";
-  import BeatLane, { type LaneRow } from "$lib/music/drills/piano/BeatLane.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-    import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { modeFrom, openMode } from "$lib/music/drills/guitar/modes";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, pct, runInstrument, runSource } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, db, midi, settings, type SequenceHandle } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext, type SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import StaffFold from "#lib/music/notation/StaffFold.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import FallingKeys from "#lib/music/notation/FallingKeys.svelte";
+  import { lineScore } from "#lib/music/notation/falling.ts";
+  import ViewSwitch from "#lib/music/notation/ViewSwitch.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type ResultRow, type RunSummary } from "#lib/music/components/Results.svelte";
+  import BeatLane, { type LaneRow } from "#lib/music/drills/piano/BeatLane.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+    import { Transport, benchFromUrl, sounding, spanOf, swingBeat, type TimedNote } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { modeFrom, openMode } from "#lib/music/drills/guitar/modes.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, pct, runInstrument, runSource } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, db, midi, settings, type SequenceHandle } from "#lib/music/runtime/index.ts";
   import { goto } from "$app/navigation";
-  import { nextRun } from "$lib/music/advance.svelte";
+  import { nextRun } from "#lib/music/advance.svelte.ts";
   import { timingRow } from "@repo/music-core";
 
   const TEMPO = { min: 40, max: 180 };

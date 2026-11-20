@@ -2,10 +2,10 @@
   // The journal: the session list first, then this week against last, the 12-week heatmap,
   // goals and focus areas. A note on today's session waits behind its button; filters show
   // once there are enough sessions to need them.
-  import NotebookPen from "lucide-svelte/icons/notebook-pen";
-  import Ear from "lucide-svelte/icons/ear";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import X from "lucide-svelte/icons/x";
+  import NotebookPen from "@lucide/svelte/icons/notebook-pen";
+  import Ear from "@lucide/svelte/icons/ear";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import X from "@lucide/svelte/icons/x";
   import { tick } from "svelte";
   import type { Instrument } from "@repo/music-core";
   import { skillName } from "@repo/music-core/progress/graph";
@@ -20,8 +20,8 @@
   import WeekCompare from "../progress/WeekCompare.svelte";
   import Heatmap from "./Heatmap.svelte";
   import SessionEntry from "./SessionEntry.svelte";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import { instrumentOptions } from "$lib/music/components/instrument-icons";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import { instrumentOptions } from "#lib/music/components/instrument-icons.ts";
 
   let { announce = () => {}, now = Date.now() }: { announce?: (msg: string) => void; now?: number } = $props();
 

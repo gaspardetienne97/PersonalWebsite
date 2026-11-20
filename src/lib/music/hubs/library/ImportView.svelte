@@ -1,13 +1,13 @@
 <script lang="ts">
   // Import a score (MIDI, MusicXML, .mxl), or turn a recording or a MIDI take
   // into a draft fixed in the piano roll (TranscribeView), and save it.
-  import Upload from "lucide-svelte/icons/upload";
+  import Upload from "@lucide/svelte/icons/upload";
   import type { Score } from "@repo/music-core";
   import { page } from "$app/state";
   import TranscribeView from "./TranscribeView.svelte";
-  import Staff from "$lib/music/notation/Staff.svelte";
-  import { btn, btnPrimary, panel } from "$lib/music/components/ui";
-  import { db } from "$lib/music/runtime";
+  import Staff from "#lib/music/notation/Staff.svelte";
+  import { btn, btnPrimary, panel } from "#lib/music/components/ui.ts";
+  import { db } from "#lib/music/runtime/index.ts";
   import RollThumb from "./RollThumb.svelte";
   import {
     SCORE_ACCEPT,

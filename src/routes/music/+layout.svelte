@@ -2,26 +2,26 @@
   import "./woodshed.css";
   import { page } from "$app/state";
   import { onMount } from "svelte";
-  import { afterNavigate, replaceState } from "$app/navigation";
-  import { DRILL_ROUTES, noteNavigation } from "$lib/music/came-from.svelte";
-  import House from "lucide-svelte/icons/house";
-  import Disc from "lucide-svelte/icons/disc-3";
-  import Drills from "lucide-svelte/icons/layout-grid";
-  import Chart from "lucide-svelte/icons/chart-column";
-  import CircleDot from "lucide-svelte/icons/circle-dot";
-  import Cog from "lucide-svelte/icons/settings";
-  import Help from "lucide-svelte/icons/circle-question-mark";
-  import Collapse from "lucide-svelte/icons/panel-left-close";
-  import Expand from "lucide-svelte/icons/panel-left-open";
-  import Ellipsis from "lucide-svelte/icons/ellipsis";
-  import Globe from "lucide-svelte/icons/globe";
-  import Sun from "lucide-svelte/icons/sun";
-  import Moon from "lucide-svelte/icons/moon";
+  import { afterNavigate, goto } from "$app/navigation";
+  import { DRILL_ROUTES, noteNavigation } from "#lib/music/came-from.svelte.ts";
+  import House from "@lucide/svelte/icons/house";
+  import Disc from "@lucide/svelte/icons/disc-3";
+  import Drills from "@lucide/svelte/icons/layout-grid";
+  import Chart from "@lucide/svelte/icons/chart-column";
+  import CircleDot from "@lucide/svelte/icons/circle-dot";
+  import Cog from "@lucide/svelte/icons/settings";
+  import Help from "@lucide/svelte/icons/circle-question-mark";
+  import Collapse from "@lucide/svelte/icons/panel-left-close";
+  import Expand from "@lucide/svelte/icons/panel-left-open";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import Globe from "@lucide/svelte/icons/globe";
+  import Sun from "@lucide/svelte/icons/sun";
+  import Moon from "@lucide/svelte/icons/moon";
   import { toggleMode } from "mode-watcher";
-  import BenchStrip from "$lib/music/components/BenchStrip.svelte";
-  import CommandPalette from "$lib/music/components/CommandPalette.svelte";
-  import { bench } from "$lib/music/bench.svelte";
-  import { audio, input, midi, settings } from "$lib/music/runtime";
+  import BenchStrip from "#lib/music/components/BenchStrip.svelte";
+  import CommandPalette from "#lib/music/components/CommandPalette.svelte";
+  import { bench } from "#lib/music/bench.svelte.ts";
+  import { audio, input, midi, settings } from "#lib/music/runtime/index.ts";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
 
   let { children } = $props();
@@ -57,7 +57,10 @@
         (item.owns ?? []).some((p) => path === p || path.startsWith(p + "/"));
 
   // Remember where each page was opened from (drills show "Back to ...").
-  afterNavigate((nav) => noteNavigation(nav.from?.url, nav.to?.url));
+  afterNavigate((nav) => {
+    if (nav.shallow && nav.type === "goto") return;
+    return noteNavigation(nav.from?.url, nav.to?.url);
+  });
 
   let collapsed = $state(false);
   let moreOpen = $state(false);
@@ -103,10 +106,10 @@
     if (want && (INSTRUMENTS as readonly string[]).includes(want) && !bench.locked)
       void settings.ready.then(() => {
         if (settings.value.activeInstrument !== want) void settings.update({ activeInstrument: want as Instrument });
-        const url = new URL(page.url);
+        const url = new URL(page.url.href);
         url.searchParams.delete("instrument");
         try {
-          replaceState(url, page.state);
+          goto(url, { shallow: true, replace: true, state: page.state });
         } catch {
           /* before the router starts: the next navigation drops it */
         }

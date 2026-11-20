@@ -10,10 +10,10 @@
   // is off, and the clause is its own fix; after a silent run it names the
   // device, tests it live and links to the input choice (the dock leads with
   // Again). On-screen play always works, so it never blocks Start.
-  import Mic from "lucide-svelte/icons/mic";
-  import MicOff from "lucide-svelte/icons/mic-off";
-  import Plug from "lucide-svelte/icons/plug";
-  import CircleCheck from "lucide-svelte/icons/circle-check";
+  import Mic from "@lucide/svelte/icons/mic";
+  import MicOff from "@lucide/svelte/icons/mic-off";
+  import Plug from "@lucide/svelte/icons/plug";
+  import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { input, midi, mic, settings } from "../runtime";
   import { noteName } from "@repo/music-core/theory/notes";
   import { btn } from "./ui";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { TUNINGS } from "../data";
 import { AEROPHONE_RANGE, fingeringFor } from "./winds-pads";
 import { PHRASES, phraseBeats, phraseNotes, phrasesFor, stepsFromNotes } from "./phrases";

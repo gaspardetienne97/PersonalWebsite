@@ -8,14 +8,14 @@
   import { FEELS, feelPrompt, type FeelId } from "@repo/music-core/content/pads-studio";
   import { earLessons } from "@repo/music-core/lessons/ear";
   import { grooveTargetsFor } from "@repo/music-core/content/winds-pads";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import { earTrainer } from "$lib/music/drills/ear/trainer";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { type RunSummary } from "$lib/music/components/Results.svelte";
-  import { btnPrimary, btnStage } from "$lib/music/components/ui";
-  import { assistanceFor, pct } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio } from "$lib/music/runtime";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import { earTrainer } from "#lib/music/drills/ear/trainer.ts";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { type RunSummary } from "#lib/music/components/Results.svelte";
+  import { btnPrimary, btnStage } from "#lib/music/components/ui.ts";
+  import { assistanceFor, pct } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio } from "#lib/music/runtime/index.ts";
 
   const LENGTH = 10;
   const PASS = 8;

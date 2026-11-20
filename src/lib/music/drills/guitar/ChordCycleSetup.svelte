@@ -2,7 +2,7 @@
   // The setup for a cycle of chords: a card per chord (its diagram), tap one to
   // change its root, quality and position up the neck, add or remove chords.
   import type { ChordPosition, Tuning } from "@repo/music-core/data/index";
-  import ChordDiagram from "$lib/music/components/ChordDiagram.svelte";
+  import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
   import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, shortPosition, type ChordRef } from "./chords";

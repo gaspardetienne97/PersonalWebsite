@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { rng, stringTone } from "./fixtures";
 import { createOnsetDetector } from "./onset";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   analysisPrompts,
   barLabel,
@@ -35,8 +35,8 @@ describe("circle of fifths drills", () => {
 
   it("asks both ways: a key's count, and the key for a count", () => {
     const asks = seeds(40).map((r) => circlePrompt(r, { mode: "count", band: "four" }));
-    expect(asks.some((p) => /^How many/.test(p.ask))).toBe(true);
-    expect(asks.some((p) => /^Which major key has/.test(p.ask))).toBe(true);
+    expect(asks.some((p) => p.ask.startsWith("How many"))).toBe(true);
+    expect(asks.some((p) => p.ask.startsWith("Which major key has"))).toBe(true);
     const e = asks.find((p) => p.ask === "How many sharps or flats in E major?");
     if (e) expect(e.answer).toBe("4♯");
     expect([3, -2, 0].map(countLabel)).toEqual(["3♯", "2♭", "0"]);

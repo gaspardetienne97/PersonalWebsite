@@ -1,10 +1,9 @@
-import type { SvelteKitPWAOptions } from "@vite-pwa/sveltekit";
+import type { withPwa } from "@vite-pwa/sveltekit";
 
 export const pwaOptions = {
   scope: "/",
   buildBase: "/",
   registerType: "autoUpdate",
-  includeAssets: ["favicon.svg"],
   kit: {
     includeVersionFile: true,
   },
@@ -31,13 +30,16 @@ export const pwaOptions = {
       },
     ],
   },
-  workbox: {
+  // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
+  // single lazy ~2.2 MB chunk, split out in vite.config; raise the precache
+  // ceiling so the service worker build doesn't fail on it.
+  maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+  generateSW: {
     navigateFallback: undefined,
     cleanupOutdatedCaches: true,
     globIgnores: ["client/_app/immutable/assets/web back*.svg"],
-    // The narrator's neural-TTS runtime (Kokoro/transformers, /pdf, opt-in) is a
-    // single lazy ~2.2 MB chunk. It's consolidated via `advancedChunks` in
-    // vite.config; raise the precache ceiling so the SW build doesn't fail on it.
-    maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
   },
-} satisfies Partial<SvelteKitPWAOptions>;
+} satisfies NonNullable<Parameters<typeof withPwa>[1]>;
+
+// @vite-pwa/sveltekit 2 also loads this file on its own and reads its default export.
+export default pwaOptions;

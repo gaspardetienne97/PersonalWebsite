@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createHighPass, createInputFilter, type HighPass } from "./biquad";
 
 describe("40 Hz high-pass", () => {

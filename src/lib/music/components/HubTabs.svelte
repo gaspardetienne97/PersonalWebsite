@@ -11,7 +11,7 @@
   let { param, tabs, label, class: cls = "" }: Props = $props();
   const current = $derived(page.url.searchParams.get(param) ?? tabs[0].id);
   const hrefFor = (id: string) => {
-    const q = new URLSearchParams(page.url.searchParams);
+    const q = new URLSearchParams(page.url.search);
     // ?instrument= is applied once by the layout; a tab link must not replay it.
     q.delete("instrument");
     if (id === tabs[0].id) q.delete(param);
@@ -26,7 +26,7 @@
     <a
       href={hrefFor(t.id)}
       aria-current={current === t.id ? "page" : undefined}
-      data-sveltekit-noscroll
+      data-sveltekit-reset="false"
       class="flex min-h-11 items-center rounded-full px-4 text-sm font-medium {current === t.id
         ? 'bg-ws-ink text-ws-bg'
         : 'text-ws-soft hover:text-ws-ink'}">{t.label}</a

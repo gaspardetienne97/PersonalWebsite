@@ -11,7 +11,7 @@ import {
   type KitPad as ExportPad,
   type SampleKit as ExportKit,
 } from "@repo/music-core/io/mpc-kit";
-import type { SampleKit as RuntimeKit } from "$lib/music/runtime/audio.svelte";
+import type { SampleKit as RuntimeKit } from "#lib/music/runtime/audio.svelte.ts";
 
 export const KITS_KEY = "music.sample-kits";
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
-import { page, userEvent } from "vitest/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import "../../../app.css";
 import Header from "./Header.svelte";
 
@@ -11,14 +11,14 @@ afterEach(async () => {
 describe("Header", () => {
   it("collapses site links into a keyboard-operable mobile menu", async () => {
     await page.viewport(375, 812);
-    render(Header);
+    await render(Header);
     const trigger = page.getByRole("button", { name: "Site menu", exact: true });
     await expect.element(trigger).toBeVisible();
     expect(
       getComputedStyle(document.querySelector('nav[aria-label="Site navigation"]')!).display,
     ).toBe("none");
     await trigger.click();
-    for (const label of ["Home", "About", "Gallery", "Blog", "Narrator"])
+    for (const label of ["Home", "About", "Studio", "Blog"])
       await expect.element(page.getByRole("menuitem", { name: label, exact: true })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.element(trigger).toHaveFocus();
@@ -30,11 +30,18 @@ describe("Header", () => {
       .toBeVisible();
   });
 
-  it("links to route apps", async () => {
-    render(Header);
+  it("links to the site sections, leaving the big apps to Projects", async () => {
+    await render(Header);
 
-    expect(document.querySelector<HTMLAnchorElement>('a[href="/pdf"]')?.textContent).toContain(
-      "Narrator",
-    );
+    for (const [label, href] of [
+      ["About", "/about"],
+      ["Studio", "/studio"],
+      ["Blog", "/blog"],
+    ])
+      expect(document.querySelector<HTMLAnchorElement>(`a[href="${href}"]`)?.textContent).toContain(
+        label,
+      );
+    expect(document.querySelector('a[href="/pdf"]')).toBeNull();
+    expect(document.querySelector('a[href="/music"]')).toBeNull();
   });
 });

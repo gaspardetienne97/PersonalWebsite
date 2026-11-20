@@ -5,7 +5,7 @@
   // twice a second instead of every frame.
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
-  import { audio, type DroneTimbre } from "$lib/music/runtime";
+  import { audio, type DroneTimbre } from "#lib/music/runtime/index.ts";
   import { pretty, scopePath } from "./tuner";
 
   let { midi, timbre, playing }: { midi: number; timbre: DroneTimbre; playing: boolean } = $props();

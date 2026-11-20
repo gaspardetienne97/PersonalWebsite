@@ -2,7 +2,7 @@
 // input and output together, so an offset saved on the laptop speakers says nothing
 // about a Bluetooth speaker: each pair keeps its own, and this is the one place that
 // tells the router what to subtract.
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { untrack } from "svelte";
 import {
   AUDIO_INPUT,

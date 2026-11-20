@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { parseMusicXml, parseMxl } from "./musicxml";
 
 const pitch = (step: string, octave: number, alter = 0) =>

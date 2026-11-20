@@ -1,10 +1,10 @@
 <script lang="ts">
   import { TUNINGS } from "@repo/music-core/data/index";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { settings } from "$lib/music/runtime";
-  import Flashcards from "$lib/music/drills/reading/Flashcards.svelte";
-  import SightReading from "$lib/music/drills/reading/SightReading.svelte";
-  import { READING_SETUP } from "$lib/music/drills/reading/reading";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import Flashcards from "#lib/music/drills/reading/Flashcards.svelte";
+  import SightReading from "#lib/music/drills/reading/SightReading.svelte";
+  import { READING_SETUP } from "#lib/music/drills/reading/reading.ts";
 
   const cfg = new DrillSetup("reading", { ...READING_SETUP });
   const activity = $derived(cfg.value.activity === "sight-reading" ? "sight-reading" : "flashcards");

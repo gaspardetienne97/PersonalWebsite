@@ -3,7 +3,7 @@
   // live on a phone it starts folded (the lane above the keys carries the notes); the player's own
   // choice, once made, is kept on this device.
   import type { Snippet } from "svelte";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
   // `aside` shares the fold's row (the view switch, a setup toggle), so the staff starts one row higher.
   // `fold` starts it folded before a run too: a short stage where the lane, not the staff, shares the view with the keys.

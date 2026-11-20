@@ -3,8 +3,8 @@
 // back the score with only the notes changed (parts, key, sections and the
 // rest stay as they were).
 import type { Score } from "@repo/music-core";
-import { audio, type SequenceHandle } from "$lib/music/runtime";
-import { barBeats, mergeTies } from "$lib/music/notation/groups";
+import { audio, type SequenceHandle } from "#lib/music/runtime/index.ts";
+import { barBeats, mergeTies } from "#lib/music/notation/groups.ts";
 import {
   mapVoice,
   pickVoice,
@@ -12,8 +12,8 @@ import {
   setLength,
   type RollDoc,
   type RollVoice,
-} from "$lib/music/hubs/create/roll";
-import type { RollHost } from "$lib/music/hubs/create/PianoRoll.svelte";
+} from "#lib/music/hubs/create/roll.ts";
+import type { RollHost } from "#lib/music/hubs/create/PianoRoll.svelte";
 
 export class ScoreEditor implements RollHost {
   doc = $state<RollDoc>({ title: "", bpm: 90, lengthBeats: 4, voices: [] });

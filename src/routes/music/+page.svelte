@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import TodayView from "$lib/music/hubs/TodayView.svelte";
-  import DrillsView from "$lib/music/hubs/DrillsView.svelte";
-  import PathsView from "$lib/music/hubs/PathsView.svelte";
+  import TodayView from "#lib/music/hubs/TodayView.svelte";
+  import DrillsView from "#lib/music/hubs/DrillsView.svelte";
+  import PathsView from "#lib/music/hubs/PathsView.svelte";
 
   // Two tabs. Paths is a view inside Drills; its address (?tab=paths) is the one every path link already uses.
   const TABS = [
@@ -48,7 +48,7 @@
       <a
         href={t.href}
         aria-current={on ? "page" : undefined}
-        data-sveltekit-noscroll
+        data-sveltekit-reset="false"
         class="flex min-h-11 items-center rounded-full px-4 text-sm font-medium {on ? 'bg-ws-ink text-ws-bg' : 'text-ws-soft hover:text-ws-ink'}">{t.label}</a
       >
     {/each}

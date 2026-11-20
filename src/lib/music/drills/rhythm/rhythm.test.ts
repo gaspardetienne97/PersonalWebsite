@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { NoteEvent } from "@repo/music-core";
 import { expandRhythm, RHYTHM_PATTERNS, rhythmPattern } from "@repo/music-core/content/rhythm";
 import { gradePattern } from "@repo/music-core/scoring/rhythm";
@@ -17,7 +17,7 @@ import {
   voicing,
 } from "./rhythm";
 import { rhythmLine } from "./notation";
-import { assistanceFor } from "$lib/music/drill.svelte";
+import { assistanceFor } from "#lib/music/drill.svelte.ts";
 
 const on = (at: number, midi: number, instrument?: NoteEvent["instrument"]): NoteEvent => ({
   kind: "noteon",

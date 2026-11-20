@@ -117,7 +117,7 @@ export function voicingItems(opts: {
           group: c.group,
           // The staff's signature: a dorian set is written in its parent major.
           keyPc: type.key === "dorian" ? pc(root - 2) : root,
-          minor: type.key === "tune" && / minor$/.test(tune.key),
+          minor: type.key === "tune" && tune.key.endsWith(" minor"),
           kind: "jazz" as const,
           show: [
             ...c.left.map((m) => ({ midi: m, hand: "left" as const })),

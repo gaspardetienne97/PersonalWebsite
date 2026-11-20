@@ -3,14 +3,14 @@
   // microphone on or off, and which devices they use. MIDI listens to every
   // connected input that is not ignored, each as its instrument (the same
   // profile as Connect); the microphone uses one input device.
-  import Check from "lucide-svelte/icons/check";
+  import Check from "@lucide/svelte/icons/check";
   import type { Instrument } from "@repo/music-core";
   import { detectInstrument } from "@repo/music-core/io/devices";
   import { audio, midi, mic, settings } from "../runtime";
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { btn, btnPrimary } from "./ui";
-  import { micOptions } from "$lib/music/hubs/connect/rig";
+  import { micOptions } from "#lib/music/hubs/connect/rig.ts";
 
   const INSTRUMENTS = instrumentOptions((i) => INSTRUMENT_LABEL[i]);
 

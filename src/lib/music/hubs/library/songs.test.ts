@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { Score } from "@repo/music-core";
 import { scoreToMidi } from "@repo/music-core/io/midi-file";
 import {

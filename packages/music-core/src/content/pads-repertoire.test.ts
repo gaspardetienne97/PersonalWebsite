@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { GROOVE_VOICES, grooveTargetsFor } from "./winds-pads";
 import { gradeGroove, type GrooveResult } from "../scoring/pads";
 import {

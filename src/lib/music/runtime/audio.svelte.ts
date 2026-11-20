@@ -11,7 +11,7 @@
 // - Lights follow the audio: raw audio time, scheduling time and
 //   performance.now() are sampled in one call and the start is projected onto
 //   the performance clock, so `startPerf` is when time 0 actually sounds.
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { untrack } from "svelte";
 import type * as ToneNS from "tone";
 import type { PlaybackSound } from "@repo/music-core";
@@ -691,6 +691,7 @@ class RunHandle implements Run {
   #playing = $state(true);
   #timers = new Set<ReturnType<typeof setTimeout>>();
   #resolve!: () => void;
+
   constructor(
     readonly bus: ToneNS.Gain,
     readonly startPerf: number,

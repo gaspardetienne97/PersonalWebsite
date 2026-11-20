@@ -3,17 +3,17 @@
   // readout, and for MPC ports the pad map with a guided Learn pads capture.
   import { INSTRUMENTS, type DeviceProfile, type Instrument } from "@repo/music-core";
   import { PAD_PRESETS, detectInstrument, presetForMap, type PadPresetId } from "@repo/music-core/io/devices";
-  import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
-  import { btn } from "$lib/music/components/ui";
-  import { calibration, midi, type PortInfo } from "$lib/music/runtime";
+  import { INSTRUMENT_LABEL } from "#lib/music/bench.svelte.ts";
+  import { btn } from "#lib/music/components/ui.ts";
+  import { calibration, midi, type PortInfo } from "#lib/music/runtime/index.ts";
   import { MIDI_INPUT, deviceInput } from "@repo/music-core/io/calibration";
-  import { padLabel } from "$lib/music/drills/pads/midi-status";
-  import { INSTRUMENT_ICON, instrumentOptions } from "$lib/music/components/instrument-icons";
-  import Cable from "lucide-svelte/icons/cable";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
+  import { INSTRUMENT_ICON, instrumentOptions } from "#lib/music/components/instrument-icons.ts";
+  import Cable from "@lucide/svelte/icons/cable";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { noteName } from "@repo/music-core";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { port, announce }: { port: PortInfo; announce: (text: string) => void } = $props();
 

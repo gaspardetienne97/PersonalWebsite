@@ -1,19 +1,19 @@
 <script lang="ts">
   // The song's tracks: the beat and each melody, one row each to play it
   // alone, name it, pick what it sounds like, set its level or mute it, and a menu.
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
-  import Plus from "lucide-svelte/icons/plus";
-  import Minus from "lucide-svelte/icons/minus";
-  import Dots from "lucide-svelte/icons/ellipsis";
-  import Volume from "lucide-svelte/icons/volume-2";
-  import VolumeOff from "lucide-svelte/icons/volume-off";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Minus from "@lucide/svelte/icons/minus";
+  import Dots from "@lucide/svelte/icons/ellipsis";
+  import Volume from "@lucide/svelte/icons/volume-2";
+  import VolumeOff from "@lucide/svelte/icons/volume-off";
   import type { Snippet } from "svelte";
   import { goto } from "$app/navigation";
   import * as Menu from "@repo/ui/dropdown-menu";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import { audio } from "$lib/music/runtime";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import { audio } from "#lib/music/runtime/index.ts";
   import { kits } from "./kitStore.svelte";
   import { session, type TrackId } from "./session.svelte";
   import { barsOf, hitCount, MAX_BARS, removeBar } from "./pattern";

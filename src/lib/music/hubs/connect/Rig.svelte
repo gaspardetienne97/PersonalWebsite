@@ -5,13 +5,13 @@
   // channel stays dark here exactly as it would in a drill.
   import type { Snippet } from "svelte";
   import { detectInstrument } from "@repo/music-core/io/devices";
-  import Cable from "lucide-svelte/icons/cable";
-  import Check from "lucide-svelte/icons/check";
-  import Ellipsis from "lucide-svelte/icons/ellipsis";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
-  import { input, midi, mic, settings } from "$lib/music/runtime";
+  import Cable from "@lucide/svelte/icons/cable";
+  import Check from "@lucide/svelte/icons/check";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { INSTRUMENT_ICON } from "#lib/music/components/instrument-icons.ts";
+  import { input, midi, mic, settings } from "#lib/music/runtime/index.ts";
   import { hitLabel, tileFor, type RigTile } from "./rig";
   import { noteName } from "@repo/music-core";
   import MicCheck from "./MicCheck.svelte";

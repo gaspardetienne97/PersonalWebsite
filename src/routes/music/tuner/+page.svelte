@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import Listen from "$lib/music/hubs/tools/tuner/Listen.svelte";
-  import Drone from "$lib/music/hubs/tools/tuner/Drone.svelte";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import Listen from "#lib/music/hubs/tools/tuner/Listen.svelte";
+  import Drone from "#lib/music/hubs/tools/tuner/Drone.svelte";
 
   const TABS = [
     { id: "tune", label: "Tune" },

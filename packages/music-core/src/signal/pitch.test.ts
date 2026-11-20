@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createHighPass, createInputFilter } from "./biquad";
 import { stringTone, synth, type Partial } from "./fixtures";
 import {

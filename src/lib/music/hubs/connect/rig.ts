@@ -2,8 +2,8 @@
 // as, and the microphone choices. Connect is the one place the input device
 // is picked; Settings only shows the stored label.
 import { noteName, type Instrument } from "@repo/music-core";
-import type { PickOption } from "$lib/music/components/Picker.svelte";
-import { padLabel } from "$lib/music/drills/pads/midi-status";
+import type { PickOption } from "#lib/music/components/Picker.svelte";
+import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
 
 export type RigTile = "keyboard" | "mpc" | "aerophone";
 

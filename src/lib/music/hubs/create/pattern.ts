@@ -5,7 +5,7 @@ import { DRUM_KITS, type GrooveDef } from "@repo/music-core/data/index";
 import { PAD_LEVELS, PAD_REPERTOIRE } from "@repo/music-core/content/pads-repertoire";
 import { swungBeat } from "@repo/music-core/content/pads-grid";
 import { GROOVE_VOICES } from "@repo/music-core/content/winds-pads";
-import type { SequenceNote } from "$lib/music/runtime/audio.svelte";
+import type { SequenceNote } from "#lib/music/runtime/audio.svelte.ts";
 
 export const STEPS = 16;
 export const PATTERNS_KEY = "music.beat-patterns";

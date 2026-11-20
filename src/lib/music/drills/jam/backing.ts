@@ -5,7 +5,7 @@ import { barBeats, swings, type Progression } from "@repo/music-core/content/jam
 import { callPhrase } from "@repo/music-core/content/call-response";
 import type { Rand } from "@repo/music-core/content/random";
 import { bandBar, type Windows } from "@repo/music-core/scoring/improv";
-import { classicBacking, type SequenceNote } from "$lib/music/runtime";
+import { classicBacking, type SequenceNote } from "#lib/music/runtime/index.ts";
 
 /** "rhythm" is drums and bass with no chords, for comping over. */
 export type BackingMode = "none" | "drums" | "chords" | "both" | "rhythm";

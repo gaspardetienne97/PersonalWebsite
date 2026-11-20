@@ -12,9 +12,9 @@
   import { CAPABILITY_LABEL, fallingSentence, MIN_EVIDENCE, nextBuckets, pct, plural, previewHref, relativeDay, skillRows, type SkillRow } from "./model";
   import Ring from "./Ring.svelte";
   import ProgressStrip from "./ProgressStrip.svelte";
-  import Play from "lucide-svelte/icons/play";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import Play from "@lucide/svelte/icons/play";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { btn, btnPrimary } from "../../components/ui";
 
   let { now = Date.now(), strip = true }: { now?: number; strip?: boolean } = $props();

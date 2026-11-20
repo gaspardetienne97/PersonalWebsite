@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type LucideIcon from "lucide-svelte/icons/piano";
+  import type LucideIcon from "@lucide/svelte/icons/piano";
   export interface PickOption {
     value: string;
     label: string;

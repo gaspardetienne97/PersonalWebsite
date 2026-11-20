@@ -130,7 +130,7 @@ function lcs(want, got) {
     for (let j = m - 1; j >= 0; j--)
       d[i][j] = want[i] === got[j] ? d[i + 1][j + 1] + 1 : Math.max(d[i + 1][j], d[i][j + 1]);
   const used = [];
-  for (let i = 0, j = 0; i < n && j < m; ) {
+  for (let i = 0, j = 0; i < n && j < m;) {
     if (want[i] === got[j]) {
       used.push(j);
       i++;

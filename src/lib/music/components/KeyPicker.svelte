@@ -4,7 +4,7 @@
   // or a fourth away is one tap over. Values are pitch classes; `name` spells
   // them the way the caller's drill does (Gb or F#, Db or C#).
   import * as Popover from "@repo/ui/popover";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { cn } from "@repo/ui/utils";
   import { CIRCLE } from "@repo/music-core/theory/circle";
   import CircleOfFifths from "./CircleOfFifths.svelte";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { TUNES } from "../content/tunes";
 import { IMPROV_GAMES, gameOf, gradeImprov, guideTones, type ImprovNote } from "../scoring/improv";
 import { lessonProblems } from "./check";

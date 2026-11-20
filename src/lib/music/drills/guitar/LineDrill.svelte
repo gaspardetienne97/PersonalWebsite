@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { replaceState } from "$app/navigation";
+  import { goto } from "$app/navigation";
   // Spider, Positions, Legato and Fingerpicking: a fretted line played after the
   // count-in, graded pitch x 0.85 + evenness x 0.15 (scoring rules 7).
   // Input: on-screen frets (which also carry the string), MIDI, or the microphone.
@@ -33,27 +33,27 @@
     type FretTarget,
   } from "@repo/music-core/content/technique";
   import { gradeLine, legatoAttacks, type LineResult } from "@repo/music-core/scoring/technique";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
-  import Fretboard, { type FretMark } from "$lib/music/components/Fretboard.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
-  import NoteHighway, { highway, viewSwitch, type HighwayNote } from "$lib/music/notation/NoteHighway.svelte";
-  import type { Hit } from "$lib/music/notation/highway";
-  import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes } from "$lib/music/components/feedback.svelte";
-  import { btn, btnStage } from "$lib/music/components/ui";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, tuningText, type Capture } from "$lib/music/drill.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
+  import Fretboard, { type FretMark } from "#lib/music/components/Fretboard.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
+  import NoteHighway, { highway, viewSwitch, type HighwayNote } from "#lib/music/notation/NoteHighway.svelte";
+  import type { Hit } from "#lib/music/notation/highway.ts";
+  import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes } from "#lib/music/components/feedback.svelte.ts";
+  import { btn, btnStage } from "#lib/music/components/ui.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, capture, pct, runInstrument, runSource, tuningText, type Capture } from "#lib/music/drill.svelte.ts";
   import { nearMiss } from "@repo/music-core/signal/pitch";
-  import { practice } from "$lib/music/practice.svelte";
-  import { audio, mic, settings } from "$lib/music/runtime";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { audio, mic, settings } from "#lib/music/runtime/index.ts";
   import { exerciseFor, skillsFor, withSlips, type Outcome } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
-  import Verdict from "$lib/music/components/Verdict.svelte";
+  import Verdict from "#lib/music/components/Verdict.svelte";
   import { strokeVerdict, timingCounts } from "./strum-slots";
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
@@ -143,10 +143,10 @@
   const pickKey = $derived(pickShapes.map((x) => x.id).join(">"));
   function savePick(list: ChordRef[], positions: (number | null)[]) {
     if (pairLink) {
-      const url = new URL(page.url);
+      const url = new URL(page.url.href);
       url.searchParams.delete("shape");
       url.searchParams.delete("to");
-      replaceState(url, page.state);
+      goto(url, { shallow: true, replace: true, state: page.state });
     }
     cfg.set({ chords: list.map((r) => chordId(instr, r)).join(","), positions: positions.map((p) => p ?? "").join(",") });
   }
@@ -193,10 +193,10 @@
     const next = spiderSet.includes(n) ? spiderSet.filter((x) => x !== n) : [...spiderSet, n];
     if (!next.length) return;
     if (spanLink) {
-      const url = new URL(page.url);
+      const url = new URL(page.url.href);
       url.searchParams.delete("span");
       url.searchParams.delete("string");
-      replaceState(url, page.state);
+      goto(url, { shallow: true, replace: true, state: page.state });
     }
     cfg.set({ strings: next.sort((a, b) => a - b).join(",") });
   }

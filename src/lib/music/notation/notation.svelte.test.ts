@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { render } from "vitest-browser-svelte";
-import { page, userEvent } from "vitest/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import type { Score } from "@repo/music-core";
 import Staff from "./Staff.svelte";
 import Tab from "./Tab.svelte";
@@ -45,7 +45,7 @@ const svgIn = async (el: HTMLElement) => {
 
 describe("Staff", () => {
   it("engraves a grand staff with one cursor spanning both staves", async () => {
-    const { container } = render(Staff, { score: piano, cursorBeat: 1 });
+    const { container } = await render(Staff, { score: piano, cursorBeat: 1 });
     const svg = await svgIn(container);
     expect(svg.querySelectorAll(".vf-stavenote").length).toBeGreaterThan(20);
     await vi.waitFor(() => expect(container.querySelectorAll("[data-cursor]").length).toBe(1));
@@ -64,7 +64,7 @@ describe("Staff", () => {
 
   it("selects a range with two bar taps and shows the Start handle after the first", async () => {
     const onselect = vi.fn();
-    const { container } = render(Staff, { score: piano, onselect });
+    const { container } = await render(Staff, { score: piano, onselect });
     await svgIn(container);
     await page.getByRole("button", { name: "Bar 2", exact: true }).click();
     await expect.element(page.getByText("Start, bar 2", { exact: true })).toBeVisible();
@@ -79,7 +79,7 @@ describe("Staff", () => {
 
   it("selects a range from the keyboard", async () => {
     const onselect = vi.fn();
-    const { container } = render(Staff, { score: piano, onselect });
+    const { container } = await render(Staff, { score: piano, onselect });
     await svgIn(container);
     const bar1 = page.getByRole("button", { name: "Bar 1", exact: true });
     (bar1.element() as HTMLElement).focus();
@@ -89,7 +89,10 @@ describe("Staff", () => {
   });
 
   it("colours group notes and marks a wrong group", async () => {
-    const { container } = render(Staff, { score: piano, groupStates: { 0: "active", 1: "wrong" } });
+    const { container } = await render(Staff, {
+      score: piano,
+      groupStates: { 0: "active", 1: "wrong" },
+    });
     await svgIn(container);
     await vi.waitFor(() =>
       expect(container.querySelectorAll('g[data-state="active"]').length).toBe(2),
@@ -105,7 +108,7 @@ describe("Staff", () => {
         { id: "a", name: "A", notes: [{ midi: 60, startBeat: 1 / 5, durationBeats: 1 / 5 }] },
       ],
     };
-    render(Staff, { score: triplets, onfallback });
+    await render(Staff, { score: triplets, onfallback });
     await expect
       .element(
         page.getByText(/The staff can't draw this music: it has tuplets other than triplets/),
@@ -143,7 +146,7 @@ describe("Staff", () => {
       ],
     };
     // Groups: 0-2 the triplet, 3 and 4 the beamed eighths, 5 the tied note, 6 the left hand's second bar.
-    const { container, rerender } = render(Staff, { score });
+    const { container, rerender } = await render(Staff, { score });
     const svg = await svgIn(container);
     expect(svg.querySelectorAll(".vf-tuplet").length).toBe(1);
     expect(svg.querySelectorAll(".vf-clef").length).toBeGreaterThanOrEqual(3);
@@ -175,7 +178,7 @@ describe("Tab", () => {
   };
 
   it("draws fret numbers", async () => {
-    const { container } = render(Tab, { score: riff, tuning: guitar });
+    const { container } = await render(Tab, { score: riff, tuning: guitar });
     const svg = await svgIn(container);
     await vi.waitFor(() => expect(svg.querySelectorAll(".vf-tabnote").length).toBe(4));
     const text = [...svg.querySelectorAll(".vf-tabnote text")].map((t) => t.textContent);
@@ -187,14 +190,14 @@ describe("Tab", () => {
       ...riff,
       voices: [{ ...riff.voices[0], notes: riff.voices[0].notes.map((n) => ({ ...n, midi: 30 })) }],
     };
-    render(Tab, { score: low, tuning: guitar });
+    await render(Tab, { score: low, tuning: guitar });
     await expect.element(page.getByText(/4 of 4 notes are outside this tuning/)).toBeVisible();
   });
 });
 
 describe("Waterfall and fingering", () => {
   it("drops notes on the columns of their keys", async () => {
-    const { container } = render(Waterfall, { score: piano, low: 48, high: 72, beat: 0 });
+    const { container } = await render(Waterfall, { score: piano, low: 48, high: 72, beat: 0 });
     await vi.waitFor(() => expect(container.querySelectorAll(".note").length).toBeGreaterThan(4));
     expect(container.querySelector(".note.left")).toBeTruthy();
     expect(container.querySelector(".note.right")).toBeTruthy();
@@ -211,7 +214,7 @@ describe("Waterfall and fingering", () => {
         },
       ],
     };
-    const { container } = render(FingeringRow, { score: tune });
+    const { container } = await render(FingeringRow, { score: tune });
     await vi.waitFor(() => expect(container.querySelectorAll("li").length).toBe(3));
     expect(container.querySelectorAll("li svg").length).toBe(2);
     await expect.element(page.getByText("no fingering")).toBeVisible();

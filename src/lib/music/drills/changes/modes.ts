@@ -2,7 +2,7 @@
 // keeps its own catalog entry, setup and history. The title is a picker over them.
 import { catalogEntry } from "@repo/music-core/content/catalog";
 import { MediaQuery } from "svelte/reactivity";
-import { trainerModes } from "$lib/music/components/TrainerSwitch.svelte";
+import { trainerModes } from "#lib/music/components/TrainerSwitch.svelte";
 
 export const CHANGES_TITLE = "Play over changes";
 

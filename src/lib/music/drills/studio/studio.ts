@@ -5,8 +5,8 @@ import type { ControlEvent, NoteEvent, Score, ScoreGroup, ScoreSection } from "@
 import { bendWobble } from "@repo/music-core/content/aero-skills";
 import { scoreGroups } from "@repo/music-core/scoring/follower";
 import type { GroupVerdict } from "@repo/music-core/scoring/follower";
-import type { BeatRange } from "$lib/music/notation/groups";
-import type { GroupState } from "$lib/music/notation/NotationFrame.svelte";
+import type { BeatRange } from "#lib/music/notation/groups.ts";
+import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
 import { drumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
 
 export type RangeMode = "whole" | "sections" | "custom";
@@ -350,7 +350,7 @@ export function continuity(
   const played = new Set([...expected].filter((bar) => beats.some((b) => barOf(b + 0.25) === bar)));
   let longest = 0;
   let gapAt: number | null = null;
-  for (let i = 0; i < covered.length; ) {
+  for (let i = 0; i < covered.length;) {
     if (covered[i]) {
       i++;
       continue;

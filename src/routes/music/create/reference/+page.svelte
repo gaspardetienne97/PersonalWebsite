@@ -1,7 +1,7 @@
 <script lang="ts">
   // The chord and scale reference: tools for making music, so it sits with Create, not with the songs.
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import ReferenceView from "$lib/music/hubs/library/ReferenceView.svelte";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import ReferenceView from "#lib/music/hubs/library/ReferenceView.svelte";
 
   let status = $state("Showing the chord and scale reference.");
 </script>

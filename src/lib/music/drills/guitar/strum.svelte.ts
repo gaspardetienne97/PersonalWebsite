@@ -5,7 +5,7 @@
 // which pitch classes ring, not which string rang them.
 import { framesWindow, readChord } from "@repo/music-core/signal/chord";
 import { CHORD_WINDOW_MS } from "@repo/music-core/signal/chroma";
-import { input, mic, type MicFrame } from "$lib/music/runtime";
+import { input, mic, type MicFrame } from "#lib/music/runtime/index.ts";
 
 const HISTORY_MS = 2500;
 

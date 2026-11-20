@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { isBlackKey } from "@repo/music-core";
 import { fitRange } from "./Piano.svelte";
 

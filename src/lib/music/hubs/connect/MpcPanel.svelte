@@ -1,15 +1,15 @@
 <script lang="ts">
-  import Drum from "lucide-svelte/icons/drum";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Drum from "@lucide/svelte/icons/drum";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   // The MPC diagnostic that made the link debuggable (hardware notes 1): pick
   // the output, link it (the app shell keeps the heartbeat on every page),
   // prove the output with one lit pad, read pad order off a rainbow, and see
   // the last frames both ways plus the blocker in words.
   import { pickMpcOutput } from "@repo/music-core/io/devices";
   import { PAD_COLORS } from "@repo/music-core/io/mpc-sysex";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { midi } from "$lib/music/runtime";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { midi } from "#lib/music/runtime/index.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (text: string) => void } = $props();
 

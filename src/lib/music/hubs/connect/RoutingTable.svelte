@@ -3,10 +3,10 @@
   // stands in. Scrolls inside its own box on a phone (the old one was 482 px).
   import { INSTRUMENTS, type InputSource, type Instrument, type PreferredSurface } from "@repo/music-core";
   import { defaultSurface } from "@repo/music-core/io/devices";
-  import { INSTRUMENT_LABEL } from "$lib/music/bench.svelte";
-  import { INSTRUMENT_ICON } from "$lib/music/components/instrument-icons";
-  import { settings } from "$lib/music/runtime";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { INSTRUMENT_LABEL } from "#lib/music/bench.svelte.ts";
+  import { INSTRUMENT_ICON } from "#lib/music/components/instrument-icons.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let { announce }: { announce: (text: string) => void } = $props();
 

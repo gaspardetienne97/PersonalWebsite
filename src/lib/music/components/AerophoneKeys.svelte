@@ -82,10 +82,10 @@
   // not use (from `heldMidi`) shows red. The player fingers the written note,
   // so both are looked up at the reading key's written pitch.
   import { noteName } from "@repo/music-core";
-  import { fingeringWords } from "$lib/music/drills/aerophone/names";
+  import { fingeringWords } from "#lib/music/drills/aerophone/names.ts";
   import { fingeringFor as chartEntry } from "@repo/music-core/content/winds-pads";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
-  import { settings } from "$lib/music/runtime";
+  import { settings } from "#lib/music/runtime/index.ts";
 
   interface Props {
     midi: number | null;

@@ -1,27 +1,27 @@
 // One icon per hue: the instrument's own icon, and one each for the areas any instrument plays.
-import Ear from "lucide-svelte/icons/ear";
-import BookOpen from "lucide-svelte/icons/book-open";
-import AudioWaveform from "lucide-svelte/icons/audio-waveform";
-import Sparkles from "lucide-svelte/icons/sparkles";
+import Ear from "@lucide/svelte/icons/ear";
+import BookOpen from "@lucide/svelte/icons/book-open";
+import AudioWaveform from "@lucide/svelte/icons/audio-waveform";
+import Sparkles from "@lucide/svelte/icons/sparkles";
 import type { Hue } from "../bench.svelte";
 import { INSTRUMENT_ICON } from "../components/instrument-icons";
-import Ruler from "lucide-svelte/icons/ruler";
-import Scale from "lucide-svelte/icons/scale";
-import Smile from "lucide-svelte/icons/smile";
-import FlagTriangleRight from "lucide-svelte/icons/flag-triangle-right";
-import ListOrdered from "lucide-svelte/icons/list-ordered";
-import Route from "lucide-svelte/icons/route";
-import Repeat from "lucide-svelte/icons/repeat";
-import Stairs from "lucide-svelte/icons/chart-no-axes-column-increasing";
-import ArrowDownUp from "lucide-svelte/icons/arrow-down-up";
-import TrendingDown from "lucide-svelte/icons/trending-down";
-import Crosshair from "lucide-svelte/icons/crosshair";
-import SearchX from "lucide-svelte/icons/search-x";
-import House from "lucide-svelte/icons/house";
-import PencilLine from "lucide-svelte/icons/pencil-line";
-import Library from "lucide-svelte/icons/library";
-import Shuffle from "lucide-svelte/icons/shuffle";
-import HeartPulse from "lucide-svelte/icons/heart-pulse";
+import Ruler from "@lucide/svelte/icons/ruler";
+import Scale from "@lucide/svelte/icons/scale";
+import Smile from "@lucide/svelte/icons/smile";
+import FlagTriangleRight from "@lucide/svelte/icons/flag-triangle-right";
+import ListOrdered from "@lucide/svelte/icons/list-ordered";
+import Route from "@lucide/svelte/icons/route";
+import Repeat from "@lucide/svelte/icons/repeat";
+import Stairs from "@lucide/svelte/icons/chart-no-axes-column-increasing";
+import ArrowDownUp from "@lucide/svelte/icons/arrow-down-up";
+import TrendingDown from "@lucide/svelte/icons/trending-down";
+import Crosshair from "@lucide/svelte/icons/crosshair";
+import SearchX from "@lucide/svelte/icons/search-x";
+import House from "@lucide/svelte/icons/house";
+import PencilLine from "@lucide/svelte/icons/pencil-line";
+import Library from "@lucide/svelte/icons/library";
+import Shuffle from "@lucide/svelte/icons/shuffle";
+import HeartPulse from "@lucide/svelte/icons/heart-pulse";
 
 export const HUE_ICON: Record<Hue, typeof Ear> = {
   ...INSTRUMENT_ICON,

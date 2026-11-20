@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { advance, type AdvancePlan, type AdvanceState } from "./advance";
 
 const clean = { score: 0.95, correct: true };

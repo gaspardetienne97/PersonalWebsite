@@ -4,30 +4,30 @@
   // judged from CC 64 against the chord's first note; the line under the chart
   // draws what the pedal did.
   import { onDestroy } from "svelte";
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
   import { FLAT_NAMES, noteName, pc } from "@repo/music-core";
   import { PEDAL_PROGRESSIONS, pedalChords } from "@repo/music-core/content/piano";
   import { gradePedal, PEDAL, type PedalResult, type PedalVerdict } from "@repo/music-core/scoring/piano";
-  import DrillShell, { type DrillMode, type Phase, type RunContext } from "$lib/music/components/DrillShell.svelte";
+  import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
   import { pedalLesson } from "@repo/music-core/lessons/technique";
-  import Piano from "$lib/music/components/Piano.svelte";
-  import StaffFold from "$lib/music/notation/StaffFold.svelte";
-  import LineNotation from "$lib/music/notation/LineNotation.svelte";
+  import Piano from "#lib/music/components/Piano.svelte";
+  import StaffFold from "#lib/music/notation/StaffFold.svelte";
+  import LineNotation from "#lib/music/notation/LineNotation.svelte";
   import { signatureFor } from "@repo/music-core/theory/circle";
-  import Choice from "$lib/music/components/Choice.svelte";
-  import KeyPicker from "$lib/music/components/KeyPicker.svelte";
-  import type { SetupClause } from "$lib/music/components/DrillShell.svelte";
-  import Stat from "$lib/music/components/Stat.svelte";
-  import Results, { silentRun, type RunSummary } from "$lib/music/components/Results.svelte";
-  import { Flashes, type CellMarks } from "$lib/music/components/feedback.svelte";
-  import { benchFromUrl, sounding, spanOf, Transport, type TimedNote } from "$lib/music/drills/piano/transport.svelte";
-  import { DrillSetup } from "$lib/music/setup.svelte";
-  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "$lib/music/drill.svelte";
-  import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
-  import { nextRun, tempoAnd } from "$lib/music/advance.svelte";
+  import Choice from "#lib/music/components/Choice.svelte";
+  import KeyPicker from "#lib/music/components/KeyPicker.svelte";
+  import type { SetupClause } from "#lib/music/components/DrillShell.svelte";
+  import Stat from "#lib/music/components/Stat.svelte";
+  import Results, { silentRun, type RunSummary } from "#lib/music/components/Results.svelte";
+  import { Flashes, type CellMarks } from "#lib/music/components/feedback.svelte.ts";
+  import { benchFromUrl, sounding, spanOf, Transport, type TimedNote } from "#lib/music/drills/piano/transport.svelte.ts";
+  import { DrillSetup } from "#lib/music/setup.svelte.ts";
+  import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
 
   const TEMPO = { min: 40, max: 120 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));

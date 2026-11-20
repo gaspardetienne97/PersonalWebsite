@@ -5,10 +5,10 @@
   import { input, midi } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
   import type { CellMarks, Flashes } from "./feedback.svelte";
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
-  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
-  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import ChevronsLeft from "@lucide/svelte/icons/chevrons-left";
+  import ChevronsRight from "@lucide/svelte/icons/chevrons-right";
 
   interface Props {
     base?: number;

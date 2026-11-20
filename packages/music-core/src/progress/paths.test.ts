@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { ScoringEvent } from "../types";
 import { ev, run, T0 } from "./fixtures";
 import { DAY_MS } from "./mastery";

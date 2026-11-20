@@ -1,8 +1,8 @@
 // The timed run that chord scales, licks, comping and accompaniment share: capture from half a beat
 // before the downbeat, the transport following the shell's clock, and one timer that ends the run.
 import type { NoteEvent } from "@repo/music-core";
-import type { RunContext } from "$lib/music/components/DrillShell.svelte";
-import { capture, type Capture } from "$lib/music/drill.svelte";
+import type { RunContext } from "#lib/music/components/DrillShell.svelte";
+import { capture, type Capture } from "#lib/music/drill.svelte.ts";
 
 export class TimedRun {
   #cap: Capture | null = null;

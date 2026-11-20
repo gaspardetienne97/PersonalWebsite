@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { TUNINGS } from "../data";
 import { noteName } from "../theory/notes";
 import { lessonProblems } from "./check";
@@ -89,8 +89,7 @@ describe("fretboard lessons", () => {
       const [a, b] = marks(octave.figure);
       expect(a.label).toBe(b.label);
       expect(a.label).not.toBe("R");
-      if (shown.includes(2))
-        expect(b.fret - a.fret).toBe(2); // the figure shows a pair that follows the regular case
+      if (shown.includes(2)) expect(b.fret - a.fret).toBe(2); // the figure shows a pair that follows the regular case
       else
         expect(text(t, "Octave shapes")).toContain("No two strings two apart here have both gaps");
     }

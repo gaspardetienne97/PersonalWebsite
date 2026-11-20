@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { rng } from "./random";
 import { ostinatoGroove, ostinatoReport, readingLines } from "./pad-skills";
 import {
@@ -38,7 +38,10 @@ describe("chops", () => {
       Array.from({ length: 16 }, (_, i) => 36 + i),
     );
     expect(p.targets.map((t) => t.beat)).toEqual(Array.from({ length: 16 }, (_, i) => i / 4));
-    const amen = chopPiece(CHOP_SOURCES.find((s) => s.id === "amen")!, "order");
+    const amen = chopPiece(
+      CHOP_SOURCES.find((s) => s.id === "amen")!,
+      "order",
+    );
     expect(amen.bars).toBe(4);
     expect(amen.targets[1].beat).toBe(1);
   });

@@ -16,10 +16,10 @@
 
 <script lang="ts">
   import type { LaneOutcome } from "./lane-outcomes";
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
-  import ChevronsLeft from "lucide-svelte/icons/chevrons-left";
-  import ChevronsRight from "lucide-svelte/icons/chevrons-right";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import ChevronsLeft from "@lucide/svelte/icons/chevrons-left";
+  import ChevronsRight from "@lucide/svelte/icons/chevrons-right";
   // What lands on each beat, per hand, above the keys: notes that sit in the same
   // column strike together, left to right is the order. The playhead follows the
   // demo or the run clock, so the lane, the keys and the sound move as one.

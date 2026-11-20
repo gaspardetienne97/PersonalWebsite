@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { userEvent } from "vitest/browser";
+import { userEvent } from "vite-plus/test/browser";
 import { heartbeatFrame, initFrames } from "@repo/music-core/io/mpc-sysex";
 import { PAD_PRESETS } from "@repo/music-core/io/devices";
 import type { InputEvent, NoteEvent } from "@repo/music-core";

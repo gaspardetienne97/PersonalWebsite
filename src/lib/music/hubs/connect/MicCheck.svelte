@@ -3,10 +3,10 @@
   // shows the same stored name). It starts only on a tap and stops on leaving.
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
-  import { btn, btnPrimary } from "$lib/music/components/ui";
-  import { mic, settings } from "$lib/music/runtime";
-  import Picker from "$lib/music/components/Picker.svelte";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import { btn, btnPrimary } from "#lib/music/components/ui.ts";
+  import { mic, settings } from "#lib/music/runtime/index.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { micOptions } from "./rig";
 
   /** `primary`: the microphone is the next setup step, so Start is the page's one filled button. */

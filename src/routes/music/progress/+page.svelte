@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { bench } from "$lib/music/bench.svelte";
+  import { bench } from "#lib/music/bench.svelte.ts";
   import { page } from "$app/state";
-  import Play from "lucide-svelte/icons/play";
-  import ListMusic from "lucide-svelte/icons/list-music";
-  import HubTabs from "$lib/music/components/HubTabs.svelte";
-  import { btnPrimary } from "$lib/music/components/ui";
-  import { practice } from "$lib/music/practice.svelte";
-  import { settings } from "$lib/music/runtime";
-  import { todayPlan } from "$lib/music/today.svelte";
-  import NextView from "$lib/music/hubs/progress/NextView.svelte";
-  import SkillsView from "$lib/music/hubs/progress/SkillsView.svelte";
-  import SessionsView from "$lib/music/hubs/progress/SessionsView.svelte";
-  import JournalView from "$lib/music/hubs/journal/JournalView.svelte";
-  import DrillPreview from "$lib/music/hubs/DrillPreview.svelte";
+  import Play from "@lucide/svelte/icons/play";
+  import ListMusic from "@lucide/svelte/icons/list-music";
+  import HubTabs from "#lib/music/components/HubTabs.svelte";
+  import { btnPrimary } from "#lib/music/components/ui.ts";
+  import { practice } from "#lib/music/practice.svelte.ts";
+  import { settings } from "#lib/music/runtime/index.ts";
+  import { todayPlan } from "#lib/music/today.svelte.ts";
+  import NextView from "#lib/music/hubs/progress/NextView.svelte";
+  import SkillsView from "#lib/music/hubs/progress/SkillsView.svelte";
+  import SessionsView from "#lib/music/hubs/progress/SessionsView.svelte";
+  import JournalView from "#lib/music/hubs/journal/JournalView.svelte";
+  import DrillPreview from "#lib/music/hubs/DrillPreview.svelte";
 
   // The page keeps one accent of its own, whatever the strip's instrument is.
   $effect(() => {

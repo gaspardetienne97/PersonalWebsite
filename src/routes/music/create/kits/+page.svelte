@@ -1,8 +1,8 @@
 <script lang="ts">
   // Sample kits: the pads and samples the beat plays, and what goes to the MPC.
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import KitPanel from "$lib/music/hubs/create/KitPanel.svelte";
-  import { bench } from "$lib/music/bench.svelte";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import KitPanel from "#lib/music/hubs/create/KitPanel.svelte";
+  import { bench } from "#lib/music/bench.svelte.ts";
 
   let status = $state("");
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createNoteTracker, type TrackedNote, type TrackedPitch } from "./tracker";
 
 const FRAME_MS = 2048 / 48;

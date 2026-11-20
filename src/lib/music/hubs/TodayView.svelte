@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Play from "lucide-svelte/icons/play";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
-  import Star from "lucide-svelte/icons/star";
-  import Info from "lucide-svelte/icons/info";
+  import Play from "@lucide/svelte/icons/play";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
+  import Star from "@lucide/svelte/icons/star";
+  import Info from "@lucide/svelte/icons/info";
   import { BUDGET_OPTIONS, blockStars, roleLabel } from "@repo/music-core/progress/routine";
   import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
   import { levelFor } from "@repo/music-core/progress/rewards";

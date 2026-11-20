@@ -27,16 +27,16 @@
   // ghosts. The grid scrolls inside its own box (it never widens the page) and
   // follows the playhead; a cursor gives it a keyboard path.
   import { onMount } from "svelte";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import MoveH from "lucide-svelte/icons/move-horizontal";
-  import Play from "lucide-svelte/icons/play";
-  import Square from "lucide-svelte/icons/square";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import MoveH from "@lucide/svelte/icons/move-horizontal";
+  import Play from "@lucide/svelte/icons/play";
+  import Square from "@lucide/svelte/icons/square";
   import { isBlackKey, noteName } from "@repo/music-core";
-  import { audio } from "$lib/music/runtime";
-  import { btnStage } from "$lib/music/components/ui";
+  import { audio } from "#lib/music/runtime/index.ts";
+  import { btnStage } from "#lib/music/components/ui.ts";
   import { loopBeats, voiceNotes, noteAt, resizeNote, rollRange, soundOf, setVelocity, toggleNote, trackColour, type RollDoc } from "./roll";
-  import { STEP_BEATS } from "$lib/music/takes";
-  import Picker from "$lib/music/components/Picker.svelte";
+  import { STEP_BEATS } from "#lib/music/takes.ts";
+  import Picker from "#lib/music/components/Picker.svelte";
 
   let {
     host,

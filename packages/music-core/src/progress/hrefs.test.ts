@@ -4,7 +4,7 @@
 // search, hub tables) keeps recording the exercise ids it records today, so practice history, stars and
 // levels carry over when drills move. A drill that moves adds a row to MOVED, so the snapshot
 // stays keyed on the old href; its ids are never updated. Only a new link is a reason for -u.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { Instrument } from "../types";
 import { CATALOG } from "../content/catalog";
 import { exercisesForHref } from "./levels";

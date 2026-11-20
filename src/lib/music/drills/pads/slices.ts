@@ -7,9 +7,9 @@ import {
   sliceSamples,
   slicePad,
 } from "@repo/music-core/content/pads-studio";
-import { audio } from "$lib/music/runtime";
+import { audio } from "#lib/music/runtime/index.ts";
 import { wavePeaks, type WavePeaks } from "./lanes";
-import { kits } from "$lib/music/hubs/create/kitStore.svelte";
+import { kits } from "#lib/music/hubs/create/kitStore.svelte.ts";
 
 /**
  * While this says yes for a hit's time, MIDI hits on A01 to A16 play the

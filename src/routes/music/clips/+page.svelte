@@ -5,26 +5,26 @@
   // setting and nothing in the app's database.
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { replaceState } from "$app/navigation";
-  import Mic from "lucide-svelte/icons/mic";
-  import Square from "lucide-svelte/icons/square";
-  import Play from "lucide-svelte/icons/play";
-  import Volume2 from "lucide-svelte/icons/volume-2";
-  import Check from "lucide-svelte/icons/check";
-  import FolderOpen from "lucide-svelte/icons/folder-open";
-  import ChevronLeft from "lucide-svelte/icons/chevron-left";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
-  import TriangleAlert from "lucide-svelte/icons/triangle-alert";
-  import Headphones from "lucide-svelte/icons/headphones";
-  import Speaker from "lucide-svelte/icons/speaker";
+  import { goto } from "$app/navigation";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Square from "@lucide/svelte/icons/square";
+  import Play from "@lucide/svelte/icons/play";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import Check from "@lucide/svelte/icons/check";
+  import FolderOpen from "@lucide/svelte/icons/folder-open";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import TriangleAlert from "@lucide/svelte/icons/triangle-alert";
+  import Headphones from "@lucide/svelte/icons/headphones";
+  import Speaker from "@lucide/svelte/icons/speaker";
   import { encodeWavFloat } from "@repo/music-core/io/wav";
   import { levelAdvice, LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
-  import { btn, btnPrimary, btnStage, panel } from "$lib/music/components/ui";
-  import { audio, settings, type MetronomeHandle, type SequenceHandle, type SequenceNote } from "$lib/music/runtime";
-  import ClipVisual from "$lib/music/clips/ClipVisual.svelte";
-  import { CLIPS, SECTIONS, clipFile, exampleSeconds, inputSlug, pad2, type Clip } from "$lib/music/clips/clips";
-  import { CLIP_DB, ClipInput, listInputs, type RawTake } from "$lib/music/clips/capture.svelte";
+  import { btn, btnPrimary, btnStage, panel } from "#lib/music/components/ui.ts";
+  import { audio, settings, type MetronomeHandle, type SequenceHandle, type SequenceNote } from "#lib/music/runtime/index.ts";
+  import ClipVisual from "#lib/music/clips/ClipVisual.svelte";
+  import { CLIPS, SECTIONS, clipFile, exampleSeconds, inputSlug, pad2, type Clip } from "#lib/music/clips/clips.ts";
+  import { CLIP_DB, ClipInput, listInputs, type RawTake } from "#lib/music/clips/capture.svelte.ts";
   import {
     canPickFolder,
     canWrite,
@@ -42,7 +42,7 @@
     type FolderHandle,
     type Manifest,
     type TakeEntry,
-  } from "$lib/music/clips/folder";
+  } from "#lib/music/clips/folder.ts";
 
   const PREROLL_MS = 1000;
   const TICKED_KEY = "woodshed.clips.inputs";
@@ -61,10 +61,10 @@
     phase = "idle";
     takes = [];
     status = "";
-    const url = new URL(page.url);
+    const url = new URL(page.url.href);
     url.searchParams.set("clip", String(n));
     try {
-      replaceState(url, page.state);
+      goto(url, { shallow: true, replace: true, state: page.state });
     } catch {
       // before the router starts: the address keeps the old clip
     }

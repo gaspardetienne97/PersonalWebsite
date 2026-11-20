@@ -1,11 +1,11 @@
 <script lang="ts">
   // Every drill, grouped by what you practise (drills-layout), for the strip's instrument or for
   // all of them. A card per drill: a picture of what it plays, its last score, then its modes.
-  import Play from "lucide-svelte/icons/play";
-  import X from "lucide-svelte/icons/x";
-  import Search from "lucide-svelte/icons/search";
-  import SearchX from "lucide-svelte/icons/search-x";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import Play from "@lucide/svelte/icons/play";
+  import X from "@lucide/svelte/icons/x";
+  import Search from "@lucide/svelte/icons/search";
+  import SearchX from "@lucide/svelte/icons/search-x";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
@@ -38,9 +38,8 @@
   const q = $derived((page.url.searchParams.get("q") ?? "").trim().toLowerCase());
   const search = (v: string) =>
     goto(v.trim() ? `/music?tab=drills&q=${encodeURIComponent(v)}` : "/music?tab=drills", {
-      replaceState: true,
-      noScroll: true,
-      keepFocus: true,
+      replace: true,
+      reset: false,
     });
   const matches = (r: DrillRow) => !q || `${r.title} ${r.blurb} ${r.modes.map((m) => m.label).join(" ")}`.toLowerCase().includes(q);
   const visible = (r: DrillRow) => (filter === "all" || r.entry.instruments.includes(filter)) && matches(r);
@@ -101,7 +100,7 @@
   <p class="tnum -mt-3 flex flex-wrap items-center gap-x-2 text-sm text-ws-soft {q ? '' : 'sr-only'}" role="status">
     <span>{#if everything}{total} drills for every instrument{:else}{total} drills for {INSTRUMENT_LABEL[strip]}{/if}{#if q}&nbsp;matching "{q}"{/if}</span>
     {#if q}
-      <button type="button" class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-ws-raised" onclick={() => goto("/music?tab=drills", { replaceState: true, noScroll: true })}
+      <button type="button" class="inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-ws-raised" onclick={() => goto("/music?tab=drills", { replace: true, reset: false })}
         ><X class="size-4" aria-hidden="true" />Clear search</button
       >
     {/if}

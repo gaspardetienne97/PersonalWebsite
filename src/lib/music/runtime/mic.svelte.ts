@@ -21,7 +21,7 @@
 //     });
 //   (or launch Chromium with --use-fake-ui-for-media-stream
 //   --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=take.wav).
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { createInputFilter } from "@repo/music-core/signal/biquad";
 import { createListener } from "@repo/music-core/signal/listen";
 import { CLICK_EARLY_MS, CLICK_LATE_MS } from "@repo/music-core/signal/click";

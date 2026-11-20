@@ -1,9 +1,9 @@
 <script lang="ts">
-  import AlignLeft from "lucide-svelte/icons/align-left";
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import AudioWaveform from "lucide-svelte/icons/audio-waveform";
-  import Mic from "lucide-svelte/icons/mic";
-  import SlidersHorizontal from "lucide-svelte/icons/sliders-horizontal";
+  import AlignLeft from "@lucide/svelte/icons/align-left";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import AudioWaveform from "@lucide/svelte/icons/audio-waveform";
+  import Mic from "@lucide/svelte/icons/mic";
+  import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
   import { onDestroy } from "svelte";
 
   import { KOKORO_VOICES } from "@repo/pdf-core";

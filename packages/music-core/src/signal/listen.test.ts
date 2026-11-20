@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createInputFilter } from "./biquad";
 import type { ExpectedClick } from "./click";
 import { rng, stringTone } from "./fixtures";

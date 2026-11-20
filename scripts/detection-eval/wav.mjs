@@ -6,7 +6,7 @@ export function readWav(bytes) {
   if (tag(0) !== "RIFF" || tag(8) !== "WAVE") throw new Error("not a WAV file");
   let fmt = null;
   let data = null;
-  for (let o = 12; o + 8 <= bytes.length; ) {
+  for (let o = 12; o + 8 <= bytes.length;) {
     const id = tag(o);
     const size = v.getUint32(o + 4, true);
     if (id === "fmt ") {
