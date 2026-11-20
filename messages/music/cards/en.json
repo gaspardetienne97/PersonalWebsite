@@ -160,5 +160,143 @@
   "music_cards_circle_wheel_meet_title": "Where the two sides meet",
   "music_cards_circle_wheel_title": "The wheel by heart",
   "music_cards_circle_worked_flats": "{key} major has {count} flats: {names}.",
-  "music_cards_circle_worked_sharps": "{key} major has {count} sharps: {names}."
+  "music_cards_circle_worked_sharps": "{key} major has {count} sharps: {names}.",
+  "music_cards_fb_differing": "from the {lo} to the {hi} it is {value}",
+  "music_cards_fb_except": ", except {list}",
+  "music_cards_fb_fifth_text": "A 5th is 7 half steps: the next string up{sep} {rel}{except}. Tap Next to see each pair of strings.",
+  "music_cards_fb_fifth_title": "The 5th",
+  "music_cards_fb_fourth_text": "A 4th is 5 half steps. Strings are usually tuned {common} frets apart, so a 4th is the next string up{sep} {rel}{except}.",
+  "music_cards_fb_fourth_title": "The 4th",
+  "music_cards_fb_fret_n": "fret {fret}",
+  "music_cards_fb_fret_n_past": "fret {fret} (past this figure)",
+  "music_cards_fb_frets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret",
+        "countPlural=other": "{count} frets"
+      }
+    }
+  ],
+  "music_cards_fb_from_to": "From the {lo} to the {hi}: {rel}.",
+  "music_cards_fb_gap_item": [
+    {
+      "declarations": [
+        "input count",
+        "input lo",
+        "input hi",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret from the {lo} to the {hi}",
+        "countPlural=other": "{count} frets from the {lo} to the {hi}"
+      }
+    }
+  ],
+  "music_cards_fb_half_text": "An interval is the distance between two notes, counted in half steps. One fret is one half step. A minor 3rd is 3, a major 3rd is 4, a 4th is 5, a 5th is 7 and an octave is 12.",
+  "music_cards_fb_half_title": "Half steps",
+  "music_cards_fb_high_g": "The {names} string is tuned high, above the string next to it, so it sits apart from the rest.",
+  "music_cards_fb_intervals_title": "Intervals as shapes",
+  "music_cards_fb_irregular": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Irregular pair: {list}.",
+        "countPlural=other": "Irregular pairs: {list}."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_text": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "input common",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "The irregular pair has a gap of {list} instead of {common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across it.",
+        "countPlural=other": "The irregular pairs have gaps of {list} instead of {common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across each."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_title": "Irregular pairs",
+  "music_cards_fb_major_third_step": "Major 3rd: {rel}.",
+  "music_cards_fb_markers_guitar": "The figure shows the dots at frets 3 and 5. Higher up there are dots at 7 and 9, and two at 12. Fret 12 is the open string's note an octave higher.",
+  "music_cards_fb_markers_title": "The fret markers",
+  "music_cards_fb_markers_ukulele": "Ukuleles usually have dots at frets 5, 7, 10 and 12, with two at 12. They help you find your place. Fret 12 is the open string's note an octave higher.",
+  "music_cards_fb_match_step": "Fret {fret} on the {lo} is the open {hi}.",
+  "music_cards_fb_minor_third_step": "Minor 3rd: {rel}.",
+  "music_cards_fb_naturals_text": "The natural notes are A B C D E F G, then A again. There's a sharp between most of them, but not between B and C or between E and F. The {name} string below shows the naturals in its first five frets.",
+  "music_cards_fb_naturals_title": "The natural notes",
+  "music_cards_fb_next_text": "Fret {fret} on a string is the open note of the next string up in pitch.",
+  "music_cards_fb_next_text_reentrant": "Fret {fret} on a string is the open note of the next string up, counting from the {from} and skipping the high {names} string.",
+  "music_cards_fb_next_title": "Fret 5 is the next string",
+  "music_cards_fb_not_high": ", leaving out the high {names} string,",
+  "music_cards_fb_notes_title": "Finding notes on the neck",
+  "music_cards_fb_oc_different": "Different here: {list}.",
+  "music_cards_fb_oc_follows": "When both gaps are {common} frets, the octave two strings up{notHigh} is {rel}.",
+  "music_cards_fb_oc_none": "No two strings two apart here{notHigh} have both gaps of {common} frets.",
+  "music_cards_fb_oc_pairs": "The pairs here: {list}.",
+  "music_cards_fb_octave_shapes_text": "An octave is 12 half steps, which is 12 frets on one string.",
+  "music_cards_fb_octave_shapes_title": "Octave shapes",
+  "music_cards_fb_octave_text": "An octave is 12 half steps.",
+  "music_cards_fb_octave_title": "The octave",
+  "music_cards_fb_open_text": "The open strings are the notes you hear with no finger down. From string {count} to string 1 they are {notes}.",
+  "music_cards_fb_open_title": "The open strings",
+  "music_cards_fb_rel_higher": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret higher",
+        "countPlural=other": "{count} frets higher"
+      }
+    }
+  ],
+  "music_cards_fb_rel_lower": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret lower",
+        "countPlural=other": "{count} frets lower"
+      }
+    }
+  ],
+  "music_cards_fb_rel_same": "the same fret",
+  "music_cards_fb_string": "{name} string",
+  "music_cards_fb_string_numbered": "{name} string (string {n})",
+  "music_cards_fb_tap_next_pair": "Tap Next to see each pair.",
+  "music_cards_fb_thirds_text": "A major 3rd is 4 half steps: the next string up{sep} {rel}{except}. A minor 3rd is 3 half steps, always one fret lower than the major 3rd.",
+  "music_cards_fb_thirds_title": "The 3rds"
 }

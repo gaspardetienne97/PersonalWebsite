@@ -160,5 +160,143 @@
   "music_cards_circle_wheel_meet_title": "Kote de bò yo kontre",
   "music_cards_circle_wheel_title": "Wou a pa kè",
   "music_cards_circle_worked_flats": "{key} majè gen {count} bemòl: {names}.",
-  "music_cards_circle_worked_sharps": "{key} majè gen {count} dyèz: {names}."
+  "music_cards_circle_worked_sharps": "{key} majè gen {count} dyèz: {names}.",
+  "music_cards_fb_differing": "soti nan {lo} rive nan {hi} se {value}",
+  "music_cards_fb_except": ", eksepte {list}",
+  "music_cards_fb_fifth_text": "Yon kent se 7 demi ton: kòd ki vin apre a{sep} {rel}{except}. Peze Pwochen pou w wè chak pè kòd.",
+  "music_cards_fb_fifth_title": "Kent lan",
+  "music_cards_fb_fourth_text": "Yon kat se 5 demi ton. Kòd yo konn akòde a {common} frèt youn de lòt, kidonk yon kat se sou kòd ki vin apre a{sep} {rel}{except}.",
+  "music_cards_fb_fourth_title": "Kat la",
+  "music_cards_fb_fret_n": "frèt {fret}",
+  "music_cards_fb_fret_n_past": "frèt {fret} (pi lwen pase desen sa a)",
+  "music_cards_fb_frets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frèt",
+        "countPlural=other": "{count} frèt"
+      }
+    }
+  ],
+  "music_cards_fb_from_to": "Soti nan {lo} rive nan {hi}: {rel}.",
+  "music_cards_fb_gap_item": [
+    {
+      "declarations": [
+        "input count",
+        "input lo",
+        "input hi",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frèt soti nan {lo} rive nan {hi}",
+        "countPlural=other": "{count} frèt soti nan {lo} rive nan {hi}"
+      }
+    }
+  ],
+  "music_cards_fb_half_text": "Yon entèval se distans ant de nòt, nou konte l an demi ton. Yon frèt se yon demi ton. Yon tyès minè se 3, yon tyès majè 4, yon kat 5, yon kent 7, epi yon oktav 12.",
+  "music_cards_fb_half_title": "Demi ton",
+  "music_cards_fb_high_g": "Kòd {names} a akòde wo, pi wo pase kòd ki bò kote l la, kidonk li apa de lòt yo.",
+  "music_cards_fb_intervals_title": "Entèval yo kòm fòm",
+  "music_cards_fb_irregular": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Pè ki pa regilye: {list}.",
+        "countPlural=other": "Pè ki pa regilye: {list}."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_text": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "input common",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Pè ki pa regilye a gen yon distans {list} olye de {common}. Yon fòm ki travèse yon distans pi piti monte, epi yon distans pi gran desann, selon diferans lan. Peze Pwochen pou w wè kent lan sou li.",
+        "countPlural=other": "Pè ki pa regilye yo gen distans {list} olye de {common}. Yon fòm ki travèse yon distans pi piti monte, epi yon distans pi gran desann, selon diferans lan. Peze Pwochen pou w wè kent lan sou chak."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_title": "Pè ki pa regilye",
+  "music_cards_fb_major_third_step": "Tyès majè: {rel}.",
+  "music_cards_fb_markers_guitar": "Desen an montre pwen yo nan frèt 3 ak 5. Pi wo, gen pwen nan 7 ak 9, epi de pwen nan 12. Frèt 12 se nòt kòd vid la yon oktav pi wo.",
+  "music_cards_fb_markers_title": "Mak sou manch lan",
+  "music_cards_fb_markers_ukulele": "Ukulele yo konn gen pwen nan frèt 5, 7, 10 ak 12, ak de pwen nan 12. Yo ede w konnen kote w ye. Frèt 12 se nòt kòd vid la yon oktav pi wo.",
+  "music_cards_fb_match_step": "Frèt {fret} sou {lo} a se menm nòt ak {hi} vid la.",
+  "music_cards_fb_minor_third_step": "Tyès minè: {rel}.",
+  "music_cards_fb_naturals_text": "Nòt natirèl yo se A B C D E F G, epi A ankò. Gen yon dyèz ant pifò ladan yo, men pa ant B ak C, ni ant E ak F. Kòd {name} anba a montre nòt natirèl yo nan senk premye frèt li yo.",
+  "music_cards_fb_naturals_title": "Nòt natirèl yo",
+  "music_cards_fb_next_text": "Frèt {fret} sou yon kòd se nòt vid kòd ki vin apre a, ki pi wo a.",
+  "music_cards_fb_next_text_reentrant": "Frèt {fret} sou yon kòd se nòt vid kòd ki vin apre a, depi {from} a, san konte kòd {names} wo a.",
+  "music_cards_fb_next_title": "Frèt 5 se kòd ki vin apre a",
+  "music_cards_fb_not_high": ", san konte kòd {names} wo a,",
+  "music_cards_fb_notes_title": "Jwenn nòt yo sou manch lan",
+  "music_cards_fb_oc_different": "Isit la li diferan: {list}.",
+  "music_cards_fb_oc_follows": "Lè de distans yo se {common} frèt, oktav la de kòd pi wo{notHigh} se {rel}.",
+  "music_cards_fb_oc_none": "Isit la, okenn de kòd ki gen yon kòd ant yo{notHigh} pa gen de distans {common} frèt.",
+  "music_cards_fb_oc_pairs": "Pè yo isit la: {list}.",
+  "music_cards_fb_octave_shapes_text": "Yon oktav se 12 demi ton, sa vle di 12 frèt sou yon sèl kòd.",
+  "music_cards_fb_octave_shapes_title": "Fòm oktav",
+  "music_cards_fb_octave_text": "Yon oktav se 12 demi ton.",
+  "music_cards_fb_octave_title": "Oktav la",
+  "music_cards_fb_open_text": "Kòd vid yo se nòt ou tande lè pa gen dwèt sou yo. Soti nan kòd {count} rive nan kòd 1, se {notes}.",
+  "music_cards_fb_open_title": "Kòd vid yo",
+  "music_cards_fb_rel_higher": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frèt pi wo",
+        "countPlural=other": "{count} frèt pi wo"
+      }
+    }
+  ],
+  "music_cards_fb_rel_lower": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frèt pi ba",
+        "countPlural=other": "{count} frèt pi ba"
+      }
+    }
+  ],
+  "music_cards_fb_rel_same": "menm frèt la",
+  "music_cards_fb_string": "kòd {name}",
+  "music_cards_fb_string_numbered": "kòd {name} (kòd {n})",
+  "music_cards_fb_tap_next_pair": "Peze Pwochen pou w wè chak pè.",
+  "music_cards_fb_thirds_text": "Yon tyès majè se 4 demi ton: kòd ki vin apre a{sep} {rel}{except}. Yon tyès minè se 3 demi ton, toujou yon frèt pi ba pase tyès majè a.",
+  "music_cards_fb_thirds_title": "Tyès yo"
 }

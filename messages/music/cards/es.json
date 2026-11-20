@@ -160,5 +160,143 @@
   "music_cards_circle_wheel_meet_title": "Donde se juntan los dos lados",
   "music_cards_circle_wheel_title": "La rueda de memoria",
   "music_cards_circle_worked_flats": "{key} mayor tiene {count} bemoles: {names}.",
-  "music_cards_circle_worked_sharps": "{key} mayor tiene {count} sostenidos: {names}."
+  "music_cards_circle_worked_sharps": "{key} mayor tiene {count} sostenidos: {names}.",
+  "music_cards_fb_differing": "de la {lo} a la {hi} es {value}",
+  "music_cards_fb_except": ", excepto {list}",
+  "music_cards_fb_fifth_text": "Una quinta son 7 semitonos: la cuerda siguiente{sep} {rel}{except}. Toca Siguiente para ver cada par de cuerdas.",
+  "music_cards_fb_fifth_title": "La quinta",
+  "music_cards_fb_fourth_text": "Una cuarta son 5 semitonos. Las cuerdas suelen estar afinadas a {common} trastes de distancia, así que una cuarta está en la cuerda siguiente{sep} {rel}{except}.",
+  "music_cards_fb_fourth_title": "La cuarta",
+  "music_cards_fb_fret_n": "el traste {fret}",
+  "music_cards_fb_fret_n_past": "el traste {fret} (fuera de esta figura)",
+  "music_cards_fb_frets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste",
+        "countPlural=other": "{count} trastes"
+      }
+    }
+  ],
+  "music_cards_fb_from_to": "De la {lo} a la {hi}: {rel}.",
+  "music_cards_fb_gap_item": [
+    {
+      "declarations": [
+        "input count",
+        "input lo",
+        "input hi",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste de la {lo} a la {hi}",
+        "countPlural=other": "{count} trastes de la {lo} a la {hi}"
+      }
+    }
+  ],
+  "music_cards_fb_half_text": "Un intervalo es la distancia entre dos notas, contada en semitonos. Un traste es un semitono. Una tercera menor son 3, una tercera mayor 4, una cuarta 5, una quinta 7 y una octava 12.",
+  "music_cards_fb_half_title": "Semitonos",
+  "music_cards_fb_high_g": "La cuerda {names} está afinada aguda, más arriba que la cuerda de al lado, así que queda aparte del resto.",
+  "music_cards_fb_intervals_title": "Los intervalos como formas",
+  "music_cards_fb_irregular": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Par irregular: {list}.",
+        "countPlural=other": "Pares irregulares: {list}."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_text": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "input common",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "El par irregular tiene una distancia de {list} en lugar de {common}. Una forma que cruza una distancia menor sube, y una mayor baja, según la diferencia. Toca Siguiente para ver la quinta a través de él.",
+        "countPlural=other": "Los pares irregulares tienen distancias de {list} en lugar de {common}. Una forma que cruza una distancia menor sube, y una mayor baja, según la diferencia. Toca Siguiente para ver la quinta a través de cada uno."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_title": "Pares irregulares",
+  "music_cards_fb_major_third_step": "Tercera mayor: {rel}.",
+  "music_cards_fb_markers_guitar": "La figura muestra los puntos de los trastes 3 y 5. Más arriba hay puntos en el 7 y el 9, y dos en el 12. El traste 12 es la nota de la cuerda al aire una octava más arriba.",
+  "music_cards_fb_markers_title": "Las marcas del diapasón",
+  "music_cards_fb_markers_ukulele": "Los ukeleles suelen tener puntos en los trastes 5, 7, 10 y 12, con dos en el 12. Te ayudan a ubicarte. El traste 12 es la nota de la cuerda al aire una octava más arriba.",
+  "music_cards_fb_match_step": "El traste {fret} de la {lo} es la {hi} al aire.",
+  "music_cards_fb_minor_third_step": "Tercera menor: {rel}.",
+  "music_cards_fb_naturals_text": "Las notas naturales son A B C D E F G, y luego otra vez A. Entre casi todas hay un sostenido, pero no entre B y C ni entre E y F. La cuerda {name} de abajo muestra las naturales en sus primeros cinco trastes.",
+  "music_cards_fb_naturals_title": "Las notas naturales",
+  "music_cards_fb_next_text": "El traste {fret} de una cuerda da la nota al aire de la cuerda siguiente, la que suena más aguda.",
+  "music_cards_fb_next_text_reentrant": "El traste {fret} de una cuerda da la nota al aire de la cuerda siguiente, contando desde la {from} y saltando la cuerda {names} aguda.",
+  "music_cards_fb_next_title": "El traste 5 es la cuerda siguiente",
+  "music_cards_fb_not_high": ", sin contar la cuerda {names} aguda,",
+  "music_cards_fb_notes_title": "Encontrar las notas en el diapasón",
+  "music_cards_fb_oc_different": "Aquí cambia: {list}.",
+  "music_cards_fb_oc_follows": "Cuando las dos distancias son de {common} trastes, la octava dos cuerdas más arriba{notHigh} está {rel}.",
+  "music_cards_fb_oc_none": "Aquí ningún par de cuerdas separadas por una{notHigh} tiene las dos distancias de {common} trastes.",
+  "music_cards_fb_oc_pairs": "Los pares aquí: {list}.",
+  "music_cards_fb_octave_shapes_text": "Una octava son 12 semitonos, es decir, 12 trastes en una misma cuerda.",
+  "music_cards_fb_octave_shapes_title": "Formas de octava",
+  "music_cards_fb_octave_text": "Una octava son 12 semitonos.",
+  "music_cards_fb_octave_title": "La octava",
+  "music_cards_fb_open_text": "Las cuerdas al aire son las notas que suenan sin poner ningún dedo. De la cuerda {count} a la cuerda 1 son {notes}.",
+  "music_cards_fb_open_title": "Las cuerdas al aire",
+  "music_cards_fb_rel_higher": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste más arriba",
+        "countPlural=other": "{count} trastes más arriba"
+      }
+    }
+  ],
+  "music_cards_fb_rel_lower": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste más abajo",
+        "countPlural=other": "{count} trastes más abajo"
+      }
+    }
+  ],
+  "music_cards_fb_rel_same": "el mismo traste",
+  "music_cards_fb_string": "cuerda {name}",
+  "music_cards_fb_string_numbered": "cuerda {name} (cuerda {n})",
+  "music_cards_fb_tap_next_pair": "Toca Siguiente para ver cada par.",
+  "music_cards_fb_thirds_text": "Una tercera mayor son 4 semitonos: la cuerda siguiente{sep} {rel}{except}. Una tercera menor son 3 semitonos, siempre un traste más abajo que la tercera mayor.",
+  "music_cards_fb_thirds_title": "Las terceras"
 }

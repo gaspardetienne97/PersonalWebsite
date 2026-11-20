@@ -160,5 +160,143 @@
   "music_cards_circle_wheel_meet_title": "Là où les deux côtés se rejoignent",
   "music_cards_circle_wheel_title": "La roue par cœur",
   "music_cards_circle_worked_flats": "{key} majeur a {count} bémols : {names}.",
-  "music_cards_circle_worked_sharps": "{key} majeur a {count} dièses : {names}."
+  "music_cards_circle_worked_sharps": "{key} majeur a {count} dièses : {names}.",
+  "music_cards_fb_differing": "de la {lo} à la {hi}, c’est {value}",
+  "music_cards_fb_except": ", sauf {list}",
+  "music_cards_fb_fifth_text": "Une quinte fait 7 demi-tons : la corde suivante{sep} {rel}{except}. Touchez Suivant pour voir chaque paire de cordes.",
+  "music_cards_fb_fifth_title": "La quinte",
+  "music_cards_fb_fourth_text": "Une quarte fait 5 demi-tons. Les cordes sont en général accordées à {common} frettes d’écart, donc une quarte se trouve sur la corde suivante{sep} {rel}{except}.",
+  "music_cards_fb_fourth_title": "La quarte",
+  "music_cards_fb_fret_n": "la frette {fret}",
+  "music_cards_fb_fret_n_past": "la frette {fret} (au-delà de cette figure)",
+  "music_cards_fb_frets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette",
+        "countPlural=other": "{count} frettes"
+      }
+    }
+  ],
+  "music_cards_fb_from_to": "De la {lo} à la {hi} : {rel}.",
+  "music_cards_fb_gap_item": [
+    {
+      "declarations": [
+        "input count",
+        "input lo",
+        "input hi",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette de la {lo} à la {hi}",
+        "countPlural=other": "{count} frettes de la {lo} à la {hi}"
+      }
+    }
+  ],
+  "music_cards_fb_half_text": "Un intervalle est la distance entre deux notes, comptée en demi-tons. Une frette vaut un demi-ton. Une tierce mineure fait 3, une tierce majeure 4, une quarte 5, une quinte 7 et une octave 12.",
+  "music_cards_fb_half_title": "Demi-tons",
+  "music_cards_fb_high_g": "La corde {names} est accordée haut, au-dessus de la corde voisine, donc elle se tient à part des autres.",
+  "music_cards_fb_intervals_title": "Les intervalles comme des formes",
+  "music_cards_fb_irregular": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Paire irrégulière : {list}.",
+        "countPlural=other": "Paires irrégulières : {list}."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_text": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "input common",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "La paire irrégulière a un écart de {list} au lieu de {common}. Une forme qui traverse un écart plus petit monte, et un écart plus grand descend, de la différence. Touchez Suivant pour voir la quinte à travers elle.",
+        "countPlural=other": "Les paires irrégulières ont des écarts de {list} au lieu de {common}. Une forme qui traverse un écart plus petit monte, et un écart plus grand descend, de la différence. Touchez Suivant pour voir la quinte à travers chacune."
+      }
+    }
+  ],
+  "music_cards_fb_irregular_title": "Paires irrégulières",
+  "music_cards_fb_major_third_step": "Tierce majeure : {rel}.",
+  "music_cards_fb_markers_guitar": "La figure montre les points aux frettes 3 et 5. Plus haut, il y a des points aux frettes 7 et 9, et deux à la frette 12. La frette 12 donne la note de la corde à vide une octave plus haut.",
+  "music_cards_fb_markers_title": "Les repères du manche",
+  "music_cards_fb_markers_ukulele": "Les ukulélés ont souvent des points aux frettes 5, 7, 10 et 12, dont deux à la 12. Ils vous aident à vous repérer. La frette 12 donne la note de la corde à vide une octave plus haut.",
+  "music_cards_fb_match_step": "La frette {fret} de la {lo} donne la {hi} à vide.",
+  "music_cards_fb_minor_third_step": "Tierce mineure : {rel}.",
+  "music_cards_fb_naturals_text": "Les notes naturelles sont A B C D E F G, puis de nouveau A. Il y a un dièse entre la plupart d’entre elles, mais pas entre B et C ni entre E et F. La corde {name} ci-dessous montre les notes naturelles sur ses cinq premières frettes.",
+  "music_cards_fb_naturals_title": "Les notes naturelles",
+  "music_cards_fb_next_text": "La frette {fret} d’une corde donne la note à vide de la corde suivante, plus aiguë.",
+  "music_cards_fb_next_text_reentrant": "La frette {fret} d’une corde donne la note à vide de la corde suivante, en partant de la {from} et en sautant la corde {names} aiguë.",
+  "music_cards_fb_next_title": "La frette 5 donne la corde suivante",
+  "music_cards_fb_not_high": ", sans compter la corde {names} aiguë,",
+  "music_cards_fb_notes_title": "Trouver les notes sur le manche",
+  "music_cards_fb_oc_different": "Différent ici : {list}.",
+  "music_cards_fb_oc_follows": "Quand les deux écarts sont de {common} frettes, l’octave deux cordes plus haut{notHigh} est {rel}.",
+  "music_cards_fb_oc_none": "Ici, aucune paire de cordes séparées par une autre{notHigh} n’a deux écarts de {common} frettes.",
+  "music_cards_fb_oc_pairs": "Les paires ici : {list}.",
+  "music_cards_fb_octave_shapes_text": "Une octave fait 12 demi-tons, soit 12 frettes sur une même corde.",
+  "music_cards_fb_octave_shapes_title": "Formes d’octave",
+  "music_cards_fb_octave_text": "Une octave fait 12 demi-tons.",
+  "music_cards_fb_octave_title": "L’octave",
+  "music_cards_fb_open_text": "Les cordes à vide sont les notes que l’on entend sans poser de doigt. De la corde {count} à la corde 1, ce sont {notes}.",
+  "music_cards_fb_open_title": "Les cordes à vide",
+  "music_cards_fb_rel_higher": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette plus haut",
+        "countPlural=other": "{count} frettes plus haut"
+      }
+    }
+  ],
+  "music_cards_fb_rel_lower": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette plus bas",
+        "countPlural=other": "{count} frettes plus bas"
+      }
+    }
+  ],
+  "music_cards_fb_rel_same": "la même frette",
+  "music_cards_fb_string": "corde {name}",
+  "music_cards_fb_string_numbered": "corde {name} (corde {n})",
+  "music_cards_fb_tap_next_pair": "Touchez Suivant pour voir chaque paire.",
+  "music_cards_fb_thirds_text": "Une tierce majeure fait 4 demi-tons : la corde suivante{sep} {rel}{except}. Une tierce mineure fait 3 demi-tons, toujours une frette plus bas que la tierce majeure.",
+  "music_cards_fb_thirds_title": "Les tierces"
 }

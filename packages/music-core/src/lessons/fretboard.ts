@@ -1,18 +1,20 @@
 import { noteName } from "../theory/notes";
+import { m } from "@repo/i18n/messages.js";
+import { formatList } from "@repo/i18n/format";
 import type { Lesson, LessonFigure, LessonStep } from "./types";
 
 type Instrument = "guitar" | "ukulele";
 type Mark = { string: number; fret: number; label: string };
 
 const nameOf = (midi: number) => noteName(midi, "sharp", false);
-const frets = (n: number) => `${n} ${n === 1 ? "fret" : "frets"}`;
 /** A fret offset in words. */
 const rel = (d: number) =>
-  d === 0 ? "the same fret" : d > 0 ? `${frets(d)} higher` : `${frets(-d)} lower`;
+  d === 0
+    ? m.music_cards_fb_rel_same()
+    : d > 0
+      ? m.music_cards_fb_rel_higher({ count: d })
+      : m.music_cards_fb_rel_lower({ count: -d });
 const ROOT = 1;
-/** "a", "a and b", "a, b and c". */
-const list = (a: string[]) =>
-  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
 
 /**
  * Lessons for the fretboard drills. Everything is worked out from the open strings
@@ -29,8 +31,8 @@ export function fretboardLessons(
   /** "E string", or "E string (string 6)" when another string has the same note name. */
   const sn = (s: number) =>
     open.filter((_, i) => name(i + 1) === name(s)).length > 1
-      ? `${name(s)} string (string ${s})`
-      : `${name(s)} string`;
+      ? m.music_cards_fb_string_numbered({ name: name(s), n: s })
+      : m.music_cards_fb_string({ name: name(s) });
   const fig = (marks: Mark[]): LessonFigure => ({
     kind: "fretboard",
     instrument,
@@ -85,7 +87,7 @@ export function fretboardLessons(
       return m ? [{ text: text(sn(lo), sn(hi), off), figure: fig(m) }] : [];
     });
   const fromTo = () => (lo: string, hi: string, off: number) =>
-    `From the ${lo} to the ${hi}: ${rel(off)}.`;
+    m.music_cards_fb_from_to({ lo, hi, rel: rel(off) });
   const skip2 = run.slice(0, -2).map((lo, i) => ({ lo, hi: run[i + 2] }));
   const octaveSteps = (pref: number) => stepsFor(skip2, 12, "8", fromTo(), pref);
   type Pair = { lo: number; hi: number };
@@ -100,29 +102,28 @@ export function fretboardLessons(
   const differing = (ps: Pair[], value: (p: Pair) => number, usual: number, say = rel) =>
     ps
       .filter((p) => value(p) !== usual)
-      .map((p) => `from the ${sn(p.lo)} to the ${sn(p.hi)} it is ${say(value(p))}`)
+      .map((p) => m.music_cards_fb_differing({ lo: sn(p.lo), hi: sn(p.hi), value: say(value(p)) }))
       .join("; ");
   /** ", except ..." for an interval of n half steps on the next string up. */
   const except = (n: number) => {
     const d = differing(pairs, shift(n), n - common);
-    return d ? `, except ${d}` : "";
+    return d ? m.music_cards_fb_except({ list: d }) : "";
   };
   /** The re-entrant string is left out of every shape rule. */
-  const notHigh = reentrant.length
-    ? `, leaving out the high ${reentrant.map(name).join(" and ")} string,`
-    : "";
+  const highNames = formatList(reentrant.map(name));
+  const notHigh = reentrant.length ? m.music_cards_fb_not_high({ names: highNames }) : "";
   /** The regular case: both gaps are the usual one. */
   const regular = 12 - 2 * common;
   const ocFollows = skip2.some((p) => shift(12)(p) === regular);
   const ocDiff = differing(skip2, shift(12), regular);
   const ocRule = (): string =>
     (ocFollows
-      ? `When both gaps are ${common} frets, the octave two strings up${notHigh} is ${rel(regular)}.`
-      : `No two strings two apart here${notHigh} have both gaps of ${common} frets.`) +
-    (ocDiff ? ` ${ocFollows ? "Different" : "The pairs"} here: ${ocDiff}.` : "");
-  const highG = reentrant.length
-    ? ` The ${reentrant.map(name).join(" and ")} string is tuned high, above the string next to it, so it sits apart from the rest.`
-    : "";
+      ? m.music_cards_fb_oc_follows({ common, notHigh, rel: rel(regular) })
+      : m.music_cards_fb_oc_none({ notHigh, common })) +
+    (ocDiff
+      ? ` ${(ocFollows ? m.music_cards_fb_oc_different : m.music_cards_fb_oc_pairs)({ list: ocDiff })}`
+      : "");
+  const highG = reentrant.length ? ` ${m.music_cards_fb_high_g({ names: highNames })}` : "";
   if (mode === "note-finder") {
     const low = run[0];
     const naturals = [0, 1, 2, 3, 4, 5]
@@ -130,14 +131,19 @@ export function fretboardLessons(
       .filter((m) => !m.label.includes("#"));
     const shown = pairs.filter((p) => p.gap <= 5); // a longer gap runs off the figure
     const matchSteps: LessonStep[] = shown.map((p) => ({
-      text: `Fret ${p.gap} on the ${sn(p.lo)} is the open ${sn(p.hi)}.`,
+      text: m.music_cards_fb_match_step({ fret: p.gap, lo: sn(p.lo), hi: sn(p.hi) }),
       figure: fig([
         { string: p.lo, fret: p.gap, label: name(p.hi) },
         { string: p.hi, fret: 0, label: name(p.hi) },
       ]),
     }));
     const exception = odd.length
-      ? ` Irregular ${odd.length > 1 ? "pairs" : "pair"}: ${differing(pairs, span, common, (f) => `fret ${f}${f > 5 ? " (past this figure)" : ""}`)}.`
+      ? ` ${m.music_cards_fb_irregular({
+          count: odd.length,
+          list: differing(pairs, span, common, (f) =>
+            f > 5 ? m.music_cards_fb_fret_n_past({ fret: f }) : m.music_cards_fb_fret_n({ fret: f }),
+          ),
+        })}`
       : "";
     const ocPair = skip2.find((p) => shift(12)(p) === regular) ?? skip2[0];
     const oc =
@@ -150,42 +156,52 @@ export function fretboardLessons(
     return [
       {
         id: `fretboard.notes.${instrument}`,
-        title: "Finding notes on the neck",
+        title: m.music_cards_fb_notes_title(),
         screens: [
           {
-            title: "The open strings",
-            text: `The open strings are the notes you hear with no finger down. From string ${open.length} to string 1 they are ${[
-              ...open,
-            ]
-              .reverse()
-              .map((m) => nameOf(m))
-              .join(" ")}.${highG}`,
+            title: m.music_cards_fb_open_title(),
+            text:
+              m.music_cards_fb_open_text({
+                count: open.length,
+                notes: [...open]
+                  .reverse()
+                  .map((x) => nameOf(x))
+                  .join(" "),
+              }) + highG,
             figure: fig(open.map((m, i) => ({ string: i + 1, fret: 0, label: nameOf(m) }))),
           },
           {
-            title: "The natural notes",
-            text: `The natural notes are A B C D E F G, then A again. There's a sharp between most of them, but not between B and C or between E and F. The ${name(low)} string below shows the naturals in its first five frets.`,
+            title: m.music_cards_fb_naturals_title(),
+            text: m.music_cards_fb_naturals_text({ name: name(low) }),
             figure: fig(naturals),
           },
           {
-            title: "The fret markers",
+            title: m.music_cards_fb_markers_title(),
             text:
               instrument === "guitar"
-                ? "The figure shows the dots at frets 3 and 5. Higher up there are dots at 7 and 9, and two at 12. Fret 12 is the open string's note an octave higher."
-                : "Ukuleles usually have dots at frets 5, 7, 10 and 12, with two at 12. They help you find your place. Fret 12 is the open string's note an octave higher.",
+                ? m.music_cards_fb_markers_guitar()
+                : m.music_cards_fb_markers_ukulele(),
             ...(instrument === "guitar" ? { figure: fig([]) } : {}),
           },
           {
-            title: "Fret 5 is the next string",
-            text: `Fret ${common} on a string is the open note of the next string up${reentrant.length ? `, counting from the ${sn(run[0])} and skipping the high ${reentrant.map(name).join(" and ")} string` : " in pitch"}.${exception} Tap Next to see each pair.`,
+            title: m.music_cards_fb_next_title(),
+            text: `${
+              reentrant.length
+                ? m.music_cards_fb_next_text_reentrant({
+                    fret: common,
+                    from: sn(run[0]),
+                    names: highNames,
+                  })
+                : m.music_cards_fb_next_text({ fret: common })
+            }${exception} ${m.music_cards_fb_tap_next_pair()}`,
             figure: fig([]),
             steps: matchSteps,
           },
           ...(oc
             ? [
                 {
-                  title: "Octave shapes",
-                  text: `An octave is 12 half steps, which is 12 frets on one string. ${ocRule()}`,
+                  title: m.music_cards_fb_octave_shapes_title(),
+                  text: `${m.music_cards_fb_octave_shapes_text()} ${ocRule()}`,
                   figure: fig(oc),
                 },
               ]
@@ -198,35 +214,49 @@ export function fretboardLessons(
   return [
     {
       id: `fretboard.intervals.${instrument}`,
-      title: "Intervals as shapes",
+      title: m.music_cards_fb_intervals_title(),
       screens: [
         {
-          title: "Half steps",
-          text: "An interval is the distance between two notes, counted in half steps. One fret is one half step. A minor 3rd is 3, a major 3rd is 4, a 4th is 5, a 5th is 7 and an octave is 12.",
+          title: m.music_cards_fb_half_title(),
+          text: m.music_cards_fb_half_text(),
         },
         {
-          title: "The 4th",
-          text: `A 4th is 5 half steps. Strings are usually tuned ${common} frets apart, so a 4th is the next string up${notHigh || ","} ${rel(5 - common)}${except(5)}.${highG}`,
+          title: m.music_cards_fb_fourth_title(),
+          text:
+            m.music_cards_fb_fourth_text({
+              common,
+              sep: notHigh || ",",
+              rel: rel(5 - common),
+              except: except(5),
+            }) + highG,
           figure: fig((first && upMarks(first.lo, first.hi, 5, "4")) || []),
         },
         {
-          title: "The 5th",
-          text: `A 5th is 7 half steps: the next string up${notHigh || ","} ${rel(7 - common)}${except(7)}. Tap Next to see each pair of strings.`,
+          title: m.music_cards_fb_fifth_title(),
+          text: m.music_cards_fb_fifth_text({
+            sep: notHigh || ",",
+            rel: rel(7 - common),
+            except: except(7),
+          }),
           figure: fig([]),
           steps: stepsFor(pairs, 7, "5", fromTo()),
         },
         {
-          title: "The 3rds",
-          text: `A major 3rd is 4 half steps: the next string up${notHigh || ","} ${rel(4 - common)}${except(4)}. A minor 3rd is 3 half steps, always one fret lower than the major 3rd.`,
+          title: m.music_cards_fb_thirds_title(),
+          text: m.music_cards_fb_thirds_text({
+            sep: notHigh || ",",
+            rel: rel(4 - common),
+            except: except(4),
+          }),
           figure: fig([]),
           steps: first
             ? [
                 {
-                  text: `Major 3rd: ${rel(4 - first.gap)}.`,
+                  text: m.music_cards_fb_major_third_step({ rel: rel(4 - first.gap) }),
                   figure: fig(upMarks(first.lo, first.hi, 4, "3", 2) ?? []),
                 },
                 {
-                  text: `Minor 3rd: ${rel(3 - first.gap)}.`,
+                  text: m.music_cards_fb_minor_third_step({ rel: rel(3 - first.gap) }),
                   figure: fig(upMarks(first.lo, first.hi, 3, "m3", 2) ?? []),
                 },
               ]
@@ -235,8 +265,8 @@ export function fretboardLessons(
         ...(octaveSteps(ROOT).length
           ? [
               {
-                title: "The octave",
-                text: `An octave is 12 half steps. ${ocRule()}${ocDiff ? "" : " Tap Next to see each pair."}`,
+                title: m.music_cards_fb_octave_title(),
+                text: `${m.music_cards_fb_octave_text()} ${ocRule()}${ocDiff ? "" : ` ${m.music_cards_fb_tap_next_pair()}`}`,
                 figure: fig([]),
                 steps: octaveSteps(ROOT),
               },
@@ -245,8 +275,16 @@ export function fretboardLessons(
         ...(odd.length
           ? [
               {
-                title: "Irregular pairs",
-                text: `The irregular ${odd.length > 1 ? "pairs have gaps" : "pair has a gap"} of ${list(odd.map((p) => `${frets(p.gap)} from the ${sn(p.lo)} to the ${sn(p.hi)}`))} instead of ${common}. A shape that crosses a smaller gap moves higher and a larger gap lower, by the difference. Tap Next to see the 5th across ${odd.length > 1 ? "each" : "it"}.`,
+                title: m.music_cards_fb_irregular_title(),
+                text: m.music_cards_fb_irregular_text({
+                  count: odd.length,
+                  list: formatList(
+                    odd.map((p) =>
+                      m.music_cards_fb_gap_item({ count: p.gap, lo: sn(p.lo), hi: sn(p.hi) }),
+                    ),
+                  ),
+                  common,
+                }),
                 figure: fig([]),
                 steps: stepsFor(odd, 7, "5", fromTo()),
               },
