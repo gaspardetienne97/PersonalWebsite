@@ -8,6 +8,7 @@
 import { GROOVES } from "./winds-pads";
 import { gridGroove } from "./pads-grid";
 import type { GrooveDef } from "../data";
+import { m } from "@repo/i18n/messages.js";
 
 export type GrooveTopic =
   | "basics"
@@ -48,56 +49,74 @@ export type Tier = keyof typeof TIERS;
 export const PAD_LEVELS: { level: number; title: string; tier: Tier; summary: string }[] = [
   {
     level: 1,
-    title: "First grooves",
+    title: m.music_rep_padrep_level1_title(),
     tier: "beginner",
-    summary: "Kick, snare and eighth hats, split hands.",
+    summary: m.music_rep_padrep_level1_summary(),
   },
   {
     level: 2,
-    title: "Boom bap and the first breaks",
+    title: m.music_rep_padrep_level2_title(),
     tier: "beginner",
-    summary: "Two-bar hip-hop beats with the kick moving.",
+    summary: m.music_rep_padrep_level2_summary(),
   },
   {
     level: 3,
-    title: "Ghost notes",
+    title: m.music_rep_padrep_level3_title(),
     tier: "intermediate",
-    summary: "Soft snares between the backbeats, over sixteenth hats.",
+    summary: m.music_rep_padrep_level3_summary(),
   },
   {
     level: 4,
-    title: "Independence, fills and swing",
+    title: m.music_rep_padrep_level4_title(),
     tier: "intermediate",
-    summary: "Steady hats over a moving kick, fills and MPC swing.",
+    summary: m.music_rep_padrep_level4_summary(),
   },
   {
     level: 5,
-    title: "Dance and trap",
+    title: m.music_rep_padrep_level5_title(),
     tier: "advanced",
-    summary: "House, trap rolls, drum and bass.",
+    summary: m.music_rep_padrep_level5_summary(),
   },
   {
     level: 6,
-    title: "The breaks",
+    title: m.music_rep_padrep_level6_title(),
     tier: "advanced",
-    summary: "The Amen and Apache breaks, bar by bar.",
+    summary: m.music_rep_padrep_level6_summary(),
   },
   {
     level: 7,
-    title: "Shuffles and triplets",
+    title: m.music_rep_padrep_level7_title(),
     tier: "advanced",
-    summary: "The triplet grid: blues and half-time shuffles, the swing ride, 12/8.",
+    summary: m.music_rep_padrep_level7_summary(),
   },
   {
     level: 8,
-    title: "Odd meters",
+    title: m.music_rep_padrep_level8_title(),
     tier: "advanced",
-    summary: "Grooves in 5/4, 7/4 and 7/8, counted in groups of two and three.",
+    summary: m.music_rep_padrep_level8_summary(),
   },
 ];
 
-const SPLIT =
-  "Right hand on the hats (index and middle alternating). Left index on kick and snare.";
+/**
+ * A style's name to show. `style` stays English: it picks the backing band
+ * (src/lib/music/drills/pads/backing.ts), so translate only where it is displayed.
+ */
+const STYLE_LABELS: Record<string, () => string> = {
+  "Rock break": m.music_rep_padrep_style_rock_break,
+  "Funk break": m.music_rep_padrep_style_funk_break,
+  Independence: m.music_rep_padrep_style_independence,
+  "Body percussion": m.music_rep_padrep_style_body_percussion,
+  "Rudiment phrase": m.music_rep_padrep_style_rudiment_phrase,
+  "Tag ending": m.music_rep_padrep_style_tag_ending,
+  "Linear phrase": m.music_rep_padrep_style_linear_phrase,
+  "Dance build": m.music_rep_padrep_style_dance_build,
+  "Linear funk": m.music_rep_padrep_style_linear_funk,
+  "Odd meter": m.music_rep_padrep_style_odd_meter,
+  Kompa: m.music_rep_padrep_style_kompa,
+};
+export const padStyleLabel = (style: string): string => STYLE_LABELS[style]?.() ?? style;
+
+const SPLIT = m.music_rep_padrep_fingers_split();
 const EIGHTHS = "x.x.x.x.x.x.x.x.";
 const BACKBEAT = "....X.......X...";
 const table = (id: string) => GROOVES.find((g) => g.value === id)!;
@@ -143,8 +162,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Backbeat",
     topic: "basics",
     bpm: { start: 70, target: 90 },
-    feel: "Kick on 1 and 3, snare on 2 and 4.",
-    fingers: "Left index on kick, right index on snare.",
+    feel: m.music_rep_padrep_backbeat_feel(),
+    fingers: m.music_rep_padrep_backbeat_fingers(),
   },
   {
     groove: table("eighth-hats"),
@@ -152,11 +171,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Rock",
     topic: "basics",
     bpm: { start: 70, target: 90 },
-    feel: "The backbeat with eighth hats over it.",
+    feel: m.music_rep_padrep_eighth_hats_feel(),
     fingers: SPLIT,
   },
   {
-    groove: gridGroove("basic-rock", "Basic rock", {
+    groove: gridGroove("basic-rock", m.music_rep_padrep_basic_rock_label(), {
       kick: "X.......x.......",
       snare: BACKBEAT,
       hats: EIGHTHS,
@@ -165,11 +184,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Rock",
     topic: "basics",
     bpm: { start: 80, target: 110 },
-    feel: "The beat under a thousand songs (Billie Jean sits on it at about 117 BPM).",
+    feel: m.music_rep_padrep_basic_rock_feel(),
     fingers: SPLIT,
   },
   {
-    groove: gridGroove("boom-bap-a", "Boom bap, first steps", {
+    groove: gridGroove("boom-bap-a", m.music_rep_padrep_boom_bap_a_label(), {
       kick: "X.....x.........",
       snare: BACKBEAT,
       hats: EIGHTHS,
@@ -178,11 +197,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Boom bap",
     topic: "basics",
     bpm: { start: 75, target: 90 },
-    feel: "The kick's second hit lands on the & of 2: the first push.",
+    feel: m.music_rep_padrep_boom_bap_a_feel(),
     fingers: SPLIT,
   },
   {
-    groove: gridGroove("four-on-floor", "Four on the floor", {
+    groove: gridGroove("four-on-floor", m.music_rep_padrep_four_on_floor_label(), {
       kick: "X...x...X...x...",
       perc: "....x.......x...",
     }),
@@ -190,8 +209,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "House",
     topic: "basics",
     bpm: { start: 90, target: 120 },
-    feel: "A kick on every beat, the clap on 2 and 4.",
-    fingers: "Left index on the kick, right index on the clap.",
+    feel: m.music_rep_padrep_four_on_floor_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_clap(),
   },
   {
     groove: table("syncopated"),
@@ -199,7 +218,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Funk",
     topic: "basics",
     bpm: { start: 70, target: 90 },
-    feel: "A kick off the beat.",
+    feel: m.music_rep_padrep_syncopated_feel(),
     fingers: SPLIT,
   },
   // Level 2
@@ -209,7 +228,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Boom bap",
     topic: "hiphop",
     bpm: { start: 75, target: 90 },
-    feel: "Two bars. The second answers the first.",
+    feel: m.music_rep_padrep_boom_bap_2bar_feel(),
     fingers: SPLIT,
   },
   {
@@ -222,7 +241,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Boom bap",
     topic: "hiphop",
     bpm: { start: 80, target: 92 },
-    feel: "The generic hip-hop kick: four hits after the backbeat on 2.",
+    feel: m.music_rep_padrep_boom_bap_b_feel(),
     fingers: SPLIT,
   },
   {
@@ -236,7 +255,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Breakbeat",
     topic: "hiphop",
     bpm: { start: 80, target: 95 },
-    feel: "Two kicks together on the & of 2 and 3, then an open hat.",
+    feel: m.music_rep_padrep_impeach_feel(),
     fingers: SPLIT,
   },
   {
@@ -249,7 +268,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Rock break",
     topic: "hiphop",
     bpm: { start: 62, target: 72 },
-    feel: "Slow and heavy. The kick on the a of 2 is the surprise.",
+    feel: m.music_rep_padrep_levee_feel(),
     fingers: SPLIT,
   },
   // Level 3
@@ -264,9 +283,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Funk break",
     topic: "ghosts",
     bpm: { start: 80, target: 100 },
-    feel: "Sixteenth hats, ghosted snares around the backbeats, open hats on the a of 2 and 4.",
-    fingers:
-      "Right index and middle alternate the hats. Left index the snare and its ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_funky_drummer_feel(),
+    fingers: m.music_rep_padrep_funky_drummer_fingers(),
   },
   {
     groove: gridGroove("dembow", "Dembow", { kick: "X...x...X...x...", snare: "...x..x....x..x." }),
@@ -274,11 +292,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Reggaeton",
     topic: "ghosts",
     bpm: { start: 85, target: 98 },
-    feel: "Four on the floor with the snare on the a of 1, the & of 2, and again.",
-    fingers: "Left index on the kick, right index on the snare.",
+    feel: m.music_rep_padrep_dembow_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_snare(),
   },
   {
-    groove: gridGroove("ghost-boom-bap", "Boom bap with ghosts", {
+    groove: gridGroove("ghost-boom-bap", m.music_rep_padrep_ghost_boom_bap_label(), {
       kick: "X......x..x.....",
       snare: "....X..g.g..X..g",
       hats: EIGHTHS,
@@ -287,7 +305,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Boom bap",
     topic: "ghosts",
     bpm: { start: 80, target: 92 },
-    feel: "Ghosts on the a of 2, the e of 3 and the a of 4: soft, under 40% of the backbeat.",
+    feel: m.music_rep_padrep_ghost_boom_bap_feel(),
     fingers: SPLIT,
   },
   {
@@ -303,12 +321,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     topic: "ghosts",
     swing: 54,
     bpm: { start: 95, target: 113 },
-    feel: 'The "Yeah! Woo!" break: one kick, the snare on 2 and 4, ghosts on the a of 2 and the & of 3. The sixteenths (a tambourine on the recording) sit a little behind the beat.',
-    fingers:
-      "Right index and middle alternate the sixteenths on the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_think_feel(),
+    fingers: m.music_rep_padrep_fingers_sixteenths_ghosts(),
   },
   {
-    groove: gridGroove("funk-sixteenths", "Funk sixteenths", {
+    groove: gridGroove("funk-sixteenths", m.music_rep_padrep_funk_sixteenths_label(), {
       kick: "X..x......x.....",
       snare: "....X..g....X..g",
       hats: "xxxxxxxxxxxxxxxx",
@@ -317,13 +334,12 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Funk",
     topic: "ghosts",
     bpm: { start: 80, target: 96 },
-    feel: "Sixteenth hats over a kick on 1, the a of 1 and the & of 3. Ghosts on the a of 2 and the a of 4.",
-    fingers:
-      "Right index and middle alternate the sixteenths on the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_funk_sixteenths_feel(),
+    fingers: m.music_rep_padrep_fingers_sixteenths_ghosts(),
   },
   // Level 4
   {
-    groove: gridGroove("independence", "Four kicks under one hat", {
+    groove: gridGroove("independence", m.music_rep_padrep_independence_label(), {
       kick: "X.......x.......|X......x..x.....|X..x....x.x.....|X.x....x..x..x..",
       snare: `${BACKBEAT}|${BACKBEAT}|${BACKBEAT}|${BACKBEAT}`,
       hats: `${EIGHTHS}|${EIGHTHS}|${EIGHTHS}|${EIGHTHS}`,
@@ -332,13 +348,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Independence",
     topic: "independence",
     bpm: { start: 75, target: 95 },
-    feel: "The hats never change. The kick takes a new pattern every bar.",
+    feel: m.music_rep_padrep_independence_feel(),
     fingers: SPLIT,
   },
   {
     groove: gridGroove(
       "fill-one-beat",
-      "Groove with a one-beat fill",
+      m.music_rep_padrep_fill_one_beat_label(),
       {
         kick: "X.......x.......|X.......x.......|X.......x.......|X.......x.......",
         snare: `${BACKBEAT}|${BACKBEAT}|${BACKBEAT}|....X.......xxxx`,
@@ -350,13 +366,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Fill",
     topic: "fills",
     bpm: { start: 75, target: 100 },
-    feel: "Three bars of rock, then four sixteenth snares on beat 4 and back to 1.",
-    fingers: "Fill: alternate both index fingers on the snare.",
+    feel: m.music_rep_padrep_fill_one_beat_feel(),
+    fingers: m.music_rep_padrep_fill_one_beat_fingers(),
   },
   {
     groove: gridGroove(
       "fill-two-beats",
-      "Groove with a two-beat fill",
+      m.music_rep_padrep_fill_two_beats_label(),
       {
         kick: "X.......x.......|X.......x.......|X.......x.......|X.......X.......",
         snare: `${BACKBEAT}|${BACKBEAT}|${BACKBEAT}|....X...xx......`,
@@ -371,8 +387,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Fill",
     topic: "fills",
     bpm: { start: 70, target: 95 },
-    feel: "Sixteenths down the kit: snare, high, mid and low tom, then the downbeat.",
-    fingers: "Alternate hands, right leading, across the pads from left to right.",
+    feel: m.music_rep_padrep_fill_two_beats_feel(),
+    fingers: m.music_rep_padrep_fill_two_beats_fingers(),
   },
   {
     groove: table("turnaround-fill"),
@@ -380,7 +396,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Fill",
     topic: "fills",
     bpm: { start: 75, target: 88 },
-    feel: "Three bars and a fill that turns the phrase around.",
+    feel: m.music_rep_padrep_turnaround_fill_feel(),
     fingers: SPLIT,
   },
   {
@@ -395,8 +411,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     topic: "swing",
     swing: 56,
     bpm: { start: 80, target: 90 },
-    feel: "Every second sixteenth a little late: loose, not yet a shuffle.",
-    fingers: "Right index and middle alternate the hats, the middle a touch late.",
+    feel: m.music_rep_padrep_swing_56_feel(),
+    fingers: m.music_rep_padrep_swing_56_fingers(),
   },
   {
     groove: gridGroove(
@@ -410,14 +426,14 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     topic: "swing",
     swing: 62,
     bpm: { start: 80, target: 90 },
-    feel: "Nearer the triplet: the hip-hop lilt.",
-    fingers: "Right index and middle alternate the hats. Feel the late one, don't count it.",
+    feel: m.music_rep_padrep_swing_62_feel(),
+    fingers: m.music_rep_padrep_swing_62_fingers(),
   },
   {
     groove: pushSnare(
       gridGroove(
         "dilla",
-        "Dilla feel",
+        m.music_rep_padrep_dilla_label(),
         { kick: "X......x..x.....", snare: BACKBEAT, hats: "xxxxxxxxxxxxxxxx" },
         { swing: 60 },
       ),
@@ -429,7 +445,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     topic: "swing",
     swing: 60,
     bpm: { start: 78, target: 88 },
-    feel: "Swung hats over a straight kick, and the snare pushed about 20 ms early: two feels at once.",
+    feel: m.music_rep_padrep_dilla_feel(),
     fingers: SPLIT,
   },
   // Level 5
@@ -444,12 +460,12 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "House",
     topic: "dance",
     bpm: { start: 110, target: 124 },
-    feel: "Closed hat on the beat, open hat on every &; the kick never stops.",
-    fingers: "Left index on the kick, left middle the clap, right index and middle the two hats.",
+    feel: m.music_rep_padrep_house_feel(),
+    fingers: m.music_rep_padrep_house_fingers(),
   },
   {
     groove: roll(
-      gridGroove("trap-32", "Trap, 1/32 roll", {
+      gridGroove("trap-32", m.music_rep_padrep_trap_32_label(), {
         kick: "X......x..x.....",
         perc: "........X.......",
         hats: EIGHTHS,
@@ -463,13 +479,12 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Trap",
     topic: "dance",
     bpm: { start: 120, target: 140 },
-    feel: "Half time: the clap on 3. The last beat of hats rolls in thirty-seconds.",
-    fingers:
-      "The roll: right index and middle as a two-finger roll on one pad (or hold Note Repeat at 1/32).",
+    feel: m.music_rep_padrep_trap_32_feel(),
+    fingers: m.music_rep_padrep_trap_32_fingers(),
   },
   {
     groove: roll(
-      gridGroove("trap-triplet", "Trap, triplet roll", {
+      gridGroove("trap-triplet", m.music_rep_padrep_trap_triplet_label(), {
         kick: "X......x..x.....",
         perc: "........X.......",
         hats: EIGHTHS,
@@ -483,8 +498,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Trap",
     topic: "dance",
     bpm: { start: 120, target: 140 },
-    feel: "The same beat, the roll in sixteenth triplets (1/16T).",
-    fingers: "Two-finger roll, six to the beat.",
+    feel: m.music_rep_padrep_trap_triplet_feel(),
+    fingers: m.music_rep_padrep_trap_triplet_fingers(),
   },
   {
     groove: gridGroove("dnb", "Drum and bass two-step", {
@@ -496,7 +511,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Drum and bass",
     topic: "dance",
     bpm: { start: 140, target: 172 },
-    feel: "Kick on 1 and the & of 3, snare on 2 and 4, fast.",
+    feel: m.music_rep_padrep_dnb_feel(),
     fingers: SPLIT,
   },
   {
@@ -518,9 +533,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     topic: "dance",
     swing: 56,
     bpm: { start: 95, target: 106 },
-    feel: "Kick on 1 with pushes on the & of 2 and 3. The rim answers on the a of 1 and the & of 2 (the 3-3-2). Clap on 2 and 4, shaker sixteenths. One common version: producers vary it.",
-    fingers:
-      "Right hand the shaker (hats) sixteenths. Left index kick, left middle rim. The clap and conga (high tom) where they fall.",
+    feel: m.music_rep_padrep_afrobeats_feel(),
+    fingers: m.music_rep_padrep_afrobeats_fingers(),
   },
   // Level 6
   {
@@ -534,8 +548,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Breakbeat",
     topic: "breaks",
     bpm: { start: 110, target: 138 },
-    feel: "Four bars: the third delays the last snare, the fourth rearranges everything and crashes.",
-    fingers: "Right index on the ride. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_amen_feel(),
+    fingers: m.music_rep_padrep_amen_fingers(),
   },
   {
     // Tony Allen's own "first pattern" of afrobeat, as he demonstrated it (Joe the Drummer's notation).
@@ -549,9 +563,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Afrobeat",
     topic: "independence",
     bpm: { start: 85, target: 110 },
-    feel: "Fela's drummer: kicks in pairs, a snare line of its own, the hand on the hats and the foot on the pedal hat all independent. Tempo approximate.",
-    fingers:
-      "Right index and middle the hats, left index the snare, left middle the kick, left ring the pedal hat. Learn it in Wait mode first.",
+    feel: m.music_rep_padrep_tony_allen_feel(),
+    fingers: m.music_rep_padrep_tony_allen_fingers(),
   },
   {
     groove: gridGroove("apache", "Apache break", {
@@ -563,7 +576,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Breakbeat",
     topic: "breaks",
     bpm: { start: 95, target: 112 },
-    feel: "The snare answers itself on the & of 3 and the a of 4 (tempo approximate).",
+    feel: m.music_rep_padrep_apache_feel(),
     fingers: SPLIT,
   },
   // Latin, Caribbean and Brazilian (MusicRadar, Modern Drummer, DRUM!, Native Instruments,
@@ -579,9 +592,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Reggaeton",
     topic: "latin",
     bpm: { start: 80, target: 95 },
-    feel: "The dembow: a kick on every beat, the snare's 3+3+2 over it, a deep tom on 1 and 3.",
-    fingers:
-      "Left index the kick, right index the snare, left middle the tom, right middle the hat.",
+    feel: m.music_rep_padrep_reggaeton_feel(),
+    fingers: m.music_rep_padrep_reggaeton_fingers(),
   },
   {
     groove: gridGroove("dancehall", "Dancehall", {
@@ -593,7 +605,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Dancehall",
     topic: "latin",
     bpm: { start: 85, target: 95 },
-    feel: "The 3+3+2 split between kick (1 and the a of 1, 3 and the a of 3) and snare (the & of 2 and 4).",
+    feel: m.music_rep_padrep_dancehall_feel(),
     fingers: SPLIT,
   },
   {
@@ -606,8 +618,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Reggae",
     topic: "latin",
     bpm: { start: 65, target: 80 },
-    feel: "A kick on every beat under the cross-stick on 3: the marching reggae beat.",
-    fingers: "Left index the kick, left middle the rim, right hand the hats.",
+    feel: m.music_rep_padrep_steppers_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_rim_hats(),
   },
   {
     groove: gridGroove("cumbia", "Cumbia", {
@@ -619,8 +631,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Cumbia",
     topic: "latin",
     bpm: { start: 70, target: 88 },
-    feel: "The guacharaca on the hats (one on the beat, two on the & and a), the llamador on 2 and 4. Players put the kick on every beat, on 2 and 4, or a tumbao: this one keeps it on the beat.",
-    fingers: "Right index and middle the guacharaca. Left index kick, left middle rim.",
+    feel: m.music_rep_padrep_cumbia_feel(),
+    fingers: m.music_rep_padrep_cumbia_fingers(),
   },
   {
     groove: gridGroove("one-drop", "Reggae one drop", {
@@ -633,11 +645,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Reggae",
     topic: "latin",
     bpm: { start: 65, target: 80 },
-    feel: "Nothing on 1: kick and cross-stick drop together on 3 of a half-time bar, an open hat leading into the next. Often played with a shuffle.",
-    fingers: "Left index the kick, left middle the rim, right hand the hats.",
+    feel: m.music_rep_padrep_one_drop_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_rim_hats(),
   },
   {
-    groove: gridGroove("tamborzao", "Brazilian funk (tamborzão)", {
+    groove: gridGroove("tamborzao", m.music_rep_padrep_tamborzao_label(), {
       kick: "X.....x.........",
       "tom-mid": "x.......x.......",
       "tom-low": "............x...",
@@ -647,9 +659,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Baile funk",
     topic: "latin",
     bpm: { start: 110, target: 130 },
-    feel: '"Tum pa-pá pum pá": a tresillo of drum skins (1, the a of 1, the & of 2) answered on 3 and 4, no hats, no snare. DJ Luciano Oliveira\'s own reduction.',
-    fingers:
-      "Left index the kick and rack tom, right index and middle the conga (high tom), left middle the floor tom.",
+    feel: m.music_rep_padrep_tamborzao_feel(),
+    fingers: m.music_rep_padrep_tamborzao_fingers(),
   },
   {
     groove: gridGroove("bossa-nova", "Bossa nova", {
@@ -662,9 +673,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Bossa nova",
     topic: "latin",
     bpm: { start: 100, target: 120 },
-    feel: "The surdo on the kick (soft pushes before 1 and 3), and the bossa clave on the cross-stick over two bars.",
-    fingers:
-      "Right hand the hats. Left index the kick, left middle the rim. The pedal hat with a spare finger on 2 and 4.",
+    feel: m.music_rep_padrep_bossa_nova_feel(),
+    fingers: m.music_rep_padrep_bossa_nova_fingers(),
   },
   {
     groove: gridGroove("soca", "Soca", {
@@ -677,9 +687,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Soca",
     topic: "latin",
     bpm: { start: 105, target: 125 },
-    feel: "Four on the floor with the 3+3+2 snare and an open hat sizzling on every &. (Teachers vary the hats: this is Boston Drum Lessons' version.)",
-    fingers:
-      "Right index and middle the hats, opening on the &; left index kick, left middle snare.",
+    feel: m.music_rep_padrep_soca_feel(),
+    fingers: m.music_rep_padrep_soca_fingers(),
   },
   {
     groove: gridGroove("zouk", "Zouk", {
@@ -692,12 +701,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Zouk",
     topic: "latin",
     bpm: { start: 100, target: 125 },
-    feel: "Sixteenth hats, loud and soft. The tibwa's cinquillo on the rim. Snare only on 2 and 4.",
-    fingers:
-      "Right index and middle the hats (index loud, middle soft). Left index kick, left middle snare, left ring rim.",
+    feel: m.music_rep_padrep_zouk_feel(),
+    fingers: m.music_rep_padrep_zouk_fingers(),
   },
   {
-    groove: gridGroove("kompa", "Kompa (provisional)", {
+    groove: gridGroove("kompa", m.music_rep_padrep_provisional({ title: padStyleLabel("Kompa") }), {
       cowbell: "X..XX...X.X.X...|X..XX...X.X.X...",
       hats: "x.xx.x..x.xx.x..|x.xx.x..x.xx.x..",
       openhat: "......x.......x.|......x.......x.",
@@ -707,11 +715,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Kompa",
     topic: "latin",
     bpm: { start: 90, target: 110 },
-    feel: "The cowbell is the metronome of kompa, the gong (a muffled floor tom) on 4. Provisional: one band player's notation, tempo not documented.",
-    fingers: "Right index the cowbell, right middle the hats. Left index the floor tom.",
+    feel: m.music_rep_padrep_kompa_feel(),
+    fingers: m.music_rep_padrep_kompa_fingers(),
   },
   {
-    groove: gridGroove("funk-150", "Brazilian funk, 150 BPM", {
+    groove: gridGroove("funk-150", m.music_rep_padrep_funk_150_label(), {
       kick: "X.....x...x.....",
       "tom-mid": "x.......x.......",
       "tom-low": "............x...",
@@ -721,8 +729,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Baile funk",
     topic: "latin",
     bpm: { start: 130, target: 150 },
-    feel: "The tamborzão sped up to 150 BPM (2016 on), with DJ Sany Pitbull's extra kick on the & of 3.",
-    fingers: "As the tamborzão, lighter on the fingers.",
+    feel: m.music_rep_padrep_funk_150_feel(),
+    fingers: m.music_rep_padrep_funk_150_fingers(),
   },
   {
     groove: gridGroove("samba", "Samba", {
@@ -734,32 +742,36 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Samba",
     topic: "latin",
     bpm: { start: 90, target: 110 },
-    feel: "The surdo on the kick (the first and last sixteenth of each beat), a busy hat line and the pedal hat on every &. Tempo approximate.",
-    fingers: "Left index and middle the kick figure, right hand the hats, left ring the pedal hat.",
+    feel: m.music_rep_padrep_samba_feel(),
+    fingers: m.music_rep_padrep_samba_fingers(),
   },
   // Short phrases (docs/research/phrases.md, local): one- and two-bar cells
   // drummers know by name, plus a tag ending and a build. Generic rhythms, no
   // recordings.
   {
-    groove: gridGroove("son-clave", "Son clave 3-2", { rim: "x..x..x...x.x..." }),
+    groove: gridGroove("son-clave", m.music_rep_padrep_son_clave_label(), {
+      rim: "x..x..x...x.x...",
+    }),
     level: 1,
     style: "Clave",
     topic: "phrases",
     bpm: { start: 80, target: 105 },
-    feel: "Three then two: the rhythm Cuban music, salsa and the Bo Diddley beat hang on.",
-    fingers: "Right index on the rim. Count the sixteenths quietly.",
+    feel: m.music_rep_padrep_son_clave_feel(),
+    fingers: m.music_rep_padrep_son_clave_fingers(),
   },
   {
-    groove: gridGroove("rumba-clave", "Rumba clave 3-2", { rim: "x..x...x..x.x..." }),
+    groove: gridGroove("rumba-clave", m.music_rep_padrep_rumba_clave_label(), {
+      rim: "x..x...x..x.x...",
+    }),
     level: 1,
     style: "Clave",
     topic: "phrases",
     bpm: { start: 80, target: 105 },
-    feel: "The son clave with its third note a sixteenth later: the rumba's lean.",
-    fingers: "Right index on the rim.",
+    feel: m.music_rep_padrep_rumba_clave_feel(),
+    fingers: m.music_rep_padrep_rumba_clave_fingers(),
   },
   {
-    groove: gridGroove("stomp-clap", "Stomp, stomp, clap", {
+    groove: gridGroove("stomp-clap", m.music_rep_padrep_stomp_clap_label(), {
       kick: "x.x.....x.x.....",
       perc: "....x.......x...",
     }),
@@ -767,11 +779,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Body percussion",
     topic: "phrases",
     bpm: { start: 72, target: 84 },
-    feel: "Two stomps and a clap, the oldest crowd rhythm there is.",
-    fingers: "Left index on the kick, right index on the clap.",
+    feel: m.music_rep_padrep_stomp_clap_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_clap(),
   },
   {
-    groove: gridGroove("tresillo-backbeat", "Tresillo under a backbeat", {
+    groove: gridGroove("tresillo-backbeat", m.music_rep_padrep_tresillo_backbeat_label(), {
       kick: "x..x..x.x..x..x.",
       snare: "....x.......x...",
     }),
@@ -779,11 +791,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Tresillo",
     topic: "phrases",
     bpm: { start: 85, target: 100 },
-    feel: "Three-three-two in the kick against the snare on 2 and 4: the root of reggaeton, New Orleans and much of pop.",
-    fingers: "Left index on the kick, right index on the snare.",
+    feel: m.music_rep_padrep_tresillo_backbeat_feel(),
+    fingers: m.music_rep_padrep_fingers_kick_snare(),
   },
   {
-    groove: gridGroove("paradiddle-split", "Paradiddle split", {
+    groove: gridGroove("paradiddle-split", m.music_rep_padrep_paradiddle_split_label(), {
       snare: "x.xx.x..x.xx.x..",
       hats: ".x..x.xx.x..x.xx",
     }),
@@ -791,11 +803,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Rudiment phrase",
     topic: "phrases",
     bpm: { start: 70, target: 90 },
-    feel: "RLRR LRLL with the right hand on the snare and the left on the hats: a sticking that sounds like a groove.",
-    fingers: "Right index on the snare, left index on the hats.",
+    feel: m.music_rep_padrep_paradiddle_split_feel(),
+    fingers: m.music_rep_padrep_paradiddle_split_fingers(),
   },
   {
-    groove: gridGroove("one-beat-fill", "One-beat fill and landing", {
+    groove: gridGroove("one-beat-fill", m.music_rep_padrep_one_beat_fill_label(), {
       kick: "x.......x.......|x...............",
       snare: "....x.......xxxx|................",
       hats: "x.x.x.x.x.x.....|................",
@@ -805,11 +817,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Fill",
     topic: "phrases",
     bpm: { start: 85, target: 105 },
-    feel: "A bar of groove, four sixteenths on the snare in its last beat, then crash and kick together on the one.",
-    fingers: "Right hand hats and the fill, left index kick. Land the crash with the right.",
+    feel: m.music_rep_padrep_one_beat_fill_feel(),
+    fingers: m.music_rep_padrep_one_beat_fill_fingers(),
   },
   {
-    groove: gridGroove("shave-tag", "Shave and a haircut tag", {
+    groove: gridGroove("shave-tag", m.music_rep_padrep_shave_tag_label(), {
       snare: "x...............|................",
       "tom-high": "....x.x.....x...|................",
       "tom-mid": "........x.......|................",
@@ -821,11 +833,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Tag ending",
     topic: "phrases",
     bpm: { start: 100, target: 120 },
-    feel: "Shave and a haircut, two bits: the vaudeville ending (Charles Hale, 1899) every drummer plays to close a tune.",
-    fingers: "Right hand across snare and toms, left index the kick under the last crash.",
+    feel: m.music_rep_padrep_shave_tag_feel(),
+    fingers: m.music_rep_padrep_shave_tag_fingers(),
   },
   {
-    groove: gridGroove("linear-3-over-4", "Linear three over four", {
+    groove: gridGroove("linear-3-over-4", m.music_rep_padrep_linear_3_over_4_label(), {
       hats: "x..x..x..x..x..x",
       snare: ".x..x..x..x..x..",
       kick: "..x..x..x..x..x.",
@@ -834,11 +846,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Linear phrase",
     topic: "phrases",
     bpm: { start: 75, target: 95 },
-    feel: "Hat, snare, kick, one at a time in threes over a four-beat bar: no two hits together.",
-    fingers: "Right index hats, right middle snare, left index kick.",
+    feel: m.music_rep_padrep_linear_3_over_4_feel(),
+    fingers: m.music_rep_padrep_linear_3_over_4_fingers(),
   },
   {
-    groove: gridGroove("snare-build", "Snare build to the drop", {
+    groove: gridGroove("snare-build", m.music_rep_padrep_snare_build_label(), {
       snare: "x...x...x...x...|x.x.x.x.x.x.x.x.|xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx|................",
       kick: "x...x...x...x...|x...x...x...x...|x...x...x...x...|x...x...x...x...|x...............",
       crash: "................|................|................|................|x...............",
@@ -847,13 +859,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Dance build",
     topic: "phrases",
     bpm: { start: 110, target: 126 },
-    feel: "Quarters, then eighths, then two bars of sixteenths over four on the floor, and the crash on the drop.",
-    fingers: "Alternate right index and middle on the snare. Left index keeps the kick.",
+    feel: m.music_rep_padrep_snare_build_feel(),
+    fingers: m.music_rep_padrep_snare_build_fingers(),
   },
   // New for the path (pads.md, levels 2, 5, 9 and 10): generic patterns, the
   // named records' grooves as they are commonly taught.
   {
-    groove: gridGroove("rock-open-hat", "Rock with an open hat", {
+    groove: gridGroove("rock-open-hat", m.music_rep_padrep_rock_open_hat_label(), {
       kick: "X.......x.......",
       snare: BACKBEAT,
       hats: "x.x.x.x.x.x.x...",
@@ -863,8 +875,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Rock",
     topic: "basics",
     bpm: { start: 80, target: 100 },
-    feel: "Basic rock with the hat opened on the & of 4 and closed by the next bar's first hat: the lift into each bar.",
-    fingers: "Right index the closed hat, right middle the open one. Left index kick and snare.",
+    feel: m.music_rep_padrep_rock_open_hat_feel(),
+    fingers: m.music_rep_padrep_rock_open_hat_fingers(),
   },
   {
     groove: gridGroove("disco", "Disco", {
@@ -877,12 +889,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "House",
     topic: "dance",
     bpm: { start: 100, target: 120 },
-    feel: "Four on the floor, the snare on 2 and 4, sixteenth hats that open on every &.",
-    fingers:
-      "Right index and middle the hats, the middle opening on the &; left index kick, left middle snare.",
+    feel: m.music_rep_padrep_disco_feel(),
+    fingers: m.music_rep_padrep_disco_fingers(),
   },
   {
-    groove: gridGroove("cold-sweat", "Cold Sweat (provisional)", {
+    groove: gridGroove("cold-sweat", m.music_rep_padrep_provisional({ title: "Cold Sweat" }), {
       kick: "X.........x.x...",
       snare: "....X..g.g.X..g.",
       hats: EIGHTHS,
@@ -891,11 +902,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Funk break",
     topic: "ghosts",
     bpm: { start: 95, target: 112 },
-    feel: "Clyde Stubblefield's funk: the backbeat on 2, the second snare pushed to the a of 3, ghosts between. Provisional: a teaching version, check it against the recording.",
-    fingers: "Right hand the hats. Left index the snare and its ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_cold_sweat_feel(),
+    fingers: m.music_rep_padrep_cold_sweat_fingers(),
   },
   {
-    groove: gridGroove("songo", "Songo (provisional)", {
+    groove: gridGroove("songo", m.music_rep_padrep_provisional({ title: "Songo" }), {
       cowbell: "X...x...X...x...",
       kick: "......x.....x...",
       snare: "..g..g.X..g...g.",
@@ -905,55 +916,60 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Songo",
     topic: "latin",
     bpm: { start: 85, target: 100 },
-    feel: "Cuban songo: the bell on the beat, the kick on the & of 2 and on 4 like the bass's tumbao. The snare talks around them, with the low tom on 4 and its &. Provisional: one teaching version of many.",
-    fingers:
-      "Right index the bell. Left index the snare, left middle the kick, right middle the tom.",
+    feel: m.music_rep_padrep_songo_feel(),
+    fingers: m.music_rep_padrep_songo_fingers(),
   },
   // Linear grooves from Stick Control's first page: the right hand on the hats,
   // the left on the snare, the kick taking some strokes; never two at once.
   {
-    groove: linear("linear-singles", "Linear: singles", "KsHsSsHsKsHsSsHs"),
+    groove: linear("linear-singles", m.music_rep_padrep_linear_singles_label(), "KsHsSsHsKsHsSsHs"),
     level: 6,
     style: "Linear funk",
     topic: "independence",
     bpm: { start: 70, target: 90 },
-    feel: "R L R L: the right hand's strokes on the hats and the backbeat, the left's as ghosts, the kick in place of the right on 1 and 3.",
-    fingers: "Right index hats and backbeat, left index ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_linear_singles_feel(),
+    fingers: m.music_rep_padrep_linear_singles_fingers(),
   },
   {
-    groove: linear("linear-doubles", "Linear: doubles", "KHssSHssHHKsSHss"),
+    groove: linear("linear-doubles", m.music_rep_padrep_linear_doubles_label(), "KHssSHssHHKsSHss"),
     level: 6,
     style: "Linear funk",
     topic: "independence",
     bpm: { start: 70, target: 90 },
-    feel: "R R L L: doubles split between hats and snare ghosts, the kick on 1 and the & of 3.",
-    fingers:
-      "Right index and middle the hats, left index and middle the ghosts. The kick with the left ring.",
+    feel: m.music_rep_padrep_linear_doubles_feel(),
+    fingers: m.music_rep_padrep_linear_doubles_fingers(),
   },
   {
-    groove: linear("linear-paradiddle", "Linear: paradiddle", "KsHHSHssKsHHSHss"),
+    groove: linear(
+      "linear-paradiddle",
+      m.music_rep_padrep_linear_paradiddle_label(),
+      "KsHHSHssKsHHSHss",
+    ),
     level: 6,
     style: "Linear funk",
     topic: "independence",
     bpm: { start: 70, target: 90 },
-    feel: "R L R R L R L L: the paradiddle, the backbeat on the left's stroke, the kick on the right's lead.",
-    fingers:
-      "Right hand the hats, left the snare, the kick for the right's first stroke of each group.",
+    feel: m.music_rep_padrep_linear_paradiddle_feel(),
+    fingers: m.music_rep_padrep_linear_paradiddle_fingers(),
   },
   {
-    groove: linear("linear-inverted", "Linear: inverted paradiddle", "KssHSHHsHsKHSHHs"),
+    groove: linear(
+      "linear-inverted",
+      m.music_rep_padrep_linear_inverted_label(),
+      "KssHSHHsHsKHSHHs",
+    ),
     level: 6,
     style: "Linear funk",
     topic: "independence",
     bpm: { start: 70, target: 90 },
-    feel: "R L L R L R R L: the doubles move inside the group, the kick takes the left's stroke on the & of 3.",
-    fingers: "Right hand the hats, left the snare, the kick where the left would play the & of 3.",
+    feel: m.music_rep_padrep_linear_inverted_feel(),
+    fingers: m.music_rep_padrep_linear_inverted_fingers(),
   },
   // Level 7: the triplet grid, three steps a beat (twelve a bar); a shuffle
   // plays the first and third of each triplet. Half-time shuffles put the
   // backbeat on 3. Tempos are the records' where they are known.
   {
-    groove: gridGroove("blues-shuffle", "Blues shuffle", {
+    groove: gridGroove("blues-shuffle", m.music_rep_padrep_blues_shuffle_label(), {
       kick: "X.....x.....",
       snare: "...X.....X..",
       hats: SHUFFLE_HATS,
@@ -962,11 +978,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 90, target: 120 },
-    feel: "Hats on the first and third of every triplet (the long-short of a shuffle), kick on 1 and 3, snare on 2 and 4.",
+    feel: m.music_rep_padrep_blues_shuffle_feel(),
     fingers: SPLIT,
   },
   {
-    groove: gridGroove("swing-ride", "Swing ride", {
+    groove: gridGroove("swing-ride", m.music_rep_padrep_swing_ride_label(), {
       ride: "x..x.xx..x.x",
       pedalhat: "...x.....x..",
       kick: "g..g..g..g..",
@@ -975,13 +991,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Swing",
     topic: "shuffle",
     bpm: { start: 100, target: 140 },
-    feel: "Ding, ding-a ding, ding-a: the ride on every beat and the last triplet of 2 and 4. The hat foot on 2 and 4, the kick feathered soft on every beat.",
-    fingers: "Right index the ride. Left index the pedal hat, left middle the kick, soft.",
+    feel: m.music_rep_padrep_swing_ride_feel(),
+    fingers: m.music_rep_padrep_swing_ride_fingers(),
   },
   {
     groove: gridGroove(
       "slow-blues",
-      "12/8 slow blues",
+      m.music_rep_padrep_slow_blues_label(),
       { kick: "X.....x.....", snare: "...X.....X..", hats: "xxxxxxxxxxxx" },
       { meter: "12/8" },
     ),
@@ -989,11 +1005,11 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 50, target: 60 },
-    feel: "Twelve eighths a bar, the click on every third: kick on 1 and 3, snare on 2 and 4, the hats on every eighth.",
+    feel: m.music_rep_padrep_slow_blues_feel(),
     fingers: SPLIT,
   },
   {
-    groove: gridGroove("shuffle-ghosts", "Shuffle with a ghost", {
+    groove: gridGroove("shuffle-ghosts", m.music_rep_padrep_shuffle_ghosts_label(), {
       kick: "X.....x.....",
       snare: "..gX....gX..",
       hats: SHUFFLE_HATS,
@@ -1002,8 +1018,8 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 80, target: 100 },
-    feel: "The blues shuffle with a snare ghost on the third triplet of 1 and 3, leading into each backbeat. Keep the ghosts under 40%.",
-    fingers: "Right hand the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_shuffle_ghosts_feel(),
+    fingers: m.music_rep_padrep_fingers_hats_ghosts(),
   },
   {
     groove: gridGroove("purdie", "Purdie shuffle", {
@@ -1015,40 +1031,48 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 72, target: 92 },
-    feel: "Bernard Purdie's half-time shuffle: ghosts on the middle triplet, the backbeat on 3, the kick on 1 and the last triplets of 2 and 4. Tempo approximate.",
-    fingers: "Right hand the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_purdie_feel(),
+    fingers: m.music_rep_padrep_fingers_hats_ghosts(),
   },
   {
-    groove: gridGroove("rosanna", "Rosanna shuffle (provisional)", {
-      kick: "X....x..x..x|X....x..x...",
-      snare: ".g..g.X...g.|.g..g.X..g.g",
-      hats: `${SHUFFLE_HATS}|${SHUFFLE_HATS}`,
-    }),
+    groove: gridGroove(
+      "rosanna",
+      m.music_rep_padrep_provisional({ title: m.music_rep_padrep_rosanna_title() }),
+      {
+        kick: "X....x..x..x|X....x..x...",
+        snare: ".g..g.X...g.|.g..g.X..g.g",
+        hats: `${SHUFFLE_HATS}|${SHUFFLE_HATS}`,
+      },
+    ),
     level: 7,
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 70, target: 86 },
-    feel: "Jeff Porcaro's half-time shuffle, built on Purdie's. Ghosts on the middle triplets, the backbeat on 3, a kick that answers itself over two bars. Provisional: a teaching version, check it against the recording.",
-    fingers: "Right hand the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_rosanna_feel(),
+    fingers: m.music_rep_padrep_fingers_hats_ghosts(),
   },
   {
-    groove: gridGroove("fool-in-the-rain", "Fool in the Rain (provisional)", {
-      kick: "X.........x.......x.....",
-      snare: "..g...g.g...X.....g.g.g.",
-      hats: "x...x.x...x.x...x.x...x.",
-    }),
+    groove: gridGroove(
+      "fool-in-the-rain",
+      m.music_rep_padrep_provisional({ title: "Fool in the Rain" }),
+      {
+        kick: "X.........x.......x.....",
+        snare: "..g...g.g...X.....g.g.g.",
+        hats: "x...x.x...x.x...x.x...x.",
+      },
+    ),
     level: 7,
     style: "Shuffle",
     topic: "shuffle",
     bpm: { start: 100, target: 130 },
-    feel: "John Bonham's half-time shuffle on a sixteenth-triplet grid (six steps a beat). Shuffled hats, ghosts in the gaps, the backbeat on 3. Provisional: a teaching version, check it against the recording.",
-    fingers: "Right hand the hats. Left index the snare and ghosts, left middle the kick.",
+    feel: m.music_rep_padrep_fool_in_the_rain_feel(),
+    fingers: m.music_rep_padrep_fingers_hats_ghosts(),
   },
   // Level 8: odd meters. 5/4 and 7/4 click quarters; 7/8 clicks its seven eighths.
   {
     groove: gridGroove(
       "five-four",
-      "Rock in 5/4",
+      m.music_rep_padrep_rock_in_meter({ meter: "5/4" }),
       {
         kick: "X.....x.....X.......",
         snare: "........X.......X...",
@@ -1060,13 +1084,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Odd meter",
     topic: "meter",
     bpm: { start: 120, target: 172 },
-    feel: "Five beats as 3 + 2: the kick starts each group on 1 and 4 (with a push on the & of 2), the snare closes them on 3 and 5.",
+    feel: m.music_rep_padrep_five_four_feel(),
     fingers: SPLIT,
   },
   {
     groove: gridGroove(
       "seven-four",
-      "Rock in 7/4",
+      m.music_rep_padrep_rock_in_meter({ meter: "7/4" }),
       {
         kick: "X.......x.......x.......x...",
         snare: "....X.......X.......X.......",
@@ -1078,13 +1102,13 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Odd meter",
     topic: "meter",
     bpm: { start: 90, target: 120 },
-    feel: "Seven beats as 4 + 3. Kick and snare alternate, so one bar ends on a kick and the next starts on one. That stumble makes 7 feel like 7.",
+    feel: m.music_rep_padrep_seven_four_feel(),
     fingers: SPLIT,
   },
   {
     groove: gridGroove(
       "seven-eight",
-      "Rock in 7/8",
+      m.music_rep_padrep_rock_in_meter({ meter: "7/8" }),
       {
         kick: "X.......x.....",
         snare: "....X.....X...",
@@ -1096,7 +1120,7 @@ export const PAD_REPERTOIRE: RepertoireGroove[] = [
     style: "Odd meter",
     topic: "meter",
     bpm: { start: 90, target: 120 },
-    feel: "Seven eighths as 2 + 2 + 3, the click on every eighth: kick on 1, snare on 3, kick on 5, snare on 6.",
+    feel: m.music_rep_padrep_seven_eight_feel(),
     fingers: SPLIT,
   },
 ];

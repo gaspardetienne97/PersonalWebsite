@@ -3,6 +3,7 @@ import type { Metric, NoteEvent } from "../types";
 import { clamp01 } from "../theory/notes";
 import { blend, type Graded, mean, noteOns, stdev, velocityMeasured } from "./grade";
 import { claim } from "./timing";
+import { m } from "@repo/i18n/messages.js";
 
 const TIMING_ZERO_MS = 180;
 const MAX_MEAN_ERROR_MS = 90;
@@ -195,10 +196,10 @@ export function grooveVoiceError(
   const seen = new Map<number, string>();
   for (const v of new Set(voices)) {
     const pad = voicePads[v];
-    if (pad === undefined) return `No pad is mapped to ${v}.`;
+    if (pad === undefined) return m.music_rep_score_pads_unmapped({ voice: v });
     if (!Number.isInteger(pad) || pad < 0 || pad > 127)
-      return `${v} is mapped to ${pad}, outside 0 to 127.`;
-    if (seen.has(pad)) return `${seen.get(pad)} and ${v} share pad ${pad}.`;
+      return m.music_rep_score_pads_out_of_range({ voice: v, pad });
+    if (seen.has(pad)) return m.music_rep_score_pads_shared({ a: seen.get(pad)!, b: v, pad });
     seen.set(pad, v);
   }
   return null;

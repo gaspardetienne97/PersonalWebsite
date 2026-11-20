@@ -1,9 +1,11 @@
+// The "Ukulele: " and "Guitar: " prefixes stay English: the strum page strips them by text.
 // Strum patterns beside the verified ones in data/rhythm-patterns.json: the
 // ukulele path's strums (curriculum-2026-10 paths/ukulele.md, rec 3) and the
 // guitar's backbeat chuck. Each bar is written as a row of strokes, one
 // character a grid step, and expanded to the same events the JSON holds.
 import type { RhythmPatternDef } from "../data";
 import { parseChordSymbol } from "../theory/chords";
+import { m } from "@repo/i18n/messages.js";
 
 /**
  * A bar of strokes, one character a grid step: D down, U up, X a muted chuck
@@ -68,13 +70,13 @@ export const STRUM_PATTERNS: RhythmPatternDef[] = [
     bars: ["D-dud-du"],
     chords: UKE,
   }),
-  strumPattern("ukulele-reggae", "Ukulele: reggae, short strums on the and (C Am F G)", {
+  strumPattern("ukulele-reggae", `Ukulele: ${m.music_rep_strums_reggae()} (C Am F G)`, {
     beats: 4,
     perBeat: 2,
     bars: [".d.D.d.D"],
     chords: UKE,
   }),
-  strumPattern("ukulele-waltz", "Ukulele: waltz, D DU DU in 3/4 (C F G7 C)", {
+  strumPattern("ukulele-waltz", `Ukulele: ${m.music_rep_strums_waltz()} (C F G7 C)`, {
     beats: 3,
     perBeat: 2,
     bars: ["D-dudu"],
@@ -87,47 +89,39 @@ export const STRUM_PATTERNS: RhythmPatternDef[] = [
     bars: ["DduDdu"],
     chords: UKE,
   }),
-  strumPattern("ukulele-calypso", "Ukulele: calypso, D DU UDU with the push on 3 and (C F G7 C)", {
+  strumPattern("ukulele-calypso", `Ukulele: ${m.music_rep_strums_calypso()} (C F G7 C)`, {
     beats: 4,
     perBeat: 2,
     bars: ["D-du-Udu"],
     chords: ["C", "F", "G7", "C"],
   }),
-  strumPattern("ukulele-swing", "Ukulele: swing, D then DU DU DU swung (C A7 D7 G7)", {
+  strumPattern("ukulele-swing", `Ukulele: ${m.music_rep_strums_swing()} (C A7 D7 G7)`, {
     beats: 4,
     perBeat: 3,
     bars: ["D--d-ud-ud-u"],
     chords: ["C", "A7", "D7", "G7"],
   }),
-  strumPattern("ukulele-triplet", "Ukulele: triplet strum, i down, thumb down, i up (Am E7)", {
+  strumPattern("ukulele-triplet", `Ukulele: ${m.music_rep_strums_triplet()} (Am E7)`, {
     beats: 4,
     perBeat: 3,
     bars: ["DdudduDduddu"],
     chords: ["Am", "Am", "E7", "Am"],
   }),
-  strumPattern(
-    "ukulele-swing-comp",
-    "Ukulele: swing comping, four to the bar, chuck on 2 and 4 (Dm7 G7 Cmaj7)",
-    {
-      beats: 4,
-      perBeat: 1,
-      bars: ["dXdX"],
-      chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"],
-    },
-  ),
-  strumPattern(
-    "ukulele-bossa",
-    "Ukulele: bossa, thumb on 1 and 3, fingers off the beat (Dm7 G7 Cmaj7)",
-    {
-      beats: 4,
-      perBeat: 2,
-      bars: ["D--ud-u-", "d-u-du--"],
-      chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"],
-    },
-  ),
+  strumPattern("ukulele-swing-comp", `Ukulele: ${m.music_rep_strums_swing_comp()} (Dm7 G7 Cmaj7)`, {
+    beats: 4,
+    perBeat: 1,
+    bars: ["dXdX"],
+    chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"],
+  }),
+  strumPattern("ukulele-bossa", `Ukulele: ${m.music_rep_strums_bossa()} (Dm7 G7 Cmaj7)`, {
+    beats: 4,
+    perBeat: 2,
+    bars: ["D--ud-u-", "d-u-du--"],
+    chords: ["Dm7", "G7", "Cmaj7", "Cmaj7"],
+  }),
   strumPattern(
     "ukulele-split-stroke",
-    "Ukulele: Formby split stroke, D dU D dU, accent on the up (C A7 D7 G7)",
+    `Ukulele: ${m.music_rep_strums_split_stroke()} (C A7 D7 G7)`,
     {
       beats: 4,
       perBeat: 2,
@@ -138,7 +132,7 @@ export const STRUM_PATTERNS: RhythmPatternDef[] = [
   // A study in the RSL Grade 5 manner, not the exam piece: triplets on 1 and 3, D U on 2 and 4.
   strumPattern(
     "ukulele-triple-stroke",
-    "Ukulele: triple stroke study, triplets on 1 and 3 (Am Dm E7 Am)",
+    `Ukulele: ${m.music_rep_strums_triple_stroke()} (Am Dm E7 Am)`,
     {
       beats: 4,
       perBeat: 6,
@@ -146,7 +140,7 @@ export const STRUM_PATTERNS: RhythmPatternDef[] = [
       chords: ["Am", "Dm", "E7", "Am"],
     },
   ),
-  strumPattern("ukulele-fan", "Ukulele: fan stroke, a four-finger roll on 1 and 3 (Am E7)", {
+  strumPattern("ukulele-fan", `Ukulele: ${m.music_rep_strums_fan()} (Am E7)`, {
     beats: 4,
     perBeat: 4,
     bars: ["Ddddd-u-Ddddd-u-"],
@@ -154,7 +148,7 @@ export const STRUM_PATTERNS: RhythmPatternDef[] = [
   }),
   strumPattern(
     "guitar-backbeat-chuck",
-    "Guitar: accents on 2 and 4, a fretting-hand chuck (D C G G)",
+    `Guitar: ${m.music_rep_strums_backbeat_chuck()} (D C G G)`,
     {
       beats: 4,
       perBeat: 2,

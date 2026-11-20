@@ -19,6 +19,7 @@ import {
 } from "./pad-skills";
 import { PAD_REPERTOIRE, repertoireFor } from "./pads-repertoire";
 import { GROOVE_VOICES } from "./winds-pads";
+import { m } from "@repo/i18n/messages.js";
 
 type Target = { voice: string; beat: number; accent: "accent" | "normal" | "ghost" };
 /** A groove whose voices may be slices as well as drums (the grader takes any voice with a pad). */
@@ -51,26 +52,32 @@ export interface ChopSource {
 export const CHOP_SOURCES: ChopSource[] = [
   {
     id: "boom-bap-b",
-    label: "Boom bap break",
+    label: m.music_rep_studio_chop_boom_bap_label(),
     bars: 1,
     bpm: 84,
-    detail: "One bar of the kit: a sixteenth a slice",
+    detail: m.music_rep_studio_chop_boom_bap_detail(),
   },
   {
     id: "funky-drummer",
     label: "Funky Drummer",
     bars: 1,
     bpm: 92,
-    detail: "One bar, ghosts and open hats: a sixteenth a slice",
+    detail: m.music_rep_studio_chop_funky_drummer_detail(),
   },
   {
     id: "keys",
-    label: "Keys riff",
+    label: m.music_rep_studio_chop_keys_label(),
     bars: 2,
     bpm: 90,
-    detail: "Two bars of a minor seventh riff: an eighth a slice",
+    detail: m.music_rep_studio_chop_keys_detail(),
   },
-  { id: "amen", label: "Amen break", bars: 4, bpm: 160, detail: "All four bars: a beat a slice" },
+  {
+    id: "amen",
+    label: "Amen break",
+    bars: 4,
+    bpm: 160,
+    detail: m.music_rep_studio_chop_amen_detail(),
+  },
 ];
 export const chopSource = (id: string) => CHOP_SOURCES.find((s) => s.id === id);
 
@@ -144,11 +151,19 @@ export function sliceSamples(
 export const CHOP_EXERCISES = [
   {
     id: "order",
-    label: "In order",
-    detail: "Replay the slices 1 to 16 to the click: the loop comes back",
+    label: m.music_rep_studio_exercise_order_label(),
+    detail: m.music_rep_studio_exercise_order_detail(),
   },
-  { id: "reorder", label: "A written reorder", detail: "Play the slices in the order written" },
-  { id: "free", label: "Free chop", detail: "Four bars of your own, then play them again" },
+  {
+    id: "reorder",
+    label: m.music_rep_studio_exercise_reorder_label(),
+    detail: m.music_rep_studio_exercise_reorder_detail(),
+  },
+  {
+    id: "free",
+    label: m.music_rep_studio_exercise_free_label(),
+    detail: m.music_rep_studio_exercise_free_detail(),
+  },
 ] as const;
 export type ChopExercise = (typeof CHOP_EXERCISES)[number]["id"];
 
@@ -166,13 +181,13 @@ export const CHOP_EDITS: ChopEdit[] = [
   // Sixteenth slices of a one-bar break: two bars, the second flips the first.
   {
     id: "flip",
-    label: "Flip: the first beat twice, then the back half",
+    label: m.music_rep_studio_edit_flip(),
     every: 0.25,
     steps: [1, 2, 3, 4, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16],
   },
   {
     id: "stutter",
-    label: "Stutter: some beats repeat their opening slices",
+    label: m.music_rep_studio_edit_stutter(),
     every: 0.25,
     steps: [
       1, 1, 2, 3, 5, 5, 6, 7, 9, 10, 9, 10, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 13,
@@ -181,14 +196,14 @@ export const CHOP_EDITS: ChopEdit[] = [
   },
   {
     id: "backwards",
-    label: "Beats backwards: 4, 3, 2, 1",
+    label: m.music_rep_studio_edit_backwards(),
     every: 0.25,
     steps: [13, 14, 15, 16, 9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4],
   },
   // Eighth slices of the keys riff.
   {
     id: "hook",
-    label: "Hook: the riff's top, answered",
+    label: m.music_rep_studio_edit_hook(),
     every: 0.5,
     steps: [1, 2, 3, 4, 5, 0, 5, 4, 9, 10, 11, 12, 13, 0, 13, 12],
     source: "keys",
@@ -196,7 +211,7 @@ export const CHOP_EDITS: ChopEdit[] = [
   // A beat a slice of the Amen; jungle cuts them on the eighths.
   {
     id: "jungle",
-    label: "Jungle edit",
+    label: m.music_rep_studio_edit_jungle(),
     every: 0.5,
     steps: [
       1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 7, 8, 0, 1, 0, 2, 0, 3, 0, 4, 4, 13, 0, 14, 15, 16, 16,
@@ -230,7 +245,10 @@ export function chopPiece(
   const bars = Math.max(1, Math.ceil((steps.length * every) / 4 - 1e-9));
   return {
     value: exercise === "order" ? `chop-order-${source.id}` : `chop-${edit.id}`,
-    label: exercise === "order" ? `${source.label}, slices in order` : edit.label,
+    label:
+      exercise === "order"
+        ? m.music_rep_studio_slices_in_order({ source: source.label })
+        : edit.label,
     bars,
     sectionLabels: Array.from({ length: bars }, () => "chop"),
     targets,
@@ -332,14 +350,13 @@ export function repeatTimes(
 export const NOTE_REPEAT_EXERCISES = [
   {
     id: "build",
-    label: "A 4-bar build: 1/8, then 1/16, rising",
-    detail:
-      "Hold the snare: two bars at 1/8, two at 1/16, louder all the way, then the crash and kick on the drop",
+    label: m.music_rep_studio_repeat_build_label(),
+    detail: m.music_rep_studio_repeat_build_detail(),
   },
   {
     id: "rolls",
-    label: "Four written roll bars: 1/16, 1/32, 1/16T",
-    detail: "Hats in eighths. Hold the pad for each roll, at the written rate",
+    label: m.music_rep_studio_repeat_rolls_label(),
+    detail: m.music_rep_studio_repeat_rolls_detail(),
   },
 ] as const;
 export type NoteRepeatExercise = (typeof NOTE_REPEAT_EXERCISES)[number]["id"];
@@ -379,7 +396,7 @@ export function noteRepeatPiece(
     targets.sort((x, y) => x.beat - y.beat);
     return {
       value: "repeat-rolls",
-      label: "Four written roll bars",
+      label: m.music_rep_studio_rolls_piece(),
       bars: 4,
       sectionLabels: ["1/16 roll", "1/32 roll", "1/16T roll", "1/16 and 1/32"],
       targets,
@@ -389,7 +406,7 @@ export function noteRepeatPiece(
   }
   const g = gridGroove(
     "repeat-build",
-    "A 4-bar build",
+    m.music_rep_studio_build_piece(),
     {
       snare: `${EIGHTHS}|${EIGHTHS}|xxxxxxxxxxxxxxxx|xxxxxxxxxxxxxxxx|................`,
       kick: "x...x...x...x...|x...x...x...x...|x...x...x...x...|x...x...x...x...|X...............",
@@ -528,7 +545,7 @@ export interface SongForm {
 export const SONG_FORMS: SongForm[] = [
   {
     id: "house-drop",
-    label: "House: build to the drop",
+    label: m.music_rep_studio_form_house_drop(),
     level: 5,
     bpm: { start: 110, target: 124 },
     sections: [
@@ -559,7 +576,7 @@ export const SONG_FORMS: SongForm[] = [
   },
   {
     id: "verse-chorus",
-    label: "Rock: verse soft, chorus loud",
+    label: m.music_rep_studio_form_verse_chorus(),
     level: 6,
     bpm: { start: 90, target: 110 },
     sections: [
@@ -572,7 +589,7 @@ export const SONG_FORMS: SongForm[] = [
   },
   {
     id: "break-set",
-    label: "Breaks: intro, boom bap, Funky Drummer, out",
+    label: m.music_rep_studio_form_break_set(),
     level: 4,
     bpm: { start: 84, target: 96 },
     sections: [
@@ -724,10 +741,10 @@ export const WRITTEN_GROOVES = PAD_REPERTOIRE.filter(
     (r.groove.stepsPerBeat ?? 4) === 4,
 ).sort((a, b) => a.level - b.level);
 export const WRITTEN_ENDS = [
-  { id: "stop", label: "A stop: crash and kick on the one" },
+  { id: "stop", label: m.music_rep_studio_end_stop() },
   ...PAD_FILLS.filter((f) => !f.groove).map((f) => ({
     id: f.id,
-    label: `${f.label}, then the one`,
+    label: m.music_rep_studio_end_fill({ fill: f.label }),
   })),
 ];
 const GROOVE_PADS: Record<string, number> = Object.fromEntries(
@@ -738,7 +755,7 @@ const GROOVE_PADS: Record<string, number> = Object.fromEntries(
 export function newWrittenSong(id: string): WrittenSong {
   return {
     id,
-    label: "My set",
+    label: m.music_rep_studio_my_set(),
     bpm: 90,
     sections: [
       { role: "intro", ref: "eighth-hats", bars: 4, dyn: "soft" },
@@ -825,14 +842,14 @@ export function setCheck(song: WrittenSong, bpm: number) {
   ).size;
   const minutes = (writtenPiece(song).bars * 4) / bpm;
   const missing = [
-    ...(roles[0] === "intro" ? [] : ["an intro first"]),
-    ...(levels >= THE_SET.levels ? [] : [`grooves from three levels (${levels} now)`]),
-    ...(roles.includes("chop") ? [] : ["a chop section"]),
-    ...(roles.includes("solo") ? [] : ["a solo"]),
-    ...(roles.at(-1) === "end" ? [] : ["an end last"]),
+    ...(roles[0] === "intro" ? [] : [m.music_rep_studio_missing_intro()]),
+    ...(levels >= THE_SET.levels ? [] : [m.music_rep_studio_missing_levels({ levels })]),
+    ...(roles.includes("chop") ? [] : [m.music_rep_studio_missing_chop()]),
+    ...(roles.includes("solo") ? [] : [m.music_rep_studio_missing_solo()]),
+    ...(roles.at(-1) === "end" ? [] : [m.music_rep_studio_missing_end()]),
     ...(minutes >= THE_SET.minMinutes - 1e-9 && minutes <= THE_SET.maxMinutes + 1e-9
       ? []
-      : ["3 to 5 minutes"]),
+      : [m.music_rep_studio_missing_minutes()]),
   ];
   return { ok: !missing.length, minutes, missing };
 }
@@ -911,26 +928,26 @@ export function gradeWrittenSong(
 export const FEELS = [
   {
     id: "straight",
-    label: "Straight",
-    hint: "Eighths split the beat evenly.",
+    label: m.music_rep_studio_feel_straight_label(),
+    hint: m.music_rep_studio_feel_straight_hint(),
     grooves: ["basic-rock", "rock-open-hat", "boom-bap-b", "house"],
   },
   {
     id: "swung",
-    label: "Swung",
-    hint: "The ride's long-short swing: ding, ding-a ding.",
+    label: m.music_rep_studio_feel_swung_label(),
+    hint: m.music_rep_studio_feel_swung_hint(),
     grooves: ["swing-ride"],
   },
   {
     id: "shuffle",
     label: "Shuffle",
-    hint: "Long-short on every beat: the first and last of each triplet.",
+    hint: m.music_rep_studio_feel_shuffle_hint(),
     grooves: ["blues-shuffle", "shuffle-ghosts", "purdie"],
   },
   {
     id: "twelve-eight",
     label: "12/8",
-    hint: "Every triplet played, slow: twelve eighths a bar.",
+    hint: m.music_rep_studio_feel_twelve_eight_hint(),
     grooves: ["slow-blues"],
   },
 ] as const;

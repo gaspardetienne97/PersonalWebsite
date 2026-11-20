@@ -4,6 +4,7 @@
 import { jamToneRoles, type Progression } from "../content/jam";
 import type { ToneRole } from "../theory/chords";
 import { pc } from "../theory/notes";
+import { m } from "@repo/i18n/messages.js";
 
 export interface JamNote {
   midi: number;
@@ -44,16 +45,19 @@ export function chorusReport(p: Progression, notes: readonly JamNote[]): ChorusR
   return { ...total, perChord, headline: headline(total, perChord) };
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
 function headline(t: ToneCounts, perChord: ChorusReport["perChord"]): string {
-  if (!t.notes) return "No notes in this chorus.";
-  const counts = `${plural(t.notes, "note")}: ${plural(t.chord, "chord tone")}, ${plural(t.scale, "scale tone")}, ${plural(t.avoid, "avoid note")}.`;
+  if (!t.notes) return m.music_rep_score_jam_no_notes();
+  const counts = m.music_rep_score_jam_counts({
+    notes: m.music_rep_score_jam_notes({ count: t.notes }),
+    chord: m.music_rep_score_jam_chord_tones({ count: t.chord }),
+    scale: m.music_rep_score_jam_scale_tones({ count: t.scale }),
+    avoid: m.music_rep_score_jam_avoid_notes({ count: t.avoid }),
+  });
   const silent = perChord.filter((c) => !c.notes).map((c) => c.symbol);
+  // Chord symbols, comma-separated in every language.
   if (silent.length && silent.length < perChord.length)
-    return `${counts} Nothing was played over ${silent.join(", ")}.`;
-  if (t.chord / t.notes >= 0.5) return `${counts} Most notes landed on the chord.`;
-  if (t.avoid / t.notes > 0.3)
-    return `${counts} Many notes sat outside the scale; aim for a chord tone on each change.`;
-  return `${counts} Try landing on a chord tone as each chord arrives.`;
+    return m.music_rep_score_jam_silent({ counts, chords: silent.join(", ") });
+  if (t.chord / t.notes >= 0.5) return m.music_rep_score_jam_on_chord({ counts });
+  if (t.avoid / t.notes > 0.3) return m.music_rep_score_jam_outside({ counts });
+  return m.music_rep_score_jam_try_landing({ counts });
 }

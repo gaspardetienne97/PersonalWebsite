@@ -8,12 +8,13 @@ import { pc } from "../theory/notes";
 import { parseChordSymbol } from "../theory/chords";
 import { jamToneRoles, PROGRESSIONS, type Progression } from "./jam";
 import { pick, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export const CALL_GROOVES = [
-  { id: "blues", label: "12-bar blues" },
-  { id: "minor-ii-v-i", label: "Minor ii-V-i" },
-  { id: "modal", label: "Dorian vamp" },
-  { id: "pop-axis", label: "Pop loop" },
+  { id: "blues", label: m.music_rep_jam_name_blues() },
+  { id: "minor-ii-v-i", label: m.music_rep_jam_name_minor_ii_v_i() },
+  { id: "modal", label: m.music_rep_call_groove_dorian_vamp() },
+  { id: "pop-axis", label: m.music_rep_call_groove_pop_loop() },
 ] as const;
 export type CallMode = "echo" | "answer";
 export const CALL_TURNS = 6;
