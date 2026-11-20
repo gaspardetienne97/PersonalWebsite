@@ -3,6 +3,7 @@
   // to high, untimed. Pick: the same strings one per click after the count-in.
   // Graded per string on pitch (gradeChordStrings): it measures which notes were
   // sounded, not which string they came from or how clean they rang.
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { enough, evennessRow, noteName, pc, TOO_FEW } from "@repo/music-core";
@@ -21,9 +22,9 @@
   import { assistanceFor, capture, pct, runInstrument, runSource, type Capture } from "#lib/music/drill.svelte.ts";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { audio, mic, settings } from "#lib/music/runtime/index.ts";
-  import { exerciseFor, skillsFor } from "./fretted";
+  import { exerciseFor, neckLabel, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
+  import { chordId, chordLabel, chordRef, positionsOn, positionText, shapesFor, toneName } from "./chords";
   import MicPanel from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
@@ -64,7 +65,7 @@
   let demoMidi = $state<number | null>(null);
   let demo: { stop(): void; playing: boolean } | null = $state(null);
   let summary = $state<RunSummary | null>(null);
-  let missedStrings = $state<string[]>([]);
+  let missedStrings = $state<number[]>([]);
   const flashes = new Flashes();
   let cap: Capture | null = null;
   let run: ReturnType<typeof practice.beginRun> | null = null;
@@ -95,7 +96,7 @@
       onNote: (i: number) => (demoMidi = i < targets.length ? targets[i].midi : null),
     });
     demo = handle;
-    status = `Demo: ${symbol}, string by string${isPick ? "" : ", then strummed"}.`;
+    status = isPick ? m.music_strings_shape_demo({ symbol }) : m.music_strings_shape_demo_strum({ symbol });
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -123,16 +124,16 @@
       const near = e.source === "audio" ? nearMiss(e.midi, e.cents, targets.filter((_, i) => !matched[i]).map((t) => t.midi)) : null;
       // One plain message, in the chord's own spelling, naming the string to play: no octave numbers.
       const heardName = toneName(e.midi, ref, false);
-      const where = (t: (typeof targets)[number]) => `string ${t.string} ${t.fret ? `at fret ${t.fret}` : "open"}, ${toneName(t.midi, ref, false)}`;
+      const where = (t: (typeof targets)[number]) => (t.fret ? m.music_strings_shape_where_fret({ string: t.string, fret: t.fret, note: toneName(t.midi, ref, false) }) : m.music_strings_shape_where_open({ string: t.string, note: toneName(t.midi, ref, false) }));
       miss = near
-        ? `${heardName} is ${Math.abs(near.cents)} cents ${near.cents > 0 ? "sharp" : "flat"} of a chord note: check your tuning.`
+        ? (near.cents > 0 ? m.music_strings_shape_near_sharp : m.music_strings_shape_near_flat)({ heard: heardName, cents: Math.abs(near.cents) })
         : mode === "check"
-          ? `Wrong note: ${heardName} isn't one of the notes still to play.`
+          ? m.music_strings_shape_wrong_check({ heard: heardName })
           : want && pc(want.midi) === pc(e.midi)
-            ? `Right note, wrong octave: play ${where(want)}.`
+            ? m.music_strings_shape_wrong_octave({ where: where(want) })
             : want
-              ? `Wrong note: play ${where(want)}.`
-              : `Wrong note: ${heardName} isn't in the chord.`;
+              ? m.music_strings_shape_wrong_play({ where: where(want) })
+              : m.music_strings_shape_wrong_not_in({ heard: heardName });
       if (mode === "practice" && e.string !== undefined && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, "wrong");
     }
     if (!isPick) idle();
@@ -166,7 +167,7 @@
     } else {
       beat = -1;
       cap = capture(ctx.downbeat, (e) => e.kind === "noteon" && onNote(e));
-      status = `Play ${symbol}: fret the shape, then sound string ${targets[0].string} first.`;
+      status = m.music_strings_shape_play_build({ symbol, string: targets[0].string });
       idle();
     }
   }
@@ -200,38 +201,39 @@
       target: targets.map((t) => t.midi),
       response: ons.map((n) => n.midi),
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${symbol}: ${r.matched} of ${r.total} target notes` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: m.music_strings_shape_run_headline({ symbol, n: r.matched, total: r.total }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
       return;
     }
-    missedStrings = targets.filter((t) => !r.strings.some((x) => x.midi === t.midi && x.matched)).map((t) => `string ${t.string} (${toneName(t.midi, ref)})`);
+    const missedTargets = targets.filter((t) => !r.strings.some((x) => x.midi === t.midi && x.matched));
+    missedStrings = missedTargets.map((t) => t.string);
     summary = {
       headline: !ons.length
-        ? "Nothing was heard during the run. Tap the strings, play into the microphone, or connect MIDI, then try again."
+        ? m.music_strings_shape_nothing_heard()
         : r.correct
-          ? `All ${r.total} target notes of ${symbol} matched${mode === "check" ? " in Check" : ""}.`
-          : `${r.matched} of ${r.total} target notes matched. Missed ${missedStrings.join(", ")}.`,
+          ? (mode === "check" ? m.music_strings_shape_all_matched_check : m.music_strings_shape_all_matched)({ total: r.total, symbol })
+          : m.music_strings_shape_some_matched({ n: r.matched, total: r.total, missed: missedTargets.map((t) => m.music_strings_shape_string_note({ string: t.string, note: toneName(t.midi, ref) })).join(", ") }),
       metric: `${r.matched}/${r.total}`,
-      metricLabel: "target notes matched",
+      metricLabel: m.music_strings_shape_metric_label(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
-      cleanMeans: "every target note matched",
+      cleanMeans: m.music_strings_shape_clean_means(),
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Target notes matched", value: r.score, text: `${r.matched} of ${r.total}` },
-        { label: "Other notes sounded", text: r.extra.length ? r.extra.map((m) => noteName(m)).join(", ") : "None" },
+        { label: m.music_strings_shape_row_matched(), value: r.score, text: m.music_strings_n_of_total({ n: r.matched, total: r.total }) },
+        { label: m.music_strings_row_other_notes(), text: r.extra.length ? r.extra.map((x) => noteName(x)).join(", ") : m.music_strings_none() },
         ...(line
           ? [
               evennessRow(line.evenness, line.clean, line.total),
-              enough(line.clean, line.total) ? { label: "Timing error", text: `${Math.round(line.meanTimingErrorMs)} ms on average` } : { label: "Timing error", notMeasured: true, text: TOO_FEW },
+              enough(line.clean, line.total) ? { label: m.music_strings_row_timing_error(), text: m.music_strings_ms_average({ ms: Math.round(line.meanTimingErrorMs) }) } : { label: m.music_strings_row_timing_error(), notMeasured: true, text: TOO_FEW },
             ]
           : []),
-        { label: "Which string each note came from", notMeasured: true },
-        { label: "Tone cleanliness", notMeasured: true },
+        { label: m.music_strings_row_which_string_note(), notMeasured: true },
+        { label: m.music_strings_row_tone_clean(), notMeasured: true },
       ],
       advance: ons.length ? await advanceAfter(r.score, r.correct) : undefined,
     };
@@ -240,7 +242,7 @@
 
   /** The chord's positions up the neck, low to high; Pick also climbs the tempo to 100 first. */
   function advanceAfter(score: number, correct: boolean) {
-    const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex };
+    const plan = { steps: positions.map((p) => ({ label: `${symbol}, ${positionText(p.positionLabel)}` })), step: posIndex };
     const setPos = (i: number) => cfg.set({ position: i });
     if (isPick) return nextRun(`${instr}.chords.pick.${baseId}`, { ...plan, bpm: bpm(), tempo: { min: 40, goal: 100, max: 160 } }, { score, correct }, tempoAnd(setPos));
     return nextRun(`${instr}.chords.build.${baseId}`, plan, { score, correct }, ({ step }) => step !== undefined && setPos(step));
@@ -251,7 +253,7 @@
     if (!isPick && phase === "running") return void finish();
     halt();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -260,13 +262,14 @@
     mic.stop();
   });
 
-  const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: isPick ? "one string per click" : "untimed" }]);
+  const summaryLine = $derived([{ text: symbol, focus: "chord" }, { text: shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position() }, { text: isPick ? m.music_strings_shape_one_per_click() : m.music_strings_untimed() }]);
   const showShape = $derived(mode === "practice" || phase === "results");
   /** Beside Stop on a phone: the string to sound now (its note too in Practice). */
   const cue = $derived.by(() => {
     const t = targets[Math.max(0, cursor)];
     if (phase !== "running" || !t || cursor >= targets.length) return "";
-    return `${isPick ? "Pick" : "Sound"} string ${t.string}${mode === "practice" ? `, ${toneName(t.midi, ref)}` : ""}`;
+    if (mode === "practice") return (isPick ? m.music_strings_shape_cue_pick_note : m.music_strings_shape_cue_sound_note)({ string: t.string, note: toneName(t.midi, ref) });
+    return (isPick ? m.music_strings_shape_cue_pick : m.music_strings_shape_cue_sound)({ string: t.string });
   });
 </script>
 
@@ -276,11 +279,11 @@
 
 <DrillShell
   lesson={{ lessons: conceptCard("tips.chords", { tuning }), trigger: "check" }}
-  title={isPick ? "Pick it clean" : "Build the chord"}
+  title={isPick ? m.music_strings_shape_title_pick() : m.music_strings_shape_title_build()}
   hue={instr}
   blurb={isPick
-    ? `Hold the shape and pick one string per click, string ${targets[0]?.string} to string ${targets.at(-1)?.string}.`
-    : `Fret the shape, then sound each string from string ${targets[0]?.string} to string ${targets.at(-1)?.string}.`}
+    ? m.music_strings_shape_blurb_pick({ from: String(targets[0]?.string), to: String(targets.at(-1)?.string) })
+    : m.music_strings_shape_blurb_build({ from: String(targets[0]?.string), to: String(targets.at(-1)?.string) })}
   summary={summaryLine}
   tabs={CHORD_MODES}
   tab={kind}
@@ -298,21 +301,21 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <ChordPicker label="Chord" instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
+      <ChordPicker label={m.music_strings_chord()} instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
     </div>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Target notes" value="{matched.filter(Boolean).length} of {targets.length}" />
+      <Stat label={m.music_strings_target_notes()} value={m.music_strings_n_of_total({ n: matched.filter(Boolean).length, total: targets.length })} />
       <!-- A match only: a miss is said once, in plain words on the stage. -->
-      {#if heard !== null && !miss}<Stat label="Heard" value="✓ {toneName(heard, ref, false)}" />{/if}
+      {#if heard !== null && !miss}<Stat label={m.music_strings_heard()} value="✓ {toneName(heard, ref, false)}" />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
-    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: pluck your {instr} into the microphone, one string at a time, or tap the strings here." /></div>
+    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint={instr === "ukulele" ? m.music_strings_shape_mic_hint_ukulele() : m.music_strings_shape_mic_hint_guitar()} /></div>
     <!-- The chord's name with its positions beside it (before a run), so the whole neck fits a laptop's first view. -->
     <div class="mb-3 flex flex-col justify-center gap-3" data-dock="music">
       <div class="flex min-w-0 items-center gap-4">
@@ -331,12 +334,12 @@
         />
       {/if}
     </div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} compact={!live} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label="{symbol} on the {instr} neck" /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={showShape} demo={demoMidi} {flashes} compact={!live} heard={targets.filter((_, i) => matched[i]).map((t) => t.string)} label={neckLabel(instr, symbol)} /></div>
     {#if !live && phase !== "results"}
       <!-- On a phone the positions follow the neck, so the whole neck sits above Start. -->
       <div class="mt-3 sm:hidden">{@render picker()}</div>
     {/if}
-    <ol class="mt-3 flex flex-wrap gap-1.5" aria-label="Strings in playing order">
+    <ol class="mt-3 flex flex-wrap gap-1.5" aria-label={m.music_strings_shape_strings_order()}>
       {#each targets as t, i (t.string)}
         {@const done = matched[i]}
         <li
@@ -348,9 +351,9 @@
                 ? 'border-instr text-ws-stage-ink ring-2 ring-instr'
                 : 'border-ws-stage-ink/25 text-ws-stage-soft'}"
         >
-          <span>String {t.string}</span>
+          <span>{m.music_strings_string_n({ n: t.string })}</span>
           <span class="font-semibold">{showShape || done ? toneName(t.midi, ref) : "?"}</span>
-          {#if done}<span aria-hidden="true">✓</span><span class="sr-only">matched</span>{:else if live && i === cursor}<span class="sr-only">next</span>{/if}
+          {#if done}<span aria-hidden="true">✓</span><span class="sr-only">{m.music_strings_matched()}</span>{:else if live && i === cursor}<span class="sr-only">{m.music_strings_next()}</span>{/if}
         </li>
       {/each}
     </ol>
@@ -358,9 +361,9 @@
       <p class="mt-3 flex items-start gap-2 text-base font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
-      {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">Stop when you're done: what you played is scored.</span>{/if}
-      <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? "Check: the shape is hidden." : "What is scored"}</span>
-      <Hint about="what is scored" text="Scored: which notes you sounded. Not scored: which string they came from, or how clean they rang." />
+      {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">{m.music_strings_shape_stop_when_done()}</span>{/if}
+      <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? m.music_strings_shape_check_hidden() : m.music_strings_what_is_scored()}</span>
+      <Hint about={m.music_strings_what_is_scored_about()} text={m.music_strings_shape_scored_hint()} />
     </div>
   {/snippet}
 
@@ -369,14 +372,14 @@
       <!-- The shape and each string's take: the marks the count above is made of. -->
       {#snippet figure()}
         <div class="flex flex-wrap items-start gap-5" data-testid="shape-marked">
-          <div class="w-28 shrink-0"><ChordDiagram frets={shape.frets} fingers={shape.fingers} barre={shape.barre} label="{symbol}, {shape.positionLabel ?? 'open position'}" /></div>
-          <ol class="flex min-w-0 flex-1 flex-col gap-1.5 text-sm" aria-label="Each string">
+          <div class="w-28 shrink-0"><ChordDiagram frets={shape.frets} fingers={shape.fingers} barre={shape.barre} label="{symbol}, {shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position_lower()}" /></div>
+          <ol class="flex min-w-0 flex-1 flex-col gap-1.5 text-sm" aria-label={m.music_strings_each_string()}>
             {#each targets as t (t.string)}
-              {@const ok = !missedStrings.some((m) => m.startsWith(`string ${t.string} `))}
+              {@const ok = !missedStrings.includes(t.string)}
               <li class="flex items-center gap-2">
                 <span class="grid size-6 place-items-center rounded-full text-[13px] font-bold {ok ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">{ok ? "✓" : "✕"}</span>
-                <span>String {t.string}, <span class="font-semibold">{toneName(t.midi, ref)}</span></span>
-                <span class="sr-only">{ok ? "matched" : "missed"}</span>
+                <span>{@html m.music_strings_string_note({ string: t.string, note: `<span class="font-semibold">${toneName(t.midi, ref)}</span>` })}</span>
+                <span class="sr-only">{ok ? m.music_strings_matched() : m.music_strings_fretmark_missed()}</span>
               </li>
             {/each}
           </ol>

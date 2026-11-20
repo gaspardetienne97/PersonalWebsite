@@ -3,6 +3,7 @@
   // attack becomes a chroma reading, the pitch classes are named against 18
   // chord templates on 12 roots, and the reading is checked against the shape.
   // score = confidence x 0.35 + verification x 0.65 (gradeStrumIdentify).
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -17,9 +18,9 @@
   import { assistanceFor, pct } from "#lib/music/drill.svelte.ts";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { audio, mic } from "#lib/music/runtime/index.ts";
-  import { exerciseFor, skillsFor } from "./fretted";
+  import { exerciseFor, neckLabel, skillsFor } from "./fretted";
   import { fretted, tuningFor } from "./instrument.svelte";
-  import { chordId, chordLabel, chordRef, positionsOn, shapesFor, toneName } from "./chords";
+  import { chordId, chordLabel, chordRef, positionsOn, positionText, shapesFor, toneName } from "./chords";
   import { ChordListener, type Heard } from "./strum.svelte";
   import MicPanel, { micUnblock } from "./MicPanel.svelte";
   import ChordPicker from "./ChordPicker.svelte";
@@ -77,7 +78,7 @@
       {},
     );
     demo = handle;
-    status = `Demo: ${symbol}. The microphone isn't listening.`;
+    status = m.music_strings_strumid_demo_status({ symbol });
     void handle.done.then(() => {
       if (demo === handle) demo = null;
     });
@@ -90,7 +91,7 @@
     identified = null;
     ungraded = null;
     triggerAt = null;
-    status = `Play ${symbol} as one strum and let it ring.`;
+    status = m.music_strings_strumid_play({ symbol });
     listener.start({
       onFrame: (f) => {
         if (phase !== "running" || f.at < ctx.downbeat) return;
@@ -118,10 +119,10 @@
       // Not enough evidence to grade: nothing is recorded.
       const n = h?.pcs.length ?? 0;
       ungraded = !h
-        ? "No strum was heard in eight seconds. Strum a little harder, close to the microphone."
+        ? m.music_strings_strumid_none_heard()
         : n === 0
-          ? "The strum was too quiet to read any tones. Nothing saved. Move closer and strum again."
-          : `Not enough tones to name a chord: heard ${n === 1 ? "only one tone" : "two tones"} (${h.pcs.map(spell).join(", ")}). ${symbol} needs ${need}, so nothing was saved.`;
+          ? m.music_strings_strumid_too_quiet()
+          : (n === 1 ? m.music_strings_strumid_one_tone : m.music_strings_strumid_two_tones)({ notes: h.pcs.map(spell).join(", "), symbol, need });
       status = ungraded;
       return;
     }
@@ -151,7 +152,7 @@
       // A strum was heard (grade only runs on one), even when no chord could be named.
       heard: true,
     });
-    const fin = await run.finish({ score: g.score, correct: g.correct, headline: `Heard ${g.identified ?? "nothing"} for ${symbol}` });
+    const fin = await run.finish({ score: g.score, correct: g.correct, headline: g.identified ? m.music_strings_strumid_run_heard({ chord: g.identified, symbol }) : m.music_strings_strumid_run_nothing({ symbol }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -160,28 +161,30 @@
     const v = g.verification;
     summary = {
       headline: g.correct
-        ? `That rang as ${symbol}: every target tone, nothing extra.`
+        ? m.music_strings_strumid_rang_as({ symbol })
         : g.identified && g.identified !== symbol
-          ? `That read as ${g.identified}, not ${symbol}. ${v.missing.length ? `Missing ${v.missing.map(spell).join(", ")}.` : ""} ${v.extra.length ? `Extra ${v.extra.map(spell).join(", ")}.` : ""}`.trim()
-          : `Named ${symbol}, but ${v.missing.length ? `${v.missing.map(spell).join(", ")} didn't come through` : `${v.extra.map(spell).join(", ")} rang as well`}.`,
+          ? `${m.music_strings_strumid_read_as({ heard: g.identified, symbol })} ${v.missing.length ? m.music_strings_strumid_missing_notes({ notes: v.missing.map(spell).join(", ") }) : ""} ${v.extra.length ? m.music_strings_strumid_extra_notes({ notes: v.extra.map(spell).join(", ") }) : ""}`.trim()
+          : v.missing.length
+            ? m.music_strings_strumid_named_missing({ symbol, notes: v.missing.map(spell).join(", ") })
+            : m.music_strings_strumid_named_extra({ symbol, notes: v.extra.map(spell).join(", ") }),
       metric: pct(g.score),
-      metricLabel: "score",
+      metricLabel: m.music_strings_score(),
       delta: fin.delta,
       best: fin.best,
       clean: g.correct && mode === "check",
-      cleanMeans: "the chord named right",
+      cleanMeans: m.music_strings_strumid_clean_means(),
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Chord named", value: g.identified === symbol ? 1 : 0, text: g.identified ?? "None" },
-        { label: "Target tones heard", value: v.coverage, text: `${expected.length - v.missing.length} of ${expected.length}` },
-        { label: "Extra tones", text: v.extra.length ? v.extra.map(spell).join(", ") : "None" },
-        { label: "Match confidence", value: g.confidence },
-        { label: "Which strings rang", notMeasured: true },
-        { label: "Tone cleanliness", notMeasured: true },
+        { label: m.music_strings_strumid_row_named(), value: g.identified === symbol ? 1 : 0, text: g.identified ?? m.music_strings_none() },
+        { label: m.music_strings_strumid_row_target(), value: v.coverage, text: m.music_strings_n_of_total({ n: expected.length - v.missing.length, total: expected.length }) },
+        { label: m.music_strings_strumid_row_extra(), text: v.extra.length ? v.extra.map(spell).join(", ") : m.music_strings_none() },
+        { label: m.music_strings_strumid_row_confidence(), value: g.confidence },
+        { label: m.music_strings_row_which_strings(), notMeasured: true },
+        { label: m.music_strings_row_tone_clean(), notMeasured: true },
       ],
       // The chord's positions up the neck, low to high.
-      advance: await nextRun(`${instr}.chords.strum.${baseId}`, { steps: positions.map((p) => ({ label: `${symbol}, ${p.positionLabel}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
+      advance: await nextRun(`${instr}.chords.strum.${baseId}`, { steps: positions.map((p) => ({ label: `${symbol}, ${positionText(p.positionLabel)}` })), step: posIndex }, { score: g.score, correct: g.correct }, ({ step }) => step !== undefined && cfg.set({ position: step })),
     };
     status = summary.headline;
   }
@@ -189,7 +192,7 @@
   function stop() {
     halt();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -201,10 +204,10 @@
 
 <DrillShell
   lesson={{ lessons: conceptCard("tips.strum", { tuning }), trigger: "check" }}
-  title="Strum and identify"
+  title={m.music_strings_strumid_title()}
   hue={instr}
-  blurb="Strum the chord once into the microphone. Woodshed names what it heard and scores each tone."
-  summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel ?? "Open position" }, { text: "one strum" }]}
+  blurb={m.music_strings_strumid_blurb()}
+  summary={[{ text: symbol, focus: "chord" }, { text: shape.positionLabel != null ? positionText(shape.positionLabel) : m.music_strings_open_position() }, { text: m.music_strings_strumid_one_strum() }]}
   tabs={CHORD_MODES}
   tab="strum"
   ontab={(id) => openMode(CHORD_MODES, id)}
@@ -215,35 +218,35 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  startLabel="Listen for a strum"
-  blocked={mic.state === "on" ? null : "Turn on the microphone first."}
+  startLabel={m.music_strings_strumid_start()}
+  blocked={mic.state === "on" ? null : m.music_strings_mic_first()}
   unblock={micUnblock}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <ChordPicker label="Chord" instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
+      <ChordPicker label={m.music_strings_chord()} instrument={instr} value={baseId} onchange={(id) => cfg.set({ shape: id, position: 0 })} setupKey="chord" />
     </div>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Strum" value={symbol} />
-      <Stat label="Hearing" value={listener.live.length ? listener.live.map(spell).join(" ") : "Nothing yet"} />
+      <Stat label={m.music_strings_strum()} value={symbol} />
+      <Stat label={m.music_strings_hearing()} value={listener.live.length ? listener.live.map(spell).join(" ") : m.music_strings_nothing_yet()} />
     {:else if phase === "results" && identified}
-      <Stat label="Heard as" value={identified} tone={identified === symbol ? "success" : "warn"} />
+      <Stat label={m.music_strings_heard_as()} value={identified} tone={identified === symbol ? "success" : "warn"} />
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <p class="mb-3 font-display text-5xl font-bold leading-none">{symbol}</p>
     {#if !live && phase !== "results"}<div class="mb-3"><PositionPicker {positions} index={posIndex} {symbol} onchange={(i) => cfg.set({ position: i })} /></div>{/if}
-    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label="{symbol} on the {instr} neck" interactive={false} /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label={neckLabel(instr, symbol)} interactive={false} /></div>
     <div class="mt-4 grid gap-2">
-      <p class="text-sm font-medium">{phase === "results" ? "What the strum held" : "Chord tones"}</p>
-      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label="Chord tones of {symbol}" name={spell} />
+      <p class="text-sm font-medium">{phase === "results" ? m.music_strings_strumid_held() : m.music_strings_chord_tones()}</p>
+      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label={m.music_strings_chord_tones_of({ symbol })} name={spell} />
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
-      The microphone hears which notes ring, not which string rang them or how clean each one was. Inversions read as the same chord.
+      {m.music_strings_strumid_mic_limits()}
     </p>
     <div class="mt-3"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
   {/snippet}
@@ -252,7 +255,7 @@
     {#if ungraded}
       <article class="rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6">
         <p class="font-display text-xl font-semibold leading-snug sm:text-2xl">{ungraded}</p>
-        <p class="mt-1 text-sm text-ws-soft">Nothing was scored, so no score, XP or skill score changed. Strum again when you're ready.</p>
+        <p class="mt-1 text-sm text-ws-soft">{m.music_strings_nothing_scored()}</p>
       </article>
     {:else if summary}<Results {summary} />{/if}
   {/snippet}

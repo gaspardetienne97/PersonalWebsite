@@ -15,6 +15,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import type { LaneOutcome } from "./lane-outcomes";
   import Check from "@lucide/svelte/icons/check";
   import X from "@lucide/svelte/icons/x";
@@ -46,7 +47,7 @@
   let { rows, beats, beat = null, beatsPerBar = 4, chords = [], hidden = false, eighths = true, label, outcomes = {}, wrong = 0, strays = [], dense = false }: Props = $props();
   // The same glyphs the results breakdown uses, so a mark reads the same on the lane and after the run.
   const GLYPH = { ok: Check, early: ChevronsLeft, late: ChevronsRight, miss: X } as const;
-  const SAID: Record<LaneOutcome, string> = { ok: "on time", early: "early", late: "late", miss: "missed" };
+  const SAID: Record<LaneOutcome, string> = { ok: m.music_strings_lane_on_time(), early: m.music_strings_lane_early(), late: m.music_strings_lane_late(), miss: m.music_strings_lane_missed() };
   const ORDER: LaneOutcome[] = ["ok", "early", "late", "miss"];
   /** The legend shows once a note has been marked, with each mark's count. */
   const tally = $derived.by(() => {
@@ -109,7 +110,7 @@
 </div>
 {#if marked}
   <!-- What the marks mean, as labelled chips with the counts so far (not part of the scrolling lane). -->
-  <ul class="mt-2 mb-3 flex flex-wrap gap-1.5 text-sm" aria-label="Lane marks so far">
+  <ul class="mt-2 mb-3 flex flex-wrap gap-1.5 text-sm" aria-label={m.music_strings_lane_marks()}>
     {#each ORDER as o (o)}
       {@const G = GLYPH[o]}
       <li class="legend inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5" data-outcome={o}>
@@ -119,7 +120,7 @@
     {/each}
     {#if wrong}
       <li class="legend inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5" data-outcome="miss" data-wrong="">
-        <span class="mark static" aria-hidden="true"><X class="size-3" strokeWidth={3} /></span>Wrong note
+        <span class="mark static" aria-hidden="true"><X class="size-3" strokeWidth={3} /></span>{m.music_strings_wrong_note()}
         <span class="tnum font-semibold">{wrong}</span>
       </li>
     {/if}
@@ -173,7 +174,7 @@
                 data-live={live(n) || undefined}
                 data-outcome={out}
                 data-hidden={hidden || undefined}
-                title={out ? `${n.text}: ${SAID[out]}` : undefined}
+                title={out ? m.music_strings_lane_note_said({ note: n.text, said: SAID[out] }) : undefined}
                 style:left={pos(n.beat)}
                 style:width="max(1.15rem, calc({((Math.min(widthOf(row, i), b1 - n.beat)) / len) * 100}% - 3px))"
                 >{hidden ? "" : n.text}{#if out}{@const G = GLYPH[out]}<span class="mark" aria-hidden="true"><G class="size-3" strokeWidth={3} /></span>{/if}</span
@@ -186,7 +187,7 @@
     {#if strays.some((b) => b >= b0 && b < b1)}
       <div class="flex h-5 items-center" data-strays>
         <span class="gutter self-stretch" aria-hidden="true"></span>
-        <div class="relative flex-1 self-stretch" role="img" aria-label="Wrong notes: {strays.filter((b) => b >= b0 && b < b1).length}">
+        <div class="relative flex-1 self-stretch" role="img" aria-label={m.music_strings_lane_wrong_notes({ n: strays.filter((b) => b >= b0 && b < b1).length })}>
           {#each strays as b, i (i)}
             {#if b >= b0 && b < b1}
               <span class="mark stray" style:left={pos(Math.max(b0, b))} aria-hidden="true"><X class="size-3" strokeWidth={3} /></span>

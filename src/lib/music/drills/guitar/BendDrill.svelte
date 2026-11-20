@@ -3,6 +3,7 @@
   // and hold it (judged where it settles, in cents), or hold a note with
   // vibrato (its rate and width described, not judged). A trace draws the
   // pitch against the target line as you play.
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -17,6 +18,7 @@
   import { DrillSetup } from "#lib/music/setup.svelte.ts";
   import { nextRun } from "#lib/music/advance.svelte.ts";
   import { pct } from "#lib/music/drill.svelte.ts";
+  import { formatNumber } from "@repo/i18n/format";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { mic } from "#lib/music/runtime/index.ts";
   import { exerciseFor } from "./fretted";
@@ -25,9 +27,9 @@
   import { FRETBOARD_MODES, openMode } from "./modes";
 
   const EXERCISES = [
-    { value: "whole", label: "Bend a whole step" },
-    { value: "half", label: "Bend a half step" },
-    { value: "vibrato", label: "Vibrato" },
+    { value: "whole", label: m.music_strings_bend_ex_whole() },
+    { value: "half", label: m.music_strings_bend_ex_half() },
+    { value: "vibrato", label: m.music_strings_bend_ex_vibrato() },
   ];
   /** Easy to hard, for the next run. */
   const LADDER = ["half", "vibrato", "whole"];
@@ -68,8 +70,8 @@
 
   const summaryLine = $derived([
     { text: EXERCISES.find((e) => e.value === exercise)!.label, focus: "exercise" },
-    { text: `string ${string}, fret ${fret} (${noteName(fromMidi)}${vibrato ? "" : ` to ${noteName(toMidi)}`})` },
-    { text: `${reps} times`, focus: "reps" },
+    { text: vibrato ? m.music_strings_bend_where({ string, fret, from: noteName(fromMidi) }) : m.music_strings_bend_where_to({ string, fret, from: noteName(fromMidi), to: noteName(toMidi) }) },
+    { text: m.music_strings_n_times({ n: reps }), focus: "reps" },
   ]);
 
   function prompt() {
@@ -77,8 +79,8 @@
     judging = false;
     promptAt = performance.now();
     status = vibrato
-      ? `${rep + 1} of ${reps}: hold ${noteName(fromMidi)} with vibrato for ${VIBRATO_MS / 1000} seconds.`
-      : `${rep + 1} of ${reps}: pick ${noteName(fromMidi)}, bend it to ${noteName(toMidi)} and hold.`;
+      ? m.music_strings_bend_prompt_vibrato({ n: rep + 1, total: reps, note: noteName(fromMidi), seconds: VIBRATO_MS / 1000 })
+      : m.music_strings_bend_prompt_bend({ n: rep + 1, total: reps, from: noteName(fromMidi), to: noteName(toMidi) });
     clearTimeout(timer);
     timer = setTimeout(() => judge(), PROMPT_MS);
   }
@@ -101,7 +103,7 @@
       const v = analyseVibrato(first ? trace.filter((p) => p.at >= first.at && p.at <= first.at + VIBRATO_MS) : []);
       vibratos = [...vibratos, v];
       await run!.attempt({ promptId: `vibrato:${fromMidi}`, correct: v.rateHz !== null, partialCredit: v.rateHz !== null ? 1 : 0, metrics: [], source: "audio", heard: trace.some((p) => p.hz) });
-      status = v.rateHz === null ? "No vibrato heard: the pitch stayed still, or the note was too short." : `Vibrato at ${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide.`;
+      status = v.rateHz === null ? m.music_strings_bend_no_vibrato() : m.music_strings_bend_vibrato_at({ rate: dec1(v.rateHz), width: Math.round(v.widthCents!) });
     } else {
       const b = analyseBend(trace, fromMidi, toMidi);
       bends = [...bends, b];
@@ -112,12 +114,15 @@
     timer = setTimeout(() => (rep >= reps ? void finish() : prompt()), 1200);
   }
 
-  const centsText = (c: number) => `${c > 0 ? "+" : ""}${Math.round(c)} cents`;
+  const centsText = (c: number) => m.music_strings_cents({ cents: `${c > 0 ? "+" : ""}${Math.round(c)}` });
+  /** One decimal, in the player's language (4.5, 4,5). */
+  const dec1 = (x: number) => formatNumber(x, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   function bendLine(b: BendResult) {
-    if (b.verdict === "not-held") return "Not held: bend up and keep it there for a moment.";
+    if (b.verdict === "not-held") return m.music_strings_bend_not_held_line();
     const where = centsText(b.errorCents!);
-    return b.verdict === "in-tune" ? `In tune, ${where}.` : b.verdict === "close" ? `Close, ${where}.` : `${b.verdict === "flat" ? "Flat" : "Sharp"}, ${where}: ${b.verdict === "flat" ? "push further" : "ease off"}.`;
+    return b.verdict === "in-tune" ? m.music_strings_bend_in_tune_line({ where }) : b.verdict === "close" ? m.music_strings_bend_close_line({ where }) : b.verdict === "flat" ? m.music_strings_bend_flat_line({ where }) : m.music_strings_bend_sharp_line({ where });
   }
+  const VERDICT = { "in-tune": m.music_strings_bend_verdict_in_tune, close: m.music_strings_bend_verdict_close, flat: m.music_strings_bend_verdict_flat, sharp: m.music_strings_bend_verdict_sharp } as const;
 
   async function start(ctx: RunContext) {
     summary = null;
@@ -127,7 +132,7 @@
     if (mic.state !== "on" && !(await mic.start())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "Bends need the microphone, and it didn't start. Check the browser allows it.";
+      status = mic.error || m.music_strings_bend_mic_failed();
       return;
     }
     run = practice.beginRun({
@@ -155,7 +160,7 @@
       const heard = vibratos.filter((v) => v.rateHz !== null);
       const avg = (f: (v: VibratoResult) => number) => heard.reduce((a, v) => a + f(v), 0) / Math.max(1, heard.length);
       const score = heard.length / vibratos.length;
-      const fin = await run!.finish({ score, correct: heard.length === vibratos.length, headline: `vibrato heard ${heard.length} of ${vibratos.length}` });
+      const fin = await run!.finish({ score, correct: heard.length === vibratos.length, headline: m.music_strings_bend_run_vibrato({ n: heard.length, total: vibratos.length }) });
       if (!fin.heard) {
         summary = silentRun();
         status = summary.headline;
@@ -163,17 +168,17 @@
       }
       summary = {
         headline: heard.length
-          ? `Vibrato at about ${avg((v) => v.rateHz!).toFixed(1)} a second, ${Math.round(avg((v) => v.widthCents!))} cents wide. Players use roughly 4 to 7 a second. Keep it even.`
-          : "No vibrato heard. Rock the string a little across the fret, steadily, while the note sounds.",
+          ? m.music_strings_bend_vibrato_summary({ rate: dec1(avg((v) => v.rateHz!)), width: Math.round(avg((v) => v.widthCents!)) })
+          : m.music_strings_bend_vibrato_none(),
         metric: `${heard.length}/${vibratos.length}`,
-        metricLabel: "with vibrato",
+        metricLabel: m.music_strings_bend_with_vibrato(),
         delta: fin.delta,
         best: fin.best,
         xp: fin.xp,
-        assistance: "A try counts when vibrato is heard. Its rate and width are described, not scored: no published norm says what they should be.",
+        assistance: m.music_strings_bend_vibrato_assist(),
         rows: vibratos.map((v, i) => ({
-          label: `Try ${i + 1}`,
-          text: v.rateHz === null ? "no vibrato heard" : `${v.rateHz.toFixed(1)} a second, ${Math.round(v.widthCents!)} cents wide, evenness ${pct(v.evenness ?? 0)}`,
+          label: m.music_strings_try_n({ n: i + 1 }),
+          text: v.rateHz === null ? m.music_strings_bend_no_vibrato_row() : m.music_strings_bend_vibrato_row({ rate: dec1(v.rateHz), width: Math.round(v.widthCents!), evenness: pct(v.evenness ?? 0) }),
         })),
         advance: heard.length ? await advanceAfter(score, heard.length === vibratos.length) : undefined,
       };
@@ -183,7 +188,7 @@
       const score = bends.reduce((a, b) => a + b.score, 0) / Math.max(1, bends.length);
       const meanErr = held.reduce((a, b) => a + b.errorCents!, 0) / Math.max(1, held.length);
       const correct = inTune === bends.length;
-      const fin = await run!.finish({ score, correct, headline: `${inTune} of ${bends.length} bends in tune` });
+      const fin = await run!.finish({ score, correct, headline: m.music_strings_bend_run_bends({ n: inTune, total: bends.length }) });
       if (!fin.heard) {
         summary = silentRun();
         status = summary.headline;
@@ -191,21 +196,21 @@
       }
       summary = {
         headline: correct
-          ? `Every bend in tune: within ${BEND.inTune} cents of ${noteName(toMidi)}.`
+          ? m.music_strings_bend_all_in_tune({ cents: BEND.inTune, note: noteName(toMidi) })
           : held.length
-            ? `${inTune} of ${bends.length} in tune. On average you landed ${centsText(meanErr)}${Math.abs(meanErr) > BEND.inTune ? (meanErr < 0 ? ": push a little further." : ": ease off a little.") : "."}`
-            : "No bend was held. Pick the note, push the string up, and keep it at the top for a moment.",
+            ? (Math.abs(meanErr) > BEND.inTune ? (meanErr < 0 ? m.music_strings_bend_avg_push : m.music_strings_bend_avg_ease) : m.music_strings_bend_avg)({ n: inTune, total: bends.length, where: centsText(meanErr) })
+            : m.music_strings_bend_none_held(),
         metric: `${inTune}/${bends.length}`,
-        metricLabel: "in tune",
+        metricLabel: m.music_strings_in_tune(),
         delta: fin.delta,
         best: fin.best,
         clean: correct,
-        cleanMeans: "every bend held in tune",
+        cleanMeans: m.music_strings_bend_clean_means(),
         xp: fin.xp,
-        assistance: "The string, fret and target stay on screen. The microphone scores where each bend settles.",
+        assistance: m.music_strings_bend_assist(),
         rows: [
-          { label: `In tune (within ${BEND.inTune} cents)`, value: inTune / Math.max(1, bends.length), text: `${inTune} of ${bends.length}` },
-          ...bends.map((b, i) => ({ label: `Bend ${i + 1}`, text: b.verdict === "not-held" ? "not held" : `${b.verdict.replace("-", " ")}, ${centsText(b.errorCents!)}` })),
+          { label: m.music_strings_bend_row_in_tune({ cents: BEND.inTune }), value: inTune / Math.max(1, bends.length), text: m.music_strings_n_of_total({ n: inTune, total: bends.length }) },
+          ...bends.map((b, i) => ({ label: m.music_strings_bend_n({ n: i + 1 }), text: b.verdict === "not-held" ? m.music_strings_bend_not_held() : VERDICT[b.verdict]({ where: centsText(b.errorCents!) }) })),
         ],
         advance: held.length ? await advanceAfter(score, correct) : undefined,
       };
@@ -224,7 +229,7 @@
     unsub?.();
     unsub = null;
     phase = "ready";
-    status = "Stopped. The tries you finished are saved.";
+    status = m.music_strings_stopped_tries_saved();
   }
 
   onDestroy(() => {
@@ -251,10 +256,10 @@
 </script>
 
 <DrillShell
-  title="Bends and vibrato"
+  title={m.music_strings_bend_title()}
   lesson={{ lessons: [bendLesson(instr, tuning.openStrings)] }}
   hue={instr}
-  blurb="Bend to pitch and hold it, or hold a note with vibrato. Needs the microphone."
+  blurb={m.music_strings_bend_blurb()}
   summary={summaryLine}
   tabs={FRETBOARD_MODES}
   tab="bends"
@@ -269,39 +274,39 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Exercise" setupKey="exercise" options={EXERCISES} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
-      <Choice label="Tries" setupKey="reps" options={[2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={reps} onchange={(v) => cfg.set({ reps: v })} />
+      <Choice label={m.music_strings_exercise()} setupKey="exercise" options={EXERCISES} value={exercise} onchange={(v) => cfg.set({ exercise: v })} />
+      <Choice label={m.music_strings_tries()} setupKey="reps" options={[2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={reps} onchange={(v) => cfg.set({ reps: v })} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">In tune is within {BEND.inTune} cents, close within {BEND.close}: starting values, since no norms for bends are published.</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_strings_bend_norms({ inTune: BEND.inTune, close: BEND.close })}</p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Try" value={`${Math.min(rep + 1, reps)} of ${reps}`} />
-      {#if last && !vibrato}<Stat label="Last bend" value={last.errorCents === null ? "not held" : centsText(last.errorCents)} tone={last.correct ? "success" : "warn"} />{/if}
+      <Stat label={m.music_strings_try()} value={m.music_strings_n_of_total({ n: Math.min(rep + 1, reps), total: reps })} />
+      {#if last && !vibrato}<Stat label={m.music_strings_bend_last()} value={last.errorCents === null ? m.music_strings_bend_not_held() : centsText(last.errorCents)} tone={last.correct ? "success" : "warn"} />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <figure class="mb-3 rounded-xl bg-ws-stage-ink/6 p-3">
-      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label="Pitch over the last four seconds, cents above {noteName(fromMidi)}{vibrato ? '' : `. The dashed line is ${noteName(toMidi)}`}">
+      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label={vibrato ? m.music_strings_bend_trace({ from: noteName(fromMidi) }) : m.music_strings_bend_trace_to({ from: noteName(fromMidi), to: noteName(toMidi) })}>
         <line x1="0" x2={W} y1={yOf(0)} y2={yOf(0)} class="base" vector-effect="non-scaling-stroke" />
         {#if !vibrato}<line x1="0" x2={W} y1={yOf((toMidi - fromMidi) * 100)} y2={yOf((toMidi - fromMidi) * 100)} class="target" vector-effect="non-scaling-stroke" />{/if}
         {#if path}<path d={path} class="trace" vector-effect="non-scaling-stroke" />{/if}
       </svg>
-      <figcaption class="flex justify-between text-[13px] text-ws-stage-soft"><span>{noteName(fromMidi)} (the fretted note)</span>{#if !vibrato}<span>dashed: {noteName(toMidi)}</span>{/if}</figcaption>
+      <figcaption class="flex justify-between text-[13px] text-ws-stage-soft"><span>{m.music_strings_bend_fretted_note({ note: noteName(fromMidi) })}</span>{#if !vibrato}<span>{m.music_strings_bend_dashed({ note: noteName(toMidi) })}</span>{/if}</figcaption>
     </figure>
     {@const picking = phase === "ready"}
     <Fretboard
       openStrings={tuning.openStrings}
       from={picking ? 0 : Math.max(0, fret - 2)}
       to={picking ? Math.min(tuning.fretCount, Math.max(12, fret + 1)) : Math.min(tuning.fretCount, fret + 3)}
-      marks={[{ string, fret, label: vibrato ? "~" : "↑", spoken: "the note to bend" }]}
+      marks={[{ string, fret, label: vibrato ? "~" : "↑", spoken: m.music_strings_bend_spoken() }]}
       onpick={picking ? (st, f) => cfg.set({ string: st, fret: Math.max(1, f) }) : undefined}
-      label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard, string {string} fret {fret}"
+      label={(instr === "ukulele" ? m.music_strings_bend_board_ukulele : m.music_strings_bend_board_guitar)({ string, fret })}
     />
-    {#if picking}<p class="mt-2 text-sm text-ws-stage-soft">Tap the neck to choose the string and fret.</p>{/if}
-    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="The microphone scores each bend: play close to it." /></div>
+    {#if picking}<p class="mt-2 text-sm text-ws-stage-soft">{m.music_strings_bend_tap_neck()}</p>{/if}
+    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint={m.music_strings_bend_mic_hint()} /></div>
   {/snippet}
 
   {#snippet results()}

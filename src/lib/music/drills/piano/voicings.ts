@@ -24,6 +24,7 @@ import {
   type JazzVoicingId,
 } from "@repo/music-core/content/jazz-voicings";
 import { TUNES } from "@repo/music-core/content/tunes";
+import { m } from "@repo/i18n/messages.js";
 
 export type Variant =
   | VoicingVariant
@@ -80,7 +81,9 @@ function joinHints(...hints: (string | undefined)[]) {
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);
-  return sc ? joinHints(`Go-to scale: ${sc.label}`, strip(sc.hint)) : undefined;
+  return sc
+    ? joinHints(m.music_strings_voicing_go_to_scale({ scale: sc.label }), strip(sc.hint))
+    : undefined;
 }
 
 /** Keys of the cycle from `startPc`, `count` of them. */
@@ -136,7 +139,12 @@ export function voicingItems(opts: {
   if (opts.variant === "gospel") {
     const prog =
       GOSPEL_PROGRESSIONS.find((p) => p.id === opts.progression) ?? GOSPEL_PROGRESSIONS[0];
-    const inv = ["root position", "first inversion", "second inversion", "third inversion"];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+      m.music_strings_inv_third(),
+    ];
     return keys.flatMap((key) => {
       const bars = gospelChords(pcOf(key)!, prog.id, CLOSEST_REGISTER);
       return bars.map((b, i) => ({
@@ -150,10 +158,18 @@ export function voicingItems(opts: {
           { midi: b.leftHand, hand: "left" as const },
           ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
         ],
-        name: `${b.symbol}: the right hand in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. ${b.symbol.includes("/") ? "The bass after the slash" : "The root"} in the left hand.`,
-        hint: i
-          ? `${prog.about} Keep the common tones. Move the others the shortest way.`
-          : prog.about,
+        name: i
+          ? (b.symbol.includes("/")
+              ? m.music_strings_voicing_gospel_slash_moving
+              : m.music_strings_voicing_gospel_root_moving)({
+              symbol: b.symbol,
+              inv: inv[b.inversion],
+              n: b.movement,
+            })
+          : (b.symbol.includes("/")
+              ? m.music_strings_voicing_gospel_slash
+              : m.music_strings_voicing_gospel_root)({ symbol: b.symbol, inv: inv[b.inversion] }),
+        hint: i ? `${prog.about} ${m.music_strings_voicing_keep_common()}` : prog.about,
         pcs: [...new Set([...b.rightHand.map(pc), b.bassPc])],
         count: 4,
         skillIds: ["harmony.keyboard-cadences"],
@@ -168,10 +184,15 @@ export function voicingItems(opts: {
   }
   if (opts.variant === "cadence" || opts.variant === "cadence-minor") {
     const minor = opts.variant === "cadence-minor";
-    const inv = ["root position", "first inversion", "second inversion", "third inversion"];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+      m.music_strings_inv_third(),
+    ];
     return keys.flatMap((key) => {
       const bars = cadenceChords(pcOf(key)!, minor, CLOSEST_REGISTER);
-      const group = `${key}${minor ? " minor" : ""}`;
+      const group = minor ? m.music_strings_voicing_key_minor({ key }) : key;
       return bars.map((b, i) => ({
         id: b.id,
         symbol: b.symbol,
@@ -183,13 +204,24 @@ export function voicingItems(opts: {
           { midi: b.leftHand, hand: "left" as const },
           ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
         ],
-        name: `${b.symbol} (${b.roman}) in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. Root in the left hand.`,
+        name: i
+          ? m.music_strings_voicing_cadence_moving({
+              symbol: b.symbol,
+              roman: b.roman,
+              inv: inv[b.inversion],
+              n: b.movement,
+            })
+          : m.music_strings_voicing_cadence({
+              symbol: b.symbol,
+              roman: b.roman,
+              inv: inv[b.inversion],
+            }),
         hint:
           b.roman === "V7"
-            ? "Three notes: root, 3rd and 7th, the 5th left out. The 7th falls to the tonic's 3rd next."
+            ? m.music_strings_voicing_v7_hint()
             : i
-              ? "Keep the common tones. Move the others the shortest way."
-              : "Start in root position.",
+              ? m.music_strings_voicing_keep_common()
+              : m.music_strings_voicing_start_root(),
         pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
         count: 4,
         skillIds: ["harmony.keyboard-cadences"],
@@ -204,11 +236,15 @@ export function voicingItems(opts: {
   }
   if (opts.variant === "inversions") {
     const bars = closestChords(opts.keyPc, CLOSEST_REGISTER);
-    const inv = ["root position", "first inversion", "second inversion"];
+    const inv = [
+      m.music_strings_inv_root(),
+      m.music_strings_inv_first(),
+      m.music_strings_inv_second(),
+    ];
     return bars.map((b, i) => ({
       id: b.id,
       symbol: b.symbol,
-      group: `I IV V I in ${bars[0].symbol}`,
+      group: m.music_strings_voicing_inv_group({ symbol: bars[0].symbol }),
       keyPc: pc(opts.keyPc),
       minor: false,
       kind: "closest",
@@ -216,10 +252,14 @@ export function voicingItems(opts: {
         { midi: b.leftHand, hand: "left" },
         ...b.rightHand.map((midi) => ({ midi, hand: "right" as const })),
       ],
-      name: `${b.symbol} in ${inv[b.inversion]}${i ? `, moving ${b.movement} semitone${b.movement === 1 ? "" : "s"}` : ""}. Root in the left hand.`,
-      hint: i
-        ? "Keep the top note near G. Move each voice the shortest way."
-        : "Start in root position.",
+      name: i
+        ? m.music_strings_voicing_inv_name_moving({
+            symbol: b.symbol,
+            inv: inv[b.inversion],
+            n: b.movement,
+          })
+        : m.music_strings_voicing_inv_name({ symbol: b.symbol, inv: inv[b.inversion] }),
+      hint: i ? m.music_strings_voicing_top_near_g() : m.music_strings_voicing_start_root(),
       pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
       count: 4,
       skillIds: ["harmony.ii-v-i.voice-leading"],
@@ -248,7 +288,7 @@ export function voicingItems(opts: {
       minor: false,
       kind: "guide",
       show: t.targetMidi.map((midi) => ({ midi, hand: "right" as const })),
-      name: `The 3rd and 7th of ${t.symbol}, moving ${t.minimumSemitones} semitone${t.minimumSemitones === 1 ? "" : "s"} at best.`,
+      name: m.music_strings_voicing_guide_name({ symbol: t.symbol, n: t.minimumSemitones }),
       hint: scaleHint(t.symbol),
       pcs: t.pcs,
       count: 2,
@@ -262,14 +302,15 @@ export function voicingItems(opts: {
     mode: opts.arpeggio ? "arpeggio" : "chord",
   });
   const [p1, p2] = opts.startPosition === "B" ? ["B", "A"] : ["A", "B"];
-  const rootless = (p: string) => (p === "A" ? "Rootless A (3 5 7 9)" : "Rootless B (7 9 3 5)");
+  const rootless = (p: string) =>
+    p === "A" ? m.music_strings_voicing_rootless_a() : m.music_strings_voicing_rootless_b();
   const names: Record<VoicingVariant, string[]> = {
     major: [rootless(p1), rootless(p2), rootless(p1)],
-    minor: ["Rootless A for the half-diminished ii (b3 b5 b7 1)", DOM.altered.label, rootless("B")],
+    minor: [m.music_strings_voicing_rootless_half_dim(), DOM.altered.label, rootless("B")],
     altered: [
       DOM.rootlessB9.label,
       DOM.altered.label,
-      `Upper structure ${US_II.triad} over a 1 3 7 shell, adds ${US_II.adds}`,
+      m.music_strings_voicing_upper_structure({ triad: US_II.triad, adds: US_II.adds }),
     ],
   };
   const hints: Record<VoicingVariant, (string | undefined)[]> = {
@@ -278,7 +319,7 @@ export function voicingItems(opts: {
     altered: [
       strip(DOM.rootlessB9.hint),
       strip(DOM.altered.hint),
-      "The favourite upper structure: a major triad a whole step above the root.",
+      m.music_strings_voicing_us_hint(),
     ],
   };
   const variant = opts.variant;
@@ -296,7 +337,7 @@ export function voicingItems(opts: {
           midi,
           hand: j === 0 ? ("left" as const) : ("right" as const),
         })),
-        name: `${names[variant][i]}. Root in the left hand.`,
+        name: m.music_strings_voicing_root_left({ name: names[variant][i] }),
         hint: joinHints(hints[variant][i], scaleHint(t.symbol)),
         pcs: t.expectedPitchClasses,
         count: t.displayMidi.length,
@@ -360,14 +401,14 @@ export function gradeItem(
       missing: r.missing,
       note:
         score === 1
-          ? "right"
+          ? m.music_strings_grade_right()
           : r.missing.length
-            ? "missing notes"
+            ? m.music_strings_grade_missing()
             : r.extra.length && opts.strict
-              ? "extra notes"
+              ? m.music_strings_grade_extra()
               : r.bassOk === false
-                ? "wrong note at the bottom"
-                : "notes in the wrong order",
+                ? m.music_strings_grade_wrong_bottom()
+                : m.music_strings_grade_wrong_order(),
     };
   }
   if (item.kind === "voicing") {
@@ -382,14 +423,14 @@ export function gradeItem(
       ...r,
       missing: r.missing,
       note: r.correct
-        ? "right"
+        ? m.music_strings_grade_right()
         : r.missing.length
-          ? "missing notes"
+          ? m.music_strings_grade_missing()
           : r.extra.length && opts.strict
-            ? "extra notes"
+            ? m.music_strings_grade_extra()
             : r.bassOk === false
-              ? "root not lowest"
-              : "not quite",
+              ? m.music_strings_grade_root_not_lowest()
+              : m.music_strings_grade_not_quite(),
     };
   }
   if (item.kind === "guide") {
@@ -404,10 +445,13 @@ export function gradeItem(
       ...r,
       missing: missingOf(item.pcs),
       note: r.correct
-        ? "right"
+        ? m.music_strings_grade_right()
         : r.membership
-          ? `moved ${r.actualSemitones} semitones, ${r.minimumSemitones} is the least`
-          : "not the 3rd and 7th in range",
+          ? m.music_strings_grade_moved({
+              actual: String(r.actualSemitones),
+              least: String(r.minimumSemitones),
+            })
+          : m.music_strings_grade_not_guide(),
     };
   }
   const c = item.closest!;
@@ -438,15 +482,15 @@ export function gradeItem(
     metrics: [...chord.metrics, ...(vl?.metrics ?? [])],
     missing: missingOf(item.pcs),
     note: correct
-      ? "right"
+      ? m.music_strings_grade_right()
       : !chord.membership
-        ? "missing notes"
+        ? m.music_strings_grade_missing()
         : chord.bassOk === false
-          ? "wrong inversion"
+          ? m.music_strings_grade_wrong_inversion()
           : vl && !vl.correct
-            ? "not the closest move"
+            ? m.music_strings_grade_not_closest()
             : !lhOk
-              ? "no root in the left hand"
-              : "not quite",
+              ? m.music_strings_grade_no_left_root()
+              : m.music_strings_grade_not_quite(),
   };
 }

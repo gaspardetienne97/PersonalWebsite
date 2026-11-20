@@ -4,6 +4,7 @@
 import { page } from "$app/state";
 import type { DrillMode } from "#lib/music/components/DrillShell.svelte";
 import { audio, settings } from "#lib/music/runtime/index.ts";
+import { m } from "@repo/i18n/messages.js";
 
 export interface TimedNote {
   midi: number;
@@ -116,5 +117,4 @@ export function spanOf(
 export const swingBeat = (beat: number) =>
   Math.abs((beat % 1) - 0.5) < 1e-6 ? Math.floor(beat) + 2 / 3 : beat;
 
-export const FINGERING_NOTE =
-  "Finger numbers on the keys are suggestions. They're never scored: MIDI can't see fingers.";
+export const FINGERING_NOTE = m.music_strings_fingering_note();

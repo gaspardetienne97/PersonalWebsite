@@ -1,6 +1,7 @@
 // How a pitch sits over a chord, named the way a jazz player says it: chord
 // tones by their chord degree (R 3 5 b7), everything else as a tension (9 #11 b13).
 import { pc } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
 /** Degree name of `semitones` above the root, given the chord's intervals. */
 export function toneLabel(semitones: number, chordIntervals: readonly number[]): string {
@@ -42,8 +43,8 @@ export function toneLabel(semitones: number, chordIntervals: readonly number[]):
  * Matched on the whole word, so "Mixolydian" never gets Lydian's tip.
  */
 export function scaleTip(scaleLabel: string): string | null {
-  if (/\bmixolydian\b/i.test(scaleLabel)) return "Flat 7th: the chord's own 7th";
-  if (/\blydian\b/i.test(scaleLabel)) return "Raised 4th: no clash with the 3rd";
-  if (/\bdorian\b/i.test(scaleLabel)) return "Natural 6th: the minor's brighter colour";
+  if (/\bmixolydian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_mixolydian();
+  if (/\blydian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_lydian();
+  if (/\bdorian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_dorian();
   return null;
 }

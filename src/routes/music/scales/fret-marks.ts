@@ -4,10 +4,15 @@ import { pc } from "@repo/music-core";
 import type { FretMark } from "#lib/music/components/Fretboard.svelte";
 
 import type { Outcome } from "#lib/music/drills/guitar/fretted.ts";
+import { m as msg } from "@repo/i18n/messages.js";
 export type { Outcome };
 // A place played on the way up and again on the way down shows its worse take.
 const RANK = { correct: 1, missed: 2, wrong: 3 } as const;
-const SPOKEN = { correct: "played right", wrong: "played wrong", missed: "missed" } as const;
+const SPOKEN = {
+  correct: msg.music_strings_fretmark_correct,
+  wrong: msg.music_strings_fretmark_wrong,
+  missed: msg.music_strings_fretmark_missed,
+} as const;
 
 /** One finger a fret from the lowest fretted note, 1 index to 4 little finger; open strings take none. */
 // ponytail: assumes the one hand position positionLine picks; a line that shifts position needs fingering per note.
@@ -66,9 +71,13 @@ export function scaleFretMarks(o: {
       demo: m.demo || undefined,
       label: state === "correct" ? "✓" : state === "wrong" ? "✕" : finger?.toString(),
       spoken: [
-        "target",
-        root && "root",
-        m.now ? "play next" : m.demo ? "sounding now" : m.outcome && SPOKEN[m.outcome],
+        msg.music_strings_fretmark_target(),
+        root && msg.music_strings_fretmark_root(),
+        m.now
+          ? msg.music_strings_fretmark_play_next()
+          : m.demo
+            ? msg.music_strings_fretmark_sounding()
+            : m.outcome && SPOKEN[m.outcome](),
       ]
         .filter(Boolean)
         .join(", "),

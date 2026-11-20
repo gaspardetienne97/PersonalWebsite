@@ -4,6 +4,7 @@
   // counts as a change only when it sounds like the next chord (groupChanges).
   // Round trips or a timed minute, optionally against a clock (BPM and beats per chord). Taps and MIDI
   // give notes; with the microphone on, each strum is read as chroma instead.
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
   import { page } from "$app/state";
@@ -25,7 +26,8 @@
   import { assistanceFor, capture, readKeyed, runInstrument, runSource, writeKeyed, type Capture } from "#lib/music/drill.svelte.ts";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { mic, settings } from "#lib/music/runtime/index.ts";
-  import { exerciseFor, skillsFor } from "./fretted";
+  import { exerciseFor, neckLabel, skillsFor } from "./fretted";
+  import { formatList, formatNumber, intlLocale } from "@repo/i18n/format";
   import { fretted, tuningFor } from "./instrument.svelte";
   import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
@@ -39,7 +41,7 @@
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
 
   const IDLE_MS = 20_000;
-  const CLOCK_STEPS = [{ label: "A change every bar" }, { label: "A change every 2 beats" }, { label: "A change every beat" }];
+  const CLOCK_STEPS = [{ label: m.music_strings_changes_step_bar() }, { label: m.music_strings_changes_step_2beats() }, { label: m.music_strings_changes_step_beat() }];
   const cfg = new DrillSetup("chords-changes", {
     shape: "guitar.c-major",
     to: "guitar.g-major",
@@ -74,8 +76,8 @@
   const pcs = $derived(shapes.map((sh) => shapePcs(sh, tuning)));
   const names = $derived(refs.map(chordLabel));
   /** Two chords go there and back (a round trip); more go round the cycle. */
-  const roundsText = (k: number) => (n === 2 ? `${k} round trip${k > 1 ? "s" : ""}` : `${k} time${k > 1 ? "s" : ""} round`);
-  const cycleText = $derived(n === 2 ? `${names[0]} and ${names[1]}` : names.join(", "));
+  const roundsText = (k: number) => (n === 2 ? m.music_strings_changes_round_trips({ k }) : m.music_strings_changes_times_round({ k }));
+  const cycleText = $derived(n === 2 ? formatList([names[0], names[1]]) : names.join(", "));
   /** The history key: the pair's own key for two chords, so older history carries on. */
   const cycleKey = $derived(shapes.map((x) => x.id).join(">"));
 
@@ -122,7 +124,8 @@
   /** The five slowest pairs on this instrument; a run on one of them records `hardest`. */
   const hardest = $derived(hardestPairs(history, instr));
   const inHardest = $derived(n === 2 && hardest.some((h) => h.key === cycleKey));
-  const pairName = (h: HardPair) => h.chords.split(",").map((id) => { const r = chordRef(id); return r ? chordLabel(r) : id; }).join(" and ");
+  const pairName = (h: HardPair) => h.chords.split(",").map((id) => { const r = chordRef(id); return r ? chordLabel(r) : id; });
+  const pairText = (h: HardPair) => formatList(pairName(h));
   const useHard = (h: HardPair) => cfg.set({ chords: h.chords, positions: h.positions });
   // A link with ?hardest (a path's) opens on the slowest pair once the history is read.
   let openedHardest = false;
@@ -145,7 +148,7 @@
     return done ? (g.target + 1) % n : g.target;
   });
   /** Beside Stop on a phone: the chord now and the change coming. */
-  const cue = $derived(phase === "running" ? `${names[target]} now, then ${names[(target + 1) % n]}` : "");
+  const cue = $derived(phase === "running" ? m.music_strings_changes_cue({ now: names[target], next: names[(target + 1) % n] }) : "");
   const liveGrade = $derived(live ? grade(Math.max(1, now - downbeat)) : null);
   const shown = $derived(shapes[target]);
   const pairRuns = $derived(history[cycleKey] ?? []);
@@ -249,7 +252,8 @@
       });
     now = performance.now();
     ticker = setInterval(tick, 100);
-    status = `Play ${names.join(", then ")}${n > 2 ? `, and back to ${names[0]}` : ""}.`;
+    const chords = names.reduce((a, b) => m.music_strings_changes_then({ a, b }));
+    status = n > 2 ? m.music_strings_changes_play_back({ chords, first: names[0] }) : m.music_strings_changes_play({ chords });
   }
 
   function halt() {
@@ -285,7 +289,7 @@
       heard: notes.length > 0,
     });
     const perMinute = Math.round(r.changesPerMinute * 10) / 10;
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${perMinute} changes per minute, ${r.clean} of ${r.completed} with every note` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: m.music_strings_changes_run_headline({ rate: formatNumber(perMinute), clean: r.clean, completed: r.completed }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -296,28 +300,28 @@
     if (r.completed) history = await writeKeyed<PairRun[]>(PAIR_HISTORY_KEY, hk, [{ date: new Date().toISOString(), perMinute, clean: r.clean, completed: r.completed }], mergePairRuns);
     summary = {
       headline: !notes.length
-        ? "Nothing was heard during the run. Tap the strings, strum into the microphone, or connect MIDI, then try again."
+        ? m.music_strings_changes_nothing_heard()
         : r.completed === 0
-          ? `No change landed yet: play ${names[0]}, pause, then ${names[1]}.`
-          : `${r.completed} change${r.completed === 1 ? "" : "s"}, ${r.clean} with every target note, at ${perMinute} per minute${s.timed ? " (aim for 60)" : ""}.${perMinute > bestBefore && bestBefore > 0 ? ` Your fastest ${cycleText} yet.` : ""}${
+          ? m.music_strings_changes_none_landed({ first: names[0], second: names[1] })
+          : `${(s.timed ? m.music_strings_changes_result_timed : m.music_strings_changes_result)({ completed: r.completed, clean: r.clean, rate: formatNumber(perMinute) })}${perMinute > bestBefore && bestBefore > 0 ? ` ${m.music_strings_changes_fastest({ cycle: cycleText })}` : ""}${
               // What held a clean run back from a pass: the clock, named with its count.
-              !r.correct && r.clean === r.completed && r.onTime !== null ? ` ${r.onTime} of ${r.completed} landed on the click: change on the beat to pass.` : ""
+              !r.correct && r.clean === r.completed && r.onTime !== null ? ` ${m.music_strings_changes_on_click({ onTime: r.onTime, completed: r.completed })}` : ""
             }`,
-      metric: String(perMinute),
-      metricLabel: "changes per minute",
+      metric: formatNumber(perMinute),
+      metricLabel: m.music_strings_changes_per_minute(),
       score: r.score,
       delta: fin.delta,
       best: fin.best || (perMinute > bestBefore && bestBefore > 0),
       clean: r.correct && mode === "check",
-      cleanMeans: periodMs ? "every change with every note, on the click" : "every change with every note",
+      cleanMeans: periodMs ? m.music_strings_changes_clean_clock() : m.music_strings_changes_clean(),
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Changes completed", text: `${r.completed}${s.timed ? " in a minute" : ` of ${trips * n}`}` },
-        { label: "With every target note", value: r.completed ? r.clean / r.completed : 0, text: `${r.clean} of ${r.completed}` },
-        r.onTime !== null ? { label: "On time", value: r.completed ? r.onTime / r.completed : 0, text: `${r.onTime} of ${r.completed}` } : { label: "On time (no clock)", notMeasured: true },
-        { label: "Target notes per chord", value: r.score },
-        { label: "Which strings rang", notMeasured: true },
+        { label: m.music_strings_changes_completed(), text: s.timed ? m.music_strings_changes_in_a_minute({ n: r.completed }) : m.music_strings_n_of_total({ n: r.completed, total: trips * n }) },
+        { label: m.music_strings_changes_every_target(), value: r.completed ? r.clean / r.completed : 0, text: m.music_strings_n_of_total({ n: r.clean, total: r.completed }) },
+        r.onTime !== null ? { label: m.music_strings_on_time(), value: r.completed ? r.onTime / r.completed : 0, text: m.music_strings_n_of_total({ n: r.onTime, total: r.completed }) } : { label: m.music_strings_on_time_no_clock(), notMeasured: true },
+        { label: m.music_strings_changes_notes_per_chord(), value: r.score },
+        { label: m.music_strings_row_which_strings(), notMeasured: true },
       ],
       // With the clock on: the tempo climbs to 100, then the chords change twice as often. No clock, no ladder.
       advance:
@@ -333,7 +337,7 @@
     if (phase === "running" && !periodMs && !s.timed) return void finish();
     halt();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -342,18 +346,18 @@
   });
 
   const summaryLine = $derived([
-    { text: inHardest ? `${cycleText}, one of your hardest five` : cycleText, focus: "from" },
-    { text: s.timed ? "one timed minute" : roundsText(trips), focus: "length" },
-    { text: beatsPerChord ? `change every ${beatsPerChord === 4 ? "bar" : beatsPerChord === 1 ? "beat" : "2 beats"}` : "no clock", focus: "clock" },
+    { text: inHardest ? m.music_strings_changes_hardest_of({ cycle: cycleText }) : cycleText, focus: "from" },
+    { text: s.timed ? m.music_strings_changes_one_timed_minute() : roundsText(trips), focus: "length" },
+    { text: beatsPerChord ? (beatsPerChord === 4 ? m.music_strings_changes_every_bar() : beatsPerChord === 1 ? m.music_strings_changes_every_beat() : m.music_strings_changes_every_2beats()) : m.music_strings_no_clock_lower(), focus: "clock" },
   ]);
   const maxRun = $derived(Math.max(1, ...pairRuns.map((x) => x.perMinute)));
 </script>
 
 <DrillShell
   lesson={{ lessons: conceptCard("tips.changes", { tuning }), trigger: "check" }}
-  title="Chord changes"
+  title={m.music_strings_changes_title()}
   hue={instr}
-  blurb="Move round two to eight chords and back. Each set keeps its changes per minute."
+  blurb={m.music_strings_changes_blurb()}
   summary={summaryLine}
   tabs={CHORD_MODES}
   tab="changes"
@@ -372,30 +376,30 @@
       <ChordCycleSetup instrument={instr} {tuning} {refs} {shapes} positions={chosen} onchange={save} setupKey="from" />
       <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="hardest">
         {#if hardest.length}
-          <Choice label="Hardest five" options={hardest.map((h) => ({ value: h.key, label: pairName(h), detail: `${h.perMinute} a minute` }))} value={inHardest ? cycleKey : ""} onchange={(k) => useHard(hardest.find((h) => h.key === k)!)} />
-          <p class="text-[13px] text-ws-soft">Your slowest pairs, by changes a minute over each one's last three runs.</p>
+          <Choice label={m.music_strings_changes_hardest()} options={hardest.map((h) => ({ value: h.key, label: pairText(h), detail: m.music_strings_changes_a_minute({ rate: formatNumber(h.perMinute) }) }))} value={inHardest ? cycleKey : ""} onchange={(k) => useHard(hardest.find((h) => h.key === k)!)} />
+          <p class="text-[13px] text-ws-soft">{m.music_strings_changes_hardest_help()}</p>
         {:else}
-          <p class="text-sm"><span class="font-medium">Hardest five:</span> <span class="text-ws-soft">play a few pairs first, and the slowest show here.</span></p>
+          <p class="text-sm"><span class="font-medium">{m.music_strings_changes_hardest_label()}</span> <span class="text-ws-soft">{m.music_strings_changes_hardest_empty()}</span></p>
         {/if}
       </div>
       <Choice
-        label="Stop after"
+        label={m.music_strings_changes_stop_after()}
         setupKey="length"
         options={[
           ...[1, 2, 4, 8].map((k) => ({ value: k, label: roundsText(k) })),
-          { value: 0, label: "One minute" },
+          { value: 0, label: m.music_strings_changes_one_minute() },
         ]}
         value={s.timed ? 0 : trips}
         onchange={(v) => cfg.set(v === 0 ? { timed: true } : { timed: false, trips: v })}
       />
       <Choice
-        label="A change every"
+        label={m.music_strings_changes_every()}
         setupKey="clock"
         options={[
-          { value: 0, label: "No clock" },
-          { value: 1, label: "Beat" },
-          { value: 2, label: "2 beats" },
-          { value: 4, label: "Bar" },
+          { value: 0, label: m.music_strings_no_clock() },
+          { value: 1, label: m.music_strings_beat_cap() },
+          { value: 2, label: m.music_strings_2_beats() },
+          { value: 4, label: m.music_strings_bar_cap() },
         ]}
         value={beatsPerChord}
         onchange={(v) => cfg.set({ clock: v })}
@@ -405,11 +409,11 @@
 
   {#snippet hud()}
     {#if phase === "running" && liveGrade}
-      <Stat label="Changes" value={liveGrade.completed} />
-      {#if s.timed}<Stat label="Left" value="{Math.max(0, Math.ceil((endAt - now) / 1000))} s" />{/if}
+      <Stat label={m.music_strings_changes()} value={liveGrade.completed} />
+      {#if s.timed}<Stat label={m.music_strings_left()} value={m.music_strings_seconds_short({ s: Math.max(0, Math.ceil((endAt - now) / 1000)) })} />{/if}
     {:else if result}
-      <Stat label="Changes" value={result.completed} />
-      <Stat label="With every note" value="{result.clean}/{result.completed}" tone={result.completed && result.clean === result.completed ? "success" : "warn"} />
+      <Stat label={m.music_strings_changes()} value={result.completed} />
+      <Stat label={m.music_strings_with_every_note()} value="{result.clean}/{result.completed}" tone={result.completed && result.clean === result.completed ? "success" : "warn"} />
     {/if}
   {/snippet}
 
@@ -419,7 +423,7 @@
       <ChordStrip {shapes} {names} current={live ? target : null} />
     {/if}
     {#if beatsPerChord && phase !== "results"}
-      <div class="mb-2 flex justify-end">{@render viewSwitch("Chord")}</div>
+      <div class="mb-2 flex justify-end">{@render viewSwitch(m.music_strings_chord())}</div>
     {/if}
     {#if timedView && phase !== "results"}
       <div class="mb-3">
@@ -442,33 +446,33 @@
           <p class="font-display text-5xl font-bold leading-none">{names[now]}</p>
           {#if mode === "practice"}
             <div class="w-24 rounded-lg bg-ws-surface p-1 text-ws-ink ring-3 ring-instr sm:w-28">
-              <ChordDiagram frets={shapes[now].frets} fingers={shapes[now].fingers} barre={shapes[now].barre} label="{names[now]}, now" />
+              <ChordDiagram frets={shapes[now].frets} fingers={shapes[now].fingers} barre={shapes[now].barre} label={m.music_strings_chord_now({ name: names[now] })} />
             </div>
           {/if}
         </div>
         {#if mode === "practice"}
           <ArrowRight class="mb-12 size-7 shrink-0 text-ws-stage-soft" aria-hidden="true" />
           <div class="flex flex-col gap-2" data-testid="next-chord">
-            <p class="flex items-baseline gap-2 leading-none"><span class="text-sm text-ws-stage-soft">Next</span><span class="font-display text-2xl font-semibold">{names[next]}</span></p>
+            <p class="flex items-baseline gap-2 leading-none"><span class="text-sm text-ws-stage-soft">{m.music_strings_next_cap()}</span><span class="font-display text-2xl font-semibold">{names[next]}</span></p>
             <div class="w-20 rounded-lg bg-ws-surface p-1 text-ws-ink opacity-85 sm:w-24">
-              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} label="{names[next]}, next" />
+              <ChordDiagram frets={shapes[next].frets} fingers={shapes[next].fingers} barre={shapes[next].barre} label={m.music_strings_chord_next({ name: names[next] })} />
             </div>
           </div>
         {:else}
-          <p class="pb-1 text-lg text-ws-stage-soft">then {names[next]}</p>
+          <p class="pb-1 text-lg text-ws-stage-soft">{m.music_strings_then_name({ name: names[next] })}</p>
         {/if}
       </div>
     {/if}
     <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
-    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint="Optional: strum into the microphone, or tap the chord's strings here." /></div>
-    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} compact label="{live ? names[target] : names[0]} on the {instr} neck" /></div>
+    <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint={m.music_strings_changes_mic_hint()} /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} compact label={neckLabel(instr, live ? names[target] : names[0])} /></div>
     <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
       {#if phase === "running" && !periodMs && !s.timed}
-        <span class="text-sm text-ws-stage-soft">Pause briefly between chords. Stop when you're done: the changes you played are scored.</span>
+        <span class="text-sm text-ws-stage-soft">{m.music_strings_changes_pause_hint()}</span>
       {:else}
-        <span class="text-sm text-ws-stage-soft">How a change counts</span>
+        <span class="text-sm text-ws-stage-soft">{m.music_strings_changes_how_counts()}</span>
       {/if}
-      <Hint about="how a change counts" text="A change counts when the next chord's target notes all sound and nothing else does. Which string sounded each note isn't measured." />
+      <Hint about={m.music_strings_changes_how_counts_about()} text={m.music_strings_changes_how_counts_text()} />
     </div>
   {/snippet}
 
@@ -476,20 +480,20 @@
     {#if summary}
       {#snippet figure()}
         {#if pairRuns.length === 1}
-          <p class="text-base">First run on {cycleText}: <span class="font-semibold">{pairRuns[0].perMinute} a minute</span>. Your chart starts with the next one.</p>
+          <p class="text-base">{@html m.music_strings_changes_first_run({ cycle: cycleText, rate: `<span class="font-semibold">${m.music_strings_changes_a_minute({ rate: formatNumber(pairRuns[0].perMinute) })}</span>` })}</p>
         {:else if pairRuns.length}
           <section aria-labelledby="pair-history">
-            <h3 id="pair-history" class="text-sm font-semibold">{cycleText}: changes per minute</h3>
+            <h3 id="pair-history" class="text-sm font-semibold">{m.music_strings_changes_chart_title({ cycle: cycleText })}</h3>
             <ol class="mt-3 flex h-28 items-end gap-1.5 overflow-x-auto pb-1">
               {#each pairRuns.slice(-16) as r, i (r.date + i)}
                 <li class="flex h-full w-8 shrink-0 flex-col items-center justify-end gap-1">
-                  <span class="tnum text-[13px]">{r.perMinute}</span>
+                  <span class="tnum text-[13px]">{formatNumber(r.perMinute)}</span>
                   <span class="w-full rounded-t bg-instr" style:height="{Math.max(4, (r.perMinute / maxRun) * 72)}px" aria-hidden="true"></span>
-                  <span class="sr-only">{new Date(r.date).toLocaleDateString()}: {r.perMinute} per minute, {r.clean} of {r.completed} with every note</span>
+                  <span class="sr-only">{m.music_strings_changes_bar_sr({ date: new Date(r.date).toLocaleDateString(intlLocale()), rate: formatNumber(r.perMinute), clean: r.clean, completed: r.completed })}</span>
                 </li>
               {/each}
             </ol>
-            <p class="mt-2 text-sm text-ws-soft">Best {maxRun} per minute over {pairRuns.length} run{pairRuns.length > 1 ? "s" : ""}.</p>
+            <p class="mt-2 text-sm text-ws-soft">{m.music_strings_changes_best({ rate: formatNumber(maxRun), count: pairRuns.length })}</p>
           </section>
         {/if}
       {/snippet}

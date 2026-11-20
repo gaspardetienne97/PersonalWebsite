@@ -1,11 +1,12 @@
 <script lang="ts">
   // The setup for a cycle of chords: a card per chord (its diagram), tap one to
   // change its root, quality and position up the neck, add or remove chords.
+  import { m } from "@repo/i18n/messages.js";
   import type { ChordPosition, Tuning } from "@repo/music-core/data/index";
   import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import ChordPicker from "./ChordPicker.svelte";
   import PositionPicker from "./PositionPicker.svelte";
-  import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, shortPosition, type ChordRef } from "./chords";
+  import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, positionText, shortPosition, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
 
   interface Props {
@@ -48,7 +49,7 @@
 </script>
 
 <div class="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-3" data-setup={setupKey}>
-  <span class="text-sm font-medium" id="cycle-label">Chords, in order</span>
+  <span class="text-sm font-medium" id="cycle-label">{m.music_strings_cycle_label()}</span>
   <div class="flex flex-wrap items-stretch gap-2" role="group" aria-labelledby="cycle-label">
     {#each shapes as sh, i (i)}
       <div class="relative">
@@ -56,7 +57,7 @@
           type="button"
           class="flex w-20 flex-col items-center gap-0.5 rounded-xl border bg-ws-surface p-1.5 {edit === i ? 'border-instr ring-2 ring-instr' : 'border-ws-line hover:bg-ws-raised'}"
           aria-pressed={edit === i}
-          aria-label="Chord {i + 1}: {names[i]}, {sh.positionLabel}. Change it"
+          aria-label={m.music_strings_cycle_chord_change({ n: i + 1, name: names[i], position: positionText(sh.positionLabel) })}
           onclick={() => (editing = i)}
         >
           <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="" />
@@ -64,22 +65,22 @@
           <span class="text-[13px] leading-tight text-ws-soft">{shortPosition(sh.positionLabel)}</span>
         </button>
         {#if n > 2}
-          <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-[13px]" aria-label="Remove {names[i]}" onclick={() => remove(i)}>✕</button>
+          <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-[13px]" aria-label={m.music_strings_remove_name({ name: names[i] })} onclick={() => remove(i)}>✕</button>
         {/if}
       </div>
     {/each}
     {#if n < MAX_CYCLE}
-      <button type="button" class="grid min-h-24 w-20 place-items-center rounded-xl border border-dashed border-ws-line text-sm font-medium hover:bg-ws-raised" onclick={add}>Add chord</button>
+      <button type="button" class="grid min-h-24 w-20 place-items-center rounded-xl border border-dashed border-ws-line text-sm font-medium hover:bg-ws-raised" onclick={add}>{m.music_strings_cycle_add()}</button>
     {/if}
   </div>
-  <p class="text-[13px] text-ws-soft">Tap a chord to change it. The run goes round them in order and back to the first.</p>
+  <p class="text-[13px] text-ws-soft">{m.music_strings_cycle_help()}</p>
 </div>
-<ChordPicker label="Chord {edit + 1}" {instrument} value={ids[edit]} onchange={setChord} />
+<ChordPicker label={m.music_strings_chord_n({ n: edit + 1 })} {instrument} value={ids[edit]} onchange={setChord} />
 <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3">
-  <span class="text-sm font-medium">Shape and fret for {names[edit]}</span>
+  <span class="text-sm font-medium">{m.music_strings_cycle_shape_for({ name: names[edit] })}</span>
   {#if choices.length > 1}
     <PositionPicker positions={choices} index={shownAt} symbol={names[edit]} onchange={(p) => onchange(refs, positions.map((x, j) => (j === edit ? p : x)))} />
   {:else}
-    <p class="text-sm text-ws-soft">One shape for this chord on this tuning.</p>
+    <p class="text-sm text-ws-soft">{m.music_strings_cycle_one_shape()}</p>
   {/if}
 </div>

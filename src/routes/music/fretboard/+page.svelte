@@ -1,5 +1,6 @@
 <script lang="ts">
   // String independence (catalog 4.5): Spider, Positions, Note finder, Interval recall, Legato, Bends, Harmonics.
+  import { m } from "@repo/i18n/messages.js";
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import LineDrill from "#lib/music/drills/guitar/LineDrill.svelte";
@@ -13,7 +14,7 @@
   onMount(() => void applyBenchParams().then(() => (ready = true)));
 </script>
 
-<svelte:head><title>Fretboard | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_strings_fretboard_title()}</title></svelte:head>
 
 {#if ready}
   {#key mode}

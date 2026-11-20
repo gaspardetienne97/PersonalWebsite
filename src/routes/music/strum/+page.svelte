@@ -3,6 +3,7 @@
   // from the microphone, followed against the chart with followChords. One run
   // is recorded with no skill mastery: real-strum following is unverified on a
   // physical guitar, so it must not claim a skill.
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy, onMount } from "svelte";
   import { FLAT_NAMES, noteName } from "@repo/music-core";
   import type { Strictness } from "@repo/music-core";
@@ -34,6 +35,7 @@
   import ToneMap from "#lib/music/drills/guitar/ToneMap.svelte";
   import NoteHighway, { highway, viewSwitch, type HighwayChord } from "#lib/music/notation/NoteHighway.svelte";
   import type { Hit } from "#lib/music/notation/highway.ts";
+  import { neckLabel } from "#lib/music/drills/guitar/fretted.ts";
 
   // seed: the generated charts' draw; New chart moves it on. pattern: "" is the instrument's
   // starter strum (D DU UDU), "any" is any strum.
@@ -49,6 +51,8 @@
     return ref ? positionsOn(chordId(instr, ref), tuning)[0] : undefined;
   };
   const DIFFICULTIES = ["beginner", "intermediate", "advanced"] as const;
+  const DIFFICULTY_LABEL = { beginner: m.music_strings_beginner, intermediate: m.music_strings_intermediate, advanced: m.music_strings_advanced } as const;
+  const STRICTNESS_TEXT = { relaxed: m.music_strings_strum_relaxed_timing, normal: m.music_strings_strum_normal_timing, strict: m.music_strings_strum_strict_timing } as const;
   /** Only progressions whose every chord has a shape to show and a voicing a strum can cover. */
   /** Eight-bar charts to read at sight (the reading path's chart-1 to chart-3), where every chord has a shape here. */
   const charts = $derived(CHART_LEVELS.map((l) => chartProgression(l.id, s.seed)).filter((p) => p.chords.every((c) => shapeOf(c.symbol))));
@@ -151,7 +155,7 @@
     const handle = audio.playSequence(notes, { onNote: (i: number) => (demoIndex = notes[i].chord) });
     demo = handle;
     demoAt = handle.startPerf;
-    status = `Demo: one chorus, ${strum ? strumName(strum) : "strummed on beats one and three"}. The microphone isn't listening.`;
+    status = strum ? m.music_strings_strum_demo_pattern({ pattern: strumName(strum) }) : m.music_strings_strum_demo_plain();
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -163,7 +167,7 @@
     if (mic.state !== "on" && !(await startMic())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "The microphone didn't start. Check the browser allows it, then press Start again.";
+      status = mic.error || m.music_strings_strum_mic_failed();
       return;
     }
     summary = null;
@@ -225,7 +229,7 @@
       // The strum listener has its own path from the microphone.
       heard: observed.length > 0,
     });
-    const fin = await run.finish({ score, correct, headline: strum ? `${landed.landed} of ${landed.total} strums on time on the chord` : `${r.matched} of ${r.total} chords followed` });
+    const fin = await run.finish({ score, correct, headline: strum ? m.music_strings_strum_run_strums({ n: landed.landed, total: landed.total }) : m.music_strings_strum_run_chords({ n: r.matched, total: r.total }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -238,37 +242,37 @@
     tally = strum ? strokeTally(blocks.map((_, k) => blockHits[k]), onTimeMs()) : null;
     summary = {
       headline: !observed.length
-        ? "No strums were heard. Check the level meter moves when you play, then try again."
+        ? m.music_strings_strum_none_heard()
         : correct
-          ? `All ${r.total} chords followed, ${strum ? "every strum on time" : "in time"}.`
-          : `${strum ? `${landed.landed} of ${landed.total} strums on time on the chord. ` : ""}${r.matched} of ${r.total} chords followed.${r.chords.find((c) => !c.matched) ? ` ${r.chords.find((c) => !c.matched)!.symbol} is the one to work on first.` : ""}`,
+          ? (strum ? m.music_strings_strum_all_strums : m.music_strings_strum_all_time)({ total: r.total })
+          : `${strum ? `${m.music_strings_strum_strums_line({ n: landed.landed, total: landed.total })} ` : ""}${m.music_strings_strum_chords_line({ n: r.matched, total: r.total })}${r.chords.find((c) => !c.matched) ? ` ${m.music_strings_strum_work_on({ chord: r.chords.find((c) => !c.matched)!.symbol })}` : ""}`,
       // The ring is the run's score (the expected strums that landed), the metric "since last time" compares.
       metric: pct(score),
-      metricLabel: strum ? "strums on time on the chord" : "chords followed",
+      metricLabel: strum ? m.music_strings_strum_metric_strums() : m.music_strings_strum_metric_chords(),
       score,
-      cleanMeans: strum ? "every strum on time on its chord, every chord followed" : "every chord followed, in time",
+      cleanMeans: strum ? m.music_strings_strum_clean_strums() : m.music_strings_strum_clean_chords(),
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
-      assistance: "Kept as practice history, not counted toward your skill scores yet.",
+      assistance: m.music_strings_practice_history_only(),
       rows: [
         ...(strum && tally
           ? [
               // Four counts that add up to the strums expected; the first is the headline's and the ring's.
-              { label: "On time on the chord", value: landed.score, text: `${landed.landed} of ${landed.total}` },
-              { label: "On the wrong chord", text: `${tally.wrong} of ${landed.total}` },
-              { label: "Early or late", text: `${tally.early + tally.late} of ${landed.total}` },
-              { label: "Missed", text: `${tally.miss} of ${landed.total}` },
+              { label: m.music_strings_strum_row_on_time(), value: landed.score, text: m.music_strings_n_of_total({ n: landed.landed, total: landed.total }) },
+              { label: m.music_strings_strum_row_wrong(), text: m.music_strings_n_of_total({ n: tally.wrong, total: landed.total }) },
+              { label: m.music_strings_strum_row_early_late(), text: m.music_strings_n_of_total({ n: tally.early + tally.late, total: landed.total }) },
+              { label: m.music_strings_missed(), text: m.music_strings_n_of_total({ n: tally.miss, total: landed.total }) },
             ]
           : []),
-        { label: "Chords followed", value: r.total ? r.matched / r.total : 0, text: `${r.matched} of ${r.total}` },
-        { label: "Chord tones heard", value: r.score, text: pct(r.score) },
-        { label: "Strums heard", text: String(observed.length) },
+        { label: m.music_strings_strum_row_followed(), value: r.total ? r.matched / r.total : 0, text: m.music_strings_n_of_total({ n: r.matched, total: r.total }) },
+        { label: m.music_strings_strum_row_tones(), value: r.score, text: pct(r.score) },
+        { label: m.music_strings_strums_heard(), text: String(observed.length) },
         timed.length
-          ? { label: "Mean timing", text: `${Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length)} ms from the beat` }
-          : { label: "Timing", notMeasured: true },
-        { label: "Which strings rang", notMeasured: true },
-        { label: "Skill score", notMeasured: true },
+          ? { label: m.music_strings_strum_row_mean_timing(), text: m.music_strings_strum_ms_from_beat({ ms: Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length) }) }
+          : { label: m.music_strings_timing(), notMeasured: true },
+        { label: m.music_strings_row_which_strings(), notMeasured: true },
+        { label: m.music_strings_skill_score(), notMeasured: true },
       ],
       // The tempo climbs to the progression's own, then the next progression up.
       advance: observed.length
@@ -281,7 +285,7 @@
   function stop() {
     halt();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -335,7 +339,7 @@
 
   const shownIndex = $derived(current >= 0 ? current : 0);
   /** Beside Stop on a phone: the chord to strum now and the one after it. */
-  const cue = $derived(phase === "running" && current >= 0 ? `Strum ${chart[current].symbol}${chart[current + 1] ? `, then ${chart[current + 1].symbol}` : ", the last chord"}` : "");
+  const cue = $derived(phase === "running" && current >= 0 ? (chart[current + 1] ? m.music_strings_strum_cue({ chord: chart[current].symbol, next: chart[current + 1].symbol }) : m.music_strings_strum_cue_last({ chord: chart[current].symbol })) : "");
   const tones = $derived(chart[shownIndex]?.pcs ?? []);
   /** The shown chord's tones spelled from its root (F# in D major); flats when the symbol has no root to spell from. */
   const shownRef = $derived(chart[shownIndex] ? symbolRef(chart[shownIndex].symbol) : null);
@@ -346,7 +350,7 @@
   // each of its strokes marked once judged. Strokes not reached yet carry no mark.
   const rowBeat = $derived(hwBeat !== null && hwBeat >= 0 ? hwBeat : null);
   /** The chart's chord sounding at a beat. */
-  const chordAt = (beat: number) => chart.findLast((c) => c.startBeat <= beat + 1e-6)?.symbol ?? "the chord";
+  const chordAt = (beat: number) => chart.findLast((c) => c.startBeat <= beat + 1e-6)?.symbol ?? m.music_strings_the_chord();
   const rowBar = $derived(rowBeat !== null ? Math.floor(rowBeat / 4) : Math.max(0, chart[shownIndex]?.startBeat ?? 0) / 4);
   const row = $derived(strumSlots(strokesIn(rowBar).map((e) => ({ beat: e.beat, stroke: e.stroke, accent: e.accent === "accent" }))));
   const rowLit = $derived(slotAt(rowBeat, row.step));
@@ -357,9 +361,9 @@
       if (Math.floor(b.startBeat / 4 + 1e-6) !== rowBar) return;
       const slot = Math.round((b.startBeat - rowBar * 4) / row.step);
       const hit = blockHits[k];
-      if (hit === "wrong") out[slot] = { kind: "wrong", text: `Not ${chordAt(b.startBeat)}` };
+      if (hit === "wrong") out[slot] = { kind: "wrong", text: m.music_strings_not_chord({ chord: chordAt(b.startBeat) }) };
       else if (typeof hit === "number") out[slot] = strokeVerdict(hit, onTimeMs());
-      else if (rowBeat - b.startBeat > 0.5) out[slot] = { kind: "miss", text: "Missed" };
+      else if (rowBeat - b.startBeat > 0.5) out[slot] = { kind: "miss", text: m.music_strings_missed() };
     });
     return out;
   });
@@ -373,7 +377,7 @@
         if (Math.floor(b.startBeat / 4 + 1e-6) !== bar) return;
         const hit = blockHits[k];
         marks[Math.round((b.startBeat - bar * 4) / r.step)] =
-          hit === "wrong" ? { kind: "wrong", text: `Not ${chordAt(b.startBeat)}` } : typeof hit === "number" ? strokeVerdict(hit, onTimeMs()) : { kind: "miss", text: "Missed" };
+          hit === "wrong" ? { kind: "wrong", text: m.music_strings_not_chord({ chord: chordAt(b.startBeat) }) } : typeof hit === "number" ? strokeVerdict(hit, onTimeMs()) : { kind: "miss", text: m.music_strings_missed() };
       });
       return { bar, chord: chordAt(bar * 4), slots: r.slots, marks };
     });
@@ -385,21 +389,21 @@
     blockOffsets.forEach((off, i) => off !== undefined && (k < 0 || blockTimes[i] > blockTimes[k]) && (k = i));
     if (k < 0) return null;
     const hit = blockHits[k];
-    return { key: k, ...(typeof hit === "number" ? strokeVerdict(hit, onTimeMs()) : { kind: "wrong" as const, text: `Not ${chordAt(blocks[k].startBeat)}` }) };
+    return { key: k, ...(typeof hit === "number" ? strokeVerdict(hit, onTimeMs()) : { kind: "wrong" as const, text: m.music_strings_not_chord({ chord: chordAt(blocks[k].startBeat) }) }) };
   });
 </script>
 
-<svelte:head><title>Strum a progression | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_strings_strum_page_title()}</title></svelte:head>
 
 <DrillShell
-  title="Strum a progression"
+  title={m.music_strings_strum_title()}
   hue={instr}
-  blurb="Strum the pattern through the chart while the microphone follows each chord."
+  blurb={m.music_strings_strum_blurb()}
   summary={[
-    { text: `${prog.name} in ${prog.key}`, focus: "progression" },
-    { text: strum ? strumName(strum) : "any strum", focus: "pattern" },
-    { text: `${choruses} chorus${choruses > 1 ? "es" : ""}`, focus: "choruses" },
-    { text: `${strictness} timing`, focus: "timing" },
+    { text: m.music_strings_prog_in_key({ name: prog.name, key: prog.key }), focus: "progression" },
+    { text: strum ? strumName(strum) : m.music_strings_strum_any(), focus: "pattern" },
+    { text: m.music_strings_strum_choruses({ n: choruses }), focus: "choruses" },
+    { text: STRICTNESS_TEXT[strictness](), focus: "timing" },
   ]}
   bind:phase
   bind:status
@@ -410,19 +414,19 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  startLabel={mic.state === "on" ? "Start" : "Start (turns on the mic)"}
+  startLabel={mic.state === "on" ? m.music_strings_start() : m.music_strings_strum_start_mic()}
   {cue}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" role="group" aria-label="Progression" data-setup="progression">
-        <p class="text-sm font-medium">Progression</p>
+      <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" role="group" aria-label={m.music_strings_progression()} data-setup="progression">
+        <p class="text-sm font-medium">{m.music_strings_progression()}</p>
         {#each DIFFICULTIES as d (d)}
           {@const list = playable.filter((p) => p.difficulty === d && !p.song && !isChartLevel(p.id))}
           {#if list.length}
             <Choice
-              label={d[0].toUpperCase() + d.slice(1)}
-              options={list.map((p) => ({ value: p.id, label: `${p.name} in ${p.key}`, detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") }))}
+              label={DIFFICULTY_LABEL[d]()}
+              options={list.map((p) => ({ value: p.id, label: m.music_strings_prog_in_key({ name: p.name, key: p.key }), detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") }))}
               value={prog.id}
               onchange={pick}
             />
@@ -431,19 +435,19 @@
         {#if charts.length}
           <div class="flex flex-wrap items-end gap-2">
             <Choice
-              label="Read a new chart"
+              label={m.music_strings_strum_read_chart()}
               options={charts.map((p) => ({ value: p.id, label: p.name, detail: p.chords.map((c) => c.symbol).join(" ") }))}
               value={prog.id}
               onchange={pick}
             />
-            <button type="button" class="min-h-11 rounded-full border border-ws-line px-4 text-sm font-medium" onclick={() => cfg.set({ seed: s.seed + 1 })}>New chart</button>
+            <button type="button" class="min-h-11 rounded-full border border-ws-line px-4 text-sm font-medium" onclick={() => cfg.set({ seed: s.seed + 1 })}>{m.music_strings_strum_new_chart()}</button>
           </div>
-          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">Eight bars in C you haven't seen: read it once, then strum it. Some bars change chord on beat 3.</p>{/if}
+          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">{m.music_strings_strum_chart_help()}</p>{/if}
         {/if}
         {#if songs.length}
           <Choice
-            label="Songs"
-            options={songs.map((p) => ({ value: p.id, label: `${p.name}, ${p.song!.artist}`, detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") + `, ${p.bpm} BPM` }))}
+            label={m.music_strings_songs()}
+            options={songs.map((p) => ({ value: p.id, label: m.music_strings_song_by({ name: p.name, artist: p.song!.artist }), detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") + `, ${p.bpm} BPM` }))}
             value={prog.id}
             onchange={pick}
           />
@@ -452,27 +456,27 @@
       </div>
       {#if strums.length}
         <Choice
-          label="Strum pattern"
+          label={m.music_strings_strum_pattern()}
           setupKey="pattern"
           select
-          options={[...strums.map((p) => ({ value: p.id, label: strumName(p) })), { value: "any", label: "Any strum" }]}
+          options={[...strums.map((p) => ({ value: p.id, label: strumName(p) })), { value: "any", label: m.music_strings_strum_any_cap() }]}
           value={strum?.id ?? "any"}
           onchange={(v) => cfg.set({ pattern: v })}
         />
       {/if}
       <Choice
-        label="Timing window"
+        label={m.music_strings_timing_window()}
         setupKey="timing"
         options={[
-          { value: "relaxed", label: "Relaxed" },
-          { value: "normal", label: "Normal" },
-          { value: "strict", label: "Strict" },
+          { value: "relaxed", label: m.music_strings_relaxed() },
+          { value: "normal", label: m.music_strings_normal() },
+          { value: "strict", label: m.music_strings_strict() },
         ]}
         value={strictness}
         onchange={(v) => cfg.set({ strictness: v })}
       />
       <Choice
-        label="Choruses"
+        label={m.music_strings_choruses()}
         setupKey="choruses"
         options={[
           { value: 1, label: "1" },
@@ -487,10 +491,10 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Chord" value={current >= 0 ? chart[current].symbol : "Ready"} />
-      <Stat label="Strums heard" value={observed.length} />
+      <Stat label={m.music_strings_chord()} value={current >= 0 ? chart[current].symbol : m.music_strings_ready()} />
+      <Stat label={m.music_strings_strums_heard()} value={observed.length} />
     {:else if result}
-      <Stat label="Followed" value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
+      <Stat label={m.music_strings_followed()} value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
     {/if}
   {/snippet}
 
@@ -499,8 +503,8 @@
       <!-- From lg, over the chart, the switch shares the chords' heading row (pulled up over it, its caption left to
            the switch's own words), so the chart starts one row higher. The highway keeps the row and its caption. -->
       <div class="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 {highway.on ? '' : 'lg:pointer-events-none lg:relative lg:z-10 lg:-mb-11'}">
-        <p class="text-sm text-ws-stage-soft max-sm:hidden {highway.on ? '' : 'lg:hidden'}">{highway.on ? "Highway: each strum slides down to the line as it's due." : "Highway: a scrolling view"}</p>
-        <div class="pointer-events-auto">{@render viewSwitch("Chart")}</div>
+        <p class="text-sm text-ws-stage-soft max-sm:hidden {highway.on ? '' : 'lg:hidden'}">{highway.on ? m.music_strings_strum_highway_on() : m.music_strings_strum_highway_off()}</p>
+        <div class="pointer-events-auto">{@render viewSwitch(m.music_strings_chart())}</div>
       </div>
     {/if}
     {#if highway.on && phase !== "results"}
@@ -512,21 +516,21 @@
         <!-- The strum pattern above the chords: what the hand does, slot by slot, lit on the click. -->
         <div class="relative mb-3 max-w-xl lg:w-[30rem] lg:shrink-0" data-pattern={strum.id}>
           <div class="mb-1.5 flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1 lg:min-h-11">
-            <p class="text-sm"><span class="text-ws-stage-soft">Strum pattern:</span> <span class="font-semibold">{strumName(strum)}</span> <span class="whitespace-nowrap text-ws-stage-soft">(D = down, U = up)</span></p>
+            <p class="text-sm"><span class="text-ws-stage-soft">{m.music_strings_strum_pattern_label()}</span> <span class="font-semibold">{strumName(strum)}</span> <span class="whitespace-nowrap text-ws-stage-soft">{m.music_strings_strum_du()}</span></p>
             <Verdict kind={lastVerdict?.kind} text={lastVerdict?.text} key={lastVerdict?.key ?? 0} />
             {#if phase === "running" && current >= 0}
               <!-- The change coming, big enough to read mid-strum. -->
               <p class="flex items-baseline gap-2 rounded-xl border-2 border-ws-stage-ink/25 px-3 py-1" data-testid="next-chord">
-                <span class="text-sm text-ws-stage-soft">Next</span><span class="font-display text-2xl font-bold leading-none">{chart[current + 1]?.symbol ?? "End"}</span>
+                <span class="text-sm text-ws-stage-soft">{m.music_strings_next_cap()}</span><span class="font-display text-2xl font-bold leading-none">{chart[current + 1]?.symbol ?? m.music_strings_end()}</span>
               </p>
             {/if}
           </div>
-          <StrumSlots slots={row.slots} lit={live || demo ? rowLit : null} marks={rowMarks} legend={!live} label="{strumName(strum)}, one bar: down and up strokes on the count" />
+          <StrumSlots slots={row.slots} lit={live || demo ? rowLit : null} marks={rowMarks} legend={!live} label={m.music_strings_strum_slots_label({ pattern: strumName(strum) })} />
         </div>
       {/if}
       <div class="min-w-0 flex-1">
-      <p class="mb-1.5 flex items-center text-sm text-ws-stage-soft lg:min-h-11">Chords</p>
-      <ol class="flex flex-wrap gap-1.5" aria-label="Chord chart">
+      <p class="mb-1.5 flex items-center text-sm text-ws-stage-soft lg:min-h-11">{m.music_strings_chords()}</p>
+      <ol class="flex flex-wrap gap-1.5" aria-label={m.music_strings_chord_chart()}>
         {#each chart as c, i (i)}
           {@const graded = result?.chords[i]}
           <li
@@ -539,38 +543,38 @@
             <span class="font-display text-2xl font-bold leading-none">{c.symbol}</span>
             <span class="text-[13px] {i === current ? '' : 'text-ws-stage-soft'}">
               {#if graded}
-                {graded.matched ? "followed" : graded.verification ? "tones off" : "not heard"}
+                {graded.matched ? m.music_strings_strum_followed() : graded.verification ? m.music_strings_strum_tones_off() : m.music_strings_strum_not_heard()}
               {:else}
-                {c.bars} bar{c.bars > 1 ? "s" : ""}
+                {m.music_strings_n_bars({ n: c.bars })}
               {/if}
             </span>
           </li>
         {/each}
       </ol>
       {#if !strum}
-        <p class="mt-2 max-w-prose text-sm text-ws-stage-soft">Any strum: what counts is each chord ringing on its bar. Pick a pattern in Setup to practise one.</p>
+        <p class="mt-2 max-w-prose text-sm text-ws-stage-soft">{m.music_strings_strum_any_help()}</p>
       {/if}
       </div>
       </div>
     {/if}
     {#if shownShape}
-      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label="{chart[shownIndex].symbol} on the {instr} neck" /></div>
+      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label={neckLabel(instr, chart[shownIndex].symbol)} /></div>
     {/if}
     <!-- From lg the chord's tones and the microphone share one row under the neck (the tones first). -->
     <div class="mt-3 flex flex-col gap-3 lg:flex-row-reverse lg:items-center lg:gap-6">
       <div class="lg:min-w-0 lg:flex-1"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
       <div class="grid gap-2 lg:flex lg:max-w-[55%] lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1">
-        <p class="text-sm font-medium">Tones of {chart[shownIndex]?.symbol}{live ? ", against what the microphone hears" : ""}</p>
-        <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label="Detected tones" name={spell} />
-        {#if live}<p class="text-sm text-ws-stage-soft">Heard now: {listener.live.length ? listener.live.map(spell).join(" ") : "nothing"}</p>{/if}
+        <p class="text-sm font-medium">{(live ? m.music_strings_strum_tones_of_live : m.music_strings_strum_tones_of)({ chord: chart[shownIndex]?.symbol ?? "" })}</p>
+        <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label={m.music_strings_detected_tones()} name={spell} />
+        {#if live}<p class="text-sm text-ws-stage-soft">{m.music_strings_heard_now({ notes: listener.live.length ? listener.live.map(spell).join(" ") : m.music_strings_nothing() })}</p>{/if}
       </div>
     </div>
     <details class="group mt-3 max-w-prose text-sm text-ws-stage-soft">
       <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">
-        <Info class="size-4" aria-hidden="true" />Why this run doesn't count toward skills
+        <Info class="size-4" aria-hidden="true" />{m.music_strings_strum_why_title()}
       </summary>
       <p class="pb-1">
-        The microphone hears which notes ring after each strum, not which strings rang them. Chord following hasn't been tested on a real {instr} yet. So a run is kept as practice history, with your timing, but doesn't change a skill score.
+        {instr === "ukulele" ? m.music_strings_strum_why_ukulele() : m.music_strings_strum_why_guitar()}
       </p>
     </details>
   {/snippet}
@@ -580,13 +584,13 @@
       <!-- Where in the pattern the misses were: every bar's strokes, marked as the row marked them live. -->
       {#snippet figure()}
         <section aria-labelledby="strum-bars" style="--ws-stage-ink: var(--ws-ink); --ws-stage-soft: var(--ws-soft)">
-          <h3 id="strum-bars" class="text-sm font-semibold">Each strum, bar by bar</h3>
+          <h3 id="strum-bars" class="text-sm font-semibold">{m.music_strings_strum_each_bar()}</h3>
           <ol class="mt-2 grid max-w-2xl gap-2">
             {#each barMarks as b, i (b.bar)}
               <li class="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2">
                 <span class="pt-0.5 font-display text-lg font-bold">{b.chord}</span>
                 <!-- Under the last bar, the marks' key is the run's tally: the same glyphs, each with its count. -->
-                <div><StrumSlots slots={b.slots} marks={b.marks} compact legend={i === barMarks.length - 1} counts={tally ?? undefined} label="Bar {b.bar + 1}, {b.chord}" /></div>
+                <div><StrumSlots slots={b.slots} marks={b.marks} compact legend={i === barMarks.length - 1} counts={tally ?? undefined} label={m.music_strings_strum_bar_label({ n: b.bar + 1, chord: b.chord })} /></div>
               </li>
             {/each}
           </ol>

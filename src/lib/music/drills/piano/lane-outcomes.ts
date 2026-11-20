@@ -2,6 +2,7 @@
 // key inside half the hand's spacing (the window the two-hand grade claims in),
 // early or late past a quarter of it, missed once its window has passed.
 import { timingBreakdown } from "@repo/music-core/scoring/evidence";
+import { m } from "@repo/i18n/messages.js";
 
 export type LaneOutcome = "ok" | "early" | "late" | "miss";
 
@@ -85,7 +86,11 @@ export function verdictOf(
 ): { kind: "ontime" | "early" | "late" | "miss"; text?: string } {
   if (o === "ok") return { kind: "ontime" };
   if (o === "miss") return { kind: "miss" };
-  return { kind: o, text: `${o === "early" ? "Early" : "Late"} ${Math.round(Math.abs(errMs))} ms` };
+  const ms = Math.round(Math.abs(errMs));
+  return {
+    kind: o,
+    text: o === "early" ? m.music_strings_early_ms({ ms }) : m.music_strings_late_ms({ ms }),
+  };
 }
 
 /** The timing breakdown from per-target errors in ms (positive late, null missed): the shared K3 rule. */
