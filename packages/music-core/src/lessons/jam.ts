@@ -3,6 +3,8 @@
 // are lines over the default ii-V-I that the game's own grader passes (see jam.test.ts), and every
 // threshold comes from the game's aims in scoring/improv.ts.
 
+import { formatList } from "@repo/i18n/format";
+import { m } from "@repo/i18n/messages.js";
 import { PROGRESSIONS, barBeats, chorusBars, type Progression } from "../content/jam";
 import { TUNES, type HeadNote } from "../content/tunes";
 import {
@@ -23,8 +25,7 @@ export const FULL_JAM_LESSONS = ["guide-tones", "motif", "approach", "displaceme
 
 export const JAM_EXAMPLE = PROGRESSIONS.find((p) => p.id === "ii-v-i")!;
 
-const join = (a: string[]) =>
-  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
+const join = (a: string[]) => formatList(a);
 const spell = (midi: number) => noteName(midi, "flat", false);
 /** The game's aim for a measure, as the grader reads it (for a chorus of `bars` bars). */
 export const aimOf = (
@@ -39,11 +40,10 @@ export const aimOf = (
 const pct = (id: string, metric: MetricId) => Math.round(aimOf(id, metric) * 100);
 
 /** What the band's bars allow. */
-const BAND =
-  "no note may start in the band's bars, apart from a landing in their first half beat and a pickup in their last half beat";
+const BAND = () => m.music_lessons_jam_band_rule();
 
 /** The window the grader gives a landing on a change. */
-const WINDOW = "from half a beat before a change to a beat after it";
+const WINDOW = () => m.music_lessons_jam_window();
 
 // ---------------------------------------------------------------------------
 // Building blocks
@@ -343,7 +343,8 @@ const stepsOver = (f: (s: Slot, i: number) => LessonStep): LessonStep[] =>
 function guideTonesLesson(): Lesson {
   const v = guideVoices();
   const [dm, g7, cm] = v;
-  const role = (t: { label: string }) => (t.label.includes("3") ? "3rd" : "7th");
+  const role = (t: { label: string }) =>
+    t.label.includes("3") ? m.music_lessons_jam_role_third() : m.music_lessons_jam_role_seventh();
   const marks = (x: (typeof v)[number]) => ({
     [x.a.midi]: x.a.tone.label,
     [x.b.midi]: x.b.tone.label,
@@ -353,27 +354,55 @@ function guideTonesLesson(): Lesson {
   const move = (
     from: { midi: number; tone: { name: string } },
     to: { midi: number; tone: { name: string; label: string } },
-  ) =>
-    from.midi === to.midi
-      ? `${to.tone.name} stays, now the ${role(to.tone)}`
-      : `${from.tone.name} moves ${to.midi < from.midi ? "down" : "up"} a ${Math.abs(to.midi - from.midi) === 1 ? "half" : "whole"} step to ${to.tone.name}, now the ${role(to.tone)}`;
+  ) => {
+    if (from.midi === to.midi)
+      return m.music_lessons_jam_move_stays({ note: to.tone.name, role: role(to.tone) });
+    const half = Math.abs(to.midi - from.midi) === 1;
+    const move =
+      to.midi < from.midi
+        ? half
+          ? m.music_lessons_jam_move_down_half
+          : m.music_lessons_jam_move_down_whole
+        : half
+          ? m.music_lessons_jam_move_up_half
+          : m.music_lessons_jam_move_up_whole;
+    return move({ from: from.tone.name, to: to.tone.name, role: role(to.tone) });
+  };
   const step = (from: (typeof v)[number], to: (typeof v)[number]) =>
-    `${to.slot.symbol}: ${move(from.a, to.a)}. ${move(from.b, to.b)}.`;
+    m.music_lessons_jam_guide_step({
+      chord: to.slot.symbol,
+      first: move(from.a, to.a),
+      second: move(from.b, to.b),
+    });
   return {
     ...named("guide-tones"),
     screens: [
       {
-        title: "The notes that name a chord",
-        text: `The 3rd says whether a chord is major or minor, and the 7th says what kind of seventh it is. Together they're the guide tones. In ${dm.slot.symbol} they are ${dm.a.tone.name} and ${dm.b.tone.name}.`,
+        title: m.music_lessons_jam_guide_name_title(),
+        text: m.music_lessons_jam_guide_name_text({
+          chord: dm.slot.symbol,
+          a: dm.a.tone.name,
+          b: dm.b.tone.name,
+        }),
         figure: fig(dm),
         sound: { notes: [{ midi: [dm.a.midi, dm.b.midi], at: 0, dur: 1.6 }] },
       },
       {
-        title: `Through the ${JAM_EXAMPLE.name}`,
-        text: `Tap Next to follow the guide tones through ${dm.slot.symbol}, ${g7.slot.symbol} and ${cm.slot.symbol}. Each one moves by no more than a half step.`,
+        title: m.music_lessons_jam_guide_through_title({ name: JAM_EXAMPLE.name }),
+        text: m.music_lessons_jam_guide_through_text({
+          a: dm.slot.symbol,
+          b: g7.slot.symbol,
+          c: cm.slot.symbol,
+        }),
         steps: [
           {
-            text: `${dm.slot.symbol}: ${dm.a.tone.name} is the ${role(dm.a.tone)} and ${dm.b.tone.name} is the ${role(dm.b.tone)}.`,
+            text: m.music_lessons_jam_guide_first_step({
+              chord: dm.slot.symbol,
+              a: dm.a.tone.name,
+              roleA: role(dm.a.tone),
+              b: dm.b.tone.name,
+              roleB: role(dm.b.tone),
+            }),
             figure: fig(dm),
           },
           { text: step(dm, g7), figure: fig(g7) },
@@ -381,12 +410,21 @@ function guideTonesLesson(): Lesson {
         ],
       },
       {
-        title: "What Check counts",
-        text: `At least ${pct("guide-tones", "set")}% of your notes must be a guide tone of the chord sounding, or of the one arriving within half a beat. A guide tone must also land ${WINDOW} for ${pct("guide-tones", "landings")}% of the changes. On a 6th chord the 6th stands in for the 7th.`,
+        title: m.music_lessons_jam_guide_check_title(),
+        text: m.music_lessons_jam_guide_check_text({
+          set: pct("guide-tones", "set"),
+          window: WINDOW(),
+          landings: pct("guide-tones", "landings"),
+        }),
       },
       {
-        title: "A line that passes",
-        text: `Each chord's first bar has its two guide tones, one on beat 1 and one on beat 3, then the second bar rests. The pairs are ${v.map((x) => `${x.a.tone.name} and ${x.b.tone.name}`).join(", ")}, for ${exampleChords()}.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_guide_line_text({
+          pairs: v
+            .map((x) => m.music_lessons_jam_pair({ a: x.a.tone.name, b: x.b.tone.name }))
+            .join(", "),
+          chords: exampleChords(),
+        }),
         sound: soundOf(guideLine()),
       },
     ],
@@ -401,15 +439,27 @@ const toneCard = (id: "changes" | "chord-tones"): Lesson => {
     ...named(id),
     screens: [
       {
-        title: both ? "Two things to hit" : "A chord tone on 1 and 3",
+        title: both
+          ? m.music_lessons_jam_tones_title_changes()
+          : m.music_lessons_jam_tones_title_tones(),
         text: both
-          ? `A note that starts on beat 1 or 3 (within a quarter of a beat) should be a tone of the chord sounding, for ${pct(id, "strong")}% of them. A 3rd or 7th (lit here on ${chord}) should land ${WINDOW} for ${pct(id, "landings")}% of the changes. Your weakest of the two sets the score, and in a waltz only beat 1 counts.`
-          : `Every note that starts on beat 1 or 3 (within a quarter of a beat) must be a tone of the chord sounding (lit here on ${chord}). The score is the share that are, and the aim is ${pct(id, "strong")}%. Notes on the other beats are free, and in a waltz only beat 1 counts.`,
+          ? m.music_lessons_jam_tones_text_changes({
+              strong: pct(id, "strong"),
+              chord,
+              window: WINDOW(),
+              landings: pct(id, "landings"),
+            })
+          : m.music_lessons_jam_tones_text_tones({ chord, strong: pct(id, "strong") }),
         figure: toneFigure(chord, both ? isGuide : () => true),
       },
       {
-        title: "A line that passes",
-        text: `${chord} has ${join(tones.map((t) => t.name))}. ${both ? "The line puts the 3rd on each change, then the 5th, 7th and root in turn," : "The line plays the 3rd, 5th, 7th and root of each chord in turn,"} all on beats 1 and 3.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: (both
+          ? m.music_lessons_jam_tones_line_changes
+          : m.music_lessons_jam_tones_line_tones)({
+          chord,
+          tones: join(tones.map((t) => t.name)),
+        }),
         sound: soundOf(toneLine()),
       },
     ],
@@ -424,10 +474,10 @@ const thirdsCard = (): Lesson => {
     ...named("thirds"),
     screens: [
       {
-        title: "The 3rd of each new chord",
-        text: `Land on the 3rd of every chord that differs from the one before, ${WINDOW}. The score is the share of changes landed, and the aim is ${pct("thirds", "thirds")}%. A 7th doesn't count here, and on a sus chord the 4th stands in for the 3rd.`,
+        title: m.music_lessons_jam_thirds_title(),
+        text: m.music_lessons_jam_thirds_text({ window: WINDOW(), aim: pct("thirds", "thirds") }),
         steps: slots.map((s) => ({
-          text: `${s.symbol}: land on ${third(s).name}.`,
+          text: m.music_lessons_jam_thirds_step({ chord: s.symbol, note: third(s).name }),
           figure: keys(
             { [near(pc(third(s).midi), 66)]: third(s).label },
             span.map((m) => near(pc(m), 66)),
@@ -435,8 +485,8 @@ const thirdsCard = (): Lesson => {
         })),
       },
       {
-        title: "A line that passes",
-        text: `The line lands on ${join(slots.map((s) => third(s).name))} as the changes arrive, holding each for two beats. When the form comes back round to a different chord, that counts as a change too.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_thirds_line({ notes: join(slots.map((s) => third(s).name)) }),
         sound: soundOf(thirdLine()),
       },
     ],
@@ -451,14 +501,14 @@ const setCard = (id: string, intro: string): Lesson => {
   const rests = g.aims.some((a) => a.metric === "rests");
   // A b3 over a major or dominant chord is the blues on purpose, not a wrong note: say so once, over C7.
   const b3 = notes.find((m) => pc(m - JAM_EXAMPLE.keyPc) === 3);
-  const check = `Check scores the share of your notes in the set, and the aim is ${pct(id, "set")}%, in any octave.`;
+  const check = m.music_lessons_jam_set_check({ pct: pct(id, "set") });
   const C7 = [48, 52, 55, 58];
   return {
     ...named(id),
     screens: [
       {
-        title: "The notes you may use",
-        text: `${intro} These numbers count up the key's scale from its tonic (b means a half step lower), so in the key of C that's ${join(names)}. On the stage, the ringed keys are numbered from the current chord's root instead.`,
+        title: m.music_lessons_jam_set_title(),
+        text: m.music_lessons_jam_set_text({ intro, names: join(names) }),
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
         sound: { notes: notes.map((m, i) => ({ midi: [m], at: i * 0.45, dur: 0.4 })) },
       },
@@ -466,8 +516,8 @@ const setCard = (id: string, intro: string): Lesson => {
         ? []
         : [
             {
-              title: "Over C7: the blue third",
-              text: `Here the ${spell(b3)} is the blue third: over a C or C7 chord it rubs against the chord's E on purpose. ${check}`,
+              title: m.music_lessons_jam_set_blue_title(),
+              text: m.music_lessons_jam_set_blue_text({ note: spell(b3), check }),
               figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
               sound: {
                 notes: [
@@ -478,20 +528,22 @@ const setCard = (id: string, intro: string): Lesson => {
             },
           ]),
       {
-        title: rests ? "Notes and rests" : "A line that passes",
-        text: rests
-          ? `Rests count too: the aim is ${aimOf(id, "rests")} silences of two beats or more in a chorus, measured from when you let go of a note. This line plays two notes, then rests for two beats, in every bar.${b3 === undefined ? ` ${check}` : ""}`
-          : `This plays the ${set.length} notes up and back down. Only the notes are scored in this game, not time or rests.${b3 === undefined ? ` ${check}` : ""}`,
+        title: rests ? m.music_lessons_jam_set_rests_title() : m.music_lessons_jam_line_passes(),
+        text: `${
+          rests
+            ? m.music_lessons_jam_set_rests_text({ count: aimOf(id, "rests") })
+            : m.music_lessons_jam_set_line_text({ count: set.length })
+        }${b3 === undefined ? ` ${check}` : ""}`,
         sound: soundOf(rests ? restingLine(set) : setLine(set)),
       },
     ],
   };
 };
 
-const PENTA_WHERE: Record<string, string> = {
-  "pentatonic-1": "on the key's tonic",
-  "pentatonic-2": "a step above the key's tonic",
-  "pentatonic-5": "a fifth above the key's tonic",
+const PENTA_INTRO: Record<string, () => string> = {
+  "pentatonic-1": m.music_lessons_jam_intro_pentatonic_1,
+  "pentatonic-2": m.music_lessons_jam_intro_pentatonic_2,
+  "pentatonic-5": m.music_lessons_jam_intro_pentatonic_5,
 };
 
 function motifLesson(): Lesson {
@@ -509,27 +561,40 @@ function motifLesson(): Lesson {
     ...named("motif"),
     screens: [
       {
-        title: "Keep one rhythm",
-        text: `Pick the rhythm of one bar and repeat it as the chords change. Check compares where your notes start, to the nearest eighth note, so only the start times matter. Use the same rhythm in at least ${pct("motif", "motif")}% of your bars, with a chord tone on beat 1 in ${pct("motif", "downbeats")}% of them.`,
+        title: m.music_lessons_jam_motif_title(),
+        text: m.music_lessons_jam_motif_text({
+          motif: pct("motif", "motif"),
+          downbeats: pct("motif", "downbeats"),
+        }),
         figure: rhythm(2),
       },
       {
-        title: "The Charleston",
-        text: `The Charleston is one of the best-known rhythms: a note on beat 1 and a note on the and of 2. Here it is in three bars, two over ${slotsOf(JAM_EXAMPLE)[0].symbol} and one over ${slotsOf(JAM_EXAMPLE)[1].symbol}.`,
+        title: m.music_lessons_jam_charleston_title(),
+        text: m.music_lessons_jam_charleston_text({
+          a: slotsOf(JAM_EXAMPLE)[0].symbol,
+          b: slotsOf(JAM_EXAMPLE)[1].symbol,
+        }),
         figure: rhythm(3),
         sound: soundOf(charlestonLine(), 3 * barBeats(JAM_EXAMPLE)),
       },
       {
-        title: "New notes for each chord",
-        text: "Tap Next to see the same rhythm take a chord tone from each chord. Beat 1 gets the root and the and of 2 gets the 3rd.",
+        title: m.music_lessons_jam_motif_new_title(),
+        text: m.music_lessons_jam_motif_new_text(),
         steps: stepsOver((s) => ({
-          text: `${s.symbol}: ${s.tones[0].name} on beat 1, ${s.tones[1].name} on the and of 2.`,
-          figure: keys({ [s.tones[0].midi]: "1", [s.tones[1].midi]: "and of 2" }, span),
+          text: m.music_lessons_jam_motif_step({
+            chord: s.symbol,
+            a: s.tones[0].name,
+            b: s.tones[1].name,
+          }),
+          figure: keys(
+            { [s.tones[0].midi]: "1", [s.tones[1].midi]: m.music_lessons_jam_label_and_of_2() },
+            span,
+          ),
         })),
       },
       {
-        title: "A line that passes",
-        text: `That plays the Charleston in all ${bars} bars of ${exampleChords()}, so every bar has the same rhythm and a chord tone on beat 1.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_motif_line({ bars, chords: exampleChords() }),
         sound: soundOf(charlestonLine()),
       },
     ],
@@ -547,35 +612,38 @@ function approachLesson(): Lesson {
     ...named("approach"),
     screens: [
       {
-        title: "Lean in from a half step",
-        text: `An approach note is a half step above or below the note you're heading for. Check wants a chord tone on beat 1 of your bars, with the note played just before it a half step away. The score is the share of your bars that do, and the aim is ${pct("approach", "approach")}%, so an empty bar of yours counts as a miss.`,
-        figure: marks({ [target.midi - 1]: "below", [target.midi + 1]: "above" }),
+        title: m.music_lessons_jam_approach_title(),
+        text: m.music_lessons_jam_approach_text({ pct: pct("approach", "approach") }),
+        figure: marks({
+          [target.midi - 1]: m.music_lessons_jam_label_below(),
+          [target.midi + 1]: m.music_lessons_jam_label_above(),
+        }),
       },
       {
-        title: "One target, two ways in",
-        text: `The target is ${target.name}, a tone of ${s.symbol}. Tap Next to see each approach.`,
+        title: m.music_lessons_jam_approach_ways_title(),
+        text: m.music_lessons_jam_approach_ways_text({ note: target.name, chord: s.symbol }),
         steps: [
           {
-            text: `Aim: ${target.name}, a chord tone on beat 1.`,
+            text: m.music_lessons_jam_approach_step_aim({ note: target.name }),
             figure: marks({}),
           },
           {
-            text: `From below: ${below}, then ${target.name}.`,
-            figure: marks({ [target.midi - 1]: "from below" }),
+            text: m.music_lessons_jam_approach_step_below({ from: below, note: target.name }),
+            figure: marks({ [target.midi - 1]: m.music_lessons_jam_label_from_below() }),
           },
           {
-            text: `From above: ${above}, then ${target.name}.`,
-            figure: marks({ [target.midi + 1]: "from above" }),
+            text: m.music_lessons_jam_approach_step_above({ from: above, note: target.name }),
+            figure: marks({ [target.midi + 1]: m.music_lessons_jam_label_from_above() }),
           },
         ],
       },
       {
-        title: "When to play it",
-        text: "The approach note should start in the beat before beat 1, such as on the last beat of the bar before or the and of that beat. It's the last note you play before the target. Either side works, so mix them up.",
+        title: m.music_lessons_jam_approach_when_title(),
+        text: m.music_lessons_jam_approach_when_text(),
       },
       {
-        title: "A line that passes",
-        text: `This line aims at a chord tone on beat 1 of all ${chorusBars(JAM_EXAMPLE)} bars, coming from below in one bar and above in the next.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_approach_line({ bars: chorusBars(JAM_EXAMPLE) }),
         sound: soundOf(approachLine()),
       },
     ],
@@ -586,8 +654,8 @@ const offBeatCard = (): Lesson => ({
   ...named("off-beat"),
   screens: [
     {
-      title: "Where a phrase begins",
-      text: `A phrase is a run of notes with less than a beat of silence between them, so a pause of a beat or more starts a new one. Each new phrase should begin clearly between beats, such as on the and of 1 or the and of 4. The score is the share that do, and the aim is ${pct("off-beat", "offbeat")}%.`,
+      title: m.music_lessons_jam_offbeat_title(),
+      text: m.music_lessons_jam_offbeat_text({ pct: pct("off-beat", "offbeat") }),
       // Each phrase starts on the and of 1, after the beat, then stops.
       figure: {
         kind: "rhythm",
@@ -598,8 +666,8 @@ const offBeatCard = (): Lesson => ({
       },
     },
     {
-      title: "A line that passes",
-      text: "This line starts a short phrase on the and of 1 in every bar, then stops for the rest of the bar.",
+      title: m.music_lessons_jam_line_passes(),
+      text: m.music_lessons_jam_offbeat_line(),
       sound: soundOf(offBeatLine()),
     },
   ],
@@ -614,24 +682,31 @@ function windowsCard(id: "space" | "space-1" | "call-response"): Lesson {
     beatsPerBar: 4,
     onsets: mine.flatMap((b) => [b * 4, b * 4 + 1.5]),
   });
-  const n = (k: number) => (k === 1 ? "one bar" : `${k} bars`);
+  const n = (k: number) => m.music_lessons_jam_bars({ count: k });
   const call = id === "call-response";
   return {
     ...named(id),
     screens: [
       {
-        title: call ? "Listen, then answer" : "Play, then leave space",
-        text: call
-          ? `The band plays a call for ${n(w.band)}, then you answer for ${n(w.you)}. A note must start in your answer, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`
-          : `You play for ${n(w.you)}, then the band has ${n(w.band)} to itself, all chorus. A note must start in each of your stretches, but ${BAND}. The score is the share of stretches kept, yours and the band's, and the aim is ${pct(id, "windows")}%.`,
+        title: call
+          ? m.music_lessons_jam_windows_title_call()
+          : m.music_lessons_jam_windows_title_space(),
+        text: (call
+          ? m.music_lessons_jam_windows_text_call
+          : m.music_lessons_jam_windows_text_space)({
+          band: n(w.band),
+          you: n(w.you),
+          rule: BAND(),
+          pct: pct(id, "windows"),
+        }),
         figure: rhythm(call ? [2, 3] : id === "space" ? [0, 1] : [0, 2]),
       },
       {
-        title: "A line that passes",
+        title: m.music_lessons_jam_line_passes(),
         figure: rhythm(call ? [2, 3] : id === "space" ? [0, 1] : [0, 2]),
         text: call
-          ? "The picture shows only your answers: nothing in the band's bars, then two notes in each of yours. The sound plays your answers too, and the band plays the calls in the drill."
-          : "The picture and the sound show your part: two notes in each of your bars and nothing in the band's.",
+          ? m.music_lessons_jam_windows_line_call()
+          : m.music_lessons_jam_windows_line_space(),
         sound: soundOf(windowLine(id)),
       },
     ],
@@ -649,31 +724,34 @@ function bridgeCard(): Lesson {
     ...named("bridge"),
     screens: [
       {
-        title: "Only the bridge counts",
-        text: `The A sections aren't scored: rest in them or play the head. In the bridge, land a 3rd or 7th ${WINDOW} for ${pct("bridge", "landings")}% of the changes. A tune with no section marked B is scored on every bar.`,
+        title: m.music_lessons_jam_bridge_title(),
+        text: m.music_lessons_jam_bridge_text({ window: WINDOW(), pct: pct("bridge", "landings") }),
         figure: keys(
           Object.fromEntries(changes.map((c) => [near(pc(thirdOf(c.symbol).midi), 66), c.symbol])),
           changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
         ),
       },
       {
-        title: "A bridge, change by change",
-        text: `${tune.name} has a bridge of ${join(changes.map((c) => c.symbol))}. Tap Next to see a 3rd to land on for each.`,
+        title: m.music_lessons_jam_bridge_steps_title(),
+        text: m.music_lessons_jam_bridge_steps_text({
+          tune: tune.name,
+          chords: join(changes.map((c) => c.symbol)),
+        }),
         steps: changes.map((c) => {
           const t = thirdOf(c.symbol);
-          const m = near(pc(t.midi), 66);
+          const at = near(pc(t.midi), 66);
           return {
-            text: `${c.symbol}: ${t.name}, the 3rd.`,
+            text: m.music_lessons_jam_bridge_step({ chord: c.symbol, note: t.name }),
             figure: keys(
-              { [m]: t.label },
+              { [at]: t.label },
               changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
             ),
           };
         }),
       },
       {
-        title: "A line that passes",
-        text: "This line lands on the 3rd of each bridge change as it arrives, and says nothing in the A sections.",
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_bridge_line(),
         sound: soundOf(bridgeLine(tune)),
       },
     ],
@@ -695,8 +773,8 @@ function displacementLesson(): Lesson {
     ...named("displacement"),
     screens: [
       {
-        title: "The same idea, a beat later",
-        text: "Play a short motif of 2 to 6 notes, then play it again with the same rhythm, starting one beat later in its bar. A repeat counts when it comes no more than two bars after the last one. The pitches are free to change, but leave at least half a beat of silence between motifs.",
+        title: m.music_lessons_jam_displace_title(),
+        text: m.music_lessons_jam_displace_text(),
         figure: {
           ...rhythm,
           bars: 2,
@@ -704,14 +782,20 @@ function displacementLesson(): Lesson {
         },
       },
       {
-        title: "Beat 1, beat 2, beat 3",
-        text: "Here a three-note motif starts on beat 1 of the first bar, on beat 2 of the next and on beat 3 of the one after. So the motif slides later through each bar.",
+        title: m.music_lessons_jam_displace_beats_title(),
+        text: m.music_lessons_jam_displace_beats_text(),
         figure: rhythm,
         sound: soundOf(displacementLine(), 3 * (bpb + 1)),
       },
       {
-        title: "How many",
-        text: `The aim grows with the form and counts repeats, not bars: ${aim} displaced repeats in the ${bars} bars of ${JAM_EXAMPLE.name}, and ${aimOf("displacement", "displaced", 12)} in a 12-bar form. The sound runs a three-note motif through all ${bars} bars, ${displacementLine().length / 3 - 1} displaced repeats, each on the root, 3rd and 5th of the chord where that motif starts.`,
+        title: m.music_lessons_jam_displace_count_title(),
+        text: m.music_lessons_jam_displace_count_text({
+          aim,
+          bars,
+          name: JAM_EXAMPLE.name,
+          aim12: aimOf("displacement", "displaced", 12),
+          repeats: displacementLine().length / 3 - 1,
+        }),
         sound: soundOf(displacementLine()),
       },
     ],
@@ -721,35 +805,47 @@ function displacementLesson(): Lesson {
 function sideSlipLesson(): Lesson {
   const s = slotsOf(JAM_EXAMPLE)[0];
   const { plain, slipped, outside } = slipOf(s);
-  const lit = (ms: number[], role: (m: number) => string) =>
-    keys(Object.fromEntries(ms.map((m) => [m, role(m)])), [...plain, ...slipped]);
-  const inside = (m: number) =>
-    [...s.scale, ...s.tones.map((t) => t.midi)].some((x) => pc(x) === pc(m));
+  const lit = (ms: number[], role: (midi: number) => string) =>
+    keys(Object.fromEntries(ms.map((x) => [x, role(x)])), [...plain, ...slipped]);
+  const inside = (midi: number) =>
+    [...s.scale, ...s.tones.map((t) => t.midi)].some((x) => pc(x) === pc(midi));
+  const inOut = (midi: number) =>
+    inside(midi) ? m.music_lessons_jam_label_in() : m.music_lessons_jam_label_out();
   return {
     ...named("side-slip"),
     screens: [
       {
-        title: "Step outside, then come back",
-        text: `A side-slip is a phrase of three or more notes that are neither chord tones nor in the chord's scale, played within a beat of each other with no two inside notes in a row. It ends by resolving to a chord tone on the next beat, no more than a beat and a half after the last slip note. The aim is ${aimOf("side-slip", "slips")} slips a chorus, with ${pct("side-slip", "resolved")}% of them resolved.`,
-        figure: lit(slipped, (m) => (inside(m) ? "in" : "out")),
+        title: m.music_lessons_jam_slip_title(),
+        text: m.music_lessons_jam_slip_text({
+          slips: aimOf("side-slip", "slips"),
+          pct: pct("side-slip", "resolved"),
+        }),
+        figure: lit(slipped, inOut),
       },
       {
-        title: "Slide a phrase up",
-        text: `One way in: take a phrase from the scale and play it all a half step higher. Tap Next to try it on ${s.symbol}.`,
+        title: m.music_lessons_jam_slip_up_title(),
+        text: m.music_lessons_jam_slip_up_text({ chord: s.symbol }),
         steps: [
           {
-            text: `The first four notes of the ${s.symbol} scale: ${join(plain.map(spell))}.`,
-            figure: lit(plain, (m) => spell(m)),
+            text: m.music_lessons_jam_slip_step_plain({
+              chord: s.symbol,
+              notes: join(plain.map(spell)),
+            }),
+            figure: lit(plain, (x) => spell(x)),
           },
           {
-            text: `A half step higher: ${join(slipped.map(spell))}. ${outside.length} of the 4 are outside ${s.symbol} and its scale.`,
-            figure: lit(slipped, (m) => (inside(m) ? "in" : "out")),
+            text: m.music_lessons_jam_slip_step_slipped({
+              notes: join(slipped.map(spell)),
+              count: outside.length,
+              chord: s.symbol,
+            }),
+            figure: lit(slipped, inOut),
           },
         ],
       },
       {
-        title: "Land it",
-        text: "This line slips the first four notes of each chord's scale up a half step, then plays a chord tone on the next beat. The slip is the tension and the chord tone is the release.",
+        title: m.music_lessons_jam_slip_land_title(),
+        text: m.music_lessons_jam_slip_land_text(),
         sound: soundOf(slipLine()),
       },
     ],
@@ -762,8 +858,8 @@ function quoteCard(): Lesson {
     ...named("quote"),
     screens: [
       {
-        title: "Start from the tune",
-        text: `Open each A section with a run of at least four notes from the head: the same pitch names and the same steps between them, in any octave. A repeated note counts once. The run must start from half a beat before the section up to two bars into it, and the aim is ${pct("quote", "quotes")}% of the A sections.`,
+        title: m.music_lessons_jam_quote_title(),
+        text: m.music_lessons_jam_quote_text({ pct: pct("quote", "quotes") }),
         figure: {
           kind: "staff",
           clef: "treble",
@@ -771,8 +867,8 @@ function quoteCard(): Lesson {
         },
       },
       {
-        title: "An example",
-        text: "Say the head opens with these four notes. Hear them, then the same four an octave lower, which is a quote. After that, develop it in your own way.",
+        title: m.music_lessons_jam_quote_example_title(),
+        text: m.music_lessons_jam_quote_example_text(),
         figure: {
           kind: "staff",
           clef: "treble",
@@ -805,8 +901,11 @@ function fillsCard(): Lesson {
     ...named("melody-fills"),
     screens: [
       {
-        title: "Head, then fills",
-        text: `Play the head, and fill its rests of two beats or more. Check wants ${pct("melody-fills", "melody")}% of the head's notes played, in any octave and within half a beat of where the head puts them. A fill is 2 to 4 notes that start inside the rest but not in its last half beat, and the aim is ${aimOf("melody-fills", "fills", 0, 6)} filled rests a chorus, or all of them if the head has fewer.`,
+        title: m.music_lessons_jam_fills_title(),
+        text: m.music_lessons_jam_fills_text({
+          pct: pct("melody-fills", "melody"),
+          fills: aimOf("melody-fills", "fills", 0, 6),
+        }),
         figure: {
           kind: "staff",
           clef: "treble",
@@ -821,11 +920,11 @@ function fillsCard(): Lesson {
         },
       },
       {
-        title: "A bar",
-        text: "The head here plays two notes, then rests for two beats. Tap Next to fill the rest.",
+        title: m.music_lessons_jam_fills_bar_title(),
+        text: m.music_lessons_jam_fills_bar_text(),
         steps: [
           {
-            text: `The head: ${a.name} and ${b.name}, then two beats of rest.`,
+            text: m.music_lessons_jam_fills_step_head({ a: a.name, b: b.name }),
             figure: {
               kind: "staff",
               clef: "treble",
@@ -837,7 +936,7 @@ function fillsCard(): Lesson {
             },
           },
           {
-            text: `A fill of two notes, ${c.name} and ${d.name}, inside the rest.`,
+            text: m.music_lessons_jam_fills_step_fill({ a: c.name, b: d.name }),
             figure: {
               kind: "staff",
               clef: "treble",
@@ -854,8 +953,8 @@ function fillsCard(): Lesson {
         ],
       },
       {
-        title: "A line that passes",
-        text: `This plays the head's notes in all ${chorusBars(JAM_EXAMPLE)} bars with a two-note fill in each rest.`,
+        title: m.music_lessons_jam_line_passes(),
+        text: m.music_lessons_jam_fills_line({ bars: chorusBars(JAM_EXAMPLE) }),
         sound: soundOf(filledLine()),
       },
     ],
@@ -873,22 +972,13 @@ export function jamGameLesson(gameId: string): Lesson[] {
     case "thirds":
       return [thirdsCard()];
     case "three-notes":
-      return [
-        setCard("three-notes", "Use only the key's 1, b3 and 5, the notes of a minor triad."),
-      ];
+      return [setCard("three-notes", m.music_lessons_jam_intro_three_notes())];
     case "blues-scale":
-      return [
-        setCard("blues-scale", "Use only the key's blues scale: the 1, b3, 4, b5, 5 and b7."),
-      ];
+      return [setCard("blues-scale", m.music_lessons_jam_intro_blues_scale())];
     case "pentatonic-1":
     case "pentatonic-2":
     case "pentatonic-5":
-      return [
-        setCard(
-          gameId,
-          `Use only the minor pentatonic ${PENTA_WHERE[gameId]}: its 1, b3, 4, 5 and b7.`,
-        ),
-      ];
+      return [setCard(gameId, PENTA_INTRO[gameId]())];
     case "motif":
       return [motifLesson()];
     case "approach":
