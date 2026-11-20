@@ -37,7 +37,6 @@
   import { btnPrimary } from "#lib/music/components/ui.ts";
   import X from "@lucide/svelte/icons/x";
   import { FRETBOARD_MODES, openMode } from "./modes";
-  import { getLocale } from "@repo/i18n/runtime.js";
   import { formatNumber } from "@repo/i18n/format";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
@@ -60,10 +59,14 @@
   const region = $derived(RECALL_REGIONS[regionIdx]);
   const to = $derived(Math.min(tuning.fretCount, region.end));
   const intervalLabel = (st: number) => RECALL_INTERVALS.find((i) => i.semitones === st)?.label ?? m.music_strings_semitones({ count: st });
-  /** "a major third", "an octave". */
-  const aOrAn = (label: string) => `${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
-  /** The interval inside a sentence: English takes its article here, the other languages' messages carry their own words. */
-  const ivPhrase = (label: string) => (getLocale() === "en" ? aOrAn(label) : label.toLowerCase());
+  /** The interval inside a sentence, with its article: "a major third", "an octave". */
+  const IV_TEXT: Record<number, () => string> = {
+    3: m.music_strings_find_iv_minor_third,
+    4: m.music_strings_find_iv_major_third,
+    7: m.music_strings_find_iv_perfect_fifth,
+    12: m.music_strings_find_iv_octave,
+  };
+  const ivPhrase = (q: { semitones?: number; label: string }) => (q.semitones !== undefined && IV_TEXT[q.semitones]?.()) || q.label.toLowerCase();
   const key = $derived(isRecall ? `interval-recall:${tuning.id}:r${regionIdx}:i${s.interval}` : `note-finder:${tuning.id}:r${regionIdx}`);
 
   interface Question {
@@ -100,7 +103,7 @@
   };
   /** What was played, then the answer that was wanted, as lit on the neck. */
   const wrongText = (a: { midi: number; string?: number; fret?: number }, q: Question) =>
-    isRecall ? m.music_strings_find_wrong_recall({ played: playedText(a), interval: ivPhrase(q.label) }) : m.music_strings_find_wrong_note({ played: playedText(a), note: q.label });
+    isRecall ? m.music_strings_find_wrong_recall({ played: playedText(a), interval: ivPhrase(q) }) : m.music_strings_find_wrong_note({ played: playedText(a), note: q.label });
   /** One decimal, in the player's language. */
   const dec1 = (x: number) => formatNumber(x, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -153,7 +156,7 @@
     question = nextQuestion();
     revealing = false;
     askedAt = performance.now();
-    status = isRecall ? m.music_strings_find_question_recall({ n: answers.length + 1, interval: ivPhrase(question.label) }) : m.music_strings_find_question_note({ n: answers.length + 1, note: question.label });
+    status = isRecall ? m.music_strings_find_question_recall({ n: answers.length + 1, interval: ivPhrase(question) }) : m.music_strings_find_question_note({ n: answers.length + 1, note: question.label });
   }
 
   function onNote(e: NoteEvent) {
@@ -296,7 +299,7 @@
 
   const missed = $derived(answers.filter((a) => !a.correct));
   /** Beside Stop on a phone: what to find now. */
-  const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? m.music_strings_find_cue_recall({ interval: ivPhrase(question.label) }) : m.music_strings_find_cue_note({ note: question.label, start: region.start, end: to })) : "");
+  const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? m.music_strings_find_cue_recall({ interval: ivPhrase(question) }) : m.music_strings_find_cue_note({ note: question.label, start: region.start, end: to })) : "");
   /** Laptop and tablet landscape: the neck is the stage's growing region and takes the free height. */
   const wide = new MediaQuery("(min-width: 64rem)");
   const wrongShown = $derived(phase === "running" && revealing && answers.at(-1)?.correct === false);

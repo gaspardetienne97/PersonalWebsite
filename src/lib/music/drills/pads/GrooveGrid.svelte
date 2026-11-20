@@ -7,6 +7,7 @@
   import { CHOP_SLICES, slicePad, sliceVoice } from "@repo/music-core/content/pads-studio";
   import { padLabel } from "./midi-status";
   import { m } from "@repo/i18n/messages.js";
+  import { sectionLabelText } from "@repo/music-core/content/pads-grid";
 
   interface Props {
     targets: GrooveTarget[];
@@ -77,7 +78,7 @@
     <span class="name corner"></span>
     {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
       <p class="bar-label" style:grid-column="span {colsOf(bar)}">
-        {#if sectionLabels.length > 1 || sectionLabels[0] !== "groove"}{m.music_winds_grid_bar_section({ n: bar + 1, section: sectionLabels[Math.min(bar, sectionLabels.length - 1)] })}{:else}{m.music_winds_grid_bar({ n: bar + 1 })}{/if}
+        {#if sectionLabels.length > 1 || sectionLabels[0] !== "groove"}{m.music_winds_grid_bar_section({ n: bar + 1, section: sectionLabelText(sectionLabels[Math.min(bar, sectionLabels.length - 1)]) })}{:else}{m.music_winds_grid_bar({ n: bar + 1 })}{/if}
       </p>
     {/each}
     <span class="name corner"></span>

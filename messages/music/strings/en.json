@@ -1052,5 +1052,12 @@
   "music_strings_what_is_scored_about": "what is scored",
   "music_strings_with_every_note": "With every note",
   "music_strings_wrong_chord": "Wrong chord",
-  "music_strings_wrong_note": "Wrong note"
+  "music_strings_wrong_note": "Wrong note",
+  "music_strings_shape_short_box": "Box {n}",
+  "music_strings_shape_short_caged": "{shape} shape",
+  "music_strings_shape_short_position": "Position {n}",
+  "music_strings_find_iv_minor_third": "a minor third",
+  "music_strings_find_iv_major_third": "a major third",
+  "music_strings_find_iv_perfect_fifth": "a perfect fifth",
+  "music_strings_find_iv_octave": "an octave"
 }

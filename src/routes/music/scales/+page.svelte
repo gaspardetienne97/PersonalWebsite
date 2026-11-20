@@ -13,6 +13,7 @@
     HANDS_TOGETHER_PRESET,
     SCALE_TEMPO,
     isScaleLine,
+    gradeLabel,
     gradeSpeed,
     scaleDrillTargets,
     scaleSetupKey,
@@ -145,7 +146,7 @@
     { value: "plain", label: m.music_strings_scales_preset_plain() },
     ...ABRSM_SPEEDS.map((g) => {
       const sp = gradeSpeed(g.grade, pattern);
-      return { value: g.grade, label: sp ? m.music_strings_scales_preset_grade({ grade: g.grade, bpm: sp[0], per: PER[sp[1]] }) : m.music_strings_scales_preset_no_speed({ grade: g.grade }), group: m.music_strings_scales_preset_group(), disabled: !sp };
+      return { value: g.grade, label: sp ? m.music_strings_scales_preset_grade({ grade: gradeLabel(g.grade), bpm: sp[0], per: PER[sp[1]] }) : m.music_strings_scales_preset_no_speed({ grade: gradeLabel(g.grade) }), group: m.music_strings_scales_preset_group(), disabled: !sp };
     }),
   ]);
 
@@ -271,7 +272,7 @@
     onPiano ? { text: scaleSetup.hands === "both" ? (scaleSetup.apart === "octave" ? m.music_strings_hands_together() : m.music_strings_hands_together_apart({ apart: apartLabel })) : scaleSetup.hands === "left" ? m.music_strings_left_hand() : m.music_strings_right_hand(), focus: "hands" } : { text: m.music_strings_on_inst({ inst }) },
     ...(s.rotate ? [{ text: m.music_strings_scales_round_circle(), focus: "rotate" }] : []),
     ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "per" }] : []),
-    ...(target ? [{ text: m.music_strings_scales_aiming({ grade: s.grade, bpm: target[0], per: PER[target[1]] }), focus: "preset" }] : []),
+    ...(target ? [{ text: m.music_strings_scales_aiming({ grade: gradeLabel(s.grade), bpm: target[0], per: PER[target[1]] }), focus: "preset" }] : []),
   ]);
 
   function stopDemo() {
@@ -474,8 +475,8 @@
           : r.correct
             ? target
               ? atSpeed
-                ? m.music_strings_scales_clean_grade({ grade: s.grade })
-                : m.music_strings_scales_clean_bpm_grade({ bpm: bpm(), grade: s.grade, speed: target[0], per: PER[target[1]] })
+                ? m.music_strings_scales_clean_grade({ grade: gradeLabel(s.grade) })
+                : m.music_strings_scales_clean_bpm_grade({ bpm: bpm(), grade: gradeLabel(s.grade), speed: target[0], per: PER[target[1]] })
               : m.music_strings_scales_clean_bpm({ bpm: bpm(), per: PER[perBeat] })
             : r.pitch < 0.9
               ? m.music_strings_scales_some_right({ clean: r.clean, total: r.total })
@@ -499,7 +500,7 @@
                 : { label: m.music_strings_scales_chord_together(), notMeasured: true },
             ]
           : []),
-        ...(target ? [{ label: m.music_strings_scales_grade_row({ grade: s.grade, speed: target[0], per: PER[target[1]] }), value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? m.music_strings_reached() : m.music_strings_pct_of_it({ pct: Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100) }) }] : []),
+        ...(target ? [{ label: m.music_strings_scales_grade_row({ grade: gradeLabel(s.grade), speed: target[0], per: PER[target[1]] }), value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? m.music_strings_reached() : m.music_strings_pct_of_it({ pct: Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100) }) }] : []),
         ...(scaleSetup.hands === "both"
           ? [
               r.together

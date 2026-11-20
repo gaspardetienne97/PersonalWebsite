@@ -22,7 +22,7 @@
         onclick={() => onchange(i)}
       >
         <ChordDiagram frets={p.frets} fingers={p.fingers} barre={p.barre} label="" numbers={i === at} />
-        <span class="text-sm font-semibold leading-tight">{shortPosition(p.positionLabel)}</span>
+        <span class="text-sm font-semibold leading-tight">{shortPosition(p)}</span>
       </button>
     {/each}
   </div>

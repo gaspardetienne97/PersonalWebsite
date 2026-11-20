@@ -9,6 +9,9 @@
   import Picker from "#lib/music/components/Picker.svelte";
   import { btn } from "#lib/music/components/ui.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { formatList } from "@repo/i18n/format";
+  import { sectionLabelText } from "@repo/music-core/content/pads-grid";
+  import { padStyleLabel } from "@repo/music-core/content/pads-repertoire";
 
   let { song, bpm, onchange, ondelete }: { song: WrittenSong; bpm: number; onchange: (song: WrittenSong) => void; ondelete: () => void } = $props();
 
@@ -19,7 +22,7 @@
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
   };
 
-  const GROOVES = WRITTEN_GROOVES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: m.music_winds_song_level_group({ level: r.level }) }));
+  const GROOVES = WRITTEN_GROOVES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${padStyleLabel(r.style)})`, group: m.music_winds_song_level_group({ level: r.level }) }));
   const SOURCES = CHOP_SOURCES.map((x) => ({ value: x.id, label: x.label }));
   const ENDS = WRITTEN_ENDS.map((x) => ({ value: x.id, label: x.label }));
   const BARS = [1, 2, 4, 8, 12, 16, 24, 32].map((n) => ({ value: String(n), label: m.music_winds_bars_count({ count: n }) }));
@@ -65,26 +68,27 @@
   <ol class="flex flex-col gap-2" aria-label={m.music_winds_song_sections()}>
     {#each song.sections as sec, i (i)}
       {@const span = piece.spans[i]}
-      <li class="flex flex-wrap items-center gap-2 rounded-xl border border-ws-line p-2 text-sm" aria-label={m.music_winds_song_section_aria({ label: span.label, from: span.from + 1, to: span.from + span.bars })}>
-        <span class="w-20 font-semibold capitalize">{span.label}</span>
+      {@const name = sectionLabelText(span.label)}
+      <li class="flex flex-wrap items-center gap-2 rounded-xl border border-ws-line p-2 text-sm" aria-label={m.music_winds_song_section_aria({ label: name, from: span.from + 1, to: span.from + span.bars })}>
+        <span class="w-20 font-semibold capitalize">{name}</span>
         {#if sec.role === "chop"}
-          <Picker class="w-44" label={m.music_winds_song_pick_source({ label: span.label })} value={sec.ref} options={SOURCES} onchange={(v) => set(i, { ref: v })} />
-          <Picker class="w-56" label={m.music_winds_song_pick_order({ label: span.label })} value={sec.edit ?? "order"} options={edits(sec.ref)} onchange={(v) => set(i, { edit: v })} />
+          <Picker class="w-44" label={m.music_winds_song_pick_source({ label: name })} value={sec.ref} options={SOURCES} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-56" label={m.music_winds_song_pick_order({ label: name })} value={sec.edit ?? "order"} options={edits(sec.ref)} onchange={(v) => set(i, { edit: v })} />
         {:else if sec.role === "end"}
-          <Picker class="w-72" label={m.music_winds_song_pick_end({ label: span.label })} value={sec.ref} options={ENDS} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-72" label={m.music_winds_song_pick_end({ label: name })} value={sec.ref} options={ENDS} onchange={(v) => set(i, { ref: v })} />
         {:else}
-          <Picker class="w-64" label={sec.role === "solo" ? m.music_winds_song_pick_loop({ label: span.label }) : m.music_winds_song_pick_groove({ label: span.label })} value={sec.ref} options={GROOVES} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-64" label={sec.role === "solo" ? m.music_winds_song_pick_loop({ label: name }) : m.music_winds_song_pick_groove({ label: name })} value={sec.ref} options={GROOVES} onchange={(v) => set(i, { ref: v })} />
         {/if}
         {#if sec.role !== "end"}
-          <Picker class="w-28" label={m.music_winds_song_pick_bars({ label: span.label })} value={String(sec.bars)} options={BARS} onchange={(v) => set(i, { bars: Number(v) })} />
+          <Picker class="w-28" label={m.music_winds_song_pick_bars({ label: name })} value={String(sec.bars)} options={BARS} onchange={(v) => set(i, { bars: Number(v) })} />
         {:else}
           <span class="text-ws-soft">{m.music_winds_bars_count({ count: span.bars })}</span>
         {/if}
-        <Picker class="w-28" label={m.music_winds_song_pick_level({ label: span.label })} value={sec.dyn} options={DYNS} onchange={(v) => set(i, { dyn: v as Dyn })} />
+        <Picker class="w-28" label={m.music_winds_song_pick_level({ label: name })} value={sec.dyn} options={DYNS} onchange={(v) => set(i, { dyn: v as Dyn })} />
         <span class="ml-auto flex gap-1">
-          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_earlier({ label: span.label })} disabled={i === 0} onclick={() => move(i, -1)}><ArrowUp class="size-4" /></button>
-          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_later({ label: span.label })} disabled={i === song.sections.length - 1} onclick={() => move(i, 1)}><ArrowDown class="size-4" /></button>
-          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_remove({ label: span.label })} disabled={song.sections.length === 1} onclick={() => write(song.sections.filter((_, k) => k !== i))}><Trash class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_earlier({ label: name })} disabled={i === 0} onclick={() => move(i, -1)}><ArrowUp class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_later({ label: name })} disabled={i === song.sections.length - 1} onclick={() => move(i, 1)}><ArrowDown class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_remove({ label: name })} disabled={song.sections.length === 1} onclick={() => write(song.sections.filter((_, k) => k !== i))}><Trash class="size-4" /></button>
         </span>
       </li>
     {/each}
@@ -98,7 +102,7 @@
   </div>
   <p class="text-sm" data-testid="set-check">
     {m.music_winds_song_length({ bars: piece.bars, time: time(check.minutes), bpm })}
-    {check.ok ? m.music_winds_song_set_ok() : m.music_winds_song_set_missing({ missing: check.missing.join(", ") })}
+    {check.ok ? m.music_winds_song_set_ok() : m.music_winds_song_set_missing({ missing: formatList(check.missing) })}
     <span class="text-ws-soft">{m.music_winds_song_help()}</span>
   </p>
 </div>

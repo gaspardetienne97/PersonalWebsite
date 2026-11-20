@@ -99,6 +99,8 @@
   "music_rep_jam_scale_phrygian": "frigio",
   "music_rep_jam_scale_whole_half_diminished": "disminuida tono-semitono",
   "music_rep_jam_scale_whole_tone": "de tonos enteros",
+  "music_rep_jam_song_chorus": "{title} (coro)",
+  "music_rep_jam_song_verse": "{title} (estrofa)",
   "music_rep_padrep_afrobeats_feel": "Bombo en el 1 con empujes en el & del 2 y 3. El aro responde en la “a” del 1 y el & del 2 (el 3-3-2). Palmas en 2 y 4, shaker en semicorcheas. Una versión común: los productores la varían.",
   "music_rep_padrep_afrobeats_fingers": "Mano derecha en las semicorcheas del shaker (hi-hat). Índice izquierdo en el bombo, medio izquierdo en el aro. Las palmas y la conga (tom agudo) donde caigan.",
   "music_rep_padrep_amen_feel": "Cuatro compases: el tercero retrasa la última caja, el cuarto lo reordena todo y cierra con el crash.",

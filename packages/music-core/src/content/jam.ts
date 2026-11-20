@@ -222,7 +222,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
   ]),
   song(
     "country-roads",
-    "Take Me Home, Country Roads (chorus)",
+    m.music_rep_jam_song_chorus({ title: "Take Me Home, Country Roads" }),
     "John Denver",
     "G major",
     82,
@@ -260,7 +260,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
   ]),
   song(
     "let-it-be",
-    "Let It Be (verse)",
+    m.music_rep_jam_song_verse({ title: "Let It Be" }),
     "The Beatles",
     "C major",
     72,

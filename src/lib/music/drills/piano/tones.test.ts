@@ -27,9 +27,9 @@ describe("toneLabel", () => {
 
 describe("scaleTip", () => {
   it("gives each scale its own reason, never Lydian's to Mixolydian", () => {
-    expect(scaleTip("C Lydian")).toBe("Raised 4th: no clash with the 3rd");
-    expect(scaleTip("G Mixolydian")).toBe("Flat 7th: the chord's own 7th");
-    expect(scaleTip("D Dorian")).toContain("6th");
-    expect(scaleTip("C major (Ionian)")).toBeNull();
+    expect(scaleTip("lydian")).toBe("Raised 4th: no clash with the 3rd");
+    expect(scaleTip("mixolydian")).toBe("Flat 7th: the chord's own 7th");
+    expect(scaleTip("dorian")).toContain("6th");
+    expect(scaleTip("major")).toBeNull();
   });
 });

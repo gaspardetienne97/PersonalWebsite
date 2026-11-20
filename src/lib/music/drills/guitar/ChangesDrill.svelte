@@ -466,7 +466,7 @@
     <!-- The microphone sits above the neck, so a silent run is fixed without scrolling. -->
     <div class="mb-3 empty:hidden"><MicPanel disabled={live} offer={phase !== "ready"} hint={m.music_strings_changes_mic_hint()} /></div>
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={live ? shown : from} {tuning} show={mode === "practice" || phase === "results"} {flashes} compact label={neckLabel(instr, live ? names[target] : names[0])} /></div>
-    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[data-hint]]:text-ws-stage-soft">
       {#if phase === "running" && !periodMs && !s.timed}
         <span class="text-sm text-ws-stage-soft">{m.music_strings_changes_pause_hint()}</span>
       {:else}

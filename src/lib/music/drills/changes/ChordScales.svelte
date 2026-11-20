@@ -53,7 +53,7 @@
     keyList.flatMap((k) => chordScaleTargets(changes, cycleTranspose(k))).map((t) => {
       const chord = parseChordSymbol(t.symbol)!;
       const sc = goToScale(t.symbol);
-      return { ...t, chord, hint: sc?.hint?.replace(/\s*\(JT\d+\)/g, "") };
+      return { ...t, chord, scaleId: sc?.scale, hint: sc?.hint?.replace(/\s*\(JT\d+\)/g, "") };
     }),
   );
   const totalBeats = $derived(targets.length * perChord);
@@ -441,7 +441,7 @@
           <p class="font-display text-xl font-semibold sm:text-2xl">{t.symbol}</p>
           {#if mode === "practice" || phase === "results"}
             <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
-            {#if scaleTip(t.scaleLabel) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleLabel)}</p>{/if}
+            {#if scaleTip(t.scaleId) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleId)}</p>{/if}
           {/if}
           {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? m.music_drills_chordscales_n_outside({ count: done.avoid }) : done.chord + done.scale ? m.music_drills_chordscales_all_inside() : m.music_drills_voicings_not_played()}</p>{/if}
         </li>

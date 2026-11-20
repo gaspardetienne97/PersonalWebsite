@@ -53,7 +53,7 @@
   "music_winds_ae_held": "Sostenida",
   "music_winds_ae_held_level_off": "Sostenida, pero solo el {pct} en {level}: apunta al rango sombreado.",
   "music_winds_ae_held_text": "{held} de {total} s",
-  "music_winds_ae_hidden_target": "Evaluación: digitación oculta. Objetivo {note}.",
+  "music_winds_ae_hidden_target": "Prueba: digitación oculta. Objetivo {note}.",
   "music_winds_ae_hint": "{hint}.",
   "music_winds_ae_hold": "Sostener",
   "music_winds_ae_hold_note": "Sostén {note}",
@@ -145,7 +145,7 @@
   "music_winds_aero_clean_trills": "4 o más notas por segundo, 70% parejo, sin notas sueltas",
   "music_winds_aero_clean_vibrato": "en la velocidad y parejo",
   "music_winds_aero_crossing": "Cruce",
-  "music_winds_aero_cue_check": "Evaluación: toca la línea a tiempo",
+  "music_winds_aero_cue_check": "Prueba: toca la línea a tiempo",
   "music_winds_aero_cue_next_one": "Toca en el próximo 1",
   "music_winds_aero_cue_play": "Toca {note}",
   "music_winds_aero_cue_vibrato": "Mantén {note}, pulsa la mordida",
@@ -156,7 +156,7 @@
   "music_winds_aero_drift_late": "en promedio {ms} ms tarde",
   "music_winds_aero_eighths": "corcheas",
   "music_winds_aero_evenness": "Regularidad",
-  "music_winds_aero_fingering_hidden": "Evaluación: digitación oculta.",
+  "music_winds_aero_fingering_hidden": "Prueba: digitación oculta.",
   "music_winds_aero_glitches": "Fallos al cruzar el quiebre",
   "music_winds_aero_glitches_fix": "{count}: mueve los dedos y el pulgar a la vez",
   "music_winds_aero_go_timed": "Toca a tiempo con el clic.",
@@ -205,7 +205,22 @@
   "music_winds_aero_right_sr": ", correcta",
   "music_winds_aero_scale": "Escala",
   "music_winds_aero_seconds": "{s} s",
-  "music_winds_aero_slips": "{right} de {total} correctas. {count} salieron una octava fuera: {slip}.",
+  "music_winds_aero_slips": [
+    {
+      "declarations": [
+        "input right",
+        "input total",
+        "input count",
+        "input slip",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{right} de {total} correctas. {count} salió una octava fuera: {slip}.",
+        "countPlural=other": "{right} de {total} correctas. {count} salieron una octava fuera: {slip}."
+      }
+    }
+  ],
   "music_winds_aero_slurred": "ligado",
   "music_winds_aero_spacing": "Todas las notas correctas, pero el espaciado varió {ms} ms. Mantenlo parejo.",
   "music_winds_aero_step_four": "Cuatro notas por clic",
@@ -580,7 +595,7 @@
   "music_winds_pads_demo": "Demo: el patrón a tempo, con los pads iluminados al sonar. Sin puntaje.",
   "music_winds_pads_eighths": "Corcheas",
   "music_winds_pads_extra": "De más",
-  "music_winds_pads_faded_ready": "Evaluación con guía que se desvanece: las notas y marcas de tiempo se muestran durante {n} vueltas. Solo se califican las vueltas posteriores.",
+  "music_winds_pads_faded_ready": "Prueba con guía que se desvanece: las notas y marcas de tiempo se muestran durante {n} vueltas. Solo se califican las vueltas posteriores.",
   "music_winds_pads_faded_running": "La guía se desvaneció: sigue tocando.",
   "music_winds_pads_fades_after": "Se desvanece después de {n} vueltas",
   "music_winds_pads_feedback": "Retroalimentación",
@@ -612,7 +627,7 @@
   "music_winds_pads_meta_triplets": " en tresillos",
   "music_winds_pads_missed": "Falladas",
   "music_winds_pads_more": "Más",
-  "music_winds_pads_no_grid": "Evaluación: sin cuadrícula.",
+  "music_winds_pads_no_grid": "Prueba: sin cuadrícula.",
   "music_winds_pads_none": "Ninguna",
   "music_winds_pads_notes": "Notas",
   "music_winds_pads_notes_hit": "Notas tocadas",

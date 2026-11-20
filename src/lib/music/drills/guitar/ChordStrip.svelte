@@ -15,7 +15,7 @@
     <li class="flex w-20 shrink-0 flex-col items-center gap-0.5 rounded-xl bg-ws-surface p-1.5 text-ws-ink {current === i ? 'ring-3 ring-instr' : ''}" aria-current={current === i ? "step" : undefined}>
       <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="{names[i]}, {positionText(sh.positionLabel)}" />
       <span class="text-sm font-semibold">{names[i]}</span>
-      {#if repeated(names[i])}<span class="text-[13px] text-ws-soft">{shortPosition(sh.positionLabel)}</span>{/if}
+      {#if repeated(names[i])}<span class="text-[13px] text-ws-soft">{shortPosition(sh)}</span>{/if}
     </li>
   {/each}
 </ol>
