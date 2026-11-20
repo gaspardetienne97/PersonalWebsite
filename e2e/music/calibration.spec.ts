@@ -44,6 +44,27 @@ async function enableMidi(page: Page) {
   }).toPass();
 }
 
+/** The pairs whose offer was skipped, as saved (not as shown). */
+const savedSkips = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const req = indexedDB.open("woodshed");
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const get = req.result
+            .transaction("settings")
+            .objectStore("settings")
+            .get("music.settings");
+          get.onsuccess = () => {
+            req.result.close();
+            resolve(get.result?.value?.calibrationSkipped?.length ?? 0);
+          };
+          get.onerror = () => reject(get.error);
+        };
+      }),
+  );
+
 /** Open the drill and make a first gesture, so audio runs and the output is known. */
 async function openDrill(page: Page) {
   await page.goto(DRILL);
@@ -147,6 +168,8 @@ test.describe("Latency calibration per input and output", () => {
     await expect(offer).toBeVisible();
     await offer.getByRole("button", { name: "Skip", exact: true }).click();
     await expect(offer).toHaveCount(0);
+    // The reload must not race the save: a page torn down mid-write loses it.
+    await expect.poll(() => savedSkips(page)).toBe(1);
     await openDrill(page);
     await page.waitForTimeout(1500);
     await expect(offer).toHaveCount(0);
