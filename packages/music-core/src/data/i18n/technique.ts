@@ -9,6 +9,8 @@ import fretboardPatternsJson from "../fretboard-patterns.json";
 import stringSpiderJson from "../string-spider.json";
 import tuningsJson from "../tunings.json";
 import { localizeFields, localizeWith } from "../localize";
+import { getNoteNaming, showChord, showNote } from "../../theory/note-names";
+import { noteName } from "../../theory/notes";
 
 /** "Open position", "Barre at fret 3", "Fret 5". */
 function positionLabel(english: string): string {
@@ -19,16 +21,16 @@ function positionLabel(english: string): string {
   return fret ? m.music_content_voicing_fret({ fret: fret[1] }) : english;
 }
 
-/** "C major", "F♯ minor (barre)", "E5 (power chord)"; symbols such as "G7" stay. */
+/** "C major", "F♯ minor (barre)", "E5 (power chord)", "G7": roots in the current note names. */
 function chordName(english: string): string {
   const suffix = / \((barre|power chord)\)$/.exec(english);
   const base = suffix ? english.slice(0, suffix.index) : english;
   const mode = /^(\S+) (major|minor)$/.exec(base);
   const name = mode
     ? (mode[2] === "major" ? m.music_content_ear_key_major : m.music_content_ear_key_minor)({
-        note: mode[1],
+        note: showChord(mode[1]),
       })
-    : base;
+    : showChord(base);
   if (!suffix) return name;
   return suffix[1] === "barre"
     ? m.music_content_chord_shape_barre({ name })
@@ -40,7 +42,7 @@ function fretboardLabel(english: string): string {
   const box = /^Minor pentatonic box (\d+)$/.exec(english);
   if (box) return m.music_content_fretboard_pattern_box({ n: box[1] });
   const caged = /^CAGED (\S+) shape$/.exec(english);
-  return caged ? m.music_content_fretboard_pattern_caged({ shape: caged[1] }) : english;
+  return caged ? m.music_content_fretboard_pattern_caged({ shape: showChord(caged[1]) }) : english;
 }
 
 localizeWith(chordShapesJson, "name", chordName);
@@ -59,4 +61,11 @@ localizeFields(
   "music_content_tuning",
   (t) => t.id,
   ["name"],
+  // "Baritone DGBE": the open strings low to high, run together as letters, spaced as syllables.
+  (t) => {
+    const names = t.openStrings
+      .toReversed()
+      .map((midi) => showNote(noteName(midi, "sharp", false)));
+    return { notes: names.join(getNoteNaming() === "letters" ? "" : " ") };
+  },
 );

@@ -7,12 +7,15 @@ import type {
   PreferredSurface,
 } from "../types";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
 
 type ParsedMidiLike = NoteEvent | ControlEvent;
 
 export const PAD_PRESETS = {
   "chromatic-36": {
-    label: m.music_content_devices_chromatic_36(),
+    get label() {
+      return m.music_content_devices_chromatic_36(noteInputs());
+    },
     notes: Array.from({ length: 16 }, (_, i) => 36 + i),
   },
   "akai-classic": {

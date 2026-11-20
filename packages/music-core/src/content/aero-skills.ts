@@ -8,6 +8,8 @@ import type { ControlEvent, NoteEvent } from "../types";
 import { FLAT_NAMES, pc } from "../theory/notes";
 import { AEROPHONE_RANGE, fingeringFor } from "./winds-pads";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs, showNoteList } from "../theory/note-inputs";
+import { showNote } from "../theory/note-names";
 
 // ---------------------------------------------------------------------------
 // Scales and arpeggios, any key, inside the fingering chart.
@@ -218,7 +220,8 @@ export function tonguingScore(want: readonly ("T" | "S")[], got: readonly ("T" |
 
 /**
  * A crossing: `detail` stays English because lessons read it (the pinky pairs);
- * `detailText` is the same note in the reader's language, for display.
+ * `detailText` is the same note in the reader's language, for display. Both
+ * shown texts are built when read, so their note names follow the setting.
  */
 const crossing = (
   id: string,
@@ -226,78 +229,48 @@ const crossing = (
   to: string,
   notes: readonly [number, number],
   detail = "",
-  detailText = "",
-) => ({ id, label: m.music_rep_aero_pair_label({ from, to }), detail, detailText, notes });
+  detailText: () => string = () => "",
+) => ({
+  id,
+  get label() {
+    return m.music_rep_aero_pair_label({ from: showNote(from), to: showNote(to) });
+  },
+  detail,
+  get detailText() {
+    return detailText();
+  },
+  notes,
+});
 
 export const REGISTER_PAIRS = [
-  crossing(
-    "cs5-d5",
-    "C#5",
-    "D5",
-    [73, 74],
-    "all open to the octave key",
+  crossing("cs5-d5", "C#5", "D5", [73, 74], "all open to the octave key", () =>
     m.music_rep_aero_pair_all_open(),
   ),
   crossing("c5-d5", "C5", "D5", [72, 74]),
   crossing("a4-d5", "A4", "D5", [69, 74]),
-  crossing(
-    "d4-d5",
-    "D4",
-    "D5",
-    [62, 74],
-    "the octave key alone",
+  crossing("d4-d5", "D4", "D5", [62, 74], "the octave key alone", () =>
     m.music_rep_aero_pair_octave_alone(),
   ),
-  crossing(
-    "g4-g5",
-    "G4",
-    "G5",
-    [67, 79],
-    "the octave key alone",
+  crossing("g4-g5", "G4", "G5", [67, 79], "the octave key alone", () =>
     m.music_rep_aero_pair_octave_alone(),
   ),
   crossing("b4-e5", "B4", "E5", [71, 76]),
   // The pinky table: the left little finger sliding between its keys.
-  crossing(
-    "cs4-b3",
-    "C#4",
-    "B3",
-    [61, 59],
-    "left pinky, C# to B",
-    m.music_rep_aero_pair_left_pinky_cs_b(),
+  crossing("cs4-b3", "C#4", "B3", [61, 59], "left pinky, C# to B", () =>
+    m.music_rep_aero_pair_left_pinky_cs_b(noteInputs()),
   ),
-  crossing(
-    "b3-bb3",
-    "B3",
-    "Bb3",
-    [59, 58],
-    "left pinky, B to Bb",
-    m.music_rep_aero_pair_left_pinky_b_bb(),
+  crossing("b3-bb3", "B3", "Bb3", [59, 58], "left pinky, B to Bb", () =>
+    m.music_rep_aero_pair_left_pinky_b_bb(noteInputs()),
   ),
-  crossing(
-    "eb4-c4",
-    "Eb4",
-    "C4",
-    [63, 60],
-    "right pinky, Eb to C",
-    m.music_rep_aero_pair_right_pinky_eb_c(),
+  crossing("eb4-c4", "Eb4", "C4", [63, 60], "right pinky, Eb to C", () =>
+    m.music_rep_aero_pair_right_pinky_eb_c(noteInputs()),
   ),
   // Into and out of the palm keys.
-  crossing(
-    "cs6-d6",
-    "C#6",
-    "D6",
-    [85, 86],
-    "open to the first palm key",
+  crossing("cs6-d6", "C#6", "D6", [85, 86], "open to the first palm key", () =>
     m.music_rep_aero_pair_first_palm(),
   ),
   crossing("b5-d6", "B5", "D6", [83, 86]),
-  crossing(
-    "d6-f6",
-    "D6",
-    "F6",
-    [86, 89],
-    "palm keys stacking up",
+  crossing("d6-f6", "D6", "F6", [86, 89], "palm keys stacking up", () =>
     m.music_rep_aero_pair_palm_stacking(),
   ),
 ] as const;
@@ -314,12 +287,54 @@ export const glitches = (notes: readonly NoteEvent[], wanted: readonly number[])
 // Trills: two fingerings back and forth as fast and even as you can.
 
 export const TRILL_PAIRS = [
-  { id: "g4-a4", label: "G4 A4", detail: m.music_rep_aero_trill_ring(), notes: [67, 69] },
-  { id: "a4-b4", label: "A4 B4", detail: m.music_rep_aero_trill_middle(), notes: [69, 71] },
-  { id: "f4-g4", label: "F4 G4", detail: m.music_rep_aero_trill_index_right(), notes: [65, 67] },
-  { id: "b4-c5", label: "B4 C5", detail: m.music_rep_aero_trill_left_hand(), notes: [71, 72] },
-  { id: "c5-d5", label: "C5 D5", detail: m.music_rep_aero_trill_break(), notes: [72, 74] },
-  { id: "e4-fs4", label: "E4 F#4", detail: "", notes: [64, 66] },
+  {
+    id: "g4-a4",
+    get label() {
+      return showNoteList("G4 A4");
+    },
+    detail: m.music_rep_aero_trill_ring(),
+    notes: [67, 69],
+  },
+  {
+    id: "a4-b4",
+    get label() {
+      return showNoteList("A4 B4");
+    },
+    detail: m.music_rep_aero_trill_middle(),
+    notes: [69, 71],
+  },
+  {
+    id: "f4-g4",
+    get label() {
+      return showNoteList("F4 G4");
+    },
+    detail: m.music_rep_aero_trill_index_right(),
+    notes: [65, 67],
+  },
+  {
+    id: "b4-c5",
+    get label() {
+      return showNoteList("B4 C5");
+    },
+    detail: m.music_rep_aero_trill_left_hand(),
+    notes: [71, 72],
+  },
+  {
+    id: "c5-d5",
+    get label() {
+      return showNoteList("C5 D5");
+    },
+    detail: m.music_rep_aero_trill_break(),
+    notes: [72, 74],
+  },
+  {
+    id: "e4-fs4",
+    get label() {
+      return showNoteList("E4 F#4");
+    },
+    detail: "",
+    notes: [64, 66],
+  },
 ] as const;
 export const TRILL_SECONDS = 4;
 

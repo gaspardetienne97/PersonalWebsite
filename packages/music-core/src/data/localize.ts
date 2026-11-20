@@ -3,6 +3,7 @@
 // id supplies the text in the current locale, falling back to the JSON's English.
 
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
 
 type MessageFn = (inputs?: Record<string, unknown>) => string;
 const messages = m as unknown as Record<string, MessageFn | undefined>;
@@ -14,22 +15,31 @@ export const keyPart = (id: string | number) =>
     .replace(/^_+|_+$/g, "")
     .toLowerCase();
 
-/** The message named `key`, or `fallback` when there is none. */
+/** Whether a message named `key` exists. */
+export const hasMsg = (key: string) => !!messages[key];
+
+/**
+ * The message named `key`, or `fallback` when there is none. Notes written as
+ * placeholders in it ({C}, {key_Bb}) are filled in the current note naming,
+ * unless `inputs` already fills them (as `noteInputs` does, for a given key).
+ */
 export function msg(key: string, fallback: string, inputs?: Record<string, unknown>): string {
   const fn = messages[key];
-  return fn ? fn(inputs ?? {}) : fallback;
+  return fn ? fn(noteInputs(inputs)) : fallback;
 }
 
 /**
  * Turns `fields` of each item into getters that read the message
  * `${prefix}_${keyPart(id)}_${field}`, falling back to the item's English.
  * The items keep their shape, so code that reads them needs no change.
+ * `inputs` fills a message's placeholders other than notes.
  */
 export function localizeFields<T extends object>(
   items: readonly T[],
   prefix: string,
   idOf: (item: T) => string | number,
   fields: readonly (keyof T & string)[],
+  inputs?: (item: T) => Record<string, unknown>,
 ): void {
   for (const item of items) {
     const id = keyPart(idOf(item));
@@ -39,7 +49,7 @@ export function localizeFields<T extends object>(
       const key = `${prefix}_${id}_${keyPart(field)}`;
       if (!messages[key]) continue;
       Object.defineProperty(item, field, {
-        get: () => msg(key, english),
+        get: () => msg(key, english, inputs?.(item)),
         enumerable: true,
         configurable: true,
       });

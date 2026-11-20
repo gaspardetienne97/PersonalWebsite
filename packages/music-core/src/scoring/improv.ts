@@ -16,6 +16,8 @@ import { barBeats, type Progression } from "../content/jam";
 import type { HeadNote } from "../content/tunes";
 import { scaleNameText } from "../content/jam";
 import { m } from "@repo/i18n/messages.js";
+import { showChord, showKeyName, showNote } from "../theory/note-names";
+import { noteInputs } from "../theory/note-inputs";
 
 /** One played note, in beats from the top of the form (chorus 1, beat 1). */
 export interface ImprovNote {
@@ -155,7 +157,9 @@ export const IMPROV_GAMES: Game[] = [
   {
     id: "three-notes",
     label: m.music_rep_score_improv_game_three_notes(),
-    about: m.music_rep_score_improv_game_three_notes_about(),
+    get about() {
+      return m.music_rep_score_improv_game_three_notes_about(noteInputs());
+    },
     set: { key: [0, 3, 7], name: "minor triad" },
     aims: [
       { metric: "set", aim: 0.9 },
@@ -174,7 +178,9 @@ export const IMPROV_GAMES: Game[] = [
   {
     id: "pentatonic-1",
     label: m.music_rep_score_improv_game_pentatonic_1(),
-    about: m.music_rep_score_improv_game_pentatonic_1_about(),
+    get about() {
+      return m.music_rep_score_improv_game_pentatonic_1_about(noteInputs());
+    },
     set: { key: MINOR_PENT, name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
@@ -182,7 +188,9 @@ export const IMPROV_GAMES: Game[] = [
   {
     id: "pentatonic-2",
     label: m.music_rep_score_improv_game_pentatonic_2(),
-    about: m.music_rep_score_improv_game_pentatonic_2_about(),
+    get about() {
+      return m.music_rep_score_improv_game_pentatonic_2_about(noteInputs());
+    },
     set: { key: shift(MINOR_PENT, 2), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
@@ -190,7 +198,9 @@ export const IMPROV_GAMES: Game[] = [
   {
     id: "pentatonic-5",
     label: m.music_rep_score_improv_game_pentatonic_5(),
-    about: m.music_rep_score_improv_game_pentatonic_5_about(),
+    get about() {
+      return m.music_rep_score_improv_game_pentatonic_5_about(noteInputs());
+    },
     set: { key: shift(MINOR_PENT, 7), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
@@ -415,20 +425,21 @@ export function jamHint(
   const notes = scoredSet(game, keyPc, chord.symbol).map((p) => FLAT_NAMES[p]);
   if (!set || !notes.length)
     return m.music_rep_score_improv_hint_scale({
-      tonic: FLAT_NAMES[pc(chord.scale.rootPc)],
+      tonic: showKeyName(FLAT_NAMES[pc(chord.scale.rootPc)]),
       scale: scaleNameText(chord.scale.name),
     });
   // Note names, comma-separated in every language.
-  const list = notes.join(", ");
+  const list = notes.map((n) => showNote(n)).join(", ");
   if ("key" in set)
     return m.music_rep_score_improv_hint_set({
-      tonic: notes[0],
+      tonic: showKeyName(notes[0]),
       set: scaleNameText(set.name),
       notes: list,
     });
+  const symbol = showChord(chord.symbol);
   return set.chord === "guide"
-    ? m.music_rep_score_improv_hint_guide({ chord: chord.symbol, notes: list })
-    : m.music_rep_score_improv_hint_chord({ chord: chord.symbol, notes: list });
+    ? m.music_rep_score_improv_hint_guide({ chord: symbol, notes: list })
+    : m.music_rep_score_improv_hint_chord({ chord: symbol, notes: list });
 }
 
 function timeline(p: Progression): { slots: Slot[]; beats: number } {
@@ -915,8 +926,8 @@ function headline(game: Game, choruses: ChorusGrade[], passed: boolean): string 
 export const rangeText = (r: ChorusGrade["range"]) =>
   r
     ? m.music_rep_score_improv_range({
-        low: `${FLAT_NAMES[pc(r.low)]}${Math.floor(r.low / 12) - 1}`,
-        high: `${FLAT_NAMES[pc(r.high)]}${Math.floor(r.high / 12) - 1}`,
+        low: showNote(`${FLAT_NAMES[pc(r.low)]}${Math.floor(r.low / 12) - 1}`),
+        high: showNote(`${FLAT_NAMES[pc(r.high)]}${Math.floor(r.high / 12) - 1}`),
         count: r.high - r.low,
       })
     : m.music_rep_score_improv_no_notes();

@@ -2,6 +2,7 @@
 
 import { FLAT_NAMES, SHARP_NAMES, pc, pcOf } from "./notes";
 import { m } from "@repo/i18n/messages.js";
+import { showKeyName } from "./note-names";
 
 export interface KeySignature {
   name: string;
@@ -43,9 +44,10 @@ export const KEY_SIGNATURES: KeySignature[] = [
   key("Bb minor", -5),
 ];
 export const keyByName = (name: string) => KEY_SIGNATURES.find((k) => k.name === name);
-/** A key's name as shown ("Bb major" in the current language); the English name stays the key's id. */
+/** A key's name as shown ("Bb major" in the current language and note names); the English name stays the key's id. */
 export function keyNameLabel(name: string): string {
-  const [note, mode] = name.split(" ");
+  const [tonic, mode] = name.split(" ");
+  const note = showKeyName(tonic);
   if (mode === "major") return m.music_content_ear_key_major({ note });
   if (mode === "minor") return m.music_content_ear_key_minor({ note });
   return name;

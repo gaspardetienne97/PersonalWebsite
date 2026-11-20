@@ -30,6 +30,7 @@ import {
 } from "../theory/fretboard";
 import { pick, type Rand } from "./random";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
 
 // ---------------------------------------------------------------------------
 // Scales
@@ -684,7 +685,9 @@ export const FINGERPICK_PATTERNS: FingerpickPattern[] = [
   },
   {
     id: "uke-linear",
-    label: m.music_content_technique_pick_low_high(),
+    get label() {
+      return m.music_content_technique_pick_low_high(noteInputs());
+    },
     instrument: "ukulele",
     strings: ["3", "2", "4", "1", "3", "2", "4", "1"],
     fingers: ["p", "i", "p", "m", "p", "i", "p", "m"],
@@ -764,7 +767,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "C", "D", "F", "Am", "E"],
     bpm: 58,
     perBeat: 3,
-    note: m.music_content_technique_song_house_note(),
+    get note() {
+      return m.music_content_technique_song_house_note(noteInputs());
+    },
     source:
       "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/learn-to-play-house-of-the-rising-sun/",
   },
@@ -777,7 +782,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am", "G", "Dm", "Am"],
     bpm: 94,
     perBeat: 2,
-    note: m.music_content_technique_song_dust_note(),
+    get note() {
+      return m.music_content_technique_song_dust_note(noteInputs());
+    },
     source: "https://nationalguitaracademy.com/?p=14276",
   },
   {
@@ -789,7 +796,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "G", "Am7", "G"],
     bpm: 80,
     perBeat: 2,
-    note: m.music_content_technique_song_landslide_note(),
+    get note() {
+      return m.music_content_technique_song_landslide_note(noteInputs());
+    },
     source: "https://andyguitar.co.uk/videos/fleetwood-mac-landslide",
   },
   {
@@ -801,7 +810,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["G", "Em", "G", "Em", "C", "D"],
     bpm: 60,
     perBeat: 3,
-    note: m.music_content_technique_song_hallelujah_note(),
+    get note() {
+      return m.music_content_technique_song_hallelujah_note(noteInputs());
+    },
     source: "https://www.guitarlessons.com/guitar-lessons/guitar-lessons-for-beginners/hallelujah/",
   },
   {
@@ -813,7 +824,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["D", "G"],
     bpm: 63,
     perBeat: 3,
-    note: m.music_content_technique_song_everybody_hurts_note(),
+    get note() {
+      return m.music_content_technique_song_everybody_hurts_note(noteInputs());
+    },
     source: "https://laurenbateman.com/?p=5038",
   },
   {
@@ -825,7 +838,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Am", "G", "G7"],
     bpm: 93,
     perBeat: 2,
-    note: m.music_content_technique_song_boxer_note(),
+    get note() {
+      return m.music_content_technique_song_boxer_note(noteInputs());
+    },
     source: "https://pg.zachmanson.com/tab/simon-garfunkel/the-boxer-chords-1744664",
   },
   {
@@ -837,7 +852,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 129,
     perBeat: 2,
-    note: m.music_content_technique_song_scarborough_note(),
+    get note() {
+      return m.music_content_technique_song_scarborough_note(noteInputs());
+    },
     source: "https://jgmusiclessons.com/scarborough-fair-guitar-tabs-chords-and-arrangement",
   },
   {
@@ -849,7 +866,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["A", "E", "F#m", "A", "D", "E7"],
     bpm: 80,
     perBeat: 2,
-    note: m.music_content_technique_song_tears_note(),
+    get note() {
+      return m.music_content_technique_song_tears_note(noteInputs());
+    },
     source: "https://www.licklibrary.com/learn/lessons/eric-clapton/tears-in-heaven",
   },
   {
@@ -886,7 +905,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["C", "Em", "Am", "F", "C", "G"],
     bpm: 66,
     perBeat: 3,
-    note: m.music_content_technique_song_uke_cant_help_note(),
+    get note() {
+      return m.music_content_technique_song_uke_cant_help_note(noteInputs());
+    },
     source: "https://ukulelego.com/lessons/cant-help-falling-in-love-by-twenty-one-pilots/",
   },
   {
@@ -910,7 +931,9 @@ export const FINGERPICK_SONGS: FingerpickSong[] = [
     chords: ["Am", "G", "Am", "C", "Am", "D"],
     bpm: 90,
     perBeat: 2,
-    note: m.music_content_technique_song_uke_scarborough_note(),
+    get note() {
+      return m.music_content_technique_song_uke_scarborough_note(noteInputs());
+    },
     source: "https://ukutabs.com/pl/s/simon-and-garfunkel/scarborough-fair/",
   },
 ];

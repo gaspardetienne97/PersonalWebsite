@@ -4,6 +4,8 @@ import { clamp, FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs, showNoteList } from "../theory/note-inputs";
+import { showKeyName } from "../theory/note-names";
 
 export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal" | "songs" | "standards";
 export const JAM_GROUPS: { id: JamGroup; label: string }[] = [
@@ -120,7 +122,10 @@ const BASE_PROGRESSIONS: Progression[] = [
   },
   {
     id: "guitar-g-d-em-c",
-    name: "G-D-Em-C",
+    // Chords in its name follow the note names when shown.
+    get name() {
+      return showNoteList("G-D-Em-C");
+    },
     key: "G major",
     keyPc: 7,
     group: "guitar-uke",
@@ -143,7 +148,7 @@ const song = (
   key: string,
   bpm: number,
   chords: [string, number][],
-  note?: string,
+  note?: () => string,
 ): Progression => ({
   id: `song-${id}`,
   name,
@@ -153,7 +158,15 @@ const song = (
   difficulty: "beginner",
   bpm,
   chords: chords.map(([symbol, bars]) => c(symbol, bars, key.replace(/ minor$/, " natural minor"))),
-  song: { artist, note },
+  // Read when shown, so its note names follow the setting made after import.
+  song: note
+    ? {
+        artist,
+        get note() {
+          return note();
+        },
+      }
+    : { artist },
 });
 
 // ponytail: chord loops only (no strum pattern or song form); the paths' shelves carry the scores.
@@ -179,7 +192,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["D", 1],
       ["G", 2],
     ],
-    m.music_rep_jam_note_capo({ key: "A", fret: 2 }),
+    () => m.music_rep_jam_note_capo({ key: showKeyName("A"), fret: 2 }),
   ),
   song(
     "horse-with-no-name",
@@ -193,7 +206,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Em", 1],
       ["D", 1],
     ],
-    m.music_rep_jam_note_horse_with_no_name(),
+    () => m.music_rep_jam_note_horse_with_no_name(noteInputs()),
   ),
   song("brown-eyed-girl", "Brown Eyed Girl", "Van Morrison", "G major", 150, [
     ["G", 1],
@@ -213,7 +226,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Am", 1],
       ["F", 1],
     ],
-    m.music_rep_jam_note_capo({ key: "B", fret: 4 }),
+    () => m.music_rep_jam_note_capo({ key: showKeyName("B"), fret: 4 }),
   ),
   song("riptide", "Riptide", "Vance Joy", "C major", 102, [
     ["Am", 1],
@@ -236,7 +249,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 1],
     ],
-    m.music_rep_jam_note_capo({ key: "A", fret: 2 }),
+    () => m.music_rep_jam_note_capo({ key: showKeyName("A"), fret: 2 }),
   ),
   song(
     "zombie",
@@ -250,7 +263,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["G", 1],
       ["D", 1],
     ],
-    m.music_rep_jam_note_zombie(),
+    () => m.music_rep_jam_note_zombie(noteInputs()),
   ),
   song("with-or-without-you", "With or Without You", "U2", "D major", 110, [
     ["D", 1],
@@ -274,7 +287,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["F", 1],
       ["C", 1],
     ],
-    m.music_rep_jam_note_let_it_be(),
+    () => m.music_rep_jam_note_let_it_be(),
   ),
   song(
     "sweet-home-alabama",
@@ -287,7 +300,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 2],
     ],
-    m.music_rep_jam_note_sweet_home_alabama(),
+    () => m.music_rep_jam_note_sweet_home_alabama(noteInputs()),
   ),
 ];
 
@@ -355,10 +368,11 @@ export function scaleNameText(name: string): string {
   return /^[A-Z]/.test(name) ? text.charAt(0).toUpperCase() + text.slice(1) : text;
 }
 
-/** A progression's key ("C major", "D dorian", "C") for display; `key` itself stays English for the code that reads it. */
+/** A progression's key ("C major", "D dorian", "C") for display, its tonic in the current note names; `key` itself stays English for the code that reads it. */
 export function keyText(key: string): string {
   const [tonic, ...mode] = key.split(" ");
-  return mode.length ? `${tonic} ${scaleNameText(mode.join(" "))}` : tonic;
+  const name = showKeyName(tonic);
+  return mode.length ? `${name} ${scaleNameText(mode.join(" "))}` : name;
 }
 
 /** Chord tone / scale tone / avoid for all 12 pitch classes over a chord. */

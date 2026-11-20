@@ -11,6 +11,8 @@ import {
 import { ARTICULATION_TARGET } from "../scoring/aerophone";
 import { clamp, octaveOf, pc, SHARP_NAMES } from "../theory/notes";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs, showNoteList } from "../theory/note-inputs";
+import { showKeyName, showNote } from "../theory/note-names";
 
 // ---------------------------------------------------------------------------
 // Aerophone (sax fingering mode, written pitch, Bb3 58 .. F#6 90; G5 and up
@@ -105,59 +107,107 @@ export function fingeringSlip(target: number, played: number) {
  * sharps), each played up and back down. Written pitch.
  */
 export const FINGERING_LESSONS = [
-  { id: "g-a-b", label: "G A B", notes: [67, 69, 71] },
-  { id: "e-f-g", label: "E F G", notes: [64, 65, 67] },
-  { id: "c-d-e", label: "C D E", notes: [60, 62, 64] },
+  {
+    id: "g-a-b",
+    get label() {
+      return showNoteList("G A B");
+    },
+    notes: [67, 69, 71],
+  },
+  {
+    id: "e-f-g",
+    get label() {
+      return showNoteList("E F G");
+    },
+    notes: [64, 65, 67],
+  },
+  {
+    id: "c-d-e",
+    get label() {
+      return showNoteList("C D E");
+    },
+    notes: [60, 62, 64],
+  },
   {
     id: "c-to-g",
-    label: m.music_rep_winds_lesson_span({ from: "C", to: "G" }),
+    get label() {
+      return m.music_rep_winds_lesson_span({ from: showNote("C"), to: showNote("G") });
+    },
     notes: [60, 62, 64, 65, 67],
   },
   {
     id: "g-to-c",
-    label: m.music_rep_winds_lesson_span({ from: "G", to: "C" }),
+    get label() {
+      return m.music_rep_winds_lesson_span({ from: showNote("G"), to: showNote("C") });
+    },
     notes: [67, 69, 71, 72],
   },
   {
     id: "c-major",
-    label: m.music_rep_winds_lesson_major({ key: "C" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("C") });
+    },
     notes: [60, 62, 64, 65, 67, 69, 71, 72],
   },
-  { id: "octave", label: m.music_rep_winds_lesson_octave(), notes: [67, 69, 71, 72, 74] },
+  {
+    id: "octave",
+    get label() {
+      return m.music_rep_winds_lesson_octave(noteInputs());
+    },
+    notes: [67, 69, 71, 72, 74],
+  },
   {
     id: "f-major",
-    label: m.music_rep_winds_lesson_major({ key: "F" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("F") });
+    },
     notes: [65, 67, 69, 70, 72, 74, 76, 77],
   },
   {
     id: "g-major",
-    label: m.music_rep_winds_lesson_major({ key: "G" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("G") });
+    },
     notes: [67, 69, 71, 72, 74, 76, 78, 79],
   },
   {
     id: "bb-major",
-    label: m.music_rep_winds_lesson_major({ key: "Bb" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("Bb") });
+    },
     notes: [58, 60, 62, 63, 65, 67, 69, 70],
   },
   {
     id: "d-major",
-    label: m.music_rep_winds_lesson_major({ key: "D" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("D") });
+    },
     notes: [62, 64, 66, 67, 69, 71, 73, 74],
   },
   {
     id: "eb-major",
-    label: m.music_rep_winds_lesson_major({ key: "Eb" }),
+    get label() {
+      return m.music_rep_winds_lesson_major({ key: showKeyName("Eb") });
+    },
     notes: [63, 65, 67, 68, 70, 72, 74, 75],
   },
   // Beyond Roland's order: the path's chosen sets.
   {
     id: "fs-bb",
-    label: m.music_rep_winds_lesson_fs_bb(),
+    get label() {
+      return m.music_rep_winds_lesson_fs_bb(noteInputs());
+    },
     notes: [66, 70],
     // 20 cards, each F# or Bb between a neighbour it is easily confused with.
     line: [67, 66, 67, 69, 70, 69, 66, 64, 66, 70, 71, 70, 66, 65, 66, 70, 72, 70, 66, 67],
   },
-  { id: "palm-keys", label: m.music_rep_winds_lesson_palm(), notes: [85, 86, 87, 88, 89] },
+  {
+    id: "palm-keys",
+    get label() {
+      return m.music_rep_winds_lesson_palm(noteInputs());
+    },
+    notes: [85, 86, 87, 88, 89],
+  },
 ] as const satisfies readonly {
   id: string;
   label: string;
