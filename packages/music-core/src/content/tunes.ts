@@ -58,7 +58,18 @@ function sectionChords(chart: string): JamChord[] {
   return out;
 }
 
+/** Descriptive tune names (not titles), shown in the current language. */
+const NAMES: Record<string, () => string> = {
+  "jazz-blues": m.music_content_tunes_jazz_blues_name,
+  "minor-blues": m.music_content_tunes_minor_blues_name,
+  "rhythm-changes": m.music_content_tunes_rhythm_changes_name,
+};
+const ENGLISH_NAMES = new Map<string, string>();
+/** A tune's name in English, for ids built from it (`name` follows the locale). */
+export const englishTuneName = (id: string) => ENGLISH_NAMES.get(id);
+
 function tune(spec: TuneSpec): Progression {
+  ENGLISH_NAMES.set(`tune-${spec.id}`, spec.name);
   const keyPc = parseChordSymbol(spec.key.split(" ")[0])!.rootPc;
   const order = spec.form.split(/\s+/);
   const chords: JamChord[] = [];
@@ -70,7 +81,7 @@ function tune(spec: TuneSpec): Progression {
   }
   return {
     id: `tune-${spec.id}`,
-    name: spec.name,
+    name: NAMES[spec.id]?.() ?? spec.name,
     key: spec.key,
     keyPc,
     group: "standards",
@@ -89,7 +100,7 @@ function tune(spec: TuneSpec): Progression {
 export const TUNES: Progression[] = [
   tune({
     id: "jazz-blues",
-    name: m.music_content_tunes_jazz_blues_name(),
+    name: "Jazz blues in F",
     composer: m.music_content_tunes_jazz_blues_composer(),
     key: "F major",
     bpm: 120,
@@ -113,7 +124,7 @@ export const TUNES: Progression[] = [
   }),
   tune({
     id: "minor-blues",
-    name: m.music_content_tunes_minor_blues_name(),
+    name: "Minor blues in C",
     composer: m.music_content_tunes_minor_blues_composer(),
     key: "C minor",
     bpm: 140,
@@ -183,7 +194,7 @@ export const TUNES: Progression[] = [
   }),
   tune({
     id: "rhythm-changes",
-    name: m.music_content_tunes_rhythm_changes_name(),
+    name: "Rhythm changes in Bb",
     composer: m.music_content_tunes_rhythm_changes_composer(),
     key: "Bb major",
     bpm: 160,
