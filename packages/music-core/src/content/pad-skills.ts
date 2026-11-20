@@ -7,6 +7,7 @@
 
 import type { DrumVoiceId, GrooveDef } from "../data";
 import { gridGroove, type Lanes } from "./pads-grid";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Fills: three bars of a rock groove, a fill, crash and kick on the next one.
@@ -35,12 +36,12 @@ export interface PadFill {
 export const PAD_FILLS: PadFill[] = [
   {
     id: "snare-eighths",
-    label: "Snare eighths on 3 and 4",
+    label: m.music_rep_padskills_fill_snare_eighths(),
     bar: { kick: "X...............", snare: "....X...x.x.x.x.", hats: "x.x.x.x........." },
   },
   {
     id: "down-the-toms",
-    label: "Sixteenths down the toms on 3 and 4",
+    label: m.music_rep_padskills_fill_down_toms(),
     bar: {
       kick: "X...............",
       snare: "....X...xxxx....",
@@ -51,7 +52,7 @@ export const PAD_FILLS: PadFill[] = [
   },
   {
     id: "whole-bar",
-    label: "A bar of sixteenths around the kit",
+    label: m.music_rep_padskills_fill_whole_bar(),
     bar: {
       kick: "X...............",
       snare: "xxxx............",
@@ -62,13 +63,13 @@ export const PAD_FILLS: PadFill[] = [
   },
   {
     id: "triplet-snare",
-    label: "Triplets on the snare, 3 and 4 (shuffle)",
+    label: m.music_rep_padskills_fill_triplet_snare(),
     groove: SHUFFLE,
     bar: { kick: "X...........", snare: "...X..xxxxxx", hats: "x.xx.x......" },
   },
   {
     id: "triplet-toms",
-    label: "Triplets down the toms (shuffle)",
+    label: m.music_rep_padskills_fill_triplet_toms(),
     groove: SHUFFLE,
     bar: {
       kick: "X...........",
@@ -142,18 +143,18 @@ export const PARADIDDLE: Stroke[] = ["R", "L", "R", "R", "L", "R", "L", "L"];
 export const ORCHESTRATIONS = [
   {
     id: "hats-snare",
-    label: "Hats and snare",
-    detail: "Right on the hats, left on the snare, kick under the accents",
+    label: m.music_rep_padskills_orch_hats_snare(),
+    detail: m.music_rep_padskills_orch_hats_snare_detail(),
   },
   {
     id: "ride-snare",
-    label: "Ride and snare",
-    detail: "Right on the ride, left on the snare, kick under the accents",
+    label: m.music_rep_padskills_orch_ride_snare(),
+    detail: m.music_rep_padskills_orch_ride_snare_detail(),
   },
   {
     id: "toms-lead",
-    label: "Toms lead",
-    detail: "Each group's first stroke on a tom, the rest hats and snare",
+    label: m.music_rep_padskills_orch_toms_lead(),
+    detail: m.music_rep_padskills_orch_toms_lead_detail(),
   },
 ] as const;
 
@@ -179,7 +180,7 @@ export function orchestrationGroove(id: string): GrooveDef {
   }
   return {
     value: `orch-${o.id}`,
-    label: `Paradiddle: ${o.label.toLowerCase()}`,
+    label: m.music_rep_padskills_orch_groove_label({ name: o.label.toLowerCase() }),
     bars: 2,
     sectionLabels: ["paradiddles", "paradiddles"],
     targets,
@@ -192,20 +193,24 @@ export function orchestrationGroove(id: string): GrooveDef {
 // Syncopation, Tim Kroker's split hands).
 
 export const READING_LINES = [
-  { id: "quarters", label: "Snare on the beats", line: "x...x...x...x..." },
-  { id: "backbeat-push", label: "Backbeat with pushes", line: "....x..x....x.x." },
-  { id: "offbeats", label: "Off-beat eighths", line: "..x...x...x...x." },
-  { id: "sixteenths", label: "Sixteenth syncopations", line: "...x..x..x...x.x" },
+  { id: "quarters", label: m.music_rep_padskills_line_quarters(), line: "x...x...x...x..." },
+  {
+    id: "backbeat-push",
+    label: m.music_rep_padskills_line_backbeat_push(),
+    line: "....x..x....x.x.",
+  },
+  { id: "offbeats", label: m.music_rep_padskills_line_offbeats(), line: "..x...x...x...x." },
+  { id: "sixteenths", label: m.music_rep_padskills_line_sixteenths(), line: "...x..x..x...x.x" },
   // Generated each run: four new bars to read (Reed's Syncopation, one bar at a time).
-  { id: "read", label: "New lines to read", line: "" },
+  { id: "read", label: m.music_rep_padskills_line_read(), line: "" },
   // The clave is the ostinato here (on the rim) while the kick moves under it.
-  { id: "clave", label: "Son clave held, the kick moves", line: "" },
+  { id: "clave", label: m.music_rep_padskills_line_clave(), line: "" },
 ] as const;
 
 /** Who reads the line under the hats: the left hand on the snare, or the kick. */
 export const INTERPRETATIONS = [
-  { id: "snare", label: "Snare reads, over the hats" },
-  { id: "kick", label: "Kick reads, under the hats" },
+  { id: "snare", label: m.music_rep_padskills_interp_snare() },
+  { id: "kick", label: m.music_rep_padskills_interp_kick() },
 ] as const;
 
 /** One beat of a Syncopation-style line on sixteenths: quarters, eighths, dotted figures, rests. */
@@ -272,12 +277,12 @@ export function ostinatoGroove(
   };
   const g = gridGroove(`ostinato-${r.id}`, r.label, lanes, {
     sections: [
-      "alone",
-      "alone",
-      "with the line",
-      "with the line",
-      "with the line",
-      "with the line",
+      m.music_rep_padskills_section_alone(),
+      m.music_rep_padskills_section_alone(),
+      m.music_rep_padskills_section_with_line(),
+      m.music_rep_padskills_section_with_line(),
+      m.music_rep_padskills_section_with_line(),
+      m.music_rep_padskills_section_with_line(),
     ],
   });
   return { ...g, ostinato };
@@ -310,7 +315,7 @@ export const OSTINATO = { maxDrop: 0.1 } as const;
 export const ECHO_LEVELS = [
   {
     id: "kick-snare",
-    label: "Kick and snare",
+    label: m.music_rep_padskills_echo_kick_snare(),
     calls: [
       { kick: "X.......X.......", snare: "....X.......X..." },
       { kick: "X.....X.X.......", snare: "....X.......X..." },
@@ -320,7 +325,7 @@ export const ECHO_LEVELS = [
   },
   {
     id: "with-hats",
-    label: "With hats",
+    label: m.music_rep_padskills_echo_with_hats(),
     calls: [
       { kick: "X.......X.......", snare: "....X.......X...", hats: "x.x.x.x.x.x.x.x." },
       { kick: "X.....X...X.....", snare: "....X.......X...", hats: "x.x.x.x.x.x.x.x." },
@@ -330,7 +335,7 @@ export const ECHO_LEVELS = [
   },
   {
     id: "sixteenths",
-    label: "Sixteenths and ghosts",
+    label: m.music_rep_padskills_echo_sixteenths(),
     calls: [
       { kick: "X.........X.....", snare: "....X..g.g..X...", hats: "xxxxxxxxxxxxxxxx" },
       { kick: "X..X..X...X.....", snare: "....X.......X...", hats: "x.x.x.x.x.x.x.x." },
@@ -356,10 +361,12 @@ export function echoGroove(levelId: string): GrooveDef & { calls: GrooveDef["tar
   });
   return {
     value: `echo-${level.id}`,
-    label: `Play it back: ${level.label}`,
+    label: m.music_rep_padskills_echo_groove_label({ level: level.label }),
     bars: 8,
     sectionLabels: Array.from({ length: 8 }, (_, b) =>
-      b % 2 ? `answer ${b / 2 + 0.5}` : `listen ${b / 2 + 1}`,
+      b % 2
+        ? m.music_rep_padskills_section_answer({ n: b / 2 + 0.5 })
+        : m.music_rep_padskills_section_listen({ n: b / 2 + 1 }),
     ),
     targets,
     calls,
@@ -394,9 +401,9 @@ export function velocityRange(
 }
 
 export const DYNAMICS_EXERCISES = [
-  { id: "ladder", label: "Four levels: four hits each, soft to loud", notes: 16, perBeat: 2 },
-  { id: "crescendo", label: "Crescendo: a bar of sixteenths, soft to loud", notes: 16, perBeat: 4 },
-  { id: "even", label: "Even: sixteen hits at the same level", notes: 16, perBeat: 2 },
+  { id: "ladder", label: m.music_rep_padskills_dyn_ladder(), notes: 16, perBeat: 2 },
+  { id: "crescendo", label: m.music_rep_padskills_dyn_crescendo(), notes: 16, perBeat: 4 },
+  { id: "even", label: m.music_rep_padskills_dyn_even(), notes: 16, perBeat: 2 },
 ] as const;
 export type DynamicsId = (typeof DYNAMICS_EXERCISES)[number]["id"];
 export const DYNAMICS = {

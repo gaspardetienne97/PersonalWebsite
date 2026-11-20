@@ -3,16 +3,17 @@
 import { clamp, FLAT_NAMES, pc } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
+import { m } from "@repo/i18n/messages.js";
 
 export type JamGroup = "pop" | "guitar-uke" | "jazz" | "blues" | "modal" | "songs" | "standards";
 export const JAM_GROUPS: { id: JamGroup; label: string }[] = [
-  { id: "pop", label: "Pop" },
-  { id: "guitar-uke", label: "Guitar/Uke" },
-  { id: "jazz", label: "Jazz" },
-  { id: "blues", label: "Blues" },
-  { id: "modal", label: "Modal" },
-  { id: "songs", label: "Songs" },
-  { id: "standards", label: "Standards" },
+  { id: "pop", label: m.music_rep_jam_group_pop() },
+  { id: "guitar-uke", label: m.music_rep_jam_group_guitar_uke() },
+  { id: "jazz", label: m.music_rep_jam_group_jazz() },
+  { id: "blues", label: m.music_rep_jam_group_blues() },
+  { id: "modal", label: m.music_rep_jam_group_modal() },
+  { id: "songs", label: m.music_rep_jam_group_songs() },
+  { id: "standards", label: m.music_rep_jam_group_standards() },
 ];
 export const JAM_TEMPO = { min: 40, max: 220 };
 export const JAM_TRANSPOSE = { min: -12, max: 12 };
@@ -68,7 +69,7 @@ const BASE_PROGRESSIONS: Progression[] = [
   },
   {
     id: "minor-ii-v-i",
-    name: "Minor ii-V-i",
+    name: m.music_rep_jam_name_minor_ii_v_i(),
     key: "C minor",
     keyPc: 0,
     group: "jazz",
@@ -78,7 +79,7 @@ const BASE_PROGRESSIONS: Progression[] = [
   },
   {
     id: "blues",
-    name: "12-bar blues",
+    name: m.music_rep_jam_name_blues(),
     key: "C",
     keyPc: 0,
     group: "blues",
@@ -94,7 +95,7 @@ const BASE_PROGRESSIONS: Progression[] = [
   },
   {
     id: "modal",
-    name: "Modal vamp",
+    name: m.music_rep_jam_name_modal_vamp(),
     key: "D dorian",
     keyPc: 2,
     group: "modal",
@@ -178,7 +179,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["D", 1],
       ["G", 2],
     ],
-    "The recording is in A: capo 2.",
+    m.music_rep_jam_note_capo({ key: "A", fret: 2 }),
   ),
   song(
     "horse-with-no-name",
@@ -192,7 +193,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Em", 1],
       ["D", 1],
     ],
-    "The recording's second chord is D6/9 over F#. Plain D here.",
+    m.music_rep_jam_note_horse_with_no_name(),
   ),
   song("brown-eyed-girl", "Brown Eyed Girl", "Van Morrison", "G major", 150, [
     ["G", 1],
@@ -212,7 +213,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["Am", 1],
       ["F", 1],
     ],
-    "The recording is in B: capo 4.",
+    m.music_rep_jam_note_capo({ key: "B", fret: 4 }),
   ),
   song("riptide", "Riptide", "Vance Joy", "C major", 102, [
     ["Am", 1],
@@ -235,7 +236,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 1],
     ],
-    "The recording is in A: capo 2.",
+    m.music_rep_jam_note_capo({ key: "A", fret: 2 }),
   ),
   song(
     "zombie",
@@ -249,7 +250,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["G", 1],
       ["D", 1],
     ],
-    "The recording has D over F#. Plain D here.",
+    m.music_rep_jam_note_zombie(),
   ),
   song("with-or-without-you", "With or Without You", "U2", "D major", 110, [
     ["D", 1],
@@ -273,7 +274,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["F", 1],
       ["C", 1],
     ],
-    "The recording changes chord every two beats. One a bar here.",
+    m.music_rep_jam_note_let_it_be(),
   ),
   song(
     "sweet-home-alabama",
@@ -286,7 +287,7 @@ export const SONG_PROGRESSIONS: Progression[] = [
       ["C", 1],
       ["G", 2],
     ],
-    "The recording plays C and G in one bar, with Cadd9. Plain chords here.",
+    m.music_rep_jam_note_sweet_home_alabama(),
   ),
 ];
 
@@ -308,6 +309,56 @@ export function transposeProgression(p: Progression, semitones: number): Progres
       scale: { ...ch.scale, rootPc: pc(ch.scale.rootPc + t) },
     })),
   };
+}
+
+/** Scale names as Jam and the chord-scale table spell them, keyed as scaleSemitones reads them. */
+const SCALE_NAMES: Record<string, () => string> = {
+  major: () => m.music_rep_jam_scale_major(),
+  ionian: () => m.music_rep_jam_scale_ionian(),
+  minor: () => m.music_rep_jam_scale_minor(),
+  "natural-minor": () => m.music_rep_jam_scale_natural_minor(),
+  "harmonic-minor": () => m.music_rep_jam_scale_harmonic_minor(),
+  "melodic-minor": () => m.music_rep_jam_scale_melodic_minor(),
+  dorian: () => m.music_rep_jam_scale_dorian(),
+  phrygian: () => m.music_rep_jam_scale_phrygian(),
+  lydian: () => m.music_rep_jam_scale_lydian(),
+  mixolydian: () => m.music_rep_jam_scale_mixolydian(),
+  aeolian: () => m.music_rep_jam_scale_aeolian(),
+  locrian: () => m.music_rep_jam_scale_locrian(),
+  "locrian-#2": () => m.music_rep_jam_scale_locrian_sharp2(),
+  altered: () => m.music_rep_jam_scale_altered(),
+  "lydian-dominant": () => m.music_rep_jam_scale_lydian_dominant(),
+  blues: () => m.music_rep_jam_scale_blues(),
+  "major-blues": () => m.music_rep_jam_scale_major_blues(),
+  "minor-blues": () => m.music_rep_jam_scale_minor_blues(),
+  "blues-scale": () => m.music_rep_jam_scale_blues_scale(),
+  "major-pentatonic": () => m.music_rep_jam_scale_major_pentatonic(),
+  "minor-pentatonic": () => m.music_rep_jam_scale_minor_pentatonic(),
+  "minor-triad": () => m.music_rep_jam_scale_minor_triad(),
+  "whole-tone": () => m.music_rep_jam_scale_whole_tone(),
+  diminished: () => m.music_rep_jam_scale_diminished(),
+  "half-whole-diminished": () => m.music_rep_jam_scale_half_whole_diminished(),
+  "whole-half-diminished": () => m.music_rep_jam_scale_whole_half_diminished(),
+  bebop: () => m.music_rep_jam_scale_bebop(),
+  "bebop-dominant": () => m.music_rep_jam_scale_bebop_dominant(),
+  "dominant-bebop": () => m.music_rep_jam_scale_bebop_dominant(),
+  "bebop-major": () => m.music_rep_jam_scale_bebop_major(),
+};
+
+/**
+ * A scale's name ("dorian", "Melodic minor", "minor triad") in the current language, for display
+ * only: a capital stays a capital, and a name it doesn't know comes back as given.
+ */
+export function scaleNameText(name: string): string {
+  const text = SCALE_NAMES[name.trim().toLowerCase().replace(/\s+/g, "-")]?.();
+  if (!text) return name;
+  return /^[A-Z]/.test(name) ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+/** A progression's key ("C major", "D dorian", "C") for display; `key` itself stays English for the code that reads it. */
+export function keyText(key: string): string {
+  const [tonic, ...mode] = key.split(" ");
+  return mode.length ? `${tonic} ${scaleNameText(mode.join(" "))}` : tonic;
 }
 
 /** Chord tone / scale tone / avoid for all 12 pitch classes over a chord. */

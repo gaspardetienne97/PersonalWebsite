@@ -8,6 +8,7 @@
 // or copied audio.
 
 import type { DrumVoiceId, GrooveDef } from "../data";
+import { m } from "@repo/i18n/messages.js";
 
 export type Lanes = Partial<Record<DrumVoiceId, string>>;
 
@@ -68,6 +69,31 @@ export function gridGroove(
     ...(opts.meter ? { meter: opts.meter } : {}),
     targets,
   };
+}
+
+/** Section names that read differently in another language; the rest (groove, fill, drop...) stay as written. */
+const SECTION_TEXT: Record<string, () => string> = {
+  intro: m.music_rep_grid_section_intro,
+  build: m.music_rep_grid_section_build,
+  outro: m.music_rep_grid_section_outro,
+  verse: m.music_rep_grid_section_verse,
+  chorus: m.music_rep_grid_section_chorus,
+  end: m.music_rep_grid_section_end,
+  "1/16 and 1/32": m.music_rep_grid_section_two_rates,
+};
+
+/**
+ * A section label to show. Section labels stay English in the data: they key
+ * the per-section grading and pages compare them ("groove"), so translate them
+ * only where they are displayed. "verse 2" and "1/16 roll" keep their numbers.
+ */
+export function sectionLabelText(label: string): string {
+  const roll = /^(\S+) roll$/.exec(label);
+  if (roll) return m.music_rep_grid_section_roll({ rate: roll[1] });
+  const numbered = /^(.+) (\d+)$/.exec(label);
+  if (numbered && SECTION_TEXT[numbered[1]])
+    return m.music_rep_grid_section_numbered({ name: SECTION_TEXT[numbered[1]](), n: numbered[2] });
+  return SECTION_TEXT[label]?.() ?? label;
 }
 
 /** The meter a groove is written in: 4/4, 5/4, 7/8 or 12/8. */

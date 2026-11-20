@@ -3,6 +3,8 @@
 // arrays; a row built from too little evidence reads Not measured with its
 // reason, never a full bar.
 
+import { m } from "@repo/i18n/messages.js";
+
 /** One line of a run's breakdown. */
 export interface ResultRow {
   label: string;
@@ -27,7 +29,7 @@ export interface RunTiming {
 }
 
 /** Why a gated row is not measured. */
-export const TOO_FEW = "too few notes landed to judge";
+export const TOO_FEW: string = m.music_rep_score_too_few();
 
 /**
  * Where each target landed: `errorsMs` is one entry per target, in ms (positive
@@ -55,7 +57,7 @@ export const enough = (landed: number, total: number): boolean =>
   landed > 0 && landed >= Math.min(total, 4) && landed * 2 >= total;
 
 const fromPart = (landed: number, total: number) =>
-  landed < total ? `, from ${landed} of ${total}` : "";
+  landed < total ? m.music_rep_score_from_part({ landed, total }) : "";
 
 /**
  * The timing row from the landed notes' errors (ms, either sign) out of `total`
@@ -69,7 +71,7 @@ export function timingRow(
   errorsMs: readonly number[],
   total: number,
   windowMs: number,
-  label = "Timing",
+  label: string = m.music_rep_score_timing(),
   onTimeMs?: number,
 ): ResultRow {
   const landed = errorsMs.length;
@@ -80,7 +82,14 @@ export function timingRow(
   return {
     label,
     value: Math.max(0, Math.min(1, value)),
-    text: `${Math.round(mean)} ms off on average${fromPart(landed, total)}${onTimeMs !== undefined ? ` (on time is within ${Math.round(onTimeMs)} ms)` : ""}`,
+    text:
+      onTimeMs !== undefined
+        ? m.music_rep_score_timing_text_window({
+            ms: Math.round(mean),
+            from: fromPart(landed, total),
+            window: Math.round(onTimeMs),
+          })
+        : m.music_rep_score_timing_text({ ms: Math.round(mean), from: fromPart(landed, total) }),
   };
 }
 
@@ -89,9 +98,16 @@ export function evennessRow(
   score: number,
   landed: number,
   total: number,
-  label = "Evenness",
+  label: string = m.music_rep_score_evenness(),
 ): ResultRow {
   if (!enough(landed, total)) return { label, notMeasured: true, text: TOO_FEW };
   const v = Math.max(0, Math.min(1, score));
-  return { label, value: v, text: `${Math.round(v * 100)}%${fromPart(landed, total)}` };
+  return {
+    label,
+    value: v,
+    text: m.music_rep_score_evenness_text({
+      pct: Math.round(v * 100),
+      from: fromPart(landed, total),
+    }),
+  };
 }

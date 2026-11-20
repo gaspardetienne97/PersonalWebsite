@@ -10,6 +10,7 @@ import {
 } from "../data";
 import { ARTICULATION_TARGET } from "../scoring/aerophone";
 import { clamp, octaveOf, pc, SHARP_NAMES } from "../theory/notes";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Aerophone (sax fingering mode, written pitch, Bb3 58 .. F#6 90; G5 and up
@@ -69,7 +70,7 @@ export const AEROPHONE_RANGE = {
 };
 export const aerophoneKeyLabel = (id: string) =>
   id === "octave"
-    ? (AEROPHONE_KEYS.find((k) => k.id === "oct+1")?.label ?? "octave key")
+    ? (AEROPHONE_KEYS.find((k) => k.id === "oct+1")?.label ?? m.music_rep_winds_key_octave())
     : (AEROPHONE_KEYS.find((k) => k.id === id)?.label ?? id);
 
 /**
@@ -87,10 +88,15 @@ export function fingeringSlip(target: number, played: number) {
   if (p.octave && !t.octave) down.push("octave");
   if (t.octave && !p.octave) up.push("octave");
   const say = (ids: string[]) => ids.map(aerophoneKeyLabel).join(", ");
-  const text = [down.length ? `lift ${say(down)}` : "", up.length ? `press ${say(up)}` : ""]
-    .filter(Boolean)
-    .join(" and ");
-  return { down, up, text: text.charAt(0).toUpperCase() + text.slice(1) };
+  const text =
+    down.length && up.length
+      ? m.music_rep_winds_slip_both({ down: say(down), up: say(up) })
+      : down.length
+        ? m.music_rep_winds_slip_lift({ keys: say(down) })
+        : up.length
+          ? m.music_rep_winds_slip_press({ keys: say(up) })
+          : "";
+  return { down, up, text };
 }
 
 /**
@@ -102,24 +108,56 @@ export const FINGERING_LESSONS = [
   { id: "g-a-b", label: "G A B", notes: [67, 69, 71] },
   { id: "e-f-g", label: "E F G", notes: [64, 65, 67] },
   { id: "c-d-e", label: "C D E", notes: [60, 62, 64] },
-  { id: "c-to-g", label: "C to G", notes: [60, 62, 64, 65, 67] },
-  { id: "g-to-c", label: "G to C", notes: [67, 69, 71, 72] },
-  { id: "c-major", label: "C major", notes: [60, 62, 64, 65, 67, 69, 71, 72] },
-  { id: "octave", label: "The octave key: G to D", notes: [67, 69, 71, 72, 74] },
-  { id: "f-major", label: "F major", notes: [65, 67, 69, 70, 72, 74, 76, 77] },
-  { id: "g-major", label: "G major", notes: [67, 69, 71, 72, 74, 76, 78, 79] },
-  { id: "bb-major", label: "Bb major", notes: [58, 60, 62, 63, 65, 67, 69, 70] },
-  { id: "d-major", label: "D major", notes: [62, 64, 66, 67, 69, 71, 73, 74] },
-  { id: "eb-major", label: "Eb major", notes: [63, 65, 67, 68, 70, 72, 74, 75] },
+  {
+    id: "c-to-g",
+    label: m.music_rep_winds_lesson_span({ from: "C", to: "G" }),
+    notes: [60, 62, 64, 65, 67],
+  },
+  {
+    id: "g-to-c",
+    label: m.music_rep_winds_lesson_span({ from: "G", to: "C" }),
+    notes: [67, 69, 71, 72],
+  },
+  {
+    id: "c-major",
+    label: m.music_rep_winds_lesson_major({ key: "C" }),
+    notes: [60, 62, 64, 65, 67, 69, 71, 72],
+  },
+  { id: "octave", label: m.music_rep_winds_lesson_octave(), notes: [67, 69, 71, 72, 74] },
+  {
+    id: "f-major",
+    label: m.music_rep_winds_lesson_major({ key: "F" }),
+    notes: [65, 67, 69, 70, 72, 74, 76, 77],
+  },
+  {
+    id: "g-major",
+    label: m.music_rep_winds_lesson_major({ key: "G" }),
+    notes: [67, 69, 71, 72, 74, 76, 78, 79],
+  },
+  {
+    id: "bb-major",
+    label: m.music_rep_winds_lesson_major({ key: "Bb" }),
+    notes: [58, 60, 62, 63, 65, 67, 69, 70],
+  },
+  {
+    id: "d-major",
+    label: m.music_rep_winds_lesson_major({ key: "D" }),
+    notes: [62, 64, 66, 67, 69, 71, 73, 74],
+  },
+  {
+    id: "eb-major",
+    label: m.music_rep_winds_lesson_major({ key: "Eb" }),
+    notes: [63, 65, 67, 68, 70, 72, 74, 75],
+  },
   // Beyond Roland's order: the path's chosen sets.
   {
     id: "fs-bb",
-    label: "F# and Bb among neighbours",
+    label: m.music_rep_winds_lesson_fs_bb(),
     notes: [66, 70],
     // 20 cards, each F# or Bb between a neighbour it is easily confused with.
     line: [67, 66, 67, 69, 70, 69, 66, 64, 66, 70, 71, 70, 66, 65, 66, 70, 72, 70, 66, 67],
   },
-  { id: "palm-keys", label: "The palm keys: C#6 to F6", notes: [85, 86, 87, 88, 89] },
+  { id: "palm-keys", label: m.music_rep_winds_lesson_palm(), notes: [85, 86, 87, 88, 89] },
 ] as const satisfies readonly {
   id: string;
   label: string;
@@ -150,30 +188,35 @@ export type AerophoneMode =
   | "long-scale"
   | "calibrate";
 export const AEROPHONE_MODES = [
-  { id: "fingering", label: "Fingering" },
-  { id: "long-tone", label: "Long tone", seconds: [3, 5, 8] },
-  { id: "swell", label: "Swell", seconds: [4, 6, 8] },
-  { id: "articulation", label: "Articulation", bpm: [70, 90, 110], count: 8 },
-  { id: "interval-landing", label: "Interval landing" },
-  { id: "scales", label: "Scales and arpeggios" },
-  { id: "tonguing", label: "Tonguing patterns" },
-  { id: "register", label: "Register crossings" },
-  { id: "trills", label: "Trills" },
-  { id: "vibrato", label: "Bite vibrato" },
-  { id: "swing", label: "Swing articulation" },
-  { id: "long-scale", label: "Long-tone scale" },
-  { id: "calibrate", label: "Setup check" },
+  { id: "fingering", label: m.music_rep_winds_mode_fingering() },
+  { id: "long-tone", label: m.music_rep_winds_mode_long_tone(), seconds: [3, 5, 8] },
+  { id: "swell", label: m.music_rep_winds_mode_swell(), seconds: [4, 6, 8] },
+  {
+    id: "articulation",
+    label: m.music_rep_winds_mode_articulation(),
+    bpm: [70, 90, 110],
+    count: 8,
+  },
+  { id: "interval-landing", label: m.music_rep_winds_mode_interval_landing() },
+  { id: "scales", label: m.music_rep_winds_mode_scales() },
+  { id: "tonguing", label: m.music_rep_winds_mode_tonguing() },
+  { id: "register", label: m.music_rep_winds_mode_register() },
+  { id: "trills", label: m.music_rep_winds_mode_trills() },
+  { id: "vibrato", label: m.music_rep_winds_mode_vibrato() },
+  { id: "swing", label: m.music_rep_winds_mode_swing() },
+  { id: "long-scale", label: m.music_rep_winds_mode_long_scale() },
+  { id: "calibrate", label: m.music_rep_winds_mode_calibrate() },
 ] as const;
 /** Target sounding fraction of each beat: the grader's own table. */
 export { ARTICULATION_TARGET };
 /** How long a landing is held, in ms. */
 export const LANDING_HOLD_MS = 3000;
 export const LANDING_INTERVALS = [
-  { semitones: 5, label: "Perfect fourth" },
-  { semitones: 7, label: "Perfect fifth" },
-  { semitones: 12, label: "Octave" },
-  { semitones: 4, label: "Major third" },
-  { semitones: 3, label: "Minor third" },
+  { semitones: 5, label: m.music_rep_winds_interval_fourth() },
+  { semitones: 7, label: m.music_rep_winds_interval_fifth() },
+  { semitones: 12, label: m.music_rep_winds_interval_octave() },
+  { semitones: 4, label: m.music_rep_winds_interval_major_third() },
+  { semitones: 3, label: m.music_rep_winds_interval_minor_third() },
 ] as const;
 
 const AERO_SKILLS: Record<AerophoneMode, string[]> = {
@@ -244,42 +287,42 @@ export const RUDIMENTS: RudimentDef[] = [
   ...MPC_RUDIMENTS.patterns,
   {
     id: "finger-roll",
-    label: "Two-finger roll",
+    label: m.music_rep_winds_rud_finger_roll(),
     unit: ["right", "left"],
     subdivision: 4,
     onePad: true,
   },
   {
     id: "roll-32",
-    label: "Thirty-second roll (trap)",
+    label: m.music_rep_winds_rud_roll_32(),
     unit: ["right", "left"],
     subdivision: 8,
     onePad: true,
   },
   {
     id: "roll-16t",
-    label: "Triplet roll, 1/16T (trap)",
+    label: m.music_rep_winds_rud_roll_16t(),
     unit: ["right", "left"],
     subdivision: 6,
     onePad: true,
   },
   {
     id: "pyramid",
-    label: "One-pad pyramid (1 2 3 4 3 2)",
+    label: m.music_rep_winds_rud_pyramid(),
     unit: ["right", "left"],
     onePad: true,
     perBeat: [1, 2, 3, 4, 3, 2],
   },
   {
     id: "accents-ghosts",
-    label: "Accents and ghosts",
+    label: m.music_rep_winds_rud_accents_ghosts(),
     unit: ["right", "left", "right", "left"],
     subdivision: 4,
     accents: [0],
   },
   {
     id: "six-stroke",
-    label: "Six-stroke roll",
+    label: m.music_rep_winds_rud_six_stroke(),
     unit: ["right", "left", "left", "right", "right", "left"],
     subdivision: 3,
     accents: [0, 5],
@@ -293,7 +336,7 @@ export const RUDIMENTS: RudimentDef[] = [
   },
   {
     id: "double-paradiddle",
-    label: "Double paradiddle",
+    label: m.music_rep_winds_rud_double_paradiddle(),
     unit: [
       "right",
       "left",
@@ -314,13 +357,13 @@ export const RUDIMENTS: RudimentDef[] = [
   // Counting in 5 and 7: alternating singles, the accents marking the groups.
   {
     id: "fives",
-    label: "Singles in 5, accented 3 + 2",
+    label: m.music_rep_winds_rud_fives(),
     unit: ["right", "left", "right", "left", "right", "left", "right", "left", "right", "left"],
     accents: [0, 3, 5, 8],
   },
   {
     id: "sevens",
-    label: "Singles in 7, accented 2 + 2 + 3",
+    label: m.music_rep_winds_rud_sevens(),
     unit: [
       "right",
       "left",
@@ -374,11 +417,11 @@ RUDIMENTS.push(...STICK_CONTROL);
 export const RUDIMENT_TEMPOS = [60, 80, 100, 120];
 /** Names for every grid a rudiment can be on (the rolls go past sixteenths). */
 export const SUBDIVISION_NAMES: Record<number, string> = {
-  2: "eighths",
-  3: "triplets",
-  4: "sixteenths",
-  6: "sixteenth triplets",
-  8: "thirty-seconds",
+  2: m.music_rep_winds_sub_eighths(),
+  3: m.music_rep_winds_sub_triplets(),
+  4: m.music_rep_winds_sub_sixteenths(),
+  6: m.music_rep_winds_sub_sixteenth_triplets(),
+  8: m.music_rep_winds_sub_thirty_seconds(),
 };
 /** The grid a rudiment is timed on: its own, a pyramid's closest spacing, else the chosen one. */
 export const rudimentPerBeat = (p: RudimentDef, chosen: 2 | 3 | 4) =>
@@ -493,15 +536,15 @@ export const GROOVES = MPC_GROOVES.catalog;
 /** The table's six voices, and the ones the repertoire adds on their General MIDI notes in bank A. */
 export const GROOVE_VOICES = [
   ...MPC_GROOVES.voices,
-  { id: "rim", name: "Rim", midi: 37 },
-  { id: "pedalhat", name: "Pedal hat", midi: 44 },
-  { id: "tom-low", name: "Low tom", midi: 41 },
-  { id: "tom-mid", name: "Mid tom", midi: 45 },
-  { id: "tom-high", name: "High tom", midi: 48 },
+  { id: "rim", name: m.music_rep_winds_voice_rim(), midi: 37 },
+  { id: "pedalhat", name: m.music_rep_winds_voice_pedalhat(), midi: 44 },
+  { id: "tom-low", name: m.music_rep_winds_voice_tom_low(), midi: 41 },
+  { id: "tom-mid", name: m.music_rep_winds_voice_tom_mid(), midi: 45 },
+  { id: "tom-high", name: m.music_rep_winds_voice_tom_high(), midi: 48 },
   { id: "crash", name: "Crash", midi: 49 },
   { id: "ride", name: "Ride", midi: 51 },
   // GM's cowbell (56) is off bank A: the app's kit puts it on A12.
-  { id: "cowbell", name: "Cowbell", midi: 47 },
+  { id: "cowbell", name: m.music_rep_winds_voice_cowbell(), midi: 47 },
 ] as { id: DrumVoiceId; name: string; midi: number }[];
 const kitNotes = GROOVE_VOICES.map((v) => v.midi);
 /** Accepted pad range, widened for the 808 below bank A. */

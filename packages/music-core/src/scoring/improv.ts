@@ -14,6 +14,8 @@ import { parseChordSymbol } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 import { barBeats, type Progression } from "../content/jam";
 import type { HeadNote } from "../content/tunes";
+import { scaleNameText } from "../content/jam";
+import { m } from "@repo/i18n/messages.js";
 
 /** One played note, in beats from the top of the form (chorus 1, beat 1). */
 export interface ImprovNote {
@@ -52,23 +54,23 @@ export type MetricId =
   | "fills";
 
 export const METRIC_LABEL: Record<MetricId, string> = {
-  strong: "Chord tones on beats 1 and 3",
-  landings: "A 3rd or 7th on each change",
-  thirds: "The 3rd on each change",
-  time: "Notes on the grid",
-  rests: "Two-beat rests",
-  set: "Notes from the set",
-  motif: "Bars with the motif's rhythm",
-  downbeats: "A chord tone on each bar's beat 1",
-  approach: "Beat 1 chord tones approached by a half step",
-  offbeat: "Phrases starting off the beat",
-  windows: "Bars kept (playing in yours, silent in the band's)",
-  displaced: "The motif, a beat later each time",
-  slips: "Side-slips",
-  resolved: "Slips resolved to a chord tone on the beat",
-  quotes: "A sections opened with a fragment of the head",
-  melody: "The head's notes played",
-  fills: "Rests in the head filled with 2 to 4 notes",
+  strong: m.music_rep_score_improv_metric_strong(),
+  landings: m.music_rep_score_improv_metric_landings(),
+  thirds: m.music_rep_score_improv_metric_thirds(),
+  time: m.music_rep_score_improv_metric_time(),
+  rests: m.music_rep_score_improv_metric_rests(),
+  set: m.music_rep_score_improv_metric_set(),
+  motif: m.music_rep_score_improv_metric_motif(),
+  downbeats: m.music_rep_score_improv_metric_downbeats(),
+  approach: m.music_rep_score_improv_metric_approach(),
+  offbeat: m.music_rep_score_improv_metric_offbeat(),
+  windows: m.music_rep_score_improv_metric_windows(),
+  displaced: m.music_rep_score_improv_metric_displaced(),
+  slips: m.music_rep_score_improv_metric_slips(),
+  resolved: m.music_rep_score_improv_metric_resolved(),
+  quotes: m.music_rep_score_improv_metric_quotes(),
+  melody: m.music_rep_score_improv_metric_melody(),
+  fills: m.music_rep_score_improv_metric_fills(),
 };
 
 /** Measures that count things (rests, slips) rather than give a share. */
@@ -105,9 +107,8 @@ const shift = (set: number[], by: number) => set.map((s) => (s + by) % 12);
 export const IMPROV_GAMES: Game[] = [
   {
     id: "free",
-    label: "Over the changes",
-    about:
-      "Solo freely. Scored on chord tones on beats 1 and 3, a 3rd or 7th on each change, time on the grid and a rest every four bars.",
+    label: m.music_rep_score_improv_game_free(),
+    about: m.music_rep_score_improv_game_free_about(),
     aims: [
       { metric: "strong", aim: 0.75 },
       { metric: "landings", aim: 0.6 },
@@ -118,9 +119,8 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "changes",
-    label: "Make the changes",
-    about:
-      "Chord tones on 75% of beats 1 and 3, and a 3rd or 7th within a beat of 70% of the changes.",
+    label: m.music_rep_score_improv_game_changes(),
+    about: m.music_rep_score_improv_game_changes_about(),
     aims: [
       { metric: "strong", aim: 0.75 },
       { metric: "landings", aim: 0.7 },
@@ -129,17 +129,15 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "chord-tones",
-    label: "Chord tones on 1 and 3",
-    about:
-      "Lines through the changes with a chord tone on every beat 1 and 3. The score is the share that are.",
+    label: m.music_rep_score_improv_game_chord_tones(),
+    about: m.music_rep_score_improv_game_chord_tones_about(),
     aims: [{ metric: "strong", aim: 1 }],
     combine: "min",
   },
   {
     id: "guide-tones",
-    label: "Guide tones only",
-    about:
-      "Play only 3rds and 7ths, one or two a bar, and land one within a beat of 80% of the changes.",
+    label: m.music_rep_score_improv_game_guide_tones(),
+    about: m.music_rep_score_improv_game_guide_tones_about(),
     set: { chord: "guide" },
     aims: [
       { metric: "set", aim: 0.9 },
@@ -149,17 +147,15 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "thirds",
-    label: "Land on the 3rd",
-    about:
-      "Land on the 3rd of each new chord, within a beat of the change. The score is the share of changes landed.",
+    label: m.music_rep_score_improv_game_thirds(),
+    about: m.music_rep_score_improv_game_thirds_about(),
     aims: [{ metric: "thirds", aim: 1 }],
     combine: "min",
   },
   {
     id: "three-notes",
-    label: "Three notes",
-    about:
-      "Only the key's 1, b3 and 5 (F, Ab, C in F), 90% of your notes, with at least six two-beat rests a chorus.",
+    label: m.music_rep_score_improv_game_three_notes(),
+    about: m.music_rep_score_improv_game_three_notes_about(),
     set: { key: [0, 3, 7], name: "minor triad" },
     aims: [
       { metric: "set", aim: 0.9 },
@@ -169,42 +165,40 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "blues-scale",
-    label: "Only the blues scale",
-    about:
-      "Only the key's blues scale (1, b3, 4, b5, 5, b7). The score is the share of notes in it.",
+    label: m.music_rep_score_improv_game_blues_scale(),
+    about: m.music_rep_score_improv_game_blues_scale_about(),
     set: { key: [0, 3, 5, 6, 7, 10], name: "blues scale" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
   {
     id: "pentatonic-1",
-    label: "Minor pentatonic on the 1st",
-    about: "Only the minor pentatonic on the key's tonic (D minor pentatonic over D dorian).",
+    label: m.music_rep_score_improv_game_pentatonic_1(),
+    about: m.music_rep_score_improv_game_pentatonic_1_about(),
     set: { key: MINOR_PENT, name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
   {
     id: "pentatonic-2",
-    label: "Minor pentatonic on the 2nd",
-    about: "Only the minor pentatonic a step above the tonic (E minor pentatonic over D dorian).",
+    label: m.music_rep_score_improv_game_pentatonic_2(),
+    about: m.music_rep_score_improv_game_pentatonic_2_about(),
     set: { key: shift(MINOR_PENT, 2), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
   {
     id: "pentatonic-5",
-    label: "Minor pentatonic on the 5th",
-    about: "Only the minor pentatonic a fifth above the tonic (A minor pentatonic over D dorian).",
+    label: m.music_rep_score_improv_game_pentatonic_5(),
+    about: m.music_rep_score_improv_game_pentatonic_5_about(),
     set: { key: shift(MINOR_PENT, 7), name: "minor pentatonic" },
     aims: [{ metric: "set", aim: 1 }],
     combine: "min",
   },
   {
     id: "motif",
-    label: "One rhythmic motif",
-    about:
-      "Keep one bar's rhythm (the C Jam riff, or the Charleston) and change the pitches to fit each chord: the same rhythm in 8 of 12 bars, a chord tone on beat 1 in 75%.",
+    label: m.music_rep_score_improv_game_motif(),
+    about: m.music_rep_score_improv_game_motif_about(),
     aims: [
       { metric: "motif", aim: 2 / 3 },
       { metric: "downbeats", aim: 0.75 },
@@ -213,59 +207,54 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "approach",
-    label: "Approach notes",
-    about:
-      "A chord tone on every beat 1, approached by a half step from below or above. The score is the share of bars.",
+    label: m.music_rep_score_improv_game_approach(),
+    about: m.music_rep_score_improv_game_approach_about(),
     aims: [{ metric: "approach", aim: 1 }],
     combine: "min",
   },
   {
     id: "off-beat",
-    label: "Start off the beat",
-    about:
-      "Start every phrase off the beat, on the and-of-1 or the and-of-4. The score is the share that do.",
+    label: m.music_rep_score_improv_game_off_beat(),
+    about: m.music_rep_score_improv_game_off_beat_about(),
     aims: [{ metric: "offbeat", aim: 1 }],
     combine: "min",
   },
   {
     id: "space",
-    label: "Two bars on, two off",
-    about: "Play two bars, rest two, the whole chorus. The score is the share of bars kept.",
+    label: m.music_rep_score_improv_game_space(),
+    about: m.music_rep_score_improv_game_space_about(),
     windows: { you: 2, band: 2, bandFirst: false, bandPlays: "comp" },
     aims: [{ metric: "windows", aim: 1 }],
     combine: "min",
   },
   {
     id: "space-1",
-    label: "One bar on, one off",
-    about: "Play one bar, rest one, the whole chorus. The score is the share of bars kept.",
+    label: m.music_rep_score_improv_game_space_1(),
+    about: m.music_rep_score_improv_game_space_1_about(),
     windows: { you: 1, band: 1, bandFirst: false, bandPlays: "comp" },
     aims: [{ metric: "windows", aim: 1 }],
     combine: "min",
   },
   {
     id: "call-response",
-    label: "Call and response",
-    about:
-      "The band plays a two-bar call, you answer in the next two. Every answer starts in its bars and ends before the next call.",
+    label: m.music_rep_score_improv_game_call_response(),
+    about: m.music_rep_score_improv_game_call_response_about(),
     windows: { you: 2, band: 2, bandFirst: true, bandPlays: "call" },
     aims: [{ metric: "windows", aim: 1 }],
     combine: "min",
   },
   {
     id: "bridge",
-    label: "The bridge only",
-    about:
-      "Rest or play the head in the A sections and improvise only the bridge, a 3rd or 7th within a beat of 85% of its changes. Pick a tune with a bridge (rhythm changes, Satin Doll).",
+    label: m.music_rep_score_improv_game_bridge(),
+    about: m.music_rep_score_improv_game_bridge_about(),
     only: "bridge",
     aims: [{ metric: "landings", aim: 0.85 }],
     combine: "min",
   },
   {
     id: "displacement",
-    label: "Displace a motif",
-    about:
-      "One short motif of two to six notes, each time a beat later in the bar (the Straight, No Chaser idea). The aim is a displaced motif in two bars of every three.",
+    label: m.music_rep_score_improv_game_displacement(),
+    about: m.music_rep_score_improv_game_displacement_about(),
     aims: [
       {
         metric: "displaced",
@@ -276,9 +265,8 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "side-slip",
-    label: "Outside and back",
-    about:
-      "Slip a phrase a half step up (three or more notes outside the scale) for about two beats, then resolve to a chord tone on the next beat. Four slips a chorus, every one resolved.",
+    label: m.music_rep_score_improv_game_side_slip(),
+    about: m.music_rep_score_improv_game_side_slip_about(),
     aims: [
       { metric: "slips", aim: 4 },
       { metric: "resolved", aim: 1 },
@@ -287,18 +275,16 @@ export const IMPROV_GAMES: Game[] = [
   },
   {
     id: "quote",
-    label: "Quote the head",
-    about:
-      "Open each A section with a fragment of the tune's melody (four notes or more, its pitches in any octave), then develop it. Needs one of your scores with its melody.",
+    label: m.music_rep_score_improv_game_quote(),
+    about: m.music_rep_score_improv_game_quote_about(),
     head: true,
     aims: [{ metric: "quotes", aim: 1 }],
     combine: "min",
   },
   {
     id: "melody-fills",
-    label: "Melody and fills",
-    about:
-      "Play the head, and fill only its rests of two beats or more with two to four notes: 90% of the melody's notes, and a fill in six rests (every rest, when it has fewer). Needs one of your scores with its melody.",
+    label: m.music_rep_score_improv_game_melody_fills(),
+    about: m.music_rep_score_improv_game_melody_fills_about(),
     head: true,
     aims: [
       { metric: "melody", aim: 0.9 },
@@ -428,14 +414,21 @@ export function jamHint(
   const set = game.set;
   const notes = scoredSet(game, keyPc, chord.symbol).map((p) => FLAT_NAMES[p]);
   if (!set || !notes.length)
-    return `${FLAT_NAMES[pc(chord.scale.rootPc)]} ${chord.scale.name} fits.`;
-  const what =
-    "key" in set
-      ? `the ${notes[0]} ${set.name}`
-      : set.chord === "guide"
-        ? `the 3rd and 7th of ${chord.symbol}`
-        : `the chord tones of ${chord.symbol}`;
-  return `Only ${what}: ${notes.join(", ")}.`;
+    return m.music_rep_score_improv_hint_scale({
+      tonic: FLAT_NAMES[pc(chord.scale.rootPc)],
+      scale: scaleNameText(chord.scale.name),
+    });
+  // Note names, comma-separated in every language.
+  const list = notes.join(", ");
+  if ("key" in set)
+    return m.music_rep_score_improv_hint_set({
+      tonic: notes[0],
+      set: scaleNameText(set.name),
+      notes: list,
+    });
+  return set.chord === "guide"
+    ? m.music_rep_score_improv_hint_guide({ chord: chord.symbol, notes: list })
+    : m.music_rep_score_improv_hint_chord({ chord: chord.symbol, notes: list });
 }
 
 function timeline(p: Progression): { slots: Slot[]; beats: number } {
@@ -573,11 +566,16 @@ export function gradeImprov(
     const idx = all.flatMap((n, i) => (n.beat >= from - 0.5 && n.beat < to - 0.5 ? [i] : []));
     const mine = idx.filter((i) => yours(all[i].beat));
     const ns = mine.map((i) => all[i]);
-    const m: ChorusGrade["measures"] = {};
-    const put = (id: MetricId, n: number, d: number, detail = `${n} of ${d}`) =>
-      (m[id] = {
+    const measures: ChorusGrade["measures"] = {};
+    const put = (
+      id: MetricId,
+      n: number,
+      d: number,
+      detail = m.music_rep_score_improv_n_of({ n, d }),
+    ) =>
+      (measures[id] = {
         value: share(n, d),
-        detail: d ? detail : "nothing to judge",
+        detail: d ? detail : m.music_rep_score_improv_nothing(),
       });
 
     // Chord tones on beats 1 and 3 (beat 1 in 3/4).
@@ -644,9 +642,9 @@ export function gradeImprov(
     }
     if (phraseStart >= 0) phraseBeats += lastEnd - phraseStart;
     if (to - lastEnd >= 2 - 1e-6) rests++;
-    m.rests = {
+    measures.rests = {
       value: rests,
-      detail: `${rests} rest${rests === 1 ? "" : "s"}`,
+      detail: m.music_rep_score_improv_rests({ count: rests }),
     };
     const phrases = {
       count: phraseCount,
@@ -681,18 +679,29 @@ export function gradeImprov(
     const counts = new Map<string, number>();
     for (const r of barRows) if (r.rhythm) counts.set(r.rhythm, (counts.get(r.rhythm) ?? 0) + 1);
     const most = Math.max(0, ...counts.values());
-    put("motif", most, barRows.length, `${most} of ${barRows.length} bars`);
+    put(
+      "motif",
+      most,
+      barRows.length,
+      m.music_rep_score_improv_n_of_bars({ n: most, count: barRows.length }),
+    );
     put(
       "downbeats",
       barRows.filter((r) => r.chordTone).length,
       barRows.length,
-      `${barRows.filter((r) => r.chordTone).length} of ${barRows.length} bars`,
+      m.music_rep_score_improv_n_of_bars({
+        n: barRows.filter((r) => r.chordTone).length,
+        count: barRows.length,
+      }),
     );
     put(
       "approach",
       barRows.filter((r) => r.approached).length,
       barRows.length,
-      `${barRows.filter((r) => r.approached).length} of ${barRows.length} bars`,
+      m.music_rep_score_improv_n_of_bars({
+        n: barRows.filter((r) => r.approached).length,
+        count: barRows.length,
+      }),
     );
 
     // Displacement: motif instances (notes split by half a beat of silence, inside a bar's
@@ -722,7 +731,10 @@ export function gradeImprov(
       )
         displaced++;
     }
-    m.displaced = { value: displaced, detail: `${displaced} displaced` };
+    measures.displaced = {
+      value: displaced,
+      detail: m.music_rep_score_improv_displaced({ count: displaced }),
+    };
 
     // Side-slips: three or more notes outside the chord's scale with no two inside notes in a
     // row, then the next note a chord tone on a beat within a beat and a half.
@@ -748,9 +760,9 @@ export function gradeImprov(
       const off = Math.abs(next.beat - Math.round(next.beat));
       return off <= 0.25 && slotAt(Math.round(next.beat)).pcs.includes(pc(next.midi));
     }).length;
-    m.slips = {
+    measures.slips = {
       value: slipEnds.length,
-      detail: `${slipEnds.length} side-slip${slipEnds.length === 1 ? "" : "s"}`,
+      detail: m.music_rep_score_improv_slips({ count: slipEnds.length }),
     };
     put("resolved", resolved, slipEnds.length);
 
@@ -758,8 +770,8 @@ export function gradeImprov(
     const head = opts.head ?? [];
     let headRests = 0;
     if (opts.game.head && !head.length) {
-      put("quotes", 0, 1, "no melody to quote");
-      put("melody", 0, 1, "no melody to play");
+      put("quotes", 0, 1, m.music_rep_score_improv_no_melody_quote());
+      put("melody", 0, 1, m.music_rep_score_improv_no_melody_play());
     } else if (opts.game.head) {
       const line = idx.map((i) => all[i]);
       const opens = aSectionBars(p).map((b) => from + b * bpb);
@@ -771,7 +783,10 @@ export function gradeImprov(
         "quotes",
         opens.filter((o) => quoted.some((b) => b >= o - 0.5 && b < o + 2 * bpb)).length,
         opens.length,
-        `${opens.filter((o) => quoted.some((b) => b >= o - 0.5 && b < o + 2 * bpb)).length} of ${opens.length} A sections`,
+        m.music_rep_score_improv_a_sections({
+          n: opens.filter((o) => quoted.some((b) => b >= o - 0.5 && b < o + 2 * bpb)).length,
+          d: opens.length,
+        }),
       );
       put(
         "melody",
@@ -794,12 +809,12 @@ export function gradeImprov(
         const n = line.filter((x) => x.beat >= from + a + 0.1 && x.beat < from + b - 0.5).length;
         return n >= 2 && n <= 4;
       }).length;
-      m.fills = gaps.length
+      measures.fills = gaps.length
         ? {
             value: filled,
-            detail: `${filled} of ${gaps.length} rests filled`,
+            detail: m.music_rep_score_improv_rests_filled({ n: filled, d: gaps.length }),
           }
-        : { value: null, detail: "the head has no two-beat rests" };
+        : { value: null, detail: m.music_rep_score_improv_no_head_rests() };
     }
 
     // Windows: yours has a note in it, the band's has no onset after its first half beat.
@@ -817,30 +832,33 @@ export function gradeImprov(
         total++;
         if (band ? onsets.length === 0 : onsets.length > 0) kept++;
       }
-      put("windows", kept, total, `${kept} of ${total} windows`);
+      put("windows", kept, total, m.music_rep_score_improv_windows({ n: kept, d: total }));
     }
 
     const parts: Part[] = opts.game.aims.map(({ metric, aim }) => {
       const a = typeof aim === "function" ? aim(bars, headRests) : aim;
-      const value = m[metric]?.value ?? null;
+      const value = measures[metric]?.value ?? null;
       return {
         metric,
-        label: metric === "strong" && bpb === 3 ? "Chord tones on beat 1" : METRIC_LABEL[metric],
+        label:
+          metric === "strong" && bpb === 3
+            ? m.music_rep_score_improv_metric_strong_bar1()
+            : METRIC_LABEL[metric],
         value,
         aim: a,
         credit: value === null ? (metric === "rests" ? 0 : 1) : Math.min(1, value / a),
-        detail: m[metric]?.detail ?? "",
+        detail: measures[metric]?.detail ?? "",
       };
     });
     // Trading on top of a game: the band's bars must stay yours to leave.
-    if (windows && !opts.game.windows && m.windows)
+    if (windows && !opts.game.windows && measures.windows)
       parts.push({
         metric: "windows",
         label: METRIC_LABEL.windows,
-        value: m.windows.value,
+        value: measures.windows.value,
         aim: 1,
-        credit: m.windows.value ?? 1,
-        detail: m.windows.detail,
+        credit: measures.windows.value ?? 1,
+        detail: measures.windows.detail,
       });
     const judged = parts.filter((x) => x.value !== null || x.metric === "rests");
     const credits = (judged.length ? judged : parts).map((x) => x.credit);
@@ -857,7 +875,7 @@ export function gradeImprov(
       score,
       passed: score >= 1 - 1e-9,
       parts,
-      measures: m,
+      measures,
       range: lows.length ? { low: Math.min(...lows), high: Math.max(...lows) } : null,
       swing,
       phrases,
@@ -877,15 +895,28 @@ export function gradeImprov(
 function headline(game: Game, choruses: ChorusGrade[], passed: boolean): string {
   const n = choruses.length;
   const ok = choruses.filter((c) => c.passed).length;
-  if (!choruses.some((c) => c.notes)) return "Nothing was played, so nothing passed.";
-  if (passed) return `${game.label}: every chorus met its aims.`;
+  if (!choruses.some((c) => c.notes)) return m.music_rep_score_improv_headline_silent();
+  if (passed) return m.music_rep_score_improv_headline_passed({ game: game.label });
   // Name the weakest part across the run.
   const weakest = choruses.flatMap((c) => c.parts).reduce((w, x) => (x.credit < w.credit ? x : w));
-  return `${game.label}: ${ok} of ${n} chorus${n === 1 ? "" : "es"} met the aims. The weakest part: ${weakest.label.toLowerCase()}, ${weakest.detail}${isCount(weakest.metric) ? ` (aim ${weakest.aim})` : ` (aim ${Math.round(weakest.aim * 100)}%)`}.`;
+  return m.music_rep_score_improv_headline_some({
+    game: game.label,
+    ok,
+    count: n,
+    part: weakest.label.charAt(0).toLowerCase() + weakest.label.slice(1),
+    detail: weakest.detail,
+    aim: isCount(weakest.metric)
+      ? weakest.aim
+      : m.music_rep_score_improv_percent({ pct: Math.round(weakest.aim * 100) }),
+  });
 }
 
 /** "Bb3 to F5, 19 semitones". */
 export const rangeText = (r: ChorusGrade["range"]) =>
   r
-    ? `${FLAT_NAMES[pc(r.low)]}${Math.floor(r.low / 12) - 1} to ${FLAT_NAMES[pc(r.high)]}${Math.floor(r.high / 12) - 1}, ${r.high - r.low} semitones`
-    : "no notes";
+    ? m.music_rep_score_improv_range({
+        low: `${FLAT_NAMES[pc(r.low)]}${Math.floor(r.low / 12) - 1}`,
+        high: `${FLAT_NAMES[pc(r.high)]}${Math.floor(r.high / 12) - 1}`,
+        count: r.high - r.low,
+      })
+    : m.music_rep_score_improv_no_notes();

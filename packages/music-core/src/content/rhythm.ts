@@ -3,6 +3,7 @@
 import { RHYTHM_PATTERNS as VERIFIED_PATTERNS, type RhythmPatternDef } from "../data";
 import { clamp } from "../theory/notes";
 import { STRUM_PATTERNS } from "./strums";
+import { m } from "@repo/i18n/messages.js";
 
 /** The verified patterns (data/rhythm-patterns.json), then the strums written in strums.ts. */
 export const RHYTHM_PATTERNS: RhythmPatternDef[] = [...VERIFIED_PATTERNS, ...STRUM_PATTERNS];
@@ -199,7 +200,7 @@ export const EAR_RHYTHM_LEVELS: {
 }[] = [
   {
     id: "quarters-eighths",
-    title: "Quarters and eighths",
+    title: m.music_rep_rhythm_ear_quarters_eighths(),
     bars: 1,
     cells: ["quarter", "eighths"],
     perBeat: 2,
@@ -207,7 +208,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "rests-halves",
-    title: "Add rests and half notes",
+    title: m.music_rep_rhythm_ear_rests_halves(),
     bars: 2,
     cells: ["quarter", "eighths", "rest", "half"],
     perBeat: 2,
@@ -215,7 +216,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "dotted",
-    title: "Add dotted quarters",
+    title: m.music_rep_rhythm_ear_dotted(),
     bars: 2,
     cells: ["quarter", "eighths", "rest", "half", "dotted-quarter"],
     perBeat: 2,
@@ -223,7 +224,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "compound",
-    title: "6/8, two dotted-quarter beats",
+    title: m.music_rep_rhythm_ear_compound(),
     bars: 2,
     cells: ["quarter", "triplet", "long-short", "short-long", "rest", "half"],
     perBeat: 3,
@@ -231,7 +232,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "sixteenths",
-    title: "Add sixteenths",
+    title: m.music_rep_rhythm_ear_sixteenths(),
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "eighth-sixteenths", "sixteenths-eighth"],
     perBeat: 4,
@@ -239,7 +240,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "syncopation",
-    title: "Add syncopation and triplets",
+    title: m.music_rep_rhythm_ear_syncopation(),
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "syncopation", "triplet"],
     perBeat: 4,
@@ -247,7 +248,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "dotted-sixteenths",
-    title: "Add dotted eighth-sixteenths",
+    title: m.music_rep_rhythm_ear_dotted_sixteenths(),
     bars: 2,
     cells: ["quarter", "eighths", "rest", "sixteenths", "syncopation", "dotted-eighth"],
     perBeat: 4,
@@ -255,7 +256,7 @@ export const EAR_RHYTHM_LEVELS: {
   },
   {
     id: "swing",
-    title: "Swing eighths",
+    title: m.music_rep_rhythm_ear_swing(),
     bars: 2,
     cells: ["quarter", "swing", "rest", "half"],
     perBeat: 2,
@@ -335,16 +336,16 @@ export function earRhythmPattern(
 export type GrooveLane = "hat" | "snare" | "kick";
 /** Top to bottom as a drum grid shows them, with the General MIDI drum each plays. */
 export const GROOVE_LANES: { id: GrooveLane; label: string; midi: number }[] = [
-  { id: "hat", label: "Hi-hat", midi: 42 },
-  { id: "snare", label: "Snare", midi: 38 },
-  { id: "kick", label: "Kick", midi: 36 },
+  { id: "hat", label: m.music_rep_rhythm_lane_hat(), midi: 42 },
+  { id: "snare", label: m.music_rep_rhythm_lane_snare(), midi: 38 },
+  { id: "kick", label: m.music_rep_rhythm_lane_kick(), midi: 36 },
 ];
 /** Rock beats first, then kicks off the beat, then sixteenth kicks and ghost snares. */
 export const GROOVE_LEVELS: { id: string; title: string; bars: number; perBeat: 2 | 4 }[] = [
-  { id: "rock", title: "Rock beats", bars: 1, perBeat: 2 },
-  { id: "offbeats", title: "Kicks off the beat", bars: 2, perBeat: 2 },
-  { id: "sixteenths", title: "Sixteenth kicks and ghost snares", bars: 2, perBeat: 4 },
-  { id: "trap", title: "Trap: the snare on 3, the 808 around it", bars: 2, perBeat: 4 },
+  { id: "rock", title: m.music_rep_rhythm_groove_rock(), bars: 1, perBeat: 2 },
+  { id: "offbeats", title: m.music_rep_rhythm_groove_offbeats(), bars: 2, perBeat: 2 },
+  { id: "sixteenths", title: m.music_rep_rhythm_groove_sixteenths(), bars: 2, perBeat: 4 },
+  { id: "trap", title: m.music_rep_rhythm_groove_trap(), bars: 2, perBeat: 4 },
 ];
 const KICKS: Record<string, number[][]> = {
   rock: [
@@ -431,7 +432,8 @@ export function grooveAsPattern(g: Groove): RhythmPatternDef & { written: number
   const onsets = [...new Set(Object.values(g.lanes).flat())].sort((a, b) => a - b);
   return {
     id: g.id,
-    label: GROOVE_LEVELS.find((l) => l.id === g.level)?.title ?? "Groove",
+    label:
+      GROOVE_LEVELS.find((l) => l.id === g.level)?.title ?? m.music_rep_rhythm_groove_fallback(),
     meter: { beats: 4, beatUnit: 4 },
     defaultBars: g.bars,
     events: onsets.map((beat, i) => ({

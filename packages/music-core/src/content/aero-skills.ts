@@ -7,6 +7,7 @@
 import type { ControlEvent, NoteEvent } from "../types";
 import { FLAT_NAMES, pc } from "../theory/notes";
 import { AEROPHONE_RANGE, fingeringFor } from "./winds-pads";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Scales and arpeggios, any key, inside the fingering chart.
@@ -18,28 +19,44 @@ export const AERO_SCALES: readonly {
   /** Coming down, when it differs (melodic minor descends natural). */
   down?: readonly number[];
 }[] = [
-  { id: "major", label: "Major scale", steps: [0, 2, 4, 5, 7, 9, 11, 12] },
-  { id: "natural-minor", label: "Natural minor scale", steps: [0, 2, 3, 5, 7, 8, 10, 12] },
-  { id: "harmonic-minor", label: "Harmonic minor scale", steps: [0, 2, 3, 5, 7, 8, 11, 12] },
-  { id: "chromatic", label: "Chromatic scale", steps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-  { id: "major-arpeggio", label: "Major arpeggio", steps: [0, 4, 7, 12] },
-  { id: "minor-arpeggio", label: "Minor arpeggio", steps: [0, 3, 7, 12] },
+  { id: "major", label: m.music_rep_aero_scale_major(), steps: [0, 2, 4, 5, 7, 9, 11, 12] },
+  {
+    id: "natural-minor",
+    label: m.music_rep_aero_scale_natural_minor(),
+    steps: [0, 2, 3, 5, 7, 8, 10, 12],
+  },
+  {
+    id: "harmonic-minor",
+    label: m.music_rep_aero_scale_harmonic_minor(),
+    steps: [0, 2, 3, 5, 7, 8, 11, 12],
+  },
+  {
+    id: "chromatic",
+    label: m.music_rep_aero_scale_chromatic(),
+    steps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  { id: "major-arpeggio", label: m.music_rep_aero_scale_major_arpeggio(), steps: [0, 4, 7, 12] },
+  { id: "minor-arpeggio", label: m.music_rep_aero_scale_minor_arpeggio(), steps: [0, 3, 7, 12] },
   {
     id: "melodic-minor",
-    label: "Melodic minor scale",
+    label: m.music_rep_aero_scale_melodic_minor(),
     steps: [0, 2, 3, 5, 7, 9, 11, 12],
     down: [0, 2, 3, 5, 7, 8, 10, 12],
   },
-  { id: "blues", label: "Blues scale", steps: [0, 3, 5, 6, 7, 10, 12] },
-  { id: "minor-pentatonic", label: "Minor pentatonic scale", steps: [0, 3, 5, 7, 10, 12] },
+  { id: "blues", label: m.music_rep_aero_scale_blues(), steps: [0, 3, 5, 6, 7, 10, 12] },
+  {
+    id: "minor-pentatonic",
+    label: m.music_rep_aero_scale_minor_pentatonic(),
+    steps: [0, 3, 5, 7, 10, 12],
+  },
 ];
 
 /** Interval patterns through a scale (Klosé, the Universal Method), on its own notes. */
 export const AERO_PATTERNS = [
-  { id: "straight", label: "Straight up and down" },
-  { id: "thirds", label: "In thirds" },
+  { id: "straight", label: m.music_rep_aero_pattern_straight() },
+  { id: "thirds", label: m.music_rep_aero_pattern_thirds() },
   { id: "1231", label: "1-2-3-1" },
-  { id: "triads", label: "Broken triads" },
+  { id: "triads", label: m.music_rep_aero_pattern_triads() },
 ] as const;
 /** Patterns only make sense on a seven-note scale. */
 export const patternFits = (scaleId: string) =>
@@ -50,9 +67,9 @@ export const patternFits = (scaleId: string) =>
  * syllabus: a crotchet click with one, two or four notes to it.
  */
 export const AERO_GRADE_SPEEDS = [
-  { id: "grade-1", label: "Grade 1: 100 BPM, a note a click", bpm: 100, perBeat: 1 },
-  { id: "grade-3", label: "Grade 3: 72 BPM, two notes a click", bpm: 72, perBeat: 2 },
-  { id: "grade-5", label: "Grade 5: 66 BPM, four notes a click", bpm: 66, perBeat: 4 },
+  { id: "grade-1", label: m.music_rep_aero_grade_1(), bpm: 100, perBeat: 1 },
+  { id: "grade-3", label: m.music_rep_aero_grade_3(), bpm: 72, perBeat: 2 },
+  { id: "grade-5", label: m.music_rep_aero_grade_5(), bpm: 66, perBeat: 4 },
 ] as const;
 
 /** The lowest tonic of `pcOf` whose scale fits the chart, so every note has a fingering. */
@@ -125,12 +142,12 @@ export const keyName = (rootPc: number) => FLAT_NAMES[pc(rootPc)];
 // between notes); a slurred one changes key with the breath still going.
 
 export const TONGUING = [
-  { id: "all-tongued", label: "Every note tongued", group: "TTTT" },
-  { id: "all-slurred", label: "All slurred", group: "TSSS" },
-  { id: "slur2-tongue2", label: "Slur two, tongue two", group: "TSTT" },
-  { id: "tongue2-slur2", label: "Tongue two, slur two", group: "TTTS" },
-  { id: "slur3-tongue1", label: "Slur three, tongue one", group: "TSST" },
-  { id: "phrase", label: "Phrase: slur eight, breathe", group: "TSSSSSSS" },
+  { id: "all-tongued", label: m.music_rep_aero_tongue_all_tongued(), group: "TTTT" },
+  { id: "all-slurred", label: m.music_rep_aero_tongue_all_slurred(), group: "TSSS" },
+  { id: "slur2-tongue2", label: m.music_rep_aero_tongue_slur2_tongue2(), group: "TSTT" },
+  { id: "tongue2-slur2", label: m.music_rep_aero_tongue_tongue2_slur2(), group: "TTTS" },
+  { id: "slur3-tongue1", label: m.music_rep_aero_tongue_slur3_tongue1(), group: "TSST" },
+  { id: "phrase", label: m.music_rep_aero_tongue_phrase(), group: "TSSSSSSS" },
 ] as const;
 
 /** "T" (tongued) or "S" (slurred) for each note of a line of `n` notes. */
@@ -199,21 +216,90 @@ export function tonguingScore(want: readonly ("T" | "S")[], got: readonly ("T" |
 // Register crossings: the octave keys and the palm keys are the hurdle
 // (Patchman); pairs across the break, played back and forth.
 
+/**
+ * A crossing: `detail` stays English because lessons read it (the pinky pairs);
+ * `detailText` is the same note in the reader's language, for display.
+ */
+const crossing = (
+  id: string,
+  from: string,
+  to: string,
+  notes: readonly [number, number],
+  detail = "",
+  detailText = "",
+) => ({ id, label: m.music_rep_aero_pair_label({ from, to }), detail, detailText, notes });
+
 export const REGISTER_PAIRS = [
-  { id: "cs5-d5", label: "C#5 to D5", detail: "all open to the octave key", notes: [73, 74] },
-  { id: "c5-d5", label: "C5 to D5", detail: "", notes: [72, 74] },
-  { id: "a4-d5", label: "A4 to D5", detail: "", notes: [69, 74] },
-  { id: "d4-d5", label: "D4 to D5", detail: "the octave key alone", notes: [62, 74] },
-  { id: "g4-g5", label: "G4 to G5", detail: "the octave key alone", notes: [67, 79] },
-  { id: "b4-e5", label: "B4 to E5", detail: "", notes: [71, 76] },
+  crossing(
+    "cs5-d5",
+    "C#5",
+    "D5",
+    [73, 74],
+    "all open to the octave key",
+    m.music_rep_aero_pair_all_open(),
+  ),
+  crossing("c5-d5", "C5", "D5", [72, 74]),
+  crossing("a4-d5", "A4", "D5", [69, 74]),
+  crossing(
+    "d4-d5",
+    "D4",
+    "D5",
+    [62, 74],
+    "the octave key alone",
+    m.music_rep_aero_pair_octave_alone(),
+  ),
+  crossing(
+    "g4-g5",
+    "G4",
+    "G5",
+    [67, 79],
+    "the octave key alone",
+    m.music_rep_aero_pair_octave_alone(),
+  ),
+  crossing("b4-e5", "B4", "E5", [71, 76]),
   // The pinky table: the left little finger sliding between its keys.
-  { id: "cs4-b3", label: "C#4 to B3", detail: "left pinky, C# to B", notes: [61, 59] },
-  { id: "b3-bb3", label: "B3 to Bb3", detail: "left pinky, B to Bb", notes: [59, 58] },
-  { id: "eb4-c4", label: "Eb4 to C4", detail: "right pinky, Eb to C", notes: [63, 60] },
+  crossing(
+    "cs4-b3",
+    "C#4",
+    "B3",
+    [61, 59],
+    "left pinky, C# to B",
+    m.music_rep_aero_pair_left_pinky_cs_b(),
+  ),
+  crossing(
+    "b3-bb3",
+    "B3",
+    "Bb3",
+    [59, 58],
+    "left pinky, B to Bb",
+    m.music_rep_aero_pair_left_pinky_b_bb(),
+  ),
+  crossing(
+    "eb4-c4",
+    "Eb4",
+    "C4",
+    [63, 60],
+    "right pinky, Eb to C",
+    m.music_rep_aero_pair_right_pinky_eb_c(),
+  ),
   // Into and out of the palm keys.
-  { id: "cs6-d6", label: "C#6 to D6", detail: "open to the first palm key", notes: [85, 86] },
-  { id: "b5-d6", label: "B5 to D6", detail: "", notes: [83, 86] },
-  { id: "d6-f6", label: "D6 to F6", detail: "palm keys stacking up", notes: [86, 89] },
+  crossing(
+    "cs6-d6",
+    "C#6",
+    "D6",
+    [85, 86],
+    "open to the first palm key",
+    m.music_rep_aero_pair_first_palm(),
+  ),
+  crossing("b5-d6", "B5", "D6", [83, 86]),
+  crossing(
+    "d6-f6",
+    "D6",
+    "F6",
+    [86, 89],
+    "palm keys stacking up",
+    m.music_rep_aero_pair_palm_stacking(),
+  ),
 ] as const;
 export const crossingLine = (id: string, notes = 16) => {
   const p = REGISTER_PAIRS.find((x) => x.id === id) ?? REGISTER_PAIRS[0];
@@ -228,11 +314,11 @@ export const glitches = (notes: readonly NoteEvent[], wanted: readonly number[])
 // Trills: two fingerings back and forth as fast and even as you can.
 
 export const TRILL_PAIRS = [
-  { id: "g4-a4", label: "G4 A4", detail: "ring finger", notes: [67, 69] },
-  { id: "a4-b4", label: "A4 B4", detail: "middle finger", notes: [69, 71] },
-  { id: "f4-g4", label: "F4 G4", detail: "index finger, right hand", notes: [65, 67] },
-  { id: "b4-c5", label: "B4 C5", detail: "across the left hand", notes: [71, 72] },
-  { id: "c5-d5", label: "C5 D5", detail: "across the break", notes: [72, 74] },
+  { id: "g4-a4", label: "G4 A4", detail: m.music_rep_aero_trill_ring(), notes: [67, 69] },
+  { id: "a4-b4", label: "A4 B4", detail: m.music_rep_aero_trill_middle(), notes: [69, 71] },
+  { id: "f4-g4", label: "F4 G4", detail: m.music_rep_aero_trill_index_right(), notes: [65, 67] },
+  { id: "b4-c5", label: "B4 C5", detail: m.music_rep_aero_trill_left_hand(), notes: [71, 72] },
+  { id: "c5-d5", label: "C5 D5", detail: m.music_rep_aero_trill_break(), notes: [72, 74] },
   { id: "e4-fs4", label: "E4 F#4", detail: "", notes: [64, 66] },
 ] as const;
 export const TRILL_SECONDS = 4;
@@ -266,10 +352,10 @@ export function gradeTrill(notes: readonly NoteEvent[], pair: readonly number[])
 // Breath-level targets: hold a dynamic, not just a steady note.
 
 export const BREATH_LEVELS = [
-  { id: "pp", label: "pp (very soft)", band: [0.1, 0.28] },
-  { id: "p", label: "p (soft)", band: [0.25, 0.42] },
-  { id: "mf", label: "mf (moderately loud)", band: [0.45, 0.65] },
-  { id: "f", label: "f (loud)", band: [0.65, 0.85] },
+  { id: "pp", label: m.music_rep_aero_level_pp(), band: [0.1, 0.28] },
+  { id: "p", label: m.music_rep_aero_level_p(), band: [0.25, 0.42] },
+  { id: "mf", label: m.music_rep_aero_level_mf(), band: [0.45, 0.65] },
+  { id: "f", label: m.music_rep_aero_level_f(), band: [0.65, 0.85] },
 ] as const;
 
 /** Share of breath samples inside the band while the note sounded. */
@@ -284,10 +370,10 @@ export function inBandShare(values: readonly number[], band: readonly [number, n
 // beat at 80 to 84); the bite reaches MIDI as pitch bend.
 
 export const VIBRATO_SETS = [
-  { id: "2-at-60", label: "Two a beat at 60", pulses: 2, bpm: 60 },
-  { id: "3-at-60", label: "Three a beat at 60", pulses: 3, bpm: 60 },
-  { id: "4-at-60", label: "Four a beat at 60", pulses: 4, bpm: 60 },
-  { id: "4-at-80", label: "Four a beat at 80 (the going rate)", pulses: 4, bpm: 80 },
+  { id: "2-at-60", label: m.music_rep_aero_vib_2_at_60(), pulses: 2, bpm: 60 },
+  { id: "3-at-60", label: m.music_rep_aero_vib_3_at_60(), pulses: 3, bpm: 60 },
+  { id: "4-at-60", label: m.music_rep_aero_vib_4_at_60(), pulses: 4, bpm: 60 },
+  { id: "4-at-80", label: m.music_rep_aero_vib_4_at_80(), pulses: 4, bpm: 80 },
 ] as const;
 export const VIBRATO = { rateTolerance: 0.15, evenness: 0.6, seconds: 4 } as const;
 
@@ -318,8 +404,8 @@ export function bendWobble(points: readonly { at: number; value: number }[], min
 export const octaveSlip = (target: number, played: number) =>
   Math.abs(played - target) === 12 && fingeringFor(target)
     ? played > target
-      ? "the octave key was down"
-      : "the octave key was up"
+      ? m.music_rep_aero_slip_octave_down()
+      : m.music_rep_aero_slip_octave_up()
     : null;
 
 // ---------------------------------------------------------------------------
