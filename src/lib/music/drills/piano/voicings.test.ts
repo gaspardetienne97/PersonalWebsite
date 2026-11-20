@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { setNoteNaming } from "@repo/music-core";
 import { gradeItem, voicingItems } from "./voicings";
 
 const opts = { strict: true, arpeggio: false };
@@ -156,5 +157,23 @@ describe("jazz voicing types", () => {
   it("a tune's upper structures run on that tune in one key", () => {
     const items = voicingItems({ variant: "upper", keyPc: 5, keys: 12, tune: "tune-jazz-blues" });
     expect(new Set(items.map((i) => i.group))).toEqual(new Set(["Jazz blues in F"]));
+  });
+});
+
+describe("voicing names in solfège", () => {
+  it("names the chords in the item text, keeping the symbols in letters for grading", () => {
+    setNoteNaming("fixed");
+    try {
+      const inv = voicingItems({ variant: "inversions", keyPc: 7, keys: 1 });
+      expect(inv[0].symbol).toBe("G");
+      expect(inv[0].name.startsWith("Sol")).toBe(true);
+      expect(inv[1].hint).toContain("Sol");
+      expect(inv[1].hint).not.toMatch(/\bG\b/);
+      const cad = voicingItems({ variant: "cadence-minor", keyPc: 9, keys: 1 });
+      expect(cad[0].name.startsWith("Lam")).toBe(true);
+      expect(cad[0].group).toContain("La");
+    } finally {
+      setNoteNaming("letters");
+    }
   });
 });

@@ -29,6 +29,8 @@
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { scaleTip } from "#lib/music/drills/piano/tones.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { showChord, showNote } from "@repo/music-core";
+  import { chord, keyName, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const TEMPO = { min: 40, max: 200 };
   /** Two bars a chord then one, major changes then minor. */
@@ -101,6 +103,14 @@
   // What is lit follows the transport clock (the playhead), never ahead of it; grading keeps the anticipation.
   const currentIndex = $derived(transport.beat === null ? 0 : Math.min(targets.length - 1, Math.max(0, Math.floor(transport.beat / perChord))));
   const current = $derived(targets[currentIndex]);
+  /** Each key's ii-V-I: target i is in the key keyList[i / perKey]. */
+  const perKey = $derived(Math.max(1, targets.length / keyCount));
+  const keyAt = (i: number) => ({ tonic: keyList[Math.min(keyList.length - 1, Math.floor(i / perKey))] ?? key, minor: changes === "minor" });
+  // Movable do counts from the key being played now.
+  useNamingKey(() => keyAt(currentIndex));
+  /** Target i's chord and its scale ("D dorian") named in its own key, for lists that show several keys. */
+  const symbolAt = (i: number) => showChord(targets[i].symbol, keyAt(i));
+  const scaleAt = (i: number) => targets[i].scaleLabel.replace(/^\S+/, (t) => showNote(t, keyAt(i)));
   /** The chart shows one key's ii-V-I at a time. */
   const chartFrom = $derived(Math.floor(currentIndex / 3) * 3);
   /** Pattern mode: the next note to play. */
@@ -150,11 +160,11 @@
     pattern
       ? [
           { text: m.music_drills_chordscales_up_and_back({ pattern: pattern.label }), focus: "pattern" },
-          { text: m.music_drills_voicings_summary_from({ label: changesLabel, key }), focus: "key" },
+          { text: m.music_drills_voicings_summary_from({ label: changesLabel, key: keyName(key) }), focus: "key" },
           { text: keyCount === 12 ? m.music_drills_voicings_summary_all_keys() : m.music_drills_voicings_summary_keys({ count: keyCount }), focus: "keys" },
         ]
       : [
-          { text: m.music_drills_chordscales_summary_in({ label: changesLabel, key, chords: targets.map((t) => t.symbol).join(" ") }), focus: "key" },
+          { text: m.music_drills_chordscales_summary_in({ label: changesLabel, key: keyName(key), chords: targets.map((_, i) => symbolAt(i)).join(" ") }), focus: "key" },
           { text: perChord === 8 ? m.music_drills_chordscales_two_bars_per_chord() : m.music_drills_chordscales_one_bar_per_chord(), focus: "beats" },
         ],
   );
@@ -221,9 +231,9 @@
   /** Beside Stop on a phone: the chord now and, in Practice, its scale. */
   const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? mode === "practice"
         ? pattern
-          ? m.music_drills_chordscales_cue_pattern({ symbol: current.symbol, pattern: pattern.label })
-          : m.music_drills_chordscales_cue_scale({ symbol: current.symbol, scale: current.scaleLabel })
-        : m.music_drills_chordscales_cue_hidden({ symbol: current.symbol })
+          ? m.music_drills_chordscales_cue_pattern({ symbol: chord(current.symbol), pattern: pattern.label })
+          : m.music_drills_chordscales_cue_scale({ symbol: symbolAt(currentIndex), scale: scaleAt(currentIndex) })
+        : m.music_drills_chordscales_cue_hidden({ symbol: chord(current.symbol) })
       : "");
 
   async function finish() {
@@ -265,7 +275,7 @@
             ? m.music_drills_chordscales_h_correct({ inside: r.chords.map((c) => c.chord + c.scale).reduce((a, b) => a + b, 0), outside })
             : r.graded < targets.length
               ? m.music_drills_chordscales_h_partial({ played: r.graded, total: targets.length })
-              : m.music_drills_chordscales_h_outside({ count: outside, symbol: worst.symbol }),
+              : m.music_drills_chordscales_h_outside({ count: outside, symbol: symbolAt(r.chords.indexOf(worst)) }),
       metric: pct(r.score),
       metricLabel: m.music_drills_chordscales_metric_inside(),
       delta: fin.delta,
@@ -275,7 +285,7 @@
       mode,
       cleanMeans: m.music_drills_chordscales_clean_scales(),
       rows: r.chords.map((c, i) => ({
-        label: `${c.symbol}, ${targets[i].scaleLabel}`,
+        label: `${symbolAt(i)}, ${scaleAt(i)}`,
         value: c.chord + c.scale + c.avoid ? c.score : null,
         text: c.chord + c.scale + c.avoid ? m.music_drills_chordscales_row_text({ chord: c.chord, scale: c.scale, avoid: c.avoid }) : m.music_drills_chordscales_nothing_played(),
       })),
@@ -315,7 +325,7 @@
           ? mode === "check"
             ? m.music_drills_chordscales_h_pattern_check({ pattern: pattern!.label })
             : m.music_drills_chordscales_h_pattern_all({ pattern: pattern!.label, total: r.total })
-          : m.music_drills_chordscales_h_slipped({ matched: r.matched, total: r.total, symbol: slip?.symbol ?? m.music_drills_chordscales_a_chord() }),
+          : m.music_drills_chordscales_h_slipped({ matched: r.matched, total: r.total, symbol: slip ? symbolAt(targets.indexOf(slip)) : m.music_drills_chordscales_a_chord() }),
       metric: pct(r.score),
       metricLabel: m.music_drills_chordscales_metric_order(),
       delta: fin.delta,
@@ -342,7 +352,7 @@
     return targets.map((t, i) => {
       const own = patternLine.flatMap((n, k) => (n.chord === i ? [marks[k]] : []));
       const right = own.filter((s) => s === "correct").length;
-      return { label: t.symbol, value: own.length ? right / own.length : 0, text: m.music_drills_voicings_n_of({ n: right, total: own.length }) };
+      return { label: symbolAt(i), value: own.length ? right / own.length : 0, text: m.music_drills_voicings_n_of({ n: right, total: own.length }) };
     });
   }
 
@@ -394,7 +404,7 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">{pattern ? m.music_drills_voicings_kw_start_key() : m.music_drills_voicings_kw_key()}</span>
-        <KeyPicker label={m.music_drills_voicings_kw_key()} value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
+        <KeyPicker label={m.music_drills_voicings_kw_key()} value={pcOf(key)!} name={(p) => keyName(KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C")} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
       {#if pattern}
         <Choice
@@ -438,9 +448,9 @@
         {@const now = (phase === "running" || transport.playing) && i === currentIndex}
         {@const done = result?.chords[i]}
         <li class="min-w-0 rounded-lg border px-2 py-2 sm:px-3 {now ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={now ? "step" : undefined}>
-          <p class="font-display text-xl font-semibold sm:text-2xl">{t.symbol}</p>
+          <p class="font-display text-xl font-semibold sm:text-2xl">{symbolAt(i)}</p>
           {#if mode === "practice" || phase === "results"}
-            <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
+            <p class="truncate text-sm text-ws-stage-soft">{scaleAt(i)}</p>
             {#if scaleTip(t.scaleId) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleId)}</p>{/if}
           {/if}
           {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? m.music_drills_chordscales_n_outside({ count: done.avoid }) : done.chord + done.scale ? m.music_drills_chordscales_all_inside() : m.music_drills_voicings_not_played()}</p>{/if}
@@ -449,7 +459,7 @@
     </ol>
     {#if mode === "practice" && current}
       <p class="mb-3 text-sm text-ws-stage-soft">
-        <span class="font-semibold text-ws-stage-ink">{m.music_drills_chordscales_scale_line({ symbol: current.symbol, scale: current.scaleLabel })}</span>
+        <span class="font-semibold text-ws-stage-ink">{m.music_drills_chordscales_scale_line({ symbol: symbolAt(currentIndex), scale: scaleAt(currentIndex) })}</span>
         {plainHint(current.hint)}{current.others.length ? ` ${m.music_drills_chordscales_also_inside({ scales: current.others.join(", ") })}` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}

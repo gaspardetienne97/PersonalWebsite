@@ -1,7 +1,7 @@
 // The voicing drill's prompts as one list, whatever the variant: rootless
 // ii-V-I voicings, "closest chords" I IV V I (piano path P2), or guide-tone voice
 // leading through the 12-key cycle. Each item says what to show and how to grade it.
-import { pc, pcOf, type Metric } from "@repo/music-core";
+import { pc, pcOf, showChord, showKeyName, showNote, type Metric } from "@repo/music-core";
 import {
   DOMINANT_VOICING as DOM,
   GOSPEL_PROGRESSIONS,
@@ -78,6 +78,9 @@ function joinHints(...hints: (string | undefined)[]) {
   const parts = hints.flatMap((h) => (h ? [h.trim().replace(/\.+$/, "")] : []));
   return parts.length ? `${parts.join(". ")}.` : undefined;
 }
+
+/** A chord symbol for display, named in its key (movable do counts from it). */
+const inKey = (symbol: string, tonic: string, minor = false) => showChord(symbol, { tonic, minor });
 
 function scaleHint(symbol: string) {
   const sc = goToScale(symbol);
@@ -162,13 +165,16 @@ export function voicingItems(opts: {
           ? (b.symbol.includes("/")
               ? m.music_strings_voicing_gospel_slash_moving
               : m.music_strings_voicing_gospel_root_moving)({
-              symbol: b.symbol,
+              symbol: inKey(b.symbol, key),
               inv: inv[b.inversion],
               n: b.movement,
             })
           : (b.symbol.includes("/")
               ? m.music_strings_voicing_gospel_slash
-              : m.music_strings_voicing_gospel_root)({ symbol: b.symbol, inv: inv[b.inversion] }),
+              : m.music_strings_voicing_gospel_root)({
+              symbol: inKey(b.symbol, key),
+              inv: inv[b.inversion],
+            }),
         hint: i ? `${prog.about} ${m.music_strings_voicing_keep_common()}` : prog.about,
         pcs: [...new Set([...b.rightHand.map(pc), b.bassPc])],
         count: 4,
@@ -192,7 +198,7 @@ export function voicingItems(opts: {
     ];
     return keys.flatMap((key) => {
       const bars = cadenceChords(pcOf(key)!, minor, CLOSEST_REGISTER);
-      const group = minor ? m.music_strings_voicing_key_minor({ key }) : key;
+      const group = minor ? m.music_strings_voicing_key_minor({ key: showKeyName(key) }) : key;
       return bars.map((b, i) => ({
         id: b.id,
         symbol: b.symbol,
@@ -206,13 +212,13 @@ export function voicingItems(opts: {
         ],
         name: i
           ? m.music_strings_voicing_cadence_moving({
-              symbol: b.symbol,
+              symbol: inKey(b.symbol, key, minor),
               roman: b.roman,
               inv: inv[b.inversion],
               n: b.movement,
             })
           : m.music_strings_voicing_cadence({
-              symbol: b.symbol,
+              symbol: inKey(b.symbol, key, minor),
               roman: b.roman,
               inv: inv[b.inversion],
             }),
@@ -236,6 +242,7 @@ export function voicingItems(opts: {
   }
   if (opts.variant === "inversions") {
     const bars = closestChords(opts.keyPc, CLOSEST_REGISTER);
+    const tonic = cycleFrom(opts.keyPc, 1)[0];
     const inv = [
       m.music_strings_inv_root(),
       m.music_strings_inv_first(),
@@ -244,7 +251,7 @@ export function voicingItems(opts: {
     return bars.map((b, i) => ({
       id: b.id,
       symbol: b.symbol,
-      group: m.music_strings_voicing_inv_group({ symbol: bars[0].symbol }),
+      group: m.music_strings_voicing_inv_group({ symbol: inKey(bars[0].symbol, tonic) }),
       keyPc: pc(opts.keyPc),
       minor: false,
       kind: "closest",
@@ -254,12 +261,17 @@ export function voicingItems(opts: {
       ],
       name: i
         ? m.music_strings_voicing_inv_name_moving({
-            symbol: b.symbol,
+            symbol: inKey(b.symbol, tonic),
             inv: inv[b.inversion],
             n: b.movement,
           })
-        : m.music_strings_voicing_inv_name({ symbol: b.symbol, inv: inv[b.inversion] }),
-      hint: i ? m.music_strings_voicing_top_near_g() : m.music_strings_voicing_start_root(),
+        : m.music_strings_voicing_inv_name({
+            symbol: inKey(b.symbol, tonic),
+            inv: inv[b.inversion],
+          }),
+      hint: i
+        ? m.music_strings_voicing_top_near_g({ note: showNote("G", { tonic }) })
+        : m.music_strings_voicing_start_root(),
       pcs: [...new Set([...b.rightHand.map(pc), pc(b.leftHand)])],
       count: 4,
       skillIds: ["harmony.ii-v-i.voice-leading"],
@@ -288,7 +300,10 @@ export function voicingItems(opts: {
       minor: false,
       kind: "guide",
       show: t.targetMidi.map((midi) => ({ midi, hand: "right" as const })),
-      name: m.music_strings_voicing_guide_name({ symbol: t.symbol, n: t.minimumSemitones }),
+      name: m.music_strings_voicing_guide_name({
+        symbol: inKey(t.symbol, KEY_CYCLE[Math.floor((j0 + i + 1) / 3) % 12]),
+        n: t.minimumSemitones,
+      }),
       hint: scaleHint(t.symbol),
       pcs: t.pcs,
       count: 2,

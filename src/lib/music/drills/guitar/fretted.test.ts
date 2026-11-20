@@ -4,10 +4,14 @@ import {
   exerciseFor,
   parseTuningNotes,
   skillsFor,
+  tuningName,
+  tuningNotes,
   withSlips,
   type Outcome,
 } from "./fretted";
 import type { LineResult } from "@repo/music-core/scoring/technique";
+import { setNamingKey, setNoteNaming } from "@repo/music-core";
+import { TUNINGS } from "@repo/music-core/data/index";
 
 describe("fretted helpers", () => {
   it("keeps each instrument's own skills and never claims a missing ukulele twin", () => {
@@ -108,5 +112,47 @@ describe("withSlips", () => {
     );
     expect(r.outcomes[2]).toBe("missed");
     expect(r.clean).toBe(7);
+  });
+});
+
+describe("tuning names", () => {
+  const byId = (id: string) => [...TUNINGS.guitar, ...TUNINGS.ukulele].find((t) => t.id === id)!;
+  const names = () =>
+    [
+      "guitar.standard",
+      "guitar.drop-d",
+      "guitar.dadgad",
+      "guitar.open-g",
+      "ukulele.high-g",
+      "ukulele.baritone",
+    ].map((id) => tuningName(byId(id)));
+
+  it("keeps the curated names and a player's own as written, with letters", () => {
+    expect(names()).toEqual(["Standard", "Drop D", "DADGAD", "Open G", "High G", "Baritone DGBE"]);
+    expect(tuningName({ id: "custom.open-d", name: "Open D", source: "custom" })).toBe("Open D");
+    expect(tuningNotes(byId("guitar.standard"))).toBe("E2 A2 D3 G3 B3 E4");
+  });
+
+  it("names the notes in solfège, absolute even in movable do", () => {
+    setNoteNaming("fixed");
+    try {
+      expect(names()).toEqual([
+        "Standard",
+        "Drop Re",
+        "Re La Re Sol La Re",
+        "Open Sol",
+        "High Sol",
+        "Baritone Re Sol Si Mi",
+      ]);
+      expect(tuningName({ id: "custom.open-d", name: "Open D", source: "custom" })).toBe("Open D");
+      expect(tuningNotes(byId("guitar.drop-d"))).toBe("Re2 La2 Re3 Sol3 Si3 Mi4");
+      setNoteNaming("movable");
+      setNamingKey({ tonic: "G" });
+      expect(tuningName(byId("guitar.drop-d"))).toBe("Drop Re");
+      expect(tuningNotes(byId("guitar.standard"))).toBe("Mi2 La2 Re3 Sol3 Si3 Mi4");
+    } finally {
+      setNamingKey(undefined);
+      setNoteNaming("letters");
+    }
   });
 });

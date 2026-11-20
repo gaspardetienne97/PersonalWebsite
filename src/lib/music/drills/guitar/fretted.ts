@@ -1,5 +1,6 @@
 // Pure helpers the guitar and ukulele drills share (unit tested).
-import { parseNote } from "@repo/music-core";
+import { getNoteNaming, noteName, parseNote, showKeyName } from "@repo/music-core";
+import type { Tuning } from "@repo/music-core/data/index";
 import { SKILL_IDS } from "@repo/music-core/data/index";
 import { exerciseIdFor } from "@repo/music-core/content/catalog";
 import type { LineResult } from "@repo/music-core/scoring/technique";
@@ -33,6 +34,38 @@ export function skillsFor(ids: readonly string[], instrument: Fretted): string[]
 
 export const exerciseFor = (guitarExerciseId: string, instrument: Fretted) =>
   exerciseIdFor(guitarExerciseId, instrument);
+
+/** The curated tunings' names, with their notes as placeholders so the notes follow the note-name setting. */
+const TUNING_NAME: Record<string, (notes: { note: string; notes: string }) => string> = {
+  "guitar.standard": () => m.music_strings_tuning_n_standard(),
+  "guitar.drop-d": m.music_strings_tuning_n_drop,
+  "guitar.dadgad": m.music_strings_tuning_n_spelled,
+  "guitar.open-g": m.music_strings_tuning_n_open,
+  "ukulele.high-g": m.music_strings_tuning_n_high,
+  "ukulele.low-g": m.music_strings_tuning_n_low,
+  "ukulele.baritone": m.music_strings_tuning_n_baritone,
+};
+
+/**
+ * A tuning's name for display. A curated name's notes follow the note-name
+ * setting ("Drop D" reads "Drop Re", "DADGAD" "Re La Re Sol La Re"); a player's
+ * own tuning keeps the name they gave it. Tunings are absolute, like keys.
+ */
+export function tuningName(t: Pick<Tuning, "id" | "name" | "source">) {
+  const name = t.source === "custom" ? undefined : TUNING_NAME[t.id];
+  if (!name) return t.name;
+  // The English name ends in its note ("Drop D", "Open G") or its strings ("DADGAD").
+  const last = t.name.split(" ").at(-1) ?? "";
+  const notes = [...last].map(showKeyName).join(getNoteNaming() === "letters" ? "" : " ");
+  return name({ note: showKeyName(last), notes });
+}
+
+/** A tuning's open strings, low to high with octaves, as the player reads note names ("E2 A2 D3 G3 B3 E4"). */
+export const tuningNotes = (t: Pick<Tuning, "openStrings">) =>
+  [...t.openStrings]
+    .reverse()
+    .map((midi) => showKeyName(noteName(midi, "flat")))
+    .join(" ");
 
 /**
  * "E2 A2 D3 G3 B3 E4" (or MIDI numbers), written low string first as players say

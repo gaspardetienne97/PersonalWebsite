@@ -51,7 +51,8 @@
   import { nearMiss } from "@repo/music-core/signal/pitch";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { audio, mic, settings } from "#lib/music/runtime/index.ts";
-  import { exerciseFor, skillsFor, withSlips, type Outcome } from "./fretted";
+  import { exerciseFor, skillsFor, tuningName, withSlips, type Outcome } from "./fretted";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { fretted, tuningFor } from "./instrument.svelte";
   import MicPanel from "./MicPanel.svelte";
   import Verdict from "#lib/music/components/Verdict.svelte";
@@ -141,7 +142,8 @@
       return (at !== null ? ps[Math.min(at, ps.length - 1)] : undefined) ?? ps.find((p) => fingerpickable(pickPattern, p)) ?? ps[0] ?? shapesFor(instr)[0];
     }),
   );
-  const pickNames = $derived(pickRefs.map(chordLabel));
+  /** The chords as the player reads note names. */
+  const pickNames = $derived(pickRefs.map((r) => chord(chordLabel(r))));
   const pickKey = $derived(pickShapes.map((x) => x.id).join(">"));
   function savePick(list: ChordRef[], positions: (number | null)[]) {
     if (pairLink) {
@@ -183,6 +185,8 @@
   const above = (f: number) => (f < rootMin ? f + 12 * Math.ceil((rootMin - f) / 12) : f);
   const rootFret = $derived(Math.min(above(s.rootFret), positionRootFretMax(box, tuning)));
   const string = $derived(Math.min(s.string, stringCount));
+  // Positions plays in a key: the shape's root, minor for the pentatonic and blues boxes and the minor triads.
+  useNamingKey(() => (kind === "positions" ? { tonic: noteName(rootOpen + rootFret, "sharp", false), minor: box.family !== "caged-major" && !box.id.includes("major") } : undefined));
   const pickedStrings = $derived([...new Set(s.strings.split(",").map(Number))].filter((n) => n >= 1 && n <= stringCount));
   /** The spider's strings, bass first; an older setup's string and span until strings are picked. */
   // A link with a span and no strings (an older link) still opens on that span.
@@ -364,7 +368,7 @@
     isPick
       ? [...(song ? [{ text: `${song.song} (${song.artist})`, focus: "song" }] : []), { text: pickPattern.label, focus: "pattern" }, { text: pickNames.reduce((a, b) => m.music_strings_then_plain({ a, b })), focus: "chords" }, { text: BARS[pickBars] ?? m.music_strings_bars_n({ n: pickBars }) }, per]
       : isHarm
-        ? [{ text: m.music_strings_harm_summary() }, { text: m.music_strings_harm_every_string({ tuning: tuning.name }) }]
+        ? [{ text: m.music_strings_harm_summary() }, { text: m.music_strings_harm_every_string({ tuning: tuningName(tuning) }) }]
       : isLegato
         ? [{ text: `${legatoPattern.label}, ${legatoText(legatoPattern, legatoStart)}`, focus: "pattern" }, { text: m.music_strings_legato_on_string({ string, fret: legatoStart }) }, per]
         : isSpider
@@ -379,7 +383,7 @@
             ]
           : [
               { text: box.label, focus: "pattern" },
-              { text: (box.rootString === 1 ? m.music_strings_positions_root_s1 : m.music_strings_positions_root)({ note: noteName(rootOpen + rootFret, "sharp", false), fret: rootFret }), focus: "root" },
+              { text: (box.rootString === 1 ? m.music_strings_positions_root_s1 : m.music_strings_positions_root)({ note: note(noteName(rootOpen + rootFret, "sharp", false)), fret: rootFret }), focus: "root" },
               ...(perBeat > 1 ? [per] : []),
               ...(target ? [{ text: m.music_strings_aiming_for({ target: target.label }), focus: "grade" }] : []),
             ],
@@ -439,7 +443,7 @@
         missText =
           e.string !== undefined && e.fret !== undefined
             ? m.music_strings_line_miss_at({ string: stringText(e.string), fret: e.fret, wantString: stringText(want.string), wantFret: want.fret })
-            : m.music_strings_line_miss_note({ note: noteName(e.midi), wantString: stringText(want.string), wantFret: want.fret });
+            : m.music_strings_line_miss_note({ note: note(noteName(e.midi)), wantString: stringText(want.string), wantFret: want.fret });
       // A quarter tone off rounds to the next note: name the tuning; Practice moves past it (it still scores as missed).
       const open = steps.flatMap((t, i) => (i >= stepIndex && slotOf[i] === slotOf[stepIndex] && hitAt[i] === undefined ? [i] : []));
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, open.map((i) => steps[i].midi)) : null;
@@ -457,7 +461,7 @@
   /** Practice: the last wrong note and where the next one is, in words; cleared by a right note. */
   let missText = $state<string | null>(null);
   /** A string by number and open note: "string 3 (C)". */
-  const stringText = (n: number) => m.music_strings_shape_string_note({ string: n, note: noteName(tuning.openStrings[n - 1], "flat", false) });
+  const stringText = (n: number) => m.music_strings_shape_string_note({ string: n, note: note(noteName(tuning.openStrings[n - 1], "flat", false)) });
   /** Beside Stop on a phone: the string and fret to play now (Practice), or only where you are (Check). */
   const cue = $derived.by(() => {
     const t = steps[stepIndex];
@@ -698,7 +702,7 @@
   const rootOptions = $derived(
     Array.from({ length: 12 }, (_, n) => n)
       .filter((n) => rootFretFor(n) <= rootMax)
-      .map((n) => ({ value: n, label: noteName(n, "sharp", false) })),
+      .map((n) => ({ value: n, label: keyName(noteName(n, "sharp", false)) })),
   );
 </script>
 
@@ -784,8 +788,8 @@
             {#each tuning.openStrings as open, i (i)}
               {@const n = i + 1}
               {@const on = spiderSet.includes(n)}
-              <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label={m.music_strings_string_n_note({ n, note: noteName(open, "flat", false) })} onclick={() => toggleString(n)}>
-                {n}<span class="text-[13px] font-normal text-ws-soft">{noteName(open, "flat", false)}</span>
+              <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label={m.music_strings_string_n_note({ n, note: note(noteName(open, "flat", false)) })} onclick={() => toggleString(n)}>
+                {n}<span class="text-[13px] font-normal text-ws-soft">{note(noteName(open, "flat", false))}</span>
               </button>
             {/each}
           </div>
@@ -868,7 +872,7 @@
         <NoteHighway
           notes={hwNotes}
           labels={hwLabels}
-          strings={tuning.openStrings.map((m) => noteName(m, "flat", false))}
+          strings={tuning.openStrings.map((m) => note(noteName(m, "flat", false)))}
           beat={hwBeat}
           noteHits={hits}
           judge={phase === "running"}
@@ -934,7 +938,7 @@
     <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
       {#if mode === "check" && phase !== "results"}<p>{m.music_strings_line_check_note()}</p>{:else if phase === "ready"}<p>{isPick ? m.music_strings_line_ready_pick({ chord: pickNames[0] }) : isLegato ? m.music_strings_line_ready_legato() : isSpider ? m.music_strings_line_ready_spider() : isHarm ? m.music_strings_line_ready_harm() : m.music_strings_line_ready_fingers()}</p>{/if}
       {#if picking}<p>{isSpider ? m.music_strings_line_pick_spider() : m.music_strings_line_pick_start()}</p>{/if}
-      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? m.music_strings_pos_triads() : box.instrument === "ukulele" ? m.music_strings_pos_uke() : box.family === "blues-box" ? m.music_strings_pos_bb() : m.music_strings_pos_shapes()} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `${m.music_strings_pos_retuned({ tuning: tuning.name })} `}{steps.some((t) => t.stretch) ? m.music_strings_pos_stretch() : ""}</p>{/if}
+      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? m.music_strings_pos_triads() : box.instrument === "ukulele" ? m.music_strings_pos_uke() : box.family === "blues-box" ? m.music_strings_pos_bb() : m.music_strings_pos_shapes()} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `${m.music_strings_pos_retuned({ tuning: tuningName(tuning) })} `}{steps.some((t) => t.stretch) ? m.music_strings_pos_stretch() : ""}</p>{/if}
     </div>
     <!-- The run's clock rides along as data, for tests and tools. -->
     <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} offer={phase !== "ready"} hint={instr === "ukulele" ? m.music_strings_line_mic_ukulele() : m.music_strings_line_mic_guitar()} /></div>

@@ -7,6 +7,7 @@
   import KeyPicker from "#lib/music/components/KeyPicker.svelte";
   import { chordId, chordLabel, chordRef, COMMON_QUALITIES, qualityLabel, rootName, SHELL_QUALITIES, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
+  import { chord, keyName } from "#lib/music/names.svelte.ts";
 
   let { label, instrument, value, onchange, setupKey }: { label: string; instrument: Fretted; value: string; onchange: (id: string) => void; setupKey?: string } = $props();
 
@@ -25,11 +26,11 @@
 </script>
 
 <div class="flex min-w-0 flex-col gap-2 sm:col-span-2" role="group" aria-label={label} data-setup={setupKey}>
-  <p class="text-sm font-medium">{label}: <span class="font-display text-base font-semibold">{chordLabel(ref)}</span></p>
+  <p class="text-sm font-medium">{label}: <span class="font-display text-base font-semibold">{chord(chordLabel(ref))}</span></p>
   <div class="grid items-start gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
     <div class="flex min-w-0 flex-col gap-1 text-sm">
       <span class="font-medium">{m.music_strings_chordpicker_root()}</span>
-      <KeyPicker label={m.music_strings_chordpicker_root_label({ label })} value={ref.root} name={(pc) => rootName(pc, ref.quality)} onchange={(root) => set({ ...ref, root })} />
+      <KeyPicker label={m.music_strings_chordpicker_root_label({ label })} value={ref.root} name={(pc) => keyName(rootName(pc, ref.quality))} onchange={(root) => set({ ...ref, root })} />
     </div>
     <div class="flex min-w-0 flex-col gap-2">
       {#if more || !common}

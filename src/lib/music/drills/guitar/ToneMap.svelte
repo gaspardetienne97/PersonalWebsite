@@ -5,6 +5,7 @@
   // the target tones with no verdict.
   import { m } from "@repo/i18n/messages.js";
   import { FLAT_NAMES } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
 
   let {
     expected = [],
@@ -38,7 +39,7 @@
             ? 'border-2 border-ws-stage-ink/25 text-ws-stage-ink'
             : 'border-2 border-warn text-ws-stage-ink'}"
     >
-      <span class="font-display text-base font-semibold">{name(c.pc)}</span>
+      <span class="font-display text-base font-semibold">{note(name(c.pc))}</span>
       {#if c.state !== "tone"}<span class="text-[13px]">{c.state === "hit" ? "✓" : word[c.state]}</span>{/if}
       {#if c.state === "hit"}<span class="sr-only">{word.hit}</span>{/if}
     </li>

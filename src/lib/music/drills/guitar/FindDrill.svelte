@@ -37,6 +37,7 @@
   import { btnPrimary } from "#lib/music/components/ui.ts";
   import X from "@lucide/svelte/icons/x";
   import { FRETBOARD_MODES, openMode } from "./modes";
+  import { note } from "#lib/music/names.svelte.ts";
   import { formatNumber } from "@repo/i18n/format";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
@@ -92,14 +93,14 @@
     const letter = (m: number) => noteName(m, "flat", false);
     const open = tuning.openStrings;
     const twin = open.findIndex((m, i) => i !== n - 1 && letter(m) === letter(open[n - 1]));
-    const name = letter(open[n - 1]);
+    const name = note(letter(open[n - 1]));
     return twin < 0 ? m.music_strings_string_letter({ letter: name }) : open[n - 1] > open[twin] ? m.music_strings_string_letter_high({ letter: name }) : m.music_strings_string_letter_low({ letter: name });
   };
   /** What was played, in plain words: the note without its octave, and where on the neck when known. */
   const playedText = (a: { midi: number; string?: number; fret?: number }) => {
-    const note = noteName(a.midi, "sharp", false);
-    if (a.string === undefined || a.fret === undefined) return note;
-    return a.fret ? m.music_strings_find_played_fret({ note, string: stringName(a.string), fret: a.fret }) : m.music_strings_find_played_open({ note, string: stringName(a.string) });
+    const played = note(noteName(a.midi, "sharp", false));
+    if (a.string === undefined || a.fret === undefined) return played;
+    return a.fret ? m.music_strings_find_played_fret({ note: played, string: stringName(a.string), fret: a.fret }) : m.music_strings_find_played_open({ note: played, string: stringName(a.string) });
   };
   /** What was played, then the answer that was wanted, as lit on the neck. */
   const wrongText = (a: { midi: number; string?: number; fret?: number }, q: Question) =>
@@ -126,7 +127,7 @@
     const acceptable = (ps: { string: number; fret: number }[]) => ps.map((p) => ({ ...p, midi: midiAt(tuning, p.string, p.fret) }));
     if (!isRecall) {
       const p = noteFinderPrompt(rand, { tuning, region: { start: region.start, end: to } });
-      return { id: p.id, label: p.name, acceptable: acceptable(p.answers), skillIds: skillsFor(entry.skillIds, instr) };
+      return { id: p.id, label: note(p.name), acceptable: acceptable(p.answers), skillIds: skillsFor(entry.skillIds, instr) };
     }
     const semitones = s.interval || RECALL_INTERVALS[Math.floor(rand() * RECALL_INTERVALS.length)].semitones;
     const p = intervalRecallPrompt(rand, { tuning, region: regionIdx, semitones });
@@ -140,7 +141,7 @@
     if (revealing || (mode === "practice" && phase === "running"))
       for (const a of question.acceptable)
         // After a right answer the places turn green with a tick in the name; after a wrong one they stay rings, beside the red cross.
-        out.push({ string: a.string, fret: a.fret, label: revealing ? noteName(a.midi, "sharp", false) : undefined, state: revealing && answers.at(-1)?.correct ? "correct" : undefined });
+        out.push({ string: a.string, fret: a.fret, label: revealing ? note(noteName(a.midi, "sharp", false)) : undefined, state: revealing && answers.at(-1)?.correct ? "correct" : undefined });
     return out;
   });
 
@@ -408,7 +409,7 @@
           <ul class="flex flex-col gap-1.5 text-sm">
             {#each missed as a, i (i)}
               <li class="flex flex-wrap items-baseline gap-x-2">
-                <span class="font-semibold">{isRecall ? m.music_strings_find_interval_from({ interval: a.q.label, note: noteName(a.q.anchor!.midi, "sharp", false) }) : a.q.label}</span>
+                <span class="font-semibold">{isRecall ? m.music_strings_find_interval_from({ interval: a.q.label, note: note(noteName(a.q.anchor!.midi, "sharp", false)) }) : a.q.label}</span>
                 <span class="text-ws-soft">{m.music_strings_find_you_played({ played: playedText(a) })}</span>
               </li>
             {/each}

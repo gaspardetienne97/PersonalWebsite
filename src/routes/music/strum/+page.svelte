@@ -36,6 +36,9 @@
   import NoteHighway, { highway, viewSwitch, type HighwayChord } from "#lib/music/notation/NoteHighway.svelte";
   import type { Hit } from "#lib/music/notation/highway.ts";
   import { neckLabel } from "#lib/music/drills/guitar/fretted.ts";
+  import { keyText } from "@repo/music-core/content/jam";
+  import { showChord, type NamingKey } from "@repo/music-core";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   // seed: the generated charts' draw; New chart moves it on. pattern: "" is the instrument's
   // starter strum (D DU UDU), "any" is any strum.
@@ -58,6 +61,19 @@
   const charts = $derived(CHART_LEVELS.map((l) => chartProgression(l.id, s.seed)).filter((p) => p.chords.every((c) => shapeOf(c.symbol))));
   const playable = $derived([...PROGRESSIONS.filter((p) => p.chords.every((c) => shapeOf(c.symbol))), ...charts]);
   const prog = $derived(playable.find((p) => p.id === s.progression) ?? playable.find((p) => p.id === "guitar-g-d-em-c") ?? playable[0]);
+  /** A progression's key for movable do: its tonic ("C major", "D dorian", "A"), minor for the minor ones. */
+  const keyOf = (p: { key: string }): NamingKey => ({ tonic: p.key.split(" ")[0], minor: /\b(minor|aeolian)\b/.test(p.key) });
+  /** A progression's key for display ("C major" reads "Do mayor"): keys are absolute. */
+  const keyLabel = (p: { key: string }) => keyText(p.key).replace(/^\S+/, (t) => keyName(t));
+  /** A picker's chords, each list in its own progression's key (the picker shows several keys at once). */
+  const chordsIn = (p: { key: string; chords: { symbol: string }[] }, unique = true) => {
+    const list = p.chords.map((c) => c.symbol);
+    return (unique ? [...new Set(list)] : list).map((x) => showChord(x, keyOf(p))).join(" ");
+  };
+  /** A progression's name; one spelled as its chords ("G-D-Em-C") names them in its key. */
+  const progName = (p: { key: string; name: string }) =>
+    /^[A-G][^\s-]*(-[A-G][^\s-]*)+$/.test(p.name) ? p.name.split("-").map((x) => showChord(x, keyOf(p))).join("-") : p.name;
+  useNamingKey(() => keyOf(prog));
   const strictness = $derived((["relaxed", "normal", "strict"].includes(s.strictness) ? s.strictness : "relaxed") as Strictness);
   const choruses = $derived(Math.min(4, Math.max(1, s.choruses)));
   const bpm = () => Math.min(160, Math.max(40, settings.value.bpm));
@@ -245,7 +261,7 @@
         ? m.music_strings_strum_none_heard()
         : correct
           ? (strum ? m.music_strings_strum_all_strums : m.music_strings_strum_all_time)({ total: r.total })
-          : `${strum ? `${m.music_strings_strum_strums_line({ n: landed.landed, total: landed.total })} ` : ""}${m.music_strings_strum_chords_line({ n: r.matched, total: r.total })}${r.chords.find((c) => !c.matched) ? ` ${m.music_strings_strum_work_on({ chord: r.chords.find((c) => !c.matched)!.symbol })}` : ""}`,
+          : `${strum ? `${m.music_strings_strum_strums_line({ n: landed.landed, total: landed.total })} ` : ""}${m.music_strings_strum_chords_line({ n: r.matched, total: r.total })}${r.chords.find((c) => !c.matched) ? ` ${m.music_strings_strum_work_on({ chord: chord(r.chords.find((c) => !c.matched)!.symbol) })}` : ""}`,
       // The ring is the run's score (the expected strums that landed), the metric "since last time" compares.
       metric: pct(score),
       metricLabel: strum ? m.music_strings_strum_metric_strums() : m.music_strings_strum_metric_chords(),
@@ -276,7 +292,7 @@
       ],
       // The tempo climbs to the progression's own, then the next progression up.
       advance: observed.length
-        ? await nextRun(`${instr}.strum.${strictness}.${choruses}`, { bpm: bpm(), tempo: { min: 40, goal: prog.bpm, max: 160 }, steps: LADDER.map((p) => ({ label: p.name, goal: p.bpm })), step: LADDER.indexOf(prog) }, { score, correct }, tempoAnd((i) => cfg.set({ progression: LADDER[i].id })))
+        ? await nextRun(`${instr}.strum.${strictness}.${choruses}`, { bpm: bpm(), tempo: { min: 40, goal: prog.bpm, max: 160 }, steps: LADDER.map((p) => ({ label: progName(p), goal: p.bpm })), step: LADDER.indexOf(prog) }, { score, correct }, tempoAnd((i) => cfg.set({ progression: LADDER[i].id })))
         : undefined,
     };
     status = summary.headline;
@@ -300,10 +316,10 @@
     chart.flatMap((c): HighwayChord[] => {
       const shape = shapeOf(c.symbol);
       const strings = shape ? chordPerfectTargets(shape, tuning).map((t) => t.string) : allStrings;
-      if (!strum) return [{ startBeat: c.startBeat, durationBeats: c.durationBeats, strings, name: c.symbol }];
+      if (!strum) return [{ startBeat: c.startBeat, durationBeats: c.durationBeats, strings, name: chord(c.symbol) }];
       return Array.from({ length: c.bars }, (_, bar) => strokesIn(c.startBeat / 4 + bar).map((e) => ({ beat: c.startBeat + bar * 4 + e.beat, e })))
         .flat()
-        .map(({ beat, e }, k) => ({ startBeat: beat, durationBeats: e.durationBeats ?? 0.5, strings, name: k === 0 ? c.symbol : undefined, strum: e.stroke, accent: e.accent === "accent" }));
+        .map(({ beat, e }, k) => ({ startBeat: beat, durationBeats: e.durationBeats ?? 0.5, strings, name: k === 0 ? chord(c.symbol) : undefined, strum: e.stroke, accent: e.accent === "accent" }));
     }),
   );
   /** Each block's time (perf ms) in this run. */
@@ -339,7 +355,7 @@
 
   const shownIndex = $derived(current >= 0 ? current : 0);
   /** Beside Stop on a phone: the chord to strum now and the one after it. */
-  const cue = $derived(phase === "running" && current >= 0 ? (chart[current + 1] ? m.music_strings_strum_cue({ chord: chart[current].symbol, next: chart[current + 1].symbol }) : m.music_strings_strum_cue_last({ chord: chart[current].symbol })) : "");
+  const cue = $derived(phase === "running" && current >= 0 ? (chart[current + 1] ? m.music_strings_strum_cue({ chord: chord(chart[current].symbol), next: chord(chart[current + 1].symbol) }) : m.music_strings_strum_cue_last({ chord: chord(chart[current].symbol) })) : "");
   const tones = $derived(chart[shownIndex]?.pcs ?? []);
   /** The shown chord's tones spelled from its root (F# in D major); flats when the symbol has no root to spell from. */
   const shownRef = $derived(chart[shownIndex] ? symbolRef(chart[shownIndex].symbol) : null);
@@ -350,7 +366,10 @@
   // each of its strokes marked once judged. Strokes not reached yet carry no mark.
   const rowBeat = $derived(hwBeat !== null && hwBeat >= 0 ? hwBeat : null);
   /** The chart's chord sounding at a beat. */
-  const chordAt = (beat: number) => chart.findLast((c) => c.startBeat <= beat + 1e-6)?.symbol ?? m.music_strings_the_chord();
+  const chordAt = (beat: number) => {
+    const at = chart.findLast((c) => c.startBeat <= beat + 1e-6)?.symbol;
+    return at ? chord(at) : m.music_strings_the_chord();
+  };
   const rowBar = $derived(rowBeat !== null ? Math.floor(rowBeat / 4) : Math.max(0, chart[shownIndex]?.startBeat ?? 0) / 4);
   const row = $derived(strumSlots(strokesIn(rowBar).map((e) => ({ beat: e.beat, stroke: e.stroke, accent: e.accent === "accent" }))));
   const rowLit = $derived(slotAt(rowBeat, row.step));
@@ -400,7 +419,7 @@
   hue={instr}
   blurb={m.music_strings_strum_blurb()}
   summary={[
-    { text: m.music_strings_prog_in_key({ name: prog.name, key: prog.key }), focus: "progression" },
+    { text: m.music_strings_prog_in_key({ name: progName(prog), key: keyLabel(prog) }), focus: "progression" },
     { text: strum ? strumName(strum) : m.music_strings_strum_any(), focus: "pattern" },
     { text: m.music_strings_strum_choruses({ n: choruses }), focus: "choruses" },
     { text: STRICTNESS_TEXT[strictness](), focus: "timing" },
@@ -426,7 +445,7 @@
           {#if list.length}
             <Choice
               label={DIFFICULTY_LABEL[d]()}
-              options={list.map((p) => ({ value: p.id, label: m.music_strings_prog_in_key({ name: p.name, key: p.key }), detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") }))}
+              options={list.map((p) => ({ value: p.id, label: m.music_strings_prog_in_key({ name: progName(p), key: keyLabel(p) }), detail: chordsIn(p) }))}
               value={prog.id}
               onchange={pick}
             />
@@ -436,18 +455,18 @@
           <div class="flex flex-wrap items-end gap-2">
             <Choice
               label={m.music_strings_strum_read_chart()}
-              options={charts.map((p) => ({ value: p.id, label: p.name, detail: p.chords.map((c) => c.symbol).join(" ") }))}
+              options={charts.map((p) => ({ value: p.id, label: p.name, detail: chordsIn(p, false) }))}
               value={prog.id}
               onchange={pick}
             />
             <button type="button" class="min-h-11 rounded-full border border-ws-line px-4 text-sm font-medium" onclick={() => cfg.set({ seed: s.seed + 1 })}>{m.music_strings_strum_new_chart()}</button>
           </div>
-          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">{m.music_strings_strum_chart_help()}</p>{/if}
+          {#if isChartLevel(prog.id)}<p class="text-sm text-ws-soft">{m.music_strings_strum_chart_help({ key: keyName("C") })}</p>{/if}
         {/if}
         {#if songs.length}
           <Choice
             label={m.music_strings_songs()}
-            options={songs.map((p) => ({ value: p.id, label: m.music_strings_song_by({ name: p.name, artist: p.song!.artist }), detail: [...new Set(p.chords.map((c) => c.symbol))].join(" ") + `, ${p.bpm} BPM` }))}
+            options={songs.map((p) => ({ value: p.id, label: m.music_strings_song_by({ name: p.name, artist: p.song!.artist }), detail: chordsIn(p) + `, ${p.bpm} BPM` }))}
             value={prog.id}
             onchange={pick}
           />
@@ -491,7 +510,7 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label={m.music_strings_chord()} value={current >= 0 ? chart[current].symbol : m.music_strings_ready()} />
+      <Stat label={m.music_strings_chord()} value={current >= 0 ? chord(chart[current].symbol) : m.music_strings_ready()} />
       <Stat label={m.music_strings_strums_heard()} value={observed.length} />
     {:else if result}
       <Stat label={m.music_strings_followed()} value="{result.matched}/{result.total}" tone={result.correct ? "success" : "warn"} />
@@ -508,7 +527,7 @@
       </div>
     {/if}
     {#if highway.on && phase !== "results"}
-      <NoteHighway chords={blocks} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={hwBeat} chordHits={blockHits} judge={phase === "running"} perfectMs={onTimeMs()} />
+      <NoteHighway chords={blocks} strings={tuning.openStrings.map((m) => note(noteName(m, "flat", false)))} beat={hwBeat} chordHits={blockHits} judge={phase === "running"} perfectMs={onTimeMs()} />
     {:else}
       <!-- From lg the pattern and the chart sit side by side, so the chord's shape is in a laptop's first view. -->
       <div class="lg:flex lg:items-start lg:gap-6">
@@ -521,7 +540,7 @@
             {#if phase === "running" && current >= 0}
               <!-- The change coming, big enough to read mid-strum. -->
               <p class="flex items-baseline gap-2 rounded-xl border-2 border-ws-stage-ink/25 px-3 py-1" data-testid="next-chord">
-                <span class="text-sm text-ws-stage-soft">{m.music_strings_next_cap()}</span><span class="font-display text-2xl font-bold leading-none">{chart[current + 1]?.symbol ?? m.music_strings_end()}</span>
+                <span class="text-sm text-ws-stage-soft">{m.music_strings_next_cap()}</span><span class="font-display text-2xl font-bold leading-none">{chart[current + 1] ? chord(chart[current + 1].symbol) : m.music_strings_end()}</span>
               </p>
             {/if}
           </div>
@@ -540,7 +559,7 @@
             style:flex-grow={c.bars}
             aria-current={i === current ? "step" : undefined}
           >
-            <span class="font-display text-2xl font-bold leading-none">{c.symbol}</span>
+            <span class="font-display text-2xl font-bold leading-none">{chord(c.symbol)}</span>
             <span class="text-[13px] {i === current ? '' : 'text-ws-stage-soft'}">
               {#if graded}
                 {graded.matched ? m.music_strings_strum_followed() : graded.verification ? m.music_strings_strum_tones_off() : m.music_strings_strum_not_heard()}
@@ -558,15 +577,15 @@
       </div>
     {/if}
     {#if shownShape}
-      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label={neckLabel(instr, chart[shownIndex].symbol)} /></div>
+      <div class="mt-3 flex flex-col justify-end" data-dock="instrument"><ShapeBoard shape={shownShape} {tuning} interactive={false} compact label={neckLabel(instr, chord(chart[shownIndex].symbol))} /></div>
     {/if}
     <!-- From lg the chord's tones and the microphone share one row under the neck (the tones first). -->
     <div class="mt-3 flex flex-col gap-3 lg:flex-row-reverse lg:items-center lg:gap-6">
       <div class="lg:min-w-0 lg:flex-1"><MicPanel disabled={live} offer={phase !== "ready"} /></div>
       <div class="grid gap-2 lg:flex lg:max-w-[55%] lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1">
-        <p class="text-sm font-medium">{(live ? m.music_strings_strum_tones_of_live : m.music_strings_strum_tones_of)({ chord: chart[shownIndex]?.symbol ?? "" })}</p>
+        <p class="text-sm font-medium">{(live ? m.music_strings_strum_tones_of_live : m.music_strings_strum_tones_of)({ chord: chart[shownIndex] ? chord(chart[shownIndex].symbol) : "" })}</p>
         <ToneMap expected={tones} heard={live ? listener.live : []} plain={!live} label={m.music_strings_detected_tones()} name={spell} />
-        {#if live}<p class="text-sm text-ws-stage-soft">{m.music_strings_heard_now({ notes: listener.live.length ? listener.live.map(spell).join(" ") : m.music_strings_nothing() })}</p>{/if}
+        {#if live}<p class="text-sm text-ws-stage-soft">{m.music_strings_heard_now({ notes: listener.live.length ? listener.live.map((p) => note(spell(p))).join(" ") : m.music_strings_nothing() })}</p>{/if}
       </div>
     </div>
     <details class="group mt-3 max-w-prose text-sm text-ws-stage-soft">

@@ -578,7 +578,7 @@
   "music_strings_right_hand_only": "right hand only",
   "music_strings_right_only": "Right only",
   "music_strings_round_circle": "Round the circle",
-  "music_strings_round_circle_hint": "After a clean Check run the tonic moves up a fifth: C, G, D and on through all 12.",
+  "music_strings_round_circle_hint": "After a clean Check run the tonic moves up a fifth: {keys} and on through all 12.",
   "music_strings_row_other_notes": "Other notes sounded",
   "music_strings_row_timing_error": "Timing error",
   "music_strings_row_tone_clean": "Tone cleanliness",
@@ -786,7 +786,7 @@
   "music_strings_strum_any_help": "Any strum: what counts is each chord ringing on its bar. Pick a pattern in Setup to practise one.",
   "music_strings_strum_bar_label": "Bar {n}, {chord}",
   "music_strings_strum_blurb": "Strum the pattern through the chart while the microphone follows each chord.",
-  "music_strings_strum_chart_help": "Eight bars in C you haven't seen: read it once, then strum it. Some bars change chord on beat 3.",
+  "music_strings_strum_chart_help": "Eight bars in {key} you haven't seen: read it once, then strum it. Some bars change chord on beat 3.",
   "music_strings_strum_chords_line": "{n} of {total} chords followed.",
   "music_strings_strum_choruses": [
     {
@@ -962,7 +962,6 @@
   "music_strings_tuning_frets": "Frets",
   "music_strings_tuning_label": "Tuning",
   "music_strings_tuning_name": "Name",
-  "music_strings_tuning_name_placeholder": "Open D",
   "music_strings_tuning_open_strings": "Open strings, low to high ({count})",
   "music_strings_tuning_save": "Save tuning",
   "music_strings_tuning_summary": [
@@ -1043,7 +1042,7 @@
   "music_strings_voicing_rootless_b": "Rootless B (7 9 3 5)",
   "music_strings_voicing_rootless_half_dim": "Rootless A for the half-diminished ii (b3 b5 b7 1)",
   "music_strings_voicing_start_root": "Start in root position.",
-  "music_strings_voicing_top_near_g": "Keep the top note near G. Move each voice the shortest way.",
+  "music_strings_voicing_top_near_g": "Keep the top note near {note}. Move each voice the shortest way.",
   "music_strings_voicing_upper_structure": "Upper structure {triad} over a 1 3 7 shell, adds {adds}",
   "music_strings_voicing_us_hint": "The favourite upper structure: a major triad a whole step above the root.",
   "music_strings_voicing_v7_hint": "Three notes: root, 3rd and 7th, the 5th left out. The 7th falls to the tonic's 3rd next.",
@@ -1059,5 +1058,12 @@
   "music_strings_find_iv_minor_third": "a minor third",
   "music_strings_find_iv_major_third": "a major third",
   "music_strings_find_iv_perfect_fifth": "a perfect fifth",
-  "music_strings_find_iv_octave": "an octave"
+  "music_strings_find_iv_octave": "an octave",
+  "music_strings_tuning_n_standard": "Standard",
+  "music_strings_tuning_n_drop": "Drop {note}",
+  "music_strings_tuning_n_spelled": "{notes}",
+  "music_strings_tuning_n_open": "Open {note}",
+  "music_strings_tuning_n_high": "High {note}",
+  "music_strings_tuning_n_low": "Low {note}",
+  "music_strings_tuning_n_baritone": "Baritone {notes}"
 }
