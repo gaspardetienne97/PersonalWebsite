@@ -289,6 +289,95 @@
   "music_shell_nav_theme_light": "Klè",
   "music_shell_nav_today": "Jodi a",
   "music_shell_nav_toggle_theme": "Chanje tèm",
+  "music_shell_nt_aero_fingerings": "Dwate Aerophone",
+  "music_shell_nt_all_open": "tout kle yo louvri",
+  "music_shell_nt_bar_note": "Mezi {bar}, nòt {n}",
+  "music_shell_nt_beats_ahead": "Tan davans",
+  "music_shell_nt_err_mixed": "li melanje triyolè ak nòt nòmal nan yon sèl tan",
+  "music_shell_nt_err_no_length": "li gen yon nòt ki pa gen dire",
+  "music_shell_nt_err_stopped": "desen pòte a kanpe ({error})",
+  "music_shell_nt_err_tab_range": "{out} nòt sou {total} pa nan akòdaj sa a (frèt 0 rive {frets})",
+  "music_shell_nt_err_tuplets": "li gen gwoup iregilye ki pa triyolè, oswa nòt ki pi kout pase yon trip kwòch",
+  "music_shell_nt_falling": "Nòt k ap tonbe",
+  "music_shell_nt_falling_keyboard": "Klavye pyano anba nòt k ap tonbe yo",
+  "music_shell_nt_fingering_label": "{name}: {spoken}",
+  "music_shell_nt_fingers": "Dwèt",
+  "music_shell_nt_got_it": "Bon",
+  "music_shell_nt_handle_end": "Fen, mezi {bar}",
+  "music_shell_nt_handle_start": "Kòmansman, mezi {bar}",
+  "music_shell_nt_highway": "Otowout",
+  "music_shell_nt_highway_sr": "Otowout nòt: chak kòd se yon liy, kòd 1 anlè; nòt yo defile sou bò gòch epi ou jwe yo lè yo rive sou liy lan.",
+  "music_shell_nt_in_range": "nan seksyon an",
+  "music_shell_nt_line": "Liy",
+  "music_shell_nt_look_ahead": "Gade devan",
+  "music_shell_nt_names": "Non",
+  "music_shell_nt_no_fingering": "pa gen dwate",
+  "music_shell_nt_notes_view": "Afichaj nòt yo",
+  "music_shell_nt_now_at": "Kounye a nan mezi {bar}, tan {beat}",
+  "music_shell_nt_octave_key": "kle oktav",
+  "music_shell_nt_on_notes": "Sou nòt yo",
+  "music_shell_nt_pending_bar": "Kòmansman, mezi {bar}. Kounye a tape mezi kote seksyon an fini an.",
+  "music_shell_nt_pending_note": "Kòmansman, mezi {bar}. Kounye a tape nòt kote seksyon an fini an.",
+  "music_shell_nt_perfect": "Pafè",
+  "music_shell_nt_plain": "Anyen",
+  "music_shell_nt_range_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} mezi, {secs} s a {bpm} BPM",
+        "countPlural=other": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} mezi, {secs} s a {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_end": "fen seksyon an",
+  "music_shell_nt_range_notes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} nòt, {secs} s a {bpm} BPM",
+        "countPlural=other": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} nòt, {secs} s a {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_start": "kòmansman seksyon an",
+  "music_shell_nt_staff": "Pòte",
+  "music_shell_nt_staff_fallback": "Pòte a pa ka desine mizik sa a: {reason}. Nòt k ap tonbe montre tout nòt yo.",
+  "music_shell_nt_staff_hidden": "Pòte a kache: montre l",
+  "music_shell_nt_staff_label": "Notasyon sou pòte, {title}",
+  "music_shell_nt_tab_fallback": "Tablati a pa ka montre mizik sa a pou {tuning}: {reason}. Pòte a ak nòt k ap tonbe yo montre tout nòt yo.",
+  "music_shell_nt_tab_gap": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nòt pa nan akòdaj sa a epi li parèt kòm yon twou.",
+        "countPlural=other": "{count} nòt pa nan akòdaj sa a epi yo parèt kòm yon twou."
+      }
+    }
+  ],
+  "music_shell_nt_tab_label": "Tablati, {title}",
+  "music_shell_nt_tap_bar": "Tape yon mezi pou make kote seksyon an kòmanse.",
+  "music_shell_nt_tap_note": "Tape yon nòt pou make kote seksyon an kòmanse.",
+  "music_shell_nt_this_tuning": "akòdaj sa a",
+  "music_shell_nt_view": "Afichaj",
+  "music_shell_nt_wrong": "Move",
   "music_shell_pads_bank_a": "Pad, bank A",
   "music_shell_pads_pad": "Pad {pad}",
   "music_shell_pads_said": "Pad {pad}: {verdict}",

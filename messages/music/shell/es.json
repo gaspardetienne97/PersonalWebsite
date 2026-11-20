@@ -289,6 +289,95 @@
   "music_shell_nav_theme_light": "Claro",
   "music_shell_nav_today": "Hoy",
   "music_shell_nav_toggle_theme": "Cambiar tema",
+  "music_shell_nt_aero_fingerings": "Digitaciones del Aerophone",
+  "music_shell_nt_all_open": "todas las llaves abiertas",
+  "music_shell_nt_bar_note": "Compás {bar}, nota {n}",
+  "music_shell_nt_beats_ahead": "Pulsos por delante",
+  "music_shell_nt_err_mixed": "mezcla tresillos y notas normales dentro de un mismo pulso",
+  "music_shell_nt_err_no_length": "tiene una nota sin duración",
+  "music_shell_nt_err_stopped": "el dibujo del pentagrama se detuvo ({error})",
+  "music_shell_nt_err_tab_range": "{out} de {total} notas están fuera de esta afinación (trastes 0 a {frets})",
+  "music_shell_nt_err_tuplets": "tiene grupos irregulares que no son tresillos, o notas más cortas que una fusa",
+  "music_shell_nt_falling": "Notas que caen",
+  "music_shell_nt_falling_keyboard": "Teclado de piano bajo las notas que caen",
+  "music_shell_nt_fingering_label": "{name}: {spoken}",
+  "music_shell_nt_fingers": "Dedos",
+  "music_shell_nt_got_it": "Bien",
+  "music_shell_nt_handle_end": "Fin, compás {bar}",
+  "music_shell_nt_handle_start": "Inicio, compás {bar}",
+  "music_shell_nt_highway": "Autopista",
+  "music_shell_nt_highway_sr": "Autopista de notas: cada cuerda es un carril, la cuerda 1 arriba; las notas se desplazan a la izquierda y se tocan al llegar a la línea.",
+  "music_shell_nt_in_range": "dentro del rango",
+  "music_shell_nt_line": "Línea",
+  "music_shell_nt_look_ahead": "Ver adelante",
+  "music_shell_nt_names": "Nombres",
+  "music_shell_nt_no_fingering": "sin digitación",
+  "music_shell_nt_notes_view": "Vista de notas",
+  "music_shell_nt_now_at": "Ahora en el compás {bar}, pulso {beat}",
+  "music_shell_nt_octave_key": "llave de octava",
+  "music_shell_nt_on_notes": "En las notas",
+  "music_shell_nt_pending_bar": "Inicio, compás {bar}. Ahora toca el compás donde termina el rango.",
+  "music_shell_nt_pending_note": "Inicio, compás {bar}. Ahora toca la nota donde termina el rango.",
+  "music_shell_nt_perfect": "Perfecto",
+  "music_shell_nt_plain": "Nada",
+  "music_shell_nt_range_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Inicio, compás {start}. Fin, compás {end}. {count} compás, {secs} s a {bpm} BPM",
+        "countPlural=other": "Inicio, compás {start}. Fin, compás {end}. {count} compases, {secs} s a {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_end": "fin del rango",
+  "music_shell_nt_range_notes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Inicio, compás {start}. Fin, compás {end}. {count} nota, {secs} s a {bpm} BPM",
+        "countPlural=other": "Inicio, compás {start}. Fin, compás {end}. {count} notas, {secs} s a {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_start": "inicio del rango",
+  "music_shell_nt_staff": "Pentagrama",
+  "music_shell_nt_staff_fallback": "El pentagrama no puede dibujar esta música: {reason}. Notas que caen muestra todas las notas.",
+  "music_shell_nt_staff_hidden": "Pentagrama oculto: mostrarlo",
+  "music_shell_nt_staff_label": "Notación en pentagrama, {title}",
+  "music_shell_nt_tab_fallback": "La tablatura no puede mostrar esta música para {tuning}: {reason}. El pentagrama y las notas que caen muestran todas las notas.",
+  "music_shell_nt_tab_gap": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota está fuera de esta afinación y aparece como un hueco.",
+        "countPlural=other": "{count} notas están fuera de esta afinación y aparecen como un hueco."
+      }
+    }
+  ],
+  "music_shell_nt_tab_label": "Tablatura, {title}",
+  "music_shell_nt_tap_bar": "Toca un compás para marcar dónde empieza el rango.",
+  "music_shell_nt_tap_note": "Toca una nota para marcar dónde empieza el rango.",
+  "music_shell_nt_this_tuning": "esta afinación",
+  "music_shell_nt_view": "Vista",
+  "music_shell_nt_wrong": "Error",
   "music_shell_pads_bank_a": "Pads, banco A",
   "music_shell_pads_pad": "Pad {pad}",
   "music_shell_pads_said": "Pad {pad}: {verdict}",

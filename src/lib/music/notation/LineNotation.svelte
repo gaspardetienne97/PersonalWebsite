@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // A drill's line written out above its instrument, with a cursor that runs
   // with the click or the demo so the next notes can be read ahead: tab on a
   // fretted instrument (each note at its string and fret), a staff otherwise
@@ -49,10 +50,10 @@
   const end = $derived(notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0));
   const voices = $derived.by((): ScoreVoice[] => {
     const strip = ({ hand: _h, ...n }: Props["notes"][number]) => n;
-    if (tuning || !notes.some((n) => n.hand)) return [{ id: "line", name: "Line", notes: notes.map(strip) }];
+    if (tuning || !notes.some((n) => n.hand)) return [{ id: "line", name: m.music_shell_nt_line(), notes: notes.map(strip) }];
     return (["right", "left"] as const).flatMap((hand) => {
       const own = notes.filter((n) => (n.hand ?? "right") === hand).map(strip);
-      return own.length ? [{ id: hand === "right" ? "rh" : "lh", name: hand === "right" ? "Right hand" : "Left hand", hand, notes: own }] : [];
+      return own.length ? [{ id: hand === "right" ? "rh" : "lh", name: hand === "right" ? m.music_shell_aero_right_hand() : m.music_shell_aero_left_hand(), hand, notes: own }] : [];
     });
   });
   const concert = $derived<Score>({

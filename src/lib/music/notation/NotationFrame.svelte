@@ -24,6 +24,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import { onMount } from "svelte";
   import type { BeatRange } from "./groups";
   import { loadVexFlow, NotationError, staffOffset, spell, type Layout } from "./engrave";
@@ -84,7 +85,7 @@
 
   function fail(e: unknown) {
     const reason =
-      e instanceof NotationError ? e.message : `the staff drawing stopped (${(e as Error)?.message ?? e})`;
+      e instanceof NotationError ? e.message : m.music_shell_nt_err_stopped({ error: String((e as Error)?.message ?? e) });
     error = reason;
     layout = null;
     host?.replaceChildren();
@@ -220,10 +221,10 @@
   }
 
   function rangeState(t: Target) {
-    if (picker.pending?.startBeat === t.startBeat) return ", range start";
-    if (span?.start === t) return ", range start";
-    if (span?.end === t) return ", range end";
-    return shown && inRange(t, shown) ? ", in range" : "";
+    if (picker.pending?.startBeat === t.startBeat) return `, ${m.music_shell_nt_range_start()}`;
+    if (span?.start === t) return `, ${m.music_shell_nt_range_start()}`;
+    if (span?.end === t) return `, ${m.music_shell_nt_range_end()}`;
+    return shown && inRange(t, shown) ? `, ${m.music_shell_nt_in_range()}` : "";
   }
 </script>
 
@@ -301,7 +302,7 @@
             onpointercancel={drop}
             aria-hidden="true"
           >
-            <span>Start, bar {start.bar}</span>
+            <span>{m.music_shell_nt_handle_start({ bar: start.bar })}</span>
           </div>
         {/if}
         {#if span && !picker.pending}
@@ -316,7 +317,7 @@
             onpointercancel={drop}
             aria-hidden="true"
           >
-            <span>End, bar {span.end.bar}</span>
+            <span>{m.music_shell_nt_handle_end({ bar: span.end.bar })}</span>
           </div>
         {/if}
       {/if}
@@ -341,7 +342,7 @@
           style:top="{cursor.top}px"
           style:height="{cursor.bottom - cursor.top}px"
         >
-          <span class="sr-only">Now at bar {cursor.bar}, beat {Math.floor(cursor.beatInBar) + 1}</span>
+          <span class="sr-only">{m.music_shell_nt_now_at({ bar: cursor.bar, beat: Math.floor(cursor.beatInBar) + 1 })}</span>
         </div>
       {/if}
     </div>

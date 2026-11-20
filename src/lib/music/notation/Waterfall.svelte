@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Falling notes over a keyboard. A dark lane per key, lined up with the keys
   // under it (black-key lanes shaded, guides before each C and F), bar lines
   // with their numbers, and each note a rounded bar as wide as its key in its
@@ -90,8 +91,8 @@
       ? []
       : voices.some((v) => v.hand)
         ? [
-            { side: "right", name: "Right hand" },
-            { side: "left", name: "Left hand" },
+            { side: "right", name: m.music_shell_aero_right_hand() },
+            { side: "left", name: m.music_shell_aero_left_hand() },
           ]
         : voices.slice(0, 2).map((v) => ({ side: side[v.id], name: v.name })),
   );

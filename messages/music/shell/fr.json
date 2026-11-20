@@ -289,6 +289,95 @@
   "music_shell_nav_theme_light": "Clair",
   "music_shell_nav_today": "Aujourd’hui",
   "music_shell_nav_toggle_theme": "Changer de thème",
+  "music_shell_nt_aero_fingerings": "Doigtés de l’Aerophone",
+  "music_shell_nt_all_open": "toutes les clés ouvertes",
+  "music_shell_nt_bar_note": "Mesure {bar}, note {n}",
+  "music_shell_nt_beats_ahead": "Temps d’avance",
+  "music_shell_nt_err_mixed": "elle mélange triolets et notes ordinaires dans un même temps",
+  "music_shell_nt_err_no_length": "elle contient une note sans durée",
+  "music_shell_nt_err_stopped": "le dessin de la portée s’est arrêté ({error})",
+  "music_shell_nt_err_tab_range": "{out} notes sur {total} sont hors de cet accordage (frettes 0 à {frets})",
+  "music_shell_nt_err_tuplets": "elle contient des n-olets autres que des triolets, ou des notes plus courtes qu’une triple croche",
+  "music_shell_nt_falling": "Notes qui tombent",
+  "music_shell_nt_falling_keyboard": "Clavier de piano sous les notes qui tombent",
+  "music_shell_nt_fingering_label": "{name} : {spoken}",
+  "music_shell_nt_fingers": "Doigts",
+  "music_shell_nt_got_it": "Réussi",
+  "music_shell_nt_handle_end": "Fin, mesure {bar}",
+  "music_shell_nt_handle_start": "Début, mesure {bar}",
+  "music_shell_nt_highway": "Autoroute",
+  "music_shell_nt_highway_sr": "Autoroute de notes : chaque corde est une voie, la corde 1 en haut ; les notes défilent vers la gauche et se jouent quand elles atteignent la ligne.",
+  "music_shell_nt_in_range": "dans la plage",
+  "music_shell_nt_line": "Ligne",
+  "music_shell_nt_look_ahead": "Anticipation",
+  "music_shell_nt_names": "Noms",
+  "music_shell_nt_no_fingering": "pas de doigté",
+  "music_shell_nt_notes_view": "Affichage des notes",
+  "music_shell_nt_now_at": "Maintenant mesure {bar}, temps {beat}",
+  "music_shell_nt_octave_key": "clé d’octave",
+  "music_shell_nt_on_notes": "Sur les notes",
+  "music_shell_nt_pending_bar": "Début, mesure {bar}. Touchez maintenant la mesure où la plage se termine.",
+  "music_shell_nt_pending_note": "Début, mesure {bar}. Touchez maintenant la note où la plage se termine.",
+  "music_shell_nt_perfect": "Parfait",
+  "music_shell_nt_plain": "Rien",
+  "music_shell_nt_range_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Début, mesure {start}. Fin, mesure {end}. {count} mesure, {secs} s à {bpm} BPM",
+        "countPlural=other": "Début, mesure {start}. Fin, mesure {end}. {count} mesures, {secs} s à {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_end": "fin de la plage",
+  "music_shell_nt_range_notes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Début, mesure {start}. Fin, mesure {end}. {count} note, {secs} s à {bpm} BPM",
+        "countPlural=other": "Début, mesure {start}. Fin, mesure {end}. {count} notes, {secs} s à {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_start": "début de la plage",
+  "music_shell_nt_staff": "Portée",
+  "music_shell_nt_staff_fallback": "La portée ne peut pas afficher cette musique : {reason}. Notes qui tombent montre toutes les notes.",
+  "music_shell_nt_staff_hidden": "Portée masquée : l’afficher",
+  "music_shell_nt_staff_label": "Notation sur portée, {title}",
+  "music_shell_nt_tab_fallback": "La tablature ne peut pas afficher cette musique pour {tuning} : {reason}. La portée et les notes qui tombent montrent toutes les notes.",
+  "music_shell_nt_tab_gap": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} note est hors de cet accordage et apparaît comme un vide.",
+        "countPlural=other": "{count} notes sont hors de cet accordage et apparaissent comme un vide."
+      }
+    }
+  ],
+  "music_shell_nt_tab_label": "Tablature, {title}",
+  "music_shell_nt_tap_bar": "Touchez une mesure pour marquer le début de la plage.",
+  "music_shell_nt_tap_note": "Touchez une note pour marquer le début de la plage.",
+  "music_shell_nt_this_tuning": "cet accordage",
+  "music_shell_nt_view": "Vue",
+  "music_shell_nt_wrong": "Faux",
   "music_shell_pads_bank_a": "Pads, banque A",
   "music_shell_pads_pad": "Pad {pad}",
   "music_shell_pads_said": "Pad {pad} : {verdict}",

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import type { Score } from "@repo/music-core";
   import type { BeatRange, TabTuning } from "./groups";
   import { drawTab } from "./engrave";
@@ -26,9 +27,9 @@
 <NotationFrame
   {...rest}
   bind:selection
-  label="Tab, {score.title}"
+  label={m.music_shell_nt_tab_label({ title: score.title })}
   scoreBpm={score.bpm}
   draw={(VF, host, width) => drawTab(VF, host, { score, voiceIds, range, width, tuning, fill })}
   fallback={(reason) =>
-    `Tab can't show this music for ${tuning.name ?? "this tuning"}: ${reason}. The staff and falling notes show every note.`}
+    m.music_shell_nt_tab_fallback({ tuning: tuning.name ?? m.music_shell_nt_this_tuning(), reason })}
 />

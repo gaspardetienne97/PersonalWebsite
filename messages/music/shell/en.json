@@ -289,6 +289,95 @@
   "music_shell_nav_theme_light": "Light",
   "music_shell_nav_today": "Today",
   "music_shell_nav_toggle_theme": "Toggle theme",
+  "music_shell_nt_aero_fingerings": "Aerophone fingerings",
+  "music_shell_nt_all_open": "all keys open",
+  "music_shell_nt_bar_note": "Bar {bar}, note {n}",
+  "music_shell_nt_beats_ahead": "Beats ahead",
+  "music_shell_nt_err_mixed": "it mixes triplets and straight notes inside one beat",
+  "music_shell_nt_err_no_length": "it has a note with no length",
+  "music_shell_nt_err_stopped": "the staff drawing stopped ({error})",
+  "music_shell_nt_err_tab_range": "{out} of {total} notes are outside this tuning (frets 0 to {frets})",
+  "music_shell_nt_err_tuplets": "it has tuplets other than triplets, or notes shorter than a 32nd",
+  "music_shell_nt_falling": "Falling notes",
+  "music_shell_nt_falling_keyboard": "Piano keyboard under the falling notes",
+  "music_shell_nt_fingering_label": "{name}: {spoken}",
+  "music_shell_nt_fingers": "Fingers",
+  "music_shell_nt_got_it": "Got it",
+  "music_shell_nt_handle_end": "End, bar {bar}",
+  "music_shell_nt_handle_start": "Start, bar {bar}",
+  "music_shell_nt_highway": "Highway",
+  "music_shell_nt_highway_sr": "Note highway: each string is a lane, string 1 on top; notes scroll left and are played as they reach the line.",
+  "music_shell_nt_in_range": "in range",
+  "music_shell_nt_line": "Line",
+  "music_shell_nt_look_ahead": "Look ahead",
+  "music_shell_nt_names": "Names",
+  "music_shell_nt_no_fingering": "no fingering",
+  "music_shell_nt_notes_view": "Notes view",
+  "music_shell_nt_now_at": "Now at bar {bar}, beat {beat}",
+  "music_shell_nt_octave_key": "octave key",
+  "music_shell_nt_on_notes": "On the notes",
+  "music_shell_nt_pending_bar": "Start, bar {bar}. Now tap the bar where the range ends.",
+  "music_shell_nt_pending_note": "Start, bar {bar}. Now tap the note where the range ends.",
+  "music_shell_nt_perfect": "Perfect",
+  "music_shell_nt_plain": "Plain",
+  "music_shell_nt_range_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Start, bar {start}. End, bar {end}. {count} bar, {secs} s at {bpm} BPM",
+        "countPlural=other": "Start, bar {start}. End, bar {end}. {count} bars, {secs} s at {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_end": "range end",
+  "music_shell_nt_range_notes": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Start, bar {start}. End, bar {end}. {count} note, {secs} s at {bpm} BPM",
+        "countPlural=other": "Start, bar {start}. End, bar {end}. {count} notes, {secs} s at {bpm} BPM"
+      }
+    }
+  ],
+  "music_shell_nt_range_start": "range start",
+  "music_shell_nt_staff": "Staff",
+  "music_shell_nt_staff_fallback": "The staff can't draw this music: {reason}. Falling notes shows every note.",
+  "music_shell_nt_staff_hidden": "Staff hidden: show it",
+  "music_shell_nt_staff_label": "Staff notation, {title}",
+  "music_shell_nt_tab_fallback": "Tab can't show this music for {tuning}: {reason}. The staff and falling notes show every note.",
+  "music_shell_nt_tab_gap": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} note is outside this tuning and shows as a gap.",
+        "countPlural=other": "{count} notes are outside this tuning and show as a gap."
+      }
+    }
+  ],
+  "music_shell_nt_tab_label": "Tab, {title}",
+  "music_shell_nt_tap_bar": "Tap a bar to mark where the range starts.",
+  "music_shell_nt_tap_note": "Tap a note to mark where the range starts.",
+  "music_shell_nt_this_tuning": "this tuning",
+  "music_shell_nt_view": "View",
+  "music_shell_nt_wrong": "Wrong",
   "music_shell_pads_bank_a": "Pads, bank A",
   "music_shell_pads_pad": "Pad {pad}",
   "music_shell_pads_said": "Pad {pad}: {verdict}",

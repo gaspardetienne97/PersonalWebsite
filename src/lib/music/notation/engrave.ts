@@ -15,6 +15,7 @@ import {
   type BeatRange,
   type TabTuning,
 } from "./groups";
+import { m } from "@repo/i18n/messages.js";
 
 type VF = typeof import("vexflow/bravura");
 type Stave = InstanceType<VF["Stave"]>;
@@ -153,18 +154,18 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
   // Eighth triplets: a beat with an edge on a third of a beat is written as a triplet.
   const triplets = new Set<number>();
   for (const n of ns) {
-    if (n.durationBeats <= 0) throw new NotationError("it has a note with no length");
+    if (n.durationBeats <= 0) throw new NotationError(m.music_shell_nt_err_no_length());
     for (const x of [n.startBeat, n.startBeat + n.durationBeats]) {
       if (onGrid(x)) continue;
       if (!onThird(x))
-        throw new NotationError("it has tuplets other than triplets, or notes shorter than a 32nd");
+        throw new NotationError(m.music_shell_nt_err_tuplets());
       triplets.add(Math.floor(x));
     }
   }
   for (const n of ns)
     for (const x of [n.startBeat, n.startBeat + n.durationBeats])
       if (triplets.has(Math.floor(x + 1e-3)) && !onThird(x))
-        throw new NotationError("it mixes triplets and straight notes inside one beat");
+        throw new NotationError(m.music_shell_nt_err_mixed());
   /** The next triplet beat's start at or after `b`. */
   const nextTriplet = (b: number) =>
     Math.min(...[...triplets].filter((t) => t > b - EPS), Infinity);
@@ -822,7 +823,7 @@ export function drawTab(
   const { barList, notes, at, outOfRange } = tabFit(score, voiceIds, range, tuning);
   if (notes.length && outOfRange > notes.length / 3)
     throw new NotationError(
-      `${outOfRange} of ${notes.length} notes are outside this tuning (frets 0 to ${tuning.fretCount})`,
+      m.music_shell_nt_err_tab_range({ out: outOfRange, total: notes.length, frets: tuning.fretCount }),
     );
   const groups = scoreGroups(score, voiceIds, range);
   const lines = tuning.openStrings.length;
@@ -850,6 +851,6 @@ export function drawTab(
   };
   const layout = engrave(VF, host, score, barList, groups, [row], width, fill);
   if (outOfRange)
-    layout.notice = `${outOfRange} ${outOfRange === 1 ? "note is" : "notes are"} outside this tuning and ${outOfRange === 1 ? "shows" : "show"} as a gap.`;
+    layout.notice = m.music_shell_nt_tab_gap({ count: outOfRange });
   return layout;
 }
