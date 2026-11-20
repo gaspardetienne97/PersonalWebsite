@@ -490,20 +490,33 @@ export function previewHref(skillId: string | undefined, fallback: string): stri
  * numbering on harmony steps. Sentences about app features still to build ("waits for N1",
  * "is still to come") are dropped: a learner reads only what the step does today. The data
  * keeps the codes; the page says what they mean.
+ *
+ * Path text arrives translated (`pathString`), so the English wording rules apply only in
+ * English. In another language a parenthetical or a sentence that names an N code goes whole,
+ * whatever words surround it, and the T and S codes read as numbered steps in that language.
  */
 export function plainPathText(text: string): string {
-  return text
-    .replace(/\s*\([^()]*\bN\d+\b[^()]*is still to come\)/g, "")
-    .replace(/(^|(?<=[.!?]\s))[^.!?]*(\bwaits? for N\d+|\bis still to come)[^.!?]*[.!?]\s*/g, "")
-    .replace(/ until N\d+\b/g, "")
+  const english = getLocale() === "en";
+  const t = english
+    ? text
+        .replace(/\s*\([^()]*\bN\d+\b[^()]*is still to come\)/g, "")
+        .replace(
+          /(^|(?<=[.!?]\s))[^.!?]*(\bwaits? for N\d+|\bis still to come)[^.!?]*[.!?]\s*/g,
+          "",
+        )
+        .replace(/ until N\d+\b/g, "")
+        .replace(
+          /(\d+%) over (\d+) items, on two days/g,
+          "Score $1 on $2 questions, on two different days",
+        )
+    : text
+        .replace(/\s*\([^()]*\bN\d+\b[^()]*\)/g, "")
+        .replace(/(^|(?<=[.!?]\s))[^.!?]*\bN\d+\b[^.!?]*[.!?]\s*/g, "");
+  return t
     .replace(/ \(N\d+\)/g, "")
-    .replace(/\bCircle T-(\d+)/g, "Circle of fifths step $1")
-    .replace(/\bStudio S-(\d+)/g, "Studio ears step $1")
-    .replace(/\b[TS]-(\d+)\b/g, "step $1")
+    .replace(/\bCircle T-(\d+)/g, (_, n: string) => m.music_hubs_paths_code_circle({ n }))
+    .replace(/\bStudio S-(\d+)/g, (_, n: string) => m.music_hubs_paths_code_studio({ n }))
+    .replace(/\b[TS]-(\d+)\b/g, (_, n: string) => m.music_hubs_paths_code_step({ n }))
     .replace(/^H\d+ /, "")
-    .replace(
-      /(\d+%) over (\d+) items, on two days/g,
-      "Score $1 on $2 questions, on two different days",
-    )
     .trim();
 }

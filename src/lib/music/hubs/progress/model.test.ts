@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { getLocale, overwriteGetLocale } from "@repo/i18n/runtime.js";
 import type { PracticeSession } from "@repo/music-core";
 import {
   exerciseTitle,
@@ -108,6 +109,25 @@ describe("Path copy", () => {
     );
     expect(plainPathText("H1 The major scale")).toBe("The major scale");
     expect(plainPathText("Degrees 1 to 5")).toBe("Degrees 1 to 5");
+  });
+  it("in another language, drops whole what names an N code and words the step codes", () => {
+    const english = getLocale;
+    overwriteGetLocale(() => "fr");
+    try {
+      expect(plainPathText("Nommez le degré. La cadence qui garde la tonalité attend N1.")).toBe(
+        "Nommez le degré.",
+      );
+      expect(plainPathText("Jouez-le deux fois (la vérification arrive avec N3).")).toBe(
+        "Jouez-le deux fois.",
+      );
+      expect(plainPathText("une note de l’accord (une autocorrection jusqu’à N10).")).toBe(
+        "une note de l’accord.",
+      );
+      expect(plainPathText("Circle T-1 et T-2")).toBe("Cycle des quintes, étape 1 et étape 2");
+      expect(plainPathText("H1 La gamme majeure")).toBe("La gamme majeure");
+    } finally {
+      overwriteGetLocale(english);
+    }
   });
 });
 

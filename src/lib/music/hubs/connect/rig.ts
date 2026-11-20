@@ -39,9 +39,16 @@ export function micOptions(
   return options;
 }
 
+/** The microphone label saved for the default input (settings keep it in English, as stored). */
+export const DEFAULT_INPUT_LABEL = "Default input";
+
+/** A saved microphone label as shown: the stored default reads in the visitor's language. */
+export const micLabel = (label: string) =>
+  label === DEFAULT_INPUT_LABEL ? m.music_hubs_rig_default_input() : label;
+
 /** The saved microphone's name: its device name, or "Default input" in the visitor's language. */
 export const inputName = (deviceId: string | undefined, label: string) =>
-  deviceId ? label : m.music_hubs_rig_default_input();
+  deviceId ? micLabel(label) : m.music_hubs_rig_default_input();
 
 /**
  * A raw MIDI message ("99 2A 64") in words, for the activity feed: "Note on F#2,

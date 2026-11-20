@@ -8,7 +8,7 @@
   import { mic, settings } from "#lib/music/runtime/index.ts";
   import Picker from "#lib/music/components/Picker.svelte";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
-  import { inputName, micOptions } from "./rig";
+  import { DEFAULT_INPUT_LABEL, inputName, micOptions } from "./rig";
 
   /** `primary`: the microphone is the next setup step, so Start is the page's one filled button. */
   let { announce, primary = false }: { announce: (text: string) => void; primary?: boolean } = $props();
@@ -21,7 +21,7 @@
 
   async function choose(deviceId: string) {
     const d = mic.devices.find((x) => x.deviceId === deviceId);
-    await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label || "Default input" });
+    await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: d?.label || DEFAULT_INPUT_LABEL });
     if (mic.state === "on") {
       await start();
     } else announce(d?.label ? m.music_hubs_mic_will_use({ name: d.label }) : m.music_hubs_mic_default_will_use());

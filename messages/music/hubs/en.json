@@ -2225,5 +2225,10 @@
   "music_hubs_cr_not_saved_lower": "not saved",
   "music_hubs_cr_unsaved_lower": "unsaved changes",
   "music_hubs_cr_saved_lower": "saved",
-  "music_hubs_tv_lick_title": "{title}, first bars"
+  "music_hubs_tv_lick_title": "{title}, first bars",
+  "music_hubs_paths_code_circle": "Circle of fifths step {n}",
+  "music_hubs_paths_code_studio": "Studio ears step {n}",
+  "music_hubs_paths_code_step": "step {n}",
+  "music_hubs_lick_from_transcription": "a transcription",
+  "music_hubs_lick_from_by_ear": "Learn by ear"
 }

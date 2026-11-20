@@ -65,7 +65,7 @@
 
   // After the set: one named drill, the same one Today offers.
   const after = $derived(upNext ? undefined : nextDrill(plan));
-  const afterName = $derived(after?.label.replace(/^(Try|Practise) /, ""));
+  const afterName = $derived(after?.name);
   // The coach's pick is drawn as the weak skill's own drill (its link may be the mixed ear drill);
   // a family of skills ("Intervals") is drawn as its weakest measured member.
   const focusDrawn = $derived.by(() => {

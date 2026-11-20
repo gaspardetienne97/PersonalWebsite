@@ -1,5 +1,6 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
+  import { getLocale } from "@repo/i18n/runtime.js";
   // Each path is a road map: a node per step, lit when passed, with "Up next" pulsing. A node opens
   // to what the step adds, what done means and its drill. Levelled paths show one level at a time:
   // its steps, then its song shelf and its test as checkpoints on the same road.
@@ -117,7 +118,15 @@
   /** One status format everywhere: "Check-in: 0 of 6 steps", "Level 1: 3 of 10 steps". */
   const levelStatus = (l: LevelProgress) => m.music_hubs_paths_level_status({ name: levelName(l), done: l.done, total: l.total });
   /** A level's name on the map in two words at most, the full title in its label and heading. */
-  const STOP = new Set(["a", "an", "and", "the", "from", "of", "to", "with", "for", "in", "on", "by"]);
+  // The small words a two-word name must not end on, per language ("Accords de", "Pwogram ak").
+  const STOP_WORDS: Record<string, string[]> = {
+    en: ["a", "an", "and", "the", "from", "of", "to", "with", "for", "in", "on", "by"],
+    es: ["a", "al", "con", "de", "del", "el", "en", "la", "las", "lo", "los", "o", "para", "por", "sin", "su", "sus", "un", "una", "y"],
+    fr: ["à", "au", "aux", "avec", "de", "des", "du", "en", "et", "la", "le", "les", "ou", "par", "pour", "sans", "sur", "un", "une"],
+    ht: ["a", "ak", "an", "de", "e", "la", "lan", "nan", "pa", "pou", "sou", "yo", "yon"],
+  };
+  // English too: a path line not yet translated shows in English.
+  const STOP = new Set([...STOP_WORDS.en, ...(STOP_WORDS[getLocale()] ?? [])]);
   const shortTitle = (t: string) => {
     const w = t.replace(/[:,]/g, "").split(/\s+/).slice(0, 2);
     while (w.length > 1 && STOP.has(w.at(-1)!.toLowerCase())) w.pop();
@@ -141,9 +150,14 @@
   const oneLine = (t: string) => plainPathText(t).split(/;\s*/)[0].replace(/[.,]?$/, ".");
   /** Steps count from 1 on each map, whatever their ids say ("0.1" on a check-in). */
   const stepLabel = (i: number) => String(i + 1);
-  /** Path words a learner has not met yet, said plainly on the map. */
+  /**
+   * Path words a learner has not met yet, said plainly on the map. The rewrites are English: a
+   * translated path says these plainly in its own words, so other languages take the text as it is.
+   */
   const plain = (t: string) =>
-    plainPathText(t)
+    getLocale() !== "en"
+      ? plainPathText(t)
+      : plainPathText(t)
       .replace(/\bmajor pentachord\b/g, "the first five notes of the major scale")
       .replace(/\bminor pentachord\b/g, "the first five notes of the minor scale")
       .replace(/\bpentachords?\b/g, "five-note scale")

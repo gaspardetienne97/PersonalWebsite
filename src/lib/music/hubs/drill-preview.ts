@@ -197,7 +197,8 @@ function rhythmPreview(id: string | null, caption?: string): Preview {
     perBeat,
     hits,
     chords,
-    caption: caption ?? p.label.replace(/^[A-Z][a-z]+: /, ""),
+    // Without the instrument prefix ("Guitar: ", French "Guitare : ").
+    caption: caption ?? p.label.replace(/^\p{Lu}\p{Ll}+\s?: /u, ""),
   };
 }
 

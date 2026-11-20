@@ -146,6 +146,16 @@ export const WEEKDAYS = [
   m.music_shell_weekday_saturday(),
   m.music_shell_weekday_sunday(),
 ];
+/** The weekdays as they read inside a sentence ("Repeats every {day}."): lower case in Spanish, French and Creole. */
+export const WEEKDAYS_IN_SENTENCE = [
+  m.music_shell_weekday_mid_monday(),
+  m.music_shell_weekday_mid_tuesday(),
+  m.music_shell_weekday_mid_wednesday(),
+  m.music_shell_weekday_mid_thursday(),
+  m.music_shell_weekday_mid_friday(),
+  m.music_shell_weekday_mid_saturday(),
+  m.music_shell_weekday_mid_sunday(),
+];
 const SPLIT_ORDER: Instrument[] = ["guitar", "ukulele", "piano", "aerophone", "mpc", "voice"];
 
 /** Choices for a weekday in the split: "" plays the strip's instrument. */
@@ -173,11 +183,16 @@ export function blockReason(step: RoutineStep): string {
  * One named drill for after the set: the coach's weak spot once it has measured one, else the
  * first drill on this instrument the set did not use.
  */
+/**
+ * One more drill once the set is done: `label` is the button ("Practise Intervals", "Try Scales"),
+ * `name` the drill alone ("Intervals", "Scales") for a line that words it itself.
+ */
 export function nextDrill(plan: ReturnType<typeof todayPlan>) {
   const { advice, instrument } = plan;
   if (advice.measured && advice.focus)
     return {
       label: advice.action.label,
+      name: advice.focus.name,
       href: advice.action.href,
       why: m.music_shell_today_reason_named({
         why: m.music_shell_today_weak(),
@@ -188,7 +203,14 @@ export function nextDrill(plan: ReturnType<typeof todayPlan>) {
   const e = CATALOG.find(
     (c) => c.instruments.includes(instrument) && !used.has(c.route) && !c.route.includes("?"),
   );
-  return e && { label: m.music_shell_today_try({ title: e.title }), href: e.route, why: e.blurb };
+  return (
+    e && {
+      label: m.music_shell_today_try({ title: e.title }),
+      name: e.title,
+      href: e.route,
+      why: e.blurb,
+    }
+  );
 }
 
 /**

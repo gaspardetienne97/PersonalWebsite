@@ -8,6 +8,11 @@ import { m } from "@repo/i18n/messages.js";
 /** One line of a run's breakdown. */
 export interface ResultRow {
   label: string;
+  /**
+   * What the row measures, for code that must tell rows apart (the label is translated).
+   * "timing": how notes landed against the beat; the results card notes an uncalibrated input beside it.
+   */
+  kind?: "timing" | "evenness";
   /** 0..1 drawn as a bar; null with `notMeasured` reads "Not measured". */
   value?: number | null;
   text?: string;
@@ -75,11 +80,12 @@ export function timingRow(
   onTimeMs?: number,
 ): ResultRow {
   const landed = errorsMs.length;
-  if (!enough(landed, total)) return { label, notMeasured: true, text: TOO_FEW };
+  if (!enough(landed, total)) return { kind: "timing", label, notMeasured: true, text: TOO_FEW };
   const mean = errorsMs.reduce((s, e) => s + Math.abs(e), 0) / landed;
   const value =
     onTimeMs !== undefined ? Math.min(1, onTimeMs / Math.max(mean, 1)) : 1 - mean / windowMs;
   return {
+    kind: "timing",
     label,
     value: Math.max(0, Math.min(1, value)),
     text:
@@ -100,9 +106,10 @@ export function evennessRow(
   total: number,
   label: string = m.music_rep_score_evenness(),
 ): ResultRow {
-  if (!enough(landed, total)) return { label, notMeasured: true, text: TOO_FEW };
+  if (!enough(landed, total)) return { kind: "evenness", label, notMeasured: true, text: TOO_FEW };
   const v = Math.max(0, Math.min(1, score));
   return {
+    kind: "evenness",
     label,
     value: v,
     text: m.music_rep_score_evenness_text({

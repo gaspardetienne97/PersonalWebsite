@@ -2225,5 +2225,10 @@
   "music_hubs_cr_not_saved_lower": "sin guardar",
   "music_hubs_cr_unsaved_lower": "cambios sin guardar",
   "music_hubs_cr_saved_lower": "guardada",
-  "music_hubs_tv_lick_title": "{title}, primeros compases"
+  "music_hubs_tv_lick_title": "{title}, primeros compases",
+  "music_hubs_paths_code_circle": "Círculo de quintas, paso {n}",
+  "music_hubs_paths_code_studio": "Oído de estudio, paso {n}",
+  "music_hubs_paths_code_step": "paso {n}",
+  "music_hubs_lick_from_transcription": "una transcripción",
+  "music_hubs_lick_from_by_ear": "Aprende de oído"
 }

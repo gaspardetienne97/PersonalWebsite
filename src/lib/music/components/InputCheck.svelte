@@ -6,6 +6,7 @@
 
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
+  import { micLabel } from "#lib/music/hubs/connect/rig.ts";
   // One line on the instrument's input, with one button to fix it. Before a run
   // (`inline`) it is a clause of the setup sentence, shown only when that input
   // is off, and the clause is its own fix; after a silent run it names the
@@ -36,7 +37,7 @@
 
   /** The device in use, by name. */
   const device = $derived.by(() => {
-    if (kind === "mic") return settings.value.audioInputLabel || m.music_shell_input_default_mic();
+    if (kind === "mic") return micLabel(settings.value.audioInputLabel) || m.music_shell_input_default_mic();
     const port = midi.inputs.find((p) => p.state === "connected" && !midi.profile(p.id)?.ignored);
     return port ? midi.profile(port.id)?.alias || port.name || m.music_shell_input_midi_device() : m.music_shell_input_no_midi_device();
   });

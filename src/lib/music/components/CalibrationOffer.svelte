@@ -1,5 +1,6 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
+  import { micLabel } from "#lib/music/hubs/connect/rig.ts";
   // The tap-along, offered on a timed drill's ready screen when this input and output
   // pair has no offset (runtime/calibration). One line; Tap along opens the Settings
   // panel in place, Skip remembers the pair. It never holds Start back.
@@ -20,7 +21,7 @@
   const deviceId = $derived(key?.startsWith("midi:") ? key.slice(5) : undefined);
   const name = $derived(
     key === AUDIO_INPUT
-      ? settings.value.audioInputLabel || m.music_shell_calib_the_mic()
+      ? micLabel(settings.value.audioInputLabel) || m.music_shell_calib_the_mic()
       : deviceId
         ? midi.profile(deviceId)?.alias || midi.inputs.find((p) => p.id === deviceId)?.name || m.music_shell_calib_this_device()
         : "MIDI",

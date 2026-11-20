@@ -2225,5 +2225,10 @@
   "music_hubs_cr_not_saved_lower": "pa sere",
   "music_hubs_cr_unsaved_lower": "chanjman ki pa sere",
   "music_hubs_cr_saved_lower": "sere",
-  "music_hubs_tv_lick_title": "{title}, premye mezi yo"
+  "music_hubs_tv_lick_title": "{title}, premye mezi yo",
+  "music_hubs_paths_code_circle": "Sik kent yo, etap {n}",
+  "music_hubs_paths_code_studio": "Zòrèy estidyo, etap {n}",
+  "music_hubs_paths_code_step": "etap {n}",
+  "music_hubs_lick_from_transcription": "yon transkripsyon",
+  "music_hubs_lick_from_by_ear": "Aprann ak zòrèy"
 }

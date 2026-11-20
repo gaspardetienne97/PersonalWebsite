@@ -81,6 +81,13 @@ describe("metricScore", () => {
     expect(metricScore("Not measured")).toBeUndefined();
     expect(metricScore("0/0")).toBeUndefined();
   });
+  it("reads the other languages' forms, so the score ring fills in every language", () => {
+    expect(metricScore("85\u00a0%")).toBe(0.85);
+    expect(metricScore("85 %")).toBe(0.85);
+    expect(metricScore("3 de 4")).toBe(0.75);
+    expect(metricScore("3 sur 4")).toBe(0.75);
+    expect(metricScore("3 sou 4")).toBe(0.75);
+  });
 });
 
 describe("priorBest", () => {
