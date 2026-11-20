@@ -23,7 +23,9 @@
   import { btn, btnPrimary, btnStage, panel } from "#lib/music/components/ui.ts";
   import { audio, settings, type MetronomeHandle, type SequenceHandle, type SequenceNote } from "#lib/music/runtime/index.ts";
   import ClipVisual from "#lib/music/clips/ClipVisual.svelte";
-  import { CLIPS, SECTIONS, clipFile, exampleSeconds, inputSlug, pad2, type Clip } from "#lib/music/clips/clips.ts";
+  import { m } from "@repo/i18n/messages.js";
+  import { formatList } from "@repo/i18n/format";
+  import { CLIPS, SECTIONS, clipFile, exampleSeconds, inputSlug, pad2, sectionLabel, type Clip } from "#lib/music/clips/clips.ts";
   import { CLIP_DB, ClipInput, listInputs, type RawTake } from "#lib/music/clips/capture.svelte.ts";
   import {
     canPickFolder,
@@ -45,6 +47,7 @@
   } from "#lib/music/clips/folder.ts";
 
   const PREROLL_MS = 1000;
+  const RECORDINGS_PATH = `<span class="font-medium text-ws-ink">.recordings/detection</span>`;
   const TICKED_KEY = "woodshed.clips.inputs";
 
   // ---- The clip in view -------------------------------------------------
@@ -91,6 +94,8 @@
     return out;
   });
   const slugOf = (i: ClipInput) => slugs.get(i.deviceId) ?? inputSlug(i.label);
+  /** The folder name as markup for a message: a slug is only lowercase letters, digits and dashes. */
+  const folderTag = (i: ClipInput) => `<span class="font-medium text-ws-ink">${slugOf(i)}</span>`;
 
   async function refreshInputs() {
     const found = await listInputs();
@@ -109,13 +114,13 @@
       const s = await navigator.mediaDevices.getUserMedia({ audio: true });
       s.getTracks().forEach((t) => t.stop());
       await refreshInputs();
-      if (!listed) inputError = "No audio input found. Plug one in, then try again.";
+      if (!listed) inputError = m.music_runtime_clipspage_no_input();
     } catch (e) {
       const name = (e as DOMException).name;
       inputError =
         name === "NotAllowedError" || name === "SecurityError"
-          ? "Microphone access is blocked. Allow the microphone for this site (the icon in the address bar), then try again."
-          : "No audio input found. Plug one in, then try again.";
+          ? m.music_runtime_mic_blocked()
+          : m.music_runtime_clipspage_no_input();
     }
   }
 
@@ -153,7 +158,7 @@
       if (state.notes) notes = { ...emptyNotes(), ...state.notes, clips: { ...state.notes.clips } };
       void rememberFolder(dir);
     } catch (e) {
-      folderError = `That folder couldn't be read: ${(e as Error).message}`;
+      folderError = m.music_runtime_clipspage_folder_unreadable({ error: (e as Error).message });
     }
   }
   async function chooseFolder() {
@@ -161,7 +166,7 @@
       const dir = await pickFolder();
       if (dir) await useFolder(dir);
     } catch (e) {
-      folderError = `The folder didn't open: ${(e as Error).message}`;
+      folderError = m.music_runtime_clipspage_folder_not_opened({ error: (e as Error).message });
     }
   }
   async function wake() {
@@ -180,7 +185,7 @@
       await writeJson(folder, "notes.json", $state.snapshot(notes));
       notesSaved = true;
     } catch (e) {
-      folderError = `The notes didn't save: ${(e as Error).message}`;
+      folderError = m.music_runtime_clipspage_notes_not_saved({ error: (e as Error).message });
     }
   }
 
@@ -278,6 +283,7 @@
   /** Ticked inputs that already hold this clip: recording again replaces those files. */
   const saved = $derived(live.filter((i) => has(slugOf(i), clip.n)));
   const cue = $derived(elapsed < PREROLL_MS ? "Wait" : "Play");
+  const cueText = $derived(cue === "Wait" ? m.music_runtime_clipspage_cue_wait() : m.music_runtime_clipspage_cue_play());
   const clock = (ms: number) => {
     const s = Math.floor(ms / 1000);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -312,11 +318,11 @@
     );
     if (!takes.length) {
       phase = "idle";
-      status = "Nothing was recorded. Check that an input is ticked and its meter moves, then record again.";
+      status = m.music_runtime_clipspage_nothing_recorded();
       return;
     }
     phase = "review";
-    status = `Clip ${pad2(c.n)}: listen back, then save the take or record again.`;
+    status = m.music_runtime_clipspage_review({ number: pad2(c.n) });
   }
 
   function stopPlayback() {
@@ -337,7 +343,7 @@
         if (playback === handle) stopPlayback();
       });
     } catch (e) {
-      status = `The take didn't play: ${(e as Error).message}`;
+      status = m.music_runtime_clipspage_take_not_played({ error: (e as Error).message });
     }
   }
   /** A saved take read back from the folder. */
@@ -355,7 +361,7 @@
         if (playback === handle) stopPlayback();
       });
     } catch (e) {
-      status = `The saved take didn't play: ${(e as Error).message}`;
+      status = m.music_runtime_clipspage_saved_take_not_played({ error: (e as Error).message });
     }
   }
 
@@ -374,7 +380,7 @@
       if (asleep) await wake();
       else await chooseFolder();
       if (!folder) {
-        status = "Choose a folder to save the take in.";
+        status = m.music_runtime_clipspage_choose_folder_first();
         return;
       }
     }
@@ -385,7 +391,7 @@
     const entries: TakeEntry[] = takes.map((t) => ({
       file: `${t.slug}/${file}`,
       clip: c.n,
-      title: c.title,
+      title: c.fileTitle,
       inputLabel: t.label,
       inputSlug: t.slug,
       sampleRate: t.sampleRate,
@@ -410,10 +416,10 @@
       phase = "idle";
       const next = CLIPS[c.n];
       if (next) open(next.n);
-      status = `Take saved: ${file}${next ? `. Next: clip ${pad2(next.n)}.` : ". That was the last clip."}`;
+      status = next ? m.music_runtime_clipspage_take_saved_next({ file, number: pad2(next.n) }) : m.music_runtime_clipspage_take_saved_last({ file });
     } catch (e) {
       phase = "review";
-      status = `The take didn't save: ${(e as Error).message}. Choose the folder again, then save the take.`;
+      status = m.music_runtime_clipspage_take_not_saved({ error: (e as Error).message });
     }
   }
 
@@ -465,12 +471,12 @@
 
   const TONE = { good: "bg-success", quiet: "bg-ws-soft", hot: "bg-warn", clipping: "bg-destructive" } as const;
   const fill = (db: number) => ((Math.max(LEVEL_FLOOR_DB, Math.min(0, db)) - LEVEL_FLOOR_DB) / -LEVEL_FLOOR_DB) * 100;
-  const adviceOf = (i: ClipInput) => (i.clipping ? { tone: "clipping" as const, label: "Clipping" } : levelAdvice(i.held));
+  const adviceOf = (i: ClipInput) => (i.clipping ? { tone: "clipping" as const, label: m.music_runtime_clipspage_clipping() } : levelAdvice(i.held));
   const adviceText = (i: ClipInput) => {
     const a = adviceOf(i);
-    return a.tone === "clipping" ? "Clipping: turn this input down" : a.label;
+    return a.tone === "clipping" ? m.music_runtime_clipspage_clipping_advice() : a.label;
   };
-  const dB = (v: number) => `${v <= LEVEL_FLOOR_DB ? "under −60" : v.toFixed(1).replace("-", "−")} dB`;
+  const dB = (v: number) => (v <= LEVEL_FLOOR_DB ? m.music_runtime_clipspage_under_floor() : `${v.toFixed(1).replace("-", "−")} dB`);
   const rate = (hz: number) => `${Math.round(hz / 100) / 10} kHz`;
   // The stage's buttons, sized to be found from a metre away.
   const big = "inline-flex min-h-14 items-center justify-center gap-2 rounded-full px-7 text-lg font-semibold disabled:opacity-50";
@@ -479,7 +485,7 @@
   const field = "mt-1 w-full rounded-lg border border-ws-line bg-ws-surface px-3 py-2 text-base placeholder:text-ws-soft";
 </script>
 
-<svelte:head><title>Test recordings | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_runtime_clipspage_head_title()}</title></svelte:head>
 <svelte:window onkeydown={onKey} onkeyup={onKeyUp} />
 
 {#snippet meter(i: ClipInput, stage: boolean)}
@@ -487,7 +493,7 @@
   <div
     class="relative h-2.5 overflow-hidden rounded-full {stage ? 'bg-ws-stage-ink/15' : 'bg-ws-raised'}"
     role="meter"
-    aria-label="Level, {i.label}"
+    aria-label={m.music_runtime_clipspage_level_label({ input: i.label })}
     aria-valuemin={LEVEL_FLOOR_DB}
     aria-valuemax="0"
     aria-valuenow={Math.round(i.level)}
@@ -500,22 +506,22 @@
 
 <div class="mx-auto flex max-w-6xl flex-col gap-5">
   <header>
-    <h1 class="font-display text-4xl font-semibold tracking-tight">Test recordings</h1>
+    <h1 class="font-display text-4xl font-semibold tracking-tight">{m.music_runtime_clipspage_title()}</h1>
     <p class="mt-1 max-w-[80ch] text-ws-soft">
-      42 short clips for testing how Woodshed hears your instruments. Each take records every ticked input at once and saves as WAV files in your folder. Nothing here counts as practice.
-      <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#input">Back to Settings</a>
+      {m.music_runtime_clipspage_intro()}
+      <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#input">{m.music_runtime_clipspage_back_to_settings()}</a>
     </p>
   </header>
 
   <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
     <div class="contents lg:flex lg:flex-col lg:gap-5">
     <section class="{panel} order-1" aria-labelledby="inputs-h" data-testid="clip-inputs">
-      <h2 id="inputs-h" class="font-display text-xl font-semibold">Inputs</h2>
+      <h2 id="inputs-h" class="font-display text-xl font-semibold">{m.music_runtime_clipspage_inputs_heading()}</h2>
       {#if !listed}
-        <p class="mt-1 text-ws-soft">Allow the microphone and Woodshed lists every input by name.</p>
-        <button type="button" class="{btnPrimary} mt-3" onclick={allow}><Mic class="size-4" aria-hidden="true" />Allow microphone</button>
+        <p class="mt-1 text-ws-soft">{m.music_runtime_clipspage_allow_intro()}</p>
+        <button type="button" class="{btnPrimary} mt-3" onclick={allow}><Mic class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_allow_button()}</button>
       {:else}
-        <p class="mt-1 text-ws-soft">Tick the inputs to record. Play at your loudest and keep every meter out of the red.</p>
+        <p class="mt-1 text-ws-soft">{m.music_runtime_clipspage_tick_intro()}</p>
         <ul class="mt-3 flex flex-col gap-3">
           {#each inputs as i (i.deviceId)}
             {@const on = i.state === "on" || i.state === "starting"}
@@ -524,7 +530,9 @@
               <div class="min-w-0">
                 <label for="in-{i.deviceId}" class="font-medium">{i.label}</label>
                 <p class="text-sm text-ws-soft">
-                  Folder <span class="font-medium text-ws-ink">{slugOf(i)}</span>{#if i.state === "on"}, {rate(i.sampleRate)}, {i.channels} {i.channels === 1 ? "channel" : "channels"}{/if}, {doneCount(slugOf(i))} of {CLIPS.length} saved
+                  {@html i.state === "on"
+                    ? m.music_runtime_clipspage_input_folder_on({ folder: folderTag(i), rate: rate(i.sampleRate), channels: m.music_runtime_clipspage_channels({ count: i.channels }), done: doneCount(slugOf(i)), total: CLIPS.length })
+                    : m.music_runtime_clipspage_input_folder({ folder: folderTag(i), done: doneCount(slugOf(i)), total: CLIPS.length })}
                 </p>
                 {#if i.state === "error"}
                   <p class="mt-1 text-sm font-medium text-destructive">{i.error}</p>
@@ -532,7 +540,7 @@
                   <div class="mt-1.5">
                     {@render meter(i, false)}
                     <p class="tnum mt-1 text-sm {adviceOf(i).tone === 'clipping' ? 'font-semibold text-destructive' : 'text-ws-soft'}">
-                      {#if adviceOf(i).tone === "clipping"}<TriangleAlert class="mr-1 inline size-4 align-text-bottom" aria-hidden="true" />{/if}{i.state === "starting" ? "Starting…" : `${dB(i.held)}, ${adviceText(i)}`}
+                      {#if adviceOf(i).tone === "clipping"}<TriangleAlert class="mr-1 inline size-4 align-text-bottom" aria-hidden="true" />{/if}{i.state === "starting" ? m.music_runtime_clipspage_starting() : `${dB(i.held)}, ${adviceText(i)}`}
                     </p>
                   </div>
                 {/if}
@@ -542,7 +550,7 @@
         </ul>
         {#if columns.some((c) => !c.connected)}
           <p class="mt-3 text-sm text-ws-soft">
-            Not connected today: {columns.filter((c) => !c.connected).map((c) => `${c.label} (${doneCount(c.slug)} of ${CLIPS.length} saved)`).join(", ")}. Plug it in to record its missing clips.
+            {m.music_runtime_clipspage_not_connected({ inputs: columns.filter((c) => !c.connected).map((c) => m.music_runtime_clipspage_not_connected_item({ input: c.label, done: doneCount(c.slug), total: CLIPS.length })).join(", ") })}
           </p>
         {/if}
       {/if}
@@ -550,47 +558,47 @@
     </section>
 
     <section class="{panel} order-2" aria-labelledby="folder-h" data-testid="clip-folder">
-      <h2 id="folder-h" class="font-display text-xl font-semibold">Folder and notes</h2>
+      <h2 id="folder-h" class="font-display text-xl font-semibold">{m.music_runtime_clipspage_folder_heading()}</h2>
       {#if !picker}
-        <p class="mt-1 text-ws-soft">This browser can't save into a folder. Each take downloads as a WAV file. Move the files into <span class="font-medium text-ws-ink">.recordings/detection</span> yourself.</p>
-        {#if manifest}<button type="button" class="{btn} mt-3" onclick={() => download("manifest.json", JSON.stringify(manifest, null, 2), "application/json")}>Download manifest.json</button>{/if}
+        <p class="mt-1 text-ws-soft">{@html m.music_runtime_clipspage_no_picker({ path: RECORDINGS_PATH })}</p>
+        {#if manifest}<button type="button" class="{btn} mt-3" onclick={() => download("manifest.json", JSON.stringify(manifest, null, 2), "application/json")}>{m.music_runtime_clipspage_download_file({ file: "manifest.json" })}</button>{/if}
       {:else if folder}
-        <p class="mt-1 text-ws-soft">Saving in <span class="font-medium text-ws-ink" data-testid="clip-folder-name">{folder.name}</span>, one folder per input.</p>
-        <button type="button" class="{btn} mt-3" onclick={chooseFolder}><FolderOpen class="size-4" aria-hidden="true" />Change folder</button>
+        <p class="mt-1 text-ws-soft">{m.music_runtime_clipspage_saving_in()} <span class="font-medium text-ws-ink" data-testid="clip-folder-name">{folder.name}</span>{m.music_runtime_clipspage_saving_in_after()}</p>
+        <button type="button" class="{btn} mt-3" onclick={chooseFolder}><FolderOpen class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_change_folder()}</button>
       {:else}
-        <p class="mt-1 text-ws-soft">Choose <span class="font-medium text-ws-ink">.recordings/detection</span> in the project. Takes already in it show in the grid.</p>
+        <p class="mt-1 text-ws-soft">{@html m.music_runtime_clipspage_choose_hint({ path: RECORDINGS_PATH })}</p>
         <div class="mt-3 flex flex-wrap gap-2">
-          {#if asleep}<button type="button" class={btnPrimary} onclick={wake}><FolderOpen class="size-4" aria-hidden="true" />Open {asleep.name} again</button>{/if}
-          <button type="button" class={asleep ? btn : btnPrimary} onclick={chooseFolder}><FolderOpen class="size-4" aria-hidden="true" />Choose folder</button>
+          {#if asleep}<button type="button" class={btnPrimary} onclick={wake}><FolderOpen class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_open_again({ name: asleep.name })}</button>{/if}
+          <button type="button" class={asleep ? btn : btnPrimary} onclick={chooseFolder}><FolderOpen class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_choose_folder()}</button>
         </div>
       {/if}
       {#if folderError}<p class="mt-2 text-sm font-medium text-destructive" role="alert">{folderError}</p>{/if}
 
       <details class="mt-4 border-t border-ws-line pt-3" open={!!(notes.micPosition || notes.pianoModel || notes.aerophone)}>
-        <summary class="flex min-h-11 cursor-pointer items-center font-medium">Notes for the whole set</summary>
+        <summary class="flex min-h-11 cursor-pointer items-center font-medium">{m.music_runtime_clipspage_notes_summary()}</summary>
         <div class="flex flex-col gap-3 pb-1">
-          <label class="text-sm font-medium">Microphone position<input class={field} bind:value={notes.micPosition} oninput={notesChanged} placeholder="Laptop on the desk, 60 cm from the guitar" /></label>
-          <label class="text-sm font-medium">Piano model<input class={field} bind:value={notes.pianoModel} oninput={notesChanged} /></label>
-          <label class="text-sm font-medium">Aerophone tone and transpose<input class={field} bind:value={notes.aerophone} oninput={notesChanged} placeholder="Alto sax, transpose Eb" /></label>
+          <label class="text-sm font-medium">{m.music_runtime_clipspage_mic_position()}<input class={field} bind:value={notes.micPosition} oninput={notesChanged} placeholder={m.music_runtime_clipspage_mic_position_placeholder()} /></label>
+          <label class="text-sm font-medium">{m.music_runtime_clipspage_piano_model()}<input class={field} bind:value={notes.pianoModel} oninput={notesChanged} /></label>
+          <label class="text-sm font-medium">{m.music_runtime_clipspage_aerophone_setup()}<input class={field} bind:value={notes.aerophone} oninput={notesChanged} placeholder={m.music_runtime_clipspage_aerophone_placeholder()} /></label>
           <p class="text-sm text-ws-soft">
-            {#if !folder}{picker ? "Saved to notes.json once you choose a folder." : ""}{:else if notesSaved}Notes saved to notes.json.{:else}Saves to notes.json as you type.{/if}
+            {#if !folder}{picker ? m.music_runtime_clipspage_notes_after_folder() : ""}{:else if notesSaved}{m.music_runtime_clipspage_notes_saved()}{:else}{m.music_runtime_clipspage_notes_saving()}{/if}
           </p>
-          {#if !picker}<button type="button" class="{btn} self-start" onclick={() => download("notes.json", JSON.stringify($state.snapshot(notes), null, 2), "application/json")}>Download notes.json</button>{/if}
+          {#if !picker}<button type="button" class="{btn} self-start" onclick={() => download("notes.json", JSON.stringify($state.snapshot(notes), null, 2), "application/json")}>{m.music_runtime_clipspage_download_file({ file: "notes.json" })}</button>{/if}
         </div>
       </details>
     </section>
 
     <!-- The grid: clips down the side, one column per input that is connected or has takes in the folder. -->
     <section class="{panel} order-4" aria-labelledby="grid-h">
-      <h2 id="grid-h" class="font-display text-xl font-semibold">Clips</h2>
+      <h2 id="grid-h" class="font-display text-xl font-semibold">{m.music_runtime_clipspage_clips_heading()}</h2>
       <table class="mt-2 w-full border-collapse" data-testid="clips-grid">
         <thead>
           <tr>
-            <th scope="col" class="pb-2 text-left align-bottom text-sm font-medium text-ws-soft">{columns.length ? "Saved, by input" : "Allow the microphone to see a column for each input."}</th>
+            <th scope="col" class="pb-2 text-left align-bottom text-sm font-medium text-ws-soft">{columns.length ? m.music_runtime_clipspage_saved_by_input() : m.music_runtime_clipspage_grid_allow()}</th>
             {#each columns as c (c.slug)}
-              <th scope="col" class="w-11 pb-2 align-bottom text-sm font-medium {c.connected ? '' : 'text-ws-soft'}" title="{c.label}{c.connected ? '' : ', not connected today'}">
+              <th scope="col" class="w-11 pb-2 align-bottom text-sm font-medium {c.connected ? '' : 'text-ws-soft'}" title={c.connected ? c.label : m.music_runtime_clipspage_column_not_connected({ input: c.label })}>
                 <span class="col-name">{c.slug}</span>
-                <span class="sr-only">{c.connected ? "" : ", not connected today"}</span>
+                <span class="sr-only">{c.connected ? "" : m.music_runtime_clipspage_column_not_connected_sr()}</span>
               </th>
             {/each}
           </tr>
@@ -598,7 +606,7 @@
         {#each bySection as g (g.section)}
           <tbody>
             <tr>
-              <th scope="rowgroup" colspan={columns.length + 1} class="pt-3 pb-1 text-left font-display text-base font-semibold">{g.section}</th>
+              <th scope="rowgroup" colspan={columns.length + 1} class="pt-3 pb-1 text-left font-display text-base font-semibold">{sectionLabel(g.section)}</th>
             </tr>
             {#each g.clips as c (c.n)}
               <tr class="border-t border-ws-line {c.n === current ? 'bg-instr-wash' : ''}" data-current={c.n === current || undefined}>
@@ -611,7 +619,7 @@
                 {#each columns as col (col.slug)}
                   {@const done = has(col.slug, c.n)}
                   <td class="p-0 text-center">
-                    <button type="button" class="grid size-11 place-items-center rounded-md hover:bg-ws-raised disabled:opacity-60" disabled={busy} data-done={done || undefined} aria-label="Clip {pad2(c.n)}, {c.title}, {col.label}: {done ? 'saved' : 'not recorded'}" onclick={() => open(c.n)}>
+                    <button type="button" class="grid size-11 place-items-center rounded-md hover:bg-ws-raised disabled:opacity-60" disabled={busy} data-done={done || undefined} aria-label={(done ? m.music_runtime_clipspage_cell_saved : m.music_runtime_clipspage_cell_not_recorded)({ number: pad2(c.n), title: c.title, input: col.label })} onclick={() => open(c.n)}>
                       {#if done}
                         <span class="grid size-6 place-items-center rounded-full bg-success text-success-foreground"><Check class="size-4" strokeWidth={3} aria-hidden="true" /></span>
                       {:else}
@@ -633,12 +641,12 @@
       <div class="flex items-start gap-3">
         <p class="tnum font-display text-5xl leading-none font-semibold text-instr-ink" aria-hidden="true">{pad2(clip.n)}</p>
         <div class="min-w-0 flex-1">
-          <h2 id="clip-h" class="font-display text-2xl leading-tight font-semibold"><span class="sr-only">Clip {pad2(clip.n)}: </span>{clip.title}</h2>
-          <p class="text-sm text-ws-soft">{clip.section}, target length {clip.seconds} s{clip.bpm ? `, ${clip.bpm} BPM` : ""}</p>
+          <h2 id="clip-h" class="font-display text-2xl leading-tight font-semibold"><span class="sr-only">{m.music_runtime_clipspage_clip_number({ number: pad2(clip.n) })} </span>{clip.title}</h2>
+          <p class="text-sm text-ws-soft">{clip.bpm ? m.music_runtime_clipspage_meta_bpm({ section: sectionLabel(clip.section), seconds: clip.seconds, bpm: clip.bpm }) : m.music_runtime_clipspage_meta({ section: sectionLabel(clip.section), seconds: clip.seconds })}</p>
         </div>
         <div class="flex shrink-0 gap-1.5">
-          <button type="button" class="{btn} px-3" disabled={busy || current === 1} aria-label="Previous clip" onclick={() => open(current - 1)}><ChevronLeft class="size-5" aria-hidden="true" /></button>
-          <button type="button" class="{btn} px-3" disabled={busy || current === CLIPS.length} aria-label="Next clip" onclick={() => open(current + 1)}><ChevronRight class="size-5" aria-hidden="true" /></button>
+          <button type="button" class="{btn} px-3" disabled={busy || current === 1} aria-label={m.music_runtime_clipspage_previous()} onclick={() => open(current - 1)}><ChevronLeft class="size-5" aria-hidden="true" /></button>
+          <button type="button" class="{btn} px-3" disabled={busy || current === CLIPS.length} aria-label={m.music_runtime_clipspage_next()} onclick={() => open(current + 1)}><ChevronRight class="size-5" aria-hidden="true" /></button>
         </div>
       </div>
       <p class="max-w-prose text-lg leading-snug" data-testid="clip-play">{clip.play}</p>
@@ -647,51 +655,51 @@
       <div class="rounded-2xl bg-ws-stage p-4 text-ws-stage-ink sm:p-5" data-testid="clip-stage" data-phase={phase}>
         {#if phase === "recording" || phase === "stopping"}
           <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
-            <p class="cue font-display font-semibold" data-testid="clip-cue" data-cue={cue}>{cue}</p>
-            <p class="tnum font-display text-6xl leading-none font-semibold whitespace-nowrap" role="timer" aria-label="Recording time">{clock(elapsed)}<span class="ml-3 text-2xl font-medium text-ws-stage-soft">of {clock(clip.seconds * 1000)}</span></p>
+            <p class="cue font-display font-semibold" data-testid="clip-cue" data-cue={cue}>{cueText}</p>
+            <p class="tnum font-display text-6xl leading-none font-semibold whitespace-nowrap" role="timer" aria-label={m.music_runtime_clipspage_recording_time()}>{clock(elapsed)}<span class="ml-3 text-2xl font-medium text-ws-stage-soft">{m.music_runtime_clipspage_of_time({ time: clock(clip.seconds * 1000) })}</span></p>
           </div>
           <div class="mt-4 h-3 overflow-hidden rounded-full bg-ws-stage-ink/15" aria-hidden="true">
             <div class="h-full rounded-full {elapsed >= clip.seconds * 1000 ? 'bg-success' : 'bg-instr'}" style:width="{Math.min(100, (elapsed / (clip.seconds * 1000)) * 100)}%"></div>
           </div>
           <div class="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            <p class="min-w-0 flex-1 basis-64 text-xl text-ws-stage-soft">{cue === "Wait" ? "A second of silence first." : elapsed >= clip.seconds * 1000 ? "Let the last note die away, then press Space." : "Press Space when the last note has died away."}</p>
-            <button type="button" class="{big} {onStage}" disabled={phase === "stopping"} onclick={stop}><Square class="size-5" aria-hidden="true" />Stop<kbd class="key">Space</kbd></button>
+            <p class="min-w-0 flex-1 basis-64 text-xl text-ws-stage-soft">{cue === "Wait" ? m.music_runtime_clipspage_silence_first() : elapsed >= clip.seconds * 1000 ? m.music_runtime_clipspage_let_ring_then_space() : m.music_runtime_clipspage_space_when_done()}</p>
+            <button type="button" class="{big} {onStage}" disabled={phase === "stopping"} onclick={stop}><Square class="size-5" aria-hidden="true" />{m.music_runtime_clipspage_stop()}<kbd class="key">Space</kbd></button>
           </div>
         {:else if phase === "review" || phase === "saving"}
-          <p class="font-display text-2xl font-semibold">Take recorded</p>
+          <p class="font-display text-2xl font-semibold">{m.music_runtime_clipspage_take_recorded()}</p>
           <ul class="mt-2 flex flex-col gap-2">
             {#each takes as t (t.slug)}
               {@const clipped = t.peakDbfs >= CLIP_DB}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-ws-stage-ink/8 px-3 py-2" data-testid="clip-take">
-                <button type="button" class="{btnStage} px-3" aria-label="{playingSlug === t.slug ? 'Stop' : 'Play it back'}, {t.label}" onclick={() => playBack(t)}>
-                  {#if playingSlug === t.slug}<Square class="size-4" aria-hidden="true" />Stop{:else}<Play class="size-4" aria-hidden="true" />Play it back{/if}
+                <button type="button" class="{btnStage} px-3" aria-label={(playingSlug === t.slug ? m.music_runtime_clipspage_stop_input : m.music_runtime_clipspage_play_back_input)({ input: t.label })} onclick={() => playBack(t)}>
+                  {#if playingSlug === t.slug}<Square class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_stop()}{:else}<Play class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_play_back()}{/if}
                 </button>
                 <p class="min-w-0 flex-1 basis-40 font-medium">{t.label}</p>
-                <p class="tnum text-sm text-ws-stage-soft">{t.durationSec.toFixed(1)} s, {rate(t.sampleRate)}, {t.channels.length} {t.channels.length === 1 ? "channel" : "channels"}, peak {dB(t.peakDbfs)}</p>
+                <p class="tnum text-sm text-ws-stage-soft">{m.music_runtime_clipspage_take_details({ duration: t.durationSec.toFixed(1), rate: rate(t.sampleRate), channels: m.music_runtime_clipspage_channels({ count: t.channels.length }), level: dB(t.peakDbfs) })}</p>
                 {#if clipped}
-                  <p class="flex basis-full items-center gap-1.5 text-sm font-semibold text-warn"><TriangleAlert class="size-4" aria-hidden="true" />Clipped. Turn this input down and record again.</p>
+                  <p class="flex basis-full items-center gap-1.5 text-sm font-semibold text-warn"><TriangleAlert class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_clipped()}</p>
                 {:else if t.peakDbfs < -40 && clip.n > 1}
-                  <p class="basis-full text-sm text-ws-stage-soft">Very quiet. Check this input heard you.</p>
+                  <p class="basis-full text-sm text-ws-stage-soft">{m.music_runtime_clipspage_very_quiet()}</p>
                 {/if}
               </li>
             {/each}
           </ul>
           <div class="mt-4 flex flex-wrap items-center gap-3">
-            <button type="button" class="{big} {primary}" disabled={phase === "saving"} onclick={save}>{phase === "saving" ? "Saving…" : "Save take"}<kbd class="key">Enter</kbd></button>
-            <button type="button" class="{big} {onStage}" disabled={phase === "saving"} onclick={again}>Record again<kbd class="key">R</kbd></button>
+            <button type="button" class="{big} {primary}" disabled={phase === "saving"} onclick={save}>{phase === "saving" ? m.music_runtime_clipspage_saving() : m.music_runtime_clipspage_save_take()}<kbd class="key">Enter</kbd></button>
+            <button type="button" class="{big} {onStage}" disabled={phase === "saving"} onclick={again}>{m.music_runtime_clipspage_record_again()}<kbd class="key">R</kbd></button>
           </div>
         {:else}
           <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
             {#if phase === "confirm"}
               <div class="flex flex-wrap items-center gap-3">
-                <button type="button" class="{big} {primary}" onclick={record}><Mic class="size-5" aria-hidden="true" />Record over it<kbd class="key">Space</kbd></button>
-                <button type="button" class="{big} {onStage}" onclick={() => (phase = "idle")}>Cancel</button>
+                <button type="button" class="{big} {primary}" onclick={record}><Mic class="size-5" aria-hidden="true" />{m.music_runtime_clipspage_record_over()}<kbd class="key">Space</kbd></button>
+                <button type="button" class="{big} {onStage}" onclick={() => (phase = "idle")}>{m.music_runtime_clipspage_cancel()}</button>
               </div>
-              <p class="min-w-0 flex-1 basis-56 text-lg" role="alert">This clip is already saved for {saved.map((i) => i.label).join(" and ")}. Recording again replaces {saved.length === 1 ? "that file" : "those files"} when you save.</p>
+              <p class="min-w-0 flex-1 basis-56 text-lg" role="alert">{m.music_runtime_clipspage_already_saved({ inputs: formatList(saved.map((i) => i.label)), count: saved.length })}</p>
             {:else}
-              <button type="button" class="{big} {primary}" disabled={!live.length} onclick={record}><Mic class="size-5" aria-hidden="true" />Record<kbd class="key">Space</kbd></button>
+              <button type="button" class="{big} {primary}" disabled={!live.length} onclick={record}><Mic class="size-5" aria-hidden="true" />{m.music_runtime_clipspage_record()}<kbd class="key">Space</kbd></button>
               <p class="min-w-0 flex-1 basis-56 text-lg text-ws-stage-soft">
-                {#if !live.length}Tick an input above to record.{:else}Space starts and stops. Wait for the cue, play, and let the last note die away.{/if}
+                {#if !live.length}{m.music_runtime_clipspage_tick_to_record()}{:else}{m.music_runtime_clipspage_space_hint()}{/if}
               </p>
             {/if}
           </div>
@@ -702,12 +710,12 @@
                 <li>
                   <div class="flex items-baseline justify-between gap-2 text-sm">
                     <span class="min-w-0 truncate font-medium">{i.label}</span>
-                    <span class="shrink-0 {i.clipping ? 'font-semibold text-warn' : 'text-ws-stage-soft'}">{i.clipping ? "Clipping" : done ? "Saved" : "Not recorded"}</span>
+                    <span class="shrink-0 {i.clipping ? 'font-semibold text-warn' : 'text-ws-stage-soft'}">{i.clipping ? m.music_runtime_clipspage_clipping() : done ? m.music_runtime_clipspage_saved() : m.music_runtime_clipspage_not_recorded()}</span>
                   </div>
                   <div class="mt-1">{@render meter(i, true)}</div>
                   {#if done && folder}
                     <button type="button" class="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium underline underline-offset-4" onclick={() => playSaved(slugOf(i))}>
-                      {#if playingSlug === slugOf(i)}<Square class="size-4" aria-hidden="true" />Stop{:else}<Play class="size-4" aria-hidden="true" />Play the saved take{/if}
+                      {#if playingSlug === slugOf(i)}<Square class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_stop()}{:else}<Play class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_play_saved()}{/if}
                     </button>
                   {/if}
                 </li>
@@ -721,22 +729,22 @@
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
         {#if clip.example.length}
           <button type="button" class={btn} disabled={busy} aria-pressed={!!demo} onclick={hear}>
-            {#if demo}<Square class="size-4" aria-hidden="true" />Stop{:else}<Volume2 class="size-4" aria-hidden="true" />Hear it{/if}
+            {#if demo}<Square class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_stop()}{:else}<Volume2 class="size-4" aria-hidden="true" />{m.music_runtime_clipspage_hear_it()}{/if}
           </button>
         {:else}
-          <p class="text-sm text-ws-soft">Nothing to hear for this clip.</p>
+          <p class="text-sm text-ws-soft">{m.music_runtime_clipspage_nothing_to_hear()}</p>
         {/if}
         {#if clip.bpm}
-          <button type="button" class="{btn} {click ? 'border-transparent bg-instr-strong text-on-instr hover:bg-instr-strong' : ''}" aria-pressed={!!click} onclick={toggleClick}>Metronome, {clip.bpm} BPM</button>
+          <button type="button" class="{btn} {click ? 'border-transparent bg-instr-strong text-on-instr hover:bg-instr-strong' : ''}" aria-pressed={!!click} onclick={toggleClick}>{m.music_runtime_clipspage_metronome_bpm({ bpm: clip.bpm })}</button>
           <p class="flex min-w-0 flex-1 basis-64 items-center gap-2 text-sm {clip.click === 'speakers' ? 'font-medium' : 'text-ws-soft'}">
             {#if clip.click === "speakers"}
-              <Speaker class="size-5 shrink-0" aria-hidden="true" />Play the click through the speakers: this clip tests how the microphone hears it.
+              <Speaker class="size-5 shrink-0" aria-hidden="true" />{m.music_runtime_clipspage_speakers_hint()}
             {:else}
-              <Headphones class="size-5 shrink-0" aria-hidden="true" />Wear headphones for the click, so the recording holds your playing alone.
+              <Headphones class="size-5 shrink-0" aria-hidden="true" />{m.music_runtime_clipspage_headphones_hint()}
             {/if}
           </p>
         {/if}
-        {#if demo}<p class="basis-full text-sm text-ws-soft">Demo playing, not recorded.</p>{/if}
+        {#if demo}<p class="basis-full text-sm text-ws-soft">{m.music_runtime_clipspage_demo_playing()}</p>{/if}
       </div>
 
       {#key clip.n}
@@ -744,8 +752,8 @@
       {/key}
 
       <label class="text-sm font-medium">
-        Anything you played differently in clip {pad2(clip.n)}
-        <textarea class={field} rows="2" bind:value={() => notes.clips[pad2(clip.n)] ?? "", (v) => (v ? (notes.clips[pad2(clip.n)] = v) : delete notes.clips[pad2(clip.n)])} oninput={notesChanged} placeholder="A wrong note, a skipped strum"></textarea>
+        {m.music_runtime_clipspage_notes_label({ number: pad2(clip.n) })}
+        <textarea class={field} rows="2" bind:value={() => notes.clips[pad2(clip.n)] ?? "", (v) => (v ? (notes.clips[pad2(clip.n)] = v) : delete notes.clips[pad2(clip.n)])} oninput={notesChanged} placeholder={m.music_runtime_clipspage_notes_placeholder()}></textarea>
       </label>
     </section>
   </div>

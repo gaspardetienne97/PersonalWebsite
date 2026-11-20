@@ -5,6 +5,8 @@
   import { RUNGS, nextReview, tuneLadders, type Rung, type TuneLadderState } from "@repo/music-core/progress/ladder";
   import { practice } from "#lib/music/practice.svelte.ts";
   import { btn, panel } from "#lib/music/components/ui.ts";
+  import { m } from "@repo/i18n/messages.js";
+  import { intlLocale } from "@repo/i18n/format";
 
   let all = $state(false);
   const runs = $derived(practice.sessions.flatMap((s) => s.runs));
@@ -18,7 +20,7 @@
       .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0) || a.tune.name.localeCompare(b.tune.name)),
   );
 
-  const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const dateText = (ms: number) => new Date(ms).toLocaleDateString(intlLocale(), { day: "numeric", month: "short" });
 
   /** Where each rung is practised; undefined when the tune has no changes in the tune player yet. */
   function rungHref(l: TuneLadderState, r: Rung): string | undefined {
@@ -33,20 +35,20 @@
   }
 </script>
 
-<svelte:head><title>Tunes | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_runtime_tunes_head_title()}</title></svelte:head>
 
 {#snippet ladder(l: TuneLadderState)}
-  <ol class="flex flex-wrap gap-1.5" aria-label="{l.tune.name}: the six steps">
+  <ol class="flex flex-wrap gap-1.5" aria-label={m.music_runtime_tunes_ladder_label({ tune: l.tune.name })}>
     {#each RUNGS as r (r.id)}
       {@const st = l.rungs[r.id]}
       {@const href = rungHref(l, r.id)}
       <li>
         {#if href}
-          <a {href} class="rung" data-done={st.done} title="{r.label}: {r.done}" aria-label="{r.id}, {r.label}, {st.done ? 'done' : st.runs ? `${st.runs} run${st.runs === 1 ? '' : 's'}, not yet done` : 'not started'}">
+          <a {href} class="rung" data-done={st.done} title={m.music_runtime_tunes_rung_title({ step: r.label, done: r.done })} aria-label={st.done ? m.music_runtime_tunes_rung_done({ id: r.id, step: r.label }) : st.runs ? m.music_runtime_tunes_rung_runs({ id: r.id, step: r.label, count: st.runs }) : m.music_runtime_tunes_rung_not_started({ id: r.id, step: r.label })}>
             {#if st.done}<Check class="size-3.5" aria-hidden="true" />{/if}{r.id}
           </a>
         {:else}
-          <span class="rung" data-done="false" data-off="true" title="{r.label}: Jam has no changes for this tune yet." aria-label="{r.id}, {r.label}, needs the tune's changes in Jam" role="img">{r.id}</span>
+          <span class="rung" data-done="false" data-off="true" title={m.music_runtime_tunes_rung_off_title({ step: r.label })} aria-label={m.music_runtime_tunes_rung_off_label({ id: r.id, step: r.label })} role="img">{r.id}</span>
         {/if}
       </li>
     {/each}
@@ -55,63 +57,63 @@
 
 <div class="mx-auto flex max-w-6xl flex-col gap-6">
   <header>
-    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Tunes</h1>
+    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">{m.music_runtime_tunes_title()}</h1>
     <p class="mt-1 max-w-prose text-ws-soft">
-      You learn every standard in six steps, a to f. Your Check runs mark each step done. A tune with step a done joins your repertoire and comes back for review, as a skill does. <a
+      {m.music_runtime_tunes_intro()} <a
         class="font-semibold text-instr-ink underline underline-offset-4"
-        href="/music/progress">Back to Progress</a
+        href="/music/progress">{m.music_runtime_tunes_back_to_progress()}</a
       >
     </p>
   </header>
 
   <section class={panel} aria-labelledby="rungs-h">
-    <h2 id="rungs-h" class="font-display text-xl font-semibold">The six steps</h2>
+    <h2 id="rungs-h" class="font-display text-xl font-semibold">{m.music_runtime_tunes_steps_heading()}</h2>
     <dl class="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
       {#each RUNGS as r (r.id)}
-        <div class="flex gap-2"><dt class="font-semibold">{r.id}. {r.label}:</dt><dd class="text-ws-soft">{r.done}</dd></div>
+        <div class="flex gap-2"><dt class="font-semibold">{m.music_runtime_tunes_step_term({ id: r.id, step: r.label })}</dt><dd class="text-ws-soft">{r.done}</dd></div>
       {/each}
     </dl>
   </section>
 
   <section class="flex flex-col gap-3" aria-labelledby="rep-h" data-testid="repertoire">
-    <h2 id="rep-h" class="font-display text-2xl font-semibold">Repertoire</h2>
+    <h2 id="rep-h" class="font-display text-2xl font-semibold">{m.music_runtime_tunes_repertoire()}</h2>
     {#if review}
       <article class="{panel} flex flex-wrap items-center gap-4">
         <div class="min-w-0 flex-1 basis-64">
-          <p class="text-sm text-ws-soft">{review.review!.due ? "Due for review" : "Next to review"}</p>
+          <p class="text-sm text-ws-soft">{review.review!.due ? m.music_runtime_tunes_due_for_review() : m.music_runtime_tunes_next_to_review()}</p>
           <p class="font-display text-2xl font-semibold">{review.tune.name}</p>
-          <p class="text-sm text-ws-soft">Play steps a and d: the head from the notation, then comp it.</p>
+          <p class="text-sm text-ws-soft">{m.music_runtime_tunes_review_hint()}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a class={btn} href={rungHref(review, "a")}>Step a in Song practice</a>
-          {#if rungHref(review, "d")}<a class={btn} href={rungHref(review, "d")}>Step d in Accompaniment</a>{/if}
+          <a class={btn} href={rungHref(review, "a")}>{m.music_runtime_tunes_step_a_link()}</a>
+          {#if rungHref(review, "d")}<a class={btn} href={rungHref(review, "d")}>{m.music_runtime_tunes_step_d_link()}</a>{/if}
         </div>
       </article>
       <ul class="flex flex-col gap-2">
         {#each repertoire as l (l.tune.id)}
           <li class="{panel} flex flex-wrap items-center gap-x-4 gap-y-2">
             <p class="min-w-0 flex-1 basis-48 font-semibold">{l.tune.name}</p>
-            <p class="tnum text-sm" class:font-semibold={l.review!.due}>{l.review!.due ? "Due now" : `Review on ${dateText(l.review!.dueAt)}`}</p>
+            <p class="tnum text-sm" class:font-semibold={l.review!.due}>{l.review!.due ? m.music_runtime_tunes_due_now() : m.music_runtime_tunes_review_on({ date: dateText(l.review!.dueAt) })}</p>
             {@render ladder(l)}
           </li>
         {/each}
       </ul>
     {:else}
-      <p class="text-ws-soft">No tune is in your repertoire yet. Pass step a on two days to add one.</p>
+      <p class="text-ws-soft">{m.music_runtime_tunes_empty_repertoire()}</p>
     {/if}
   </section>
 
   <section class="flex flex-col gap-3" aria-labelledby="learn-h" data-testid="ladders">
     <div class="flex flex-wrap items-end justify-between gap-3">
-      <h2 id="learn-h" class="font-display text-2xl font-semibold">Learning</h2>
-      <button type="button" class={btn} aria-pressed={all} onclick={() => (all = !all)}>{all ? "Your tunes and Jam's" : "Every tune on the jazz song list"}</button>
+      <h2 id="learn-h" class="font-display text-2xl font-semibold">{m.music_runtime_tunes_learning()}</h2>
+      <button type="button" class={btn} aria-pressed={all} onclick={() => (all = !all)}>{all ? m.music_runtime_tunes_show_yours() : m.music_runtime_tunes_show_all()}</button>
     </div>
     <ul class="flex flex-col gap-2">
       {#each shown as l (l.tune.id)}
         <li class="{panel} flex flex-wrap items-center gap-x-4 gap-y-2">
           <div class="min-w-0 flex-1 basis-48">
             <p class="font-semibold">{l.tune.name}</p>
-            <p class="tnum text-sm text-ws-soft">{l.played ? `${l.played} Check run${l.played === 1 ? "" : "s"}, last on ${dateText(l.lastPlayed!)}` : "Not played yet"}{l.tune.bpm ? `. Tempo ${l.tune.bpm} BPM` : ""}</p>
+            <p class="tnum text-sm text-ws-soft">{l.played ? m.music_runtime_tunes_played({ count: l.played, date: dateText(l.lastPlayed!) }) : m.music_runtime_tunes_not_played()}{l.tune.bpm ? m.music_runtime_tunes_tempo({ bpm: l.tune.bpm }) : ""}</p>
           </div>
           {@render ladder(l)}
         </li>
