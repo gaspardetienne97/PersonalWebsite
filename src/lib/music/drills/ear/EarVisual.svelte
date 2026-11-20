@@ -5,6 +5,7 @@
   // note rises to its pitch and the drill's own picture appears: intervals,
   // chords and cadences on a grand staff (named underneath), degrees in their
   // one neutral colour with a melody's contour (green and red only for right and wrong).
+  import { m } from "@repo/i18n/messages.js";
   import { noteName, pc } from "@repo/music-core";
   import { functionLabel, functionSymbol, parseFunction, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
   import { intervalBySemitones } from "@repo/music-core/theory/intervals";
@@ -70,11 +71,13 @@
   const isTonic = (ei: number) => usesDegrees && ei === 0;
   /** What each pip is, without giving the answer away: the tonic, the key, then a question mark per note. */
   function shapeLabel(ei: number): string {
-    if (isTonic(ei)) return "Tonic";
-    if (ei < (prompt.keyEvents ?? 0)) return "Key";
+    if (isTonic(ei)) return m.music_drills_ear_visual_tonic();
+    if (ei < (prompt.keyEvents ?? 0)) return m.music_drills_ear_visual_key();
     // One event: the caption above already says "Played all at once".
     if (events.length === 1) return "";
-    return usesDegrees ? "" : `${chords ? "Chord" : "Note"} ${ei + 1 - (prompt.keyEvents ?? 0)}`;
+    if (usesDegrees) return "";
+    const n = ei + 1 - (prompt.keyEvents ?? 0);
+    return chords ? m.music_drills_ear_visual_chord_n({ n }) : m.music_drills_ear_visual_note_n({ n });
   }
   /**
    * Inside each pip: the starting note's name where knowing it gives nothing away (an
@@ -88,7 +91,7 @@
     if (isFilled(ei)) return filled[slotOf(ei)];
     const one = events[ei].midi.length === 1;
     if (ei === 0 && named && one && events.length > 1) return noteName(events[0].midi[0], "flat", false);
-    if (ei < (prompt.keyEvents ?? 0)) return "K";
+    if (ei < (prompt.keyEvents ?? 0)) return m.music_drills_ear_visual_key_short();
     // Chords and unnamed notes count in order ("Chord 1, then chord 2"): a number, never a "?" that looks tappable.
     return named ? "?" : String(slotOf(ei) + 1);
   }
@@ -96,12 +99,12 @@
   /** What the timing bars are, said once above them. */
   const caption = $derived(
     events.length === 1
-      ? "Played all at once"
+      ? m.music_drills_ear_visual_all_at_once()
       : prompt.drill === "inversion"
-        ? `Arpeggiated chord, ${events.length} notes`
+        ? m.music_drills_ear_visual_arpeggiated({ count: events.length })
         : events.length - (prompt.keyEvents ?? 0) === 2 && chords
-          ? "Chord 1, then chord 2"
-          : `${events.length} ${chords ? "chords" : "notes"}, one after another`,
+          ? m.music_drills_ear_visual_two_chords()
+          : (chords ? m.music_drills_ear_visual_chords_in_turn : m.music_drills_ear_visual_notes_in_turn)({ count: events.length }),
   );
   const shortInterval = (n: number) => intervalBySemitones(n % 12 || (n ? 12 : 0))?.token ?? `${n}`;
 
@@ -150,30 +153,30 @@
     if (prompt.drill === "chord-quality") {
       const s = [...ms].sort((a, b) => a - b);
       const name = QUALITIES.find((q) => q.token === prompt.answer)?.label ?? prompt.answer;
-      return `${name}: ${s.slice(1).map((m, i) => shortInterval(m - s[i])).join(", ")}`;
+      return m.music_drills_ear_reveal_notes({ name, notes: s.slice(1).map((n, i) => shortInterval(n - s[i])).join(", ") });
     }
     if (prompt.drill === "inversion") {
       const found = inversionOf(ms);
       if (!found) return tokenLabel(prompt.drill, prompt.answer);
       const name = QUALITIES.find((q) => q.token === found.token)?.label ?? found.token;
-      const where = ["Root position", "First inversion", "Second inversion", "Third inversion"][found.position];
+      const where = [m.music_drills_ear_visual_root_position, m.music_drills_ear_visual_first_inversion, m.music_drills_ear_visual_second_inversion, m.music_drills_ear_visual_third_inversion][found.position]();
       // Sharp names for the roots whose major chords are spelled with sharps (B major's third is D#).
       const prefer = [2, 4, 7, 9, 11].includes(found.rootPc) ? "sharp" : "flat";
-      return `${noteName(48 + found.rootPc, "flat", false)} ${name.toLowerCase()}, ${where.toLowerCase()}: ${noteName(Math.min(...ms), prefer, false)} in the bass`;
+      return m.music_drills_ear_visual_inversion({ root: noteName(48 + found.rootPc, "flat", false), quality: name.toLowerCase(), position: where.toLowerCase(), bass: noteName(Math.min(...ms), prefer, false) });
     }
     if (prompt.drill === "chord-function" || prompt.drill === "progression") {
-      const key = `${noteName(48 + tonicPc, "flat", false)} ${minorKey ? "minor" : "major"}`;
+      const key = (minorKey ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: noteName(48 + tonicPc, "flat", false) });
       const tokens = prompt.answer.split(" ");
       const names = tokens.map((t) => functionSymbol(tonicPc, t));
-      return `${tokens.map(functionLabel).join(", ")} in ${key}: ${names.join(", ")}`;
+      return m.music_drills_ear_visual_chords_in_key({ chords: tokens.map(functionLabel).join(", "), key, names: names.join(", ") });
     }
     if (prompt.drill === "cadence") {
       const c = CADENCES.find((x) => x.token === prompt.answer);
-      return c ? `${c.label}, ${c.romanProgression.join(" to ")}` : prompt.answer;
+      return c ? m.music_drills_ear_visual_cadence({ label: c.label, chords: c.romanProgression.reduce((from, to) => m.music_drills_ear_chord_to({ from, to })) }) : prompt.answer;
     }
     const semis = Math.abs(ms[ms.length - 1] - ms[0]);
-    const name = semis === 0 ? "Perfect unison" : (intervalBySemitones(semis)?.name ?? `${semis} semitones`);
-    return `${name}, ${semis} semitone${semis === 1 ? "" : "s"}`;
+    const name = semis === 0 ? m.music_drills_ear_visual_perfect_unison() : (intervalBySemitones(semis)?.name ?? m.music_drills_ear_visual_semitones_fallback({ n: semis }));
+    return m.music_drills_ear_visual_interval({ name, count: semis });
   }
   // Chords of a key are drawn in it: its signature (a minor key's is its relative major's)
   // and its spelling (Eb major's IV is Ab, not G#).
@@ -182,7 +185,7 @@
     const f = (((tonicPc + (minorKey ? 3 : 0)) % 12) * 7) % 12;
     return f > 5 ? f - 12 : f;
   });
-  const lead = (k: number) => (prompt.drill === "interval-compare" ? (k === 0 ? "First" : "Second") : prefix);
+  const lead = (k: number) => (prompt.drill === "interval-compare" ? (k === 0 ? m.music_drills_ear_compare_first_short() : m.music_drills_ear_compare_second_short()) : prefix);
   const staffScores = $derived(
     groups.map((g, k): Score => {
       const one = g.length === 1;
@@ -213,7 +216,7 @@
   const rightAt = (ei: number) => judged && !wrongAt.some((w) => w.ei === ei) && ei > 0;
   /** Each note's label: the tonic says "Tonic" alone (it is 1 by definition), the rest their degree. Never within
    *  8 px of another label: a label that would be goes under its note. 13 px bold, about 8 px a character. */
-  const tagText = (ei: number, m: number) => (isTonic(ei) ? "Tonic" : degreeText(m));
+  const tagText = (ei: number, n: number) => (isTonic(ei) ? m.music_drills_ear_visual_tonic() : degreeText(n));
   const tagYs = $derived.by(() => {
     if (!revealed || !usesDegrees) return [] as number[][];
     const boxes = events.flatMap((e, ei) => e.midi.map((m) => ({ x: x(e.time) + 4, above: yOf(m) - noteH / 2 - 4, below: yOf(m) + noteH / 2 + 15, w: tagText(ei, m).length * 8 })));
@@ -236,9 +239,9 @@
 {#if revealed && onStaff}
   <div class="grid gap-3 {groups.length > 1 ? 'sm:grid-cols-2' : ''}">
     {#each groups as g, k (k)}
-      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label="{lead(k) ?? 'The notes'} on the staff">
+      <figure class="staff-card flex flex-col items-center rounded-xl bg-ws-surface px-3 pb-2 pt-1 text-ws-ink" aria-label={lead(k) ? m.music_drills_ear_visual_on_staff({ what: lead(k)! }) : m.music_drills_ear_visual_notes_on_staff()}>
         <div class="w-full max-w-72"><Staff score={staffScores[k]} grand maxHeight="14rem" /></div>
-        <figcaption class="text-center text-sm font-semibold">{lead(k) ? `${lead(k)}: ` : ""}{describe(g)}</figcaption>
+        <figcaption class="text-center text-sm font-semibold">{lead(k) ? m.music_drills_ear_visual_lead({ lead: lead(k)!, text: describe(g) }) : describe(g)}</figcaption>
       </figure>
     {/each}
   </div>
@@ -247,10 +250,10 @@
 {#if !revealed}
   <!-- The bars are time, not pitch: one per note or chord, lit as it sounds. -->
   <p class="flex items-center gap-1.5 text-sm font-semibold text-ws-stage-soft">
-    <Volume2 class="size-4 {active >= 0 ? 'text-instr' : ''}" aria-hidden="true" /><span>{active >= 0 && events.length > 1 ? `Playing ${active + 1} of ${events.length}` : caption}</span>
+    <Volume2 class="size-4 {active >= 0 ? 'text-instr' : ''}" aria-hidden="true" /><span>{active >= 0 && events.length > 1 ? m.music_drills_ear_visual_playing({ n: active + 1, total: events.length }) : caption}</span>
   </p>
 {/if}
-<svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? "What you heard, note by note" : "What is playing, in time"}>
+<svg class="ear-visual" class:revealed width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={revealed ? m.music_drills_ear_visual_heard_aria() : m.music_drills_ear_visual_playing_aria()}>
   {#if revealed}<line class="base" x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom + 6} y2={H - PAD.bottom + 6} />{/if}
 
   {#if revealed && contour}
@@ -266,19 +269,19 @@
       <circle cx={cx} cy={yOf(w.m)} r={noteH / 2 + 3} />
       <path d="M{cx - 4} {yOf(w.m) - 4} L{cx + 4} {yOf(w.m) + 4} M{cx + 4} {yOf(w.m) - 4} L{cx - 4} {yOf(w.m) + 4}" />
       <!-- Your note's name in its own row under the line, so it never lands on another note's label. -->
-      <text class="wrong-tag" x={cx} y={H - 6} text-anchor="middle">You: {degreeText(w.m)}</text>
+      <text class="wrong-tag" x={cx} y={H - 6} text-anchor="middle">{m.music_drills_ear_visual_you_tag({ degree: degreeText(w.m) })}</text>
     </g>
   {/each}
 
   {#each events as e, ei (ei)}
     {@const on = ei === active}
     {#if revealed}
-      {#each e.midi as m, mi (mi)}
+      {#each e.midi as midi, mi (mi)}
         {@const colour = rightAt(ei) ? "var(--success)" : usesDegrees ? "var(--ear-note)" : "var(--instr)"}
         <g class="note" style:--d="{ei * 70 + mi * 30}ms">
           <rect
             x={x(e.time)}
-            y={yOf(m) - noteH / 2}
+            y={yOf(midi) - noteH / 2}
             width={Math.max(8, x(e.time + e.duration) - x(e.time) - 3)}
             height={noteH}
             rx={noteH / 2}
@@ -289,7 +292,7 @@
             class:on
           />
           {#if usesDegrees}
-            <text class="tag" x={x(e.time) + 4} y={tagYs[ei]?.[mi] ?? yOf(m) - noteH / 2 - 4}>{tagText(ei, m)}</text>
+            <text class="tag" x={x(e.time) + 4} y={tagYs[ei]?.[mi] ?? yOf(midi) - noteH / 2 - 4}>{tagText(ei, midi)}</text>
           {/if}
         </g>
       {/each}
@@ -312,9 +315,9 @@
 </svg>
 {#if revealed && prefix}
   {@const phrase = ["melody-dictation", "repertoire-transfer"].includes(prompt.drill)}
-  <p class="mt-1 text-center text-sm font-semibold">{prefix}: {phrase ? prompt.answer.split(" ").map(say).join(" ") : tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree")}</p>
+  <p class="mt-1 text-center text-sm font-semibold">{m.music_drills_ear_visual_lead({ lead: prefix, text: phrase ? prompt.answer.split(" ").map(say).join(" ") : tokenLabel(prompt.drill, prompt.answer, labels === "solfege" ? "solfege" : "degree") })}</p>
   <!-- A phrase you played back: your notes under the phrase's, each by its own degree (4 #4 4 under 4 3 4). -->
-  {#if phrase && judged}<p class="text-center text-sm font-semibold">You played: {answered.map((m) => (Number.isFinite(m) ? degreeText(m) : "?")).join(" ")}</p>{/if}
+  {#if phrase && judged}<p class="text-center text-sm font-semibold">{m.music_drills_ear_visual_you_played({ notes: answered.map((n) => (Number.isFinite(n) ? degreeText(n) : "?")).join(" ") })}</p>{/if}
 {/if}
 </div>
 {/if}

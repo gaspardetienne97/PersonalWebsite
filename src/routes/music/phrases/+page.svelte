@@ -3,6 +3,7 @@
   // back after the count-in, graded on the notes in order and their timing.
   // Written above the instrument (a staff, or tab on guitar and ukulele).
   import { onDestroy, onMount } from "svelte";
+  import { m } from "@repo/i18n/messages.js";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName, pc } from "@repo/music-core";
   import { phraseBeats, phraseNotes, phrasesFor, userPhrase, type PhraseInstrument, type UserLick } from "@repo/music-core/content/phrases";
@@ -151,20 +152,35 @@
     return out;
   });
   /** Beside Stop on a phone: the step to play now. */
-  const cue = $derived(phase === "running" && next ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}${mode === "practice" ? `: ${spell(next.notes.map((n) => n.midi))}` : ", notes hidden"}` : "");
-  const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? "As saved" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : "semitones" }));
+  const cue = $derived.by(() => {
+    if (phase !== "running" || !next) return "";
+    const at = { n: Math.min(played + 1, events.length), total: events.length };
+    if (mode === "practice") return (chords ? m.music_drills_phrases_cue_step_shown : m.music_drills_phrases_cue_note_shown)({ ...at, notes: spell(next.notes.map((n) => n.midi)) });
+    return (chords ? m.music_drills_phrases_cue_step_hidden : m.music_drills_phrases_cue_note_hidden)(at);
+  });
+  const KEYS = Array.from({ length: 12 }, (_, i) => i - 5).map((n) => ({ value: n, label: n === 0 ? m.music_drills_phrases_as_saved() : `${n > 0 ? "+" : "−"}${Math.abs(n)}`, detail: n === 0 ? undefined : m.music_drills_phrases_semitones() }));
+  const NO_PHRASES: Record<PhraseInstrument, () => string> = {
+    piano: m.music_drills_phrases_none_piano,
+    guitar: m.music_drills_phrases_none_guitar,
+    ukulele: m.music_drills_phrases_none_ukulele,
+    aerophone: m.music_drills_phrases_none_aerophone,
+  };
   const summaryLine = $derived<SetupClause[] | string>(
     phrase
-      ? [{ text: `${phrase.title} (${phrase.style})`, focus: "phrase" }, ...(isUser ? [{ text: transpose ? `moved ${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitones` : "in the key it was saved in", focus: "transpose" }] : []), { text: bpm === phrase.bpm ? `at its own ${bpm} BPM` : `at ${bpm} BPM, the phrase goes at about ${phrase.bpm}` }]
-      : `No phrases for the ${own} yet`,
+      ? [
+          { text: m.music_drills_phrases_title_style({ title: phrase.title, style: phrase.style }), focus: "phrase" },
+          ...(isUser ? [{ text: transpose ? (transpose > 0 ? m.music_drills_phrases_moved_up : m.music_drills_phrases_moved_down)({ n: Math.abs(transpose) }) : m.music_drills_phrases_saved_key(), focus: "transpose" }] : []),
+          { text: bpm === phrase.bpm ? m.music_drills_phrases_own_tempo({ bpm }) : m.music_drills_phrases_other_tempo({ bpm, goal: phrase.bpm }) },
+        ]
+      : NO_PHRASES[own](),
   );
-  const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: `${p.style}, about ${p.bpm} BPM`, group: p.id.startsWith("user.") ? "Your licks" : `Level ${p.level}`, keywords: p.source })));
+  const items = $derived(list.map((p) => ({ value: p.id, title: p.title, meta: m.music_drills_phrases_item_meta({ style: p.style, bpm: p.bpm }), group: p.id.startsWith("user.") ? m.music_drills_phrases_your_licks() : m.music_drills_phrases_level({ n: p.level }), keywords: p.source })));
   async function removeLick() {
     if (!isUser) return;
     await removeUserLick(phrase.id);
     licks = licks.filter((l) => l.id !== phrase.id);
     cfg.set({ phrase: "" });
-    status = "Removed that lick.";
+    status = m.music_drills_phrases_removed();
   }
   /** Picking a phrase starts it at three quarters of its own tempo, and says so. */
   function pickPhrase(id: string) {
@@ -174,13 +190,13 @@
     const start = Math.max(TEMPO.min, Math.round(p.bpm * 0.75));
     if (start !== bpm) {
       settings.update({ bpm: start });
-      status = `Tempo set to ${start} BPM, three quarters of the phrase's ${p.bpm}.`;
+      status = m.music_drills_phrases_tempo_set({ start, bpm: p.bpm });
     }
   }
 
   async function demo(speed = 1) {
     if (transport.playing) return transport.stop();
-    status = `Demo playing, not scored: ${phrase.title}${speed < 1 ? " at half speed" : ""}.`;
+    status = (speed < 1 ? m.music_drills_phrases_demo_half : m.music_drills_phrases_demo)({ title: phrase.title });
     await transport.demo(timed, bpm, speed);
   }
 
@@ -189,19 +205,19 @@
     const want = events[played];
     if (want && mode === "practice") flashes.add(fretted && e.string !== undefined ? e.string * 100 + (e.fret ?? 0) : e.midi, want.notes.some((n) => pc(n.midi) === pc(e.midi)) ? "correct" : "wrong");
     // A step is settled once it is complete or has a wrong note in it.
-    const m = matchEvents(events, cap?.notes ?? []);
+    const matched = matchEvents(events, cap?.notes ?? []);
     const hits: Record<number, Hit> = {};
-    m.forEach((x, i) => {
+    matched.forEach((x, i) => {
       if (x.at !== null && ctxRef) hits[i] = x.right || x.played.length < events[i].notes.length ? x.at - (ctxRef.downbeat + events[i].startBeat * ctxRef.beatMs) : "wrong";
     });
     eventHits = hits;
     // The word for the step this note answered: on time, early or late by so many ms, or the note it wanted.
-    const h = hits[m.findLastIndex((x) => x.at !== null)];
+    const h = hits[matched.findLastIndex((x) => x.at !== null)];
     if (want && mode === "practice" && (h === "wrong" || typeof h === "number")) {
-      const v = typeof h === "number" ? verdictOf(Math.abs(h) <= onTimeMs() ? "ok" : h < 0 ? "early" : "late", h) : { kind: "wrong" as const, text: `Heard ${spell([e.midi])}, that one was ${spell(want.notes.map((n) => n.midi))}` };
+      const v = typeof h === "number" ? verdictOf(Math.abs(h) <= onTimeMs() ? "ok" : h < 0 ? "early" : "late", h) : { kind: "wrong" as const, text: m.music_drills_phrases_heard_wanted({ heard: spell([e.midi]), want: spell(want.notes.map((n) => n.midi)) }) };
       verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
     }
-    played = m.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;
+    played = matched.filter((x, i) => x.right || x.played.some((q) => !events[i].notes.some((n) => pc(n.midi) === pc(q.midi)))).length;
     if (played >= events.length) {
       clearTimeout(timer);
       timer = setTimeout(() => void finish(), 350);
@@ -231,7 +247,7 @@
     });
     cap = capture(ctx.downbeat - ctx.beatMs / 2, (e) => e.kind === "noteon" && onNote(e));
     transport.follow(ctx.downbeat, ctx.beatMs);
-    status = "Play it back.";
+    status = m.music_drills_phrases_play_it_back();
     timer = setTimeout(() => void finish(), Math.max(0, ctx.downbeat - performance.now()) + (beats + 2) * ctx.beatMs);
   }
 
@@ -246,38 +262,44 @@
     result = r;
     phase = "results";
     await run!.attempt({ promptId: phrase.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: runSource(got), instrument: runInstrument(got, own) ?? null, target: notes.map((n) => n.midi), response: got.filter((n) => n.kind === "noteon").map((n) => n.midi) });
-    const what = chords ? "steps" : "notes";
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${r.matched} of ${r.total} ${what}` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: (chords ? m.music_drills_phrases_run_steps : m.music_drills_phrases_run_notes)({ matched: r.matched, total: r.total }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
       return;
     }
     const rows: ResultRow[] = [
-      { label: chords ? "Notes and chords in order" : "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
+      { label: chords ? m.music_drills_phrases_row_in_order_chords() : m.music_drills_phrases_row_in_order(), value: r.score, text: m.music_drills_phrases_of({ a: r.matched, b: r.total }) },
       // Timing is judged on the steps that came in order, so it says how many of those.
-      { label: `On time (within ${Math.round(Math.min(180, ctxRef!.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of the ${r.matched} in order` },
+      { label: m.music_drills_phrases_row_on_time({ ms: Math.round(Math.min(180, ctxRef!.beatMs / 4)) }), value: r.matched ? r.onTime / r.matched : 0, text: m.music_drills_phrases_row_on_time_text({ onTime: r.onTime, matched: r.matched }) },
     ];
-    if (fretted) rows.push(r.positions === null ? { label: "String and fret (MIDI and microphone can't see them)", notMeasured: true } : { label: "String and fret", value: r.positions / r.total, text: `${r.positions} of ${r.total}` });
+    if (fretted) rows.push(r.positions === null ? { label: m.music_drills_phrases_row_positions_unseen(), notMeasured: true } : { label: m.music_drills_phrases_row_positions(), value: r.positions / r.total, text: m.music_drills_phrases_of({ a: r.positions, b: r.total }) });
     const wrong = r.firstWrong === null ? null : events[r.firstWrong];
     const any = got.some((n) => n.kind === "noteon");
+    /** Where it slipped: the step or note, and what was wanted there. */
+    const slipped = () => {
+      const at = { matched: r.matched, total: r.total, n: (r.firstWrong ?? 0) + 1 };
+      if (!wrong) return (chords ? m.music_drills_phrases_slipped_step : m.music_drills_phrases_slipped_note)(at);
+      if (wrong.notes.length > 1) return m.music_drills_phrases_slipped_step_chord({ ...at, notes: spell(wrong.notes.map((n) => n.midi)) });
+      return (chords ? m.music_drills_phrases_slipped_step_note : m.music_drills_phrases_slipped_note_note)({ ...at, notes: spell([wrong.notes[0].midi]) });
+    };
     summary = {
       headline: !r.matched
-        ? "Nothing matched. Hear it at half speed, then try again."
+        ? m.music_drills_phrases_nothing_matched()
         : r.correct
           ? mode === "check"
-            ? `All ${r.total} ${what} in order, in Check.`
-            : `All ${r.total} ${what} in order.`
-          : `${r.matched} of ${r.total} right. It slipped at ${chords ? "step" : "note"} ${(r.firstWrong ?? 0) + 1}${wrong ? `, ${wrong.notes.length > 1 ? `the chord ${spell(wrong.notes.map((n) => n.midi))}` : `the ${spell([wrong.notes[0].midi])}`}` : ""}.`,
+            ? (chords ? m.music_drills_phrases_all_steps_check : m.music_drills_phrases_all_notes_check)({ total: r.total })
+            : (chords ? m.music_drills_phrases_all_steps : m.music_drills_phrases_all_notes)({ total: r.total })
+          : slipped(),
       metric: pct(r.score),
-      metricLabel: `${what} in order`,
+      metricLabel: chords ? m.music_drills_phrases_metric_steps() : m.music_drills_phrases_metric_notes(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
       rows,
-      cleanMeans: `every ${chords ? "step" : "note"} in order`,
+      cleanMeans: chords ? m.music_drills_phrases_clean_steps() : m.music_drills_phrases_clean_notes(),
       timing: any ? timingFromErrors(events.map((_, i) => (typeof eventHits[i] === "number" ? (eventHits[i] as number) : null)), onTimeMs()) : undefined,
       // Up to the phrase's own tempo, then the next phrase for this instrument.
       advance: any ? await nextRun(`phrases.${own}`, { bpm, tempo: { min: TEMPO.min, goal: phrase.bpm, max: TEMPO.max }, steps: list.map((p) => ({ label: p.title, goal: p.bpm, start: Math.max(TEMPO.min, Math.round(p.bpm * 0.75)) })), step: list.indexOf(phrase) }, { score: r.score, correct: r.correct }, tempoAnd((i) => cfg.set({ phrase: list[i].id }))) : undefined,
@@ -290,7 +312,7 @@
     transport.stop();
     cap?.stop();
     phase = "ready";
-    status = "Stopped. Nothing saved.";
+    status = m.music_drills_phrases_stopped();
   }
   onDestroy(() => {
     clearTimeout(timer);
@@ -299,15 +321,15 @@
   });
 </script>
 
-<svelte:head><title>Phrases | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_phrases_title()} | Woodshed</title></svelte:head>
 
 {#if inst === "mpc"}
   <PadSkills skill="phrases" modes={[]} onmode={() => {}} />
 {:else}
 <DrillShell
-  title="Phrases"
+  title={m.music_drills_phrases_title()}
   hue={own}
-  blurb="Popular short phrases for your instrument: famous public-domain melodies and the stock licks of a style. Hear one, then play it back."
+  blurb={m.music_drills_phrases_blurb()}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -319,16 +341,16 @@
   onstart={start}
   onstop={stop}
   {cue}
-  blocked={phrase ? null : "No phrases for this instrument yet."}
+  blocked={phrase ? null : m.music_drills_phrases_none_instrument()}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <CatalogPicker label="Phrase" setupKey="phrase" noun="phrase" recentKey="phrases.{own}" {items} value={phrase?.id ?? ""} onchange={pickPhrase} />
-      <p class="self-end text-sm text-ws-soft">Picking a phrase starts it at three quarters of its tempo. The instrument comes from the top bar. On MPC pads the phrases are drum phrases. Save a lick in Learn by ear or from a transcription and it joins the list under Your licks.</p>
+      <CatalogPicker label={m.music_drills_phrases_phrase()} setupKey="phrase" noun="phrase" recentKey="phrases.{own}" {items} value={phrase?.id ?? ""} onchange={pickPhrase} />
+      <p class="self-end text-sm text-ws-soft">{m.music_drills_phrases_setup_note()}</p>
       {#if isUser}
         <div class="flex min-w-0 flex-col gap-2 sm:col-span-2" data-setup="transpose">
-          <Choice label="Key" options={KEYS} value={transpose} onchange={(v) => cfg.set({ transpose: v })} />
-          <button type="button" class="{btn} self-start" onclick={removeLick}>Remove this lick</button>
+          <Choice label={m.music_drills_phrases_key()} options={KEYS} value={transpose} onchange={(v) => cfg.set({ transpose: v })} />
+          <button type="button" class="{btn} self-start" onclick={removeLick}>{m.music_drills_phrases_remove_lick()}</button>
         </div>
       {/if}
     </div>
@@ -336,8 +358,8 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Step" value="{Math.min(played + 1, events.length)} of {events.length}" />
-      {#if mode === "practice" && next}<Stat label="Next" value={spell(next.notes.map((n) => n.midi))} />{/if}
+      <Stat label={m.music_drills_phrases_step()} value={m.music_drills_phrases_of({ a: Math.min(played + 1, events.length), b: events.length })} />
+      {#if mode === "practice" && next}<Stat label={m.music_drills_phrases_next()} value={spell(next.notes.map((n) => n.midi))} />{/if}
     {/if}
   {/snippet}
 
@@ -347,15 +369,15 @@
         <div class="min-w-0 max-w-prose">
           <p class="font-display text-xl font-semibold">{phrase.title}</p>
           <!-- The notes take the room while it runs. -->
-          {#if phase !== "running" && phase !== "countin"}<p class="text-ws-stage-soft">{phrase.style}. {phrase.why} <span class="whitespace-nowrap">Source: {phrase.source}.</span></p>{/if}
+          {#if phase !== "running" && phase !== "countin"}<p class="text-ws-stage-soft">{phrase.style}. {phrase.why} <span class="whitespace-nowrap">{m.music_drills_phrases_source({ source: phrase.source })}</span></p>{/if}
         </div>
         {#if phase !== "running" && phase !== "countin" && mode === "practice"}
-          <button type="button" class={btnStage} onclick={() => demo(0.5)}>Half speed</button>
+          <button type="button" class={btnStage} onclick={() => demo(0.5)}>{m.music_drills_phrases_half_speed()}</button>
         {/if}
       </div>
       {#if (fretted || own === "piano") && (mode === "practice" || transport.playing) && phase === "ready"}
         <div class="mb-2 flex justify-end">
-          {#if fretted}{@render viewSwitch("Tab")}{:else}<ViewSwitch />{/if}
+          {#if fretted}{@render viewSwitch(m.music_drills_phrases_tab())}{:else}<ViewSwitch />{/if}
         </div>
       {/if}
       <!-- On a laptop the Aerophone's fingering chart stands beside the staff, so both fit one screen. -->
@@ -384,11 +406,13 @@
               {/each}
             </ol>
             <p class="text-sm text-ws-stage-soft">
-              {phase === "running" ? `${chords ? "Step" : "Note"} ${Math.min(played + 1, events.length)} of ${events.length}. The notes are hidden.` : `Check: the notes are hidden. ${events.length} ${chords ? "steps" : "notes"}: hear it, then play it back.`}
+              {phase === "running"
+                ? (chords ? m.music_drills_phrases_hidden_step : m.music_drills_phrases_hidden_note)({ n: Math.min(played + 1, events.length), total: events.length })
+                : (chords ? m.music_drills_phrases_check_steps : m.music_drills_phrases_check_notes)({ count: events.length })}
             </p>
           </div>
           {#if phase !== "running" && phase !== "countin"}
-            <button type="button" class={btnStage} onclick={() => demo(1)}>Hear it again</button>
+            <button type="button" class={btnStage} onclick={() => demo(1)}>{m.music_drills_phrases_hear_again()}</button>
           {/if}
         </div>
       {/if}
@@ -402,7 +426,7 @@
       {/if}
       </div>
     {:else}
-      <p class="text-sm text-ws-stage-soft">No phrases for this instrument yet.</p>
+      <p class="text-sm text-ws-stage-soft">{m.music_drills_phrases_none_instrument()}</p>
     {/if}
   {/snippet}
 
@@ -416,7 +440,7 @@
 {#snippet figure()}
   {#if phrase && result && Object.keys(eventHits).length}
     <div class="stage rounded-2xl p-3">
-      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Where each {chords ? "step" : "note"} landed</p>
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">{chords ? m.music_drills_phrases_where_steps() : m.music_drills_phrases_where_notes()}</p>
       <LineNotation notes={notes.map((n) => ({ midi: n.midi, startBeat: n.startBeat, durationBeats: n.durationBeats, string: n.string, fret: n.fret, ...(phrase.split !== undefined ? { hand: n.midi < phrase.split ? ("left" as const) : ("right" as const) } : {}) }))} tuning={fretTuning(own)} title="{phrase.id}{transpose ? `-${transpose}` : ''}-run" beatsPerBar={phrase.beatsPerBar}
         meter={phrase.meter} keyFifths={transposeFifths(phrase.keyFifths, -shift)} instrument={own} groupStates={states} oneRow />
     </div>

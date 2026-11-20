@@ -1,22 +1,48 @@
 // Fixed colour identity for scale degrees: a musical object's own colour, always
 // drawn with its text label (colour is never the only cue). The hue walks the
 // chromatic circle so neighbouring degrees differ and 1 is always the same gold.
+import { m } from "@repo/i18n/messages.js";
 import { noteName } from "@repo/music-core";
 import { SCALE_DEGREES } from "@repo/music-core/content/ear";
 
+/** Each degree's role, in the current language (getters, so they read the locale when shown). */
 export const DEGREE_ROLE: Record<string, string> = {
-  "1": "Tonic, home",
-  b2: "Flat two, colour",
-  "2": "Supertonic",
-  b3: "Flat three, minor colour",
-  "3": "Mediant",
-  "4": "Subdominant",
-  "#4": "Sharp four, colour",
-  "5": "Dominant",
-  b6: "Flat six, minor colour",
-  "6": "Submediant",
-  b7: "Flat seven, colour",
-  "7": "Leading tone",
+  get "1"() {
+    return m.music_drills_ear_role_1();
+  },
+  get b2() {
+    return m.music_drills_ear_role_b2();
+  },
+  get "2"() {
+    return m.music_drills_ear_role_2();
+  },
+  get b3() {
+    return m.music_drills_ear_role_b3();
+  },
+  get "3"() {
+    return m.music_drills_ear_role_3();
+  },
+  get "4"() {
+    return m.music_drills_ear_role_4();
+  },
+  get "#4"() {
+    return m.music_drills_ear_role_s4();
+  },
+  get "5"() {
+    return m.music_drills_ear_role_5();
+  },
+  get b6() {
+    return m.music_drills_ear_role_b6();
+  },
+  get "6"() {
+    return m.music_drills_ear_role_6();
+  },
+  get b7() {
+    return m.music_drills_ear_role_b7();
+  },
+  get "7"() {
+    return m.music_drills_ear_role_7();
+  },
 };
 
 export const semitonesOf = (label: string) =>

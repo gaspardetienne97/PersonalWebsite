@@ -1,3 +1,1997 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_drills_accompany_band": "Banda",
+  "music_drills_accompany_band_playing": "Bajo y batería sonando",
+  "music_drills_accompany_blurb_comping": "Acompaña los cambios con un ritmo: voicings shell o sin fundamental, cada acorde calificado en cualquier octava.",
+  "music_drills_accompany_blurb_lead_sheet": "Lee la melodía y el cifrado: el tema en la mano derecha, los acordes en la izquierda.",
+  "music_drills_accompany_blurb_patterns": "Un patrón para mano izquierda y derecha sobre un ciclo de acordes. Cualquier inversión cuenta. El ritmo tiene que caer en su lugar.",
+  "music_drills_accompany_chart_label": "La partitura",
+  "music_drills_accompany_check_lead": "Prueba: lee la melodía y el cifrado. Las teclas quedan apagadas.",
+  "music_drills_accompany_check_pattern": "Prueba: toca el patrón leyendo la partitura. Las notas están ocultas.",
+  "music_drills_accompany_chord_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": ", {count} compás",
+        "countPlural=other": ", {count} compases"
+      }
+    }
+  ],
+  "music_drills_accompany_clean_means": "cada acorde en su pulso",
+  "music_drills_accompany_click_only": "Solo clic",
+  "music_drills_accompany_coach_loop": "Repetir el compás {bar}",
+  "music_drills_accompany_coach_status": "El compás {bar} solo, {loops} veces. Ahí va.",
+  "music_drills_accompany_cue": "Compás {bar} de {total}: {chord}",
+  "music_drills_accompany_cue_hidden": "Compás {bar} de {total}: {chord}, notas ocultas",
+  "music_drills_accompany_demo": "Demo en curso, sin puntaje: las dos manos a tempo, al ritmo de la partitura.",
+  "music_drills_accompany_drums_bass": "Batería y bajo",
+  "music_drills_accompany_drums_bass_hint": "Un groove swing (o parejo) con el bajo en las fundamentales, para que acompañes encima.",
+  "music_drills_accompany_eighths": "Corcheas",
+  "music_drills_accompany_group_charts": "Partituras generadas",
+  "music_drills_accompany_group_generated": "Generadas",
+  "music_drills_accompany_group_lead_sheets": "Partituras guía",
+  "music_drills_accompany_group_songs": "Tus canciones con cifrado",
+  "music_drills_accompany_hand_count_left": "{matched} de {total} con la izquierda",
+  "music_drills_accompany_hand_count_right": "{matched} de {total} con la derecha",
+  "music_drills_accompany_hands": "Manos",
+  "music_drills_accompany_hands_both": "Las dos manos",
+  "music_drills_accompany_hands_both_lc": "las dos manos",
+  "music_drills_accompany_hands_left_only": "Solo izquierda",
+  "music_drills_accompany_hands_left_only_lc": "solo mano izquierda",
+  "music_drills_accompany_hands_right_only": "Solo derecha",
+  "music_drills_accompany_hands_right_only_lc": "solo mano derecha",
+  "music_drills_accompany_headline_clean": "Limpio a {bpm} BPM: {hands}.",
+  "music_drills_accompany_headline_loop_it": "Repítelo solo en loop.",
+  "music_drills_accompany_headline_timing": "Todos los acordes entraron, pero el tiempo se fue. Mantén las manos con el clic.",
+  "music_drills_accompany_headline_weak_left": "La mano izquierda acertó {matched} de {total}. El compás {bar} fue el que más falló.",
+  "music_drills_accompany_headline_weak_right": "La mano derecha acertó {matched} de {total}. El compás {bar} fue el que más falló.",
+  "music_drills_accompany_in_key": "en {key}",
+  "music_drills_accompany_in_three": "en 3/4",
+  "music_drills_accompany_key": "Tonalidad",
+  "music_drills_accompany_key_minor": "{key} menor",
+  "music_drills_accompany_key_written": "{key} (escrita)",
+  "music_drills_accompany_lane_hidden": "Carril de pulsos: cuándo toca cada mano, con las notas ocultas.",
+  "music_drills_accompany_left_hand": "Mano izquierda",
+  "music_drills_accompany_level_over": "{level} sobre {progression}",
+  "music_drills_accompany_loop_clause": "solo el compás {bar}, {loops} veces",
+  "music_drills_accompany_mark_left": "I",
+  "music_drills_accompany_mark_right": "D",
+  "music_drills_accompany_meter": "Compás",
+  "music_drills_accompany_metric": "puntaje",
+  "music_drills_accompany_new_chart": "Nueva partitura",
+  "music_drills_accompany_new_melody": "Nueva melodía",
+  "music_drills_accompany_new_melody_over": "una melodía nueva sobre {progression}",
+  "music_drills_accompany_now": "Ahora",
+  "music_drills_accompany_over_in": "sobre {progression} en {key}",
+  "music_drills_accompany_pattern": "Patrón",
+  "music_drills_accompany_piano_label": "Teclado de piano, de {low} a {high}. Teclas de la mano izquierda marcadas con I, de la derecha con D.",
+  "music_drills_accompany_prog_charted": "{about} Una partitura nueva cada vez que pulsas Nueva partitura.",
+  "music_drills_accompany_prog_written": "{chords}, escrita en {key}.",
+  "music_drills_accompany_prog_written_artist": "{chords}, escrita en {key}. {artist}.",
+  "music_drills_accompany_prog_written_artist_reharm": "{chords}, escrita en {key}. {artist}, rearmonizada en Jam.",
+  "music_drills_accompany_prog_written_reharm": "{chords}, escrita en {key}, rearmonizada en Jam.",
+  "music_drills_accompany_progression": "Progresión",
+  "music_drills_accompany_reharmonised": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} acorde rearmonizado",
+        "countPlural=other": "{count} acordes rearmonizados"
+      }
+    }
+  ],
+  "music_drills_accompany_requires": "acordes por MIDI",
+  "music_drills_accompany_requires_action": "Conecta un teclado MIDI (las teclas en pantalla tocan una nota a la vez, así que solo se califican notas sueltas)",
+  "music_drills_accompany_rhythm": "Ritmo",
+  "music_drills_accompany_right_hand": "Mano derecha",
+  "music_drills_accompany_right_hand_melody": "Mano derecha, la melodía",
+  "music_drills_accompany_row_chords_off": "Acordes (entrada en pantalla)",
+  "music_drills_accompany_setup_note": "Ajusta el tempo en la barra superior. Cualquier inversión u octava de un acorde cuenta. Las notas de más no bajan tu puntaje.",
+  "music_drills_accompany_stat_band": "Banda",
+  "music_drills_accompany_stat_bar": "Compás",
+  "music_drills_accompany_straight": "Parejas",
+  "music_drills_accompany_straight_lc": "corcheas parejas",
+  "music_drills_accompany_swung": "Swing",
+  "music_drills_accompany_swung_lc": "swing",
+  "music_drills_accompany_tab_comping": "Acompañamiento sobre los cambios",
+  "music_drills_accompany_times_label": "Vueltas",
+  "music_drills_accompany_times_through": "{count} vueltas",
+  "music_drills_accompany_tune": "Tema",
+  "music_drills_accompany_tune_generated": "Una melodía nueva sobre la progresión",
+  "music_drills_accompany_tune_hint_generated": "Notas del acorde en 1 y 3, pasos entre ellas",
+  "music_drills_accompany_tune_hint_swung": "{about} Escrito parejo, tocado con swing",
+  "music_drills_accompany_tune_import": "Importa una partitura guía en MusicXML en Studio y aparecerá aquí.",
+  "music_drills_accompany_voicing": "Voicing",
+  "music_drills_accompany_voicing_on_rhythm": "{voicing} en {rhythm}",
+  "music_drills_accompany_waltz": "3/4 vals",
+  "music_drills_accompany_whole_chart": "Partitura completa",
+  "music_drills_accompany_with_band": "con batería y bajo",
+  "music_drills_byear_as_recorded": "Como se grabó",
+  "music_drills_byear_back_5": "Atrás 5 s",
+  "music_drills_byear_blurb": "Pon en loop un tramo de una grabación, hazlo más lento sin cambiar la altura y toca la parte.",
+  "music_drills_byear_empty_no_sources": "Importa un archivo tuyo. Se queda en este navegador.",
+  "music_drills_byear_empty_title": "Elige una grabación para aprender.",
+  "music_drills_byear_empty_with_sources": "Importa un archivo tuyo o elige uno que ya tengas: una toma de Grabar o una pista de acompañamiento.",
+  "music_drills_byear_end_loop": "Fin del loop",
+  "music_drills_byear_got_it": "Lo logré",
+  "music_drills_byear_hear_note": "Escuchar {note}",
+  "music_drills_byear_hearing": "Se oye {note}. Cantaste:",
+  "music_drills_byear_home_clean_means": "la tónica nombrada",
+  "music_drills_byear_home_metric_right": "es la tónica",
+  "music_drills_byear_home_metric_wrong": "la tónica es {tonic}",
+  "music_drills_byear_home_next_reason": "pon en loop un tramo de esta grabación y tócalo",
+  "music_drills_byear_home_right": "Correcto: la tónica es {note}.",
+  "music_drills_byear_home_run_right": "La tónica es {note}",
+  "music_drills_byear_home_run_wrong": "Oíste {answer}, la tónica es {tonic}",
+  "music_drills_byear_home_status_right": "Correcto: {note} es la tónica.",
+  "music_drills_byear_home_status_wrong": "{answer} no es la tónica aquí. La grabación apunta a {key}.",
+  "music_drills_byear_home_wrong": "Elegiste {answer}. La tónica suena como {tonic}.",
+  "music_drills_byear_import": "Importar",
+  "music_drills_byear_import_file_aria": "Importar un archivo de grabación",
+  "music_drills_byear_import_recording": "Importar una grabación",
+  "music_drills_byear_key_caveat": "Woodshed deduce la tonalidad a partir de toda la grabación. Una canción que cambia de tonalidad o pasa mucho tiempo lejos de la tónica puede confundirlo.",
+  "music_drills_byear_learn_played": [
+    {
+      "declarations": [
+        "input count",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota tocada al {pct} %.",
+        "countPlural=other": "{count} notas tocadas al {pct} %."
+      }
+    }
+  ],
+  "music_drills_byear_learn_played_loop": [
+    {
+      "declarations": [
+        "input count",
+        "input a",
+        "input b",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota tocada de {a} a {b} al {pct} %.",
+        "countPlural=other": "{count} notas tocadas de {a} a {b} al {pct} %."
+      }
+    }
+  ],
+  "music_drills_byear_lick_default_name": "Grabación",
+  "music_drills_byear_lick_nothing": "Todavía no hay nada que guardar.",
+  "music_drills_byear_lick_saved": "Guardado. Búscalo en Frases, en Tus licks, y llévalo por todas las tonalidades.",
+  "music_drills_byear_lick_title": "{name} en {time}",
+  "music_drills_byear_load_and_play": "Cargar y reproducir",
+  "music_drills_byear_loaded": "Se cargó {name}: {length}.",
+  "music_drills_byear_loaded_unnamed": "Se cargó la grabación: {length}.",
+  "music_drills_byear_loading": "Cargando…",
+  "music_drills_byear_loop": "Loop",
+  "music_drills_byear_loop_off": "Loop desactivado: suena de corrido.",
+  "music_drills_byear_loop_off_button": "Quitar loop",
+  "music_drills_byear_loop_section": "Poner en loop {name} en {time}",
+  "music_drills_byear_loop_this_part": "Poner esta parte en loop",
+  "music_drills_byear_looping": "En loop de {a} a {b}.",
+  "music_drills_byear_mark_here": "Marcar aquí:",
+  "music_drills_byear_marked": "{name} marcado en {time}.",
+  "music_drills_byear_marked_sections": "Secciones marcadas",
+  "music_drills_byear_marks_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} marca. Toca una para ponerla en loop hasta la siguiente.",
+        "countPlural=other": "{count} marcas. Toca una para ponerla en loop hasta la siguiente."
+      }
+    }
+  ],
+  "music_drills_byear_mic_failed": "El micrófono no arrancó. Permítelo en el navegador para cantar con la grabación.",
+  "music_drills_byear_missing_file": "El archivo de esa grabación ya no está en este navegador. Impórtalo de nuevo.",
+  "music_drills_byear_mode_home": "Encontrar la tónica",
+  "music_drills_byear_mode_home_hint": "Nombra la tónica, la nota hogar donde descansa la música. Se califica según la tonalidad de la grabación.",
+  "music_drills_byear_mode_learn": "Aprender una parte",
+  "music_drills_byear_mode_learn_hint": "Pon en loop, baja la velocidad, marca secciones y tócalo. Tú calificas la ronda.",
+  "music_drills_byear_mode_sing": "Cantar con la grabación",
+  "music_drills_byear_mode_sing_hint": "Canta la melodía, o sus fundamentales, con la grabación. Cada nota cantada se califica según lo que suena en la grabación en ese momento.",
+  "music_drills_byear_next_sing": "Lo siguiente: {link}, para que la grabación te califique.",
+  "music_drills_byear_next_sing_link": "canta con la grabación",
+  "music_drills_byear_next_slower": "Lo siguiente: pon en loop un tramo más corto o bájalo al 75 %.",
+  "music_drills_byear_no_pitch": "Todavía sin altura. Cantaste:",
+  "music_drills_byear_not_yet": "Todavía no",
+  "music_drills_byear_notes_played_ask": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota tocada. ¿Sacaste la parte?",
+        "countPlural=other": "{count} notas tocadas. ¿Sacaste la parte?"
+      }
+    }
+  ],
+  "music_drills_byear_nothing_played": "No se tocó nada. Califícalo de todos modos o empieza de nuevo.",
+  "music_drills_byear_nothing_yet": "nada todavía",
+  "music_drills_byear_part_roots": "las fundamentales",
+  "music_drills_byear_part_tune": "la melodía",
+  "music_drills_byear_pause": "Pausar",
+  "music_drills_byear_pick_first": "Primero elige o importa una grabación.",
+  "music_drills_byear_pick_recording": "Elige una grabación",
+  "music_drills_byear_pitch": "Altura",
+  "music_drills_byear_play": "Reproducir",
+  "music_drills_byear_points_to": "Las notas de la grabación apuntan a {key}.",
+  "music_drills_byear_points_to_two": "Las notas de la grabación apuntan a {key}, con {other} muy cerca, así que cualquiera de las dos tónicas vale.",
+  "music_drills_byear_position": "Posición",
+  "music_drills_byear_position_aria": "Posición en la grabación",
+  "music_drills_byear_position_value": "{pos} de {length}",
+  "music_drills_byear_range": "{a} a {b}",
+  "music_drills_byear_rate_prompt": "Woodshed no puede oír la parte dentro de la grabación, así que tú la calificas: ¿pudiste tocarla con la grabación?",
+  "music_drills_byear_rate_run_got": "Sacó la parte de oído",
+  "music_drills_byear_rate_run_learning": "Todavía aprendiendo la parte",
+  "music_drills_byear_rate_status_got": "Guardado: lo calificaste como logrado. La próxima vez pruébalo más rápido.",
+  "music_drills_byear_rate_status_learning": "Guardado como en aprendizaje. Pon en loop un tramo más corto o bájale la velocidad.",
+  "music_drills_byear_recorded_take": "Toma grabada, {date}",
+  "music_drills_byear_recording": "Grabación",
+  "music_drills_byear_remove_section": "Quitar {name} en {time}",
+  "music_drills_byear_result_loop": "Loop de {a} a {b}, a {pct} % de velocidad.",
+  "music_drills_byear_result_whole": "Grabación completa, {length}, a {pct} % de velocidad.",
+  "music_drills_byear_roots_hint": "La fundamental de cada acorde, la nota del bajo, en cualquier octava.",
+  "music_drills_byear_roots_label": "Las fundamentales",
+  "music_drills_byear_save_lick": "Guardar como lick",
+  "music_drills_byear_saved_got": "Guardado como logrado, autocalificado, en tu diario.",
+  "music_drills_byear_saved_learning": "Guardado como en aprendizaje, autocalificado, en tu diario.",
+  "music_drills_byear_section_bridge": "Puente",
+  "music_drills_byear_section_change": "Cambio",
+  "music_drills_byear_section_chorus": "Coro",
+  "music_drills_byear_section_intro": "Intro",
+  "music_drills_byear_section_outro": "Final",
+  "music_drills_byear_section_solo": "Solo",
+  "music_drills_byear_section_verse": "Estrofa",
+  "music_drills_byear_sections": "Secciones",
+  "music_drills_byear_sing_clean_means": "todas las notas cantadas con la grabación",
+  "music_drills_byear_sing_counts": "Una nota cuenta cuando su clase de altura suena con fuerza en la grabación en ese momento, en cualquier octava.",
+  "music_drills_byear_sing_counts_bass": "Una nota cuenta cuando su clase de altura suena con fuerza en la grabación en ese momento, en el bajo, en cualquier octava.",
+  "music_drills_byear_sing_fails": "Se aprueba con 75 %. {count} notas se desviaron más de 50 cents. Las demás no coincidieron con lo que suena ahí en la grabación.",
+  "music_drills_byear_sing_headline": "{right} de {total} notas cantadas con la grabación.",
+  "music_drills_byear_sing_label": "Cantar",
+  "music_drills_byear_sing_matched": "{right} de {total} notas cantadas coincidieron con la grabación.",
+  "music_drills_byear_sing_matched_out": "{right} de {total} notas cantadas coincidieron con la grabación; {out} se desviaron más de 50 cents.",
+  "music_drills_byear_sing_metric": "cantadas con la grabación, aprueba con 75 %",
+  "music_drills_byear_sing_next_label": "Cantar las fundamentales",
+  "music_drills_byear_sing_next_reason": "la nota del bajo bajo cada acorde",
+  "music_drills_byear_sing_passes": "Aprobado: {part} afinada con la grabación.",
+  "music_drills_byear_sing_run": "{right} de {total} notas cantadas con la grabación",
+  "music_drills_byear_sing_too_few": [
+    {
+      "declarations": [
+        "input count",
+        "input min",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Solo se oyó {count} nota cantada: canta al menos {min} con la grabación. No se guardó nada.",
+        "countPlural=other": "Solo se oyeron {count} notas cantadas: canta al menos {min} con la grabación. No se guardó nada."
+      }
+    }
+  ],
+  "music_drills_byear_sources_hint": "Archivos tuyos, tus pistas de acompañamiento y tus tomas de Grabar. Se quedan en este navegador.",
+  "music_drills_byear_speed": "Velocidad",
+  "music_drills_byear_start_loop": "Inicio del loop",
+  "music_drills_byear_status_home": "Escucha. Toca o canta la tónica, la nota que suena a hogar, o elígela abajo.",
+  "music_drills_byear_status_looping": "En loop. Toca la parte junto con la grabación. Tus notas aparecen sobre el loop.",
+  "music_drills_byear_status_playing": "Sonando. Inicio del loop y Fin del loop marcan un tramo para repetir. Tus notas aparecen sobre la grabación.",
+  "music_drills_byear_status_sing": "Canta {part} con la grabación. Con audífonos, la grabación no entra al micrófono.",
+  "music_drills_byear_stopped_early": "Se detuvo antes de una respuesta. No se guardó nada.",
+  "music_drills_byear_stretch_note": "Por debajo del 100 % la altura no cambia (estiramiento granular, un poco granuloso). Un cambio de altura conserva la velocidad.",
+  "music_drills_byear_summary_from": "de “{title}”",
+  "music_drills_byear_summary_no_recording": "todavía sin grabación",
+  "music_drills_byear_summary_sing": "Cantar {part}",
+  "music_drills_byear_summary_speed": "velocidad al {pct} %",
+  "music_drills_byear_this_run": "Esta ronda",
+  "music_drills_byear_title": "Aprender de oído",
+  "music_drills_byear_tonic": "Tónica",
+  "music_drills_byear_too_few": "Muy pocas notas para calificar.",
+  "music_drills_byear_tune_hint": "El tema: la melodía, en cualquier octava.",
+  "music_drills_byear_tune_label": "La melodía",
+  "music_drills_byear_what_to_do": "Qué hacer",
+  "music_drills_byear_you_played": "Tocaste:",
+  "music_drills_changes_head_title": "{title} | Woodshed",
+  "music_drills_changes_not_found": "No existe esa forma de tocar sobre los cambios",
+  "music_drills_changes_stopped": "Detenido. No se guardó nada.",
+  "music_drills_changes_title": "Tocar sobre los cambios",
+  "music_drills_changes_x_of_y": "{count} de {total}",
+  "music_drills_changesjam_aim": "objetivo {aim}",
+  "music_drills_changesjam_aim_met": "objetivo {aim}, cumplido",
+  "music_drills_changesjam_back_written": "Volver a la progresión escrita",
+  "music_drills_changesjam_backing": "Acompañamiento",
+  "music_drills_changesjam_backing_both": "Batería y acordes",
+  "music_drills_changesjam_backing_chords": "Acordes",
+  "music_drills_changesjam_backing_chords_lc": "solo acordes",
+  "music_drills_changesjam_backing_drums": "Batería",
+  "music_drills_changesjam_backing_drums_lc": "solo batería",
+  "music_drills_changesjam_backing_none": "Ninguno, acordes a mano",
+  "music_drills_changesjam_backing_none_lc": "sin acompañamiento, acordes a mano",
+  "music_drills_changesjam_backing_paused": "Acompañamiento en pausa. Avanza por los acordes con Siguiente acorde.",
+  "music_drills_changesjam_backing_playing": "Acompañamiento sonando a {bpm} BPM.",
+  "music_drills_changesjam_backing_rhythm_lc": "batería y bajo",
+  "music_drills_changesjam_backing_track": "Tu pista",
+  "music_drills_changesjam_backing_track_lc": "tu pista de acompañamiento",
+  "music_drills_changesjam_blocked_head": "{game} necesita un tema con su melodía: elige una de tus canciones en Progresión.",
+  "music_drills_changesjam_blurb": "Improvisa un solo sobre una progresión o la forma de un standard mientras pasan los cambios.",
+  "music_drills_changesjam_choose_track": "Elige una pista",
+  "music_drills_changesjam_chord_to_swap": "Acorde a cambiar",
+  "music_drills_changesjam_chord_tones_of": "Notas del acorde de {symbol}",
+  "music_drills_changesjam_chorus": "Chorus {n}",
+  "music_drills_changesjam_chorus_headline": "Chorus {n}: {headline}",
+  "music_drills_changesjam_chorus_progress": "{name}, {n} de {total}",
+  "music_drills_changesjam_choruses_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} chorus",
+        "countPlural=other": "{count} choruses"
+      }
+    }
+  ],
+  "music_drills_changesjam_choruses_label": "Choruses en Prueba",
+  "music_drills_changesjam_clean_means": "cada objetivo cumplido en cada chorus",
+  "music_drills_changesjam_combine_mean": "Un chorus se califica por el promedio de sus partes frente a sus objetivos. La ronda es el promedio de sus choruses.",
+  "music_drills_changesjam_combine_min": "Un chorus se califica por su parte más débil frente a su objetivo. La ronda es el promedio de sus choruses.",
+  "music_drills_changesjam_comp_it": "Acompañarla en Acompañamiento",
+  "music_drills_changesjam_composer_note": "{composer}: solo los cambios. Lee el tema desde tu libro.",
+  "music_drills_changesjam_difficulty_advanced": "avanzado",
+  "music_drills_changesjam_difficulty_beginner": "principiante",
+  "music_drills_changesjam_difficulty_intermediate": "intermedio",
+  "music_drills_changesjam_form_bars": [
+    {
+      "declarations": [
+        "input count",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name} ({count} compás)",
+        "countPlural=other": "{name} ({count} compases)"
+      }
+    }
+  ],
+  "music_drills_changesjam_form_bars_sections": [
+    {
+      "declarations": [
+        "input count",
+        "input name",
+        "input sections",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, {sections} ({count} compás)",
+        "countPlural=other": "{name}, {sections} ({count} compases)"
+      }
+    }
+  ],
+  "music_drills_changesjam_form_item": [
+    {
+      "declarations": [
+        "input count",
+        "input symbol",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{symbol}, {count} compás",
+        "countPlural=other": "{symbol}, {count} compases"
+      }
+    }
+  ],
+  "music_drills_changesjam_form_item_now": [
+    {
+      "declarations": [
+        "input count",
+        "input symbol",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{symbol}, {count} compás, ahora",
+        "countPlural=other": "{symbol}, {count} compases, ahora"
+      }
+    }
+  ],
+  "music_drills_changesjam_form_label": "La forma, {name}",
+  "music_drills_changesjam_fours": "De a cuatro",
+  "music_drills_changesjam_fours_hint": "Tú tocas cuatro compases, la batería toca cuatro.",
+  "music_drills_changesjam_fretboard_label": "Diapasón {tuning}, funciones de las notas sobre {symbol}",
+  "music_drills_changesjam_game": "Juego",
+  "music_drills_changesjam_game_about": "{label}: {about}",
+  "music_drills_changesjam_grid_sixteenth": "{pct} en la cuadrícula de semicorcheas",
+  "music_drills_changesjam_grid_swing": "{pct} en la cuadrícula de swing (tresillos)",
+  "music_drills_changesjam_group_head": "Sobre el tema (tus canciones)",
+  "music_drills_changesjam_group_over": "Sobre los cambios",
+  "music_drills_changesjam_group_sets": "Grupos de notas",
+  "music_drills_changesjam_group_songs": "Tus canciones con acordes y melodía",
+  "music_drills_changesjam_group_space": "Espacio y respuestas",
+  "music_drills_changesjam_group_targets": "Objetivos y ritmo",
+  "music_drills_changesjam_head_needed": "Importa una partitura guía con cifrado (MusicXML de MuseScore) en Studio y luego elígela en Progresión.",
+  "music_drills_changesjam_hear_chord": "Escuchar el acorde",
+  "music_drills_changesjam_hear_chorus": "Escuchar este chorus",
+  "music_drills_changesjam_hear_it": "Escuchar",
+  "music_drills_changesjam_import_song": "Importar una canción",
+  "music_drills_changesjam_import_track": "Importar una pista",
+  "music_drills_changesjam_import_track_label": "Importar una pista de acompañamiento",
+  "music_drills_changesjam_imported": "Se importó {name}. Suena como acompañamiento.",
+  "music_drills_changesjam_keyboard_label": "Teclado, funciones de las notas sobre {symbol}",
+  "music_drills_changesjam_legend_avoid": "A evitar: punto apagado, sin nombre",
+  "music_drills_changesjam_legend_chord": "Nota del acorde: dorado (fundamental, 3.ª, 5.ª, 7.ª)",
+  "music_drills_changesjam_legend_numbers": "Los números cuentan desde la fundamental del acorde.",
+  "music_drills_changesjam_legend_scale": "Nota de la escala: punto azul (9, 11, 13)",
+  "music_drills_changesjam_legend_set": "Notas calificadas: anillo sólido ({notes})",
+  "music_drills_changesjam_mode_check": "Funciones de las notas ocultas. La forma dura los choruses que elegiste, y cada uno se califica según el juego.",
+  "music_drills_changesjam_mode_practice": "Funciones de las notas iluminadas, cada chorus descrito. Nada se califica.",
+  "music_drills_changesjam_name_in_key": "{name} en {key}",
+  "music_drills_changesjam_next_chord": "Siguiente acorde",
+  "music_drills_changesjam_next_chord_is": "Siguiente: {symbol}",
+  "music_drills_changesjam_next_tag": "Siguiente",
+  "music_drills_changesjam_no_chords": "{title} no tiene cifrado, así que Jam no puede leer sus cambios.",
+  "music_drills_changesjam_no_notes": "No se oyeron notas. No se guardó nada.",
+  "music_drills_changesjam_no_trading": "Sin intercambio",
+  "music_drills_changesjam_notes_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota",
+        "countPlural=other": "{count} notas"
+      }
+    }
+  ],
+  "music_drills_changesjam_nothing_played": "nada tocado",
+  "music_drills_changesjam_now_chords": "Ahora: {chords}",
+  "music_drills_changesjam_on_chord_tones": "en notas del acorde",
+  "music_drills_changesjam_open_record": "Abrirla en Grabar",
+  "music_drills_changesjam_option_difficulty": "{name} ({difficulty})",
+  "music_drills_changesjam_part": "{label}: {detail}",
+  "music_drills_changesjam_part_value": "{label}: {detail} ({value})",
+  "music_drills_changesjam_pause_backing": "Pausar el acompañamiento",
+  "music_drills_changesjam_per_chord": "{chord} del acorde, {scale} de la escala, {avoid} a evitar",
+  "music_drills_changesjam_pick_track": "Primero elige o importa una pista de acompañamiento en la configuración.",
+  "music_drills_changesjam_play_backing": "Reproducir el acompañamiento",
+  "music_drills_changesjam_play_by_hand": "Toca. Pasa al siguiente acorde con Siguiente acorde (o N).",
+  "music_drills_changesjam_play_over": "Toca sobre los cambios.",
+  "music_drills_changesjam_practice_note": "Una ronda de práctica en Jam no se califica. Los informes de abajo describen dónde cayeron tus notas, chorus por chorus.",
+  "music_drills_changesjam_reharm": "Rearmonizar",
+  "music_drills_changesjam_reharm_note": "Cambia un acorde por un sustituto, escucha la progresión y luego toca encima. Para que se califique tu acompañamiento, ábrela en Acompañamiento.",
+  "music_drills_changesjam_reports_label": "Informes por chorus",
+  "music_drills_changesjam_results_title": [
+    {
+      "declarations": [
+        "input count",
+        "input choruses",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota en {choruses}.",
+        "countPlural=other": "{count} notas en {choruses}."
+      }
+    }
+  ],
+  "music_drills_changesjam_role_avoid": "nota a evitar",
+  "music_drills_changesjam_role_chord": "nota del acorde",
+  "music_drills_changesjam_role_scale": "nota de la escala",
+  "music_drills_changesjam_score_met": "{score}, todos los objetivos cumplidos",
+  "music_drills_changesjam_scored_label": "Choruses calificados",
+  "music_drills_changesjam_scored_notes_over": "Notas calificadas sobre {symbol}",
+  "music_drills_changesjam_set_note": "El juego califica este grupo sobre cada acorde.",
+  "music_drills_changesjam_share_label": "{chord} % notas del acorde, {scale} % notas de la escala, {avoid} % notas a evitar",
+  "music_drills_changesjam_short_run": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "ronda corta: {count} chorus",
+        "countPlural=other": "ronda corta: {count} choruses"
+      }
+    }
+  ],
+  "music_drills_changesjam_solo_over": "solo sobre los cambios",
+  "music_drills_changesjam_stat_chorus": "Chorus",
+  "music_drills_changesjam_stat_notes": "Notas oídas",
+  "music_drills_changesjam_stats": [
+    {
+      "declarations": [
+        "input phrases",
+        "input bars",
+        "input notes",
+        "input range",
+        "input rests",
+        "local phrasesPlural = phrases: plural"
+      ],
+      "selectors": [
+        "phrasesPlural"
+      ],
+      "match": {
+        "phrasesPlural=one": "{notes} notas, registro {range}. {phrases} frase de {bars} compases en promedio, {rests}.",
+        "phrasesPlural=other": "{notes} notas, registro {range}. {phrases} frases de {bars} compases en promedio, {rests}."
+      }
+    }
+  ],
+  "music_drills_changesjam_status_saved": "{notes} en {choruses} de {name} en {key}. Toma guardada y agregada a tu diario.",
+  "music_drills_changesjam_stop": "Detener",
+  "music_drills_changesjam_stopped_early": "Se detuvo antes de que terminara el primer chorus, así que no se calificó nada.",
+  "music_drills_changesjam_strong": "Notas del acorde en 1 y 3: {pct}.",
+  "music_drills_changesjam_swap_option": "{n}. {symbol}",
+  "music_drills_changesjam_swap_option_swapped": "{n}. {symbol} (cambiado)",
+  "music_drills_changesjam_swing_ratio": "swing {ratio}:1",
+  "music_drills_changesjam_take_saved": "Toma guardada.",
+  "music_drills_changesjam_track_label": "Pista de acompañamiento",
+  "music_drills_changesjam_track_playing": "Pista de acompañamiento sonando. Los acordes siguen el tempo que elegiste.",
+  "music_drills_changesjam_tracks_note": "Tus propios archivos de audio. Se quedan en este navegador. Las pistas de jazz de Referencia no están incluidas.",
+  "music_drills_changesjam_tracks_title": "Tus pistas de acompañamiento",
+  "music_drills_changesjam_trade_label": "Intercambiar con la banda",
+  "music_drills_changesjam_trading_fours": "intercambiando de a cuatro",
+  "music_drills_changesjam_trading_twos": "intercambiando de a dos",
+  "music_drills_changesjam_trail_empty": "Las notas que tocas aparecen aquí.",
+  "music_drills_changesjam_trail_label": "Notas oídas hasta ahora",
+  "music_drills_changesjam_transposed": "transportado {amount}",
+  "music_drills_changesjam_transposed_from": "Transportado {amount} desde {key}.",
+  "music_drills_changesjam_twos": "De a dos",
+  "music_drills_changesjam_twos_hint": "Tú tocas dos compases, la batería toca dos.",
+  "music_drills_changesjam_waltz_hint": "Tres pulsos por compás. La banda toca un vals de jazz.",
+  "music_drills_changesjam_window_a": "Una sección A: descansa o toca el tema",
+  "music_drills_changesjam_window_bridge": "El puente: improvisa",
+  "music_drills_changesjam_window_call": "La pregunta de la banda: escucha",
+  "music_drills_changesjam_window_drums": "Los compases de la batería: descansa",
+  "music_drills_changesjam_window_rest": "Descansa",
+  "music_drills_changesjam_window_yours": "Tus compases: toca",
+  "music_drills_changesjam_written_at": "Escrito a {bpm} BPM. Cambia el tempo en la barra superior.",
+  "music_drills_changesjam_written_key": "La tonalidad escrita.",
+  "music_drills_changesjam_your_song": "Tu canción: sus acordes y su melodía.",
+  "music_drills_ear_cadence_label": "{label} ({chords})",
+  "music_drills_ear_chord_to": "{from} a {to}",
+  "music_drills_ear_clean_check": "todas las respuestas correctas, en una ronda de evaluación",
+  "music_drills_ear_clean_ladder": "{right} de {asked} correctas o más",
+  "music_drills_ear_compare_first_bigger": "El primero es más grande",
+  "music_drills_ear_compare_first_short": "Primero",
+  "music_drills_ear_compare_same_short": "Igual",
+  "music_drills_ear_compare_same_size": "Son del mismo tamaño",
+  "music_drills_ear_compare_second_bigger": "El segundo es más grande",
+  "music_drills_ear_compare_second_short": "Segundo",
+  "music_drills_ear_grid_cell_count": "Sonó {played}, dijiste {answered}, {times}",
+  "music_drills_ear_grid_cell_named": "{cell}, la confusión indicada arriba",
+  "music_drills_ear_grid_cell_never": "Sonó {played}, dijiste {answered}, nunca",
+  "music_drills_ear_grid_cell_play_both": "{cell}. Toca los dos.",
+  "music_drills_ear_grid_cell_play_it": "{cell}. Tócalo.",
+  "music_drills_ear_grid_corner_answered": "respondiste",
+  "music_drills_ear_grid_corner_played": "Sonó, y",
+  "music_drills_ear_grid_heard_as": "{played} lo oíste como {answered}, {times}",
+  "music_drills_ear_grid_hint": "Filas: lo que sonó. Columnas: lo que respondiste.",
+  "music_drills_ear_grid_other": "Otra cosa",
+  "music_drills_ear_grid_play_one": "Tocar {played}",
+  "music_drills_ear_grid_play_pair": "Tocar {played} y luego {answered}",
+  "music_drills_ear_key_change_label": "{change}, por {chords}",
+  "music_drills_ear_kind_bass_line": "Líneas de bajo",
+  "music_drills_ear_kind_cadence": "Cadencias",
+  "music_drills_ear_kind_chord_function": "Acordes en una tonalidad",
+  "music_drills_ear_kind_chord_quality": "Tipos de acorde",
+  "music_drills_ear_kind_error_detect": "Encuentra la nota equivocada",
+  "music_drills_ear_kind_interval": "Intervalos",
+  "music_drills_ear_kind_interval_compare": "Comparación de intervalos",
+  "music_drills_ear_kind_inversion": "Inversiones",
+  "music_drills_ear_kind_key_change": "Cambios de tonalidad",
+  "music_drills_ear_kind_loop": "Loops de canciones",
+  "music_drills_ear_kind_melody_dictation": "Dictado melódico",
+  "music_drills_ear_kind_pitch_compare": "Afinación fina",
+  "music_drills_ear_kind_progression": "Progresiones",
+  "music_drills_ear_kind_scale": "Escalas y modos",
+  "music_drills_ear_kind_scale_degree": "Grados de la escala",
+  "music_drills_ear_ladder_this_set": "este grupo",
+  "music_drills_ear_ladder_without": "sin {item}",
+  "music_drills_ear_no_wrong_note": "Ninguna nota equivocada",
+  "music_drills_ear_note_n": "Nota {n}",
+  "music_drills_ear_pitch_higher": "Más aguda",
+  "music_drills_ear_pitch_in_tune": "Afinada",
+  "music_drills_ear_pitch_lower": "Más grave",
+  "music_drills_ear_reveal_chosen_interval": [
+    {
+      "declarations": [
+        "input count",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, {count} semitono",
+        "countPlural=other": "{name}, {count} semitonos"
+      }
+    }
+  ],
+  "music_drills_ear_reveal_degree": "{name}: {notes}, sobre la tónica {tonic}",
+  "music_drills_ear_reveal_half_steps": "semitonos",
+  "music_drills_ear_reveal_hide_staff": "Ocultar el pentagrama",
+  "music_drills_ear_reveal_interval_down": [
+    {
+      "declarations": [
+        "input count",
+        "input a",
+        "input b",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, de {a} bajando a {b}, {count} semitono",
+        "countPlural=other": "{name}, de {a} bajando a {b}, {count} semitonos"
+      }
+    }
+  ],
+  "music_drills_ear_reveal_interval_harmonic": [
+    {
+      "declarations": [
+        "input count",
+        "input a",
+        "input b",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, {a} y {b}, {count} semitono",
+        "countPlural=other": "{name}, {a} y {b}, {count} semitonos"
+      }
+    }
+  ],
+  "music_drills_ear_reveal_interval_up": [
+    {
+      "declarations": [
+        "input count",
+        "input a",
+        "input b",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, de {a} subiendo a {b}, {count} semitono",
+        "countPlural=other": "{name}, de {a} subiendo a {b}, {count} semitonos"
+      }
+    }
+  ],
+  "music_drills_ear_reveal_inversion": "{name}: {notes}, con {bass} en el bajo",
+  "music_drills_ear_reveal_notes": "{name}: {notes}",
+  "music_drills_ear_reveal_played": "Sonó: {text}",
+  "music_drills_ear_reveal_show_staff": "Mostrarlo en el pentagrama",
+  "music_drills_ear_reveal_you_chose": "Elegiste: {text}",
+  "music_drills_ear_role_1": "Tónica, el hogar",
+  "music_drills_ear_role_2": "Supertónica",
+  "music_drills_ear_role_3": "Mediante",
+  "music_drills_ear_role_4": "Subdominante",
+  "music_drills_ear_role_5": "Dominante",
+  "music_drills_ear_role_6": "Submediante",
+  "music_drills_ear_role_7": "Sensible",
+  "music_drills_ear_role_b2": "Segundo grado bemol, color",
+  "music_drills_ear_role_b3": "Tercer grado bemol, color menor",
+  "music_drills_ear_role_b6": "Sexto grado bemol, color menor",
+  "music_drills_ear_role_b7": "Séptimo grado bemol, color",
+  "music_drills_ear_role_s4": "Cuarto grado sostenido, color",
+  "music_drills_ear_times_n": "{n} veces",
+  "music_drills_ear_times_once": "una vez",
+  "music_drills_ear_times_twice": "dos veces",
+  "music_drills_ear_visual_all_at_once": "Todo sonó a la vez",
+  "music_drills_ear_visual_arpeggiated": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Acorde arpegiado, {count} nota",
+        "countPlural=other": "Acorde arpegiado, {count} notas"
+      }
+    }
+  ],
+  "music_drills_ear_visual_cadence": "{label}, {chords}",
+  "music_drills_ear_visual_chord_n": "Acorde {n}",
+  "music_drills_ear_visual_chords_in_key": "{chords} en {key}: {names}",
+  "music_drills_ear_visual_chords_in_turn": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} acorde, uno tras otro",
+        "countPlural=other": "{count} acordes, uno tras otro"
+      }
+    }
+  ],
+  "music_drills_ear_visual_first_inversion": "Primera inversión",
+  "music_drills_ear_visual_heard_aria": "Lo que oíste, nota por nota",
+  "music_drills_ear_visual_interval": [
+    {
+      "declarations": [
+        "input count",
+        "input name",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{name}, {count} semitono",
+        "countPlural=other": "{name}, {count} semitonos"
+      }
+    }
+  ],
+  "music_drills_ear_visual_inversion": "{root} {quality}, {position}: {bass} en el bajo",
+  "music_drills_ear_visual_key": "Tonalidad",
+  "music_drills_ear_visual_key_major": "{note} mayor",
+  "music_drills_ear_visual_key_minor": "{note} menor",
+  "music_drills_ear_visual_key_short": "T",
+  "music_drills_ear_visual_lead": "{lead}: {text}",
+  "music_drills_ear_visual_note_n": "Nota {n}",
+  "music_drills_ear_visual_notes_in_turn": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota, una tras otra",
+        "countPlural=other": "{count} notas, una tras otra"
+      }
+    }
+  ],
+  "music_drills_ear_visual_notes_on_staff": "Las notas en el pentagrama",
+  "music_drills_ear_visual_on_staff": "{what} en el pentagrama",
+  "music_drills_ear_visual_perfect_unison": "Unísono justo",
+  "music_drills_ear_visual_playing": "Sonando {n} de {total}",
+  "music_drills_ear_visual_playing_aria": "Lo que está sonando, en el tiempo",
+  "music_drills_ear_visual_root_position": "Posición fundamental",
+  "music_drills_ear_visual_second_inversion": "Segunda inversión",
+  "music_drills_ear_visual_semitones_fallback": "{n} semitonos",
+  "music_drills_ear_visual_third_inversion": "Tercera inversión",
+  "music_drills_ear_visual_tonic": "Tónica",
+  "music_drills_ear_visual_two_chords": "Acorde 1 y luego acorde 2",
+  "music_drills_ear_visual_you_played": "Tocaste: {notes}",
+  "music_drills_ear_visual_you_tag": "Tú: {degree}",
+  "music_drills_ear_wheel_degree": "{degree}, {role}",
+  "music_drills_ear_wheel_degree_off": "{degree}, {role}, no está en este grupo",
+  "music_drills_ear_wheel_label": "Grados de la escala",
+  "music_drills_ear_wheel_the_answer": "{label}, la respuesta",
+  "music_drills_ear_wheel_tonic": "tónica",
+  "music_drills_ear_wheel_your_answer": "{label}, tu respuesta",
+  "music_drills_eardrill_answer_by": "Responder",
+  "music_drills_eardrill_ask_bass": "¿Qué notas del bajo vinieron después del 1?",
+  "music_drills_eardrill_ask_bass_play": "Toca las notas del bajo después del 1, una por una.",
+  "music_drills_eardrill_ask_bass_sing": "Canta las notas del bajo después del 1, una por una, en cualquier octava.",
+  "music_drills_eardrill_ask_cadence": "¿Qué cadencia cierra la frase?",
+  "music_drills_eardrill_ask_compare": "¿Qué intervalo fue más grande?",
+  "music_drills_eardrill_ask_degree": "¿Qué grado fue la segunda nota?",
+  "music_drills_eardrill_ask_degree_play": "Toca la segunda nota.",
+  "music_drills_eardrill_ask_degree_sing": "Canta la segunda nota.",
+  "music_drills_eardrill_ask_function": "¿Qué acorde de la tonalidad fue ese?",
+  "music_drills_eardrill_ask_function_last": "¿Qué acorde de la tonalidad fue el último?",
+  "music_drills_eardrill_ask_function_play": "Toca el acorde, en cualquier octava.",
+  "music_drills_eardrill_ask_function_play_last": "Toca el último acorde, en cualquier octava.",
+  "music_drills_eardrill_ask_interval": "¿Qué intervalo fue ese?",
+  "music_drills_eardrill_ask_interval_play": "Toca las dos notas, desde cualquier nota.",
+  "music_drills_eardrill_ask_interval_sing_high": "Canta la nota más aguda, en cualquier octava.",
+  "music_drills_eardrill_ask_interval_sing_second": "Canta la segunda nota, en cualquier octava.",
+  "music_drills_eardrill_ask_inversion": "¿Qué inversión es esta?",
+  "music_drills_eardrill_ask_inversion_play": "Toca el acorde con la misma nota en el bajo.",
+  "music_drills_eardrill_ask_key_change": "¿A dónde va y qué acordes la llevan allí?",
+  "music_drills_eardrill_ask_loop": "¿Qué acordes forman el loop, en orden?",
+  "music_drills_eardrill_ask_loop_play": "Toca los acordes del loop, uno por uno.",
+  "music_drills_eardrill_ask_phrase_play": "Toca la frase en orden.",
+  "music_drills_eardrill_ask_phrase_sing": "Canta la frase en orden, en cualquier octava.",
+  "music_drills_eardrill_ask_pitch": "¿La segunda nota fue más alta o más baja?",
+  "music_drills_eardrill_ask_pitch_same": "¿La segunda nota fue más alta, más baja o afinada?",
+  "music_drills_eardrill_ask_prog": "¿Qué acordes vinieron después del {first}?",
+  "music_drills_eardrill_ask_prog_play": "Toca los acordes después del {first}, uno por uno.",
+  "music_drills_eardrill_ask_quality": "¿Qué tipo de acorde es?",
+  "music_drills_eardrill_ask_quality_play": "Toca un acorde del mismo tipo, desde cualquier fundamental.",
+  "music_drills_eardrill_ask_scale": "¿Qué escala fue esa?",
+  "music_drills_eardrill_ask_scale_sing_both": "Canta la escala {scale} hacia arriba y hacia abajo desde la tónica, en cualquier octava.",
+  "music_drills_eardrill_ask_scale_sing_down": "Canta la escala {scale} hacia abajo desde la tónica, en cualquier octava.",
+  "music_drills_eardrill_ask_scale_sing_up": "Canta la escala {scale} hacia arriba desde la tónica, en cualquier octava.",
+  "music_drills_eardrill_ask_wrong": "¿Qué nota se tocó mal?",
+  "music_drills_eardrill_ask_wrong_none": "¿Qué nota se tocó mal, si hubo alguna?",
+  "music_drills_eardrill_bass_notes": "Notas del bajo",
+  "music_drills_eardrill_blocked_mic": "Permite el micrófono para cantar las respuestas.",
+  "music_drills_eardrill_blocked_save_song": "Primero guarda una canción con partitura.",
+  "music_drills_eardrill_cadences_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} cadencia",
+        "countPlural=other": "{count} cadencias"
+      }
+    }
+  ],
+  "music_drills_eardrill_cadences_phrase": "cadencia {name}",
+  "music_drills_eardrill_cadences_sets": "Grupos de cadencias",
+  "music_drills_eardrill_cadences_title": "Cadencias para practicar",
+  "music_drills_eardrill_cents_flat": "{cents} cents bajo",
+  "music_drills_eardrill_cents_in_tune": "afinado",
+  "music_drills_eardrill_cents_label": "{cents} cents",
+  "music_drills_eardrill_cents_sharp": "{cents} cents alto",
+  "music_drills_eardrill_change_key": "Cambiar de tonalidad",
+  "music_drills_eardrill_changes": "Cambios",
+  "music_drills_eardrill_changes_key": "Cambios de tonalidad",
+  "music_drills_eardrill_changes_key_hint": "Se establece la tonalidad y luego un ii-V, un V7 o un backdoor la lleva a otro lugar.",
+  "music_drills_eardrill_changes_name_where": "Di a dónde va ({places}) y luego los acordes como números romanos en la nueva tonalidad.",
+  "music_drills_eardrill_changes_one_key": "En una tonalidad",
+  "music_drills_eardrill_changes_one_key_hint": "Acordes de la tonalidad, desde I.",
+  "music_drills_eardrill_chord_size": "Tamaño del acorde",
+  "music_drills_eardrill_chords_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} acorde",
+        "countPlural=other": "{count} acordes"
+      }
+    }
+  ],
+  "music_drills_eardrill_chords_phrase": "el acorde {name}",
+  "music_drills_eardrill_chords_sets": "Grupos de acordes",
+  "music_drills_eardrill_chords_title": "Acordes para practicar",
+  "music_drills_eardrill_clear": "Borrar",
+  "music_drills_eardrill_cue_did_you_hear": "¿Lo escuchaste?",
+  "music_drills_eardrill_cue_listen": "Escucha",
+  "music_drills_eardrill_cue_name_it": "Nómbralo para ti y luego revela",
+  "music_drills_eardrill_cue_pick": "Elige lo que escuchaste",
+  "music_drills_eardrill_cue_play_back": "Tócalo de nuevo",
+  "music_drills_eardrill_cue_sing": "Canta tu respuesta",
+  "music_drills_eardrill_cue_tap_degree": "Toca el grado que escuchaste",
+  "music_drills_eardrill_degree_level": "Nivel de grados",
+  "music_drills_eardrill_demo_example": "Escuchar un ejemplo",
+  "music_drills_eardrill_demo_line": "Demostración: {answer}",
+  "music_drills_eardrill_dir_auto": "Automático",
+  "music_drills_eardrill_dir_down": "Abajo",
+  "music_drills_eardrill_dir_interval_auto_hint": "Hacia arriba al principio, luego en todas las direcciones a medida que mejoras.",
+  "music_drills_eardrill_dir_mixed": "Mezclado",
+  "music_drills_eardrill_dir_mixed_hint": "Arriba, abajo o juntas, desde la primera pregunta.",
+  "music_drills_eardrill_dir_scale_auto_hint": "Hacia arriba al principio, luego en ambos sentidos a medida que mejoras.",
+  "music_drills_eardrill_dir_together": "Juntas",
+  "music_drills_eardrill_dir_up": "Arriba",
+  "music_drills_eardrill_dir_up_down": "Arriba y abajo",
+  "music_drills_eardrill_direction": "Dirección",
+  "music_drills_eardrill_drone_start": "Iniciar bordón",
+  "music_drills_eardrill_drone_stop": "Detener bordón",
+  "music_drills_eardrill_first_note": "Primera nota",
+  "music_drills_eardrill_hear_again": "Escuchar otra vez",
+  "music_drills_eardrill_hear_both": "Escuchar ambas otra vez",
+  "music_drills_eardrill_hear_both_label": "Escuchar ambas otra vez: {played}, luego {chosen}",
+  "music_drills_eardrill_hear_key": "Escuchar la tonalidad",
+  "music_drills_eardrill_heard_another_chord": "otro acorde",
+  "music_drills_eardrill_heard_another_note": "otra nota",
+  "music_drills_eardrill_heard_it": "Lo escuché",
+  "music_drills_eardrill_heard_out_of_tune": "desafinado, {cents}",
+  "music_drills_eardrill_heard_semitones": "{count} semitonos",
+  "music_drills_eardrill_heard_wrong_way": "{heard} (dirección equivocada)",
+  "music_drills_eardrill_how_along": "La siguiente pregunta suena sola.",
+  "music_drills_eardrill_how_choice": "Toca un botón o presiona su tecla numérica.",
+  "music_drills_eardrill_how_example": "El botón de audífonos reproduce un ejemplo, iluminado mientras suena.",
+  "music_drills_eardrill_how_listen": "Revela la respuesta y luego di si la escuchaste.",
+  "music_drills_eardrill_how_play": "Toca en las teclas de abajo o en tu teclado MIDI.",
+  "music_drills_eardrill_how_voice": "El micrófono escucha cuando termina cada pregunta.",
+  "music_drills_eardrill_import_song": "Importar una canción en Studio",
+  "music_drills_eardrill_in_the_bass": "En el bajo: {hint}.",
+  "music_drills_eardrill_intervals_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} intervalo",
+        "countPlural=other": "{count} intervalos"
+      }
+    }
+  ],
+  "music_drills_eardrill_intervals_phrase": "{name}",
+  "music_drills_eardrill_intervals_sets": "Grupos de intervalos",
+  "music_drills_eardrill_intervals_title": "Intervalos para practicar",
+  "music_drills_eardrill_intro_along": "Diez preguntas, con las respuestas a la vista.",
+  "music_drills_eardrill_intro_choice": "Diez preguntas. Escucha y luego toca la respuesta.",
+  "music_drills_eardrill_intro_listen": "Diez preguntas. Escucha y luego responde mentalmente.",
+  "music_drills_eardrill_intro_play": "Diez preguntas. Escucha y luego tócalo de nuevo.",
+  "music_drills_eardrill_intro_voice": "Diez preguntas. Escucha y luego cántalo.",
+  "music_drills_eardrill_inv_hint_fifth": "la 5.ª para {name}",
+  "music_drills_eardrill_inv_hint_root": "la fundamental para {name}",
+  "music_drills_eardrill_inv_hint_seventh": "la 7.ª para {name}",
+  "music_drills_eardrill_inv_hint_third": "la 3.ª para {name}",
+  "music_drills_eardrill_inversions_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} posición",
+        "countPlural=other": "{count} posiciones"
+      }
+    }
+  ],
+  "music_drills_eardrill_inversions_sets": "Grupos de posiciones",
+  "music_drills_eardrill_inversions_title": "Inversiones para practicar",
+  "music_drills_eardrill_items_interval_range": "{count} intervalos, de {first} a {last}",
+  "music_drills_eardrill_items_one": "Uno elegido: cada pregunta es esta, entre todas las respuestas.",
+  "music_drills_eardrill_items_only": "{items}: solo estos suenan, y solo estos son las respuestas.",
+  "music_drills_eardrill_items_progressions": "Cada progresión empieza en {first}. El resto usa solo estos {count} acordes.",
+  "music_drills_eardrill_key": "Tonalidad",
+  "music_drills_eardrill_key_every_3": "Nueva tonalidad cada 3",
+  "music_drills_eardrill_key_every_5": "Nueva tonalidad cada 5",
+  "music_drills_eardrill_key_every_5_hint": "I, IV, V, I vuelve a sonar en cada cambio.",
+  "music_drills_eardrill_key_major": "Tonalidad de {note} mayor",
+  "music_drills_eardrill_key_minor": "Tonalidad de {note} menor",
+  "music_drills_eardrill_key_per_run": "Una tonalidad por ronda",
+  "music_drills_eardrill_labels": "Etiquetas (todos los ejercicios auditivos)",
+  "music_drills_eardrill_labels_degree": "Grado (3 / mi)",
+  "music_drills_eardrill_labels_solfege": "Solfeo (mi)",
+  "music_drills_eardrill_last_note": "Última nota: {cents}.",
+  "music_drills_eardrill_last_note_within": "Última nota: {cents}; cuenta si está a menos de {tune}.",
+  "music_drills_eardrill_line_chords_from": "{key}, {count} acordes desde {first}",
+  "music_drills_eardrill_line_error": "Tónica {note}, luego la melodía tal como está escrita",
+  "music_drills_eardrill_line_error_song": "Tónica {note}, luego la melodía tal como está escrita, de {song}",
+  "music_drills_eardrill_line_function_cadence": "{key}: {cadence}, luego un acorde",
+  "music_drills_eardrill_line_function_once": "{key}, establecida una vez con {cadence}: un acorde por pregunta",
+  "music_drills_eardrill_line_key_change": "{key}, establecida con I, IV, V, I: luego se mueve",
+  "music_drills_eardrill_line_loop": "{key}, establecida con {cadence}: un loop de {count} acordes",
+  "music_drills_eardrill_line_one_chord": "Un acorde",
+  "music_drills_eardrill_line_pitch": "Una nota, luego la misma nota desviada {cents} cents",
+  "music_drills_eardrill_line_pitch_same": "Una nota, luego la misma nota desviada {cents} cents o afinada",
+  "music_drills_eardrill_line_scale": "Tónica {note}, sostenida debajo",
+  "music_drills_eardrill_line_tonic": "Tónica {note}",
+  "music_drills_eardrill_line_tonic_from": "Tónica {note}, de {title}",
+  "music_drills_eardrill_line_two_intervals": "Dos intervalos, uno tras otro",
+  "music_drills_eardrill_line_two_notes": "Dos notas",
+  "music_drills_eardrill_listen_along_hint": "Las respuestas se muestran y la siguiente pregunta suena sola. Sin puntaje.",
+  "music_drills_eardrill_listen_hint": "Responde mentalmente, revela y luego evalúate. Nunca cambia tus puntajes de habilidad.",
+  "music_drills_eardrill_listen_only": "O solo escuchar",
+  "music_drills_eardrill_listened_heading": "Escuchaste {count} preguntas.",
+  "music_drills_eardrill_listened_note": "Solo escuchar nunca se califica. Cambia a Opciones o Repaso mental cuando quieras responder.",
+  "music_drills_eardrill_loop_answers": "Respuestas: {list}.",
+  "music_drills_eardrill_loops": "Loops",
+  "music_drills_eardrill_major": "Mayor",
+  "music_drills_eardrill_melodies": "Melodías",
+  "music_drills_eardrill_melodies_made_up": "Inventadas para el nivel",
+  "music_drills_eardrill_melodies_songs": "De mis canciones",
+  "music_drills_eardrill_melodies_songs_count": "De mis canciones ({count})",
+  "music_drills_eardrill_melody_written": "La melodía como está escrita",
+  "music_drills_eardrill_mic_got_it": "Listo.",
+  "music_drills_eardrill_mic_listen_first": "Escucha primero. El micrófono se abre cuando termina la pregunta.",
+  "music_drills_eardrill_mic_sing_now": "Canta ahora. Sostén la nota hasta que se fije.",
+  "music_drills_eardrill_microphone": "Micrófono",
+  "music_drills_eardrill_middle_c": "Siempre el C central",
+  "music_drills_eardrill_middle_c_hint": "Solo cambia la distancia.",
+  "music_drills_eardrill_minor": "Menor",
+  "music_drills_eardrill_missed_it": "No lo escuché",
+  "music_drills_eardrill_missed_question": "Pregunta {n}: {text}",
+  "music_drills_eardrill_missed_title": "Las frases que fallaste",
+  "music_drills_eardrill_mix_label": "Ejercicios en la mezcla",
+  "music_drills_eardrill_mix_no_playback": "Las cadencias y las escalas no se pueden tocar de vuelta, así que se dejan fuera.",
+  "music_drills_eardrill_mixed_up_tap_play": "Toca reproducir para oír las dos seguidas.",
+  "music_drills_eardrill_mixed_up_tap_square": "Toca un cuadro para oír las dos seguidas.",
+  "music_drills_eardrill_mixed_up_title": "Lo que confundiste",
+  "music_drills_eardrill_mixup_line": "Escuchaste {expected} como {answered}, {times}",
+  "music_drills_eardrill_mode_choice": "Opciones",
+  "music_drills_eardrill_mode_listen": "Repaso mental",
+  "music_drills_eardrill_mode_listen_along": "Solo escuchar",
+  "music_drills_eardrill_mode_play_back": "Tocarlo",
+  "music_drills_eardrill_mode_voice": "Cantarlo",
+  "music_drills_eardrill_next": "Siguiente",
+  "music_drills_eardrill_no_pitch": "Aún no hay altura",
+  "music_drills_eardrill_no_songs": "Aún no hay canciones guardadas con melodía.",
+  "music_drills_eardrill_no_songs_note": "Las frases salen de la melodía de las canciones que guardas en Studio.",
+  "music_drills_eardrill_no_wrong_note": "Ninguna nota mal",
+  "music_drills_eardrill_note_check": "Sin pistas. Cuenta en tus puntajes de habilidad.",
+  "music_drills_eardrill_note_listen": "Repaso mental: piensa o canta, revela y luego evalúate. Las respuestas autoevaluadas se guardan, pero nunca cambian tus puntajes de habilidad.",
+  "music_drills_eardrill_note_listen_along": "Solo escuchar: las respuestas se muestran y la siguiente pregunta suena sola. Nada se califica.",
+  "music_drills_eardrill_note_practice": "Con pistas. Las rondas limpias te hacen avanzar.",
+  "music_drills_eardrill_note_voice": "Cantarlo: el micrófono se enciende cuando presionas Empezar y se apaga al final. Los audífonos evitan que el sonido de la aplicación entre al micrófono.",
+  "music_drills_eardrill_note_written": "Nota {n}, escrita {degree}",
+  "music_drills_eardrill_nothing_yet": "nada todavía",
+  "music_drills_eardrill_phrase_swap": "{got} en lugar del {want}",
+  "music_drills_eardrill_phrase_you_played": "tocaste {swaps}",
+  "music_drills_eardrill_phrase_you_played_other": "tocaste una frase diferente",
+  "music_drills_eardrill_pick_own": "Elegir los tuyos",
+  "music_drills_eardrill_plan_new": "Nuevo",
+  "music_drills_eardrill_plan_review": "Repaso",
+  "music_drills_eardrill_plan_stretch": "Desafío",
+  "music_drills_eardrill_plan_warmup": "Calentamiento",
+  "music_drills_eardrill_played": "Lo que sonó",
+  "music_drills_eardrill_playing": "Sonando",
+  "music_drills_eardrill_qualities_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} tipo de acorde",
+        "countPlural=other": "{count} tipos de acorde"
+      }
+    }
+  ],
+  "music_drills_eardrill_qualities_phrase": "acorde {name}",
+  "music_drills_eardrill_qualities_sets": "Grupos de tipos de acorde",
+  "music_drills_eardrill_qualities_title": "Tipos de acorde para practicar",
+  "music_drills_eardrill_question": "Pregunta",
+  "music_drills_eardrill_question_n": "Pregunta {n}",
+  "music_drills_eardrill_random": "Al azar",
+  "music_drills_eardrill_res_all_right": "Las {total} correctas.",
+  "music_drills_eardrill_res_back_today": "Volver a Hoy",
+  "music_drills_eardrill_res_coach": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Otra vez: lo que confundiste ({count} pregunta)",
+        "countPlural=other": "Otra vez: lo que confundiste ({count} preguntas)"
+      }
+    }
+  ],
+  "music_drills_eardrill_res_confused_heard": "{right} de {total} escuchadas. Escuchaste {expected} como {answered}.",
+  "music_drills_eardrill_res_confused_heard_times": "{right} de {total} escuchadas. Escuchaste {expected} como {answered} {times}.",
+  "music_drills_eardrill_res_confused_right": "{right} de {total} correctas. Escuchaste {expected} como {answered}.",
+  "music_drills_eardrill_res_confused_right_times": "{right} de {total} correctas. Escuchaste {expected} como {answered} {times}.",
+  "music_drills_eardrill_res_heard": "{right} de {total} escuchadas.",
+  "music_drills_eardrill_res_metric_pocket": "escuchadas, autoevaluadas",
+  "music_drills_eardrill_res_metric_score": "puntaje",
+  "music_drills_eardrill_res_next_cents": "La próxima vez empieza cerca de {cents} cents.",
+  "music_drills_eardrill_res_of": "{right} de {total}",
+  "music_drills_eardrill_res_pocket_all": "Escuchaste las {total}. Cambia a Opciones para una ronda con puntaje.",
+  "music_drills_eardrill_res_pocket_assistance": "Repaso mental: tú mismo te evaluaste, así que esto no cambia tus puntajes de habilidad.",
+  "music_drills_eardrill_res_repertoire_phrases": "Frases del repertorio",
+  "music_drills_eardrill_res_right": "{right} de {total} correctas.",
+  "music_drills_eardrill_res_swap": "{right} de {total} correctas. Tocaste {got} en lugar del {want}.",
+  "music_drills_eardrill_res_swap_times": "{right} de {total} correctas. Tocaste {got} en lugar del {want} {times}.",
+  "music_drills_eardrill_reveal": "Revelar respuesta",
+  "music_drills_eardrill_right_so_far": "Correctas hasta ahora",
+  "music_drills_eardrill_scales_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} escala",
+        "countPlural=other": "{count} escalas"
+      }
+    }
+  ],
+  "music_drills_eardrill_scales_phrase": "la escala {name}",
+  "music_drills_eardrill_scales_sets": "Grupos de escalas",
+  "music_drills_eardrill_scales_title": "Escalas para practicar",
+  "music_drills_eardrill_see_results": "Ver resultados",
+  "music_drills_eardrill_set_add_second_sixth": "Agregar el segundo y el sexto",
+  "music_drills_eardrill_set_add_sixth": "Agregar el sexto",
+  "music_drills_eardrill_set_all_four": "Las cuatro",
+  "music_drills_eardrill_set_all_seven": "Los siete",
+  "music_drills_eardrill_set_all_three": "Las tres",
+  "music_drills_eardrill_set_all_twelve": "Los doce",
+  "music_drills_eardrill_set_authentic_plagal": "Auténtica y plagal",
+  "music_drills_eardrill_set_bright_modes": "Modos brillantes",
+  "music_drills_eardrill_set_dark_modes": "Modos oscuros",
+  "music_drills_eardrill_set_ending_pausing": "Final o pausa",
+  "music_drills_eardrill_set_everything": "Todo",
+  "music_drills_eardrill_set_first_steps": "Primeros pasos",
+  "music_drills_eardrill_set_major_minor": "Mayor y menor",
+  "music_drills_eardrill_set_major_scale": "Escala mayor",
+  "music_drills_eardrill_set_pentatonics_blues": "Pentatónicas y blues",
+  "music_drills_eardrill_set_perfect": "Justos",
+  "music_drills_eardrill_set_primary_three": "Los tres principales",
+  "music_drills_eardrill_set_root_first": "Fundamental y primera",
+  "music_drills_eardrill_set_seconds_sevenths": "Segundas y séptimas",
+  "music_drills_eardrill_set_sevenths": "Acordes de séptima",
+  "music_drills_eardrill_set_starter": "Inicial",
+  "music_drills_eardrill_set_thirds_sixths": "Terceras y sextas",
+  "music_drills_eardrill_set_three_minors": "Las tres menores",
+  "music_drills_eardrill_set_triads": "Tríadas",
+  "music_drills_eardrill_show_answer": "Mostrar respuesta",
+  "music_drills_eardrill_sing_again": "Cantar de nuevo",
+  "music_drills_eardrill_sr_the_answer": ", la respuesta",
+  "music_drills_eardrill_sr_your_answer": ", tu respuesta",
+  "music_drills_eardrill_start_at": "Empezar en",
+  "music_drills_eardrill_status_demo": "Demostración: {answer}, iluminado mientras suena. Sin puntaje.",
+  "music_drills_eardrill_status_drone_off": "Bordón apagado.",
+  "music_drills_eardrill_status_drone_on": "Bordón en {note}. Toca un grado para oírlo contra la tónica. No se guarda nada.",
+  "music_drills_eardrill_status_hinted": "La respuesta es {answer}. Búscala al escuchar y luego responde: esta cuenta como respuesta con pista.",
+  "music_drills_eardrill_status_key_then": "{key}, luego la pregunta.",
+  "music_drills_eardrill_status_listened": "Escuchaste {count} preguntas. Solo escuchar nunca se califica.",
+  "music_drills_eardrill_status_mic_failed": "No se pudo iniciar el micrófono. Permítelo en el navegador y luego presiona Empezar.",
+  "music_drills_eardrill_status_mic_starting": "Iniciando el micrófono…",
+  "music_drills_eardrill_status_nothing_to_ask": "No hay nada que preguntar con esta configuración. Elige más en Configuración.",
+  "music_drills_eardrill_status_question": "Pregunta {n} de {total}. Escucha.",
+  "music_drills_eardrill_status_revealed": "Era {answer}. ¿Lo escuchaste?",
+  "music_drills_eardrill_status_right": "Correcto: {answer}.",
+  "music_drills_eardrill_status_saved": "Respuesta {n} guardada.",
+  "music_drills_eardrill_status_stopped": "Detenido.",
+  "music_drills_eardrill_status_stopped_after": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Detenido después de {count} respuesta. Tus respuestas están guardadas.",
+        "countPlural=other": "Detenido después de {count} respuestas. Tus respuestas están guardadas."
+      }
+    }
+  ],
+  "music_drills_eardrill_status_tonic_then": "Tónica, luego {degree}.",
+  "music_drills_eardrill_status_wrong": "Era {answer}. Respondiste {answered}.",
+  "music_drills_eardrill_subtonic": "Subtónica",
+  "music_drills_eardrill_sum_all_drills": "los nueve ejercicios",
+  "music_drills_eardrill_sum_buttons": "Responder con botones",
+  "music_drills_eardrill_sum_from_songs": "de mis canciones",
+  "music_drills_eardrill_sum_key_changes": "cambios de tonalidad",
+  "music_drills_eardrill_sum_key_every": "una tonalidad nueva cada {count}",
+  "music_drills_eardrill_sum_key_same": "la tonalidad no cambia",
+  "music_drills_eardrill_sum_major_key": "tonalidad mayor",
+  "music_drills_eardrill_sum_minor_key": "tonalidad menor",
+  "music_drills_eardrill_sum_numbers": "números de nota (1, 2, 3)",
+  "music_drills_eardrill_sum_one_key": "en una tonalidad",
+  "music_drills_eardrill_sum_sevenths": "séptimas",
+  "music_drills_eardrill_sum_solfege": "nombres de solfeo (do, re, mi)",
+  "music_drills_eardrill_sum_some_drills": "{count} de {total} ejercicios",
+  "music_drills_eardrill_sum_ten_questions": "10 preguntas",
+  "music_drills_eardrill_sum_triads": "tríadas",
+  "music_drills_eardrill_sung": "Cantado: {notes}",
+  "music_drills_eardrill_tap_wheel": "Toca un grado en la rueda.",
+  "music_drills_eardrill_that_was": "Eso fue {answer}.",
+  "music_drills_eardrill_thats_my_chord": "Ese es mi acorde",
+  "music_drills_eardrill_the_phrase": "La frase",
+  "music_drills_eardrill_title": "Oído",
+  "music_drills_eardrill_tolerance": "Tolerancia al cantar",
+  "music_drills_eardrill_tolerance_25": "A menos de 25 cents",
+  "music_drills_eardrill_tolerance_35": "A menos de 35 cents",
+  "music_drills_eardrill_tolerance_note": "La nota correcta",
+  "music_drills_eardrill_tonic": "Tónica",
+  "music_drills_eardrill_undo": "Deshacer",
+  "music_drills_eardrill_undo_chord": "Deshacer el último acorde",
+  "music_drills_eardrill_verdict_answer": "{answer}.",
+  "music_drills_eardrill_verdict_compare": "No del todo. Compara las dos.",
+  "music_drills_eardrill_verdict_it_is": "Es {answer}.",
+  "music_drills_eardrill_verdict_listen_for": "Busca {answer} al escuchar.",
+  "music_drills_eardrill_verdict_phrase": "Era {phrase}. Tocaste {swaps}.",
+  "music_drills_eardrill_verdict_phrase_other": "Era {phrase}. Tocaste una frase diferente.",
+  "music_drills_eardrill_verdict_was": "Era {answer}.",
+  "music_drills_eardrill_verdict_was_answered": "Era {answer}. Respondiste {answered}.",
+  "music_drills_eardrill_verdict_you_chose": "{answer}. Elegiste: {chosen}.",
+  "music_drills_eardrill_warmup_note": "Mantén la tónica como bordón y toca cualquier grado para oírlo contra el bordón. Aquí nada se califica ni se guarda.",
+  "music_drills_eardrill_warmup_title": "Calentamiento libre",
+  "music_drills_eardrill_where_left_off": "Donde lo dejé",
+  "music_drills_eardrill_written_wrong": "mal",
+  "music_drills_eardrill_you_chose": "Lo que elegiste",
+  "music_drills_eardrill_you_got": "✕ tú: {degree}",
+  "music_drills_eardrill_you_played_notes": "Tocaste: {notes}",
+  "music_drills_eardrill_you_played_tonic": "Tocaste: {notes}. La tecla marcada con 1 es la tónica, {note}",
+  "music_drills_eardrill_your_progression": "Tu progresión",
+  "music_drills_earroute_not_found": "Ese ejercicio auditivo no existe",
+  "music_drills_licks_about": "Sobre este lick",
+  "music_drills_licks_bar": "Compás {n}",
+  "music_drills_licks_blurb": "Escucha una línea transcrita sobre los cambios y luego tócala. Divídela en fragmentos, repítela en loop y llévala por todas las tonalidades.",
+  "music_drills_licks_by_ear_chunk": "De oído: repite el fragmento más lento hasta que puedas cantarlo, búscalo en tu instrumento, luego pulsa Empezar y tócalo. Si muestras las notas, pasa a ser una ronda de práctica.",
+  "music_drills_licks_by_ear_lick": "De oído: repite el lick más lento hasta que puedas cantarlo, búscalo en tu instrumento, luego pulsa Empezar y tócalo. Si muestras las notas, pasa a ser una ronda de práctica.",
+  "music_drills_licks_check_hidden": "Prueba: las notas están ocultas. Toca la línea.",
+  "music_drills_licks_chunk": "Fragmento",
+  "music_drills_licks_chunk_set": "Fragmento: notas {first} a {last}.",
+  "music_drills_licks_chunk_set_loop": "Fragmento: notas {first} a {last}. Repítelo en loop y luego pulsa Empezar.",
+  "music_drills_licks_clean_means": "todas las notas en orden",
+  "music_drills_licks_coach_loop": "Repetir notas {first} a {last}",
+  "music_drills_licks_cue_hidden": "Nota {n} de {total}, notas ocultas",
+  "music_drills_licks_cue_note": "Nota {n} de {total}: {note}",
+  "music_drills_licks_fretboard_label": "Diapasón de guitarra, afinación estándar",
+  "music_drills_licks_fretboard_note": "Los números en los puntos son dedos sugeridos, nunca se califican. Los toques en el diapasón también revisan la cuerda y el traste. El MIDI y el micrófono solo oyen la altura.",
+  "music_drills_licks_guitar_note": "Un lick de guitarra en su posición del diapasón. Se queda en su propia tonalidad. El lick 31 es la forma del lick 30 movida al quinto traste.",
+  "music_drills_licks_half_speed": "Media velocidad",
+  "music_drills_licks_headline_all": "Las {total} notas en orden.",
+  "music_drills_licks_headline_all_check": "Las {total} notas en orden, en Prueba.",
+  "music_drills_licks_headline_none": "Ninguna nota coincidió. Escúchalo a media velocidad y luego prueba un fragmento.",
+  "music_drills_licks_headline_slipped": "{matched} de {total} correctas. Fallaste en la nota {index}.",
+  "music_drills_licks_headline_slipped_note": "{matched} de {total} correctas. Fallaste en la nota {index}, el {note}.",
+  "music_drills_licks_item_title": "Lick {number}: {progression}",
+  "music_drills_licks_key": "Tonalidad",
+  "music_drills_licks_key_of": "Tonalidad de {key}",
+  "music_drills_licks_label": "Lick",
+  "music_drills_licks_lane_label": "Carril de pulsos: {count} notas sobre {progression}.",
+  "music_drills_licks_lane_row": "La línea",
+  "music_drills_licks_learn_ear": "De oído",
+  "music_drills_licks_learn_ear_hint": "Transcríbelo: repítelo más lento, tócalo y luego llévalo por las tonalidades. Las notas quedan ocultas hasta los resultados.",
+  "music_drills_licks_learn_label": "Cómo lo aprendes",
+  "music_drills_licks_learn_read": "Leer y escuchar",
+  "music_drills_licks_loop_at": "Loop al {percent} %",
+  "music_drills_licks_loop_three": "Repetir el fragmento 3 veces",
+  "music_drills_licks_metric": "notas en orden",
+  "music_drills_licks_pick_bar": "Elige un compás para repetir un fragmento.",
+  "music_drills_licks_row_in_order": "Notas en orden",
+  "music_drills_licks_row_on_time": "Notas correctas a tiempo ({ms} ms)",
+  "music_drills_licks_row_positions": "Cuerda y traste",
+  "music_drills_licks_row_positions_unmeasured": "Cuerda y traste (el MIDI y el micrófono no los detectan)",
+  "music_drills_licks_scales": "Escalas: {scales}.",
+  "music_drills_licks_setup_fingering": "Los licks no tienen digitación. Cualquier octava cuenta. Solo se califica el orden.",
+  "music_drills_licks_setup_tempo": "Ajusta el tempo en la barra superior. Los licks están escritos en C. Al cambiar la tonalidad se mueven juntos la línea, los acordes y el texto.",
+  "music_drills_licks_show_notes": "Mostrar las notas",
+  "music_drills_licks_stat_next": "Siguiente",
+  "music_drills_licks_stat_played": "Tocadas",
+  "music_drills_licks_status_demo_notes_half": "Demo en curso, sin puntaje: notas {first} a {last} a media velocidad.",
+  "music_drills_licks_status_demo_notes_tempo": "Demo en curso, sin puntaje: notas {first} a {last} a tempo.",
+  "music_drills_licks_status_demo_three": "Demo en curso, sin puntaje: notas {first} a {last}, tres veces.",
+  "music_drills_licks_status_demo_whole_half": "Demo en curso, sin puntaje: el lick completo a media velocidad.",
+  "music_drills_licks_status_demo_whole_tempo": "Demo en curso, sin puntaje: el lick completo a tempo.",
+  "music_drills_licks_status_loop_lick": "Repitiendo el lick al {percent} %, {times} veces. Púlsalo de nuevo para detenerlo.",
+  "music_drills_licks_status_loop_notes": "Repitiendo las notas {first} a {last} al {percent} %, {times} veces. Púlsalo de nuevo para detenerlo.",
+  "music_drills_licks_summary_in_key": "{progression} en {key}",
+  "music_drills_licks_summary_lick": "Lick {number}, {category}",
+  "music_drills_licks_tip": "Consejo:",
+  "music_drills_licks_verdict_heard": "Se oyó {heard}, esa era {want}",
+  "music_drills_licks_verdict_off_beat": "{note}, muy lejos del pulso",
+  "music_drills_licks_whole": "Lick completo",
+  "music_drills_phrases_all_notes": "Las {total} notas en orden.",
+  "music_drills_phrases_all_notes_check": "Las {total} notas en orden, en evaluación.",
+  "music_drills_phrases_all_steps": "Los {total} pasos en orden.",
+  "music_drills_phrases_all_steps_check": "Los {total} pasos en orden, en evaluación.",
+  "music_drills_phrases_as_saved": "Como se guardó",
+  "music_drills_phrases_blurb": "Frases cortas populares para tu instrumento: melodías famosas de dominio público y los licks típicos de cada estilo. Escucha una y luego tócala.",
+  "music_drills_phrases_check_notes": "Evaluación: las notas están ocultas. {count} notas: escúchala y luego tócala.",
+  "music_drills_phrases_check_steps": "Evaluación: las notas están ocultas. {count} pasos: escúchala y luego tócala.",
+  "music_drills_phrases_clean_notes": "todas las notas en orden",
+  "music_drills_phrases_clean_steps": "todos los pasos en orden",
+  "music_drills_phrases_cue_note_hidden": "Nota {n} de {total}, notas ocultas",
+  "music_drills_phrases_cue_note_shown": "Nota {n} de {total}: {notes}",
+  "music_drills_phrases_cue_step_hidden": "Paso {n} de {total}, notas ocultas",
+  "music_drills_phrases_cue_step_shown": "Paso {n} de {total}: {notes}",
+  "music_drills_phrases_demo": "Demostración sonando, sin puntaje: {title}.",
+  "music_drills_phrases_demo_half": "Demostración sonando, sin puntaje: {title} a media velocidad.",
+  "music_drills_phrases_half_speed": "Media velocidad",
+  "music_drills_phrases_hear_again": "Escucharla otra vez",
+  "music_drills_phrases_heard_wanted": "Se oyó {heard}, esa era {want}",
+  "music_drills_phrases_hidden_note": "Nota {n} de {total}. Las notas están ocultas.",
+  "music_drills_phrases_hidden_step": "Paso {n} de {total}. Las notas están ocultas.",
+  "music_drills_phrases_item_meta": "{style}, unos {bpm} BPM",
+  "music_drills_phrases_key": "Tonalidad",
+  "music_drills_phrases_level": "Nivel {n}",
+  "music_drills_phrases_metric_notes": "notas en orden",
+  "music_drills_phrases_metric_steps": "pasos en orden",
+  "music_drills_phrases_moved_down": "bajada {n} semitonos",
+  "music_drills_phrases_moved_up": "subida {n} semitonos",
+  "music_drills_phrases_next": "Siguiente",
+  "music_drills_phrases_none_aerophone": "Todavía no hay frases para el Aerophone",
+  "music_drills_phrases_none_guitar": "Todavía no hay frases para la guitarra",
+  "music_drills_phrases_none_instrument": "Todavía no hay frases para este instrumento.",
+  "music_drills_phrases_none_piano": "Todavía no hay frases para el piano",
+  "music_drills_phrases_none_ukulele": "Todavía no hay frases para el ukelele",
+  "music_drills_phrases_nothing_matched": "Nada coincidió. Escúchala a media velocidad e inténtalo de nuevo.",
+  "music_drills_phrases_of": "{a} de {b}",
+  "music_drills_phrases_other_tempo": "a {bpm} BPM; la frase va a unos {goal}",
+  "music_drills_phrases_own_tempo": "a su propio tempo de {bpm} BPM",
+  "music_drills_phrases_phrase": "Frase",
+  "music_drills_phrases_play_it_back": "Ahora tócala tú.",
+  "music_drills_phrases_remove_lick": "Quitar este lick",
+  "music_drills_phrases_removed": "Se quitó ese lick.",
+  "music_drills_phrases_row_in_order": "Notas en orden",
+  "music_drills_phrases_row_in_order_chords": "Notas y acordes en orden",
+  "music_drills_phrases_row_on_time": "A tiempo (dentro de {ms} ms)",
+  "music_drills_phrases_row_on_time_text": "{onTime} de las {matched} en orden",
+  "music_drills_phrases_row_positions": "Cuerda y traste",
+  "music_drills_phrases_row_positions_unseen": "Cuerda y traste (MIDI y el micrófono no los ven)",
+  "music_drills_phrases_run_notes": "{matched} de {total} notas",
+  "music_drills_phrases_run_steps": "{matched} de {total} pasos",
+  "music_drills_phrases_saved_key": "en la tonalidad en que se guardó",
+  "music_drills_phrases_semitones": "semitonos",
+  "music_drills_phrases_setup_note": "Al elegir una frase, empieza a tres cuartos de su tempo. El instrumento se elige en la barra superior. En los pads de MPC las frases son de batería. Guarda un lick en Aprender de oído o desde una transcripción y se suma a la lista en Tus licks.",
+  "music_drills_phrases_slipped_note": "{matched} de {total} correctas. Falló en la nota {n}.",
+  "music_drills_phrases_slipped_note_note": "{matched} de {total} correctas. Falló en la nota {n}, el {notes}.",
+  "music_drills_phrases_slipped_step": "{matched} de {total} correctos. Falló en el paso {n}.",
+  "music_drills_phrases_slipped_step_chord": "{matched} de {total} correctos. Falló en el paso {n}, el acorde {notes}.",
+  "music_drills_phrases_slipped_step_note": "{matched} de {total} correctos. Falló en el paso {n}, el {notes}.",
+  "music_drills_phrases_source": "Fuente: {source}.",
+  "music_drills_phrases_step": "Paso",
+  "music_drills_phrases_stopped": "Detenido. No se guardó nada.",
+  "music_drills_phrases_tab": "Tablatura",
+  "music_drills_phrases_tempo_set": "Tempo en {start} BPM, tres cuartos de los {bpm} de la frase.",
+  "music_drills_phrases_title": "Frases",
+  "music_drills_phrases_title_style": "{title} ({style})",
+  "music_drills_phrases_where_notes": "Dónde cayó cada nota",
+  "music_drills_phrases_where_steps": "Dónde cayó cada paso",
+  "music_drills_phrases_your_licks": "Tus licks",
+  "music_drills_studio_aero_fingerings": "Digitaciones del Aerophone para la línea superior de las voces elegidas.",
+  "music_drills_studio_after_look": "Después de mirar",
+  "music_drills_studio_again": "Otra vez",
+  "music_drills_studio_all_found": "Encontraste todas las notas sin ningún error. Pruébala en modo Interpretación.",
+  "music_drills_studio_all_voices": "todas las voces",
+  "music_drills_studio_also_score": "Evaluar también",
+  "music_drills_studio_and": "{a} y {b}",
+  "music_drills_studio_as_written": "Como está escrito",
+  "music_drills_studio_assistance_song": "Las rondas con canciones van a tu diario. No cambian tus puntajes de habilidad.",
+  "music_drills_studio_assistance_wait": "El modo Espera nunca mide tu tiempo. Para un puntaje de tiempo, elige Interpretación en Ajustes. Las rondas con canciones van a tu diario y no cambian tus puntajes de habilidad.",
+  "music_drills_studio_back_songs": "Volver a tus canciones",
+  "music_drills_studio_bal_row": "Melodía más fuerte que las notas debajo",
+  "music_drills_studio_bal_unmeasured": "Balance de la melodía (necesita velocidad MIDI y notas tocadas juntas)",
+  "music_drills_studio_bar_by_bar": "Compás a compás",
+  "music_drills_studio_bar_n": "compás {n}",
+  "music_drills_studio_bars_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} compás",
+        "countPlural=other": "{count} compases"
+      }
+    }
+  ],
+  "music_drills_studio_bars_played_head": "Tocaste {played} de {bars} compases. Sigue tocando en todos los compases.",
+  "music_drills_studio_bars_range": "compases {a} a {b}",
+  "music_drills_studio_best_take": "Mejor toma",
+  "music_drills_studio_breaths_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} marca de respiración",
+        "countPlural=other": "{count} marcas de respiración"
+      }
+    }
+  ],
+  "music_drills_studio_clean_take": "Toma limpia a {bpm} BPM: {score} en tu mejor toma.",
+  "music_drills_studio_clear_range": "Borrar el rango",
+  "music_drills_studio_count_in": "Cuenta previa",
+  "music_drills_studio_countin_status": [
+    {
+      "declarations": [
+        "input count",
+        "input head",
+        "input tap",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{head}.{tap} Cuenta previa: {count} compás.",
+        "countPlural=other": "{head}.{tap} Cuenta previa: {count} compases."
+      }
+    }
+  ],
+  "music_drills_studio_custom": "Personalizado",
+  "music_drills_studio_custom_range": "Rango personalizado",
+  "music_drills_studio_demo_playing": "Demo sonando, sin puntaje. El cursor sigue el sonido.",
+  "music_drills_studio_detail_perf": "{matched} de {expected} notas, {ms} ms de desfase, {early} antes, {onTime} a tiempo, {late} tarde, {missed} perdidas, {extra} de más",
+  "music_drills_studio_detail_wait": [
+    {
+      "declarations": [
+        "input wrong",
+        "input clean",
+        "input total",
+        "local wrongPlural = wrong: plural"
+      ],
+      "selectors": [
+        "wrongPlural"
+      ],
+      "match": {
+        "wrongPlural=one": "{clean} de {total} notas o acordes bien a la primera, {wrong} nota equivocada",
+        "wrongPlural=other": "{clean} de {total} notas o acordes bien a la primera, {wrong} notas equivocadas"
+      }
+    }
+  ],
+  "music_drills_studio_drifted": "Las notas están. El tiempo se desvió {ms} ms en promedio. Otra vez al mismo tempo.",
+  "music_drills_studio_drum_grid": "Cuadrícula",
+  "music_drills_studio_drum_lanes": "Carriles",
+  "music_drills_studio_drum_part_label": [
+    {
+      "declarations": [
+        "input bars",
+        "input drums",
+        "input hits",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Parte de batería: {drums}. {hits} golpes en {bars} compás",
+        "barsPlural=other": "Parte de batería: {drums}. {hits} golpes en {bars} compases"
+      }
+    }
+  ],
+  "music_drills_studio_drum_view": "Vista de batería",
+  "music_drills_studio_drums_hint": "Tócala en los pads del MPC, cualquier pad MIDI o los pads en pantalla con la barra superior en pads MPC. Se evalúa por tambor: cualquier hi-hat cuenta como hi-hat; el bombo y la caja deben ser exactos.",
+  "music_drills_studio_duet_partner": "Compañero de dúo",
+  "music_drills_studio_dyn_row": "Dinámicas y respiraciones como están marcadas",
+  "music_drills_studio_dyn_text": "{dr} de {dt} cambios, {br} de {bt} respiraciones",
+  "music_drills_studio_dyn_unmeasured": "Dinámicas y respiraciones ({reason})",
+  "music_drills_studio_dynamics_breaths": "Dinámicas y respiraciones",
+  "music_drills_studio_dynamics_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} dinámica",
+        "countPlural=other": "{count} dinámicas"
+      }
+    }
+  ],
+  "music_drills_studio_ears_all_right": "Las {total} correctas.",
+  "music_drills_studio_ears_amount": "Cantidad",
+  "music_drills_studio_ears_answers": "Respuestas",
+  "music_drills_studio_ears_answers_graph": "Las respuestas: {bands}, en el rango de frecuencias",
+  "music_drills_studio_ears_auto_flip": "Alternar solo cada 2 s",
+  "music_drills_studio_ears_back_today": "Volver a Hoy",
+  "music_drills_studio_ears_band_boosted": "{band} realzado",
+  "music_drills_studio_ears_band_cut": "{band} cortado",
+  "music_drills_studio_ears_band_loop": "Loop de banda",
+  "music_drills_studio_ears_bands": "Bandas",
+  "music_drills_studio_ears_bands_3": "3 bandas",
+  "music_drills_studio_ears_bands_5": "5 bandas",
+  "music_drills_studio_ears_bands_9": "9 bandas de octava",
+  "music_drills_studio_ears_blurb": "Escucha un loop plano y cambiado, y nombra el cambio.",
+  "music_drills_studio_ears_boost_size": "Tamaño del realce",
+  "music_drills_studio_ears_changed": "Cambiado",
+  "music_drills_studio_ears_clean_means": "todas las respuestas correctas",
+  "music_drills_studio_ears_coach": "Otra vez: sobre todo {answer}",
+  "music_drills_studio_ears_cue": "Alterna Plano y Cambiado, y luego elige",
+  "music_drills_studio_ears_cut_size": "Tamaño del corte",
+  "music_drills_studio_ears_dotted": "Con 1/8 con puntillo",
+  "music_drills_studio_ears_drum_loop": "Loop de batería",
+  "music_drills_studio_ears_echo_times": "Tiempos de eco",
+  "music_drills_studio_ears_fb_right": "Correcto: {answer}.",
+  "music_drills_studio_ears_fb_wrong_near": "Era {answer}. Dijiste {said}, a un paso.",
+  "music_drills_studio_ears_five": "Cinco",
+  "music_drills_studio_ears_five_positions": "Cinco posiciones",
+  "music_drills_studio_ears_flat": "Plano",
+  "music_drills_studio_ears_four_echoes": "Cuatro tiempos de eco",
+  "music_drills_studio_ears_getting_ready": "Preparando el loop…",
+  "music_drills_studio_ears_graph_before": "El rango de frecuencias, antes de la respuesta",
+  "music_drills_studio_ears_graph_change": "{gain} dB en {band}",
+  "music_drills_studio_ears_head_title": "Oído de estudio | Woodshed",
+  "music_drills_studio_ears_headphones": "Usa los mismos audífonos o parlantes cada vez, a un volumen que podrías escuchar todo el día. Las rondas cortas funcionan mejor: descansa los oídos entre una y otra.",
+  "music_drills_studio_ears_hear_band": "Escuchar {band}",
+  "music_drills_studio_ears_intro": "{count} preguntas. Cada una suena Plano y luego Cambiado; alterna con los botones o con A y B, y luego elige la respuesta.",
+  "music_drills_studio_ears_keep_volume": "Mantén el volumen cómodo e igual durante toda la ronda.",
+  "music_drills_studio_ears_left_centre_right": "Izquierda, centro, derecha",
+  "music_drills_studio_ears_level_6_3": "6 y 3 dB",
+  "music_drills_studio_ears_level_6_3_2": "6, 3 y 2 dB",
+  "music_drills_studio_ears_level_6_3_2_1": "6, 3, 2 y 1 dB",
+  "music_drills_studio_ears_level_steps": "pasos de {levels}",
+  "music_drills_studio_ears_listen_to": "Escuchar",
+  "music_drills_studio_ears_loop": "Loop",
+  "music_drills_studio_ears_needs_hits": "{title} necesita golpes para oírse, así que suena sobre el loop de batería o de banda.",
+  "music_drills_studio_ears_note_check": "Sin pistas. Cuenta para tus puntajes de habilidad.",
+  "music_drills_studio_ears_note_practice": "Con pistas. Las rondas limpias te hacen avanzar.",
+  "music_drills_studio_ears_pink_noise": "Ruido rosa",
+  "music_drills_studio_ears_playing": "Sonando: {what}",
+  "music_drills_studio_ears_positions": "Posiciones",
+  "music_drills_studio_ears_question": "Pregunta",
+  "music_drills_studio_ears_question_n": "Pregunta {n}",
+  "music_drills_studio_ears_question_status": "Pregunta {n} de {total}: Plano, luego Cambiado. Alterna entre ellos cuantas veces quieras.",
+  "music_drills_studio_ears_rest_status": "{headline} Descansa los oídos un minuto antes de la próxima ronda.",
+  "music_drills_studio_ears_right_of": "{right} de {total} correctas.",
+  "music_drills_studio_ears_right_of_near": "{right} de {total} correctas, {near} a un paso.",
+  "music_drills_studio_ears_right_so_far": "Correctas hasta ahora",
+  "music_drills_studio_ears_right_status": "Correcto: {answer}. Alterna de nuevo para oírlo sabiendo la respuesta.",
+  "music_drills_studio_ears_steps": "Pasos",
+  "music_drills_studio_ears_stopped": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Detenido después de {count} respuesta.",
+        "countPlural=other": "Detenido después de {count} respuestas."
+      }
+    }
+  ],
+  "music_drills_studio_ears_sum_bands_boosted": "{count} bandas, realzadas {db} dB",
+  "music_drills_studio_ears_sum_bands_cut": "{count} bandas, cortadas {db} dB",
+  "music_drills_studio_ears_sum_compression": "nada, leve o fuerte",
+  "music_drills_studio_ears_sum_echoes": "{count} tiempos de eco",
+  "music_drills_studio_ears_sum_level_steps": "pasos de {levels} dB",
+  "music_drills_studio_ears_sum_positions": "{count} posiciones",
+  "music_drills_studio_ears_sum_questions": "{count} preguntas",
+  "music_drills_studio_ears_tab_boost": "Realce",
+  "music_drills_studio_ears_tab_boost_or_cut": "Realce o corte",
+  "music_drills_studio_ears_tab_compression": "Compresión",
+  "music_drills_studio_ears_tab_cut": "Corte",
+  "music_drills_studio_ears_tab_delay": "Delay",
+  "music_drills_studio_ears_tab_level": "Nivel",
+  "music_drills_studio_ears_tab_pan": "Paneo",
+  "music_drills_studio_ears_three_echoes": "Tres tiempos de eco",
+  "music_drills_studio_ears_three_positions": "Tres posiciones",
+  "music_drills_studio_ears_title": "Oído",
+  "music_drills_studio_ears_weak_spot": "{text}, tu punto débil",
+  "music_drills_studio_ears_wrong_status": "Era {answer}. Dijiste {said}.",
+  "music_drills_studio_ears_wrong_status_near": "Era {answer}. Dijiste {said}, a un paso (medio punto).",
+  "music_drills_studio_edit_song": "Editar en el editor de canciones",
+  "music_drills_studio_end_loop": "Terminar el loop",
+  "music_drills_studio_export_midi": "Exportar MIDI",
+  "music_drills_studio_exported": "Se exportó {file} a {bpm} BPM.",
+  "music_drills_studio_facts": "{bars} en {meter}{key}, escrita a {bpm} BPM ({duration}).",
+  "music_drills_studio_few_notes": "unas pocas notas",
+  "music_drills_studio_fit_folded": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} nota movida una octava",
+        "countPlural=other": "{count} notas movidas una octava"
+      }
+    }
+  ],
+  "music_drills_studio_fit_instrument": "Ajustar al instrumento",
+  "music_drills_studio_fit_moved_down": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Bajada una octava",
+        "countPlural=other": "Bajada {count} octavas"
+      }
+    }
+  ],
+  "music_drills_studio_fit_moved_up": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Subida una octava",
+        "countPlural=other": "Subida {count} octavas"
+      }
+    }
+  ],
+  "music_drills_studio_fit_note_guitar": "{change} para que quepa en la guitarra ({tuning}).",
+  "music_drills_studio_fit_note_ukulele": "{change} para que quepa en el ukelele ({tuning}).",
+  "music_drills_studio_fix_spot": "Arreglar el punto difícil, {where}",
+  "music_drills_studio_found_some": "Encontraste {matched} de {expected} notas en tu mejor toma. Prueba el modo Espera u 8 BPM más lento.",
+  "music_drills_studio_from_memory": "De memoria",
+  "music_drills_studio_go": "¡Ya!",
+  "music_drills_studio_hairpins_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} regulador",
+        "countPlural=other": "{count} reguladores"
+      }
+    }
+  ],
+  "music_drills_studio_head_nostop": "Ronda sin parar: sigue aunque te equivoques",
+  "music_drills_studio_head_pass": "{head}, {pass}",
+  "music_drills_studio_head_sight": "Lectura a primera vista: una pasada, sigue aunque te equivoques",
+  "music_drills_studio_head_take": "Toma {n} de {total}",
+  "music_drills_studio_hear_it": "Escucharla",
+  "music_drills_studio_hidden_memory": " Las notas están ocultas: toca de memoria.",
+  "music_drills_studio_hide_setup": "Ocultar ajustes",
+  "music_drills_studio_hint_balance": "La melodía (la nota más aguda de la parte más alta) debe sonar más fuerte que las notas tocadas con ella, leído de la velocidad MIDI.",
+  "music_drills_studio_hint_dynamics": "Marcado: {marks}. Se evalúa con holgura a partir del soplo (CC 2) o la velocidad MIDI: más fuerte donde dice más fuerte, una pausa donde dice respirar.",
+  "music_drills_studio_hint_marks": "La canción marca {marks}. Se ven en el pentagrama.",
+  "music_drills_studio_hint_memory_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "El primer compás se oculta durante la ronda. Una toma al 90% oculta uno más.",
+        "countPlural=other": "Los primeros {count} compases se ocultan durante la ronda. Una toma al 90% oculta uno más."
+      }
+    }
+  ],
+  "music_drills_studio_hint_memory_look": "Mira la notación todo lo que quieras. Se oculta al empezar la ronda y vuelve con los resultados.",
+  "music_drills_studio_hint_needs_timed": " Evaluar dinámicas, vibrato o balance necesita un modo que lleve el tiempo.",
+  "music_drills_studio_hint_no_marks": "Esta canción no tiene dinámicas ni marcas de respiración para evaluar.",
+  "music_drills_studio_hint_nostop": "Sin parar es una toma a tiempo: sigue aunque te equivoques. Se evalúa por lo que tocaste y cuántos compases seguiste tocando.",
+  "music_drills_studio_hint_partner_can": "En un modo que lleva el tiempo, Woodshed puede tocar las partes que desactives.",
+  "music_drills_studio_hint_partner_off": "Desactiva una parte arriba y el compañero puede tocarla.",
+  "music_drills_studio_hint_partner_on": "Woodshed toca {parts} a tiempo contigo. Con el micrófono, usa audífonos.",
+  "music_drills_studio_hint_perf": "Interpretación lleva el tiempo. Siempre suena una cuenta previa de al menos un compás.",
+  "music_drills_studio_hint_sight_first": "Lectura a primera vista: {seconds} segundos para mirar, luego una pasada a tiempo que sigue aunque te equivoques. Solo la primera ronda de una canción cuenta como lectura a primera vista. Esta es la primera de esta canción.",
+  "music_drills_studio_hint_sight_played": "Lectura a primera vista: {seconds} segundos para mirar, luego una pasada a tiempo que sigue aunque te equivoques. Solo la primera ronda de una canción cuenta como lectura a primera vista, y ya tocaste esta canción aquí.",
+  "music_drills_studio_hint_tap": "Marca el ritmo de cada nota con cualquier tecla, pad o nota MIDI, o Espacio. Solo se evalúa el tiempo.",
+  "music_drills_studio_hint_vibrato": "Las notas largas de un pulso o más deben ondular 4 a 5 veces por segundo, leído del sensor de mordida (pitch bend).",
+  "music_drills_studio_hint_wait": "El modo Espera es una sola toma y nunca te apura. La exigencia y las tomas se aplican a Interpretación.",
+  "music_drills_studio_hl_balance": "Notas {notes}. La melodía sobresalió sobre el acompañamiento en el {share} de sus notas. Toca la nota de arriba con más peso y el resto más suave.",
+  "music_drills_studio_hl_dynamics": "Notas {notes}. Se notó el {share} de las dinámicas y respiraciones. Haz los cambios más grandes de lo que parece natural.",
+  "music_drills_studio_hl_vibrato": "Notas {notes}. Vibrato en el {share} de las notas largas. Haz pulsar el sensor de mordida 4 a 5 veces por segundo en cada nota larga.",
+  "music_drills_studio_in_sequence": "En secuencia",
+  "music_drills_studio_kept_end": "Seguiste hasta el final: tocaste todos los compases, {score}.",
+  "music_drills_studio_kept_text": [
+    {
+      "declarations": [
+        "input count",
+        "input bars",
+        "input beats",
+        "input played",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{played} de {bars}, error más largo {beats} pulso",
+        "countPlural=other": "{played} de {bars}, error más largo {beats} pulsos"
+      }
+    }
+  ],
+  "music_drills_studio_key": "Tonalidad",
+  "music_drills_studio_key_major": "{key} mayor",
+  "music_drills_studio_key_minor": "{key} menor",
+  "music_drills_studio_keys_title": "Espacio empieza, Esc detiene",
+  "music_drills_studio_lanes_label": "{drums}: notas que vienen",
+  "music_drills_studio_last_miss": "Tocaste {played}, se esperaba {expected}",
+  "music_drills_studio_look_ahead": "Ver adelante",
+  "music_drills_studio_look_played_before": " Ya tocaste esta canción aquí, así que no contará como lectura a primera vista.",
+  "music_drills_studio_look_status": "Mira durante {seconds} segundos: la tonalidad, la métrica, los ritmos y el compás más difícil. Luego una pasada a tiempo, sin parar.",
+  "music_drills_studio_loop_ended": "Terminó el loop. Tu rango y tu tempo volvieron.",
+  "music_drills_studio_loop_stopped": "Se detuvo el loop. Tu rango y tu tempo volvieron.",
+  "music_drills_studio_mean_of_takes": "promedio de {count} tomas",
+  "music_drills_studio_measure": "Compás",
+  "music_drills_studio_melody_balance": "Balance de la melodía",
+  "music_drills_studio_memory_hidden": "De memoria: las notas están ocultas hasta los resultados.",
+  "music_drills_studio_memory_next": " La próxima ronda oculta los compases 1 a {n}.",
+  "music_drills_studio_metronome_at": "Metrónomo a {bpm} BPM",
+  "music_drills_studio_metronome_set": "El metrónomo está a {bpm} BPM, el tempo de la canción.",
+  "music_drills_studio_metronome_to": "Poner el metrónomo a {bpm} BPM",
+  "music_drills_studio_mode": "Modo",
+  "music_drills_studio_mode_nostop": "Sin parar",
+  "music_drills_studio_mode_nostop_lower": "sin parar",
+  "music_drills_studio_mode_perf": "Interpretación",
+  "music_drills_studio_mode_perf_lower": "interpretación",
+  "music_drills_studio_mode_sight": "Lectura a primera vista",
+  "music_drills_studio_mode_sight_lower": "lectura a primera vista",
+  "music_drills_studio_mode_wait": "Espera",
+  "music_drills_studio_mode_wait_lower": "espera",
+  "music_drills_studio_next": "Siguiente",
+  "music_drills_studio_no_notes_matched": "Ninguna nota acertada",
+  "music_drills_studio_no_sections": "Este rango no tiene secciones para dividir.",
+  "music_drills_studio_none_picked": "Nada elegido aún: suena la canción completa.",
+  "music_drills_studio_normal": "Normal",
+  "music_drills_studio_notation_view": "Vista de notación",
+  "music_drills_studio_note_group": "Grupo de notas",
+  "music_drills_studio_notes_only": "Solo notas",
+  "music_drills_studio_nothing_marked": "nada marcado en este rango",
+  "music_drills_studio_of": "{a} de {b}",
+  "music_drills_studio_of_nbsp": "{a} de {b}",
+  "music_drills_studio_off": "Desactivado",
+  "music_drills_studio_one_at_a_time": "Una a la vez",
+  "music_drills_studio_one_kind": " La batería y las demás partes se practican por separado.",
+  "music_drills_studio_one_stays_on": "Al menos una queda activa.",
+  "music_drills_studio_open_falling": "Abrir Notas que caen",
+  "music_drills_studio_order": "Orden",
+  "music_drills_studio_out_of_range_guitar": "Como está escrito: algunas notas quedan fuera del registro de la guitarra.",
+  "music_drills_studio_out_of_range_ukulele": "Como está escrito: algunas notas quedan fuera del registro del ukelele.",
+  "music_drills_studio_pads_label": "Pads del MPC, banco A, los tambores del kit. Las teclas Z X C V de la computadora tocan la fila de abajo.",
+  "music_drills_studio_parts": "Partes",
+  "music_drills_studio_pass_take": "{pass}, toma {n}",
+  "music_drills_studio_per_section": "Resultados por sección",
+  "music_drills_studio_per_take": "Resultados por toma",
+  "music_drills_studio_piano_keyboard": "Teclado de piano",
+  "music_drills_studio_play": "Tocar",
+  "music_drills_studio_play_drums": "Tocar la batería",
+  "music_drills_studio_play_others": "Tocar las otras partes",
+  "music_drills_studio_playing_on": "Tocando en {instrument}. Funcionan el MIDI, las teclas en pantalla y el teclado de tu computadora.",
+  "music_drills_studio_playing_on_mic": "Tocando en {instrument}, y con el micrófono las octavas no cuentan en tu contra. Funcionan el MIDI, las teclas en pantalla y el teclado de tu computadora.",
+  "music_drills_studio_plays_others": "Toca las otras partes",
+  "music_drills_studio_preview_status": "Reproduciendo {range} a {bpm} BPM. Sin puntaje.",
+  "music_drills_studio_range": "Rango",
+  "music_drills_studio_range_drums": "La cuadrícula de batería todavía no puede marcar un rango. Elige Secciones.",
+  "music_drills_studio_range_set": "Rango personalizado: {what} desde el compás {n}.",
+  "music_drills_studio_range_switch": "Cambia a Pentagrama o Tablatura para marcar el rango.",
+  "music_drills_studio_range_tap": "Toca donde empieza el rango en la notación de abajo, y luego donde termina. Arrastra los controles de inicio y fin para ajustar.",
+  "music_drills_studio_ready_count_in": "Listo, cuenta para entrar",
+  "music_drills_studio_relaxed": "Relajada",
+  "music_drills_studio_results": "Resultados",
+  "music_drills_studio_rhythm_voice": "Ritmo",
+  "music_drills_studio_right_first_time_lower": "bien a la primera",
+  "music_drills_studio_row_drums_found": "Tambores encontrados",
+  "music_drills_studio_row_early_late": "Antes / a tiempo / tarde",
+  "music_drills_studio_row_kept": "Seguiste tocando (compases tocados)",
+  "music_drills_studio_row_missed_extra": "Perdidas / de más",
+  "music_drills_studio_row_notes_found": "Notas encontradas",
+  "music_drills_studio_row_notes_matched": "Notas acertadas",
+  "music_drills_studio_row_right_first_time": "Bien a la primera",
+  "music_drills_studio_row_taps_found": "Toques encontrados",
+  "music_drills_studio_row_timing_error": "Error de tiempo (promedio)",
+  "music_drills_studio_row_wrong_notes": "Notas equivocadas",
+  "music_drills_studio_run_headline": "{score} a {bpm} BPM, {mode}",
+  "music_drills_studio_run_headline_tapped": "{score} a {bpm} BPM, {mode}, ritmo marcado",
+  "music_drills_studio_run_progress": "Progreso de la ronda",
+  "music_drills_studio_running": "{title}, en curso",
+  "music_drills_studio_score": "puntaje",
+  "music_drills_studio_sec_notes": "{text} notas",
+  "music_drills_studio_sec_right_first": "{text} bien a la primera",
+  "music_drills_studio_sections": "Secciones",
+  "music_drills_studio_see_results": "Ver resultados",
+  "music_drills_studio_setup": "Ajustes",
+  "music_drills_studio_setup_colon": "Ajustes:",
+  "music_drills_studio_show_written": "Mostrar como está escrito",
+  "music_drills_studio_sight_counts": " Tu primera ronda de esta canción: cuenta como lectura a primera vista.",
+  "music_drills_studio_sight_not_counted": " No es tu primera ronda de esta canción, así que no cuenta como lectura a primera vista.",
+  "music_drills_studio_snap_to": "Ajustar a",
+  "music_drills_studio_song_options": "Opciones de la canción",
+  "music_drills_studio_spot_clean_full": "Limpio al tempo completo. El loop se amplía a {where}.",
+  "music_drills_studio_spot_clean_row": "{count} limpias seguidas. De vuelta al tempo completo, {bpm} BPM.",
+  "music_drills_studio_spot_fixed": "Arreglado: {where} limpio {count} veces seguidas a {bpm} BPM.",
+  "music_drills_studio_spot_next": "{line} El siguiente intento empieza en un momento.",
+  "music_drills_studio_spot_not_clean": "Todavía no está limpio: {where} otra vez a {bpm} BPM.",
+  "music_drills_studio_spot_streak": "Limpio {streak} de {count} a {bpm} BPM.",
+  "music_drills_studio_staff_failed": "El pentagrama no puede dibujar esta canción. {link}, que muestra cada nota.",
+  "music_drills_studio_start": "Empezar",
+  "music_drills_studio_start_nostop": "Empezar ronda sin parar",
+  "music_drills_studio_start_perf": "Empezar interpretación",
+  "music_drills_studio_start_sight": "Empezar lectura a primera vista",
+  "music_drills_studio_stat_clean": "{streak} de {count} limpias",
+  "music_drills_studio_stat_look": "Mirar",
+  "music_drills_studio_stat_loop": "Loop, {where}",
+  "music_drills_studio_stat_note": "Nota",
+  "music_drills_studio_stat_take": "Toma",
+  "music_drills_studio_stop": "Detener",
+  "music_drills_studio_stop_demo": "Detener demo",
+  "music_drills_studio_stopped": "Detenido. No se guardó nada.",
+  "music_drills_studio_stopped_for": "Te detuviste {beats} pulsos ({where}). Después de un error, vuelve a entrar en el siguiente pulso.",
+  "music_drills_studio_strict": "Estricta",
+  "music_drills_studio_strictness": "Exigencia",
+  "music_drills_studio_sum_balance": "balance de la melodía evaluado",
+  "music_drills_studio_sum_custom_unset": "rango personalizado (aún sin definir)",
+  "music_drills_studio_sum_down": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} semitono abajo",
+        "countPlural=other": "{count} semitonos abajo"
+      }
+    }
+  ],
+  "music_drills_studio_sum_dynamics": "dinámicas y respiraciones evaluadas",
+  "music_drills_studio_sum_memory": "de memoria",
+  "music_drills_studio_sum_memory_bars": "de memoria, compases 1 a {n} ocultos",
+  "music_drills_studio_sum_nostop": "Ronda sin parar",
+  "music_drills_studio_sum_partner": "Woodshed toca {parts}",
+  "music_drills_studio_sum_perf": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Interpretación, {count} toma",
+        "countPlural=other": "Interpretación, {count} tomas"
+      }
+    }
+  ],
+  "music_drills_studio_sum_sections": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sección",
+        "countPlural=other": "{count} secciones"
+      }
+    }
+  ],
+  "music_drills_studio_sum_sections_each": "{count} secciones, una a la vez",
+  "music_drills_studio_sum_sections_sequence": "{count} secciones, en secuencia",
+  "music_drills_studio_sum_tapping": "marcando el ritmo",
+  "music_drills_studio_sum_up": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} semitono arriba",
+        "countPlural=other": "{count} semitonos arriba"
+      }
+    }
+  ],
+  "music_drills_studio_sum_vibrato": "vibrato evaluado",
+  "music_drills_studio_sum_wait": "Modo espera",
+  "music_drills_studio_sum_whole_score": "partitura completa",
+  "music_drills_studio_take_done": "{take}: {score}. La siguiente toma después de la cuenta previa.",
+  "music_drills_studio_take_lower": "toma {n}",
+  "music_drills_studio_take_score": "Toma {n}, {score}",
+  "music_drills_studio_takes": "Tomas",
+  "music_drills_studio_tap_hint": " Marca el ritmo: cualquier tecla, pad o nota MIDI, o Espacio.",
+  "music_drills_studio_tap_rhythm": "Marcar el ritmo",
+  "music_drills_studio_the_notes": "Las notas",
+  "music_drills_studio_tr_down": "Bajar {n}",
+  "music_drills_studio_tr_up": "Subir {n}",
+  "music_drills_studio_tuning": "Afinación",
+  "music_drills_studio_tuning_guitar": "Guitarra, {name}",
+  "music_drills_studio_tuning_ukulele": "Ukelele, {name}",
+  "music_drills_studio_unmeasured_level": "la entrada no trae soplo ni velocidad (MIDI o el Aerophone los miden)",
+  "music_drills_studio_unseen": "Las notas siguen ocultas hasta que empieces: luego {seconds} segundos para mirar, y una pasada a tiempo.",
+  "music_drills_studio_vib_row": "Vibrato en notas largas, 4 a 5 por segundo",
+  "music_drills_studio_vib_unmeasured": "Vibrato en notas largas (no llegó mordida como pitch bend)",
+  "music_drills_studio_view_fingering": "Digitación",
+  "music_drills_studio_view_highway": "Autopista",
+  "music_drills_studio_view_staff": "Pentagrama",
+  "music_drills_studio_view_tab": "Tablatura",
+  "music_drills_studio_view_waterfall": "Notas que caen",
+  "music_drills_studio_voices": "Voces",
+  "music_drills_studio_wait_head": [
+    {
+      "declarations": [
+        "input wrong",
+        "input clean",
+        "input total",
+        "local wrongPlural = wrong: plural"
+      ],
+      "selectors": [
+        "wrongPlural"
+      ],
+      "match": {
+        "wrongPlural=one": "{clean} de {total} bien a la primera, {wrong} nota equivocada.",
+        "wrongPlural=other": "{clean} de {total} bien a la primera, {wrong} notas equivocadas."
+      }
+    }
+  ],
+  "music_drills_studio_wait_status": "Modo espera: toca {range} a tu ritmo. Woodshed espera cada nota.",
+  "music_drills_studio_whole_song": "Canción completa"
 }
