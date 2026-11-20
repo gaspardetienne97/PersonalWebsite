@@ -360,7 +360,7 @@
     {#if phase === "running" && miss}
       <p class="mt-3 flex items-start gap-2 text-base font-medium text-ws-stage-ink" data-testid="heard-miss"><span class="text-warn" aria-hidden="true">⚠</span>{miss}</p>
     {/if}
-    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[aria-label^='About']]:text-ws-stage-soft">
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 [&_button[data-hint]]:text-ws-stage-soft">
       {#if phase === "running" && !isPick}<span class="text-sm text-ws-stage-soft">{m.music_strings_shape_stop_when_done()}</span>{/if}
       <span class="text-sm text-ws-stage-soft">{mode === "check" && phase !== "results" ? m.music_strings_shape_check_hidden() : m.music_strings_what_is_scored()}</span>
       <Hint about={m.music_strings_what_is_scored_about()} text={m.music_strings_shape_scored_hint()} />

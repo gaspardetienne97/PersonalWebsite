@@ -99,6 +99,8 @@
   "music_rep_jam_scale_phrygian": "phrygien",
   "music_rep_jam_scale_whole_half_diminished": "diminuée ton/demi-ton",
   "music_rep_jam_scale_whole_tone": "par tons",
+  "music_rep_jam_song_chorus": "{title} (refrain)",
+  "music_rep_jam_song_verse": "{title} (couplet)",
   "music_rep_padrep_afrobeats_feel": "Grosse caisse sur 1 avec des poussées sur le & du 2 et 3. Le cercle répond sur le « a » du 1 et le & du 2 (le 3-3-2). Clap sur 2 et 4, shaker en doubles croches. Une version courante : les producteurs la varient.",
   "music_rep_padrep_afrobeats_fingers": "Main droite sur les doubles croches du shaker (charleston). Index gauche sur la grosse caisse, majeur gauche sur le cercle. Le clap et la conga (tom aigu) là où ils tombent.",
   "music_rep_padrep_amen_feel": "Quatre mesures : la troisième retarde la dernière caisse claire, la quatrième réarrange tout et frappe le crash.",

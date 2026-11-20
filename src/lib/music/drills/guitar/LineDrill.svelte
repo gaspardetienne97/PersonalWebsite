@@ -684,6 +684,16 @@
     [m.music_strings_shape_group_caged(), ["caged-major"]],
     [m.music_strings_chordpicker_group_triads(), ["triads"]],
   ];
+  /** A shape's name inside its group's row, read from its id: "Box 1", "E shape", "Position 2"; the rest keep their full label. */
+  function shapeShort(p: { id: string; label: string }): string {
+    const box = /^minor-pentatonic-box-(\d+)$/.exec(p.id);
+    if (box) return m.music_strings_shape_short_box({ n: box[1] });
+    const caged = /^caged-major-([a-g])-shape$/.exec(p.id);
+    if (caged) return m.music_strings_shape_short_caged({ shape: caged[1].toUpperCase() });
+    const uke = /^ukulele-minor-pentatonic-(\d+)$/.exec(p.id);
+    if (uke) return m.music_strings_shape_short_position({ n: uke[1] });
+    return p.label;
+  }
   const shapeGroups = $derived(SHAPE_GROUPS.map(([g, families]) => [g, shapes.filter((p) => families.includes(p.family))] as const).filter(([, list]) => list.length));
   const rootOptions = $derived(
     Array.from({ length: 12 }, (_, n) => n)
@@ -806,7 +816,7 @@
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
           <span class="text-sm font-medium">{m.music_strings_shape()}</span>
           {#each shapeGroups as [group, list] (group)}
-            <Choice label={group} options={list.map((p) => ({ value: p.id, label: p.label.replace(/^(Minor pentatonic|CAGED) /, "").replace(/^./, (c) => c.toUpperCase()) }))} value={box.id} onchange={(v) => cfg.set({ pattern: v })} />
+            <Choice label={group} options={list.map((p) => ({ value: p.id, label: shapeShort(p) }))} value={box.id} onchange={(v) => cfg.set({ pattern: v })} />
           {/each}
         </div>
         <Choice label={m.music_strings_chordpicker_root()} setupKey="root" options={rootOptions} value={pc(rootOpen + rootFret)} onchange={(n) => cfg.set({ rootFret: rootFretFor(n) })} />

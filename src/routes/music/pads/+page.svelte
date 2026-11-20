@@ -17,8 +17,8 @@
     rudimentSkills,
   } from "@repo/music-core/content/winds-pads";
   import { gradeGroove, gradeRudiment, grooveCaptureEnd, tempoDrift, type GrooveResult, type RudimentResult } from "@repo/music-core/scoring/pads";
-  import { closestGapMs, gradeTier, measuredSwing, PAD_LEVELS, PAD_REPERTOIRE, repertoireFor, TIERS, topicSkill } from "@repo/music-core/content/pads-repertoire";
-  import { canSwing, grooveMeter, reswing } from "@repo/music-core/content/pads-grid";
+  import { closestGapMs, gradeTier, measuredSwing, PAD_LEVELS, PAD_REPERTOIRE, padStyleLabel, repertoireFor, TIERS, topicSkill } from "@repo/music-core/content/pads-repertoire";
+  import { canSwing, grooveMeter, reswing, sectionLabelText } from "@repo/music-core/content/pads-grid";
   import { grooveLessonItems, padLessons, rudimentItem, SWING_CHOICES } from "@repo/music-core/lessons/pads";
   import { getSetting, putSetting } from "#lib/music/runtime/index.ts";
   import CatalogPicker from "#lib/music/components/CatalogPicker.svelte";
@@ -536,7 +536,7 @@
     "on your own": m.music_winds_pads_sec_own,
     "with the guide": m.music_winds_pads_sec_guide,
   };
-  const sectionName = (label: string) => SECTION_NAMES[label]?.() ?? label;
+  const sectionName = (label: string) => SECTION_NAMES[label]?.() ?? sectionLabelText(label);
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -803,7 +803,7 @@
       value: r.groove.value,
       title: r.groove.label,
       meta: m.music_winds_pads_groove_meta({
-        style: r.style,
+        style: padStyleLabel(r.style),
         count: r.groove.bars,
         shape: grooveMeter(r.groove) !== "4/4" ? m.music_winds_pads_meta_meter({ meter: grooveMeter(r.groove) }) : (r.groove.stepsPerBeat ?? 4) % 2 ? m.music_winds_pads_meta_triplets() : "",
         start: r.bpm.start,
@@ -818,7 +818,7 @@
   /** Rudiments grouped as the skills are: singles and doubles, rolls, accents, paradiddles. */
   const RUDIMENT_GROUPS = { singles: m.music_winds_rgroup_singles, rolls: m.music_winds_rgroup_rolls, accents: m.music_winds_rgroup_accents, paradiddles: m.music_winds_rgroup_paradiddles, stick: m.music_winds_rgroup_stick };
   const rudimentOptions = (["singles", "rolls", "accents", "paradiddles", "stick"] as const).flatMap((group) =>
-    RUDIMENTS.filter((r) => (r.hits ? "stick" : rudimentSkills(r.id)[1] === "technique.mpc.paradiddles" ? "paradiddles" : rudimentSkills(r.id)[1] === "technique.mpc.rolls" ? "rolls" : rudimentSkills(r.id)[1] === "technique.mpc.accents" ? "accents" : "singles") === group).map((r) => ({ value: r.id, label: r.hits ? r.label.replace("Stick Control: ", "") : r.label, group: RUDIMENT_GROUPS[group]() })),
+    RUDIMENTS.filter((r) => (r.hits ? "stick" : rudimentSkills(r.id)[1] === "technique.mpc.paradiddles" ? "paradiddles" : rudimentSkills(r.id)[1] === "technique.mpc.rolls" ? "rolls" : rudimentSkills(r.id)[1] === "technique.mpc.accents" ? "accents" : "singles") === group).map((r) => ({ value: r.id, label: r.sticking ?? r.label, group: RUDIMENT_GROUPS[group]() })),
   );
   const voiceName = (id: string) => GROOVE_VOICES.find((v) => v.id === id)?.name ?? id;
   const TIER_TEXT = { beginner: m.music_winds_pads_tier_beginner, intermediate: m.music_winds_pads_tier_intermediate, advanced: m.music_winds_pads_tier_advanced };
@@ -886,7 +886,7 @@
           setupKey="sub"
         />
         {#if pattern.hits}
-          <p class="text-sm text-ws-soft sm:pt-6">{m.music_winds_pads_stick_help({ n: pattern.hits / pattern.unit.length, pattern: pattern.label.replace("Stick Control: ", "") })}</p>
+          <p class="text-sm text-ws-soft sm:pt-6">{m.music_winds_pads_stick_help({ n: pattern.hits / pattern.unit.length, pattern: pattern.sticking ?? pattern.label })}</p>
         {:else}
           <Choice label={m.music_winds_pads_hits()} options={RUDIMENT_HIT_COUNTS.map((n) => ({ value: n as number, label: String(n) }))} value={s.hits} onchange={(v) => cfg.set({ hits: v })} setupKey="hits" />
         {/if}
@@ -958,7 +958,7 @@
           <!-- One line, the rest behind More, so the lanes and the pads stay in the first screen. -->
           <details class="rounded-xl bg-ws-stage-ink/8 px-3 py-2 text-sm" aria-label={m.music_winds_pads_about()}>
             <summary class="flex min-h-8 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-              <span class="min-w-0 flex-1 truncate"><span class="font-semibold">{entry.groove.label}.</span> <span class="text-ws-stage-soft">{m.music_winds_pads_about_line({ style: entry.style, level: entry.level })}{grooveMeter(entry.groove) !== "4/4" ? m.music_winds_pads_about_meter({ meter: grooveMeter(entry.groove) }) : ""}{swing !== 50 ? m.music_winds_pads_meta_swing({ swing }) : ""}</span></span>
+              <span class="min-w-0 flex-1 truncate"><span class="font-semibold">{entry.groove.label}.</span> <span class="text-ws-stage-soft">{m.music_winds_pads_about_line({ style: padStyleLabel(entry.style), level: entry.level })}{grooveMeter(entry.groove) !== "4/4" ? m.music_winds_pads_about_meter({ meter: grooveMeter(entry.groove) }) : ""}{swing !== 50 ? m.music_winds_pads_meta_swing({ swing }) : ""}</span></span>
               <span class="shrink-0 font-medium text-ws-stage-ink underline underline-offset-2">{m.music_winds_pads_more()}</span>
             </summary>
             <p class="mt-1 text-ws-stage-soft">{TIER_TEXT[levelOf.tier]({ perfect: Math.round(judgeWindow.perfect), good: Math.round(judgeWindow.good) })}</p>

@@ -40,11 +40,19 @@ export function toneLabel(semitones: number, chordIntervals: readonly number[]):
 /**
  * The one line that says why a chord's scale fits it, from the scale's own
  * degrees: Lydian's raised 4th, Mixolydian's flat 7th, Dorian's natural 6th.
- * Matched on the whole word, so "Mixolydian" never gets Lydian's tip.
+ * Takes the scale's id from core's chord-scale map (`ChordScaleRow.scale`),
+ * not its label, so it works in every language.
  */
-export function scaleTip(scaleLabel: string): string | null {
-  if (/\bmixolydian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_mixolydian();
-  if (/\blydian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_lydian();
-  if (/\bdorian\b/i.test(scaleLabel)) return m.music_strings_tones_tip_dorian();
-  return null;
+export function scaleTip(scaleId: string | undefined): string | null {
+  switch (scaleId) {
+    case "mixolydian":
+      return m.music_strings_tones_tip_mixolydian();
+    case "lydian":
+    case "lydian dominant":
+      return m.music_strings_tones_tip_lydian();
+    case "dorian":
+      return m.music_strings_tones_tip_dorian();
+    default:
+      return null;
+  }
 }

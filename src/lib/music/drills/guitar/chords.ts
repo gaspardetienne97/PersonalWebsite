@@ -211,15 +211,18 @@ export function positionText(label: string) {
       : m.music_strings_pos_fret({ n: p[3] });
 }
 
-/** "Open", "Barre 3", "Fret 10": a position's short name. */
-export function shortPosition(label: string) {
-  const p = POSITION.exec(label);
-  if (!p) return label.replace("Open position", "Open").replace("Barre at fret", "Barre");
-  return p[1]
-    ? m.music_strings_pos_open_short()
-    : p[2]
-      ? m.music_strings_pos_barre_short({ n: p[2] })
-      : m.music_strings_pos_fret({ n: p[3] });
+/**
+ * "Open", "Barre 3", "Fret 10": a position's short name, from its kind and base
+ * fret rather than its (translated) label. A shell keeps its form's name.
+ */
+export function shortPosition(
+  p: Pick<ChordPosition, "positionLabel" | "kind" | "baseFret" | "shapeId">,
+) {
+  if (p.shapeId.startsWith("shell.")) return p.positionLabel;
+  if (p.kind === "open") return m.music_strings_pos_open_short();
+  return p.kind === "barre"
+    ? m.music_strings_pos_barre_short({ n: p.baseFret })
+    : m.music_strings_pos_fret({ n: p.baseFret });
 }
 
 // ---------------------------------------------------------------------------

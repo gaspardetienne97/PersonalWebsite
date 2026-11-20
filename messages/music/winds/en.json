@@ -205,7 +205,22 @@
   "music_winds_aero_right_sr": ", right",
   "music_winds_aero_scale": "Scale",
   "music_winds_aero_seconds": "{s} s",
-  "music_winds_aero_slips": "{right} of {total} right. {count} came out an octave off: {slip}.",
+  "music_winds_aero_slips": [
+    {
+      "declarations": [
+        "input right",
+        "input total",
+        "input count",
+        "input slip",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{right} of {total} right. {count} came out an octave off: {slip}.",
+        "countPlural=other": "{right} of {total} right. {count} came out an octave off: {slip}."
+      }
+    }
+  ],
   "music_winds_aero_slurred": "slurred",
   "music_winds_aero_spacing": "Every note right, but the spacing wandered {ms} ms. Keep it even.",
   "music_winds_aero_step_four": "Four notes a click",

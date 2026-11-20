@@ -408,6 +408,7 @@ export const STICK_CONTROL: RudimentDef[] = [
 ].map((s) => ({
   id: `stick-${s.toLowerCase()}`,
   label: `Stick Control: ${s.split("").join(" ")}`,
+  sticking: s.split("").join(" "),
   unit: [...s].map((c) => (c === "R" ? "right" : "left")),
   subdivision: 2,
   hits: 80,

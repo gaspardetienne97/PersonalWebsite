@@ -62,7 +62,7 @@
         >
           <ChordDiagram frets={sh.frets} fingers={sh.fingers} barre={sh.barre} label="" />
           <span class="text-sm font-semibold">{names[i]}</span>
-          <span class="text-[13px] leading-tight text-ws-soft">{shortPosition(sh.positionLabel)}</span>
+          <span class="text-[13px] leading-tight text-ws-soft">{shortPosition(sh)}</span>
         </button>
         {#if n > 2}
           <button type="button" class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border border-ws-line bg-ws-surface text-[13px]" aria-label={m.music_strings_remove_name({ name: names[i] })} onclick={() => remove(i)}>✕</button>

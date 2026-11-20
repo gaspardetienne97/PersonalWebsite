@@ -249,6 +249,8 @@ export interface RudimentDef {
   perBeat?: number[];
   /** A fixed length in hits (Stick Control: 20 repetitions); overrides the chosen count. */
   hits?: number;
+  /** The sticking alone, for a short label ("R L R L"); Stick Control's patterns carry it. */
+  sticking?: string;
 }
 export const MPC_RUDIMENTS = mpcRudimentsJson as {
   patterns: RudimentDef[];

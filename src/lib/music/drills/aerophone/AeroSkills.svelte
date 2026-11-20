@@ -574,7 +574,7 @@
       {:else if skill === "tonguing"}
         <Choice label={m.music_winds_aero_pattern()} options={TONGUING.map((x) => ({ value: x.id as string, label: x.label, detail: x.group.split("").join(" ") }))} value={s.tongue} onchange={(v) => cfg.set({ tongue: v })} setupKey="tongue" />
       {:else if skill === "register"}
-        <Choice label={m.music_winds_aero_crossing()} options={REGISTER_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail || undefined }))} value={s.pair} onchange={(v) => cfg.set({ pair: v })} setupKey="pair" />
+        <Choice label={m.music_winds_aero_crossing()} options={REGISTER_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detailText || undefined }))} value={s.pair} onchange={(v) => cfg.set({ pair: v })} setupKey="pair" />
       {:else if skill === "trills"}
         <Choice label={m.music_winds_aero_trill_label()} options={TRILL_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail || undefined }))} value={s.trill} onchange={(v) => cfg.set({ trill: v })} setupKey="trill" />
       {:else}
@@ -605,7 +605,7 @@
           </p>
         {/if}
         {#if timed}
-          {#if skill === "register" && regPair.detail}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detail}.</p>{/if}
+          {#if skill === "register" && regPair.detailText}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detailText}.</p>{/if}
           <!-- Check hides the fingering, not the line: the staff stays for reading, without the cursor on the target. -->
           <div data-dock="music">
             <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={shownTitle} cursorBeat={stepNow === null || mode === "check" ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" maxZoom={1.15} />
