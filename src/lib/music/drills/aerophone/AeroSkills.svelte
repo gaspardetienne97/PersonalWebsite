@@ -11,7 +11,8 @@
   import { clamp, evennessRow, noteName } from "@repo/music-core";
   import { pushTrace } from "@repo/music-core/scoring/aerophone";
   import BreathTrace from "./BreathTrace.svelte";
-  import { aeroSpeller, fingeringWords } from "./names";
+  import { aeroSpeller, fingeringWords, namedNotes } from "./names";
+  import { keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import {
     AERO_GRADE_SPEEDS,
     AERO_PATTERNS,
@@ -119,8 +120,14 @@
   const signature = $derived(keyed ? (scaleKind === "chromatic" ? 0 : signatureFor(s.key, scaleKind)) : 0);
   /** A concert note by its written name: spelled by the key in scales and tonguing (Db major reads Db, not C#), the chart's
    *  spelling elsewhere. The one speller for the chips, the heard note, the cue and the fingering caption (contradiction 9). */
-  const spell = $derived(aeroSpeller(shift, keyed ? signature : null));
-  const keyName = (pc: number) => noteName(pc, (scaleKind === "chromatic" ? 0 : signatureFor(pc, scaleKind)) < 0 ? "flat" : "sharp", false);
+  const spelled = $derived(aeroSpeller(shift, keyed ? signature : null));
+  const spell = (concert: number) => note(spelled(concert));
+  /** A key's tonic in letters (for the saved setup line and movable do); `keyName` shows it. */
+  const keyLetter = (pc: number) => noteName(pc, (scaleKind === "chromatic" ? 0 : signatureFor(pc, scaleKind)) < 0 ? "flat" : "sharp", false);
+  // Movable do counts from the written key the scales and tonguing are in; crossings, trills and vibrato have none.
+  useNamingKey(() => (keyed ? { tonic: keyLetter(s.key), minor: scaleKind.includes("minor") } : undefined));
+  const pairText = $derived(namedNotes(trillPair.label));
+  const crossingText = $derived(namedNotes(regPair.label));
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>(benchFromUrl({ min: 40, max: 160 }));
@@ -173,18 +180,18 @@
   const summaryLine = $derived<SetupClause[]>(
     skill === "scales"
       ? [
-          { text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" },
+          { text: `${keyLetter(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" },
           { text: pattern === "straight" ? "up and down" : `${patternLabel}, up and down`, focus: "pattern" },
           { text: `${bpm} BPM` },
           { text: `${perBeat === 1 ? "a note" : `${perBeat} notes`} a click`, focus: "perBeat" },
           ...(octaves === 2 ? [{ text: "two octaves", focus: "octaves" }] : []),
         ]
       : skill === "swing"
-        ? [{ text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: "swung eighths, doo-DAH" }, { text: `${bpm} BPM` }]
+        ? [{ text: `${keyLetter(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: "swung eighths, doo-DAH" }, { text: `${bpm} BPM` }]
       : skill === "long-scale"
-        ? [{ text: `${keyName(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: `${LONG_SCALE_BEATS} beats a note` }, { text: `at ${level.id}`, focus: "level" }, { text: `${bpm} BPM` }]
+        ? [{ text: `${keyLetter(s.key)} ${scaleOf.label.toLowerCase()}`, focus: "scale" }, { text: `${LONG_SCALE_BEATS} beats a note` }, { text: `at ${level.id}`, focus: "level" }, { text: `${bpm} BPM` }]
       : skill === "tonguing"
-        ? [{ text: `${keyName(s.key)} major`, focus: "key" }, { text: `${TONGUING.find((t) => t.id === s.tongue)?.label.toLowerCase()}`, focus: "tongue" }, { text: `${bpm} BPM` }, { text: "eighths" }]
+        ? [{ text: `${keyLetter(s.key)} major`, focus: "key" }, { text: `${TONGUING.find((t) => t.id === s.tongue)?.label.toLowerCase()}`, focus: "tongue" }, { text: `${bpm} BPM` }, { text: "eighths" }]
         : skill === "register"
           ? [{ text: regPair.label, focus: "pair" }, { text: `back and forth in eighths at ${bpm} BPM` }]
           : skill === "trills"
@@ -198,7 +205,7 @@
    * line, which leaves the tempo out (it is on the practice strip, S5) and says "one note per beat" in plain words.
    */
   function displayLine(full: boolean): SetupClause[] {
-    const keyScale = { text: m.music_winds_aero_key_scale({ key: keyName(s.key), scale: scaleOf.label.toLowerCase() }), focus: "scale" };
+    const keyScale = { text: m.music_winds_aero_key_scale({ key: keyName(keyLetter(s.key)), scale: scaleOf.label.toLowerCase() }), focus: "scale" };
     const tempo = full ? [{ text: `${bpm} BPM` }] : [];
     if (skill === "scales")
       return [
@@ -210,16 +217,16 @@
       ];
     if (skill === "swing") return [keyScale, { text: m.music_winds_aero_swung_doodah() }, ...tempo];
     if (skill === "long-scale") return [keyScale, { text: m.music_winds_aero_beats_a_note({ n: LONG_SCALE_BEATS }) }, { text: m.music_winds_aero_at_level({ level: level.id }), focus: "level" }, ...tempo];
-    if (skill === "tonguing") return [{ text: m.music_winds_aero_key_major({ key: keyName(s.key) }), focus: "key" }, { text: `${TONGUING.find((t) => t.id === s.tongue)?.label.toLowerCase()}`, focus: "tongue" }, ...tempo, { text: m.music_winds_aero_eighths() }];
-    if (skill === "register") return [{ text: regPair.label, focus: "pair" }, { text: full ? m.music_winds_aero_back_forth_bpm({ bpm }) : m.music_winds_aero_back_forth() }];
-    if (skill === "trills") return [{ text: m.music_winds_aero_trill({ pair: trillPair.label }), focus: "trill" }, { text: m.music_winds_aero_trill_seconds({ n: TRILL_SECONDS }) }];
+    if (skill === "tonguing") return [{ text: m.music_winds_aero_key_major({ key: keyName(keyLetter(s.key)) }), focus: "key" }, { text: `${TONGUING.find((t) => t.id === s.tongue)?.label.toLowerCase()}`, focus: "tongue" }, ...tempo, { text: m.music_winds_aero_eighths() }];
+    if (skill === "register") return [{ text: crossingText, focus: "pair" }, { text: full ? m.music_winds_aero_back_forth_bpm({ bpm }) : m.music_winds_aero_back_forth() }];
+    if (skill === "trills") return [{ text: m.music_winds_aero_trill({ pair: pairText }), focus: "trill" }, { text: m.music_winds_aero_trill_seconds({ n: TRILL_SECONDS }) }];
     return [{ text: m.music_winds_aero_bite_on({ note: spell(vibNote) }), focus: "vibNote" }, { text: vib.label.toLowerCase(), focus: "vib" }, { text: m.music_winds_aero_rate_sets_tempo() }];
   }
   const shownLine = $derived(displayLine(false));
   const shownTitle = $derived(displayLine(true).map((c) => c.text).join(", "));
   /** Beside Stop on a phone: the note to play now, or how the untimed skills start. */
   const cue = $derived(
-    phase !== "running" ? "" : timed ? (stepNow === null ? m.music_winds_aero_cue_next_one() : mode === "check" ? m.music_winds_aero_cue_check() : m.music_winds_aero_cue_play({ note: spell(line[stepNow]) })) : skill === "trills" ? m.music_winds_aero_trill({ pair: trillPair.label }) : m.music_winds_aero_cue_vibrato({ note: spell(vibNote) }),
+    phase !== "running" ? "" : timed ? (stepNow === null ? m.music_winds_aero_cue_next_one() : mode === "check" ? m.music_winds_aero_cue_check() : m.music_winds_aero_cue_play({ note: spell(line[stepNow]) })) : skill === "trills" ? m.music_winds_aero_trill({ pair: pairText }) : m.music_winds_aero_cue_vibrato({ note: spell(vibNote) }),
   );
   let demo = $state<{ stop(): void; playing: boolean } | null>(null);
   let demoAt = $state(0);
@@ -312,7 +319,7 @@
       },
     });
     cap = capture(timed ? ctx.downbeat - stepMs / 2 : performance.now(), (e) => onEvent(e as NoteEvent | ControlEvent));
-    status = timed ? m.music_winds_aero_go_timed() : skill === "trills" ? m.music_winds_aero_go_trill({ pair: trillPair.label }) : m.music_winds_aero_go_vibrato({ note: spell(vibNote), pulses: vib.pulses });
+    status = timed ? m.music_winds_aero_go_timed() : skill === "trills" ? m.music_winds_aero_go_trill({ pair: pairText }) : m.music_winds_aero_go_vibrato({ note: spell(vibNote), pulses: vib.pulses });
     timer = setTimeout(() => void finish(), timed ? Math.max(0, ctx.downbeat - performance.now()) + line.length * stepMs + 60000 / bpm : 15000);
     const tick = () => {
       now = performance.now();
@@ -481,7 +488,7 @@
   ];
   function advanceAfter(score: number, correct: boolean) {
     const run = { score, correct };
-    const list = <T extends { id: string; label: string }>(xs: readonly T[], at: string) => ({ steps: xs.map((x) => ({ label: x.label })), step: Math.max(0, xs.findIndex((x) => x.id === at)) });
+    const list = <T extends { id: string; label: string }>(xs: readonly T[], at: string) => ({ steps: xs.map((x) => ({ label: namedNotes(x.label) })), step: Math.max(0, xs.findIndex((x) => x.id === at)) });
     if (skill === "swing") return nextRun(`aero.swing.${s.scale}.${s.key}`, { bpm, tempo: { min: 80, goal: 140, max: 200 } }, run);
     if (skill === "long-scale") return nextRun(`aero.long-scale.${s.scale}.${s.key}`, list(BREATH_LEVELS, s.level), run, ({ step }) => step !== undefined && cfg.set({ level: BREATH_LEVELS[step].id }));
     if (skill === "scales")
@@ -541,7 +548,7 @@
       {#if keyed}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
           <span class="font-medium">{m.music_winds_key()}</span>
-          <KeyPicker label={m.music_winds_key()} value={s.key} name={keyName} onchange={(v) => cfg.set({ key: v })} />
+          <KeyPicker label={m.music_winds_key()} value={s.key} name={(pc) => keyName(keyLetter(pc))} onchange={(v) => cfg.set({ key: v })} />
         </div>
       {/if}
       {#if skill === "swing" || skill === "long-scale"}
@@ -574,9 +581,9 @@
       {:else if skill === "tonguing"}
         <Choice label={m.music_winds_aero_pattern()} options={TONGUING.map((x) => ({ value: x.id as string, label: x.label, detail: x.group.split("").join(" ") }))} value={s.tongue} onchange={(v) => cfg.set({ tongue: v })} setupKey="tongue" />
       {:else if skill === "register"}
-        <Choice label={m.music_winds_aero_crossing()} options={REGISTER_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detailText || undefined }))} value={s.pair} onchange={(v) => cfg.set({ pair: v })} setupKey="pair" />
+        <Choice label={m.music_winds_aero_crossing()} options={REGISTER_PAIRS.map((x) => ({ value: x.id as string, label: namedNotes(x.label), detail: x.detailText ? namedNotes(x.detailText) : undefined }))} value={s.pair} onchange={(v) => cfg.set({ pair: v })} setupKey="pair" />
       {:else if skill === "trills"}
-        <Choice label={m.music_winds_aero_trill_label()} options={TRILL_PAIRS.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail || undefined }))} value={s.trill} onchange={(v) => cfg.set({ trill: v })} setupKey="trill" />
+        <Choice label={m.music_winds_aero_trill_label()} options={TRILL_PAIRS.map((x) => ({ value: x.id as string, label: namedNotes(x.label), detail: x.detail || undefined }))} value={s.trill} onchange={(v) => cfg.set({ trill: v })} setupKey="trill" />
       {:else}
         <Choice label={m.music_winds_skills_rate()} options={VIBRATO_SETS.map((x) => ({ value: x.id as string, label: x.label }))} value={s.vib} onchange={(v) => cfg.set({ vib: v })} setupKey="vib" />
         <Choice label={m.music_winds_aero_note()} options={[62, 67, 69, 74].map((m) => ({ value: m, label: spell(m - shift) }))} value={s.vibNote} onchange={(v) => cfg.set({ vibNote: v })} setupKey="vibNote" />
@@ -605,7 +612,7 @@
           </p>
         {/if}
         {#if timed}
-          {#if skill === "register" && regPair.detailText}<p class="text-sm text-ws-stage-soft">{regPair.label}: {regPair.detailText}.</p>{/if}
+          {#if skill === "register" && regPair.detailText}<p class="text-sm text-ws-stage-soft">{crossingText}: {namedNotes(regPair.detailText)}.</p>{/if}
           <!-- Check hides the fingering, not the line: the staff stays for reading, without the cursor on the target. -->
           <div data-dock="music">
             <LineNotation notes={line.map((midi, i) => ({ midi, startBeat: i / perBeat, durationBeats: 1 / perBeat }))} title={shownTitle} cursorBeat={stepNow === null || mode === "check" ? null : stepNow / perBeat} keyFifths={transposeFifths(signature, -shift)} instrument="aerophone" maxZoom={1.15} />
@@ -650,7 +657,7 @@
             />
           </div>
         {:else if skill === "trills"}
-          <p class="text-sm text-ws-stage-soft">{trillPair.detail ? m.music_winds_aero_trill_help_detail({ pair: trillPair.label, detail: trillPair.detail }) : m.music_winds_aero_trill_help({ pair: trillPair.label })}</p>
+          <p class="text-sm text-ws-stage-soft">{trillPair.detail ? m.music_winds_aero_trill_help_detail({ pair: pairText, detail: trillPair.detail }) : m.music_winds_aero_trill_help({ pair: pairText })}</p>
           {#if mode === "practice"}
             <!-- The two fingerings side by side, the one sounding lit. -->
             <div class="flex flex-wrap justify-center gap-4">

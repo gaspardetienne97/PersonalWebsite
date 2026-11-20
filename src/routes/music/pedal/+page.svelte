@@ -29,6 +29,7 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const TEMPO = { min: 40, max: 120 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -60,7 +61,7 @@
 
   const barIndex = $derived(phase === "running" && now >= downbeat ? Math.min(bars.length - 1, Math.floor((now - downbeat) / barMs)) : null);
   /** Beside Stop on a phone: the chord now and the move ("Chord 2 of 4: F, then lift"). */
-  const cue = $derived(barIndex === null ? "" : (mode === "practice" ? m.music_winds_pedal_cue_practice : m.music_winds_pedal_cue)({ n: barIndex + 1, total: bars.length, chord: bars[barIndex].symbol }));
+  const cue = $derived(barIndex === null ? "" : (mode === "practice" ? m.music_winds_pedal_cue_practice : m.music_winds_pedal_cue)({ n: barIndex + 1, total: bars.length, chord: chord(bars[barIndex].symbol) }));
   const current = $derived(barIndex === null ? (phase === "ready" ? bars[0] : null) : bars[barIndex]);
   /** The chart as timed notes, for Hear it first: each chord held for its bar. */
   const demoNotes = $derived<TimedNote[]>(bars.flatMap((b, k) => [b.leftHand, ...b.rightHand].map((midi, i) => ({ midi, beat: k * 4, dur: 4, hand: i === 0 ? ("left" as const) : ("right" as const) }))));
@@ -76,10 +77,12 @@
     return out;
   });
 
-  const keyName = $derived(FLAT_NAMES[pc(s.key)]);
+  const tonic = $derived(FLAT_NAMES[pc(s.key)]);
+  // Movable do counts from the key the chords are in (every progression here is major).
+  useNamingKey(() => ({ tonic }));
   /** The chords written out, a bar each: the root in the left hand, the chord in the right. */
   const written = $derived(bars.flatMap((b, k) => [{ midi: b.leftHand, startBeat: k * 4, durationBeats: 4, hand: "left" as const }, ...b.rightHand.map((midi) => ({ midi, startBeat: k * 4, durationBeats: 4, hand: "right" as const }))]));
-  const summaryLine = $derived<SetupClause[]>([{ text: m.music_winds_pedal_summary({ progression: progression.label, key: keyName }), focus: "progression" }, { text: m.music_winds_pedal_chords({ count: bars.length }), focus: "rounds" }, { text: m.music_winds_pedal_a_chord_a_bar() }]);
+  const summaryLine = $derived<SetupClause[]>([{ text: m.music_winds_pedal_summary({ progression: progression.label, key: keyName(tonic) }), focus: "progression" }, { text: m.music_winds_pedal_chords({ count: bars.length }), focus: "rounds" }, { text: m.music_winds_pedal_a_chord_a_bar() }]);
   const keys = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand])));
   const tight = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand]), 0, false));
 
@@ -292,7 +295,7 @@
       <Choice label={m.music_winds_pedal_progression()} setupKey="progression" options={PEDAL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label }))} value={progression.id} onchange={(v) => cfg.set({ progression: v })} />
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
         <span class="font-medium">{m.music_winds_key()}</span>
-        <KeyPicker label={m.music_winds_key()} value={pc(s.key)} name={(p) => FLAT_NAMES[p]} onchange={(p) => cfg.set({ key: p })} />
+        <KeyPicker label={m.music_winds_key()} value={pc(s.key)} name={(p) => keyName(FLAT_NAMES[p])} onchange={(p) => cfg.set({ key: p })} />
       </div>
       <Choice label={m.music_winds_pedal_times_through()} setupKey="rounds" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
     </div>
@@ -315,7 +318,7 @@
     {/if}
     {#if phase !== "ready"}{@render pedalLine()}{/if}
     <div class="flex flex-col justify-end" data-dock="instrument">
-      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label={m.music_winds_pedal_piano_label({ low: noteName(keys.low), high: noteName(keys.high) })} />
+      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label={m.music_winds_pedal_piano_label({ low: note(noteName(keys.low)), high: note(noteName(keys.high)) })} />
     </div>
   {/snippet}
 
@@ -334,7 +337,7 @@
     {#each bars as b, k (k)}
       {@const v = result?.verdicts[k]}
       <li class="flex min-h-14 min-w-0 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
-        <span class="font-display text-xl font-semibold">{b.symbol}</span>
+        <span class="font-display text-xl font-semibold">{chord(b.symbol)}</span>
         {#if v}
           <span class="flex items-center gap-1.5 text-sm text-ws-stage-ink">
             <span class="grid size-5 shrink-0 place-items-center rounded-full {v === 'clean' ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">

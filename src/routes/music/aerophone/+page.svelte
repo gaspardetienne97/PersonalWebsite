@@ -3,7 +3,8 @@
   import { MediaQuery } from "svelte/reactivity";
   import type { InputEvent, NoteEvent } from "@repo/music-core";
   import { clamp } from "@repo/music-core";
-  import { aeroSpeller } from "#lib/music/drills/aerophone/names.ts";
+  import { aeroSpeller, namedNotes } from "#lib/music/drills/aerophone/names.ts";
+  import { note } from "#lib/music/names.svelte.ts";
   import {
     AEROPHONE_CHART,
     AEROPHONE_MODES,
@@ -82,7 +83,11 @@
   const seq = $derived(lessonLine(lesson).map((m) => m - shift));
   // Fingering: the note waiting to be played (flash cards: nothing moves on until it is right).
   /** A concert note by the chart's spelling of its written note (G#4, Eb4), so names match the buttons and the slip hints. */
-  const chartName = $derived(aeroSpeller(shift, null));
+  const chartSpelled = $derived(aeroSpeller(shift, null));
+  /** The same, shown as the user reads note names (no key here: movable do reads as fixed do). */
+  const chartName = (concert: number) => note(chartSpelled(concert));
+  /** The lesson's name ("G A B", "C to G"), its notes named as the user reads them. */
+  const lessonLabel = (l: { label: string }) => namedNotes(l.label);
   /** The breath trace takes the free height of the live stage on a laptop only (the phone stage scrolls). */
   const wide = new MediaQuery("min-width: 64rem");
   const slipHint = (want: number, played: number) => fingeringSlip(want + shift, played + shift);
@@ -165,7 +170,7 @@
   let levelShare = $state<number | null>(null);
   const summaryLine = $derived<SetupClause[]>(
     m === "fingering"
-      ? [{ text: msg.music_winds_ae_sum_fingering({ lesson: lesson.label }), focus: "lesson" }, { text: "line" in lesson ? msg.music_winds_ae_sum_notes({ count: seq.length }) : msg.music_winds_ae_up_back_down() }]
+      ? [{ text: msg.music_winds_ae_sum_fingering({ lesson: lessonLabel(lesson) }), focus: "lesson" }, { text: "line" in lesson ? msg.music_winds_ae_sum_notes({ count: seq.length }) : msg.music_winds_ae_up_back_down() }]
       : m === "long-tone"
         ? [{ text: msg.music_winds_ae_sum_long_tone({ note: chartName(targetMidi) }) }, { text: msg.music_winds_ae_sum_hold({ s: s.seconds }), focus: "seconds" }, ...(level ? [{ text: msg.music_winds_aero_at_level({ level: level.id }), focus: "level" }] : [])]
         : m === "swell"
@@ -314,7 +319,7 @@
     }
     summary = {
       headline: correct
-        ? msg.music_winds_ae_head_fingering_ok({ lesson: lesson.label })
+        ? msg.music_winds_ae_head_fingering_ok({ lesson: lessonLabel(lesson) })
         : msg.music_winds_ae_head_fingering({ clean, total: seq.length, missed: missed.map(chartName).join(", ") }),
       rows: [{ label: msg.music_winds_ae_first_try_row(), value: score, text: msg.music_winds_chop_of({ n: clean, total: seq.length }) }],
       metric: pct(score),
@@ -338,7 +343,7 @@
     const holds = AEROPHONE_MODES[1].seconds as readonly number[];
     const swells = AEROPHONE_MODES[2].seconds as readonly number[];
     const counts = [4, 8, 12];
-    if (m === "fingering") return nextRun("aero.fingering", at(FINGERING_LESSONS.map((l) => l.label), FINGERING_LESSONS.indexOf(lesson)), run, set((i) => ({ lesson: FINGERING_LESSONS[i].id })));
+    if (m === "fingering") return nextRun("aero.fingering", at(FINGERING_LESSONS.map(lessonLabel), FINGERING_LESSONS.indexOf(lesson)), run, set((i) => ({ lesson: FINGERING_LESSONS[i].id })));
     if (m === "long-tone") return nextRun(`aero.long-tone.${writtenTarget}.${s.level}`, at(holds.map((x) => msg.music_winds_ae_step_hold({ s: x })), holds.indexOf(s.seconds)), run, set((i) => ({ seconds: holds[i] })));
     if (m === "swell") return nextRun(`aero.swell.${writtenTarget}`, at(swells.map((x) => msg.music_winds_ae_step_swell({ s: x })), swells.indexOf(s.swellSeconds)), run, set((i) => ({ swellSeconds: swells[i] })));
     if (m === "articulation")
@@ -561,7 +566,7 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if m === "fingering"}
-        <Choice label={msg.music_winds_ae_lesson()} select options={FINGERING_LESSONS.map((l, i) => ({ value: l.id as string, label: `${i + 1}. ${l.label}` }))} value={s.lesson} onchange={(v) => cfg.set({ lesson: v })} setupKey="lesson" />
+        <Choice label={msg.music_winds_ae_lesson()} select options={FINGERING_LESSONS.map((l, i) => ({ value: l.id as string, label: `${i + 1}. ${lessonLabel(l)}` }))} value={s.lesson} onchange={(v) => cfg.set({ lesson: v })} setupKey="lesson" />
       {:else if m === "long-tone"}
         <Choice label={msg.music_winds_ae_hold()} options={AEROPHONE_MODES[1].seconds.map((x) => ({ value: x as number, label: `${x} s` }))} value={s.seconds} onchange={(v) => cfg.set({ seconds: v })} setupKey="seconds" />
         <Choice label={msg.music_winds_level()} options={[{ value: "any", label: msg.music_winds_ae_any() }, ...BREATH_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))]} value={s.level} onchange={(v) => cfg.set({ level: v })} setupKey="level" />
@@ -600,7 +605,7 @@
       <div class="flex min-w-0 flex-col gap-3 max-md:contents">
         {#if m === "fingering"}
           <div class="rounded-xl bg-ws-stage-ink/6 p-4">
-            <p class="text-sm text-ws-stage-soft">{"line" in lesson ? msg.music_winds_ae_lesson_line({ lesson: lesson.label, count: seq.length }) : msg.music_winds_ae_lesson_updown({ lesson: lesson.label })}</p>
+            <p class="text-sm text-ws-stage-soft">{"line" in lesson ? msg.music_winds_ae_lesson_line({ lesson: lessonLabel(lesson), count: seq.length }) : msg.music_winds_ae_lesson_updown({ lesson: lessonLabel(lesson) })}</p>
             <ol class="mt-3 flex flex-wrap gap-1.5" aria-label={msg.music_winds_ae_lesson_notes()}>
               {#each seq as n, i (i)}
                 {@const done = phase === "results" || (phase === "running" && i < step)}
@@ -661,7 +666,7 @@
           <button
             type="button"
             class="min-h-11 min-w-11 rounded-lg px-1.5 text-sm font-semibold {sounding === at ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/10 hover:bg-ws-stage-ink/20'} {at === targetMidi && m !== 'fingering' ? 'ring-2 ring-instr' : ''}"
-            aria-label={msg.music_winds_ae_play_note({ note: c.name })}
+            aria-label={msg.music_winds_ae_play_note({ note: note(c.name) })}
             aria-current={at === targetMidi && m !== "fingering" ? "true" : undefined}
             aria-pressed={sounding === at}
             onpointerdown={(e) => press(e, at)}
@@ -669,7 +674,7 @@
             onpointercancel={release}
             onlostpointercapture={release}
             onkeydown={(e) => chartKey(e, at, true)}
-            onkeyup={(e) => chartKey(e, at, false)}>{c.name}</button
+            onkeyup={(e) => chartKey(e, at, false)}>{note(c.name)}</button
           >
         {/each}
       </div>

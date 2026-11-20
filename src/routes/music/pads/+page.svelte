@@ -41,6 +41,7 @@
   // The results card's stars (the advance rule's lines), so a groove's badge in the picker agrees with them.
   import { starsFor } from "#lib/music/components/trend.ts";
   import { backingChords, backingFor } from "#lib/music/drills/pads/backing.ts";
+  import { chord } from "#lib/music/names.svelte.ts";
   import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
   import PadSkills from "#lib/music/drills/pads/PadSkills.svelte";
   import ChopDrill from "#lib/music/drills/pads/ChopDrill.svelte";
@@ -902,7 +903,7 @@
           label={m.music_winds_pads_backing()}
           options={[
             { value: "off", label: m.music_winds_pads_click_only() },
-            { value: "on", label: m.music_winds_pads_band({ chords: backingChords(entry.style).join(" ") }) },
+            { value: "on", label: m.music_winds_pads_band({ chords: backingChords(entry.style).map(chord).join(" ") }) },
           ]}
           value={s.backing ? "on" : "off"}
           onchange={(v) => cfg.set({ backing: v === "on" })}
