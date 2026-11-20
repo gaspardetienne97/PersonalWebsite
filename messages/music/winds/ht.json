@@ -137,23 +137,66 @@
   "music_winds_aero_vibrato_help": "Kenbe {note} fèm epi pouse mòde a {pulses} fwa chak klik : klik la jwe a {bpm} BPM. Mòde a rive nan Woodshed kòm pitch bend.",
   "music_winds_aero_waiting": "ap tann",
   "music_winds_aerophone_title": "Aerophone",
+  "music_winds_attack_beat": "Tan {n}",
+  "music_winds_attack_caption": "Atak : {style}, chak nòt sonnen {pct}% nan tan li",
+  "music_winds_attack_caption_offsets": "Atak : {style}, chak nòt sonnen {pct}% nan tan li. Chif yo : ms parapò ak klik la, mwens vle di twò bonè",
+  "music_winds_attack_from_click": ", {ms} ms parapò ak klik la",
+  "music_winds_attack_no_attack": ", pa gen atak",
+  "music_winds_attack_none": "okenn",
+  "music_winds_attack_sounded": ", sonnen {pct}%",
   "music_winds_bar": "Mezi",
   "music_winds_bars": "Mezi",
   "music_winds_bars_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} mezi",
         "countPlural=other": "{count} mezi"
       }
     }
   ],
+  "music_winds_breath_blow": "Soufle pou teste detektè souf la",
+  "music_winds_breath_none": "Pa gen done souf : tablo a ak touch òdinatè a pa ka voye souf. Jwe Aerophone a pou w wè l.",
+  "music_winds_breath_sensor": "Detektè souf",
+  "music_winds_cal_as_read": "{note} jan yo li l",
+  "music_winds_cal_as_read_right": "{note} jan yo li l, li bon",
+  "music_winds_cal_assistance": "Yon verifikasyon konfigirasyon : li pa chanje pwen konpetans ou.",
+  "music_winds_cal_bite_no": "nou pa wè anyen. Regle mòde a pou l voye pitch bend pou vibrato",
+  "music_winds_cal_bite_yes": "rive, kidonk nou ka li vibrato a",
+  "music_winds_cal_blurb": "Tcheke konfigirasyon AE-20 a : nòt li voye, souf la, epi depi dous rive fò san sature.",
+  "music_winds_cal_breath_label": "Souf, 64 dènye echantiyon. Liy pwentiye a se f",
+  "music_winds_cal_checks": "Verifikasyon",
+  "music_winds_cal_checks_passed": "verifikasyon ki pase",
+  "music_winds_cal_every_check": "tout verifikasyon yo pase",
+  "music_winds_cal_g4_came_in": "G4 rive kòm",
+  "music_winds_cal_head_ceiling": "Nòt ki pi fò ou a rive {ceiling}, anba f ({target}). Monte sansiblite souf la yon degre.",
+  "music_winds_cal_head_clipped": "Nòt fò a rete kole anwo pou {pct} nan li. Bese sansiblite souf AE-20 a yon degre.",
+  "music_winds_cal_head_floor": "Nòt ki pi dous ou a li {floor} : vize p oswa mwens ({target}). Bese sansiblite souf AE-20 a, oswa soufle pi dous.",
+  "music_winds_cal_head_key_fits": "G4 ekri a rive kòm {received} reyèl : AE-20 a li an {fits}, Woodshed an {key}. Fè yo matche.",
+  "music_winds_cal_head_key_unknown": "G4 ekri a rive kòm {received} reyèl, e okenn tonalite lekti pa eksplike sa. Tcheke paramèt transpozisyon ak oktav AE-20 a.",
+  "music_winds_cal_head_no_breath": "Tonalite a matche, men pa gen souf ki rive (CC 2). Tcheke sòti souf AE-20 a.",
+  "music_winds_cal_head_ok": "Konfigirasyon an bon : tonalite a matche epi souf la rive depi p jiska f san li pa sature.",
+  "music_winds_cal_key_check": "Verifikasyon tonalite",
+  "music_winds_cal_key_say": "Fè dwate yon G4 ekri epi jwe l nan nenpòt nivo.",
+  "music_winds_cal_loud_say": "Kounye a pi fò ou kapab, nenpòt nòt : kenbe l 3 segonn.",
+  "music_winds_cal_loudest": "Pi fò",
+  "music_winds_cal_no_note": "okenn nòt",
+  "music_winds_cal_pinned": "{pct}, {pinned} kole anwo",
+  "music_winds_cal_read_in": "Li an {key}",
+  "music_winds_cal_row_bite": "Mòde (pitch bend)",
+  "music_winds_cal_row_breath": "Souf la (CC 2) rive",
+  "music_winds_cal_row_key": "Tonalite : G4 ekri an {key}",
+  "music_winds_cal_row_loudest": "Nòt ki pi fò",
+  "music_winds_cal_row_loudest_f": "Nòt ki pi fò, f san sature",
+  "music_winds_cal_row_softest": "Nòt ki pi dous",
+  "music_winds_cal_row_softest_p": "Nòt ki pi dous, p oswa mwens",
+  "music_winds_cal_setup_help": "Sou AE-20 a, chwazi mòd Sax ak sèn ou jwe a. Woodshed li an {key}. Chanje l ak Reads in nan ba anwo a, oswa nan Paramèt. Lè transpozisyon AE-20 a sou C, li an C. Sou Eb (alto) oswa Bb (tenò), li nan tonalite sa a.",
+  "music_winds_cal_soft_say": "Kounye a nòt estab ki pi dous ou, nenpòt nòt : kenbe l 3 segonn.",
+  "music_winds_cal_softest": "Pi dous",
+  "music_winds_cal_step": "Etap",
+  "music_winds_cal_sum_reading": "Verifikasyon konfigirasyon, lekti an {key}",
+  "music_winds_cal_sum_steps": "yon G4 ekri, epi pi dous la ak pi fò a",
   "music_winds_chop_bars_in_loop": "Mezi nan bouk la",
   "music_winds_chop_blocked_cutting": "N ap koupe bouk la an tranch…",
   "music_winds_chop_blocked_import": "Enpòte bouk ou a anvan, oswa chwazi youn nan bouk Woodshed yo.",
@@ -205,13 +248,8 @@
   "music_winds_chop_row_timing": "Presizyon ritm",
   "music_winds_chop_row_timing_from": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Presizyon ritm, sou {count} tranch ou frape",
         "countPlural=other": "Presizyon ritm, sou {count} tranch ou frape"
@@ -223,13 +261,8 @@
   "music_winds_chop_slice_sounding": "Tranch {n}, k ap sonnen",
   "music_winds_chop_source_summary": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{source}, {count} mezi sou 16 pad",
         "countPlural=other": "{source}, {count} mezi sou 16 pad"
@@ -260,13 +293,8 @@
   "music_winds_grid_on_time": "a lè, {ms} ms",
   "music_winds_grid_region": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Groove la, {count} mezi, glise sou kote",
         "countPlural=other": "Groove la, {count} mezi, glise sou kote"
@@ -330,13 +358,8 @@
   "music_winds_midi_outside_bank": "{name} voye yon pad ki pa nan bank A, kidonk okenn pad pa limen. Anrejistre kat pad pwogram batri ou a nan Connect.",
   "music_winds_midi_waiting_link": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, lye l nan Connect.",
         "countPlural=other": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, lye l nan Connect."
@@ -345,13 +368,8 @@
   ],
   "music_winds_midi_waiting_output": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, sòti li pa konekte : tcheke kab la, epi Connect.",
         "countPlural=other": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, sòti li pa konekte : tcheke kab la, epi Connect."
@@ -360,13 +378,8 @@
   ],
   "music_winds_midi_waiting_sysex": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, pèmèt SysEx, epi lye l nan Connect.",
         "countPlural=other": "{ports} konekte, men pa gen okenn kou pad ki rive ankò. Si pad yo rete an silans isit la, pèmèt SysEx, epi lye l nan Connect."
@@ -375,11 +388,17 @@
   ],
   "music_winds_missed": "rate",
   "music_winds_names_all_open": "tout kle yo louvri",
+  "music_winds_no": "non",
   "music_winds_not_measured": "Pa mezire",
   "music_winds_not_scored": "san pwen",
   "music_winds_nothing_saved": "Anyen pa anrejistre.",
   "music_winds_nothing_to_measure": "Pa gen anyen pou mezire, kidonk anyen pa anrejistre.",
   "music_winds_pads_title": "Pad",
+  "music_winds_pitch_drone": "dwòn {note}",
+  "music_winds_pitch_label": "Wotè son",
+  "music_winds_pitch_label_drone": "Wotè son, dwòn {note}",
+  "music_winds_pitch_on_target": "sou sib la",
+  "music_winds_pitch_silent": "an silans",
   "music_winds_score": "pwen",
   "music_winds_skills_aftertouch": "Aftertouch",
   "music_winds_skills_aftertouch_maybe": "Si pad ou yo voye aftertouch, presyon an regle nivo a. Sinon, chak repetisyon kenbe velosite kou a.",
@@ -499,13 +518,8 @@
   "music_winds_skills_orchestration": "Òkestrasyon",
   "music_winds_skills_own_detail": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Pa w, {count} seksyon, {bpm} BPM",
         "countPlural=other": "Pa w, {count} seksyon, {bpm} BPM"
@@ -542,13 +556,8 @@
   "music_winds_skills_section_dyn": "{section}, {dyn}",
   "music_winds_skills_section_item": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{label} ({count} mezi, {dyn})",
         "countPlural=other": "{label} ({count} mezi, {dyn})"
@@ -596,13 +605,8 @@
   "music_winds_skills_your_turn": "se tou pa w",
   "music_winds_slices_unreadable": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Nou pa t ka li {count} tranch",
         "countPlural=other": "Nou pa t ka li {count} tranch"
@@ -651,13 +655,8 @@
   "music_winds_stick_accent": ", aksan",
   "music_winds_stick_aria": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Sticking, {count} kou",
         "countPlural=other": "Sticking, {count} kou"
@@ -671,5 +670,6 @@
   "music_winds_stick_wrong_pad": "move pad",
   "music_winds_view": "Afichaj",
   "music_winds_view_grid": "Kadriyaj",
-  "music_winds_view_lanes": "Liy"
+  "music_winds_view_lanes": "Liy",
+  "music_winds_yes": "wi"
 }

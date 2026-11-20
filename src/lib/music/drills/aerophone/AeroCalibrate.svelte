@@ -18,6 +18,7 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import BreathTrace from "./BreathTrace.svelte";
   import MidiStatus from "#lib/music/drills/pads/MidiStatus.svelte";
+  import { m } from "@repo/i18n/messages.js";
 
   let { modes, onmode }: { modes: readonly { id: string; label: string }[]; onmode: (m: string) => void } = $props();
 
@@ -28,9 +29,9 @@
   /** A step with no note for this long ends the check. */
   const WAIT_MS = 20000;
   const STEPS = [
-    { id: "key", label: "Key check", say: "Finger a written G4 and play it at any level." },
-    { id: "soft", label: "Softest", say: "Now your softest steady note, any note: hold it 3 seconds." },
-    { id: "loud", label: "Loudest", say: "Now as loud as you can, any note: hold it 3 seconds." },
+    { id: "key", label: m.music_winds_cal_key_check(), say: m.music_winds_cal_key_say() },
+    { id: "soft", label: m.music_winds_cal_softest(), say: m.music_winds_cal_soft_say() },
+    { id: "loud", label: m.music_winds_cal_loudest(), say: m.music_winds_cal_loud_say() },
   ] as const;
 
   const shift = $derived(writtenOffset("aerophone", settings.value));
@@ -123,20 +124,20 @@
     await run!.attempt({ promptId: "calibrate", correct: r.correct, partialCredit: r.score, metrics: [], source: runSource(notes), instrument: runInstrument(notes, "aerophone") ?? null });
     const headline =
       received === null
-        ? "No note arrived. The line under the stage says whether the Aerophone is connected."
+        ? m.music_winds_aero_no_note()
         : !r.keyOk
           ? r.keyFits
-            ? `Written G4 came in as concert ${noteName(received)}: the AE-20 reads as ${AEROPHONE_READING_KEYS.find((k) => k.id === r.keyFits)!.label}, Woodshed as ${keyLabel}. Match one to the other.`
-            : `Written G4 came in as concert ${noteName(received)}, which no reading key explains. Check the AE-20's transpose and octave settings.`
+            ? m.music_winds_cal_head_key_fits({ received: noteName(received), fits: AEROPHONE_READING_KEYS.find((k) => k.id === r.keyFits)!.label, key: keyLabel })
+            : m.music_winds_cal_head_key_unknown({ received: noteName(received) })
           : !r.breathSeen
-            ? "The key matches, but no breath arrived (CC 2). Check the AE-20's breath output."
+            ? m.music_winds_cal_head_no_breath()
             : !r.floorOk
-              ? `Your softest note read ${pct(r.floor ?? 0)}: aim for p or under (${pct(BREATH_LEVELS[1].band[1])}). Lower the AE-20's breath sensitivity, or blow softer.`
+              ? m.music_winds_cal_head_floor({ floor: pct(r.floor ?? 0), target: pct(BREATH_LEVELS[1].band[1]) })
               : !r.ceilingOk
                 ? r.clipped > 0.1
-                  ? `The loud note pinned at the top for ${pct(r.clipped)} of it. Turn the AE-20's breath sensitivity down a step.`
-                  : `Your loudest note reached ${pct(r.ceiling ?? 0)}, under f (${pct(BREATH_LEVELS[3].band[0])}). Turn the breath sensitivity up a step.`
-                : "Setup is right: the key matches and the breath reaches from p to f without clipping.";
+                  ? m.music_winds_cal_head_clipped({ pct: pct(r.clipped) })
+                  : m.music_winds_cal_head_ceiling({ ceiling: pct(r.ceiling ?? 0), target: pct(BREATH_LEVELS[3].band[0]) })
+                : m.music_winds_cal_head_ok();
     const fin = await run!.finish({
       score: r.score,
       correct: r.correct,
@@ -151,19 +152,19 @@
     summary = {
       headline,
       metric: pct(r.score),
-      metricLabel: "checks passed",
+      metricLabel: m.music_winds_cal_checks_passed(),
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
       clean: r.correct,
-      cleanMeans: "every check passed",
-      assistance: "A setup check: it doesn't change your skill scores.",
+      cleanMeans: m.music_winds_cal_every_check(),
+      assistance: m.music_winds_cal_assistance(),
       rows: [
-        { label: `Key: written G4 in ${keyLabel}`, value: r.keyOk ? 1 : 0, text: received === null ? "no note" : `${name(received + shift)} as read${r.keyOk ? ", right" : ""}` },
-        { label: "Breath (CC 2) arrives", value: r.breathSeen ? 1 : 0, text: r.breathSeen ? "yes" : "no" },
-        r.floor === null ? { label: "Softest note", notMeasured: true } : { label: "Softest note, p or under", value: r.floorOk ? 1 : 0, text: pct(r.floor) },
-        r.ceiling === null ? { label: "Loudest note", notMeasured: true } : { label: "Loudest note, f without clipping", value: r.ceilingOk ? 1 : 0, text: `${pct(r.ceiling)}${r.clipped ? `, ${pct(r.clipped)} pinned` : ""}` },
-        { label: "Bite (pitch bend)", text: bite ? "arrives, so vibrato can be read" : "none seen. Set the bite to send pitch bend for vibrato" },
+        { label: m.music_winds_cal_row_key({ key: keyLabel }), value: r.keyOk ? 1 : 0, text: received === null ? m.music_winds_cal_no_note() : (r.keyOk ? m.music_winds_cal_as_read_right : m.music_winds_cal_as_read)({ note: name(received + shift) }) },
+        { label: m.music_winds_cal_row_breath(), value: r.breathSeen ? 1 : 0, text: r.breathSeen ? m.music_winds_yes() : m.music_winds_no() },
+        r.floor === null ? { label: m.music_winds_cal_row_softest(), notMeasured: true } : { label: m.music_winds_cal_row_softest_p(), value: r.floorOk ? 1 : 0, text: pct(r.floor) },
+        r.ceiling === null ? { label: m.music_winds_cal_row_loudest(), notMeasured: true } : { label: m.music_winds_cal_row_loudest_f(), value: r.ceilingOk ? 1 : 0, text: r.clipped ? m.music_winds_cal_pinned({ pct: pct(r.ceiling), pinned: pct(r.clipped) }) : pct(r.ceiling) },
+        { label: m.music_winds_cal_row_bite(), text: bite ? m.music_winds_cal_bite_yes() : m.music_winds_cal_bite_no() },
       ],
     };
     status = headline;
@@ -173,7 +174,7 @@
     clearTimeout(timer);
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_winds_nothing_saved();
   }
 
   onDestroy(() => {
@@ -183,10 +184,10 @@
 </script>
 
 <DrillShell
-  title="Aerophone"
+  title={m.music_winds_aerophone_title()}
   hue="aerophone"
-  blurb="Check the AE-20 setup: the note it sends, the breath, and soft to loud without clipping."
-  summary={[{ text: `Setup check, reading in ${keyLabel}` }, { text: "a written G4, then softest and loudest" }]}
+  blurb={m.music_winds_cal_blurb()}
+  summary={[{ text: m.music_winds_cal_sum_reading({ key: keyLabel }) }, { text: m.music_winds_cal_sum_steps() }]}
   tabs={modes}
   tab="calibrate"
   ontab={onmode}
@@ -199,22 +200,22 @@
 >
   {#snippet setup()}
     <p class="text-sm text-ws-soft">
-      On the AE-20, choose Sax mode and the scene you play. Woodshed reads in {keyLabel}. Change it with Reads in on the top bar, or in Settings. With the AE-20's transpose at C, read in C. At Eb (alto) or Bb (tenor), read in that key.
+      {m.music_winds_cal_setup_help({ key: keyLabel })}
     </p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Step" value={`${Math.min(step + 1, STEPS.length)} of ${STEPS.length}`} />
-      {#if received !== null}<Stat label="G4 came in as" value={name(received + shift)} />{/if}
+      <Stat label={m.music_winds_cal_step()} value={m.music_winds_chop_of({ n: Math.min(step + 1, STEPS.length), total: STEPS.length })} />
+      {#if received !== null}<Stat label={m.music_winds_cal_g4_came_in()} value={name(received + shift)} />{/if}
     {:else if result}
-      <Stat label="Checks" value={pct(result.score)} tone={result.correct ? "success" : "warn"} />
+      <Stat label={m.music_winds_cal_checks()} value={pct(result.score)} tone={result.correct ? "success" : "warn"} />
     {/if}
   {/snippet}
 
   {#snippet stage()}
     <div class="flex flex-col gap-3" data-testid="aero-calibrate" data-step={step}>
-      <ol class="grid gap-2 sm:grid-cols-3" aria-label="Checks">
+      <ol class="grid gap-2 sm:grid-cols-3" aria-label={m.music_winds_cal_checks()}>
         {#each STEPS as st, i (st.id)}
           {@const now = phase === "running" && i === step}
           <li class="rounded-xl p-3 text-sm {now ? 'bg-instr-strong text-on-instr' : 'bg-ws-stage-ink/8'}" aria-current={now ? "step" : undefined}>
@@ -223,10 +224,10 @@
           </li>
         {/each}
       </ol>
-      <BreathTrace values={breath} target={Array(64).fill(BREATH_LEVELS[3].band[0])} measured={breath.length > 0} label="Breath, last 64 samples. The dashed line is f" />
+      <BreathTrace values={breath} target={Array(64).fill(BREATH_LEVELS[3].band[0])} measured={breath.length > 0} label={m.music_winds_cal_breath_label()} />
       {#if result && !result.keyOk && result.keyFits}
         {@const fits = result.keyFits}
-        <button type="button" class={btn} onclick={() => void settings.update({ aerophoneKey: fits })}>Read in {AEROPHONE_READING_KEYS.find((k) => k.id === fits)!.label}</button>
+        <button type="button" class={btn} onclick={() => void settings.update({ aerophoneKey: fits })}>{m.music_winds_cal_read_in({ key: AEROPHONE_READING_KEYS.find((k) => k.id === fits)!.label })}</button>
       {/if}
     </div>
   {/snippet}

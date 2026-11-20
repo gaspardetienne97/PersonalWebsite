@@ -1,6 +1,8 @@
 <script lang="ts">
   // One cell per beat: the dashed mark is how long the note should sound
   // (35% staccato, 95% legato), the fill is how long it did.
+  import { m } from "@repo/i18n/messages.js";
+
   interface Props {
     count: number;
     target: number;
@@ -16,7 +18,7 @@
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
   <figcaption class="mb-2 text-sm text-ws-stage-soft">
-    Attacks: {style}, each note sounds {Math.round(target * 100)}% of its beat{offsets ? ". Numbers: ms from the click, minus is early" : ""}
+    {(offsets ? m.music_winds_attack_caption_offsets : m.music_winds_attack_caption)({ style, pct: Math.round(target * 100) })}
   </figcaption>
   <ol class="grid gap-1.5" style:grid-template-columns="repeat({count}, minmax(0, 1fr))">
     {#each Array.from({ length: count }, (_, i) => i) as i (i)}
@@ -26,9 +28,9 @@
         <span class="mark" style:left="{target * 100}%"></span>
         {#if offsets}
           {@const o = offsets[i]}
-          <span class="off" aria-hidden="true">{o == null ? "none" : `${o > 0 ? "+" : ""}${Math.round(o)}`}</span>
+          <span class="off" aria-hidden="true">{o == null ? m.music_winds_attack_none() : `${o > 0 ? "+" : ""}${Math.round(o)}`}</span>
         {/if}
-        <span class="sr-only">Beat {i + 1}{f != null ? `, sounded ${Math.round(f * 100)}%` : ""}{offsets ? (offsets[i] == null ? ", no attack" : `, ${Math.round(offsets[i]!)} ms from the click`) : ""}</span>
+        <span class="sr-only">{m.music_winds_attack_beat({ n: i + 1 })}{f != null ? m.music_winds_attack_sounded({ pct: Math.round(f * 100) }) : ""}{offsets ? (offsets[i] == null ? m.music_winds_attack_no_attack() : m.music_winds_attack_from_click({ ms: Math.round(offsets[i]!) })) : ""}</span>
       </li>
     {/each}
   </ol>

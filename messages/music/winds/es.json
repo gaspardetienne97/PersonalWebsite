@@ -137,23 +137,66 @@
   "music_winds_aero_vibrato_help": "Mantén {note} estable y pulsa la mordida {pulses} veces por clic: el clic suena a {bpm} BPM. La mordida le llega a Woodshed como pitch bend.",
   "music_winds_aero_waiting": "esperando",
   "music_winds_aerophone_title": "Aerophone",
+  "music_winds_attack_beat": "Pulso {n}",
+  "music_winds_attack_caption": "Ataques: {style}, cada nota suena el {pct}% de su pulso",
+  "music_winds_attack_caption_offsets": "Ataques: {style}, cada nota suena el {pct}% de su pulso. Números: ms desde el clic, negativo es antes",
+  "music_winds_attack_from_click": ", {ms} ms desde el clic",
+  "music_winds_attack_no_attack": ", sin ataque",
+  "music_winds_attack_none": "nada",
+  "music_winds_attack_sounded": ", sonó {pct}%",
   "music_winds_bar": "Compás",
   "music_winds_bars": "Compases",
   "music_winds_bars_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} compás",
         "countPlural=other": "{count} compases"
       }
     }
   ],
+  "music_winds_breath_blow": "Sopla para probar el sensor de respiración",
+  "music_winds_breath_none": "Sin datos de aire: la tabla y las teclas de la computadora no pueden enviar aire. Toca el Aerophone para verlo.",
+  "music_winds_breath_sensor": "Sensor de respiración",
+  "music_winds_cal_as_read": "{note} como se lee",
+  "music_winds_cal_as_read_right": "{note} como se lee, correcto",
+  "music_winds_cal_assistance": "Una revisión de configuración: no cambia tus puntajes de habilidad.",
+  "music_winds_cal_bite_no": "no se vio. Configura la mordida para enviar pitch bend para el vibrato",
+  "music_winds_cal_bite_yes": "llega, así que se puede leer el vibrato",
+  "music_winds_cal_blurb": "Revisa la configuración del AE-20: la nota que envía, el aire, y de suave a fuerte sin saturar.",
+  "music_winds_cal_breath_label": "Aire, últimas 64 muestras. La línea punteada es f",
+  "music_winds_cal_checks": "Revisiones",
+  "music_winds_cal_checks_passed": "revisiones aprobadas",
+  "music_winds_cal_every_check": "todas las revisiones aprobadas",
+  "music_winds_cal_g4_came_in": "G4 llegó como",
+  "music_winds_cal_head_ceiling": "Tu nota más fuerte llegó a {ceiling}, por debajo de f ({target}). Sube un paso la sensibilidad de aire.",
+  "music_winds_cal_head_clipped": "La nota fuerte se quedó pegada arriba durante el {pct}. Baja un paso la sensibilidad de aire del AE-20.",
+  "music_winds_cal_head_floor": "Tu nota más suave marcó {floor}: apunta a p o menos ({target}). Baja la sensibilidad de aire del AE-20 o sopla más suave.",
+  "music_winds_cal_head_key_fits": "El G4 escrito llegó como {received} real: el AE-20 lee en {fits} y Woodshed en {key}. Haz que coincidan.",
+  "music_winds_cal_head_key_unknown": "El G4 escrito llegó como {received} real, y ninguna tonalidad de lectura lo explica. Revisa la transposición y la octava del AE-20.",
+  "music_winds_cal_head_no_breath": "La tonalidad coincide, pero no llegó aire (CC 2). Revisa la salida de aire del AE-20.",
+  "music_winds_cal_head_ok": "La configuración está bien: la tonalidad coincide y el aire va de p a f sin saturar.",
+  "music_winds_cal_key_check": "Revisión de tonalidad",
+  "music_winds_cal_key_say": "Digita un G4 escrito y tócalo a cualquier nivel.",
+  "music_winds_cal_loud_say": "Ahora lo más fuerte que puedas, cualquier nota: sostenla 3 segundos.",
+  "music_winds_cal_loudest": "Lo más fuerte",
+  "music_winds_cal_no_note": "ninguna nota",
+  "music_winds_cal_pinned": "{pct}, {pinned} pegado arriba",
+  "music_winds_cal_read_in": "Leer en {key}",
+  "music_winds_cal_row_bite": "Mordida (pitch bend)",
+  "music_winds_cal_row_breath": "Llega el aire (CC 2)",
+  "music_winds_cal_row_key": "Tonalidad: G4 escrito en {key}",
+  "music_winds_cal_row_loudest": "Nota más fuerte",
+  "music_winds_cal_row_loudest_f": "Nota más fuerte, f sin saturar",
+  "music_winds_cal_row_softest": "Nota más suave",
+  "music_winds_cal_row_softest_p": "Nota más suave, p o menos",
+  "music_winds_cal_setup_help": "En el AE-20, elige el modo Sax y la escena que tocas. Woodshed lee en {key}. Cámbialo con Reads in en la barra superior, o en Configuración. Con la transposición del AE-20 en C, lee en C. En Eb (alto) o Bb (tenor), lee en esa tonalidad.",
+  "music_winds_cal_soft_say": "Ahora tu nota estable más suave, cualquier nota: sostenla 3 segundos.",
+  "music_winds_cal_softest": "Lo más suave",
+  "music_winds_cal_step": "Paso",
+  "music_winds_cal_sum_reading": "Revisión de configuración, leyendo en {key}",
+  "music_winds_cal_sum_steps": "un G4 escrito, luego lo más suave y lo más fuerte",
   "music_winds_chop_bars_in_loop": "Compases del loop",
   "music_winds_chop_blocked_cutting": "Cortando el loop en partes…",
   "music_winds_chop_blocked_import": "Primero importa tu loop, o elige uno de Woodshed.",
@@ -205,13 +248,8 @@
   "music_winds_chop_row_timing": "Precisión rítmica",
   "music_winds_chop_row_timing_from": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Precisión rítmica, de {count} corte tocado",
         "countPlural=other": "Precisión rítmica, de los {count} cortes tocados"
@@ -223,13 +261,8 @@
   "music_winds_chop_slice_sounding": "Corte {n}, sonando",
   "music_winds_chop_source_summary": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{source}, {count} compás en 16 pads",
         "countPlural=other": "{source}, {count} compases en 16 pads"
@@ -260,13 +293,8 @@
   "music_winds_grid_on_time": "a tiempo, {ms} ms",
   "music_winds_grid_region": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "El groove, {count} compás, desplázate hacia los lados",
         "countPlural=other": "El groove, {count} compases, desplázate hacia los lados"
@@ -330,13 +358,8 @@
   "music_winds_midi_outside_bank": "{name} envió un pad fuera del banco A, así que ningún pad se ilumina. Guarda el mapa de pads de tu programa de batería en Connect.",
   "music_winds_midi_waiting_link": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} está conectado, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, vincúlalo en Connect.",
         "countPlural=other": "{ports} están conectados, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, vincúlalo en Connect."
@@ -345,13 +368,8 @@
   ],
   "music_winds_midi_waiting_output": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} está conectado, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, su salida no está conectada: revisa el cable y luego Connect.",
         "countPlural=other": "{ports} están conectados, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, su salida no está conectada: revisa el cable y luego Connect."
@@ -360,13 +378,8 @@
   ],
   "music_winds_midi_waiting_sysex": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{ports} está conectado, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, permite SysEx y luego vincúlalo en Connect.",
         "countPlural=other": "{ports} están conectados, pero todavía no llegó ningún golpe de pad. Si los pads siguen en silencio aquí, permite SysEx y luego vincúlalo en Connect."
@@ -375,11 +388,17 @@
   ],
   "music_winds_missed": "fallado",
   "music_winds_names_all_open": "todas las llaves abiertas",
+  "music_winds_no": "no",
   "music_winds_not_measured": "No medido",
   "music_winds_not_scored": "sin puntaje",
   "music_winds_nothing_saved": "No se guardó nada.",
   "music_winds_nothing_to_measure": "No hay nada que medir, así que no se guarda nada.",
   "music_winds_pads_title": "Pads",
+  "music_winds_pitch_drone": "bordón {note}",
+  "music_winds_pitch_label": "Altura",
+  "music_winds_pitch_label_drone": "Altura, bordón {note}",
+  "music_winds_pitch_on_target": "en el objetivo",
+  "music_winds_pitch_silent": "en silencio",
   "music_winds_score": "puntaje",
   "music_winds_skills_aftertouch": "Aftertouch",
   "music_winds_skills_aftertouch_maybe": "Si tus pads envían aftertouch, la presión fija el nivel. Si no, cada repetición conserva la velocidad del golpe.",
@@ -499,13 +518,8 @@
   "music_winds_skills_orchestration": "Orquestación",
   "music_winds_skills_own_detail": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Tuya, {count} sección, {bpm} BPM",
         "countPlural=other": "Tuya, {count} secciones, {bpm} BPM"
@@ -542,13 +556,8 @@
   "music_winds_skills_section_dyn": "{section}, {dyn}",
   "music_winds_skills_section_item": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{label} ({count} compás, {dyn})",
         "countPlural=other": "{label} ({count} compases, {dyn})"
@@ -596,13 +605,8 @@
   "music_winds_skills_your_turn": "tu turno",
   "music_winds_slices_unreadable": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "No se pudo leer {count} corte",
         "countPlural=other": "No se pudieron leer {count} cortes"
@@ -651,13 +655,8 @@
   "music_winds_stick_accent": ", acento",
   "music_winds_stick_aria": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Digitación de baquetas, {count} golpe",
         "countPlural=other": "Digitación de baquetas, {count} golpes"
@@ -671,5 +670,6 @@
   "music_winds_stick_wrong_pad": "pad equivocado",
   "music_winds_view": "Vista",
   "music_winds_view_grid": "Cuadrícula",
-  "music_winds_view_lanes": "Carriles"
+  "music_winds_view_lanes": "Carriles",
+  "music_winds_yes": "sí"
 }
