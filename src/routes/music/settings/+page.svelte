@@ -27,6 +27,7 @@
   import { A4_CHOICES } from "#lib/music/hubs/tools/tuner/tuner.ts";
   import { setDayInstrument, splitOptions, WEEKDAYS } from "#lib/music/today.svelte.ts";
   import { getLocale, locales, setLocale, type Locale } from "@repo/i18n/runtime.js";
+  import { getNoteNaming, type NoteNaming } from "@repo/music-core";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown
@@ -74,6 +75,20 @@
   const locale = getLocale();
   const chooseLanguage = (v: string) => {
     if (v !== locale) setLocale(v as Locale);
+  };
+
+  // Note names: letters, fixed do or movable do. Every name on every screen
+  // follows it, so changing it reloads the page, like the language.
+  const NOTE_NAME_OPTIONS = [
+    { value: "letters", label: m.music_shell_settings_note_names_letters() },
+    { value: "fixed", label: m.music_shell_settings_note_names_fixed() },
+    { value: "movable", label: m.music_shell_settings_note_names_movable() },
+  ];
+  const noteNaming = getNoteNaming();
+  const chooseNoteNames = async (v: string) => {
+    if (v === noteNaming) return;
+    await settings.update({ noteNames: v as NoteNaming });
+    location.reload();
   };
 
   onMount(() => spy.watch());
@@ -351,6 +366,12 @@
             <p class="flex items-center gap-1 font-medium"><span id="language-l">{m.music_shell_settings_language()}</span><Hint about={m.music_shell_settings_language()} text={m.music_shell_settings_language_hint()} /></p>
           </div>
           <Picker class="w-auto" label={m.music_shell_settings_language()} value={locale} options={LANGUAGES} onchange={chooseLanguage} />
+        </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="flex items-center gap-1 font-medium"><span id="note-names-l">{m.music_shell_settings_note_names()}</span><Hint about={m.music_shell_settings_note_names()} text={m.music_shell_settings_note_names_hint()} /></p>
+          </div>
+          <Picker class="w-auto" label={m.music_shell_settings_note_names()} value={noteNaming} options={NOTE_NAME_OPTIONS} onchange={chooseNoteNames} />
         </li>
       </ul>
     </section>
