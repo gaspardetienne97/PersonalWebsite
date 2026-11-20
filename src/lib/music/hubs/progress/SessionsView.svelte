@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Sessions: what you actually did, and whether the same setup improved.
   import Lock from "@lucide/svelte/icons/lock";
   import Check from "@lucide/svelte/icons/check";
@@ -19,7 +20,8 @@
   import { INSTRUMENT_LABEL } from "../../bench.svelte";
   import { hueForRoute, hueVar } from "../../hues";
   import { HUE_ICON } from "../hue-icons";
-  import { exerciseDrill, foldShort, formatDuration, pct, plural, relativeDay, sessionInstruments, sessionMs, sessionTitle, setupTrends } from "./model";
+  import { exerciseDrill, foldShort, formatDuration, pct, relativeDay, sessionInstruments, sessionMs, sessionTitle, setupTrends } from "./model";
+  import { timeOfDay } from "../dates";
   import ScoreBadge from "../journal/ScoreBadge.svelte";
   import WeekCompare from "./WeekCompare.svelte";
 
@@ -61,30 +63,34 @@
   );
   const when = (ms: number) => {
     const day = relativeDay(ms, now);
-    return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${new Date(ms).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${timeOfDay(new Date(ms))}`;
   };
 
 
   const trendWords = (first: number, last: number) => {
     const d = Math.round((last - first) * 100);
-    return d > 0 ? `up ${d} points` : d < 0 ? `down ${-d} points` : "level";
+    return d > 0
+      ? m.music_hubs_sessions_trend_up({ count: d })
+      : d < 0
+        ? m.music_hubs_sessions_trend_down({ count: -d })
+        : m.music_hubs_sessions_trend_level();
   };
 </script>
 
 {#if practice.sessions.length === 0}
   <div class="rounded-2xl border border-dashed border-ws-line p-6">
-    <p class="font-semibold">No sessions saved yet.</p>
-    <p class="text-sm text-ws-soft">Finish one drill and it shows up here with its score, so the next visit has something to beat.</p>
+    <p class="font-semibold">{m.music_hubs_sessions_empty_title()}</p>
+    <p class="text-sm text-ws-soft">{m.music_hubs_sessions_empty_body()}</p>
     <a class="mt-3 inline-flex min-h-11 items-center rounded-full bg-instr px-5 text-sm font-semibold text-ws-stage" href="/music"
-      >Start Today's set</a
+      >{m.music_hubs_sessions_start_today()}</a
     >
   </div>
 {:else}
   <section aria-labelledby="recent-title" class="mb-8">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id="recent-title" class="font-display text-xl font-semibold">Recent sessions</h2>
+      <h2 id="recent-title" class="font-display text-xl font-semibold">{m.music_hubs_sessions_recent()}</h2>
       <a class="inline-flex min-h-11 items-center text-sm font-semibold text-instr-ink underline-offset-4 hover:underline" href="/music/progress?view=journal"
-        >All {plural(practice.sessions.length, "session")} in the journal</a
+        >{m.music_hubs_sessions_all_in_journal({ count: practice.sessions.length })}</a
       >
     </div>
     <ul class="mt-2 flex flex-col divide-y divide-ws-line border-y border-ws-line">
@@ -102,15 +108,15 @@
             <div class="min-w-0 flex-1">
               <p class="font-semibold">{sessionTitle(s)}</p>
               <p class="text-sm text-ws-soft">
-                {when(s.startTime)}. {sessionInstruments(s, INSTRUMENT_LABEL)}, {formatDuration(ms)}{#if s.eventIds.length}, {plural(s.eventIds.length, "answer")}{/if}{#if folded}, plus {plural(folded, "short try", "short tries")}{/if}
+                {when(s.startTime)}. {sessionInstruments(s, INSTRUMENT_LABEL)}, {formatDuration(ms)}{#if s.eventIds.length}{m.music_hubs_sessions_answers_part({ count: s.eventIds.length })}{/if}{#if folded}{m.music_hubs_sessions_short_part({ count: folded })}{/if}
               </p>
             </div>
             <span class="tnum flex shrink-0 flex-col items-end text-right">
-              {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span><ScoreBadge run={lead} />{:else}<span class="text-sm text-ws-soft">No score</span>{/if}
+              {#if lead?.score !== undefined}<span class="font-display text-lg font-semibold">{pct(lead.score)}</span><ScoreBadge run={lead} />{:else}<span class="text-sm text-ws-soft">{m.music_hubs_no_score()}</span>{/if}
             </span>
             {#if href}
               <span class="flex shrink-0 items-center gap-1 text-sm font-semibold text-instr-ink">
-                <span class="max-sm:sr-only">Again</span><ChevronRight class="size-4" aria-hidden="true" />
+                <span class="max-sm:sr-only">{m.music_hubs_again()}</span><ChevronRight class="size-4" aria-hidden="true" />
               </span>
             {/if}
           </svelte:element>
@@ -121,13 +127,13 @@
 
   <div class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="weeks-title">
-        <h2 id="weeks-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? "This week and last" : "This week"}</h2>
+        <h2 id="weeks-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? m.music_hubs_sessions_weeks_both() : m.music_hubs_this_week()}</h2>
         <div class="max-w-md"><WeekCompare {weeks} /></div>
       </section>
 
       <section aria-labelledby="setups-title">
-        <h2 id="setups-title" class="font-display text-xl font-semibold">Scores over time</h2>
-        <p class="text-sm text-ws-soft">The same exercise with the same setup, run by run.</p>
+        <h2 id="setups-title" class="font-display text-xl font-semibold">{m.music_hubs_sessions_scores_title()}</h2>
+        <p class="text-sm text-ws-soft">{m.music_hubs_sessions_scores_intro()}</p>
         {#if trends.length}
           <ul class="mt-3 flex flex-col divide-y divide-ws-line border-y border-ws-line">
             {#each trends as t (t.key)}
@@ -137,14 +143,20 @@
                   <p class="font-semibold">{t.title}</p>
                   <p class="text-sm text-ws-soft">{t.detail}</p>
                   <p class="tnum mt-1 text-sm">
-                    First {pct(t.first)}, last {pct(t.last)}, best {pct(t.best)}: {trendWords(t.first, t.last)} over
-                    {plural(t.scores.length, "run")}, latest {relativeDay(t.lastAt, now)}.
+                    {m.music_hubs_sessions_trend_line({
+                      first: pct(t.first),
+                      last: pct(t.last),
+                      best: pct(t.best),
+                      trend: trendWords(t.first, t.last),
+                      count: t.scores.length,
+                      when: relativeDay(t.lastAt, now),
+                    })}
                   </p>
                 </div>
                 <div
                   class="flex h-10 items-end gap-0.5"
                   role="img"
-                  aria-label="Scores in order: {series.map((s) => pct(s)).join(', ')}"
+                  aria-label={m.music_hubs_sessions_scores_label({ scores: series.map((s) => pct(s)).join(", ") })}
                 >
                   {#each series as s, i (i)}
                     <span
@@ -157,24 +169,24 @@
             {/each}
           </ul>
         {:else}
-          <p class="mt-2 text-sm">Nothing repeated yet. Run a drill twice with the same setup to compare the scores.</p>
+          <p class="mt-2 text-sm">{m.music_hubs_sessions_nothing_repeated()}</p>
         {/if}
       </section>
   </div>
 
   <!-- Level and achievements: their own section, apart from what you played. -->
   <section aria-labelledby="level-title" class="border-t border-ws-line pt-6">
-    <h2 id="level-title" class="font-display text-xl font-semibold">XP level and achievements</h2>
+    <h2 id="level-title" class="font-display text-xl font-semibold">{m.music_hubs_sessions_level_title()}</h2>
     <div class="mt-3 grid gap-8 lg:grid-cols-2">
       <div class="min-w-0">
         <dl class="tnum grid max-w-md grid-cols-2 gap-3">
           <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
-            <dt class="text-sm text-ws-soft">XP level</dt>
+            <dt class="text-sm text-ws-soft">{m.music_hubs_sessions_xp_level()}</dt>
             <dd class="font-display text-3xl font-semibold">{level}</dd>
           </div>
           <div class="rounded-2xl bg-ws-raised/60 px-4 py-3">
-            <dt class="text-sm text-ws-soft">Streak</dt>
-            <dd class="font-display text-3xl font-semibold">{plural(streak.current, "day")}</dd>
+            <dt class="text-sm text-ws-soft">{m.music_hubs_today_streak()}</dt>
+            <dd class="font-display text-3xl font-semibold">{m.music_hubs_days({ count: streak.current })}</dd>
           </div>
         </dl>
         <div class="mt-3 h-2 max-w-md rounded-full bg-ws-raised" aria-hidden="true">
@@ -182,19 +194,19 @@
         </div>
         <!-- One line: the weekly figure only once it differs from the total. -->
         <p class="tnum mt-2 max-w-md text-sm">
-          <span class="font-semibold">XP level {level}. {xp} XP, {toNext} to level {level + 1}.</span>
-          {#if summary.xp !== xp}<span class="text-ws-soft">{summary.xp} XP this week.</span>{/if}
+          <span class="font-semibold">{m.music_hubs_sessions_level_line({ level, xp, toNext, next: level + 1 })}</span>
+          {#if summary.xp !== xp}<span class="text-ws-soft">{m.music_hubs_sessions_xp_week({ xp: summary.xp })}</span>{/if}
         </p>
         <details class="group mt-1 max-w-md text-sm">
           <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-            <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />How scores work
+            <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />{m.music_hubs_sessions_how_scores()}
           </summary>
-          <p class="text-ws-soft">Every run earns XP. Only answers in Check runs change a skill score.</p>
+          <p class="text-ws-soft">{m.music_hubs_sessions_how_scores_body()}</p>
         </details>
       </div>
       <div class="min-w-0">
-        <h3 id="badges-title" class="font-display text-lg font-semibold">Achievements</h3>
-        <p class="text-sm text-ws-soft">{badges.filter((b) => b.unlocked).length} of {badges.length} unlocked.</p>
+        <h3 id="badges-title" class="font-display text-lg font-semibold">{m.music_hubs_sessions_achievements()}</h3>
+        <p class="text-sm text-ws-soft">{m.music_hubs_sessions_unlocked_of({ n: badges.filter((b) => b.unlocked).length, total: badges.length })}</p>
         <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
           {#each badges as b (b.id)}
             <li
@@ -210,7 +222,7 @@
               </span>
               <div class="min-w-0">
                 <p class="font-medium">{b.title}</p>
-                <p class="text-sm text-ws-soft">{b.unlocked ? "Unlocked." : "Locked."} {b.description}</p>
+                <p class="text-sm text-ws-soft">{b.unlocked ? m.music_hubs_sessions_badge_unlocked() : m.music_hubs_sessions_badge_locked()} {b.description}</p>
               </div>
             </li>
           {/each}

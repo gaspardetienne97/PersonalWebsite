@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // On What next: the streak as a week calendar, and this week's practice time as seven
   // day bars against a labelled scale, drawn from the first day so it reads as a chart.
   import { computeStreak, dayKey, freezesEarned, practicedDays } from "@repo/music-core/progress/rewards";
@@ -7,6 +8,7 @@
   import { weekRollups } from "@repo/music-core/progress/journal";
   import { minutesText, weekMinutes } from "./model";
   import StreakWeek from "./StreakWeek.svelte";
+  import { weekdayLetter, weekdayName } from "../dates";
 
   const today = $derived(dayKey(Date.now()));
   const days = $derived(practicedDays(practice.sessions));
@@ -17,7 +19,7 @@
   const thisWeek = $derived(weekRollups(practice.sessions, today).thisWeek);
   const todayMin = $derived(week.find((d) => d.today)?.minutes ?? 0);
   const todaySessions = $derived(practice.sessions.filter((s) => dayKey(s.startTime) === today).length);
-  const todayText = $derived(todaySessions ? minutesText(todayMin, todaySessions) : "0 min");
+  const todayText = $derived(todaySessions ? minutesText(todayMin, todaySessions) : m.music_hubs_minutes_short({ minutes: 0 }));
   // The scale's top: the busiest day rounded up to a round number, so the line reads as minutes.
   const scale = $derived.by(() => {
     const max = Math.max(1, ...week.map((d) => d.minutes));
@@ -25,27 +27,25 @@
     return Math.ceil(max / step) * step;
   });
 
-  const LETTER = ["M", "T", "W", "T", "F", "S", "S"];
-  const weekday = (d: string) =>
-    new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
-  const letter = (d: string) => LETTER[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7];
+  const weekday = weekdayName;
+  const letter = weekdayLetter;
 </script>
 
 <section
-  aria-label="Streak and this week"
+  aria-label={m.music_hubs_strip_label()}
   class="grid gap-5 rounded-3xl border border-ws-line bg-ws-surface p-4 sm:grid-cols-2 sm:p-5"
 >
   <StreakWeek week={streak.week} current={streak.current} longest={streak.longest} {freezes} since={days.length ? [...days].sort()[0] : undefined} />
 
   <div class="min-w-0 sm:border-l sm:border-ws-line sm:pl-5">
     <h2 class="font-display text-xl font-semibold">
-      This week: <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>
+      {m.music_hubs_strip_this_week()} <span class="tnum">{minutesText(thisWeek.minutes, thisWeek.sessions)}</span>
     </h2>
-    <p class="text-sm text-ws-soft">Minutes practised each day, Monday to Sunday. Today: <span class="tnum">{todayText}</span>.</p>
+    <p class="text-sm text-ws-soft">{m.music_hubs_strip_minutes_each_day()} <span class="tnum">{todayText}</span>.</p>
     <div class="mt-3 flex max-w-sm gap-2">
       <!-- The scale: its top and zero, so a bar's height means something. -->
       <div class="tnum flex h-20 shrink-0 flex-col justify-between text-right text-[13px] text-ws-soft" aria-hidden="true">
-        <span class="-mt-1.5">{scale} min</span><span class="-mb-1.5">0</span>
+        <span class="-mt-1.5">{m.music_hubs_minutes_short({ minutes: scale })}</span><span class="-mb-1.5">0</span>
       </div>
       <ol class="relative flex min-w-0 flex-1 gap-1.5">
         <span class="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-ws-line" aria-hidden="true"></span>
@@ -64,7 +64,7 @@
             </div>
             <span class="text-[13px] {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{letter(d.day)}</span>
             <span class="tnum text-[13px] {d.today ? 'font-semibold text-ws-ink' : 'text-ws-soft'}" aria-hidden="true">{d.future ? "" : d.minutes}</span>
-            <span class="sr-only">{weekday(d.day)}{d.today ? " (today)" : ""}: {d.future ? "still to come" : `${d.minutes} minutes`}</span>
+            <span class="sr-only">{m.music_hubs_pair({ a: d.today ? m.music_hubs_strip_day_today_sr({ day: weekday(d.day) }) : weekday(d.day), b: d.future ? m.music_hubs_strip_still_to_come() : m.music_hubs_strip_minutes({ count: d.minutes }) })}</span>
           </li>
         {/each}
       </ol>

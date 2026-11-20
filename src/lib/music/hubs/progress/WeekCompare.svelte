@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // This week against last, one pair of bars per measure (each pair on its own scale), with the
   // numbers and the change written out so the bars are never the only cue.
   import type { Rollup } from "@repo/music-core/progress/journal";
@@ -6,9 +7,9 @@
 
   let { weeks }: { weeks: { thisWeek: Rollup; lastWeek: Rollup; delta: Rollup } } = $props();
   const ROWS = [
-    { key: "minutes", label: "Time" },
-    { key: "sessions", label: "Sessions" },
-    { key: "attempts", label: "Attempts" },
+    { key: "minutes", label: m.music_hubs_week_time() },
+    { key: "sessions", label: m.music_hubs_week_sessions() },
+    { key: "attempts", label: m.music_hubs_week_attempts() },
     { key: "xp", label: "XP" },
   ] as const;
   type Key = (typeof ROWS)[number]["key"];
@@ -26,7 +27,7 @@
       </div>
     {/each}
   </dl>
-  <p class="mt-2 text-[13px] text-ws-soft">This week so far. An attempt is one answer or take. Every run earns XP. Next week shows the change against this one.</p>
+  <p class="mt-2 text-[13px] text-ws-soft">{m.music_hubs_week_first_note()}</p>
 {:else}
 <dl class="mt-3 flex flex-col gap-3 text-sm">
   {#each ROWS as row (row.key)}
@@ -37,8 +38,8 @@
       <div class="flex items-baseline justify-between gap-2">
         <dt class="font-medium">{row.label}</dt>
         <dd class="tnum text-ws-soft">
-          <span class="font-semibold text-ws-ink">{shown(weeks.thisWeek, row.key)}</span> this week, {shown(weeks.lastWeek, row.key)} last
-          <span class="sr-only">, change</span><span class="ml-1 {weeks.delta[row.key] > 0 ? 'text-success' : ''}">({signed(weeks.delta[row.key])})</span>
+          <span class="font-semibold text-ws-ink">{shown(weeks.thisWeek, row.key)}</span> {m.music_hubs_week_this_last({ last: shown(weeks.lastWeek, row.key) })}
+          <span class="sr-only">{m.music_hubs_week_change_sr()}</span><span class="ml-1 {weeks.delta[row.key] > 0 ? 'text-success' : ''}">({signed(weeks.delta[row.key])})</span>
         </dd>
       </div>
       <div class="mt-1 flex flex-col gap-0.5" aria-hidden="true">
@@ -49,7 +50,7 @@
   {/each}
 </dl>
 <p class="mt-2 flex gap-4 text-[13px] text-ws-soft" aria-hidden="true">
-  <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-instr"></span>This week</span>
-  <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-ws-soft/35"></span>Last week</span>
+  <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-instr"></span>{m.music_hubs_this_week()}</span>
+  <span class="inline-flex items-center gap-1.5"><span class="h-2 w-5 rounded-full bg-ws-soft/35"></span>{m.music_hubs_last_week()}</span>
 </p>
 {/if}

@@ -340,5 +340,563 @@
   "music_hubs_layout_studio": "Zòrèy estidyo",
   "music_hubs_layout_play": "Fraz ak chante",
   "music_hubs_layout_lead_sheets": "Lead sheet",
-  "music_hubs_layout_lead_sheets_blurb": "Melodi a nan men dwat, rasin, shell oswa akò nan men goch, apati yon lead sheet oswa pwòp pati ou."
+  "music_hubs_layout_lead_sheets_blurb": "Melodi a nan men dwat, rasin, shell oswa akò nan men goch, apati yon lead sheet oswa pwòp pati ou.",
+  "music_hubs_assist_independent": "Pasaj nan Evalyasyon",
+  "music_hubs_assist_guided": "Pasaj nan Pratik",
+  "music_hubs_assist_hinted": "Avèk yon endis",
+  "music_hubs_assist_self": "Ou evalye tèt ou",
+  "music_hubs_input_audio": "Mikwo",
+  "music_hubs_input_onscreen": "Sou ekran an",
+  "music_hubs_input_click": "Bouton repons",
+  "music_hubs_input_mixed": "Antre melanje",
+  "music_hubs_source_free": "Pratik lib",
+  "music_hubs_source_daily": "Seyans jodi a",
+  "music_hubs_source_song": "Chante",
+  "music_hubs_source_drill": "Egzèsis",
+  "music_hubs_source_jam": "Jam",
+  "music_hubs_cap_pitch": "Wotè son",
+  "music_hubs_cap_rhythm": "Ritm",
+  "music_hubs_cap_harmony": "Amoni",
+  "music_hubs_cap_reading": "Lekti",
+  "music_hubs_cap_technique": "Teknik",
+  "music_hubs_cap_ear": "Zòrèy",
+  "music_hubs_pct": "{n}%",
+  "music_hubs_no_change": "pa gen chanjman",
+  "music_hubs_rel_today": "jodi a",
+  "music_hubs_rel_yesterday": "yè",
+  "music_hubs_rel_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sa gen {count} jou",
+        "countPlural=other": "sa gen {count} jou"
+      }
+    }
+  ],
+  "music_hubs_rel_weeks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sa gen {count} semèn",
+        "countPlural=other": "sa gen {count} semèn"
+      }
+    }
+  ],
+  "music_hubs_rel_months": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sa gen {count} mwa",
+        "countPlural=other": "sa gen {count} mwa"
+      }
+    }
+  ],
+  "music_hubs_session_two": "{a} ak {b}",
+  "music_hubs_session_more": "{a}, {b} ak {count} lòt",
+  "music_hubs_falling_it": "Konpetans sa a",
+  "music_hubs_falling_one": "{lead} desann dis pwen oswa plis depi dènye fwa ou te mezire, kidonk yon ti revizyon vini an premye.",
+  "music_hubs_falling_many": [
+    {
+      "declarations": ["input count", "input lead", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{lead} ak {count} lòt konpetans desann dis pwen oswa plis depi dènye fwa ou te mezire, kidonk yon ti revizyon vini an premye.",
+        "countPlural=other": "{lead} ak {count} lòt konpetans desann dis pwen oswa plis depi dènye fwa ou te mezire, kidonk yon ti revizyon vini an premye."
+      }
+    }
+  ],
+  "music_hubs_delta_best": "Pi bon nòt ou, li monte soti {then}%",
+  "music_hubs_delta_up": "Monte soti {then}%",
+  "music_hubs_delta_down": "Desann soti {then}%",
+  "music_hubs_delta_same": "Menm jan ak dènye fwa a",
+  "music_hubs_dur_under5": "mwens pase 5 s",
+  "music_hubs_dur_sec": "{s} s",
+  "music_hubs_dur_hours": "{h} è",
+  "music_hubs_dur_hours_min": "{h} è {min} min",
+  "music_hubs_under_2_min": "mwens pase 2 min",
+  "music_hubs_caption_all": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tout repons: {pct} bon ({count} repons{when}).",
+        "countPlural=other": "Tout repons: {pct} bon ({count} repons{when})."
+      }
+    }
+  ],
+  "music_hubs_caption_checked": [
+    {
+      "declarations": ["input count", "input when", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} repons nan pasaj Evalyasyon{when}.",
+        "countPlural=other": "{count} repons nan pasaj Evalyasyon{when}."
+      }
+    }
+  ],
+  "music_hubs_caption_no_score": "Poko gen pwen konpetans.",
+  "music_hubs_caption_average": "Pwen konpetans lan se mwayèn pati li yo.",
+  "music_hubs_caption_early": "Pwen konpetans lan se yon premye estimasyon jiskaske ou gen {count} repons nan pasaj Evalyasyon.",
+  "music_hubs_weekday_letters": "L M M J V S D",
+  "music_hubs_weekday_names": "lendi madi mèkredi jedi vandredi samdi dimanch",
+  "music_hubs_month_names": "janvye fevriye mas avril me jen jiyè out septanm oktòb novanm desanm",
+  "music_hubs_week_time": "Tan",
+  "music_hubs_week_sessions": "Seyans",
+  "music_hubs_week_attempts": "Esè",
+  "music_hubs_week_first_note": "Semèn sa a jiskounye a. Yon esè se yon repons oswa yon pran. Chak pasaj bay XP. Semèn pwochèn ap montre chanjman an parapò ak semèn sa a.",
+  "music_hubs_week_this_last": "semèn sa a, {last} semèn pase",
+  "music_hubs_week_change_sr": ", chanjman",
+  "music_hubs_this_week": "Semèn sa a",
+  "music_hubs_last_week": "Semèn pase",
+  "music_hubs_strip_label": "Seri ak semèn sa a",
+  "music_hubs_strip_this_week": "Semèn sa a:",
+  "music_hubs_strip_minutes_each_day": "Minit pratik chak jou, soti lendi rive dimanch. Jodi a:",
+  "music_hubs_strip_day_today_sr": "{day} (jodi a)",
+  "music_hubs_strip_still_to_come": "poko rive",
+  "music_hubs_strip_minutes": "{count} minit",
+  "music_hubs_streak_word_before": "anvan ou te kòmanse",
+  "music_hubs_streak_word_practised": "pratike",
+  "music_hubs_streak_word_frozen": "kouvri pa yon jokè seri",
+  "music_hubs_streak_word_missed": "rate",
+  "music_hubs_streak_word_today": "jodi a, poko pratike",
+  "music_hubs_streak_day1": "Premye jou seri a",
+  "music_hubs_streak_days": "Seri {count} jou",
+  "music_hubs_streak_start": "Kòmanse yon seri jodi a",
+  "music_hubs_streak_best": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Pi bon seri: {count} jou.",
+        "countPlural=other": "Pi bon seri: {count} jou."
+      }
+    }
+  ],
+  "music_hubs_streak_freezes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Ou ka rate yon jou san ou pa pèdi seri ou.",
+        "countPlural=other": "Ou ka rate {count} jou san ou pa pèdi seri ou."
+      }
+    }
+  ],
+  "music_hubs_streak_rules_label": "Kijan jokè seri yo mache",
+  "music_hubs_streak_rules": "Ou genyen yon jokè seri pou chak semèn ou pratike. Si ou rate yon jou, yon jokè ou te sere kouvri l epi seri a kontinye.",
+  "music_hubs_streak_days_of_7": "{count} jou sou 7",
+  "music_hubs_streak_key_practised": "Pratike",
+  "music_hubs_streak_key_missed": "Rate",
+  "music_hubs_streak_key_freeze": "Jokè itilize",
+  "music_hubs_streak_key_today": "Jodi a",
+  "music_hubs_sessions_trend_up": "monte {count} pwen",
+  "music_hubs_sessions_trend_down": "desann {count} pwen",
+  "music_hubs_sessions_trend_level": "estab",
+  "music_hubs_sessions_empty_title": "Poko gen seyans ki sere.",
+  "music_hubs_sessions_empty_body": "Fini yon egzèsis epi l ap parèt isit la ak nòt li, konsa pwochen fwa ou gen yon bagay pou bat.",
+  "music_hubs_sessions_start_today": "Kòmanse seyans jodi a",
+  "music_hubs_sessions_recent": "Seyans resan",
+  "music_hubs_sessions_all_in_journal": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} seyans nan jounal la",
+        "countPlural=other": "Tout {count} seyans ki nan jounal la"
+      }
+    }
+  ],
+  "music_hubs_sessions_answers_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} repons",
+        "countPlural=other": ", {count} repons"
+      }
+    }
+  ],
+  "music_hubs_sessions_short_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", plis {count} ti esè",
+        "countPlural=other": ", plis {count} ti esè"
+      }
+    }
+  ],
+  "music_hubs_no_score": "Pa gen nòt",
+  "music_hubs_sessions_weeks_both": "Semèn sa a ak semèn pase",
+  "music_hubs_sessions_scores_title": "Nòt atravè tan",
+  "music_hubs_sessions_scores_intro": "Menm egzèsis la ak menm konfigirasyon an, pasaj apre pasaj.",
+  "music_hubs_sessions_trend_line": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input trend",
+        "input best",
+        "input last",
+        "input first",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Premye {first}, dènye {last}, pi bon {best}: {trend} sou {count} pasaj, dènye a {when}.",
+        "countPlural=other": "Premye {first}, dènye {last}, pi bon {best}: {trend} sou {count} pasaj, dènye a {when}."
+      }
+    }
+  ],
+  "music_hubs_sessions_scores_label": "Nòt yo nan lòd: {scores}",
+  "music_hubs_sessions_nothing_repeated": "Poko gen anyen ou repete. Fè yon egzèsis de fwa ak menm konfigirasyon an pou konpare nòt yo.",
+  "music_hubs_sessions_level_title": "Nivo XP ak reyisit",
+  "music_hubs_sessions_xp_level": "Nivo XP",
+  "music_hubs_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} jou",
+        "countPlural=other": "{count} jou"
+      }
+    }
+  ],
+  "music_hubs_sessions_level_line": "Nivo XP {level}. {xp} XP, rete {toNext} pou rive nivo {next}.",
+  "music_hubs_sessions_xp_week": "{xp} XP semèn sa a.",
+  "music_hubs_sessions_how_scores": "Kijan nòt yo mache",
+  "music_hubs_sessions_how_scores_body": "Chak pasaj bay XP. Se sèlman repons nan pasaj Evalyasyon ki chanje pwen yon konpetans.",
+  "music_hubs_sessions_achievements": "Reyisit",
+  "music_hubs_sessions_unlocked_of": "{n} sou {total} debloke.",
+  "music_hubs_sessions_badge_unlocked": "Debloke.",
+  "music_hubs_sessions_badge_locked": "Bloke.",
+  "music_hubs_all_instruments": "Tout enstriman",
+  "music_hubs_skills_no_score": "Poko gen pwen konpetans",
+  "music_hubs_skills_score": "Pwen konpetans {pct}",
+  "music_hubs_skills_last_measured": "dènye mezi {pct}",
+  "music_hubs_skills_due": "pou revize",
+  "music_hubs_skills_only_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "sèlman {count} repons nan Evalyasyon",
+        "countPlural=other": "sèlman {count} repons nan Evalyasyon"
+      }
+    }
+  ],
+  "music_hubs_skills_filter": "Filtre konpetans yo",
+  "music_hubs_instrument": "Enstriman",
+  "music_hubs_skills_search": "Chèche konpetans",
+  "music_hubs_skills_two_numbers": "De chif yo",
+  "music_hubs_skills_term_score": "Pwen konpetans",
+  "music_hubs_skills_term_score_body": "{term} montre kijan Woodshed si ou konn konpetans lan. Se sèlman pasaj nan Evalyasyon ki chanje l, epi li bese yon ti kras chak jou ou pa pratike. Anba {count} repons nan pasaj Evalyasyon, se yon premye estimasyon, ki trase tankou yon ba ki vid anndan.",
+  "music_hubs_skills_term_all": "Tout repons",
+  "music_hubs_skills_term_all_body": "{term} se pati ou reponn byen, pasaj nan Pratik yo ladan l, sou {where}. Lè endis yo aktive, li pi wo pase pwen konpetans lan.",
+  "music_hubs_skills_any_instrument": "nenpòt enstriman",
+  "music_hubs_skills_key_last": "Pwen konpetans nan dènye mezi a",
+  "music_hubs_skills_key_review": "Bezwen revize: li pèdi dis pwen oswa plis depi lè sa a",
+  "music_hubs_skills_early_note": "Premye estimasyon: yon pwen konpetans ki soti nan mwens pase {count} repons nan pasaj Evalyasyon, ki trase tankou yon ba ki vid anndan.",
+  "music_hubs_skills_none_yet": "Ou poko travay okenn konpetans.",
+  "music_hubs_skills_none_on": "Ou poko travay okenn konpetans sou {instrument}.",
+  "music_hubs_skills_empty_body": "Chak repons ki gen nòt parèt isit la, gwoupe dapre sa li travay.",
+  "music_hubs_skills_group_line": "{total} konpetans, {mastered} metrize, mwayèn {pct}",
+  "music_hubs_skills_group_touched": ", {count} travay",
+  "music_hubs_skills_early_badge": "Premye estimasyon",
+  "music_hubs_skills_needs_review": "Bezwen revize",
+  "music_hubs_skills_none": "Okenn",
+  "music_hubs_skills_region": "Konpetans {capability}",
+  "music_hubs_skills_col_skill": "Konpetans",
+  "music_hubs_skills_col_confidence": "Konfyans",
+  "music_hubs_skills_col_answers": "Repons",
+  "music_hubs_skills_col_right": "Bon repons sou tout repons",
+  "music_hubs_skills_col_last": "Dènye pratik",
+  "music_hubs_skills_col_status": "Eta",
+  "music_hubs_skills_col_drill": "Egzèsis",
+  "music_hubs_skills_average_parts": "Mwayèn pati li yo",
+  "music_hubs_skills_in_check": "{count} nan Evalyasyon",
+  "music_hubs_never": "Janm",
+  "music_hubs_unlocked": "Debloke",
+  "music_hubs_skills_no_match": "Pa gen konpetans {capability} ki koresponn ak \"{q}\".",
+  "music_hubs_skills_none_touched": "Okenn poko travay.",
+  "music_hubs_skills_none_touched_on": "Okenn pa travay sou {instrument}.",
+  "music_hubs_skills_show_touched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Montre sèlman {count} konpetans ou travay la",
+        "countPlural=other": "Montre sèlman {count} konpetans ou travay yo"
+      }
+    }
+  ],
+  "music_hubs_skills_show_all": "Montre tout {total} konpetans yo",
+  "music_hubs_next_none_falling": "Pa gen okenn konpetans ki mezire k ap desann.",
+  "music_hubs_next_unmeasured": [
+    {
+      "declarations": ["input count", "input min", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} konpetans gen mwens pase {min} repons nan Evalyasyon, kidonk li poko mezire.",
+        "countPlural=other": "{count} konpetans gen mwens pase {min} repons nan Evalyasyon, kidonk yo poko mezire."
+      }
+    }
+  ],
+  "music_hubs_next_intervals_map": "Entèval, k ap monte soti C",
+  "music_hubs_next_degrees_map": "Degre gam nan C",
+  "music_hubs_next_practise_on": "Pwochen pratik sou {instrument}",
+  "music_hubs_next_done_more": "Seyans jodi a fini. Plis {instrument} si ou vle.",
+  "music_hubs_next_your_next": "{minutes} pwochen minit ou yo: {label}",
+  "music_hubs_next_next": "Pwochen: {name}",
+  "music_hubs_next_set_done": "Seyans jodi a fini",
+  "music_hubs_next_lowest": "Nòt ou ki pi ba jiskounye a.",
+  "music_hubs_next_lowest_detail": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Nòt ou ki pi ba jiskounye a: {pct} bon sou {count} repons nan Evalyasyon.",
+        "countPlural=other": "Nòt ou ki pi ba jiskounye a: {pct} bon sou {count} repons nan Evalyasyon."
+      }
+    }
+  ],
+  "music_hubs_next_start": "Kòmanse {label}",
+  "music_hubs_next_change_length": "Chanje longè",
+  "music_hubs_next_time_available": "Tan ou genyen",
+  "music_hubs_next_why": "Poukisa sa a",
+  "music_hubs_next_coach": "Antrenè",
+  "music_hubs_next_evidence": "Sa a se yon règ jeneral. Prèv yo nan {skills} ak nan {sessions}.",
+  "music_hubs_next_every_skill": "chak konpetans",
+  "music_hubs_next_your_sessions": "seyans ou yo",
+  "music_hubs_next_role": "{role}: ",
+  "music_hubs_minutes_period": "{minutes} min.",
+  "music_hubs_next_where": "Ki kote konpetans ou yo ye",
+  "music_hubs_next_where_intro": "Sou {instrument}, pa domèn. Wou yo plen jiska pwen konpetans jodi a.",
+  "music_hubs_next_how_body": "Se sèlman repons nan Evalyasyon ki chanje pwen yon konpetans. Yon konpetans jwenn youn apre {count} ladan yo. Li bese yon ti kras jou ou pa pratike.",
+  "music_hubs_next_key": "Lejann",
+  "music_hubs_next_key_falling": "K ap desann: dis pwen oswa plis mwens depi dènye mezi a",
+  "music_hubs_next_key_holding": "Estab",
+  "music_hubs_next_key_new": "Poko mezire: mwens pase {count} repons nan Evalyasyon",
+  "music_hubs_next_not_measured": "poko mezire",
+  "music_hubs_next_pitch_caption": "{title}: plis pwen an plen, plis pwen konpetans lan wo. Liy pwentiye vle di li poko mezire.",
+  "music_hubs_next_falling_sr": "K ap desann: ",
+  "music_hubs_next_falling_line": "{pct} kounye a, desann {drop} pwen, dènye pratik {when}",
+  "music_hubs_next_holding_sr": "Estab: ",
+  "music_hubs_next_holding_line": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pct}, {count} repons nan Evalyasyon",
+        "countPlural=other": "{pct}, {count} repons nan Evalyasyon"
+      }
+    }
+  ],
+  "music_hubs_next_new_sr": "Poko mezire: ",
+  "music_hubs_next_new_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} repons nan Evalyasyon jiskounye a",
+        "countPlural=other": "{count} repons nan Evalyasyon jiskounye a"
+      }
+    }
+  ],
+  "music_hubs_next_new_practice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} repons nan Pratik, okenn nan Evalyasyon",
+        "countPlural=other": "{count} repons nan Pratik, okenn nan Evalyasyon"
+      }
+    }
+  ],
+  "music_hubs_next_nothing": "Ou poko travay anyen sou {instrument}. Senk repons nan Evalyasyon sou yon konpetans ba li yon pwen konpetans.",
+  "music_hubs_progress_tab_next": "Kisa pou fè apre",
+  "music_hubs_progress_tab_skills": "Konpetans",
+  "music_hubs_progress_tab_sessions": "Seyans",
+  "music_hubs_progress_tab_journal": "Jounal",
+  "music_hubs_progress_head": "Pwogrè: {title} | Woodshed",
+  "music_hubs_progress_title": "Pwogrè",
+  "music_hubs_progress_tunes": "Mizik ou yo",
+  "music_hubs_progress_views": "Vi pwogrè yo",
+  "music_hubs_progress_showing": "N ap montre {title}.",
+  "music_hubs_progress_empty_title": "Ou poko pratike anyen",
+  "music_hubs_progress_empty_body": "Jwe yon ti blòk epi paj sa a ap plen: seri ou, minit ou jwe yo, ak ki konpetans pou travay apre.",
+  "music_hubs_tags": "Etikèt",
+  "music_hubs_tags_remove": "Retire etikèt {tag}",
+  "music_hubs_tags_add": "Ajoute yon etikèt",
+  "music_hubs_tags_example": "gam, men goch",
+  "music_hubs_tags_hint": "Peze Enter apre chak etikèt. N ap sijere etikèt ou te deja itilize yo.",
+  "music_hubs_weekday_short": "len mad mèk jed van sam dim",
+  "music_hubs_heat_none": "Anyen",
+  "music_hubs_heat_under": "Mwens pase {minutes} min",
+  "music_hubs_heat_or_more": "{minutes} min oswa plis",
+  "music_hubs_heat_day_future": "{day}: poko rive",
+  "music_hubs_heat_day": [
+    {
+      "declarations": [
+        "input count",
+        "input xp",
+        "input time",
+        "input day",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{day}: {time}, {count} seyans, {xp} XP",
+        "countPlural=other": "{day}: {time}, {count} seyans, {xp} XP"
+      }
+    }
+  ],
+  "music_hubs_heat_day_none": "{day}: pa gen pratik",
+  "music_hubs_heat_label": "Kat chalè pratik la",
+  "music_hubs_heat_caption": "Pratik pandan {weeks} dènye semèn yo, yon liy pou chak jou nan semèn nan",
+  "music_hubs_heat_week_of": "Semèn",
+  "music_hubs_heat_time_a_day": "Tan pa jou",
+  "music_hubs_heat_still_to_come": "Poko rive",
+  "music_hubs_entry_updated": "Seyans lan mete ajou.",
+  "music_hubs_entry_deleted": "Seyans lan efase.",
+  "music_hubs_entry_order": "Repons yo nan lòd: {right} bon, {missed} rate",
+  "music_hubs_entry_right": "bon",
+  "music_hubs_entry_missed": "rate",
+  "music_hubs_entry_dot_title": "{n}. {label}: {result}",
+  "music_hubs_entry_missed_label": "Rate",
+  "music_hubs_entry_expected": "Te tann",
+  "music_hubs_entry_you_answered": ", ou reponn",
+  "music_hubs_entry_all_right": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} bon.",
+        "countPlural=other": "Tout {count} yo bon."
+      }
+    }
+  ],
+  "music_hubs_entry_details": "Detay chak repons",
+  "music_hubs_entry_right_cap": "Bon",
+  "music_hubs_entry_missed_cap": "Rate",
+  "music_hubs_entry_you_answered_value": ", ou reponn {response}",
+  "music_hubs_entry_credit": "Kredi {pct}",
+  "music_hubs_entry_mode_not_saved": "Mòd la pa sere",
+  "music_hubs_entry_no_answers": "Pa gen repons ki gen nòt.",
+  "music_hubs_entry_line_buttons": "{when}. {source} ak bouton repons",
+  "music_hubs_entry_line_on": "{when}. {source} sou {played}",
+  "music_hubs_entry_hide": "Kache repons yo",
+  "music_hubs_entry_show": "Montre chak repons",
+  "music_hubs_entry_spark": "Nòt {title} jiska seyans sa a: {scores}",
+  "music_hubs_entry_score_sr": "Nòt ",
+  "music_hubs_entry_answers": "Repons",
+  "music_hubs_entry_time": "Tan",
+  "music_hubs_entry_edit_note": "Modifye nòt la",
+  "music_hubs_entry_add_note": "Ajoute yon nòt",
+  "music_hubs_entry_more": "Plis opsyon pou seyans sa a",
+  "music_hubs_entry_next_time_colon": "Pwochen fwa:",
+  "music_hubs_entry_note": "Nòt",
+  "music_hubs_entry_next_time": "Pwochen fwa",
+  "music_hubs_entry_next_placeholder": "Kisa pou eseye nan pwochen seyans lan",
+  "music_hubs_save": "Sere",
+  "music_hubs_cancel": "Anile",
+  "music_hubs_entry_confirm": "Konfime efase",
+  "music_hubs_entry_confirm_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Efase seyans sa a ak {count} repons li pou toutbon?",
+        "countPlural=other": "Efase seyans sa a ak {count} repons li yo pou toutbon?"
+      }
+    }
+  ],
+  "music_hubs_entry_delete": "Efase seyans lan",
+  "music_hubs_entry_keep": "Kenbe l",
+  "music_hubs_entry_orphans": "Repons ki soti nan yon pasaj ki pa fini",
+  "music_hubs_entry_no_runs": "Seyans sa a pa gen pasaj.",
+  "music_hubs_sessions_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} seyans",
+        "countPlural=other": "{count} seyans"
+      }
+    }
+  ],
+  "music_hubs_journal_range_all": "Tout",
+  "music_hubs_journal_range_month": "Mwa sa a",
+  "music_hubs_journal_range_30": "30 dènye jou",
+  "music_hubs_journal_showing_every_session": "N ap montre tout seyans yo.",
+  "music_hubs_journal_showing": "N ap montre {what}.",
+  "music_hubs_journal_showing_every_day": "N ap montre tout jou yo.",
+  "music_hubs_journal_filters_cleared": "Filt yo efase.",
+  "music_hubs_journal_added": "Ajoute nan seyans jodi a.",
+  "music_hubs_journal_empty_title": "Jounal ou vid",
+  "music_hubs_journal_empty_body": "Fini nenpòt egzèsis epi l ap parèt isit la: nòt la, chak repons, tan li pran, ak plas pou yon nòt.",
+  "music_hubs_journal_example": "Egzanp",
+  "music_hubs_journal_example_title": "Egzanp: Degre gam",
+  "music_hubs_journal_example_line": "len, 9:40. Egzèsis sou pyano",
+  "music_hubs_journal_example_note": "Degre 6 la toujou ap chape. Chante l anvan ou reponn.",
+  "music_hubs_journal_example_caption": "Men kijan yon seyans ki sere parèt.",
+  "music_hubs_journal_count": "{sessions}, pi resan an anvan",
+  "music_hubs_journal_count_filtered": "{shown} sou {sessions}, pi resan an anvan",
+  "music_hubs_journal_week_sessions": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} seyans",
+        "countPlural=other": ", {count} seyans"
+      }
+    }
+  ],
+  "music_hubs_journal_note_today": "Nòt pou jodi a",
+  "music_hubs_journal_note_form": "Nòt sou seyans jodi a",
+  "music_hubs_journal_note_label": "Sa ki te mache byen, sa pou korije",
+  "music_hubs_journal_note_where": "(l ap sere ak dènye seyans jodi a)",
+  "music_hubs_journal_add_today": "Ajoute nan seyans jodi a",
+  "music_hubs_journal_when": "Kilè",
+  "music_hubs_journal_more_filters": "Plis filt",
+  "music_hubs_journal_filter_form": "Filtre seyans yo",
+  "music_hubs_journal_skill": "Konpetans",
+  "music_hubs_journal_any_skill": "Nenpòt konpetans",
+  "music_hubs_journal_any_instrument": "Nenpòt enstriman",
+  "music_hubs_journal_from": "Soti",
+  "music_hubs_journal_to": "Rive",
+  "music_hubs_journal_show_every_day": "Montre tout jou yo",
+  "music_hubs_journal_clear_filters": "Efase filt yo",
+  "music_hubs_journal_no_match": "Pa gen seyans ki koresponn ak filt sa yo.",
+  "music_hubs_journal_last_weeks": "{count} dènye semèn",
+  "music_hubs_journal_tap_day": "Tape sou yon jou ou te pratike pou wè seyans li yo.",
+  "music_hubs_journal_goals": "Objektif semèn nan",
+  "music_hubs_journal_goal_line": "{done} seyans sou {target} semèn sa a",
+  "music_hubs_journal_goal_met": ", objektif la rive",
+  "music_hubs_journal_target": "Objektif",
+  "music_hubs_journal_goal_set": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Objektif semèn nan se {count} seyans.",
+        "countPlural=other": "Objektif semèn nan se {count} seyans."
+      }
+    }
+  ],
+  "music_hubs_journal_xp_level": "{xp} XP semèn sa a kont {last} semèn pase, egal.",
+  "music_hubs_journal_xp_ahead": "{xp} XP semèn sa a kont {last} semèn pase, {diff} pi devan.",
+  "music_hubs_journal_xp_behind": "{xp} XP semèn sa a kont {last} semèn pase, rete {diff} pou egal li.",
+  "music_hubs_journal_focus": "Sa w ap konsantre sou li",
+  "music_hubs_journal_focus_intro": "Dapre etikèt ki sou seyans ou yo.",
+  "music_hubs_journal_focus_empty": "Mete etikèt sou yon seyans epi etikèt ou plis itilize yo ap parèt isit la.",
+  "music_hubs_journal_tag_today": "Mete etikèt sou seyans jodi a"
 }

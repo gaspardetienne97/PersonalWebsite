@@ -24,51 +24,100 @@ import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
 import { addDays, dayKey, weekStart } from "@repo/music-core/progress/rewards";
 import { sessionMinutes } from "@repo/music-core/progress/journal";
 import { CATALOG, type CatalogEntry } from "@repo/music-core/content/catalog";
+import { formatList, intlLocale } from "@repo/i18n/format";
+import { m } from "@repo/i18n/messages.js";
+import { getLocale } from "@repo/i18n/runtime.js";
 
 /** Checked attempts a skill needs before its estimate gets a verdict (same bar as the coach). */
 export const MIN_EVIDENCE = COACH_MIN_ATTEMPTS;
 export const PICKS_CAP = 8;
 
 export const ASSISTANCE_LABEL: Record<Assistance, string> = {
-  independent: "Check run",
-  guided: "Practice run",
-  hinted: "With a hint",
-  "self-assessed": "Self-rated",
+  get independent() {
+    return m.music_hubs_assist_independent();
+  },
+  get guided() {
+    return m.music_hubs_assist_guided();
+  },
+  get hinted() {
+    return m.music_hubs_assist_hinted();
+  },
+  get "self-assessed"() {
+    return m.music_hubs_assist_self();
+  },
 };
 
 export const INPUT_LABEL: Record<InputSource | "mixed", string> = {
   midi: "MIDI",
-  audio: "Microphone",
-  onscreen: "On screen",
-  click: "Answer buttons",
-  mixed: "Mixed input",
+  get audio() {
+    return m.music_hubs_input_audio();
+  },
+  get onscreen() {
+    return m.music_hubs_input_onscreen();
+  },
+  get click() {
+    return m.music_hubs_input_click();
+  },
+  get mixed() {
+    return m.music_hubs_input_mixed();
+  },
 };
 
 export const SOURCE_LABEL: Record<SessionSource, string> = {
-  "free-practice": "Free practice",
-  "daily-routine": "Today's set",
-  song: "Song",
-  drill: "Drill",
-  jam: "Jam",
+  get "free-practice"() {
+    return m.music_hubs_source_free();
+  },
+  get "daily-routine"() {
+    return m.music_hubs_source_daily();
+  },
+  get song() {
+    return m.music_hubs_source_song();
+  },
+  get drill() {
+    return m.music_hubs_source_drill();
+  },
+  get jam() {
+    return m.music_hubs_source_jam();
+  },
 };
 
 export const CAPABILITY_LABEL = {
-  pitch: "Pitch",
-  rhythm: "Rhythm",
-  harmony: "Harmony",
-  reading: "Reading",
-  technique: "Technique",
-  ear: "Ear",
-} as const;
+  get pitch() {
+    return m.music_hubs_cap_pitch();
+  },
+  get rhythm() {
+    return m.music_hubs_cap_rhythm();
+  },
+  get harmony() {
+    return m.music_hubs_cap_harmony();
+  },
+  get reading() {
+    return m.music_hubs_cap_reading();
+  },
+  get technique() {
+    return m.music_hubs_cap_technique();
+  },
+  get ear() {
+    return m.music_hubs_cap_ear();
+  },
+};
 
-export const pct = (v: number) => `${Math.round(v * 100)}%`;
-export const plural = (n: number, word: string, many = `${word}s`) =>
-  `${n} ${n === 1 ? word : many}`;
+export const pct = (v: number) => m.music_hubs_pct({ n: Math.round(v * 100) });
 /** Signed change with a real minus sign; "no change" at zero. */
 export const signed = (n: number, unit = "") =>
-  n === 0 ? "no change" : `${n > 0 ? "+" : "−"}${Math.abs(n)}${unit}`;
+  n === 0 ? m.music_hubs_no_change() : `${n > 0 ? "+" : "−"}${Math.abs(n)}${unit}`;
 
-const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+/** Intl's relative time, or the app's own words in Haitian Creole, which Intl has no data for. */
+function relative(n: number, unit: "day" | "week" | "month"): string {
+  if (getLocale() === "ht" && n <= 0) {
+    if (unit === "day" && n === 0) return m.music_hubs_rel_today();
+    if (unit === "day" && n === -1) return m.music_hubs_rel_yesterday();
+    const count = -n;
+    if (unit === "day") return m.music_hubs_rel_days({ count });
+    return unit === "week" ? m.music_hubs_rel_weeks({ count }) : m.music_hubs_rel_months({ count });
+  }
+  return new Intl.RelativeTimeFormat(intlLocale(), { numeric: "auto" }).format(n, unit);
+}
 /** "today", "yesterday", "3 days ago", "2 weeks ago" by local calendar day. */
 export function relativeDay(ms: number, now: number): string {
   const day = (t: number) => {
@@ -76,9 +125,9 @@ export function relativeDay(ms: number, now: number): string {
     return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000;
   };
   const days = Math.round(day(now) - day(ms));
-  if (days < 14) return rtf.format(-days, "day");
-  if (days < 60) return rtf.format(-Math.floor(days / 7), "week");
-  return rtf.format(-Math.floor(days / 30), "month");
+  if (days < 14) return relative(-days, "day");
+  if (days < 60) return relative(-Math.floor(days / 7), "week");
+  return relative(-Math.floor(days / 30), "month");
 }
 
 export const formatLabel = (l: Label | undefined) =>
@@ -106,7 +155,7 @@ export function exerciseDrill(id: string): { entry: CatalogEntry; mode?: string 
 /** A run's drill as the Drills tab names it ("Fretboard: Note finder"); a tidied id otherwise. */
 export const exerciseTitle = (id: string) => {
   const d = exerciseDrill(id);
-  if (d) return d.mode ? `${d.entry.title}: ${d.mode}` : d.entry.title;
+  if (d) return d.mode ? m.music_hubs_pair({ a: d.entry.title, b: d.mode }) : d.entry.title;
   const s = id.replace(/[._-]+/g, " ").trim();
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
@@ -116,8 +165,8 @@ export function sessionTitle(session: PracticeSession): string {
   const titles = [...new Set(session.runs.map((r) => exerciseTitle(r.exerciseId)))];
   if (!titles.length) return SOURCE_LABEL[session.source];
   if (titles.length === 1) return titles[0];
-  if (titles.length === 2) return `${titles[0]} and ${titles[1]}`;
-  return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`;
+  if (titles.length === 2) return m.music_hubs_session_two({ a: titles[0], b: titles[1] });
+  return m.music_hubs_session_more({ a: titles[0], b: titles[1], count: titles.length - 2 });
 }
 
 /** The last `n` scores of one exercise, up to and including the run ending at `until`. */
@@ -226,9 +275,10 @@ export function skillRows(input: {
  */
 /** "X and 2 other skills dropped ten points..."; "It" when X is the focus skill named just before. */
 export function fallingSentence(falling: SkillRow[], focusId?: string) {
-  const lead = falling[0].skill.id === focusId ? "It" : falling[0].skill.name;
-  const others = falling.length > 1 ? ` and ${plural(falling.length - 1, "other skill")}` : "";
-  return `${lead}${others} dropped ten points or more since you last measured, so a short review comes first.`;
+  const lead = falling[0].skill.id === focusId ? m.music_hubs_falling_it() : falling[0].skill.name;
+  return falling.length > 1
+    ? m.music_hubs_falling_many({ lead, count: falling.length - 1 })
+    : m.music_hubs_falling_one({ lead });
 }
 
 export function nextBuckets(rows: SkillRow[]) {
@@ -285,10 +335,10 @@ export function runDelta(
   const now = Math.round(run.score * 100);
   const then = Math.round(prev.score! * 100);
   if (now > Math.round(Math.max(...before.map((r) => r.score!)) * 100))
-    return { kind: "best", text: `Best yet, up from ${then}%` };
-  if (now > then) return { kind: "up", text: `Up from ${then}%` };
-  if (now < then) return { kind: "down", text: `Down from ${then}%` };
-  return { kind: "same", text: "Same as last time" };
+    return { kind: "best", text: m.music_hubs_delta_best({ then }) };
+  if (now > then) return { kind: "up", text: m.music_hubs_delta_up({ then }) };
+  if (now < then) return { kind: "down", text: m.music_hubs_delta_down({ then }) };
+  return { kind: "same", text: m.music_hubs_delta_same() };
 }
 
 /** A session's length as recorded: its end, else its last run's end. */
@@ -321,8 +371,8 @@ export function sessionInstruments(s: PracticeSession, label: Record<string, str
       [s.instrument, ...s.runs.map((r) => r.instrument)].filter((i): i is Instrument => !!i),
     ),
   ].map((i) => label[i]);
-  if (!names.length) return "Answer buttons";
-  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  if (!names.length) return m.music_hubs_input_click();
+  return formatList(names);
 }
 
 export interface SetupTrend {
@@ -387,17 +437,19 @@ export const parseTags = (raw: string) => [
 export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
   // Under five seconds is a tap or two, not a figure to read ("0 sec" beside 89% looks broken).
-  if (s < 5) return "under 5 sec";
-  if (s < 60) return `${s} sec`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+  if (s < 5) return m.music_hubs_dur_under5();
+  if (s < 60) return m.music_hubs_dur_sec({ s });
+  const min = Math.round(s / 60);
+  if (min < 60) return m.music_hubs_minutes_short({ minutes: min });
+  const h = Math.floor(min / 60);
+  return min % 60
+    ? m.music_hubs_dur_hours_min({ h, min: min % 60 })
+    : m.music_hubs_dur_hours({ h });
 }
 
 /** A week's or a day's minutes as a figure that never undersells it: 1 min over three sessions reads "under 2 min". */
 export const minutesText = (minutes: number, sessions: number) =>
-  sessions && minutes < 2 ? "under 2 min" : `${minutes} min`;
+  sessions && minutes < 2 ? m.music_hubs_under_2_min() : m.music_hubs_minutes_short({ minutes });
 
 /**
  * A skill row's one line, both measures named so they never read as one contradicting the other:
@@ -409,17 +461,17 @@ export function skillCaption(r: SkillRow, now: number): string {
   const when = r.lastPracticed ? `, ${relativeDay(r.lastPracticed, now)}` : "";
   const tries =
     r.accuracy !== undefined
-      ? `All answers: ${pct(r.accuracy)} right (${plural(r.attempts, "answer")}${when})`
-      : `${plural(r.checked, "answer")} in Check runs${when}`;
+      ? m.music_hubs_caption_all({ pct: pct(r.accuracy), count: r.attempts, when })
+      : m.music_hubs_caption_checked({ count: r.checked, when });
   const mastery =
     r.estimate === undefined
-      ? " No skill score yet."
+      ? m.music_hubs_caption_no_score()
       : r.umbrella && !r.direct
-        ? " Skill score is the average of its parts."
+        ? m.music_hubs_caption_average()
         : r.checked < MIN_EVIDENCE
-          ? ` Skill score is an early guess until ${MIN_EVIDENCE} answers in Check runs.`
+          ? m.music_hubs_caption_early({ count: MIN_EVIDENCE })
           : "";
-  return `${tries}.${mastery}`;
+  return mastery ? `${tries} ${mastery}` : tries;
 }
 
 /**

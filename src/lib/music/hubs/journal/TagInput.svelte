@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Tags as removable chips: type one and press Enter or a comma; the browser's own list
   // (a datalist) suggests tags used before.
   import X from "@lucide/svelte/icons/x";
   import { parseTags } from "../progress/model";
 
-  let { tags = $bindable([]), suggestions = [], label = "Tags" }: { tags?: string[]; suggestions?: string[]; label?: string } = $props();
+  let { tags = $bindable([]), suggestions = [], label = m.music_hubs_tags() }: { tags?: string[]; suggestions?: string[]; label?: string } = $props();
   const uid = $props.id();
   let draft = $state("");
 
@@ -30,7 +31,7 @@
         <button
           type="button"
           class="relative grid size-7 place-items-center rounded-full hover:bg-ws-raised after:absolute after:-inset-2 after:content-['']"
-          aria-label="Remove tag {t}"
+          aria-label={m.music_hubs_tags_remove({ tag: t })}
           onclick={() => (tags = tags.filter((x) => x !== t))}><X class="size-3.5" aria-hidden="true" /></button
         >
       </span>
@@ -43,12 +44,12 @@
       {onkeydown}
       oninput={() => draft.includes(",") && add(draft)}
       onblur={() => draft.trim() && add(draft)}
-      placeholder={tags.length ? "Add a tag" : "scales, left hand"}
+      placeholder={tags.length ? m.music_hubs_tags_add() : m.music_hubs_tags_example()}
       aria-describedby="{uid}-hint"
     />
   </div>
   <datalist id="{uid}-list">
     {#each suggestions.filter((s) => !tags.includes(s)) as s (s)}<option value={s}></option>{/each}
   </datalist>
-  <span id="{uid}-hint" class="text-[13px] text-ws-soft">Press Enter after each tag. Tags you used before are suggested.</span>
+  <span id="{uid}-hint" class="text-[13px] text-ws-soft">{m.music_hubs_tags_hint()}</span>
 </div>

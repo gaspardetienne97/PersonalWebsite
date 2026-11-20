@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The journal: the session list first, then this week against last, the 12-week heatmap,
   // goals and focus areas. A note on today's session waits behind its button; filters show
   // once there are enough sessions to need them.
@@ -15,7 +16,8 @@
   import { practice } from "../../practice.svelte";
   import { settings } from "../../runtime";
   import { btn, btnPrimary } from "../../components/ui";
-  import { minutesText, plural } from "../progress/model";
+  import { minutesText } from "../progress/model";
+  import { longDay } from "../dates";
   import TagInput from "./TagInput.svelte";
   import WeekCompare from "../progress/WeekCompare.svelte";
   import Heatmap from "./Heatmap.svelte";
@@ -69,28 +71,26 @@
   );
   // Date presets; anything else is a custom range (or a day picked on the heatmap).
   const RANGES = $derived([
-    { id: "all", label: "All", from: "", to: "" },
-    { id: "week", label: "This week", from: weekStart(today), to: "" },
-    { id: "month", label: "This month", from: `${today.slice(0, 8)}01`, to: "" },
-    { id: "30", label: "Last 30 days", from: addDays(today, -29), to: "" },
+    { id: "all", label: m.music_hubs_journal_range_all(), from: "", to: "" },
+    { id: "week", label: m.music_hubs_this_week(), from: weekStart(today), to: "" },
+    { id: "month", label: m.music_hubs_journal_range_month(), from: `${today.slice(0, 8)}01`, to: "" },
+    { id: "30", label: m.music_hubs_journal_range_30(), from: addDays(today, -29), to: "" },
   ]);
   const range = $derived(RANGES.find((r) => r.from === from && r.to === to)?.id ?? "custom");
   function pickRange(r: (typeof RANGES)[number]) {
     from = r.from;
     to = r.to;
-    announce(r.id === "all" ? "Showing every session." : `Showing ${r.label.toLowerCase()}.`);
+    announce(r.id === "all" ? m.music_hubs_journal_showing_every_session() : m.music_hubs_journal_showing({ what: r.label.toLowerCase() }));
   }
-  const longDay = (day: string) =>
-    new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
   // Tapping a practised day on the heatmap shows just that day; tapping it again shows all.
   const pickedDay = $derived(from && from === to ? from : undefined);
   function pickDay(day: string) {
     if (pickedDay === day) {
       from = to = "";
-      announce("Showing every day.");
+      announce(m.music_hubs_journal_showing_every_day());
     } else {
       from = to = day;
-      announce(`Showing ${longDay(day)}.`);
+      announce(m.music_hubs_journal_showing({ what: longDay(day) }));
     }
     document.getElementById("sessions-title")?.scrollIntoView({ block: "nearest" });
   }
@@ -99,7 +99,7 @@
     instrument = "";
     from = "";
     to = "";
-    announce("Filters cleared.");
+    announce(m.music_hubs_journal_filters_cleared());
   }
 
   // A note for today's latest session, written from the top of the list.
@@ -125,7 +125,7 @@
     draftNote = "";
     draftTags = [];
     composing = false;
-    announce("Added to today's session.");
+    announce(m.music_hubs_journal_added());
   }
 
   const field = "min-h-11 w-full min-w-0 rounded-lg border border-ws-line bg-ws-surface px-3 text-sm";
@@ -137,31 +137,31 @@
   <!-- Empty: what a saved session will look like, and the one way to make one. -->
   <section aria-labelledby="journal-empty" class="grid items-center gap-6 rounded-3xl border border-ws-line bg-ws-surface p-5 sm:p-8 lg:grid-cols-2">
     <div class="flex flex-col items-start gap-3">
-      <h2 id="journal-empty" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Your journal is empty</h2>
-      <p class="max-w-prose text-ws-soft">Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.</p>
-      <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">Start Today's set</a>
+      <h2 id="journal-empty" class="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{m.music_hubs_journal_empty_title()}</h2>
+      <p class="max-w-prose text-ws-soft">{m.music_hubs_journal_empty_body()}</p>
+      <a class="{btnPrimary} min-h-12 px-6 text-base" href="/music">{m.music_hubs_sessions_start_today()}</a>
     </div>
     <!-- A sample, drawn as a real card would be but faded and marked, so it never reads as an entry. -->
     <figure class="relative min-w-0">
-      <span class="absolute -top-3 right-4 z-10 rounded-full border border-ws-line bg-ws-bg px-3 py-0.5 text-sm font-semibold">Example</span>
+      <span class="absolute -top-3 right-4 z-10 rounded-full border border-ws-line bg-ws-bg px-3 py-0.5 text-sm font-semibold">{m.music_hubs_journal_example()}</span>
       <div class="rounded-2xl border border-dashed border-ws-line bg-ws-surface p-4 opacity-50" aria-hidden="true">
         <div class="flex items-start gap-3">
           <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--hue-ear)] text-ws-stage"><Ear class="size-5" /></span>
           <div class="min-w-0 flex-1">
-            <p class="font-semibold">Example: Scale degrees</p>
-            <p class="text-sm text-ws-soft">Mon, 9:40 AM. Drill on piano</p>
+            <p class="font-semibold">{m.music_hubs_journal_example_title()}</p>
+            <p class="text-sm text-ws-soft">{m.music_hubs_journal_example_line()}</p>
           </div>
           <p class="tnum font-display text-2xl font-semibold leading-none">80%</p>
         </div>
-        <p class="mt-3 max-w-prose border-l-2 border-[color:var(--hue-ear)] pl-3">Degree 6 still slips. Sing it before answering.</p>
+        <p class="mt-3 max-w-prose border-l-2 border-[color:var(--hue-ear)] pl-3">{m.music_hubs_journal_example_note()}</p>
         <div class="mt-3 flex flex-wrap gap-1">
           {#each [1, 1, 1, 0, 1, 1, 1, 1, 0, 1] as ok, i (i)}
             <span class="grid size-8 place-items-center rounded-full text-sm font-bold {ok ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}">{ok ? "✓" : "✗"}</span>
           {/each}
         </div>
-        <p class="tnum mt-2 flex gap-5 text-sm"><span><span class="text-ws-soft">Answers</span> <b>10</b></span><span><span class="text-ws-soft">Time</span> <b>6 min</b></span></p>
+        <p class="tnum mt-2 flex gap-5 text-sm"><span><span class="text-ws-soft">{m.music_hubs_entry_answers()}</span> <b>10</b></span><span><span class="text-ws-soft">{m.music_hubs_entry_time()}</span> <b>{m.music_hubs_minutes_short({ minutes: 6 })}</b></span></p>
       </div>
-      <figcaption class="mt-2 text-sm text-ws-soft">What a saved session looks like.</figcaption>
+      <figcaption class="mt-2 text-sm text-ws-soft">{m.music_hubs_journal_example_caption()}</figcaption>
     </figure>
   </section>
 {:else}
@@ -169,60 +169,62 @@
     <section aria-labelledby="sessions-title" class="min-w-0">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 id="sessions-title" class="font-display text-xl font-semibold">Sessions</h2>
+          <h2 id="sessions-title" class="font-display text-xl font-semibold">{m.music_hubs_week_sessions()}</h2>
           <p class="tnum text-sm text-ws-soft">
-            {filtering ? `${shown.length} of ${plural(sessions.length, "session")}` : plural(sessions.length, "session")}, newest first
+            {filtering
+              ? m.music_hubs_journal_count_filtered({ shown: shown.length, sessions: m.music_hubs_sessions_count({ count: sessions.length }) })
+              : m.music_hubs_journal_count({ sessions: m.music_hubs_sessions_count({ count: sessions.length }) })}
           </p>
           <!-- On a phone the week's figures sit under the list: one line of them up here. -->
           <p class="tnum text-sm lg:hidden">
-            This week: <span class="font-semibold">{minutesText(weeks.thisWeek.minutes, weeks.thisWeek.sessions)}</span>, {plural(weeks.thisWeek.sessions, "session")}
+            {m.music_hubs_strip_this_week()} <span class="font-semibold">{minutesText(weeks.thisWeek.minutes, weeks.thisWeek.sessions)}</span>{m.music_hubs_journal_week_sessions({ count: weeks.thisWeek.sessions })}
           </p>
         </div>
         {#if latestToday && !composing}
           <!-- One plain label; where it is saved is said in the form it opens. -->
-          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />Note for today</button>
+          <button type="button" class={btn} onclick={openComposer}><NotebookPen class="size-4" aria-hidden="true" />{m.music_hubs_journal_note_today()}</button>
         {/if}
       </div>
 
       {#if composing && latestToday}
-        <form id="journal-composer" class="mt-3 flex flex-col gap-3 rounded-2xl bg-instr-wash p-4" aria-label="Note on today's session" onsubmit={addToToday}>
+        <form id="journal-composer" class="mt-3 flex flex-col gap-3 rounded-2xl bg-instr-wash p-4" aria-label={m.music_hubs_journal_note_form()} onsubmit={addToToday}>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">What went well, what to fix <span class="font-normal text-ws-soft">(saved with today's latest session)</span></span>
+            <span class="font-medium">{m.music_hubs_journal_note_label()} <span class="font-normal text-ws-soft">{m.music_hubs_journal_note_where()}</span></span>
             <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={draftNote}></textarea>
           </label>
           <TagInput bind:tags={draftTags} suggestions={knownTags} />
           <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" class={btnPrimary} disabled={!draftNote.trim() && !draftTags.length}>Add to today's session</button>
-            <button type="button" class={btn} onclick={() => (composing = false)}>Cancel</button>
+            <button type="submit" class={btnPrimary} disabled={!draftNote.trim() && !draftTags.length}>{m.music_hubs_journal_add_today()}</button>
+            <button type="button" class={btn} onclick={() => (composing = false)}>{m.music_hubs_cancel()}</button>
           </div>
         </form>
       {/if}
 
       {#if showFilters}
-        <div class="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="When">
+        <div class="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label={m.music_hubs_journal_when()}>
           {#each RANGES as r (r.id)}
             <button type="button" class={chip(range === r.id)} aria-pressed={range === r.id} onclick={() => pickRange(r)}>{r.label}</button>
           {/each}
           <button type="button" class="{btn} border-dashed" aria-expanded={moreFilters} aria-controls="journal-filters" onclick={() => (moreFilters = !moreFilters)}>
-            More filters<ChevronDown class="size-4 motion-safe:transition-transform {moreFilters ? 'rotate-180' : ''}" aria-hidden="true" />
+            {m.music_hubs_journal_more_filters()}<ChevronDown class="size-4 motion-safe:transition-transform {moreFilters ? 'rotate-180' : ''}" aria-hidden="true" />
           </button>
         </div>
         {#if moreFilters}
-          <form id="journal-filters" class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Filter sessions" onsubmit={(e) => e.preventDefault()}>
+          <form id="journal-filters" class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={m.music_hubs_journal_filter_form()} onsubmit={(e) => e.preventDefault()}>
             <div class="flex min-w-0 flex-col gap-1 text-sm">
-              <span class="font-medium">Skill</span>
-              <Picker label="Skill" value={skill} options={[{ value: "", label: "Any skill" }, ...skillOptions.map((o) => ({ value: o.id, label: o.name }))]} onchange={(v) => (skill = v)} />
+              <span class="font-medium">{m.music_hubs_journal_skill()}</span>
+              <Picker label={m.music_hubs_journal_skill()} value={skill} options={[{ value: "", label: m.music_hubs_journal_any_skill() }, ...skillOptions.map((o) => ({ value: o.id, label: o.name }))]} onchange={(v) => (skill = v)} />
             </div>
             <div class="flex min-w-0 flex-col gap-1 text-sm">
-              <span class="font-medium">Instrument</span>
-              <Picker label="Instrument" value={instrument} options={[{ value: "", label: "Any instrument" }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]} onchange={(v) => (instrument = v as typeof instrument)} />
+              <span class="font-medium">{m.music_hubs_instrument()}</span>
+              <Picker label={m.music_hubs_instrument()} value={instrument} options={[{ value: "", label: m.music_hubs_journal_any_instrument() }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]} onchange={(v) => (instrument = v as typeof instrument)} />
             </div>
             <label class="flex min-w-0 flex-col gap-1 text-sm">
-              <span class="font-medium">From</span>
+              <span class="font-medium">{m.music_hubs_journal_from()}</span>
               <input type="date" class={field} bind:value={from} max={to || undefined} />
             </label>
             <label class="flex min-w-0 flex-col gap-1 text-sm">
-              <span class="font-medium">To</span>
+              <span class="font-medium">{m.music_hubs_journal_to()}</span>
               <input type="date" class={field} bind:value={to} min={from || undefined} />
             </label>
           </form>
@@ -230,11 +232,11 @@
       {/if}
       {#if pickedDay}
         <p class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          Showing {longDay(pickedDay)}.
-          <button type="button" class={btn} onclick={() => pickDay(pickedDay)}><X class="size-4" aria-hidden="true" />Show every day</button>
+          {m.music_hubs_journal_showing({ what: longDay(pickedDay) })}
+          <button type="button" class={btn} onclick={() => pickDay(pickedDay)}><X class="size-4" aria-hidden="true" />{m.music_hubs_journal_show_every_day()}</button>
         </p>
       {:else if filtering && shown.length}
-        <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
+        <button type="button" class="{btn} mt-3" onclick={clearFilters}>{m.music_hubs_journal_clear_filters()}</button>
       {/if}
 
       {#if shown.length}
@@ -245,33 +247,35 @@
         </ul>
       {:else}
         <div class="mt-4 rounded-2xl border border-dashed border-ws-line p-5">
-          <p class="font-medium">No sessions match these filters.</p>
-          <button type="button" class="{btn} mt-3" onclick={clearFilters}>Clear filters</button>
+          <p class="font-medium">{m.music_hubs_journal_no_match()}</p>
+          <button type="button" class="{btn} mt-3" onclick={clearFilters}>{m.music_hubs_journal_clear_filters()}</button>
         </div>
       {/if}
     </section>
 
     <aside class="flex min-w-0 flex-col gap-8">
       <section aria-labelledby="rollup-title">
-        <h2 id="rollup-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? "This week and last" : "This week"}</h2>
+        <h2 id="rollup-title" class="font-display text-xl font-semibold">{weeks.lastWeek.sessions ? m.music_hubs_sessions_weeks_both() : m.music_hubs_this_week()}</h2>
         <WeekCompare {weeks} />
       </section>
 
       <section aria-labelledby="heat-title">
-        <h2 id="heat-title" class="font-display text-xl font-semibold">Last {heatWeeks} weeks</h2>
-        <p class="text-sm text-ws-soft">Tap a practised day to see its sessions.</p>
+        <h2 id="heat-title" class="font-display text-xl font-semibold">{m.music_hubs_journal_last_weeks({ count: heatWeeks })}</h2>
+        <p class="text-sm text-ws-soft">{m.music_hubs_journal_tap_day()}</p>
         <div class="mt-3"><Heatmap {cells} selected={pickedDay} onpick={pickDay} /></div>
       </section>
 
       <section aria-labelledby="goals-title">
-        <h2 id="goals-title" class="font-display text-xl font-semibold">Weekly goals</h2>
+        <h2 id="goals-title" class="font-display text-xl font-semibold">{m.music_hubs_journal_goals()}</h2>
         <div class="mt-3 flex items-end justify-between gap-3">
           <p class="text-sm">
-            <span class="tnum font-display text-2xl font-semibold">{goals.sessions.done}</span>
-            of <span class="tnum">{goals.sessions.target}</span> sessions this week{#if goals.sessions.met}<span class="text-success">, goal met</span>{/if}
+            {@html m.music_hubs_journal_goal_line({
+              done: `<span class="tnum font-display text-2xl font-semibold">${goals.sessions.done}</span>`,
+              target: `<span class="tnum">${goals.sessions.target}</span>`,
+            })}{#if goals.sessions.met}<span class="text-success">{m.music_hubs_journal_goal_met()}</span>{/if}
           </p>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="font-medium">Target</span>
+            <span class="font-medium">{m.music_hubs_journal_target()}</span>
             <input
               type="number"
               min="1"
@@ -282,7 +286,7 @@
                 const n = Math.round(Number(e.currentTarget.value));
                 if (n >= 1 && n <= 21) {
                   settings.update({ weeklySessionGoal: n });
-                  announce(`Weekly goal set to ${plural(n, "session")}.`);
+                  announce(m.music_hubs_journal_goal_set({ count: n }));
                 } else e.currentTarget.value = String(settings.value.weeklySessionGoal);
               }}
             />
@@ -295,31 +299,34 @@
           ></div>
         </div>
         <p class="mt-3 text-sm">
-          <span class="tnum">{goals.xp.thisWeek}</span> XP this week against <span class="tnum">{goals.xp.lastWeek}</span> last week,
-          {goals.xp.thisWeek === goals.xp.lastWeek
-            ? "level with it."
+          {@html (goals.xp.thisWeek === goals.xp.lastWeek
+            ? m.music_hubs_journal_xp_level
             : goals.xp.ahead
-              ? `ahead by ${goals.xp.thisWeek - goals.xp.lastWeek}.`
-              : `${goals.xp.lastWeek - goals.xp.thisWeek} to go to match it.`}
+              ? m.music_hubs_journal_xp_ahead
+              : m.music_hubs_journal_xp_behind)({
+            xp: `<span class="tnum">${goals.xp.thisWeek}</span>`,
+            last: `<span class="tnum">${goals.xp.lastWeek}</span>`,
+            diff: Math.abs(goals.xp.thisWeek - goals.xp.lastWeek),
+          })}
         </p>
       </section>
 
       <section aria-labelledby="focus-title">
-        <h2 id="focus-title" class="font-display text-xl font-semibold">Focus areas</h2>
+        <h2 id="focus-title" class="font-display text-xl font-semibold">{m.music_hubs_journal_focus()}</h2>
         {#if focus.length}
-          <p class="text-sm text-ws-soft">From the tags on your sessions.</p>
+          <p class="text-sm text-ws-soft">{m.music_hubs_journal_focus_intro()}</p>
           <ul class="mt-2 flex flex-col gap-1.5">
             {#each focus as f (f.tag)}
               <li class="flex items-center gap-3 text-sm">
                 <span class="min-w-0 flex-1 truncate font-medium">{f.tag}</span>
-                <span class="tnum text-ws-soft">{plural(f.count, "session")}</span>
+                <span class="tnum text-ws-soft">{m.music_hubs_sessions_count({ count: f.count })}</span>
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="mt-1 text-sm">Tag a session and the tags you use most show up here.</p>
+          <p class="mt-1 text-sm">{m.music_hubs_journal_focus_empty()}</p>
           {#if latestToday}
-            <button type="button" class="{btn} mt-2" onclick={openComposer}>Tag today's session</button>
+            <button type="button" class="{btn} mt-2" onclick={openComposer}>{m.music_hubs_journal_tag_today()}</button>
           {/if}
         {/if}
       </section>

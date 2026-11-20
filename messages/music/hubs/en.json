@@ -340,5 +340,563 @@
   "music_hubs_layout_studio": "Studio ears",
   "music_hubs_layout_play": "Phrases and songs",
   "music_hubs_layout_lead_sheets": "Lead sheets",
-  "music_hubs_layout_lead_sheets_blurb": "The melody in the right hand, roots, shells or chords in the left, from a lead sheet or your own score."
+  "music_hubs_layout_lead_sheets_blurb": "The melody in the right hand, roots, shells or chords in the left, from a lead sheet or your own score.",
+  "music_hubs_assist_independent": "Check run",
+  "music_hubs_assist_guided": "Practice run",
+  "music_hubs_assist_hinted": "With a hint",
+  "music_hubs_assist_self": "Self-rated",
+  "music_hubs_input_audio": "Microphone",
+  "music_hubs_input_onscreen": "On screen",
+  "music_hubs_input_click": "Answer buttons",
+  "music_hubs_input_mixed": "Mixed input",
+  "music_hubs_source_free": "Free practice",
+  "music_hubs_source_daily": "Today's set",
+  "music_hubs_source_song": "Song",
+  "music_hubs_source_drill": "Drill",
+  "music_hubs_source_jam": "Jam",
+  "music_hubs_cap_pitch": "Pitch",
+  "music_hubs_cap_rhythm": "Rhythm",
+  "music_hubs_cap_harmony": "Harmony",
+  "music_hubs_cap_reading": "Reading",
+  "music_hubs_cap_technique": "Technique",
+  "music_hubs_cap_ear": "Ear",
+  "music_hubs_pct": "{n}%",
+  "music_hubs_no_change": "no change",
+  "music_hubs_rel_today": "today",
+  "music_hubs_rel_yesterday": "yesterday",
+  "music_hubs_rel_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} day ago",
+        "countPlural=other": "{count} days ago"
+      }
+    }
+  ],
+  "music_hubs_rel_weeks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} week ago",
+        "countPlural=other": "{count} weeks ago"
+      }
+    }
+  ],
+  "music_hubs_rel_months": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} month ago",
+        "countPlural=other": "{count} months ago"
+      }
+    }
+  ],
+  "music_hubs_session_two": "{a} and {b}",
+  "music_hubs_session_more": "{a}, {b} and {count} more",
+  "music_hubs_falling_it": "It",
+  "music_hubs_falling_one": "{lead} dropped ten points or more since you last measured, so a short review comes first.",
+  "music_hubs_falling_many": [
+    {
+      "declarations": ["input count", "input lead", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{lead} and {count} other skill dropped ten points or more since you last measured, so a short review comes first.",
+        "countPlural=other": "{lead} and {count} other skills dropped ten points or more since you last measured, so a short review comes first."
+      }
+    }
+  ],
+  "music_hubs_delta_best": "Best yet, up from {then}%",
+  "music_hubs_delta_up": "Up from {then}%",
+  "music_hubs_delta_down": "Down from {then}%",
+  "music_hubs_delta_same": "Same as last time",
+  "music_hubs_dur_under5": "under 5 sec",
+  "music_hubs_dur_sec": "{s} sec",
+  "music_hubs_dur_hours": "{h} h",
+  "music_hubs_dur_hours_min": "{h} h {min} min",
+  "music_hubs_under_2_min": "under 2 min",
+  "music_hubs_caption_all": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "All answers: {pct} right ({count} answer{when}).",
+        "countPlural=other": "All answers: {pct} right ({count} answers{when})."
+      }
+    }
+  ],
+  "music_hubs_caption_checked": [
+    {
+      "declarations": ["input count", "input when", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} answer in Check runs{when}.",
+        "countPlural=other": "{count} answers in Check runs{when}."
+      }
+    }
+  ],
+  "music_hubs_caption_no_score": "No skill score yet.",
+  "music_hubs_caption_average": "Skill score is the average of its parts.",
+  "music_hubs_caption_early": "Skill score is an early guess until {count} answers in Check runs.",
+  "music_hubs_weekday_letters": "M T W T F S S",
+  "music_hubs_weekday_names": "Monday Tuesday Wednesday Thursday Friday Saturday Sunday",
+  "music_hubs_month_names": "January February March April May June July August September October November December",
+  "music_hubs_week_time": "Time",
+  "music_hubs_week_sessions": "Sessions",
+  "music_hubs_week_attempts": "Attempts",
+  "music_hubs_week_first_note": "This week so far. An attempt is one answer or take. Every run earns XP. Next week shows the change against this one.",
+  "music_hubs_week_this_last": "this week, {last} last",
+  "music_hubs_week_change_sr": ", change",
+  "music_hubs_this_week": "This week",
+  "music_hubs_last_week": "Last week",
+  "music_hubs_strip_label": "Streak and this week",
+  "music_hubs_strip_this_week": "This week:",
+  "music_hubs_strip_minutes_each_day": "Minutes practised each day, Monday to Sunday. Today:",
+  "music_hubs_strip_day_today_sr": "{day} (today)",
+  "music_hubs_strip_still_to_come": "still to come",
+  "music_hubs_strip_minutes": "{count} minutes",
+  "music_hubs_streak_word_before": "before you started",
+  "music_hubs_streak_word_practised": "practised",
+  "music_hubs_streak_word_frozen": "covered by a streak freeze",
+  "music_hubs_streak_word_missed": "missed",
+  "music_hubs_streak_word_today": "today, not practised yet",
+  "music_hubs_streak_day1": "Day 1 streak",
+  "music_hubs_streak_days": "{count}-day streak",
+  "music_hubs_streak_start": "Start a streak today",
+  "music_hubs_streak_best": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Best streak: {count} day.",
+        "countPlural=other": "Best streak: {count} days."
+      }
+    }
+  ],
+  "music_hubs_streak_freezes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "You can miss one day without losing your streak.",
+        "countPlural=other": "You can miss {count} days without losing your streak."
+      }
+    }
+  ],
+  "music_hubs_streak_rules_label": "How streak freezes work",
+  "music_hubs_streak_rules": "You earn one streak freeze for each week you practise. If you miss a day, a saved freeze covers it so the streak carries on.",
+  "music_hubs_streak_days_of_7": "{count} of 7 days",
+  "music_hubs_streak_key_practised": "Practised",
+  "music_hubs_streak_key_missed": "Missed",
+  "music_hubs_streak_key_freeze": "Freeze used",
+  "music_hubs_streak_key_today": "Today",
+  "music_hubs_sessions_trend_up": "up {count} points",
+  "music_hubs_sessions_trend_down": "down {count} points",
+  "music_hubs_sessions_trend_level": "level",
+  "music_hubs_sessions_empty_title": "No sessions saved yet.",
+  "music_hubs_sessions_empty_body": "Finish one drill and it shows up here with its score, so the next visit has something to beat.",
+  "music_hubs_sessions_start_today": "Start Today's set",
+  "music_hubs_sessions_recent": "Recent sessions",
+  "music_hubs_sessions_all_in_journal": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "All {count} session in the journal",
+        "countPlural=other": "All {count} sessions in the journal"
+      }
+    }
+  ],
+  "music_hubs_sessions_answers_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} answer",
+        "countPlural=other": ", {count} answers"
+      }
+    }
+  ],
+  "music_hubs_sessions_short_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", plus {count} short try",
+        "countPlural=other": ", plus {count} short tries"
+      }
+    }
+  ],
+  "music_hubs_no_score": "No score",
+  "music_hubs_sessions_weeks_both": "This week and last",
+  "music_hubs_sessions_scores_title": "Scores over time",
+  "music_hubs_sessions_scores_intro": "The same exercise with the same setup, run by run.",
+  "music_hubs_sessions_trend_line": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input trend",
+        "input best",
+        "input last",
+        "input first",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "First {first}, last {last}, best {best}: {trend} over {count} run, latest {when}.",
+        "countPlural=other": "First {first}, last {last}, best {best}: {trend} over {count} runs, latest {when}."
+      }
+    }
+  ],
+  "music_hubs_sessions_scores_label": "Scores in order: {scores}",
+  "music_hubs_sessions_nothing_repeated": "Nothing repeated yet. Run a drill twice with the same setup to compare the scores.",
+  "music_hubs_sessions_level_title": "XP level and achievements",
+  "music_hubs_sessions_xp_level": "XP level",
+  "music_hubs_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} day",
+        "countPlural=other": "{count} days"
+      }
+    }
+  ],
+  "music_hubs_sessions_level_line": "XP level {level}. {xp} XP, {toNext} to level {next}.",
+  "music_hubs_sessions_xp_week": "{xp} XP this week.",
+  "music_hubs_sessions_how_scores": "How scores work",
+  "music_hubs_sessions_how_scores_body": "Every run earns XP. Only answers in Check runs change a skill score.",
+  "music_hubs_sessions_achievements": "Achievements",
+  "music_hubs_sessions_unlocked_of": "{n} of {total} unlocked.",
+  "music_hubs_sessions_badge_unlocked": "Unlocked.",
+  "music_hubs_sessions_badge_locked": "Locked.",
+  "music_hubs_all_instruments": "All instruments",
+  "music_hubs_skills_no_score": "No skill score yet",
+  "music_hubs_skills_score": "Skill score {pct}",
+  "music_hubs_skills_last_measured": "last measured {pct}",
+  "music_hubs_skills_due": "due for review",
+  "music_hubs_skills_only_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "only {count} answer in Check",
+        "countPlural=other": "only {count} answers in Check"
+      }
+    }
+  ],
+  "music_hubs_skills_filter": "Filter skills",
+  "music_hubs_instrument": "Instrument",
+  "music_hubs_skills_search": "Search skills",
+  "music_hubs_skills_two_numbers": "The two numbers",
+  "music_hubs_skills_term_score": "Skill score",
+  "music_hubs_skills_term_score_body": "{term} is how sure Woodshed is that you know the skill. Only Check runs change it, and it fades a little each day you don't practise. Under {count} answers in Check runs it's an early guess, drawn as an outlined bar.",
+  "music_hubs_skills_term_all": "All answers",
+  "music_hubs_skills_term_all_body": "{term} is the share you got right, Practice runs included, on {where}. With hints on it runs higher than the skill score.",
+  "music_hubs_skills_any_instrument": "any instrument",
+  "music_hubs_skills_key_last": "Skill score when last measured",
+  "music_hubs_skills_key_review": "Needs review: ten points or more lost since then",
+  "music_hubs_skills_early_note": "Early guess: a skill score from fewer than {count} answers in Check runs, drawn as an outlined bar.",
+  "music_hubs_skills_none_yet": "No skills touched yet.",
+  "music_hubs_skills_none_on": "No skills touched on {instrument} yet.",
+  "music_hubs_skills_empty_body": "Every scored answer lands here, grouped by what it trains.",
+  "music_hubs_skills_group_line": "{total} skills, {mastered} mastered, average {pct}",
+  "music_hubs_skills_group_touched": ", {count} touched",
+  "music_hubs_skills_early_badge": "Early guess",
+  "music_hubs_skills_needs_review": "Needs review",
+  "music_hubs_skills_none": "None",
+  "music_hubs_skills_region": "{capability} skills",
+  "music_hubs_skills_col_skill": "Skill",
+  "music_hubs_skills_col_confidence": "Confidence",
+  "music_hubs_skills_col_answers": "Answers",
+  "music_hubs_skills_col_right": "All answers right",
+  "music_hubs_skills_col_last": "Last practised",
+  "music_hubs_skills_col_status": "Status",
+  "music_hubs_skills_col_drill": "Drill",
+  "music_hubs_skills_average_parts": "Average of its parts",
+  "music_hubs_skills_in_check": "{count} in Check",
+  "music_hubs_never": "Never",
+  "music_hubs_unlocked": "Unlocked",
+  "music_hubs_skills_no_match": "No {capability} skill matches \"{q}\".",
+  "music_hubs_skills_none_touched": "None touched yet.",
+  "music_hubs_skills_none_touched_on": "None touched on {instrument}.",
+  "music_hubs_skills_show_touched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Show only the {count} skill you have touched",
+        "countPlural=other": "Show only the {count} skills you have touched"
+      }
+    }
+  ],
+  "music_hubs_skills_show_all": "Show all {total} skills",
+  "music_hubs_next_none_falling": "No measured skill is falling.",
+  "music_hubs_next_unmeasured": [
+    {
+      "declarations": ["input count", "input min", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill has fewer than {min} answers in Check, so it isn't measured yet.",
+        "countPlural=other": "{count} skills have fewer than {min} answers in Check, so they aren't measured yet."
+      }
+    }
+  ],
+  "music_hubs_next_intervals_map": "Intervals, up from C",
+  "music_hubs_next_degrees_map": "Scale degrees in C",
+  "music_hubs_next_practise_on": "Practise next on {instrument}",
+  "music_hubs_next_done_more": "Today's set is done. More on {instrument} if you want it.",
+  "music_hubs_next_your_next": "Your next {minutes} minutes: {label}",
+  "music_hubs_next_next": "Next: {name}",
+  "music_hubs_next_set_done": "Today's set is done",
+  "music_hubs_next_lowest": "Your lowest score so far.",
+  "music_hubs_next_lowest_detail": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Your lowest score so far: {pct} right over {count} answer in Check.",
+        "countPlural=other": "Your lowest score so far: {pct} right over {count} answers in Check."
+      }
+    }
+  ],
+  "music_hubs_next_start": "Start {label}",
+  "music_hubs_next_change_length": "Change length",
+  "music_hubs_next_time_available": "Time available",
+  "music_hubs_next_why": "Why this",
+  "music_hubs_next_coach": "Coach",
+  "music_hubs_next_evidence": "This is a rule of thumb. The evidence is in {skills} and {sessions}.",
+  "music_hubs_next_every_skill": "every skill",
+  "music_hubs_next_your_sessions": "your sessions",
+  "music_hubs_next_role": "{role}: ",
+  "music_hubs_minutes_period": "{minutes} min.",
+  "music_hubs_next_where": "Where your skills stand",
+  "music_hubs_next_where_intro": "On {instrument}, by area. Rings fill to today's skill score.",
+  "music_hubs_next_how_body": "Only answers in Check change a skill score. A skill gets one after {count} of them. It fades a little on days you don't practise.",
+  "music_hubs_next_key": "Key",
+  "music_hubs_next_key_falling": "Falling: down ten points or more since last measured",
+  "music_hubs_next_key_holding": "Holding",
+  "music_hubs_next_key_new": "Not measured yet: under {count} answers in Check",
+  "music_hubs_next_not_measured": "not measured yet",
+  "music_hubs_next_pitch_caption": "{title}: the fuller the dot, the higher the skill score. Dashed means not measured yet.",
+  "music_hubs_next_falling_sr": "Falling: ",
+  "music_hubs_next_falling_line": "{pct} now, down {drop} points, last practised {when}",
+  "music_hubs_next_holding_sr": "Holding: ",
+  "music_hubs_next_holding_line": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pct}, {count} answer in Check",
+        "countPlural=other": "{pct}, {count} answers in Check"
+      }
+    }
+  ],
+  "music_hubs_next_new_sr": "Not measured yet: ",
+  "music_hubs_next_new_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} answer in Check so far",
+        "countPlural=other": "{count} answers in Check so far"
+      }
+    }
+  ],
+  "music_hubs_next_new_practice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} answer in Practice, none in Check",
+        "countPlural=other": "{count} answers in Practice, none in Check"
+      }
+    }
+  ],
+  "music_hubs_next_nothing": "Nothing touched on {instrument} yet. Five answers in Check on a skill give it a skill score.",
+  "music_hubs_progress_tab_next": "What next",
+  "music_hubs_progress_tab_skills": "Skills",
+  "music_hubs_progress_tab_sessions": "Sessions",
+  "music_hubs_progress_tab_journal": "Journal",
+  "music_hubs_progress_head": "Progress: {title} | Woodshed",
+  "music_hubs_progress_title": "Progress",
+  "music_hubs_progress_tunes": "Your tunes",
+  "music_hubs_progress_views": "Progress views",
+  "music_hubs_progress_showing": "Showing {title}.",
+  "music_hubs_progress_empty_title": "Nothing practised yet",
+  "music_hubs_progress_empty_body": "Play one short block and this page fills in: your streak, the minutes you played, and which skill to work on next.",
+  "music_hubs_tags": "Tags",
+  "music_hubs_tags_remove": "Remove tag {tag}",
+  "music_hubs_tags_add": "Add a tag",
+  "music_hubs_tags_example": "scales, left hand",
+  "music_hubs_tags_hint": "Press Enter after each tag. Tags you used before are suggested.",
+  "music_hubs_weekday_short": "Mon Tue Wed Thu Fri Sat Sun",
+  "music_hubs_heat_none": "None",
+  "music_hubs_heat_under": "Under {minutes} min",
+  "music_hubs_heat_or_more": "{minutes} min or more",
+  "music_hubs_heat_day_future": "{day}: still to come",
+  "music_hubs_heat_day": [
+    {
+      "declarations": [
+        "input count",
+        "input xp",
+        "input time",
+        "input day",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{day}: {time}, {count} session, {xp} XP",
+        "countPlural=other": "{day}: {time}, {count} sessions, {xp} XP"
+      }
+    }
+  ],
+  "music_hubs_heat_day_none": "{day}: no practice",
+  "music_hubs_heat_label": "Practice heatmap",
+  "music_hubs_heat_caption": "Practice over the last {weeks} weeks, one row per weekday",
+  "music_hubs_heat_week_of": "Week of",
+  "music_hubs_heat_time_a_day": "Time a day",
+  "music_hubs_heat_still_to_come": "Still to come",
+  "music_hubs_entry_updated": "Session updated.",
+  "music_hubs_entry_deleted": "Session deleted.",
+  "music_hubs_entry_order": "Answers in order: {right} right, {missed} missed",
+  "music_hubs_entry_right": "right",
+  "music_hubs_entry_missed": "missed",
+  "music_hubs_entry_dot_title": "{n}. {label}: {result}",
+  "music_hubs_entry_missed_label": "Missed",
+  "music_hubs_entry_expected": "Expected",
+  "music_hubs_entry_you_answered": ", you answered",
+  "music_hubs_entry_all_right": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "All {count} right.",
+        "countPlural=other": "All {count} right."
+      }
+    }
+  ],
+  "music_hubs_entry_details": "Details of each answer",
+  "music_hubs_entry_right_cap": "Right",
+  "music_hubs_entry_missed_cap": "Missed",
+  "music_hubs_entry_you_answered_value": ", you answered {response}",
+  "music_hubs_entry_credit": "Credit {pct}",
+  "music_hubs_entry_mode_not_saved": "Mode not saved",
+  "music_hubs_entry_no_answers": "No scored answers.",
+  "music_hubs_entry_line_buttons": "{when}. {source} with answer buttons",
+  "music_hubs_entry_line_on": "{when}. {source} on {played}",
+  "music_hubs_entry_hide": "Hide answers",
+  "music_hubs_entry_show": "Show every answer",
+  "music_hubs_entry_spark": "{title} scores up to this session: {scores}",
+  "music_hubs_entry_score_sr": "Score ",
+  "music_hubs_entry_answers": "Answers",
+  "music_hubs_entry_time": "Time",
+  "music_hubs_entry_edit_note": "Edit note",
+  "music_hubs_entry_add_note": "Add note",
+  "music_hubs_entry_more": "More for this session",
+  "music_hubs_entry_next_time_colon": "Next time:",
+  "music_hubs_entry_note": "Note",
+  "music_hubs_entry_next_time": "Next time",
+  "music_hubs_entry_next_placeholder": "What to try next session",
+  "music_hubs_save": "Save",
+  "music_hubs_cancel": "Cancel",
+  "music_hubs_entry_confirm": "Confirm delete",
+  "music_hubs_entry_confirm_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Delete this session and its {count} answer for good?",
+        "countPlural=other": "Delete this session and its {count} answers for good?"
+      }
+    }
+  ],
+  "music_hubs_entry_delete": "Delete session",
+  "music_hubs_entry_keep": "Keep it",
+  "music_hubs_entry_orphans": "Answers from a run that didn't finish",
+  "music_hubs_entry_no_runs": "This session has no runs.",
+  "music_hubs_sessions_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=other": "{count} sessions"
+      }
+    }
+  ],
+  "music_hubs_journal_range_all": "All",
+  "music_hubs_journal_range_month": "This month",
+  "music_hubs_journal_range_30": "Last 30 days",
+  "music_hubs_journal_showing_every_session": "Showing every session.",
+  "music_hubs_journal_showing": "Showing {what}.",
+  "music_hubs_journal_showing_every_day": "Showing every day.",
+  "music_hubs_journal_filters_cleared": "Filters cleared.",
+  "music_hubs_journal_added": "Added to today's session.",
+  "music_hubs_journal_empty_title": "Your journal is empty",
+  "music_hubs_journal_empty_body": "Finish any drill and it lands here: the score, every answer, the time it took, and room for a note.",
+  "music_hubs_journal_example": "Example",
+  "music_hubs_journal_example_title": "Example: Scale degrees",
+  "music_hubs_journal_example_line": "Mon, 9:40 AM. Drill on piano",
+  "music_hubs_journal_example_note": "Degree 6 still slips. Sing it before answering.",
+  "music_hubs_journal_example_caption": "What a saved session looks like.",
+  "music_hubs_journal_count": "{sessions}, newest first",
+  "music_hubs_journal_count_filtered": "{shown} of {sessions}, newest first",
+  "music_hubs_journal_week_sessions": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} session",
+        "countPlural=other": ", {count} sessions"
+      }
+    }
+  ],
+  "music_hubs_journal_note_today": "Note for today",
+  "music_hubs_journal_note_form": "Note on today's session",
+  "music_hubs_journal_note_label": "What went well, what to fix",
+  "music_hubs_journal_note_where": "(saved with today's latest session)",
+  "music_hubs_journal_add_today": "Add to today's session",
+  "music_hubs_journal_when": "When",
+  "music_hubs_journal_more_filters": "More filters",
+  "music_hubs_journal_filter_form": "Filter sessions",
+  "music_hubs_journal_skill": "Skill",
+  "music_hubs_journal_any_skill": "Any skill",
+  "music_hubs_journal_any_instrument": "Any instrument",
+  "music_hubs_journal_from": "From",
+  "music_hubs_journal_to": "To",
+  "music_hubs_journal_show_every_day": "Show every day",
+  "music_hubs_journal_clear_filters": "Clear filters",
+  "music_hubs_journal_no_match": "No sessions match these filters.",
+  "music_hubs_journal_last_weeks": "Last {count} weeks",
+  "music_hubs_journal_tap_day": "Tap a practised day to see its sessions.",
+  "music_hubs_journal_goals": "Weekly goals",
+  "music_hubs_journal_goal_line": "{done} of {target} sessions this week",
+  "music_hubs_journal_goal_met": ", goal met",
+  "music_hubs_journal_target": "Target",
+  "music_hubs_journal_goal_set": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Weekly goal set to {count} session.",
+        "countPlural=other": "Weekly goal set to {count} sessions."
+      }
+    }
+  ],
+  "music_hubs_journal_xp_level": "{xp} XP this week against {last} last week, level with it.",
+  "music_hubs_journal_xp_ahead": "{xp} XP this week against {last} last week, ahead by {diff}.",
+  "music_hubs_journal_xp_behind": "{xp} XP this week against {last} last week, {diff} to go to match it.",
+  "music_hubs_journal_focus": "Focus areas",
+  "music_hubs_journal_focus_intro": "From the tags on your sessions.",
+  "music_hubs_journal_focus_empty": "Tag a session and the tags you use most show up here.",
+  "music_hubs_journal_tag_today": "Tag today's session"
 }

@@ -340,5 +340,563 @@
   "music_hubs_layout_studio": "Oreille de studio",
   "music_hubs_layout_play": "Phrases et morceaux",
   "music_hubs_layout_lead_sheets": "Grilles mélodiques",
-  "music_hubs_layout_lead_sheets_blurb": "La mélodie à la main droite, fondamentales, shells ou accords à la main gauche, à partir d’une grille ou de votre propre partition."
+  "music_hubs_layout_lead_sheets_blurb": "La mélodie à la main droite, fondamentales, shells ou accords à la main gauche, à partir d’une grille ou de votre propre partition.",
+  "music_hubs_assist_independent": "Passage en Évaluation",
+  "music_hubs_assist_guided": "Passage en Pratique",
+  "music_hubs_assist_hinted": "Avec un indice",
+  "music_hubs_assist_self": "Auto-évalué",
+  "music_hubs_input_audio": "Microphone",
+  "music_hubs_input_onscreen": "À l’écran",
+  "music_hubs_input_click": "Boutons de réponse",
+  "music_hubs_input_mixed": "Entrée mixte",
+  "music_hubs_source_free": "Pratique libre",
+  "music_hubs_source_daily": "La séance du jour",
+  "music_hubs_source_song": "Morceau",
+  "music_hubs_source_drill": "Exercice",
+  "music_hubs_source_jam": "Jam",
+  "music_hubs_cap_pitch": "Justesse",
+  "music_hubs_cap_rhythm": "Rythme",
+  "music_hubs_cap_harmony": "Harmonie",
+  "music_hubs_cap_reading": "Lecture",
+  "music_hubs_cap_technique": "Technique",
+  "music_hubs_cap_ear": "Oreille",
+  "music_hubs_pct": "{n} %",
+  "music_hubs_no_change": "aucun changement",
+  "music_hubs_rel_today": "aujourd’hui",
+  "music_hubs_rel_yesterday": "hier",
+  "music_hubs_rel_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "il y a {count} jour",
+        "countPlural=other": "il y a {count} jours"
+      }
+    }
+  ],
+  "music_hubs_rel_weeks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "il y a {count} semaine",
+        "countPlural=other": "il y a {count} semaines"
+      }
+    }
+  ],
+  "music_hubs_rel_months": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "il y a {count} mois",
+        "countPlural=other": "il y a {count} mois"
+      }
+    }
+  ],
+  "music_hubs_session_two": "{a} et {b}",
+  "music_hubs_session_more": "{a}, {b} et {count} autres",
+  "music_hubs_falling_it": "Cette compétence",
+  "music_hubs_falling_one": "{lead} a perdu dix points ou plus depuis votre dernière mesure : une courte révision passe donc en premier.",
+  "music_hubs_falling_many": [
+    {
+      "declarations": ["input count", "input lead", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{lead} et {count} autre compétence ont perdu dix points ou plus depuis votre dernière mesure : une courte révision passe donc en premier.",
+        "countPlural=other": "{lead} et {count} autres compétences ont perdu dix points ou plus depuis votre dernière mesure : une courte révision passe donc en premier."
+      }
+    }
+  ],
+  "music_hubs_delta_best": "Meilleur score, en hausse depuis {then} %",
+  "music_hubs_delta_up": "En hausse depuis {then} %",
+  "music_hubs_delta_down": "En baisse depuis {then} %",
+  "music_hubs_delta_same": "Comme la dernière fois",
+  "music_hubs_dur_under5": "moins de 5 s",
+  "music_hubs_dur_sec": "{s} s",
+  "music_hubs_dur_hours": "{h} h",
+  "music_hubs_dur_hours_min": "{h} h {min} min",
+  "music_hubs_under_2_min": "moins de 2 min",
+  "music_hubs_caption_all": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input pct",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Toutes les réponses : {pct} de réussite ({count} réponse{when}).",
+        "countPlural=other": "Toutes les réponses : {pct} de réussite ({count} réponses{when})."
+      }
+    }
+  ],
+  "music_hubs_caption_checked": [
+    {
+      "declarations": ["input count", "input when", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} réponse en passages d’Évaluation{when}.",
+        "countPlural=other": "{count} réponses en passages d’Évaluation{when}."
+      }
+    }
+  ],
+  "music_hubs_caption_no_score": "Pas encore de score de compétence.",
+  "music_hubs_caption_average": "Le score de compétence est la moyenne de ses parties.",
+  "music_hubs_caption_early": "Le score de compétence reste une première estimation jusqu’à {count} réponses en passages d’Évaluation.",
+  "music_hubs_weekday_letters": "L M M J V S D",
+  "music_hubs_weekday_names": "lundi mardi mercredi jeudi vendredi samedi dimanche",
+  "music_hubs_month_names": "janvier février mars avril mai juin juillet août septembre octobre novembre décembre",
+  "music_hubs_week_time": "Temps",
+  "music_hubs_week_sessions": "Séances",
+  "music_hubs_week_attempts": "Tentatives",
+  "music_hubs_week_first_note": "Cette semaine jusqu’ici. Une tentative est une réponse ou une prise. Chaque passage rapporte des XP. La semaine prochaine montrera l’évolution par rapport à celle-ci.",
+  "music_hubs_week_this_last": "cette semaine, {last} la précédente",
+  "music_hubs_week_change_sr": ", évolution",
+  "music_hubs_this_week": "Cette semaine",
+  "music_hubs_last_week": "La semaine dernière",
+  "music_hubs_strip_label": "Série et cette semaine",
+  "music_hubs_strip_this_week": "Cette semaine :",
+  "music_hubs_strip_minutes_each_day": "Minutes de pratique par jour, du lundi au dimanche. Aujourd’hui :",
+  "music_hubs_strip_day_today_sr": "{day} (aujourd’hui)",
+  "music_hubs_strip_still_to_come": "encore à venir",
+  "music_hubs_strip_minutes": "{count} minutes",
+  "music_hubs_streak_word_before": "avant vos débuts",
+  "music_hubs_streak_word_practised": "pratiqué",
+  "music_hubs_streak_word_frozen": "couvert par un joker de série",
+  "music_hubs_streak_word_missed": "manqué",
+  "music_hubs_streak_word_today": "aujourd’hui, pas encore pratiqué",
+  "music_hubs_streak_day1": "Jour 1 de la série",
+  "music_hubs_streak_days": "Série de {count} jours",
+  "music_hubs_streak_start": "Commencez une série aujourd’hui",
+  "music_hubs_streak_best": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Meilleure série : {count} jour.",
+        "countPlural=other": "Meilleure série : {count} jours."
+      }
+    }
+  ],
+  "music_hubs_streak_freezes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Vous pouvez manquer un jour sans perdre votre série.",
+        "countPlural=other": "Vous pouvez manquer {count} jours sans perdre votre série."
+      }
+    }
+  ],
+  "music_hubs_streak_rules_label": "Comment fonctionnent les jokers de série",
+  "music_hubs_streak_rules": "Vous gagnez un joker de série pour chaque semaine de pratique. Si vous manquez un jour, un joker en réserve le couvre et la série continue.",
+  "music_hubs_streak_days_of_7": "{count} jours sur 7",
+  "music_hubs_streak_key_practised": "Pratiqué",
+  "music_hubs_streak_key_missed": "Manqué",
+  "music_hubs_streak_key_freeze": "Joker utilisé",
+  "music_hubs_streak_key_today": "Aujourd’hui",
+  "music_hubs_sessions_trend_up": "en hausse de {count} points",
+  "music_hubs_sessions_trend_down": "en baisse de {count} points",
+  "music_hubs_sessions_trend_level": "stable",
+  "music_hubs_sessions_empty_title": "Aucune séance enregistrée pour l’instant.",
+  "music_hubs_sessions_empty_body": "Terminez un exercice et il apparaîtra ici avec son score : la prochaine fois, vous aurez un résultat à battre.",
+  "music_hubs_sessions_start_today": "Commencer la séance du jour",
+  "music_hubs_sessions_recent": "Séances récentes",
+  "music_hubs_sessions_all_in_journal": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "La {count} séance du journal",
+        "countPlural=other": "Les {count} séances du journal"
+      }
+    }
+  ],
+  "music_hubs_sessions_answers_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} réponse",
+        "countPlural=other": ", {count} réponses"
+      }
+    }
+  ],
+  "music_hubs_sessions_short_part": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", plus {count} essai court",
+        "countPlural=other": ", plus {count} essais courts"
+      }
+    }
+  ],
+  "music_hubs_no_score": "Pas de score",
+  "music_hubs_sessions_weeks_both": "Cette semaine et la précédente",
+  "music_hubs_sessions_scores_title": "Scores au fil du temps",
+  "music_hubs_sessions_scores_intro": "Le même exercice avec le même réglage, passage après passage.",
+  "music_hubs_sessions_trend_line": [
+    {
+      "declarations": [
+        "input count",
+        "input when",
+        "input trend",
+        "input best",
+        "input last",
+        "input first",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Premier {first}, dernier {last}, meilleur {best} : {trend} sur {count} passage, le dernier {when}.",
+        "countPlural=other": "Premier {first}, dernier {last}, meilleur {best} : {trend} sur {count} passages, le dernier {when}."
+      }
+    }
+  ],
+  "music_hubs_sessions_scores_label": "Scores dans l’ordre : {scores}",
+  "music_hubs_sessions_nothing_repeated": "Rien de répété pour l’instant. Faites un exercice deux fois avec le même réglage pour comparer les scores.",
+  "music_hubs_sessions_level_title": "Niveau XP et succès",
+  "music_hubs_sessions_xp_level": "Niveau XP",
+  "music_hubs_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} jour",
+        "countPlural=other": "{count} jours"
+      }
+    }
+  ],
+  "music_hubs_sessions_level_line": "Niveau XP {level}. {xp} XP, encore {toNext} avant le niveau {next}.",
+  "music_hubs_sessions_xp_week": "{xp} XP cette semaine.",
+  "music_hubs_sessions_how_scores": "Comment fonctionnent les scores",
+  "music_hubs_sessions_how_scores_body": "Chaque passage rapporte des XP. Seules les réponses en passages d’Évaluation changent un score de compétence.",
+  "music_hubs_sessions_achievements": "Succès",
+  "music_hubs_sessions_unlocked_of": "{n} sur {total} débloqués.",
+  "music_hubs_sessions_badge_unlocked": "Débloqué.",
+  "music_hubs_sessions_badge_locked": "Verrouillé.",
+  "music_hubs_all_instruments": "Tous les instruments",
+  "music_hubs_skills_no_score": "Pas encore de score de compétence",
+  "music_hubs_skills_score": "Score de compétence {pct}",
+  "music_hubs_skills_last_measured": "dernière mesure {pct}",
+  "music_hubs_skills_due": "à réviser",
+  "music_hubs_skills_only_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "seulement {count} réponse en Évaluation",
+        "countPlural=other": "seulement {count} réponses en Évaluation"
+      }
+    }
+  ],
+  "music_hubs_skills_filter": "Filtrer les compétences",
+  "music_hubs_instrument": "Instrument",
+  "music_hubs_skills_search": "Rechercher des compétences",
+  "music_hubs_skills_two_numbers": "Les deux chiffres",
+  "music_hubs_skills_term_score": "Score de compétence",
+  "music_hubs_skills_term_score_body": "{term} indique à quel point Woodshed est sûr que vous maîtrisez la compétence. Seuls les passages en Évaluation le modifient, et il baisse un peu chaque jour sans pratique. En dessous de {count} réponses en passages d’Évaluation, c’est une première estimation, dessinée comme une barre en contour.",
+  "music_hubs_skills_term_all": "Toutes les réponses",
+  "music_hubs_skills_term_all_body": "{term} est la part de bonnes réponses, passages en Pratique compris, sur {where}. Avec les indices activés, il est plus élevé que le score de compétence.",
+  "music_hubs_skills_any_instrument": "n’importe quel instrument",
+  "music_hubs_skills_key_last": "Score de compétence à la dernière mesure",
+  "music_hubs_skills_key_review": "À réviser : dix points ou plus perdus depuis",
+  "music_hubs_skills_early_note": "Première estimation : un score de compétence issu de moins de {count} réponses en passages d’Évaluation, dessiné comme une barre en contour.",
+  "music_hubs_skills_none_yet": "Aucune compétence travaillée pour l’instant.",
+  "music_hubs_skills_none_on": "Aucune compétence travaillée à {instrument} pour l’instant.",
+  "music_hubs_skills_empty_body": "Chaque réponse notée arrive ici, classée selon ce qu’elle travaille.",
+  "music_hubs_skills_group_line": "{total} compétences, {mastered} maîtrisées, moyenne {pct}",
+  "music_hubs_skills_group_touched": ", {count} travaillées",
+  "music_hubs_skills_early_badge": "Première estimation",
+  "music_hubs_skills_needs_review": "À réviser",
+  "music_hubs_skills_none": "Aucun",
+  "music_hubs_skills_region": "Compétences : {capability}",
+  "music_hubs_skills_col_skill": "Compétence",
+  "music_hubs_skills_col_confidence": "Confiance",
+  "music_hubs_skills_col_answers": "Réponses",
+  "music_hubs_skills_col_right": "Réussite sur toutes les réponses",
+  "music_hubs_skills_col_last": "Dernière pratique",
+  "music_hubs_skills_col_status": "Statut",
+  "music_hubs_skills_col_drill": "Exercice",
+  "music_hubs_skills_average_parts": "Moyenne de ses parties",
+  "music_hubs_skills_in_check": "{count} en Évaluation",
+  "music_hubs_never": "Jamais",
+  "music_hubs_unlocked": "Débloqué",
+  "music_hubs_skills_no_match": "Aucune compétence de {capability} ne correspond à « {q} ».",
+  "music_hubs_skills_none_touched": "Aucune travaillée pour l’instant.",
+  "music_hubs_skills_none_touched_on": "Aucune travaillée à {instrument}.",
+  "music_hubs_skills_show_touched": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Afficher seulement la {count} compétence travaillée",
+        "countPlural=other": "Afficher seulement les {count} compétences travaillées"
+      }
+    }
+  ],
+  "music_hubs_skills_show_all": "Afficher les {total} compétences",
+  "music_hubs_next_none_falling": "Aucune compétence mesurée n’est en baisse.",
+  "music_hubs_next_unmeasured": [
+    {
+      "declarations": ["input count", "input min", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} compétence a moins de {min} réponses en Évaluation, elle n’est donc pas encore mesurée.",
+        "countPlural=other": "{count} compétences ont moins de {min} réponses en Évaluation, elles ne sont donc pas encore mesurées."
+      }
+    }
+  ],
+  "music_hubs_next_intervals_map": "Intervalles, en montant depuis C",
+  "music_hubs_next_degrees_map": "Degrés de la gamme en C",
+  "music_hubs_next_practise_on": "À pratiquer ensuite à {instrument}",
+  "music_hubs_next_done_more": "La séance du jour est terminée. Encore un peu de {instrument} si vous voulez.",
+  "music_hubs_next_your_next": "Vos {minutes} prochaines minutes : {label}",
+  "music_hubs_next_next": "Ensuite : {name}",
+  "music_hubs_next_set_done": "La séance du jour est terminée",
+  "music_hubs_next_lowest": "Votre score le plus bas jusqu’ici.",
+  "music_hubs_next_lowest_detail": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Votre score le plus bas jusqu’ici : {pct} de réussite sur {count} réponse en Évaluation.",
+        "countPlural=other": "Votre score le plus bas jusqu’ici : {pct} de réussite sur {count} réponses en Évaluation."
+      }
+    }
+  ],
+  "music_hubs_next_start": "Commencer {label}",
+  "music_hubs_next_change_length": "Changer la durée",
+  "music_hubs_next_time_available": "Temps disponible",
+  "music_hubs_next_why": "Pourquoi ceci",
+  "music_hubs_next_coach": "Coach",
+  "music_hubs_next_evidence": "C’est une règle empirique. Les preuves se trouvent dans {skills} et {sessions}.",
+  "music_hubs_next_every_skill": "chaque compétence",
+  "music_hubs_next_your_sessions": "vos séances",
+  "music_hubs_next_role": "{role} : ",
+  "music_hubs_minutes_period": "{minutes} min.",
+  "music_hubs_next_where": "Où en sont vos compétences",
+  "music_hubs_next_where_intro": "À {instrument}, par domaine. Les anneaux se remplissent jusqu’au score de compétence du jour.",
+  "music_hubs_next_how_body": "Seules les réponses en Évaluation changent un score de compétence. Une compétence en reçoit un après {count} d’entre elles. Il baisse un peu les jours sans pratique.",
+  "music_hubs_next_key": "Légende",
+  "music_hubs_next_key_falling": "En baisse : dix points ou plus perdus depuis la dernière mesure",
+  "music_hubs_next_key_holding": "Stable",
+  "music_hubs_next_key_new": "Pas encore mesuré : moins de {count} réponses en Évaluation",
+  "music_hubs_next_not_measured": "pas encore mesuré",
+  "music_hubs_next_pitch_caption": "{title} : plus le point est plein, plus le score de compétence est élevé. En pointillés, pas encore mesuré.",
+  "music_hubs_next_falling_sr": "En baisse : ",
+  "music_hubs_next_falling_line": "{pct} maintenant, en baisse de {drop} points, dernière pratique {when}",
+  "music_hubs_next_holding_sr": "Stable : ",
+  "music_hubs_next_holding_line": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pct}, {count} réponse en Évaluation",
+        "countPlural=other": "{pct}, {count} réponses en Évaluation"
+      }
+    }
+  ],
+  "music_hubs_next_new_sr": "Pas encore mesuré : ",
+  "music_hubs_next_new_checked": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} réponse en Évaluation jusqu’ici",
+        "countPlural=other": "{count} réponses en Évaluation jusqu’ici"
+      }
+    }
+  ],
+  "music_hubs_next_new_practice": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} réponse en Pratique, aucune en Évaluation",
+        "countPlural=other": "{count} réponses en Pratique, aucune en Évaluation"
+      }
+    }
+  ],
+  "music_hubs_next_nothing": "Rien de travaillé à {instrument} pour l’instant. Cinq réponses en Évaluation sur une compétence lui donnent un score de compétence.",
+  "music_hubs_progress_tab_next": "Et ensuite",
+  "music_hubs_progress_tab_skills": "Compétences",
+  "music_hubs_progress_tab_sessions": "Séances",
+  "music_hubs_progress_tab_journal": "Journal",
+  "music_hubs_progress_head": "Progression : {title} | Woodshed",
+  "music_hubs_progress_title": "Progression",
+  "music_hubs_progress_tunes": "Vos morceaux",
+  "music_hubs_progress_views": "Vues de la progression",
+  "music_hubs_progress_showing": "Affichage : {title}.",
+  "music_hubs_progress_empty_title": "Rien de pratiqué pour l’instant",
+  "music_hubs_progress_empty_body": "Jouez un court bloc et cette page se remplit : votre série, les minutes jouées et la compétence à travailler ensuite.",
+  "music_hubs_tags": "Étiquettes",
+  "music_hubs_tags_remove": "Retirer l’étiquette {tag}",
+  "music_hubs_tags_add": "Ajouter une étiquette",
+  "music_hubs_tags_example": "gammes, main gauche",
+  "music_hubs_tags_hint": "Appuyez sur Entrée après chaque étiquette. Les étiquettes déjà utilisées sont suggérées.",
+  "music_hubs_weekday_short": "lun mar mer jeu ven sam dim",
+  "music_hubs_heat_none": "Rien",
+  "music_hubs_heat_under": "Moins de {minutes} min",
+  "music_hubs_heat_or_more": "{minutes} min ou plus",
+  "music_hubs_heat_day_future": "{day} : encore à venir",
+  "music_hubs_heat_day": [
+    {
+      "declarations": [
+        "input count",
+        "input xp",
+        "input time",
+        "input day",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{day} : {time}, {count} séance, {xp} XP",
+        "countPlural=other": "{day} : {time}, {count} séances, {xp} XP"
+      }
+    }
+  ],
+  "music_hubs_heat_day_none": "{day} : pas de pratique",
+  "music_hubs_heat_label": "Carte de chaleur de la pratique",
+  "music_hubs_heat_caption": "Pratique des {weeks} dernières semaines, une ligne par jour de la semaine",
+  "music_hubs_heat_week_of": "Semaine du",
+  "music_hubs_heat_time_a_day": "Temps par jour",
+  "music_hubs_heat_still_to_come": "Encore à venir",
+  "music_hubs_entry_updated": "Séance mise à jour.",
+  "music_hubs_entry_deleted": "Séance supprimée.",
+  "music_hubs_entry_order": "Réponses dans l’ordre : {right} justes, {missed} manquées",
+  "music_hubs_entry_right": "juste",
+  "music_hubs_entry_missed": "manquée",
+  "music_hubs_entry_dot_title": "{n}. {label} : {result}",
+  "music_hubs_entry_missed_label": "Manquées",
+  "music_hubs_entry_expected": "Attendu",
+  "music_hubs_entry_you_answered": ", vous avez répondu",
+  "music_hubs_entry_all_right": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} juste.",
+        "countPlural=other": "Les {count} justes."
+      }
+    }
+  ],
+  "music_hubs_entry_details": "Détail de chaque réponse",
+  "music_hubs_entry_right_cap": "Juste",
+  "music_hubs_entry_missed_cap": "Manquée",
+  "music_hubs_entry_you_answered_value": ", vous avez répondu {response}",
+  "music_hubs_entry_credit": "Crédit {pct}",
+  "music_hubs_entry_mode_not_saved": "Mode non enregistré",
+  "music_hubs_entry_no_answers": "Aucune réponse notée.",
+  "music_hubs_entry_line_buttons": "{when}. {source} avec les boutons de réponse",
+  "music_hubs_entry_line_on": "{when}. {source} à {played}",
+  "music_hubs_entry_hide": "Masquer les réponses",
+  "music_hubs_entry_show": "Afficher chaque réponse",
+  "music_hubs_entry_spark": "Scores de {title} jusqu’à cette séance : {scores}",
+  "music_hubs_entry_score_sr": "Score ",
+  "music_hubs_entry_answers": "Réponses",
+  "music_hubs_entry_time": "Temps",
+  "music_hubs_entry_edit_note": "Modifier la note",
+  "music_hubs_entry_add_note": "Ajouter une note",
+  "music_hubs_entry_more": "Plus d’options pour cette séance",
+  "music_hubs_entry_next_time_colon": "La prochaine fois :",
+  "music_hubs_entry_note": "Note",
+  "music_hubs_entry_next_time": "La prochaine fois",
+  "music_hubs_entry_next_placeholder": "Quoi essayer à la prochaine séance",
+  "music_hubs_save": "Enregistrer",
+  "music_hubs_cancel": "Annuler",
+  "music_hubs_entry_confirm": "Confirmer la suppression",
+  "music_hubs_entry_confirm_text": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Supprimer définitivement cette séance et sa {count} réponse ?",
+        "countPlural=other": "Supprimer définitivement cette séance et ses {count} réponses ?"
+      }
+    }
+  ],
+  "music_hubs_entry_delete": "Supprimer la séance",
+  "music_hubs_entry_keep": "La garder",
+  "music_hubs_entry_orphans": "Réponses d’un passage non terminé",
+  "music_hubs_entry_no_runs": "Cette séance ne contient aucun passage.",
+  "music_hubs_sessions_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} séance",
+        "countPlural=other": "{count} séances"
+      }
+    }
+  ],
+  "music_hubs_journal_range_all": "Tout",
+  "music_hubs_journal_range_month": "Ce mois-ci",
+  "music_hubs_journal_range_30": "30 derniers jours",
+  "music_hubs_journal_showing_every_session": "Affichage de toutes les séances.",
+  "music_hubs_journal_showing": "Affichage : {what}.",
+  "music_hubs_journal_showing_every_day": "Affichage de tous les jours.",
+  "music_hubs_journal_filters_cleared": "Filtres effacés.",
+  "music_hubs_journal_added": "Ajouté à la séance du jour.",
+  "music_hubs_journal_empty_title": "Votre journal est vide",
+  "music_hubs_journal_empty_body": "Terminez un exercice et il arrive ici : le score, chaque réponse, le temps passé et de la place pour une note.",
+  "music_hubs_journal_example": "Exemple",
+  "music_hubs_journal_example_title": "Exemple : Degrés de la gamme",
+  "music_hubs_journal_example_line": "lun. 9:40. Exercice au piano",
+  "music_hubs_journal_example_note": "Le degré 6 m’échappe encore. Le chanter avant de répondre.",
+  "music_hubs_journal_example_caption": "Voici à quoi ressemble une séance enregistrée.",
+  "music_hubs_journal_count": "{sessions}, de la plus récente à la plus ancienne",
+  "music_hubs_journal_count_filtered": "{shown} sur {sessions}, de la plus récente à la plus ancienne",
+  "music_hubs_journal_week_sessions": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {count} séance",
+        "countPlural=other": ", {count} séances"
+      }
+    }
+  ],
+  "music_hubs_journal_note_today": "Note du jour",
+  "music_hubs_journal_note_form": "Note sur la séance du jour",
+  "music_hubs_journal_note_label": "Ce qui a bien marché, ce qu’il faut corriger",
+  "music_hubs_journal_note_where": "(enregistré avec la dernière séance du jour)",
+  "music_hubs_journal_add_today": "Ajouter à la séance du jour",
+  "music_hubs_journal_when": "Quand",
+  "music_hubs_journal_more_filters": "Plus de filtres",
+  "music_hubs_journal_filter_form": "Filtrer les séances",
+  "music_hubs_journal_skill": "Compétence",
+  "music_hubs_journal_any_skill": "Toute compétence",
+  "music_hubs_journal_any_instrument": "Tout instrument",
+  "music_hubs_journal_from": "Du",
+  "music_hubs_journal_to": "Au",
+  "music_hubs_journal_show_every_day": "Afficher tous les jours",
+  "music_hubs_journal_clear_filters": "Effacer les filtres",
+  "music_hubs_journal_no_match": "Aucune séance ne correspond à ces filtres.",
+  "music_hubs_journal_last_weeks": "{count} dernières semaines",
+  "music_hubs_journal_tap_day": "Touchez un jour de pratique pour voir ses séances.",
+  "music_hubs_journal_goals": "Objectifs de la semaine",
+  "music_hubs_journal_goal_line": "{done} séances sur {target} cette semaine",
+  "music_hubs_journal_goal_met": ", objectif atteint",
+  "music_hubs_journal_target": "Objectif",
+  "music_hubs_journal_goal_set": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Objectif de la semaine fixé à {count} séance.",
+        "countPlural=other": "Objectif de la semaine fixé à {count} séances."
+      }
+    }
+  ],
+  "music_hubs_journal_xp_level": "{xp} XP cette semaine contre {last} la semaine dernière, à égalité.",
+  "music_hubs_journal_xp_ahead": "{xp} XP cette semaine contre {last} la semaine dernière, {diff} de plus.",
+  "music_hubs_journal_xp_behind": "{xp} XP cette semaine contre {last} la semaine dernière, encore {diff} pour l’égaler.",
+  "music_hubs_journal_focus": "Points de travail",
+  "music_hubs_journal_focus_intro": "D’après les étiquettes de vos séances.",
+  "music_hubs_journal_focus_empty": "Étiquetez une séance et les étiquettes que vous utilisez le plus apparaîtront ici.",
+  "music_hubs_journal_tag_today": "Étiqueter la séance du jour"
 }

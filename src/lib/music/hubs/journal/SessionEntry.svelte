@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // One journal entry as a card named for its drills, with the drill's icon and a score
   // sparkline; on demand its runs and attempt evidence. The note leads when there is one.
   // Add or edit the note sits on the card; Delete waits behind a small overflow button and asks first.
@@ -25,11 +26,11 @@
     formatDuration,
     formatLabel,
     pct,
-    plural,
     scoreHistory,
     sessionInstruments,
     sessionTitle,
   } from "../progress/model";
+  import { weekdayDateTime } from "../dates";
 
   let { session, announce }: { session: PracticeSession; announce: (msg: string) => void } = $props();
 
@@ -62,15 +63,7 @@
   );
   const Icon = $derived(HUE_ICON[hue]);
   const scores = $derived(lead?.score !== undefined ? scoreHistory(practice.sessions, lead.exerciseId, lead.endedAt) : []);
-  const when = $derived(
-    new Date(session.startTime).toLocaleString(undefined, {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-  );
+  const when = $derived(weekdayDateTime(new Date(session.startTime)));
 
   let noteBox = $state<HTMLTextAreaElement>();
   async function startEdit() {
@@ -89,7 +82,7 @@
     e.preventDefault();
     await practice.editSession(id, { note: note.trim() || undefined, nextTime: nextTime.trim() || undefined, tags: [...tags] });
     editing = false;
-    announce("Session updated.");
+    announce(m.music_hubs_entry_updated());
   }
 
   async function askDelete() {
@@ -110,7 +103,7 @@
 
   async function remove() {
     await practice.deleteSession(id);
-    announce("Session deleted.");
+    announce(m.music_hubs_entry_deleted());
   }
 </script>
 
@@ -118,42 +111,42 @@
   {#if list.length}
     {@const misses = list.filter((e) => !e.correct)}
     <!-- Every attempt as a dot (glyph and colour), then the misses spelled out; the rest on demand. -->
-    <ol class="mt-2 flex flex-wrap gap-1" aria-label="Answers in order: {list.length - misses.length} right, {misses.length} missed">
+    <ol class="mt-2 flex flex-wrap gap-1" aria-label={m.music_hubs_entry_order({ right: list.length - misses.length, missed: misses.length })}>
       {#each list as e, i (e.id)}
         <li
           class="grid size-8 place-items-center rounded-full text-sm font-bold {e.correct ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}"
-          title="{i + 1}. {formatLabel(e.target) || e.promptId}: {e.correct ? 'right' : 'missed'}"
+          title={m.music_hubs_entry_dot_title({ n: i + 1, label: formatLabel(e.target) || e.promptId, result: e.correct ? m.music_hubs_entry_right() : m.music_hubs_entry_missed() })}
         >
-          <span aria-hidden="true">{e.correct ? "✓" : "✗"}</span><span class="sr-only">{i + 1}: {e.correct ? "right" : "missed"}</span>
+          <span aria-hidden="true">{e.correct ? "✓" : "✗"}</span><span class="sr-only">{m.music_hubs_pair({ a: i + 1, b: e.correct ? m.music_hubs_entry_right() : m.music_hubs_entry_missed() })}</span>
         </li>
       {/each}
     </ol>
     {#if misses.length}
-      <ul class="mt-2 flex flex-col gap-1 text-sm" aria-label="Missed">
+      <ul class="mt-2 flex flex-col gap-1 text-sm" aria-label={m.music_hubs_entry_missed_label()}>
         {#each misses as e (e.id)}
           <li class="flex flex-wrap gap-x-2">
             <span class="text-destructive" aria-hidden="true">✗</span>
-            <span>Expected <span class="font-semibold">{formatLabel(e.target) || e.promptId}</span>{#if e.response !== undefined}, you answered <span class="font-semibold">{formatLabel(e.response)}</span>{/if}</span>
+            <span>{m.music_hubs_entry_expected()} <span class="font-semibold">{formatLabel(e.target) || e.promptId}</span>{#if e.response !== undefined}{m.music_hubs_entry_you_answered()} <span class="font-semibold">{formatLabel(e.response)}</span>{/if}</span>
           </li>
         {/each}
       </ul>
     {:else}
-      <p class="mt-1 text-sm text-success">All {list.length} right.</p>
+      <p class="mt-1 text-sm text-success">{m.music_hubs_entry_all_right({ count: list.length })}</p>
     {/if}
     <details class="group mt-2 text-sm">
       <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 font-medium text-ws-soft hover:text-ws-ink [&::-webkit-details-marker]:hidden">
-        <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />Details of each answer
+        <ChevronDown class="size-4 -rotate-90 motion-safe:transition-transform group-open:rotate-0" aria-hidden="true" />{m.music_hubs_entry_details()}
       </summary>
       <ol class="flex flex-col divide-y divide-ws-line rounded-xl border border-ws-line">
         {#each list as e, i (e.id)}
           <li class="flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-baseline sm:gap-3">
             <span class="font-medium sm:w-48 sm:shrink-0">
               <span class="tnum text-ws-soft">{i + 1}.</span>
-              {formatLabel(e.target) || e.promptId}:
-              {#if e.correct}<span class="text-success">Right</span>{:else}<span class="text-destructive">Missed</span>{#if e.response !== undefined}, you answered {formatLabel(e.response)}{/if}{/if}
+              {m.music_hubs_next_role({ role: formatLabel(e.target) || e.promptId }).trimEnd()}
+              {#if e.correct}<span class="text-success">{m.music_hubs_entry_right_cap()}</span>{:else}<span class="text-destructive">{m.music_hubs_entry_missed_cap()}</span>{#if e.response !== undefined}{m.music_hubs_entry_you_answered_value({ response: formatLabel(e.response) })}{/if}{/if}
             </span>
             <span class="text-ws-soft">
-              Credit {pct(e.partialCredit)}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : "Mode not saved"}, {INPUT_LABEL[e.source]}{e.instrument
+              {m.music_hubs_entry_credit({ pct: pct(e.partialCredit) })}, {e.assistance ? ASSISTANCE_LABEL[e.assistance] : m.music_hubs_entry_mode_not_saved()}, {INPUT_LABEL[e.source]}{e.instrument
                 ? `, ${INSTRUMENT_LABEL[e.instrument]}`
                 : ""}
             </span>
@@ -162,7 +155,7 @@
       </ol>
     </details>
   {:else}
-    <p class="mt-1 text-sm text-ws-soft">No scored answers.</p>
+    <p class="mt-1 text-sm text-ws-soft">{m.music_hubs_entry_no_answers()}</p>
   {/if}
 {/snippet}
 
@@ -181,8 +174,10 @@
     </span>
     <span class="min-w-0 flex-1">
       <span id="{id}-title" class="block">{title}</span>
-      <span class="block text-sm font-normal text-ws-soft">{when}. {SOURCE_LABEL[session.source]} {played === "Answer buttons" ? "with answer buttons" : `on ${played}`}</span>
-      <span class="sr-only">{open ? "Hide answers" : "Show every answer"}</span>
+      <span class="block text-sm font-normal text-ws-soft">{played === m.music_hubs_input_click()
+          ? m.music_hubs_entry_line_buttons({ when, source: SOURCE_LABEL[session.source] })
+          : m.music_hubs_entry_line_on({ when, source: SOURCE_LABEL[session.source], played })}</span>
+      <span class="sr-only">{open ? m.music_hubs_entry_hide() : m.music_hubs_entry_show()}</span>
     </span>
     {#if lead?.score !== undefined}
       <span class="flex shrink-0 items-end gap-2">
@@ -190,7 +185,7 @@
           <span
             class="flex h-9 items-end gap-0.5 max-sm:hidden"
             role="img"
-            aria-label="{exerciseTitle(lead.exerciseId)} scores up to this session: {scores.map((v) => pct(v)).join(', ')}"
+            aria-label={m.music_hubs_entry_spark({ title: exerciseTitle(lead.exerciseId), scores: scores.map((v) => pct(v)).join(", ") })}
           >
             {#each scores as v, i (i)}
               <span
@@ -201,7 +196,7 @@
           </span>
         {/if}
         <span class="flex flex-col items-end gap-1">
-          <span class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">Score </span>{pct(lead.score)}</span>
+          <span class="tnum font-display text-2xl font-semibold leading-none"><span class="sr-only">{m.music_hubs_entry_score_sr()}</span>{pct(lead.score)}</span>
           <ScoreBadge run={lead} />
         </span>
       </span>
@@ -213,18 +208,18 @@
   <div class="mt-3 flex items-center gap-3">
   <dl class="tnum flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 text-sm">
     {#if session.eventIds.length}
-      <div class="flex gap-1.5"><dt class="text-ws-soft">Answers</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
+      <div class="flex gap-1.5"><dt class="text-ws-soft">{m.music_hubs_entry_answers()}</dt><dd class="font-semibold">{session.eventIds.length}</dd></div>
     {/if}
-    <div class="flex gap-1.5"><dt class="text-ws-soft">Time</dt><dd class="font-semibold">{duration}</dd></div>
+    <div class="flex gap-1.5"><dt class="text-ws-soft">{m.music_hubs_entry_time()}</dt><dd class="font-semibold">{duration}</dd></div>
   </dl>
     {#if !editing}
       <button
         type="button"
         class="-my-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-sm font-medium text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
-        aria-label={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
-        title={session.note || session.nextTime || session.tags.length ? "Edit note" : "Add note"}
+        aria-label={session.note || session.nextTime || session.tags.length ? m.music_hubs_entry_edit_note() : m.music_hubs_entry_add_note()}
+        title={session.note || session.nextTime || session.tags.length ? m.music_hubs_entry_edit_note() : m.music_hubs_entry_add_note()}
         onclick={startEdit}
-        ><Pencil class="size-5" aria-hidden="true" />{#if !(session.note || session.nextTime || session.tags.length)}<!-- An empty card asks for its note in words, so the journal reads as a log, not a score list. -->Add note{/if}</button
+        ><Pencil class="size-5" aria-hidden="true" />{#if !(session.note || session.nextTime || session.tags.length)}<!-- An empty card asks for its note in words, so the journal reads as a log, not a score list. -->{m.music_hubs_entry_add_note()}{/if}</button
       >
     {/if}
     <!-- Deleting waits behind a small overflow button and asks first. -->
@@ -232,7 +227,7 @@
       type="button"
       class="-my-2 grid shrink-0 size-11 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
       bind:this={moreBtn}
-      aria-label="More for this session"
+      aria-label={m.music_hubs_entry_more()}
       aria-expanded={more}
       aria-controls="{id}-more"
       onclick={() => {
@@ -243,26 +238,26 @@
   </div>
   {#if !editing}
     {#if session.note}<p class="mt-3 line-clamp-3 max-w-prose whitespace-pre-line border-l-2 border-[color:var(--card-hue)] pl-3" title={session.note}>{session.note}</p>{/if}
-    {#if session.nextTime}<p class="mt-1 text-sm"><span class="font-medium">Next time:</span> {session.nextTime}</p>{/if}
+    {#if session.nextTime}<p class="mt-1 text-sm"><span class="font-medium">{m.music_hubs_entry_next_time_colon()}</span> {session.nextTime}</p>{/if}
     {#if session.tags.length}
-      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Tags">
+      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label={m.music_hubs_tags()}>
         {#each session.tags as t (t)}<li class="rounded-full bg-instr-wash px-2.5 py-0.5 text-sm">{t}</li>{/each}
       </ul>
     {/if}
   {:else}
     <form class="mt-3 flex max-w-xl flex-col gap-3" onsubmit={save}>
       <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Note</span>
+        <span class="font-medium">{m.music_hubs_entry_note()}</span>
         <textarea class="min-h-20 rounded-lg border border-ws-line bg-ws-surface p-2" bind:this={noteBox} bind:value={note}></textarea>
       </label>
       <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Next time</span>
-        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={nextTime} placeholder="What to try next session" />
+        <span class="font-medium">{m.music_hubs_entry_next_time()}</span>
+        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={nextTime} placeholder={m.music_hubs_entry_next_placeholder()} />
       </label>
       <TagInput bind:tags suggestions={known} />
       <div class="flex flex-wrap items-center gap-2">
-        <button type="submit" class={btnPrimary}>Save</button>
-        <button type="button" class="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ws-soft hover:bg-ws-raised hover:text-ws-ink" onclick={() => (editing = confirming = false)}>Cancel</button>
+        <button type="submit" class={btnPrimary}>{m.music_hubs_save()}</button>
+        <button type="button" class="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-ws-soft hover:bg-ws-raised hover:text-ws-ink" onclick={() => (editing = confirming = false)}>{m.music_hubs_cancel()}</button>
       </div>
     </form>
   {/if}
@@ -272,13 +267,13 @@
   {#if more}
     <div id="{id}-more" class="mt-2 flex flex-wrap items-center justify-end gap-2">
       {#if confirming}
-        <span class="flex flex-wrap items-center gap-2 rounded-2xl bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label="Confirm delete">
-          Delete this session and its {plural(session.eventIds.length, "answer")} for good?
-          <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110" onclick={remove}>Delete session</button>
-          <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>Keep it</button>
+        <span class="flex flex-wrap items-center gap-2 rounded-2xl bg-destructive/10 py-1 pl-4 pr-1 text-sm" role="group" aria-label={m.music_hubs_entry_confirm()}>
+          {m.music_hubs_entry_confirm_text({ count: session.eventIds.length })}
+          <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-full bg-destructive px-4 text-sm font-semibold text-white hover:brightness-110" onclick={remove}>{m.music_hubs_entry_delete()}</button>
+          <button type="button" class={btn} bind:this={keepBtn} onclick={keep}>{m.music_hubs_entry_keep()}</button>
         </span>
       {:else}
-        <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />Delete session</button>
+        <button type="button" class="{btn} text-destructive" bind:this={deleteBtn} onclick={askDelete}><Trash class="size-4" aria-hidden="true" />{m.music_hubs_entry_delete()}</button>
       {/if}
     </div>
   {/if}
@@ -300,12 +295,12 @@
       {/each}
       {#if orphans.length}
         <div class="min-w-0">
-          <p class="font-medium">Answers from a run that didn't finish</p>
+          <p class="font-medium">{m.music_hubs_entry_orphans()}</p>
           {@render evidence(orphans)}
         </div>
       {/if}
       {#if !session.runs.length && !orphans.length}
-        <p class="text-sm text-ws-soft">This session has no runs.</p>
+        <p class="text-sm text-ws-soft">{m.music_hubs_entry_no_runs()}</p>
       {/if}
     </div>
   {/if}
