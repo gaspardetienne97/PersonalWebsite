@@ -1,5 +1,6 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { AUTHENTIK, authentikConfigured, authentikOrigin, getAuth } from "#lib/server/auth.ts";
+import { m } from "#lib/paraglide/messages.js";
 import type { Actions, PageServerLoad } from "./$types";
 
 /** A same-site path to come back to after signing in; anything else goes to /private. */
@@ -17,8 +18,7 @@ export const actions: Actions = {
   // Ask Authentik to sign us in, then send the browser there.
   default: async ({ request, url }) => {
     const auth = getAuth();
-    if (!auth || !authentikConfigured())
-      return fail(503, { message: "Sign-in isn't set up on this server." });
+    if (!auth || !authentikConfigured()) return fail(503, { message: m.login_unavailable() });
 
     const to = returnTo(url);
     let target: string;
@@ -36,7 +36,7 @@ export const actions: Actions = {
       target = result.url;
     } catch (error) {
       console.error("[auth] Could not start the Authentik sign-in", error);
-      return fail(502, { message: "Authentik didn't answer. Check it's running, then try again." });
+      return fail(502, { message: m.login_unreachable() });
     }
     // SvelteKit 3 only redirects off-site when told where to: Authentik, nowhere else.
     const origin = authentikOrigin();

@@ -9,9 +9,11 @@
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
   import { Button, buttonVariants } from "@repo/ui/button";
   import CircuitBackground from "./CircuitBackground.svelte";
+  import LanguageMenu from "./LanguageMenu.svelte";
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro, shortcutListener } from "./intro.svelte";
   import { isFullscreenApp, nav, shortName } from "#lib/config.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
   const narrow = new MediaQuery("(width < 640px)");
@@ -31,13 +33,13 @@
   <CircuitBackground />
   <header class="site-header" data-site-chrome>
     <div class="inner">
-      <a href={resolve("/")} class="brand" aria-label="{shortName}, home">
+      <a href={resolve("/")} class="brand" aria-label={m.header_home_label({ name: shortName })}>
         <LogoMark size={30} />
         <span class="brand-name">{shortName}</span>
       </a>
 
       <div class="actions">
-        <nav aria-label="Site navigation" class="links">
+        <nav aria-label={m.header_nav_label()} class="links">
           <ul>
             {#each nav as link (link.href)}
               <li>
@@ -57,7 +59,7 @@
         {#if narrow.current}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger class={buttonVariants({ variant: "ghost" })}>
-              <Menu class="size-4" aria-hidden="true" /><span>Site menu</span>
+              <Menu class="size-4" aria-hidden="true" /><span>{m.header_menu()}</span>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end" class="min-w-44" preventScroll={false}>
               {#each nav as link (link.href)}
@@ -75,10 +77,12 @@
           </DropdownMenu.Root>
         {/if}
 
+        <LanguageMenu />
+
         <Button variant="ghost" size="icon" onclick={toggleMode}>
           <Sun class="dark:hidden" aria-hidden="true" />
           <Moon class="hidden dark:block" aria-hidden="true" />
-          <span class="sr-only">Toggle theme</span>
+          <span class="sr-only">{m.header_toggle_theme()}</span>
         </Button>
       </div>
     </div>

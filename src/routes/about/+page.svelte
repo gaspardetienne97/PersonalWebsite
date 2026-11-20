@@ -7,68 +7,65 @@
   import LogoMark from "#lib/components/site/LogoMark.svelte";
   import { socials } from "#lib/config.ts";
   import { MARKERS } from "#lib/circuit/router.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
+  // Each pair is a heading and its text, read in the visitor's language.
   const work = [
-    {
-      title: "Interfaces",
-      body: "Svelte, React and TypeScript. I care about the details people feel and their experience using the interfaces that I build: quick loads, clear states, consistent UIs and pages that are accessible.",
-    },
-    {
-      title: "APIs and data",
-      body: "Node.js, Python, Temporal, Airflow, GraphQL and PostgreSQL. Schemas that model the domain honestly, Pipelines that are reliable, and APIs that are pleasant to call.",
-    },
-    {
-      title: "Infrastructure",
-      body: "Containers, Kubernetes, CI and a homelab managed with Nix, where I run my own services and try ideas before they go anywhere else.",
-    },
-    {
-      title: "Tools I build for myself",
-      body: "Woodshed, Narrator and Listplay started as things I wanted to exist: a practice room for my instruments, a way to listen to long reads, and my most-played songs turned into a monthly playlist.",
-    },
+    [m.about_work_interfaces, m.about_work_interfaces_body],
+    [m.about_work_data, m.about_work_data_body],
+    [m.about_work_infra, m.about_work_infra_body],
+    [m.about_work_tools, m.about_work_tools_body],
   ];
 
   const stack = [
-    ["Framework", "SvelteKit 2 with Svelte 5 runes"],
-    ["Styling", "Tailwind CSS 4"],
-    ["Posts", "Markdown, compiled by MDsveX"],
-    ["Data", "PostgreSQL through Drizzle ORM, session cookies for accounts"],
-    ["Languages", "Paraglide, set up for English, Spanish, French and Haitian Creole which are the 4 languages that I speak"],
-    ["Build", "A Vite+ monorepo with shared packages, built by a Nix flake"],
-    ["Hosting", "A Node server in my homelab"],
+    [m.about_stack_framework, m.about_stack_framework_value],
+    [m.about_stack_styling, m.about_stack_styling_value],
+    [m.about_stack_posts, m.about_stack_posts_value],
+    [m.about_stack_data, m.about_stack_data_value],
+    [m.about_stack_languages, m.about_stack_languages_value],
+    [m.about_stack_build, m.about_stack_build_value],
+    [m.about_stack_hosting, m.about_stack_hosting_value],
   ];
+
+  const swatches = [
+    ["--gm-red", m.colour_red],
+    ["--gm-blue", m.colour_cobalt],
+    ["--gm-green", m.colour_green],
+    ["--gm-violet", m.colour_violet],
+    ["--gm-yellow", m.colour_yellow],
+  ] as const;
+
+  // Links that sit inside translated sentences. The messages are this site's own
+  // text, so rendering them as HTML is safe.
+  const link = (href: string, text: string) => `<a class="gm-inline-link" href="${href}">${text}</a>`;
+  const woodshed = link("/music", "Woodshed");
+  const narrator = link("/pdf", "Narrator");
+  const studio = link(`${resolve("/studio")}?type=drawings`, m.nav_studio());
 
   let boardSeed = $state(1);
 </script>
 
 <svelte:head>
-  <title>About | Gaspard Michel Etienne</title>
-  <meta
-    name="description"
-    content="About Gaspard Michel Etienne, a full-stack software engineer in Boston, and about this website."
-  />
+  <title>{m.nav_about()} | Gaspard Michel Etienne</title>
+  <meta name="description" content={m.about_meta()} />
 </svelte:head>
 
 <div class="gm-page about">
   <header class="intro">
-    <h1 class="gm-title">Hi, I'm Gaspard.</h1>
-    <p class="gm-lede">
-      I'm a full-stack software engineer based in Boston. I've spent my career building web applications
-      that people rely on at work during the day, and my evenings building fun tools I want for myself.
-    </p>
+    <h1 class="gm-title">{m.about_title()}</h1>
+    <p class="gm-lede">{m.about_lede()}</p>
   </header>
 
   <Separator class="row-rule" />
   <section class="row" aria-labelledby="work">
-    <h2 id="work" class="gm-h2 side">What I work on</h2>
+    <h2 id="work" class="gm-h2 side">{m.about_work_heading()}</h2>
     <div class="main">
-      <p class="gm-text">
-       I'm inquisitive. I like owning features end to end. I love digging deep to understand the problem space and working across the stack to come up with inovative solutions. From the infrastucture to the data layer, to the back-end, and to the user interface I enjoy working on each level. I love seeing the whole path which is what allows me to craft great user experiences for clients.
-      </p>
+      <p class="gm-text">{m.about_work_intro()}</p>
       <dl class="work">
-        {#each work as item (item.title)}
+        {#each work as [title, body], i (i)}
           <div>
-            <dt>{item.title}</dt>
-            <dd>{item.body}</dd>
+            <dt>{title()}</dt>
+            <dd>{body()}</dd>
           </div>
         {/each}
       </dl>
@@ -77,90 +74,50 @@
 
   <Separator class="row-rule" />
   <section class="row" aria-labelledby="outside">
-    <h2 id="outside" class="gm-h2 side">Outside work</h2>
+    <h2 id="outside" class="gm-h2 side">{m.about_outside_heading()}</h2>
     <div class="main">
-      <p class="gm-text">
-        Away from the keyboard I'm usually,listening to music, playing soccer, travelling somewhere new, or
-        experimenting in the kitchen. Music takes up the rest: I try to practise piano most days, mostly just sitting down relaxing and jamming. I'm
-        slowly learning a few other instruments, which is how <a
-          class="gm-inline-link"
-          href="/music">Woodshed</a
-        > started.
-      </p>
-      <p class="gm-text">
-        I also doodle here and there, paint sometimes and do a ton of other things. Mostly as a way to relax and try to connect with my creative side, which you'll find in my <a
-          class="gm-inline-link"
-          href="{resolve('studio')}?type=drawings"
-        >Studio</a>
-
-        .
-      </p>
+      <p class="gm-text">{@html m.about_outside_music({ woodshed })}</p>
+      <p class="gm-text">{@html m.about_outside_creative({ studio })}</p>
     </div>
   </section>
 
   <Separator class="row-rule" />
   <section class="row" id="this-website" aria-labelledby="site">
-    <h2 id="site" class="gm-h2 side">About this website</h2>
+    <h2 id="site" class="gm-h2 side">{m.about_site_heading()}</h2>
     <div class="main">
-      <p class="gm-text">
-        This site is my little corner of the internet: one place for everything I make and want to
-        share, from apps and writing to music, drawings, paintings, photos and videos etc. It's less a polished portfolio than a workshop with the
-        door open, so expect it to change as I build.
-      </p>
+      <p class="gm-text">{m.about_site_intro()}</p>
 
-      <h3>What's here</h3>
+      <h3>{m.about_whats_here()}</h3>
       <dl class="map">
         <div>
           <dt>
-            <Button
-              variant="link"
-              href={resolve('studio')}
-              class="h-auto px-0"
-            >Studio</Button>
+            <Button variant="link" href={resolve("/studio")} class="h-auto px-0">
+              {m.nav_studio()}
+            </Button>
           </dt>
-
-          <dd>
-            Everything I make, from apps to doodles, each kind given the same space. See it as one
-            wall or kind by kind.
-          </dd>
+          <dd>{m.about_map_studio()}</dd>
         </div>
         <div>
           <dt>
-            <Button
-              variant="link"
-              href={resolve('blog')}
-              class="h-auto px-0"
-            >Blog</Button>
+            <Button variant="link" href={resolve("/blog")} class="h-auto px-0">
+              {m.nav_blog()}
+            </Button>
           </dt>
-
-          <dd>Notes on what I'm building and learning.</dd>
+          <dd>{m.about_map_blog()}</dd>
         </div>
         <div>
           <dt>
-            <Button
-              variant="link"
-              href="{resolve('studio')}?type=projects"
-              class="h-auto px-0"
-            >Projects</Button>
+            <Button variant="link" href="{resolve('/studio')}?type=projects" class="h-auto px-0">
+              {m.kind_projects()}
+            </Button>
           </dt>
-          <dd>
-            Apps and Tools that I want to use. some expamples are: <a class="gm-inline-link" href="/music"
-              >Woodshed</a
-            >
-            and <a class="gm-inline-link" href="/pdf">Narrator</a>.
-          </dd>
+          <dd>{@html m.about_map_projects({ woodshed, narrator })}</dd>
         </div>
       </dl>
 
-      <h3>The intro</h3>
+      <h3>{m.about_intro_heading()}</h3>
       <div class="router">
-        <p class="gm-text">
-          The circuits on the home page are drawn fresh on every visit. A small router written for
-          this site lays traces out from the logo on a 16 pixel grid. Traces only run straight or
-          at 45 degrees and never touch each other, the way a circuit board autorouter works. Then
-          the G and E of the logo slide apart and an M is routed between them. Click the initials
-          to fold them back and route a new board.
-        </p>
+        <p class="gm-text">{m.about_intro_body()}</p>
         <figure class="board">
           <CircuitArt
             seed="about-{boardSeed}"
@@ -169,47 +126,41 @@
             height={320}
           />
           <figcaption>
-            <span>Board {boardSeed}, routed by the same code.</span>
+            <span>{m.about_board_caption({ number: boardSeed })}</span>
             <Button variant="outline" size="sm" onclick={() => boardSeed++}>
-              <Shuffle data-icon="inline-start" aria-hidden="true" />Route another
+              <Shuffle data-icon="inline-start" aria-hidden="true" />{m.about_route_another()}
             </Button>
           </figcaption>
         </figure>
       </div>
 
-      <h3>How it's built</h3>
+      <h3>{m.about_built_heading()}</h3>
       <dl class="stack">
-        {#each stack as [label, value] (label)}
+        {#each stack as [label, value], i (i)}
           <div>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dt>{label()}</dt>
+            <dd>{value()}</dd>
           </div>
         {/each}
       </dl>
 
-      <h3>Type and colour</h3>
+      <h3>{m.about_type_heading()}</h3>
       <div class="brand">
         <LogoMark size={64} />
-        <p class="gm-text">
-          The mark is a G and an E sharing one ring. Headings are set in Bricolage Grotesque and
-          long text in Newsreader. The colours come from the logo's gradient and from the colors in
-          some of my doodles.
-        </p>
+        <p class="gm-text">{m.about_type_body()}</p>
       </div>
-      <ul class="swatches" aria-label="Site colours">
-        <li style="--c: var(--gm-red)">Red</li>
-        <li style="--c: var(--gm-blue)">Cobalt</li>
-        <li style="--c: var(--gm-green)">Green</li>
-        <li style="--c: var(--gm-violet)">Violet</li>
-        <li style="--c: var(--gm-yellow)">Yellow</li>
+      <ul class="swatches" aria-label={m.about_swatches_label()}>
+        {#each swatches as [token, name] (token)}
+          <li style="--c: var({token})">{name()}</li>
+        {/each}
       </ul>
     </div>
   </section>
 
   {#if socials.length > 0}
     <Separator class="row-rule" />
-  <section class="row" aria-labelledby="contact">
-      <h2 id="contact" class="gm-h2 side">Say hello</h2>
+    <section class="row" aria-labelledby="contact">
+      <h2 id="contact" class="gm-h2 side">{m.about_say_hello()}</h2>
       <ul class="main socials">
         {#each socials as social (social.href)}
           <li>

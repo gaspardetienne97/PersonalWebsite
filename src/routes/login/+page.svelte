@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "#lib/paraglide/messages.js";
   import KeyRound from "@lucide/svelte/icons/key-round";
   import * as Card from "@repo/ui/card";
   import { Button } from "@repo/ui/button";
@@ -9,13 +10,13 @@
   // Better Auth reports a failed sign-in with ?error=<code>.
   const errorText = (code: string) =>
     code === "access_denied"
-      ? "Sign-in was cancelled in Authentik."
-      : "Signing in with Authentik didn't work. Try again.";
+      ? m.login_cancelled()
+      : m.login_failed();
   const message = $derived(form?.message ?? (data.error ? errorText(data.error) : null));
 </script>
 
 <svelte:head>
-  <title>Sign in | Gaspard Michel Etienne</title>
+  <title>{m.login_title()} | Gaspard Michel Etienne</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -23,9 +24,9 @@
   <Card.Root class="w-full max-w-md">
     <Card.Header class="items-start gap-4">
       <LogoMark size={40} />
-      <Card.Title level={1} class="text-2xl">Sign in</Card.Title>
+      <Card.Title level={1} class="text-2xl">{m.login_title()}</Card.Title>
       <Card.Description>
-        The private side of this site is for me. Sign in with my homelab's Authentik account.
+        {m.login_body()}
       </Card.Description>
     </Card.Header>
     <Card.Content class="flex flex-col gap-4">
@@ -33,12 +34,12 @@
         <form method="post">
           <Button type="submit" size="lg" class="w-full">
             <KeyRound data-icon="inline-start" aria-hidden="true" />
-            Continue with Authentik
+            {m.login_continue()}
           </Button>
         </form>
       {:else}
         <p class="text-sm text-muted-foreground">
-          Sign-in isn't set up on this server yet.
+          {m.login_unavailable()}
         </p>
       {/if}
       {#if message}

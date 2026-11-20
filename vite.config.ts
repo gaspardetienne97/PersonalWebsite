@@ -1,3 +1,4 @@
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { mdsvex } from "mdsvex";
 import adapter from "@sveltejs/adapter-node";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
@@ -60,6 +61,15 @@ const highlightCodeBlock = (code: string, { lang = "" }: { lang?: string | null 
 export default defineConfig(({ isSsrBuild }): UserConfig => ({
   plugins: [
     tailwindcss(),
+    // Translations: compiles project.inlang/messages into #lib/paraglide on every
+    // dev start and build. The language comes from a cookie the site's language
+    // menu sets, then the browser's preference, then English; URLs stay the same.
+    paraglideVitePlugin({
+      project: "./project.inlang",
+      outdir: "./src/lib/paraglide",
+      outputStructure: "message-modules",
+      strategy: ["cookie", "preferredLanguage", "baseLocale"],
+    }),
     // mdsvex 1.0 is a Vite plugin of its own, ahead of SvelteKit.
     mdsvex({
       extensions: [".md", ".mdx", ".svx"],

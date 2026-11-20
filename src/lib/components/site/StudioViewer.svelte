@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from "svelte";
+  import { m } from "#lib/paraglide/messages.js";
   import * as Carousel from "@repo/ui/carousel";
   import * as Dialog from "@repo/ui/dialog";
   import StudioCover from "./StudioCover.svelte";
@@ -75,7 +76,7 @@
         <Carousel.Content class="h-full">
           {#each items as piece, i (piece.kind + piece.media.id)}
             {@const media = piece.media}
-            <Carousel.Item class="h-full" aria-label="{i + 1} of {items.length}: {media.title}">
+            <Carousel.Item class="h-full" aria-label={m.viewer_slide_label({ position: i + 1, total: items.length, title: media.title })}>
               <div class="slide" class:paper={media.type === "image"}>
                 {#if media.type === "image"}
                   <img src={media.large} alt={media.alt} loading={i === index ? "eager" : "lazy"} />

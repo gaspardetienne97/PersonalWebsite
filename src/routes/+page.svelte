@@ -5,7 +5,8 @@
   import StudioCover from "#lib/components/site/StudioCover.svelte";
   import StudioDoors from "#lib/components/site/StudioDoors.svelte";
   import { MARKERS } from "#lib/circuit/router.ts";
-  import { description, title } from "#lib/config.ts";
+  import { title } from "#lib/config.ts";
+  import { m } from "#lib/paraglide/messages.js";
   import { kindInfo, newest } from "#lib/content/studio.ts";
   import { formatDate } from "#lib/utils.ts";
 
@@ -31,31 +32,28 @@
 
 <svelte:head>
   <title>{title}</title>
-  <meta name="description" content={description} />
+  <meta name="description" content={m.site_description()} />
 </svelte:head>
 
 <div class="gm-page home">
   <header class="intro">
     <div class="flex flex-col gap-4">
       <h1 class="gm-title">Gaspard Michel Etienne</h1>
-      <p class="gm-lede">Full-stack software engineer based in Boston.</p>
+      <p class="gm-lede">{m.home_lede()}</p>
     </div>
     <div class="flex flex-col items-start gap-3">
-      <p class="statement">
-        I like owning a feature from end to end: the schema, the API, the interface and the server
-        it runs on. This site is where I keep what I make.
-      </p>
+      <p class="statement">{m.home_statement()}</p>
 
       <Button
         variant="link"
         href={resolve('about')}
         class="h-auto px-0"
-      >More about me</Button>
+      >{m.home_more_about()}</Button>
     </div>
   </header>
 
   <section class="block" aria-labelledby="newest-heading">
-    <h2 id="newest-heading" class="gm-h2">Newest</h2>
+    <h2 id="newest-heading" class="gm-h2">{m.home_newest()}</h2>
     <ul class="newest">
       {#if latestPost}
         <li class="stretch">
@@ -74,13 +72,13 @@
           <span class="text">
             <span class="kind">
               <i class="dot" style:background="var(--foreground)"></i>
-              <span>Post, <time datetime={latestPost.date}>{formatDate(latestPost.date)}</time></span>
+              <span>{m.home_post_dated({ date: formatDate(latestPost.date) })}</span>
             </span>
             <a href={resolve("/blog/[slug]", { slug: latestPost.slug })} class="stretch-link name">
               {latestPost.title}
             </a>
             <span class="note">{latestPost.description}</span>
-            <span class="note">{latestPost.readingMinutes} min read</span>
+            <span class="note">{m.reading_time({ minutes: latestPost.readingMinutes })}</span>
           </span>
         </li>
       {/if}
@@ -99,7 +97,7 @@
               <span class="note">{piece.media.note}</span>
             {/if}
             {#if piece.media.type === "project" && piece.media.project.fullscreen}
-              <span class="note">Opens full screen</span>
+              <span class="note">{m.opens_full_screen()}</span>
             {/if}
           </span>
         </li>
@@ -109,8 +107,8 @@
 
   <section class="block" aria-labelledby="everything-heading">
     <div class="block-head">
-      <h2 id="everything-heading" class="gm-h2">Everything I make</h2>
-      <Button variant="link" href={studio} class="h-auto px-0">Open the Studio</Button>
+      <h2 id="everything-heading" class="gm-h2">{m.home_everything()}</h2>
+      <Button variant="link" href={studio} class="h-auto px-0">{m.home_open_studio()}</Button>
     </div>
     <StudioDoors
       writing={{ titles: posts.map((post) => post.title), count: data.postCount ?? posts.length }}

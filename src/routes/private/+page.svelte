@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "#lib/paraglide/messages.js";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Lock from "@lucide/svelte/icons/lock";
   import * as Avatar from "@repo/ui/avatar";
@@ -17,15 +18,15 @@
 </script>
 
 <svelte:head>
-  <title>Private | Gaspard Michel Etienne</title>
+  <title>{m.private_title()} | Gaspard Michel Etienne</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="gm-page private">
   <header class="head">
     <div class="flex flex-col gap-5">
-      <h1 class="gm-title">Private</h1>
-      <p class="gm-lede">Only you can see this page.</p>
+      <h1 class="gm-title">{m.private_title()}</h1>
+      <p class="gm-lede">{m.private_lede()}</p>
     </div>
     <div class="who">
       <Avatar.Root class="size-10">
@@ -39,16 +40,16 @@
       <form method="post" action="?/signOut">
         <Button type="submit" variant="outline" size="sm">
           <LogOut data-icon="inline-start" aria-hidden="true" />
-          Sign out
+          {m.private_sign_out()}
         </Button>
       </form>
     </div>
   </header>
 
-  <section class="mt-12" aria-label="Private notes">
+  <section class="mt-12" aria-label={m.private_notes_label()}>
     <Empty
-      title="Nothing here yet"
-      description="This is your page behind the login. Drafts, notes and anything else you don't want public can live here."
+      title={m.private_empty_title()}
+      description={m.private_empty_body()}
     >
       {#snippet icon()}<Lock />{/snippet}
     </Empty>

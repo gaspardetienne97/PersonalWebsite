@@ -39,6 +39,7 @@ import Palette from "@lucide/svelte/icons/palette";
 import PenTool from "@lucide/svelte/icons/pen-tool";
 import PencilLine from "@lucide/svelte/icons/pencil-line";
 import { projects, type Project } from "./projects";
+import { m } from "#lib/paraglide/messages.js";
 
 type Common = { id: string; title: string; year?: number; note?: string };
 
@@ -56,8 +57,12 @@ export type AudioEntry = Common & { cover?: string; src?: string; embed?: string
 export const drawings: ImageEntry[] = [
   {
     id: "trace-maze",
-    title: "Trace maze",
-    alt: "Dense parallel lines in red, blue, green, violet and yellow winding through a tall rectangle like circuit traces.",
+    get title() {
+      return m.drawing_trace_maze();
+    },
+    get alt() {
+      return m.drawing_trace_maze_alt();
+    },
     small: d01sm,
     large: d01lg,
     width: 720,
@@ -65,8 +70,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "lattice",
-    title: "Lattice",
-    alt: "Thick black lines joining points into triangles over a ruled background.",
+    get title() {
+      return m.drawing_lattice();
+    },
+    get alt() {
+      return m.drawing_lattice_alt();
+    },
     small: d02sm,
     large: d02lg,
     width: 720,
@@ -74,8 +83,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "thicket",
-    title: "Thicket",
-    alt: "Black ink strokes sweeping across a vertical grid, with a dense starburst on the right.",
+    get title() {
+      return m.drawing_thicket();
+    },
+    get alt() {
+      return m.drawing_thicket_alt();
+    },
     small: d03sm,
     large: d03lg,
     width: 720,
@@ -83,8 +96,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "shards",
-    title: "Shards",
-    alt: "Overlapping triangles and zigzags in blue, violet, red and green around two eye-like circles.",
+    get title() {
+      return m.drawing_shards();
+    },
+    get alt() {
+      return m.drawing_shards_alt();
+    },
     small: d04sm,
     large: d04lg,
     width: 720,
@@ -92,8 +109,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "vase",
-    title: "Flowers in a striped vase",
-    alt: "A green branching stem with blue flowers in a vase striped red, violet and blue.",
+    get title() {
+      return m.drawing_vase();
+    },
+    get alt() {
+      return m.drawing_vase_alt();
+    },
     small: d05sm,
     large: d05lg,
     width: 621,
@@ -101,8 +122,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "red-fold",
-    title: "Red fold",
-    alt: "Red lines forming a curling shape beside a box crossed by an hourglass of strokes.",
+    get title() {
+      return m.drawing_red_fold();
+    },
+    get alt() {
+      return m.drawing_red_fold_alt();
+    },
     small: d06sm,
     large: d06lg,
     width: 720,
@@ -110,8 +135,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "curtain",
-    title: "Curtain",
-    alt: "Vertical coloured lines above a curved, layered shape drawn in red, green, violet and blue.",
+    get title() {
+      return m.drawing_curtain();
+    },
+    get alt() {
+      return m.drawing_curtain_alt();
+    },
     small: d07sm,
     large: d07lg,
     width: 720,
@@ -119,8 +148,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "paisley",
-    title: "Paisley",
-    alt: "A paisley-like curl outlined in parallel red, green, violet and blue lines with small spirals inside.",
+    get title() {
+      return m.drawing_paisley();
+    },
+    get alt() {
+      return m.drawing_paisley_alt();
+    },
     small: d08sm,
     large: d08lg,
     width: 720,
@@ -128,8 +161,12 @@ export const drawings: ImageEntry[] = [
   },
   {
     id: "net",
-    title: "Net",
-    alt: "Black lines and knots stretched across a grid like a net, with a solid black shape in the corner.",
+    get title() {
+      return m.drawing_net();
+    },
+    get alt() {
+      return m.drawing_net_alt();
+    },
     small: d09sm,
     large: d09lg,
     width: 720,
@@ -177,66 +214,108 @@ export type StudioKindInfo = {
 export const STUDIO_KINDS: StudioKindInfo[] = [
   {
     kind: "doodles",
-    label: "Doodles",
-    singular: "Doodle",
+    get label() {
+      return m.kind_doodles();
+    },
+    get singular() {
+      return m.kind_doodles_one();
+    },
     dot: "var(--gm-pink)",
     colors: ["#ff6fa6", "#c531f2", "#2bc4ff"],
     icon: PencilLine,
-    empty: "Margin sketches and phone-call scribbles are on the way.",
+    get empty() {
+      return m.kind_doodles_empty();
+    },
   },
   {
     kind: "drawings",
-    label: "Drawings",
-    singular: "Drawing",
+    get label() {
+      return m.kind_drawings();
+    },
+    get singular() {
+      return m.kind_drawings_one();
+    },
     dot: "var(--gm-red)",
     colors: ["#e8452c", "#4f6ff5", "#2e8b4a", "#a35be0"],
     icon: PenTool,
-    empty: "Ink and marker line work is on the way.",
+    get empty() {
+      return m.kind_drawings_empty();
+    },
   },
   {
     kind: "music",
-    label: "Music",
-    singular: "Music",
+    get label() {
+      return m.kind_music();
+    },
+    get singular() {
+      return m.kind_music_one();
+    },
     dot: "var(--gm-yellow)",
     colors: ["#f2b705", "#e8452c", "#ff6fa6"],
     icon: MusicIcon,
-    empty: "Recordings, loops and sketches from the practice room are on the way.",
+    get empty() {
+      return m.kind_music_empty();
+    },
   },
   {
     kind: "paintings",
-    label: "Paintings",
-    singular: "Painting",
+    get label() {
+      return m.kind_paintings();
+    },
+    get singular() {
+      return m.kind_paintings_one();
+    },
     dot: "var(--gm-violet)",
     colors: ["#a35be0", "#4f6ff5", "#f2b705"],
     icon: Palette,
-    empty: "Paintings are on the way.",
+    get empty() {
+      return m.kind_paintings_empty();
+    },
   },
   {
     kind: "photos",
-    label: "Photos",
-    singular: "Photo",
+    get label() {
+      return m.kind_photos();
+    },
+    get singular() {
+      return m.kind_photos_one();
+    },
     dot: "var(--gm-green)",
     colors: ["#2e8b4a", "#2bc4ff", "#f2b705"],
     icon: Camera,
-    empty: "Photos from trips and everyday life are on the way.",
+    get empty() {
+      return m.kind_photos_empty();
+    },
   },
   {
     kind: "projects",
-    label: "Projects",
-    singular: "Project",
+    get label() {
+      return m.kind_projects();
+    },
+    get singular() {
+      return m.kind_projects_one();
+    },
     dot: "var(--gm-cyan)",
     colors: ["#2bc4ff", "#c531f2", "#ff1f2a"],
     icon: CodeXml,
-    empty: "Projects are on the way.",
+    get empty() {
+      return m.kind_projects_empty();
+    },
   },
   {
     kind: "videos",
-    label: "Videos",
-    singular: "Video",
+    get label() {
+      return m.kind_videos();
+    },
+    get singular() {
+      return m.kind_videos_one();
+    },
     dot: "var(--gm-blue)",
     colors: ["#4f6ff5", "#a35be0", "#2bc4ff"],
     icon: Clapperboard,
-    empty: "Clips and recordings are on the way.",
+    get empty() {
+      return m.kind_videos_empty();
+    },
   },
 ];
 
@@ -246,18 +325,24 @@ export const kindInfo = (kind: StudioKind) =>
 export const isStudioKind = (value: string | null): value is StudioKind =>
   STUDIO_KINDS.some((k) => k.kind === value);
 
+/**
+ * The entry plus its media type. The entry is the prototype instead of being
+ * spread in, so translated getters (title, alt) keep answering in the visitor's
+ * language instead of being read once when this module loads.
+ */
+function typed<T extends object, K extends StudioMedia["type"]>(type: K, entry: T) {
+  return Object.assign(Object.create(entry) as T, { type }) as T & { type: K };
+}
+
 const image =
   (kind: StudioKind) =>
-  (entry: ImageEntry): StudioItem => ({
-    kind,
-    media: { type: "image", ...entry },
-  });
+  (entry: ImageEntry): StudioItem => ({ kind, media: typed("image", entry) });
 
 /** Every kind's items, in the order they're listed. */
 export const STUDIO: Record<StudioKind, StudioItem[]> = {
   doodles: doodles.map(image("doodles")),
   drawings: drawings.map(image("drawings")),
-  music: music.map((entry) => ({ kind: "music", media: { type: "audio", ...entry } })),
+  music: music.map((entry) => ({ kind: "music", media: typed("audio", entry) })),
   paintings: paintings.map(image("paintings")),
   photos: photos.map(image("photos")),
   projects: projects.map((project) => ({
@@ -265,13 +350,17 @@ export const STUDIO: Record<StudioKind, StudioItem[]> = {
     media: {
       type: "project",
       id: project.slug,
-      title: project.title,
-      note: project.summary,
+      get title() {
+        return project.title;
+      },
+      get note() {
+        return project.summary;
+      },
       year: project.year,
       project,
     },
   })),
-  videos: videos.map((entry) => ({ kind: "videos", media: { type: "video", ...entry } })),
+  videos: videos.map((entry) => ({ kind: "videos", media: typed("video", entry) })),
 };
 
 /**

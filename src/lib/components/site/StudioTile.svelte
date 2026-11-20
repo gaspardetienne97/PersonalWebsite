@@ -7,6 +7,7 @@
   import Maximize from "@lucide/svelte/icons/maximize-2";
   import StudioCover from "./StudioCover.svelte";
   import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
   let { item, onopen }: { item: StudioItem; onopen: (item: StudioItem) => void } = $props();
 
@@ -27,7 +28,7 @@
   </span>
   <span class="title">{media.title}<span class="sr-only">, {info.singular.toLowerCase()}</span></span>
   {#if media.type === "project"}
-    <span class="sub">{media.project.fullscreen ? "Opens full screen" : media.project.summary}</span>
+    <span class="sub">{media.project.fullscreen ? m.opens_full_screen() : media.project.summary}</span>
   {:else if media.year}
     <span class="sub">{media.year}</span>
   {/if}

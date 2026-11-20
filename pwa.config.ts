@@ -38,6 +38,9 @@ export const pwaOptions = {
     navigateFallback: undefined,
     cleanupOutdatedCaches: true,
     globIgnores: ["client/_app/immutable/assets/web back*.svg"],
+    // Pages render per request in the visitor's language, so nothing is
+    // prerendered; the default "prerendered/**" pattern then matches no files.
+    globStrict: false,
   },
 } satisfies NonNullable<Parameters<typeof withPwa>[1]>;
 

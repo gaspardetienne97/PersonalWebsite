@@ -6,6 +6,7 @@
   import { replayIntro } from "./intro.svelte";
   import { isFullscreenApp, name, nav, socials } from "#lib/config.ts";
   import { projects } from "#lib/content/projects.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
   const year = new Date().getFullYear();
@@ -17,18 +18,18 @@
       <div class="who">
         <LogoMark size={40} />
         <p class="name">{name}</p>
-        <p class="note">Software engineer in Boston. This site runs on a server in my homelab.</p>
+        <p class="note">{m.footer_note()}</p>
         <p class="replay">
-          <Button variant="link" class="h-auto px-0" onclick={replayIntro}>Replay the intro</Button>
+          <Button variant="link" class="h-auto px-0" onclick={replayIntro}>{m.footer_replay()}</Button>
           <span class="keys">
-            or <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>G</kbd> <kbd>M</kbd> <kbd>E</kbd>
+            {m.footer_replay_or()} <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>G</kbd> <kbd>M</kbd> <kbd>E</kbd>
           </span>
         </p>
       </div>
 
-      <nav aria-label="Footer" class="cols">
+      <nav aria-label={m.footer_nav_label()} class="cols">
         <div>
-          <h2>Site</h2>
+          <h2>{m.footer_site()}</h2>
           <ul>
             {#each nav as link (link.href)}
               <li><a href={resolve(link.href)}>{link.label}</a></li>
@@ -36,7 +37,7 @@
           </ul>
         </div>
         <div>
-          <h2>Projects</h2>
+          <h2>{m.footer_projects()}</h2>
           <ul>
             {#each projects as project (project.slug)}
               <li><a href={project.href}>{project.title}</a></li>
@@ -45,7 +46,7 @@
         </div>
         {#if socials.length > 0}
           <div>
-            <h2>Elsewhere</h2>
+            <h2>{m.footer_elsewhere()}</h2>
             <ul>
               {#each socials as social (social.href)}
                 <li>
@@ -61,7 +62,7 @@
     </div>
     <p class="legal">
       <span>© {year} {name}</span>
-      <a href="/private">Private</a>
+      <a href="/private">{m.footer_private()}</a>
     </p>
   </footer>
 {/if}

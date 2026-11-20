@@ -18,13 +18,14 @@
     "test": "vp test",
     "test:all": "vp run -r test",
     "test:e2e": "playwright test",
-    "prepare": "vp config",
+    "prepare": "vp config && pnpm run i18n",
     "db:start": "docker compose up",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy cookie preferredLanguage baseLocale --silent"
   },
   "dependencies": {
     "@fontsource-variable/outfit": "catalog:",

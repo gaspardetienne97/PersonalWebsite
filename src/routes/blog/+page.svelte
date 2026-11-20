@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "#lib/paraglide/messages.js";
   import { resolve } from "$app/paths";
   import FileText from "@lucide/svelte/icons/file-text";
   import * as Card from "@repo/ui/card";
@@ -33,17 +34,17 @@
 </script>
 
 <svelte:head>
-  <title>Blog | Gaspard Michel Etienne</title>
+  <title>{m.nav_blog()} | Gaspard Michel Etienne</title>
   <meta
     name="description"
-    content="Notes from Gaspard Michel Etienne on what he's building and learning."
+    content={m.blog_meta()}
   />
 </svelte:head>
 
 <div class="gm-page blog">
   <header class="flex flex-col gap-5">
-    <h1 class="gm-title">Writing</h1>
-    <p class="gm-lede">Notes on what I'm building, what broke, and what I learned fixing it.</p>
+    <h1 class="gm-title">{m.kind_writing()}</h1>
+    <p class="gm-lede">{m.blog_lede()}</p>
   </header>
 
   {#if categories.length > 1}
@@ -52,9 +53,9 @@
       variant="outline"
       bind:value={() => category, (value) => value && (category = value)}
       class="filters"
-      aria-label="Filter by topic"
+      aria-label={m.blog_filter()}
     >
-      <ToggleGroup.Item value="all">All</ToggleGroup.Item>
+      <ToggleGroup.Item value="all">{m.blog_all()}</ToggleGroup.Item>
       {#each categories as name (name)}
         <ToggleGroup.Item value={name} class="capitalize">{name}</ToggleGroup.Item>
       {/each}
@@ -62,7 +63,7 @@
   {/if}
 
   {#if !featured}
-    <Empty class="mt-12" title="No posts yet" description="The first one is being written.">
+    <Empty class="mt-12" title={m.blog_empty_title()} description={m.blog_empty_body()}>
       {#snippet icon()}<FileText />{/snippet}
     </Empty>
   {:else}
@@ -73,7 +74,7 @@
       <div class="flex flex-col">
         <Card.Header class="gap-3">
           <p class="text-sm text-muted-foreground">
-            Latest, <time datetime={featured.date}>{formatDate(featured.date, "long")}</time>
+            {m.blog_latest({ date: formatDate(featured.date, "long") })}
           </p>
           <Card.Title level={2} class="text-3xl">
             
@@ -88,7 +89,7 @@
           {#each featured.categories as name (name)}
             <Badge variant="secondary" class="capitalize">{name}</Badge>
           {/each}
-          <Badge variant="outline">{featured.readingMinutes} min read</Badge>
+          <Badge variant="outline">{m.reading_time({ minutes: featured.readingMinutes })}</Badge>
         </Card.Footer>
       </div>
     </Card.Root>

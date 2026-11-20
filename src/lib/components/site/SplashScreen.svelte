@@ -16,6 +16,7 @@
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
+  import { m } from "#lib/paraglide/messages.js";
   import { SEEN_CLASS, SEEN_KEY, growSiteBoard, randomSeed, site } from "./intro.svelte";
 
   /** GmeMark's viewBox and the logo's outer radius in it (ring 300, drawn at 1.45×). */
@@ -178,7 +179,7 @@
     class:grown={board !== null}
     role="dialog"
     aria-modal="true"
-    aria-label="Introduction"
+    aria-label={m.intro_label()}
     tabindex="-1"
     {onkeydown}
     onwheel={(event) => event.deltaY > 0 && dismiss()}
@@ -197,7 +198,7 @@
         type="button"
         class="mark"
         onclick={play}
-        aria-label={spelled ? "Fold the initials back into the logo" : "Animate the logo"}
+        aria-label={spelled ? m.intro_fold() : m.intro_animate()}
       >
         <GmeMark {spelled} />
         <span class="hit" aria-hidden="true"></span>
@@ -206,7 +207,7 @@
       <div class="copy">
         <p class="name">Gaspard Michel Etienne</p>
         <p class="role">
-          Full-stack software engineer based in Boston <br> who loves building cool stuff!
+          {m.intro_role_line1()}<br />{m.intro_role_line2()}
         </p>
       </div>
     </div>
@@ -216,8 +217,8 @@
         variant="ghost"
         size="icon"
         class="cue size-20 rounded-full"
-        aria-label={revealed ? "Explore the site" : "Skip intro"}
-        title={revealed ? "Explore the site" : "Skip intro"}
+        aria-label={revealed ? m.intro_explore() : m.intro_skip()}
+        title={revealed ? m.intro_explore() : m.intro_skip()}
         onclick={dismiss}
       >
         <ChevronsDown class="size-11" strokeWidth={1.75} aria-hidden="true" />

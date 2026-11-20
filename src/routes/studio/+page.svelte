@@ -14,6 +14,7 @@
     kindInfo,
     type StudioItem,
   } from "#lib/content/studio.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
   let { data } = $props();
 
@@ -23,7 +24,7 @@
   const type = $derived(data.type);
   const view = $derived(data.view);
   const items = $derived(type === "all" ? all : STUDIO[type]);
-  const heading = $derived(type === "all" ? "Everything" : kindInfo(type).label);
+  const heading = $derived(type === "all" ? m.studio_everything() : kindInfo(type).label);
 
   const go = (query: string) =>
     goto(query ? `?${query}` : "?", { replace: true, reset: false });
@@ -56,20 +57,17 @@
 </script>
 
 <svelte:head>
-  <title>Studio | Gaspard Michel Etienne</title>
+  <title>{m.nav_studio()} | Gaspard Michel Etienne</title>
   <meta
     name="description"
-    content="Doodles, drawings, music, paintings, photos, projects and videos by Gaspard Michel Etienne."
+    content={m.studio_meta()}
   />
 </svelte:head>
 
 <div class="gm-page studio">
   <header class="flex flex-col gap-5">
-    <h1 class="gm-title">My Studio</h1>
-    <p class="gm-lede">
-      Everything I make. Code, Music, Drawings, Paintings, Photos etc... all hang on the same wall
-      here in my Studio.
-    </p>
+    <h1 class="gm-title">{m.studio_title()}</h1>
+    <p class="gm-lede">{m.studio_lede()}</p>
   </header>
 
   <!-- One toolbar along the top edge of the wall: the kinds read like the site's
@@ -80,10 +78,10 @@
       bind:value={() => (view === "kinds" ? "" : type), chooseType}
       bind:ref={tabs}
       class="tabs"
-      aria-label="Show"
+      aria-label={m.studio_show()}
     >
       <ToggleGroup.Item value="all" class="tab">
-        All <span class="count">{all.length}</span>
+        {m.studio_all()} <span class="count">{all.length}</span>
       </ToggleGroup.Item>
       {#each STUDIO_KINDS as info (info.kind)}
         {@const count = STUDIO[info.kind].length}
@@ -101,12 +99,12 @@
       size="sm"
       bind:value={() => view, chooseView}
       class="views"
-      aria-label="Layout"
+      aria-label={m.studio_layout()}
     >
-      <ToggleGroup.Item value="wall" aria-label="Wall" title="Wall: everything on one grid">
+      <ToggleGroup.Item value="wall" aria-label={m.studio_wall()} title={m.studio_wall_hint()}>
         <LayoutGrid aria-hidden="true" />
       </ToggleGroup.Item>
-      <ToggleGroup.Item value="kinds" aria-label="Kinds" title="Kinds: one card per kind">
+      <ToggleGroup.Item value="kinds" aria-label={m.studio_kinds()} title={m.studio_kinds_hint()}>
         <Shapes aria-hidden="true" />
       </ToggleGroup.Item>
     </ToggleGroup.Root>
@@ -114,7 +112,7 @@
 
   {#if view === "kinds"}
     <section class="group" aria-labelledby="kinds-heading">
-      <h2 id="kinds-heading" class="sr-only">By kind</h2>
+      <h2 id="kinds-heading" class="sr-only">{m.studio_by_kind()}</h2>
       <StudioDoors />
     </section>
   {:else}
@@ -122,7 +120,7 @@
       <h2 id="wall-heading" class="sr-only">{heading}</h2>
       {#if items.length === 0 && type !== "all"}
         {@const info = kindInfo(type)}
-        <Empty title="No {info.label.toLowerCase()} yet" description={info.empty}>
+        <Empty title={m.studio_empty_title({ kind: info.label.toLowerCase() })} description={info.empty}>
           {#snippet icon()}<info.icon />{/snippet}
         </Empty>
       {:else}

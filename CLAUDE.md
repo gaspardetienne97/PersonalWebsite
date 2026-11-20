@@ -86,9 +86,10 @@ npm run build-storybook  # Build static Storybook
 - Always use the exported `db` instance, never create new connections
 
 ### i18n (Internationalization)
-- **Paraglide-JS** generates i18n code at build time into [src/lib/paraglide/](src/lib/paraglide/)
+- **Paraglide-JS** compiles messages into [src/lib/paraglide/](src/lib/paraglide/) (gitignored) through its Vite plugin on dev/build, and `pnpm run i18n` (run by `prepare`) for type-checking
 - Middleware in [hooks.server.ts:6-13](src/hooks.server.ts#L6-L13) sets locale per request
-- Message files in [project.inlang/messages/](project.inlang/messages/)
+- Message files in [messages/](messages/) (`en.json` is the source; `es`, `fr`, `ht` must have the same keys and placeholders, enforced by `src/lib/i18n.test.ts`). Use them as `m.key()` from `#lib/paraglide/messages.js`
+- Language comes from the `PARAGLIDE_LOCALE` cookie (set by the header's language menu), then the browser's preference, then English; URLs are not localized. Site pages are translated; the music app and Narrator are not yet
 - Supported locales: en (base), es, fr, ht
 - HTML lang attribute injected via `%paraglide.lang%` placeholder in [src/app.html](src/app.html)
 

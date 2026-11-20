@@ -5,6 +5,7 @@
   import CircuitArt from "./CircuitArt.svelte";
   import StudioCover from "./StudioCover.svelte";
   import { STUDIO, STUDIO_KINDS, everything } from "#lib/content/studio.ts";
+  import { m } from "#lib/paraglide/messages.js";
 
   let { headingLevel = 3, writing
 
@@ -45,7 +46,7 @@
           {#if items.length}
             <Badge variant="secondary">{items.length}</Badge>
           {:else}
-            <Badge variant="outline">Soon</Badge>
+            <Badge variant="outline">{m.studio_soon()}</Badge>
           {/if}
         </span>
       </a>
@@ -63,7 +64,7 @@
         </span>
         <span class="label">
           <span class="name" role="heading" aria-level={headingLevel}>
-            <i class="dot" style:background="var(--foreground)"></i>Writing
+            <i class="dot" style:background="var(--foreground)"></i>{m.kind_writing()}
           </span>
           <Badge variant="secondary">{writing.count}</Badge>
         </span>
@@ -79,7 +80,7 @@
         </span>
         <span class="label">
           <span class="name" role="heading" aria-level={headingLevel}>
-            Everything<ArrowRight size={16} aria-hidden="true" />
+            {m.studio_everything()}<ArrowRight size={16} aria-hidden="true" />
           </span>
           <Badge variant="secondary">{all.length}</Badge>
         </span>

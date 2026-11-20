@@ -1,4 +1,5 @@
 import type { Component } from "svelte";
+import { m } from "#lib/paraglide/messages.js";
 // Lucide dropped brand icons in 1.0, so these are local, drawn in Lucide's style.
 import Github from "#lib/components/site/icons/Github.svelte";
 import Linkedin from "#lib/components/site/icons/Linkedin.svelte";
@@ -16,8 +17,6 @@ type Icon = Component<{
 export const name = "Gaspard Michel Etienne";
 export const shortName = "Gaspard Etienne";
 export const title = "Gaspard Michel Etienne";
-export const description =
-  "Gaspard Michel Etienne, a full-stack software engineer in Boston. Projects, writing, drawings and more.";
 
 /**
  * Links shown on the About page and in the footer, each with its icon. Nothing
@@ -32,12 +31,35 @@ export const socials: { label: string; href: string; icon: Icon }[] = [
   // { label: "Email", href: "mailto:<address>", icon: Mail },
 ];
 
-/** Site navigation. Big apps such as Woodshed and Narrator are reached from Projects. */
+/**
+ * Site navigation. Big apps such as Woodshed and Narrator are reached from Projects.
+ * Labels are getters, so they read in the visitor's language wherever they're used.
+ */
 export const nav = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/studio", label: "Studio" },
-  { href: "/blog", label: "Blog" },
+  {
+    href: "/",
+    get label() {
+      return m.nav_home();
+    },
+  },
+  {
+    href: "/about",
+    get label() {
+      return m.nav_about();
+    },
+  },
+  {
+    href: "/studio",
+    get label() {
+      return m.nav_studio();
+    },
+  },
+  {
+    href: "/blog",
+    get label() {
+      return m.nav_blog();
+    },
+  },
 ] as const;
 
 /**

@@ -8,6 +8,7 @@
   the circuit traces run on underneath, softened rather than cut out.
 -->
 <script lang="ts">
+  import { m } from "#lib/paraglide/messages.js";
   let {
     spelled = false,
     instant = false,
@@ -46,7 +47,7 @@
   class:instant
   viewBox="0 0 2100 680"
   role="img"
-  aria-label={spelled ? "G M E" : "Gaspard Etienne logo"}
+  aria-label={spelled ? "G M E" : m.logo_label()}
 >
   <defs>
     <linearGradient id="{uid}-ring" gradientUnits="userSpaceOnUse" x1="0" y1="-300" x2="0" y2="300">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "#lib/paraglide/messages.js";
   import { resolve } from "$app/paths";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import * as Card from "@repo/ui/card";
@@ -15,8 +16,8 @@
   const Content = $derived(data.Content);
   const neighbours = $derived(
     [
-      data.newer && { label: "Newer", post: data.newer },
-      data.older && { label: "Older", post: data.older },
+      data.newer && { label: m.post_newer(), post: data.newer },
+      data.older && { label: m.post_older(), post: data.older },
     ].filter((n) => !!n),
   );
 </script>
@@ -36,7 +37,7 @@
     class="-ml-3"
   >
     <ChevronLeft data-icon="inline-start" aria-hidden="true" />
-    All posts
+    {m.post_all()}
   </Button>
 
   <header class="head">
@@ -48,8 +49,7 @@
     <h1 class="title">{post.title}</h1>
     <p class="gm-lede">{post.description}</p>
     <p class="text-sm text-muted-foreground">
-      <time datetime={post.date}>{formatDate(post.date, "long")}</time>, {post.readingMinutes} min
-      read
+      <time datetime={post.date}>{formatDate(post.date, "long")}</time>, {m.reading_time({ minutes: post.readingMinutes })}
     </p>
   </header>
 
@@ -72,7 +72,7 @@
 
   {#if neighbours.length > 0}
     <Separator class="mt-16" />
-    <nav class="more" aria-label="More posts">
+    <nav class="more" aria-label={m.post_more()}>
       {#each neighbours as { label, post: other } (other.slug)}
         <Card.Root class="stretch relative">
           <Card.Header class="pb-6">
