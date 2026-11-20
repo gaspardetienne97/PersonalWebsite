@@ -23,7 +23,7 @@
     todayChallenges,
     todayPlan,
     tomorrowPlan,
-    WEEKDAYS,
+    WEEKDAYS_IN_SENTENCE,
   } from "../today.svelte";
   import { btn, btnPrimary, panel } from "../components/ui";
   import Picker from "../components/Picker.svelte";
@@ -148,15 +148,15 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <span class="font-medium" aria-hidden="true">{m.music_hubs_today_day_routine({ day: WEEKDAYS[weekday] })}</span>
+          <span class="font-medium" aria-hidden="true">{m.music_hubs_today_day_routine({ day: WEEKDAYS_IN_SENTENCE[weekday] })}</span>
           <Picker
             class="w-auto"
-            label={m.music_hubs_today_day_instrument({ day: WEEKDAYS[weekday] })}
+            label={m.music_hubs_today_day_instrument({ day: WEEKDAYS_IN_SENTENCE[weekday] })}
             value={settings.value.weeklySplit?.[weekday] ?? ""}
             options={splitOptions(settings.value.activeInstrument)}
             onchange={(v) => setDayInstrument(weekday, v)}
           />
-          <span class="text-ws-soft">{m.music_hubs_today_day_repeats({ day: WEEKDAYS[weekday] })}</span>
+          <span class="text-ws-soft">{m.music_hubs_today_day_repeats({ day: WEEKDAYS_IN_SENTENCE[weekday] })}</span>
         </div>
       </div>
     {/if}

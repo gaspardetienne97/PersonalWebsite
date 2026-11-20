@@ -11,7 +11,7 @@
   import { INSTRUMENT_LABEL } from "../bench.svelte";
   import { instrumentOptions } from "./instrument-icons";
   import { btn, btnPrimary } from "./ui";
-  import { micOptions } from "#lib/music/hubs/connect/rig.ts";
+  import { DEFAULT_INPUT_LABEL, micOptions } from "#lib/music/hubs/connect/rig.ts";
 
   const INSTRUMENTS = instrumentOptions((i) => INSTRUMENT_LABEL[i]);
 
@@ -35,7 +35,7 @@
     note = (await mic.start({ deviceId, pin: true })) ? "" : mic.error || m.music_shell_input_mic_failed();
   }
   async function pickMic(deviceId: string) {
-    const label = mic.devices.find((x) => x.deviceId === deviceId)?.label ?? (deviceId ? settings.value.audioInputLabel : "Default input");
+    const label = mic.devices.find((x) => x.deviceId === deviceId)?.label ?? (deviceId ? settings.value.audioInputLabel : DEFAULT_INPUT_LABEL);
     await settings.update({ audioInputDeviceId: deviceId || undefined, audioInputLabel: label });
     if (mic.state === "on") await micOn(deviceId || undefined);
   }

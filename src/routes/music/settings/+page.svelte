@@ -1,5 +1,6 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
+  import { micLabel } from "#lib/music/hubs/connect/rig.ts";
   // Settings (catalog 5.15): grouped rows, labels left, controls right. Every
   // control here is read by something: the audio graph, the pitch detector, the
   // router offsets, the root attributes for motion and hue. Devices are chosen
@@ -237,7 +238,7 @@
           <div class="min-w-0 flex-1 basis-48">
             <p class="font-medium">{m.music_shell_settings_devices()}</p>
             <p class="text-sm text-ws-soft" data-testid="settings-devices">
-              {m.music_shell_settings_mic_label()} <span class="font-medium text-ws-ink">{s.audioInputLabel}</span>{mic.state === "on" ? `, ${m.music_shell_settings_listening()}` : ""}{s.echoCancellation ? `, ${m.music_shell_settings_echo_on()}` : ""}.
+              {m.music_shell_settings_mic_label()} <span class="font-medium text-ws-ink">{micLabel(s.audioInputLabel)}</span>{mic.state === "on" ? `, ${m.music_shell_settings_listening()}` : ""}{s.echoCancellation ? `, ${m.music_shell_settings_echo_on()}` : ""}.
               {m.music_shell_settings_midi_label()} <span class="font-medium text-ws-ink">{!midi.enabled ? m.music_shell_settings_midi_off() : m.music_shell_settings_midi_inputs({ count: midi.inputs.length })}</span>.
             </p>
           </div>

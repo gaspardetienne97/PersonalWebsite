@@ -20,7 +20,7 @@
   import { Transcriber, type Engine } from "./transcriber.svelte";
   import { estimateTempo, notesToScore, type HeardNote } from "./transcription";
   import { songFromScore, type Song } from "./songs";
-  import { saveUserLick } from "#lib/music/user-licks.ts";
+  import { LICK_FROM, saveUserLick } from "#lib/music/user-licks.ts";
 
   let {
     from,
@@ -182,7 +182,7 @@
   async function saveLick() {
     if (!editor?.noteCount) return announce(m.music_hubs_tv_add_one_lick());
     const score = editor.toScore();
-    const id = await saveUserLick({ title: m.music_hubs_tv_lick_title({ title: score.title || m.music_hubs_tr_transcription() }), from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
+    const id = await saveUserLick({ title: m.music_hubs_tv_lick_title({ title: score.title || m.music_hubs_tr_transcription() }), from: LICK_FROM.transcription, bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
     announce(id ? m.music_hubs_tv_lick_saved() : m.music_hubs_tv_lick_empty());
   }
 

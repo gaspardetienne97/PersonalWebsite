@@ -187,11 +187,14 @@
   // Rows the input cannot measure fold into one line; a row Not measured for too little evidence keeps its reason.
   const rows = $derived((summary.rows ?? []).filter((r) => !r.notMeasured || r.text));
   const unmeasured = $derived(unmeasuredLine(summary.rows ?? []));
+  // A timing row: `kind` from timingRow, or set by hand on a row a drill builds itself. Rows built before `kind`
+  // existed are matched on their English label, which only works in English: give them `kind: "timing"`.
+  const isTiming = (r: ResultRow) => r.kind === "timing" || (r.kind === undefined && /timing/i.test(r.label));
   // Timing evidence from an input and output pair with no latency offset: said beside it, scores unchanged.
   const heardBy = input.activeSource;
   const uncalibrated = $derived.by(() => {
     if (heardBy !== "midi" && heardBy !== "audio") return false;
-    if (!timingRows.length && !rows.some((r) => /timing/i.test(r.label) && !r.notMeasured)) return false;
+    if (!timingRows.length && !rows.some((r) => isTiming(r) && !r.notMeasured)) return false;
     const key = calibration.input;
     return !!key && !calibration.calibrated(key);
   });

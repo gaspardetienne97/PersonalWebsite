@@ -23,8 +23,8 @@
   import Ring from "./progress/Ring.svelte";
   import { DRILL_ICON, HUE_ICON } from "./hue-icons";
 
-  /** Mode names said plainly on the cards. */
-  const MODE_LABEL: Record<string, string> = { "Pocket recall": m.music_hubs_drills_mode_from_memory() };
+  /** Mode names said plainly on the cards, by mode id ("listen" is the ear drills' Pocket recall). */
+  const MODE_LABEL: Record<string, string> = { listen: m.music_hubs_drills_mode_from_memory() };
   const now = Date.now();
   /** The instruments a drill serves, one icon each (guitar and ukulele share one). */
   const servedIcons = (r: DrillRow) => [...new Set(r.entry.instruments.map((i) => INSTRUMENT_ICON[i]))];
@@ -214,7 +214,7 @@
               {#if r.modes.length && modesOpen === r.key}
                 <div id="modes-{r.key}" class="relative flex flex-wrap items-center gap-1.5">
                   {#each r.modes as mo (mo.id)}
-                    {@const label = MODE_LABEL[mo.label] ?? mo.label}
+                    {@const label = MODE_LABEL[mo.id] ?? mo.label}
                     <a
                       href={mo.href}
                       class="flex min-h-11 items-center whitespace-nowrap rounded-full border border-ws-line bg-ws-surface px-3.5 text-sm font-medium hover:border-[color:var(--h)] hover:bg-ws-raised"

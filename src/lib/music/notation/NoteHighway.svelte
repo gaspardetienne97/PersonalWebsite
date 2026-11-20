@@ -49,10 +49,15 @@
   export { viewSwitch };
 </script>
 
-<!-- The written view or the moving one; the highway by default, the piano's waterfall when given. -->
+<!--
+  The written view or the moving one; the highway by default, the piano's waterfall when given.
+  `other` names the written view: pass an id, "chord" | "tab" | "chart", and the switch words it in the
+  visitor's language ({@render viewSwitch("tab")}); any other string is shown as given (already translated).
+-->
 {#snippet viewSwitch(other: string, moving = m.music_shell_nt_highway(), on = highway.on, set = (v: boolean) => highway.set({ on: v }))}
+  {@const written = other === "chord" ? m.music_shell_nt_view_chord() : other === "tab" ? m.music_shell_nt_view_tab() : other === "chart" ? m.music_shell_nt_view_chart() : other}
   <div class="inline-flex gap-1 rounded-full bg-ws-stage-ink/10 p-1 text-sm font-medium" role="group" aria-label={m.music_shell_nt_view()}>
-    {#each [{ on: false, label: other }, { on: true, label: moving }] as v (v.label)}
+    {#each [{ on: false, label: written }, { on: true, label: moving }] as v (v.label)}
       <button
         type="button"
         class="min-h-9 rounded-full px-3.5 {on === v.on ? 'bg-ws-stage-ink text-ws-stage' : 'text-ws-stage-soft hover:text-ws-stage-ink'}"

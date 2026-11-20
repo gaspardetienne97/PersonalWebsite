@@ -16,7 +16,7 @@
   import * as Menu from "@repo/ui/dropdown-menu";
   import { LEVEL_FLOOR_DB, levelAdvice } from "@repo/music-core/signal/level";
   import { btn } from "#lib/music/components/ui.ts";
-  import { inputName, micOptions } from "#lib/music/hubs/connect/rig.ts";
+  import { DEFAULT_INPUT_LABEL, inputName, micOptions } from "#lib/music/hubs/connect/rig.ts";
   import { audio, db, deleteBinary, getBinary, mic, putBinary, settings, type AudioTakeRow, type SequenceHandle } from "#lib/music/runtime/index.ts";
   import RecordButton from "./RecordButton.svelte";
   import { download } from "./files";
@@ -273,7 +273,7 @@
         onchange={(v) => {
           deviceId = v;
           const d = mic.devices.find((x) => x.deviceId === v);
-          void settings.update({ audioInputDeviceId: v || undefined, audioInputLabel: d?.label ?? "Default input" });
+          void settings.update({ audioInputDeviceId: v || undefined, audioInputLabel: d?.label ?? DEFAULT_INPUT_LABEL });
         }}
       />
     </div>

@@ -18,6 +18,7 @@
         <button
           {...props}
           type="button"
+          data-hint
           class="-my-2 inline-grid size-11 shrink-0 place-items-center rounded-full align-middle text-ws-soft hover:text-ws-ink"
           aria-label={m.music_shell_hint_about({ about })}
           aria-describedby={id}

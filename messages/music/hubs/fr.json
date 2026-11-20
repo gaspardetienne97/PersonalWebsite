@@ -2225,5 +2225,10 @@
   "music_hubs_cr_not_saved_lower": "non enregistré",
   "music_hubs_cr_unsaved_lower": "modifications non enregistrées",
   "music_hubs_cr_saved_lower": "enregistré",
-  "music_hubs_tv_lick_title": "{title}, premières mesures"
+  "music_hubs_tv_lick_title": "{title}, premières mesures",
+  "music_hubs_paths_code_circle": "Cycle des quintes, étape {n}",
+  "music_hubs_paths_code_studio": "Oreille de studio, étape {n}",
+  "music_hubs_paths_code_step": "étape {n}",
+  "music_hubs_lick_from_transcription": "une transcription",
+  "music_hubs_lick_from_by_ear": "Apprendre à l’oreille"
 }

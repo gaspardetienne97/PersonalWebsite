@@ -29,17 +29,20 @@ describe("enough", () => {
 describe("timingRow", () => {
   it("is Not measured with the reason when too few landed", () => {
     expect(timingRow([0, 0, 0, 0], 12, 100)).toEqual({
+      kind: "timing",
       label: "Timing",
       notMeasured: true,
       text: TOO_FEW,
     });
     expect(timingRow([], 0, 100, "Timing vs the click")).toMatchObject({
+      kind: "timing",
       label: "Timing vs the click",
       notMeasured: true,
     });
   });
   it("averages the absolute error and says how many it came from", () => {
     expect(timingRow([-20, 20, 10, 30, 20], 8, 100)).toEqual({
+      kind: "timing",
       label: "Timing",
       value: 0.8,
       text: "20 ms off on average, from 5 of 8",
@@ -60,8 +63,14 @@ describe("timingRow", () => {
 
 describe("evennessRow", () => {
   it("shares the gate", () => {
-    expect(evennessRow(1, 3, 15)).toEqual({ label: "Evenness", notMeasured: true, text: TOO_FEW });
+    expect(evennessRow(1, 3, 15)).toEqual({
+      kind: "evenness",
+      label: "Evenness",
+      notMeasured: true,
+      text: TOO_FEW,
+    });
     expect(evennessRow(0.9, 12, 15)).toEqual({
+      kind: "evenness",
       label: "Evenness",
       value: 0.9,
       text: "90%, from 12 of 15",
