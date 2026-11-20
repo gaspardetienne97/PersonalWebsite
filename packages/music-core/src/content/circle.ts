@@ -158,8 +158,19 @@ export interface CirclePrompt {
   targetMs: number;
   /** Signature drills: the key signature to draw. */
   staff?: { fifths: number; clef: "treble" | "bass" };
-  /** Analysis: the tune, which of its chords this is, and the key centres to choose from. */
-  analysis?: { tune: string; index: number; keys: string[]; section: string };
+  /**
+   * Analysis: the tune, which of its chords this is, and the key centres to choose from; the chord
+   * symbol and its bar ("Bar 6", and "6" for a list under "Bars to go over") apart from `ask`.
+   */
+  analysis?: {
+    tune: string;
+    index: number;
+    keys: string[];
+    section: string;
+    chord: string;
+    bar: string;
+    barShort: string;
+  };
 }
 
 export interface CircleSetup {
@@ -437,7 +448,15 @@ export function analysisPrompts(tuneId: string): CirclePrompt[] {
     skillIds: ["theory.circle", "theory.circle.analysis"],
     fifths: keyFifths(c.key),
     targetMs: 15000,
-    analysis: { tune: tune.id, index: i, keys, section: c.section },
+    analysis: {
+      tune: tune.id,
+      index: i,
+      keys,
+      section: c.section,
+      chord: c.symbol,
+      bar: barLabel(c.bar, c.bars),
+      barShort: barShortLabel(c.bar, c.bars),
+    },
   }));
 }
 /** "Bar 6", "Bars 7 and 8", "Bar 6, second half". */
@@ -448,6 +467,16 @@ export function barLabel(bar: number, bars: number) {
   return bars >= 2
     ? m.music_content_circle_bars({ from: b, to: b + Math.round(bars) - 1 })
     : m.music_content_circle_bar({ bar: b });
+}
+
+/** The same without the word: "6", "7 to 8", "6, second half". */
+export function barShortLabel(bar: number, bars: number) {
+  const b = Math.floor(bar + 1e-9) + 1;
+  if (bar % 1 > 0.25) return m.music_content_circle_bar_short_second_half({ bar: b });
+  if (bars < 1) return m.music_content_circle_bar_short_first_half({ bar: b });
+  return bars >= 2
+    ? m.music_content_circle_bar_short_bars({ from: b, to: b + Math.round(bars) - 1 })
+    : String(b);
 }
 
 /** Right within the target: full credit; right but slow: three quarters (still deriving it); wrong: none. An analysis is half key, half function, never slow. */

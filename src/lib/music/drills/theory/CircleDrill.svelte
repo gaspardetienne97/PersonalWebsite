@@ -21,7 +21,7 @@
     type KeyBand,
   } from "@repo/music-core/content/circle";
   import { accidentalCount, diatonicChords, keyAt, wheelIndex } from "@repo/music-core/theory/circle";
-  import { analysisSheet, ANALYSIS_TUNES, functionRule } from "@repo/music-core/content/analysis";
+  import { analysisSheet, ANALYSIS_TUNES, functionLabel, functionRule } from "@repo/music-core/content/analysis";
   import { functionChord } from "@repo/music-core/content/ear";
   import { TUNES } from "@repo/music-core/content/tunes";
   import { circleLessons } from "@repo/music-core/lessons/circle";
@@ -188,7 +188,7 @@
     const slowKeys = modeId === "order" ? [] : [...new Set(records.filter((r) => !r.correct || r.slow).map((r) => keyName(r.prompt.fifths)))].slice(0, 6);
     // Analysis: which half was missed, and where.
     const half = (i: 0 | 1) => records.filter((r) => r.answered.split("|")[i] === r.prompt.answer.split("|")[i]).length;
-    const missedBars = records.filter((r) => !r.correct).map((r) => r.prompt.ask.replace(/:.*$/, "").replace(/^Bars? /, ""));
+    const missedBars = records.filter((r) => !r.correct).map((r) => r.prompt.analysis?.barShort ?? "");
     summary = {
       headline: analysing
         ? right === length
@@ -290,8 +290,10 @@
   /** Seconds to one decimal ("1.4"), and a target's seconds ("2"), in the reader's number format. */
   const tenths = (ms: number) => formatNumber(ms / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const seconds = (ms: number) => formatNumber(ms / 1000);
+  /** An analysis answer ("Ab|V of") as it reads: the key, then the function by its label. */
+  const analysisText = (t: string, sep: string) => t.split("|").map((x, i) => (i ? functionLabel(x) : x)).join(sep);
   /** How an answer reads on a button. */
-  const shown = (p: CirclePrompt, t: string) => (p.mode === "analysis" ? t.split("|").join(", ") : p.mode === "wheel" ? (Number(t) === 0 ? m.music_drills_circle_wheel_top({ key: keyAt(p.fifths).major }) : m.music_drills_circle_wheel_position({ key: keyAt(p.fifths).major, n: Number(t) + 1 })) : t);
+  const shown = (p: CirclePrompt, t: string) => (p.mode === "analysis" ? analysisText(t, ", ") : p.mode === "wheel" ? (Number(t) === 0 ? m.music_drills_circle_wheel_top({ key: keyAt(p.fifths).major }) : m.music_drills_circle_wheel_position({ key: keyAt(p.fifths).major, n: Number(t) + 1 })) : t);
   /** The rule behind the answer, said after a miss. */
   function rule(p: CirclePrompt): string {
     const k = keyAt(p.fifths);
@@ -485,9 +487,9 @@
               {@const opens = i === 0 || sheet[i - 1].analysis?.section !== c.analysis?.section}
               <li class="cell rounded-lg px-2 py-1 text-sm" data-state={i === qi ? "current" : done ? (mode === "practice" ? (done.correct ? "right" : "wrong") : "done") : null} aria-current={i === qi ? "step" : undefined}>
                 {#if opens}<span class="mr-1 text-sm text-ws-stage-soft">{c.analysis?.section}</span>{/if}
-                <span class="font-semibold">{c.ask.replace(/^.*: /, "")}</span>
-                {#if done && mode === "practice" && i !== qi}<span class="block text-sm">{c.answer.replace("|", " ")}</span>{/if}
-                <span class="sr-only">, {c.ask.replace(/:.*$/, "")}</span>
+                <span class="font-semibold">{c.analysis?.chord}</span>
+                {#if done && mode === "practice" && i !== qi}<span class="block text-sm">{analysisText(c.answer, " ")}</span>{/if}
+                <span class="sr-only">, {c.analysis?.bar}</span>
               </li>
             {/each}
           </ol>
@@ -527,7 +529,7 @@
           </div>
           <div class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7" role="group" aria-label={m.music_drills_circle_group_function()}>
             {#each p.choices as t (t)}
-              <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-base font-semibold" data-state={half(1, t)} aria-pressed={pickedFn === t} disabled={step !== "answer"} onclick={() => pickHalf("fn", t)}>{t}</button>
+              <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-base font-semibold" data-state={half(1, t)} aria-pressed={pickedFn === t} disabled={step !== "answer"} onclick={() => pickHalf("fn", t)}>{functionLabel(t)}</button>
             {/each}
           </div>
         </div>
