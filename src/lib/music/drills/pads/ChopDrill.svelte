@@ -39,6 +39,7 @@
   import MidiStatus from "./MidiStatus.svelte";
   import PadHighway, { type HighwayLane, type HighwayNote } from "./PadHighway.svelte";
   import { judgeHit, laneColor, overdue, wavePath, type Judgement, type WavePeaks } from "./lanes";
+  import { m } from "@repo/i18n/messages.js";
 
   let { modes, onmode }: { modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
 
@@ -52,7 +53,7 @@
   let file = $state.raw<{ name: string; buffer: AudioBuffer } | null>(null);
   const source = $derived<ChopSource>(
     s.source === "file" && file
-      ? { id: "file", label: file.name, bars: s.fileBars, bpm: Math.round(((s.fileBars * 4 * 60) / file.buffer.duration) * 10) / 10, detail: "Your loop" }
+      ? { id: "file", label: file.name, bars: s.fileBars, bpm: Math.round(((s.fileBars * 4 * 60) / file.buffer.duration) * 10) / 10, detail: m.music_winds_chop_your_loop_detail() }
       : (chopSource(s.source) ?? CHOP_SOURCES[0]),
   );
   /** An imported loop plays at its own speed, so the click follows it; the app's loops follow the strip. */
@@ -107,7 +108,7 @@
         wave = o;
       }
     } catch (e) {
-      cutError = `The loop couldn't be cut: ${(e as Error).message}`;
+      cutError = m.music_winds_chop_cut_error({ error: (e as Error).message });
     } finally {
       cutting = false;
     }
@@ -127,9 +128,9 @@
     try {
       file = { name: f.name.replace(/\.[^.]+$/, ""), buffer: await decodeLoop(f) };
       cfg.set({ source: "file" });
-      status = `${file.name}: ${file.buffer.duration.toFixed(2)} s. Set how many bars it is. The tempo follows.`;
+      status = m.music_winds_chop_file_loaded({ name: file.name, seconds: file.buffer.duration.toFixed(2) });
     } catch {
-      status = "That file couldn't be read as audio. Try a WAV or MP3.";
+      status = m.music_winds_chop_file_unreadable();
     }
   }
 
@@ -158,7 +159,7 @@
   // The slice number alone on each pad: "Slice 13" wrapped on a small pad, the number reads at a glance.
   const names = Object.fromEntries(Array.from({ length: CHOP_SLICES }, (_, i) => [slicePad(i), String(i + 1)]));
   // The lanes: the slices the piece plays, in order, each ringing until the next slice starts.
-  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: `Slice ${n}`, short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1), ...(slicePaths[n - 1] ? { wave: { d: slicePaths[n - 1], w: PER_SLICE } } : {}) })));
+  const lanes = $derived<HighwayLane[]>([...new Set(targets.map((t) => t.slice))].sort((a, b) => a - b).map((n) => ({ id: `slice-${n}`, label: m.music_winds_grid_slice({ n }), short: String(n), color: laneColor(`slice-${n}`), pad: slicePad(n - 1), ...(slicePaths[n - 1] ? { wave: { d: slicePaths[n - 1], w: PER_SLICE } } : {}) })));
   const sliceMs = $derived((source.bars * 4 * beatMs) / CHOP_SLICES);
   const live = $derived<(HighwayNote & { pad: number })[]>(
     targets.map((t, i) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.pad === t.pad), kind: "normal", durMs: Math.min(sliceMs, (targets[i + 1]?.atMs ?? lengthMs) - t.atMs) })),
@@ -184,10 +185,10 @@
 
   const summaryLine = $derived<SetupClause[]>([
     { text: CHOP_EXERCISES.find((x) => x.id === exercise)!.label, focus: "exercise" },
-    { text: `${source.label}, ${source.bars} bar${source.bars > 1 ? "s" : ""} on 16 pads`, focus: "source" },
+    { text: m.music_winds_chop_source_summary({ source: source.label, count: source.bars }), focus: "source" },
     ...(exercise === "reorder" ? [{ text: edit.label, focus: "edit" }] : []),
     // The strip shows the tempo; an imported loop's own tempo is news.
-    ...(source.id === "file" ? [{ text: `${Math.round(bpm)} BPM (the loop's)` }] : []),
+    ...(source.id === "file" ? [{ text: m.music_winds_chop_loop_bpm({ bpm: Math.round(bpm) }) }] : []),
   ]);
 
   function stopDemo() {
@@ -204,7 +205,7 @@
       : Array.from({ length: CHOP_SLICES * 2 }, (_, i) => ({ midi: slicePad(i % CHOP_SLICES), time: (i * source.bars * 4 * beatMs) / CHOP_SLICES / 1000, duration: 0.2, velocity: 0.9, voice: "kit" as const }));
     const handle = audio.playSequence(notes, { onNote: (i) => light(notes[i].midi - 36) });
     demo = handle;
-    status = piece ? "Demo: the slices as written. Not scored." : "Demo: the loop, slice by slice. Not scored.";
+    status = piece ? m.music_winds_chop_demo_written() : m.music_winds_chop_demo_loop();
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -249,7 +250,7 @@
       params: { bpm: Math.round(bpm), exercise, source: source.id, ...(exercise === "reorder" ? { edit: edit.id } : {}), ...(source.id === "file" ? { bars: source.bars } : {}) },
     });
     cap = capture(ctx.downbeat - beatMs / 2, (e) => e.kind === "noteon" && onHit(e as NoteEvent));
-    status = exercise === "free" ? `Bars 1 to ${FREE_BARS}: play your own chop. Then play it again.` : exercise === "order" ? "Slice 1 to 16, one after the other: the loop should come back." : "Play the slices as written.";
+    status = exercise === "free" ? m.music_winds_chop_status_free({ bars: FREE_BARS }) : exercise === "order" ? m.music_winds_chop_status_order() : m.music_winds_chop_status_written();
     const tick = () => {
       now = performance.now();
       const missed = phase === "running" && mode === "practice" && piece ? overdue(live, judged, now - downbeat, judgeWindow.good) : [];
@@ -288,36 +289,38 @@
       correct = r.correct;
       const wrong = r.perVoice.filter((v) => v.missed && v.extra).length;
       rows = [
-        { label: "Slices in place", value: r.matched / piece.targets.length, text: `${r.matched} of ${piece.targets.length}` },
-        { label: "Extra or wrong slices", text: r.extra ? String(r.extra) : "None" },
-        r.matched ? { label: r.matched < piece.targets.length ? `Timing, from the ${r.matched} slices hit` : "Timing", value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: `${Math.round(r.meanAbsErrorMs)} ms off on average` } : { label: "Timing: no slice was hit", notMeasured: true },
+        { label: m.music_winds_chop_row_in_place(), value: r.matched / piece.targets.length, text: m.music_winds_chop_of({ n: r.matched, total: piece.targets.length }) },
+        { label: m.music_winds_chop_row_extra(), text: r.extra ? String(r.extra) : m.music_winds_chop_none() },
+        r.matched ? { label: r.matched < piece.targets.length ? m.music_winds_chop_row_timing_from({ count: r.matched }) : m.music_winds_chop_row_timing(), value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: m.music_winds_chop_ms_off_avg({ ms: Math.round(r.meanAbsErrorMs) }) } : { label: m.music_winds_chop_row_timing_none(), notMeasured: true },
       ];
       headline = !ons.length
-        ? "No hits arrived. Check the line under the stage for why."
+        ? m.music_winds_chop_head_no_hits()
         : r.correct
-          ? `Every slice in its place, ${Math.round(r.meanAbsErrorMs)} ms off on average.`
+          ? m.music_winds_chop_head_correct({ ms: Math.round(r.meanAbsErrorMs) })
           : r.extra && wrong
-            ? `${r.missed} slices missed and ${r.extra} extra: some went to the wrong pad. The play order shows which.`
-            : `${r.matched} of ${piece.targets.length} slices in place${r.extra ? `, ${r.extra} extra` : ""}.`;
+            ? m.music_winds_chop_head_wrong_pad({ missed: r.missed, extra: r.extra })
+            : r.extra
+              ? m.music_winds_chop_head_in_place_extra({ matched: r.matched, total: piece.targets.length, extra: r.extra })
+              : m.music_winds_chop_head_in_place({ matched: r.matched, total: piece.targets.length });
     } else {
       take = ons.map((n) => ({ at: n.at, midi: n.midi, velocity: n.velocity }));
       const g = gradeFreeChop(take, downbeat, beatMs, FREE_BARS);
       score = g.score;
       correct = g.correct;
       rows = [
-        { label: "Played again", value: g.repeat, text: `${pct(g.repeat)} of the first take found again in the second` },
-        { label: "Time", value: g.time, text: g.meanAbsMs === null ? "no hits" : `${Math.round(g.meanAbsMs)} ms from the sixteenth grid on average` },
-        { label: "Hits", text: `${g.first} then ${g.second}` },
+        { label: m.music_winds_chop_row_played_again(), value: g.repeat, text: m.music_winds_chop_repeat_text({ pct: pct(g.repeat) }) },
+        { label: m.music_winds_chop_row_time(), value: g.time, text: g.meanAbsMs === null ? m.music_winds_chop_no_hits() : m.music_winds_chop_grid_avg({ ms: Math.round(g.meanAbsMs) }) },
+        { label: m.music_winds_chop_row_hits(), text: m.music_winds_chop_hits_then({ first: g.first, second: g.second }) },
       ];
       headline = !ons.length
-        ? "Nothing was played."
+        ? m.music_winds_chop_head_nothing()
         : g.first < FREE_CHOP.minHits
-          ? `Only ${g.first} hits in the first four bars: make a pattern of at least ${FREE_CHOP.minHits}.`
+          ? m.music_winds_chop_head_too_few({ count: g.first, min: FREE_CHOP.minHits })
           : g.correct
-            ? `A chop of ${g.first} hits, played again ${pct(g.repeat)} the same, in time.`
+            ? m.music_winds_chop_head_free_ok({ count: g.first, pct: pct(g.repeat) })
             : g.repeat < FREE_CHOP.repeatPass
-              ? `The second take matched ${pct(g.repeat)} of the first: keep the pattern simple enough to play twice.`
-              : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25 ms.`;
+              ? m.music_winds_chop_head_repeat_low({ pct: pct(g.repeat) })
+              : m.music_winds_chop_head_grid_off({ ms: Math.round(g.meanAbsMs ?? 0) });
     }
     if (!ons.length) {
       // Nothing played: the standard not-heard card, no 0% and no bars measured from zero hits.
@@ -337,7 +340,7 @@
     summary = {
       headline,
       metric: pct(score),
-      metricLabel: "score",
+      metricLabel: m.music_winds_score(),
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
@@ -360,7 +363,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_winds_nothing_saved();
   }
 
   onDestroy(() => {
@@ -402,20 +405,20 @@
             <line class="cut" class:beat={i % perBeat === 0} x1={i * PER_SLICE} x2={i * PER_SLICE} y1="-1" y2="1" />
           {/each}
         </svg>
-        <ol aria-label="The loop, cut into {CHOP_SLICES} slices">
+        <ol aria-label={m.music_winds_chop_loop_aria({ count: CHOP_SLICES })}>
           {#each slicePaths as _, i (i)}
-            <li class:beat={i % perBeat === 0} data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} aria-label="Slice {i + 1}{lit === i ? ', sounding' : ''}"><span>{i + 1}</span></li>
+            <li class:beat={i % perBeat === 0} data-on={lit === i || undefined} style:--c={laneColor(`slice-${i + 1}`)} aria-label={lit === i ? m.music_winds_chop_slice_sounding({ n: i + 1 }) : m.music_winds_grid_slice({ n: i + 1 })}><span>{i + 1}</span></li>
           {/each}
         </ol>
       </div>
     {/if}
-    <figcaption class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{source.label}.</span> {source.detail}. Slice 1 on A01, bottom left. {cutError}</figcaption>
+    <figcaption class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{source.label}.</span> {source.detail}. {m.music_winds_chop_slice_one()} {cutError}</figcaption>
   </figure>
 {/snippet}
 
 {#snippet padGrid()}
   <div data-dock="answers">
-    <Pads {marks} {flashes} {timing} {names} fit={running && !showLanes} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label="MPC pads, bank A, a slice on each. Computer keys Z X C V play the bottom row." />
+    <Pads {marks} {flashes} {timing} {names} fit={running && !showLanes} colors={Object.fromEntries(lanes.map((l) => [l.pad, l.color]))} label={m.music_winds_chop_pads_label()} />
   </div>
 {/snippet}
 
@@ -425,9 +428,9 @@
 {/snippet}
 
 <DrillShell
-  title="Pads"
+  title={m.music_winds_pads_title()}
   hue="mpc"
-  blurb="A loop cut into 16 slices, one a pad. Play them back in order, in a new order, or chop your own."
+  blurb={m.music_winds_chop_blurb()}
   summary={summaryLine}
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab="chop"
@@ -442,31 +445,31 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={source.id === "file" && !file ? "Import your loop first, or pick one of Woodshed's." : cutting || loaded !== want ? "Cutting the loop into slices…" : cutError || null}
+  blocked={source.id === "file" && !file ? m.music_winds_chop_blocked_import() : cutting || loaded !== want ? m.music_winds_chop_blocked_cutting() : cutError || null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Exercise" options={CHOP_EXERCISES.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail }))} value={exercise} onchange={(v) => cfg.set({ exercise: v })} setupKey="exercise" />
-      <Choice label="Loop" options={[...CHOP_SOURCES.map((x) => ({ value: x.id, label: x.label, detail: x.detail })), { value: "file", label: "Your own loop", detail: "A WAV or MP3 you import" }]} value={s.source} onchange={(v) => {
+      <Choice label={m.music_winds_exercise()} options={CHOP_EXERCISES.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail }))} value={exercise} onchange={(v) => cfg.set({ exercise: v })} setupKey="exercise" />
+      <Choice label={m.music_winds_chop_loop()} options={[...CHOP_SOURCES.map((x) => ({ value: x.id, label: x.label, detail: x.detail })), { value: "file", label: m.music_winds_chop_own_loop(), detail: m.music_winds_chop_own_loop_detail() }]} value={s.source} onchange={(v) => {
         cfg.set({ source: v });
         const src = chopSource(v);
         if (src) settings.update({ bpm: src.bpm });
       }} setupKey="source" />
       {#if exercise === "reorder"}
-        <Choice label="Order" options={edits.map((e) => ({ value: e.id, label: e.label }))} value={edit.id} onchange={(v) => cfg.set({ edit: v })} setupKey="edit" />
+        <Choice label={m.music_winds_chop_order()} options={edits.map((e) => ({ value: e.id, label: e.label }))} value={edit.id} onchange={(v) => cfg.set({ edit: v })} setupKey="edit" />
       {/if}
       {#if s.source === "file"}
         <label class="flex flex-col gap-1 text-sm">
-          <span class="font-semibold">Your loop</span>
+          <span class="font-semibold">{m.music_winds_chop_your_loop_detail()}</span>
           <input type="file" accept="audio/*" class="text-sm" onchange={importFile} />
-          <span class="text-ws-soft">{file ? `${file.name}, ${file.buffer.duration.toFixed(2)} s` : "Trimmed to the loop, one or more whole bars. Kept until you leave the page."}</span>
+          <span class="text-ws-soft">{file ? m.music_winds_chop_file_info({ name: file.name, seconds: file.buffer.duration.toFixed(2) }) : m.music_winds_chop_file_hint()}</span>
         </label>
-        <Choice label="Bars in the loop" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.fileBars} onchange={(v) => cfg.set({ fileBars: v })} setupKey="fileBars" />
+        <Choice label={m.music_winds_chop_bars_in_loop()} options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.fileBars} onchange={(v) => cfg.set({ fileBars: v })} setupKey="fileBars" />
       {/if}
       {#if piece}
-        <Choice label="View" options={[{ value: "lanes", label: "Lanes" }, { value: "grid", label: "Order" }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
+        <Choice label={m.music_winds_view()} options={[{ value: "lanes", label: m.music_winds_view_lanes() }, { value: "grid", label: m.music_winds_chop_order() }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
         {#if lanesView}
-          <Choice label="Look ahead" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "1 bar" : `${n} bars` }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
+          <Choice label={m.music_winds_look_ahead()} options={[1, 2, 4].map((n) => ({ value: n, label: m.music_winds_bars_count({ count: n }) }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
         {/if}
       {/if}
     </div>
@@ -474,9 +477,9 @@
 
   {#snippet hud()}
     {#if phase === "running" && freeHalf}
-      <Stat label="Now" value={freeHalf === "first" ? "your chop" : "play it again"} tone={freeHalf === "again" ? "success" : undefined} />
+      <Stat label={m.music_winds_chop_now()} value={freeHalf === "first" ? m.music_winds_chop_your_chop() : m.music_winds_chop_play_again()} tone={freeHalf === "again" ? "success" : undefined} />
     {:else if phase === "running" && stepNow !== null}
-      <Stat label="Bar" value={`${Math.min(Math.floor(stepNow / 16) + 1, Math.ceil(lengthMs / (4 * beatMs)))} of ${Math.ceil(lengthMs / (4 * beatMs))}`} />
+      <Stat label={m.music_winds_bar()} value={m.music_winds_chop_of({ n: Math.min(Math.floor(stepNow / 16) + 1, Math.ceil(lengthMs / (4 * beatMs))), total: Math.ceil(lengthMs / (4 * beatMs)) })} />
     {/if}
   {/snippet}
 
@@ -493,7 +496,7 @@
           {judged}
           flash={flashNote}
           countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
-          label="{lanes.length} slices: notes coming up"
+          label={m.music_winds_chop_highway_label({ count: lanes.length })}
           pads={side}
           fill={running}
           alone={running ? null : "pads"}
@@ -502,8 +505,8 @@
         {@render slicePicture()}
         <!-- The order to play, a cell a step: the slice number, and after a run how it landed. The step due now is
              ringed in both modes (it is the clock, not a hint: the order is written). -->
-        <p class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">Play order.</span> {exercise === "order" ? "In order, a slice each step" : `${edit.every === 0.5 ? "An eighth" : edit.every === 1 ? "A beat" : "A sixteenth"} a step. A dot lets the slice before ring`}.</p>
-        <ol class="chop-strip" aria-label="Play order">
+        <p class="text-sm text-ws-stage-soft"><span class="font-semibold text-ws-stage-ink">{m.music_winds_chop_play_order()}</span> {exercise === "order" ? m.music_winds_chop_step_in_order() : edit.every === 0.5 ? m.music_winds_chop_step_eighth() : edit.every === 1 ? m.music_winds_chop_step_beat() : m.music_winds_chop_step_sixteenth()}</p>
+        <ol class="chop-strip" aria-label={m.music_winds_chop_play_order_aria()}>
           {#each cells as c, i (i)}
             <li
               class="cell"
@@ -511,15 +514,15 @@
               data-now={cellNow === i || undefined}
               data-done={(cellNow !== null && i < cellNow) || undefined}
               data-result={c.outcome === undefined ? undefined : c.outcome === null ? "miss" : Math.abs(c.outcome) <= goodMs ? "ok" : "off"}
-              title={c.outcome === undefined ? undefined : c.outcome === null ? "missed" : `${c.outcome > 0 ? "late" : "early"} by ${Math.abs(Math.round(c.outcome))} ms`}
+              title={c.outcome === undefined ? undefined : c.outcome === null ? m.music_winds_missed() : (c.outcome > 0 ? m.music_winds_late_by : m.music_winds_early_by)({ ms: Math.abs(Math.round(c.outcome)) })}
             >
-              {#if c.slice}<span class="font-semibold">{c.slice}</span>{:else}<span aria-label="ring on">•</span>{/if}
+              {#if c.slice}<span class="font-semibold">{c.slice}</span>{:else}<span aria-label={m.music_winds_chop_ring_on()}>•</span>{/if}
             </li>
           {/each}
         </ol>
       {:else}
         {@render slicePicture()}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">Bars 1 to {FREE_BARS}: play any slices, in any rhythm, to the click. Bars {FREE_BARS + 1} to {FREE_BARS * 2}: play the same again. Scored on playing it again and on time. Hear it back after.</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">{m.music_winds_chop_free_help({ bars: FREE_BARS, from: FREE_BARS + 1, to: FREE_BARS * 2 })}</p>
       {/if}
       {#if !showLanes}{@render padGrid()}{/if}
     </div>
@@ -529,7 +532,7 @@
     {#if summary}
       <Results {summary}>
         {#snippet actions()}
-          {#if take.length}<button type="button" class={btn} onclick={hearTake}>Hear your chop</button>{/if}
+          {#if take.length}<button type="button" class={btn} onclick={hearTake}>{m.music_winds_chop_hear()}</button>{/if}
         {/snippet}
       </Results>
     {/if}

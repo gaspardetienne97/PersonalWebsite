@@ -6,6 +6,8 @@ import type { DeviceProfile, Instrument } from "@repo/music-core";
 import { noteName } from "@repo/music-core";
 import { parseMidiMessage } from "@repo/music-core/io/midi-message";
 import { detectInstrument, rewritePadNote } from "@repo/music-core/io/devices";
+import { m } from "@repo/i18n/messages.js";
+import { formatList } from "@repo/i18n/format";
 
 export interface PortLike {
   id: string;
@@ -33,27 +35,25 @@ export function explainNote(
   if (!e || e.kind !== "noteon") return null;
   const name = profile?.alias ?? port.name;
   const said = (text: string, used: boolean) => ({ text, used, midi: e.midi });
-  if (profile?.ignored)
-    return said(`A note from ${name} was dropped: that device is hidden in Connect.`, false);
+  if (profile?.ignored) return said(m.music_winds_midi_dropped_hidden({ name }), false);
   if (profile?.channel && e.channel && e.channel !== profile.channel)
     return said(
-      `A note from ${name} was dropped: it came on channel ${e.channel}, and Connect pins the device to channel ${profile.channel}.`,
+      m.music_winds_midi_dropped_channel({ name, channel: e.channel, pinned: profile.channel }),
       false,
     );
   if (instrumentOf(port, profile) !== "mpc")
-    return said(`Hearing ${name}. Last note: ${noteName(e.midi)}.`, true);
+    return said(m.music_winds_midi_hearing_note({ name, note: noteName(e.midi) }), true);
   const mapped = rewritePadNote(e.midi, profile?.padNotes);
   if (profile?.padNotes && profile.padNotes.includes(e.midi))
-    return said(`Hearing ${name}. Last hit: pad ${padLabel(mapped)}.`, true);
+    return said(m.music_winds_midi_hearing_pad({ name, pad: padLabel(mapped) }), true);
   if (inBankA(mapped))
     return said(
-      `Hearing ${name}. Last hit: pad ${padLabel(mapped)}${profile?.padNotes ? " (not in your saved pad map)" : ", using the default pad order"}.`,
+      (profile?.padNotes
+        ? m.music_winds_midi_hearing_pad_unsaved
+        : m.music_winds_midi_hearing_pad_default)({ name, pad: padLabel(mapped) }),
       true,
     );
-  return said(
-    `${name} sent a pad outside bank A, so no pad lights. Save the pad map for your drum program in Connect.`,
-    true,
-  );
+  return said(m.music_winds_midi_outside_bank({ name }), true);
 }
 
 /** Why nothing is arriving yet, in the order the owner actually hit these. */
@@ -65,8 +65,8 @@ export function waitingReason(s: {
   profiles: readonly DeviceProfile[];
   link: "off" | "no-sysex" | "no-output" | "linked";
 }): string {
-  if (!s.supported) return "This browser has no Web MIDI. Use Chrome or Edge, or play on screen.";
-  if (!s.enabled) return "MIDI is off, so no hardware notes reach this drill.";
+  if (!s.supported) return m.music_winds_midi_no_webmidi();
+  if (!s.enabled) return m.music_winds_midi_off();
   const mine = s.inputs.filter(
     (p) =>
       instrumentOf(
@@ -74,24 +74,32 @@ export function waitingReason(s: {
         s.profiles.find((x) => x.id === p.id),
       ) === s.instrument,
   );
-  const noun =
-    s.instrument === "mpc" ? "MPC" : s.instrument === "aerophone" ? "Aerophone" : "device";
-  if (!mine.length) return `No ${noun} port is connected. On-screen input works meanwhile.`;
+  const kind = s.instrument === "mpc" || s.instrument === "aerophone" ? s.instrument : "device";
+  if (!mine.length)
+    return {
+      mpc: m.music_winds_midi_no_port_mpc,
+      aerophone: m.music_winds_midi_no_port_aerophone,
+      device: m.music_winds_midi_no_port_device,
+    }[kind]();
   const live = mine.filter((p) => !s.profiles.find((x) => x.id === p.id)?.ignored);
   if (!live.length)
-    return `Every ${noun} port is ignored in Connect, so none of its notes reach the drill.`;
+    return {
+      mpc: m.music_winds_midi_all_ignored_mpc,
+      aerophone: m.music_winds_midi_all_ignored_aerophone,
+      device: m.music_winds_midi_all_ignored_device,
+    }[kind]();
   if (s.instrument === "mpc") {
     if (s.link === "linked")
-      return `Linked and listening on ${live.map((p) => p.name).join(", ")}. Hit a pad.`;
+      return m.music_winds_midi_linked({ ports: live.map((p) => p.name).join(", ") });
     // The port is there (the top bar names it) and MIDI is on: what is missing is the link, without which a
     // standalone MPC keeps its pad notes to itself. Said as that, never as "not heard" (a hit that does arrive is).
-    const fix =
+    const waiting =
       s.link === "no-sysex"
-        ? "allow SysEx, then link it in Connect."
+        ? m.music_winds_midi_waiting_sysex
         : s.link === "no-output"
-          ? "its output isn't connected, so check the cable, then Connect."
-          : "link it in Connect.";
-    return `${live.map((p) => p.name).join(" and ")} ${live.length > 1 ? "are" : "is"} connected, but no pad hit has arrived yet. If the pads stay silent here, ${fix}`;
+          ? m.music_winds_midi_waiting_output
+          : m.music_winds_midi_waiting_link;
+    return waiting({ ports: formatList(live.map((p) => p.name)), count: live.length });
   }
-  return `Listening on ${live.map((p) => p.name).join(", ")}. Play a note.`;
+  return m.music_winds_midi_listening({ ports: live.map((p) => p.name).join(", ") });
 }

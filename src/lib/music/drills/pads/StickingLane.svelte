@@ -4,6 +4,7 @@
   // it landed (glyph plus ms), so colour is never the only cue.
   import type { PadHit } from "@repo/music-core/content/winds-pads";
   import { padLabel } from "./midi-status";
+  import { m } from "@repo/i18n/messages.js";
 
   interface Props {
     hits: PadHit[];
@@ -25,15 +26,15 @@
   function verdict(i: number) {
     if (!outcomes) return null;
     const o = outcomes[i];
-    if (!o) return { glyph: "✕", text: "missed", kind: "miss" };
-    if (!o.rightPad) return { glyph: "✕", text: "wrong pad", kind: "miss" };
+    if (!o) return { glyph: "✕", text: m.music_winds_missed(), kind: "miss" };
+    if (!o.rightPad) return { glyph: "✕", text: m.music_winds_stick_wrong_pad(), kind: "miss" };
     const ms = Math.round(o.errorMs);
     if (Math.abs(ms) <= windowMs) return { glyph: "✓", text: `${ms > 0 ? "+" : ""}${ms}`, kind: "ok" };
     return { glyph: ms > 0 ? "›" : "‹", text: `${ms > 0 ? "+" : ""}${ms}`, kind: "off" };
   }
 </script>
 
-<ol class="lane" aria-label="Sticking, {main.length} strokes">
+<ol class="lane" aria-label={m.music_winds_stick_aria({ count: main.length })}>
   {#each main as h, i (i)}
     {@const v = verdict(i)}
     {@const beat = beatOf(h)}
@@ -45,9 +46,9 @@
       data-kind={v?.kind}
     >
       <span class="count">{beat ?? ""}</span>
-      <span class="hand">{h.hand === "left" ? "L" : "R"}{#if h.accent}<span aria-label=", accent">&gt;</span>{/if}</span>
-      <span class="pad">{flam ? "flam " : ""}{padLabel(h.pad)}</span>
-      {#if v}<span class="v tnum"><span aria-hidden="true">{v.glyph}</span> {v.kind === "miss" ? v.text : `${v.text} ms`}</span>{/if}
+      <span class="hand">{h.hand === "left" ? m.music_winds_stick_left() : m.music_winds_stick_right()}{#if h.accent}<span aria-label={m.music_winds_stick_accent()}>&gt;</span>{/if}</span>
+      <span class="pad">{flam ? m.music_winds_stick_flam_pad({ pad: padLabel(h.pad) }) : padLabel(h.pad)}</span>
+      {#if v}<span class="v tnum"><span aria-hidden="true">{v.glyph}</span> {v.kind === "miss" ? v.text : m.music_winds_stick_ms({ value: v.text })}</span>{/if}
     </li>
   {/each}
 </ol>

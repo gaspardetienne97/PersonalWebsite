@@ -62,6 +62,13 @@
   import { NoteRepeat } from "./note-repeat";
   import SongBuilder from "./SongBuilder.svelte";
   import { loadSlices, padSound, restoreKit } from "./slices";
+  import { m } from "@repo/i18n/messages.js";
+
+  /** A dynamic level's word ("soft", "rising"): the id is what the code compares, this is what reads. */
+  const DYN_WORDS: Record<Dyn, () => string> = { soft: m.music_winds_dyn_soft, medium: m.music_winds_dyn_medium, loud: m.music_winds_dyn_loud, rising: m.music_winds_dyn_rising };
+  const dynName = (d: string) => DYN_WORDS[d as Dyn]?.() ?? d;
+  /** Facts about a section or a take, each a whole phrase, read as one line. */
+  const facts = (...parts: (string | false | null | undefined | 0)[]) => parts.filter(Boolean).join(", ");
 
   type SkillMode = "dynamics" | "fills" | "echo" | "ostinato" | "orchestrate" | "improvise" | "phrases" | "repeat" | "song";
   let { skill, modes, onmode }: { skill: SkillMode; modes: readonly (readonly [string, string])[]; onmode: (m: string) => void } = $props();
@@ -138,11 +145,11 @@
     const source = chopSource(key.split("@")[0]);
     if (!key || key === slicesFor || !source) return;
     const t = setTimeout(() => {
-      slicing = "Cutting the chop's loop into slices…";
+      slicing = m.music_winds_skills_cutting();
       loadSlices(source, bpm)
         .then(() => (slicesFor = key))
         .then(() => (slicing = null))
-        .catch((e: Error) => (slicing = `The chop's loop couldn't be cut: ${e.message}`));
+        .catch((e: Error) => (slicing = m.music_winds_skills_cut_error({ error: e.message })));
     }, 250);
     return () => clearTimeout(t);
   });
@@ -174,7 +181,7 @@
     const kit = targets.map((t) => ({ midi: voicePads[t.voice], time: (t.beat * beatMs) / 1000, duration: 0.12, velocity: t.accent === "accent" ? 0.8 : t.accent === "ghost" ? 0.3 : 0.55, voice: "drum" as const }));
     return [...kit, ...backingFor(loopEntry.style, targets, improBars, beatMs)];
   }
-  const loopName = (id: string) => (id === "funk" ? "Funk vamp, band only" : (repertoireFor(id)?.groove.label ?? id));
+  const loopName = (id: string) => (id === "funk" ? m.music_winds_skills_funk_vamp() : (repertoireFor(id)?.groove.label ?? id));
   const lengthMs = $derived(gt ? gt.lengthMs + (grooveDef!.targets.some((t) => t.beat >= grooveDef!.bars * 4) ? beatMs : 0) : skill === "dynamics" ? dyn.notes * (beatMs / dyn.perBeat) : improBars * barMs);
 
   /** Intro lessons: the mode's, then a card for each item the setup picked (a fill, a line, a repeat rate...). */
@@ -234,7 +241,7 @@
     const c = capture(performance.now(), (e) => {
       if (e.kind !== "noteon") return;
       if (!e.velocityMeasured) {
-        status = "Calibration needs the MPC: on-screen pads carry no velocity.";
+        status = m.music_winds_skills_cal_needs_mpc();
         return;
       }
       if (calibrating === "soft") {
@@ -249,13 +256,13 @@
           if (r) {
             range = r;
             void putSetting(RANGE_KEY, r);
-            status = `Range set: soft ${Math.round(r.soft * 127)}, loud ${Math.round(r.loud * 127)} (MIDI velocity).`;
-          } else status = "Those were too close together. Try the softest you can, then the hardest.";
+            status = m.music_winds_skills_cal_set({ soft: Math.round(r.soft * 127), loud: Math.round(r.loud * 127) });
+          } else status = m.music_winds_skills_cal_too_close();
         }
       }
     });
     calStop = c.stop;
-    status = "Play your four softest hits on any pad, then your four loudest.";
+    status = m.music_winds_skills_cal_prompt();
   }
 
   const sixteenthNow = $derived(phase === "running" && now >= downbeat ? Math.floor((now - downbeat) / (beatMs / gridPer)) : null);
@@ -273,7 +280,7 @@
 
   // The lanes: one per drum (or slice), the notes judged live as they pass.
   const lanes = $derived<HighwayLane[]>(
-    gt ? orderLanes(gt.targets.map((t) => t.voice)).map((v) => ({ id: v, label: GROOVE_VOICES.find((x) => x.id === v)?.name ?? v.replace("slice-", "Slice "), color: laneColor(v), pad: gt!.targets.find((t) => t.voice === v)!.pad })) : [],
+    gt ? orderLanes(gt.targets.map((t) => t.voice)).map((v) => ({ id: v, label: GROOVE_VOICES.find((x) => x.id === v)?.name ?? (v.startsWith("slice-") ? m.music_winds_grid_slice({ n: v.slice(6) }) : v), color: laneColor(v), pad: gt!.targets.find((t) => t.voice === v)!.pad })) : [],
   );
   const live = $derived<(HighwayNote & { pad: number })[]>(gt ? gt.targets.map((t) => ({ pad: t.pad, atMs: t.atMs, lane: lanes.findIndex((l) => l.id === t.voice), kind: t.accent ? "accent" : t.ghost ? "ghost" : "normal" })) : []);
   const judgeWindow = $derived({ perfect: (gt?.matchWindowMs ?? 60) / 2, good: gt?.matchWindowMs ?? 60 });
@@ -298,24 +305,24 @@
     ...(skill === "phrases"
       ? [{ text: `${padPhrase.groove.label} (${padPhrase.style})`, focus: "phrase" }]
       : skill === "fills"
-        ? [{ text: `Fill: ${PAD_FILLS.find((f) => f.id === s.fill)?.label ?? ""}`, focus: "fill" }, { text: `after three bars of ${PAD_FILLS.find((f) => f.id === s.fill)?.groove ? "shuffle" : "rock"}, landing on the one` }]
+        ? [{ text: m.music_winds_skills_sum_fill({ fill: PAD_FILLS.find((f) => f.id === s.fill)?.label ?? "" }), focus: "fill" }, { text: PAD_FILLS.find((f) => f.id === s.fill)?.groove ? m.music_winds_skills_sum_after_shuffle() : m.music_winds_skills_sum_after_rock() }]
         : skill === "orchestrate"
-          ? [{ text: `Paradiddle: ${orch.label.toLowerCase()}`, focus: "orch" }]
+          ? [{ text: m.music_winds_skills_sum_paradiddle({ orch: orch.label.toLowerCase() }), focus: "orch" }]
           : skill === "ostinato"
             ? s.line === "clave"
-              ? [{ text: "Son clave on the rim" }, { text: "the kick moves under it", focus: "line" }]
+              ? [{ text: m.music_winds_skills_sum_clave_rim() }, { text: m.music_winds_skills_sum_kick_moves(), focus: "line" }]
               : s.line === "read"
-                ? [{ text: "Hats eighths" }, { text: `the ${interp} reads four new bars`, focus: "line" }]
-                : [{ text: "Hats eighths" }, { text: `then a snare line: ${READING_LINES.find((r) => r.id === s.line)?.label ?? ""}`, focus: "line" }]
+                ? [{ text: m.music_winds_skills_sum_hats_eighths() }, { text: interp === "kick" ? m.music_winds_skills_sum_kick_reads() : m.music_winds_skills_sum_snare_reads(), focus: "line" }]
+                : [{ text: m.music_winds_skills_sum_hats_eighths() }, { text: m.music_winds_skills_sum_snare_line({ line: READING_LINES.find((r) => r.id === s.line)?.label ?? "" }), focus: "line" }]
             : skill === "repeat"
-              ? [{ text: `Note repeat: ${NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.label ?? ""}`, focus: "rep" }]
+              ? [{ text: m.music_winds_skills_sum_repeat({ exercise: NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.label ?? "" }), focus: "rep" }]
               : skill === "song"
-                ? [{ text: ownSong?.label ?? songForm.label, focus: "form" }, { text: `${songDef?.bars ?? 0} bars in one take${ownSet?.ok ? ", the set" : ""}` }]
+                ? [{ text: ownSong?.label ?? songForm.label, focus: "form" }, { text: (ownSet?.ok ? m.music_winds_skills_sum_one_take_set : m.music_winds_skills_sum_one_take)({ bars: songDef?.bars ?? 0 }) }]
             : skill === "echo"
-              ? [{ text: `Play it back: ${ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? ""}`, focus: "echo" }, { text: "four rounds" }]
+              ? [{ text: m.music_winds_skills_sum_echo({ level: ECHO_LEVELS.find((l) => l.id === s.echo)?.label ?? "" }), focus: "echo" }, { text: m.music_winds_skills_sum_four_rounds() }]
               : skill === "dynamics"
                 ? [{ text: dyn.label, focus: "dyn" }]
-                : [{ text: `Improvise over ${improBars} bars`, focus: "bars" }, { text: loopEntry ? `of ${loopEntry.groove.label} and the band` : "of the band", focus: "loop" }, ...(fillEvery ? [{ text: `a fill every ${fillEvery} bars`, focus: "fillEvery" }] : [])]),
+                : [{ text: m.music_winds_skills_sum_improvise({ bars: improBars }), focus: "bars" }, { text: loopEntry ? m.music_winds_skills_sum_of_loop({ loop: loopEntry.groove.label }) : m.music_winds_skills_sum_of_band(), focus: "loop" }, ...(fillEvery ? [{ text: m.music_winds_skills_sum_fill_every({ bars: fillEvery }), focus: "fillEvery" }] : [])]),
     { text: `${bpm} BPM` },
   ]);
 
@@ -342,7 +349,7 @@
         : improBacking();
     const handle = audio.playSequence(notes);
     demo = handle;
-    status = skill === "echo" ? "Demo: the four calls. In a run, a bar for your answer follows each." : "Demo playing, not scored.";
+    status = skill === "echo" ? m.music_winds_skills_demo_calls() : m.music_winds_skills_demo_playing();
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -411,10 +418,10 @@
     if (skill === "improvise") {
       const lead = Math.max(0, (ctx.downbeat - performance.now()) / 1000);
       band = audio.playSequence(improBacking().map((n) => ({ ...n, time: n.time + lead })));
-      status = loopEntry ? "Improvise: any pads, any rhythm, over the loop. Lock in with its kick." : "Improvise: any pads, any rhythm. Listen to the band and lock in.";
-    } else if (skill === "dynamics") status = s.dyn === "ladder" ? "Four soft, four a little louder, four louder, four loudest." : s.dyn === "crescendo" ? "Start as soft as you can and grow to your loudest." : "Every hit the same: a steady middle level.";
-    else if (skill === "echo") status = "Listen to the bar, then play it back in the next.";
-    else if (skill === "repeat") status = "Hold the pad to repeat it. Let go to stop. The rate follows the chart.";
+      status = loopEntry ? m.music_winds_skills_go_improvise_loop() : m.music_winds_skills_go_improvise_band();
+    } else if (skill === "dynamics") status = s.dyn === "ladder" ? m.music_winds_skills_go_ladder() : s.dyn === "crescendo" ? m.music_winds_skills_go_crescendo() : m.music_winds_skills_go_even();
+    else if (skill === "echo") status = m.music_winds_skills_go_echo();
+    else if (skill === "repeat") status = m.music_winds_skills_go_repeat();
     if (ownPiece?.under.length) {
       const lead = Math.max(0, (ctx.downbeat - performance.now()) / 1000);
       band = audio.playSequence(ownPiece.under.map((t) => hearTarget(t, lead)));
@@ -430,12 +437,16 @@
 
   /** The calibrated range when there is one; else most of the MPC's velocity (Full Level off). */
   function dynWord(d: { dyn: Dyn; level: number | null; ok: boolean | null }) {
-    if (d.ok === null) return `${d.dyn}: nothing played`;
-    if (d.ok) return `${d.dyn}, right`;
-    if (d.dyn === "rising") return "rising: it didn't climb";
-    return `${d.dyn}: too ${d.level! > DYN_BANDS[d.dyn][1] ? "loud" : "soft"}`;
+    if (d.ok === null) return m.music_winds_skills_dyn_nothing({ dyn: dynName(d.dyn) });
+    if (d.ok) return m.music_winds_skills_dyn_right({ dyn: dynName(d.dyn) });
+    if (d.dyn === "rising") return m.music_winds_skills_dyn_no_climb();
+    return (d.level! > DYN_BANDS[d.dyn][1] ? m.music_winds_skills_dyn_too_loud : m.music_winds_skills_dyn_too_soft)({ dyn: dynName(d.dyn) });
   }
-  const ms = (x: number | null | undefined) => (x === null || x === undefined ? "none" : `${x > 0 ? "+" : ""}${Math.round(x)} ms`);
+  const ms = (x: number | null | undefined) => (x === null || x === undefined ? m.music_winds_skills_none() : m.music_winds_stick_ms({ value: `${x > 0 ? "+" : ""}${Math.round(x)}` }));
+  /** A drift in BPM, signed: "+1.5". */
+  const signed = (x: number) => `${x > 0 ? "+" : ""}${x.toFixed(1)}`;
+  /** "3 of 4, 1 extra": the notes a section matched, and any extras. */
+  const matchedOf = (x: { matched: number; missed: number; extra: number }) => facts(m.music_winds_chop_of({ n: x.matched, total: x.matched + x.missed }), x.extra && m.music_winds_skills_extra({ count: x.extra }));
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -465,11 +476,19 @@
       rows = g.sections.map((x) => ({
         label: x.label.charAt(0).toUpperCase() + x.label.slice(1),
         value: x.solo ? x.solo.score : x.matched / Math.max(1, x.matched + x.missed),
-        text: `${x.solo ? (x.solo.meanAbsMs === null ? "nothing played" : `${Math.round(x.solo.meanAbsMs)} ms from the grid, ${pct(x.solo.density)} of bars kept going${x.solo.driftBpm !== null && Math.abs(x.solo.driftBpm) >= 2 ? `, drifted ${x.solo.driftBpm > 0 ? "+" : ""}${x.solo.driftBpm.toFixed(1)} BPM` : ""}`) : `${x.matched} of ${x.matched + x.missed}${x.extra ? `, ${x.extra} extra` : ""}`}${x.dyn ? `, ${dynWord(x.dyn)}` : ""}${x.pass ? ", passed" : ""}`,
+        text: facts(
+          x.solo
+            ? x.solo.meanAbsMs === null
+              ? m.music_winds_skills_nothing_played()
+              : facts(m.music_winds_skills_solo_grid({ ms: Math.round(x.solo.meanAbsMs) }), m.music_winds_skills_solo_kept({ pct: pct(x.solo.density) }), x.solo.driftBpm !== null && Math.abs(x.solo.driftBpm) >= 2 && m.music_winds_skills_drifted({ value: signed(x.solo.driftBpm) }))
+            : matchedOf(x),
+          x.dyn && dynWord(x.dyn),
+          x.pass && m.music_winds_skills_passed(),
+        ),
       }));
-      if (!measured) rows.push({ label: "Dynamics: velocity not measured, so the bands weren't scored", notMeasured: true });
-      if (ownSet) rows.push({ label: "The set", text: ownSet.ok ? `in its shape, ${Math.round(ownSet.minutes * 10) / 10} minutes` : `still needs ${ownSet.missing.join(", ")}` });
-      headline = correct ? `Every section passed in one take${measured ? ", each at its level" : ""}.` : `${g.passed} of ${g.sections.length} sections passed. ${g.sections.filter((x) => !x.pass).map((x) => x.label).join(", ")} next time.`;
+      if (!measured) rows.push({ label: m.music_winds_skills_dyn_unmeasured(), notMeasured: true });
+      if (ownSet) rows.push({ label: m.music_winds_skills_the_set(), text: ownSet.ok ? m.music_winds_skills_set_shape({ minutes: Math.round(ownSet.minutes * 10) / 10 }) : m.music_winds_skills_set_needs({ missing: ownSet.missing.join(", ") }) });
+      headline = correct ? (measured ? m.music_winds_skills_all_sections_level() : m.music_winds_skills_all_sections()) : m.music_winds_skills_sections_passed({ passed: g.passed, total: g.sections.length, sections: g.sections.filter((x) => !x.pass).map((x) => x.label).join(", ") });
     } else if (gt && grooveDef) {
       // Play it back: only the answer bars are scored, so playing along with a call costs nothing.
       const hits = skill === "echo" ? ons.filter((h) => Math.floor((h.at - downbeat + gt.matchWindowMs) / barMs) % 2 === 1) : ons;
@@ -485,7 +504,7 @@
       const total = grooveDef.targets.length;
       const landedErrs = r.perTarget.filter((e): e is number => e !== null);
       rows = [
-        { label: "Notes matched", value: r.accuracy, text: `${r.matched} of ${total}, ${r.extra} extra` },
+        { label: m.music_winds_skills_notes_matched(), value: r.accuracy, text: m.music_winds_skills_matched_extra({ n: r.matched, total, extra: r.extra }) },
         // 180 ms is where the groove grader's timing credit reaches zero; too few landed reads Not measured (K3).
         timingRow(landedErrs, total, 180),
       ];
@@ -497,27 +516,28 @@
         const fillOk = enough(fg.fill.filter((i) => r.perTarget[i] !== null).length, fg.fill.length);
         const landOk = enough(fg.landing.filter((i) => r.perTarget[i] !== null).length, fg.landing.length);
         rows.push(
-          fillOk ? { label: "The fill", text: `${ms(f.fillMeanMs)} on average${f.rushed ? ": rushed" : ""}` } : { label: "The fill", notMeasured: true, text: f.fillMeanMs === null ? "not played" : TOO_FEW },
-          landOk ? { label: "Landing on the one", text: `${ms(f.landingMs)}${f.landed ? ", landed" : ""}` } : { label: "Landing on the one", notMeasured: true, text: "missed" },
+          fillOk ? { label: m.music_winds_skills_the_fill(), text: (f.rushed ? m.music_winds_skills_fill_avg_rushed : m.music_winds_skills_fill_avg)({ ms: ms(f.fillMeanMs) }) } : { label: m.music_winds_skills_the_fill(), notMeasured: true, text: f.fillMeanMs === null ? m.music_winds_skills_not_played() : TOO_FEW },
+          landOk ? { label: m.music_winds_skills_landing(), text: f.landed ? m.music_winds_skills_landed({ ms: ms(f.landingMs) }) : ms(f.landingMs) } : { label: m.music_winds_skills_landing(), notMeasured: true, text: m.music_winds_missed() },
         );
         // Misses first: under 70% landed, timing advice would be read off a few notes.
         headline =
           r.matched < 0.7 * total
-            ? `${total - r.matched} of ${total} notes missed. Slow down until the groove holds, then add the fill.`
+            ? m.music_winds_skills_fill_head_missed({ missed: total - r.matched, total })
             : !landOk
-              ? "The fill never landed: crash and kick together on the one after it."
+              ? m.music_winds_skills_fill_head_no_land()
               : f.rushed && fillOk
-                ? `The fill rushed (${ms(f.fillMeanMs)}): keep its notes the same size as the groove's.`
+                ? m.music_winds_skills_fill_head_rushed({ ms: ms(f.fillMeanMs) })
                 : f.landed
-                  ? `Landed on the one (${ms(f.landingMs)}).`
-                  : `Off the one by ${ms(f.landingMs)}: aim the crash at the click.`;
+                  ? m.music_winds_skills_fill_head_landed({ ms: ms(f.landingMs) })
+                  : m.music_winds_skills_fill_head_off({ ms: ms(f.landingMs) });
       } else if (skill === "ostinato") {
         const voice = ostinatoDef!.ostinato;
         const o = ostinatoReport(grooveDef as GrooveDef, r.perTarget, voice);
-        const name = voice === "rim" ? "The clave" : "The hats";
+        const clave = voice === "rim";
         correct = r.correct && o.held;
-        rows.push({ label: `${name} alone`, value: o.alone, text: pct(o.alone) }, { label: `${name} under the line`, value: o.together, text: pct(o.together) }, { label: "The line", value: o.line, text: pct(o.line) });
-        headline = o.held ? `${name} held (${pct(o.together)} under the line, ${pct(o.alone)} alone).` : `${name} slipped under the line: ${pct(o.together)} against ${pct(o.alone)} alone. Slow down until it stays put.`;
+        rows.push({ label: clave ? m.music_winds_skills_clave_alone() : m.music_winds_skills_hats_alone(), value: o.alone, text: pct(o.alone) }, { label: clave ? m.music_winds_skills_clave_under() : m.music_winds_skills_hats_under(), value: o.together, text: pct(o.together) }, { label: m.music_winds_skills_the_line(), value: o.line, text: pct(o.line) });
+        const said = { together: pct(o.together), alone: pct(o.alone) };
+        headline = o.held ? (clave ? m.music_winds_skills_clave_held : m.music_winds_skills_hats_held)(said) : (clave ? m.music_winds_skills_clave_slipped : m.music_winds_skills_hats_slipped)(said);
       } else if (skill === "repeat" && repeatDef) {
         const secs = r.perSection.map((x) => ({ ...x, pass: sectionPasses(x, null) }));
         if (s.rep === "build") {
@@ -527,15 +547,15 @@
           unmeasured = !b;
           score = b ? r.accuracy * 0.5 + b.score * 0.5 : r.accuracy;
           correct = secs.every((x) => x.pass) && !!b?.rising;
-          rows.push(b ? { label: "Rising all the way", value: Math.max(0, b.rho), text: `${b.rho.toFixed(2)} rank correlation, ${pct(b.span)} of your range` } : { label: "Rising: velocity not measured", notMeasured: true });
-          headline = !b ? "The build needs velocity: play it on the MPC (Full Level off)." : correct ? "The build rose all the way and landed on the drop." : !b.rising ? "Make it climb: press harder each bar, or lean into the pad if it sends aftertouch." : `${secs.filter((x) => !x.pass).map((x) => x.label).join(", ")}: hold the pad for the whole bar, let go for the drop.`;
+          rows.push(b ? { label: m.music_winds_skills_rising_all(), value: Math.max(0, b.rho), text: m.music_winds_skills_rho_text({ rho: b.rho.toFixed(2), pct: pct(b.span) }) } : { label: m.music_winds_skills_rising_unmeasured(), notMeasured: true });
+          headline = !b ? m.music_winds_skills_build_needs_velocity() : correct ? m.music_winds_skills_build_ok() : !b.rising ? m.music_winds_skills_build_climb() : m.music_winds_skills_build_hold({ sections: secs.filter((x) => !x.pass).map((x) => x.label).join(", ") });
         } else {
           score = r.score;
           correct = secs.every((x) => x.pass);
-          rows = [...rows, ...secs.map((x) => ({ label: `Bar ${secs.indexOf(x) + 1}, ${x.label}`, value: x.matched / Math.max(1, x.matched + x.missed), text: `${x.matched} of ${x.matched + x.missed}${x.extra ? `, ${x.extra} extra` : ""}` }))];
-          headline = correct ? "Every roll on its rate, started and stopped in time." : `${secs.filter((x) => !x.pass).length} of 4 roll bars to tighten: press as the roll starts, let go as it ends.`;
+          rows = [...rows, ...secs.map((x) => ({ label: m.music_winds_grid_bar_section({ n: secs.indexOf(x) + 1, section: x.label }), value: x.matched / Math.max(1, x.matched + x.missed), text: matchedOf(x) }))];
+          headline = correct ? m.music_winds_skills_rolls_ok() : m.music_winds_skills_rolls_tighten({ count: secs.filter((x) => !x.pass).length });
         }
-        if (repeater.aftertouch) rows.push({ label: "Aftertouch", text: "the pads send it: pressure set the repeats' level" });
+        if (repeater.aftertouch) rows.push({ label: m.music_winds_skills_aftertouch(), text: m.music_winds_skills_aftertouch_text() });
       } else if (skill === "song" && songDef) {
         const measured = ons.length > 1 && ons.every((h) => h.velocityMeasured) && new Set(ons.map((h) => Math.round(h.velocity * 127))).size > 1;
         const dyn = measured ? sectionDynamics(songDef, ons, downbeat, beatMs, range ?? DEFAULT_RANGE) : null;
@@ -549,10 +569,10 @@
         rows = secs.map((x) => ({
           label: x.label.charAt(0).toUpperCase() + x.label.slice(1),
           value: x.matched / Math.max(1, x.matched + x.missed),
-          text: `${x.matched} of ${x.matched + x.missed}${x.extra ? `, ${x.extra} extra` : ""}${x.d ? `, ${dynWord(x.d)}` : ""}${x.pass ? ", passed" : ""}`,
+          text: facts(matchedOf(x), x.d && dynWord(x.d), x.pass && m.music_winds_skills_passed()),
         }));
-        if (!dyn) rows.push({ label: "Dynamics: velocity not measured, so the bands weren't scored", notMeasured: true });
-        headline = correct ? `Every section passed in one take${dyn ? ", each at its level" : ""}.` : `${passed} of ${secs.length} sections passed. ${secs.filter((x) => !x.pass).map((x) => x.label).join(", ")} next time.`;
+        if (!dyn) rows.push({ label: m.music_winds_skills_dyn_unmeasured(), notMeasured: true });
+        headline = correct ? (dyn ? m.music_winds_skills_all_sections_level() : m.music_winds_skills_all_sections()) : m.music_winds_skills_sections_passed({ passed, total: secs.length, sections: secs.filter((x) => !x.pass).map((x) => x.label).join(", ") });
       } else if (skill === "echo") {
         const rounds = [0, 1, 2, 3].map((k) => {
           const idx = grooveDef.targets.flatMap((t, i) => (Math.floor(t.beat / 8) === k ? [i] : []));
@@ -560,14 +580,14 @@
         });
         const passed = rounds.filter((x) => x >= ECHO_PASS).length;
         correct = passed === 4 && r.extra === 0;
-        rows = [...rows, ...rounds.map((x, k) => ({ label: `Round ${k + 1}`, value: x, text: `${pct(x)}${x >= ECHO_PASS ? ", played back" : ""}` }))];
-        headline = `${passed} of 4 played back${r.extra ? `, ${r.extra} extra hits` : ""}.`;
-      } else headline = r.correct ? `Clean: ${r.matched} of ${grooveDef.targets.length}, ${Math.round(r.meanAbsErrorMs)} ms off.` : `${r.matched} of ${grooveDef.targets.length} notes, ${r.extra} extra.`;
+        rows = [...rows, ...rounds.map((x, k) => ({ label: m.music_winds_skills_round({ n: k + 1 }), value: x, text: x >= ECHO_PASS ? m.music_winds_skills_played_back({ pct: pct(x) }) : pct(x) }))];
+        headline = r.extra ? m.music_winds_skills_echo_head_extra({ passed, extra: r.extra }) : m.music_winds_skills_echo_head({ passed });
+      } else headline = r.correct ? m.music_winds_skills_clean({ n: r.matched, total: grooveDef.targets.length, ms: Math.round(r.meanAbsErrorMs) }) : m.music_winds_skills_notes_extra({ n: r.matched, total: grooveDef.targets.length, extra: r.extra });
     } else if (skill === "dynamics") {
       const measured = ons.length > 0 && ons.every((n) => n.velocityMeasured);
       if (!measured || !range) {
-        headline = !range ? "Set your range first: press Calibrate, then Start." : !ons.length ? "No hits arrived. Check the line under the stage for why." : "Dynamics need velocity: play on the MPC (with Full Level off), not the screen.";
-        rows = [{ label: "Velocity", notMeasured: true }];
+        headline = !range ? m.music_winds_skills_range_first() : !ons.length ? m.music_winds_chop_head_no_hits() : m.music_winds_skills_dyn_need_velocity();
+        rows = [{ label: m.music_winds_skills_velocity(), notMeasured: true }];
       } else {
         const slotMs = beatMs / dyn.perBeat;
         levels = dynSlots.map((at) => {
@@ -579,11 +599,11 @@
         correct = g.correct;
         rows =
           dyn.id === "ladder"
-            ? [{ label: "Hits in their level", value: g.inBand ?? 0, text: pct(g.inBand ?? 0) }]
+            ? [{ label: m.music_winds_skills_hits_in_level(), value: g.inBand ?? 0, text: pct(g.inBand ?? 0) }]
             : dyn.id === "crescendo"
-              ? [{ label: "Always growing (rank correlation)", value: Math.max(0, g.rho ?? 0), text: (g.rho ?? 0).toFixed(2) }, { label: "Range covered", value: Math.min(1, g.span ?? 0), text: pct(g.span ?? 0) }]
-              : [{ label: "Spread", text: `${pct(g.spread ?? 0)} of your range (aim under ${pct(DYNAMICS.evenSpread)})` }];
-        headline = g.correct ? "Controlled: every hit where you meant it." : dyn.id === "ladder" ? `${pct(g.inBand ?? 0)} of hits in their level. The bars show which drifted.` : dyn.id === "crescendo" ? "Grow more steadily, from your softest to your loudest." : `The level wandered by ${pct(g.spread ?? 0)} of your range.`;
+              ? [{ label: m.music_winds_skills_always_growing(), value: Math.max(0, g.rho ?? 0), text: (g.rho ?? 0).toFixed(2) }, { label: m.music_winds_skills_range_covered(), value: Math.min(1, g.span ?? 0), text: pct(g.span ?? 0) }]
+              : [{ label: m.music_winds_skills_spread(), text: m.music_winds_skills_spread_text({ pct: pct(g.spread ?? 0), aim: pct(DYNAMICS.evenSpread) }) }];
+        headline = g.correct ? m.music_winds_skills_dyn_ok() : dyn.id === "ladder" ? m.music_winds_skills_dyn_ladder_head({ pct: pct(g.inBand ?? 0) }) : dyn.id === "crescendo" ? m.music_winds_skills_dyn_crescendo_head() : m.music_winds_skills_dyn_even_head({ pct: pct(g.spread ?? 0) });
       }
     } else {
       take = ons.map((n) => ({ at: n.at, midi: n.midi, velocity: n.velocity }));
@@ -592,27 +612,27 @@
       score = g.score;
       correct = g.correct;
       rows = [
-        { label: "Time", value: g.time, text: g.meanAbsMs === null ? "no hits" : `${Math.round(g.meanAbsMs)} ms from the grid on average${g.driftBpm === null ? "" : `, ${Math.abs(g.driftBpm) < 0.5 ? "no drift" : `drifted ${g.driftBpm > 0 ? "+" : ""}${g.driftBpm.toFixed(1)} BPM`}`}` },
-        { label: "Bars kept going", value: g.density, text: pct(g.density) },
-        ...(g.fills ? [{ label: "Fills landed on the one", value: g.fills.landed / Math.max(1, g.fills.expected), text: `${g.fills.landed} of ${g.fills.expected}` }] : []),
-        { label: "Different fills", text: String(g.distinctFills) },
-        { label: "Hits", text: String(rep.hits) },
-        { label: "Distance from the sixteenth grid", text: rep.timingSpreadMs === null ? "too few hits" : `${Math.round(rep.timingSpreadMs)} ms spread` },
-        { label: "Swing", text: rep.swing === null ? "not enough off-beats" : `${rep.swing}% (50 straight, 66 triplet)` },
-        { label: "Loudness range", text: rep.velocity ? `${Math.round(rep.velocity[0] * 127)} to ${Math.round(rep.velocity[1] * 127)}` : "none" },
-        { label: "Pads used", text: `${rep.pads.length}` },
+        { label: m.music_winds_chop_row_time(), value: g.time, text: g.meanAbsMs === null ? m.music_winds_chop_no_hits() : facts(m.music_winds_skills_grid_avg({ ms: Math.round(g.meanAbsMs) }), g.driftBpm !== null && (Math.abs(g.driftBpm) < 0.5 ? m.music_winds_skills_no_drift() : m.music_winds_skills_drifted({ value: signed(g.driftBpm) }))) },
+        { label: m.music_winds_skills_bars_kept(), value: g.density, text: pct(g.density) },
+        ...(g.fills ? [{ label: m.music_winds_skills_fills_landed(), value: g.fills.landed / Math.max(1, g.fills.expected), text: m.music_winds_chop_of({ n: g.fills.landed, total: g.fills.expected }) }] : []),
+        { label: m.music_winds_skills_different_fills(), text: String(g.distinctFills) },
+        { label: m.music_winds_chop_row_hits(), text: String(rep.hits) },
+        { label: m.music_winds_skills_distance(), text: rep.timingSpreadMs === null ? m.music_winds_skills_too_few_hits() : m.music_winds_skills_ms_spread({ ms: Math.round(rep.timingSpreadMs) }) },
+        { label: m.music_winds_skills_swing(), text: rep.swing === null ? m.music_winds_skills_few_offbeats() : m.music_winds_skills_swing_text({ swing: rep.swing }) },
+        { label: m.music_winds_skills_loudness(), text: rep.velocity ? m.music_winds_skills_from_to({ from: Math.round(rep.velocity[0] * 127), to: Math.round(rep.velocity[1] * 127) }) : m.music_winds_skills_none() },
+        { label: m.music_winds_skills_pads_used(), text: `${rep.pads.length}` },
       ];
       headline = !rep.hits
-        ? "Nothing was played."
+        ? m.music_winds_chop_head_nothing()
         : g.correct
-          ? `In time and never stopped: ${rep.hits} hits on ${rep.pads.length} pads.`
+          ? m.music_winds_skills_impro_ok({ hits: rep.hits, pads: rep.pads.length })
           : g.driftBpm !== null && Math.abs(g.driftBpm) >= 2
-            ? `The tempo drifted ${g.driftBpm > 0 ? "+" : ""}${g.driftBpm.toFixed(1)} BPM: lock in with the band's kick.`
+            ? m.music_winds_skills_impro_drift({ value: signed(g.driftBpm) })
             : g.fills && g.fills.landed < g.fills.expected
-              ? `${g.fills.landed} of ${g.fills.expected} fills landed on the one.`
+              ? m.music_winds_skills_impro_fills({ landed: g.fills.landed, expected: g.fills.expected })
               : g.density < 1
-                ? `${Math.round((1 - g.density) * improBars)} bars went quiet: keep the groove going between ideas.`
-                : `${Math.round(g.meanAbsMs ?? 0)} ms from the grid on average: aim under 25 ms.`;
+                ? m.music_winds_skills_impro_quiet({ count: Math.round((1 - g.density) * improBars) })
+                : m.music_winds_chop_head_grid_off({ ms: Math.round(g.meanAbsMs ?? 0) });
     }
     // Nothing played: the standard not-heard card, no score or bars from zero hits.
     if (!ons.length) {
@@ -624,7 +644,7 @@
     }
     // Dynamics the app could not measure are not a fail, so they are not recorded.
     if (!graded(ons.length) || unmeasured) {
-      summary = { headline, metric: "Not measured", metricLabel: "not scored", assistance: "Nothing to measure, so nothing is saved.", rows, recorded: false };
+      summary = { headline, metric: m.music_winds_not_measured(), metricLabel: m.music_winds_not_scored(), assistance: m.music_winds_nothing_to_measure(), rows, recorded: false };
       status = headline;
       return;
     }
@@ -635,7 +655,7 @@
       status = summary.headline;
       return;
     }
-    summary = { headline, metric: pct(score), metricLabel: "score", delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, timing: grv && gt ? timingBreakdown(grv.perTarget, gt.matchWindowMs / 2) : undefined, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
+    summary = { headline, metric: pct(score), metricLabel: m.music_winds_score(), delta: fin.delta, best: fin.best, clean: correct && mode === "check", xp: fin.xp, mode, rows, timing: grv && gt ? timingBreakdown(grv.perTarget, gt.matchWindowMs / 2) : undefined, advance: skill === "improvise" || ownPiece ? undefined : await advanceAfter(score, correct) };
     status = headline;
   }
 
@@ -665,7 +685,7 @@
     cap?.stop();
     repeater.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_winds_nothing_saved();
   }
 
   onDestroy(() => {
@@ -683,14 +703,14 @@
 
 {#snippet padGrid()}
   <div data-dock="answers">
-    <Pads marks={marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A. Computer keys Z X C V play the bottom row." />
+    <Pads marks={marks} {flashes} {timing} {names} {colors} label={m.music_winds_skills_pads_label()} />
   </div>
 {/snippet}
 
 <DrillShell
-  title={skill === "phrases" ? "Phrases" : "Pads"}
+  title={skill === "phrases" ? m.music_winds_skills_title_phrases() : m.music_winds_pads_title()}
   hue="mpc"
-  blurb={skill === "phrases" ? "Short drum phrases drummers know by name: clave cells, a tag ending, a fill and landing, a build. Hear one, then play it on the pads." : skill === "dynamics" ? "Velocity on purpose: levels, a crescendo, even hits, against your own soft-to-loud range." : skill === "fills" ? "Three bars of groove, a fill, and the crash and kick back on the one, without rushing." : skill === "echo" ? "Hear a bar, play it back in the next: four rounds, scored on the answers." : skill === "ostinato" ? "One hand keeps the ostinato while the other reads a line. The ostinato is scored against playing it alone." : skill === "repeat" ? "Note Repeat as the MPC has it: hold a pad and it plays again on the rate's grid. Pressure sets the level when the pads send aftertouch." : skill === "song" ? "A whole piece in one take: intro, grooves, a build or a chorus, an ending, each section scored with its own level." : skill === "orchestrate" ? "A rudiment spread across the kit: the sticking becomes a groove." : "Improvise over the band, scored on time and on keeping every bar going. Hear it back as played, or nudged to the grid."}
+  blurb={skill === "phrases" ? m.music_winds_skills_blurb_phrases() : skill === "dynamics" ? m.music_winds_skills_blurb_dynamics() : skill === "fills" ? m.music_winds_skills_blurb_fills() : skill === "echo" ? m.music_winds_skills_blurb_echo() : skill === "ostinato" ? m.music_winds_skills_blurb_ostinato() : skill === "repeat" ? m.music_winds_skills_blurb_repeat() : skill === "song" ? m.music_winds_skills_blurb_song() : skill === "orchestrate" ? m.music_winds_skills_blurb_orchestrate() : m.music_winds_skills_blurb_improvise()}
   summary={summaryLine}
   tabs={modes.map(([id, label]) => ({ id, label }))}
   tab={skill}
@@ -705,34 +725,34 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  blocked={skill === "dynamics" && !range ? "Set your soft-to-loud range first: press Calibrate." : ownWanted && !ownSong ? (written ? "That piece isn't saved here: pick another, or write a new one." : "Loading your pieces…") : ownPiece?.chop && slicesFor !== wantSlices ? (slicing ?? "Cutting the chop's loop into slices…") : null}
+  blocked={skill === "dynamics" && !range ? m.music_winds_skills_blocked_range() : ownWanted && !ownSong ? (written ? m.music_winds_skills_blocked_missing() : m.music_winds_skills_loading_pieces()) : ownPiece?.chop && slicesFor !== wantSlices ? (slicing ?? m.music_winds_skills_cutting()) : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if skill === "phrases"}
-        <Choice label="Phrase" select options={PAD_PHRASES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: `Level ${r.level}` }))} value={padPhrase.groove.value} setupKey="phrase" onchange={(v) => {
+        <Choice label={m.music_winds_skills_phrase()} select options={PAD_PHRASES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: m.music_winds_song_level_group({ level: r.level }) }))} value={padPhrase.groove.value} setupKey="phrase" onchange={(v) => {
           cfg.set({ phrase: v });
           const r = PAD_PHRASES.find((x) => x.groove.value === v);
           if (r) settings.update({ bpm: r.bpm.start });
         }} />
       {:else if skill === "fills"}
-        <Choice label="Fill" options={PAD_FILLS.map((f) => ({ value: f.id, label: f.label }))} value={s.fill} onchange={(v) => cfg.set({ fill: v })} setupKey="fill" />
+        <Choice label={m.music_winds_skills_fill()} options={PAD_FILLS.map((f) => ({ value: f.id, label: f.label }))} value={s.fill} onchange={(v) => cfg.set({ fill: v })} setupKey="fill" />
       {:else if skill === "orchestrate"}
-        <Choice label="Orchestration" options={ORCHESTRATIONS.map((o) => ({ value: o.id as string, label: o.label, detail: o.detail }))} value={s.orch} onchange={(v) => cfg.set({ orch: v })} setupKey="orch" />
+        <Choice label={m.music_winds_skills_orchestration()} options={ORCHESTRATIONS.map((o) => ({ value: o.id as string, label: o.label, detail: o.detail }))} value={s.orch} onchange={(v) => cfg.set({ orch: v })} setupKey="orch" />
       {:else if skill === "ostinato"}
-        <Choice label="Reading line" options={READING_LINES.map((r) => ({ value: r.id as string, label: r.label }))} value={s.line} onchange={(v) => cfg.set({ line: v })} setupKey="line" />
+        <Choice label={m.music_winds_skills_reading_line()} options={READING_LINES.map((r) => ({ value: r.id as string, label: r.label }))} value={s.line} onchange={(v) => cfg.set({ line: v })} setupKey="line" />
         {#if s.line === "read"}
-          <Choice label="Who reads" options={INTERPRETATIONS.map((x) => ({ value: x.id as string, label: x.label }))} value={interp} onchange={(v) => cfg.set({ interp: v })} setupKey="interp" />
+          <Choice label={m.music_winds_skills_who_reads()} options={INTERPRETATIONS.map((x) => ({ value: x.id as string, label: x.label }))} value={interp} onchange={(v) => cfg.set({ interp: v })} setupKey="interp" />
         {/if}
       {:else if skill === "repeat"}
-        <Choice label="Exercise" options={NOTE_REPEAT_EXERCISES.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail }))} value={s.rep} onchange={(v) => cfg.set({ rep: v })} setupKey="rep" />
+        <Choice label={m.music_winds_exercise()} options={NOTE_REPEAT_EXERCISES.map((x) => ({ value: x.id as string, label: x.label, detail: x.detail }))} value={s.rep} onchange={(v) => cfg.set({ rep: v })} setupKey="rep" />
       {:else if skill === "song"}
-        <Choice label="Piece" options={[...SONG_FORMS.map((f) => ({ value: f.id, label: f.label, detail: `Level ${f.level}, ${f.sections.map((x) => `${x.label} ${x.bars}`).join(", ")} bars, ${f.bpm.start} to ${f.bpm.target} BPM` })), ...(written ?? []).map((w) => ({ value: `own-${w.id}`, label: w.label, detail: `Yours, ${w.sections.length} sections, ${w.bpm} BPM` }))]} value={ownSong ? s.form : songForm.id} setupKey="form" onchange={(v) => {
+        <Choice label={m.music_winds_skills_piece()} options={[...SONG_FORMS.map((f) => ({ value: f.id, label: f.label, detail: m.music_winds_skills_form_detail({ level: f.level, sections: f.sections.map((x) => `${x.label} ${x.bars}`).join(", "), start: f.bpm.start, target: f.bpm.target }) })), ...(written ?? []).map((w) => ({ value: `own-${w.id}`, label: w.label, detail: m.music_winds_skills_own_detail({ count: w.sections.length, bpm: w.bpm }) }))]} value={ownSong ? s.form : songForm.id} setupKey="form" onchange={(v) => {
           cfg.set({ form: v });
           const start = SONG_FORMS.find((x) => x.id === v)?.bpm.start ?? written?.find((w) => `own-${w.id}` === v)?.bpm;
           if (start) settings.update({ bpm: start });
         }} />
-        <div class="flex items-end"><button type="button" class={btn} onclick={newPiece}>Write a new piece</button></div>
+        <div class="flex items-end"><button type="button" class={btn} onclick={newPiece}>{m.music_winds_skills_write_new()}</button></div>
         {#if ownSong}
           <SongBuilder song={ownSong} {bpm} onchange={(next) => saveSongs(written!.map((w) => (w.id === next.id ? next : w)))} ondelete={() => {
             saveSongs(written!.filter((w) => w.id !== ownSong.id));
@@ -740,18 +760,18 @@
           }} />
         {/if}
       {:else if skill === "echo"}
-        <Choice label="Level" options={ECHO_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={s.echo} onchange={(v) => cfg.set({ echo: v })} setupKey="echo" />
+        <Choice label={m.music_winds_level()} options={ECHO_LEVELS.map((l) => ({ value: l.id as string, label: l.label }))} value={s.echo} onchange={(v) => cfg.set({ echo: v })} setupKey="echo" />
       {:else if skill === "dynamics"}
-        <Choice label="Exercise" options={DYNAMICS_EXERCISES.map((d) => ({ value: d.id as string, label: d.label }))} value={s.dyn} onchange={(v) => cfg.set({ dyn: v })} setupKey="dyn" />
+        <Choice label={m.music_winds_exercise()} options={DYNAMICS_EXERCISES.map((d) => ({ value: d.id as string, label: d.label }))} value={s.dyn} onchange={(v) => cfg.set({ dyn: v })} setupKey="dyn" />
       {:else}
-        <Choice label="Bars" options={[4, 8, 16, 32].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
-        <Choice label="Loop" options={LOOPS.map((id) => ({ value: id, label: loopName(id) }))} value={loopEntry ? s.loop : "funk"} onchange={(v) => cfg.set({ loop: v })} setupKey="loop" />
-        <Choice label="A fill every" options={[{ value: 0, label: "No set fills" }, { value: 4, label: "4 bars" }, { value: 8, label: "8 bars" }]} value={fillEvery} onchange={(v) => cfg.set({ fillEvery: v })} setupKey="fillEvery" />
+        <Choice label={m.music_winds_bars()} options={[4, 8, 16, 32].map((n) => ({ value: n, label: String(n) }))} value={improBars} onchange={(v) => cfg.set({ bars: v })} setupKey="bars" />
+        <Choice label={m.music_winds_chop_loop()} options={LOOPS.map((id) => ({ value: id, label: loopName(id) }))} value={loopEntry ? s.loop : "funk"} onchange={(v) => cfg.set({ loop: v })} setupKey="loop" />
+        <Choice label={m.music_winds_skills_fill_every()} options={[{ value: 0, label: m.music_winds_skills_no_set_fills() }, { value: 4, label: m.music_winds_bars_count({ count: 4 }) }, { value: 8, label: m.music_winds_bars_count({ count: 8 }) }]} value={fillEvery} onchange={(v) => cfg.set({ fillEvery: v })} setupKey="fillEvery" />
       {/if}
       {#if gt && skill !== "echo"}
-        <Choice label="View" options={[{ value: "lanes", label: "Lanes" }, { value: "grid", label: "Grid" }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
+        <Choice label={m.music_winds_view()} options={[{ value: "lanes", label: m.music_winds_view_lanes() }, { value: "grid", label: m.music_winds_view_grid() }]} value={lanesView ? "lanes" : "grid"} onchange={(v) => cfg.set({ view: v })} setupKey="view" />
         {#if lanesView}
-          <Choice label="Look ahead" options={[1, 2, 4].map((n) => ({ value: n, label: n === 1 ? "1 bar" : `${n} bars` }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
+          <Choice label={m.music_winds_look_ahead()} options={[1, 2, 4].map((n) => ({ value: n, label: m.music_winds_bars_count({ count: n }) }))} value={aheadBars} onchange={(v) => cfg.set({ ahead: v })} setupKey="ahead" />
         {/if}
       {/if}
     </div>
@@ -759,15 +779,15 @@
 
   {#snippet hud()}
     {#if phase === "running" && skill === "echo"}
-      <Stat label="Now" value={inCallBar ? "listen" : "your turn"} tone={inCallBar ? undefined : "success"} />
+      <Stat label={m.music_winds_chop_now()} value={inCallBar ? m.music_winds_skills_listen() : m.music_winds_skills_your_turn()} tone={inCallBar ? undefined : "success"} />
     {:else if phase === "running" && rateNow}
-      {#if sixteenthNow !== null}<Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))} of ${Math.ceil(lengthMs / barMs)}`} />{/if}
-      <Stat label="Rate" value={rateNow} />
+      {#if sixteenthNow !== null}<Stat label={m.music_winds_bar()} value={m.music_winds_chop_of({ n: Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs)), total: Math.ceil(lengthMs / barMs) })} />{/if}
+      <Stat label={m.music_winds_skills_rate()} value={rateNow} />
     {:else if phase === "running" && skill === "song" && sixteenthNow !== null && songDef}
       {@const b = Math.min(Math.floor(sixteenthNow / (gridPer * 4)), songDef.bars - 1)}
-      <Stat label="Section" value={`${songDef.sectionLabels[b]}, ${songDef.dyn[b]}`} />
+      <Stat label={m.music_winds_skills_section()} value={m.music_winds_skills_section_dyn({ section: songDef.sectionLabels[b], dyn: dynName(songDef.dyn[b]) })} />
     {:else if phase === "running" && sixteenthNow !== null}
-      <Stat label="Bar" value={`${Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs))} of ${Math.ceil(lengthMs / barMs)}`} />
+      <Stat label={m.music_winds_bar()} value={m.music_winds_chop_of({ n: Math.min(Math.floor(sixteenthNow / (gridPer * 4)) + 1, Math.ceil(lengthMs / barMs)), total: Math.ceil(lengthMs / barMs) })} />
     {/if}
   {/snippet}
 
@@ -777,18 +797,18 @@
         <p class="text-sm"><span class="font-semibold">{padPhrase.groove.label}.</span> <span class="text-ws-stage-soft">{padPhrase.feel} {padPhrase.fingers}</span></p>
       {/if}
       {#if skill === "repeat" && repeatDef}
-        <p class="text-sm"><span class="font-semibold">Hold {GROOVE_VOICES.find((v) => v.id === repeatDef.repeatVoice)?.name.toLowerCase()} to repeat it.</span> <span class="text-ws-stage-soft">{NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.detail}. Woodshed sets the rate as the chart changes. {repeater.aftertouch ? "Your pads send aftertouch, so pressure sets the level." : "If your pads send aftertouch, pressure sets the level. Otherwise each repeat keeps the hit's velocity."}</span></p>
+        <p class="text-sm"><span class="font-semibold">{m.music_winds_skills_hold_to_repeat({ voice: GROOVE_VOICES.find((v) => v.id === repeatDef.repeatVoice)?.name.toLowerCase() ?? "" })}</span> <span class="text-ws-stage-soft">{NOTE_REPEAT_EXERCISES.find((x) => x.id === s.rep)?.detail}. {m.music_winds_skills_rate_follows()} {repeater.aftertouch ? m.music_winds_skills_aftertouch_yes() : m.music_winds_skills_aftertouch_maybe()}</span></p>
       {/if}
       {#if skill === "song" && ownSong && ownPiece}
-        <p class="text-sm"><span class="font-semibold">{ownSong.label}.</span> <span class="text-ws-stage-soft">{ownPiece.spans.map((x, i) => `${x.label} (${x.bars} bar${x.bars > 1 ? "s" : ""}, ${ownSong.sections[i].dyn})`).join(", ")}. The chop plays the slices on A01 to A16. Under a solo Woodshed loops a groove and you play over it. Levels are read against your range from Dynamics{range ? "" : " (not set yet, so a default)"}.</span></p>
+        <p class="text-sm"><span class="font-semibold">{ownSong.label}.</span> <span class="text-ws-stage-soft">{ownPiece.spans.map((x, i) => m.music_winds_skills_section_item({ label: x.label, count: x.bars, dyn: dynName(ownSong.sections[i].dyn) })).join(", ")}. {m.music_winds_skills_own_song_help()} {range ? m.music_winds_skills_levels_range() : m.music_winds_skills_levels_default()}</span></p>
       {:else if skill === "song" && songDef}
-        <p class="text-sm"><span class="font-semibold">{songForm.label}.</span> <span class="text-ws-stage-soft">{songForm.sections.map((x) => `${x.label} (${x.bars} bars, ${x.dyn})`).join(", ")}. Levels are read against your range from Dynamics{range ? "" : " (not set yet, so a default)"}.</span></p>
+        <p class="text-sm"><span class="font-semibold">{songForm.label}.</span> <span class="text-ws-stage-soft">{songForm.sections.map((x) => m.music_winds_skills_section_item({ label: x.label, count: x.bars, dyn: dynName(x.dyn) })).join(", ")}. {range ? m.music_winds_skills_levels_range() : m.music_winds_skills_levels_default()}</span></p>
       {/if}
       {#if readingShown}
-        <p class="text-sm text-ws-stage-soft">Two bars of hats alone, then four bars to read with the {interp}. Four new bars every run. They show from the count-in.</p>
+        <p class="text-sm text-ws-stage-soft">{interp === "kick" ? m.music_winds_skills_read_kick() : m.music_winds_skills_read_snare()}</p>
       {/if}
       {#if skill === "orchestrate"}
-        <p class="text-sm"><span class="font-semibold">Paradiddle, {orch.label.toLowerCase()}.</span> <span class="text-ws-stage-soft">{orch.detail}. Two bars of sixteenths, the accents on each group's first stroke.</span></p>
+        <p class="text-sm"><span class="font-semibold">{m.music_winds_skills_paradiddle_title({ orch: orch.label.toLowerCase() })}</span> <span class="text-ws-stage-soft">{orch.detail}. {m.music_winds_skills_paradiddle_help()}</span></p>
       {/if}
       {#if notesShown && showLanes}
         <PadHighway
@@ -802,20 +822,20 @@
           {judged}
           flash={mode === "practice" ? flashNote : null}
           countIn={phase === "countin" ? Math.max(1, Math.ceil((downbeat - now) / beatMs)) : null}
-          label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+          label={m.music_winds_skills_highway_label({ lanes: lanes.map((l) => l.label).join(", ") })}
           pads={padGrid}
         />
       {:else if notesShown && gt && grooveDef}
         <GrooveGrid targets={gt.targets} bars={grooveDef.bars} sectionLabels={grooveDef.sectionLabels} playhead={sixteenthNow} outcomes={grv?.perTarget ?? ownGrade?.perTarget} windowMs={gt.matchWindowMs / 2} stepsPerBeat={gridPer} />
       {:else if skill === "echo"}
-        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm" aria-live="polite">{phase === "running" ? (inCallBar ? "Listen…" : "Your turn: play it back.") : "Each call is a bar on the kit. Play it back in the bar after. The grid shows after the run."}</p>
+        <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm" aria-live="polite">{phase === "running" ? (inCallBar ? m.music_winds_skills_echo_listen() : m.music_winds_skills_echo_turn()) : m.music_winds_skills_echo_help()}</p>
       {:else if skill === "dynamics"}
         <div class="rounded-xl bg-ws-stage-ink/8 p-4">
           <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p>{range ? `Your range: ${Math.round(range.soft * 127)} soft to ${Math.round(range.loud * 127)} loud.` : "No range yet."} {calibrating ? `Now your ${calibrating === "soft" ? "softest" : "loudest"} hits (${calibrating === "soft" ? calSoft.length : calLoud.length} of 4).` : ""}</p>
-            <button type="button" class={btnStage} onclick={calibrate} disabled={phase === "running"}>{range ? "Recalibrate" : "Calibrate"}</button>
+            <p>{range ? m.music_winds_skills_your_range({ soft: Math.round(range.soft * 127), loud: Math.round(range.loud * 127) }) : m.music_winds_skills_no_range()} {calibrating ? (calibrating === "soft" ? m.music_winds_skills_now_softest({ n: calSoft.length }) : m.music_winds_skills_now_loudest({ n: calLoud.length })) : ""}</p>
+            <button type="button" class={btnStage} onclick={calibrate} disabled={phase === "running"}>{range ? m.music_winds_skills_recalibrate() : m.music_winds_skills_calibrate()}</button>
           </div>
-          <svg viewBox="0 0 320 100" class="mt-3 h-28 w-full" preserveAspectRatio="none" role="img" aria-label="Each hit's level in your range{levels.length ? '' : ', after the run'}">
+          <svg viewBox="0 0 320 100" class="mt-3 h-28 w-full" preserveAspectRatio="none" role="img" aria-label={levels.length ? m.music_winds_skills_levels_aria() : m.music_winds_skills_levels_aria_after()}>
             {#each dynSlots as _, i (i)}
               {@const w = 320 / dyn.notes}
               {@const band = dyn.id === "ladder" ? ladderBand(i) : dyn.id === "crescendo" ? [Math.max(0, i / (dyn.notes - 1) - 0.1), Math.min(1, i / (dyn.notes - 1) + 0.1)] : [0.4, 0.6]}
@@ -825,12 +845,12 @@
               {/if}
             {/each}
           </svg>
-          <p class="mt-1 text-sm text-ws-stage-soft">Shaded: where each hit should land. Bars: where yours did.</p>
+          <p class="mt-1 text-sm text-ws-stage-soft">{m.music_winds_skills_shaded()}</p>
         </div>
       {:else}
         <p class="rounded-xl bg-ws-stage-ink/8 p-4 text-sm">
-          Play any pads over {loopEntry ? `${loopEntry.groove.label}, ${improBars} bars` : `${improBars} bars of a funk vamp`}.{fillEvery ? ` A fill every ${fillEvery}th bar, landing on the next one.` : ""}
-          <span class="mt-1 block text-ws-stage-soft">Scored on timing and on keeping every bar going.{phase === "results" ? " Hear it back as you played it, or moved half way onto the beat." : ""}</span>
+          {loopEntry ? m.music_winds_skills_play_over_loop({ loop: loopEntry.groove.label, bars: improBars }) : m.music_winds_skills_play_over_vamp({ bars: improBars })}{fillEvery ? ` ${m.music_winds_skills_fill_every_nth({ n: fillEvery })}` : ""}
+          <span class="mt-1 block text-ws-stage-soft">{m.music_winds_skills_scored_on()}{phase === "results" ? ` ${m.music_winds_skills_hear_back_help()}` : ""}</span>
         </p>
       {/if}
       {#if !(notesShown && showLanes)}{@render padGrid()}{/if}
@@ -842,8 +862,8 @@
       <Results {summary}>
         {#snippet actions()}
           {#if skill === "improvise" && take.length}
-            <button type="button" class={btn} onclick={() => hearTake(0)}>Hear your take</button>
-            <button type="button" class={btn} onclick={() => hearTake(0.5)}>Hear it nudged to the grid</button>
+            <button type="button" class={btn} onclick={() => hearTake(0)}>{m.music_winds_skills_hear_take()}</button>
+            <button type="button" class={btn} onclick={() => hearTake(0.5)}>{m.music_winds_skills_hear_nudged()}</button>
           {/if}
         {/snippet}
       </Results>

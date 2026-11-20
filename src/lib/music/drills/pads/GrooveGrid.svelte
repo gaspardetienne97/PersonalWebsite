@@ -6,6 +6,7 @@
   import { GROOVE_VOICES } from "@repo/music-core/content/winds-pads";
   import { CHOP_SLICES, slicePad, sliceVoice } from "@repo/music-core/content/pads-studio";
   import { padLabel } from "./midi-status";
+  import { m } from "@repo/i18n/messages.js";
 
   interface Props {
     targets: GrooveTarget[];
@@ -31,12 +32,12 @@
   /** The count over step c of a bar. */
   const countAt = (c: number) => (c % per === 0 ? String(c / per + 1) : COUNTS[c % per]);
   /** The kit's drums, then any slices (a written piece's chop section). */
-  const SLICES = Array.from({ length: CHOP_SLICES }, (_, i) => ({ id: sliceVoice(i), name: `Slice ${i + 1}`, midi: slicePad(i) }));
+  const SLICES = Array.from({ length: CHOP_SLICES }, (_, i) => ({ id: sliceVoice(i), name: m.music_winds_grid_slice({ n: i + 1 }), midi: slicePad(i) }));
   const voices = $derived([...GROOVE_VOICES, ...SLICES].filter((v) => targets.some((t) => t.voice === v.id)));
   const at = $derived.by(() => {
-    const m = new Map<string, number>();
-    targets.forEach((t, i) => m.set(`${t.voice}:${Math.round(t.beat * per)}`, i));
-    return m;
+    const byStep = new Map<string, number>();
+    targets.forEach((t, i) => byStep.set(`${t.voice}:${Math.round(t.beat * per)}`, i));
+    return byStep;
   });
   // A bar-5 downbeat target (turnaround fill) gets one extra column on the last bar.
   const tail = $derived(targets.some((t) => t.beat >= bars * beatsPerBar));
@@ -58,20 +59,25 @@
   function verdict(i: number) {
     if (!outcomes) return null;
     const e = outcomes[i];
-    if (e === null || e === undefined) return { glyph: "✕", word: "missed", kind: "miss" };
-    if (Math.abs(e) <= windowMs) return { glyph: "✓", word: `on time, ${Math.round(e)} ms`, kind: "ok" };
-    return e > 0 ? { glyph: "›", word: `late by ${Math.round(e)} ms`, kind: "off" } : { glyph: "‹", word: `early by ${Math.round(-e)} ms`, kind: "off" };
+    if (e === null || e === undefined) return { glyph: "✕", word: m.music_winds_missed(), kind: "miss" };
+    if (Math.abs(e) <= windowMs) return { glyph: "✓", word: m.music_winds_grid_on_time({ ms: Math.round(e) }), kind: "ok" };
+    return e > 0 ? { glyph: "›", word: m.music_winds_late_by({ ms: Math.round(e) }), kind: "off" } : { glyph: "‹", word: m.music_winds_early_by({ ms: Math.round(-e) }), kind: "off" };
   }
+
+  /** "2 &": the beat, and the count of the step inside it when there is one. */
+  const beatCount = (c: number) => `${Math.floor(c / per) + 1}${COUNTS[c % per] ? ` ${COUNTS[c % per]}` : ""}`;
+  const mark = (t: GrooveTarget) => (t.accent ? m.music_winds_grid_accent() : t.ghost ? m.music_winds_grid_ghost() : "");
+  const cellTitle = (text: string, verdict?: string) => (verdict ? m.music_winds_grid_with_verdict({ text, verdict }) : text);
 </script>
 
 <!-- One line, all the bars side by side, scrolling sideways; the drum names stay put. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region must be reachable by keyboard -->
-<div class="scroll" bind:this={scroller} role="region" aria-label="The groove, {bars} bar{bars > 1 ? 's' : ''}, scroll sideways" tabindex="0">
+<div class="scroll" bind:this={scroller} role="region" aria-label={m.music_winds_grid_region({ count: bars })} tabindex="0">
   <div class="grid" style:--cols={total}>
     <span class="name corner"></span>
     {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
       <p class="bar-label" style:grid-column="span {colsOf(bar)}">
-        Bar {bar + 1}{#if sectionLabels.length > 1 || sectionLabels[0] !== "groove"}, {sectionLabels[Math.min(bar, sectionLabels.length - 1)]}{/if}
+        {#if sectionLabels.length > 1 || sectionLabels[0] !== "groove"}{m.music_winds_grid_bar_section({ n: bar + 1, section: sectionLabels[Math.min(bar, sectionLabels.length - 1)] })}{:else}{m.music_winds_grid_bar({ n: bar + 1 })}{/if}
       </p>
     {/each}
     <span class="name corner"></span>
@@ -80,7 +86,7 @@
       <span class="count" class:beat={c % per === 0} class:barline={c === 0 && g > 0} class:now={playhead === g}>{g === bars * barSteps ? "1" : countAt(c)}</span>
     {/each}
     {#each voices as v (v.id)}
-      <span class="name" title="{v.name}, pad {padLabel(v.midi)}">{v.name}</span>
+      <span class="name" title={m.music_winds_grid_voice_pad({ name: v.name, pad: padLabel(v.midi) })}>{v.name}</span>
       {#each cols as g (g)}
         {@const c = g % barSteps}
         {@const i = at.get(`${v.id}:${g}`)}
@@ -94,11 +100,11 @@
           data-col={g}
           data-hit={t ? (t.accent ? "accent" : t.ghost ? "ghost" : "normal") : undefined}
           data-kind={vd?.kind}
-          title={t ? `${v.name}, bar ${Math.floor(g / barSteps) + 1} on ${Math.floor(c / per) + 1}${COUNTS[c % per] ? ` ${COUNTS[c % per]}` : ""}${t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}${vd ? `: ${vd.word}` : ""}` : undefined}
+          title={t ? cellTitle(m.music_winds_grid_cell_title({ name: v.name, bar: Math.floor(g / barSteps) + 1, count: beatCount(c) }) + mark(t), vd?.word) : undefined}
         >
           {#if t}
             <span class="dot" aria-hidden="true">{vd ? vd.glyph : t.accent ? ">" : t.ghost ? "( )" : ""}</span>
-            <span class="sr-only">{v.name}, bar {Math.floor(g / barSteps) + 1}, beat {Math.floor(c / per) + 1}{COUNTS[c % per] ? ` ${COUNTS[c % per]}` : ""}{t.accent ? ", accent" : t.ghost ? ", ghost note" : ""}{vd ? `, ${vd.word}` : ""}</span>
+            <span class="sr-only">{m.music_winds_grid_cell_sr({ name: v.name, bar: Math.floor(g / barSteps) + 1, count: beatCount(c) })}{mark(t)}{vd ? `, ${vd.word}` : ""}</span>
           {/if}
         </span>
       {/each}

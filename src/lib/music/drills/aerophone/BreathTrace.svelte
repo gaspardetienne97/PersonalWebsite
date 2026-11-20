@@ -1,6 +1,8 @@
 <script lang="ts">
   // Breath (CC 2, 0..1) as a lit line. Rolling mode draws the last 64 samples;
   // swell mode plots samples by hold progress over the target envelope.
+  import { m } from "@repo/i18n/messages.js";
+
   interface Props {
     /** Rolling samples, oldest first. */
     values?: number[];
@@ -30,8 +32,8 @@
 
 <figure class="flex flex-col rounded-xl bg-ws-stage-ink/6 p-3" data-grow={grow ? "" : undefined}>
   <figcaption class="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-ws-stage-soft">
-    <span>Breath sensor{#if band && bandLabel}<span class="ml-2 inline-flex items-center gap-1.5"><span class="band-swatch" aria-hidden="true"></span>{bandLabel}</span>{/if}</span>
-    <span class="tnum font-semibold text-ws-stage-ink">{measured && last !== undefined ? `${Math.round(last * 100)}%` : "Blow to test the breath sensor"}</span>
+    <span>{m.music_winds_breath_sensor()}{#if band && bandLabel}<span class="ml-2 inline-flex items-center gap-1.5"><span class="band-swatch" aria-hidden="true"></span>{bandLabel}</span>{/if}</span>
+    <span class="tnum font-semibold text-ws-stage-ink">{measured && last !== undefined ? `${Math.round(last * 100)}%` : m.music_winds_breath_blow()}</span>
   </figcaption>
   <svg viewBox="0 0 {W} {H}" class="h-24 w-full {grow ? 'min-h-24 flex-1' : ''}" preserveAspectRatio="none" role="img" aria-label={label}>
     {#if band}<rect x="0" width={W} y={y(band[1])} height={y(band[0]) - y(band[1])} class="band" />{/if}
@@ -39,7 +41,7 @@
     {#if targetPath}<path d={targetPath} class="target" />{/if}
     {#if measured && path}<path d={path} class="breath" />{/if}
   </svg>
-  {#if !measured}<p class="text-sm text-ws-stage-soft">No breath data: the chart and computer keys can't send breath. Play the Aerophone to see it.</p>{/if}
+  {#if !measured}<p class="text-sm text-ws-stage-soft">{m.music_winds_breath_none()}</p>{/if}
 </figure>
 
 <style>

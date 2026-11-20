@@ -2,6 +2,7 @@
   // The last 64 pitch samples against the target line; with a drone, the drone
   // gets its own lane so the interval reads as distance.
   import { noteName } from "@repo/music-core";
+  import { m } from "@repo/i18n/messages.js";
 
   interface Props {
     /** Rolling MIDI samples, NaN = silence. */
@@ -12,21 +13,21 @@
     /** How notes are spelled, so the lane agrees with the page's chart (C#6, not Db6). */
     name?: (midi: number) => string;
   }
-  let { values, target, drone = null, label, name = (m: number) => noteName(m) }: Props = $props();
+  let { values, target, drone = null, label, name = (midi: number) => noteName(midi) }: Props = $props();
   const W = 320;
   const H = 110;
   const lo = $derived(Math.min(target, drone ?? target) - 4);
   const hi = $derived(Math.max(target, drone ?? target) + 4);
   const y = (m: number) => H - 8 - ((Math.min(hi, Math.max(lo, m)) - lo) / (hi - lo)) * (H - 16);
-  const dots = $derived(values.map((m, i) => ({ x: W - (values.length - 1 - i) * (W / 63), m })).filter((d) => Number.isFinite(d.m)));
+  const dots = $derived(values.map((v, i) => ({ x: W - (values.length - 1 - i) * (W / 63), m: v })).filter((d) => Number.isFinite(d.m)));
   const now = $derived(values[values.length - 1]);
 </script>
 
 <figure class="rounded-xl bg-ws-stage-ink/6 p-3">
   <figcaption class="mb-1 flex items-baseline justify-between text-sm text-ws-stage-soft">
-    <span>Pitch{drone !== null ? `, drone ${name(drone)}` : ""}</span>
+    <span>{drone !== null ? m.music_winds_pitch_label_drone({ note: name(drone) }) : m.music_winds_pitch_label()}</span>
     <span class="tnum font-semibold text-ws-stage-ink">
-      {#if Number.isFinite(now)}{name(now)}{#if now === target}<span class="ml-1 text-success-stage" aria-label="on target">✓</span>{/if}{:else}silent{/if}
+      {#if Number.isFinite(now)}{name(now)}{#if now === target}<span class="ml-1 text-success-stage" aria-label={m.music_winds_pitch_on_target()}>✓</span>{/if}{:else}{m.music_winds_pitch_silent()}{/if}
     </span>
   </figcaption>
   <div class="relative">
@@ -39,7 +40,7 @@
       <rect x={d.x - 2.5} y={y(d.m) - 2.5} width="5" height="5" rx="1.5" class="dot" data-on={d.m === target || undefined} />
     {/each}
   </svg>
-  {#if drone !== null}<span class="cap" style:top="{((y(drone) - 20) / H) * 100}%">drone {name(drone)}</span>{/if}
+  {#if drone !== null}<span class="cap" style:top="{((y(drone) - 20) / H) * 100}%">{m.music_winds_pitch_drone({ note: name(drone) })}</span>{/if}
   <span class="cap" style:top="{((y(target) - 19) / H) * 100}%">{name(target)}</span>
   </div>
 </figure>

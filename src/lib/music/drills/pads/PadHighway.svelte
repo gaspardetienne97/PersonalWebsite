@@ -32,6 +32,7 @@
   import type { Snippet } from "svelte";
   import { JUDGEMENT_TEXT, clusterMarks, gridLines, highwayScale, padCell, xAt, type Judgement } from "./lanes";
   import { padLabel } from "./midi-status";
+  import { m } from "@repo/i18n/messages.js";
 
   let {
     lanes,
@@ -45,7 +46,7 @@
     judged = {},
     flash = null,
     countIn = null,
-    label = "Notes coming up",
+    label = m.music_winds_highway_label(),
     pads,
     extras = [],
     fill = false,
@@ -150,7 +151,7 @@
         {#if flash && flash.judgement !== "extra"}
           {#key flash.key}
             <span class="flash" data-kind={flash.judgement} style:left="{scale.hitX + 10}px" style:top={flash.lane === undefined || flash.lane < 0 ? undefined : `calc((${flash.lane} + 0.5) * var(--lane) + var(--head))`} data-row={flash.lane !== undefined && flash.lane >= 0 ? "" : undefined} aria-live="polite">
-              <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" ? "✕ " : ""}</span>{JUDGEMENT_TEXT[flash.judgement]}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
+              <span aria-hidden="true">{flash.judgement === "perfect" ? "✓ " : flash.judgement === "miss" ? "✕ " : ""}</span>{JUDGEMENT_TEXT[flash.judgement]()}{#if flash.ms !== undefined && (flash.judgement === "early" || flash.judgement === "late")}<small> {Math.abs(Math.round(flash.ms))} ms</small>{/if}
             </span>
           {/key}
         {/if}
