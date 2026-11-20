@@ -15,6 +15,7 @@
   import PadHighway, { type HighwayLane, type HighwayNote } from "#lib/music/drills/pads/PadHighway.svelte";
   import { laneColor, orderLanes, padsDue, stepsPerBeatFor, type Judgement } from "#lib/music/drills/pads/lanes.ts";
   import { padLabel } from "#lib/music/drills/pads/midi-status.ts";
+  import { m } from "@repo/i18n/messages.js";
 
   let {
     score,
@@ -109,16 +110,16 @@
 </script>
 
 <div class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-  <div class="flex items-center gap-1" role="group" aria-label="Drum view">
-    {#each [["grid", "Grid"], ["lanes", "Lanes"]] as [id, text] (id)}
+  <div class="flex items-center gap-1" role="group" aria-label={m.music_drills_studio_drum_view()}>
+    {#each [["grid", m.music_drills_studio_drum_grid()], ["lanes", m.music_drills_studio_drum_lanes()]] as [id, text] (id)}
       <button type="button" class="chip" aria-pressed={view.value.drums === id} onclick={() => view.set({ drums: id })}>{text}</button>
     {/each}
   </div>
   {#if lanesOn}
-    <div class="flex items-center gap-1" role="group" aria-label="Look ahead">
-      <span class="mr-1 text-ws-stage-soft">Look ahead</span>
+    <div class="flex items-center gap-1" role="group" aria-label={m.music_drills_studio_look_ahead()}>
+      <span class="mr-1 text-ws-stage-soft">{m.music_drills_studio_look_ahead()}</span>
       {#each [1, 2, 4] as n (n)}
-        <button type="button" class="chip" aria-pressed={aheadBars === n} onclick={() => view.set({ ahead: n })}>{n} bar{n > 1 ? "s" : ""}</button>
+        <button type="button" class="chip" aria-pressed={aheadBars === n} onclick={() => view.set({ ahead: n })}>{m.music_drills_studio_bars_count({ count: n })}</button>
       {/each}
     </div>
   {/if}
@@ -135,17 +136,17 @@
     {aheadBars}
     lengthMs={score.lengthBeats * beatMs}
     {judged}
-    label="{lanes.map((l) => l.label).join(', ')}: notes coming up"
+    label={m.music_drills_studio_lanes_label({ drums: lanes.map((l) => l.label).join(", ") })}
   >
     {#snippet pads()}
-      <Pads {marks} {flashes} {timing} {names} {colors} label="MPC pads, bank A, the kit's drums. Computer keys Z X C V play the bottom row." />
+      <Pads {marks} {flashes} {timing} {names} {colors} label={m.music_drills_studio_pads_label()} />
     {/snippet}
   </PadHighway>
 {:else}
 <div class="rounded-xl bg-ws-surface p-2 text-ws-ink">
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region must be reachable by keyboard -->
-<div class="viewport overflow-auto" style:max-height={maxHeight} role="region" aria-label="Drum part: {rows.map((r) => r.name).join(', ')}. {notes.length} hits over {barCount} bar{barCount === 1 ? '' : 's'}" tabindex="0" data-drum-grid>
+<div class="viewport overflow-auto" style:max-height={maxHeight} role="region" aria-label={m.music_drills_studio_drum_part_label({ drums: rows.map((r) => r.name).join(", "), hits: notes.length, bars: barCount })} tabindex="0" data-drum-grid>
   <div class="flex w-max">
     <!-- The drum names stay put while the bars scroll under them. -->
     <div class="names sticky left-0 z-10 shrink-0 bg-ws-surface" style:width="{NAME}px" style:padding-top="{HEAD}px">

@@ -8,6 +8,7 @@ import type { GroupVerdict } from "@repo/music-core/scoring/follower";
 import type { BeatRange } from "#lib/music/notation/groups.ts";
 import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
 import { drumKey, scoreDrumPad } from "@repo/music-core/content/winds-pads";
+import { m } from "@repo/i18n/messages.js";
 
 export type RangeMode = "whole" | "sections" | "custom";
 export type SectionOrder = "sequence" | "per-section";
@@ -15,6 +16,19 @@ export type SectionOrder = "sequence" | "per-section";
 export interface Segment extends BeatRange {
   label: string;
 }
+
+// The two built-in ranges keep English labels inside a run (run keys and prompt ids are stored);
+// segmentLabel translates them where they are shown. A section's own name shows as it is.
+const WHOLE_SONG = "Whole song";
+const CUSTOM_RANGE = "Custom range";
+
+/** A segment or pass label as shown. */
+export const segmentLabel = (label: string): string =>
+  label === WHOLE_SONG
+    ? m.music_drills_studio_whole_song()
+    : label === CUSTOM_RANGE
+      ? m.music_drills_studio_custom_range()
+      : label;
 
 /**
  * The passes a run plays. Sequence joins the chosen sections into one pass
@@ -30,9 +44,9 @@ export function planPasses(
     custom: BeatRange | null;
   },
 ): Segment[][] {
-  const whole: Segment = { label: "Whole song", startBeat: 0, endBeat: score.lengthBeats };
+  const whole: Segment = { label: WHOLE_SONG, startBeat: 0, endBeat: score.lengthBeats };
   if (opts.mode === "custom" && opts.custom && opts.custom.endBeat > opts.custom.startBeat)
-    return [[{ label: "Custom range", ...opts.custom }]];
+    return [[{ label: CUSTOM_RANGE, ...opts.custom }]];
   if (opts.mode === "sections") {
     const chosen = [...new Set(opts.picked)]
       .filter((i) => sections[i])
@@ -523,9 +537,7 @@ export function gradeExpression(input: {
   const levels = playedLevels(input.notes, input.controls);
   const dyn = { right: 0, total: 0 };
   const unmeasured =
-    levels === null
-      ? "the input carries no breath or velocity (MIDI or the Aerophone measure it)"
-      : null;
+    levels === null ? m.music_drills_studio_unmeasured_level() : null;
   if (levels) {
     const ds = [...marks.dynamics]
       .sort((a, b) => a.beat - b.beat)
@@ -660,7 +672,7 @@ export function tapScore(score: Score, voiceIds: readonly string[]): Score {
           at.set(k, { midi: TAP_MIDI, startBeat: n.startBeat, durationBeats: n.durationBeats });
       }
   const notes = [...at.values()].sort((a, b) => a.startBeat - b.startBeat);
-  return { ...score, voices: [{ id: TAP_VOICE, name: "Rhythm", notes }] };
+  return { ...score, voices: [{ id: TAP_VOICE, name: m.music_drills_studio_rhythm_voice(), notes }] };
 }
 
 // ---------------------------------------------------------------------------
