@@ -119,7 +119,10 @@ export function lineScore(
           ? [
               {
                 id: hand === "right" ? "rh" : "lh",
-                name: hand === "right" ? m.music_shell_aero_right_hand() : m.music_shell_aero_left_hand(),
+                name:
+                  hand === "right"
+                    ? m.music_shell_aero_right_hand()
+                    : m.music_shell_aero_left_hand(),
                 hand,
                 notes: own,
               },

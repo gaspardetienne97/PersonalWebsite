@@ -28,7 +28,7 @@
   "music_shell_catalog_none_groove": "Ningún groove coincide con «{query}».",
   "music_shell_catalog_none_item": "Ningún elemento coincide con «{query}».",
   "music_shell_catalog_none_lick": "Ningún lick coincide con «{query}».",
-  "music_shell_catalog_none_other": "Nada coincide con «{query}».",
+  "music_shell_catalog_none_other": "Sin resultados ({noun}) para «{query}».",
   "music_shell_catalog_none_phrase": "Ninguna frase coincide con «{query}».",
   "music_shell_catalog_recent": "Recientes",
   "music_shell_catalog_search": "Buscar",
@@ -39,13 +39,8 @@
   "music_shell_catalog_search_phrase": "Buscar frases",
   "music_shell_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bemol",
         "countPlural=other": "{count} bemoles"
@@ -61,13 +56,8 @@
   "music_shell_circle_no_accidentals": "sin sostenidos ni bemoles",
   "music_shell_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} sostenido",
         "countPlural=other": "{count} sostenidos"
@@ -261,13 +251,8 @@
   "music_shell_lesson_fretboard": "Diapasón de {instrument}",
   "music_shell_lesson_groove_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Cuadrícula de groove, {bars} compás: {lanes}",
         "barsPlural=other": "Cuadrícula de groove, {bars} compases: {lanes}"
@@ -276,6 +261,7 @@
   ],
   "music_shell_lesson_groove_lane": "{drum} en {counts}",
   "music_shell_lesson_hear_step": "Escuchar este paso",
+  "music_shell_lesson_key_signature": "Armadura",
   "music_shell_lesson_next": "Siguiente",
   "music_shell_lesson_no_counts": "todavía sin conteos",
   "music_shell_lesson_pads": "Pads MPC: {pads}",
@@ -283,13 +269,8 @@
   "music_shell_lesson_rest": "silencio",
   "music_shell_lesson_rhythm_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Cuadrícula de ritmo, {bars} compás, notas en {counts}",
         "barsPlural=other": "Cuadrícula de ritmo, {bars} compases, notas en {counts}"
@@ -299,13 +280,8 @@
   "music_shell_lesson_screen": "Pantalla {at} de {total}",
   "music_shell_lesson_sig_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Armadura en {clef} con {count} bemol",
         "countPlural=other": "Armadura en {clef} con {count} bemoles"
@@ -314,13 +290,8 @@
   ],
   "music_shell_lesson_sig_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Armadura en {clef} con {count} sostenido",
         "countPlural=other": "Armadura en {clef} con {count} sostenidos"
@@ -331,13 +302,8 @@
   "music_shell_lesson_staff": "{clef}: {notes}",
   "music_shell_lesson_staff_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} con {count} bemol: {notes}",
         "countPlural=other": "{clef} con {count} bemoles: {notes}"
@@ -347,13 +313,8 @@
   "music_shell_lesson_staff_over": "Sobre {chords}, {staff}",
   "music_shell_lesson_staff_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} con {count} sostenido: {notes}",
         "countPlural=other": "{clef} con {count} sostenidos: {notes}"
@@ -415,13 +376,8 @@
   "music_shell_nt_plain": "Nada",
   "music_shell_nt_range_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Inicio, compás {start}. Fin, compás {end}. {count} compás, {secs} s a {bpm} BPM",
         "countPlural=other": "Inicio, compás {start}. Fin, compás {end}. {count} compases, {secs} s a {bpm} BPM"
@@ -431,13 +387,8 @@
   "music_shell_nt_range_end": "fin del rango",
   "music_shell_nt_range_notes": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Inicio, compás {start}. Fin, compás {end}. {count} nota, {secs} s a {bpm} BPM",
         "countPlural=other": "Inicio, compás {start}. Fin, compás {end}. {count} notas, {secs} s a {bpm} BPM"
@@ -452,13 +403,8 @@
   "music_shell_nt_tab_fallback": "La tablatura no puede mostrar esta música para {tuning}: {reason}. El pentagrama y las notas que caen muestran todas las notas.",
   "music_shell_nt_tab_gap": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nota está fuera de esta afinación y aparece como un hueco.",
         "countPlural=other": "{count} notas están fuera de esta afinación y aparecen como un hueco."
@@ -546,13 +492,8 @@
   "music_shell_search_settings_kw": "calibración respaldo copia de seguridad",
   "music_shell_search_show_in_drills": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Verlo en Ejercicios",
         "countPlural=other": "Ver los {count} en Ejercicios"
@@ -609,13 +550,8 @@
   "music_shell_settings_midi_all_blurb": "Lo usa cada dispositivo MIDI que no tiene su propio desfase.",
   "music_shell_settings_midi_inputs": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} entrada",
         "countPlural=other": "{count} entradas"
@@ -648,13 +584,8 @@
   "music_shell_settings_restored": "Se restauraron {rows} filas de la copia de seguridad.",
   "music_shell_settings_restored_files": [
     {
-      "declarations": [
-        "input files",
-        "local filesPlural = files: plural"
-      ],
-      "selectors": [
-        "filesPlural"
-      ],
+      "declarations": ["input files", "local filesPlural = files: plural"],
+      "selectors": ["filesPlural"],
       "match": {
         "filesPlural=one": "Se restauraron {rows} filas de la copia de seguridad y {files} archivo multimedia.",
         "filesPlural=other": "Se restauraron {rows} filas de la copia de seguridad y {files} archivos multimedia."
@@ -708,13 +639,8 @@
   "music_shell_shell_countin_beat_label": "Cuenta previa, pulso {beat} de {total}",
   "music_shell_shell_countin_status": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Cuenta previa: {count} compás.",
         "countPlural=other": "Cuenta previa: {count} compases."
@@ -764,13 +690,8 @@
   "music_shell_stage_fretboard": "Diapasón de {instrument}, trastes {from} a {to}",
   "music_shell_stage_out_of_range": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} está fuera del registro de {instrument} aquí.",
         "countPlural=other": "{notes} están fuera del registro de {instrument} aquí."
@@ -784,13 +705,8 @@
   "music_shell_strip_aero_title": "La tonalidad escrita. El Aerophone envía el sonido real.",
   "music_shell_strip_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} compás",
         "countPlural=other": "{count} compases"

@@ -131,8 +131,8 @@
   const strong = (t: string) => `<strong>${t}</strong>`;
   const a = (href: string, t: string) => `<a class="${link}" href="${href}">${t}</a>`;
   // Keys inside a sentence are drawn as <kbd> by the markup (its styles are this page's own), so they go in as tokens.
-  const key = (k: string) => `\u0001${k}\u0001`;
-  const withKeys = (text: string) => text.split(/\u0001(.*?)\u0001/).map((s, i) => ({ s, isKey: i % 2 === 1 }));
+  const key = (k: string) => `\uE000${k}\uE000`;
+  const withKeys = (text: string) => text.split("\uE000").map((s, i) => ({ s, isKey: i % 2 === 1 }));
 </script>
 
 <svelte:head><title>{m.music_shell_guide_title()}</title></svelte:head>

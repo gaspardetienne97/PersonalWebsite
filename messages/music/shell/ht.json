@@ -28,7 +28,7 @@
   "music_shell_catalog_none_groove": "Pa gen groove ki koresponn ak \"{query}\".",
   "music_shell_catalog_none_item": "Pa gen eleman ki koresponn ak \"{query}\".",
   "music_shell_catalog_none_lick": "Pa gen lick ki koresponn ak \"{query}\".",
-  "music_shell_catalog_none_other": "Anyen pa koresponn ak \"{query}\".",
+  "music_shell_catalog_none_other": "Pa gen {noun} ki koresponn ak \"{query}\".",
   "music_shell_catalog_none_phrase": "Pa gen fraz ki koresponn ak \"{query}\".",
   "music_shell_catalog_recent": "Resan",
   "music_shell_catalog_search": "Chèche",
@@ -39,13 +39,8 @@
   "music_shell_catalog_search_phrase": "Chèche fraz",
   "music_shell_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bemòl",
         "countPlural=other": "{count} bemòl"
@@ -61,13 +56,8 @@
   "music_shell_circle_no_accidentals": "san dyèz ni bemòl",
   "music_shell_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} dyèz",
         "countPlural=other": "{count} dyèz"
@@ -261,13 +251,8 @@
   "music_shell_lesson_fretboard": "Manch {instrument}",
   "music_shell_lesson_groove_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Griy groove, {bars} mezi: {lanes}",
         "barsPlural=other": "Griy groove, {bars} mezi: {lanes}"
@@ -276,6 +261,7 @@
   ],
   "music_shell_lesson_groove_lane": "{drum} sou {counts}",
   "music_shell_lesson_hear_step": "Koute etap sa a",
+  "music_shell_lesson_key_signature": "Amati",
   "music_shell_lesson_next": "Pwochen",
   "music_shell_lesson_no_counts": "poko gen kontaj",
   "music_shell_lesson_pads": "Pad MPC: {pads}",
@@ -283,13 +269,8 @@
   "music_shell_lesson_rest": "pòz",
   "music_shell_lesson_rhythm_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Griy ritm, {bars} mezi, nòt sou {counts}",
         "barsPlural=other": "Griy ritm, {bars} mezi, nòt sou {counts}"
@@ -299,13 +280,8 @@
   "music_shell_lesson_screen": "Ekran {at} sou {total}",
   "music_shell_lesson_sig_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Amati an {clef} ak {count} bemòl",
         "countPlural=other": "Amati an {clef} ak {count} bemòl"
@@ -314,13 +290,8 @@
   ],
   "music_shell_lesson_sig_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Amati an {clef} ak {count} dyèz",
         "countPlural=other": "Amati an {clef} ak {count} dyèz"
@@ -331,13 +302,8 @@
   "music_shell_lesson_staff": "{clef}: {notes}",
   "music_shell_lesson_staff_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} ak {count} bemòl: {notes}",
         "countPlural=other": "{clef} ak {count} bemòl: {notes}"
@@ -347,13 +313,8 @@
   "music_shell_lesson_staff_over": "Sou {chords}, {staff}",
   "music_shell_lesson_staff_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} ak {count} dyèz: {notes}",
         "countPlural=other": "{clef} ak {count} dyèz: {notes}"
@@ -415,13 +376,8 @@
   "music_shell_nt_plain": "Anyen",
   "music_shell_nt_range_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} mezi, {secs} s a {bpm} BPM",
         "countPlural=other": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} mezi, {secs} s a {bpm} BPM"
@@ -431,13 +387,8 @@
   "music_shell_nt_range_end": "fen seksyon an",
   "music_shell_nt_range_notes": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} nòt, {secs} s a {bpm} BPM",
         "countPlural=other": "Kòmansman, mezi {start}. Fen, mezi {end}. {count} nòt, {secs} s a {bpm} BPM"
@@ -452,13 +403,8 @@
   "music_shell_nt_tab_fallback": "Tablati a pa ka montre mizik sa a pou {tuning}: {reason}. Pòte a ak nòt k ap tonbe yo montre tout nòt yo.",
   "music_shell_nt_tab_gap": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt pa nan akòdaj sa a epi li parèt kòm yon twou.",
         "countPlural=other": "{count} nòt pa nan akòdaj sa a epi yo parèt kòm yon twou."
@@ -546,13 +492,8 @@
   "music_shell_search_settings_kw": "kalibrasyon sovgad",
   "music_shell_search_show_in_drills": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Montre l nan Egzèsis",
         "countPlural=other": "Montre tout {count} yo nan Egzèsis"
@@ -609,13 +550,8 @@
   "music_shell_settings_midi_all_blurb": "Chak aparèy MIDI ki pa gen pwòp dekalaj pa l sèvi ak li.",
   "music_shell_settings_midi_inputs": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} antre",
         "countPlural=other": "{count} antre"
@@ -648,13 +584,8 @@
   "music_shell_settings_restored": "Nou retabli {rows} liy nan sovgad la.",
   "music_shell_settings_restored_files": [
     {
-      "declarations": [
-        "input files",
-        "local filesPlural = files: plural"
-      ],
-      "selectors": [
-        "filesPlural"
-      ],
+      "declarations": ["input files", "local filesPlural = files: plural"],
+      "selectors": ["filesPlural"],
       "match": {
         "filesPlural=one": "Nou retabli {rows} liy ak {files} fichye medya nan sovgad la.",
         "filesPlural=other": "Nou retabli {rows} liy ak {files} fichye medya nan sovgad la."
@@ -708,13 +639,8 @@
   "music_shell_shell_countin_beat_label": "Kontaj, tan {beat} sou {total}",
   "music_shell_shell_countin_status": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Kontaj: {count} mezi.",
         "countPlural=other": "Kontaj: {count} mezi."
@@ -764,13 +690,8 @@
   "music_shell_stage_fretboard": "Manch {instrument}, frèt {from} rive {to}",
   "music_shell_stage_out_of_range": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} pa nan rejis {instrument} la isit la.",
         "countPlural=other": "{notes} pa nan rejis {instrument} la isit la."
@@ -784,13 +705,8 @@
   "music_shell_strip_aero_title": "Tonalite ki ekri a. Aerophone nan voye son reyèl la.",
   "music_shell_strip_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} mezi",
         "countPlural=other": "{count} mezi"

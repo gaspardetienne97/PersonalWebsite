@@ -35,7 +35,11 @@ const PAGES: SearchItem[] = [
     hint: m.music_shell_nav_today(),
     keywords: m.music_shell_search_start_today_kw(),
   },
-  { label: m.music_shell_home_all_drills(), href: "/music?tab=drills", hint: m.music_shell_nav_drills() },
+  {
+    label: m.music_shell_home_all_drills(),
+    href: "/music?tab=drills",
+    hint: m.music_shell_nav_drills(),
+  },
   {
     label: m.music_shell_search_paths(),
     href: "/music?tab=paths",
@@ -83,7 +87,11 @@ const PAGES: SearchItem[] = [
     hint: m.music_shell_search_takes(),
     keywords: m.music_shell_search_record_kw(),
   },
-  { label: m.music_shell_nav_progress(), href: "/music/progress", hint: m.music_shell_search_what_next() },
+  {
+    label: m.music_shell_nav_progress(),
+    href: "/music/progress",
+    hint: m.music_shell_search_what_next(),
+  },
   {
     label: m.music_shell_search_skills(),
     href: "/music/progress?view=skills",
@@ -118,7 +126,11 @@ const PAGES: SearchItem[] = [
     href: "/music/tuner?mode=intonation",
     hint: m.music_shell_search_tuner(),
   },
-  { label: m.music_shell_search_drone(), href: "/music/tuner?mode=drone", hint: m.music_shell_search_tuner() },
+  {
+    label: m.music_shell_search_drone(),
+    href: "/music/tuner?mode=drone",
+    hint: m.music_shell_search_tuner(),
+  },
   {
     label: m.music_shell_search_clips(),
     href: "/music/clips",

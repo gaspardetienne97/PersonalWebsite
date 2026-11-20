@@ -178,7 +178,7 @@
     const n = f.reveal ?? Math.abs(f.fifths);
     return {
       id: `lesson-sig-${f.fifths}-${n}`,
-      title: "Key signature",
+      title: m.music_shell_lesson_key_signature(),
       bpm: 60,
       keyFifths: Math.sign(f.fifths) * n,
       meter: { beats: 4, beatUnit: 4 },
@@ -202,7 +202,7 @@
     return {
       id: `lesson-staff-${f.clef}-${f.fifths ?? 0}-${f.notes.map((n) => `${n.midi}x${n.beats}`).join("_")}${f.chords?.map((c) => `-${c.symbol}@${c.beat}`).join("") ?? ""}`,
       ...(chords ? { chords } : {}),
-      title: "Lesson",
+      title: m.music_shell_shell_lesson(),
       bpm: 60,
       keyFifths: f.fifths ?? 0,
       meter: f.meter ?? { beats: at, beatUnit: 4 },

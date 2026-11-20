@@ -39,13 +39,8 @@
   "music_shell_catalog_search_phrase": "Search phrases",
   "music_shell_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} flat",
         "countPlural=other": "{count} flats"
@@ -61,13 +56,8 @@
   "music_shell_circle_no_accidentals": "no sharps or flats",
   "music_shell_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} sharp",
         "countPlural=other": "{count} sharps"
@@ -261,13 +251,8 @@
   "music_shell_lesson_fretboard": "{instrument} fretboard",
   "music_shell_lesson_groove_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Groove grid, {bars} bar: {lanes}",
         "barsPlural=other": "Groove grid, {bars} bars: {lanes}"
@@ -276,6 +261,7 @@
   ],
   "music_shell_lesson_groove_lane": "{drum} on {counts}",
   "music_shell_lesson_hear_step": "Hear this step",
+  "music_shell_lesson_key_signature": "Key signature",
   "music_shell_lesson_next": "Next",
   "music_shell_lesson_no_counts": "no counts yet",
   "music_shell_lesson_pads": "MPC pads: {pads}",
@@ -283,13 +269,8 @@
   "music_shell_lesson_rest": "rest",
   "music_shell_lesson_rhythm_grid": [
     {
-      "declarations": [
-        "input bars",
-        "local barsPlural = bars: plural"
-      ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "declarations": ["input bars", "local barsPlural = bars: plural"],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Rhythm grid, {bars} bar, notes on {counts}",
         "barsPlural=other": "Rhythm grid, {bars} bars, notes on {counts}"
@@ -299,13 +280,8 @@
   "music_shell_lesson_screen": "Screen {at} of {total}",
   "music_shell_lesson_sig_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} key signature with {count} flat",
         "countPlural=other": "{clef} key signature with {count} flats"
@@ -314,13 +290,8 @@
   ],
   "music_shell_lesson_sig_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} key signature with {count} sharp",
         "countPlural=other": "{clef} key signature with {count} sharps"
@@ -331,13 +302,8 @@
   "music_shell_lesson_staff": "{clef}: {notes}",
   "music_shell_lesson_staff_flat": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} with {count} flat: {notes}",
         "countPlural=other": "{clef} with {count} flats: {notes}"
@@ -347,13 +313,8 @@
   "music_shell_lesson_staff_over": "Over {chords}, {staff}",
   "music_shell_lesson_staff_sharp": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{clef} with {count} sharp: {notes}",
         "countPlural=other": "{clef} with {count} sharps: {notes}"
@@ -415,13 +376,8 @@
   "music_shell_nt_plain": "Plain",
   "music_shell_nt_range_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Start, bar {start}. End, bar {end}. {count} bar, {secs} s at {bpm} BPM",
         "countPlural=other": "Start, bar {start}. End, bar {end}. {count} bars, {secs} s at {bpm} BPM"
@@ -431,13 +387,8 @@
   "music_shell_nt_range_end": "range end",
   "music_shell_nt_range_notes": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Start, bar {start}. End, bar {end}. {count} note, {secs} s at {bpm} BPM",
         "countPlural=other": "Start, bar {start}. End, bar {end}. {count} notes, {secs} s at {bpm} BPM"
@@ -452,13 +403,8 @@
   "music_shell_nt_tab_fallback": "Tab can't show this music for {tuning}: {reason}. The staff and falling notes show every note.",
   "music_shell_nt_tab_gap": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} note is outside this tuning and shows as a gap.",
         "countPlural=other": "{count} notes are outside this tuning and show as a gap."
@@ -546,13 +492,8 @@
   "music_shell_search_settings_kw": "calibration backup",
   "music_shell_search_show_in_drills": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Show it in Drills",
         "countPlural=other": "Show all {count} in Drills"
@@ -609,13 +550,8 @@
   "music_shell_settings_midi_all_blurb": "Used by every MIDI device without its own offset.",
   "music_shell_settings_midi_inputs": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} input",
         "countPlural=other": "{count} inputs"
@@ -648,13 +584,8 @@
   "music_shell_settings_restored": "Restored {rows} rows from the backup.",
   "music_shell_settings_restored_files": [
     {
-      "declarations": [
-        "input files",
-        "local filesPlural = files: plural"
-      ],
-      "selectors": [
-        "filesPlural"
-      ],
+      "declarations": ["input files", "local filesPlural = files: plural"],
+      "selectors": ["filesPlural"],
       "match": {
         "filesPlural=one": "Restored {rows} rows from the backup and {files} media file.",
         "filesPlural=other": "Restored {rows} rows from the backup and {files} media files."
@@ -708,13 +639,8 @@
   "music_shell_shell_countin_beat_label": "Count-in, beat {beat} of {total}",
   "music_shell_shell_countin_status": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Count-in: {count} bar.",
         "countPlural=other": "Count-in: {count} bars."
@@ -764,13 +690,8 @@
   "music_shell_stage_fretboard": "{instrument} fretboard, frets {from} to {to}",
   "music_shell_stage_out_of_range": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} is out of the {instrument}'s range here.",
         "countPlural=other": "{notes} are out of the {instrument}'s range here."
@@ -784,13 +705,8 @@
   "music_shell_strip_aero_title": "The written key. The Aerophone sends concert pitch.",
   "music_shell_strip_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bar",
         "countPlural=other": "{count} bars"

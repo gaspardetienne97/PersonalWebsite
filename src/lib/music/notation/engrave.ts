@@ -157,8 +157,7 @@ export function lineTicks(notes: ScoreNote[], barList: Bar[], groups: ScoreGroup
     if (n.durationBeats <= 0) throw new NotationError(m.music_shell_nt_err_no_length());
     for (const x of [n.startBeat, n.startBeat + n.durationBeats]) {
       if (onGrid(x)) continue;
-      if (!onThird(x))
-        throw new NotationError(m.music_shell_nt_err_tuplets());
+      if (!onThird(x)) throw new NotationError(m.music_shell_nt_err_tuplets());
       triplets.add(Math.floor(x));
     }
   }
@@ -823,7 +822,11 @@ export function drawTab(
   const { barList, notes, at, outOfRange } = tabFit(score, voiceIds, range, tuning);
   if (notes.length && outOfRange > notes.length / 3)
     throw new NotationError(
-      m.music_shell_nt_err_tab_range({ out: outOfRange, total: notes.length, frets: tuning.fretCount }),
+      m.music_shell_nt_err_tab_range({
+        out: outOfRange,
+        total: notes.length,
+        frets: tuning.fretCount,
+      }),
     );
   const groups = scoreGroups(score, voiceIds, range);
   const lines = tuning.openStrings.length;
@@ -850,7 +853,6 @@ export function drawTab(
     },
   };
   const layout = engrave(VF, host, score, barList, groups, [row], width, fill);
-  if (outOfRange)
-    layout.notice = m.music_shell_nt_tab_gap({ count: outOfRange });
+  if (outOfRange) layout.notice = m.music_shell_nt_tab_gap({ count: outOfRange });
   return layout;
 }
