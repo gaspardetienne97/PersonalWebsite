@@ -2,6 +2,7 @@
 // or any saved song. It plays the picked parts on its own clock and hands
 // back the score with only the notes changed (parts, key, sections and the
 // rest stay as they were).
+import { m } from "@repo/i18n/messages.js";
 import type { Score } from "@repo/music-core";
 import { audio, type SequenceHandle } from "#lib/music/runtime/index.ts";
 import { barBeats, mergeTies } from "#lib/music/notation/groups.ts";
@@ -48,7 +49,9 @@ export class ScoreEditor implements RollHost {
       title: score.title,
       bpm: score.bpm,
       lengthBeats: bars * this.barBeats,
-      voices: voices.length ? voices : [{ id: "melody", name: "Melody", velocity: 0.8, notes: [] }],
+      voices: voices.length
+        ? voices
+        : [{ id: "melody", name: m.music_hubs_tr_melody(), velocity: 0.8, notes: [] }],
     };
     this.picked = this.doc.voices.map((v) => v.id);
     this.selected = this.picked[0];

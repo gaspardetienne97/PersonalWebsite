@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The beat's editor: a step sequencer of one to eight bars, rows are drum
   // voices keyed by MIDI note (a row with a kit sample plays the sample). The
   // song bar plays it; the tracks list mutes it and picks its kit.
@@ -55,8 +56,8 @@
   const soloing = $derived(session.playing && session.only === "beat");
   async function playGroove() {
     const ok = await session.play("beat");
-    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
-    announce(session.playing ? `Playing the beat on its own at ${session.bpm} BPM.` : "Stopped.");
+    if (!ok) return announce(m.music_hubs_tracks_blocked());
+    announce(session.playing ? m.music_hubs_bg_playing_alone({ bpm: session.bpm }) : m.music_hubs_tracks_stopped());
   }
 
   const kit = $derived(kits.kit);
@@ -83,7 +84,7 @@
     void audio.unlock().then(() => audio.playKitPad(row.midi, 0.8));
   }
 
-  const bars = (n: number) => `${n} ${n === 1 ? "bar" : "bars"}`;
+  const bars = (n: number) => m.music_hubs_songs_bars({ count: n });
   /** The row sounding on the playhead's step: its name lights with the hit. */
   const rowHit = (midi: number) => playhead >= 0 && isOn(pattern, midi, playhead);
 
@@ -113,7 +114,7 @@
   /** Bar 2 repeating bar 1 gets its own copy, to change on its own. */
   function makeUnique() {
     session.setPattern(addBar(pattern));
-    announce(`Bar ${barsOf(session.pattern)} is its own now, a copy to change.`);
+    announce(m.music_hubs_bg_own_bar({ n: barsOf(session.pattern) }));
   }
   const firstRepeat = $derived(overview.find((c) => c.repeat));
   /** A phone's row name: the pad for a sample, else the voice's full name (it wraps to two short lines). */
@@ -127,7 +128,7 @@
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
     session.setPattern({ ...fromPreset(p, session.bpm), id: pattern.id });
-    announce(`${p.name}: ${hitCount(session.pattern)} hits over ${bars(p.bars)}. Change anything you like.`);
+    announce(m.music_hubs_bg_preset_loaded({ name: p.name, hits: hitCount(session.pattern), bars: bars(p.bars) }));
   }
 
   // Arrow keys walk the grid.
@@ -149,7 +150,7 @@
 
 <svelte:window onresize={measure} />
 
-<section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label="Beat editor">
+<section class="stage relative overflow-hidden rounded-3xl p-3 sm:p-5" aria-label={m.music_hubs_bg_label()}>
     <div class="mb-3 flex items-center gap-2 sm:gap-3">
       <!-- The song bar's Play is the main transport; this plays the beat alone. -->
       <button type="button" class="{btnStage} shrink-0" aria-pressed={soloing} onclick={playGroove}>
@@ -158,23 +159,23 @@
       <h2 class="min-w-0 flex-1 truncate font-display text-xl font-semibold">{pattern.name}</h2>
       <!-- One menu for what the beat sounds like: presets, sample kits, the live pads. -->
       <Popover.Root>
-        <Popover.Trigger class="{btnStage} shrink-0"><Sliders class="size-4" aria-hidden="true" />Sounds</Popover.Trigger>
+        <Popover.Trigger class="{btnStage} shrink-0"><Sliders class="size-4" aria-hidden="true" />{m.music_hubs_bg_sounds()}</Popover.Trigger>
         <Popover.Content align="end" class="flex w-[min(18rem,calc(100vw-2rem))] flex-col gap-3 rounded-2xl border-ws-line bg-ws-surface p-3 text-ws-ink shadow-lg">
           <div class="flex flex-col gap-1 text-sm">
-            <span class="font-semibold">Start from a preset</span>
-            <Picker class="w-full" action label="Start from a preset" placeholder="Pick a groove" options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
-            <span class="text-[13px] text-ws-soft">Replaces this beat's hits.</span>
+            <span class="font-semibold">{m.music_hubs_bg_preset()}</span>
+            <Picker class="w-full" action label={m.music_hubs_bg_preset()} placeholder={m.music_hubs_bg_pick_groove()} options={PRESETS.map((p) => ({ value: p.id, label: p.name, group: p.group }))} onchange={usePreset} />
+            <span class="text-[13px] text-ws-soft">{m.music_hubs_bg_replaces()}</span>
           </div>
           <div class="flex flex-wrap gap-2 border-t border-ws-line pt-3">
             {@render extra?.()}
-            <a class="inline-flex min-h-11 items-center gap-2 rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised" href="/music/create/kits"><Drum class="size-4" aria-hidden="true" />Sample kits</a>
+            <a class="inline-flex min-h-11 items-center gap-2 rounded-full border border-ws-line px-4 text-sm font-semibold hover:bg-ws-raised" href="/music/create/kits"><Drum class="size-4" aria-hidden="true" />{m.music_hubs_bg_sample_kits()}</a>
           </div>
         </Popover.Content>
       </Popover.Root>
     </div>
 
     <!-- Bar overview: the song's bars, the one playing filled, repeats dashed. -->
-    <div class="mb-2 flex gap-1" role="group" aria-label="Bars of the song">
+    <div class="mb-2 flex gap-1" role="group" aria-label={m.music_hubs_bg_bars_of_song()}>
       {#each overview as c (c.bar)}
         <button
           type="button"
@@ -182,17 +183,17 @@
           data-repeat={c.repeat || undefined}
           data-now={c.now || undefined}
           aria-current={c.now ? "step" : undefined}
-          aria-label="Bar {c.bar + 1}{c.repeat ? `, repeats beat bar ${c.beatBar + 1}` : ''}{c.now ? ', playing' : ''}"
+          aria-label={m.music_hubs_bg_bar({ n: c.bar + 1 }) + (c.repeat ? m.music_hubs_bg_repeats_part({ n: c.beatBar + 1 }) : "") + (c.now ? m.music_hubs_bg_playing_part() : "")}
           onclick={() => showBar(c.beatBar)}
-        ><span>{c.bar + 1}{#if c.repeat && overview.length <= 2}<span class="font-normal sm:hidden" aria-hidden="true">, repeats {c.beatBar + 1}</span>{/if}</span></button>
+        ><span>{c.bar + 1}{#if c.repeat && overview.length <= 2}<span class="font-normal sm:hidden" aria-hidden="true">{m.music_hubs_bg_repeats_short({ n: c.beatBar + 1 })}</span>{/if}</span></button>
       {/each}
       <!-- On a phone the repeat is named in its cell and Make unique sits on this row, so the whole grid fits above the tab bar. -->
-      {#if firstRepeat}<button type="button" class="inline-flex min-h-11 shrink-0 items-center px-2 text-sm font-semibold text-ws-stage-ink underline underline-offset-4 sm:hidden" onclick={makeUnique}>Make unique</button>{/if}
+      {#if firstRepeat}<button type="button" class="inline-flex min-h-11 shrink-0 items-center px-2 text-sm font-semibold text-ws-stage-ink underline underline-offset-4 sm:hidden" onclick={makeUnique}>{m.music_hubs_bg_make_unique()}</button>{/if}
     </div>
     {#if firstRepeat}
       <p class="mb-2 flex flex-wrap items-center gap-x-3 text-sm text-ws-stage-soft max-sm:hidden">
-        <span>Bar {firstRepeat.bar + 1} copies bar {firstRepeat.beatBar + 1}.</span>
-        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique} aria-label="Make unique">Edit bar {firstRepeat.bar + 1} on its own</button>
+        <span>{m.music_hubs_bg_copies({ n: firstRepeat.bar + 1, of: firstRepeat.beatBar + 1 })}</span>
+        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-ws-stage-ink underline underline-offset-4" onclick={makeUnique} aria-label={m.music_hubs_bg_make_unique()}>{m.music_hubs_bg_edit_own({ n: firstRepeat.bar + 1 })}</button>
       </p>
     {/if}
 
@@ -200,7 +201,7 @@
       <table class="grid-table">
         <thead>
           <tr>
-            <th scope="col" class="rowhead"><span class="sr-only">Voice</span></th>
+            <th scope="col" class="rowhead"><span class="sr-only">{m.music_hubs_bg_voice()}</span></th>
             {#each Array.from({ length: total }, (_, i) => i) as s (s)}
               <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-step={s} data-now={playhead === s || undefined}>
                 <span aria-hidden="true">{s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}{#if s % STEPS === 0 && total > STEPS}<span class="barnum">bar {s / STEPS + 1}</span>{/if}</span>
@@ -213,7 +214,7 @@
           {#each rows as row, r (row.midi)}
             <tr>
               <th scope="row" class="rowhead" class:playing={rowHit(row.midi)}>
-                <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label="Hear {row.sample ?? row.name}">
+                <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label={m.music_hubs_bg_hear({ name: row.sample ?? row.name })}>
                   <span class="flex max-w-full items-center gap-1"><span class="font-semibold break-words sm:hidden" aria-hidden="true">{tag(row)}</span><span class="truncate font-semibold max-sm:hidden">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60 max-sm:hidden" aria-hidden="true" /></span>
                   {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">Sample on {padLabel(row.midi)}</span>{/if}
                 </button>
@@ -232,7 +233,7 @@
                     data-row={r}
                     data-step={s}
                     aria-pressed={on}
-                    aria-label="{row.sample ? `${row.sample} on ${padLabel(row.midi)}` : row.name}, bar {Math.floor(s / STEPS) + 1} step {(s % STEPS) + 1}"
+                    aria-label={m.music_hubs_bg_cell({ row: row.sample ? m.music_hubs_bg_sample_on({ sample: row.sample, pad: padLabel(row.midi) }) : row.name, bar: Math.floor(s / STEPS) + 1, step: (s % STEPS) + 1 })}
                     onclick={() => toggle(row, s)}
                     onkeydown={gridKey}
                   ></button>
@@ -244,9 +245,9 @@
       </table>
     </div>
     {#if pages > 1}
-      <div class="flex justify-center sm:hidden" role="group" aria-label="Grid pages">
+      <div class="flex justify-center sm:hidden" role="group" aria-label={m.music_hubs_bg_pages()}>
         {#each Array.from({ length: pages }, (_, i) => i) as p (p)}
-          <button type="button" class="grid size-11 place-items-center" aria-label="Bar {Math.floor((p * PAGE) / STEPS) + 1}, steps {((p * PAGE) % STEPS) + 1} to {((p * PAGE) % STEPS) + PAGE}" aria-current={p === page ? "true" : undefined} onclick={() => showStep(p * PAGE)}>
+          <button type="button" class="grid size-11 place-items-center" aria-label={m.music_hubs_bg_page({ bar: Math.floor((p * PAGE) / STEPS) + 1, from: ((p * PAGE) % STEPS) + 1, to: ((p * PAGE) % STEPS) + PAGE })} aria-current={p === page ? "true" : undefined} onclick={() => showStep(p * PAGE)}>
             <span class="block h-2 rounded-full {p === page ? 'w-5 bg-instr' : 'w-2 bg-ws-stage-ink/35'}"></span>
           </button>
         {/each}
@@ -254,9 +255,9 @@
     {/if}
     <!-- A phone leaves the summary out so the grid ends above the tab bar; the steps say the same. -->
     <p class="mt-3 text-sm text-ws-stage-ink/85 max-sm:hidden" data-playhead={playhead}>
-      {hitCount(pattern)} hits over {bars(barsOf(pattern))}{barsOf(pattern) < session.bars ? `, repeating to fill the song's ${session.bars} bars` : ""}. Rows play {kit && kitNotes.size ? `the samples in ${kit.name}, built-in drums elsewhere` : "the built-in drums"}. Tap a step to add or remove a hit.
+      {m.music_hubs_bg_summary({ hits: hitCount(pattern), bars: bars(barsOf(pattern)) })}{barsOf(pattern) < session.bars ? m.music_hubs_bg_repeating({ count: session.bars }) : ""}. {kit && kitNotes.size ? m.music_hubs_bg_rows_kit({ kit: kit.name }) : m.music_hubs_bg_rows_builtin()}
     </p>
-    <p id="beat-keys" class="sr-only">Arrow keys move around the grid, Enter or Space toggles a step.</p>
+    <p id="beat-keys" class="sr-only">{m.music_hubs_bg_keys()}</p>
   </section>
 
 <style>

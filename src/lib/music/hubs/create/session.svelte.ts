@@ -2,6 +2,7 @@
 // tempo, so a backing track can be built and jammed over. What is open is a
 // working copy (it survives a reload); it joins the songs list only on Save.
 // The library keeps beats and melodies to reuse in any song.
+import { m } from "@repo/i18n/messages.js";
 import {
   audio,
   getSetting,
@@ -98,7 +99,7 @@ function blankSong(name: string, bpm: number, starter = false): CreateSong {
     bpm,
     pattern: {
       id: crypto.randomUUID(),
-      name: "Beat",
+      name: m.music_hubs_beat_default(),
       bpm,
       bars: 1,
       steps: starter ? { 36: [0, 7, 10], 38: [4, 12], 42: [0, 2, 4, 6, 8, 10, 12, 14] } : {},
@@ -113,7 +114,7 @@ function blankSong(name: string, bpm: number, starter = false): CreateSong {
 
 class CreateSession {
   songId = $state("");
-  songName = $state("Untitled song");
+  songName = $state<string>(m.music_hubs_song_untitled());
   pattern = $state<BeatPattern>(blankSong("", 90).pattern);
   doc = $state<RollDoc>(emptyDoc(crypto.randomUUID()));
   beatMuted = $state(false);
@@ -177,7 +178,7 @@ class CreateSession {
       getSetting<RollDoc | null>(ROLL_KEY, null),
     ]);
     const bpm = Math.min(200, Math.max(40, draft?.bpm ?? (settings.value.bpm || 90)));
-    const song = blankSong("Untitled song", bpm, true);
+    const song = blankSong(m.music_hubs_song_untitled(), bpm, true);
     if (draft?.steps) song.pattern = { ...draft, bpm };
     if (doc?.voices?.length) song.doc = { ...doc, bpm };
     return song;
@@ -370,7 +371,10 @@ class CreateSession {
 
   /** Save the open song into the songs list (in place when it is already there). */
   async save() {
-    const song = { ...this.#snapshot(), name: this.songName.trim() || "Untitled song" };
+    const song = {
+      ...this.#snapshot(),
+      name: this.songName.trim() || m.music_hubs_song_untitled(),
+    };
     this.songName = song.name;
     this.songs = this.songs.some((s) => s.id === song.id)
       ? this.songs.map((s) => (s.id === song.id ? song : s))
@@ -391,7 +395,7 @@ class CreateSession {
 
   /** A blank song, not saved until Save. The open one is dropped as it is. */
   newSong() {
-    this.#show(blankSong("Untitled song", this.bpm));
+    this.#show(blankSong(m.music_hubs_song_untitled(), this.bpm));
   }
 
   openSong(id: string) {
@@ -460,7 +464,7 @@ class CreateSession {
     const beat = {
       ...$state.snapshot(this.pattern),
       id: crypto.randomUUID(),
-      name: this.pattern.name.trim() || "Beat",
+      name: this.pattern.name.trim() || m.music_hubs_beat_default(),
       updatedAt: Date.now(),
     };
     this.beats = [...this.beats.filter((b) => b.name !== beat.name), beat].sort((a, b) =>

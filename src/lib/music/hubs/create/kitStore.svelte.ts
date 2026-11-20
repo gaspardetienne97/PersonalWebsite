@@ -1,6 +1,7 @@
 // The sample kits the beat grid plays and exports. Kits live in the setting
 // `music.sample-kits`; sample bytes in OPFS. Every change is written through
 // and the decoded kit is reloaded into the audio runtime.
+import { m } from "@repo/i18n/messages.js";
 import { buildKitFiles, sampleFileError, type KitFile } from "@repo/music-core/io/mpc-kit";
 import {
   audio,
@@ -49,7 +50,7 @@ class KitStore {
     const list = await getSetting<StoredKit[]>(KITS_KEY, []);
     this.kits = Array.isArray(list) ? list : [];
     this.currentId = await getSetting<string | undefined>(CURRENT_KEY, undefined);
-    if (!this.kits.length) await this.create("My kit");
+    if (!this.kits.length) await this.create(m.music_hubs_kit_default());
     else await this.sync();
   }
 
@@ -70,7 +71,7 @@ class KitStore {
   }
 
   async create(name: string) {
-    const kit = newKit(name.trim() || "Kit", crypto.randomUUID(), Date.now());
+    const kit = newKit(name.trim() || m.music_hubs_kit_fallback(), crypto.randomUUID(), Date.now());
     await this.#write(kit);
     await this.select(kit.id);
     return kit;
@@ -136,7 +137,7 @@ class KitStore {
       try {
         await putBinary(path, file);
       } catch (e) {
-        refused.push(`"${file.name}" didn't save: ${(e as Error).message}`);
+        refused.push(m.music_hubs_kit_not_saved({ name: file.name, reason: (e as Error).message }));
         continue;
       }
       const name = file.name.replace(/\.[^.]+$/, "");
@@ -148,8 +149,8 @@ class KitStore {
       if (note !== null) {
         kit = setPad(kit, note, { soft: id });
         filled.push(note);
-        placed.push(`${name} on pad ${padLabel(note)}`);
-      } else placed.push(`${name} (every pad is taken, so it's in the sample list only)`);
+        placed.push(m.music_hubs_kit_on_pad({ name, pad: padLabel(note) }));
+      } else placed.push(m.music_hubs_kit_list_only({ name }));
     }
     await this.#write(kit);
     return { placed, refused, pads: filled };
@@ -158,17 +159,16 @@ class KitStore {
   /** The XPM program and Samples/ files for the MPC, read back from OPFS. */
   async exportFiles(): Promise<KitFile[]> {
     const kit = this.kit;
-    if (!kit) throw new Error("Make a kit first.");
+    if (!kit) throw new Error(m.music_hubs_kit_make_first());
     const exp = toExportKit(kit);
-    if (!exp.pads.length) throw new Error("Put at least one sample on a pad before exporting.");
+    if (!exp.pads.length) throw new Error(m.music_hubs_kit_need_sample());
     const used = new Set(exp.pads.flatMap((p) => p.layers.map((l) => l.sampleId)));
     const samples = await Promise.all(
       kit.samples
         .filter((s) => used.has(s.id))
         .map(async (s) => {
           const blob = await getBinary(s.path);
-          if (!blob)
-            throw new Error(`The file for "${s.name}" is missing from this browser's storage.`);
+          if (!blob) throw new Error(m.music_hubs_kit_file_missing({ name: s.name }));
           return { id: s.id, fileName: s.fileName, data: new Uint8Array(await blob.arrayBuffer()) };
         }),
     );

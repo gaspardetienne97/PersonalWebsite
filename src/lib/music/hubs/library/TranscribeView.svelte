@@ -154,10 +154,10 @@
     editor?.stop();
     const score: Score = {
       id: crypto.randomUUID(),
-      title: "My song",
+      title: m.music_hubs_tr_my_song(),
       bpm,
       meter: { beats: 4, beatUnit: 4 },
-      voices: [{ id: "melody", name: "Melody", notes: [] }],
+      voices: [{ id: "melody", name: m.music_hubs_tr_melody(), notes: [] }],
       lengthBeats: 16,
       source: { kind: "transcribed" },
     };

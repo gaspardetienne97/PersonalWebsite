@@ -1,6 +1,7 @@
 // From heard notes (seconds, from either transcription engine) to a draft
 // score: a tempo guess, a beat grid, and two hands for piano-like material.
 // Pure, so it runs in the worker and in tests alike.
+import { m } from "@repo/i18n/messages.js";
 import type { Score, ScoreNote, ScoreVoice } from "@repo/music-core";
 
 /** A note as an engine heard it, in seconds. */
@@ -116,13 +117,25 @@ export function notesToScore(
   const voices: ScoreVoice[] =
     opts.split !== false && upper.length && lower.length
       ? [
-          { id: "right", name: "Right hand", hand: "right", clef: "treble", notes: upper },
-          { id: "left", name: "Left hand", hand: "left", clef: "bass", notes: lower },
+          {
+            id: "right",
+            name: m.music_hubs_tr_right_hand(),
+            hand: "right",
+            clef: "treble",
+            notes: upper,
+          },
+          {
+            id: "left",
+            name: m.music_hubs_tr_left_hand(),
+            hand: "left",
+            clef: "bass",
+            notes: lower,
+          },
         ]
       : [
           {
             id: "melody",
-            name: "Transcription",
+            name: m.music_hubs_tr_transcription(),
             clef: lower.length > upper.length ? "bass" : "treble",
             notes,
           },

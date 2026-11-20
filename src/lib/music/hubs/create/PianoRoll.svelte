@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { m } from "@repo/i18n/messages.js";
   import type { RollDoc as Doc, RollVoice } from "./roll";
   /** What the roll edits and plays: Create's session, or a song being fixed. */
   export interface RollHost {
@@ -45,7 +46,8 @@
   }: { host: RollHost; announce: (msg: string) => void; /** What the voices are called: melodies, parts. */ noun?: string } = $props();
   const BAR_BEATS = $derived(host.barBeats ?? 4);
   const barSteps = $derived(Math.round(BAR_BEATS / STEP_BEATS));
-  const Noun = $derived(noun.replace(/^./, (c) => c.toUpperCase()));
+  // `noun` picks the wording: "parts" for a score's parts, else melodies.
+  const parts = $derived(noun === "parts");
 
   const ROW_H = 24;
   const KEY_W = 56;
@@ -55,7 +57,7 @@
     { beats: 0.5, label: "1/8" },
     { beats: 1, label: "1/4" },
     { beats: 2, label: "1/2" },
-    { beats: 4, label: "Whole" },
+    { beats: 4, label: m.music_hubs_pr_whole() },
   ];
 
   // The roll edits the host's document; `doc` is read-only here, `set` writes.
@@ -84,17 +86,24 @@
   const soloing = $derived(host.pickedPlaying);
   async function playMelodies() {
     const ok = await host.playPicked();
-    if (!ok) return announce("Sound is blocked. Tap for sound in the top bar, then play again.");
+    if (!ok) return announce(m.music_hubs_tracks_blocked());
     const names = doc.voices.filter((v) => host.picked.includes(v.id)).map((v) => v.name);
-    announce(host.playing ? `Playing ${names.join(" and ")} on ${names.length === 1 ? "its" : "their"} own.` : "Stopped.");
+    const joined = names.join(m.music_hubs_and_sep());
+    announce(
+      host.playing
+        ? names.length === 1
+          ? m.music_hubs_pr_playing_one({ names: joined })
+          : m.music_hubs_pr_playing_many({ names: joined })
+        : m.music_hubs_tracks_stopped(),
+    );
   }
 
   function tap(v: { id: string; name: string }) {
     const r = host.pick(v.id);
-    if (r === "picked") announce(`${v.name} picked: you hear it with the ${noun}, and new notes go on it.`);
-    else if (r === "editing") announce(`New notes go on ${v.name}.`);
-    else if (r === "dropped") announce(`${v.name} put down: Play ${noun} leaves it out.`);
-    else announce(`${v.name} is the only one picked. Pick another before putting it down.`);
+    if (r === "picked") announce((parts ? m.music_hubs_pr_picked_parts : m.music_hubs_pr_picked_melodies)({ name: v.name }));
+    else if (r === "editing") announce(m.music_hubs_pr_editing({ name: v.name }));
+    else if (r === "dropped") announce((parts ? m.music_hubs_pr_dropped_parts : m.music_hubs_pr_dropped_melodies)({ name: v.name }));
+    else announce(m.music_hubs_pr_only_one({ name: v.name }));
   }
 
   const range = $derived(rollRange(doc));
@@ -105,7 +114,10 @@
   const active = $derived(doc.voices[activeIndex]);
   const x = (beat: number) => (beat / STEP_BEATS) * stepW;
   const y = (midi: number) => (range.high - midi) * ROW_H;
-  const where = (midi: number, beat: number) => `${noteName(midi)}, bar ${Math.floor(beat / BAR_BEATS) + 1} beat ${Math.floor(beat % BAR_BEATS) + 1}${beat % 1 ? ` and ${Math.round((beat % 1) / STEP_BEATS)} sixteenths` : ""}`;
+  const where = (midi: number, beat: number) => {
+    const at = { note: noteName(midi), bar: Math.floor(beat / BAR_BEATS) + 1, beat: Math.floor(beat % BAR_BEATS) + 1 };
+    return beat % 1 ? m.music_hubs_pr_where_frac({ ...at, n: Math.round((beat % 1) / STEP_BEATS) }) : m.music_hubs_pr_where(at);
+  };
   // A looped melody: notes live in its first bars; the rest of the song repeats them.
   const period = $derived(loopBeats(active, doc.lengthBeats));
   const fold = (beat: number) => (period ? beat % period : beat);
@@ -124,7 +136,13 @@
     const had = noteAt(active.notes, midi, beat) >= 0;
     set(toggleNote(doc, active.id, midi, beat, noteLen));
     if (!had && !playing) void audio.unlock().then(() => audio.playNote(midi, 0.4, active.velocity, soundOf(active)));
-    announce(`${had ? "Removed" : "Added"} ${where(midi, beat)} on ${active.name}${period && step * STEP_BEATS >= period ? ", in the loop, so every repeat changes" : ""}.`);
+    announce(
+      (had ? m.music_hubs_pr_removed : m.music_hubs_pr_added)({
+        where: where(midi, beat),
+        name: active.name,
+        loop: period && step * STEP_BEATS >= period ? m.music_hubs_pr_in_loop() : "",
+      }),
+    );
   }
 
   // Pointer: draw toggles cells; resize drags a note's length.
@@ -140,9 +158,9 @@
     const c = cellOf(e);
     cursor = { midi: c.midi, step: c.step };
     if (tool === "draw") return toggleAt(c.midi, c.step);
-    if (period && c.beat >= period) return announce(`Resize notes in the loop, the first ${period / BAR_BEATS} bars. The repeats follow.`);
+    if (period && c.beat >= period) return announce(m.music_hubs_pr_resize_loop({ count: period / BAR_BEATS }));
     const i = noteAt(active.notes, c.midi, c.step * STEP_BEATS);
-    if (i < 0) return announce("Resize mode: drag a note of the selected voice to change its length. Switch to Draw to add notes.");
+    if (i < 0) return announce(m.music_hubs_pr_resize_mode());
     grid.setPointerCapture?.(e.pointerId);
     drag = { index: i, start: active.notes[i].startBeat, beat: c.beat };
   }
@@ -155,7 +173,7 @@
     if (!drag) return;
     const n = active.notes[drag.index];
     drag = null;
-    if (n) announce(`${noteName(n.midi)} is now ${n.durationBeats / STEP_BEATS} sixteenths long.`);
+    if (n) announce(m.music_hubs_pr_now_long({ note: noteName(n.midi), n: n.durationBeats / STEP_BEATS }));
   }
 
   function gridKey(e: KeyboardEvent) {
@@ -166,11 +184,11 @@
       midi = Math.min(range.high, Math.max(range.low, midi + (k === "ArrowUp" ? 1 : -1)));
     } else if ((k === "ArrowLeft" || k === "ArrowRight") && e.shiftKey) {
       e.preventDefault();
-      if (under < 0) return announce("Put the cursor on a note to change its length.");
+      if (under < 0) return announce(m.music_hubs_pr_cursor_on_note());
       const n = active.notes[under];
       set(resizeNote(doc, active.id, under, n.durationBeats + (k === "ArrowRight" ? STEP_BEATS : -STEP_BEATS)));
       const after = doc.voices[activeIndex].notes[under];
-      return announce(`${noteName(n.midi)} is ${after.durationBeats / STEP_BEATS} sixteenths long.`);
+      return announce(m.music_hubs_pr_long({ note: noteName(n.midi), n: after.durationBeats / STEP_BEATS }));
     } else if (k === "ArrowLeft" || k === "ArrowRight") {
       step = Math.min(steps - 1, Math.max(0, step + (k === "ArrowRight" ? 1 : -1)));
     } else if (k === "Enter" || k === " ") {
@@ -182,7 +200,7 @@
     } else if ((k === "[" || k === "]") && under >= 0) {
       const n = active.notes[under];
       set(setVelocity(doc, active.id, under, (n.velocity ?? 0.8) + (k === "]" ? 0.05 : -0.05)));
-      return announce(`Velocity ${Math.round((doc.voices[activeIndex].notes[under].velocity ?? 0.8) * 127)}.`);
+      return announce(m.music_hubs_pr_velocity({ n: Math.round((doc.voices[activeIndex].notes[under].velocity ?? 0.8) * 127) }));
     } else return;
     e.preventDefault();
     cursor = { midi, step };
@@ -218,12 +236,12 @@
   );
 </script>
 
-<section class="stage rounded-3xl p-3 sm:p-4" aria-label="Melody editor">
+<section class="stage rounded-3xl p-3 sm:p-4" aria-label={m.music_hubs_pr_label()}>
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <button type="button" class={btnStage} aria-pressed={soloing} onclick={playMelodies}>
-        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play {noun}{/if}
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />{m.music_hubs_stop()}{:else}<Play class="size-4 fill-current" aria-hidden="true" />{parts ? m.music_hubs_pr_play_parts() : m.music_hubs_pr_play_melodies()}{/if}
       </button>
-      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label="{Noun} to hear and see">
+      <div class="flex min-w-0 flex-1 basis-60 flex-wrap gap-1.5" role="group" aria-label={parts ? m.music_hubs_pr_group_parts() : m.music_hubs_pr_group_melodies()}>
         {#each doc.voices as v, i (v.id)}
           {@const on = host.picked.includes(v.id)}
           {@const editing = v.id === active.id}
@@ -238,21 +256,21 @@
           >
             <span class="dot size-2.5 shrink-0 rounded-full" aria-hidden="true"></span>
             <span class="truncate">{v.name}</span>
-            {#if editing}<Pencil class="size-3.5 shrink-0" aria-hidden="true" /><span class="sr-only">(drawing on it)</span>{/if}
+            {#if editing}<Pencil class="size-3.5 shrink-0" aria-hidden="true" /><span class="sr-only">{m.music_hubs_pr_drawing()}</span>{/if}
           </button>
         {/each}
       </div>
-      <div class="flex rounded-full bg-ws-stage-ink/10 p-1" role="group" aria-label="Tool">
-        <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />Draw</button>
-        <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />Resize</button>
+      <div class="flex rounded-full bg-ws-stage-ink/10 p-1" role="group" aria-label={m.music_hubs_pr_tool()}>
+        <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'draw' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "draw"} onclick={() => (tool = "draw")}><Pencil class="size-4" aria-hidden="true" />{m.music_hubs_pr_draw()}</button>
+        <button type="button" class="flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm {tool === 'resize' ? 'bg-ws-stage-ink text-ws-stage font-semibold' : ''}" aria-pressed={tool === "resize"} onclick={() => (tool = "resize")}><MoveH class="size-4" aria-hidden="true" />{m.music_hubs_pr_resize()}</button>
       </div>
       <div class="flex items-center gap-2 text-sm">
-        <span class="text-ws-stage-soft">Note</span>
-        <Picker class="w-24" tone="stage" label="Note" value={String(noteLen)} options={LENGTHS.map((l) => ({ value: String(l.beats), label: l.label }))} onchange={(v) => (noteLen = Number(v))} />
+        <span class="text-ws-stage-soft">{m.music_hubs_pr_note()}</span>
+        <Picker class="w-24" tone="stage" label={m.music_hubs_pr_note()} value={String(noteLen)} options={LENGTHS.map((l) => ({ value: String(l.beats), label: l.label }))} onchange={(v) => (noteLen = Number(v))} />
       </div>
       <label class="flex items-center gap-2 text-sm">
-        <span class="text-ws-stage-soft">Zoom</span>
-        <input type="range" min="12" max="48" step="2" bind:value={zoom} class="w-24 accent-[var(--instr)]" aria-valuetext="{zoom} pixels per sixteenth" />
+        <span class="text-ws-stage-soft">{m.music_hubs_pr_zoom()}</span>
+        <input type="range" min="12" max="48" step="2" bind:value={zoom} class="w-24 accent-[var(--instr)]" aria-valuetext={m.music_hubs_pr_zoom_value({ n: zoom })} />
       </label>
     </div>
 
@@ -292,7 +310,7 @@
             data-step-w={stepW}
             tabindex="0"
             role="application"
-            aria-label="Note grid for {active.name}. Arrow keys move the cursor, Enter adds or removes a note, Shift with Left or Right changes its length, [ and ] change its velocity."
+            aria-label={m.music_hubs_pr_grid({ name: active.name })}
             aria-describedby="roll-cursor"
             onpointerdown={down}
             onpointermove={move}
@@ -313,7 +331,7 @@
               {/if}
             {/each}
             {#if period}
-              <div class="repeats" style:left="{x(period)}px" aria-hidden="true"><span>Loop repeats</span></div>
+              <div class="repeats" style:left="{x(period)}px" aria-hidden="true"><span>{m.music_hubs_pr_loop_repeats()}</span></div>
               {#each repeats as n, ni (ni)}
                 <div class="note repeat" style:left="{x(n.startBeat)}px" style:top="{y(n.midi) + 2}px" style:width="{Math.max(6, x(n.durationBeats) - 1)}px" style:height="{ROW_H - 4}px" style:--c={trackColour(activeIndex)} style:--v={n.velocity ?? 0.8}></div>
               {/each}
@@ -340,7 +358,7 @@
           </div>
         </div>
         <div class="lane sticky bottom-0 z-20 flex" style:height="{LANE_H}px">
-          <div style:width="{KEY_W}px" class="sticky left-0 z-10 flex shrink-0 items-center bg-ws-stage px-1 text-[13px] leading-tight text-ws-stage-soft">Velocity</div>
+          <div style:width="{KEY_W}px" class="sticky left-0 z-10 flex shrink-0 items-center bg-ws-stage px-1 text-[13px] leading-tight text-ws-stage-soft">{m.music_hubs_pr_velocity_lane()}</div>
           <div
             class="relative shrink-0 touch-none"
             style:width="{steps * stepW}px"
@@ -364,22 +382,22 @@
     {#if !active.notes.length && !period}
       <!-- An empty roll says how to start, over the grid, out of the pointer's way. -->
       <p class="pointer-events-none absolute left-16 right-3 top-1/3 mx-auto w-fit rounded-full bg-ws-stage/85 px-4 py-2 text-center text-sm font-medium text-ws-stage-ink shadow" aria-hidden="true">
-        Click a cell to draw a note. It plays on the loop with the beat.
+        {m.music_hubs_pr_empty()}
       </p>
     {/if}
     </div>
     <p id="roll-cursor" class="mt-2 text-[13px] text-ws-stage-soft">
-      Cursor on {where(cursor.midi, cursor.step * STEP_BEATS)}{under >= 0 ? `, a note of velocity ${Math.round((active.notes[under].velocity ?? 0.8) * 127)}` : ""}. {tool === "resize" ? "Drag a note to change its length." : "Click a cell to add a note, click a note to remove it."}
+      {m.music_hubs_pr_cursor({ where: where(cursor.midi, cursor.step * STEP_BEATS) })}{under >= 0 ? m.music_hubs_pr_cursor_note({ n: Math.round((active.notes[under].velocity ?? 0.8) * 127) }) : ""}. {tool === "resize" ? m.music_hubs_pr_hint_resize() : m.music_hubs_pr_hint_draw()}
     </p>
     <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
       <label class="flex items-center gap-2">
-        <span class="text-ws-stage-soft">New notes' velocity <span class="tnum text-ws-stage-ink">{Math.round(active.velocity * 127)}</span></span>
+        <span class="text-ws-stage-soft">{m.music_hubs_pr_new_velocity()} <span class="tnum text-ws-stage-ink">{Math.round(active.velocity * 127)}</span></span>
         <input type="range" min="0.1" max="1" step="0.05" class="min-h-11 w-36 accent-[var(--instr)]" value={active.velocity} oninput={(e) => host.updateVoice(active.id, (v) => ({ ...v, velocity: e.currentTarget.valueAsNumber }))} />
       </label>
       <button type="button" class={btnStage} disabled={!active.notes.length} onclick={() => {
         host.updateVoice(active.id, (v) => ({ ...v, notes: v.notes.map((n) => ({ ...n, velocity: v.velocity })) }));
-        announce(`Every note on ${active.name} now has velocity ${Math.round(active.velocity * 127)}.`);
-      }}>Apply to all its notes</button>
+        announce(m.music_hubs_pr_applied({ name: active.name, n: Math.round(active.velocity * 127) }));
+      }}>{m.music_hubs_pr_apply_all()}</button>
     </div>
 </section>
 

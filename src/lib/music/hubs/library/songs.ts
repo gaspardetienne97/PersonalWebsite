@@ -22,7 +22,8 @@ export type Song = {
 
 export const SCORE_ACCEPT = ".mid,.midi,.musicxml,.xml,.mxl";
 
-const baseName = (name: string) => name.replace(/\.[^.]+$/, "").trim() || "Untitled";
+const baseName = (name: string) =>
+  name.replace(/\.[^.]+$/, "").trim() || m.music_hubs_songs_untitled();
 
 /** Read a MIDI, MusicXML or .mxl file into the canonical score. Throws a plain sentence. */
 export async function importScoreFile(name: string, bytes: Uint8Array): Promise<Score> {
