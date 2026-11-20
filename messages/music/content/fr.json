@@ -320,13 +320,8 @@
   "music_content_circle_ask_flat_after": "Quel bémol vient après {note} ?",
   "music_content_circle_ask_major_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Quelle tonalité majeure a {count} bémol ?",
         "countPlural=other": "Quelle tonalité majeure a {count} bémols ?"
@@ -336,13 +331,8 @@
   "music_content_circle_ask_major_none": "Quelle tonalité majeure n’a ni dièse ni bémol ?",
   "music_content_circle_ask_major_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Quelle tonalité majeure a {count} dièse ?",
         "countPlural=other": "Quelle tonalité majeure a {count} dièses ?"
@@ -351,13 +341,8 @@
   ],
   "music_content_circle_ask_minor_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Quelle tonalité mineure a {count} bémol ?",
         "countPlural=other": "Quelle tonalité mineure a {count} bémols ?"
@@ -367,13 +352,8 @@
   "music_content_circle_ask_minor_none": "Quelle tonalité mineure n’a ni dièse ni bémol ?",
   "music_content_circle_ask_minor_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Quelle tonalité mineure a {count} dièse ?",
         "countPlural=other": "Quelle tonalité mineure a {count} dièses ?"
@@ -1240,13 +1220,8 @@
   "music_content_technique_song_uke_scarborough_note": "3/4 en Am à un tempo de pratique plus lent, avec les cordes à vide qui sonnent. La mélodie n’est pas incluse.",
   "music_content_theory_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bémol",
         "countPlural=other": "{count} bémols"
@@ -1256,19 +1231,16 @@
   "music_content_theory_circle_no_accidentals": "ni dièse ni bémol",
   "music_content_theory_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} dièse",
         "countPlural=other": "{count} dièses"
       }
     }
   ],
+  "music_content_transposition_alto": "Alto en Eb",
+  "music_content_transposition_tenor": "Ténor en Bb",
   "music_content_tunes_all_of_me_composer": "Gerald Marks et Seymour Simons",
   "music_content_tunes_chorus": "Chorus {n}",
   "music_content_tunes_chorus_head": "Thème",

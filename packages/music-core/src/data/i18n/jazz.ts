@@ -8,22 +8,16 @@ import { localizeFields } from "../localize";
 
 const P = "music_content_jazz";
 localizeFields(jazzJson.JAZZ_CHORD_TYPES, `${P}_chord_type`, (t) => t.id, ["name", "role"]);
-localizeFields(
-  jazzJson.CHORD_EXTENSIONS,
-  `${P}_extension`,
-  (e) => e.symbol.replace("#", "sharp"),
-  ["note"],
-);
+localizeFields(jazzJson.CHORD_EXTENSIONS, `${P}_extension`, (e) => e.symbol.replace("#", "sharp"), [
+  "note",
+]);
 localizeFields(
   jazzJson.CHORD_SCALE_MAP as { family: string; scale: string; hint?: string }[],
   `${P}_chord_scale`,
   (r) => `${r.family}_${r.scale}`,
   ["hint"],
 );
-localizeFields(jazzJson.DOMINANT_VOICINGS, `${P}_dominant_voicing`, (v) => v.id, [
-  "label",
-  "hint",
-]);
+localizeFields(jazzJson.DOMINANT_VOICINGS, `${P}_dominant_voicing`, (v) => v.id, ["label", "hint"]);
 localizeFields(jazzJson.IMPROV_TECHNIQUES, `${P}_technique`, (t) => t.id, ["name", "summary"]);
 localizeFields(jazzJson.JAZZ_BACKING_TRACKS, `${P}_backing`, (b) => b.id, ["label"]);
 localizeFields(jazzJson.JAZZ_LICKS, `${P}_lick`, (l) => l.number, ["tip"]);

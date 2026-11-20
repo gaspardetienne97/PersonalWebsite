@@ -111,8 +111,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-4",
     label: m.music_content_reading_piano_4_label(),
-    description:
-      m.music_content_reading_piano_4_description(),
+    description: m.music_content_reading_piano_4_description(),
     rhythm: m.music_content_reading_piano_4_rhythm(),
     recommendedDifficulty: 0.75,
     recommendedClefs: grand,
@@ -126,8 +125,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-5",
     label: m.music_content_reading_piano_5_label(),
-    description:
-      m.music_content_reading_piano_5_description(),
+    description: m.music_content_reading_piano_5_description(),
     rhythm: m.music_content_reading_piano_5_rhythm(),
     recommendedDifficulty: 0.8,
     recommendedClefs: grand,
@@ -141,8 +139,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-6",
     label: m.music_content_reading_piano_6_label(),
-    description:
-      m.music_content_reading_piano_6_description(),
+    description: m.music_content_reading_piano_6_description(),
     rhythm: m.music_content_reading_piano_6_rhythm(),
     recommendedDifficulty: 0.85,
     recommendedClefs: grand,
@@ -156,8 +153,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-7",
     label: m.music_content_reading_piano_7_label(),
-    description:
-      m.music_content_reading_piano_7_description(),
+    description: m.music_content_reading_piano_7_description(),
     rhythm: m.music_content_reading_piano_7_rhythm(),
     recommendedDifficulty: 0.9,
     recommendedClefs: grand,
@@ -171,8 +167,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-8",
     label: m.music_content_reading_piano_8_label(),
-    description:
-      m.music_content_reading_piano_8_description(),
+    description: m.music_content_reading_piano_8_description(),
     rhythm: m.music_content_reading_piano_8_rhythm(),
     recommendedDifficulty: 0.95,
     recommendedClefs: grand,
@@ -186,8 +181,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-9",
     label: m.music_content_reading_piano_9_label(),
-    description:
-      m.music_content_reading_piano_9_description(),
+    description: m.music_content_reading_piano_9_description(),
     rhythm: m.music_content_reading_piano_9_rhythm(),
     recommendedDifficulty: 0.97,
     recommendedClefs: grand,
@@ -201,8 +195,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "line-4",
     label: m.music_content_reading_line_4_label(),
-    description:
-      m.music_content_reading_line_4_description(),
+    description: m.music_content_reading_line_4_description(),
     rhythm: m.music_content_reading_line_4_rhythm(),
     recommendedDifficulty: 0.75,
     recommendedClefs: ["treble"],
@@ -230,10 +223,8 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "line-6",
     label: m.music_content_reading_line_6_label(),
-    description:
-      m.music_content_reading_line_6_description(),
-    rhythm:
-      m.music_content_reading_line_6_rhythm(),
+    description: m.music_content_reading_line_6_description(),
+    rhythm: m.music_content_reading_line_6_rhythm(),
     recommendedDifficulty: 0.9,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 52, highestMidi: 89 },
@@ -246,8 +237,7 @@ const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "line-jazz",
     label: m.music_content_reading_jazz_label(),
-    description:
-      m.music_content_reading_jazz_description(),
+    description: m.music_content_reading_jazz_description(),
     rhythm: m.music_content_reading_jazz_rhythm(),
     recommendedDifficulty: 0.85,
     recommendedClefs: ["treble"],
@@ -1175,7 +1165,11 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
     }
     return {
       id: piano ? (clef === "treble" ? "rh" : "lh") : "melody",
-      name: piano ? (clef === "treble" ? m.music_content_piano_right_hand() : m.music_content_piano_left_hand()) : m.music_content_reading_melody_voice(),
+      name: piano
+        ? clef === "treble"
+          ? m.music_content_piano_right_hand()
+          : m.music_content_piano_left_hand()
+        : m.music_content_reading_melody_voice(),
       clef,
       ...(piano ? { hand: clef === "treble" ? ("right" as const) : ("left" as const) } : {}),
       notes,

@@ -62,8 +62,18 @@ export const CIRCLE_MODES: {
     skillId: "theory.circle.neighbours",
     targetMs: 2500,
   },
-  { id: "chords", title: m.music_content_circle_mode_chords(), skillId: "theory.circle.chords", targetMs: 5000 },
-  { id: "wheel", title: m.music_content_circle_mode_wheel(), skillId: "theory.circle.wheel", targetMs: 3000 },
+  {
+    id: "chords",
+    title: m.music_content_circle_mode_chords(),
+    skillId: "theory.circle.chords",
+    targetMs: 5000,
+  },
+  {
+    id: "wheel",
+    title: m.music_content_circle_mode_wheel(),
+    skillId: "theory.circle.wheel",
+    targetMs: 3000,
+  },
   // Analysis: a written progression in a key, spot the chord from outside it.
   {
     id: "borrowed",
@@ -178,7 +188,9 @@ const ALPHA = ["C", "D", "E", "F", "G", "A", "B"];
 function whichKeyHas(minor: boolean, f: number): string {
   const count = Math.abs(f);
   if (f === 0)
-    return minor ? m.music_content_circle_ask_minor_none() : m.music_content_circle_ask_major_none();
+    return minor
+      ? m.music_content_circle_ask_minor_none()
+      : m.music_content_circle_ask_major_none();
   if (minor)
     return f > 0
       ? m.music_content_circle_ask_minor_sharps({ count })
@@ -228,9 +240,9 @@ export function circlePrompt(
         ...base,
         id: `circle-order-${sharps ? "s" : "f"}${n}${after ? "a" : ""}`,
         ask: after
-          ? (sharps ? m.music_content_circle_ask_sharp_after : m.music_content_circle_ask_flat_after)(
-              { note: list[n] },
-            )
+          ? (sharps
+              ? m.music_content_circle_ask_sharp_after
+              : m.music_content_circle_ask_flat_after)({ note: list[n] })
           : (sharps ? m.music_content_circle_ask_nth_sharp : m.music_content_circle_ask_nth_flat)({
               ordinal: ORDINAL[n](),
             }),

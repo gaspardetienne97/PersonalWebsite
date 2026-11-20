@@ -2,6 +2,7 @@
 // playback are concert pitch; a staff or a fingering for a transposing
 // instrument shows the written note, concert plus writtenOffset.
 import type { AerophoneReadingKey, Instrument, Score, Settings } from "../types";
+import { m } from "@repo/i18n/messages.js";
 
 /** The AE-20 reads in C, or fingers like an alto or tenor sax. It sends concert pitch either way. */
 export const AEROPHONE_READING_KEYS: readonly {
@@ -10,8 +11,8 @@ export const AEROPHONE_READING_KEYS: readonly {
   offset: number;
 }[] = [
   { id: "C", label: "C", offset: 0 },
-  { id: "Eb", label: "Alto Eb", offset: 9 },
-  { id: "Bb", label: "Tenor Bb", offset: 14 },
+  { id: "Eb", label: m.music_content_transposition_alto(), offset: 9 },
+  { id: "Bb", label: m.music_content_transposition_tenor(), offset: 14 },
 ];
 
 /** Semitones from concert to written pitch on `instrument` (guitar's octave comes from its tuning). */

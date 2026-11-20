@@ -50,11 +50,27 @@ export type ScalePattern =
   | "triad-pairs";
 export const SCALE_PATTERNS: { id: ScalePattern; label: string; hint?: string }[] = [
   { id: "scale", label: m.music_content_technique_pattern_scale() },
-  { id: "thirds", label: m.music_content_technique_pattern_thirds(), hint: m.music_content_technique_pattern_thirds_hint() },
-  { id: "octaves", label: m.music_content_technique_pattern_octaves(), hint: m.music_content_technique_pattern_octaves_hint() },
+  {
+    id: "thirds",
+    label: m.music_content_technique_pattern_thirds(),
+    hint: m.music_content_technique_pattern_thirds_hint(),
+  },
+  {
+    id: "octaves",
+    label: m.music_content_technique_pattern_octaves(),
+    hint: m.music_content_technique_pattern_octaves_hint(),
+  },
   { id: "arpeggio", label: m.music_content_technique_pattern_arpeggio() },
-  { id: "broken", label: m.music_content_technique_pattern_broken(), hint: m.music_content_technique_pattern_broken_hint() },
-  { id: "blocked", label: m.music_content_technique_pattern_blocked(), hint: m.music_content_technique_pattern_blocked_hint() },
+  {
+    id: "broken",
+    label: m.music_content_technique_pattern_broken(),
+    hint: m.music_content_technique_pattern_broken_hint(),
+  },
+  {
+    id: "blocked",
+    label: m.music_content_technique_pattern_blocked(),
+    hint: m.music_content_technique_pattern_blocked_hint(),
+  },
   {
     id: "triad-pairs",
     label: m.music_content_technique_pattern_triad_pairs(),
@@ -93,8 +109,16 @@ export type ChordKind = "major" | "minor" | "dominant-7" | "diminished-7";
 export const CHORD_KINDS: { id: ChordKind; label: string; intervals: number[] }[] = [
   { id: "major", label: m.music_content_technique_chord_major(), intervals: [0, 4, 7] },
   { id: "minor", label: m.music_content_technique_chord_minor(), intervals: [0, 3, 7] },
-  { id: "dominant-7", label: m.music_content_technique_chord_dominant_7(), intervals: [0, 4, 7, 10] },
-  { id: "diminished-7", label: m.music_content_technique_chord_diminished_7(), intervals: [0, 3, 6, 9] },
+  {
+    id: "dominant-7",
+    label: m.music_content_technique_chord_dominant_7(),
+    intervals: [0, 4, 7, 10],
+  },
+  {
+    id: "diminished-7",
+    label: m.music_content_technique_chord_diminished_7(),
+    intervals: [0, 3, 6, 9],
+  },
 ];
 
 /**

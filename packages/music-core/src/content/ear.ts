@@ -84,8 +84,7 @@ const CHORD_FUNCTION_DRILLS = [
   {
     slug: "progressions",
     title: m.music_content_ear_progressions_title(),
-    description:
-      m.music_content_ear_progressions_description(),
+    description: m.music_content_ear_progressions_description(),
     drill: "progression",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -439,18 +438,62 @@ export function cadencePrompt(
 
 /** The scales the ear drill asks, in the order they are offered (major and minor first, Locrian last). */
 export const EAR_SCALES = [
-  { token: "major", name: m.music_content_ear_scale_major(), short: m.music_content_ear_scale_major() },
-  { token: "natural-minor", name: m.music_content_ear_scale_natural_minor(), short: m.music_content_ear_scale_minor_short() },
-  { token: "harmonic-minor", name: m.music_content_ear_scale_harmonic_minor(), short: m.music_content_ear_scale_harmonic_minor_short() },
-  { token: "major-pentatonic", name: m.music_content_ear_scale_major_pentatonic(), short: m.music_content_ear_scale_major_pentatonic_short() },
-  { token: "minor-pentatonic", name: m.music_content_ear_scale_minor_pentatonic(), short: m.music_content_ear_scale_minor_pentatonic_short() },
+  {
+    token: "major",
+    name: m.music_content_ear_scale_major(),
+    short: m.music_content_ear_scale_major(),
+  },
+  {
+    token: "natural-minor",
+    name: m.music_content_ear_scale_natural_minor(),
+    short: m.music_content_ear_scale_minor_short(),
+  },
+  {
+    token: "harmonic-minor",
+    name: m.music_content_ear_scale_harmonic_minor(),
+    short: m.music_content_ear_scale_harmonic_minor_short(),
+  },
+  {
+    token: "major-pentatonic",
+    name: m.music_content_ear_scale_major_pentatonic(),
+    short: m.music_content_ear_scale_major_pentatonic_short(),
+  },
+  {
+    token: "minor-pentatonic",
+    name: m.music_content_ear_scale_minor_pentatonic(),
+    short: m.music_content_ear_scale_minor_pentatonic_short(),
+  },
   { token: "blues", name: "Blues", short: "Blues" },
-  { token: "melodic-minor", name: m.music_content_ear_scale_melodic_minor(), short: m.music_content_ear_scale_melodic_minor_short() },
-  { token: "mixolydian", name: m.music_content_ear_scale_mixolydian(), short: m.music_content_ear_scale_mixolydian_short() },
-  { token: "dorian", name: m.music_content_ear_scale_dorian(), short: m.music_content_ear_scale_dorian() },
-  { token: "lydian", name: m.music_content_ear_scale_lydian(), short: m.music_content_ear_scale_lydian() },
-  { token: "phrygian", name: m.music_content_ear_scale_phrygian(), short: m.music_content_ear_scale_phrygian() },
-  { token: "locrian", name: m.music_content_ear_scale_locrian(), short: m.music_content_ear_scale_locrian() },
+  {
+    token: "melodic-minor",
+    name: m.music_content_ear_scale_melodic_minor(),
+    short: m.music_content_ear_scale_melodic_minor_short(),
+  },
+  {
+    token: "mixolydian",
+    name: m.music_content_ear_scale_mixolydian(),
+    short: m.music_content_ear_scale_mixolydian_short(),
+  },
+  {
+    token: "dorian",
+    name: m.music_content_ear_scale_dorian(),
+    short: m.music_content_ear_scale_dorian(),
+  },
+  {
+    token: "lydian",
+    name: m.music_content_ear_scale_lydian(),
+    short: m.music_content_ear_scale_lydian(),
+  },
+  {
+    token: "phrygian",
+    name: m.music_content_ear_scale_phrygian(),
+    short: m.music_content_ear_scale_phrygian(),
+  },
+  {
+    token: "locrian",
+    name: m.music_content_ear_scale_locrian(),
+    short: m.music_content_ear_scale_locrian(),
+  },
 ] as const;
 export type ScaleDirection = "ascending" | "both" | "descending";
 const SCALE_STEP = 0.3;
@@ -512,10 +555,34 @@ export function scalePrompt(
 
 /** Triad positions, then seventh-chord positions ("7-" tokens), in the order they are offered. */
 export const EAR_INVERSIONS = [
-  { token: "root", name: m.music_content_ear_inv_root(), short: m.music_content_ear_inv_root_short(), position: 0, seventh: false },
-  { token: "first", name: m.music_content_ear_inv_first(), short: m.music_content_ear_inv_first_short(), position: 1, seventh: false },
-  { token: "second", name: m.music_content_ear_inv_second(), short: m.music_content_ear_inv_second_short(), position: 2, seventh: false },
-  { token: "7-root", name: m.music_content_ear_inv_7_root(), short: m.music_content_ear_inv_7_root_short(), position: 0, seventh: true },
+  {
+    token: "root",
+    name: m.music_content_ear_inv_root(),
+    short: m.music_content_ear_inv_root_short(),
+    position: 0,
+    seventh: false,
+  },
+  {
+    token: "first",
+    name: m.music_content_ear_inv_first(),
+    short: m.music_content_ear_inv_first_short(),
+    position: 1,
+    seventh: false,
+  },
+  {
+    token: "second",
+    name: m.music_content_ear_inv_second(),
+    short: m.music_content_ear_inv_second_short(),
+    position: 2,
+    seventh: false,
+  },
+  {
+    token: "7-root",
+    name: m.music_content_ear_inv_7_root(),
+    short: m.music_content_ear_inv_7_root_short(),
+    position: 0,
+    seventh: true,
+  },
   {
     token: "7-first",
     name: m.music_content_ear_inv_7_first(),
@@ -637,8 +704,16 @@ export function staircase(step: number, streak: number, correct: boolean) {
 
 /** Roots on 1, 4 and 5; then 2 and 6 too; then stepwise lines through inversions. */
 export const BASS_LEVELS = [
-  { id: "roots-primary", title: m.music_content_ear_bass_roots_primary(), degrees: ["1", "4", "5"] },
-  { id: "roots-diatonic", title: m.music_content_ear_bass_roots_diatonic(), degrees: ["1", "2", "4", "5", "6"] },
+  {
+    id: "roots-primary",
+    title: m.music_content_ear_bass_roots_primary(),
+    degrees: ["1", "4", "5"],
+  },
+  {
+    id: "roots-diatonic",
+    title: m.music_content_ear_bass_roots_diatonic(),
+    degrees: ["1", "2", "4", "5", "6"],
+  },
   {
     id: "inversions",
     title: m.music_content_ear_bass_inversions(),
@@ -1019,7 +1094,9 @@ export function keyChangeCaption(fromPc: number, answer: string): string {
   const to = pc(fromPc + k.shift);
   const name = (p: number, minor: boolean) => {
     const note = noteName(48 + p, "flat", false);
-    return minor ? m.music_content_ear_key_minor({ note }) : m.music_content_ear_key_major({ note });
+    return minor
+      ? m.music_content_ear_key_minor({ note })
+      : m.music_content_ear_key_major({ note });
   };
   return m.music_content_ear_kc_caption({
     from: name(fromPc, false),

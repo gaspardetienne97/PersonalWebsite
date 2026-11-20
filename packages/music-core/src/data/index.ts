@@ -1030,7 +1030,11 @@ export const SKILL_GRAPH_SEED = {
 localizeFields(
   SKILL_GRAPH_SEED.skills,
   "music_content_skill",
-  (s) => s.id.replace("#", "sharp").replace(".M", ".maj").replace(/\.m(\d)/, ".min$1"),
+  (s) =>
+    s.id
+      .replace("#", "sharp")
+      .replace(".M", ".maj")
+      .replace(/\.m(\d)/, ".min$1"),
   ["name"],
 );
 

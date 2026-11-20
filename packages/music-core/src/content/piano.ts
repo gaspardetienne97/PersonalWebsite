@@ -162,7 +162,13 @@ export function compingScore(id: string, bpm?: number): Score {
           finger: n.finger,
         })),
       },
-      { id: COMPING.leftHandVoice, name: m.music_content_piano_left_hand(), clef: "bass", hand: "left", notes: lh },
+      {
+        id: COMPING.leftHandVoice,
+        name: m.music_content_piano_left_hand(),
+        clef: "bass",
+        hand: "left",
+        notes: lh,
+      },
     ],
     lengthBeats: p.bars * 4,
     chords: [{ symbol: p.chord, startBeat: 0, durationBeats: p.bars * 4 }],
@@ -513,8 +519,7 @@ export const GOSPEL_PROGRESSIONS: {
   {
     id: "slash-walk",
     label: m.music_content_piano_gospel_slash_walk_label(),
-    about:
-      m.music_content_piano_gospel_slash_walk_about(),
+    about: m.music_content_piano_gospel_slash_walk_about(),
     chords: [
       ["", 0, MAJ],
       ["", 7, MAJ, 11],
@@ -761,7 +766,13 @@ export function lickScore(lickNumber: number, opts: { bpm: number; transpose?: n
     }),
     bpm: opts.bpm,
     meter: { beats: 4, beatUnit: 4 },
-    voices: [{ id: "lick", name: m.music_content_piano_lick_voice(), notes: notes.map(({ index: _, ...n }) => n) }],
+    voices: [
+      {
+        id: "lick",
+        name: m.music_content_piano_lick_voice(),
+        notes: notes.map(({ index: _, ...n }) => n),
+      },
+    ],
     lengthBeats: Math.max(4, Math.ceil(end / 4) * 4),
     source: { kind: "generated" },
   };

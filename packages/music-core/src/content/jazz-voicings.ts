@@ -55,40 +55,35 @@ export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
     id: "so-what",
     label: m.music_content_jv_so_what_label(),
     key: "dorian",
-    about:
-      m.music_content_jv_so_what_about(),
+    about: m.music_content_jv_so_what_about(),
     skillId: QUARTAL,
   },
   {
     id: "quartal",
     label: m.music_content_jv_quartal_label(),
     key: "dorian",
-    about:
-      m.music_content_jv_quartal_about(),
+    about: m.music_content_jv_quartal_about(),
     skillId: QUARTAL,
   },
   {
     id: "sus",
     label: m.music_content_jv_sus_label(),
     key: "dorian",
-    about:
-      m.music_content_jv_sus_about(),
+    about: m.music_content_jv_sus_about(),
     skillId: QUARTAL,
   },
   {
     id: "two-hand",
     label: m.music_content_jv_two_hand_label(),
     key: "major",
-    about:
-      m.music_content_jv_two_hand_about(),
+    about: m.music_content_jv_two_hand_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "close",
     label: m.music_content_jv_close_label(),
     key: "major",
-    about:
-      m.music_content_jv_close_about(),
+    about: m.music_content_jv_close_about(),
     skillId: BLOCK,
   },
   {
@@ -102,56 +97,49 @@ export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
     id: "locked",
     label: m.music_content_jv_locked_label(),
     key: "major",
-    about:
-      m.music_content_jv_locked_about(),
+    about: m.music_content_jv_locked_about(),
     skillId: BLOCK,
   },
   {
     id: "garland",
     label: m.music_content_jv_garland_label(),
     key: "blues",
-    about:
-      m.music_content_jv_garland_about(),
+    about: m.music_content_jv_garland_about(),
     skillId: BLOCK,
   },
   {
     id: "evans",
     label: m.music_content_jv_evans_label(),
     key: "major",
-    about:
-      m.music_content_jv_evans_about(),
+    about: m.music_content_jv_evans_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "monk",
     label: m.music_content_jv_monk_label(),
     key: "blues",
-    about:
-      m.music_content_jv_monk_about(),
+    about: m.music_content_jv_monk_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "upper",
     label: m.music_content_jv_upper_label(),
     key: "tune",
-    about:
-      m.music_content_jv_upper_about(),
+    about: m.music_content_jv_upper_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "quartal-tune",
     label: m.music_content_jv_quartal_tune_label(),
     key: "tune",
-    about:
-      m.music_content_jv_quartal_tune_about(),
+    about: m.music_content_jv_quartal_tune_about(),
     skillId: QUARTAL,
   },
   {
     id: "slash-tune",
     label: m.music_content_jv_slash_tune_label(),
     key: "tune",
-    about:
-      m.music_content_jv_slash_tune_about(),
+    about: m.music_content_jv_slash_tune_about(),
     skillId: QUARTAL,
   },
 ];
@@ -423,21 +411,9 @@ export function jazzVoicingChords(
               maj7: [[4, 11], [14, 7, 9], m.music_content_jv_how_37_9513()],
             }
           : {
-              m7: [
-                [3, 10, 14],
-                [7, 12],
-                m.music_content_jv_how_379_51(),
-              ],
-              "7": [
-                [10, 4, 9],
-                [14, 7],
-                m.music_content_jv_how_7313_95(),
-              ],
-              maj7: [
-                [4, 11, 14],
-                [9, 4],
-                m.music_content_jv_how_379_63(),
-              ],
+              m7: [[3, 10, 14], [7, 12], m.music_content_jv_how_379_51()],
+              "7": [[10, 4, 9], [14, 7], m.music_content_jv_how_7313_95()],
+              maj7: [[4, 11, 14], [9, 4], m.music_content_jv_how_379_63()],
             };
       return chords.map((c, i) => {
         const [lh, rh, how] = forms[c.quality];
@@ -486,9 +462,11 @@ export function jazzVoicingChords(
             symbol: `${symbol} (${mel})`,
             left: id === "close" ? [] : [notes[0]],
             right: id === "close" ? notes : notes.slice(1),
-            name: (id === "close" ? m.music_content_jv_close_name : m.music_content_jv_drop2_name)(
-              { symbol, mel, notes: spelled },
-            ),
+            name: (id === "close" ? m.music_content_jv_close_name : m.music_content_jv_drop2_name)({
+              symbol,
+              mel,
+              notes: spelled,
+            }),
             ask: (id === "close" ? m.music_content_jv_close_ask : m.music_content_jv_drop2_ask)({
               symbol,
               mel,
@@ -694,7 +672,8 @@ function slashTriad(intervals: readonly number[]): {
     return has(9)
       ? { at: 3, kind: "dim", adds: "b3 b5 6" }
       : { at: 3, kind: "m", adds: "b3 b5 b7" };
-  if (has(10)) return { at: 10, kind: "", adds: has(3) ? "b7 9 11" : m.music_content_jv_adds_9sus() };
+  if (has(10))
+    return { at: 10, kind: "", adds: has(3) ? "b7 9 11" : m.music_content_jv_adds_9sus() };
   if (has(3)) return { at: 5, kind: "", adds: "11 13 1" };
   return { at: 7, kind: "", adds: "5 7 9" };
 }

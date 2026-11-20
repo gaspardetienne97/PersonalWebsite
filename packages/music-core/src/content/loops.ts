@@ -22,9 +22,17 @@ export type LoopSet =
   | "tritone";
 
 export const LOOP_SETS: { id: LoopSet; label: string; hint: string }[] = [
-  { id: "songs", label: m.music_content_loops_songs_label(), hint: m.music_content_loops_songs_hint() },
+  {
+    id: "songs",
+    label: m.music_content_loops_songs_label(),
+    hint: m.music_content_loops_songs_hint(),
+  },
   { id: "pop", label: m.music_content_loops_pop_label(), hint: m.music_content_loops_pop_hint() },
-  { id: "rock", label: m.music_content_loops_rock_label(), hint: m.music_content_loops_rock_hint() },
+  {
+    id: "rock",
+    label: m.music_content_loops_rock_label(),
+    hint: m.music_content_loops_rock_hint(),
+  },
   {
     id: "minor",
     label: m.music_content_loops_minor_label(),
@@ -35,10 +43,26 @@ export const LOOP_SETS: { id: LoopSet; label: string; hint: string }[] = [
     label: m.music_content_loops_borrowed_label(),
     hint: m.music_content_loops_borrowed_hint(),
   },
-  { id: "secondary", label: m.music_content_loops_secondary_label(), hint: m.music_content_loops_secondary_hint() },
-  { id: "modal", label: m.music_content_loops_modal_label(), hint: m.music_content_loops_modal_hint() },
-  { id: "turnarounds", label: m.music_content_loops_turnarounds_label(), hint: m.music_content_loops_turnarounds_hint() },
-  { id: "tritone", label: m.music_content_loops_tritone_label(), hint: m.music_content_loops_tritone_hint() },
+  {
+    id: "secondary",
+    label: m.music_content_loops_secondary_label(),
+    hint: m.music_content_loops_secondary_hint(),
+  },
+  {
+    id: "modal",
+    label: m.music_content_loops_modal_label(),
+    hint: m.music_content_loops_modal_hint(),
+  },
+  {
+    id: "turnarounds",
+    label: m.music_content_loops_turnarounds_label(),
+    hint: m.music_content_loops_turnarounds_hint(),
+  },
+  {
+    id: "tritone",
+    label: m.music_content_loops_tritone_label(),
+    hint: m.music_content_loops_tritone_hint(),
+  },
 ];
 
 export interface ChordLoop {
@@ -178,7 +202,9 @@ export const CHORD_LOOPS: ChordLoop[] = [
   loop("pop", "twist", "I IV V IV", { songs: "Twist and Shout, La Bamba" }),
   loop("pop", "pop-iv-vi", "I IV vi V"),
   loop("rock", "rock-bvii-iv", "I bVII IV", { songs: "Sweet Home Alabama, Gloria" }),
-  loop("rock", "rock-bvii-iv-i", "I bVII IV I", { songs: m.music_content_loops_song_hey_jude_coda() }),
+  loop("rock", "rock-bvii-iv-i", "I bVII IV I", {
+    songs: m.music_content_loops_song_hey_jude_coda(),
+  }),
   loop("rock", "aeolian-shuttle", "i bVII bVI bVII", {
     minor: true,
     songs: "All Along the Watchtower",

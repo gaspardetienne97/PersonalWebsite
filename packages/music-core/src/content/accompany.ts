@@ -385,8 +385,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 1,
     label: m.music_content_accompany_block_1_label(),
     group: "pop",
-    about:
-      m.music_content_accompany_block_1_about(),
+    about: m.music_content_accompany_block_1_about(),
     bar: ({ v }) => [L(0, 4, v.bass), R(0, 4, ...v.rh)],
   },
   {
@@ -402,8 +401,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 3,
     label: m.music_content_accompany_r58_label(),
     group: "pop",
-    about:
-      m.music_content_accompany_r58_about(),
+    about: m.music_content_accompany_r58_about(),
     bar: ({ v }) => [...[0, 7, 12, 7].map((o, i) => L(i, 1, v.bass + o)), R(0, 4, ...v.rh)],
   },
   {
@@ -431,8 +429,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 6,
     label: m.music_content_accompany_ballad_label(),
     group: "pop",
-    about:
-      m.music_content_accompany_ballad_about(),
+    about: m.music_content_accompany_ballad_about(),
     bar: ({ v }) => {
       const t = v.bass + 12 + third(v.chord);
       return [...eighths("left", cycle([v.bass, v.bass + 7, v.bass + 12, t], 8)), R(0, 4, ...v.rh)];
@@ -443,8 +440,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 7,
     label: m.music_content_accompany_332_label(),
     group: "pop",
-    about:
-      m.music_content_accompany_332_about(),
+    about: m.music_content_accompany_332_about(),
     bar: ({ v }) => {
       const down = [...v.rh].sort((a, b) => b - a).slice(0, 3);
       return [
@@ -484,8 +480,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 11,
     label: m.music_content_accompany_spread_label(),
     group: "pop",
-    about:
-      m.music_content_accompany_spread_about(),
+    about: m.music_content_accompany_spread_about(),
     bar: ({ v }) => {
       const t = v.bass + 12 + third(v.chord);
       return [...[v.bass, v.bass + 7, t, v.bass + 7].map((m, i) => L(i, 1, m)), R(0, 4, ...v.rh)];
@@ -509,8 +504,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 12,
     label: m.music_content_accompany_boogie_label(),
     group: "blues",
-    about:
-      m.music_content_accompany_boogie_about(),
+    about: m.music_content_accompany_boogie_about(),
     swing: true,
     bar: ({ v }) => {
       const b = 36 + pc(v.chord.rootPc - 36);
@@ -547,8 +541,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 13,
     label: m.music_content_accompany_stride_label(),
     group: "blues",
-    about:
-      m.music_content_accompany_stride_about(),
+    about: m.music_content_accompany_stride_about(),
     bar: ({ v }) => {
       const b = bassOf(v.chord);
       const ch = lead(undefined, handPcs(v.chord).slice(0, 3), [50, 62]);
@@ -565,8 +558,7 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
     n: 14,
     label: m.music_content_accompany_gospel_label(),
     group: "gospel",
-    about:
-      m.music_content_accompany_gospel_about(),
+    about: m.music_content_accompany_gospel_about(),
     bar: ({ v }) => [L(0, 4, v.bass), R(0, 1.5, ...v.rh), R(1.5, 1.5, ...v.four), R(3, 1, ...v.rh)],
   },
 ];
@@ -665,7 +657,12 @@ export interface CompRhythm {
   meter?: 3;
 }
 export const COMP_RHYTHMS: CompRhythm[] = [
-  { id: "whole", label: m.music_content_accompany_comp_whole_label(), about: m.music_content_accompany_comp_whole_about(), hits: [[0, 4]] },
+  {
+    id: "whole",
+    label: m.music_content_accompany_comp_whole_label(),
+    about: m.music_content_accompany_comp_whole_about(),
+    hits: [[0, 4]],
+  },
   {
     id: "halves",
     label: m.music_content_accompany_comp_two_label(),
@@ -716,8 +713,7 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   {
     id: "hard-bop",
     label: m.music_content_accompany_comp_hardbop_label(),
-    about:
-      m.music_content_accompany_comp_hardbop_about(),
+    about: m.music_content_accompany_comp_hardbop_about(),
     hits: [
       [0, 0.5],
       [1.5, 0.5],
@@ -761,7 +757,11 @@ export const COMP_VOICINGS: CompVoicing[] = [
     label: m.music_content_accompany_lh_137_label(),
     about: m.music_content_accompany_lh_137_about(),
   },
-  { id: "shell-173", label: m.music_content_accompany_lh_173_label(), about: m.music_content_accompany_lh_173_about() },
+  {
+    id: "shell-173",
+    label: m.music_content_accompany_lh_173_label(),
+    about: m.music_content_accompany_lh_173_about(),
+  },
   {
     id: "shells",
     label: m.music_content_accompany_lh_alt_label(),
@@ -770,8 +770,7 @@ export const COMP_VOICINGS: CompVoicing[] = [
   {
     id: "rootless",
     label: m.music_content_accompany_lh_rootless_label(),
-    about:
-      m.music_content_accompany_lh_rootless_about(),
+    about: m.music_content_accompany_lh_rootless_about(),
   },
   {
     id: "root-rootless",
@@ -786,8 +785,7 @@ export const COMP_VOICINGS: CompVoicing[] = [
   {
     id: "octave-stabs",
     label: m.music_content_accompany_lh_octave_label(),
-    about:
-      m.music_content_accompany_lh_octave_about(),
+    about: m.music_content_accompany_lh_octave_about(),
   },
 ];
 
@@ -1228,7 +1226,11 @@ export function leadSheetFromScore(score: Score): LeadSheet | null {
 
 export type LeadLeft = "roots" | "shells" | "rootless" | "chords";
 export const LEAD_LEFT: { id: LeadLeft; label: string; about: string }[] = [
-  { id: "roots", label: m.music_content_accompany_left_roots_label(), about: m.music_content_accompany_left_roots_about() },
+  {
+    id: "roots",
+    label: m.music_content_accompany_left_roots_label(),
+    about: m.music_content_accompany_left_roots_about(),
+  },
   {
     id: "shells",
     label: m.music_content_accompany_left_shells_label(),
@@ -1237,14 +1239,12 @@ export const LEAD_LEFT: { id: LeadLeft; label: string; about: string }[] = [
   {
     id: "rootless",
     label: m.music_content_accompany_left_rootless_label(),
-    about:
-      m.music_content_accompany_left_rootless_about(),
+    about: m.music_content_accompany_left_rootless_about(),
   },
   {
     id: "chords",
     label: m.music_content_accompany_under_melody_label(),
-    about:
-      m.music_content_accompany_under_melody_about(),
+    about: m.music_content_accompany_under_melody_about(),
   },
 ];
 

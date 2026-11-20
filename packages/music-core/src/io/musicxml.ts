@@ -108,10 +108,7 @@ function tempoOf(n: XmlNode): number | undefined {
 
 export function parseMusicXml(xml: string): Score {
   const doc = parseXml(xml);
-  if (doc.name === "score-timewise")
-    throw new Error(
-      messages.music_content_musicxml_timewise(),
-    );
+  if (doc.name === "score-timewise") throw new Error(messages.music_content_musicxml_timewise());
   if (doc.name !== "score-partwise") throw new Error(messages.music_content_musicxml_not_score());
 
   const scoreParts = kids(kid(doc, "part-list"), "score-part");

@@ -90,8 +90,7 @@ const EAR_BLURB: Record<string, string> = {
   "chord-qualities": m.music_content_catalog_ear_chord_qualities_blurb(),
   cadences: m.music_content_catalog_ear_cadences_blurb(),
   "chord-functions": m.music_content_catalog_ear_chord_functions_blurb(),
-  progressions:
-    m.music_content_catalog_ear_progressions_blurb(),
+  progressions: m.music_content_catalog_ear_progressions_blurb(),
   "song-loops": m.music_content_catalog_ear_song_loops_blurb(),
   scales: m.music_content_catalog_ear_scales_blurb(),
   inversions: m.music_content_catalog_ear_inversions_blurb(),
@@ -165,7 +164,10 @@ export const CATALOG: CatalogEntry[] = [
         rhythmExerciseId("quarter-pulse"),
         uniq(RHYTHM_PATTERNS.flatMap((p) => rhythmSkills(p.id))),
       ),
-      mode("echo", m.music_content_catalog_mode_echo(), "rhythm.echo", ["rhythm.subdivisions", "ear.rhythm-echo"]),
+      mode("echo", m.music_content_catalog_mode_echo(), "rhythm.echo", [
+        "rhythm.subdivisions",
+        "ear.rhythm-echo",
+      ]),
       mode("groove", m.music_content_catalog_mode_groove_dictation(), "rhythm.groove-dictation", [
         "rhythm.subdivisions",
         "ear.groove-dictation",
@@ -199,8 +201,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "two-hand",
     route: "/music/two-hand",
     title: m.music_content_catalog_two_hand_title(),
-    blurb:
-      m.music_content_catalog_two_hand_blurb(),
+    blurb: m.music_content_catalog_two_hand_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -211,8 +212,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "pedal",
     route: "/music/pedal",
     title: m.music_content_catalog_pedal_title(),
-    blurb:
-      m.music_content_catalog_pedal_blurb(),
+    blurb: m.music_content_catalog_pedal_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -234,8 +234,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "accompany",
     route: "/music/changes/accompany",
     title: m.music_content_catalog_accompany_title(),
-    blurb:
-      m.music_content_catalog_accompany_blurb(),
+    blurb: m.music_content_catalog_accompany_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -243,7 +242,9 @@ export const CATALOG: CatalogEntry[] = [
       mode("patterns", m.music_content_catalog_mode_patterns(), "technique.piano.accompaniment", [
         "technique.piano.two-hand-independence",
       ]),
-      mode("comping", m.music_content_catalog_comping_title(), "technique.piano.comping-changes", ["technique.piano.comping"]),
+      mode("comping", m.music_content_catalog_comping_title(), "technique.piano.comping-changes", [
+        "technique.piano.comping",
+      ]),
       mode("lead-sheet", m.music_content_catalog_mode_lead_sheet(), "technique.piano.lead-sheet", [
         "technique.piano.two-hand-independence",
       ]),
@@ -258,8 +259,14 @@ export const CATALOG: CatalogEntry[] = [
     capability: "harmony",
     modality: "played",
     modes: [
-      mode("major", m.music_content_catalog_mode_major(), "voicing-drill", ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"]),
-      mode("minor", m.music_content_catalog_mode_minor(), "voicing-drill", ["harmony.ii-v-i", "harmony.ii-v-i.voicings.minor"]),
+      mode("major", m.music_content_catalog_mode_major(), "voicing-drill", [
+        "harmony.ii-v-i",
+        "harmony.ii-v-i.voicings.major",
+      ]),
+      mode("minor", m.music_content_catalog_mode_minor(), "voicing-drill", [
+        "harmony.ii-v-i",
+        "harmony.ii-v-i.voicings.minor",
+      ]),
       mode("altered", m.music_content_catalog_mode_altered(), "voicing-drill", [
         "harmony.ii-v-i",
         "harmony.ii-v-i.voicings.altered",
@@ -268,8 +275,12 @@ export const CATALOG: CatalogEntry[] = [
         "harmony.ii-v-i",
         "harmony.ii-v-i.voice-leading",
       ]),
-      mode("cadence", m.music_content_catalog_mode_cadences(), "voicing-drill", ["harmony.keyboard-cadences"]),
-      mode("cadence-minor", m.music_content_catalog_mode_minor_cadences(), "voicing-drill", ["harmony.keyboard-cadences"]),
+      mode("cadence", m.music_content_catalog_mode_cadences(), "voicing-drill", [
+        "harmony.keyboard-cadences",
+      ]),
+      mode("cadence-minor", m.music_content_catalog_mode_minor_cadences(), "voicing-drill", [
+        "harmony.keyboard-cadences",
+      ]),
       mode("jazz", m.music_content_catalog_mode_jazz_types(), "voicing-drill", [
         "harmony.voicings.diatonic-sevenths",
         "harmony.voicings.quartal",
@@ -294,8 +305,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "phrases",
     route: "/music/phrases",
     title: m.music_content_catalog_phrases_title(),
-    blurb:
-      m.music_content_catalog_phrases_blurb(),
+    blurb: m.music_content_catalog_phrases_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone", "mpc"],
     capability: "technique",
     modality: "played",
@@ -316,8 +326,12 @@ export const CATALOG: CatalogEntry[] = [
     capability: "harmony",
     modality: "played",
     modes: [
-      mode("major", m.music_content_catalog_mode_major_ii_v_i(), "jazz.chord-scales", ["harmony.ii-v-i.chord-scales.major"]),
-      mode("minor", m.music_content_catalog_mode_minor_ii_v_i(), "jazz.chord-scales", ["harmony.ii-v-i.chord-scales.minor"]),
+      mode("major", m.music_content_catalog_mode_major_ii_v_i(), "jazz.chord-scales", [
+        "harmony.ii-v-i.chord-scales.major",
+      ]),
+      mode("minor", m.music_content_catalog_mode_minor_ii_v_i(), "jazz.chord-scales", [
+        "harmony.ii-v-i.chord-scales.minor",
+      ]),
     ],
   }),
   entry({
@@ -339,24 +353,38 @@ export const CATALOG: CatalogEntry[] = [
         "technique.strings.spider",
         "technique.guitar.spider",
       ]),
-      mode("note-finder", m.music_content_catalog_mode_note_finder(), "technique.guitar.note-finder", [
-        "technique.strings.note-finder",
+      mode(
+        "note-finder",
+        m.music_content_catalog_mode_note_finder(),
         "technique.guitar.note-finder",
-        "technique.ukulele.note-finder",
+        [
+          "technique.strings.note-finder",
+          "technique.guitar.note-finder",
+          "technique.ukulele.note-finder",
+        ],
+      ),
+      mode(
+        "interval-recall",
+        m.music_content_catalog_mode_interval_recall(),
+        "technique.guitar.interval-recall",
+        [
+          "technique.guitar.intervals",
+          "technique.guitar.intervals.3",
+          "technique.guitar.intervals.4",
+          "technique.guitar.intervals.7",
+          "technique.guitar.intervals.12",
+        ],
+      ),
+      mode("legato", m.music_content_catalog_mode_legato(), "technique.guitar.legato", [
+        "technique.legato",
       ]),
-      mode("interval-recall", m.music_content_catalog_mode_interval_recall(), "technique.guitar.interval-recall", [
-        "technique.guitar.intervals",
-        "technique.guitar.intervals.3",
-        "technique.guitar.intervals.4",
-        "technique.guitar.intervals.7",
-        "technique.guitar.intervals.12",
-      ]),
-      mode("legato", m.music_content_catalog_mode_legato(), "technique.guitar.legato", ["technique.legato"]),
       mode("bends", m.music_content_catalog_mode_bends(), "technique.guitar.bends", [
         "technique.bends",
         "technique.vibrato",
       ]),
-      mode("harmonics", m.music_content_catalog_mode_harmonics(), "technique.guitar.harmonics", ["technique.strings"]),
+      mode("harmonics", m.music_content_catalog_mode_harmonics(), "technique.guitar.harmonics", [
+        "technique.strings",
+      ]),
     ],
   }),
   entry({
@@ -376,15 +404,19 @@ export const CATALOG: CatalogEntry[] = [
         ...chordShapeSkills("guitar", "pick"),
         "technique.ukulele.chord-perfect",
       ]),
-      mode("strum", m.music_content_catalog_mode_strum_identify(), "technique.guitar.open-chord-id", [
-        ...chordShapeSkills("guitar", "strum"),
-        "technique.ukulele.open-chord-id",
-      ]),
+      mode(
+        "strum",
+        m.music_content_catalog_mode_strum_identify(),
+        "technique.guitar.open-chord-id",
+        [...chordShapeSkills("guitar", "strum"), "technique.ukulele.open-chord-id"],
+      ),
       mode("changes", m.music_content_catalog_mode_changes(), "technique.guitar.chord-changes", [
         ...chordShapeSkills("guitar", "changes"),
         "technique.ukulele.chord-changes",
       ]),
-      mode("fingerpick", m.music_content_catalog_mode_fingerpicking(), "technique.fingerpicking", ["technique.fingerpicking"]),
+      mode("fingerpick", m.music_content_catalog_mode_fingerpicking(), "technique.fingerpicking", [
+        "technique.fingerpicking",
+      ]),
     ],
   }),
   entry({
@@ -403,8 +435,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "pads",
     route: "/music/pads",
     title: m.music_content_catalog_pads_title(),
-    blurb:
-      m.music_content_catalog_pads_blurb(),
+    blurb: m.music_content_catalog_pads_blurb(),
     instruments: ["mpc"],
     capability: "technique",
     modality: "played",
@@ -431,8 +462,14 @@ export const CATALOG: CatalogEntry[] = [
         "technique.mpc",
         "technique.mpc.dynamics",
       ]),
-      mode("fills", m.music_content_catalog_mode_fills(), "technique.mpc.fills", ["technique.mpc", "technique.mpc.fills"]),
-      mode("echo", m.music_content_catalog_mode_play_it_back(), "technique.mpc.echo", ["technique.mpc", "technique.mpc.echo"]),
+      mode("fills", m.music_content_catalog_mode_fills(), "technique.mpc.fills", [
+        "technique.mpc",
+        "technique.mpc.fills",
+      ]),
+      mode("echo", m.music_content_catalog_mode_play_it_back(), "technique.mpc.echo", [
+        "technique.mpc",
+        "technique.mpc.echo",
+      ]),
       mode("ostinato", m.music_content_catalog_mode_ostinato(), "technique.mpc.ostinato", [
         "technique.mpc",
         "technique.mpc.independence",
@@ -445,27 +482,47 @@ export const CATALOG: CatalogEntry[] = [
         "technique.mpc",
         "technique.mpc.improvise",
       ]),
-      mode("chop", m.music_content_catalog_mode_chop(), "technique.mpc.chop", ["technique.mpc", "technique.mpc.chop"]),
+      mode("chop", m.music_content_catalog_mode_chop(), "technique.mpc.chop", [
+        "technique.mpc",
+        "technique.mpc.chop",
+      ]),
       mode("repeat", m.music_content_catalog_mode_note_repeat(), "technique.mpc.repeat", [
         "technique.mpc",
         "technique.mpc.repeat",
       ]),
-      mode("song", m.music_content_catalog_mode_song_form(), "technique.mpc.song", ["technique.mpc", "technique.mpc.song"]),
+      mode("song", m.music_content_catalog_mode_song_form(), "technique.mpc.song", [
+        "technique.mpc",
+        "technique.mpc.song",
+      ]),
     ],
   }),
   entry({
     id: "aerophone",
     route: "/music/aerophone",
     title: "Aerophone",
-    blurb:
-      m.music_content_catalog_aerophone_blurb(),
+    blurb: m.music_content_catalog_aerophone_blurb(),
     instruments: ["aerophone"],
     capability: "technique",
     modality: "played",
     modes: [
-      mode("fingering", m.music_content_catalog_mode_fingering(), "technique.aerophone.fingering", aerophoneSkills("fingering")),
-      mode("long-tone", m.music_content_catalog_mode_long_tone(), "technique.aerophone.long-tone", aerophoneSkills("long-tone")),
-      mode("swell", m.music_content_catalog_mode_swell(), "technique.aerophone.swell", aerophoneSkills("swell")),
+      mode(
+        "fingering",
+        m.music_content_catalog_mode_fingering(),
+        "technique.aerophone.fingering",
+        aerophoneSkills("fingering"),
+      ),
+      mode(
+        "long-tone",
+        m.music_content_catalog_mode_long_tone(),
+        "technique.aerophone.long-tone",
+        aerophoneSkills("long-tone"),
+      ),
+      mode(
+        "swell",
+        m.music_content_catalog_mode_swell(),
+        "technique.aerophone.swell",
+        aerophoneSkills("swell"),
+      ),
       mode(
         "articulation",
         m.music_content_catalog_mode_articulation(),
@@ -496,9 +553,24 @@ export const CATALOG: CatalogEntry[] = [
         "technique.aerophone.register",
         aerophoneSkills("register"),
       ),
-      mode("trills", m.music_content_catalog_mode_trills(), "technique.aerophone.trills", aerophoneSkills("trills")),
-      mode("vibrato", m.music_content_catalog_mode_bite_vibrato(), "technique.aerophone.vibrato", aerophoneSkills("vibrato")),
-      mode("swing", m.music_content_catalog_mode_swing(), "technique.aerophone.swing", aerophoneSkills("swing")),
+      mode(
+        "trills",
+        m.music_content_catalog_mode_trills(),
+        "technique.aerophone.trills",
+        aerophoneSkills("trills"),
+      ),
+      mode(
+        "vibrato",
+        m.music_content_catalog_mode_bite_vibrato(),
+        "technique.aerophone.vibrato",
+        aerophoneSkills("vibrato"),
+      ),
+      mode(
+        "swing",
+        m.music_content_catalog_mode_swing(),
+        "technique.aerophone.swing",
+        aerophoneSkills("swing"),
+      ),
       mode(
         "long-scale",
         m.music_content_catalog_mode_long_scale(),
@@ -529,8 +601,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "listening",
     route: "/music/ear/studio",
     title: m.music_content_catalog_listening_title(),
-    blurb:
-      m.music_content_catalog_listening_blurb(),
+    blurb: m.music_content_catalog_listening_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "heard",
@@ -542,8 +613,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "by-ear",
     route: "/music/by-ear",
     title: m.music_content_catalog_by_ear_title(),
-    blurb:
-      m.music_content_catalog_by_ear_blurb(),
+    blurb: m.music_content_catalog_by_ear_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "played",
@@ -557,14 +627,17 @@ export const CATALOG: CatalogEntry[] = [
     id: "call-response",
     route: "/music/changes/call-response",
     title: m.music_content_catalog_call_response_title(),
-    blurb:
-      m.music_content_catalog_call_response_blurb(),
+    blurb: m.music_content_catalog_call_response_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "ear",
     modality: "played",
     modes: [
-      mode("echo", m.music_content_catalog_mode_echo_call(), "ear.call-response.echo", ["ear.call-response"]),
-      mode("answer", m.music_content_catalog_mode_answer(), "ear.call-response.answer", ["ear.call-response"]),
+      mode("echo", m.music_content_catalog_mode_echo_call(), "ear.call-response.echo", [
+        "ear.call-response",
+      ]),
+      mode("answer", m.music_content_catalog_mode_answer(), "ear.call-response.answer", [
+        "ear.call-response",
+      ]),
     ],
   }),
   entry({
