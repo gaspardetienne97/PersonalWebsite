@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   // Spider, Positions, Legato and Fingerpicking: a fretted line played after the
@@ -59,6 +60,7 @@
   import ChordStrip from "./ChordStrip.svelte";
   import { CHORD_MODES, FRETBOARD_MODES, openMode } from "./modes";
   import { chordId, chordLabel, cyclePositions, cycleRefs, positionsOn, shapesFor, symbolRef, type ChordRef } from "./chords";
+  import { formatList } from "@repo/i18n/format";
 
   let { kind }: { kind: "spider" | "positions" | "fingerpick" | "legato" | "harmonics" } = $props();
   let phase = $state<Phase>("ready");
@@ -120,7 +122,7 @@
   /** The instrument's patterns by kind, each kind a row of buttons in the setup. */
   const pickGroups = $derived.by(() => {
     const kind = (p: (typeof FINGERPICK_PATTERNS)[number]) =>
-      isTremolo(p) ? "Tremolo" : p.strings.length === 6 ? "In three (3/4 or 6/8)" : p.strings.some((x) => x === "-" || x.includes("+")) ? "Pinches and holds" : p.id.startsWith("travis") ? "Travis picking" : instr === "ukulele" ? "Thumb and fingers" : "Arpeggios";
+      isTremolo(p) ? m.music_strings_line_group_tremolo() : p.strings.length === 6 ? m.music_strings_line_group_triple() : p.strings.some((x) => x === "-" || x.includes("+")) ? m.music_strings_line_group_pinches() : p.id.startsWith("travis") ? m.music_strings_line_group_travis() : instr === "ukulele" ? m.music_strings_line_group_thumb() : m.music_strings_line_group_arpeggios();
     const groups = new Map<string, (typeof FINGERPICK_PATTERNS)[number][]>();
     for (const p of FINGERPICK_PATTERNS.filter((x) => x.instrument === instr)) groups.set(kind(p), [...(groups.get(kind(p)) ?? []), p]);
     return [...groups];
@@ -164,8 +166,8 @@
   /** One note's time: the click divided by the notes to a click. */
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(isSpider || kind === "positions" ? GUITAR_GRADE_TEMPOS.find((g) => g.id === s.grade) : undefined);
-  const PER_NAME: Record<number, string> = { 1: "quarters", 2: "eighths", 3: "triplets", 4: "sixteenths", 6: "sextuplets" };
-  const PER: Record<number, string> = { 1: "one note a click", 2: "two notes a click", 3: "three notes a click", 4: "four notes a click", 6: "six notes a click" };
+  const PER_NAME: Record<number, string> = { 1: m.music_strings_per_name_1(), 2: m.music_strings_per_name_2(), 3: m.music_strings_per_name_3(), 4: m.music_strings_per_name_4(), 6: m.music_strings_per_name_6() };
+  const PER: Record<number, string> = { 1: m.music_strings_per_1(), 2: m.music_strings_per_2(), 3: m.music_strings_per_3(), 4: m.music_strings_per_4(), 6: m.music_strings_per_6() };
 
   const spiderPattern = $derived(SPIDER_PATTERNS.find((p) => p.id === s.pattern) ?? SPIDER_PATTERNS[0]);
   const shapes = $derived(positionPatternsFor(instr));
@@ -307,7 +309,7 @@
     string: t.string,
     fret: t.fret,
     label: order(i) ?? finger(t),
-    spoken: order(i) ? `note ${order(i)} of the pattern` : t.stretch ? `target, stretch ${t.stretch === "back" ? "back toward the nut" : "up the neck"}` : undefined,
+    spoken: order(i) ? m.music_strings_line_spoken_order({ n: order(i)! }) : t.stretch ? (t.stretch === "back" ? m.music_strings_line_spoken_back() : m.music_strings_line_spoken_up()) : undefined,
     // The colour is always the fretting finger; a letter (picking hand, or P h p) rides on it.
     finger: t.finger || undefined,
     demo,
@@ -325,12 +327,12 @@
     return shown.flatMap((t, i) => (seen.has(t.string * 100 + t.fret) ? [] : (seen.add(t.string * 100 + t.fret), [mark(t, i)])));
   });
   /** The spider's key: the pattern's fingers in playing order. */
-  const FINGERS = ["open", "index", "middle", "ring", "pinky"];
+  const FINGERS = [m.music_strings_finger_open(), m.music_strings_finger_index(), m.music_strings_finger_middle(), m.music_strings_finger_ring(), m.music_strings_finger_pinky()];
   /** A step in words: "bass", "string 3", "bass + 2" for a pinch, "hold". */
   const PICK_STRING = (st: string) => {
-    if (st === "-") return "hold";
-    const parts = st.split("+").map((x) => (x === "B" ? "bass" : x === "A" ? "alt bass" : x));
-    return parts.length === 1 && /^\d$/.test(parts[0]) ? `string ${parts[0]}` : parts.join(" + ");
+    if (st === "-") return m.music_strings_pick_hold();
+    const parts = st.split("+").map((x) => (x === "B" ? m.music_strings_pick_bass() : x === "A" ? m.music_strings_pick_alt_bass() : x));
+    return parts.length === 1 && /^\d$/.test(parts[0]) ? m.music_strings_string_lower({ n: parts[0] }) : parts.join(" + ");
   };
   /** The order row above the neck: the spider's fingers, or the picking pattern's steps. */
   const orderKey = $derived(
@@ -354,32 +356,32 @@
   const pickBars = $derived(pickPattern.strings.length / perBeat / clickBar);
   const stringsText = (set: number[]) => {
     const up = [...set].sort((a, b) => a - b);
-    return up.length === 1 ? `string ${up[0]}` : `strings ${up.slice(0, -1).join(", ")} and ${up.at(-1)}`;
+    return up.length === 1 ? m.music_strings_string_lower({ n: up[0] }) : m.music_strings_strings_list({ list: formatList(up.map(String)) });
   };
-  const BARS: Record<number, string> = { 0.5: "half a bar each", 1: "a bar each", 2: "two bars each" };
+  const BARS: Record<number, string> = { 0.5: m.music_strings_bars_half(), 1: m.music_strings_bars_one(), 2: m.music_strings_bars_two() };
   const per = $derived({ text: PER[perBeat], focus: "per" });
   const summaryLine = $derived(
     isPick
-      ? [...(song ? [{ text: `${song.song} (${song.artist})`, focus: "song" }] : []), { text: pickPattern.label, focus: "pattern" }, { text: pickNames.join(" then "), focus: "chords" }, { text: BARS[pickBars] ?? `${pickBars} bars each` }, per]
+      ? [...(song ? [{ text: `${song.song} (${song.artist})`, focus: "song" }] : []), { text: pickPattern.label, focus: "pattern" }, { text: pickNames.reduce((a, b) => m.music_strings_then_plain({ a, b })), focus: "chords" }, { text: BARS[pickBars] ?? m.music_strings_bars_n({ n: pickBars }) }, per]
       : isHarm
-        ? [{ text: "Harmonics at frets 12, 7 and 5" }, { text: `every string, ${tuning.name} tuning` }]
+        ? [{ text: m.music_strings_harm_summary() }, { text: m.music_strings_harm_every_string({ tuning: tuning.name }) }]
       : isLegato
-        ? [{ text: `${legatoPattern.label}, ${legatoText(legatoPattern, legatoStart)}`, focus: "pattern" }, { text: `on string ${string} from fret ${legatoStart}` }, per]
+        ? [{ text: `${legatoPattern.label}, ${legatoText(legatoPattern, legatoStart)}`, focus: "pattern" }, { text: m.music_strings_legato_on_string({ string, fret: legatoStart }) }, per]
         : isSpider
           ? [
               { text: spiderPattern.label, focus: "pattern" },
               { text: stringsText(spiderSet), focus: "strings" },
-              { text: startFret === 0 ? "from the open strings" : `from fret ${startFret}` },
-              ...(crossing ? [{ text: "crossing strings", focus: "crossing" }] : []),
-              ...(burst ? [{ text: "in bursts", focus: "burst" }] : []),
+              { text: startFret === 0 ? m.music_strings_spider_from_open() : m.music_strings_spider_from_fret({ fret: startFret }) },
+              ...(crossing ? [{ text: m.music_strings_spider_crossing(), focus: "crossing" }] : []),
+              ...(burst ? [{ text: m.music_strings_spider_bursts(), focus: "burst" }] : []),
               ...(perBeat > 1 ? [per] : []),
-              ...(target ? [{ text: `aiming for ${target.label}`, focus: "grade" }] : []),
+              ...(target ? [{ text: m.music_strings_aiming_for({ target: target.label }), focus: "grade" }] : []),
             ]
           : [
               { text: box.label, focus: "pattern" },
-              { text: `root ${noteName(rootOpen + rootFret, "sharp", false)} at fret ${rootFret}${box.rootString === 1 ? " on string 1" : ""}`, focus: "root" },
+              { text: (box.rootString === 1 ? m.music_strings_positions_root_s1 : m.music_strings_positions_root)({ note: noteName(rootOpen + rootFret, "sharp", false), fret: rootFret }), focus: "root" },
               ...(perBeat > 1 ? [per] : []),
-              ...(target ? [{ text: `aiming for ${target.label}`, focus: "grade" }] : []),
+              ...(target ? [{ text: m.music_strings_aiming_for({ target: target.label }), focus: "grade" }] : []),
             ],
   );
 
@@ -401,7 +403,7 @@
     demo = handle;
     demoAt = handle.startPerf;
     loop();
-    status = "Demo: the line at tempo, lit as it sounds.";
+    status = m.music_strings_line_demo();
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -434,7 +436,10 @@
       // The first wrong note on a step makes it a slip: it leaves the clean count, as the marks show.
       if (stepIndex < steps.length && firstWrong[stepIndex] === undefined) firstWrong[stepIndex] = e.midi;
       if (mode === "practice" && want)
-        missText = `That was ${e.string !== undefined && e.fret !== undefined ? `${stringText(e.string)}, fret ${e.fret}` : noteName(e.midi)}. Try ${stringText(want.string)}, fret ${want.fret}.`;
+        missText =
+          e.string !== undefined && e.fret !== undefined
+            ? m.music_strings_line_miss_at({ string: stringText(e.string), fret: e.fret, wantString: stringText(want.string), wantFret: want.fret })
+            : m.music_strings_line_miss_note({ note: noteName(e.midi), wantString: stringText(want.string), wantFret: want.fret });
       // A quarter tone off rounds to the next note: name the tuning; Practice moves past it (it still scores as missed).
       const open = steps.flatMap((t, i) => (i >= stepIndex && slotOf[i] === slotOf[stepIndex] && hitAt[i] === undefined ? [i] : []));
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, open.map((i) => steps[i].midi)) : null;
@@ -452,12 +457,12 @@
   /** Practice: the last wrong note and where the next one is, in words; cleared by a right note. */
   let missText = $state<string | null>(null);
   /** A string by number and open note: "string 3 (C)". */
-  const stringText = (n: number) => `string ${n} (${noteName(tuning.openStrings[n - 1], "flat", false)})`;
+  const stringText = (n: number) => m.music_strings_shape_string_note({ string: n, note: noteName(tuning.openStrings[n - 1], "flat", false) });
   /** Beside Stop on a phone: the string and fret to play now (Practice), or only where you are (Check). */
   const cue = $derived.by(() => {
     const t = steps[stepIndex];
     if (phase !== "running" || !t) return "";
-    return mode === "check" ? `Note ${stepIndex + 1} of ${steps.length}, in Check` : `Play string ${t.string}, ${t.fret ? `fret ${t.fret}` : "open"}`;
+    return mode === "check" ? m.music_strings_line_cue_check({ n: stepIndex + 1, total: steps.length }) : t.fret ? m.music_strings_line_cue_fret({ string: t.string, fret: t.fret }) : m.music_strings_line_cue_open({ string: t.string });
   });
   /** On time within the highway's window: a third of a note, 35 to 60 ms. */
   const onTimeMs = () => Math.max(35, Math.min(60, stepMs() * 0.3));
@@ -556,7 +561,7 @@
       target: steps.map((t) => t.midi),
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm()} BPM` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: m.music_strings_line_run_headline({ score: pct(r.score), bpm: bpm() }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -569,24 +574,24 @@
     const clean = r.correct && mode === "check";
     summary = {
       headline: r.slips.length && ons.length
-        ? `${r.clean} of ${r.total} notes right first time: ${r.slips.length === 1 ? "one step" : `${r.slips.length} steps`} had a wrong note before the right one.${r.pitch < 0.75 ? " Slow down until each finger lands before the next." : ""}`
+        ? `${r.slips.length === 1 ? m.music_strings_line_slips_one({ clean: r.clean, total: r.total }) : m.music_strings_line_slips_many({ clean: r.clean, total: r.total, slips: r.slips.length })}${r.pitch < 0.75 ? ` ${m.music_strings_line_slow_down()}` : ""}`
         : r.correct
         ? mode === "check"
-          ? `Clean and even at ${bpm()} BPM. Every finger landed.`
-          : `Clean at ${bpm()} BPM. Every finger landed.`
+          ? m.music_strings_line_clean_even({ bpm: bpm() })
+          : m.music_strings_line_clean({ bpm: bpm() })
         : !ons.length
-          ? "Nothing was heard during the run. Tap the frets, play into the microphone, or connect MIDI, then try again."
+          ? m.music_strings_line_nothing_heard()
           : r.pitch < 0.9
             ? detuned.length
-              ? `${r.clean} of ${r.total} notes right. ${detuned.length} sounded out of tune (about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents): tune your ${instr} in Tuner, then try again.`
-              : `${r.clean} of ${r.total} notes right. Slow down until each finger lands before the next.`
-            : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
+              ? (instr === "ukulele" ? m.music_strings_line_detuned_ukulele : m.music_strings_line_detuned_guitar)({ clean: r.clean, total: r.total, n: detuned.length, cents: Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length) })
+              : m.music_strings_line_some_right({ clean: r.clean, total: r.total })
+            : m.music_strings_line_uneven({ ms: Math.round(r.evennessErrorMs) }),
       metric: pct(r.score),
-      metricLabel: evennessWeight ? "50% notes + 50% evenness" : "85% notes + 15% evenness",
+      metricLabel: evennessWeight ? m.music_strings_line_metric_tremolo() : m.music_strings_line_metric(),
       delta: fin.delta,
       best: fin.best,
       clean,
-      cleanMeans: "a score of 90% or more",
+      cleanMeans: m.music_strings_line_clean_means(),
       xp: fin.xp,
       mode,
       timing: timingCounts(
@@ -594,26 +599,26 @@
         onTimeMs(),
       ),
       rows: [
-        { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}${r.slips.length ? `, ${r.slips.length} ${r.slips.length > 1 ? "slips" : "slip"}` : ""}` },
+        { label: m.music_strings_notes_right(), value: r.pitch, text: r.slips.length ? m.music_strings_line_slips_text({ clean: r.clean, total: r.total, slips: r.slips.length }) : m.music_strings_n_of_total({ n: r.clean, total: r.total }) },
         evennessRow(r.evenness, r.clean, r.total),
         taps.length && taps.length === ons.length
-          ? { label: "On the written string and fret", value: taps.length ? onString / taps.length : 0, text: `${onString} of ${taps.length} taps` }
-          : { label: "String and fret", notMeasured: true },
+          ? { label: m.music_strings_line_on_written(), value: taps.length ? onString / taps.length : 0, text: m.music_strings_line_taps({ n: onString, total: taps.length }) }
+          : { label: m.music_strings_find_string_fret(), notMeasured: true },
         ...(isLegato
           ? (() => {
               const fromMic = ons.length > 0 && ons.every((n) => n.source === "audio");
-              if (!fromMic) return [{ label: "Hammer-ons and pull-offs (the microphone hears the pick)", notMeasured: true }];
+              if (!fromMic) return [{ label: m.music_strings_line_legato_mic(), notMeasured: true }];
               const v = legatoAttacks(steps.map((t) => t.label), hitAt, (cap?.onsets ?? []).filter((o) => o.source === "audio")).filter((x) => x !== null);
               const legato = v.filter((x) => x === "legato").length;
-              return [{ label: "Hammered and pulled with no new pick attack", value: v.length ? legato / v.length : 0, text: `${legato} of ${v.length}, ${v.filter((x) => x === "picked").length} sounded picked` }];
+              return [{ label: m.music_strings_line_legato_row(), value: v.length ? legato / v.length : 0, text: m.music_strings_line_legato_text({ n: legato, total: v.length, picked: v.filter((x) => x === "picked").length }) }];
             })()
           : []),
         ...(target
           ? [
               {
-                label: `${target.label} click, ${target.bpm} BPM`,
+                label: m.music_strings_line_grade_row({ grade: target.label, bpm: target.bpm }),
                 value: Math.min(1, bpm() / target.bpm),
-                text: bpm() >= target.bpm ? (r.correct ? "reached, clean" : "at tempo, not clean yet") : `${bpm()} of ${target.bpm} BPM`,
+                text: bpm() >= target.bpm ? (r.correct ? m.music_strings_line_reached() : m.music_strings_line_at_tempo()) : m.music_strings_line_bpm_of({ bpm: bpm(), target: target.bpm }),
               },
             ]
           : []),
@@ -637,7 +642,7 @@
     clearTimeout(timer);
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   /** The next shape or pattern in the list. */
@@ -674,10 +679,10 @@
   /** Positions: the roots whose lowest fret on string 6 keeps the shape on the neck. */
   /** The shapes a row each: pentatonic boxes (and the run joining them), CAGED, triads. */
   const SHAPE_GROUPS: [string, string[]][] = [
-    ["Minor pentatonic", ["minor-pentatonic", "connected"]],
-    ["Blues boxes", ["blues-box"]],
-    ["CAGED major", ["caged-major"]],
-    ["Triads", ["triads"]],
+    [m.music_strings_shape_group_pentatonic(), ["minor-pentatonic", "connected"]],
+    [m.music_strings_shape_group_blues(), ["blues-box"]],
+    [m.music_strings_shape_group_caged(), ["caged-major"]],
+    [m.music_strings_chordpicker_group_triads(), ["triads"]],
   ];
   const shapeGroups = $derived(SHAPE_GROUPS.map(([g, families]) => [g, shapes.filter((p) => families.includes(p.family))] as const).filter(([, list]) => list.length));
   const rootOptions = $derived(
@@ -691,19 +696,19 @@
 
 <DrillShell
   lesson={card ? { lessons: conceptCard(card, { tuning }), trigger: "check" } : null}
-  title={isPick ? "Fingerpicking" : isHarm ? "Harmonics" : isLegato ? "Hammer-ons and pull-offs" : isSpider ? "Spider" : "Positions"}
+  title={isPick ? m.music_strings_line_title_pick() : isHarm ? m.music_strings_line_title_harm() : isLegato ? m.music_strings_line_title_legato() : isSpider ? m.music_strings_line_title_spider() : m.music_strings_line_title_positions()}
   hue={instr}
   blurb={isHarm
-    ? "Natural harmonics over frets 12, 7 and 5: touch the string, pick, and lift."
+    ? m.music_strings_line_blurb_harm()
     : isLegato
-    ? "Pick only the ↓ notes. Hammer, pull off or slide to the rest, as the tab writes them."
+    ? m.music_strings_line_blurb_legato()
     : isPick
-    ? "A picking pattern over two or more chords: p thumb, i index, m middle, a ring."
+    ? m.music_strings_line_blurb_pick()
     : isSpider
-    ? "One finger per fret, one note per click, until each finger lands on its own."
+    ? m.music_strings_line_blurb_spider()
     : instr === "ukulele"
-    ? "A minor pentatonic position, string 4 to string 1, in five positions up the neck."
-    : "Pentatonic and CAGED boxes, the B.B. box or triads, low string to high, a note a click."}
+    ? m.music_strings_line_blurb_uke()
+    : m.music_strings_line_blurb_positions()}
   summary={summaryLine}
   tabs={isPick ? CHORD_MODES : FRETBOARD_MODES}
   tab={kind}
@@ -724,91 +729,91 @@
       {#if isPick}
         {#if songs.length}
           <div class="flex min-w-0 flex-col gap-1 sm:col-span-2 lg:col-span-3" data-setup="song">
-            <Choice label="Start from a song" options={songs.map((x) => ({ value: x.id, label: x.song, detail: x.artist }))} value={song?.id ?? ""} onchange={useSong} />
-            {#if song}<p class="text-[13px] text-ws-soft">{song.note} Tempo {song.bpm} BPM.</p>{/if}
+            <Choice label={m.music_strings_line_start_song()} options={songs.map((x) => ({ value: x.id, label: x.song, detail: x.artist }))} value={song?.id ?? ""} onchange={useSong} />
+            {#if song}<p class="text-[13px] text-ws-soft">{song.note} {m.music_strings_line_song_tempo({ bpm: song.bpm })}</p>{/if}
           </div>
         {/if}
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
-          <span class="text-sm font-medium">Pattern</span>
+          <span class="text-sm font-medium">{m.music_strings_pattern()}</span>
           {#each pickGroups as [group, list] (group)}
             <Choice label={group} options={list.map((p) => ({ value: p.id, label: p.label, detail: p.fingers.join(" ") }))} value={pickPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
           {/each}
         </div>
         <ChordCycleSetup instrument={instr} {tuning} refs={pickRefs} shapes={pickShapes} positions={pickChosen} onchange={savePick} setupKey="chords" />
       {:else if isHarm}
-        <p class="text-sm text-ws-soft sm:col-span-2">Touch lightly right over the fret wire, pick near the bridge, then lift the finger. The microphone hears the harmonic. A tap on the neck at 12, 7 or 5 stands for it.</p>
+        <p class="text-sm text-ws-soft sm:col-span-2">{m.music_strings_line_harm_help()}</p>
       {:else if isLegato}
-        <Choice label="Pattern" setupKey="pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label, detail: legatoText(p, legatoStart) }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
-        <p class="self-end text-sm text-ws-soft">Tap the neck on the stage to choose the string and start fret.</p>
+        <Choice label={m.music_strings_pattern()} setupKey="pattern" options={LEGATO_PATTERNS.map((p) => ({ value: p.id, label: p.label, detail: legatoText(p, legatoStart) }))} value={legatoPattern.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <p class="self-end text-sm text-ws-soft">{m.music_strings_line_legato_tap()}</p>
       {:else if isSpider}
         <div class="flex min-w-0 flex-col gap-2" data-setup="pattern">
-          <span class="text-sm font-medium" id="spider-order">Finger order</span>
+          <span class="text-sm font-medium" id="spider-order">{m.music_strings_spider_order()}</span>
           <!-- The order so far: four slots, filled as the fingers are tapped. -->
           <ol class="flex gap-1.5" aria-labelledby="spider-order">
             {#each [0, 1, 2, 3] as i (i)}
               {@const f = draft.length ? draft[i] : patternFingers[i]}
               <li class="grid size-10 place-items-center rounded-full border-2 text-base font-extrabold {f ? 'border-transparent text-[#1b120b]' : 'border-dashed border-ws-line text-ws-soft'}" style:background={f ? `var(--finger-${f})` : undefined}>
-                {f ?? i + 1}<span class="sr-only">{f ? `: ${FINGERS[f]}` : ": not chosen yet"}</span>
+                {f ?? i + 1}<span class="sr-only">{f ? m.music_strings_spider_slot_finger({ finger: FINGERS[f] }) : m.music_strings_spider_slot_empty()}</span>
               </li>
             {/each}
           </ol>
-          <p class="text-[13px] text-ws-soft" aria-live="polite">{draft.length ? `${4 - draft.length} more to tap.` : "Tap the fingers below in the order you want to play them."}</p>
-          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Tap the fingers in order">
+          <p class="text-[13px] text-ws-soft" aria-live="polite">{draft.length ? m.music_strings_spider_more_to_tap({ n: 4 - draft.length }) : m.music_strings_spider_tap_help()}</p>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-label={m.music_strings_spider_tap_label()}>
             {#each [1, 2, 3, 4] as f (f)}
               <button type="button" class="flex min-h-11 items-center gap-1.5 rounded-full border border-ws-line px-3 text-sm font-medium disabled:opacity-40" disabled={draft.includes(f)} onclick={() => tapFinger(f)}>
                 <span class="size-3 rounded-full" style:background="var(--finger-{f})" aria-hidden="true"></span>{f} {FINGERS[f]}
               </button>
             {/each}
-            {#if draft.length}<button type="button" class="min-h-11 px-2 text-sm text-ws-soft underline underline-offset-4" onclick={() => (draft = [])}>Clear</button>{/if}
+            {#if draft.length}<button type="button" class="min-h-11 px-2 text-sm text-ws-soft underline underline-offset-4" onclick={() => (draft = [])}>{m.music_strings_clear()}</button>{/if}
           </div>
-          <button type="button" class="self-start text-sm font-medium text-instr-ink underline underline-offset-4" onclick={nextOrder}>Next finger order</button>
+          <button type="button" class="self-start text-sm font-medium text-instr-ink underline underline-offset-4" onclick={nextOrder}>{m.music_strings_spider_next_order()}</button>
         </div>
         <div class="flex min-w-0 flex-col gap-2" data-setup="strings">
-          <span class="text-sm font-medium" id="spider-strings">Strings</span>
+          <span class="text-sm font-medium" id="spider-strings">{m.music_strings_strings()}</span>
           <div class="flex flex-wrap gap-1.5" role="group" aria-labelledby="spider-strings">
             {#each tuning.openStrings as open, i (i)}
               {@const n = i + 1}
               {@const on = spiderSet.includes(n)}
-              <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label="String {n}, {noteName(open, 'flat', false)}" onclick={() => toggleString(n)}>
+              <button type="button" class="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-lg border px-2 text-sm font-semibold {on ? 'border-instr bg-instr-wash' : 'border-ws-line'}" aria-pressed={on} aria-label={m.music_strings_string_n_note({ n, note: noteName(open, "flat", false) })} onclick={() => toggleString(n)}>
                 {n}<span class="text-[13px] font-normal text-ws-soft">{noteName(open, "flat", false)}</span>
               </button>
             {/each}
           </div>
-          <p class="text-[13px] text-ws-soft">Tap to add or remove. They play from the lowest string up.</p>
+          <p class="text-[13px] text-ws-soft">{m.music_strings_spider_strings_help()}</p>
         </div>
         <Choice
-          label="String crossing"
+          label={m.music_strings_spider_crossing_label()}
           setupKey="crossing"
           disabled={spiderSet.length < 2}
           options={[
-            { value: 0, label: "One string at a time" },
-            { value: 1, label: "Cross each step", hint: "Needs two strings or more." },
+            { value: 0, label: m.music_strings_spider_one_string() },
+            { value: 1, label: m.music_strings_spider_cross_each(), hint: m.music_strings_spider_cross_hint() },
           ]}
           value={crossing ? 1 : 0}
           onchange={(v) => cfg.set({ crossing: v === 1 })}
         />
         <Choice
-          label="Speed bursts"
+          label={m.music_strings_spider_bursts_label()}
           setupKey="burst"
           options={[
-            { value: 0, label: "A steady line" },
-            { value: 1, label: "Bursts", hint: "Each four-note cell fast, then a rest as long. Push the tempo while it stays even." },
+            { value: 0, label: m.music_strings_spider_steady() },
+            { value: 1, label: m.music_strings_spider_bursts(), hint: m.music_strings_spider_bursts_hint() },
           ]}
           value={burst ? 1 : 0}
           onchange={(v) => cfg.set({ burst: v === 1 })}
         />
       {:else}
         <div class="flex min-w-0 flex-col gap-3 sm:col-span-2 lg:col-span-3" data-setup="pattern">
-          <span class="text-sm font-medium">Shape</span>
+          <span class="text-sm font-medium">{m.music_strings_shape()}</span>
           {#each shapeGroups as [group, list] (group)}
             <Choice label={group} options={list.map((p) => ({ value: p.id, label: p.label.replace(/^(Minor pentatonic|CAGED) /, "").replace(/^./, (c) => c.toUpperCase()) }))} value={box.id} onchange={(v) => cfg.set({ pattern: v })} />
           {/each}
         </div>
-        <Choice label="Root" setupKey="root" options={rootOptions} value={pc(rootOpen + rootFret)} onchange={(n) => cfg.set({ rootFret: rootFretFor(n) })} />
+        <Choice label={m.music_strings_chordpicker_root()} setupKey="root" options={rootOptions} value={pc(rootOpen + rootFret)} onchange={(n) => cfg.set({ rootFret: rootFretFor(n) })} />
       {/if}
       {#if !isHarm}
         <Choice
-          label="Notes a click"
+          label={m.music_strings_notes_a_click()}
           setupKey="per"
           options={PER_STEPS.map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))}
           value={perBeat}
@@ -818,12 +823,12 @@
       {#if isSpider || kind === "positions"}
         <div class="flex min-w-0 flex-col gap-1" data-setup="grade">
           <Choice
-            label="Exam target (optional)"
-            options={[{ value: "", label: "None" }, ...GUITAR_GRADE_TEMPOS.map((g) => ({ value: g.id, label: `${g.label}: ${g.bpm} BPM`, group: g.label.split(" ")[0] }))]}
+            label={m.music_strings_exam_target()}
+            options={[{ value: "", label: m.music_strings_none() }, ...GUITAR_GRADE_TEMPOS.map((g) => ({ value: g.id, label: `${g.label}: ${g.bpm} BPM`, group: g.label.split(" ")[0] }))]}
             value={target?.id ?? ""}
             onchange={(v) => cfg.set({ grade: v })}
           />
-          <p class="text-[13px] text-ws-soft">The exam's click becomes the goal the tempo climbs to. Rockschool Electric 2018 and Trinity classical minimums. Neither says how many notes fall on a click.</p>
+          <p class="text-[13px] text-ws-soft">{m.music_strings_exam_help()}</p>
         </div>
       {/if}
     </div>
@@ -831,11 +836,11 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Note" value="{Math.min(stepIndex + 1, steps.length)} of {steps.length}" />
-      <Stat label="Right" value="✓ {rightSoFar}  ✕ {missedSoFar}" />
+      <Stat label={m.music_strings_note()} value={m.music_strings_n_of_total({ n: Math.min(stepIndex + 1, steps.length), total: steps.length })} />
+      <Stat label={m.music_strings_right()} value="✓ {rightSoFar}  ✕ {missedSoFar}" />
     {:else if result}
       <!-- Evenness waits for the results rows, where too few landed notes read Not measured. -->
-      <Stat label="Notes right" value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
+      <Stat label={m.music_strings_notes_right()} value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
     {/if}
   {/snippet}
 
@@ -845,7 +850,7 @@
     {/if}
     {#if mode === "practice" && phase !== "results"}
       <!-- On a laptop the switch sits beside the capped tab, not on a row of its own, so the neck stays in view. -->
-      <div class="mb-2 flex justify-end {highway.on ? '' : 'lg:float-right lg:mb-0 lg:ml-3'}">{@render viewSwitch("Tab")}</div>
+      <div class="mb-2 flex justify-end {highway.on ? '' : 'lg:float-right lg:mb-0 lg:ml-3'}">{@render viewSwitch(m.music_strings_tab())}</div>
     {/if}
     {#if mode === "practice" && phase !== "results" && highway.on}
       <!-- The highway is a play-time view; the results go back to the tab. -->
@@ -870,7 +875,7 @@
       </div>
     {/if}
     {#if orderKey.length && mode === "practice" && phase !== "results"}
-      <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label={isPick ? "Picking order" : "Play order"}>
+      <ol class="mb-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label={isPick ? m.music_strings_picking_order() : m.music_strings_play_order()}>
         {#each orderKey as k, i (i)}
           <li class="flex items-center gap-1.5 rounded-full py-1 pr-3 pl-1 font-semibold {orderNow === i ? 'bg-ws-stage-ink/25 ring-2 ring-ws-stage-ink' : 'bg-ws-stage-ink/8'}" aria-current={orderNow === i ? "step" : undefined}>
             <span class="grid size-6 place-items-center rounded-full text-[13px] font-extrabold text-[#1b120b]" style:background={k.finger ? `var(--finger-${k.finger})` : "var(--ws-stage-soft)"} aria-hidden="true">{k.mark}</span>{k.text}
@@ -893,23 +898,23 @@
         barres={isPick}
         targetString={phase === "running" && mode === "practice" ? (steps[stepIndex]?.string ?? null) : null}
         onpick={picking ? pickStart : undefined}
-        label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard"
+        label={instr === "ukulele" ? m.music_strings_board_ukulele() : m.music_strings_board_guitar()}
       />
     </div></div>
     <!-- Spider's order row already names each finger in its colour: one key, not two. -->
     {#if mode === "practice" && !isHarm && !isSpider}
       <!-- The colour key: the fretting hand by colour; on fingerpicking, the picking hand by letter. -->
-      <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-ws-stage-soft" aria-label="Finger key">
+      <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-ws-stage-soft" aria-label={m.music_strings_finger_key()}>
         <div class="flex flex-wrap items-center gap-2">
-          <dt class="font-semibold text-ws-stage-ink">Fretting hand</dt>
+          <dt class="font-semibold text-ws-stage-ink">{m.music_strings_fretting_hand()}</dt>
           {#each [1, 2, 3, 4] as f (f)}
             <dd class="flex items-center gap-1"><span class="size-3 rounded-full" style:background="var(--finger-{f})" aria-hidden="true"></span>{f} {FINGERS[f]}</dd>
           {/each}
         </div>
         {#if isPick}
           <div class="flex flex-wrap items-center gap-2">
-            <dt class="font-semibold text-ws-stage-ink">Picking hand</dt>
-            {#each [["p", "thumb"], ["i", "index"], ["m", "middle"], ["a", "ring"]] as [l, name] (l)}
+            <dt class="font-semibold text-ws-stage-ink">{m.music_strings_picking_hand()}</dt>
+            {#each [["p", m.music_strings_finger_thumb()], ["i", m.music_strings_finger_index()], ["m", m.music_strings_finger_middle()], ["a", m.music_strings_finger_ring()]] as [l, name] (l)}
               <dd class="flex items-center gap-1"><span class="grid size-4 place-items-center rounded-full bg-ws-stage-ink/15 font-bold text-ws-stage-ink" aria-hidden="true">{l}</span>{name}</dd>
             {/each}
           </div>
@@ -917,12 +922,12 @@
       </dl>
     {/if}
     <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ws-stage-soft">
-      {#if mode === "check" && phase !== "results"}<p>Check: no targets. The frets you play still light.</p>{:else if phase === "ready"}<p>{isPick ? `Letters are the picking hand, colours the fretting hand. ${pickNames[0]} is shown. The others follow in the run.` : isLegato ? "↓ is picked, h hammered on, p pulled off, / and \\ slid up and down. Colours are your fingers." : isSpider ? "Numbers are the order you play. Colours are your fingers." : isHarm ? "H marks where to touch the string, right over the fret, without pressing it." : "Numbers and colours are fingers: 1 index to 4 pinky."}</p>{/if}
-      {#if picking}<p>{isSpider ? "Tap the neck to move the pattern's first fret." : "Tap the neck to start somewhere else: the string and the start fret."}</p>{/if}
-      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? "Triads are named by the root on string 6. Each inversion sits higher up the neck." : box.instrument === "ukulele" ? "Positions are named by the root on string 1." : box.family === "blues-box" ? "The B.B. box sits five frets above the string-6 root: the index on the root, string 2." : "Shapes are named by the root on string 6."} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `On ${tuning.name}, each note keeps its pitch, so a retuned string's notes sit higher or lower than the shape you know. `}{steps.some((t) => t.stretch) ? "An arrow is a stretch: ←1 reaches back with the index, 4→ up with the pinky (more than a fret means moving the hand)." : ""}</p>{/if}
+      {#if mode === "check" && phase !== "results"}<p>{m.music_strings_line_check_note()}</p>{:else if phase === "ready"}<p>{isPick ? m.music_strings_line_ready_pick({ chord: pickNames[0] }) : isLegato ? m.music_strings_line_ready_legato() : isSpider ? m.music_strings_line_ready_spider() : isHarm ? m.music_strings_line_ready_harm() : m.music_strings_line_ready_fingers()}</p>{/if}
+      {#if picking}<p>{isSpider ? m.music_strings_line_pick_spider() : m.music_strings_line_pick_start()}</p>{/if}
+      {#if kind === "positions" && phase === "ready"}<p>{box.family === "triads" ? m.music_strings_pos_triads() : box.instrument === "ukulele" ? m.music_strings_pos_uke() : box.family === "blues-box" ? m.music_strings_pos_bb() : m.music_strings_pos_shapes()} {tuning.id === "guitar.standard" || tuning.id === "ukulele.high-g" || tuning.id === "ukulele.low-g" ? "" : `${m.music_strings_pos_retuned({ tuning: tuning.name })} `}{steps.some((t) => t.stretch) ? m.music_strings_pos_stretch() : ""}</p>{/if}
     </div>
     <!-- The run's clock rides along as data, for tests and tools. -->
-    <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} offer={phase !== "ready"} hint="Optional: play on your {instr} into the microphone, or tap the frets here." /></div>
+    <div class="mt-3" data-downbeat={phase === "running" || phase === "countin" ? Math.round(runDownbeat) : undefined} data-step-ms={stepMs()}><MicPanel disabled={phase === "running" || phase === "countin"} offer={phase !== "ready"} hint={instr === "ukulele" ? m.music_strings_line_mic_ukulele() : m.music_strings_line_mic_guitar()} /></div>
   {/snippet}
 
   {#snippet results()}
@@ -930,13 +935,13 @@
       <!-- The run written out with each note's mark, the marks the counts are made of. -->
       {#snippet figure()}
         <div class="flex flex-col gap-2" data-testid="line-marked">
-          <p class="text-sm font-semibold">Your run, note by note</p>
+          <p class="text-sm font-semibold">{m.music_strings_line_your_run()}</p>
           <LineNotation notes={tabNotes} tuning={{ openStrings: tuning.openStrings, fretCount: tuning.fretCount, name: tuning.name }} title={key} groupStates={tabStates} meter={tabMeter} oneRow={viewW < 640} />
         </div>
       {/snippet}
       <Results {summary} {figure}>
         {#snippet actions()}
-          {#if !isHarm}<button type="button" class={btn} onclick={nextPattern}>Next {kind === "positions" ? "shape" : "pattern"}</button>{/if}
+          {#if !isHarm}<button type="button" class={btn} onclick={nextPattern}>{kind === "positions" ? m.music_strings_next_shape() : m.music_strings_next_pattern()}</button>{/if}
         {/snippet}
       </Results>
     {/if}
