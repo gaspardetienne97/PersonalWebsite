@@ -3,10 +3,15 @@
 // are la-based, so A minor's tonic is La). The app's data, ids, run params and
 // parsing always use letters; only what's shown goes through these functions.
 //
-// The naming is set once at start-up from the user's setting (the music layout
-// calls `setNoteNaming`), and changing it reloads the page, like the language.
+// The naming is known before any module builds text: an explicit choice is
+// cached in localStorage (`rememberNoteNaming`) and read when this module
+// loads; otherwise it follows the interface language. The music layout checks
+// it against the saved setting, and changing it reloads the page, like the
+// language.
 // Movable do needs the key: a drill sets it with `setNamingKey` while it shows
 // a key, or a caller passes one. Without a key, movable do reads as fixed do.
+
+import { getLocale } from "@repo/i18n/runtime.js";
 
 export type NoteNaming = "letters" | "fixed" | "movable";
 
@@ -22,11 +27,41 @@ export const NOTE_NAMINGS: readonly NoteNaming[] = ["letters", "fixed", "movable
 export const defaultNoteNaming = (locale: string): NoteNaming =>
   locale === "en" ? "letters" : "fixed";
 
-let naming: NoteNaming = "letters";
+const CACHE = "woodshed.noteNames";
+const isNaming = (v: unknown): v is NoteNaming => NOTE_NAMINGS.includes(v as NoteNaming);
+
+/** The cached choice, else the language's default; letters outside a browser (tests, tools). */
+function initialNaming(): NoteNaming {
+  if (typeof document === "undefined") return "letters";
+  try {
+    const cached = globalThis.localStorage?.getItem(CACHE);
+    if (isNaming(cached)) return cached;
+  } catch {
+    // Storage can be blocked; fall back to the language.
+  }
+  return defaultNoteNaming(getLocale());
+}
+
+/**
+ * Caches the user's explicit choice (or clears it, for "follow the language")
+ * so the next page load names notes right from the start. Returns false when
+ * storage is unavailable.
+ */
+export function rememberNoteNaming(choice: NoteNaming | undefined): boolean {
+  try {
+    if (choice) globalThis.localStorage.setItem(CACHE, choice);
+    else globalThis.localStorage.removeItem(CACHE);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+let naming: NoteNaming = initialNaming();
 let ambientKey: NamingKey | undefined;
 
 export const setNoteNaming = (next: NoteNaming) => {
-  naming = NOTE_NAMINGS.includes(next) ? next : "letters";
+  naming = isNaming(next) ? next : "letters";
 };
 export const getNoteNaming = () => naming;
 
@@ -117,6 +152,12 @@ export function showChord(symbol: string, key: NamingKey | undefined = ambientKe
     .replace(
       new RegExp(`/([A-G])${ACCIDENTAL}`),
       (_, letter: string, accidental?: string) => "/" + pitchText(letter, accidental, key),
+    )
+    // A note in brackets after the chord, as voicing names write the top or bass note: "C6 (E)".
+    .replace(
+      new RegExp(`\\(([A-G])${ACCIDENTAL}(-?\\d+)?\\)`),
+      (_, letter: string, accidental?: string, octave?: string) =>
+        `(${pitchText(letter, accidental, key)}${octave ?? ""})`,
     );
   return pitchText(m[1], m[2], key) + rest;
 }

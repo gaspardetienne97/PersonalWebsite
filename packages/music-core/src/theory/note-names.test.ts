@@ -45,6 +45,8 @@ describe("note names", () => {
     expect(showChord("F#maj7")).toBe("Fa#maj7");
     expect(showChord("Bbm7b5")).toBe("Sibm7b5");
     expect(showChord("Ab/C")).toBe("Lab/Do");
+    expect(showChord("C6 (E)")).toBe("Do6 (Mi)");
+    expect(showChord("Cmaj7 (B4)")).toBe("Domaj7 (Si4)");
   });
 
   it("can be applied twice", () => {

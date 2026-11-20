@@ -28,7 +28,7 @@
   import { A4_CHOICES } from "#lib/music/hubs/tools/tuner/tuner.ts";
   import { setDayInstrument, splitOptions, WEEKDAYS } from "#lib/music/today.svelte.ts";
   import { getLocale, locales, setLocale, type Locale } from "@repo/i18n/runtime.js";
-  import { getNoteNaming, type NoteNaming } from "@repo/music-core";
+  import { getNoteNaming, rememberNoteNaming, type NoteNaming } from "@repo/music-core";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown
@@ -89,6 +89,7 @@
   const chooseNoteNames = async (v: string) => {
     if (v === noteNaming) return;
     await settings.update({ noteNames: v as NoteNaming });
+    rememberNoteNaming(v as NoteNaming);
     location.reload();
   };
 

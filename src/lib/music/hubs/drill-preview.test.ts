@@ -76,21 +76,26 @@ describe("drill previews", () => {
 });
 
 describe("drill previews in solfège", () => {
+  const caption = (href: string) => {
+    const preview = drillPreview(href);
+    return preview.kind === "icon" ? undefined : preview.caption;
+  };
+
   it("names the notes, chords and keys they draw as the setting reads them", () => {
     setNoteNaming("fixed");
     try {
       const iv = drillPreview("/music/ear/intervals?intervals=P5");
       expect(iv.kind === "keys" && iv.labels).toEqual({ 60: "Do", 67: "Sol" });
-      expect(drillPreview("/music/voicings").caption).toBe("Rem7: Re Fa La Do, the ii of Do");
-      expect(drillPreview("/music/chord-scales").caption).toBe("Re dorian over Rem7");
+      expect(caption("/music/voicings")).toBe("Rem7: Re Fa La Do, the ii of Do");
+      expect(caption("/music/chord-scales")).toBe("Re dorian over Rem7");
       // Movable do counts from the key on screen.
       setNoteNaming("movable");
       setNamingKey({ tonic: "G" });
-      expect(drillPreview("/music/pedal").caption).toBe("Hold Fa, change the pedal with the chord");
+      expect(caption("/music/pedal")).toBe("Hold Fa, change the pedal with the chord");
     } finally {
       setNamingKey(undefined);
       setNoteNaming("letters");
     }
-    expect(drillPreview("/music/voicings").caption).toBe("Dm7: D F A C, the ii of C");
+    expect(caption("/music/voicings")).toBe("Dm7: D F A C, the ii of C");
   });
 });
