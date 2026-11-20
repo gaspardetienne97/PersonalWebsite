@@ -96,12 +96,20 @@ export function showNote(name: string, key: NamingKey | undefined = ambientKey):
 }
 
 /**
+ * A name already in solfège ("Do7", "Fa#maj7", "Sol"), so showing it twice is
+ * harmless. Only Do and Fa could also start a letter chord ("Dom…" can't, but
+ * "Fadd9" can), so a syllable counts only when a pitch or a quality follows.
+ */
+const SOLFEGE =
+  /^(Do|Re|Mi|Fa|Sol|La|Si)(?=$|##|bb|[#b♯♭𝄪𝄫\d/(\s+°ø-]|m(?!a)|maj|min|dim|aug|sus|add)/u;
+
+/**
  * A chord symbol for display: the root and any slash bass follow the naming,
  * the quality stays ("Dm7/G" reads "Rem7/Sol" in fixed do). Anything that
  * doesn't start with a note letter comes back unchanged.
  */
 export function showChord(symbol: string, key: NamingKey | undefined = ambientKey): string {
-  if (naming === "letters") return symbol;
+  if (naming === "letters" || SOLFEGE.test(symbol)) return symbol;
   const m = ROOT.exec(symbol);
   if (!m) return symbol;
   const rest = symbol

@@ -47,6 +47,14 @@ describe("note names", () => {
     expect(showChord("Ab/C")).toBe("Lab/Do");
   });
 
+  it("can be applied twice", () => {
+    setNoteNaming("fixed");
+    for (const name of ["C7", "Dm7/G", "F#maj7", "Fadd9", "Bbm7b5", "G"])
+      expect(showChord(showChord(name))).toBe(showChord(name));
+    expect(showChord("Fadd9")).toBe("Faadd9");
+    expect(showNote(showNote("C4"))).toBe("Do4");
+  });
+
   it("returns what isn't a note unchanged", () => {
     setNoteNaming("fixed");
     for (const text of ["", "Hold", "ii-V-I", "R", "b3", "Am I", "H"])
