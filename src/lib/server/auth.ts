@@ -1,89 +1,89 @@
+/**
+ * Sign-in for the site, with Better Auth and Authentik (OIDC) from the homelab.
+ *
+ * Configured from the environment (see .env.example):
+ * - DATABASE_URL: Postgres for users and sessions. Without it, sign-in is off and
+ *   everyone browses signed out (local dev and the e2e preview run this way).
+ * - BETTER_AUTH_SECRET: signs session cookies. Required in production.
+ * - BETTER_AUTH_URL: the site's public address, e.g. https://example.com.
+ * - AUTHENTIK_ISSUER, AUTHENTIK_CLIENT_ID, AUTHENTIK_CLIENT_SECRET: the Authentik
+ *   OAuth2/OpenID provider. Its redirect URI is
+ *   {BETTER_AUTH_URL}/api/auth/oauth2/callback/authentik.
+ */
+import { dev } from "$app/environment";
+import { getRequestEvent } from "$app/server";
 import { env } from "$env/dynamic/private";
-import type { RequestEvent } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { genericOAuth } from "better-auth/plugins";
+import { sveltekitCookies } from "better-auth/svelte-kit";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import * as schema from "$lib/server/db/schema";
 
-const DAY_IN_MS = 1000 * 60 * 60 * 24;
+export const AUTHENTIK = "authentik";
 
-export const sessionCookieName = "auth-session";
-
-export function generateSessionToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(18));
-  const token = encodeBase64url(bytes);
-
-  return token;
+/** The Authentik provider, when its settings are present. */
+function authentikProvider() {
+  const issuer = env.AUTHENTIK_ISSUER?.replace(/\/+$/, "");
+  if (!issuer || !env.AUTHENTIK_CLIENT_ID) return [];
+  return [
+    {
+      providerId: AUTHENTIK,
+      discoveryUrl: `${issuer}/.well-known/openid-configuration`,
+      clientId: env.AUTHENTIK_CLIENT_ID,
+      clientSecret: env.AUTHENTIK_CLIENT_SECRET,
+      scopes: ["openid", "profile", "email"],
+      pkce: true,
+    },
+  ];
 }
 
-export async function createSession(token: string, userId: string) {
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-
-  const session: table.Session = {
-    id: sessionId,
-    userId,
-    expiresAt: new Date(Date.now() + DAY_IN_MS * 30),
-  };
-
-  await db.insert(table.session).values(session);
-  return session;
-}
-
-export async function validateSessionToken(token: string) {
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-
-  const [result] = await db
-    .select({
-      // Adjust user table here to tweak returned data
-      user: {
-        id: table.user.id,
-        username: table.user.username,
+function createAuth() {
+  return betterAuth({
+    baseURL: env.BETTER_AUTH_URL || env.ORIGIN || undefined,
+    secret: env.BETTER_AUTH_SECRET || undefined,
+    database: drizzleAdapter(db, {
+      provider: "pg",
+      schema: {
+        user: schema.authUser,
+        session: schema.authSession,
+        account: schema.authAccount,
+        verification: schema.authVerification,
       },
-      session: table.session,
-    })
-    .from(table.session)
-    .innerJoin(table.user, eq(table.session.userId, table.user.id))
-    .where(eq(table.session.id, sessionId));
+    }),
+    session: {
+      // Keep the signed session in a cookie for a few minutes, so most page loads
+      // don't need a database round trip to know who's signed in.
+      cookieCache: { enabled: true, maxAge: 5 * 60 },
+    },
+    // Keep Authentik's profile (name, email, picture) current on every sign-in.
+    account: { updateAccountOnSignIn: true },
+    plugins: [genericOAuth({ config: authentikProvider() }), sveltekitCookies(getRequestEvent)],
+  });
+}
 
-  if (!result) {
-    return { session: null, user: null };
+export type Auth = ReturnType<typeof createAuth>;
+export type SessionUser = Auth["$Infer"]["Session"]["user"];
+export type Session = Auth["$Infer"]["Session"]["session"];
+
+let instance: Auth | null | undefined;
+
+/**
+ * The auth instance, or null when sign-in isn't configured here. Created on first
+ * use so builds and prerendering never need a database or secret.
+ */
+export function getAuth(): Auth | null {
+  if (instance !== undefined) return instance;
+  if (!env.DATABASE_URL) return (instance = null);
+  if (!dev && !env.BETTER_AUTH_SECRET) {
+    console.error("[auth] BETTER_AUTH_SECRET is not set, so sign-in is turned off.");
+    return (instance = null);
   }
-
-  const { session, user } = result;
-  const sessionExpired = Date.now() >= session.expiresAt.getTime();
-
-  if (sessionExpired) {
-    await db.delete(table.session).where(eq(table.session.id, session.id));
-    return { session: null, user: null };
-  }
-
-  const renewSession = Date.now() >= session.expiresAt.getTime() - DAY_IN_MS * 15;
-
-  if (renewSession) {
-    session.expiresAt = new Date(Date.now() + DAY_IN_MS * 30);
-    await db
-      .update(table.session)
-      .set({ expiresAt: session.expiresAt })
-      .where(eq(table.session.id, session.id));
-  }
-
-  return { session, user };
+  return (instance = createAuth());
 }
 
-export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;
-
-export async function invalidateSession(sessionId: string) {
-  await db.delete(table.session).where(eq(table.session.id, sessionId));
-}
-
-export function setSessionTokenCookie(event: RequestEvent, token: string, expiresAt: Date) {
-  event.cookies.set(sessionCookieName, token, { expires: expiresAt, path: "/" });
-}
-
-export function deleteSessionTokenCookie(event: RequestEvent) {
-  event.cookies.delete(sessionCookieName, { path: "/" });
-}
+/** Whether the Authentik button can work on this server. */
+export const authentikConfigured = () => getAuth() !== null && authentikProvider().length > 0;
 
 /** This deployment keeps the music app behind a login. Off by default, so local dev and the
  * e2e preview run without a database. */

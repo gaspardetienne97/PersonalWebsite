@@ -150,3 +150,14 @@ test("narrator route app renders", async ({ page }) => {
     "/",
   );
 });
+
+// The e2e preview runs without a database, so sign-in is off: the private page
+// still sends you to sign in, and the sign-in page says it isn't set up.
+test("the private page asks you to sign in", async ({ page }) => {
+  await page.goto("/private");
+  await expect(page).toHaveURL("/login?redirectTo=%2Fprivate");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByText("Sign-in isn't set up on this server yet.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Authentik" })).toHaveCount(0);
+  expect((await page.request.get("/api/auth/get-session")).status()).toBe(503);
+});

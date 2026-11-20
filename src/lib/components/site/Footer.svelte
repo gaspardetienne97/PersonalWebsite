@@ -59,7 +59,10 @@
         {/if}
       </nav>
     </div>
-    <p class="legal">© {year} {name}</p>
+    <p class="legal">
+      <span>© {year} {name}</span>
+      <a href="/private">Private</a>
+    </p>
   </footer>
 {/if}
 
@@ -148,10 +151,18 @@
     outline-offset: 2px;
   }
   .legal {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
     max-width: 76rem;
     margin-inline: auto;
     padding: 0 clamp(1rem, 4vw, 3rem) 2.5rem;
     font-size: 0.9rem;
     color: var(--muted-foreground);
+  }
+  .legal a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 </style>
