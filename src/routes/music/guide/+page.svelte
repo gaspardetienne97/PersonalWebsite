@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The guide: how Woodshed works, in plain words, one short topic each. Each
   // topic has its own colour and a small picture of the thing it describes,
   // drawn the way the app draws it.
@@ -19,14 +20,14 @@
   import { btn, btnPrimary } from "#lib/music/components/ui.ts";
 
   const TOPICS = [
-    { id: "session", label: "How Today's set works", hue: "piano", icon: Layers },
-    { id: "check", label: "Practice and Check", hue: "reading", icon: Eye },
-    { id: "not-measured", label: "Not measured", hue: "ear", icon: CircleSlash },
-    { id: "connect", label: "MIDI, the MPC and the mic", hue: "mpc", icon: Cable },
-    { id: "keys", label: "Playing from the keyboard", hue: "guitar", icon: Keyboard },
-    { id: "shortcuts", label: "Shortcuts", hue: "create", icon: Command },
-    { id: "streaks", label: "Streaks and XP", hue: "rhythm", icon: CalendarDays },
-    { id: "privacy", label: "Privacy", hue: "aerophone", icon: ShieldCheck },
+    { id: "session", label: m.music_shell_guide_topic_session(), hue: "piano", icon: Layers },
+    { id: "check", label: m.music_shell_guide_topic_check(), hue: "reading", icon: Eye },
+    { id: "not-measured", label: m.music_shell_results_not_measured(), hue: "ear", icon: CircleSlash },
+    { id: "connect", label: m.music_shell_guide_topic_connect(), hue: "mpc", icon: Cable },
+    { id: "keys", label: m.music_shell_guide_topic_keys(), hue: "guitar", icon: Keyboard },
+    { id: "shortcuts", label: m.music_shell_guide_topic_shortcuts(), hue: "create", icon: Command },
+    { id: "streaks", label: m.music_shell_guide_topic_streaks(), hue: "rhythm", icon: CalendarDays },
+    { id: "privacy", label: m.music_shell_guide_topic_privacy(), hue: "aerophone", icon: ShieldCheck },
   ] as const;
   const topic = (id: string) => TOPICS.find((t) => t.id === id)!;
 
@@ -63,41 +64,36 @@
     document.getElementById(id)?.scrollIntoView({ behavior: reduce ? "instant" : "smooth", block: "start" });
     history.replaceState(history.state, "", `#${id}`);
   }
-  const STEPS = [
-    "Open Today and pick how many minutes you have.",
-    "Woodshed builds a short set from what's due: something you're learning, something slipping, something to review.",
-    "Press Start and go block by block. Woodshed remembers the setup, so most days that's all it takes.",
-    "Each run ends with one sentence, your score, the change since last time, and what to try next.",
-  ];
+  const STEPS = [m.music_shell_guide_step_1(), m.music_shell_guide_step_2(), m.music_shell_guide_step_3(), m.music_shell_guide_step_4()];
 
   // Illustration data: a set, two keyboards, a result, a week.
   const SET = [
-    { label: "Scales", hue: "piano", min: 5 },
-    { label: "Ear", hue: "ear", min: 5 },
-    { label: "Reading", hue: "reading", min: 5 },
-    { label: "Rhythm", hue: "rhythm", min: 5 },
+    { label: m.music_shell_guide_set_scales(), hue: "piano", min: 5 },
+    { label: m.music_shell_guide_set_ear(), hue: "ear", min: 5 },
+    { label: m.music_shell_guide_set_reading(), hue: "reading", min: 5 },
+    { label: m.music_shell_guide_set_rhythm(), hue: "rhythm", min: 5 },
   ];
   const MINI_WHITES = 8;
   const LIT = [0, 2, 4];
   const RESULT = [
-    { label: "Notes right", value: 0.92 },
-    { label: "Timing", value: 0.78 },
-    { label: "Velocity", value: null },
+    { label: m.music_shell_guide_result_notes(), value: 0.92 },
+    { label: m.music_shell_guide_result_timing(), value: 0.78 },
+    { label: m.music_shell_guide_result_velocity(), value: null },
   ];
   const WEEK = [
-    { d: "M", s: "done" },
-    { d: "T", s: "done" },
-    { d: "W", s: "frozen" },
-    { d: "T", s: "done" },
-    { d: "F", s: "done" },
-    { d: "S", s: "done" },
-    { d: "S", s: "today" },
+    { d: m.music_shell_guide_day_mon(), s: "done" },
+    { d: m.music_shell_guide_day_tue(), s: "done" },
+    { d: m.music_shell_guide_day_wed(), s: "frozen" },
+    { d: m.music_shell_guide_day_thu(), s: "done" },
+    { d: m.music_shell_guide_day_fri(), s: "done" },
+    { d: m.music_shell_guide_day_sat(), s: "done" },
+    { d: m.music_shell_guide_day_sun(), s: "today" },
   ];
   const DEVICES = [
-    { name: "Keyboard", instrument: "piano", note: "MIDI" },
-    { name: "MPC One+", instrument: "mpc", note: "MIDI + heartbeat" },
-    { name: "Aerophone", instrument: "aerophone", note: "MIDI + breath" },
-    { name: "Guitar", instrument: "guitar", note: "microphone" },
+    { name: m.music_shell_guide_device_keyboard(), instrument: "piano", note: "MIDI" },
+    { name: "MPC One+", instrument: "mpc", note: m.music_shell_guide_device_heartbeat() },
+    { name: "Aerophone", instrument: "aerophone", note: m.music_shell_guide_device_breath() },
+    { name: m.music_shell_guide_device_guitar(), instrument: "guitar", note: m.music_shell_guide_device_mic() },
   ] as const;
   // Physical key positions, matching the runtime's QWERTY maps.
   const WHITE = [
@@ -131,19 +127,25 @@
   const h2 = "mb-3 font-display text-2xl font-semibold tracking-tight";
   const prose = "flex max-w-prose flex-col gap-3 text-ws-ink/90";
   const link = "font-medium text-instr-ink underline underline-offset-4";
+  // Inline markup for a translated sentence (rendered with {@html}): built here, never from user input.
+  const strong = (t: string) => `<strong>${t}</strong>`;
+  const a = (href: string, t: string) => `<a class="${link}" href="${href}">${t}</a>`;
+  // Keys inside a sentence are drawn as <kbd> by the markup (its styles are this page's own), so they go in as tokens.
+  const key = (k: string) => `\uE000${k}\uE000`;
+  const withKeys = (text: string) => text.split("\uE000").map((s, i) => ({ s, isKey: i % 2 === 1 }));
 </script>
 
-<svelte:head><title>Guide | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_shell_guide_title()}</title></svelte:head>
 
 <div class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
   <header class="lg:col-span-2">
-    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Guide</h1>
-    <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">What Woodshed does with your playing, and how to get the most from ten minutes at the instrument.</p>
+    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">{m.music_shell_nav_guide()}</h1>
+    <p class="mt-1 max-w-prose text-ws-soft max-sm:hidden">{m.music_shell_guide_tagline()}</p>
   </header>
-  <p role="status" class="sr-only">Guide loaded.</p>
+  <p role="status" class="sr-only">{m.music_shell_guide_loaded()}</p>
 
   <!-- Below lg: the eight topics as one sticky row of chips, the one you are reading filled, read ones ticked. -->
-  <nav aria-label="Guide topics, short list" class="min-w-0 sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 py-2 backdrop-blur sm:-mx-6 lg:hidden">
+  <nav aria-label={m.music_shell_guide_topics_short()} class="min-w-0 sticky top-[var(--ws-strip-h,3.75rem)] z-20 -mx-4 bg-ws-bg/95 py-2 backdrop-blur sm:-mx-6 lg:hidden">
     <ol bind:this={chips} class="flex gap-1.5 overflow-x-auto px-4 max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] sm:px-6">
       {#each TOPICS as t, i (t.id)}
         {@const done = read.includes(t.id)}
@@ -155,13 +157,13 @@
             class="topic flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border border-ws-line px-3 text-sm text-ws-soft"
             onclick={(e) => (e.preventDefault(), jump(t.id))}
           >
-            {#if done}<Check class="size-4 text-success" aria-hidden="true" />{:else}<span class="tnum text-[13px]" aria-hidden="true">{i + 1}</span>{/if}{t.label}{#if done}<span class="sr-only">, read</span>{/if}
+            {#if done}<Check class="size-4 text-success" aria-hidden="true" />{:else}<span class="tnum text-[13px]" aria-hidden="true">{i + 1}</span>{/if}{t.label}{#if done}<span class="sr-only">, {m.music_shell_guide_read()}</span>{/if}
           </a>
         </li>
       {/each}
     </ol>
   </nav>
-  <nav aria-label="Guide topics" class="hidden min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:block lg:self-start">
+  <nav aria-label={m.music_shell_guide_topics()} class="hidden min-w-0 lg:sticky lg:top-[calc(var(--ws-strip-h,3.75rem)+1.5rem)] lg:z-20 lg:block lg:self-start">
     <ul class="flex flex-col gap-1">
       {#each TOPICS as t (t.id)}
         <li>
@@ -172,7 +174,7 @@
             class="topic flex min-h-11 items-start gap-2 rounded-lg px-3 py-3 text-sm leading-5 text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
           >
             <!-- Sits on the first line, so a label that wraps keeps its dot at the top. -->
-            {#if read.includes(t.id)}<Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{:else}<span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{/if}{t.label}{#if read.includes(t.id)}<span class="sr-only">, read</span>{/if}
+            {#if read.includes(t.id)}<Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{:else}<span class="mt-[0.3125rem] size-2.5 shrink-0 rounded-full" style:background="var(--topic)" aria-hidden="true"></span>{/if}{t.label}{#if read.includes(t.id)}<span class="sr-only">, {m.music_shell_guide_read()}</span>{/if}
           </a>
         </li>
       {/each}
@@ -181,7 +183,7 @@
 
   <div class="flex min-w-0 flex-col gap-12">
     <section id="session" aria-labelledby="session-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("session-h", "How Today's set works", "session")}
+      {@render heading("session-h", m.music_shell_guide_topic_session(), "session")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
           <ol class="flex flex-col gap-3">
@@ -192,10 +194,10 @@
               </li>
             {/each}
           </ol>
-          <p class="text-sm text-ws-soft">Timed drills count you in first (set the count-in in the top bar). Nothing you play during the count-in is scored. Woodshed saves each run as you go.</p>
+          <p class="text-sm text-ws-soft">{m.music_shell_guide_countin_note()}</p>
           <p class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <a class="{btnPrimary} no-underline" href="/music">Open Today</a>
-            <a class={link} href="/music?tab=drills">Or pick any drill</a>
+            <a class="{btnPrimary} no-underline" href="/music">{m.music_shell_guide_open_today()}</a>
+            <a class={link} href="/music?tab=drills">{m.music_shell_guide_any_drill()}</a>
           </p>
         </div>
         {@render setPicture()}
@@ -204,12 +206,12 @@
     </section>
 
     <section id="check" aria-labelledby="check-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("check-h", "Practice and Check", "check")}
+      {@render heading("check-h", m.music_shell_guide_topic_check(), "check")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Every scored drill has two modes. <strong>Practice</strong> shows the targets on the keys, frets or pads, and you can hear it first. <strong>Check</strong> hides them.</p>
-        <p>Only Check runs change your skill scores. Playing a scale while it's lit up shows you can follow the lights. Playing it in Check shows you know it. Practice runs are saved and earn XP too.</p>
-        <p>"Hear it" plays a demo. It's never scored.</p>
+        <p>{@html m.music_shell_guide_check_p1({ practice: strong(m.music_shell_shell_practice()), check: strong(m.music_shell_shell_check()) })}</p>
+        <p>{m.music_shell_guide_check_p2()}</p>
+        <p>{m.music_shell_guide_check_p3({ hear: m.music_shell_shell_hear_it() })}</p>
       </div>
         {@render checkPicture()}
       </div>
@@ -217,11 +219,11 @@
     </section>
 
     <section id="not-measured" aria-labelledby="nm-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("nm-h", 'What "Not measured" means', "not-measured")}
+      {@render heading("nm-h", m.music_shell_guide_nm_heading(), "not-measured")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Some inputs can't measure everything. An on-screen pad has no velocity. The microphone can't tell which string you used. A computer keyboard plays one note at a time, so it can't measure two hands together.</p>
-        <p>Then the results say <strong>Not measured</strong> for that part and leave it out of the score. You get neither a zero nor a free 100%. Connect the real instrument and those rows start counting.</p>
+        <p>{m.music_shell_guide_nm_p1()}</p>
+        <p>{@html m.music_shell_guide_nm_p2({ nm: strong(m.music_shell_results_not_measured()) })}</p>
       </div>
         {@render resultPicture()}
       </div>
@@ -229,13 +231,13 @@
     </section>
 
     <section id="connect" aria-labelledby="connect-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("connect-h", "MIDI, the MPC and the microphone", "connect")}
+      {@render heading("connect-h", m.music_shell_guide_connect_heading(), "connect")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p><strong>MIDI</strong> works in Chromium browsers. Plug in the keyboard, MPC or Aerophone and turn on MIDI once on <a class={link} href="/music/connect">Connect</a>. After that Woodshed reopens it on every visit. Name each device and choose the instrument it plays as.</p>
-        <p><strong>The MPC One+</strong> only sends pad notes while a computer keeps talking to it. Link the MPC on Connect and Woodshed keeps the link alive on every page. If your pads send the Akai Classic notes, pick that pad map there, or use Learn pads and hit each pad once.</p>
-        <p><strong>The microphone</strong> is for guitar, ukulele and voice. It starts only when you press something that needs it, and it stops when the drill ends. Pick the input and echo cancellation on <a class={link} href="/music/connect#mic">Connect</a>. The <a class={link} href="/music/tuner">Tuner</a> is the fastest way to check it hears you.</p>
-        <p>If notes feel late, run a latency calibration in <a class={link} href="/music/settings#latency">Settings</a>.</p>
+        <p>{@html m.music_shell_guide_connect_p1({ midi: strong("MIDI"), connect: a("/music/connect", m.music_shell_nav_connect()) })}</p>
+        <p>{@html m.music_shell_guide_connect_p2({ mpc: strong(m.music_shell_guide_mpc_name()) })}</p>
+        <p>{@html m.music_shell_guide_connect_p3({ mic: strong(m.music_shell_guide_mic_name()), connect: a("/music/connect#mic", m.music_shell_nav_connect()), tuner: a("/music/tuner", m.music_shell_search_tuner()) })}</p>
+        <p>{@html m.music_shell_guide_connect_p4({ settings: a("/music/settings#latency", m.music_shell_nav_settings()) })}</p>
       </div>
         {@render devicesPicture()}
       </div>
@@ -243,15 +245,15 @@
     </section>
 
     <section id="keys" aria-labelledby="keys-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("keys-h", "Playing from the computer keyboard", "keys")}
+      {@render heading("keys-h", m.music_shell_guide_keys_heading(), "keys")}
       <div class={prose}>
-        <p>With no instrument nearby, the keys below play whichever surface is on screen. They follow key positions, so they work the same on other keyboard layouts.</p>
+        <p>{m.music_shell_guide_keys_p1()}</p>
       </div>
       <div class="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
         <figure class="min-w-0">
-          <figcaption class="mb-2 text-sm font-medium">Piano, from middle C</figcaption>
+          <figcaption class="mb-2 text-sm font-medium">{m.music_shell_guide_piano_caption()}</figcaption>
           <div class="stage overflow-x-auto rounded-2xl p-4">
-            <div class="relative mx-auto flex w-max gap-1" aria-label="Piano key map: A S D F G H J K L play the white keys from C4 to D5; W E, T Y U, O P play the black keys." role="img">
+            <div class="relative mx-auto flex w-max gap-1" aria-label={m.music_shell_guide_piano_map()} role="img">
               {#each WHITE as [k, n], i (i)}
                 <div class="flex h-28 w-10 flex-col items-center justify-end gap-1 rounded-b-lg bg-ws-stage-ink pb-2 text-[13px] font-medium text-ws-stage {k ? '' : 'opacity-40'}">
                   {#if k}<kbd class="kbd-light">{k}</kbd>{/if}{n}
@@ -267,11 +269,11 @@
               {/each}
             </div>
           </div>
-          <p class="mt-2 text-sm text-ws-soft"><kbd class="kbd">Z</kbd> and <kbd class="kbd">X</kbd> shift down or up an octave, three either way.</p>
+          <p class="mt-2 text-sm text-ws-soft">{#each withKeys(m.music_shell_guide_octave_keys({ z: key("Z"), x: key("X") })) as part, i (i)}{#if part.isKey}<kbd class="kbd">{part.s}</kbd>{:else}{part.s}{/if}{/each}</p>
         </figure>
         <figure>
-          <figcaption class="mb-2 text-sm font-medium">MPC pads, laid out like the pad grid</figcaption>
-          <div class="stage grid w-max grid-cols-4 gap-1.5 rounded-2xl p-4" role="img" aria-label="Pad key map: Z X C V play pads 1 to 4 on the bottom row, then A S D F, Q W E R, and 1 2 3 4 on the top row for pads 13 to 16.">
+          <figcaption class="mb-2 text-sm font-medium">{m.music_shell_guide_pads_caption()}</figcaption>
+          <div class="stage grid w-max grid-cols-4 gap-1.5 rounded-2xl p-4" role="img" aria-label={m.music_shell_guide_pads_map()}>
             {#each PAD_ROWS as row, r (r)}
               {#each row as k, c (k)}
                 <div class="flex size-14 flex-col justify-between rounded-lg bg-ws-stage-ink/15 p-1.5 text-[13px] text-ws-stage-ink">
@@ -281,32 +283,32 @@
               {/each}
             {/each}
           </div>
-          <p class="mt-2 max-w-60 text-sm text-ws-soft">Pad 1 is bottom left, the same as A01 on the MPC.</p>
+          <p class="mt-2 max-w-60 text-sm text-ws-soft">{m.music_shell_guide_pad_one()}</p>
         </figure>
       </div>
       {@render nextTopic("keys")}
     </section>
 
     <section id="shortcuts" aria-labelledby="shortcuts-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("shortcuts-h", "Shortcuts", "shortcuts")}
+      {@render heading("shortcuts-h", m.music_shell_guide_topic_shortcuts(), "shortcuts")}
       <dl class="mt-3 grid max-w-prose grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-3">
-        <dt><kbd class="kbd">Space</kbd></dt>
-        <dd>Start a drill, or run it again from the results, while focus isn't on a button or field.</dd>
+        <dt><kbd class="kbd">{m.music_shell_guide_key_space()}</kbd></dt>
+        <dd>{m.music_shell_guide_sc_space()}</dd>
         <dt><kbd class="kbd">Esc</kbd></dt>
-        <dd>Stop a run or count-in.</dd>
+        <dd>{m.music_shell_guide_sc_esc()}</dd>
         <dt><span class="flex gap-1"><kbd class="kbd">⌘</kbd><kbd class="kbd">K</kbd></span></dt>
-        <dd>Search every drill, path, song and page. <kbd class="kbd">Ctrl</kbd> <kbd class="kbd">K</kbd> on Windows and Linux. Arrow keys move, Enter goes.</dd>
+        <dd>{#each withKeys(m.music_shell_guide_sc_search({ ctrl: key("Ctrl"), k: key("K") })) as part, i (i)}{#if part.isKey}<kbd class="kbd">{part.s}</kbd>{:else}{part.s}{/if}{/each}</dd>
       </dl>
       {@render nextTopic("shortcuts")}
     </section>
 
     <section id="streaks" aria-labelledby="streaks-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("streaks-h", "Streaks, freezes and XP", "streaks")}
+      {@render heading("streaks-h", m.music_shell_guide_streaks_heading(), "streaks")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Your streak counts the days you practise in a row. Every week you practise earns a <strong>freeze</strong>, and you can hold two. Miss a day and a freeze covers the gap. Frozen days show dashed on the week calendar.</p>
-        <p><strong>XP</strong> rewards showing up: a wrong answer still earns a little, a hard clean run earns much more, and beating your last run adds a bonus. Every 250 XP is an XP level.</p>
-        <p>XP isn't skill. Skill scores are separate: only Check runs change them, and they fade when you leave a skill alone. That's how Progress knows what's due.</p>
+        <p>{@html m.music_shell_guide_streaks_p1({ freeze: strong(m.music_shell_guide_freeze()) })}</p>
+        <p>{@html m.music_shell_guide_streaks_p2({ xp: strong("XP") })}</p>
+        <p>{m.music_shell_guide_streaks_p3()}</p>
       </div>
         {@render weekPicture()}
       </div>
@@ -314,11 +316,11 @@
     </section>
 
     <section id="privacy" aria-labelledby="privacy-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+4.5rem)] lg:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1.5rem)]">
-      {@render heading("privacy-h", "Privacy", "privacy")}
+      {@render heading("privacy-h", m.music_shell_guide_topic_privacy(), "privacy")}
       <div class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_17rem]">
         <div class={prose}>
-        <p>Everything stays in this browser: sessions, scores, recordings and samples. There's no account, and nothing goes to a server. Woodshed analyses microphone sound on this device and saves it only when you record a take.</p>
-        <p>Clearing this site's data in the browser deletes it, so make a backup in <a class={link} href="/music/settings#data">Settings</a> now and then. Backups are files you keep.</p>
+        <p>{m.music_shell_guide_privacy_p1()}</p>
+        <p>{@html m.music_shell_guide_privacy_p2({ settings: a("/music/settings#data", m.music_shell_nav_settings()) })}</p>
       </div>
         {@render privacyPicture()}
       </div>
@@ -332,17 +334,17 @@
   {@const i = TOPICS.findIndex((t) => t.id === id)}
   {@const prev = TOPICS[i - 1]}
   {@const next = TOPICS[i + 1]}
-  <nav aria-label="Topic {i + 1} of {TOPICS.length}" class="mt-6 flex flex-col gap-3 border-t border-ws-line pt-4">
+  <nav aria-label={m.music_shell_guide_topic_of({ n: i + 1, total: TOPICS.length })} class="mt-6 flex flex-col gap-3 border-t border-ws-line pt-4">
     <!-- A dot per topic, this one filled: where you are in the guide at a glance. -->
     <ol class="flex items-center gap-1.5" aria-hidden="true">
       {#each TOPICS as t, k (t.id)}
         <li class="h-2 rounded-full {k === i ? 'w-6' : 'w-2 bg-ws-line'}" style:background={k === i ? `var(--hue-${t.hue})` : undefined}></li>
       {/each}
-      <li class="tnum ml-2 text-sm text-ws-soft">Topic {i + 1} of {TOPICS.length}</li>
+      <li class="tnum ml-2 text-sm text-ws-soft">{m.music_shell_guide_topic_of({ n: i + 1, total: TOPICS.length })}</li>
     </ol>
     <div class="flex flex-wrap items-center justify-between gap-2">
-      {#if prev}<a class="{btn} no-underline" href="#{prev.id}" onclick={(e) => (e.preventDefault(), jump(prev.id))}><ChevronLeft class="size-4" aria-hidden="true" />Previous<span class="sr-only">: {prev.label}</span></a>{:else}<span></span>{/if}
-      {#if next}<a class="{btn} no-underline" href="#{next.id}" onclick={(e) => (e.preventDefault(), jump(next.id))}>Next: {next.label}<ChevronRight class="size-4" aria-hidden="true" /></a>{/if}
+      {#if prev}<a class="{btn} no-underline" href="#{prev.id}" onclick={(e) => (e.preventDefault(), jump(prev.id))}><ChevronLeft class="size-4" aria-hidden="true" />{m.music_shell_guide_previous()}<span class="sr-only">: {prev.label}</span></a>{:else}<span></span>{/if}
+      {#if next}<a class="{btn} no-underline" href="#{next.id}" onclick={(e) => (e.preventDefault(), jump(next.id))}>{m.music_shell_guide_next_topic({ label: next.label })}<ChevronRight class="size-4" aria-hidden="true" /></a>{/if}
     </div>
   </nav>
 {/snippet}
@@ -357,18 +359,18 @@
 
 {#snippet setPicture()}
   <!-- One picture of the set: a tile per block, its colour as a band, its name and minutes in stage ink. -->
-  <figure class="pic max-md:order-first" aria-label="Today's set: four five-minute blocks, scales, ear, reading and rhythm, with the first one ready to start">
+  <figure class="pic max-md:order-first" aria-label={m.music_shell_guide_set_label()}>
     <ol class="grid grid-cols-4 gap-1.5 md:grid-cols-2">
       {#each SET as b, i (b.label)}
         <li class="flex min-w-0 flex-col gap-1 overflow-hidden rounded-lg bg-ws-stage-ink/10 pb-2 {i === 0 ? 'ring-2' : ''}" style:--tw-ring-color="var(--hue-{b.hue})">
           <span class="h-2" style:background="var(--hue-{b.hue})" aria-hidden="true"></span>
           <span class="px-1.5 text-sm font-semibold">{b.label}</span>
-          <span class="tnum px-1.5 text-sm text-ws-stage-soft">{b.min} min</span>
-          {#if i === 0}<span class="mx-1.5 self-start rounded-full bg-ws-stage-ink px-2 text-sm font-semibold text-ws-stage">Next</span>{/if}
+          <span class="tnum px-1.5 text-sm text-ws-stage-soft">{m.music_shell_guide_minutes({ min: b.min })}</span>
+          {#if i === 0}<span class="mx-1.5 self-start rounded-full bg-ws-stage-ink px-2 text-sm font-semibold text-ws-stage">{m.music_shell_lesson_next()}</span>{/if}
         </li>
       {/each}
     </ol>
-    <p class="mt-2 text-sm text-ws-stage-soft">The ringed block, marked Next, is the one Start plays.</p>
+    <p class="mt-2 text-sm text-ws-stage-soft">{m.music_shell_guide_ringed()}</p>
   </figure>
 {/snippet}
 
@@ -386,14 +388,14 @@
 {/snippet}
 
 {#snippet checkPicture()}
-  <figure class="pic max-md:order-first flex flex-col gap-3" aria-label="Practice shows the target keys lit; Check hides them, and only Check counts toward your skill scores">
+  <figure class="pic max-md:order-first flex flex-col gap-3" aria-label={m.music_shell_guide_check_label()}>
     <div>
-      <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">Practice <span class="text-[13px] font-normal text-ws-stage-soft">targets lit</span></p>
+      <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">{m.music_shell_shell_practice()} <span class="text-[13px] font-normal text-ws-stage-soft">{m.music_shell_guide_targets_lit()}</span></p>
       {@render miniKeys(true)}
     </div>
     <div>
       <p class="mb-1.5 flex items-center justify-between text-sm font-semibold">
-        Check <span class="flex items-center gap-1 text-[13px] font-normal text-success"><Check class="size-3.5" aria-hidden="true" />counts toward skill scores</span>
+        {m.music_shell_shell_check()} <span class="flex items-center gap-1 text-[13px] font-normal text-success"><Check class="size-3.5" aria-hidden="true" />{m.music_shell_guide_counts_toward()}</span>
       </p>
       {@render miniKeys(false)}
     </div>
@@ -401,13 +403,13 @@
 {/snippet}
 
 {#snippet resultPicture()}
-  <figure class="pic max-md:order-first" aria-label="A result card: notes right 92 percent, timing 78 percent, velocity not measured on an on-screen pad">
-    <p class="font-display text-3xl font-bold">85%</p>
-    <p class="text-[13px] text-ws-stage-soft">score, velocity left out</p>
+  <figure class="pic max-md:order-first" aria-label={m.music_shell_guide_result_label()}>
+    <p class="font-display text-3xl font-bold">{m.music_shell_pct({ value: 85 })}</p>
+    <p class="text-[13px] text-ws-stage-soft">{m.music_shell_guide_velocity_left_out()}</p>
     <dl class="mt-3 flex flex-col gap-2.5 text-sm">
       {#each RESULT as r (r.label)}
         <div>
-          <div class="flex justify-between"><dt class="text-ws-stage-soft">{r.label}</dt><dd class="tnum font-semibold">{r.value === null ? "Not measured" : `${Math.round(r.value * 100)}%`}</dd></div>
+          <div class="flex justify-between"><dt class="text-ws-stage-soft">{r.label}</dt><dd class="tnum font-semibold">{r.value === null ? m.music_shell_results_not_measured() : m.music_shell_pct({ value: Math.round(r.value * 100) })}</dd></div>
           <div class="mt-1 h-1.5 rounded-full {r.value === null ? 'border border-dashed border-ws-stage-soft/60' : 'bg-ws-stage-ink/10'}">
             {#if r.value !== null}<div class="h-full rounded-full" style:width="{r.value * 100}%" style:background={r.value >= 0.9 ? "var(--success)" : "var(--warn)"}></div>{/if}
           </div>
@@ -418,7 +420,7 @@
 {/snippet}
 
 {#snippet devicesPicture()}
-  <figure class="pic max-md:order-first" aria-label="Keyboard, MPC and Aerophone connect over MIDI, the MPC with a heartbeat. The guitar comes in through the microphone">
+  <figure class="pic max-md:order-first" aria-label={m.music_shell_guide_devices_label()}>
     <ul class="flex flex-col gap-2">
       {#each DEVICES as d (d.name)}
         {@const Icon = INSTRUMENT_ICON[d.instrument]}
@@ -437,7 +439,7 @@
 {/snippet}
 
 {#snippet weekPicture()}
-  <figure class="pic max-md:order-first" aria-label="A week: five days practised, one covered by a freeze shown dashed, and today still open">
+  <figure class="pic max-md:order-first" aria-label={m.music_shell_guide_week_label()}>
     <ol class="grid grid-cols-7 gap-1 text-center text-[13px] text-ws-stage-soft">
       {#each WEEK as w, i (i)}
         <li class="flex flex-col items-center gap-1">
@@ -449,22 +451,22 @@
         </li>
       {/each}
     </ol>
-    <p class="mt-4 text-[13px] text-ws-stage-soft">XP level 4, 180 XP to the next</p>
+    <p class="mt-4 text-[13px] text-ws-stage-soft">{m.music_shell_guide_xp_level()}</p>
     <div class="mt-1 h-2 rounded-full bg-ws-stage-ink/10"><div class="h-full w-[28%] rounded-full" style:background="var(--hue-rhythm)"></div></div>
   </figure>
 {/snippet}
 
 {#snippet privacyPicture()}
-  <figure class="pic max-md:order-first" aria-label="Sessions, scores, recordings and samples stay inside this browser. Nothing goes to a server">
+  <figure class="pic max-md:order-first" aria-label={m.music_shell_guide_privacy_label()}>
     <div class="rounded-xl border-2 border-dashed p-3" style:border-color="var(--hue-aerophone)">
-      <p class="mb-2 text-[13px] font-semibold" style:color="var(--hue-aerophone)">This browser</p>
+      <p class="mb-2 text-[13px] font-semibold" style:color="var(--hue-aerophone)">{m.music_shell_guide_this_browser()}</p>
       <ul class="grid grid-cols-2 gap-1.5 text-[13px]">
-        {#each ["Sessions", "Scores", "Recordings", "Samples"] as item (item)}
+        {#each [m.music_shell_guide_item_sessions(), m.music_shell_guide_item_scores(), m.music_shell_guide_item_recordings(), m.music_shell_guide_item_samples()] as item (item)}
           <li class="rounded-md bg-ws-stage-ink/10 px-2 py-1.5">{item}</li>
         {/each}
       </ul>
     </div>
-    <p class="mt-3 flex items-center gap-2 text-[13px] text-ws-stage-soft"><span class="line-through">Server</span> nothing leaves this device</p>
+    <p class="mt-3 flex items-center gap-2 text-[13px] text-ws-stage-soft"><span class="line-through">{m.music_shell_guide_server()}</span> {m.music_shell_guide_nothing_leaves()}</p>
   </figure>
 {/snippet}
 

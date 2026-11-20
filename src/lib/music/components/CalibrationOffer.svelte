@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The tap-along, offered on a timed drill's ready screen when this input and output
   // pair has no offset (runtime/calibration). One line; Tap along opens the Settings
   // panel in place, Skip remembers the pair. It never holds Start back.
@@ -19,9 +20,9 @@
   const deviceId = $derived(key?.startsWith("midi:") ? key.slice(5) : undefined);
   const name = $derived(
     key === AUDIO_INPUT
-      ? settings.value.audioInputLabel || "the microphone"
+      ? settings.value.audioInputLabel || m.music_shell_calib_the_mic()
       : deviceId
-        ? midi.profile(deviceId)?.alias || midi.inputs.find((p) => p.id === deviceId)?.name || "this MIDI device"
+        ? midi.profile(deviceId)?.alias || midi.inputs.find((p) => p.id === deviceId)?.name || m.music_shell_calib_this_device()
         : "MIDI",
   );
 </script>
@@ -32,13 +33,13 @@
       <p class="flex min-w-0 flex-1 basis-64 items-center gap-2 text-ws-stage-soft">
         <Timer class="size-4 shrink-0" aria-hidden="true" />
         <span>
-          {#if done}Timing is calibrated for {name} on this output.{:else}Timing isn't calibrated for {name} on this output. Tap along to 20 clicks so early and late are scored fairly.{/if}
+          {#if done}{m.music_shell_calib_done({ name })}{:else}{m.music_shell_calib_due({ name })}{/if}
         </span>
       </p>
       {#if !done && !open}
         <div class="flex gap-2">
-          <button type="button" class={btn} onclick={() => (open = true)}>Tap along</button>
-          <button type="button" class={btn} onclick={() => calibration.skip(key)}>Skip</button>
+          <button type="button" class={btn} onclick={() => (open = true)}>{m.music_shell_calib_tap_along()}</button>
+          <button type="button" class={btn} onclick={() => calibration.skip(key)}>{m.music_shell_calib_skip()}</button>
         </div>
       {/if}
     </div>
@@ -50,7 +51,7 @@
           kind={key === AUDIO_INPUT ? "audio" : deviceId ? "device" : "midi"}
           {deviceId}
           title={name}
-          blurb="Tap along to 20 clicks. Woodshed saves the offset for this input on the sound output in use."
+          blurb={m.music_shell_calib_blurb()}
           current={calibration.offset(key)}
           onsave={async (ms) => {
             await calibration.save(key, ms);
@@ -60,7 +61,7 @@
           announce={(msg) => (said = msg)}
         />
         <p class="px-4 pb-3">
-          <button type="button" class="font-medium text-instr-ink underline underline-offset-4" onclick={() => ((open = false), calibration.skip(key))}>Skip for now</button>
+          <button type="button" class="font-medium text-instr-ink underline underline-offset-4" onclick={() => ((open = false), calibration.skip(key))}>{m.music_shell_calib_skip_now()}</button>
         </p>
       </div>
     {/if}

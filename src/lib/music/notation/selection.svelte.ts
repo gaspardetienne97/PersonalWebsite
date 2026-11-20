@@ -3,6 +3,7 @@
 
 import { beatToMs, type BeatRange } from "./groups";
 import type { Layout } from "./engrave";
+import { m } from "@repo/i18n/messages.js";
 
 export type Snap = "bar" | "group";
 
@@ -19,7 +20,8 @@ export interface Target extends BeatRange {
 const EPS = 1e-6;
 
 export function targets(layout: Layout, snap: Snap): Target[] {
-  if (snap === "bar") return layout.bars.map((c) => ({ ...c, label: `Bar ${c.bar}` }));
+  if (snap === "bar")
+    return layout.bars.map((c) => ({ ...c, label: m.music_shell_lesson_bar({ bar: c.bar }) }));
   const out: Target[] = [];
   const attacks = layout.anchors.filter(
     (a, i, all) => a.group !== null && all.findIndex((b) => b.group === a.group) === i,
@@ -44,7 +46,7 @@ export function targets(layout: Layout, snap: Snap): Target[] {
       y: cell.y,
       width: Math.max(12, right - x),
       height: cell.height,
-      label: `Bar ${cell.bar}, note ${nth}`,
+      label: m.music_shell_nt_bar_note({ bar: cell.bar, n: nth }),
     });
   });
   return out;
@@ -96,13 +98,21 @@ export function readout(
   bpm: number,
   snap: Snap,
 ): string {
-  const unit = snap === "bar" ? "bar" : "note";
-  if (pending) return `Start, bar ${pending.bar}. Now tap the ${unit} where the range ends.`;
+  const bars = snap === "bar";
+  if (pending)
+    return (bars ? m.music_shell_nt_pending_bar : m.music_shell_nt_pending_note)({
+      bar: pending.bar,
+    });
   const e = sel && ends(list, sel);
-  if (!sel || !e) return `Tap a ${unit} to mark where the range starts.`;
+  if (!sel || !e) return bars ? m.music_shell_nt_tap_bar() : m.music_shell_nt_tap_note();
   const secs = Math.round(beatToMs(sel.endBeat - sel.startBeat, bpm) / 1000);
-  const count = `${e.count} ${unit}${e.count === 1 ? "" : "s"}`;
-  return `Start, bar ${e.start.bar}. End, bar ${e.end.bar}. ${count}, ${secs} s at ${Math.round(bpm)} BPM`;
+  return (bars ? m.music_shell_nt_range_bars : m.music_shell_nt_range_notes)({
+    start: e.start.bar,
+    end: e.end.bar,
+    count: e.count,
+    secs,
+    bpm: Math.round(bpm),
+  });
 }
 
 /** Where the single cursor stands for `beat`: interpolated between drawn onsets. */

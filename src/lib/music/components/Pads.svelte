@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Sixteen rubber pads on a dark panel with an LED under each, laid out like
   // the MPC: A01 bottom-left, rows ascending. Pads read canonical bank A notes.
   import { onMount } from "svelte";
@@ -29,7 +30,7 @@
     fit?: boolean;
   }
 
-  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = "Pads, bank A", timing, fit = false }: Props = $props();
+  let { base = 36, marks = {}, flashes, names = {}, keyHints = true, colors = {}, interactive = true, label = m.music_shell_pads_bank_a(), timing, fit = false }: Props = $props();
   let boxW = $state(0);
   let boxH = $state(0);
   // Only once the box has been laid out, so a first frame never squeezes the pads.
@@ -37,16 +38,16 @@
   // A glyph and a word per verdict, so colour is never the only cue. A pad under 89 px wide shows the
   // glyph alone (the word is its title and is said in the live region), so a word is never cut short.
   const VERDICT = {
-    early: { word: "Early", said: "Early", icon: ChevronsLeft },
-    late: { word: "Late", said: "Late", icon: ChevronsRight },
-    perfect: { word: "On time", said: "On time", icon: Check },
-    wrong: { word: "Wrong", said: "Wrong pad", icon: X },
+    early: { word: m.music_shell_verdict_early(), said: m.music_shell_verdict_early(), icon: ChevronsLeft },
+    late: { word: m.music_shell_verdict_late(), said: m.music_shell_verdict_late(), icon: ChevronsRight },
+    perfect: { word: m.music_shell_verdict_ontime(), said: m.music_shell_verdict_ontime(), icon: Check },
+    wrong: { word: m.music_shell_pads_wrong(), said: m.music_shell_pads_wrong_pad(), icon: X },
   } as const;
   /** The last verdict, for screen readers. */
   const said = $derived.by(() => {
     for (let i = 0; i < 16; i++) {
       const w = timing?.get(base + i) ?? (flashes?.get(base + i) === "wrong" ? "wrong" : undefined);
-      if (w) return `Pad A${String(i + 1).padStart(2, "0")}: ${VERDICT[w].said}`;
+      if (w) return m.music_shell_pads_said({ pad: `A${String(i + 1).padStart(2, "0")}`, verdict: VERDICT[w].said });
     }
     return "";
   });
@@ -106,7 +107,7 @@
         data-flash={flash}
         data-verdict={flash}
         aria-pressed={held}
-        aria-label="Pad A{String(i + 1).padStart(2, '0')}{names[midi] ? `, ${names[midi]}` : ''}{mk.target ? ', target' : ''}"
+        aria-label={[m.music_shell_pads_pad({ pad: `A${String(i + 1).padStart(2, "0")}` }), ...(names[midi] ? [names[midi]] : []), ...(mk.target ? [m.music_shell_fret_target()] : [])].join(", ")}
         tabindex={interactive ? 0 : -1}
         onpointerdown={(e) => press(e, midi)}
         onpointerup={release}

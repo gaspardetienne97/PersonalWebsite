@@ -11,6 +11,7 @@ import type {
 import type { DrillMode } from "./components/DrillShell.svelte";
 import { getSetting, input, putSetting, settings } from "./runtime";
 import { noteName } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
 export interface Capture {
   notes: NoteEvent[];
@@ -65,9 +66,9 @@ export const assistanceFor = (mode: DrillMode, hinted = false) =>
  * say so); only Check runs count toward the skill scores.
  */
 export function modeText(mode: DrillMode, { hinted = false }: { hinted?: boolean } = {}): string {
-  if (hinted) return "You used a hint, so this counts as a Practice run.";
-  if (mode === "check") return "Check run: counts in your skill scores.";
-  return "Practice run: only Check runs change your skill scores.";
+  if (hinted) return m.music_shell_drill_mode_hinted();
+  if (mode === "check") return m.music_shell_drill_mode_check();
+  return m.music_shell_drill_mode_practice();
 }
 
 /**
@@ -91,7 +92,7 @@ export async function writeKeyed<T>(key: string, id: string, value: T, merge?: (
   return stored;
 }
 
-export const pct = (v: number) => `${Math.round(v * 100)}%`;
+export const pct = (v: number) => m.music_shell_pct({ value: Math.round(v * 100) });
 
 /**
  * A microphone note a quarter tone off its target (`nearMiss` in music-core) is
@@ -101,5 +102,14 @@ export const tuningText = (
   miss: { midi: number; cents: number },
   heard: number,
   instrument: string,
-) =>
-  `That ${noteName(miss.midi, "flat", false)} is ${Math.abs(miss.cents)} cents ${miss.cents > 0 ? "sharp" : "flat"}, so it reads as ${noteName(heard, "flat", false)}. Your ${instrument} may need tuning.`;
+) => {
+  const words = {
+    played: noteName(miss.midi, "flat", false),
+    cents: Math.abs(miss.cents),
+    heard: noteName(heard, "flat", false),
+    instrument,
+  };
+  return miss.cents > 0
+    ? m.music_shell_drill_tuning_sharp(words)
+    : m.music_shell_drill_tuning_flat(words);
+};

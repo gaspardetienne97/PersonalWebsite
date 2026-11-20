@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // A staff the player can fold away, so the lane and the keys share the screen. While a run is
   // live on a phone it starts folded (the lane above the keys carries the notes); the player's own
   // choice, once made, is kept on this device.
@@ -38,7 +39,7 @@
 <div class="mb-3">
   <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2" class:mb-1={!!aside}>
     <button type="button" class="-ml-1 flex min-h-11 max-sm:order-last items-center gap-1 px-1 text-sm font-medium text-ws-stage-soft hover:text-ws-stage-ink" aria-expanded={shown} onclick={toggle}>
-      <ChevronRight class="size-4 transition-transform {shown ? 'rotate-90' : ''}" aria-hidden="true" />{shown ? "Staff" : "Staff hidden: show it"}
+      <ChevronRight class="size-4 transition-transform {shown ? 'rotate-90' : ''}" aria-hidden="true" />{shown ? m.music_shell_nt_staff() : m.music_shell_nt_staff_hidden()}
     </button>
     {#if aside}{@render aside()}{/if}
   </div>

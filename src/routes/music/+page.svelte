@@ -3,23 +3,24 @@
   import TodayView from "#lib/music/hubs/TodayView.svelte";
   import DrillsView from "#lib/music/hubs/DrillsView.svelte";
   import PathsView from "#lib/music/hubs/PathsView.svelte";
+  import { m } from "@repo/i18n/messages.js";
 
   // Two tabs. Paths is a view inside Drills; its address (?tab=paths) is the one every path link already uses.
   const TABS = [
-    { href: "/music", label: "Today", tabs: ["today"] },
-    { href: "/music?tab=drills", label: "Drills", tabs: ["drills", "paths"] },
+    { href: "/music", label: m.music_shell_nav_today(), tabs: ["today"] },
+    { href: "/music?tab=drills", label: m.music_shell_nav_drills(), tabs: ["drills", "paths"] },
   ];
   const VIEWS = [
-    { href: "/music?tab=drills", label: "All drills", tabs: ["drills"] },
-    { href: "/music?tab=paths", label: "Paths", tabs: ["paths"] },
+    { href: "/music?tab=drills", label: m.music_shell_home_all_drills(), tabs: ["drills"] },
+    { href: "/music?tab=paths", label: m.music_shell_home_paths(), tabs: ["paths"] },
   ];
-  const TITLE: Record<string, string> = { today: "Today", drills: "Drills", paths: "Paths" };
+  const TITLE: Record<string, string> = { today: m.music_shell_nav_today(), drills: m.music_shell_nav_drills(), paths: m.music_shell_home_paths() };
   const TAGLINE: Record<string, string> = {
-    drills: "Every drill, grouped by what it trains.",
-    paths: "Step by step, from first notes to a real repertoire.",
+    drills: m.music_shell_home_drills_tagline(),
+    paths: m.music_shell_home_paths_tagline(),
   };
   const tab = $derived(page.url.searchParams.get("tab") ?? "today");
-  const title = $derived(TITLE[tab] ?? "Today");
+  const title = $derived(TITLE[tab] ?? m.music_shell_nav_today());
 </script>
 
 <svelte:head><title>{title} | Woodshed</title></svelte:head>
@@ -33,8 +34,8 @@
       {#if TAGLINE[tab]}<p class="mt-1 text-ws-soft max-sm:hidden">{TAGLINE[tab]}</p>{/if}
     </div>
     <div class="flex flex-wrap gap-2">
-      {@render switcher("Practice views", TABS, "lg:hidden")}
-      {#if tab === "drills" || tab === "paths"}{@render switcher("Drill views", VIEWS, "")}{/if}
+      {@render switcher(m.music_shell_home_practice_views(), TABS, "lg:hidden")}
+      {#if tab === "drills" || tab === "paths"}{@render switcher(m.music_shell_home_drill_views(), VIEWS, "")}{/if}
     </div>
   </header>
   {#if tab === "drills"}<DrillsView />{:else if tab === "paths"}<PathsView />{:else}<TodayView />{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The circle of fifths as a wheel: major keys outside (C at the top, a
   // fifth clockwise, a fourth counter-clockwise), relative minors in the
   // middle ring, each key's diminished chord inside (only where chords are asked). Pick a key and its seven
@@ -12,7 +13,7 @@
     numerals = true,
     blank,
     marks = {},
-    label = "Circle of fifths",
+    label = m.music_shell_circle_label(),
     compact = false,
     dim = true,
   }: {
@@ -75,7 +76,7 @@
     {@const hidden = blank?.(i) ?? false}
     {@const mark = marks[i]}
     {@const p = at((R.major + R.outer) / 2 + 4, i)}
-    {@const m = at((R.minor + R.major) / 2, i)}
+    {@const mid = at((R.minor + R.major) / 2, i)}
     {@const d = at((R.dim + R.minor) / 2, i)}
     <!-- Outer ring: the major key. -->
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the slot has role button whenever it is focusable (a pickable wheel) -->
@@ -87,7 +88,15 @@
       data-mark={mark}
       role={onpick ? "button" : undefined}
       tabindex={onpick ? 0 : undefined}
-      aria-label={hidden ? `Slot ${i + 1}, hidden` : `${k.major} major${k.enharmonic ? ` (${k.enharmonic.major})` : ""}, ${k.fifths === 0 ? "no sharps or flats" : `${Math.abs(k.fifths)} ${k.fifths > 0 ? "sharp" : "flat"}${Math.abs(k.fifths) > 1 ? "s" : ""}`}`}
+      aria-label={hidden
+        ? m.music_shell_circle_slot_hidden({ n: i + 1 })
+        : m.music_shell_circle_slot({
+            name: k.enharmonic ? m.music_shell_circle_major_enh({ key: k.major, enharmonic: k.enharmonic.major }) : m.music_shell_circle_major({ key: k.major }),
+            signature:
+              k.fifths === 0
+                ? m.music_shell_circle_no_accidentals()
+                : (k.fifths > 0 ? m.music_shell_circle_sharps : m.music_shell_circle_flats)({ count: Math.abs(k.fifths) }),
+          })}
       aria-pressed={onpick ? sel === i : undefined}
       onclick={() => onpick?.(k.fifths)}
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onpick?.(k.fifths))}
@@ -102,8 +111,8 @@
     {#if !compact}
       <!-- Middle ring: its relative minor. -->
       <path style:--h={hue(i)} class="ring minor" class:in={roleOf("minor", i) !== null} d={wedge(i, R.minor, R.major)} />
-      <text x={m.x} y={m.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
-      {#if numerals && roleOf("minor", i)}<text x={m.x} y={m.y + 9} class="numeral">{roleOf("minor", i)}</text>{/if}
+      <text x={mid.x} y={mid.y - (roleOf("minor", i) && numerals ? 7 : 0)} class="minor-name">{hidden ? "" : `${k.minor}m`}</text>
+      {#if numerals && roleOf("minor", i)}<text x={mid.x} y={mid.y + 9} class="numeral">{roleOf("minor", i)}</text>{/if}
       {#if dim}
         <!-- Inner ring: the key's diminished chord (its vii°). -->
         <path style:--h={hue(i)} class="ring dim" class:in={roleOf("dim", i) !== null} d={wedge(i, R.dim, R.minor)} />
@@ -114,10 +123,10 @@
   <circle class="hub" cx={C} cy={C} r={R.dim - 2} />
   {#if picked}
     <text x={C} y={C - 7} class="hub-key">{picked.major}</text>
-    <text x={C} y={C + 12} class="hub-sig">{picked.fifths === 0 ? "no ♯ or ♭" : `${Math.abs(picked.fifths)}${picked.fifths > 0 ? "♯" : "♭"}`}</text>
+    <text x={C} y={C + 12} class="hub-sig">{picked.fifths === 0 ? m.music_shell_circle_hub_none() : `${Math.abs(picked.fifths)}${picked.fifths > 0 ? "♯" : "♭"}`}</text>
   {:else}
-    <text x={C} y={C - 8} class="hub-sig">Sharps go</text>
-    <text x={C} y={C + 10} class="hub-sig">clockwise</text>
+    <text x={C} y={C - 8} class="hub-sig">{m.music_shell_circle_hub_sharps_go()}</text>
+    <text x={C} y={C + 10} class="hub-sig">{m.music_shell_circle_hub_clockwise()}</text>
   {/if}
 </svg>
 

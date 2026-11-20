@@ -4,6 +4,7 @@
 
 import type { Score, ScoreNote } from "@repo/music-core";
 import { bars, scoreGroups, voiceSides, type KeyBox } from "./groups";
+import { m } from "@repo/i18n/messages.js";
 
 export interface FallingNote {
   /** Stable across frames: voice, onset and pitch. */
@@ -118,19 +119,22 @@ export function lineScore(
           ? [
               {
                 id: hand === "right" ? "rh" : "lh",
-                name: hand === "right" ? "Right hand" : "Left hand",
+                name:
+                  hand === "right"
+                    ? m.music_shell_aero_right_hand()
+                    : m.music_shell_aero_left_hand(),
                 hand,
                 notes: own,
               },
             ]
           : [];
       })
-    : [{ id: "line", name: "Line", notes: notes.map(strip) }];
+    : [{ id: "line", name: m.music_shell_nt_line(), notes: notes.map(strip) }];
   const barLen = (meter.beats * 4) / meter.beatUnit;
   const end = notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0);
   return {
     id: "line",
-    title: "Line",
+    title: m.music_shell_nt_line(),
     bpm: 90,
     meter,
     voices,
@@ -141,6 +145,16 @@ export function lineScore(
 
 /** The views a piano drill offers its line in, kept in the address as `?view=`. */
 export const NOTE_VIEWS = [
-  { id: "staff", label: "Staff" },
-  { id: "falling", label: "Falling notes" },
+  {
+    id: "staff",
+    get label() {
+      return m.music_shell_nt_staff();
+    },
+  },
+  {
+    id: "falling",
+    get label() {
+      return m.music_shell_nt_falling();
+    },
+  },
 ] as const;

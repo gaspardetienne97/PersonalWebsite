@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // One lesson screen at a time, in place of the drill's stage, inside the drill session (the session's HUD
   // carries Close and "Skip, I know this"). The figure leads, then the words; Back and Next dock at the
   // bottom of the screen, outside the text, so nothing reads under a bar. Sounds play on tap only.
@@ -18,6 +19,10 @@
   import { tuningFor } from "../drills/guitar/instrument.svelte";
   import { btn, btnPrimary } from "./ui";
   import Volume2 from "@lucide/svelte/icons/volume-2";
+  import { formatNumber } from "@repo/i18n/format";
+  import { INSTRUMENT_LABEL } from "../bench.svelte";
+
+  const clefName = (clef: "treble" | "bass") => (clef === "bass" ? m.music_shell_lesson_clef_bass() : m.music_shell_lesson_clef_treble());
 
   /** `beforeNext`: drawn in the dock just before Next (the session's "More below", while there is more). */
   let { lessons, onfinish, onskip, beforeNext }: { lessons: Lesson[]; onfinish: () => void; onskip?: () => void; beforeNext?: Snippet } = $props();
@@ -173,7 +178,7 @@
     const n = f.reveal ?? Math.abs(f.fifths);
     return {
       id: `lesson-sig-${f.fifths}-${n}`,
-      title: "Key signature",
+      title: m.music_shell_lesson_key_signature(),
       bpm: 60,
       keyFifths: Math.sign(f.fifths) * n,
       meter: { beats: 4, beatUnit: 4 },
@@ -183,7 +188,7 @@
   }
   const sigLabel = (f: Extract<LessonFigure, { kind: "signature" }>) => {
     const n = f.reveal ?? Math.abs(f.fifths);
-    return `${f.clef} clef key signature with ${n} ${f.fifths < 0 ? "flat" : "sharp"}${n === 1 ? "" : "s"}`;
+    return (f.fifths < 0 ? m.music_shell_lesson_sig_flat : m.music_shell_lesson_sig_sharp)({ clef: clefName(f.clef), count: n });
   };
   /** The staff figure as a one-bar score: its notes one after another, a rest where `midi` is null. */
   function staffScore(f: Extract<LessonFigure, { kind: "staff" }>): Score {
@@ -197,7 +202,7 @@
     return {
       id: `lesson-staff-${f.clef}-${f.fifths ?? 0}-${f.notes.map((n) => `${n.midi}x${n.beats}`).join("_")}${f.chords?.map((c) => `-${c.symbol}@${c.beat}`).join("") ?? ""}`,
       ...(chords ? { chords } : {}),
-      title: "Lesson",
+      title: m.music_shell_shell_lesson(),
       bpm: 60,
       keyFifths: f.fifths ?? 0,
       meter: f.meter ?? { beats: at, beatUnit: 4 },
@@ -205,12 +210,19 @@
       lengthBeats: at,
     };
   }
-  const staffLabel = (f: Extract<LessonFigure, { kind: "staff" }>) =>
-    `${f.chords?.length ? `Over ${[...new Set(f.chords.map((c) => c.symbol))].join(", ")}, ` : ""}${f.clef} clef${f.fifths ? ` with ${Math.abs(f.fifths)} ${f.fifths < 0 ? "flat" : "sharp"}${Math.abs(f.fifths) === 1 ? "" : "s"}` : ""}: ${f.notes.map((n) => (n.midi === null ? "rest" : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", ")}`;
-  const pianoMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
-  const padMarks = (m: Record<number, string>) => Object.fromEntries(Object.entries(m).map(([k, label]) => [k, { target: true, label }]));
+  const staffLabel = (f: Extract<LessonFigure, { kind: "staff" }>) => {
+    const words = {
+      clef: clefName(f.clef),
+      count: Math.abs(f.fifths ?? 0),
+      notes: f.notes.map((n) => (n.midi === null ? m.music_shell_lesson_rest() : noteName(n.midi, (f.fifths ?? 0) < 0 ? "flat" : "sharp"))).join(", "),
+    };
+    const staff = !f.fifths ? m.music_shell_lesson_staff(words) : (f.fifths < 0 ? m.music_shell_lesson_staff_flat : m.music_shell_lesson_staff_sharp)(words);
+    return f.chords?.length ? m.music_shell_lesson_staff_over({ chords: [...new Set(f.chords.map((c) => c.symbol))].join(", "), staff }) : staff;
+  };
+  const pianoMarks = (marks: Record<number, string>) => Object.fromEntries(Object.entries(marks).map(([k, label]) => [k, { target: true, label }]));
+  const padMarks = (marks: Record<number, string>) => Object.fromEntries(Object.entries(marks).map(([k, label]) => [k, { target: true, label }]));
   const padLabel = (f: Extract<LessonFigure, { kind: "pads" }>) =>
-    `MPC pads: ${Object.entries(f.marks).map(([k, label]) => `A${String(+k - 35).padStart(2, "0")}${f.names?.[+k] ? ` ${f.names[+k]}` : ""}${label ? `, ${label}` : ""}`).join("; ")}`;
+    m.music_shell_lesson_pads({ pads: Object.entries(f.marks).map(([k, label]) => `A${String(+k - 35).padStart(2, "0")}${f.names?.[+k] ? ` ${f.names[+k]}` : ""}${label ? `, ${label}` : ""}`).join("; ") });
   /** The EQ figure's curve: 20 Hz to 20 kHz on a log axis, ±12 dB, one bell about an octave wide. */
   const EQ = { w: 320, h: 120, db: 12 };
   const eqX = (hz: number) => ((Math.log10(hz) - Math.log10(20)) / 3) * EQ.w;
@@ -223,9 +235,9 @@
       return `${i ? "L" : "M"}${(((lx - Math.log10(20)) / 3) * EQ.w).toFixed(1)},${eqY(db).toFixed(1)}`;
     }).join(" ");
   }
-  const hzText = (hz: number) => (hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${hz} Hz`);
+  const hzText = (hz: number) => (hz >= 1000 ? `${formatNumber(+(hz / 1000).toFixed(1))} kHz` : `${formatNumber(hz)} Hz`);
   const eqLabel = (f: Extract<LessonFigure, { kind: "eq" }>) =>
-    `EQ curve: ${hzText(f.band)} ${f.gainDb >= 0 ? "boosted" : "cut"} by ${Math.abs(f.gainDb)} dB, everything else flat`;
+    (f.gainDb >= 0 ? m.music_shell_lesson_eq_boost : m.music_shell_lesson_eq_cut)({ freq: hzText(f.band), db: formatNumber(Math.abs(f.gainDb)) });
   const fretMarks = (m: { string: number; fret: number; label: string }[]): FretMark[] => m.map((x) => ({ ...x, role: "scale" }));
 
   /** The counts of one beat, as a player says them; the beat's own number goes in the first. */
@@ -255,7 +267,7 @@
 <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 pt-2 text-ws-ink" data-testid="lesson">
   <div class="flex items-center justify-between gap-3 text-sm text-ws-soft">
     <p>{lessons[0].title}</p>
-    <p><span aria-hidden="true">{at} / {total}</span><span class="sr-only">Screen {at} of {total}</span></p>
+    <p><span aria-hidden="true">{at} / {total}</span><span class="sr-only">{m.music_shell_lesson_screen({ at, total })}</span></p>
   </div>
   <!-- One bar for the whole sequence: chained item cards can run to dozens of screens. -->
   <div class="h-1.5 overflow-hidden rounded-full bg-ws-raised" aria-hidden="true">
@@ -267,12 +279,12 @@
   {#if figure?.kind === "groove"}
     {@const g = figure}
     <!-- One row per drum across the whole bar, one bar a block, on the dark stage panel. -->
-    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label="Groove grid, {g.bars} {g.bars === 1 ? 'bar' : 'bars'}: {GROOVE_LANES.filter((l) => g.lanes[l.id]?.length).map((l) => `${l.label} on ${g.lanes[l.id]!.map((b) => countName(b, g.perBeat, 4)).join(', ')}`).join('; ')}">
+    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label={m.music_shell_lesson_groove_grid({ bars: g.bars, lanes: GROOVE_LANES.filter((l) => g.lanes[l.id]?.length).map((l) => m.music_shell_lesson_groove_lane({ drum: l.label, counts: g.lanes[l.id]!.map((b) => countName(b, g.perBeat, 4)).join(", ") })).join("; ") })}>
       {@render beatGrid(g.bars, g.perBeat, 4, GROOVE_LANES.map((l) => ({ label: l.label, beats: g.lanes[l.id] })), g.barNumbers)}
     </div>
   {:else if figure?.kind === "rhythm"}
     {@const r = figure}
-    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label="Rhythm grid, {r.bars} {r.bars === 1 ? 'bar' : 'bars'}, notes on {r.onsets.length ? r.onsets.map((b) => countName(b, r.perBeat, r.beatsPerBar)).join(', ') : 'no counts yet'}">
+    <div class="stage mx-auto w-full rounded-2xl p-3 sm:p-4" role="img" aria-label={m.music_shell_lesson_rhythm_grid({ bars: r.bars, counts: r.onsets.length ? r.onsets.map((b) => countName(b, r.perBeat, r.beatsPerBar)).join(", ") : m.music_shell_lesson_no_counts() })}>
       {@render beatGrid(r.bars, r.perBeat, r.beatsPerBar, [{ label: "", beats: r.onsets }])}
     </div>
   {:else if figure}
@@ -293,9 +305,9 @@
         </div>
         <p class="sr-only">{staffLabel(figure)}</p>
       {:else if figure.kind === "wheel"}
-        <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label="The circle of fifths" />
+        <CircleOfFifths selected={figure.selected ?? null} marks={Object.fromEntries(Object.entries(figure.marks ?? {}).map(([k, v]) => [k, v as "lit"]))} numerals={false} label={m.music_shell_lesson_circle()} />
       {:else if figure.kind === "keys"}
-        <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label="Piano keys" />
+        <Piano low={figure.low} high={figure.high} marks={pianoMarks(figure.marks)} interactive={false} names="none" minKey={22} label={m.music_shell_lesson_piano_keys()} />
       {:else if figure.kind === "pads"}
         <Pads marks={padMarks(figure.marks)} names={figure.names ?? {}} keyHints={false} interactive={false} label={padLabel(figure)} />
       {:else if figure.kind === "eq"}
@@ -316,7 +328,7 @@
         <AerophoneKeys midi={figure.midi} compact />
       {:else}
         {@const t = tuningFor(figure.instrument)}
-        <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={figure.from ?? 0} to={figure.to ?? 5} marks={fretMarks(figure.marks)} interactive={false} label="{figure.instrument} fretboard" />
+        <Fretboard openStrings={figure.openStrings ?? t.openStrings} from={figure.from ?? 0} to={figure.to ?? 5} marks={fretMarks(figure.marks)} interactive={false} label={m.music_shell_lesson_fretboard({ instrument: INSTRUMENT_LABEL[figure.instrument].toLowerCase() })} />
       {/if}
     </div>
   {/if}
@@ -331,8 +343,8 @@
   {/if}
 
   <div class="flex flex-wrap gap-2">
-    {#if screen.sound}<button type="button" class={btn} onclick={() => play(screen.sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear it</button>{/if}
-    {#if shown > 0 && steps[shown - 1].sound}<button type="button" class={btn} onclick={() => play(steps[shown - 1].sound!)}><Volume2 class="size-4" aria-hidden="true" />Hear this step</button>{/if}
+    {#if screen.sound}<button type="button" class={btn} onclick={() => play(screen.sound!)}><Volume2 class="size-4" aria-hidden="true" />{m.music_shell_shell_hear_it()}</button>{/if}
+    {#if shown > 0 && steps[shown - 1].sound}<button type="button" class={btn} onclick={() => play(steps[shown - 1].sound!)}><Volume2 class="size-4" aria-hidden="true" />{m.music_shell_lesson_hear_step()}</button>{/if}
     {#each screen.options ?? [] as o (o.label)}
       <!-- An option relights the figure with its own (the keys of that voicing) while it plays. -->
       <button type="button" class="{btn} aria-pressed:border-instr aria-pressed:bg-instr-wash" aria-pressed={!!o.figure && picked === o.figure} onclick={() => { picked = o.figure ?? null; play(o.sound, o.figure ?? figure); }}><Volume2 class="size-4" aria-hidden="true" />{o.label}</button>
@@ -342,11 +354,11 @@
   <!-- The moves dock at the bottom of the screen (the session's dock), so Next sits in the thumb zone and
        the text scrolls clear of it. -->
   <div data-lesson-dock class="lesson-dock sticky bottom-0 z-20 -mx-4 mt-auto flex items-center gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
-    {#if !isFirst}<button type="button" class="{btn} min-h-12 px-4 text-base sm:px-5" onclick={back}>Back</button>{/if}
-    {#if onskip && !isLast}<button type="button" class="{btn} min-h-12 px-4 text-base max-sm:text-sm" onclick={onskip}>Skip, I know this</button>{/if}
-    <span class="ml-auto hidden text-sm text-ws-soft lg:inline">Arrow keys move.</span>
+    {#if !isFirst}<button type="button" class="{btn} min-h-12 px-4 text-base sm:px-5" onclick={back}>{m.music_shell_lesson_back()}</button>{/if}
+    {#if onskip && !isLast}<button type="button" class="{btn} min-h-12 px-4 text-base max-sm:text-sm" onclick={onskip}>{m.music_shell_lesson_skip()}</button>{/if}
+    <span class="ml-auto hidden text-sm text-ws-soft lg:inline">{m.music_shell_lesson_arrows()}</span>
     {@render beforeNext?.()}
-    <button type="button" class="{btnPrimary} min-h-12 flex-1 text-base sm:flex-none sm:px-8" onclick={next} aria-keyshortcuts="ArrowRight">{isLast ? "Start the quiz" : "Next"}</button>
+    <button type="button" class="{btnPrimary} min-h-12 flex-1 text-base sm:flex-none sm:px-8" onclick={next} aria-keyshortcuts="ArrowRight">{isLast ? m.music_shell_lesson_start_quiz() : m.music_shell_lesson_next()}</button>
   </div>
 </div>
 
@@ -359,7 +371,7 @@
   <div class="flex flex-col gap-3" aria-hidden="true">
     {#each Array.from({ length: bars }, (_, b) => b) as bar (bar)}
       <div>
-        {#if bars > 1}<p class="mb-1 text-[13px] font-semibold text-ws-stage-soft">Bar {barNumbers?.[bar] ?? bar + 1}</p>{/if}
+        {#if bars > 1}<p class="mb-1 text-[13px] font-semibold text-ws-stage-soft">{m.music_shell_lesson_bar({ bar: barNumbers?.[bar] ?? bar + 1 })}</p>{/if}
         <div class="relative grid items-center gap-y-1" style:grid-template-columns="{labelled ? '3.25rem ' : ''}repeat({cells}, minmax(0, 1fr))">
           {#if labelled}<span></span>{/if}
           {#each Array.from({ length: cells }, (_, i) => i) as i (i)}

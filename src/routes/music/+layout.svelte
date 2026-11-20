@@ -23,27 +23,28 @@
   import { bench } from "#lib/music/bench.svelte.ts";
   import { audio, input, midi, settings } from "#lib/music/runtime/index.ts";
   import { INSTRUMENTS, type Instrument } from "@repo/music-core";
+  import { m } from "@repo/i18n/messages.js";
 
   let { children } = $props();
 
   type NavItem = { href: string; label: string; icon: typeof House; owns?: string[]; tab?: string };
   const hubs: NavItem[] = [
     // Three hubs. Today owns every drill; Studio owns the songs and the making tools; Progress holds the journal.
-    { href: "/music", label: "Today", icon: House, owns: DRILL_ROUTES },
-    { href: "/music/studio", label: "Studio", icon: Disc, owns: ["/music/songs", "/music/create", "/music/library"] },
-    { href: "/music/progress", label: "Progress", icon: Chart, owns: ["/music/journal", "/music/tunes"] },
+    { href: "/music", label: m.music_shell_nav_today(), icon: House, owns: DRILL_ROUTES },
+    { href: "/music/studio", label: m.music_shell_nav_studio(), icon: Disc, owns: ["/music/songs", "/music/create", "/music/library"] },
+    { href: "/music/progress", label: m.music_shell_nav_progress(), icon: Chart, owns: ["/music/journal", "/music/tunes"] },
   ];
   // Tuner and Connect are icons in the top strip (BenchStrip), on every page.
   const utilities = [
-    { href: "/music/record", label: "Record", icon: CircleDot },
-    { href: "/music/settings", label: "Settings", icon: Cog },
-    { href: "/music/guide", label: "Guide", icon: Help },
+    { href: "/music/record", label: m.music_shell_nav_record(), icon: CircleDot },
+    { href: "/music/settings", label: m.music_shell_nav_settings(), icon: Cog },
+    { href: "/music/guide", label: m.music_shell_nav_guide(), icon: Help },
   ];
 
   // The sidebar lists Today's two tabs apart, each current on its own view (Paths is a view of Drills).
   const sideHubs: NavItem[] = [
-    { href: "/music", label: "Today", icon: House, tab: "today" },
-    { href: "/music?tab=drills", label: "Drills", icon: Drills, tab: "drills", owns: DRILL_ROUTES },
+    { href: "/music", label: m.music_shell_nav_today(), icon: House, tab: "today" },
+    { href: "/music?tab=drills", label: m.music_shell_nav_drills(), icon: Drills, tab: "drills", owns: DRILL_ROUTES },
     ...hubs.slice(1),
   ];
 
@@ -185,17 +186,17 @@
           {@render navItem(item, current(item))}
         {/each}
         <!-- App controls, apart from the places: a divider with its name. -->
-        <li class="mt-1 border-t border-ws-line px-3 pt-2 pb-1 text-[13px] font-medium text-ws-soft {collapsed ? 'lg:sr-only' : ''}" role="presentation">App</li>
+        <li class="mt-1 border-t border-ws-line px-3 pt-2 pb-1 text-[13px] font-medium text-ws-soft {collapsed ? 'lg:sr-only' : ''}" role="presentation">{m.music_shell_nav_app()}</li>
         {@render siteItems()}
         <li>
           <button
             type="button"
             onclick={toggleRail}
             class="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised"
-            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            title={collapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-label={collapsed ? m.music_shell_nav_expand() : m.music_shell_nav_collapse_label()}
+            title={collapsed ? m.music_shell_nav_expand() : m.music_shell_nav_collapse_label()}
           >
-            {#if collapsed}<Expand class="size-5 shrink-0" />{:else}<Collapse class="size-5 shrink-0" /><span>Collapse</span>{/if}
+            {#if collapsed}<Expand class="size-5 shrink-0" />{:else}<Collapse class="size-5 shrink-0" /><span>{m.music_shell_nav_collapse()}</span>{/if}
           </button>
         </li>
       </ul>
@@ -211,7 +212,7 @@
 
   {#if !away}
     <nav
-      aria-label="Woodshed sections"
+      aria-label={m.music_shell_nav_sections()}
       onkeydown={(e) => {
         if (e.key !== "Escape" || !moreOpen) return;
         moreOpen = false;
@@ -241,7 +242,7 @@
             bind:this={moreButton}
             onclick={() => (moreOpen = !moreOpen)}
           >
-            {@render tabIcon(Ellipsis, utilities.some(current))}More
+            {@render tabIcon(Ellipsis, utilities.some(current))}{m.music_shell_nav_more()}
           </button>
         </li>
       </ul>
@@ -264,24 +265,24 @@
     <button
       type="button"
       onclick={toggleMode}
-      aria-label="Toggle theme"
-      title={collapsed ? "Toggle theme" : undefined}
+      aria-label={m.music_shell_nav_toggle_theme()}
+      title={collapsed ? m.music_shell_nav_toggle_theme() : undefined}
       class="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
     >
       <Sun class="size-5 shrink-0 dark:hidden" aria-hidden="true" /><Moon class="hidden size-5 shrink-0 dark:block" aria-hidden="true" />
       <!-- A quick toggle that says the theme now on. -->
       <!-- On a drill page in the light theme the row says why the page is dark all the same (shown by woodshed.css). -->
-      <span class="text-left leading-tight {collapsed ? 'lg:sr-only' : ''}">Theme: <span class="font-medium text-ws-ink dark:hidden">Light</span><span class="hidden font-medium text-ws-ink dark:inline">Dark</span><span class="ws-drill-note text-[13px]">Drills stay dark</span></span>
+      <span class="text-left leading-tight {collapsed ? 'lg:sr-only' : ''}">{m.music_shell_nav_theme()} <span class="font-medium text-ws-ink dark:hidden">{m.music_shell_nav_theme_light()}</span><span class="hidden font-medium text-ws-ink dark:inline">{m.music_shell_nav_theme_dark()}</span><span class="ws-drill-note text-[13px]">{m.music_shell_nav_drills_dark()}</span></span>
     </button>
   </li>
   <li>
     <a
       href="/"
-      title={collapsed ? "Site home" : undefined}
+      title={collapsed ? m.music_shell_nav_site_home() : undefined}
       class="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
     >
       <Globe class="size-5 shrink-0" aria-hidden="true" />
-      <span class={collapsed ? "lg:sr-only" : ""}>Site home</span>
+      <span class={collapsed ? "lg:sr-only" : ""}>{m.music_shell_nav_site_home()}</span>
     </a>
   </li>
 {/snippet}

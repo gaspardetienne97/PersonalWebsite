@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { m } from "@repo/i18n/messages.js";
   import { getSetting, putSetting } from "#lib/music/runtime/index.ts";
 
   export interface HighwayNote {
@@ -49,8 +50,8 @@
 </script>
 
 <!-- The written view or the moving one; the highway by default, the piano's waterfall when given. -->
-{#snippet viewSwitch(other: string, moving = "Highway", on = highway.on, set = (v: boolean) => highway.set({ on: v }))}
-  <div class="inline-flex gap-1 rounded-full bg-ws-stage-ink/10 p-1 text-sm font-medium" role="group" aria-label="View">
+{#snippet viewSwitch(other: string, moving = m.music_shell_nt_highway(), on = highway.on, set = (v: boolean) => highway.set({ on: v }))}
+  <div class="inline-flex gap-1 rounded-full bg-ws-stage-ink/10 p-1 text-sm font-medium" role="group" aria-label={m.music_shell_nt_view()}>
     {#each [{ on: false, label: other }, { on: true, label: moving }] as v (v.label)}
       <button
         type="button"
@@ -146,7 +147,14 @@
   const ball = $derived(beat === null ? null : ballY(onsets, now, reduce ? 0 : 0.6 / n));
 
   // The last thing settled, said once above the line while it is near.
-  const WORDS: Record<HitVerdict, string> = { perfect: "Perfect", early: "Early", late: "Late", hit: "Got it", missed: "Missed", wrong: "Wrong" };
+  const WORDS: Record<HitVerdict, string> = {
+    perfect: m.music_shell_nt_perfect(),
+    early: m.music_shell_verdict_early(),
+    late: m.music_shell_verdict_late(),
+    hit: m.music_shell_nt_got_it(),
+    missed: m.music_shell_verdict_miss(),
+    wrong: m.music_shell_nt_wrong(),
+  };
   const latest = $derived.by(() => {
     let best: { start: number; v: HitVerdict; key: string } | null = null;
     for (const item of [...shownNotes.map((s) => ({ ...s, key: `n${s.i}` })), ...shownChords.map((c) => ({ ...c, key: `c${c.i}` }))])
@@ -158,7 +166,7 @@
 </script>
 
 <div class="highway" style:--lanes={n} style:--lane={n > 4 ? "clamp(1.9rem, 6.5vw, 2.25rem)" : "clamp(2.2rem, 8vw, 2.6rem)"}>
-  <p class="sr-only">Note highway: each string is a lane, string 1 on top; notes scroll left and are played as they reach the line.</p>
+  <p class="sr-only">{m.music_shell_nt_highway_sr()}</p>
   <div class="road" style:--now="{NOW_X * 100}%" aria-hidden="true" data-testid="note-highway" data-beat={beat === null ? undefined : beat.toFixed(2)}>
     {#each Array.from({ length: n }, (_, k) => k + 1) as s (s)}
       <div class="string" style:top={lane(s)} style:--gauge="{1 + (2 * (s - 1)) / Math.max(1, n - 1)}px"></div>
@@ -203,8 +211,8 @@
       {#key latest.key}<span class="word" data-tone={tone(latest.v)}>{WORDS[latest.v]}</span>{/key}
     {/if}
   </div>
-  <div class="mt-2 flex w-fit items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1 text-sm font-medium" role="group" aria-label="Beats ahead">
-    <span class="px-2 whitespace-nowrap text-ws-stage-soft">Beats ahead</span>
+  <div class="mt-2 flex w-fit items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1 text-sm font-medium" role="group" aria-label={m.music_shell_nt_beats_ahead()}>
+    <span class="px-2 whitespace-nowrap text-ws-stage-soft">{m.music_shell_nt_beats_ahead()}</span>
     {#each [2, 4, 8] as a (a)}
       <button type="button" class="min-h-9 min-w-10 rounded-full px-3 {ahead === a ? 'bg-ws-stage-ink text-ws-stage' : 'text-ws-stage-soft hover:text-ws-stage-ink'}" aria-pressed={ahead === a} onclick={() => highway.set({ ahead: a })}>{a}</button>
     {/each}

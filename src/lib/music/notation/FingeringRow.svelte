@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import { noteName, type Score } from "@repo/music-core";
   import { AEROPHONE_FINGERINGS } from "@repo/music-core/data/index";
   import { transposeFifths, writtenOffset } from "@repo/music-core/theory/transposition";
@@ -33,20 +34,20 @@
       const name = noteName(midi, flats ? "flat" : "sharp");
       const extras = f ? f.keys.filter((k) => !LH.includes(k) && !RH.includes(k)) : [];
       const spoken = f
-        ? [...f.keys.map((k) => labelOf[k] ?? k), ...(f.octave ? ["octave key"] : [])].join(", ") ||
-          "all keys open"
+        ? [...f.keys.map((k) => labelOf[k] ?? k), ...(f.octave ? [m.music_shell_nt_octave_key()] : [])].join(", ") ||
+          m.music_shell_nt_all_open()
         : "";
       return { index: g.index, name, f, extras, spoken };
     }),
   );
 </script>
 
-<ol class="row" aria-label="Aerophone fingerings">
+<ol class="row" aria-label={m.music_shell_nt_aero_fingerings()}>
   {#each cells as c (c.index)}
     <li class:active={groupStates[c.index] === "active"} data-state={groupStates[c.index]}>
       <span class="name">{c.name}</span>
       {#if c.f}
-        <svg viewBox="0 0 40 96" role="img" aria-label="{c.name}: {c.spoken}">
+        <svg viewBox="0 0 40 96" role="img" aria-label={m.music_shell_nt_fingering_label({ name: c.name, spoken: c.spoken })}>
           <rect
             x="10"
             y="3"
@@ -64,7 +65,7 @@
           <span class="extra">{c.extras.map((k) => labelOf[k] ?? k).join(", ")}</span>
         {/if}
       {:else}
-        <span class="none">no fingering</span>
+        <span class="none">{m.music_shell_nt_no_fingering()}</span>
       {/if}
     </li>
   {/each}

@@ -27,6 +27,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Falling notes with the keyboard right under them, in one block that
   // scrolls sideways together on a phone: the lanes sit over the keys because
   // both are laid out from the same white-key grid. Keys light as their bar
@@ -51,7 +52,7 @@
     marks = {},
     flashes,
     height = "min(44dvh, 22rem)",
-    label = "Piano keyboard under the falling notes",
+    label = m.music_shell_nt_falling_keyboard(),
     minKey = 30,
   }: {
     score: Score;
@@ -129,14 +130,14 @@
 
 <div class="flex min-w-0 flex-col gap-2" data-testid="falling-notes">
   <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-    <div class="flex items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1" role="group" aria-label="Look ahead">
-      <span class="px-2 text-sm text-ws-stage-soft">Look ahead</span>
+    <div class="flex items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1" role="group" aria-label={m.music_shell_nt_look_ahead()}>
+      <span class="px-2 text-sm text-ws-stage-soft">{m.music_shell_nt_look_ahead()}</span>
       {#each [1, 2, 4] as b (b)}
-        <button type="button" class="{seg} {fallingPrefs.bars === b ? on : off}" aria-pressed={fallingPrefs.bars === b} onclick={() => pick({ bars: b })}>{b} bar{b === 1 ? "" : "s"}</button>
+        <button type="button" class="{seg} {fallingPrefs.bars === b ? on : off}" aria-pressed={fallingPrefs.bars === b} onclick={() => pick({ bars: b })}>{m.music_shell_strip_bars({ count: b })}</button>
       {/each}
     </div>
-    <div class="flex items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1" role="group" aria-label="On the notes">
-      {#each [{ id: "none", text: "Plain" }, { id: "names", text: "Names" }, ...(fingered ? [{ id: "fingers", text: "Fingers" }] : [])] as o (o.id)}
+    <div class="flex items-center gap-1 rounded-full bg-ws-stage-ink/8 p-1" role="group" aria-label={m.music_shell_nt_on_notes()}>
+      {#each [{ id: "none", text: m.music_shell_nt_plain() }, { id: "names", text: m.music_shell_nt_names() }, ...(fingered ? [{ id: "fingers", text: m.music_shell_nt_fingers() }] : [])] as o (o.id)}
         <button type="button" class="{seg} {labels === o.id ? on : off}" aria-pressed={labels === o.id} onclick={() => pick({ labels: o.id as typeof fallingPrefs.labels })}>{o.text}</button>
       {/each}
     </div>

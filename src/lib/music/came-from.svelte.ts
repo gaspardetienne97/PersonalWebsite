@@ -3,6 +3,7 @@
 // to a different page (query-only changes on one page do not count) and kept
 // for the browser session, so a reload remembers it.
 import { CATALOG } from "@repo/music-core/content/catalog";
+import { m } from "@repo/i18n/messages.js";
 
 const KEY = "music.came-from";
 
@@ -39,13 +40,20 @@ function nameOf(href: string): string | null {
   const url = new URL(href, "http://x");
   if (url.pathname === "/music") {
     const tab = url.searchParams.get("tab");
-    return tab === "drills" ? "Drills" : tab === "paths" ? "Paths" : "Today";
+    return tab === "drills"
+      ? m.music_shell_nav_drills()
+      : tab === "paths"
+        ? m.music_shell_home_paths()
+        : m.music_shell_nav_today();
   }
   const hub: Record<string, string> = {
-    "/music/progress": url.searchParams.get("view") === "journal" ? "Journal" : "Progress",
-    "/music/studio": "Studio",
-    "/music/guide": "Guide",
-    "/music/connect": "Connect",
+    "/music/progress":
+      url.searchParams.get("view") === "journal"
+        ? m.music_shell_nav_journal()
+        : m.music_shell_nav_progress(),
+    "/music/studio": m.music_shell_nav_studio(),
+    "/music/guide": m.music_shell_nav_guide(),
+    "/music/connect": m.music_shell_nav_connect(),
   };
   return hub[url.pathname] ?? null;
 }
@@ -53,10 +61,10 @@ function nameOf(href: string): string | null {
 /** The hub that owns `pathname` when nothing recorded where it was opened from. */
 export function ownerOf(pathname: string): { href: string; label: string } {
   if (pathname.startsWith("/music/songs") || pathname.startsWith("/music/create"))
-    return { href: "/music/studio", label: "Studio" };
+    return { href: "/music/studio", label: m.music_shell_nav_studio() };
   if (DRILL_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/")))
-    return { href: "/music?tab=drills", label: "Drills" };
-  return { href: "/music", label: "Today" };
+    return { href: "/music?tab=drills", label: m.music_shell_nav_drills() };
+  return { href: "/music", label: m.music_shell_nav_today() };
 }
 
 /** Where "Back" goes from `pathname`, and what to call it. The owning hub by default. */
