@@ -30,6 +30,7 @@ import { INSTRUMENT_LABEL } from "./bench.svelte";
 import { db, settings } from "./runtime";
 import { plainPathText } from "./hubs/progress/model";
 import { CATALOG } from "@repo/music-core/content/catalog";
+import { m } from "@repo/i18n/messages.js";
 
 /** Shelf keys the song block can open: songs in the library with a shelf tag, and downloaded scores. */
 let shelfKeys = $state<ReadonlySet<string>>(new Set());
@@ -137,19 +138,19 @@ export const tomorrowPlan = (strip: Instrument, minutes: number) =>
   todayPlan(strip, minutes, Date.now() + 86_400_000);
 
 export const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
+  m.music_shell_weekday_monday(),
+  m.music_shell_weekday_tuesday(),
+  m.music_shell_weekday_wednesday(),
+  m.music_shell_weekday_thursday(),
+  m.music_shell_weekday_friday(),
+  m.music_shell_weekday_saturday(),
+  m.music_shell_weekday_sunday(),
 ];
 const SPLIT_ORDER: Instrument[] = ["guitar", "ukulele", "piano", "aerophone", "mpc", "voice"];
 
 /** Choices for a weekday in the split: "" plays the strip's instrument. */
 export const splitOptions = (strip: Instrument) => [
-  { value: "", label: `Follows the top bar (${INSTRUMENT_LABEL[strip]})` },
+  { value: "", label: m.music_shell_today_split_follow({ instrument: INSTRUMENT_LABEL[strip] }) },
   ...SPLIT_ORDER.map((i) => ({ value: i, label: INSTRUMENT_LABEL[i] })),
 ];
 
@@ -164,8 +165,8 @@ export function blockReason(step: RoutineStep): string {
   if (!step.skillId || (step.reason !== "due" && step.reason !== "weak-spot"))
     return plainPathText(step.description);
   const name = practiceName(step.skillId);
-  const why = step.reason === "due" ? "Due for review" : "Your weak spot";
-  return name === step.label ? `${why}.` : `${why}: ${name}.`;
+  const why = step.reason === "due" ? m.music_shell_today_due() : m.music_shell_today_weak();
+  return name === step.label ? `${why}.` : m.music_shell_today_reason_named({ why, name });
 }
 
 /**
@@ -178,13 +179,16 @@ export function nextDrill(plan: ReturnType<typeof todayPlan>) {
     return {
       label: advice.action.label,
       href: advice.action.href,
-      why: `Your weak spot: ${advice.focus.name}.`,
+      why: m.music_shell_today_reason_named({
+        why: m.music_shell_today_weak(),
+        name: advice.focus.name,
+      }),
     };
   const used = new Set(plan.routine.steps.map((s) => s.href.split("?")[0]));
   const e = CATALOG.find(
     (c) => c.instruments.includes(instrument) && !used.has(c.route) && !c.route.includes("?"),
   );
-  return e && { label: `Try ${e.title}`, href: e.route, why: e.blurb };
+  return e && { label: m.music_shell_today_try({ title: e.title }), href: e.route, why: e.blurb };
 }
 
 /**

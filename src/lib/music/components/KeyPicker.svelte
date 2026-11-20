@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // A key picker: a button with the key on it that opens the circle of fifths
   // (major keys only). Neighbouring keys sit side by side, so the key a fifth
   // or a fourth away is one tap over. Values are pitch classes; `name` spells
@@ -36,7 +37,7 @@
 <Popover.Root bind:open>
   <Popover.Trigger
     bind:ref={trigger}
-    aria-label="{label}: {name(value)}"
+    aria-label={m.music_shell_key_picker_label({ label, key: name(value) })}
     class={cn(
       "flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 text-sm font-medium transition-colors",
       tone === "stage" ? "border-ws-stage-ink/15 bg-ws-stage-ink/8 text-ws-stage-ink hover:bg-ws-stage-ink/15" : "border-ws-line bg-ws-surface text-ws-ink hover:bg-ws-raised",
@@ -51,12 +52,12 @@
       compact
       numerals={false}
       {selected}
-      label="{label}: the circle of fifths"
+      label={m.music_shell_key_picker_circle({ label })}
       onpick={(f) => {
         onchange(CIRCLE.find((k) => k.fifths === f || k.enharmonic?.fifths === f)?.pc ?? 0);
         open = false;
       }}
     />
-    <p class="mt-2 text-center text-[13px] text-ws-soft">A fifth up clockwise, a fourth up the other way.</p>
+    <p class="mt-2 text-center text-[13px] text-ws-soft">{m.music_shell_key_picker_tip()}</p>
   </Popover.Content>
 </Popover.Root>

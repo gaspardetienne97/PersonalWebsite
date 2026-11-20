@@ -3,6 +3,7 @@
 // Durations come from real note-offs (lessons A7).
 import type { InputSource, Instrument, NoteEvent, Score } from "@repo/music-core";
 import { db } from "#lib/music/runtime/index.ts";
+import { formatNumber } from "@repo/i18n/format";
 import type { SequenceNote } from "#lib/music/runtime/audio.svelte.ts";
 
 export interface TakeNote {
@@ -132,7 +133,10 @@ export function clock(ms: number): string {
 }
 
 /** A take's length: "0.8 s" when short, else the clock. */
-export const takeLength = (ms: number) => (ms < 10_000 ? `${(ms / 1000).toFixed(1)} s` : clock(ms));
+export const takeLength = (ms: number) =>
+  ms < 10_000
+    ? `${formatNumber(Number((ms / 1000).toFixed(1)), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`
+    : clock(ms);
 
 /** File-name-safe stem for downloads. */
 export const fileStem = (name: string, fallback = "take") =>

@@ -1,14 +1,28 @@
 // Shared state for the practice controls strip and focus mode. A drill run
 // locks instrument, tempo and count-in; the metronome stays available.
 import type { Instrument } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
+// Getters, so each read is in the current language.
 export const INSTRUMENT_LABEL: Record<Instrument, string> = {
-  piano: "Piano",
-  guitar: "Guitar",
-  ukulele: "Ukulele",
-  aerophone: "Aerophone",
-  mpc: "MPC pads",
-  voice: "Voice",
+  get piano() {
+    return m.music_shell_instrument_piano();
+  },
+  get guitar() {
+    return m.music_shell_instrument_guitar();
+  },
+  get ukulele() {
+    return m.music_shell_instrument_ukulele();
+  },
+  get aerophone() {
+    return m.music_shell_instrument_aerophone();
+  },
+  get mpc() {
+    return m.music_shell_instrument_mpc();
+  },
+  get voice() {
+    return m.music_shell_instrument_voice();
+  },
 };
 
 export type Hue = Instrument | "ear" | "reading" | "rhythm" | "create";

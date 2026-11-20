@@ -4,6 +4,7 @@ import { LEARNING_PATHS } from "@repo/music-core/progress/paths";
 import { INSTRUMENTS } from "@repo/music-core";
 import { DRILL_GROUPS } from "./hubs/drills-layout";
 import { INSTRUMENT_LABEL } from "./bench.svelte";
+import { m } from "@repo/i18n/messages.js";
 export interface SearchItem {
   label: string;
   href: string;
@@ -28,72 +29,114 @@ export const kindOf = (i: SearchItem) => i.kind ?? (i.drill ? "drill" : "page");
 export const PAGES_SHOWN = 4;
 
 const PAGES: SearchItem[] = [
-  { label: "Start Today's set", href: "/music", hint: "Today", keywords: "routine daily" },
-  { label: "All drills", href: "/music?tab=drills", hint: "Drills" },
-  { label: "Learning paths", href: "/music?tab=paths", hint: "Drills", keywords: "curriculum" },
   {
-    label: "Studio",
+    label: m.music_shell_search_start_today(),
+    href: "/music",
+    hint: m.music_shell_nav_today(),
+    keywords: m.music_shell_search_start_today_kw(),
+  },
+  { label: m.music_shell_home_all_drills(), href: "/music?tab=drills", hint: m.music_shell_nav_drills() },
+  {
+    label: m.music_shell_search_paths(),
+    href: "/music?tab=paths",
+    hint: m.music_shell_nav_drills(),
+    keywords: m.music_shell_search_paths_kw(),
+  },
+  {
+    label: m.music_shell_nav_studio(),
     href: "/music/studio",
-    hint: "Songs and tools to make them",
-    keywords: "library create",
+    hint: m.music_shell_search_studio_hint(),
+    keywords: m.music_shell_search_studio_kw(),
   },
   {
-    label: "Import a score",
+    label: m.music_shell_search_import(),
     href: "/music/studio?tab=import",
-    hint: "Studio",
-    keywords: "midi musicxml mxl transcribe",
+    hint: m.music_shell_nav_studio(),
+    keywords: m.music_shell_search_import_kw(),
   },
-  { label: "Chord and scale reference", href: "/music/create/reference", hint: "Studio" },
   {
-    label: "Beat grid",
+    label: m.music_shell_search_reference(),
+    href: "/music/create/reference",
+    hint: m.music_shell_nav_studio(),
+  },
+  {
+    label: m.music_shell_search_beat_grid(),
     href: "/music/create?mode=beat",
-    hint: "Studio",
-    keywords: "sequencer drums song backing track",
+    hint: m.music_shell_nav_studio(),
+    keywords: m.music_shell_search_beat_grid_kw(),
   },
   {
-    label: "Piano roll",
+    label: m.music_shell_search_piano_roll(),
     href: "/music/create?mode=roll",
-    hint: "Studio",
-    keywords: "melody song",
+    hint: m.music_shell_nav_studio(),
+    keywords: m.music_shell_search_piano_roll_kw(),
   },
   {
-    label: "Sample kits",
+    label: m.music_shell_search_kits(),
     href: "/music/create/kits",
-    hint: "Studio",
-    keywords: "kit samples pads mpc",
+    hint: m.music_shell_nav_studio(),
+    keywords: m.music_shell_search_kits_kw(),
   },
-  { label: "Record", href: "/music/record", hint: "Takes", keywords: "audio midi take" },
-  { label: "Progress", href: "/music/progress", hint: "What next" },
-  { label: "Skills", href: "/music/progress?view=skills", hint: "Progress", keywords: "mastery" },
-  { label: "Sessions", href: "/music/progress?view=sessions", hint: "Progress" },
   {
-    label: "Journal",
+    label: m.music_shell_nav_record(),
+    href: "/music/record",
+    hint: m.music_shell_search_takes(),
+    keywords: m.music_shell_search_record_kw(),
+  },
+  { label: m.music_shell_nav_progress(), href: "/music/progress", hint: m.music_shell_search_what_next() },
+  {
+    label: m.music_shell_search_skills(),
+    href: "/music/progress?view=skills",
+    hint: m.music_shell_nav_progress(),
+    keywords: m.music_shell_search_skills_kw(),
+  },
+  {
+    label: m.music_shell_search_sessions(),
+    href: "/music/progress?view=sessions",
+    hint: m.music_shell_nav_progress(),
+  },
+  {
+    label: m.music_shell_nav_journal(),
     href: "/music/progress?view=journal",
-    hint: "Progress",
-    keywords: "history notes heatmap",
+    hint: m.music_shell_nav_progress(),
+    keywords: m.music_shell_search_journal_kw(),
   },
   {
-    label: "Connect",
+    label: m.music_shell_nav_connect(),
     href: "/music/connect",
-    hint: "MIDI and microphone",
-    keywords: "device mpc aerophone",
+    hint: m.music_shell_search_connect_hint(),
+    keywords: m.music_shell_search_connect_kw(),
   },
-  { label: "Tuner", href: "/music/tuner", hint: "Tune", keywords: "pitch" },
-  { label: "Intonation", href: "/music/tuner?mode=intonation", hint: "Tuner" },
-  { label: "Drone", href: "/music/tuner?mode=drone", hint: "Tuner" },
   {
-    label: "Test recordings",
+    label: m.music_shell_search_tuner(),
+    href: "/music/tuner",
+    hint: m.music_shell_search_tune(),
+    keywords: m.music_shell_search_tuner_kw(),
+  },
+  {
+    label: m.music_shell_search_intonation(),
+    href: "/music/tuner?mode=intonation",
+    hint: m.music_shell_search_tuner(),
+  },
+  { label: m.music_shell_search_drone(), href: "/music/tuner?mode=drone", hint: m.music_shell_search_tuner() },
+  {
+    label: m.music_shell_search_clips(),
     href: "/music/clips",
-    hint: "Settings",
-    keywords: "clips microphone wav",
+    hint: m.music_shell_nav_settings(),
+    keywords: m.music_shell_search_clips_kw(),
   },
   {
-    label: "Settings",
+    label: m.music_shell_nav_settings(),
     href: "/music/settings",
-    hint: "Sound, latency, data",
-    keywords: "calibration backup",
+    hint: m.music_shell_search_settings_hint(),
+    keywords: m.music_shell_search_settings_kw(),
   },
-  { label: "Guide", href: "/music/guide", hint: "How it works", keywords: "help" },
+  {
+    label: m.music_shell_nav_guide(),
+    href: "/music/guide",
+    hint: m.music_shell_search_guide_hint(),
+    keywords: m.music_shell_search_guide_kw(),
+  },
 ];
 
 /** The Drills tab section a drill sits in, so "Scales" and "Scales and modes" read apart. */
@@ -106,10 +149,10 @@ const DRILLS: SearchItem[] = CATALOG.map((e) => {
   return {
     label: e.title,
     href: e.route,
-    hint: where ? `${where} drill` : "Drill",
+    hint: where ? m.music_shell_search_area_drill({ area: where }) : m.music_shell_search_drill(),
     detail:
       e.instruments.length >= INSTRUMENTS.length
-        ? "Any instrument"
+        ? m.music_shell_search_any_instrument()
         : e.instruments.map((i) => INSTRUMENT_LABEL[i]).join(", "),
     keywords: e.blurb,
     drill: true,
@@ -119,7 +162,7 @@ const DRILLS: SearchItem[] = CATALOG.map((e) => {
 const PATHS: SearchItem[] = Object.values(LEARNING_PATHS).map((p) => ({
   label: p.title,
   href: "/music?tab=paths",
-  hint: "Path",
+  hint: m.music_shell_search_path(),
   keywords: p.subtitle,
   kind: "path",
 }));
@@ -197,12 +240,17 @@ export function searchItems(
     const first = lead.filter((i, n) => lead.findIndex((j) => path(j.href) === path(i.href)) === n);
     const rest = all
       .filter((i) => !i.drill && !first.some((f) => f.href === i.href))
-      .map((i) => (lead.length ? { ...i, group: "Pages" } : i));
+      .map((i) => (lead.length ? { ...i, group: m.music_shell_search_pages() } : i));
     if (lead.length && !allPages && rest.length > PAGES_SHOWN)
       return [
         ...first,
         ...rest.slice(0, PAGES_SHOWN),
-        { label: "More pages", href: "#more-pages", group: "Pages", kind: "more" },
+        {
+          label: m.music_shell_search_more_pages(),
+          href: "#more-pages",
+          group: m.music_shell_search_pages(),
+          kind: "more",
+        },
       ];
     return [...first, ...rest].slice(0, lead.length && allPages ? undefined : 12);
   }
@@ -240,9 +288,9 @@ export function searchItems(
     ? [
         ...shown,
         {
-          label: `Show ${drills === 1 ? "it" : `all ${drills}`} in Drills`,
+          label: m.music_shell_search_show_in_drills({ count: drills }),
           href: `/music?tab=drills&q=${encodeURIComponent(query.trim())}`,
-          hint: "Drills",
+          hint: m.music_shell_nav_drills(),
           kind: "all" as const,
         },
       ]

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // An explanation that stays out of the page's flow: an info button beside a
   // label, with the text in a tooltip on hover, focus or tap. Screen readers get
   // the text as the button's description, so nothing is hidden from them.
@@ -18,7 +19,7 @@
           {...props}
           type="button"
           class="-my-2 inline-grid size-11 shrink-0 place-items-center rounded-full align-middle text-ws-soft hover:text-ws-ink"
-          aria-label="About {about}"
+          aria-label={m.music_shell_hint_about({ about })}
           aria-describedby={id}
           onclick={() => (open = !open)}
         >

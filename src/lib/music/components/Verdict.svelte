@@ -1,7 +1,27 @@
 <script lang="ts" module>
+  import { m } from "@repo/i18n/messages.js";
   export type VerdictKind = "ontime" | "early" | "late" | "miss" | "wrong" | "right";
   /** The word each verdict reads when the drill passes no `text`. */
-  export const VERDICT_WORD: Record<VerdictKind, string> = { ontime: "On time", early: "Early", late: "Late", miss: "Missed", wrong: "Wrong note", right: "Right" };
+  export const VERDICT_WORD: Record<VerdictKind, string> = {
+    get ontime() {
+      return m.music_shell_verdict_ontime();
+    },
+    get early() {
+      return m.music_shell_verdict_early();
+    },
+    get late() {
+      return m.music_shell_verdict_late();
+    },
+    get miss() {
+      return m.music_shell_verdict_miss();
+    },
+    get wrong() {
+      return m.music_shell_verdict_wrong();
+    },
+    get right() {
+      return m.music_shell_verdict_right();
+    },
+  };
 </script>
 
 <script lang="ts">
