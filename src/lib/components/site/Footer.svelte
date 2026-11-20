@@ -6,7 +6,7 @@
   import { replayIntro } from "./intro.svelte";
   import { isFullscreenApp, name, nav, socials } from "#lib/config.ts";
   import { projects } from "#lib/content/projects.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
   const year = new Date().getFullYear();

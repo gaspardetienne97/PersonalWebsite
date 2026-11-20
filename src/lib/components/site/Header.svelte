@@ -13,7 +13,7 @@
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro, shortcutListener } from "./intro.svelte";
   import { isFullscreenApp, nav, shortName } from "#lib/config.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
   const narrow = new MediaQuery("(width < 640px)");

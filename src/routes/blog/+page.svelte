@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import { resolve } from "$app/paths";
   import FileText from "@lucide/svelte/icons/file-text";
   import * as Card from "@repo/ui/card";

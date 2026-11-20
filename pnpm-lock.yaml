@@ -198,6 +198,9 @@ importers:
       '@lucide/svelte':
         specifier: 'catalog:'
         version: 1.77.0(svelte@5.58.0)
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:packages/i18n
       '@repo/music-core':
         specifier: workspace:*
         version: link:packages/music-core
@@ -362,8 +365,17 @@ importers:
         specifier: 'catalog:'
         version: 7.4.1
 
+  packages/i18n:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
   packages/music-core:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@tonejs/midi':
         specifier: 'catalog:'
         version: 2.0.28
@@ -383,6 +395,9 @@ importers:
 
   packages/pdf-core:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       jszip:
         specifier: 'catalog:'
         version: 3.10.2

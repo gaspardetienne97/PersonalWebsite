@@ -5,7 +5,7 @@
   import CircuitArt from "./CircuitArt.svelte";
   import StudioCover from "./StudioCover.svelte";
   import { STUDIO, STUDIO_KINDS, everything } from "#lib/content/studio.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   let { headingLevel = 3, writing
 

@@ -3,7 +3,7 @@ import { building } from "$app/env";
 import { sequence, type Handle } from "@sveltejs/kit/hooks";
 import { svelteKitHandler } from "better-auth/svelte-kit";
 import * as auth from "#lib/server/auth.ts";
-import { paraglideMiddleware } from "#lib/paraglide/server.js";
+import { paraglideMiddleware } from "@repo/i18n/server.js";
 
 // Paraglide picks the locale per request. Its strategy here is cookie, then the
 // base locale (no locale in the URL), so the request itself never changes, which

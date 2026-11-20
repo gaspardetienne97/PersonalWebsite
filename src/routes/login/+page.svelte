@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import KeyRound from "@lucide/svelte/icons/key-round";
   import * as Card from "@repo/ui/card";
   import { Button } from "@repo/ui/button";

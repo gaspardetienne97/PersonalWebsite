@@ -1,5 +1,5 @@
 import type { Component } from "svelte";
-import { m } from "#lib/paraglide/messages.js";
+import { m } from "@repo/i18n/messages.js";
 // Lucide dropped brand icons in 1.0, so these are local, drawn in Lucide's style.
 import Github from "#lib/components/site/icons/Github.svelte";
 import Linkedin from "#lib/components/site/icons/Linkedin.svelte";

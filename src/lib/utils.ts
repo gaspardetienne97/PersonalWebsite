@@ -1,4 +1,3 @@
-import { getLocale } from "#lib/paraglide/runtime.js";
 import { clsx, type ClassValue } from "clsx";
 import { cubicOut } from "svelte/easing";
 import type { TransitionConfig } from "svelte/transition";
@@ -64,42 +63,5 @@ export const flyAndScale = (
     easing: cubicOut,
   };
 };
-type DateStyle = Intl.DateTimeFormatOptions["dateStyle"];
-
-// Most Intl date data has no Haitian Creole, so its months are spelled out here.
-const CREOLE_MONTHS = [
-  "janvye",
-  "fevriye",
-  "mas",
-  "avril",
-  "me",
-  "jen",
-  "jiyè",
-  "out",
-  "septanm",
-  "oktòb",
-  "novanm",
-  "desanm",
-];
-
-/**
- * The tag to hand `Intl` for a site locale. The Spanish here is Latin American
- * and the French is Haitian, while plain "es" and "fr" mean Spain and France.
- */
-const INTL_LOCALES: Record<string, string> = { es: "es-419", fr: "fr-HT" };
-export function intlLocale(locale: string = getLocale()) {
-  return INTL_LOCALES[locale] ?? locale;
-}
-
-/** A date in the visitor's language (or the given locale). */
-export function formatDate(
-  date: string,
-  dateStyle: DateStyle = "medium",
-  locale: string = getLocale(),
-) {
-  // Safari is mad about dashes in the date
-  const dateToFormat = new Date(date.replaceAll("-", "/"));
-  if (locale === "ht")
-    return `${dateToFormat.getDate()} ${CREOLE_MONTHS[dateToFormat.getMonth()]} ${dateToFormat.getFullYear()}`;
-  return new Intl.DateTimeFormat(intlLocale(locale), { dateStyle }).format(dateToFormat);
-}
+// Dates, numbers and lists in the visitor's language live in @repo/i18n.
+export { formatDate, formatList, formatNumber, intlLocale } from "@repo/i18n/format";

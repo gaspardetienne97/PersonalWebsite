@@ -18,6 +18,7 @@
     "build": "tsc --noEmit --project ./tsconfig.json"
   },
   "dependencies": {
+    "@repo/i18n": "workspace:*",
     "jszip": "catalog:",
     "kokoro-js": "catalog:",
     "pdfjs-dist": "catalog:",

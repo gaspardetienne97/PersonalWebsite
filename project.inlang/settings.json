@@ -5,8 +5,24 @@
 		"https://cdn.jsdelivr.net/npm/@inlang/plugin-m-function-matcher@2/dist/index.js"
 	],
 	"plugin.inlang.messageFormat": {
-		"pathPattern": "./messages/{locale}.json"
+		"pathPattern": [
+			"./messages/{locale}.json",
+			"./messages/narrator/{locale}.json",
+			"./messages/music/shell/{locale}.json",
+			"./messages/music/runtime/{locale}.json",
+			"./messages/music/hubs/{locale}.json",
+			"./messages/music/strings/{locale}.json",
+			"./messages/music/winds/{locale}.json",
+			"./messages/music/drills/{locale}.json",
+			"./messages/music/lessons/{locale}.json",
+			"./messages/music/content/{locale}.json"
+		]
 	},
 	"baseLocale": "en",
-	"locales": ["en", "es", "fr", "ht"]
+	"locales": [
+		"en",
+		"es",
+		"fr",
+		"ht"
+	]
 }

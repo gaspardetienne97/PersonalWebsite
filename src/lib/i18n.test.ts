@@ -1,31 +1,86 @@
 import { describe, expect, it } from "vite-plus/test";
-import en from "../../messages/en.json";
-import es from "../../messages/es.json";
-import fr from "../../messages/fr.json";
-import ht from "../../messages/ht.json";
-import { formatDate, intlLocale } from "./utils.ts";
+import { formatDate, formatList, intlLocale } from "./utils.ts";
 
-const MESSAGES: Record<string, Record<string, string>> = { en, es, fr, ht };
-const LOCALES = Object.keys(MESSAGES);
-const load = (locale: string) => MESSAGES[locale];
-
-const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
-
-describe("translations", () => {
-  for (const locale of LOCALES.filter((l) => l !== "en")) {
-    it(`${locale} has every English message, with the same placeholders`, () => {
-      const other = load(locale);
-      expect(Object.keys(other).sort()).toEqual(Object.keys(load("en")).sort());
-      for (const key of Object.keys(load("en"))) {
-        if (key === "$schema") continue;
-        expect(placeholders(other[key]), `${locale}.${key}`).toEqual(placeholders(load("en")[key]));
-        expect(other[key].trim(), `${locale}.${key} is empty`).not.toBe("");
-      }
-    });
-  }
+// Every message file, by area: "messages/en.json" is the site, and
+// "messages/<area>/en.json" holds an app's (see project.inlang/settings.json).
+const files = import.meta.glob<Record<string, unknown>>("../../messages/**/*.json", {
+  eager: true,
+  import: "default",
 });
 
-describe("formatDate", () => {
+const LOCALES = ["en", "es", "fr", "ht"];
+type Messages = Record<string, unknown>;
+type Variant = { declarations?: string[]; match?: Record<string, string> };
+
+const areas = new Map<string, Record<string, Messages>>();
+for (const [path, messages] of Object.entries(files)) {
+  const match = path.match(/messages\/(?:(.+)\/)?(\w+)\.json$/)!;
+  const area = match[1] ?? "site";
+  if (!areas.has(area)) areas.set(area, {});
+  areas.get(area)![match[2]] = messages;
+}
+
+/** A message's texts: one for a plain string, one per case for a plural variant. */
+function texts(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value))
+    return (value as Variant[]).flatMap((variant) => Object.values(variant.match ?? {}));
+  return [];
+}
+
+/** What a caller passes: the placeholders in its texts plus declared inputs, not locals. */
+function inputs(value: unknown) {
+  const names = new Set(
+    texts(value).flatMap((t) => [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1])),
+  );
+  const declarations = Array.isArray(value)
+    ? (value as Variant[]).flatMap((v) => v.declarations ?? [])
+    : [];
+  for (const d of declarations) {
+    const input = d.match(/^input (\w+)/);
+    if (input) names.add(input[1]);
+  }
+  for (const d of declarations) {
+    const local = d.match(/^local (\w+)/);
+    if (local) names.delete(local[1]);
+  }
+  return [...names].sort();
+}
+
+describe("translations", () => {
+  it("finds the site's messages", () => {
+    expect(areas.get("site")?.en).toBeDefined();
+  });
+
+  for (const [area, byLocale] of areas) {
+    for (const locale of LOCALES.filter((l) => l !== "en")) {
+      it(`${area}: ${locale} has every English message, with the same inputs`, () => {
+        const en = byLocale.en ?? {};
+        const other = byLocale[locale];
+        expect(other, `messages/${area}/${locale}.json is missing`).toBeDefined();
+        expect(Object.keys(other).sort()).toEqual(Object.keys(en).sort());
+        for (const key of Object.keys(en)) {
+          if (key === "$schema") continue;
+          expect(inputs(other[key]), `${area} ${locale}.${key}`).toEqual(inputs(en[key]));
+          for (const text of texts(other[key]))
+            expect(text.trim(), `${area} ${locale}.${key} is empty`).not.toBe("");
+        }
+      });
+    }
+  }
+
+  it("never uses one key in two areas", () => {
+    const seen = new Map<string, string>();
+    for (const [area, byLocale] of areas)
+      for (const key of Object.keys(byLocale.en ?? {})) {
+        if (key === "$schema") continue;
+        expect(seen.get(key), `${key} is in both ${seen.get(key)} and ${area}`).toBeUndefined();
+        seen.set(key, area);
+      }
+  });
+});
+
+describe("formatting", () => {
   it("spells Haitian Creole months itself", () => {
     expect(formatDate("2024-9-16", "long", "ht")).toBe("16 septanm 2024");
   });
@@ -42,5 +97,12 @@ describe("formatDate", () => {
 
   it("formats French as it is used in Haiti", () => {
     expect(intlLocale("fr")).toBe("fr-HT");
+  });
+
+  it("joins lists in each language", () => {
+    expect(formatList(["C", "E", "G"], "conjunction", "en")).toBe("C, E and G");
+    expect(formatList(["C", "E", "G"], "conjunction", "es")).toBe("C, E y G");
+    expect(formatList(["C", "E", "G"], "conjunction", "fr")).toBe("C, E et G");
+    expect(formatList(["C", "E", "G"], "conjunction", "ht")).toBe("C, E ak G");
   });
 });

@@ -8,7 +8,7 @@
   the circuit traces run on underneath, softened rather than cut out.
 -->
 <script lang="ts">
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   let {
     spelled = false,
     instant = false,

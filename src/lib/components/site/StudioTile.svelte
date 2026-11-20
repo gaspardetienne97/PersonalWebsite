@@ -7,7 +7,7 @@
   import Maximize from "@lucide/svelte/icons/maximize-2";
   import StudioCover from "./StudioCover.svelte";
   import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   let { item, onopen }: { item: StudioItem; onopen: (item: StudioItem) => void } = $props();
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Lock from "@lucide/svelte/icons/lock";
   import * as Avatar from "@repo/ui/avatar";

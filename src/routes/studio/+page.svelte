@@ -14,7 +14,7 @@
     kindInfo,
     type StudioItem,
   } from "#lib/content/studio.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   let { data } = $props();
 

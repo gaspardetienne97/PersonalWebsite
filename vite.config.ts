@@ -61,12 +61,12 @@ const highlightCodeBlock = (code: string, { lang = "" }: { lang?: string | null 
 export default defineConfig(({ isSsrBuild }): UserConfig => ({
   plugins: [
     tailwindcss(),
-    // Translations: compiles project.inlang/messages into #lib/paraglide on every
-    // dev start and build. The language comes from a cookie the site's language
+    // Translations: compiles project.inlang and messages/ into @repo/i18n (so the
+    // workspace packages can use them too) on every dev start and build. The language comes from a cookie the site's language
     // menu sets, then the browser's preference, then English; URLs stay the same.
     paraglideVitePlugin({
       project: "./project.inlang",
-      outdir: "./src/lib/paraglide",
+      outdir: "./packages/i18n/paraglide",
       outputStructure: "message-modules",
       strategy: ["cookie", "preferredLanguage", "baseLocale"],
     }),
@@ -151,7 +151,7 @@ export default defineConfig(({ isSsrBuild }): UserConfig => ({
       "apps/*/build/**",
       "node_modules/**",
       "project.inlang/**",
-      "src/lib/paraglide/**",
+      "packages/i18n/paraglide/**",
       "**/*.md",
     ],
   },
@@ -165,7 +165,7 @@ export default defineConfig(({ isSsrBuild }): UserConfig => ({
       "domain/**",
       "apps/*/.svelte-kit/**",
       "packages/*/.svelte-kit/**",
-      "**/src/lib/paraglide/**",
+      "**/packages/i18n/paraglide/**",
       "**/dist/**",
       "**/build/**",
       "apps/*/build/**",

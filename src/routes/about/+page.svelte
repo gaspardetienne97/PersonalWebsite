@@ -7,7 +7,7 @@
   import LogoMark from "#lib/components/site/LogoMark.svelte";
   import { socials } from "#lib/config.ts";
   import { MARKERS } from "#lib/circuit/router.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
 
   // Each pair is a heading and its text, read in the visitor's language.
   const work = [

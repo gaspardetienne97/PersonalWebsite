@@ -7,8 +7,8 @@
   import Languages from "@lucide/svelte/icons/languages";
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
   import { buttonVariants } from "@repo/ui/button";
-  import { m } from "#lib/paraglide/messages.js";
-  import { getLocale, locales, setLocale, type Locale } from "#lib/paraglide/runtime.js";
+  import { m } from "@repo/i18n/messages.js";
+  import { getLocale, locales, setLocale, type Locale } from "@repo/i18n/runtime.js";
 
   const names: Record<Locale, string> = {
     en: "English",

@@ -25,13 +25,14 @@
     "db:studio": "drizzle-kit studio",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy cookie preferredLanguage baseLocale --silent"
+    "i18n": "paraglide-js compile --project ./project.inlang --outdir ./packages/i18n/paraglide --strategy cookie preferredLanguage baseLocale --silent"
   },
   "dependencies": {
     "@fontsource-variable/outfit": "catalog:",
     "@fontsource/fira-mono": "catalog:",
     "@inlang/paraglide-js": "catalog:",
     "@lucide/svelte": "catalog:",
+    "@repo/i18n": "workspace:*",
     "@repo/music-core": "workspace:*",
     "@repo/pdf-core": "workspace:*",
     "@repo/ui": "workspace:*",

@@ -6,7 +6,7 @@
   import StudioDoors from "#lib/components/site/StudioDoors.svelte";
   import { MARKERS } from "#lib/circuit/router.ts";
   import { title } from "#lib/config.ts";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import { kindInfo, newest } from "#lib/content/studio.ts";
   import { formatDate } from "#lib/utils.ts";
 

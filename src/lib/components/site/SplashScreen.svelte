@@ -16,7 +16,7 @@
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import { SEEN_CLASS, SEEN_KEY, growSiteBoard, randomSeed, site } from "./intro.svelte";
 
   /** GmeMark's viewBox and the logo's outer radius in it (ring 300, drawn at 1.45×). */

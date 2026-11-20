@@ -13,6 +13,7 @@
     "build": "tsc --noEmit --project ./tsconfig.json"
   },
   "dependencies": {
+    "@repo/i18n": "workspace:*",
     "@tonejs/midi": "catalog:",
     "jszip": "catalog:"
   },

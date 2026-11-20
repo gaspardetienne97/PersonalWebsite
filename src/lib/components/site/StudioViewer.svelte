@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from "svelte";
-  import { m } from "#lib/paraglide/messages.js";
+  import { m } from "@repo/i18n/messages.js";
   import * as Carousel from "@repo/ui/carousel";
   import * as Dialog from "@repo/ui/dialog";
   import StudioCover from "./StudioCover.svelte";

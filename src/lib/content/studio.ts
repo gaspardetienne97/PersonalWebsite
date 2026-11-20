@@ -39,7 +39,7 @@ import Palette from "@lucide/svelte/icons/palette";
 import PenTool from "@lucide/svelte/icons/pen-tool";
 import PencilLine from "@lucide/svelte/icons/pencil-line";
 import { projects, type Project } from "./projects";
-import { m } from "#lib/paraglide/messages.js";
+import { m } from "@repo/i18n/messages.js";
 
 type Common = { id: string; title: string; year?: number; note?: string };
 

@@ -3,7 +3,7 @@ import AudioLines from "@lucide/svelte/icons/audio-lines";
 import ListMusic from "@lucide/svelte/icons/list-music";
 import CircuitBoard from "@lucide/svelte/icons/circuit-board";
 import { MARKERS } from "#lib/circuit/router.ts";
-import { m } from "#lib/paraglide/messages.js";
+import { m } from "@repo/i18n/messages.js";
 
 export type Project = {
   slug: string;

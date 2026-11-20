@@ -1,6 +1,6 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { AUTHENTIK, authentikConfigured, authentikOrigin, getAuth } from "#lib/server/auth.ts";
-import { m } from "#lib/paraglide/messages.js";
+import { m } from "@repo/i18n/messages.js";
 import type { Actions, PageServerLoad } from "./$types";
 
 /** A same-site path to come back to after signing in; anything else goes to /private. */
