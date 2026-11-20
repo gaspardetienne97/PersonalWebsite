@@ -93,6 +93,21 @@ npm run build-storybook  # Build static Storybook
 - Supported locales: en (base), es, fr, ht
 - HTML lang attribute injected via `%paraglide.lang%` placeholder in [src/app.html](src/app.html)
 
+#### Making changes with Paraglide
+Every visible string on the site pages goes through a message: headings, body copy, button labels, `aria-label`, `alt`, `title`, `<svelte:head>` titles and descriptions, placeholders, empty states and error text. Proper names (Woodshed, Narrator, GitHub), the language names in `LanguageMenu.svelte` and code samples stay as they are.
+
+- **Adding or changing a string**: add the key to `messages/en.json` first, then add it to `es.json`, `fr.json` and `ht.json` in the same change, translated, not copied English. `src/lib/i18n.test.ts` fails if a locale is missing a key, has an empty value or uses different `{placeholders}`. When English copy changes meaning, update the other three too; a stale translation passes the test but is wrong.
+- **Key names**: snake_case, prefixed by the page or component they belong to (`nav_`, `home_`, `studio_`, `about_`, `blog_`, `post_`, `login_`, `private_`, `intro_`, `footer_`). Look for an existing key before adding one. Delete keys you stop using, from all four files.
+- **Using a message**: `import { m } from "#lib/paraglide/messages.js";` then call `m.key()` or `m.key({ name })`. Call it where it renders (in markup or a `$derived`), never once at module top level: a module-level `const label = m.nav_home()` is fixed to whichever locale loaded the module first.
+- **Strings in data modules** (`src/lib/config.ts`, `src/lib/content/*.ts`): expose them as getters (`get label() { return m.nav_home(); }`) so they read the current locale each time. Don't spread or `structuredClone` these objects, which freezes the getter's value; `studio.ts` uses `Object.assign(Object.create(entry), …)` to extend them for this reason.
+- **Placeholders, not concatenation**: word order differs between languages, so put variables inside the message (`"studio_empty_title": "No {kind} yet"`) instead of joining fragments in code. For a link inside a sentence, pass the anchor HTML as a placeholder and render with `{@html}`, as `src/routes/about/+page.svelte` does with its `link()` helper. Only do that with HTML you build yourself, never with user input.
+- **Dates and numbers**: use `formatDate()` from `#lib/utils.ts`, which follows the current locale (Haitian Creole month names are spelled out there because `Intl` has none). For numbers, use `Intl.NumberFormat(getLocale())`, with `getLocale` from `#lib/paraglide/runtime.js`.
+- **Prerendering**: a prerendered page is built once, in English. A page with translated text needs `export const prerender = false` (see `src/routes/about/+page.ts`).
+- **Switching language**: call `setLocale()` from the runtime, which sets the cookie and reloads. Don't build per-locale URLs or read `navigator.language` yourself.
+- **Not translated**: blog post bodies in `src/lib/blog-posts/`, the music app (`/music`) and Narrator (`/pdf`). Don't add Paraglide to those unless asked.
+- **Adding a locale**: add it to `locales` in `project.inlang/settings.json`, create `messages/<locale>.json` with every key, add its endonym to `LanguageMenu.svelte`, and import its JSON into `MESSAGES` in `src/lib/i18n.test.ts` so the test checks it. If `Intl` lacks month names for it, handle it in `formatDate` the way `ht` is.
+- **Verify**: `vp test --run src/lib/i18n.test.ts`, then switch languages in the header menu on the pages you touched and look for leftover English and text that overflows (French and Spanish run about a third longer than English).
+
 ### Hook Sequence
 The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts#L37)):
 1. `handleParaglide` - Sets locale and injects lang attribute
