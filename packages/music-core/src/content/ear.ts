@@ -6,6 +6,7 @@ import { clamp01, noteName, pc } from "../theory/notes";
 import { INTERVALS } from "../theory/intervals";
 import { numeralChord, numeralSymbol } from "./loops";
 import { pick, randInt, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export type EarDrillKind =
   | "interval"
@@ -58,8 +59,8 @@ export interface EarPrompt {
  */
 const INTERVAL_COMPARE = {
   slug: "interval-compare",
-  title: "Interval comparison",
-  description: "Two intervals, one after the other: which is bigger?",
+  title: m.music_content_ear_interval_compare_title(),
+  description: m.music_content_ear_interval_compare_description(),
   drill: "interval-compare",
   answerModes: ["choice", "listen-along"],
   usesScaleDegreeLevel: false,
@@ -71,8 +72,8 @@ const INTERVAL_COMPARE = {
 const CHORD_FUNCTION_DRILLS = [
   {
     slug: "chord-functions",
-    title: "Chords in a key",
-    description: "I, IV, V, I sets the key, then one chord plays. Which is it, I to vii°?",
+    title: m.music_content_ear_chord_functions_title(),
+    description: m.music_content_ear_chord_functions_description(),
     drill: "chord-function",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -82,9 +83,9 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "progressions",
-    title: "Progression dictation",
+    title: m.music_content_ear_progressions_title(),
     description:
-      "Three or four chords starting on I: write down the rest. Or a key change: where it goes, and how.",
+      m.music_content_ear_progressions_description(),
     drill: "progression",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -94,8 +95,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "song-loops",
-    title: "Song loops",
-    description: "The key is set, then a chord loop plays as a groove: name every chord.",
+    title: m.music_content_ear_song_loops_title(),
+    description: m.music_content_ear_song_loops_description(),
     drill: "loop",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -105,8 +106,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "scales",
-    title: "Scales and modes",
-    description: "A scale over its tonic: major, the minors, pentatonics, blues and the modes.",
+    title: m.music_content_ear_scales_title(),
+    description: m.music_content_ear_scales_description(),
     drill: "scale",
     answerModes: ["choice", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -116,8 +117,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "inversions",
-    title: "Inversions",
-    description: "A chord with its root, third, fifth or seventh in the bass: which inversion?",
+    title: m.music_content_ear_inversions_title(),
+    description: m.music_content_ear_inversions_description(),
     drill: "inversion",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -127,8 +128,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "bass-lines",
-    title: "Bass lines",
-    description: "Chords from I: write down the bass, degree by degree.",
+    title: m.music_content_ear_bass_lines_title(),
+    description: m.music_content_ear_bass_lines_description(),
     drill: "bass-line",
     answerModes: ["choice", "play-back", "listen", "listen-along"],
     usesScaleDegreeLevel: false,
@@ -138,8 +139,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "fine-pitch",
-    title: "Fine pitch",
-    description: "Two notes a few cents apart: is the second higher or lower?",
+    title: m.music_content_ear_fine_pitch_title(),
+    description: m.music_content_ear_fine_pitch_description(),
     drill: "pitch-compare",
     answerModes: ["choice"],
     usesScaleDegreeLevel: false,
@@ -149,8 +150,8 @@ const CHORD_FUNCTION_DRILLS = [
   },
   {
     slug: "wrong-note",
-    title: "Spot the wrong note",
-    description: "A written melody plays with one note changed: which one?",
+    title: m.music_content_ear_wrong_note_title(),
+    description: m.music_content_ear_wrong_note_description(),
     drill: "error-detect",
     answerModes: ["choice"],
     usesScaleDegreeLevel: true,
@@ -210,38 +211,38 @@ export const SCALE_DEGREE_LEVELS: {
 }[] = [
   {
     id: "anchor",
-    title: "Anchor",
-    summary: "Hear the tonic and the dominant: 1 and 5.",
+    title: m.music_content_ear_level_anchor_title(),
+    summary: m.music_content_ear_level_anchor_summary(),
     degrees: ["1", "5"],
   },
   {
     id: "major-pentachord",
-    title: "Major pentachord",
-    summary: "Map the first five major degrees around the tonic.",
+    title: m.music_content_ear_level_major_pentachord_title(),
+    summary: m.music_content_ear_level_major_pentachord_summary(),
     degrees: ["1", "2", "3", "4", "5"],
   },
   {
     id: "major-diatonic",
-    title: "Major diatonic",
-    summary: "Recognise all seven major-key functions.",
+    title: m.music_content_ear_level_major_diatonic_title(),
+    summary: m.music_content_ear_level_major_diatonic_summary(),
     degrees: ["1", "2", "3", "4", "5", "6", "7"],
   },
   {
     id: "minor-diatonic",
-    title: "Minor diatonic",
-    summary: "Recognise natural-minor functions around the tonic.",
+    title: m.music_content_ear_level_minor_diatonic_title(),
+    summary: m.music_content_ear_level_minor_diatonic_summary(),
     degrees: ["1", "2", "b3", "4", "5", "b6", "b7"],
   },
   {
     id: "chromatic-color",
-    title: "Chromatic colour",
-    summary: "Add the colour tones b2 and #4 to the seven diatonic degrees.",
+    title: m.music_content_ear_level_chromatic_title(),
+    summary: m.music_content_ear_level_chromatic_summary(),
     degrees: ALL_DEGREES,
   },
   {
     id: "full-current",
-    title: "Full set",
-    summary: "Review every scale degree Woodshed teaches so far.",
+    title: m.music_content_ear_level_full_title(),
+    summary: m.music_content_ear_level_full_summary(),
     degrees: ALL_DEGREES,
   },
 ];
@@ -293,7 +294,7 @@ export type IntervalDirection = "ascending" | "descending" | "harmonic";
  * the twelve from the theory table.
  */
 export const EAR_INTERVALS = [
-  { token: "P1", semitones: 0, name: "Perfect unison" },
+  { token: "P1", semitones: 0, name: m.music_content_ear_interval_p1() },
   ...INTERVALS,
 ] as const;
 
@@ -438,18 +439,18 @@ export function cadencePrompt(
 
 /** The scales the ear drill asks, in the order they are offered (major and minor first, Locrian last). */
 export const EAR_SCALES = [
-  { token: "major", name: "Major", short: "Major" },
-  { token: "natural-minor", name: "Natural minor", short: "Minor" },
-  { token: "harmonic-minor", name: "Harmonic minor", short: "Harm. min" },
-  { token: "major-pentatonic", name: "Major pentatonic", short: "Maj pent" },
-  { token: "minor-pentatonic", name: "Minor pentatonic", short: "Min pent" },
+  { token: "major", name: m.music_content_ear_scale_major(), short: m.music_content_ear_scale_major() },
+  { token: "natural-minor", name: m.music_content_ear_scale_natural_minor(), short: m.music_content_ear_scale_minor_short() },
+  { token: "harmonic-minor", name: m.music_content_ear_scale_harmonic_minor(), short: m.music_content_ear_scale_harmonic_minor_short() },
+  { token: "major-pentatonic", name: m.music_content_ear_scale_major_pentatonic(), short: m.music_content_ear_scale_major_pentatonic_short() },
+  { token: "minor-pentatonic", name: m.music_content_ear_scale_minor_pentatonic(), short: m.music_content_ear_scale_minor_pentatonic_short() },
   { token: "blues", name: "Blues", short: "Blues" },
-  { token: "melodic-minor", name: "Melodic minor", short: "Mel. min" },
-  { token: "mixolydian", name: "Mixolydian", short: "Mixo" },
-  { token: "dorian", name: "Dorian", short: "Dorian" },
-  { token: "lydian", name: "Lydian", short: "Lydian" },
-  { token: "phrygian", name: "Phrygian", short: "Phrygian" },
-  { token: "locrian", name: "Locrian", short: "Locrian" },
+  { token: "melodic-minor", name: m.music_content_ear_scale_melodic_minor(), short: m.music_content_ear_scale_melodic_minor_short() },
+  { token: "mixolydian", name: m.music_content_ear_scale_mixolydian(), short: m.music_content_ear_scale_mixolydian_short() },
+  { token: "dorian", name: m.music_content_ear_scale_dorian(), short: m.music_content_ear_scale_dorian() },
+  { token: "lydian", name: m.music_content_ear_scale_lydian(), short: m.music_content_ear_scale_lydian() },
+  { token: "phrygian", name: m.music_content_ear_scale_phrygian(), short: m.music_content_ear_scale_phrygian() },
+  { token: "locrian", name: m.music_content_ear_scale_locrian(), short: m.music_content_ear_scale_locrian() },
 ] as const;
 export type ScaleDirection = "ascending" | "both" | "descending";
 const SCALE_STEP = 0.3;
@@ -511,28 +512,28 @@ export function scalePrompt(
 
 /** Triad positions, then seventh-chord positions ("7-" tokens), in the order they are offered. */
 export const EAR_INVERSIONS = [
-  { token: "root", name: "Root position", short: "Root", position: 0, seventh: false },
-  { token: "first", name: "First inversion", short: "1st", position: 1, seventh: false },
-  { token: "second", name: "Second inversion", short: "2nd", position: 2, seventh: false },
-  { token: "7-root", name: "Seventh, root position", short: "7 root", position: 0, seventh: true },
+  { token: "root", name: m.music_content_ear_inv_root(), short: m.music_content_ear_inv_root_short(), position: 0, seventh: false },
+  { token: "first", name: m.music_content_ear_inv_first(), short: m.music_content_ear_inv_first_short(), position: 1, seventh: false },
+  { token: "second", name: m.music_content_ear_inv_second(), short: m.music_content_ear_inv_second_short(), position: 2, seventh: false },
+  { token: "7-root", name: m.music_content_ear_inv_7_root(), short: m.music_content_ear_inv_7_root_short(), position: 0, seventh: true },
   {
     token: "7-first",
-    name: "Seventh, first inversion",
-    short: "7 1st",
+    name: m.music_content_ear_inv_7_first(),
+    short: m.music_content_ear_inv_7_first_short(),
     position: 1,
     seventh: true,
   },
   {
     token: "7-second",
-    name: "Seventh, second inversion",
-    short: "7 2nd",
+    name: m.music_content_ear_inv_7_second(),
+    short: m.music_content_ear_inv_7_second_short(),
     position: 2,
     seventh: true,
   },
   {
     token: "7-third",
-    name: "Seventh, third inversion",
-    short: "7 3rd",
+    name: m.music_content_ear_inv_7_third(),
+    short: m.music_content_ear_inv_7_third_short(),
     position: 3,
     seventh: true,
   },
@@ -636,11 +637,11 @@ export function staircase(step: number, streak: number, correct: boolean) {
 
 /** Roots on 1, 4 and 5; then 2 and 6 too; then stepwise lines through inversions. */
 export const BASS_LEVELS = [
-  { id: "roots-primary", title: "Roots on 1, 4 and 5", degrees: ["1", "4", "5"] },
-  { id: "roots-diatonic", title: "Roots on 1, 2, 4, 5 and 6", degrees: ["1", "2", "4", "5", "6"] },
+  { id: "roots-primary", title: m.music_content_ear_bass_roots_primary(), degrees: ["1", "4", "5"] },
+  { id: "roots-diatonic", title: m.music_content_ear_bass_roots_diatonic(), degrees: ["1", "2", "4", "5", "6"] },
   {
     id: "inversions",
-    title: "Lines through inversions",
+    title: m.music_content_ear_bass_inversions(),
     degrees: ["1", "2", "3", "4", "5", "6", "7"],
   },
 ] as const;
@@ -743,7 +744,10 @@ export function bassLinePrompt(
     choices: [...level.degrees],
     difficulty: opts.difficulty,
     expectedMidi: playback.map((e) => e.midi[0]),
-    caption: `Bass ${degrees.join(", ")}: ${chords.map(([t, p]) => `${functionLabel(t)}${FIGURE[p]}`).join(", ")}`,
+    caption: m.music_content_ear_bass_caption({
+      degrees: degrees.join(", "),
+      chords: chords.map(([t, p]) => `${functionLabel(t)}${FIGURE[p]}`).join(", "),
+    }),
     keyPc,
   };
 }
@@ -757,13 +761,13 @@ export function bassLinePrompt(
  * "m:IV" (a minor key, iv), "m:IV7" (iv7). vii° is written "vii".
  */
 export const CHORD_FUNCTIONS = [
-  { token: "I", name: "Tonic", degree: 0 },
-  { token: "ii", name: "Supertonic", degree: 1 },
-  { token: "iii", name: "Mediant", degree: 2 },
-  { token: "IV", name: "Subdominant", degree: 3 },
-  { token: "V", name: "Dominant", degree: 4 },
-  { token: "vi", name: "Submediant", degree: 5 },
-  { token: "vii", name: "Leading tone", degree: 6 },
+  { token: "I", name: m.music_content_ear_fn_tonic(), degree: 0 },
+  { token: "ii", name: m.music_content_ear_fn_supertonic(), degree: 1 },
+  { token: "iii", name: m.music_content_ear_fn_mediant(), degree: 2 },
+  { token: "IV", name: m.music_content_ear_fn_subdominant(), degree: 3 },
+  { token: "V", name: m.music_content_ear_fn_dominant(), degree: 4 },
+  { token: "vi", name: m.music_content_ear_fn_submediant(), degree: 5 },
+  { token: "vii", name: m.music_content_ear_fn_leading_tone(), degree: 6 },
 ] as const;
 /** Numerals and chord-symbol suffixes by degree. Minor uses the natural minor with a major V (the raised leading tone) and the subtonic VII. */
 const FUNCTION_TABLE = {
@@ -968,14 +972,14 @@ export function progressionPrompt(rand: Rand, opts: FunctionOpts): EarPrompt & {
 
 /** Where a progression can go from the key it starts in (major). */
 export const KEY_CHANGES = [
-  { id: "up-half", label: "Up a half step", shift: 1, minor: false },
-  { id: "up-step", label: "Up a whole step", shift: 2, minor: false },
-  { id: "up-min3", label: "Up a minor third", shift: 3, minor: false },
-  { id: "down-min3", label: "Down a minor third", shift: 9, minor: false },
-  { id: "down-maj3", label: "Down a major third", shift: 8, minor: false },
-  { id: "up-4th", label: "Up a fourth", shift: 5, minor: false },
-  { id: "relative", label: "To the relative minor", shift: 9, minor: true },
-  { id: "parallel", label: "To the parallel minor", shift: 0, minor: true },
+  { id: "up-half", label: m.music_content_ear_kc_up_half(), shift: 1, minor: false },
+  { id: "up-step", label: m.music_content_ear_kc_up_step(), shift: 2, minor: false },
+  { id: "up-min3", label: m.music_content_ear_kc_up_min3(), shift: 3, minor: false },
+  { id: "down-min3", label: m.music_content_ear_kc_down_min3(), shift: 9, minor: false },
+  { id: "down-maj3", label: m.music_content_ear_kc_down_maj3(), shift: 8, minor: false },
+  { id: "up-4th", label: m.music_content_ear_kc_up_4th(), shift: 5, minor: false },
+  { id: "relative", label: m.music_content_ear_kc_relative(), shift: 9, minor: true },
+  { id: "parallel", label: m.music_content_ear_kc_parallel(), shift: 0, minor: true },
 ] as const;
 /** The ways in, as numerals in the new key; the first (a ii-V) is the only one below difficulty 0.5. */
 export const KEY_CHANGE_PATHS = {
@@ -984,6 +988,17 @@ export const KEY_CHANGE_PATHS = {
 };
 /** The answer buttons after the first slot: every chord the ways in use. */
 export const KEY_CHANGE_NUMERALS = ["ii7", "iiø7", "iv7", "V7", "bVII7", "Imaj7", "i7"];
+/** Where a key change goes, mid-sentence ("up a half step", "the relative minor"). */
+const KEY_CHANGE_WHERE: Record<(typeof KEY_CHANGES)[number]["id"], () => string> = {
+  "up-half": m.music_content_ear_kc_up_half_where,
+  "up-step": m.music_content_ear_kc_up_step_where,
+  "up-min3": m.music_content_ear_kc_up_min3_where,
+  "down-min3": m.music_content_ear_kc_down_min3_where,
+  "down-maj3": m.music_content_ear_kc_down_maj3_where,
+  "up-4th": m.music_content_ear_kc_up_4th_where,
+  relative: m.music_content_ear_kc_relative_where,
+  parallel: m.music_content_ear_kc_parallel_where,
+};
 export const keyChangeLabel = (id: string) => KEY_CHANGES.find((k) => k.id === id)?.label ?? id;
 
 /** I, IV, V, I in the old key, then the chords of `answer` in the new one, 0.9 s apart, the arrival held. */
@@ -1002,10 +1017,16 @@ export function keyChangeCaption(fromPc: number, answer: string): string {
   const [dest, ...chords] = answer.split(" ");
   const k = KEY_CHANGES.find((x) => x.id === dest) ?? KEY_CHANGES[0];
   const to = pc(fromPc + k.shift);
-  const name = (p: number, minor: boolean) =>
-    `${noteName(48 + p, "flat", false)} ${minor ? "minor" : "major"}`;
-  const where = k.label.replace(/^To t/, "t").toLowerCase();
-  return `${name(fromPc, false)} to ${name(to, k.minor)}, ${where}: ${chords.map((t) => numeralSymbol(to, t)).join(", ")}`;
+  const name = (p: number, minor: boolean) => {
+    const note = noteName(48 + p, "flat", false);
+    return minor ? m.music_content_ear_key_minor({ note }) : m.music_content_ear_key_major({ note });
+  };
+  return m.music_content_ear_kc_caption({
+    from: name(fromPc, false),
+    to: name(to, k.minor),
+    where: KEY_CHANGE_WHERE[k.id](),
+    chords: chords.map((t) => numeralSymbol(to, t)).join(", "),
+  });
 }
 
 /** One key change; `dest` picks where it goes, `keyPc` the key it starts in. */
