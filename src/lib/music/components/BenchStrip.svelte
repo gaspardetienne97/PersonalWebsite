@@ -44,6 +44,7 @@
   import TuningPicker from "#lib/music/drills/guitar/TuningPicker.svelte";
   import { tunings } from "#lib/music/drills/guitar/instrument.svelte.ts";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
+  import { keyName } from "#lib/music/names.svelte.ts";
   import { page } from "$app/state";
 
   const TEMPOS = [60, 72, 80, 90, 100, 120, 140];
@@ -256,9 +257,9 @@
 
       {#if showReads}
         <Popover.Root>
-          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label={m.music_shell_strip_aero_label({ key: aeroKey.label })} title={m.music_shell_strip_aero_title()}>
+          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label={m.music_shell_strip_aero_label({ key: keyName(aeroKey.label) })} title={m.music_shell_strip_aero_title()}>
             <span class={terse}>{m.music_shell_strip_written_in()}</span>
-            <span class="font-semibold">{aeroKey.label}</span>
+            <span class="font-semibold">{keyName(aeroKey.label)}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
@@ -268,7 +269,7 @@
               {#each AEROPHONE_READING_KEYS as k (k.id)}
                 <Popover.Close
                   class="min-h-11 rounded-md border text-sm {k.id === aeroKey.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
-                  onclick={() => settings.update({ aerophoneKey: k.id })}>{k.label}</Popover.Close
+                  onclick={() => settings.update({ aerophoneKey: k.id })}>{keyName(k.label)}</Popover.Close
                 >
               {/each}
             </div>

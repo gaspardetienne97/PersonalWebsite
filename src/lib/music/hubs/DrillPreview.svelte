@@ -10,6 +10,7 @@
   import { settings } from "../runtime";
   import { HUE_ICON } from "./hue-icons";
   import { drillPreview } from "./drill-preview";
+  import { chord } from "../names.svelte";
 
   let {
     href,
@@ -83,7 +84,7 @@
     {@const cell = 148 / p.steps}
     <svg viewBox="0 0 160 80" class="h-full w-full" aria-hidden="true">
       {#if p.chords?.length && md}
-        {#each p.chords as c, i (i)}<text x={6 + (i * 148) / p.chords.length} y="11" class="chordname">{c}</text>{/each}
+        {#each p.chords as c, i (i)}<text x={6 + (i * 148) / p.chords.length} y="11" class="chordname">{chord(c)}</text>{/each}
       {/if}
       {#each Array.from({ length: p.steps }, (_, i) => i) as i (i)}
         <rect x={6 + i * cell + 1} y="18" width={cell - 2} height="40" rx="3" class={i % p.perBeat === 0 ? "beat" : "off"} />
@@ -147,7 +148,7 @@
     <svg viewBox="0 0 160 80" class="h-full w-full" aria-hidden="true">
       {#each p.chords as c, i (i)}
         <rect x={5 + i * w + 2} y="20" width={w - 4} height="40" rx="8" class={i === 0 ? "hit" : "beat"} />
-        <text x={5 + i * w + w / 2} y="46" class="big" class:onhit={i === 0} text-anchor="middle">{c}</text>
+        <text x={5 + i * w + w / 2} y="46" class="big" class:onhit={i === 0} text-anchor="middle">{chord(c)}</text>
       {/each}
     </svg>
   {:else if p.kind === "pads"}

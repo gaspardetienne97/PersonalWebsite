@@ -14,7 +14,10 @@
   import { INSTRUMENT_ICON } from "#lib/music/components/instrument-icons.ts";
   import { input, midi, mic, settings } from "#lib/music/runtime/index.ts";
   import { hitLabel, inputName, tileFor, type RigTile } from "./rig";
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège (a device check names absolute pitches). */
+  const noteName = (midi: number) => keyName(letters(midi));
   import MicCheck from "./MicCheck.svelte";
 
   type Next = { label: string; hint: string; act?: { label: string; href?: string; run?: () => void } };

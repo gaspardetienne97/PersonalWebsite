@@ -11,6 +11,7 @@ import type {
 import type { DrillMode } from "./components/DrillShell.svelte";
 import { getSetting, input, putSetting, settings } from "./runtime";
 import { noteName } from "@repo/music-core";
+import { note } from "./names.svelte";
 import { m } from "@repo/i18n/messages.js";
 
 export interface Capture {
@@ -104,9 +105,9 @@ export const tuningText = (
   instrument: string,
 ) => {
   const words = {
-    played: noteName(miss.midi, "flat", false),
+    played: note(noteName(miss.midi, "flat", false)),
     cents: Math.abs(miss.cents),
-    heard: noteName(heard, "flat", false),
+    heard: note(noteName(heard, "flat", false)),
     instrument,
   };
   return miss.cents > 0

@@ -9,7 +9,8 @@
   import Picker from "#lib/music/components/Picker.svelte";
   import Play from "@lucide/svelte/icons/play";
   import Square from "@lucide/svelte/icons/square";
-  import { FLAT_NAMES, noteName } from "@repo/music-core";
+  import { FLAT_NAMES, noteName, showMarked } from "@repo/music-core";
+  import { chord, keyName, note } from "#lib/music/names.svelte.ts";
   import { JAZZ, type ChordScaleRow } from "@repo/music-core/data/index";
   import { SCALE_GROUPS, SCALE_KINDS, scaleSemitones } from "@repo/music-core/theory/scales";
   import { CHORD_TEMPLATES, parseChordSymbol } from "@repo/music-core/theory/chords";
@@ -46,7 +47,7 @@
   ] as const;
 
   // Data text uses spaced dashes; render them as a colon.
-  const tidy = (s: string) => s.replace(/\s+[—–]\s+/g, ": ");
+  const tidy = (s: string) => showMarked(s.replace(/\s+[—–]\s+/g, ": "));
   const titleCase = (k: string) => k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
   const capital = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
   /** A scale named in words: "natural minor", "locrian #2". */
@@ -68,7 +69,7 @@
   const chordSteps = $derived(template.intervals.map((i) => (template.intervals.length >= 5 && i === 2 ? 14 : i)));
   const shown = $derived(kind === "scale" ? scaleSteps.map((s) => tonic + s) : chordSteps.map((s) => tonic + s));
   const shownLabel = $derived(
-    kind === "scale" ? m.music_hubs_ref_scale_label({ tonic: FLAT_NAMES[tonicPc], kind: scaleWord(scaleName) }) : `${FLAT_NAMES[tonicPc]}${template.suffix}`,
+    kind === "scale" ? m.music_hubs_ref_scale_label({ tonic: keyName(FLAT_NAMES[tonicPc]), kind: scaleWord(scaleName) }) : chord(`${FLAT_NAMES[tonicPc]}${template.suffix}`),
   );
 
   const marks = $derived.by(() => {
@@ -116,7 +117,7 @@
   // The signature on a staff, with the tonic chord, spelled in the key.
   const ckScore = $derived<Score>({
     id: `circle-${circleKey}`,
-    title: m.music_hubs_songs_key_major({ tonic: ck.major }),
+    title: m.music_hubs_songs_key_major({ tonic: keyName(ck.major) }),
     bpm: 60,
     keyFifths: circleKey,
     meter: { beats: 4, beatUnit: 4 },
@@ -134,10 +135,10 @@
     audio.playSequence(notes);
     onstatus?.(
       what === "scale"
-        ? m.music_hubs_ref_major_scale({ key: ck.major })
+        ? m.music_hubs_ref_major_scale({ key: keyName(ck.major) })
         : what === "cadence"
-          ? m.music_hubs_ref_cadence({ key: ck.major })
-          : m.music_hubs_ref_chord_of({ chord: ckChords[what].name, numeral: ckChords[what].numeral, key: ck.major }),
+          ? m.music_hubs_ref_cadence({ key: keyName(ck.major) })
+          : m.music_hubs_ref_chord_of({ chord: chord(ckChords[what].name), numeral: ckChords[what].numeral, key: keyName(ck.major) }),
     );
   }
 
@@ -152,7 +153,7 @@
     kind = "scale";
     scaleName = rowScale(r);
     tonicPc = root;
-    onstatus?.(m.music_hubs_ref_on_keyboard({ tonic: FLAT_NAMES[root], label: r.label }));
+    onstatus?.(m.music_hubs_ref_on_keyboard({ tonic: keyName(FLAT_NAMES[root]), label: r.label }));
     await tick();
     document.getElementById("explorer")?.scrollIntoView({ block: "start" });
   }
@@ -174,7 +175,7 @@
     const v = chordVoicing(symbol);
     const c = parseChordSymbol(symbol);
     const ext = c ? c.intervals.filter((i) => i > 11).map((i) => 48 + c.rootPc + i) : [];
-    playNotes([v.bass, ...v.upper, ...ext], symbol);
+    playNotes([v.bass, ...v.upper, ...ext], chord(symbol));
   }
 
   const RECIPES = [
@@ -253,7 +254,7 @@
         {#if kind === "scale"}
           <Choice label={m.music_hubs_ref_scale()} select options={scaleOptions} value={scaleName} onchange={(v) => (stop(), (scaleName = v))} />
         {:else}
-          <Choice label={m.music_hubs_cf_quality()} select options={CHORD_TEMPLATES.map((t) => ({ value: t.quality as string, label: `${FLAT_NAMES[tonicPc]}${t.suffix}` }))} value={quality} onchange={(v) => (stop(), (quality = v))} />
+          <Choice label={m.music_hubs_cf_quality()} select options={CHORD_TEMPLATES.map((t) => ({ value: t.quality as string, label: chord(`${FLAT_NAMES[tonicPc]}${t.suffix}`) }))} value={quality} onchange={(v) => (stop(), (quality = v))} />
         {/if}
       </div>
 
@@ -266,7 +267,7 @@
         </div>
         <Piano low={60} high={84} {marks} names="c" label={m.music_hubs_ref_keyboard({ label: shownLabel })} />
         <p class="mt-3 text-sm text-ws-stage-soft">
-          {m.music_hubs_ref_notes({ notes: shown.map((midi) => noteName(midi, "flat").replace(/-?\d+$/, "")).join(" ") })}
+          {m.music_hubs_ref_notes({ notes: shown.map((midi) => note(noteName(midi, "flat", false))).join(" ") })}
           <span class="ml-1 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-chord)" aria-hidden="true"></span>{kind === "chord" ? m.music_hubs_ref_chord_tones() : m.music_hubs_ref_the_tonic()}</span>
           {#if kind === "scale"}<span class="ml-2 inline-flex items-center gap-1.5"><span class="inline-block size-3 rounded-full" style:background="var(--tone-scale)" aria-hidden="true"></span>{m.music_hubs_ref_scale_tones()}</span>{/if}
         </p>
@@ -280,7 +281,7 @@
               <li>
                 <button type="button" class={btn} onclick={() => showScale(r)}>
                   {#if r.recommended}<span class="rounded-full bg-instr px-2 py-0.5 text-[13px] font-semibold text-ws-stage">{m.music_hubs_ref_go_to()}</span>{/if}
-                  {FLAT_NAMES[tonicPc]} {r.label}
+                  {keyName(FLAT_NAMES[tonicPc])} {r.label}
                 </button>
               </li>
             {/each}
@@ -298,10 +299,10 @@
         <CircleOfFifths selected={circleKey} onpick={(f) => (circleKey = f)} label={m.music_hubs_ref_circle_pick()} />
         <div class="min-w-0 space-y-4">
           <div>
-            <p class="font-display text-2xl font-semibold">{m.music_hubs_songs_key_major({ tonic: ck.major })} <span class="text-ws-soft">· {m.music_hubs_songs_key_minor({ tonic: ck.minor })}</span></p>
+            <p class="font-display text-2xl font-semibold">{m.music_hubs_songs_key_major({ tonic: keyName(ck.major) })} <span class="text-ws-soft">· {m.music_hubs_songs_key_minor({ tonic: keyName(ck.minor) })}</span></p>
             <p class="text-sm text-ws-soft">
-              {accidentalCount(circleKey).replace(/^./, (c) => c.toUpperCase())}{ck.accidentals.length ? `: ${ck.accidentals.join(" ")}` : ""}.
-              {#if circleKey > 0}{m.music_hubs_ref_last_sharp({ note: ck.accidentals.at(-1) ?? "", key: ck.major })}{:else if circleKey < -1}{m.music_hubs_ref_second_flat({ note: ck.accidentals.at(-2) ?? "" })}{/if}
+              {accidentalCount(circleKey).replace(/^./, (c) => c.toUpperCase())}{ck.accidentals.length ? `: ${ck.accidentals.map((a) => keyName(a)).join(" ")}` : ""}.
+              {#if circleKey > 0}{m.music_hubs_ref_last_sharp({ note: keyName(ck.accidentals.at(-1) ?? ""), key: keyName(ck.major) })}{:else if circleKey < -1}{m.music_hubs_ref_second_flat({ note: keyName(ck.accidentals.at(-2) ?? "") })}{/if}
             </p>
           </div>
           <div class="max-w-72 rounded-xl bg-ws-surface px-3 pb-1 text-ws-ink"><Staff score={ckScore} maxHeight="9rem" /></div>
@@ -309,7 +310,7 @@
             <p class="text-sm font-medium">{m.music_hubs_ref_its_chords()}</p>
             <ul class="mt-1 flex flex-wrap gap-1.5">
               {#each ckChords as c, i (c.numeral)}
-                <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-[13px] text-ws-soft">{c.numeral}</span> {c.name}</button></li>
+                <li><button type="button" class={btn} onclick={() => hearCircle(i)}><span class="text-[13px] text-ws-soft">{c.numeral}</span> {chord(c.name)}</button></li>
               {/each}
             </ul>
           </div>
@@ -318,9 +319,9 @@
             <button type="button" class={btn} onclick={() => hearCircle("cadence")}><Play class="size-4" aria-hidden="true" />I, IV, V, I</button>
           </div>
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_sharp()}</dt><dd>{circleKey < 7 ? m.music_hubs_ref_its_v({ key: neighbour(circleKey, 1).major }) : m.music_hubs_ref_none_most()}</dd>
-            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_flat()}</dt><dd>{circleKey > -7 ? m.music_hubs_ref_its_iv({ key: neighbour(circleKey, -1).major }) : m.music_hubs_ref_none_most()}</dd>
-            <dt class="text-ws-soft">{m.music_hubs_ref_across()}</dt><dd>{m.music_hubs_ref_across_text({ key: opposite(circleKey).major, chord: neighbour(circleKey, 1).major })}</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_sharp()}</dt><dd>{circleKey < 7 ? m.music_hubs_ref_its_v({ key: keyName(neighbour(circleKey, 1).major) }) : m.music_hubs_ref_none_most()}</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_one_more_flat()}</dt><dd>{circleKey > -7 ? m.music_hubs_ref_its_iv({ key: keyName(neighbour(circleKey, -1).major) }) : m.music_hubs_ref_none_most()}</dd>
+            <dt class="text-ws-soft">{m.music_hubs_ref_across()}</dt><dd>{m.music_hubs_ref_across_text({ key: keyName(opposite(circleKey).major), chord: chord(neighbour(circleKey, 1).major) })}</dd>
           </dl>
           <p class="text-sm">{@html m.music_hubs_ref_practise_circle({ link: `<a class="font-semibold text-instr-ink underline underline-offset-4" href="/music/circle">${m.music_hubs_ref_practise_circle_link()}</a>` })}</p>
         </div>
@@ -337,7 +338,7 @@
 
     <section id="vocabulary" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-vocabulary">
       <h2 id="h-vocabulary" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_vocabulary()}</h2>
-      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_vocabulary_intro()}</p>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_vocabulary_intro({ c: note("C") })}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_vocabulary_table()} tabindex="0">
         <table>
@@ -346,8 +347,8 @@
             {#each JAZZ.JAZZ_CHORD_TYPES as c (c.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label={m.music_hubs_ref_hear_named({ symbol: c.symbol, name: c.name })}>
-                    <Play class="size-3.5" aria-hidden="true" /><span class="font-display text-base">{c.symbol}</span>
+                  <button type="button" class="sym" onclick={() => playSymbol(c.symbol)} aria-label={m.music_hubs_ref_hear_named({ symbol: chord(c.symbol), name: c.name })}>
+                    <Play class="size-3.5" aria-hidden="true" /><span class="font-display text-base">{chord(c.symbol)}</span>
                   </button>
                   <span class="block text-[13px] font-normal text-ws-soft">{c.name}</span>
                 </th>
@@ -355,7 +356,7 @@
                 <td>
                   {#if c.extensions?.length}
                     <span class="flex flex-wrap gap-1">
-                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label={m.music_hubs_ref_hear_symbol({ symbol: e })}>{e}</button>{/each}
+                      {#each c.extensions as e (e)}<button type="button" class="chip" onclick={() => playSymbol(e)} aria-label={m.music_hubs_ref_hear_symbol({ symbol: chord(e) })}>{chord(e)}</button>{/each}
                     </span>
                   {:else}<span class="text-ws-soft">{m.music_hubs_skills_none()}</span>{/if}
                 </td>
@@ -371,7 +372,7 @@
           <thead><tr><th scope="col">{m.music_hubs_ref_col_symbol()}</th><th scope="col">{m.music_hubs_ref_col_semitones()}</th><th scope="col">{m.music_hubs_ref_col_what()}</th></tr></thead>
           <tbody>
             {#each JAZZ.CHORD_EXTENSIONS as e (e.symbol)}
-              <tr><th scope="row" class="font-display">{e.symbol}</th><td class="tnum">{e.semitones}</td><td>{tidy(e.note)}</td></tr>
+              <tr><th scope="row" class="font-display">{chord(e.symbol)}</th><td class="tnum">{e.semitones}</td><td>{tidy(e.note)}</td></tr>
             {/each}
           </tbody>
         </table>
@@ -385,7 +386,7 @@
         {#each [...new Set(JAZZ.CHORD_SCALE_MAP.map((r) => r.family))] as fam (fam)}
           {@const type = JAZZ.JAZZ_CHORD_TYPES.find((t) => t.family === fam)}
           <div class="rounded-xl border border-ws-line bg-ws-surface p-4">
-            <p class="font-display text-lg font-semibold">{type?.symbol ?? fam} <span class="text-sm font-normal text-ws-soft">{type?.name}</span></p>
+            <p class="font-display text-lg font-semibold">{chord(type?.symbol ?? fam)} <span class="text-sm font-normal text-ws-soft">{type?.name}</span></p>
             <ul class="mt-2 divide-y divide-ws-line">
               {#each JAZZ.CHORD_SCALE_MAP.filter((r) => r.family === fam) as r (r.label)}
                 <li class="flex items-center gap-3 py-2">
@@ -396,7 +397,7 @@
                     </p>
                     {#if r.hint}<p class="text-sm text-ws-soft">{tidy(r.hint)}</p>{/if}
                   </div>
-                  <button type="button" class="{btn} shrink-0" onclick={() => showScale(r, 0)} aria-label={m.music_hubs_ref_show_scale({ label: r.label, chord: type?.symbol ?? fam })}>{m.music_hubs_cf_show()}</button>
+                  <button type="button" class="{btn} shrink-0" onclick={() => showScale(r, 0)} aria-label={m.music_hubs_ref_show_scale({ tonic: keyName("C"), label: r.label, chord: chord(type?.symbol ?? fam) })}>{m.music_hubs_cf_show()}</button>
                 </li>
               {/each}
             </ul>
@@ -407,7 +408,7 @@
 
     <section id="voicings" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-voicings">
       <h2 id="h-voicings" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_voicings()}</h2>
-      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_voicings_intro()}</p>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_voicings_intro({ chord: chord("Cmaj7") })}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_voicings_table()} tabindex="0">
         <table>
@@ -416,7 +417,7 @@
             {#each RECIPES as r (r.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} Cmaj7`)} aria-label={m.music_hubs_ref_hear_on_cmaj7({ name: r.name })}>
+                  <button type="button" class="sym" onclick={() => playNotes([...(r.id.startsWith("rootless") ? [48] : []), ...r.semis.map((s) => 60 + s)], `${r.name} ${chord("Cmaj7")}`)} aria-label={m.music_hubs_ref_hear_on_cmaj7({ name: r.name, chord: chord("Cmaj7") })}>
                     <Play class="size-3.5" aria-hidden="true" />{r.name}
                   </button>
                 </th>
@@ -431,7 +432,7 @@
 
     <section id="dominants" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-dominants">
       <h2 id="h-dominants" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_sec_dominants()}</h2>
-      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_dominants_intro()}</p>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_dominants_intro({ chord: chord("G7"), g: note("G") })}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_dominants_table()} tabindex="0">
         <table>
@@ -440,7 +441,7 @@
             {#each JAZZ.DOMINANT_VOICINGS as d (d.id)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], m.music_hubs_ref_on_g7({ label: d.label }))} aria-label={m.music_hubs_ref_hear_on_g7({ label: d.label })}>
+                  <button type="button" class="sym" onclick={() => playNotes([43, ...d.offsets.map((o) => 55 + o)], m.music_hubs_ref_on_g7({ label: d.label, chord: chord("G7") }))} aria-label={m.music_hubs_ref_hear_on_g7({ label: d.label, chord: chord("G7") })}>
                     <Play class="size-3.5" aria-hidden="true" />{d.label}
                   </button>
                 </th>
@@ -455,7 +456,7 @@
 
     <section id="upper-structures" class="scroll-mt-[calc(var(--ws-strip-h,3.5rem)+1rem)]" aria-labelledby="h-upper-structures">
       <h2 id="h-upper-structures" tabindex="-1" class="font-display text-2xl font-semibold">{m.music_hubs_ref_upper_title()}</h2>
-      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_upper_intro()}</p>
+      <p class="mt-1 text-ws-soft">{m.music_hubs_ref_upper_intro({ chord: chord("C7") })}</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable table must be reachable by keyboard -->
       <div class="table-wrap mt-3" role="region" aria-label={m.music_hubs_ref_upper_table()} tabindex="0">
         <table>
@@ -465,10 +466,10 @@
               {@const triad = (u.quality === "maj" ? [0, 4, 7] : [0, 3, 7]).map((s) => 60 + u.triadRoot + s)}
               <tr>
                 <th scope="row">
-                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], m.music_hubs_ref_over_c7({ triad: u.triad }))} aria-label={m.music_hubs_ref_hear_over_c7({ triad: u.triad })}>
+                  <button type="button" class="sym" onclick={() => playNotes([48, 52, 58, ...triad], m.music_hubs_ref_over_c7({ triad: u.triad, chord: chord("C7") }))} aria-label={m.music_hubs_ref_hear_over_c7({ triad: u.triad, chord: chord("C7") })}>
                     <Play class="size-3.5" aria-hidden="true" />{u.triad}
                   </button>
-                  <span class="block text-[13px] font-normal text-ws-soft">{u.quality === "maj" ? m.music_hubs_ref_major_over_c7({ root: FLAT_NAMES[u.triadRoot] }) : m.music_hubs_ref_minor_over_c7({ root: FLAT_NAMES[u.triadRoot] })}</span>
+                  <span class="block text-[13px] font-normal text-ws-soft">{u.quality === "maj" ? m.music_hubs_ref_major_over_c7({ root: note(FLAT_NAMES[u.triadRoot]), chord: chord("C7") }) : m.music_hubs_ref_minor_over_c7({ root: note(FLAT_NAMES[u.triadRoot]), chord: chord("C7") })}</span>
                 </th>
                 <td class="tnum font-medium">{u.adds}</td>
                 <td>{u.favorite ? m.music_hubs_ref_favourite() : ""}</td>
@@ -486,7 +487,7 @@
         {#each JAZZ.TWELVE_KEY_CYCLE as k, i (k)}
           <li class="flex min-h-11 items-center gap-2 rounded-full border border-ws-line bg-ws-surface py-1 pl-1.5 pr-4">
             <span class="tnum grid size-8 place-items-center rounded-full bg-ws-raised text-[13px] text-ws-soft">{i + 1}</span>
-            <span class="font-display text-lg font-semibold">{k}</span>
+            <span class="font-display text-lg font-semibold">{keyName(k)}</span>
           </li>
         {/each}
       </ol>

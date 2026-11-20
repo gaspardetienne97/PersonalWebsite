@@ -17,6 +17,7 @@
   import Info from "@lucide/svelte/icons/info";
   import type { PlaybackSound } from "@repo/music-core";
   import { AEROPHONE_READING_KEYS } from "@repo/music-core/theory/transposition";
+  import { keyName, note as noteText } from "#lib/music/names.svelte.ts";
   import CalibrationPanel from "#lib/music/hubs/tools/settings/CalibrationPanel.svelte";
   import DataSection from "#lib/music/hubs/tools/settings/DataSection.svelte";
   import { btn } from "#lib/music/components/ui.ts";
@@ -115,7 +116,7 @@
     audio.playSequence(
       CADENCE.flatMap((chord, i) => chord.map((midi) => ({ midi, time: i * 0.7, duration: i === 3 ? 1.4 : 0.65, velocity: 0.7 }))),
     );
-    say("audio", m.music_shell_settings_cadence());
+    say("audio", m.music_shell_settings_cadence({ c: noteText("C"), f: noteText("F"), g: noteText("G") }));
   }
 
   async function setSound(on: boolean) {
@@ -272,15 +273,15 @@
           </div>
           <div class="flex gap-1.5" role="group" aria-labelledby="aero-key-l">
             {#each AEROPHONE_READING_KEYS as k (k.id)}
-              <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {k.id === s.aerophoneKey ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}" aria-pressed={k.id === s.aerophoneKey} onclick={() => settings.update({ aerophoneKey: k.id })}>{k.label}</button>
+              <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {k.id === s.aerophoneKey ? 'border-transparent bg-instr font-semibold text-ws-stage' : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}" aria-pressed={k.id === s.aerophoneKey} onclick={() => settings.update({ aerophoneKey: k.id })}>{keyName(k.label)}</button>
             {/each}
           </div>
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium">{m.music_shell_settings_a4()}<Hint about={m.music_shell_settings_a4()} text={m.music_shell_settings_a4_hint()} /></p>
+            <p class="flex items-center gap-1 font-medium">{m.music_shell_settings_a4({ a4: noteText("A4") })}<Hint about={m.music_shell_settings_a4({ a4: noteText("A4") })} text={m.music_shell_settings_a4_hint({ a4: noteText("A4") })} /></p>
           </div>
-          <Picker class="tnum w-auto" label={m.music_shell_settings_a4()} value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_shell_settings_hz_standard({ hz }) : m.music_shell_settings_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+          <Picker class="tnum w-auto" label={m.music_shell_settings_a4({ a4: noteText("A4") })} value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_shell_settings_hz_standard({ hz }) : m.music_shell_settings_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
         </li>
       </ul>
     </section>

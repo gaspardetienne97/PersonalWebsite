@@ -19,6 +19,7 @@
   import { session, type TrackId } from "./session.svelte";
   import { barsOf, hitCount, MAX_BARS, removeBar } from "./pattern";
   import { chordsIn, KEYS, progressionVoice, PROGRESSIONS } from "./progressions";
+  import { chord } from "#lib/music/names.svelte.ts";
   import { loopBeats, ROLL_SOUNDS, soundOf, trackColour, type RollVoice } from "./roll";
 
   let { announce }: { announce: (msg: string) => void } = $props();
@@ -81,7 +82,7 @@
     const v = progressionVoice(p, chordKey, crypto.randomUUID());
     session.addMelodyFrom(v);
     announce(
-      m.music_hubs_tracks_added_chords({ name: v.name, chords: chordsIn(p, chordKey).join(", ") }) +
+      m.music_hubs_tracks_added_chords({ name: v.name, chords: chordsIn(p, chordKey).map((c) => chord(c)).join(", ") }) +
         (session.bars > before ? m.music_hubs_tracks_song_grew({ count: session.bars }) : ""),
     );
   }

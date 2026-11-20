@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { setNamingKey, setNoteNaming } from "@repo/music-core";
 import { CATALOG } from "@repo/music-core/content/catalog";
 import { drillPreview, intervalFrets } from "./drill-preview";
 
@@ -71,5 +72,25 @@ describe("drill previews", () => {
   it("has a picture or the area icon for every catalogue drill, and never throws", () => {
     for (const e of CATALOG) expect(() => drillPreview(e.route, "piano")).not.toThrow();
     expect(drillPreview("/music/songs/shelf/guitar/blackbird")).toEqual({ kind: "icon" });
+  });
+});
+
+describe("drill previews in solfège", () => {
+  it("names the notes, chords and keys they draw as the setting reads them", () => {
+    setNoteNaming("fixed");
+    try {
+      const iv = drillPreview("/music/ear/intervals?intervals=P5");
+      expect(iv.kind === "keys" && iv.labels).toEqual({ 60: "Do", 67: "Sol" });
+      expect(drillPreview("/music/voicings").caption).toBe("Rem7: Re Fa La Do, the ii of Do");
+      expect(drillPreview("/music/chord-scales").caption).toBe("Re dorian over Rem7");
+      // Movable do counts from the key on screen.
+      setNoteNaming("movable");
+      setNamingKey({ tonic: "G" });
+      expect(drillPreview("/music/pedal").caption).toBe("Hold Fa, change the pedal with the chord");
+    } finally {
+      setNamingKey(undefined);
+      setNoteNaming("letters");
+    }
+    expect(drillPreview("/music/voicings").caption).toBe("Dm7: D F A C, the ii of C");
   });
 });

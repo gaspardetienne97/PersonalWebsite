@@ -30,6 +30,7 @@
   // target (current group), demo (while the model sounds), correct/wrong
   // (a short flash with a glyph, never a growing set).
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { onMount } from "svelte";
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
@@ -133,12 +134,12 @@
   /** A key's name, read aloud with what it is in the drill. */
   const keyLabel = (n: number, mk: { target?: boolean }) =>
     missing.includes(n)
-      ? m.music_shell_piano_key_missed({ note: noteName(n, spelling) })
+      ? m.music_shell_piano_key_missed({ note: note(noteName(n, spelling)) })
       : mk.target
-        ? m.music_shell_piano_key_target({ note: noteName(n, spelling) })
-        : noteName(n, spelling);
+        ? m.music_shell_piano_key_target({ note: note(noteName(n, spelling)) })
+        : note(noteName(n, spelling));
   function nameFor(m: number) {
-    if (names === "all" || (names === "c" && m % 12 === 0)) return noteName(m, spelling);
+    if (names === "all" || (names === "c" && m % 12 === 0)) return note(noteName(m, spelling));
     return "";
   }
 </script>
@@ -208,11 +209,11 @@
 
 {#snippet glyphs(mk: CellMarks, flash: string | undefined, m: number)}
   {#if missing.includes(m)}
-    <span class="missed" aria-hidden="true">{noteName(m, spelling, false)}</span>
+    <span class="missed" aria-hidden="true">{note(noteName(m, spelling, false))}</span>
   {:else if flash}
     <span class="flash" data-kind={flash} aria-hidden="true">{flash === "correct" ? "✓" : flash === "order" ? (mk.label ?? "!") : "✕"}</span>
     <!-- The struck wrong key names itself, so the X and the word above the keys say the same note. -->
-    {#if flash === "wrong"}<span class="wrong-name" aria-hidden="true">{noteName(m, spelling, false)}</span>{/if}
+    {#if flash === "wrong"}<span class="wrong-name" aria-hidden="true">{note(noteName(m, spelling, false))}</span>{/if}
   {:else if mk.label}
     <span class="mark-label" aria-hidden="true">{mk.label}</span>
   {:else if mk.target || mk.role === "chord" || mk.role === "scale" || mk.role === "avoid"}

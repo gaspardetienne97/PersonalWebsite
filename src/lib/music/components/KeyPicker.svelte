@@ -9,6 +9,7 @@
   import { cn } from "@repo/ui/utils";
   import { CIRCLE } from "@repo/music-core/theory/circle";
   import CircleOfFifths from "./CircleOfFifths.svelte";
+  import { keyName } from "#lib/music/names.svelte.ts";
 
   let {
     value,
@@ -37,14 +38,14 @@
 <Popover.Root bind:open>
   <Popover.Trigger
     bind:ref={trigger}
-    aria-label={m.music_shell_key_picker_label({ label, key: name(value) })}
+    aria-label={m.music_shell_key_picker_label({ label, key: keyName(name(value)) })}
     class={cn(
       "flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 text-sm font-medium transition-colors",
       tone === "stage" ? "border-ws-stage-ink/15 bg-ws-stage-ink/8 text-ws-stage-ink hover:bg-ws-stage-ink/15" : "border-ws-line bg-ws-surface text-ws-ink hover:bg-ws-raised",
       className,
     )}
   >
-    <span class="truncate">{name(value)}</span>
+    <span class="truncate">{keyName(name(value))}</span>
     <ChevronDown class="size-4 opacity-70" aria-hidden="true" />
   </Popover.Trigger>
   <Popover.Content portalProps={{ to: portalTo }} class="w-[min(19rem,calc(100vw-2rem))] rounded-xl border-ws-line bg-ws-surface p-3 text-ws-ink shadow-lg">

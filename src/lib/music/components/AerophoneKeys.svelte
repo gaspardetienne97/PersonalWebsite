@@ -83,6 +83,7 @@
   // not use (from `heldMidi`) shows red. The player fingers the written note,
   // so both are looked up at the reading key's written pitch.
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { fingeringWords } from "#lib/music/drills/aerophone/names.ts";
   import { fingeringFor as chartEntry } from "@repo/music-core/content/winds-pads";
   import { writtenOffset } from "@repo/music-core/theory/transposition";
@@ -113,8 +114,8 @@
     midi === null
       ? m.music_shell_aero_no_note()
       : target
-        ? `${name && concert !== null ? name(concert) : (chartEntry(midi)?.name ?? noteName(midi))}: ${fingeringWords(midi)}`
-        : m.music_shell_aero_outside({ note: noteName(midi, "flat") }),
+        ? `${note(name && concert !== null ? name(concert) : (chartEntry(midi)?.name ?? noteName(midi)))}: ${fingeringWords(midi)}`
+        : m.music_shell_aero_outside({ note: note(noteName(midi, "flat")), low: note("Bb3"), high: note("F#6") }),
   );
 </script>
 

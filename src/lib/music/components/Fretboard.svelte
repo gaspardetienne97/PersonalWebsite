@@ -5,6 +5,7 @@
   // in tab. Every cell is a real, visibly focusable button "String n fret f, note";
   // the neck is one tab stop and the arrow keys move along it.
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { input } from "../runtime";
   import { capturePointer } from "./feedback.svelte";
   import type { FlashKind, Flashes } from "./feedback.svelte";
@@ -162,7 +163,7 @@
   const cellLabel = (s: number, f: number, mk: FretMark | undefined) =>
     [
       m.music_shell_fret_cell({ string: s, fret: f }),
-      noteName(midiAt(s, f), "flat"),
+      note(noteName(midiAt(s, f), "flat")),
       ...(mk ? [mk.spoken ?? [m.music_shell_fret_target(), ...(mk.label ? [mk.label] : [])].join(", ")] : []),
       ...(mk?.finger ? [FINGER_NAMES[mk.finger]] : []),
       ...(mk?.heard ? [m.music_shell_fret_heard()] : []),
@@ -188,7 +189,7 @@
     {#each strings as s (s)}
       <div class="string-row" class:ringing={ringing(s)} style:--gauge="{gauge(s)}px" style:grid-template-columns={cols}>
         <span class="string-line" aria-hidden="true"></span>
-        {#if muted.includes(s) && from !== 0}<span class="muted-x" aria-hidden="true">✕</span>{:else if stringNames}<span class="string-name" aria-hidden="true">{noteName(openStrings[s - 1], "flat", false)}</span>{/if}
+        {#if muted.includes(s) && from !== 0}<span class="muted-x" aria-hidden="true">✕</span>{:else if stringNames}<span class="string-name" aria-hidden="true">{note(noteName(openStrings[s - 1], "flat", false))}</span>{/if}
         {#each frets as f (f)}
           {@const mk = markAt(s, f)}
           {@const flash = flashAt(s, f)}
@@ -223,7 +224,7 @@
             {:else if mk && !held && onBarre(s, f)}
               {#if !onBarre(s, f)!.label}<span class="dot on-barre" aria-hidden="true">{mk.label ?? ""}</span>{/if}
             {:else if mk || held}
-              <span class="dot" aria-hidden="true">{mk?.label ?? (held && heldName ? heldName(midiAt(s, f)) : "")}{#if mk?.heard && !held}<span class="heard-tick">✓</span>{/if}</span>
+              <span class="dot" aria-hidden="true">{mk?.label ?? (held && heldName ? note(heldName(midiAt(s, f))) : "")}{#if mk?.heard && !held}<span class="heard-tick">✓</span>{/if}</span>
             {:else if f === 0 && muted.includes(s)}
               <span class="mute-x" aria-hidden="true">✕</span>
             {/if}

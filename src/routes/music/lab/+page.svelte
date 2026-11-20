@@ -9,7 +9,10 @@
   import Play from "@lucide/svelte/icons/play";
   import Square from "@lucide/svelte/icons/square";
   import Upload from "@lucide/svelte/icons/upload";
-  import { noteName, type InputSource, type NoteEvent } from "@repo/music-core";
+  import { noteName as letters, type InputSource, type NoteEvent } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
+  /** A note as the player reads names (letters or solfège). */
+  const noteName = (midi: number) => note(letters(midi));
   import { LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
   import { TUNINGS } from "@repo/music-core/data/index";
   import DrillShell, { type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";

@@ -17,6 +17,7 @@
   import Check from "@lucide/svelte/icons/check";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { btn, btnPrimary } from "../../components/ui";
+  import { note } from "../../names.svelte";
 
   let { now = Date.now(), strip = true }: { now?: number; strip?: boolean } = $props();
 
@@ -85,8 +86,8 @@
   const SEMI: Record<string, number> = { m2: 1, M2: 2, m3: 3, M3: 4, P4: 5, TT: 6, P5: 7, m6: 8, M6: 9, m7: 10, M7: 11, P8: 12, "1": 0, b2: 1, "2": 2, b3: 3, "3": 4, "4": 5, "#4": 6, "5": 7, b6: 8, "6": 9, b7: 10, "7": 11 };
   const pitchMaps = $derived(
     [
-      { title: m.music_hubs_next_intervals_map(), prefix: "pitch.interval." },
-      { title: m.music_hubs_next_degrees_map(), prefix: "pitch.scale-degree." },
+      { title: m.music_hubs_next_intervals_map({ c: note("C") }), prefix: "pitch.interval." },
+      { title: m.music_hubs_next_degrees_map({ c: note("C") }), prefix: "pitch.scale-degree." },
     ]
       .map((pm) => ({
         ...pm,

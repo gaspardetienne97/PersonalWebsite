@@ -13,6 +13,7 @@
   import { chordId, positionsOn } from "#lib/music/drills/guitar/chords.ts";
   import { btn } from "#lib/music/components/ui.ts";
   import { audio, settings } from "#lib/music/runtime/index.ts";
+  import { chord, note } from "#lib/music/names.svelte.ts";
 
   let { onstatus }: { onstatus?: (s: string) => void } = $props();
 
@@ -23,7 +24,7 @@
 
   const tuning = $derived(TUNINGS[instrument][0]);
   const q = $derived(VOICING_QUALITIES.find((x) => x.quality === quality) ?? VOICING_QUALITIES[0]);
-  const name = $derived(chordName(root, q.suffix));
+  const name = $derived(chord(chordName(root, q.suffix)));
   const voicings = $derived(chordVoicings(tuning, root, q.intervals));
   const shown = $derived(voicings.map((v, i) => ({ v, i })).filter(({ v }) => (show === "barre" ? v.kind === "barre" : show === "no-barre" ? v.kind !== "barre" : true)));
   const id = $derived(generatedChordId(instrument, root, quality));
@@ -50,8 +51,8 @@
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
   <Choice label={m.music_hubs_instrument()} options={[{ value: "guitar", label: m.music_hubs_guitar() }, { value: "ukulele", label: m.music_hubs_ukulele() }]} value={instrument} onchange={(v) => (instrument = v as "guitar" | "ukulele")} />
-  <Choice label={m.music_hubs_cf_root()} select options={FLAT_NAMES.map((n, p) => ({ value: p, label: n }))} value={root} onchange={(v) => (root = v)} />
-  <Choice label={m.music_hubs_cf_quality()} select options={VOICING_QUALITIES.map((x) => ({ value: x.quality, label: `${chordName(root, x.suffix)}, ${QUALITY_NAMES[x.quality] ?? x.quality}` }))} value={quality} onchange={(v) => (quality = v)} />
+  <Choice label={m.music_hubs_cf_root()} select options={FLAT_NAMES.map((n, p) => ({ value: p, label: note(n) }))} value={root} onchange={(v) => (root = v)} />
+  <Choice label={m.music_hubs_cf_quality()} select options={VOICING_QUALITIES.map((x) => ({ value: x.quality, label: `${chord(chordName(root, x.suffix))}, ${QUALITY_NAMES[x.quality] ?? x.quality}` }))} value={quality} onchange={(v) => (quality = v)} />
   <Choice
     label={m.music_hubs_cf_show()}
     options={[
@@ -64,7 +65,7 @@
   />
 </div>
 <p class="mt-3 max-w-prose text-sm text-ws-soft">
-  {instrument === "guitar" ? m.music_hubs_cf_intro_guitar({ count: voicings.length, name }) : m.music_hubs_cf_intro_ukulele({ count: voicings.length, name })}
+  {instrument === "guitar" ? m.music_hubs_cf_intro_guitar({ count: voicings.length, name }) : m.music_hubs_cf_intro_ukulele({ count: voicings.length, name, g: note("G") })}
 </p>
 <ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label={m.music_hubs_cf_voicings_of({ name })} data-chord={id}>
   {#each shown as { v, i } (i)}

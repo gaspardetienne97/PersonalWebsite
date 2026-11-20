@@ -3,7 +3,10 @@
   // The row of twelve notes every Tuner tab shares. With a `tonic`, each pad is
   // coloured by its degree above it (the drone); without one, only the chosen
   // note lights (a tuning target). Colour is paired with the degree label.
-  import { noteName } from "@repo/music-core";
+  import { noteName as letters } from "@repo/music-core";
+  import { keyName } from "#lib/music/names.svelte.ts";
+  /** A pitch's name as shown: letters or solfège, never counted from a key (the tuner's pitches are absolute). */
+  const noteName = (midi: number, prefer: "flat" | "sharp" = "flat", octave = true) => keyName(letters(midi, prefer, octave));
   import { DEGREES, degreeRole, pretty } from "./tuner";
 
   interface Props {
