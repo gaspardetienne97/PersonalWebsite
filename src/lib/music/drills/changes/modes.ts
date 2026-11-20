@@ -3,8 +3,9 @@
 import { catalogEntry } from "@repo/music-core/content/catalog";
 import { MediaQuery } from "svelte/reactivity";
 import { trainerModes } from "#lib/music/components/TrainerSwitch.svelte";
+import { m } from "@repo/i18n/messages.js";
 
-export const CHANGES_TITLE = "Play over changes";
+export const CHANGES_TITLE = m.music_drills_changes_title();
 
 /** The modes in the picker's order; each is a catalog entry id and the last segment of its route. */
 export const CHANGES_MODES = [
