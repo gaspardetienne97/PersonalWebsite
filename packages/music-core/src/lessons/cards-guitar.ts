@@ -12,6 +12,7 @@ import {
 import { midiAt, tuningById, type Tuning } from "../theory/fretboard";
 import { noteName, pc } from "../theory/notes";
 import { join, run, sharp, tones, type CardOpts } from "./card-kit";
+import { showChord, showNote } from "../theory/note-names";
 import type { Lesson, LessonFigure, LessonStep } from "./types";
 import { m } from "@repo/i18n/messages.js";
 
@@ -138,7 +139,8 @@ export function caged(o: CardOpts): Lesson {
   const forms = cagedForms(t);
   const steps: LessonStep[] = forms.map((f) => ({
     text: m.music_cards_caged_step({
-      letter: f.letter,
+      // The shapes are named after the open chords, so the name follows the note names.
+      letter: showChord(f.letter),
       first: f.firstString,
       last: f.lastString,
       place: place(f.low),
@@ -152,7 +154,14 @@ export function caged(o: CardOpts): Lesson {
     screens: [
       {
         title: m.music_cards_caged_five_title(),
-        text: m.music_cards_caged_five_text({ tuning: tuningText(t) }),
+        text: m.music_cards_caged_five_text({
+          tuning: tuningText(t),
+          c: showChord("C"),
+          a: showChord("A"),
+          g: showChord("G"),
+          e: showChord("E"),
+          d: showChord("D"),
+        }),
         steps,
       },
       {
@@ -263,8 +272,7 @@ const DEGREE: Record<number, () => string> = {
   9: m.music_cards_role_6th,
   10: m.music_cards_role_flat_7th,
 };
-const role = (rootPc: number, midi: number) =>
-  DEGREE[pc(midi - rootPc)]?.() ?? noteName(midi, "sharp", false);
+const role = (rootPc: number, midi: number) => DEGREE[pc(midi - rootPc)]?.() ?? sharp(midi);
 
 export function bbBox(o: CardOpts): Lesson {
   const t = o.tuning ?? STANDARD;
@@ -301,7 +309,7 @@ export function triads(id: string, o: CardOpts): Lesson {
   const t = o.tuning ?? STANDARD;
   const x = placed(id, t);
   const minor = /minor/.test(id);
-  const root = noteName(x.rootPc, "sharp", false);
+  const root = showNote(noteName(x.rootPc, "sharp", false));
   const parts = [0, 1, 2].map((k) => x.targets.slice(k * 3, k * 3 + 3));
   const lowest = (ns: (typeof parts)[number]) => [...ns].sort((a, b) => a.midi - b.midi);
   const inversion = (ns: (typeof parts)[number]) =>

@@ -18,9 +18,12 @@ import { ARTICULATION_TARGET, ATTACK } from "../scoring/aerophone";
 import { PEDAL } from "../scoring/piano";
 import { noteName } from "../theory/notes";
 import { keys } from "./tier1";
+import { showChord, showNote } from "../theory/note-names";
+import { IN_C, inKey } from "./card-kit";
 import type { Lesson, LessonFigure, LessonSound } from "./types";
 
-const name = (midi: number) => noteName(midi, "sharp", false);
+/** A note's name as shown (letters, fixed do or movable do). */
+const name = (midi: number) => showNote(noteName(midi, "sharp", false));
 const pct = (x: number) => Math.round(x * 100);
 const secs = (ms: number) => ms / 1000;
 /** A note held for `dur` seconds, at `velocity` (0 to 1) when given. */
@@ -73,7 +76,7 @@ const crossingSteps = (pairId: string | undefined, shift: number) => {
     text: (f.verified
       ? m.music_lessons_technique_crossing_step
       : m.music_lessons_technique_crossing_step_unverified)({
-      note: f.name,
+      note: showNote(f.name),
       keys: fingerKeys(f.midi),
     }),
     figure: { kind: "aerophone", midi: f.midi - shift } as LessonFigure,
@@ -233,7 +236,7 @@ const intervalName = (i: (typeof LANDING_INTERVALS)[number]) => INTERVAL_NAMES[i
 const WRITTEN_DRONE = 72;
 const landing = (shift: number): Lesson => {
   const concert = (written: number) => written - shift;
-  const drone = fingeringFor(WRITTEN_DRONE)!.name;
+  const drone = showNote(fingeringFor(WRITTEN_DRONE)!.name);
   return {
     id: "aerophone.interval-landing",
     title: m.music_lessons_technique_landing_title(),
@@ -284,8 +287,8 @@ const landing = (shift: number): Lesson => {
   };
 };
 
-const palmName = () => firstPalmNote().name;
-const octaveName = () => firstOctaveNote().name;
+const palmName = () => showNote(firstPalmNote().name);
+const octaveName = () => showNote(firstOctaveNote().name);
 const pairLabels = (ps: readonly { label: string }[]) => ps.map((p) => p.label).join(", ");
 
 const register = (pairId: string | undefined, shift: number): Lesson => ({
@@ -477,9 +480,12 @@ export const PEDAL_EXAMPLE = { liftMs: 150, downMs: 250, barMs: 2000 } as const;
 const bar = (chord: { leftHand: number; rightHand: number[] }, at: number, dur: number) =>
   [chord.leftHand, ...chord.rightHand].map((m) => ({ midi: [m], at, dur }));
 
-export function pedalLesson(): Lesson {
+/** The pedal drill's example is in C: movable do names it from C whatever key the drill is in. */
+export const pedalLesson = (): Lesson => inKey(IN_C, pedal);
+
+function pedal(): Lesson {
   const prog = PEDAL_PROGRESSIONS[0];
-  const [a, b] = pedalChords(0, prog.id);
+  const [a, b] = pedalChords(0, prog.id).map((c) => ({ ...c, symbol: showChord(c.symbol) }));
   const marksOf = (c: typeof a) =>
     Object.fromEntries([c.leftHand, ...c.rightHand].map((m) => [m, name(m)]));
   const span = [a, b].flatMap((c) => [c.leftHand, ...c.rightHand]);

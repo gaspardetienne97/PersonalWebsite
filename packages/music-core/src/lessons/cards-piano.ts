@@ -15,9 +15,21 @@ import {
 } from "../content/piano";
 import { SCALE_FINGERINGS } from "../content/piano-fingering";
 import { parseChordSymbol } from "../theory/chords";
-import { noteName, pc } from "../theory/notes";
+import { pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
-import { degreeOf, flat, join, run, sharp, tones, voicingInC } from "./card-kit";
+import {
+  chord,
+  degreeOf,
+  flat,
+  join,
+  keyName,
+  nameLead,
+  run,
+  sharp,
+  tones,
+  voicingInC,
+} from "./card-kit";
+import { showNote } from "../theory/note-names";
 import { keys } from "./tier1";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 import { m } from "@repo/i18n/messages.js";
@@ -60,7 +72,7 @@ function voicingSteps(ts: ReturnType<typeof voicingInC>): LessonStep[] {
     const rh = t.displayMidi.slice(1).sort((a, b) => a - b);
     return {
       text: m.music_cards_voicing_step({
-        symbol: t.symbol,
+        symbol: chord(t.symbol),
         tags: tagsOf(t.symbol, t.displayMidi),
         notes: rh.map(name).join(" "),
         root: name(t.displayMidi[0]),
@@ -92,14 +104,15 @@ export function minorVoicings(): Lesson {
       {
         title: m.music_cards_minor_v_kinds_title(),
         text: (top ? m.music_cards_minor_v_kinds_text_top : m.music_cards_minor_v_kinds_text)({
-          chords: join(ts.map((t) => t.symbol)),
+          chords: join(ts.map((t) => chord(t.symbol))),
+          key: keyName("C"),
         }),
         steps: voicingSteps(ts),
       },
       {
         title: m.music_cards_minor_v_altered_title(),
         text: m.music_cards_minor_v_altered_text({
-          symbol: ts[1].symbol,
+          symbol: chord(ts[1].symbol),
           voicing: DOM.altered.label,
           tones: join(altered.map((a) => `${a.tag} (${flat(a.midi)})`)),
           hint: String(strip(DOM.altered.hint)),
@@ -117,16 +130,16 @@ export function alteredVoicings(): Lesson {
     screens: [
       {
         title: m.music_cards_altered_three_title(),
-        text: m.music_cards_altered_three_text(),
+        text: m.music_cards_altered_three_text({ dominant: showNote("G"), key: keyName("C") }),
         steps: voicingSteps(ts),
       },
       {
         title: m.music_cards_altered_what_title(),
         text: m.music_cards_altered_what_text({
-          first: ts[0].symbol,
+          first: chord(ts[0].symbol),
           firstLabel: DOM.rootlessB9.label,
           firstHint: String(strip(DOM.rootlessB9.hint)),
-          second: ts[1].symbol,
+          second: chord(ts[1].symbol),
           secondLabel: DOM.altered.label,
           secondHint: String(strip(DOM.altered.hint)),
           triad: US_II.triad,
@@ -163,7 +176,7 @@ export function guideTones(): Lesson {
         text: m.music_cards_guide_pair_text(),
         steps: info.map((x) => ({
           text: m.music_cards_guide_step({
-            symbol: x.s,
+            symbol: chord(x.s),
             third: flat(x.third),
             seventh: flat(x.seventh),
           }),
@@ -177,6 +190,9 @@ export function guideTones(): Lesson {
       {
         title: m.music_cards_guide_falls_title(),
         text: m.music_cards_guide_falls_text({
+          key: keyName("C"),
+          low: showNote("F3"),
+          high: showNote("C5"),
           a: flat(info[0].seventh),
           b: flat(info[1].third),
           c: flat(info[1].seventh),
@@ -207,11 +223,11 @@ export function gospel(id: string): Lesson {
     screens: [
       {
         title: m.music_cards_gospel_moving_title(),
-        text: m.music_cards_gospel_moving_text({ about: prog.about }),
+        text: m.music_cards_gospel_moving_text({ about: prog.about, key: keyName("C") }),
         steps: bars.map((b) => ({
           text: m.music_cards_gospel_step({
-            symbol: b.symbol,
-            bass: bassName(b.symbol),
+            symbol: chord(b.symbol),
+            bass: showNote(bassName(b.symbol)),
             inversion: (inv[b.inversion] ?? m.music_cards_inv_any)(),
           }),
           figure: keys(
@@ -227,7 +243,8 @@ export function gospel(id: string): Lesson {
       {
         title: m.music_cards_gospel_line_title(),
         text: m.music_cards_gospel_line_text({
-          bass: bars.map((b) => bassName(b.symbol)).join(" "),
+          bass: bars.map((b) => showNote(bassName(b.symbol))).join(" "),
+          key: keyName("C"),
         }),
       },
     ],
@@ -253,14 +270,17 @@ export function thumbUnder(): Lesson {
         text: m.music_cards_thumb_under_text(),
         steps: [
           {
-            text: m.music_cards_thumb_step_1({ fingers: f.slice(0, cross).join(" ") }),
+            text: m.music_cards_thumb_step_1({
+              fingers: f.slice(0, cross).join(" "),
+              key: keyName("C"),
+            }),
             figure: fig(cross),
             sound: run(notes.slice(0, cross)),
           },
           {
             text: m.music_cards_thumb_step_2({
               finger: f[cross - 1],
-              note: noteName(notes[cross], "flat", false),
+              note: flat(notes[cross]),
             }),
             figure: fig(cross + 1),
             sound: run(notes.slice(cross - 1, cross + 1)),
@@ -302,21 +322,23 @@ export function chordScalesMinor(): Lesson {
       {
         title: m.music_cards_dorian_scale_title(),
         text: m.music_cards_cs_minor_scale_text({
-          s1: ts[0].symbol,
-          l1: ts[0].scaleLabel,
-          s2: ts[1].symbol,
-          l2: ts[1].scaleLabel,
-          s3: ts[2].symbol,
-          l3: ts[2].scaleLabel,
+          key: keyName("C"),
+          s1: chord(ts[0].symbol),
+          l1: nameLead(ts[0].scaleLabel),
+          s2: chord(ts[1].symbol),
+          l2: nameLead(ts[1].scaleLabel),
+          s3: chord(ts[2].symbol),
+          l3: nameLead(ts[2].scaleLabel),
         }),
         steps: ts.map((t) => ({
-          text: `${m.music_cards_scale_step({ symbol: t.symbol, scale: t.scaleLabel, notes: names(t).join(" ") })} ${
+          text: `${m.music_cards_scale_step({ symbol: chord(t.symbol), scale: nameLead(t.scaleLabel), notes: names(t).join(" ") })} ${
             outside(t).length
               ? m.music_cards_cs_minor_outside({
                   count: outside(t).length,
                   notes: join(outside(t)),
+                  key: keyName("C"),
                 })
-              : m.music_cards_cs_minor_inside()
+              : m.music_cards_cs_minor_inside({ key: keyName("C") })
           }`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
@@ -324,7 +346,7 @@ export function chordScalesMinor(): Lesson {
       },
       {
         title: m.music_cards_cs_minor_outside_title(),
-        text: m.music_cards_cs_minor_outside_text(),
+        text: m.music_cards_cs_minor_outside_text({ leading: showNote("B"), tonic: showNote("C") }),
       },
     ],
   };
@@ -359,7 +381,7 @@ export function chordPatterns(): Lesson {
     const b = line(symbol, "3579");
     return {
       text: m.music_cards_patterns_step({
-        symbol,
+        symbol: chord(symbol),
         a: a.map(flat).join(" "),
         b: b.map(flat).join(" "),
       }),
@@ -374,7 +396,7 @@ export function chordPatterns(): Lesson {
     screens: [
       {
         title: m.music_cards_patterns_two_title(),
-        text: m.music_cards_patterns_two_text({ symbol: first }),
+        text: m.music_cards_patterns_two_text({ symbol: chord(first) }),
         figure: degreeKeys(first, ["1235"], ["1235", "3579"]),
         sound: lineSound(first),
         options: (["1235", "3579"] as const).map((p) => ({

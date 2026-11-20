@@ -32,7 +32,24 @@ import {
   thumbUnder,
 } from "./cards-piano";
 import { chordTones, keys } from "./tier1";
-import { degreeOf, voicingInC, flat, join, run, sharp, tones, type CardOpts } from "./card-kit";
+import {
+  IN_A_MINOR,
+  IN_C,
+  IN_C_MINOR,
+  chord,
+  degreeOf,
+  flat,
+  inKey,
+  join,
+  keyName,
+  nameLead,
+  run,
+  sharp,
+  tones,
+  voicingInC,
+  type CardOpts,
+} from "./card-kit";
+import { showNote, type NamingKey } from "../theory/note-names";
 import { positionLine } from "../theory/fretboard";
 import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
 import { m } from "@repo/i18n/messages.js";
@@ -110,7 +127,10 @@ function majorFormula(o: CardOpts = {}): Lesson {
     screens: [
       {
         title: m.music_cards_formula_steps_title(),
-        text: m.music_cards_formula_steps_text({ formula: formula.map(stepName).join(" ") }),
+        text: m.music_cards_formula_steps_text({
+          formula: formula.map(stepName).join(" "),
+          key: keyName("C"),
+        }),
         figure: fig(0),
         sound: run(notes),
         steps: formula.map((f, i) => ({
@@ -127,6 +147,7 @@ function majorFormula(o: CardOpts = {}): Lesson {
       {
         title: m.music_cards_find_in_check_title(),
         text: m.music_cards_formula_check_text({
+          key: keyName("C"),
           pairs: halves
             .map((i) => m.music_cards_formula_notes_pair({ a: i + 1, b: i + 2 }))
             .join(m.music_cards_formula_and_between()),
@@ -165,8 +186,9 @@ function minorForms(): Lesson {
         sound: run(natural),
       },
       {
-        title: m.music_cards_minor_three_title(),
+        title: m.music_cards_minor_three_title({ key: keyName("A") }),
         text: m.music_cards_minor_three_text({
+          key: keyName("A"),
           harmonic: form("harmonic-minor"),
           harmonicNotes: join(changed("harmonic-minor")),
           melodic: form("melodic-minor"),
@@ -223,7 +245,7 @@ function charleston(): Lesson {
           ),
           a: names[0],
           b: names[1],
-          chord: p.chord,
+          chord: chord(p.chord),
         }),
         figure: {
           kind: "rhythm",
@@ -288,7 +310,7 @@ function rootless(o: CardOpts): Lesson {
         figure: fig(ex[0]),
         sound: hear(ex[0].t.displayMidi),
         text: (arp ? m.music_cards_rootless_leave_text_arp : m.music_cards_rootless_leave_text)({
-          symbol: ex[0].t.symbol,
+          symbol: chord(ex[0].t.symbol),
         }),
         // The same chord in both positions, one keyboard each.
         options: [ex[0], b0].map((x) => ({
@@ -304,11 +326,11 @@ function rootless(o: CardOpts): Lesson {
         })),
       },
       {
-        title: m.music_cards_rootless_251_title(),
+        title: m.music_cards_rootless_251_title({ key: keyName("C") }),
         text: m.music_cards_rootless_251_text(),
         steps: ex.map((x) => ({
           text: (arp ? m.music_cards_rootless_step_arp : m.music_cards_rootless_step)({
-            symbol: x.t.symbol,
+            symbol: chord(x.t.symbol),
             pos: x.pos,
             degrees: x.d,
             notes: [...x.rh]
@@ -351,20 +373,20 @@ function inversions(o: CardOpts): Lesson {
     );
   const steps: LessonStep[] = bs.map((b, i) => {
     const kept = i ? stay(i) : [];
-    const chord = {
-      symbol: b.symbol,
+    const named = {
+      symbol: chord(b.symbol),
       inversion: INVERSION[b.inversion](),
       notes: b.rightHand.map(flat).join(" "),
     };
     return {
       text: i
-        ? `${m.music_cards_inversions_move_step({ ...chord, steps: m.music_cards_half_steps({ count: b.movement }) })} ${
+        ? `${m.music_cards_inversions_move_step({ ...named, steps: m.music_cards_half_steps({ count: b.movement }) })} ${
             kept.length
               ? m.music_cards_inversions_kept({ count: kept.length, notes: join(kept.map(flat)) })
               : m.music_cards_inversions_none_kept()
           }`
         : (arp ? m.music_cards_inversions_first_step_arp : m.music_cards_inversions_first_step)(
-            chord,
+            named,
           ),
       figure: fig(i),
       sound: tones([b.leftHand, ...b.rightHand]),
@@ -380,7 +402,7 @@ function inversions(o: CardOpts): Lesson {
         text: (arp ? m.music_cards_inversions_move_text_arp : m.music_cards_inversions_move_text)(),
       },
       {
-        title: m.music_cards_inversions_c_title(),
+        title: m.music_cards_inversions_c_title({ key: keyName("C") }),
         text: m.music_cards_inversions_c_text(),
         steps,
       },
@@ -394,7 +416,9 @@ function inversions(o: CardOpts): Lesson {
 
 function cadence(minor: boolean): Lesson {
   const bs = cadenceChords(0, minor, [55, 76]);
-  const tonic = minor ? m.music_cards_key_c_minor() : m.music_cards_key_c_major();
+  const tonic = (minor ? m.music_cards_key_c_minor : m.music_cards_key_c_major)({
+    key: keyName("C"),
+  });
   const fig = (i: number): LessonFigure =>
     keys(
       Object.fromEntries([
@@ -407,7 +431,7 @@ function cadence(minor: boolean): Lesson {
     text:
       m.music_cards_cadence_step({
         roman: b.roman,
-        symbol: b.symbol,
+        symbol: chord(b.symbol),
         inversion: (INVERSION[b.inversion] ?? m.music_cards_inv_third)(),
         notes: b.rightHand.map(flat).join(" "),
       }) + (b.roman === "V7" ? ` ${m.music_cards_cadence_v7_note()}` : ""),
@@ -480,10 +504,11 @@ function chordSymbols(): Lesson {
   const span = all.flat().map((x) => x.midi);
   const steps = SYMBOL_KINDS.map((k, i): LessonStep => {
     const t = all[i];
-    const names = Object.fromEntries(t.map((x) => [x.label, x.name]));
+    const named = t.map((x) => showNote(x.name));
+    const names = Object.fromEntries(t.map((x, j) => [x.label, named[j]]));
     return {
-      text: `${m.music_cards_symbols_step({ symbol: `C${k.suffix}`, notes: join(t.map((x) => x.name)) })} ${k.gloss(names)}`,
-      figure: keys(Object.fromEntries(t.map((x) => [x.midi, x.name])), span),
+      text: `${m.music_cards_symbols_step({ symbol: chord(`C${k.suffix}`), notes: join(named) })} ${k.gloss(names)}`,
+      figure: keys(Object.fromEntries(t.map((x, j) => [x.midi, named[j]])), span),
       sound: tones(t.map((x) => x.midi)),
     };
   });
@@ -493,12 +518,19 @@ function chordSymbols(): Lesson {
     screens: [
       {
         title: m.music_cards_symbols_root_title(),
-        text: m.music_cards_symbols_root_text(),
+        text: m.music_cards_symbols_root_text({ root: showNote("C") }),
         steps,
       },
       {
         title: m.music_cards_symbols_slash_title(),
-        text: m.music_cards_symbols_slash_text(),
+        text: m.music_cards_symbols_slash_text({
+          slash1: chord("C/E"),
+          chord1: chord("C"),
+          bass1: showNote("E"),
+          slash2: chord("Am/G"),
+          chord2: showNote("A"),
+          bass2: showNote("G"),
+        }),
       },
     ],
   };
@@ -525,9 +557,11 @@ function whyDorian(): Lesson {
       {
         title: m.music_cards_dorian_scale_title(),
         text: m.music_cards_dorian_scale_text({
-          symbol: ts[0].symbol,
-          scale: ts[0].scaleLabel,
+          key: keyName("C"),
+          symbol: chord(ts[0].symbol),
+          scale: nameLead(ts[0].scaleLabel),
           notes: names(ts[0]).join(" "),
+          start: names(ts[0])[0],
         }),
         figure: fig(ts[0]),
         sound: run(ts[0].midi, 0.3),
@@ -536,10 +570,14 @@ function whyDorian(): Lesson {
         title: m.music_cards_dorian_all_title(),
         text: m.music_cards_dorian_all_text(),
         steps: ts.map((t) => ({
-          text: `${m.music_cards_scale_step({ symbol: t.symbol, scale: t.scaleLabel, notes: names(t).join(" ") })} ${
+          text: `${m.music_cards_scale_step({ symbol: chord(t.symbol), scale: nameLead(t.scaleLabel), notes: names(t).join(" ") })} ${
             outside(t).length
-              ? m.music_cards_dorian_outside({ count: outside(t).length, notes: join(outside(t)) })
-              : m.music_cards_dorian_inside()
+              ? m.music_cards_dorian_outside({
+                  count: outside(t).length,
+                  notes: join(outside(t)),
+                  key: keyName("C"),
+                })
+              : m.music_cards_dorian_inside({ key: keyName("C") })
           }`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
@@ -695,6 +733,18 @@ const CARDS: Record<string, (o: CardOpts) => Lesson> = {
 };
 
 export const CARD_IDS = Object.keys(CARDS);
+/**
+ * The key a card is written in, for movable do: the piano cards are in C (the voicings, scales and
+ * chord scales cards not listed here), these in a minor key. Position and tip cards have none.
+ */
+const CARD_KEYS: Record<string, NamingKey> = {
+  "scales.minor-forms": IN_A_MINOR,
+  "voicings.minor": IN_C_MINOR,
+  "voicings.cadence-minor": IN_C_MINOR,
+  "chord-scales.minor": IN_C_MINOR,
+  "accompany.chord-symbols": IN_C,
+  "comping.charleston": IN_C,
+};
 /** The scale kinds that have a standard piano fingering (so the thumb card applies). */
 export const hasThumbUnder = (kind: string) => !!SCALE_FINGERINGS[kind];
 export { positionsCard } from "./cards-guitar";
@@ -710,7 +760,9 @@ export function conceptCard(id: string, opts: CardOpts = {}): Lesson[] {
   const make = CARDS[id];
   if (!make) return [];
   const arp = !!opts.arpeggio && ARPEGGIO_IDS.includes(id);
-  const l = make({ ...opts, arpeggio: arp });
+  const key = CARD_KEYS[id] ?? (/^(voicings|chord-scales|scales)\./.test(id) ? IN_C : undefined);
+  const build = () => make({ ...opts, arpeggio: arp });
+  const l = key ? inKey(key, build) : build();
   // A position card placed on another tuning has other frets, so it is its own card.
   const t = opts.tuning;
   const retuned =

@@ -27,6 +27,8 @@ import padsLevels from "../data/paths/pads.json";
 import earLevels from "../data/paths/ear-theory.json";
 import readingLevels from "../data/paths/reading.json";
 import { m } from "@repo/i18n/messages.js";
+import { getNoteNaming, showKeyName } from "../theory/note-names";
+import { SHARP_ORDER } from "../theory/circle";
 
 export type PathId =
   | "ear"
@@ -124,13 +126,17 @@ interface RawStep {
   applies?: string | { only?: string[] };
 }
 
-function normaliseStep(raw: RawStep): PathStep {
+/** `order` renumbers the step; the raw object isn't copied, so a summary read when shown stays live. */
+function normaliseStep(raw: RawStep, order = raw.order): PathStep {
   const applies = raw.applies;
   return {
     id: raw.id,
-    order: raw.order,
+    order,
     title: raw.title,
-    summary: raw.summary,
+    // Read when shown: a step's summary can name notes, which follow a setting made after load.
+    get summary() {
+      return raw.summary;
+    },
     detail: raw.detail,
     kind: raw.kind === "reference" || raw.kind === "review" ? raw.kind : "drill",
     href: raw.href,
@@ -166,7 +172,13 @@ const THEORY_STEPS: RawStep[] = [
     id: "T-1",
     order: 1,
     title: m.music_cards_t1_title(),
-    summary: m.music_cards_t1_summary(),
+    // Named when read: the note-name setting is set after this module loads.
+    get summary() {
+      const order = SHARP_ORDER.map((n) => showKeyName(n)).join(" ");
+      return getNoteNaming() === "letters"
+        ? m.music_cards_t1_summary({ order })
+        : m.music_cards_t1_summary_named({ order });
+    },
     detail: m.music_cards_t_detail_20_2(),
     href: CIRCLE("mode=order"),
     exerciseIds: ["theory.circle.order"],
@@ -179,10 +191,21 @@ const THEORY_STEPS: RawStep[] = [
     id: "T-2",
     order: 2,
     title: m.music_cards_t2_title(),
-    summary: m.music_cards_t2_summary(),
+    get summary() {
+      const [c, g, f, d, bb] = ["C", "G", "F", "D", "Bb"].map((n) => showKeyName(n));
+      return m.music_cards_t2_summary({ c, g, f, d, bb });
+    },
     detail: m.music_cards_t_detail_20_2(),
     href: CIRCLE("mode=count&band=two"),
-    links: [{ label: m.music_cards_t2_link(), href: CIRCLE("mode=count&band=near") }],
+    links: [
+      {
+        get label() {
+          const [c, g, f] = ["C", "G", "F"].map((n) => showKeyName(n));
+          return m.music_cards_t2_link({ c, g, f });
+        },
+        href: CIRCLE("mode=count&band=near"),
+      },
+    ],
     exerciseIds: ["theory.circle.count"],
     skillIds: ["theory.circle.count"],
     minAttempts: 20,
@@ -264,7 +287,10 @@ const THEORY_STEPS: RawStep[] = [
     id: "T-8",
     order: 8,
     title: m.music_cards_t8_title(),
-    summary: m.music_cards_t8_summary(),
+    get summary() {
+      const [c, g, d, a, e] = ["C", "G", "D", "A", "E"].map((n) => showKeyName(n));
+      return m.music_cards_t8_summary({ c, g, d, a, e });
+    },
     kind: "reference",
     href: "/music/library?tab=reference&section=circle",
     links: [
@@ -404,10 +430,7 @@ const path = (id: PathId, title: string, subtitle: string, steps: RawStep[]): Le
   title,
   subtitle,
   // Sorted, then numbered 1, 2, 3 (steps the app adds sit between the table's).
-  steps: steps
-    .map(normaliseStep)
-    .sort((a, b) => a.order - b.order)
-    .map((s, i) => ({ ...s, order: i + 1 })),
+  steps: [...steps].sort((a, b) => a.order - b.order).map((raw, i) => normaliseStep(raw, i + 1)),
 });
 
 /** The path each instrument follows (the Paths tab's default and Today's focus block). */

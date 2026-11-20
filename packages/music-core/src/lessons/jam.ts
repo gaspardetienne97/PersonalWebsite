@@ -18,6 +18,8 @@ import {
 import { noteName, pc } from "../theory/notes";
 import { scaleSemitones } from "../theory/scales";
 import { chordTones, keys } from "./tier1";
+import { showChord, showKeyName, showNote } from "../theory/note-names";
+import { IN_C, inKey } from "./card-kit";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 
 /** Games whose lesson is a full lesson (3 to 6 screens); the rest are short cards (1 to 3). */
@@ -26,7 +28,8 @@ export const FULL_JAM_LESSONS = ["guide-tones", "motif", "approach", "displaceme
 export const JAM_EXAMPLE = PROGRESSIONS.find((p) => p.id === "ii-v-i")!;
 
 const join = (a: string[]) => formatList(a);
-const spell = (midi: number) => noteName(midi, "flat", false);
+/** A note's name as shown (letters, fixed do or movable do from the lesson's key). */
+const spell = (midi: number) => showNote(noteName(midi, "flat", false));
 /** The game's aim for a measure, as the grader reads it (for a chorus of `bars` bars). */
 export const aimOf = (
   id: string,
@@ -336,7 +339,7 @@ const named = (id: string): Pick<Lesson, "id" | "title"> => ({
   title: gameOf(id).label,
 });
 
-const exampleChords = () => join(JAM_EXAMPLE.chords.map((c) => c.symbol));
+const exampleChords = () => join(JAM_EXAMPLE.chords.map((c) => showChord(c.symbol)));
 const stepsOver = (f: (s: Slot, i: number) => LessonStep): LessonStep[] =>
   slotsOf(JAM_EXAMPLE).slice(0, 3).map(f);
 
@@ -356,7 +359,7 @@ function guideTonesLesson(): Lesson {
     to: { midi: number; tone: { name: string; label: string } },
   ) => {
     if (from.midi === to.midi)
-      return m.music_lessons_jam_move_stays({ note: to.tone.name, role: role(to.tone) });
+      return m.music_lessons_jam_move_stays({ note: showNote(to.tone.name), role: role(to.tone) });
     const half = Math.abs(to.midi - from.midi) === 1;
     const move =
       to.midi < from.midi
@@ -366,11 +369,15 @@ function guideTonesLesson(): Lesson {
         : half
           ? m.music_lessons_jam_move_up_half
           : m.music_lessons_jam_move_up_whole;
-    return move({ from: from.tone.name, to: to.tone.name, role: role(to.tone) });
+    return move({
+      from: showNote(from.tone.name),
+      to: showNote(to.tone.name),
+      role: role(to.tone),
+    });
   };
   const step = (from: (typeof v)[number], to: (typeof v)[number]) =>
     m.music_lessons_jam_guide_step({
-      chord: to.slot.symbol,
+      chord: showChord(to.slot.symbol),
       first: move(from.a, to.a),
       second: move(from.b, to.b),
     });
@@ -380,9 +387,9 @@ function guideTonesLesson(): Lesson {
       {
         title: m.music_lessons_jam_guide_name_title(),
         text: m.music_lessons_jam_guide_name_text({
-          chord: dm.slot.symbol,
-          a: dm.a.tone.name,
-          b: dm.b.tone.name,
+          chord: showChord(dm.slot.symbol),
+          a: showNote(dm.a.tone.name),
+          b: showNote(dm.b.tone.name),
         }),
         figure: fig(dm),
         sound: { notes: [{ midi: [dm.a.midi, dm.b.midi], at: 0, dur: 1.6 }] },
@@ -390,17 +397,17 @@ function guideTonesLesson(): Lesson {
       {
         title: m.music_lessons_jam_guide_through_title({ name: JAM_EXAMPLE.name }),
         text: m.music_lessons_jam_guide_through_text({
-          a: dm.slot.symbol,
-          b: g7.slot.symbol,
-          c: cm.slot.symbol,
+          a: showChord(dm.slot.symbol),
+          b: showChord(g7.slot.symbol),
+          c: showChord(cm.slot.symbol),
         }),
         steps: [
           {
             text: m.music_lessons_jam_guide_first_step({
-              chord: dm.slot.symbol,
-              a: dm.a.tone.name,
+              chord: showChord(dm.slot.symbol),
+              a: showNote(dm.a.tone.name),
               roleA: role(dm.a.tone),
-              b: dm.b.tone.name,
+              b: showNote(dm.b.tone.name),
               roleB: role(dm.b.tone),
             }),
             figure: fig(dm),
@@ -421,7 +428,9 @@ function guideTonesLesson(): Lesson {
         title: m.music_lessons_jam_line_passes(),
         text: m.music_lessons_jam_guide_line_text({
           pairs: v
-            .map((x) => m.music_lessons_jam_pair({ a: x.a.tone.name, b: x.b.tone.name }))
+            .map((x) =>
+              m.music_lessons_jam_pair({ a: showNote(x.a.tone.name), b: showNote(x.b.tone.name) }),
+            )
             .join(", "),
           chords: exampleChords(),
         }),
@@ -445,11 +454,14 @@ const toneCard = (id: "changes" | "chord-tones"): Lesson => {
         text: both
           ? m.music_lessons_jam_tones_text_changes({
               strong: pct(id, "strong"),
-              chord,
+              chord: showChord(chord),
               window: WINDOW(),
               landings: pct(id, "landings"),
             })
-          : m.music_lessons_jam_tones_text_tones({ chord, strong: pct(id, "strong") }),
+          : m.music_lessons_jam_tones_text_tones({
+              chord: showChord(chord),
+              strong: pct(id, "strong"),
+            }),
         figure: toneFigure(chord, both ? isGuide : () => true),
       },
       {
@@ -457,8 +469,8 @@ const toneCard = (id: "changes" | "chord-tones"): Lesson => {
         text: (both
           ? m.music_lessons_jam_tones_line_changes
           : m.music_lessons_jam_tones_line_tones)({
-          chord,
-          tones: join(tones.map((t) => t.name)),
+          chord: showChord(chord),
+          tones: join(tones.map((t) => showNote(t.name))),
         }),
         sound: soundOf(toneLine()),
       },
@@ -477,7 +489,10 @@ const thirdsCard = (): Lesson => {
         title: m.music_lessons_jam_thirds_title(),
         text: m.music_lessons_jam_thirds_text({ window: WINDOW(), aim: pct("thirds", "thirds") }),
         steps: slots.map((s) => ({
-          text: m.music_lessons_jam_thirds_step({ chord: s.symbol, note: third(s).name }),
+          text: m.music_lessons_jam_thirds_step({
+            chord: showChord(s.symbol),
+            note: showNote(third(s).name),
+          }),
           figure: keys(
             { [near(pc(third(s).midi), 66)]: third(s).label },
             span.map((m) => near(pc(m), 66)),
@@ -486,7 +501,9 @@ const thirdsCard = (): Lesson => {
       },
       {
         title: m.music_lessons_jam_line_passes(),
-        text: m.music_lessons_jam_thirds_line({ notes: join(slots.map((s) => third(s).name)) }),
+        text: m.music_lessons_jam_thirds_line({
+          notes: join(slots.map((s) => showNote(third(s).name))),
+        }),
         sound: soundOf(thirdLine()),
       },
     ],
@@ -508,7 +525,11 @@ const setCard = (id: string, intro: string): Lesson => {
     screens: [
       {
         title: m.music_lessons_jam_set_title(),
-        text: m.music_lessons_jam_set_text({ intro, names: join(names) }),
+        text: m.music_lessons_jam_set_text({
+          intro,
+          names: join(names),
+          key: showKeyName(noteName(JAM_EXAMPLE.keyPc, "flat", false)),
+        }),
         figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
         sound: { notes: notes.map((m, i) => ({ midi: [m], at: i * 0.45, dur: 0.4 })) },
       },
@@ -516,8 +537,14 @@ const setCard = (id: string, intro: string): Lesson => {
         ? []
         : [
             {
-              title: m.music_lessons_jam_set_blue_title(),
-              text: m.music_lessons_jam_set_blue_text({ note: spell(b3), check }),
+              title: m.music_lessons_jam_set_blue_title({ chord: showChord("C7") }),
+              text: m.music_lessons_jam_set_blue_text({
+                note: spell(b3),
+                check,
+                c: showChord("C"),
+                c7: showChord("C7"),
+                e: showNote("E"),
+              }),
               figure: keys(Object.fromEntries(notes.map((m, i) => [m, names[i]]))),
               sound: {
                 notes: [
@@ -571,8 +598,8 @@ function motifLesson(): Lesson {
       {
         title: m.music_lessons_jam_charleston_title(),
         text: m.music_lessons_jam_charleston_text({
-          a: slotsOf(JAM_EXAMPLE)[0].symbol,
-          b: slotsOf(JAM_EXAMPLE)[1].symbol,
+          a: showChord(slotsOf(JAM_EXAMPLE)[0].symbol),
+          b: showChord(slotsOf(JAM_EXAMPLE)[1].symbol),
         }),
         figure: rhythm(3),
         sound: soundOf(charlestonLine(), 3 * barBeats(JAM_EXAMPLE)),
@@ -582,9 +609,9 @@ function motifLesson(): Lesson {
         text: m.music_lessons_jam_motif_new_text(),
         steps: stepsOver((s) => ({
           text: m.music_lessons_jam_motif_step({
-            chord: s.symbol,
-            a: s.tones[0].name,
-            b: s.tones[1].name,
+            chord: showChord(s.symbol),
+            a: showNote(s.tones[0].name),
+            b: showNote(s.tones[1].name),
           }),
           figure: keys(
             { [s.tones[0].midi]: "1", [s.tones[1].midi]: m.music_lessons_jam_label_and_of_2() },
@@ -604,10 +631,10 @@ function motifLesson(): Lesson {
 function approachLesson(): Lesson {
   const s = slotsOf(JAM_EXAMPLE)[0];
   const target = s.tones[0];
-  const below = noteName(target.midi - 1, "sharp", false);
-  const above = noteName(target.midi + 1, "flat", false);
+  const below = showNote(noteName(target.midi - 1, "sharp", false));
+  const above = showNote(noteName(target.midi + 1, "flat", false));
   const marks = (extra: Record<number, string>) =>
-    keys({ [target.midi]: target.name, ...extra }, [target.midi - 1, target.midi + 1]);
+    keys({ [target.midi]: showNote(target.name), ...extra }, [target.midi - 1, target.midi + 1]);
   return {
     ...named("approach"),
     screens: [
@@ -621,18 +648,27 @@ function approachLesson(): Lesson {
       },
       {
         title: m.music_lessons_jam_approach_ways_title(),
-        text: m.music_lessons_jam_approach_ways_text({ note: target.name, chord: s.symbol }),
+        text: m.music_lessons_jam_approach_ways_text({
+          note: showNote(target.name),
+          chord: showChord(s.symbol),
+        }),
         steps: [
           {
-            text: m.music_lessons_jam_approach_step_aim({ note: target.name }),
+            text: m.music_lessons_jam_approach_step_aim({ note: showNote(target.name) }),
             figure: marks({}),
           },
           {
-            text: m.music_lessons_jam_approach_step_below({ from: below, note: target.name }),
+            text: m.music_lessons_jam_approach_step_below({
+              from: below,
+              note: showNote(target.name),
+            }),
             figure: marks({ [target.midi - 1]: m.music_lessons_jam_label_from_below() }),
           },
           {
-            text: m.music_lessons_jam_approach_step_above({ from: above, note: target.name }),
+            text: m.music_lessons_jam_approach_step_above({
+              from: above,
+              note: showNote(target.name),
+            }),
             figure: marks({ [target.midi + 1]: m.music_lessons_jam_label_from_above() }),
           },
         ],
@@ -713,8 +749,15 @@ function windowsCard(id: "space" | "space-1" | "call-response"): Lesson {
   };
 }
 
-function bridgeCard(): Lesson {
+/** The bridge card is in its tune's key: movable do counts from it. */
+const bridgeCard = (): Lesson => {
   const tune = TUNES.find((p) => p.id === "tune-rhythm-changes")!;
+  return inKey({ tonic: noteName(tune.keyPc, "flat", false), minor: /minor/.test(tune.key) }, () =>
+    bridge(tune),
+  );
+};
+
+function bridge(tune: (typeof TUNES)[number]): Lesson {
   const changes = bridgeChanges(tune);
   const thirdOf = (symbol: string) => {
     const s = slotsOf(tune).find((x) => x.symbol === symbol)!;
@@ -727,7 +770,9 @@ function bridgeCard(): Lesson {
         title: m.music_lessons_jam_bridge_title(),
         text: m.music_lessons_jam_bridge_text({ window: WINDOW(), pct: pct("bridge", "landings") }),
         figure: keys(
-          Object.fromEntries(changes.map((c) => [near(pc(thirdOf(c.symbol).midi), 66), c.symbol])),
+          Object.fromEntries(
+            changes.map((c) => [near(pc(thirdOf(c.symbol).midi), 66), showChord(c.symbol)]),
+          ),
           changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
         ),
       },
@@ -735,13 +780,16 @@ function bridgeCard(): Lesson {
         title: m.music_lessons_jam_bridge_steps_title(),
         text: m.music_lessons_jam_bridge_steps_text({
           tune: tune.name,
-          chords: join(changes.map((c) => c.symbol)),
+          chords: join(changes.map((c) => showChord(c.symbol))),
         }),
         steps: changes.map((c) => {
           const t = thirdOf(c.symbol);
           const at = near(pc(t.midi), 66);
           return {
-            text: m.music_lessons_jam_bridge_step({ chord: c.symbol, note: t.name }),
+            text: m.music_lessons_jam_bridge_step({
+              chord: showChord(c.symbol),
+              note: showNote(t.name),
+            }),
             figure: keys(
               { [at]: t.label },
               changes.map((x) => near(pc(thirdOf(x.symbol).midi), 66)),
@@ -824,11 +872,11 @@ function sideSlipLesson(): Lesson {
       },
       {
         title: m.music_lessons_jam_slip_up_title(),
-        text: m.music_lessons_jam_slip_up_text({ chord: s.symbol }),
+        text: m.music_lessons_jam_slip_up_text({ chord: showChord(s.symbol) }),
         steps: [
           {
             text: m.music_lessons_jam_slip_step_plain({
-              chord: s.symbol,
+              chord: showChord(s.symbol),
               notes: join(plain.map(spell)),
             }),
             figure: lit(plain, (x) => spell(x)),
@@ -837,7 +885,7 @@ function sideSlipLesson(): Lesson {
             text: m.music_lessons_jam_slip_step_slipped({
               notes: join(slipped.map(spell)),
               count: outside.length,
-              chord: s.symbol,
+              chord: showChord(s.symbol),
             }),
             figure: lit(slipped, inOut),
           },
@@ -924,7 +972,7 @@ function fillsCard(): Lesson {
         text: m.music_lessons_jam_fills_bar_text(),
         steps: [
           {
-            text: m.music_lessons_jam_fills_step_head({ a: a.name, b: b.name }),
+            text: m.music_lessons_jam_fills_step_head({ a: showNote(a.name), b: showNote(b.name) }),
             figure: {
               kind: "staff",
               clef: "treble",
@@ -936,7 +984,7 @@ function fillsCard(): Lesson {
             },
           },
           {
-            text: m.music_lessons_jam_fills_step_fill({ a: c.name, b: d.name }),
+            text: m.music_lessons_jam_fills_step_fill({ a: showNote(c.name), b: showNote(d.name) }),
             figure: {
               kind: "staff",
               clef: "treble",
@@ -963,6 +1011,11 @@ function fillsCard(): Lesson {
 
 /** The lesson for a Jam game, shown in Check. The open game grades no rule, so it has none. */
 export function jamGameLesson(gameId: string): Lesson[] {
+  // The examples are in the example progression's key, C major.
+  return inKey(IN_C, () => jamLesson(gameId));
+}
+
+function jamLesson(gameId: string): Lesson[] {
   switch (gameId) {
     case "changes":
     case "chord-tones":

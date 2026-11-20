@@ -3,6 +3,7 @@ import type { ScoringEvent } from "../types";
 import { ev, run, T0 } from "./fixtures";
 import { DAY_MS } from "./mastery";
 import { LEARNING_PATHS, pathProgress, type LearningPath, type PathStep } from "./paths";
+import { setNoteNaming } from "../theory/note-names";
 
 // One attempt a day, in order, so every pass below is on more than one day.
 let n = 0;
@@ -70,6 +71,24 @@ describe("path content", () => {
     for (const p of Object.values(LEARNING_PATHS)) {
       expect(p.steps.map((s) => s.order)).toEqual(p.steps.map((_, i) => i + 1));
       if (!["theory", "studio"].includes(p.id)) expect(p.levels?.length, p.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("names the theory steps' keys when they are read, in the setting made after load", () => {
+    const [t1, t2] = LEARNING_PATHS.theory.steps;
+    expect(t2.summary).toBe(
+      "C, G, F, D and Bb: from the key to its count, and from the count to the key.",
+    );
+    setNoteNaming("fixed");
+    try {
+      expect(t2.summary).toBe(
+        "Do, Sol, Fa, Re and Sib: from the key to its count, and from the count to the key.",
+      );
+      expect(t2.links[0].label).toBe("Start with Do, Sol and Fa");
+      // The letter mnemonic is left out when the notes aren't letters.
+      expect(t1.summary).toBe("Fa Do Sol Re La Mi Si for sharps, backwards for flats.");
+    } finally {
+      setNoteNaming("letters");
     }
   });
 });
