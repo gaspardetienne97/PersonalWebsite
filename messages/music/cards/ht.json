@@ -1,5 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_altered_three_text": "Chak voicing mete nòt tansyon sou dominant G yon ii-V-I nan C. Nòt yo nonmen dapre akò a: b9 se nevyèm nan desann yon demi ton, #11 se onzyèm nan monte, epi 13 se sizyèm nan yon oktav pi wo. Peze Pwochen pou chak voicing.",
+  "music_cards_altered_three_title": "Twa fason pou bay V a koulè",
+  "music_cards_altered_title": "Voicing dominant altere",
+  "music_cards_altered_what_text": "{first} se “{firstLabel}”: {firstHint} {second} se “{secondLabel}”: {secondHint} Twazyèm nan se yon estrikti anwo: yon triyad {triad}, yon triyad majè yon ton anwo rasin lan, sou yon shell 1 3 7, ki ajoute {adds}.",
+  "music_cards_altered_what_title": "Kisa chak ye",
+  "music_cards_bass_label": "bas",
   "music_cards_bb_check_text": "Mòd Tès kache nòt yo. Jwenn rasin bwat la, apre sa jwenn lòt nòt yo dapre wòl yo otou l.",
   "music_cards_bb_six_text": "Bwat sa a se sis nòt otou yon rasin: {roles}. Frèt rasin egzèsis la se nòt rasin lan sou kòd 6, epi rasin pwòp bwat la sou kòd {string}, {place}{tuning}. Peze Koute pou w tande bwat la depi kòd grav rive nan kòd wo.",
   "music_cards_bb_six_title": "Sis nòt otou rasin lan",
@@ -205,6 +211,27 @@
   "music_cards_connected_step": "Bwat {n}: {direction}, frèt ki pi ba li a {place}.",
   "music_cards_connected_title": "Bwat yo mare ansanm sou manch lan",
   "music_cards_count_and": "{beat} e",
+  "music_cards_cs_minor_inside": "Tout nan C minè natirèl.",
+  "music_cards_cs_minor_outside": [
+    {
+      "declarations": [
+        "input count",
+        "input notes",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} pa nan C minè natirèl.",
+        "countPlural=other": "{notes} pa nan C minè natirèl."
+      }
+    }
+  ],
+  "music_cards_cs_minor_outside_text": "V altere a pote nòt tonalite a pa genyen, tankou B ki mennen monte sou C a. ii a ak i a rete pre tonalite a. Nan mòd Tès touch yo rete etenn, kidonk konnen nòt chak gam.",
+  "music_cards_cs_minor_outside_title": "Nòt ki deyò tonalite a",
+  "music_cards_cs_minor_scale_text": "Sou chak akò yon ii-V-i minè, ou jwe gam li pi bezwen an. Nan C minè, {s1} pran {l1}, {s2} pran {l2} epi {s3} pran {l3}. Peze Pwochen pou nòt chak gam.",
+  "music_cards_cs_minor_title": "Gam pou yon ii-V-i minè",
   "music_cards_dorian_all_text": "Gam lan kòmanse sou yon nòt diferan pou chak akò. Peze Pwochen pou chak akò, pou w wè si gam li rete anndan tonalite a.",
   "music_cards_dorian_all_title": "Twa akò yo",
   "music_cards_dorian_inside": "Tout nan C majè.",
@@ -554,6 +581,17 @@
   "music_cards_gloss_major": "Yon rasin poukont li vle di yon triyad majè.",
   "music_cards_gloss_sus2": "Sus2 ranplase tyès la ak dezyèm nan, {note}.",
   "music_cards_gloss_sus4": "Sus4 ranplase tyès la ak kat la, {note}.",
+  "music_cards_gospel_line_text": "Nan C bas la jwe {bass}. Swiv li anvan, apre sa ranpli akò a anwo l. Nan mòd Tès touch yo rete etenn.",
+  "music_cards_gospel_line_title": "Liy bas la",
+  "music_cards_gospel_moving_text": "{about} Nòt ki apre bawo a se bas la, epi lè pa gen bawo, bas la se rasin lan. Nan C, peze Pwochen pou chak akò.",
+  "music_cards_gospel_moving_title": "Akò sou yon bas k ap deplase",
+  "music_cards_gospel_step": "{symbol}: bas la se {bass} epi lòt nòt yo nan {inversion}.",
+  "music_cards_guide_falls_text": "Nan yon ii-V-I, sèt chak akò desann yon demi ton sou tyès akò ki vin apre a: {a} rive {b}, apre sa {c} rive {d} nan C. Egzèsis la kenbe chak pè ant F3 ak C5, kidonk nan yon tonalite ba, yon nòt k ap desann ka sote yon oktav anwo. Nan mòd Tès touch yo rete etenn, kidonk jwenn chak pè apati akò anvan an.",
+  "music_cards_guide_falls_title": "Sèt la desann sou pwochen tyès la",
+  "music_cards_guide_pair_text": "Tyès ak sèt yon akò di ki kalite akò li ye. Egzèsis la mande de nòt sa yo pou chak akò youn apre lòt, nan otan tonalite reglaj tonalite a di. Chak fwa li mande pè ki pi pre sa ki te anvan an.",
+  "music_cards_guide_pair_title": "Tyès la ak sèt la",
+  "music_cards_guide_step": "{symbol}: tyès la se {third} epi sèt la se {seventh}.",
+  "music_cards_guide_title": "Nòt gid",
   "music_cards_half_steps": [
     {
       "declarations": [
@@ -617,6 +655,18 @@
   "music_cards_minor_three_text": "Peze chak fòm pou w tande l. Minè amonik se {harmonic}, ak {harmonicNotes} nan A. Minè melodik, jan egzèsis la jwe l, monte sizyèm ak sèt la nan de direksyon yo: {melodic}, ak {melodicNotes} nan A.",
   "music_cards_minor_three_title": "Twa fòm nan A",
   "music_cards_minor_title": "Twa gam minè yo",
+  "music_cards_minor_v_altered_text": "{symbol} sèvi ak voicing “{voicing}”. Nòt altere li yo se {tones}. {hint}",
+  "music_cards_minor_v_altered_title": "V altere a",
+  "music_cards_minor_v_kinds_text": "ii-V-i minè a se {chords} nan C minè. ii a mwatye diminye (m7b5: tyès bemòl, kent bemòl, sèt bemòl). V a altere, epi i a se yon akò minè sèt san rasin.",
+  "music_cards_minor_v_kinds_text_top": "ii-V-i minè a se {chords} nan C minè. ii a mwatye diminye (m7b5: tyès bemòl, kent bemòl, sèt bemòl), ak rasin lan anwo. V a altere, epi i a se yon akò minè sèt san rasin.",
+  "music_cards_minor_v_kinds_title": "Mwatye diminye, altere, minè",
+  "music_cards_minor_v_title": "Voicing ii-V-i minè",
+  "music_cards_patterns_minor_text": "ii-V-i minè a mache menm jan an. Sou yon akò altere, kent lan se trèzyèm bemòl li, epi dezyèm oswa nevyèm nan se nevyèm bemòl la. Nan mòd Tès touch yo rete etenn, kidonk konnen nòt chak modèl.",
+  "music_cards_patterns_minor_title": "Sou pwogresyon minè a",
+  "music_cards_patterns_step": "{symbol}: 1-2-3-5 se {a}, epi 3-5-7-9 se {b}.",
+  "music_cards_patterns_title": "1-2-3-5 ak 3-5-7-9",
+  "music_cards_patterns_two_text": "Sou chak akò ou jwe yon modèl kat nòt ale-retou. 1-2-3-5 kòmanse sou rasin lan, epi 3-5-7-9 sou tyès la: peze chak pou w wè l sou {symbol}. Tyès, kent ak sèt la se pa akò a, epi dezyèm oswa nevyèm nan soti nan gam li pi bezwen an.",
+  "music_cards_patterns_two_title": "De modèl nòt",
   "music_cards_pos_above_it": "{count} anwo l",
   "music_cards_pos_above_root": [
     {
@@ -683,6 +733,14 @@
   "music_cards_symbols_slash_title": "Bawo yo",
   "music_cards_symbols_step": "{symbol} se {notes}.",
   "music_cards_symbols_title": "Li senbòl akò yo",
+  "music_cards_thumb_left_text": "Lè w ap monte, 3yèm oswa 4yèm dwèt men gòch la travèse anlè pous li. Lè w ap desann, pous li pase anba. Dwèt yo menm bagay chak fwa, kidonk aprann kote travèse a tonbe nan chak tonalite.",
+  "music_cards_thumb_left_title": "Men gòch fè lekontrè",
+  "music_cards_thumb_step_1": "Nan C majè men dwat la jwe {fingers}.",
+  "music_cards_thumb_step_2": "Pous la pase anba dwèt {finger} pou jwe {note}.",
+  "music_cards_thumb_step_3": "Apre sa {fingers} fini oktav la.",
+  "music_cards_thumb_title": "Pous la pase anba",
+  "music_cards_thumb_under_text": "Yon gam pi long pase sa senk dwèt ka rive, kidonk men an pase pous la anba. Lè w ap monte ak men dwat, pous la pase anba 3yèm oswa 4yèm dwèt la. Lè w ap desann, dwèt sa a travèse anlè pous la.",
+  "music_cards_thumb_under_title": "Pous anba, dwèt anlè",
   "music_cards_tier1_groove_all_text": "Men yon mezi nan groove ki pi senp lan, nou konte l 1 & 2 & 3 & 4 &, kote & se mwatye tan an. Peze Pwochen pou ajoute tanbou yo youn pa youn.",
   "music_cards_tier1_groove_all_title": "Toule twa ansanm",
   "music_cards_tier1_groove_grid_text": "Nan egzèsis la, chak tanbou se yon liy, chak kolòn se yon kont, epi desen an montre egzanp lan ranpli. Make kare kote ou tande yon kou, apre sa verifye. Nivo yo ale konsa: {levels}.",
@@ -831,5 +889,6 @@
   "music_cards_uke_one_title": "Yon pozisyon se yon pozisyon men",
   "music_cards_uke_title": "Senk pozisyon ukulele yo",
   "music_cards_uke_up_text": "Senk pozisyon yo monte manch lan. Depi frèt rasin lan sou kòd 1{tuning}, frèt ki pi ba {list}. Nan mòd Tès nòt yo rete kache, kidonk konnen kote chak pozisyon kòmanse.",
-  "music_cards_uke_up_title": "Senk pozisyon monte manch lan"
+  "music_cards_uke_up_title": "Senk pozisyon monte manch lan",
+  "music_cards_voicing_step": "{symbol}: {tags} se {notes}, ak {root} anba."
 }

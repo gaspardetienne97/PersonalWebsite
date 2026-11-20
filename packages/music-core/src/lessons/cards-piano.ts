@@ -20,6 +20,7 @@ import { scaleSemitones } from "../theory/scales";
 import { degreeOf, flat, join, run, sharp, tones, voicingInC } from "./card-kit";
 import { keys } from "./tier1";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Voicings: minor, altered
@@ -58,9 +59,17 @@ function voicingSteps(ts: ReturnType<typeof voicingInC>): LessonStep[] {
     const name = /#11/.test(t.symbol) ? sharp : flat;
     const rh = t.displayMidi.slice(1).sort((a, b) => a - b);
     return {
-      text: `${t.symbol}: ${tagsOf(t.symbol, t.displayMidi)} is ${rh.map(name).join(" ")}, with ${name(t.displayMidi[0])} below.`,
+      text: m.music_cards_voicing_step({
+        symbol: t.symbol,
+        tags: tagsOf(t.symbol, t.displayMidi),
+        notes: rh.map(name).join(" "),
+        root: name(t.displayMidi[0]),
+      }),
       figure: keys(
-        Object.fromEntries([[t.displayMidi[0], "root"], ...rh.map((m) => [m, tag(t.symbol, m)])]),
+        Object.fromEntries([
+          [t.displayMidi[0], m.music_cards_root_label()],
+          ...rh.map((x) => [x, tag(t.symbol, x)]),
+        ]),
         span,
       ),
       sound: tones(t.displayMidi),
@@ -78,16 +87,23 @@ export function minorVoicings(): Lesson {
     .filter((x) => /[b#]/.test(x.tag) && x.tag !== "b3");
   return {
     id: "voicings.minor",
-    title: "Minor ii-V-i voicings",
+    title: m.music_cards_minor_v_title(),
     screens: [
       {
-        title: "Half-diminished, altered, minor",
-        text: `The minor ii-V-i is ${join(ts.map((t) => t.symbol))} in C minor. The ii is half-diminished (m7b5: flat 3rd, flat 5th, flat 7th)${top ? ", voiced with the root on top" : ""}. The V is altered, and the i is a rootless minor 7th.`,
+        title: m.music_cards_minor_v_kinds_title(),
+        text: (top ? m.music_cards_minor_v_kinds_text_top : m.music_cards_minor_v_kinds_text)({
+          chords: join(ts.map((t) => t.symbol)),
+        }),
         steps: voicingSteps(ts),
       },
       {
-        title: "The altered V",
-        text: `${ts[1].symbol} uses the voicing "${DOM.altered.label}". Its altered tones are the ${join(altered.map((a) => `${a.tag} (${flat(a.midi)})`))}. ${strip(DOM.altered.hint)}`,
+        title: m.music_cards_minor_v_altered_title(),
+        text: m.music_cards_minor_v_altered_text({
+          symbol: ts[1].symbol,
+          voicing: DOM.altered.label,
+          tones: join(altered.map((a) => `${a.tag} (${flat(a.midi)})`)),
+          hint: String(strip(DOM.altered.hint)),
+        }),
       },
     ],
   };
@@ -97,16 +113,25 @@ export function alteredVoicings(): Lesson {
   const ts = voicingInC("altered");
   return {
     id: "voicings.altered",
-    title: "Altered dominant voicings",
+    title: m.music_cards_altered_title(),
     screens: [
       {
-        title: "Three ways to colour the V",
-        text: "Each voicing puts tension tones on the G dominant of a ii-V-I in C. The tones are named against the chord: b9 is the 9th lowered a half step, #11 the 11th raised, and 13 the 6th an octave up. Tap Next for each voicing.",
+        title: m.music_cards_altered_three_title(),
+        text: m.music_cards_altered_three_text(),
         steps: voicingSteps(ts),
       },
       {
-        title: "What each one is",
-        text: `${ts[0].symbol} is "${DOM.rootlessB9.label}": ${strip(DOM.rootlessB9.hint)} ${ts[1].symbol} is "${DOM.altered.label}": ${strip(DOM.altered.hint)} The third is an upper structure: a ${US_II.triad} triad, a major triad a whole step above the root, over a 1 3 7 shell, adding the ${US_II.adds}.`,
+        title: m.music_cards_altered_what_title(),
+        text: m.music_cards_altered_what_text({
+          first: ts[0].symbol,
+          firstLabel: DOM.rootlessB9.label,
+          firstHint: String(strip(DOM.rootlessB9.hint)),
+          second: ts[1].symbol,
+          secondLabel: DOM.altered.label,
+          secondHint: String(strip(DOM.altered.hint)),
+          triad: US_II.triad,
+          adds: US_II.adds,
+        }),
       },
     ],
   };
@@ -131,13 +156,17 @@ export function guideTones(): Lesson {
   const span = info.flatMap((x) => [x.third, x.seventh]);
   return {
     id: "voicings.guide-tones",
-    title: "Guide tones",
+    title: m.music_cards_guide_title(),
     screens: [
       {
-        title: "The 3rd and the 7th",
-        text: "A chord's 3rd and 7th say what kind of chord it is. The drill asks for those two notes of each chord in turn, through as many keys as the Keys setting says. Each time it asks for the pair nearest the one before.",
+        title: m.music_cards_guide_pair_title(),
+        text: m.music_cards_guide_pair_text(),
         steps: info.map((x) => ({
-          text: `${x.s}: the 3rd is ${flat(x.third)} and the 7th is ${flat(x.seventh)}.`,
+          text: m.music_cards_guide_step({
+            symbol: x.s,
+            third: flat(x.third),
+            seventh: flat(x.seventh),
+          }),
           figure: keys(
             { [x.third]: `3 ${flat(x.third)}`, [x.seventh]: `7 ${flat(x.seventh)}` },
             span,
@@ -146,8 +175,13 @@ export function guideTones(): Lesson {
         })),
       },
       {
-        title: "The 7th falls to the next 3rd",
-        text: `In a ii-V-I the 7th of each chord falls a half step to the 3rd of the next: ${flat(info[0].seventh)} to ${flat(info[1].third)}, then ${flat(info[1].seventh)} to ${flat(info[2].third)} in C. The drill keeps every pair between F3 and C5, so in a low key a falling note may jump up an octave. In Check the keys stay dark, so find each pair from the chord before.`,
+        title: m.music_cards_guide_falls_title(),
+        text: m.music_cards_guide_falls_text({
+          a: flat(info[0].seventh),
+          b: flat(info[1].third),
+          c: flat(info[1].seventh),
+          d: flat(info[2].third),
+        }),
       },
     ],
   };
@@ -161,26 +195,40 @@ export function gospel(id: string): Lesson {
   const prog = GOSPEL_PROGRESSIONS.find((p) => p.id === id) ?? GOSPEL_PROGRESSIONS[0];
   const bars = gospelChords(0, prog.id, [55, 76]);
   const span = bars.flatMap((b) => [b.leftHand, ...b.rightHand]);
-  const inv = ["root position", "first inversion", "second inversion", "third inversion"];
+  const inv = [
+    m.music_cards_inv_root,
+    m.music_cards_inv_first,
+    m.music_cards_inv_second,
+    m.music_cards_inv_third,
+  ];
   return {
     id: `voicings.gospel.${prog.id}`,
     title: prog.label,
     screens: [
       {
-        title: "Chords over a moving bass",
-        text: `${prog.about} The note after a slash is the bass, and with no slash the bass is the root. In C, tap Next for each chord.`,
+        title: m.music_cards_gospel_moving_title(),
+        text: m.music_cards_gospel_moving_text({ about: prog.about }),
         steps: bars.map((b) => ({
-          text: `${b.symbol}: the bass is ${bassName(b.symbol)} and the other notes are in ${inv[b.inversion] ?? "an inversion"}.`,
+          text: m.music_cards_gospel_step({
+            symbol: b.symbol,
+            bass: bassName(b.symbol),
+            inversion: (inv[b.inversion] ?? m.music_cards_inv_any)(),
+          }),
           figure: keys(
-            Object.fromEntries([[b.leftHand, "bass"], ...b.rightHand.map((m) => [m, "R"])]),
+            Object.fromEntries([
+              [b.leftHand, m.music_cards_bass_label()],
+              ...b.rightHand.map((x) => [x, m.music_cards_hand_right_short()]),
+            ]),
             span,
           ),
           sound: tones([b.leftHand, ...b.rightHand]),
         })),
       },
       {
-        title: "The bass line",
-        text: `In C the bass plays ${bars.map((b) => bassName(b.symbol)).join(" ")}. Follow it first, then fill in the chord above it. In Check the keys stay dark.`,
+        title: m.music_cards_gospel_line_title(),
+        text: m.music_cards_gospel_line_text({
+          bass: bars.map((b) => bassName(b.symbol)).join(" "),
+        }),
       },
     ],
   };
@@ -195,35 +243,38 @@ export function thumbUnder(): Lesson {
   const notes = scaleSemitones("major")!.map((s) => low + s);
   const cross = f.findIndex((x, i) => i > 0 && x === 1);
   const fig = (n: number): LessonFigure =>
-    keys(Object.fromEntries(notes.slice(0, n).map((m, i) => [m, String(f[i])])), notes);
+    keys(Object.fromEntries(notes.slice(0, n).map((x, i) => [x, String(f[i])])), notes);
   return {
     id: "scales.thumb-under",
-    title: "The thumb passing under",
+    title: m.music_cards_thumb_title(),
     screens: [
       {
-        title: "Thumb under, finger over",
-        text: "A scale is longer than five fingers reach, so the hand passes the thumb under. Going up with the right hand, the thumb passes under the 3rd or 4th finger. Going down, that finger crosses over the thumb.",
+        title: m.music_cards_thumb_under_title(),
+        text: m.music_cards_thumb_under_text(),
         steps: [
           {
-            text: `In C major the right hand plays ${f.slice(0, cross).join(" ")}.`,
+            text: m.music_cards_thumb_step_1({ fingers: f.slice(0, cross).join(" ") }),
             figure: fig(cross),
             sound: run(notes.slice(0, cross)),
           },
           {
-            text: `The thumb passes under finger ${f[cross - 1]} to play ${noteName(notes[cross], "flat", false)}.`,
+            text: m.music_cards_thumb_step_2({
+              finger: f[cross - 1],
+              note: noteName(notes[cross], "flat", false),
+            }),
             figure: fig(cross + 1),
             sound: run(notes.slice(cross - 1, cross + 1)),
           },
           {
-            text: `Then ${f.slice(cross + 1).join(" ")} finish the octave.`,
+            text: m.music_cards_thumb_step_3({ fingers: f.slice(cross + 1).join(" ") }),
             figure: fig(notes.length),
             sound: run(notes.slice(cross)),
           },
         ],
       },
       {
-        title: "The left hand does the reverse",
-        text: "Going up, the left hand's 3rd or 4th finger crosses over its thumb. Going down, its thumb passes under. The fingers are the same each time round, so learn where the crossing falls in each key.",
+        title: m.music_cards_thumb_left_title(),
+        text: m.music_cards_thumb_left_text(),
       },
     ],
   };
@@ -241,25 +292,39 @@ export function chordScalesMinor(): Lesson {
     [...new Set(t.midi.map(pc))].filter((p) => !MINOR_KEY.has(p)).map((p) => flat(60 + p));
   const fig = (t: (typeof ts)[number]): LessonFigure =>
     keys(
-      Object.fromEntries(t.midi.map((m) => [m, flat(m)])),
+      Object.fromEntries(t.midi.map((x) => [x, flat(x)])),
       ts.flatMap((x) => x.midi),
     );
   return {
     id: "chord-scales.minor",
-    title: "Scales for a minor ii-V-i",
+    title: m.music_cards_cs_minor_title(),
     screens: [
       {
-        title: "A scale for each chord",
-        text: `Over each chord of a minor ii-V-i you play its go-to scale. In C minor, ${ts[0].symbol} takes ${ts[0].scaleLabel}, ${ts[1].symbol} takes ${ts[1].scaleLabel} and ${ts[2].symbol} takes ${ts[2].scaleLabel}. Tap Next for the notes of each.`,
+        title: m.music_cards_dorian_scale_title(),
+        text: m.music_cards_cs_minor_scale_text({
+          s1: ts[0].symbol,
+          l1: ts[0].scaleLabel,
+          s2: ts[1].symbol,
+          l2: ts[1].scaleLabel,
+          s3: ts[2].symbol,
+          l3: ts[2].scaleLabel,
+        }),
         steps: ts.map((t) => ({
-          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} ${outside(t).length > 1 ? "aren't" : "isn't"} in C natural minor.` : "It's all in C natural minor."}`,
+          text: `${m.music_cards_scale_step({ symbol: t.symbol, scale: t.scaleLabel, notes: names(t).join(" ") })} ${
+            outside(t).length
+              ? m.music_cards_cs_minor_outside({
+                  count: outside(t).length,
+                  notes: join(outside(t)),
+                })
+              : m.music_cards_cs_minor_inside()
+          }`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
         })),
       },
       {
-        title: "Notes outside the key",
-        text: "The altered V brings notes the key doesn't have, such as the B that leads up to C. The ii and the i stay close to the key. In Check the keys stay dark, so know each scale's notes.",
+        title: m.music_cards_cs_minor_outside_title(),
+        text: m.music_cards_cs_minor_outside_text(),
       },
     ],
   };
@@ -293,7 +358,11 @@ export function chordPatterns(): Lesson {
     const a = line(symbol, "1235");
     const b = line(symbol, "3579");
     return {
-      text: `${symbol}: 1-2-3-5 is ${a.map(flat).join(" ")}, and 3-5-7-9 is ${b.map(flat).join(" ")}.`,
+      text: m.music_cards_patterns_step({
+        symbol,
+        a: a.map(flat).join(" "),
+        b: b.map(flat).join(" "),
+      }),
       figure: degreeKeys(symbol, ["1235", "3579"]),
       sound: lineSound(symbol),
     };
@@ -301,11 +370,11 @@ export function chordPatterns(): Lesson {
   const first = make("major")[0].symbol;
   return {
     id: "chord-scales.patterns",
-    title: "1-2-3-5 and 3-5-7-9",
+    title: m.music_cards_patterns_title(),
     screens: [
       {
-        title: "Two note patterns",
-        text: `On each chord you play a four-note pattern up and back. 1-2-3-5 starts on the root, and 3-5-7-9 on the 3rd: tap each to see it on ${first}. The 3rd, 5th and 7th are the chord's own, and the 2nd or 9th comes from its go-to scale.`,
+        title: m.music_cards_patterns_two_title(),
+        text: m.music_cards_patterns_two_text({ symbol: first }),
         figure: degreeKeys(first, ["1235"], ["1235", "3579"]),
         sound: lineSound(first),
         options: (["1235", "3579"] as const).map((p) => ({
@@ -316,8 +385,8 @@ export function chordPatterns(): Lesson {
         steps: make("major").map((t) => step(t.symbol)),
       },
       {
-        title: "On the minor changes",
-        text: "The minor ii-V-i works the same way. On an altered chord the 5th is its flat 13th, and the 2nd or 9th is the flat 9th. In Check the keys stay dark, so know each pattern's notes.",
+        title: m.music_cards_patterns_minor_title(),
+        text: m.music_cards_patterns_minor_text(),
         figure: degreeKeys(make("minor")[0].symbol, ["1235", "3579"]),
         sound: lineSound(make("minor")[0].symbol),
         steps: make("minor").map((t) => step(t.symbol)),

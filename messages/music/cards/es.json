@@ -1,5 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_altered_three_text": "Cada voicing pone notas de tensión sobre la dominante G de un ii-V-I en C. Las notas se nombran respecto al acorde: b9 es la 9.ª bajada un semitono, #11 la 11.ª subida, y 13 la 6.ª una octava arriba. Toca Siguiente para cada voicing.",
+  "music_cards_altered_three_title": "Tres formas de colorear el V",
+  "music_cards_altered_title": "Voicings de dominante alterada",
+  "music_cards_altered_what_text": "{first} es «{firstLabel}»: {firstHint} {second} es «{secondLabel}»: {secondHint} El tercero es una estructura superior: una tríada {triad}, una tríada mayor un tono arriba de la fundamental, sobre un shell 1 3 7, que agrega {adds}.",
+  "music_cards_altered_what_title": "Qué es cada uno",
+  "music_cards_bass_label": "bajo",
   "music_cards_bb_check_text": "El modo Prueba oculta las notas. Encuentra la fundamental de la caja y luego las otras notas por su función alrededor de ella.",
   "music_cards_bb_six_text": "Esta caja son seis notas alrededor de una fundamental: {roles}. El traste de la fundamental del ejercicio es la fundamental en la cuerda 6, y la fundamental propia de la caja está en la cuerda {string}, {place}{tuning}. Toca Escuchar para oír la caja de la cuerda grave a la aguda.",
   "music_cards_bb_six_title": "Seis notas alrededor de la fundamental",
@@ -205,6 +211,27 @@
   "music_cards_connected_step": "Caja {n}: {direction}, su traste más bajo {place}.",
   "music_cards_connected_title": "Las cajas unidas por el diapasón",
   "music_cards_count_and": "{beat} y",
+  "music_cards_cs_minor_inside": "Todo está en C menor natural.",
+  "music_cards_cs_minor_outside": [
+    {
+      "declarations": [
+        "input count",
+        "input notes",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} no está en C menor natural.",
+        "countPlural=other": "{notes} no están en C menor natural."
+      }
+    }
+  ],
+  "music_cards_cs_minor_outside_text": "El V alterado trae notas que la tonalidad no tiene, como el B que lleva a C. El ii y el i se quedan cerca de la tonalidad. En el modo Prueba las teclas quedan apagadas, así que debes saber las notas de cada escala.",
+  "music_cards_cs_minor_outside_title": "Notas fuera de la tonalidad",
+  "music_cards_cs_minor_scale_text": "Sobre cada acorde de un ii-V-i menor tocas su escala de referencia. En C menor, {s1} lleva {l1}, {s2} lleva {l2} y {s3} lleva {l3}. Toca Siguiente para ver las notas de cada una.",
+  "music_cards_cs_minor_title": "Escalas para un ii-V-i menor",
   "music_cards_dorian_all_text": "La escala empieza en una nota distinta para cada acorde. Toca Siguiente para ver cada acorde y si su escala se queda dentro de la tonalidad.",
   "music_cards_dorian_all_title": "Los tres acordes",
   "music_cards_dorian_inside": "Todo está en C mayor.",
@@ -554,6 +581,17 @@
   "music_cards_gloss_major": "Una fundamental sola significa una tríada mayor.",
   "music_cards_gloss_sus2": "Sus2 cambia la 3.ª por la 2.ª, {note}.",
   "music_cards_gloss_sus4": "Sus4 cambia la 3.ª por la 4.ª, {note}.",
+  "music_cards_gospel_line_text": "En C el bajo toca {bass}. Síguelo primero y luego completa el acorde encima. En el modo Prueba las teclas quedan apagadas.",
+  "music_cards_gospel_line_title": "La línea de bajo",
+  "music_cards_gospel_moving_text": "{about} La nota después de una barra es el bajo, y sin barra el bajo es la fundamental. En C, toca Siguiente para cada acorde.",
+  "music_cards_gospel_moving_title": "Acordes sobre un bajo que se mueve",
+  "music_cards_gospel_step": "{symbol}: el bajo es {bass} y las otras notas están en {inversion}.",
+  "music_cards_guide_falls_text": "En un ii-V-I la 7.ª de cada acorde baja un semitono a la 3.ª del siguiente: {a} a {b}, luego {c} a {d} en C. El ejercicio mantiene cada par entre F3 y C5, así que en una tonalidad grave una nota que baja puede saltar una octava arriba. En el modo Prueba las teclas quedan apagadas, así que busca cada par a partir del acorde anterior.",
+  "music_cards_guide_falls_title": "La 7.ª baja a la siguiente 3.ª",
+  "music_cards_guide_pair_text": "La 3.ª y la 7.ª de un acorde dicen qué tipo de acorde es. El ejercicio pide esas dos notas de cada acorde por turnos, en tantas tonalidades como indique el ajuste de tonalidades. Cada vez pide el par más cercano al anterior.",
+  "music_cards_guide_pair_title": "La 3.ª y la 7.ª",
+  "music_cards_guide_step": "{symbol}: la 3.ª es {third} y la 7.ª es {seventh}.",
+  "music_cards_guide_title": "Notas guía",
   "music_cards_half_steps": [
     {
       "declarations": [
@@ -617,6 +655,18 @@
   "music_cards_minor_three_text": "Toca cada forma para escucharla. La menor armónica es {harmonic}, con {harmonicNotes} en A. La menor melódica, como la toca el ejercicio, sube la 6.ª y la 7.ª en las dos direcciones: {melodic}, con {melodicNotes} en A.",
   "music_cards_minor_three_title": "Tres formas en A",
   "music_cards_minor_title": "Las tres escalas menores",
+  "music_cards_minor_v_altered_text": "{symbol} usa el voicing «{voicing}». Sus notas alteradas son {tones}. {hint}",
+  "music_cards_minor_v_altered_title": "El V alterado",
+  "music_cards_minor_v_kinds_text": "El ii-V-i menor es {chords} en C menor. El ii es semidisminuido (m7b5: 3.ª bemol, 5.ª bemol, 7.ª bemol). El V es alterado, y el i es un acorde menor con séptima sin fundamental.",
+  "music_cards_minor_v_kinds_text_top": "El ii-V-i menor es {chords} en C menor. El ii es semidisminuido (m7b5: 3.ª bemol, 5.ª bemol, 7.ª bemol), con la fundamental arriba. El V es alterado, y el i es un acorde menor con séptima sin fundamental.",
+  "music_cards_minor_v_kinds_title": "Semidisminuido, alterado, menor",
+  "music_cards_minor_v_title": "Voicings del ii-V-i menor",
+  "music_cards_patterns_minor_text": "El ii-V-i menor funciona igual. En un acorde alterado la 5.ª es su 13.ª bemol, y la 2.ª o 9.ª es la 9.ª bemol. En el modo Prueba las teclas quedan apagadas, así que debes saber las notas de cada patrón.",
+  "music_cards_patterns_minor_title": "Sobre la armonía menor",
+  "music_cards_patterns_step": "{symbol}: 1-2-3-5 es {a}, y 3-5-7-9 es {b}.",
+  "music_cards_patterns_title": "1-2-3-5 y 3-5-7-9",
+  "music_cards_patterns_two_text": "Sobre cada acorde tocas un patrón de cuatro notas de ida y vuelta. 1-2-3-5 empieza en la fundamental, y 3-5-7-9 en la 3.ª: toca cada uno para verlo en {symbol}. La 3.ª, la 5.ª y la 7.ª son del acorde, y la 2.ª o la 9.ª viene de su escala de referencia.",
+  "music_cards_patterns_two_title": "Dos patrones de notas",
   "music_cards_pos_above_it": "{count} arriba",
   "music_cards_pos_above_root": [
     {
@@ -683,6 +733,14 @@
   "music_cards_symbols_slash_title": "Barras",
   "music_cards_symbols_step": "{symbol} es {notes}.",
   "music_cards_symbols_title": "Leer cifrados de acordes",
+  "music_cards_thumb_left_text": "Subiendo, el 3.er o 4.º dedo de la mano izquierda cruza por encima de su pulgar. Bajando, su pulgar pasa por debajo. Los dedos son los mismos cada vez, así que aprende dónde cae el cruce en cada tonalidad.",
+  "music_cards_thumb_left_title": "La mano izquierda hace lo contrario",
+  "music_cards_thumb_step_1": "En C mayor la mano derecha toca {fingers}.",
+  "music_cards_thumb_step_2": "El pulgar pasa por debajo del dedo {finger} para tocar {note}.",
+  "music_cards_thumb_step_3": "Luego {fingers} terminan la octava.",
+  "music_cards_thumb_title": "El paso del pulgar",
+  "music_cards_thumb_under_text": "Una escala es más larga de lo que alcanzan cinco dedos, así que la mano pasa el pulgar por debajo. Subiendo con la mano derecha, el pulgar pasa por debajo del 3.er o 4.º dedo. Bajando, ese dedo cruza por encima del pulgar.",
+  "music_cards_thumb_under_title": "Pulgar por debajo, dedo por encima",
   "music_cards_tier1_groove_all_text": "Aquí hay un compás del groove más simple, contado 1 & 2 & 3 & 4 &, donde & es el medio pulso. Toca Siguiente para agregar los tambores uno por uno.",
   "music_cards_tier1_groove_all_title": "Los tres juntos",
   "music_cards_tier1_groove_grid_text": "En el ejercicio, cada tambor es una fila y cada columna es un conteo, y la figura muestra el ejemplo completo. Marca los cuadros donde oíste un golpe y luego revisa. Los niveles van así: {levels}.",
@@ -831,5 +889,6 @@
   "music_cards_uke_one_title": "Una posición es una posición de la mano",
   "music_cards_uke_title": "Las cinco posiciones del ukelele",
   "music_cards_uke_up_text": "Las cinco posiciones suben por el diapasón. Contando desde el traste de la fundamental en la cuerda 1{tuning}, el traste más bajo {list}. En el modo Prueba las notas quedan ocultas, así que debes saber dónde empieza cada posición.",
-  "music_cards_uke_up_title": "Cinco posiciones a lo largo del diapasón"
+  "music_cards_uke_up_title": "Cinco posiciones a lo largo del diapasón",
+  "music_cards_voicing_step": "{symbol}: {tags} es {notes}, con {root} abajo."
 }

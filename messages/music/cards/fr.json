@@ -1,5 +1,11 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_altered_three_text": "Chaque voicing place des notes de tension sur la dominante G d’un ii-V-I en C. Les notes sont nommées par rapport à l’accord : b9 est la neuvième abaissée d’un demi-ton, #11 la onzième haussée, et 13 la sixte une octave plus haut. Touchez Suivant pour chaque voicing.",
+  "music_cards_altered_three_title": "Trois façons de colorer le V",
+  "music_cards_altered_title": "Voicings de dominante altérée",
+  "music_cards_altered_what_text": "{first}, c’est « {firstLabel} » : {firstHint} {second}, c’est « {secondLabel} » : {secondHint} Le troisième est une structure supérieure : une triade {triad}, une triade majeure un ton au-dessus de la fondamentale, sur un shell 1 3 7, qui ajoute {adds}.",
+  "music_cards_altered_what_title": "Ce qu’est chacun",
+  "music_cards_bass_label": "basse",
   "music_cards_bb_check_text": "Le mode Contrôle cache les notes. Trouvez la fondamentale de la boîte, puis les autres notes d’après leur rôle autour d’elle.",
   "music_cards_bb_six_text": "Cette boîte, ce sont six notes autour d’une fondamentale : {roles}. La frette de la fondamentale de l’exercice est la fondamentale sur la corde 6, et la fondamentale de la boîte elle-même est sur la corde {string}, {place}{tuning}. Touchez Écouter pour entendre la boîte de la corde grave à l’aiguë.",
   "music_cards_bb_six_title": "Six notes autour de la fondamentale",
@@ -205,6 +211,27 @@
   "music_cards_connected_step": "Boîte {n} : {direction}, sa frette la plus basse {place}.",
   "music_cards_connected_title": "Les boîtes reliées le long du manche",
   "music_cards_count_and": "{beat} et",
+  "music_cards_cs_minor_inside": "Tout est dans C mineur naturel.",
+  "music_cards_cs_minor_outside": [
+    {
+      "declarations": [
+        "input count",
+        "input notes",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} n’est pas dans C mineur naturel.",
+        "countPlural=other": "{notes} ne sont pas dans C mineur naturel."
+      }
+    }
+  ],
+  "music_cards_cs_minor_outside_text": "Le V altéré apporte des notes que la tonalité n’a pas, comme le B qui mène à C. Le ii et le i restent proches de la tonalité. En mode Contrôle, les touches restent éteintes, alors connaissez les notes de chaque gamme.",
+  "music_cards_cs_minor_outside_title": "Des notes hors de la tonalité",
+  "music_cards_cs_minor_scale_text": "Sur chaque accord d’un ii-V-i mineur, vous jouez sa gamme de référence. En C mineur, {s1} prend {l1}, {s2} prend {l2} et {s3} prend {l3}. Touchez Suivant pour les notes de chacune.",
+  "music_cards_cs_minor_title": "Gammes pour un ii-V-i mineur",
   "music_cards_dorian_all_text": "La gamme part d’une note différente pour chaque accord. Touchez Suivant pour chaque accord et pour savoir si sa gamme reste dans la tonalité.",
   "music_cards_dorian_all_title": "Les trois accords",
   "music_cards_dorian_inside": "Tout est dans C majeur.",
@@ -554,6 +581,17 @@
   "music_cards_gloss_major": "Une fondamentale seule veut dire une triade majeure.",
   "music_cards_gloss_sus2": "Sus2 remplace la tierce par la seconde, {note}.",
   "music_cards_gloss_sus4": "Sus4 remplace la tierce par la quarte, {note}.",
+  "music_cards_gospel_line_text": "En C, la basse joue {bass}. Suivez-la d’abord, puis complétez l’accord au-dessus. En mode Contrôle, les touches restent éteintes.",
+  "music_cards_gospel_line_title": "La ligne de basse",
+  "music_cards_gospel_moving_text": "{about} La note après une barre oblique est la basse, et sans barre la basse est la fondamentale. En C, touchez Suivant pour chaque accord.",
+  "music_cards_gospel_moving_title": "Des accords sur une basse qui bouge",
+  "music_cards_gospel_step": "{symbol} : la basse est {bass} et les autres notes sont en {inversion}.",
+  "music_cards_guide_falls_text": "Dans un ii-V-I, la septième de chaque accord descend d’un demi-ton vers la tierce du suivant : {a} vers {b}, puis {c} vers {d} en C. L’exercice garde chaque paire entre F3 et C5, donc dans une tonalité grave une note qui descend peut sauter d’une octave vers le haut. En mode Contrôle, les touches restent éteintes, alors trouvez chaque paire à partir de l’accord précédent.",
+  "music_cards_guide_falls_title": "La septième descend vers la tierce suivante",
+  "music_cards_guide_pair_text": "La tierce et la septième d’un accord disent de quel type d’accord il s’agit. L’exercice demande ces deux notes de chaque accord tour à tour, dans autant de tonalités que l’indique le réglage des tonalités. À chaque fois, il demande la paire la plus proche de la précédente.",
+  "music_cards_guide_pair_title": "La tierce et la septième",
+  "music_cards_guide_step": "{symbol} : la tierce est {third} et la septième est {seventh}.",
+  "music_cards_guide_title": "Notes guides",
   "music_cards_half_steps": [
     {
       "declarations": [
@@ -617,6 +655,18 @@
   "music_cards_minor_three_text": "Touchez chaque forme pour l’entendre. Le mineur harmonique est {harmonic}, avec {harmonicNotes} en A. Le mineur mélodique, tel que l’exercice le joue, hausse la sixte et la septième dans les deux sens : {melodic}, avec {melodicNotes} en A.",
   "music_cards_minor_three_title": "Trois formes en A",
   "music_cards_minor_title": "Les trois gammes mineures",
+  "music_cards_minor_v_altered_text": "{symbol} utilise le voicing « {voicing} ». Ses notes altérées sont {tones}. {hint}",
+  "music_cards_minor_v_altered_title": "Le V altéré",
+  "music_cards_minor_v_kinds_text": "Le ii-V-i mineur, c’est {chords} en C mineur. Le ii est demi-diminué (m7b5 : tierce bémol, quinte bémol, septième bémol). Le V est altéré, et le i est un accord mineur septième sans fondamentale.",
+  "music_cards_minor_v_kinds_text_top": "Le ii-V-i mineur, c’est {chords} en C mineur. Le ii est demi-diminué (m7b5 : tierce bémol, quinte bémol, septième bémol), avec la fondamentale au sommet. Le V est altéré, et le i est un accord mineur septième sans fondamentale.",
+  "music_cards_minor_v_kinds_title": "Demi-diminué, altéré, mineur",
+  "music_cards_minor_v_title": "Voicings du ii-V-i mineur",
+  "music_cards_patterns_minor_text": "Le ii-V-i mineur fonctionne de la même façon. Sur un accord altéré, la quinte est sa treizième bémol, et la seconde ou neuvième est la neuvième bémol. En mode Contrôle, les touches restent éteintes, alors connaissez les notes de chaque motif.",
+  "music_cards_patterns_minor_title": "Sur la grille mineure",
+  "music_cards_patterns_step": "{symbol} : 1-2-3-5, c’est {a}, et 3-5-7-9, c’est {b}.",
+  "music_cards_patterns_title": "1-2-3-5 et 3-5-7-9",
+  "music_cards_patterns_two_text": "Sur chaque accord, vous jouez un motif de quatre notes aller-retour. 1-2-3-5 part de la fondamentale, et 3-5-7-9 de la tierce : touchez chacun pour le voir sur {symbol}. La tierce, la quinte et la septième appartiennent à l’accord, et la seconde ou la neuvième vient de sa gamme de référence.",
+  "music_cards_patterns_two_title": "Deux motifs de notes",
   "music_cards_pos_above_it": "{count} au-dessus",
   "music_cards_pos_above_root": [
     {
@@ -683,6 +733,14 @@
   "music_cards_symbols_slash_title": "Les barres obliques",
   "music_cards_symbols_step": "{symbol}, c’est {notes}.",
   "music_cards_symbols_title": "Lire les symboles d’accords",
+  "music_cards_thumb_left_text": "En montant, le 3e ou le 4e doigt de la main gauche passe par-dessus son pouce. En descendant, son pouce passe dessous. Les doigts sont les mêmes à chaque tour, alors apprenez où tombe le passage dans chaque tonalité.",
+  "music_cards_thumb_left_title": "La main gauche fait l’inverse",
+  "music_cards_thumb_step_1": "En C majeur, la main droite joue {fingers}.",
+  "music_cards_thumb_step_2": "Le pouce passe sous le doigt {finger} pour jouer {note}.",
+  "music_cards_thumb_step_3": "Puis {fingers} finissent l’octave.",
+  "music_cards_thumb_title": "Le passage du pouce",
+  "music_cards_thumb_under_text": "Une gamme est plus longue que ce que cinq doigts peuvent couvrir, alors la main passe le pouce dessous. En montant à la main droite, le pouce passe sous le 3e ou le 4e doigt. En descendant, ce doigt passe par-dessus le pouce.",
+  "music_cards_thumb_under_title": "Pouce dessous, doigt dessus",
   "music_cards_tier1_groove_all_text": "Voici une mesure du groove le plus simple, comptée 1 & 2 & 3 & 4 &, où & est le demi-temps. Touchez Suivant pour ajouter les éléments un par un.",
   "music_cards_tier1_groove_all_title": "Les trois ensemble",
   "music_cards_tier1_groove_grid_text": "Dans l’exercice, chaque élément est une ligne et chaque colonne est un compte, et la figure montre l’exemple rempli. Cochez les cases où vous avez entendu un coup, puis vérifiez. Les niveaux vont ainsi : {levels}.",
@@ -831,5 +889,6 @@
   "music_cards_uke_one_title": "Une position est une position de la main",
   "music_cards_uke_title": "Les cinq positions du ukulélé",
   "music_cards_uke_up_text": "Les cinq positions montent le long du manche. En comptant depuis la frette de la fondamentale sur la corde 1{tuning}, la frette la plus basse {list}. En mode Contrôle, les notes restent cachées, alors sachez où commence chaque position.",
-  "music_cards_uke_up_title": "Cinq positions le long du manche"
+  "music_cards_uke_up_title": "Cinq positions le long du manche",
+  "music_cards_voicing_step": "{symbol} : {tags}, c’est {notes}, avec {root} en dessous."
 }
