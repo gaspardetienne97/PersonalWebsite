@@ -2,6 +2,7 @@
   // Note finder and Interval recall: find a note inside a five-fret window.
   // Binary per question; no timing or fingering is assessed. The string and fret
   // are verified only for on-screen taps (MIDI and the microphone carry pitch).
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import type { NoteEvent } from "@repo/music-core";
@@ -36,6 +37,8 @@
   import { btnPrimary } from "#lib/music/components/ui.ts";
   import X from "@lucide/svelte/icons/x";
   import { FRETBOARD_MODES, openMode } from "./modes";
+  import { getLocale } from "@repo/i18n/runtime.js";
+  import { formatNumber } from "@repo/i18n/format";
 
   let { kind }: { kind: "note-finder" | "interval-recall" } = $props();
   // svelte-ignore state_referenced_locally
@@ -56,9 +59,11 @@
   const regionIdx = $derived(Math.min(Math.max(0, s.region), RECALL_REGIONS.length - 1));
   const region = $derived(RECALL_REGIONS[regionIdx]);
   const to = $derived(Math.min(tuning.fretCount, region.end));
-  const intervalLabel = (st: number) => RECALL_INTERVALS.find((i) => i.semitones === st)?.label ?? `${st} semitones`;
+  const intervalLabel = (st: number) => RECALL_INTERVALS.find((i) => i.semitones === st)?.label ?? m.music_strings_semitones({ count: st });
   /** "a major third", "an octave". */
   const aOrAn = (label: string) => `${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
+  /** The interval inside a sentence: English takes its article here, the other languages' messages carry their own words. */
+  const ivPhrase = (label: string) => (getLocale() === "en" ? aOrAn(label) : label.toLowerCase());
   const key = $derived(isRecall ? `interval-recall:${tuning.id}:r${regionIdx}:i${s.interval}` : `note-finder:${tuning.id}:r${regionIdx}`);
 
   interface Question {
@@ -84,13 +89,20 @@
     const letter = (m: number) => noteName(m, "flat", false);
     const open = tuning.openStrings;
     const twin = open.findIndex((m, i) => i !== n - 1 && letter(m) === letter(open[n - 1]));
-    return `${twin < 0 ? "" : open[n - 1] > open[twin] ? "high " : "low "}${letter(open[n - 1])} string`;
+    const name = letter(open[n - 1]);
+    return twin < 0 ? m.music_strings_string_letter({ letter: name }) : open[n - 1] > open[twin] ? m.music_strings_string_letter_high({ letter: name }) : m.music_strings_string_letter_low({ letter: name });
   };
   /** What was played, in plain words: the note without its octave, and where on the neck when known. */
-  const playedText = (a: { midi: number; string?: number; fret?: number }) =>
-    `${noteName(a.midi, "sharp", false)}${a.string !== undefined && a.fret !== undefined ? ` (${stringName(a.string)}, ${a.fret ? `fret ${a.fret}` : "open"})` : ""}`;
-  /** The answer that was wanted, as lit on the neck. */
-  const wantedText = (q: Question) => `${isRecall ? `${aOrAn(q.label)} up` : q.label} is lit`;
+  const playedText = (a: { midi: number; string?: number; fret?: number }) => {
+    const note = noteName(a.midi, "sharp", false);
+    if (a.string === undefined || a.fret === undefined) return note;
+    return a.fret ? m.music_strings_find_played_fret({ note, string: stringName(a.string), fret: a.fret }) : m.music_strings_find_played_open({ note, string: stringName(a.string) });
+  };
+  /** What was played, then the answer that was wanted, as lit on the neck. */
+  const wrongText = (a: { midi: number; string?: number; fret?: number }, q: Question) =>
+    isRecall ? m.music_strings_find_wrong_recall({ played: playedText(a), interval: ivPhrase(q.label) }) : m.music_strings_find_wrong_note({ played: playedText(a), note: q.label });
+  /** One decimal, in the player's language. */
+  const dec1 = (x: number) => formatNumber(x, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -121,7 +133,7 @@
   const marks = $derived.by((): FretMark[] => {
     const out: FretMark[] = [];
     if (!question || phase === "results") return out;
-    if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root", spoken: "starting note" });
+    if (question.anchor) out.push({ string: question.anchor.string, fret: question.anchor.fret, role: "root", spoken: m.music_strings_find_starting_note() });
     if (revealing || (mode === "practice" && phase === "running"))
       for (const a of question.acceptable)
         // After a right answer the places turn green with a tick in the name; after a wrong one they stay rings, beside the red cross.
@@ -131,9 +143,9 @@
 
   const summaryLine = $derived(
     [
-      ...(isRecall ? [{ text: s.interval ? intervalLabel(s.interval) : "Mixed intervals", focus: "interval" }] : [{ text: "Named notes" }]),
-      { text: `frets ${region.start} to ${to}`, focus: "region" },
-      { text: `${s.questions} questions`, focus: "questions" },
+      ...(isRecall ? [{ text: s.interval ? intervalLabel(s.interval) : m.music_strings_find_mixed_intervals(), focus: "interval" }] : [{ text: m.music_strings_find_named_notes() }]),
+      { text: m.music_strings_frets_range({ start: region.start, end: to }), focus: "region" },
+      { text: m.music_strings_n_questions({ n: s.questions }), focus: "questions" },
     ],
   );
 
@@ -141,7 +153,7 @@
     question = nextQuestion();
     revealing = false;
     askedAt = performance.now();
-    status = `Question ${answers.length + 1}: ${isRecall ? `find ${aOrAn(question.label)} above the square` : `find ${question.label}`}.`;
+    status = isRecall ? m.music_strings_find_question_recall({ n: answers.length + 1, interval: ivPhrase(question.label) }) : m.music_strings_find_question_note({ n: answers.length + 1, note: question.label });
   }
 
   function onNote(e: NoteEvent) {
@@ -152,7 +164,7 @@
     // A quarter tone off rounds to the next note: that is the tuning, not a wrong answer, so ask again.
     if (e.source === "audio" && !q.acceptable.some((a) => a.midi === e.midi)) {
       const miss = nearMiss(e.midi, e.cents, [...new Set(q.acceptable.map((a) => a.midi))]);
-      if (miss) return void (status = `${tuningText(miss, e.midi, instr)} Play it again.`);
+      if (miss) return void (status = m.music_strings_find_play_again({ tuning: tuningText(miss, e.midi, instr) }));
     }
     const g = gradeFretFind(q.acceptable, e);
     // Taps know their string; a correct pitch from MIDI or the microphone lights where it lives.
@@ -176,8 +188,8 @@
       }),
     );
     revealing = true;
-    const said = playedText({ midi: e.midi, string: e.string, fret: e.fret });
-    status = g.correct ? `Yes, ${said}.` : `That was ${said}. ${wantedText(q)}.`;
+    const played = { midi: e.midi, string: e.string, fret: e.fret };
+    status = g.correct ? m.music_strings_find_yes({ played: playedText(played) }) : wrongText(played, q);
     revealTimer = setTimeout(goOn, g.correct ? REVEAL_MS : WRONG_MS);
   }
 
@@ -220,7 +232,7 @@
     const right = answers.filter((a) => a.correct).length;
     const score = answers.length ? right / answers.length : 0;
     const correct = right === answers.length && answers.length > 0;
-    const fin = await run!.finish({ score, correct, headline: `${right} of ${answers.length} found` });
+    const fin = await run!.finish({ score, correct, headline: m.music_strings_find_run_headline({ n: right, total: answers.length }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -231,35 +243,37 @@
     const perInterval = isRecall && !s.interval
       ? RECALL_INTERVALS.flatMap((iv) => {
           const mine = answers.filter((a) => a.q.semitones === iv.semitones);
-          return mine.length ? [{ label: iv.label, value: mine.filter((a) => a.correct).length / mine.length, text: `${mine.filter((a) => a.correct).length} of ${mine.length}` }] : [];
+          return mine.length ? [{ label: iv.label, value: mine.filter((a) => a.correct).length / mine.length, text: m.music_strings_n_of_total({ n: mine.filter((a) => a.correct).length, total: mine.length }) }] : [];
         })
       : [];
     summary = {
       headline:
         right === answers.length
-          ? `All ${right} found${isRecall ? "" : ` between frets ${region.start} and ${to}`}.`
-          : `${right} of ${answers.length} found. Look again at the misses below before the next round.`,
+          ? isRecall
+            ? m.music_strings_find_all({ n: right })
+            : m.music_strings_find_all_between({ n: right, start: region.start, end: to })
+          : m.music_strings_find_some({ n: right, total: answers.length }),
       metric: `${right}/${answers.length}`,
-      metricLabel: "found",
+      metricLabel: m.music_strings_found_lower(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === answers.length && answers.length > 0,
-      cleanMeans: "every note found",
+      cleanMeans: m.music_strings_find_clean_means(),
       xp: fin.xp,
       // The skill map has no ukulele interval skill yet: say that instead of the mode's line, which would claim it counts.
-      ...(isRecall && instr === "ukulele" ? { assistance: "No ukulele interval skill yet: this run is kept as practice history, not counted toward your skill scores." } : { mode }),
+      ...(isRecall && instr === "ukulele" ? { assistance: m.music_strings_find_ukulele_no_skill() } : { mode }),
       rows: [
-        { label: "Found", value: score, text: `${right} of ${answers.length}` },
+        { label: m.music_strings_found(), value: score, text: m.music_strings_n_of_total({ n: right, total: answers.length }) },
         ...perInterval,
-        { label: "Mean time to answer", text: `${(meanMs / 1000).toFixed(1)} s` },
+        { label: m.music_strings_find_mean_time(), text: m.music_strings_seconds_short({ s: dec1(meanMs / 1000) }) },
         taps.length === answers.length && taps.length
-          ? { label: "On a lit string and fret", value: taps.filter((a) => a.positionVerified).length / taps.length, text: `${taps.filter((a) => a.positionVerified).length} of ${taps.length}` }
-          : { label: "String and fret", notMeasured: true },
-        { label: "Timing and fingering", notMeasured: true },
+          ? { label: m.music_strings_find_on_lit(), value: taps.filter((a) => a.positionVerified).length / taps.length, text: m.music_strings_n_of_total({ n: taps.filter((a) => a.positionVerified).length, total: taps.length }) }
+          : { label: m.music_strings_find_string_fret(), notMeasured: true },
+        { label: m.music_strings_find_timing_fingering(), notMeasured: true },
       ],
       // The regions up the neck, low to high.
       advance: answers.length
-        ? await nextRun(`${instr}.${kind}.${tuning.id}${isRecall ? `.i${s.interval}` : ""}`, { steps: RECALL_REGIONS.map((r) => ({ label: `frets ${r.start} to ${r.end}` })), step: regionIdx }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ region: step }))
+        ? await nextRun(`${instr}.${kind}.${tuning.id}${isRecall ? `.i${s.interval}` : ""}`, { steps: RECALL_REGIONS.map((r) => ({ label: m.music_strings_frets_range({ start: r.start, end: r.end }) })), step: regionIdx }, { score, correct }, ({ step }) => step !== undefined && cfg.set({ region: step }))
         : undefined,
     };
     status = summary.headline;
@@ -270,7 +284,7 @@
     cap?.stop();
     question = null;
     phase = "ready";
-    status = "Stopped. Your answers so far are saved.";
+    status = m.music_strings_find_stopped();
     void pending.then(() => (answers.length ? run?.finish({}) : undefined));
   }
 
@@ -282,7 +296,7 @@
 
   const missed = $derived(answers.filter((a) => !a.correct));
   /** Beside Stop on a phone: what to find now. */
-  const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? `Find ${aOrAn(question.label)} up from the square` : `Find ${question.label}, frets ${region.start} to ${to}`) : "");
+  const cue = $derived(phase === "running" && question && !revealing ? (isRecall ? m.music_strings_find_cue_recall({ interval: ivPhrase(question.label) }) : m.music_strings_find_cue_note({ note: question.label, start: region.start, end: to })) : "");
   /** Laptop and tablet landscape: the neck is the stage's growing region and takes the free height. */
   const wide = new MediaQuery("(min-width: 64rem)");
   const wrongShown = $derived(phase === "running" && revealing && answers.at(-1)?.correct === false);
@@ -290,11 +304,11 @@
 
 <DrillShell
   lesson={{ lessons: fretboardLessons(kind, instr, tuning.openStrings) }}
-  title={isRecall ? "Interval recall" : "Note finder"}
+  title={isRecall ? m.music_strings_find_title_recall() : m.music_strings_find_title_note()}
   hue={instr}
   blurb={isRecall
-    ? "From the square, find the note a set interval up, inside a five-fret window."
-    : "A note is named. Find it on the neck inside a five-fret window, on any string."}
+    ? m.music_strings_find_blurb_recall()
+    : m.music_strings_find_blurb_note()}
   summary={summaryLine}
   tabs={FRETBOARD_MODES}
   tab={kind}
@@ -306,22 +320,22 @@
   onstart={start}
   onstop={stop}
   {cue}
-  step={wrongShown ? { label: "Next", run: goOn } : null}
+  step={wrongShown ? { label: m.music_strings_next_cap(), run: goOn } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Choice label="Region" setupKey="region" options={RECALL_REGIONS.map((r, i) => ({ value: i, label: `Frets ${r.start} to ${r.end}` }))} value={regionIdx} onchange={(v) => cfg.set({ region: v })} />
+      <Choice label={m.music_strings_find_region()} setupKey="region" options={RECALL_REGIONS.map((r, i) => ({ value: i, label: m.music_strings_frets_range_cap({ start: r.start, end: r.end }) }))} value={regionIdx} onchange={(v) => cfg.set({ region: v })} />
       {#if isRecall}
         <Choice
-          label="Interval"
+          label={m.music_strings_interval()}
           setupKey="interval"
-          options={[...RECALL_INTERVALS.map((i) => ({ value: i.semitones as number, label: i.label })), { value: 0, label: "Mixed" }]}
+          options={[...RECALL_INTERVALS.map((i) => ({ value: i.semitones as number, label: i.label })), { value: 0, label: m.music_strings_mixed() }]}
           value={s.interval}
           onchange={(v) => cfg.set({ interval: v })}
         />
       {/if}
       <Choice
-        label="Questions"
+        label={m.music_strings_questions()}
         setupKey="questions"
         options={[
           { value: 5, label: "5" },
@@ -336,8 +350,8 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Question" value="{Math.min(answers.length + 1, s.questions)} of {s.questions}" />
-      <Stat label="Found" value="✓ {answers.filter((a) => a.correct).length}  ✕ {missed.length}" />
+      <Stat label={m.music_strings_question()} value={m.music_strings_n_of_total({ n: Math.min(answers.length + 1, s.questions), total: s.questions })} />
+      <Stat label={m.music_strings_found()} value="✓ {answers.filter((a) => a.correct).length}  ✕ {missed.length}" />
     {/if}
   {/snippet}
 
@@ -347,29 +361,29 @@
       {#if question}
         {@const last = revealing ? answers.at(-1) : undefined}
         <p class="font-display text-5xl font-bold leading-none sm:text-6xl" aria-hidden="true">{question.label}</p>
-        <p class="pb-1 text-ws-stage-soft">{isRecall ? "up from the square, on any string" : `anywhere from fret ${region.start} to ${to}`}</p>
+        <p class="pb-1 text-ws-stage-soft">{isRecall ? m.music_strings_find_up_any() : m.music_strings_find_anywhere({ start: region.start, end: to })}</p>
         {#if last && !last.correct}
           <!-- A miss stays up to be read, so it is a sentence in stage ink beside a cross (not small type on a red pill),
                and Next, the one thing to press, is the filled button. The next question also comes by itself. -->
           <p class="mb-0.5 flex min-h-11 items-center gap-2 rounded-xl border border-destructive/60 bg-destructive/15 px-3 py-1 font-semibold text-ws-stage-ink" aria-live="polite" data-testid="verdict" data-verdict="wrong" data-verdict-key={answers.length}>
             <span class="grid size-6 flex-none place-items-center rounded-full bg-destructive text-[color:var(--on-destructive)]" aria-hidden="true"><X class="size-4" strokeWidth={3} /></span>
-            That was {playedText(last)}. {wantedText(last.q)}.
+            {wrongText(last, last.q)}
           </p>
-          <button type="button" class="{btnPrimary} mb-0.5 max-sm:hidden" onclick={goOn}>Next</button>
+          <button type="button" class="{btnPrimary} mb-0.5 max-sm:hidden" onclick={goOn}>{m.music_strings_next_cap()}</button>
         {:else}
-          <Verdict kind={last ? "right" : null} text={last ? `Yes, ${playedText(last)}` : undefined} key={answers.length} class="pb-1" />
+          <Verdict kind={last ? "right" : null} text={last ? m.music_strings_find_yes_verdict({ played: playedText(last) }) : undefined} key={answers.length} class="pb-1" />
         {/if}
       {:else}
         <!-- On a phone the blurb above says this: the whole neck fits above Start instead. -->
         <p class="max-w-prose text-ws-stage-soft max-sm:hidden">
-          {isRecall ? "A square marks the starting note. Find the interval above it. You can sound the square first." : "A note name appears here. Tap it on the neck, or play it."}
-          {mode === "check" ? " Check hides the answers." : " Practice lights the answers."}
+          {isRecall ? m.music_strings_find_intro_recall() : m.music_strings_find_intro_note()}
+          {mode === "check" ? ` ${m.music_strings_find_check_hides()}` : ` ${m.music_strings_find_practice_lights()}`}
         </p>
       {/if}
     </div>
     <!-- Where the window sits on the whole neck: the nut at the left, the five frets lit. -->
     <div class="mb-2 flex items-center gap-3 text-sm text-ws-stage-soft {phase === 'ready' ? 'max-sm:hidden' : ''}" data-testid="neck-map">
-      <span class="shrink-0">Frets {region.start} to {to} of {tuning.fretCount}</span>
+      <span class="shrink-0">{m.music_strings_find_window({ start: region.start, end: to, total: tuning.fretCount })}</span>
       <div class="relative h-3 max-w-72 flex-1 rounded-full bg-ws-stage-ink/15" aria-hidden="true">
         <span class="absolute inset-y-0 left-0 w-1 rounded-l-full bg-ws-stage-ink/60"></span>
         {#each [3, 5, 7, 9, 12, 15].filter((f) => f <= tuning.fretCount) as f (f)}
@@ -378,8 +392,8 @@
         <span class="absolute inset-y-0 rounded-full bg-instr" style:left="{(Math.max(0, region.start - 1) / tuning.fretCount) * 100}%" style:width="{((to - Math.max(0, region.start - 1)) / tuning.fretCount) * 100}%"></span>
       </div>
     </div>
-    <div class="flex flex-col justify-end" data-dock="instrument" data-grow={wide.current ? "" : undefined}><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} compact={phase !== "running"} grow={wide.current} label="{instr === 'ukulele' ? 'Ukulele' : 'Guitar'} fretboard" /></div>
-    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint="Optional: answer on your instrument into the microphone, or tap the neck here." /></div>
+    <div class="flex flex-col justify-end" data-dock="instrument" data-grow={wide.current ? "" : undefined}><Fretboard openStrings={tuning.openStrings} from={region.start} {to} {marks} {flashes} compact={phase !== "running"} grow={wide.current} label={instr === "ukulele" ? m.music_strings_board_ukulele() : m.music_strings_board_guitar()} /></div>
+    <div class="mt-3"><MicPanel disabled={phase === "running"} offer={phase !== "ready"} hint={m.music_strings_find_mic_hint()} /></div>
   {/snippet}
 
   {#snippet results()}
@@ -387,12 +401,12 @@
       <!-- The misses, each with what was played instead: the round to look at again. -->
       {#snippet figure()}
         <div class="flex flex-col gap-2" data-testid="finder-misses">
-          <p class="text-sm font-semibold">Missed</p>
+          <p class="text-sm font-semibold">{m.music_strings_missed()}</p>
           <ul class="flex flex-col gap-1.5 text-sm">
             {#each missed as a, i (i)}
               <li class="flex flex-wrap items-baseline gap-x-2">
-                <span class="font-semibold">{isRecall ? `${a.q.label} from ${noteName(a.q.anchor!.midi, "sharp", false)}` : a.q.label}</span>
-                <span class="text-ws-soft">you played {playedText(a)}</span>
+                <span class="font-semibold">{isRecall ? m.music_strings_find_interval_from({ interval: a.q.label, note: noteName(a.q.anchor!.midi, "sharp", false) }) : a.q.label}</span>
+                <span class="text-ws-soft">{m.music_strings_find_you_played({ played: playedText(a) })}</span>
               </li>
             {/each}
           </ul>
