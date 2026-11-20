@@ -229,7 +229,7 @@
         ...(line
           ? [
               evennessRow(line.evenness, line.clean, line.total),
-              enough(line.clean, line.total) ? { label: m.music_strings_row_timing_error(), text: m.music_strings_ms_average({ ms: Math.round(line.meanTimingErrorMs) }) } : { label: m.music_strings_row_timing_error(), notMeasured: true, text: TOO_FEW },
+              enough(line.clean, line.total) ? { kind: "timing" as const, label: m.music_strings_row_timing_error(), text: m.music_strings_ms_average({ ms: Math.round(line.meanTimingErrorMs) }) } : { kind: "timing" as const, label: m.music_strings_row_timing_error(), notMeasured: true, text: TOO_FEW },
             ]
           : []),
         { label: m.music_strings_row_which_string_note(), notMeasured: true },

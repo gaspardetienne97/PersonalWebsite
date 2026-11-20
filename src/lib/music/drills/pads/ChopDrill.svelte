@@ -291,7 +291,7 @@
       rows = [
         { label: m.music_winds_chop_row_in_place(), value: r.matched / piece.targets.length, text: m.music_winds_chop_of({ n: r.matched, total: piece.targets.length }) },
         { label: m.music_winds_chop_row_extra(), text: r.extra ? String(r.extra) : m.music_winds_chop_none() },
-        r.matched ? { label: r.matched < piece.targets.length ? m.music_winds_chop_row_timing_from({ count: r.matched }) : m.music_winds_chop_row_timing(), value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: m.music_winds_chop_ms_off_avg({ ms: Math.round(r.meanAbsErrorMs) }) } : { label: m.music_winds_chop_row_timing_none(), notMeasured: true },
+        r.matched ? { kind: "timing", label: r.matched < piece.targets.length ? m.music_winds_chop_row_timing_from({ count: r.matched }) : m.music_winds_chop_row_timing(), value: Math.max(0, 1 - r.meanAbsErrorMs / 180), text: m.music_winds_chop_ms_off_avg({ ms: Math.round(r.meanAbsErrorMs) }) } : { kind: "timing", label: m.music_winds_chop_row_timing_none(), notMeasured: true },
       ];
       headline = !ons.length
         ? m.music_winds_chop_head_no_hits()

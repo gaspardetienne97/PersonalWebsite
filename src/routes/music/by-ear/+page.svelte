@@ -29,7 +29,7 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { audio, db, getBinary, getSetting, mic, putSetting, settings, type EarPlayer } from "#lib/music/runtime/index.ts";
   import { estimateTempo } from "#lib/music/hubs/library/transcription.ts";
-  import { saveUserLick, secondsToBeats } from "#lib/music/user-licks.ts";
+  import { saveUserLick, secondsToBeats, LICK_FROM } from "#lib/music/user-licks.ts";
   import { importTrack, listTracks, trackKey } from "#lib/music/drills/jam/tracks.ts";
   import { envelope, takeKey } from "#lib/music/hubs/create/audioTakes.ts";
 
@@ -370,7 +370,7 @@
   async function saveLick() {
     const line = played.slice(0, 32);
     const { bpm } = estimateTempo(line.map((n) => ({ midi: n.midi, start: n.at, duration: 0.2, amplitude: 1 })));
-    const id = await saveUserLick({ title: m.music_drills_byear_lick_title({ name: sourceName || m.music_drills_byear_lick_default_name(), time: clock(line[0].at) }), from: "Learn by ear", bpm, notes: secondsToBeats(line, bpm) });
+    const id = await saveUserLick({ title: m.music_drills_byear_lick_title({ name: sourceName || m.music_drills_byear_lick_default_name(), time: clock(line[0].at) }), from: LICK_FROM.byEar, bpm, notes: secondsToBeats(line, bpm) });
     savedLick = id ? m.music_drills_byear_lick_saved() : m.music_drills_byear_lick_nothing();
     status = savedLick;
   }

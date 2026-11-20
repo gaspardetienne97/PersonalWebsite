@@ -269,8 +269,8 @@
         { label: m.music_strings_strum_row_tones(), value: r.score, text: pct(r.score) },
         { label: m.music_strings_strums_heard(), text: String(observed.length) },
         timed.length
-          ? { label: m.music_strings_strum_row_mean_timing(), text: m.music_strings_strum_ms_from_beat({ ms: Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length) }) }
-          : { label: m.music_strings_timing(), notMeasured: true },
+          ? { kind: "timing", label: m.music_strings_strum_row_mean_timing(), text: m.music_strings_strum_ms_from_beat({ ms: Math.round(timed.reduce((n, c) => n + Math.abs(c.errorMs!), 0) / timed.length) }) }
+          : { kind: "timing", label: m.music_strings_timing(), notMeasured: true },
         { label: m.music_strings_row_which_strings(), notMeasured: true },
         { label: m.music_strings_skill_score(), notMeasured: true },
       ],

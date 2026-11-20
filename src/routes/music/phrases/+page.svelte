@@ -11,7 +11,7 @@
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
   import InstrumentStage, { fitShift, fretTuning, linePositions, writtenShift } from "#lib/music/components/InstrumentStage.svelte";
   import Choice from "#lib/music/components/Choice.svelte";
-  import { listUserLicks, removeUserLick } from "#lib/music/user-licks.ts";
+  import { listUserLicksShown, removeUserLick } from "#lib/music/user-licks.ts";
   import { transposeFifths } from "@repo/music-core/theory/transposition";
   import LineNotation from "#lib/music/notation/LineNotation.svelte";
   import NoteHighway, { highway, viewSwitch, type HighwayNote } from "#lib/music/notation/NoteHighway.svelte";
@@ -47,7 +47,7 @@
   const own = $derived<PhraseInstrument>(inst === "guitar" || inst === "ukulele" || inst === "aerophone" ? inst : "piano");
   /** Your licks, saved from Learn by ear or a transcription, after the instrument's phrases. */
   let licks = $state.raw<UserLick[]>([]);
-  onMount(async () => (licks = await listUserLicks()));
+  onMount(async () => (licks = await listUserLicksShown()));
   const list = $derived([...phrasesFor(own), ...licks.map((l) => userPhrase(l, own))]);
   const phrase = $derived(list.find((p) => p.id === s.phrase) ?? list[0]);
   const isUser = $derived(!!phrase?.id.startsWith("user."));

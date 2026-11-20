@@ -635,7 +635,7 @@
           { label: m.music_drills_studio_row_notes_matched(), value: expected ? matched / expected : 0, text: m.music_drills_studio_of({ a: matched, b: expected }) },
           // The same share as the row above, so it only earns a line when it names what was listened for.
           ...(tap || drums ? [{ label: tap ? m.music_drills_studio_row_taps_found() : m.music_drills_studio_row_drums_found(), value: expected ? matched / expected : 0 }] : []),
-          { label: m.music_drills_studio_row_timing_error(), text: matched ? `${Math.round(errMs)} ms` : m.music_drills_studio_no_notes_matched() },
+          { kind: "timing", label: m.music_drills_studio_row_timing_error(), text: matched ? `${Math.round(errMs)} ms` : m.music_drills_studio_no_notes_matched() },
           { label: m.music_drills_studio_best_take(), text: m.music_drills_studio_take_score({ n: agg.bestIndex + 1, score: pct(best.score) }) },
           { label: m.music_drills_studio_row_early_late(), text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
           { label: m.music_drills_studio_row_missed_extra(), text: `${sum(perf.map((r) => r.missed))} / ${sum(perf.map((r) => r.extra))}` },
