@@ -132,13 +132,18 @@ export async function tap(page: Page, selector: string, holdMs = 90) {
   await el.dispatchEvent("pointerup", { pointerId: 9, button: 0, bubbles: true });
 }
 
-/** The page never scrolls sideways (the most repeated layout defect). */
+/**
+ * The page never scrolls sideways (the most repeated layout defect). Measured once the
+ * layout has answered a viewport change: parts sized by script follow a frame or two
+ * after `setViewportSize` returns.
+ */
 export async function expectNoHorizontalOverflow(page: Page) {
-  const { sw, iw } = await page.evaluate(() => ({
-    sw: document.documentElement.scrollWidth,
-    iw: window.innerWidth,
-  }));
-  expect(sw, "horizontal page overflow").toBeLessThanOrEqual(iw);
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+      message: "horizontal page overflow",
+      timeout: 2000,
+    })
+    .toBeLessThanOrEqual(0);
 }
 
 /** The ready screen's setup sentence ("C major, 80 BPM, Practice"): the one way into Setup. */
