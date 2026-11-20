@@ -8,6 +8,7 @@ import { TUNINGS, type ChordPosition, type ChordShape, type Tuning } from "../da
 import { CHORD_TEMPLATES } from "./chords";
 import { FLAT_NAMES, pc } from "./notes";
 import { m } from "@repo/i18n/messages.js";
+import { showChord, showNote } from "./note-names";
 
 export type VoicingKind = "open" | "barre" | "closed";
 
@@ -278,8 +279,8 @@ export function generatedPositions(id: string, tuning?: Tuning): ChordPosition[]
   const hit = posCache.get(cacheKey);
   if (hit) return hit;
   const name = m.music_content_voicing_generated_name({
-    symbol: chordName(g.rootPc, g.quality.suffix),
-    root: FLAT_NAMES[g.rootPc],
+    symbol: showChord(chordName(g.rootPc, g.quality.suffix)),
+    root: showNote(FLAT_NAMES[g.rootPc]),
     quality: QUALITY_NAMES[g.quality.quality] ?? g.quality.quality,
   });
   const out = chordVoicings(tuning, g.rootPc, g.quality.intervals).map((v, i): ChordPosition => {

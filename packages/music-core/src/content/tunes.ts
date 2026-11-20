@@ -10,6 +10,7 @@ import type { Score } from "../types";
 import type { JamChord, Progression } from "./jam";
 import { goToScale } from "./piano";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
 
 interface TuneSpec {
   id: string;
@@ -60,9 +61,9 @@ function sectionChords(chart: string): JamChord[] {
 
 /** Descriptive tune names (not titles), shown in the current language. */
 const NAMES: Record<string, () => string> = {
-  "jazz-blues": m.music_content_tunes_jazz_blues_name,
-  "minor-blues": m.music_content_tunes_minor_blues_name,
-  "rhythm-changes": m.music_content_tunes_rhythm_changes_name,
+  "jazz-blues": () => m.music_content_tunes_jazz_blues_name(noteInputs()),
+  "minor-blues": () => m.music_content_tunes_minor_blues_name(noteInputs()),
+  "rhythm-changes": () => m.music_content_tunes_rhythm_changes_name(noteInputs()),
 };
 const ENGLISH_NAMES = new Map<string, string>();
 /** A tune's name in English, for ids built from it (`name` follows the locale). */
@@ -81,7 +82,10 @@ function tune(spec: TuneSpec): Progression {
   }
   return {
     id: `tune-${spec.id}`,
-    name: NAMES[spec.id]?.() ?? spec.name,
+    // Read when shown, so the key in it follows the note names.
+    get name() {
+      return NAMES[spec.id]?.() ?? spec.name;
+    },
     key: spec.key,
     keyPc,
     group: "standards",
@@ -613,22 +617,30 @@ export const REHARM_DEVICES: { id: ReharmDevice; label: string; about: string }[
   {
     id: "tritone",
     label: m.music_content_tunes_reharm_tritone_label(),
-    about: m.music_content_tunes_reharm_tritone_about(),
+    get about() {
+      return m.music_content_tunes_reharm_tritone_about(noteInputs());
+    },
   },
   {
     id: "related-ii",
     label: m.music_content_tunes_reharm_related_ii_label(),
-    about: m.music_content_tunes_reharm_related_ii_about(),
+    get about() {
+      return m.music_content_tunes_reharm_related_ii_about(noteInputs());
+    },
   },
   {
     id: "backdoor",
     label: m.music_content_tunes_reharm_backdoor_label(),
-    about: m.music_content_tunes_reharm_backdoor_about(),
+    get about() {
+      return m.music_content_tunes_reharm_backdoor_about(noteInputs());
+    },
   },
   {
     id: "secondary",
     label: m.music_content_tunes_reharm_secondary_label(),
-    about: m.music_content_tunes_reharm_secondary_about(),
+    get about() {
+      return m.music_content_tunes_reharm_secondary_about(noteInputs());
+    },
   },
   {
     id: "passing-dim",
@@ -638,7 +650,9 @@ export const REHARM_DEVICES: { id: ReharmDevice; label: string; about: string }[
   {
     id: "chromatic-ii-v",
     label: m.music_content_tunes_reharm_chromatic_label(),
-    about: m.music_content_tunes_reharm_chromatic_about(),
+    get about() {
+      return m.music_content_tunes_reharm_chromatic_about(noteInputs());
+    },
   },
 ];
 

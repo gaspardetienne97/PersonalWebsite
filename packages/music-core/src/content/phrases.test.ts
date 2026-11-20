@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 import { TUNINGS } from "../data";
 import { AEROPHONE_RANGE, fingeringFor } from "./winds-pads";
-import { PHRASES, phraseBeats, phraseNotes, phrasesFor, stepsFromNotes } from "./phrases";
+import { allPhrases, phraseBeats, phraseNotes, phrasesFor, stepsFromNotes } from "./phrases";
+
+const PHRASES = allPhrases();
 
 const GUITAR = TUNINGS.guitar[0].openStrings;
 const UKULELE = TUNINGS.ukulele[0].openStrings;

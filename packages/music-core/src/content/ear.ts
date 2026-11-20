@@ -7,6 +7,7 @@ import { INTERVALS } from "../theory/intervals";
 import { numeralChord, numeralSymbol } from "./loops";
 import { pick, randInt, type Rand } from "./random";
 import { m } from "@repo/i18n/messages.js";
+import { showChord, showKeyName } from "../theory/note-names";
 
 export type EarDrillKind =
   | "interval"
@@ -1093,16 +1094,18 @@ export function keyChangeCaption(fromPc: number, answer: string): string {
   const k = KEY_CHANGES.find((x) => x.id === dest) ?? KEY_CHANGES[0];
   const to = pc(fromPc + k.shift);
   const name = (p: number, minor: boolean) => {
-    const note = noteName(48 + p, "flat", false);
+    const note = showKeyName(noteName(48 + p, "flat", false));
     return minor
       ? m.music_content_ear_key_minor({ note })
       : m.music_content_ear_key_major({ note });
   };
+  // The chords are in the new key, so movable do names them from it.
+  const key = { tonic: noteName(48 + to, "flat", false), minor: k.minor };
   return m.music_content_ear_kc_caption({
     from: name(fromPc, false),
     to: name(to, k.minor),
     where: KEY_CHANGE_WHERE[k.id](),
-    chords: chords.map((t) => numeralSymbol(to, t)).join(", "),
+    chords: chords.map((t) => showChord(numeralSymbol(to, t), key)).join(", "),
   });
 }
 

@@ -13,6 +13,8 @@ import { scaleSemitones } from "../theory/scales";
 import { englishTuneName, TUNES } from "./tunes";
 import { formatList } from "@repo/i18n/format";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs, showNoteList } from "../theory/note-inputs";
+import { showChord, showKeyName, showNote } from "../theory/note-names";
 
 export type JazzVoicingId =
   | "sevenths"
@@ -69,7 +71,9 @@ export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
     id: "sus",
     label: m.music_content_jv_sus_label(),
     key: "dorian",
-    about: m.music_content_jv_sus_about(),
+    get about() {
+      return m.music_content_jv_sus_about(noteInputs());
+    },
     skillId: QUARTAL,
   },
   {
@@ -301,7 +305,7 @@ export function jazzVoicingChords(
   if (id === "sevenths") {
     const tonic = above(k, 55);
     const group = `${keyName} major`;
-    const label = m.music_content_jv_group_major({ key: keyName });
+    const label = m.music_content_jv_group_major({ key: showKeyName(keyName) });
     return upAndBack(7).map((d, i) => {
       const root = scaleMidi(tonic, MAJOR, d);
       const notes = [0, 2, 4, 6].map((s) => scaleMidi(tonic, MAJOR, d + s));
@@ -315,8 +319,8 @@ export function jazzVoicingChords(
           symbol,
           left: [],
           right: notes,
-          name: m.music_content_jv_sevenths_name({ symbol, numeral }),
-          ask: m.music_content_jv_sevenths_ask({ symbol }),
+          name: m.music_content_jv_sevenths_name({ symbol: showChord(symbol), numeral }),
+          ask: m.music_content_jv_sevenths_ask({ symbol: showChord(symbol) }),
         },
         label,
       );
@@ -325,14 +329,15 @@ export function jazzVoicingChords(
 
   if (id === "so-what" || id === "quartal") {
     const group = `${keyName} dorian`;
-    const label = m.music_content_jv_group_dorian({ key: keyName });
+    const label = m.music_content_jv_group_dorian({ key: showKeyName(keyName) });
     const tonic = above(k, id === "so-what" ? 50 : 48);
     const steps = id === "so-what" ? [0, 3, 6, 9, 11] : [0, 3, 6];
     const bottoms = id === "so-what" ? upAndBack(7) : Array.from({ length: 15 }, (_, i) => i);
     return bottoms.map((d, i) => {
       const notes = steps.map((s) => scaleMidi(tonic, DORIAN, d + s));
-      const names = notes.map(name).join(" ");
-      const bottom = name(notes[0]);
+      // Shown names: the drill's chord symbols and ids keep letters.
+      const names = showNoteList(notes.map(name).join(" "));
+      const bottom = showNote(name(notes[0]));
       return chord(
         type,
         group,
@@ -364,7 +369,7 @@ export function jazzVoicingChords(
     // The Maiden Voyage set from its first chord: up a minor 3rd, then down a whole step twice.
     const roots = [0, 3, 1, -1].map((r) => pc(k + r));
     const group = `${keyName}7sus set`;
-    const label = m.music_content_jv_group_sus({ key: keyName });
+    const label = m.music_content_jv_group_sus({ key: showKeyName(keyName) });
     let rh: number[] = [];
     return roots.map((r, i) => {
       const nm = speller(r, "major");
@@ -383,13 +388,13 @@ export function jazzVoicingChords(
           left,
           right: rh,
           name: m.music_content_jv_sus_name({
-            symbol,
-            slash,
-            root: nm(r),
-            fifth: nm(r + 7),
-            triad: nm(r + 10),
+            symbol: showChord(symbol),
+            slash: showChord(slash),
+            root: showNote(nm(r)),
+            fifth: showNote(nm(r + 7)),
+            triad: showNote(nm(r + 10)),
           }),
-          ask: m.music_content_jv_sus_ask({ symbol }),
+          ask: m.music_content_jv_sus_ask({ symbol: showChord(symbol) }),
           order: false,
         },
         label,
@@ -399,7 +404,7 @@ export function jazzVoicingChords(
 
   if (id === "two-hand" || id === "evans" || id === "close" || id === "drop2") {
     const group = `${keyName} major`;
-    const label = m.music_content_jv_group_major({ key: keyName });
+    const label = m.music_content_jv_group_major({ key: showKeyName(keyName) });
     const chords = twoFiveOne(k, name);
     if (id === "two-hand" || id === "evans") {
       // Left- and right-hand tones above each root; the V takes the B form.
@@ -433,10 +438,10 @@ export function jazzVoicingChords(
             symbol: c.symbol,
             left,
             right,
-            name: m.music_content_jv_no_root_name({ symbol: c.symbol, how }),
+            name: m.music_content_jv_no_root_name({ symbol: showChord(c.symbol), how }),
             ask: (id === "evans"
               ? m.music_content_jv_ask_spread
-              : m.music_content_jv_ask_two_handed)({ symbol: c.symbol }),
+              : m.music_content_jv_ask_two_handed)({ symbol: showChord(c.symbol) }),
           },
           label,
         );
@@ -453,7 +458,8 @@ export function jazzVoicingChords(
         const closeV = stack([...below, melodyPc], melody - 11);
         const notes = id === "close" ? closeV : [closeV[2] - 12, closeV[0], closeV[1], closeV[3]];
         const mel = name(melodyPc);
-        const spelled = notes.map(name).join(" ");
+        const shown = { symbol: showChord(symbol), mel: showNote(mel) };
+        const spelled = showNoteList(notes.map(name).join(" "));
         return chord(
           type,
           group,
@@ -463,14 +469,12 @@ export function jazzVoicingChords(
             left: id === "close" ? [] : [notes[0]],
             right: id === "close" ? notes : notes.slice(1),
             name: (id === "close" ? m.music_content_jv_close_name : m.music_content_jv_drop2_name)({
-              symbol,
-              mel,
+              ...shown,
               notes: spelled,
             }),
-            ask: (id === "close" ? m.music_content_jv_close_ask : m.music_content_jv_drop2_ask)({
-              symbol,
-              mel,
-            }),
+            ask: (id === "close" ? m.music_content_jv_close_ask : m.music_content_jv_drop2_ask)(
+              shown,
+            ),
           },
           label,
         );
@@ -480,7 +484,7 @@ export function jazzVoicingChords(
 
   if (id === "locked") {
     const group = `${keyName} major`;
-    const label = m.music_content_jv_group_major({ key: keyName });
+    const label = m.music_content_jv_group_major({ key: showKeyName(keyName) });
     const tonic = above(k, 67);
     const six = [0, 4, 7, 9].map((t) => pc(k + t));
     const dim = [11, 2, 5, 8].map((t) => pc(k + t));
@@ -495,7 +499,8 @@ export function jazzVoicingChords(
       const right = stack([...below, pc(melody)], melody - 11);
       const symbol = set === six ? `${keyName}6` : dimName;
       const mel = name(melody);
-      const spelled = right.map(spell).join(" ");
+      const melText = showNote(mel);
+      const spelled = showNoteList(right.map(spell).join(" "));
       return chord(
         type,
         group,
@@ -506,9 +511,17 @@ export function jazzVoicingChords(
           right,
           name:
             set === six
-              ? m.music_content_jv_locked_name_tone({ mel, chord: `${keyName}6`, notes: spelled })
-              : m.music_content_jv_locked_name_passing({ mel, chord: dimName, notes: spelled }),
-          ask: m.music_content_jv_locked_ask({ mel }),
+              ? m.music_content_jv_locked_name_tone({
+                  mel: melText,
+                  chord: showChord(`${keyName}6`),
+                  notes: spelled,
+                })
+              : m.music_content_jv_locked_name_passing({
+                  mel: melText,
+                  chord: showChord(dimName),
+                  notes: spelled,
+                }),
+          ask: m.music_content_jv_locked_ask({ mel: melText }),
         },
         label,
       );
@@ -517,7 +530,7 @@ export function jazzVoicingChords(
 
   if (id === "garland" || id === "monk") {
     const group = `${keyName} blues`;
-    const label = m.music_content_jv_group_blues({ key: keyName });
+    const label = m.music_content_jv_group_blues({ key: showKeyName(keyName) });
     const bars: [number, "7" | "m7"][] = id === "garland" ? BLUES : MONK_BLUES.map((d) => [d, "7"]);
     return bars.map(([deg, quality], i) => {
       const root = pc(k + deg);
@@ -530,7 +543,11 @@ export function jazzVoicingChords(
           (onI ? [4, 10, 12] : [4, 10, 12, 13]).map((t) => root + t),
           52,
         );
-        const inputs = { symbol, bar: i + 1, notes: right.map(tone).join(" ") };
+        const inputs = {
+          symbol: showChord(symbol),
+          bar: i + 1,
+          notes: showNoteList(right.map(tone).join(" ")),
+        };
         return chord(
           type,
           group,
@@ -544,7 +561,7 @@ export function jazzVoicingChords(
               : m.music_content_jv_monk_name_other(inputs),
             ask: (onI ? m.music_content_jv_monk_ask_i : m.music_content_jv_monk_ask_other)({
               bar: i + 1,
-              symbol,
+              symbol: inputs.symbol,
             }),
           },
           label,
@@ -566,11 +583,15 @@ export function jazzVoicingChords(
           right,
           name: m.music_content_jv_garland_name({
             bar: i + 1,
-            left: left.map(tone).join(" "),
-            mel,
-            inner: tone(melody - 5),
+            left: showNoteList(left.map(tone).join(" ")),
+            mel: showNote(mel),
+            inner: showNote(tone(melody - 5)),
           }),
-          ask: m.music_content_jv_garland_ask({ bar: i + 1, symbol, mel }),
+          ask: m.music_content_jv_garland_ask({
+            bar: i + 1,
+            symbol: showChord(symbol),
+            mel: showNote(mel),
+          }),
         },
         label,
       );
@@ -616,12 +637,12 @@ export function jazzVoicingChords(
           left,
           right,
           name: m.music_content_jv_upper_name({
-            symbol: c.symbol,
+            symbol: showChord(c.symbol),
             numeral: us.label,
-            triad: nm(r + us.triad),
+            triad: showNote(nm(r + us.triad)),
             adds: us.adds,
           }),
-          ask: m.music_content_jv_upper_ask({ symbol: c.symbol }),
+          ask: m.music_content_jv_upper_ask({ symbol: showChord(c.symbol) }),
           order: false,
         },
         tune.name,
@@ -707,11 +728,11 @@ function tuneVoicings(type: JazzVoicingType, tune: (typeof TUNES)[number]): Jazz
             left,
             right: [],
             name: m.music_content_jv_quartal_tune_name({
-              symbol: c.symbol,
-              from: nm(r + st[0]),
-              notes: left.map((n) => nm(n)).join(" "),
+              symbol: showChord(c.symbol),
+              from: showNote(nm(r + st[0])),
+              notes: showNoteList(left.map((n) => nm(n)).join(" ")),
             }),
-            ask: m.music_content_jv_quartal_tune_ask({ symbol: c.symbol }),
+            ask: m.music_content_jv_quartal_tune_ask({ symbol: showChord(c.symbol) }),
           },
           tune.name,
         ),
@@ -738,13 +759,13 @@ function tuneVoicings(type: JazzVoicingType, tune: (typeof TUNES)[number]): Jazz
             : t.kind === "m"
               ? m.music_content_jv_slash_name_minor
               : m.music_content_jv_slash_name_diminished)({
-            symbol: c.symbol,
-            slash,
-            left: formatList(left.map((n) => nm(n))),
-            triad: nm(r + t.at),
+            symbol: showChord(c.symbol),
+            slash: showChord(slash),
+            left: formatList(left.map((n) => showNote(nm(n)))),
+            triad: showNote(nm(r + t.at)),
             adds: t.adds,
           }),
-          ask: m.music_content_jv_slash_ask({ symbol: c.symbol }),
+          ask: m.music_content_jv_slash_ask({ symbol: showChord(c.symbol) }),
           order: false,
         },
         tune.name,

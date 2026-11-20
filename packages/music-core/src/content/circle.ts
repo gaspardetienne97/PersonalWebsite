@@ -19,6 +19,8 @@ import { analysisSheet, ANALYSIS_TUNES, FUNCTIONS } from "./analysis";
 import { pick, type Rand } from "./random";
 import { TUNES } from "./tunes";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
+import { showChord, showKeyName } from "../theory/note-names";
 
 export type CircleMode =
   | "order"
@@ -139,7 +141,13 @@ export function chordIn(fifths: number, numeral: string): string {
 
 /** Keys by how many sharps or flats, both sides at once, as graded syllabi introduce them. */
 export const KEY_BANDS = [
-  { id: "near", title: m.music_content_circle_band_near(), max: 1 },
+  {
+    id: "near",
+    get title() {
+      return m.music_content_circle_band_near(noteInputs());
+    },
+    max: 1,
+  },
   { id: "two", title: m.music_content_circle_band_two(), max: 2 },
   { id: "four", title: m.music_content_circle_band_four(), max: 4 },
   { id: "all", title: m.music_content_circle_band_all(), max: 7 },
@@ -253,7 +261,7 @@ export function circlePrompt(
         ask: after
           ? (sharps
               ? m.music_content_circle_ask_sharp_after
-              : m.music_content_circle_ask_flat_after)({ note: list[n] })
+              : m.music_content_circle_ask_flat_after)({ note: showKeyName(list[n]) })
           : (sharps ? m.music_content_circle_ask_nth_sharp : m.music_content_circle_ask_nth_flat)({
               ordinal: ORDINAL[n](),
             }),
@@ -271,8 +279,8 @@ export function circlePrompt(
         id: `circle-count-${toCount ? "k" : "c"}-${f}${minor ? "m" : ""}`,
         ask: toCount
           ? minor
-            ? m.music_content_circle_ask_count_minor({ key: keyAt(f).minor })
-            : m.music_content_circle_ask_count_major({ key: majorName(f) })
+            ? m.music_content_circle_ask_count_minor({ key: showKeyName(keyAt(f).minor) })
+            : m.music_content_circle_ask_count_major({ key: showKeyName(majorName(f)) })
           : whichKeyHas(minor, f),
         answer: toCount ? countLabel(f) : keyName(f),
         choices: toCount ? keys.map(countLabel) : keyChoices,
@@ -312,8 +320,8 @@ export function circlePrompt(
           ...base,
           id: `circle-relative-${f}${fromMinor ? "m" : ""}`,
           ask: fromMinor
-            ? m.music_content_circle_ask_relative_major({ key: keyAt(f).minor })
-            : m.music_content_circle_ask_relative_minor({ key: majorName(f) }),
+            ? m.music_content_circle_ask_relative_major({ key: showKeyName(keyAt(f).minor) })
+            : m.music_content_circle_ask_relative_minor({ key: showKeyName(majorName(f)) }),
           answer: fromMinor ? majorName(f) : minorName(f),
           choices: fromMinor ? keys.map(majorName) : keys.map(minorName),
           fifths: f,
@@ -325,7 +333,7 @@ export function circlePrompt(
         return {
           ...base,
           id: `circle-across-${f}`,
-          ask: m.music_content_circle_ask_across({ key: majorName(f) }),
+          ask: m.music_content_circle_ask_across({ key: showKeyName(majorName(f)) }),
           answer: o.major,
           choices: names,
           fifths: f,
@@ -337,7 +345,7 @@ export function circlePrompt(
         id: `circle-${kind}-${f}`,
         ask: (step > 0
           ? m.music_content_circle_ask_one_more_sharp
-          : m.music_content_circle_ask_one_more_flat)({ key: majorName(f) }),
+          : m.music_content_circle_ask_one_more_flat)({ key: showKeyName(majorName(f)) }),
         answer: majorName(f + step),
         choices: wide,
         fifths: f,
@@ -356,7 +364,10 @@ export function circlePrompt(
         return {
           ...base,
           id: `circle-chord-${f}-${c.numeral}`,
-          ask: m.music_content_circle_ask_chord_in_key({ numeral: c.numeral, key: majorName(f) }),
+          ask: m.music_content_circle_ask_chord_in_key({
+            numeral: c.numeral,
+            key: showKeyName(majorName(f)),
+          }),
           answer: c.name,
           choices,
           fifths: f,
@@ -365,7 +376,10 @@ export function circlePrompt(
       return {
         ...base,
         id: `circle-numeral-${f}-${c.numeral}`,
-        ask: m.music_content_circle_ask_which_numeral({ key: majorName(f), chord: c.name }),
+        ask: m.music_content_circle_ask_which_numeral({
+          key: showKeyName(majorName(f)),
+          chord: showChord(c.name, { tonic: majorName(f) }),
+        }),
         answer: c.numeral,
         choices: chords.map((x) => x.numeral),
         fifths: f,
@@ -377,13 +391,18 @@ export function circlePrompt(
       const loop = pick(rand, setup.mode === "borrowed" ? BORROWED_LOOPS : SECONDARY_LOOPS);
       const odd = loop.find((n) => OUTSIDE[n])!;
       const names = loop.map((n) => chordIn(f, n));
-      const shown = m.music_content_circle_shown({ key: majorName(f), chords: names.join(" | ") });
+      // Chords are named in the key the prompt shows (movable do counts from it).
+      const inKey = (name: string) => showChord(name, { tonic: majorName(f) });
+      const shown = m.music_content_circle_shown({
+        key: showKeyName(majorName(f)),
+        chords: names.map(inKey).join(" | "),
+      });
       // Half the V-of questions ask what it leads to.
       if (setup.mode === "secondary" && rand() < 0.5)
         return {
           ...base,
           id: `circle-secondary-of-${f}-${odd}`,
-          ask: m.music_content_circle_ask_v_of({ shown, chord: chordIn(f, odd) }),
+          ask: m.music_content_circle_ask_v_of({ shown, chord: inKey(chordIn(f, odd)) }),
           answer: OUTSIDE[odd].of!,
           choices: ["ii", "iii", "IV", "V", "vi"],
           fifths: f,
@@ -394,7 +413,7 @@ export function circlePrompt(
         ask:
           setup.mode === "borrowed"
             ? // Borrowed from the parallel minor: the same tonic.
-              m.music_content_circle_ask_borrowed({ shown, key: majorName(f) })
+              m.music_content_circle_ask_borrowed({ shown, key: showKeyName(majorName(f)) })
             : m.music_content_circle_ask_secondary({ shown }),
         answer: chordIn(f, odd),
         choices: [...new Set(names)],
@@ -411,7 +430,7 @@ export function circlePrompt(
       return {
         ...base,
         id: `circle-wheel-${f}`,
-        ask: m.music_content_circle_ask_wheel({ key: noteAtFifths(f) }),
+        ask: m.music_content_circle_ask_wheel({ key: showKeyName(noteAtFifths(f)) }),
         answer: String(slot),
         choices: CIRCLE.map((_, i) => String(i)),
         fifths: f,
@@ -439,10 +458,15 @@ export function analysisPrompts(tuneId: string): CirclePrompt[] {
   const keys = [...new Set(sheet.map((c) => c.key))];
   const used = new Set(sheet.map((c) => c.fn));
   const choices = FUNCTIONS.filter((f) => CORE_FUNCTIONS.includes(f) || used.has(f));
+  const [tonic, mode] = tune.key.split(" ");
+  const key = { tonic, minor: mode === "minor" };
   return sheet.map((c, i) => ({
     id: `circle-analysis-${tune.id}-${i}`,
     mode: "analysis",
-    ask: m.music_content_circle_ask_analysis({ bar: barLabel(c.bar, c.bars), chord: c.symbol }),
+    ask: m.music_content_circle_ask_analysis({
+      bar: barLabel(c.bar, c.bars),
+      chord: showChord(c.symbol, key),
+    }),
     answer: `${c.key}|${c.fn}`,
     choices,
     skillIds: ["theory.circle", "theory.circle.analysis"],

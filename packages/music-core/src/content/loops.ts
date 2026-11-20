@@ -9,6 +9,7 @@ import type { EarPrompt, PlaybackEvent } from "./ear";
 import { SONG_PROGRESSIONS } from "./jam";
 import { randInt, type Rand } from "./random";
 import { m } from "@repo/i18n/messages.js";
+import { showChord, showKeyName } from "../theory/note-names";
 
 export type LoopSet =
   | "songs"
@@ -280,11 +281,13 @@ export function loopPrompt(
     at += bars;
     return ev;
   });
-  const note = noteName(48 + keyPc, "flat", false);
+  const tonic = noteName(48 + keyPc, "flat", false);
   const key = l.minor
-    ? m.music_content_loops_key_minor({ note })
-    : m.music_content_loops_key_major({ note });
-  const chords = l.numerals.map((t) => numeralSymbol(keyPc, t)).join(", ");
+    ? m.music_content_loops_key_minor({ note: showKeyName(tonic) })
+    : m.music_content_loops_key_major({ note: showKeyName(tonic) });
+  const chords = l.numerals
+    .map((t) => showChord(numeralSymbol(keyPc, t), { tonic, minor: !!l.minor }))
+    .join(", ");
   return {
     id: `loop-${l.id}-${keyPc}`,
     drill: "loop",

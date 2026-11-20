@@ -1304,7 +1304,10 @@ export const readingRungs = (instrument: string) =>
       level: l.id,
       key,
       clefs: l.recommendedClefs,
-      label: m.music_content_reading_rung_label({ level: l.label, key: keyNameLabel(key) }),
+      // Built when read, so the key follows the note names set at start-up.
+      get label() {
+        return m.music_content_reading_rung_label({ level: l.label, key: keyNameLabel(key) });
+      },
     })),
   );
 export const READING_RUNGS = readingRungs("piano");

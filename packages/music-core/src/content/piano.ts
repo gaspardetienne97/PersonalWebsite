@@ -20,6 +20,9 @@ import { FLAT_NAMES, SHARP_NAMES, pc, pcOf } from "../theory/notes";
 import { parseChordSymbol, toneRoles, transposeSymbol, type ToneRole } from "../theory/chords";
 import { scaleSemitones } from "../theory/scales";
 import { m } from "@repo/i18n/messages.js";
+import { noteInputs } from "../theory/note-inputs";
+import { hasMsg, msg } from "../data/localize";
+import { showChord } from "../theory/note-names";
 
 // ---------------------------------------------------------------------------
 // Two-hand independence
@@ -700,33 +703,65 @@ export interface LickNote {
  * Tips rewritten where the source described a left hand the drill never plays,
  * or joined with dashes.
  */
-const LICK_TIPS: Record<number, string> = {
-  8: m.music_content_piano_lick_tip_8(),
-  9: m.music_content_piano_lick_tip_altered(),
-  16: m.music_content_piano_lick_tip_16(),
-  19: m.music_content_piano_lick_tip_19(),
-  20: m.music_content_piano_lick_tip_20(),
-  23: m.music_content_piano_lick_tip_altered(),
-  26: m.music_content_piano_lick_tip_26(),
-  28: m.music_content_piano_lick_tip_28(),
-  29: m.music_content_piano_lick_tip_29(),
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- each message types its own note inputs.
+const LICK_TIPS: Record<number, (inputs?: any) => string> = {
+  8: m.music_content_piano_lick_tip_8,
+  9: m.music_content_piano_lick_tip_altered,
+  16: m.music_content_piano_lick_tip_16,
+  19: m.music_content_piano_lick_tip_19,
+  20: m.music_content_piano_lick_tip_20,
+  23: m.music_content_piano_lick_tip_altered,
+  26: m.music_content_piano_lick_tip_26,
+  28: m.music_content_piano_lick_tip_28,
+  29: m.music_content_piano_lick_tip_29,
 };
-export const lickTip = (lick: { number: number; tip: string }) =>
-  LICK_TIPS[lick.number] ?? lick.tip;
 
-/**
- * A lick's text in another key: note names and chord roots move by `semitones`,
- * spelled with sharps or flats. A lone capital A before a lowercase word is the
- * article ("A sequence"), not the note.
- */
-export function transposeText(text: string, semitones: number, sharps = false): string {
-  if (!pc(semitones)) return text;
+/** Note names and chord roots in letter text moved by `semitones`; a lone capital A before a lowercase word is the article. */
+function transposeLetters(text: string, semitones: number, sharps: boolean): string {
   const names = sharps ? SHARP_NAMES : FLAT_NAMES;
   return text.replace(
     /(?<![\w#])([A-G])([#b]?)(?=$|[^a-z]|m(?:aj|[^a-z]|$))/g,
     (m: string, _l: string, _a: string, at: number, all: string) =>
       m === "A" && /^ [a-z]/.test(all.slice(at + 1)) ? m : names[pc(pcOf(m)! + semitones)],
   );
+}
+
+/** Each tip's text as shown, back to the lick it came from, so `transposeText` can rebuild it in another key. */
+const tipSources = new Map<string, (semitones: number, sharps: boolean) => string>();
+
+/**
+ * A lick's tip in the current language and note names, moved by `semitones`
+ * (spelled with sharps or flats) when the lick is played in another key.
+ */
+export function lickTip(lick: { number: number; tip: string }, semitones = 0, sharps = false) {
+  const inKey = (shift: number, sharp: boolean) => {
+    const inputs = noteInputs(
+      {},
+      undefined,
+      pc(shift) ? (letters) => transposeLetters(letters, shift, sharp) : undefined,
+    );
+    const own = LICK_TIPS[lick.number];
+    if (own) return own(inputs);
+    const key = [
+      `music_content_jazz_lick_${lick.number}_tip`,
+      `music_content_jazz_vocab_lick_${lick.number}_tip`,
+    ].find(hasMsg);
+    return key ? msg(key, lick.tip, inputs) : transposeLetters(lick.tip, shift, sharp);
+  };
+  const text = inKey(semitones, sharps);
+  if (!pc(semitones)) tipSources.set(text, inKey);
+  return text;
+}
+
+/**
+ * A lick's text in another key: note names and chord roots move by `semitones`,
+ * spelled with sharps or flats. A tip from `lickTip` is rebuilt in that key, so
+ * its notes move whatever the note naming; other text is read as letters.
+ */
+export function transposeText(text: string, semitones: number, sharps = false): string {
+  if (!pc(semitones)) return text;
+  const tip = tipSources.get(text);
+  return tip ? tip(semitones, sharps) : transposeLetters(text, semitones, sharps);
 }
 
 /** A lick's playable notes (rests advance time only). Transposing drops the fretted positions. */
@@ -762,7 +797,7 @@ export function lickScore(lickNumber: number, opts: { bpm: number; transpose?: n
     id: `lick-${lickNumber}${t ? `-t${t}` : ""}`,
     title: m.music_content_piano_lick_title({
       n: lickNumber,
-      chords: lick.progression.map((s) => transposeSymbol(s, t)).join(" "),
+      chords: lick.progression.map((s) => showChord(transposeSymbol(s, t))).join(" "),
     }),
     bpm: opts.bpm,
     meter: { beats: 4, beatUnit: 4 },
