@@ -1,5 +1,13 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_shell_aero_fingering_for": "Dwate pou {description}",
+  "music_shell_aero_key_colours": "Koulè touch yo",
+  "music_shell_aero_left_hand": "Men gòch",
+  "music_shell_aero_left_thumb": "Pous gòch, dèyè a",
+  "music_shell_aero_no_note": "Pa gen nòt",
+  "music_shell_aero_outside": "{note}: andeyò rejis tablo a, depi Bb3 rive F#6",
+  "music_shell_aero_right_hand": "Men dwat",
+  "music_shell_aero_wrong_key": "X: peze, li pa nan dwate sa a",
   "music_shell_calib_blurb": "Tape ansanm ak 20 klik. Woodshed anrejistre dekalaj la pou antre sa a sou sòti son w ap itilize a.",
   "music_shell_calib_done": "Tan an kalibre pou {name} sou sòti sa a.",
   "music_shell_calib_due": "Tan an pa kalibre pou {name} sou sòti sa a. Tape ansanm ak 20 klik pou yo jije twò bonè ak an reta san patipri.",
@@ -29,11 +37,61 @@
   "music_shell_catalog_search_lick": "Chèche lick",
   "music_shell_catalog_search_other": "Chèche: {noun}",
   "music_shell_catalog_search_phrase": "Chèche fraz",
+  "music_shell_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bemòl",
+        "countPlural=other": "{count} bemòl"
+      }
+    }
+  ],
+  "music_shell_circle_hub_clockwise": "ale adwat",
+  "music_shell_circle_hub_none": "san ♯ ni ♭",
+  "music_shell_circle_hub_sharps_go": "Dyèz yo",
+  "music_shell_circle_label": "Sèk kent yo",
+  "music_shell_circle_major": "{key} majè",
+  "music_shell_circle_major_enh": "{key} majè ({enharmonic})",
+  "music_shell_circle_no_accidentals": "san dyèz ni bemòl",
+  "music_shell_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} dyèz",
+        "countPlural=other": "{count} dyèz"
+      }
+    }
+  ],
+  "music_shell_circle_slot": "{name}, {signature}",
+  "music_shell_circle_slot_hidden": "Plas {n}, kache",
   "music_shell_drill_mode_check": "Esè tès: li konte nan pwen konpetans ou.",
   "music_shell_drill_mode_hinted": "Ou te sèvi ak yon endis, kidonk sa a konte kòm yon esè pratik.",
   "music_shell_drill_mode_practice": "Esè pratik: se sèlman esè tès ki chanje pwen konpetans ou.",
   "music_shell_drill_tuning_flat": "{played} sa a twò ba pa {cents} san, kidonk li sonnen tankou {heard}. Petèt {instrument} ou a bezwen akòde.",
   "music_shell_drill_tuning_sharp": "{played} sa a twò wo pa {cents} san, kidonk li sonnen tankou {heard}. Petèt {instrument} ou a bezwen akòde.",
+  "music_shell_finger_index": "dwèt endèks",
+  "music_shell_finger_little": "ti dwèt",
+  "music_shell_finger_middle": "dwèt mitan",
+  "music_shell_finger_ring": "dwèt bag",
+  "music_shell_fret_cell": "Kòd {string} frèt {fret}",
+  "music_shell_fret_fretboard": "Manch",
+  "music_shell_fret_heard": "tande",
+  "music_shell_fret_label": "{label}, frèt {from} rive {to}",
+  "music_shell_fret_muted": "toufe",
+  "music_shell_fret_open": "lib",
+  "music_shell_fret_target": "sib",
   "music_shell_hint_about": "Konsènan {about}",
   "music_shell_home_all_drills": "Tout egzèsis yo",
   "music_shell_home_drill_views": "Fason pou wè egzèsis yo",
@@ -231,6 +289,11 @@
   "music_shell_nav_theme_light": "Klè",
   "music_shell_nav_today": "Jodi a",
   "music_shell_nav_toggle_theme": "Chanje tèm",
+  "music_shell_pads_bank_a": "Pad, bank A",
+  "music_shell_pads_pad": "Pad {pad}",
+  "music_shell_pads_said": "Pad {pad}: {verdict}",
+  "music_shell_pads_wrong": "Move",
+  "music_shell_pads_wrong_pad": "Move pad",
   "music_shell_palette_browse": "Gade tout egzèsis yo",
   "music_shell_palette_last": "Dènye {score}",
   "music_shell_palette_matches": "Koresponn ak \"{match}\"",
@@ -247,6 +310,9 @@
   "music_shell_palette_try": "Eseye non yon egzèsis tankou Entèval oswa Gam, oswa yon paj tankou Akòdè.",
   "music_shell_palette_up_next": "Pwochen an",
   "music_shell_pct": "{value}%",
+  "music_shell_piano_key_missed": "{note}, rate",
+  "music_shell_piano_key_target": "{note}, sib",
+  "music_shell_piano_keyboard": "Klavye pyano",
   "music_shell_picker_choose": "Chwazi",
   "music_shell_results_calibrate": "Kalibre",
   "music_shell_results_clean_is": "Yon esè pwòp se {means}.",
@@ -409,6 +475,55 @@
     }
   ],
   "music_shell_stage_piano": "Klavye pyano, depi {low} rive {high}",
+  "music_shell_strip_aero_heading": "Tonalite lekti Aerophone nan",
+  "music_shell_strip_aero_help": "Mete l menm jan ak AE-20 a. Pòte yo ak dwate yo montre nòt ki ekri a. AE-20 a voye son reyèl la kèlkeswa sa.",
+  "music_shell_strip_aero_label": "Aerophone ekri an {key}",
+  "music_shell_strip_aero_title": "Tonalite ki ekri a. Aerophone nan voye son reyèl la.",
+  "music_shell_strip_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} mezi",
+        "countPlural=other": "{count} mezi"
+      }
+    }
+  ],
+  "music_shell_strip_beat": "Tan",
+  "music_shell_strip_controls": "Kontwòl pratik",
+  "music_shell_strip_countin": "Kontaj:",
+  "music_shell_strip_countin_off": "okenn",
+  "music_shell_strip_countin_off_option": "Okenn",
+  "music_shell_strip_countin_title": "Kontaj anvan yon esè",
+  "music_shell_strip_fewer_controls": "Mwens kontwòl",
+  "music_shell_strip_hear_click": "Tande klik la",
+  "music_shell_strip_instrument": "Enstriman",
+  "music_shell_strip_less": "Mwens",
+  "music_shell_strip_metronome": "Metwonòm:",
+  "music_shell_strip_mic_on": "Mikwo limen",
+  "music_shell_strip_midi_name": "MIDI: {name}",
+  "music_shell_strip_more_controls": "Plis kontwòl",
+  "music_shell_strip_on_no_device": "limen, pa gen aparèy",
+  "music_shell_strip_onscreen": "Touch sou ekran",
+  "music_shell_strip_search_title": "Chèche (⌘K)",
+  "music_shell_strip_sound_input": "Son ak antre: {sound}, MIDI {midi}, mikwo {mic}, w ap jwe sou {source}",
+  "music_shell_strip_sound_off": "Son etenn",
+  "music_shell_strip_sound_on": "son limen",
+  "music_shell_strip_stop_click": "Kanpe klik la",
+  "music_shell_strip_tap_for_sound": "Tape pou son",
+  "music_shell_strip_tempo": "Tempo",
+  "music_shell_strip_tempo_label": "Tempo {bpm} BPM",
+  "music_shell_strip_tuning": "Akòdaj",
+  "music_shell_strip_tuning_label": "Akòdaj: {name}",
+  "music_shell_strip_word_mic": "Mikwo",
+  "music_shell_strip_word_midi_off": "MIDI etenn",
+  "music_shell_strip_word_no_midi": "Pa gen MIDI",
+  "music_shell_strip_written_in": "Ekri an",
   "music_shell_today_due": "Pou revize",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Swiv ba anlè a ({instrument})",

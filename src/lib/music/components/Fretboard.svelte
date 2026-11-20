@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // A fret window, not the whole neck: rosewood, nickel fret wire, position
   // dots, strings that thicken toward the bass. String 1 (highest) on top, as
   // in tab. Every cell is a real, visibly focusable button "String n fret f, note";
@@ -8,7 +9,7 @@
   import { capturePointer } from "./feedback.svelte";
   import type { FlashKind, Flashes } from "./feedback.svelte";
 
-  const FINGER_NAMES = ["", "index finger", "middle finger", "ring finger", "little finger"];
+  const FINGER_NAMES = ["", m.music_shell_finger_index(), m.music_shell_finger_middle(), m.music_shell_finger_ring(), m.music_shell_finger_little()];
 
   export interface FretMark {
     string: number;
@@ -68,7 +69,7 @@
     muted = [],
     interactive = true,
     showHeldPitches = true,
-    label = "Fretboard",
+    label = m.music_shell_fret_fretboard(),
     flashByPitch = false,
     onpick,
     barres = false,
@@ -157,12 +158,22 @@
   });
   /** On a barre with one label (a finger number), the bar carries it once; different labels (picking letters) stay on each string. */
   const onBarre = (s: number, f: number) => barreList.find((b) => b.fret === f && s >= b.top && s <= b.bottom);
+  /** A cell read aloud: "String 1 fret 3, G, target, index finger". */
+  const cellLabel = (s: number, f: number, mk: FretMark | undefined) =>
+    [
+      m.music_shell_fret_cell({ string: s, fret: f }),
+      noteName(midiAt(s, f), "flat"),
+      ...(mk ? [mk.spoken ?? [m.music_shell_fret_target(), ...(mk.label ? [mk.label] : [])].join(", ")] : []),
+      ...(mk?.finger ? [FINGER_NAMES[mk.finger]] : []),
+      ...(mk?.heard ? [m.music_shell_fret_heard()] : []),
+      ...(f === 0 && muted.includes(s) ? [m.music_shell_fret_muted()] : []),
+    ].join(", ");
   const gauge = (s: number) => 1 + (s - 1) * (openStrings.length === 6 ? 0.55 : 0.7);
 </script>
 
-<div class="neck-wrap" class:rings={fingerRings} class:compact class:grow style:--n={frets.length} style:--rows={strings.length} role="group" aria-label="{label}, frets {from} to {to}" bind:this={neck}>
+<div class="neck-wrap" class:rings={fingerRings} class:compact class:grow style:--n={frets.length} style:--rows={strings.length} role="group" aria-label={m.music_shell_fret_label({ label, from, to })} bind:this={neck}>
   <div class="fret-numbers" aria-hidden="true" style:grid-template-columns={cols}>
-    {#each frets as f (f)}<span>{f === 0 ? "open" : f}</span>{/each}
+    {#each frets as f (f)}<span>{f === 0 ? m.music_shell_fret_open() : f}</span>{/each}
   </div>
   <div class="neck">
     {#if from === 0}<span class="nut" aria-hidden="true"></span>{/if}
@@ -198,7 +209,7 @@
             data-cell={s * 100 + f}
             tabindex={interactive && tabCell === s * 100 + f ? 0 : -1}
             aria-pressed={held}
-            aria-label="String {s} fret {f}, {noteName(midiAt(s, f), 'flat')}{mk ? `, ${mk.spoken ?? `target${mk.label ? `, ${mk.label}` : ''}`}${mk.finger ? `, ${FINGER_NAMES[mk.finger]}` : ''}${mk.heard ? ', heard' : ''}` : ''}{f === 0 && muted.includes(s) ? ', muted' : ''}"
+            aria-label={cellLabel(s, f, mk)}
             onfocus={() => (focusAt = s * 100 + f)}
             onpointerdown={(e) => press(e, s, f)}
             onpointerup={release}

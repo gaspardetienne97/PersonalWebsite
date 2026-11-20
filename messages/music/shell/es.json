@@ -1,5 +1,13 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_shell_aero_fingering_for": "Digitación para {description}",
+  "music_shell_aero_key_colours": "Colores de las teclas",
+  "music_shell_aero_left_hand": "Mano izquierda",
+  "music_shell_aero_left_thumb": "Pulgar izquierdo, en la parte de atrás",
+  "music_shell_aero_no_note": "Sin nota",
+  "music_shell_aero_outside": "{note}: fuera del registro de la tabla, de Bb3 a F#6",
+  "music_shell_aero_right_hand": "Mano derecha",
+  "music_shell_aero_wrong_key": "X: presionada, no está en esta digitación",
   "music_shell_calib_blurb": "Toca junto con 20 clics. Woodshed guarda el desfase para esta entrada en la salida de sonido que estás usando.",
   "music_shell_calib_done": "El tiempo está calibrado para {name} en esta salida.",
   "music_shell_calib_due": "El tiempo no está calibrado para {name} en esta salida. Toca junto con 20 clics para que lo adelantado y lo atrasado se califiquen con justicia.",
@@ -29,11 +37,61 @@
   "music_shell_catalog_search_lick": "Buscar licks",
   "music_shell_catalog_search_other": "Buscar: {noun}",
   "music_shell_catalog_search_phrase": "Buscar frases",
+  "music_shell_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bemol",
+        "countPlural=other": "{count} bemoles"
+      }
+    }
+  ],
+  "music_shell_circle_hub_clockwise": "van a la derecha",
+  "music_shell_circle_hub_none": "sin ♯ ni ♭",
+  "music_shell_circle_hub_sharps_go": "Los sostenidos",
+  "music_shell_circle_label": "Círculo de quintas",
+  "music_shell_circle_major": "{key} mayor",
+  "music_shell_circle_major_enh": "{key} mayor ({enharmonic})",
+  "music_shell_circle_no_accidentals": "sin sostenidos ni bemoles",
+  "music_shell_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sostenido",
+        "countPlural=other": "{count} sostenidos"
+      }
+    }
+  ],
+  "music_shell_circle_slot": "{name}, {signature}",
+  "music_shell_circle_slot_hidden": "Casilla {n}, oculta",
   "music_shell_drill_mode_check": "Ronda de prueba: cuenta en tus puntajes de habilidad.",
   "music_shell_drill_mode_hinted": "Usaste una pista, así que esto cuenta como una ronda de práctica.",
   "music_shell_drill_mode_practice": "Ronda de práctica: solo las rondas de prueba cambian tus puntajes de habilidad.",
   "music_shell_drill_tuning_flat": "Ese {played} está {cents} cents bajo, así que se lee como {heard}. Tal vez tu {instrument} necesite afinación.",
   "music_shell_drill_tuning_sharp": "Ese {played} está {cents} cents alto, así que se lee como {heard}. Tal vez tu {instrument} necesite afinación.",
+  "music_shell_finger_index": "dedo índice",
+  "music_shell_finger_little": "dedo meñique",
+  "music_shell_finger_middle": "dedo medio",
+  "music_shell_finger_ring": "dedo anular",
+  "music_shell_fret_cell": "Cuerda {string} traste {fret}",
+  "music_shell_fret_fretboard": "Diapasón",
+  "music_shell_fret_heard": "oída",
+  "music_shell_fret_label": "{label}, trastes {from} a {to}",
+  "music_shell_fret_muted": "apagada",
+  "music_shell_fret_open": "al aire",
+  "music_shell_fret_target": "objetivo",
   "music_shell_hint_about": "Acerca de {about}",
   "music_shell_home_all_drills": "Todos los ejercicios",
   "music_shell_home_drill_views": "Vistas de ejercicios",
@@ -231,6 +289,11 @@
   "music_shell_nav_theme_light": "Claro",
   "music_shell_nav_today": "Hoy",
   "music_shell_nav_toggle_theme": "Cambiar tema",
+  "music_shell_pads_bank_a": "Pads, banco A",
+  "music_shell_pads_pad": "Pad {pad}",
+  "music_shell_pads_said": "Pad {pad}: {verdict}",
+  "music_shell_pads_wrong": "Error",
+  "music_shell_pads_wrong_pad": "Pad equivocado",
   "music_shell_palette_browse": "Ver todos los ejercicios",
   "music_shell_palette_last": "Último {score}",
   "music_shell_palette_matches": "Coincide con «{match}»",
@@ -247,6 +310,9 @@
   "music_shell_palette_try": "Prueba con el nombre de un ejercicio, como Intervalos o Escalas, o de una página, como Afinador.",
   "music_shell_palette_up_next": "A continuación",
   "music_shell_pct": "{value}%",
+  "music_shell_piano_key_missed": "{note}, fallada",
+  "music_shell_piano_key_target": "{note}, objetivo",
+  "music_shell_piano_keyboard": "Teclado de piano",
   "music_shell_picker_choose": "Elegir",
   "music_shell_results_calibrate": "Calibrar",
   "music_shell_results_clean_is": "Una ronda limpia es {means}.",
@@ -409,6 +475,55 @@
     }
   ],
   "music_shell_stage_piano": "Teclado de piano, de {low} a {high}",
+  "music_shell_strip_aero_heading": "La tonalidad de lectura del Aerophone",
+  "music_shell_strip_aero_help": "Ajústala para que coincida con el AE-20. Los pentagramas y las digitaciones muestran la nota escrita. El AE-20 envía el sonido real de todos modos.",
+  "music_shell_strip_aero_label": "Aerophone escrito en {key}",
+  "music_shell_strip_aero_title": "La tonalidad escrita. El Aerophone envía el sonido real.",
+  "music_shell_strip_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} compás",
+        "countPlural=other": "{count} compases"
+      }
+    }
+  ],
+  "music_shell_strip_beat": "Pulso",
+  "music_shell_strip_controls": "Controles de práctica",
+  "music_shell_strip_countin": "Cuenta previa:",
+  "music_shell_strip_countin_off": "ninguna",
+  "music_shell_strip_countin_off_option": "Ninguna",
+  "music_shell_strip_countin_title": "Cuenta previa antes de una ronda",
+  "music_shell_strip_fewer_controls": "Menos controles",
+  "music_shell_strip_hear_click": "Escuchar el clic",
+  "music_shell_strip_instrument": "Instrumento",
+  "music_shell_strip_less": "Menos",
+  "music_shell_strip_metronome": "Metrónomo:",
+  "music_shell_strip_mic_on": "Micro encendido",
+  "music_shell_strip_midi_name": "MIDI: {name}",
+  "music_shell_strip_more_controls": "Más controles",
+  "music_shell_strip_on_no_device": "encendido, sin dispositivo",
+  "music_shell_strip_onscreen": "Teclas en pantalla",
+  "music_shell_strip_search_title": "Buscar (⌘K)",
+  "music_shell_strip_sound_input": "Sonido y entrada: {sound}, MIDI {midi}, micrófono {mic}, tocando desde {source}",
+  "music_shell_strip_sound_off": "Sonido apagado",
+  "music_shell_strip_sound_on": "sonido encendido",
+  "music_shell_strip_stop_click": "Detener el clic",
+  "music_shell_strip_tap_for_sound": "Toca para activar el sonido",
+  "music_shell_strip_tempo": "Tempo",
+  "music_shell_strip_tempo_label": "Tempo {bpm} BPM",
+  "music_shell_strip_tuning": "Afinación",
+  "music_shell_strip_tuning_label": "Afinación: {name}",
+  "music_shell_strip_word_mic": "Micro",
+  "music_shell_strip_word_midi_off": "MIDI apagado",
+  "music_shell_strip_word_no_midi": "Sin MIDI",
+  "music_shell_strip_written_in": "Escrito en",
   "music_shell_today_due": "Toca repasar",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Sigue la barra superior ({instrument})",

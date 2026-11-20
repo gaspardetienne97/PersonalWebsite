@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The practice controls: instrument, metronome, tempo, count-in, tuning and
   // the live input source. Only what the page uses: hubs get the compact strip
   // (instrument, sound and input, search), untimed pages leave out the clock
@@ -52,17 +53,17 @@
 
   const s = $derived(settings.value);
   // Sound starts on the first tap or key anywhere, so nothing is flagged until a sound was actually held back.
-  const soundLabel = $derived(s.muted ? "Sound off" : audio.blocked && !audio.unlocked ? "Tap for sound" : "");
+  const soundLabel = $derived(s.muted ? m.music_shell_strip_sound_off() : audio.blocked && !audio.unlocked ? m.music_shell_strip_tap_for_sound() : "");
   const soundOff = $derived(s.muted || (audio.blocked && !audio.unlocked));
   const midiPort = $derived(midi.enabled ? midi.inputs.find((p) => p.state === "connected" && !midi.profile(p.id)?.ignored) : undefined);
   const midiLive = $derived(!!midiPort);
   /** The input in words: the one last played, else what is ready (mic, then MIDI), else the screen. */
   const source = $derived.by(() => {
     const src = input.activeSource;
-    const midiWord = `MIDI: ${(midiPort && (midi.profile(midiPort.id)?.alias || midiPort.name)) || "on"}`;
-    if (src === "audio" || (src !== "midi" && src !== "onscreen" && mic.state === "on")) return { kind: "mic", word: "Mic on" } as const;
+    const midiWord = m.music_shell_strip_midi_name({ name: (midiPort && (midi.profile(midiPort.id)?.alias || midiPort.name)) || m.music_shell_input_state_on() });
+    if (src === "audio" || (src !== "midi" && src !== "onscreen" && mic.state === "on")) return { kind: "mic", word: m.music_shell_strip_mic_on() } as const;
     if (src === "midi" || (src !== "onscreen" && midiLive)) return { kind: "midi", word: midiWord } as const;
-    return { kind: "screen", word: "On-screen keys" } as const;
+    return { kind: "screen", word: m.music_shell_strip_onscreen() } as const;
   });
   const fretted = $derived(s.activeInstrument === "guitar" || s.activeInstrument === "ukulele" ? s.activeInstrument : null);
   const tuningId = $derived(fretted === "ukulele" ? s.ukuleleTuningId : s.guitarTuningId);
@@ -112,7 +113,7 @@
   const QUIET = ["/music/journal", "/music/progress", "/music/settings", "/music/guide"];
   const quiet = $derived(QUIET.some((r) => page.url.pathname === r || page.url.pathname.startsWith(r + "/")));
   /** The input in one short word for a phone's icon pill. */
-  const inputWord = $derived(source.kind === "mic" ? "Mic" : source.kind === "midi" ? "MIDI" : midi.enabled ? "No MIDI" : "MIDI off");
+  const inputWord = $derived(source.kind === "mic" ? m.music_shell_strip_word_mic() : source.kind === "midi" ? "MIDI" : midi.enabled ? m.music_shell_strip_word_no_midi() : m.music_shell_strip_word_midi_off());
   // What this page shows. Compact: hubs and tools; clock: Metronome, Tempo and Count-in.
   const compact = $derived(bench.compact);
   // A drill says itself whether it runs a clock; other pages follow the layout's route list.
@@ -157,7 +158,7 @@
   <!-- One row at every width (scrolling from sm up only if it must), so pills that come and go never change the strip's height mid-click.
        From sm up no pill shrinks (a squeezed pill let its name spill over the next one): where the strip is narrow
        (a laptop or tablet beside the sidebar) the pills drop their label words instead and keep the value. -->
-  <div class="flex flex-nowrap items-center gap-1.5 px-4 py-2 sm:gap-2 sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label="Practice controls">
+  <div class="flex flex-nowrap items-center gap-1.5 px-4 py-2 sm:gap-2 sm:overflow-x-auto sm:px-6 sm:[scrollbar-width:thin] lg:px-8" role="group" aria-label={m.music_shell_strip_controls()}>
     <!-- A drill that draws no instrument (answer buttons, taps) leaves the picker out. -->
     {#if !bench.instrumentFree && !quiet}<!-- The row never wraps: on a narrow phone the input's name gives way (whole in its pop-up); without it, the
          instrument's does (whole in its picker), so nothing spills over the page. -->
@@ -165,7 +166,7 @@
       <Picker
         class="-my-px min-h-11 w-auto min-w-0 pr-1 sm:min-w-28"
         tone="bare"
-        label="Instrument"
+        label={m.music_shell_strip_instrument()}
         value={s.activeInstrument}
         disabled={locked}
         options={instrumentOptions((i) => INSTRUMENT_LABEL[i])}
@@ -174,13 +175,13 @@
     </div>{/if}
 
     {#if showTempo}<Popover.Root>
-      <Popover.Trigger class={pill} disabled={locked} aria-label="Tempo {s.bpm} BPM">
+      <Popover.Trigger class={pill} disabled={locked} aria-label={m.music_shell_strip_tempo_label({ bpm: s.bpm })}>
         <span class="tnum font-display text-base font-semibold">{s.bpm}</span>
         <span class="text-ws-soft {terser}">BPM</span>
       </Popover.Trigger>
       <Popover.Content portalProps={{ to: portalTo }} class="w-64 border-ws-line bg-ws-surface text-ws-ink">
         <label class="flex items-center justify-between gap-3 text-sm font-medium">
-          Tempo
+          {m.music_shell_strip_tempo()}
           <input
             type="number"
             min="30"
@@ -199,7 +200,7 @@
           {/each}
         </div>
         <button type="button" class="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-sm hover:bg-accent" aria-pressed={previewing} onclick={togglePreview}>
-          <Timer class="size-4" aria-hidden="true" />{previewing ? "Stop the click" : "Hear the click"}
+          <Timer class="size-4" aria-hidden="true" />{previewing ? m.music_shell_strip_stop_click() : m.music_shell_strip_hear_click()}
         </button>
       </Popover.Content>
     </Popover.Root>{/if}
@@ -210,26 +211,26 @@
         type="button"
         class={pill}
         aria-pressed={bench.clickDuringRun}
-        aria-label="Metronome click in runs"
-        title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
+        aria-label={m.music_shell_shell_click_label()}
+        title={bench.clickDuringRun ? m.music_shell_shell_click_on() : m.music_shell_shell_click_off()}
         onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
       >
         <Timer class="size-4 {bench.clickDuringRun ? 'text-instr-ink' : 'text-ws-soft'}" aria-hidden="true" />
-        <span class="whitespace-nowrap"><span class={terse}>Metronome:</span> <span class="font-semibold">{bench.clickDuringRun ? "on" : "off"}</span></span>
+        <span class="whitespace-nowrap"><span class={terse}>{m.music_shell_strip_metronome()}</span> <span class="font-semibold">{bench.clickDuringRun ? m.music_shell_input_state_on() : m.music_shell_input_state_off()}</span></span>
       </button>{/if}
 
       {#if showCountIn}<Popover.Root>
-        <Popover.Trigger class="{pill} {idle}" disabled={locked} title="Count-in before a run">
-          <span class="whitespace-nowrap"><span class={terser}>Count-in:</span> <span class="font-semibold">{s.countInBars === 0 ? "off" : `${s.countInBars} bar${s.countInBars > 1 ? "s" : ""}`}</span></span>
+        <Popover.Trigger class="{pill} {idle}" disabled={locked} title={m.music_shell_strip_countin_title()}>
+          <span class="whitespace-nowrap"><span class={terser}>{m.music_shell_strip_countin()}</span> <span class="font-semibold">{s.countInBars === 0 ? m.music_shell_strip_countin_off() : m.music_shell_strip_bars({ count: s.countInBars })}</span></span>
           <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
         </Popover.Trigger>
         <Popover.Content portalProps={{ to: portalTo }} class="w-60 border-ws-line bg-ws-surface text-ws-ink">
-          <p class="text-sm font-medium">Count-in before a run</p>
+          <p class="text-sm font-medium">{m.music_shell_strip_countin_title()}</p>
           <div class="mt-2 grid grid-cols-3 gap-1.5">
             {#each [0, 1, 2] as const as n (n)}
               <Popover.Close
                 class="min-h-11 rounded-md border text-sm {n === s.countInBars ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
-                onclick={() => settings.update({ countInBars: n })}>{n === 0 ? "Off" : `${n} bar${n > 1 ? "s" : ""}`}</Popover.Close
+                onclick={() => settings.update({ countInBars: n })}>{n === 0 ? m.music_shell_strip_countin_off_option() : m.music_shell_strip_bars({ count: n })}</Popover.Close
               >
             {/each}
           </div>
@@ -238,8 +239,8 @@
 
       {#if showTuning && fretted}
         <Popover.Root>
-          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Tuning: {tuningName}">
-            <span class={terse}>Tuning</span>
+          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label={m.music_shell_strip_tuning_label({ name: tuningName })}>
+            <span class={terse}>{m.music_shell_strip_tuning()}</span>
             <span class="font-semibold">{tuningName}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
@@ -255,14 +256,14 @@
 
       {#if showReads}
         <Popover.Root>
-          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label="Aerophone written in {aeroKey.label}" title="The written key. The Aerophone sends concert pitch.">
-            <span class={terse}>Written in</span>
+          <Popover.Trigger class="{pill} {idle}" disabled={locked} aria-label={m.music_shell_strip_aero_label({ key: aeroKey.label })} title={m.music_shell_strip_aero_title()}>
+            <span class={terse}>{m.music_shell_strip_written_in()}</span>
             <span class="font-semibold">{aeroKey.label}</span>
             <ChevronDown class="size-4 text-ws-soft" aria-hidden="true" />
           </Popover.Trigger>
           <Popover.Content portalProps={{ to: portalTo }} class="w-72 border-ws-line bg-ws-surface text-ws-ink">
-            <p class="text-sm font-medium">The Aerophone's reading key</p>
-            <p class="mt-1 text-[13px] text-ws-soft">Set it to match the AE-20. Staffs and fingerings show the written note. The AE-20 sends concert pitch either way.</p>
+            <p class="text-sm font-medium">{m.music_shell_strip_aero_heading()}</p>
+            <p class="mt-1 text-[13px] text-ws-soft">{m.music_shell_strip_aero_help()}</p>
             <div class="mt-2 grid grid-cols-3 gap-1.5">
               {#each AEROPHONE_READING_KEYS as k (k.id)}
                 <Popover.Close
@@ -281,10 +282,10 @@
     <span
       class="min-h-11 shrink-0 items-center gap-1 px-1 {locked && clock ? 'flex' : 'hidden'}"
       role="img"
-      aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}"
+      aria-label={(bench.countingIn ? m.music_shell_shell_countin_beat_label : m.music_shell_shell_beat_label)({ beat: bench.beat || 1, total: bench.beatsPerBar })}
     >
       <!-- A phone row has no room for the word; the stage's count-in says it there, and the dots turn amber. -->
-      <span class="mr-1 text-sm font-medium text-ws-soft max-sm:hidden" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"}</span>
+      <span class="mr-1 text-sm font-medium text-ws-soft max-sm:hidden" aria-hidden="true">{bench.countingIn ? m.music_shell_shell_countin() : m.music_shell_strip_beat()}</span>
       {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
         <span class="grid size-6 place-items-center" aria-hidden="true">
           {#if bench.beat === b}
@@ -306,7 +307,12 @@
     {#if quiet && !soundOff}<span class="ml-auto"></span>{:else}<Popover.Root>
       <Popover.Trigger
         class="{roomy ? pill.replace('shrink-0', 'min-w-0 shrink-[20]') : pill} {s.muted ? 'border-warn' : ''} max-sm:ml-auto {roomy ? '' : 'max-sm:px-2.5'}"
-        aria-label="Sound and input: {soundLabel ? soundLabel.toLowerCase() : 'sound on'}, MIDI {midiLive ? 'on' : midi.enabled ? 'on, no device' : 'off'}, microphone {mic.state === 'on' ? 'on' : 'off'}, playing from {source.word}"
+        aria-label={m.music_shell_strip_sound_input({
+          sound: soundLabel ? soundLabel.toLowerCase() : m.music_shell_strip_sound_on(),
+          midi: midiLive ? m.music_shell_input_state_on() : midi.enabled ? m.music_shell_strip_on_no_device() : m.music_shell_input_state_off(),
+          mic: mic.state === "on" ? m.music_shell_input_state_on() : m.music_shell_input_state_off(),
+          source: source.word,
+        })}
       >
         <!-- Children stay mounted: the first tap unlocks sound, and swapping nodes mid-click would swallow the click that opens the pop-up. -->
         <VolumeOff class="size-4 {soundOff ? '' : 'hidden'}" aria-hidden="true" /><Volume class="size-4 {soundOff ? 'hidden' : ''}" aria-hidden="true" />
@@ -332,7 +338,7 @@
 
     {#if hasMore && !locked}
       <!-- A round icon button like Search, so a phone row keeps the instrument's whole name beside a three-digit tempo. -->
-      <button type="button" class="{pill} w-11 justify-center px-0 aria-expanded:border-instr aria-expanded:bg-instr-wash sm:hidden" aria-label={more ? "Less" : "More"} title={more ? "Fewer controls" : "More controls"} aria-expanded={more} aria-controls="strip-more" onclick={() => (more = !more)}>
+      <button type="button" class="{pill} w-11 justify-center px-0 aria-expanded:border-instr aria-expanded:bg-instr-wash sm:hidden" aria-label={more ? m.music_shell_strip_less() : m.music_shell_nav_more()} title={more ? m.music_shell_strip_fewer_controls() : m.music_shell_strip_more_controls()} aria-expanded={more} aria-controls="strip-more" onclick={() => (more = !more)}>
         <Ellipsis class="size-4" aria-hidden="true" />
       </button>
     {/if}
@@ -342,14 +348,14 @@
 <!-- Words only on the widest screens, so the row never clips beside the sidebar. -->
 {#snippet search(cls: string)}
   <!-- Tuner and Connect: two tools wanted from any page, so they ride beside Search. -->
-  {#each [{ href: "/music/tuner", label: "Tuner", Icon: Gauge }, { href: "/music/connect", label: "Connect", Icon: Cable }] as tool (tool.href)}
+  {#each [{ href: "/music/tuner", label: m.music_shell_search_tuner(), Icon: Gauge }, { href: "/music/connect", label: m.music_shell_nav_connect(), Icon: Cable }] as tool (tool.href)}
     <a href={tool.href} class="{pill} {idle} {cls} w-11 justify-center px-0 aria-[current=page]:border-instr aria-[current=page]:bg-instr-wash" aria-label={tool.label} title={tool.label} aria-current={page.url.pathname.startsWith(tool.href) ? "page" : undefined}>
       <tool.Icon class="size-4" aria-hidden="true" />
     </a>
   {/each}
-  <button type="button" class="{pill} {idle} {cls} max-2xl:w-11 max-2xl:justify-center max-2xl:px-0" onclick={() => palette.open()} aria-label="Search" title="Search (⌘K)" aria-keyshortcuts="Meta+K Control+K">
+  <button type="button" class="{pill} {idle} {cls} max-2xl:w-11 max-2xl:justify-center max-2xl:px-0" onclick={() => palette.open()} aria-label={m.music_shell_catalog_search()} title={m.music_shell_strip_search_title()} aria-keyshortcuts="Meta+K Control+K">
     <Search class="size-4" aria-hidden="true" />
-    <span class="hidden 2xl:inline">Search</span>
+    <span class="hidden 2xl:inline">{m.music_shell_catalog_search()}</span>
     <kbd class="hidden rounded border border-ws-line px-1 text-[13px] text-ws-soft 2xl:inline">⌘K</kbd>
   </button>
 {/snippet}

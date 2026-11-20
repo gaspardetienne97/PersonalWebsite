@@ -1,5 +1,13 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_shell_aero_fingering_for": "Fingering for {description}",
+  "music_shell_aero_key_colours": "Key colours",
+  "music_shell_aero_left_hand": "Left hand",
+  "music_shell_aero_left_thumb": "Left thumb, on the back",
+  "music_shell_aero_no_note": "No note",
+  "music_shell_aero_outside": "{note}: outside the charted range, Bb3 to F#6",
+  "music_shell_aero_right_hand": "Right hand",
+  "music_shell_aero_wrong_key": "X: pressed, not in this fingering",
   "music_shell_calib_blurb": "Tap along to 20 clicks. Woodshed saves the offset for this input on the sound output in use.",
   "music_shell_calib_done": "Timing is calibrated for {name} on this output.",
   "music_shell_calib_due": "Timing isn't calibrated for {name} on this output. Tap along to 20 clicks so early and late are scored fairly.",
@@ -29,11 +37,61 @@
   "music_shell_catalog_search_lick": "Search licks",
   "music_shell_catalog_search_other": "Search {noun}s",
   "music_shell_catalog_search_phrase": "Search phrases",
+  "music_shell_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} flat",
+        "countPlural=other": "{count} flats"
+      }
+    }
+  ],
+  "music_shell_circle_hub_clockwise": "clockwise",
+  "music_shell_circle_hub_none": "no ♯ or ♭",
+  "music_shell_circle_hub_sharps_go": "Sharps go",
+  "music_shell_circle_label": "Circle of fifths",
+  "music_shell_circle_major": "{key} major",
+  "music_shell_circle_major_enh": "{key} major ({enharmonic})",
+  "music_shell_circle_no_accidentals": "no sharps or flats",
+  "music_shell_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sharp",
+        "countPlural=other": "{count} sharps"
+      }
+    }
+  ],
+  "music_shell_circle_slot": "{name}, {signature}",
+  "music_shell_circle_slot_hidden": "Slot {n}, hidden",
   "music_shell_drill_mode_check": "Check run: counts in your skill scores.",
   "music_shell_drill_mode_hinted": "You used a hint, so this counts as a Practice run.",
   "music_shell_drill_mode_practice": "Practice run: only Check runs change your skill scores.",
   "music_shell_drill_tuning_flat": "That {played} is {cents} cents flat, so it reads as {heard}. Your {instrument} may need tuning.",
   "music_shell_drill_tuning_sharp": "That {played} is {cents} cents sharp, so it reads as {heard}. Your {instrument} may need tuning.",
+  "music_shell_finger_index": "index finger",
+  "music_shell_finger_little": "little finger",
+  "music_shell_finger_middle": "middle finger",
+  "music_shell_finger_ring": "ring finger",
+  "music_shell_fret_cell": "String {string} fret {fret}",
+  "music_shell_fret_fretboard": "Fretboard",
+  "music_shell_fret_heard": "heard",
+  "music_shell_fret_label": "{label}, frets {from} to {to}",
+  "music_shell_fret_muted": "muted",
+  "music_shell_fret_open": "open",
+  "music_shell_fret_target": "target",
   "music_shell_hint_about": "About {about}",
   "music_shell_home_all_drills": "All drills",
   "music_shell_home_drill_views": "Drill views",
@@ -231,6 +289,11 @@
   "music_shell_nav_theme_light": "Light",
   "music_shell_nav_today": "Today",
   "music_shell_nav_toggle_theme": "Toggle theme",
+  "music_shell_pads_bank_a": "Pads, bank A",
+  "music_shell_pads_pad": "Pad {pad}",
+  "music_shell_pads_said": "Pad {pad}: {verdict}",
+  "music_shell_pads_wrong": "Wrong",
+  "music_shell_pads_wrong_pad": "Wrong pad",
   "music_shell_palette_browse": "Browse every drill",
   "music_shell_palette_last": "Last {score}",
   "music_shell_palette_matches": "Matches \"{match}\"",
@@ -247,6 +310,9 @@
   "music_shell_palette_try": "Try a drill name such as Intervals or Scales, or a page such as Tuner.",
   "music_shell_palette_up_next": "Up next",
   "music_shell_pct": "{value}%",
+  "music_shell_piano_key_missed": "{note}, missed",
+  "music_shell_piano_key_target": "{note}, target",
+  "music_shell_piano_keyboard": "Piano keyboard",
   "music_shell_picker_choose": "Choose",
   "music_shell_results_calibrate": "Calibrate",
   "music_shell_results_clean_is": "A clean run is {means}.",
@@ -409,6 +475,55 @@
     }
   ],
   "music_shell_stage_piano": "Piano keyboard, {low} to {high}",
+  "music_shell_strip_aero_heading": "The Aerophone's reading key",
+  "music_shell_strip_aero_help": "Set it to match the AE-20. Staffs and fingerings show the written note. The AE-20 sends concert pitch either way.",
+  "music_shell_strip_aero_label": "Aerophone written in {key}",
+  "music_shell_strip_aero_title": "The written key. The Aerophone sends concert pitch.",
+  "music_shell_strip_bars": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bar",
+        "countPlural=other": "{count} bars"
+      }
+    }
+  ],
+  "music_shell_strip_beat": "Beat",
+  "music_shell_strip_controls": "Practice controls",
+  "music_shell_strip_countin": "Count-in:",
+  "music_shell_strip_countin_off": "off",
+  "music_shell_strip_countin_off_option": "Off",
+  "music_shell_strip_countin_title": "Count-in before a run",
+  "music_shell_strip_fewer_controls": "Fewer controls",
+  "music_shell_strip_hear_click": "Hear the click",
+  "music_shell_strip_instrument": "Instrument",
+  "music_shell_strip_less": "Less",
+  "music_shell_strip_metronome": "Metronome:",
+  "music_shell_strip_mic_on": "Mic on",
+  "music_shell_strip_midi_name": "MIDI: {name}",
+  "music_shell_strip_more_controls": "More controls",
+  "music_shell_strip_on_no_device": "on, no device",
+  "music_shell_strip_onscreen": "On-screen keys",
+  "music_shell_strip_search_title": "Search (⌘K)",
+  "music_shell_strip_sound_input": "Sound and input: {sound}, MIDI {midi}, microphone {mic}, playing from {source}",
+  "music_shell_strip_sound_off": "Sound off",
+  "music_shell_strip_sound_on": "sound on",
+  "music_shell_strip_stop_click": "Stop the click",
+  "music_shell_strip_tap_for_sound": "Tap for sound",
+  "music_shell_strip_tempo": "Tempo",
+  "music_shell_strip_tempo_label": "Tempo {bpm} BPM",
+  "music_shell_strip_tuning": "Tuning",
+  "music_shell_strip_tuning_label": "Tuning: {name}",
+  "music_shell_strip_word_mic": "Mic",
+  "music_shell_strip_word_midi_off": "MIDI off",
+  "music_shell_strip_word_no_midi": "No MIDI",
+  "music_shell_strip_written_in": "Written in",
   "music_shell_today_due": "Due for review",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Follows the top bar ({instrument})",

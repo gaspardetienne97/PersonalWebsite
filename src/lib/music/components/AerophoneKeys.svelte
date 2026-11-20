@@ -77,6 +77,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The fingering for concert `midi` pressed on the AE-20 (sax fingering
   // mode), each key lit in its hand's colour; a key down that the note does
   // not use (from `heldMidi`) shows red. The player fingers the written note,
@@ -110,16 +111,16 @@
   const pressed = (id: string, f: Fingering | null) => !!f && (id === "oct+1" ? f.octave : f.keys.includes(id));
   const description = $derived(
     midi === null
-      ? "No note"
+      ? m.music_shell_aero_no_note()
       : target
         ? `${name && concert !== null ? name(concert) : (chartEntry(midi)?.name ?? noteName(midi))}: ${fingeringWords(midi)}`
-        : `${noteName(midi, "flat")}: outside the charted range, Bb3 to F#6`,
+        : m.music_shell_aero_outside({ note: noteName(midi, "flat") }),
   );
 </script>
 
 <!-- Compact is the narrowest the key names stay at 13 px or more (15 px labels at 196 / 224 scale). -->
 <figure class="flex w-full flex-col items-center gap-2 {compact ? 'max-w-[12.25rem]' : 'max-w-64'}">
-  <svg viewBox="0 {VIEW_TOP} 224 {VIEW_H}" class="h-auto w-full {compact ? 'max-h-[26rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? `Fingering for ${description}`}>
+  <svg viewBox="0 {VIEW_TOP} 224 {VIEW_H}" class="h-auto w-full {compact ? 'max-h-[26rem]' : 'max-h-[36rem]'}" role="img" aria-label={label ?? m.music_shell_aero_fingering_for({ description })}>
     <defs>
       <linearGradient id="{uid}-col" x1="0" x2="1">
         <stop offset="0" stop-color="oklch(0.84 0.01 290)" />
@@ -174,12 +175,12 @@
       {/if}
     {/each}
   </svg>
-  <ul class="legend" aria-label="Key colours">
-    <li><span style:--c="var(--ae-left)"></span>Left hand</li>
-    <li><span style:--c="var(--ae-right)"></span>Right hand</li>
-    <li><span style:--c="var(--ae-thumb)"></span>Left thumb, on the back</li>
+  <ul class="legend" aria-label={m.music_shell_aero_key_colours()}>
+    <li><span style:--c="var(--ae-left)"></span>{m.music_shell_aero_left_hand()}</li>
+    <li><span style:--c="var(--ae-right)"></span>{m.music_shell_aero_right_hand()}</li>
+    <li><span style:--c="var(--ae-thumb)"></span>{m.music_shell_aero_left_thumb()}</li>
     {#if KEYS.some((k) => pressed(k.id, held) && !pressed(k.id, target))}
-      <li><span class="wrong-swatch"></span>X: pressed, not in this fingering</li>
+      <li><span class="wrong-swatch"></span>{m.music_shell_aero_wrong_key()}</li>
     {/if}
   </ul>
   <!-- Which finger goes where, as Roland's lessons label the target keys. -->

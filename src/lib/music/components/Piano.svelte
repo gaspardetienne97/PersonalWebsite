@@ -24,6 +24,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The one keyboard. Ivory and ebony drawn as material; every key is a real
   // button named by its note. States with distinct lifetimes: held (while down),
   // target (current group), demo (while the model sounds), correct/wrong
@@ -71,7 +72,7 @@
     held,
     names = "c",
     interactive = true,
-    label = "Piano keyboard",
+    label = m.music_shell_piano_keyboard(),
     minKey = 36,
     fit,
     compact = false,
@@ -129,6 +130,13 @@
     input.tap(midi, isDown);
   }
 
+  /** A key's name, read aloud with what it is in the drill. */
+  const keyLabel = (n: number, mk: { target?: boolean }) =>
+    missing.includes(n)
+      ? m.music_shell_piano_key_missed({ note: noteName(n, spelling) })
+      : mk.target
+        ? m.music_shell_piano_key_target({ note: noteName(n, spelling) })
+        : noteName(n, spelling);
   function nameFor(m: number) {
     if (names === "all" || (names === "c" && m % 12 === 0)) return noteName(m, spelling);
     return "";
@@ -152,7 +160,7 @@
           data-flash={flash}
           data-verdict={flash}
           data-role={mk.role}
-          aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
+          aria-label={keyLabel(m, mk)}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
@@ -181,7 +189,7 @@
           data-flash={flash}
           data-verdict={flash}
           data-role={mk.role}
-          aria-label={noteName(m, spelling) + (missing.includes(m) ? ", missed" : mk.target ? ", target" : "")}
+          aria-label={keyLabel(m, mk)}
           aria-pressed={down.has(m)}
           tabindex={interactive ? 0 : -1}
           onpointerdown={(e) => press(e, m)}
