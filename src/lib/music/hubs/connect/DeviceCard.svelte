@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // One MIDI input: alias, instrument, channel, Ignore vs Remove, the latency
   // readout, and for MPC ports the pad map with a guided Learn pads capture.
   import { INSTRUMENTS, type DeviceProfile, type Instrument } from "@repo/music-core";
@@ -41,13 +42,13 @@
     const job = midi.learnPads(port.id, (notes) => (learning = notes));
     learning = [];
     cancelLearn = job.cancel;
-    announce(`Learning pads on ${title}: hit pad A01 first, then each pad in order.`);
+    announce(m.music_hubs_dev_learning({ name: title }));
     try {
       const notes = await job.promise;
       await save({ padNotes: notes });
-      announce(`Learned all 16 pads on ${title}. Hardware notes are now read as bank A.`);
+      announce(m.music_hubs_dev_learned({ name: title }));
     } catch {
-      announce("Pad learning cancelled. The saved map is unchanged.");
+      announce(m.music_hubs_dev_learn_cancelled());
     } finally {
       learning = null;
       cancelLearn = null;
@@ -57,7 +58,7 @@
   function setMap(id: string) {
     if (id === "learned") return;
     void save({ padNotes: id === "none" ? undefined : [...PAD_PRESETS[id as PadPresetId].notes] });
-    announce(id === "none" ? `No pad map on ${title}: notes pass through unchanged.` : `${PAD_PRESETS[id as PadPresetId].label} saved for ${title}.`);
+    announce(id === "none" ? m.music_hubs_dev_no_map({ name: title }) : m.music_hubs_dev_map_saved({ preset: PAD_PRESETS[id as PadPresetId].label, name: title }));
   }
 
   // MPC layout: top row pads 13-16 down to 1-4.
@@ -77,7 +78,7 @@
       <div class="min-w-0">
         <h3 class="font-display text-lg font-semibold">{title}</h3>
         <p class="text-sm text-ws-soft">
-          {port.manufacturer ? `${port.manufacturer}. ` : ""}{connected ? "Connected" : "Not connected"}{profile?.ignored ? ", hidden: its notes don't reach drills" : ""}.
+          {port.manufacturer ? `${port.manufacturer}. ` : ""}{connected ? m.music_hubs_dev_connected() : m.music_hubs_dev_not_connected()}{profile?.ignored ? m.music_hubs_dev_hidden() : ""}.
         </p>
       </div>
     </div>
@@ -89,12 +90,12 @@
           class={btn}
           onclick={() => {
             void save({ ignored: undefined });
-            announce(`${title} is back: its notes reach drills again.`);
-          }}>Show this device</button
+            announce(m.music_hubs_dev_back({ name: title }));
+          }}>{m.music_hubs_dev_show()}</button
         >
       {/if}
       {#if inactive}
-        <button type="button" class={btn} aria-expanded={expanded} onclick={() => (expanded = !expanded)}>{expanded ? "Hide settings" : "Show settings"}</button>
+        <button type="button" class={btn} aria-expanded={expanded} onclick={() => (expanded = !expanded)}>{expanded ? m.music_hubs_dev_hide_settings() : m.music_hubs_dev_show_settings()}</button>
       {/if}
     </div>
   </header>
@@ -102,14 +103,14 @@
   {#if open}
   <div class="max-w-sm">
     <div class="flex min-w-0 flex-col gap-1 text-sm">
-      <span class="font-medium">Instrument</span>
+      <span class="font-medium">{m.music_hubs_instrument()}</span>
       <Picker
-        label="Instrument"
+        label={m.music_hubs_instrument()}
         value={profile?.instrument ?? "auto"}
-        options={[{ value: "auto", label: `Auto${detected ? ` (${INSTRUMENT_LABEL[detected]})` : ", not recognised"}` }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]}
+        options={[{ value: "auto", label: detected ? m.music_hubs_dev_auto({ instrument: INSTRUMENT_LABEL[detected] }) : m.music_hubs_dev_auto_unknown() }, ...instrumentOptions((i) => INSTRUMENT_LABEL[i])]}
         onchange={(v) => {
           void save({ instrument: v === "auto" ? undefined : (v as Instrument) });
-          announce(`${title} plays ${v === "auto" ? "whatever its name suggests" : INSTRUMENT_LABEL[v as Instrument]}.`);
+          announce(v === "auto" ? m.music_hubs_dev_plays_auto({ name: title }) : m.music_hubs_dev_plays({ name: title, instrument: INSTRUMENT_LABEL[v as Instrument] }));
         }}
       />
     </div>
@@ -117,75 +118,75 @@
 
   <details class="group text-sm">
     <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
-      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />Advanced
-      <span class="font-normal text-ws-soft">Port name, alias, MIDI channel, latency</span>
+      <ChevronRight class="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />{m.music_hubs_dev_advanced()}
+      <span class="font-normal text-ws-soft">{m.music_hubs_dev_advanced_hint()}</span>
     </summary>
     <div class="mt-2 grid gap-3 pl-6 sm:grid-cols-2">
-    <p class="text-sm sm:col-span-2"><span class="font-medium">Port name:</span> {port.name}{port.manufacturer ? `, ${port.manufacturer}` : ""}</p>
+    <p class="text-sm sm:col-span-2"><span class="font-medium">{m.music_hubs_dev_port_name()}</span> {port.name}{port.manufacturer ? `, ${port.manufacturer}` : ""}</p>
     <label class="flex min-w-0 flex-col gap-1 text-sm">
-      <span class="font-medium">Alias</span>
+      <span class="font-medium">{m.music_hubs_dev_alias()}</span>
       <input
         class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3"
         value={profile?.alias ?? ""}
         placeholder={port.name}
         onchange={(e) => {
           void save({ alias: e.currentTarget.value });
-          announce(`Alias saved for ${port.name}.`);
+          announce(m.music_hubs_dev_alias_saved({ name: port.name }));
         }}
       />
     </label>
     <div class="flex min-w-0 flex-col gap-1 text-sm">
-      <span class="font-medium">MIDI channel</span>
+      <span class="font-medium">{m.music_hubs_dev_channel_label()}</span>
       <Picker
-        label="MIDI channel"
+        label={m.music_hubs_dev_channel_label()}
         value={String(profile?.channel ?? 0)}
-        options={[{ value: "0", label: "Any channel" }, ...Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: `Channel ${i + 1}` }))]}
+        options={[{ value: "0", label: m.music_hubs_dev_any_channel() }, ...Array.from({ length: 16 }, (_, i) => ({ value: String(i + 1), label: m.music_hubs_dev_channel({ n: i + 1 }) }))]}
         onchange={(raw) => {
           const v = Number(raw);
           void save({ channel: v || undefined });
-          announce(v ? `${title} listens on channel ${v} only.` : `${title} listens on every channel.`);
+          announce(v ? m.music_hubs_dev_listens_on({ name: title, n: v }) : m.music_hubs_dev_listens_all({ name: title }));
         }}
       />
     </div>
     <p class="text-sm sm:col-span-2">
-      <span class="font-medium">Latency:</span>
+      <span class="font-medium">{m.music_hubs_dev_latency()}</span>
       {#if offset !== undefined}
-        <span class="tnum">{offset > 0 ? "+" : ""}{offset} ms</span> for this device.
+        <span class="tnum">{offset > 0 ? "+" : ""}{offset} ms</span> {m.music_hubs_dev_for_device()}
       {:else}
-        default (<span class="tnum">{calibration.offset(MIDI_INPUT) ?? 0} ms</span>).
+        {@html m.music_hubs_dev_latency_default({ ms: `<span class="tnum">${calibration.offset(MIDI_INPUT) ?? 0} ms</span>` })}
       {/if}
-      <a href="/music/settings" class="font-medium text-instr-ink underline underline-offset-4">Calibrate in Settings</a>
+      <a href="/music/settings" class="font-medium text-instr-ink underline underline-offset-4">{m.music_hubs_dev_calibrate()}</a>
     </p>
     </div>
   </details>
 
   {#if instrument === "mpc"}
-    <section class="flex flex-col gap-3 rounded-xl bg-ws-raised/60 p-3" aria-label="Pad notes for {title}">
+    <section class="flex flex-col gap-3 rounded-xl bg-ws-raised/60 p-3" aria-label={m.music_hubs_dev_pad_notes_for({ name: title })}>
       <div class="flex flex-wrap items-end gap-3">
         <div class="flex min-w-0 flex-1 basis-56 flex-col gap-1 text-sm">
-          <span class="font-medium">Pad notes (what your drum program sends)</span>
-          <Picker label="Pad notes (what your drum program sends)" value={mapId} options={[{ value: "none", label: "No map: notes pass through" }, ...Object.entries(PAD_PRESETS).map(([id, p]) => ({ value: id, label: p.label })), ...(mapId === "learned" ? [{ value: "learned", label: "Learned from this device" }] : [])]} onchange={setMap} />
+          <span class="font-medium">{m.music_hubs_dev_pad_notes()}</span>
+          <Picker label={m.music_hubs_dev_pad_notes()} value={mapId} options={[{ value: "none", label: m.music_hubs_dev_map_none() }, ...Object.entries(PAD_PRESETS).map(([id, p]) => ({ value: id, label: p.label })), ...(mapId === "learned" ? [{ value: "learned", label: m.music_hubs_dev_map_learned() }] : [])]} onchange={setMap} />
         </div>
         {#if learning}
-          <button type="button" class={btn} onclick={() => cancelLearn?.()}>Cancel learning</button>
+          <button type="button" class={btn} onclick={() => cancelLearn?.()}>{m.music_hubs_dev_cancel_learning()}</button>
         {:else}
-          <button type="button" class={btn} onclick={learn} disabled={!midi.enabled || !connected}>Learn pads</button>
+          <button type="button" class={btn} onclick={learn} disabled={!midi.enabled || !connected}>{m.music_hubs_dev_learn()}</button>
         {/if}
       </div>
       {#if learning}
         <div>
-          <p class="font-display text-lg font-semibold">Hit pad {padLabel(36 + learning.length)} next</p>
-          <p class="text-sm text-ws-soft"><span class="tnum">{learning.length} of 16</span> pads captured</p>
+          <p class="font-display text-lg font-semibold">{m.music_hubs_dev_hit_next({ pad: padLabel(36 + learning.length) })}</p>
+          <p class="text-sm text-ws-soft"><span class="tnum">{m.music_hubs_dev_captured_of({ n: learning.length })}</span> {m.music_hubs_dev_captured()}</p>
           <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ws-line" aria-hidden="true"><div class="h-full rounded-full bg-instr" style:width="{(learning.length / 16) * 100}%"></div></div>
         </div>
       {/if}
-      <ol class="grid max-w-xl grid-cols-4 gap-1.5 sm:gap-2" aria-label={learning ? "Pads captured so far" : "Saved pad map"}>
+      <ol class="grid max-w-xl grid-cols-4 gap-1.5 sm:gap-2" aria-label={learning ? m.music_hubs_dev_captured_label() : m.music_hubs_dev_saved_map()}>
         {#each ROWS as row (row)}
           {#each [0, 1, 2, 3] as col (col)}
             {@const i = row + col}
             {@const note = learning ? learning[i] : profile?.padNotes?.[i]}
             <li
-              title={note !== undefined ? `Pad ${padLabel(36 + i)} hears MIDI note ${note}` : undefined}
+              title={note !== undefined ? m.music_hubs_dev_pad_hears({ pad: padLabel(36 + i), note }) : undefined}
               class="flex min-h-16 flex-col items-center justify-center rounded-xl border text-sm {learning && i === learning.length
                 ? 'target border-2 border-ws-ink bg-instr font-semibold text-ws-stage'
                 : note !== undefined
@@ -194,12 +195,12 @@
               aria-current={learning && i === learning.length ? "step" : undefined}
             >
               <span class="flex items-center gap-0.5 font-display text-base font-semibold">{#if note !== undefined}<Check class="size-3.5" aria-hidden="true" />{/if}{padLabel(36 + i)}</span>
-              <span class="tnum text-[13px] {learning && i === learning.length ? '' : 'text-ws-soft'}">{note !== undefined ? `sends ${noteName(note)}` : learning ? (i === learning.length ? "hit now" : "waiting") : profile?.padNotes ? "" : `sends ${noteName(36 + i)}`}</span>
+              <span class="tnum text-[13px] {learning && i === learning.length ? '' : 'text-ws-soft'}">{note !== undefined ? m.music_hubs_dev_sends({ note: noteName(note) }) : learning ? (i === learning.length ? m.music_hubs_dev_hit_now() : m.music_hubs_dev_waiting()) : profile?.padNotes ? "" : m.music_hubs_dev_sends({ note: noteName(36 + i) })}</span>
             </li>
           {/each}
         {/each}
       </ol>
-      <p class="text-[13px] text-ws-soft">Whatever your program sends, every drill reads these as pads A01 to A16. Each pad shows the MIDI note it sends.</p>
+      <p class="text-[13px] text-ws-soft">{m.music_hubs_dev_pads_hint()}</p>
     </section>
   {/if}
 
@@ -212,8 +213,8 @@
         onclick={() => {
           const next = !profile?.ignored;
           void save({ ignored: next || undefined });
-          announce(next ? `${title} hidden: its notes no longer reach drills.` : `${title} is back: its notes reach drills again.`);
-        }}>{profile?.ignored ? "Show this device" : "Hide this device"}</button
+          announce(next ? m.music_hubs_dev_hidden_status({ name: title }) : m.music_hubs_dev_back({ name: title }));
+        }}>{profile?.ignored ? m.music_hubs_dev_show() : m.music_hubs_dev_hide()}</button
       >
       {#if confirmRemove}
         <button
@@ -222,16 +223,16 @@
           onclick={() => {
             confirmRemove = false;
             void midi.removeProfile(port.id);
-            announce(`Forgot everything saved for ${port.name}. It now behaves like a new device.`);
-          }}>Forget it</button
+            announce(m.music_hubs_dev_forgot({ name: port.name }));
+          }}>{m.music_hubs_dev_forget_it()}</button
         >
-        <button type="button" class={btn} onclick={() => (confirmRemove = false)}>Keep them</button>
+        <button type="button" class={btn} onclick={() => (confirmRemove = false)}>{m.music_hubs_dev_keep_them()}</button>
       {:else}
-        <button type="button" class="ml-auto inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm font-medium text-ws-soft underline underline-offset-4 hover:text-destructive disabled:opacity-50 disabled:no-underline" disabled={!profile} onclick={() => (confirmRemove = true)}>Forget this device</button>
+        <button type="button" class="ml-auto inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm font-medium text-ws-soft underline underline-offset-4 hover:text-destructive disabled:opacity-50 disabled:no-underline" disabled={!profile} onclick={() => (confirmRemove = true)}>{m.music_hubs_dev_forget()}</button>
       {/if}
     </div>
     <p class="text-ws-soft">
-      {#if confirmRemove}Forget the alias, instrument, channel, pad map and offset? The port keeps working as an unknown device.{:else}Hide keeps its notes out of drills (use it for the MPC's second port). Forget clears what is saved here; the device still works.{/if}
+      {#if confirmRemove}{m.music_hubs_dev_forget_confirm()}{:else}{m.music_hubs_dev_hide_forget_hint()}{/if}
     </p>
   </div>
   {/if}

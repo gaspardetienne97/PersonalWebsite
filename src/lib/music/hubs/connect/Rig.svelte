@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The rig at a glance: one tile per input the app knows, lit while it is
   // connected and flashing with each note it sends, so "play a note" is the
   // test. Notes are read after the router, so an ignored port or the wrong
@@ -12,7 +13,7 @@
   import { btn, btnPrimary } from "#lib/music/components/ui.ts";
   import { INSTRUMENT_ICON } from "#lib/music/components/instrument-icons.ts";
   import { input, midi, mic, settings } from "#lib/music/runtime/index.ts";
-  import { hitLabel, tileFor, type RigTile } from "./rig";
+  import { hitLabel, inputName, tileFor, type RigTile } from "./rig";
   import { noteName } from "@repo/music-core";
   import MicCheck from "./MicCheck.svelte";
 
@@ -26,9 +27,9 @@
   const micNext = $derived(!!next && next.act?.href === "#mic");
 
   const TILES = [
-    { id: "keyboard", label: "Keyboard", hue: "piano", prompt: "Play a key" },
-    { id: "mpc", label: "MPC pads", hue: "mpc", prompt: "Hit a pad" },
-    { id: "aerophone", label: "Aerophone", hue: "aerophone", prompt: "Play a note" },
+    { id: "keyboard", label: m.music_hubs_rig_keyboard(), hue: "piano", prompt: m.music_hubs_rig_play_key() },
+    { id: "mpc", label: m.music_hubs_rig_mpc(), hue: "mpc", prompt: m.music_hubs_rig_hit_pad() },
+    { id: "aerophone", label: "Aerophone", hue: "aerophone", prompt: m.music_hubs_rig_play_note() },
   ] as const;
 
   const live = $derived(
@@ -50,13 +51,14 @@
   );
 
   function status(t: RigTile) {
-    if (!midi.supported) return "No MIDI in this browser";
-    if (!midi.enabled) return "MIDI is off";
+    if (!midi.supported) return m.music_hubs_rig_no_midi();
+    if (!midi.enabled) return m.music_hubs_rig_midi_off();
     const on = portsOn(t);
-    if (!on.length) return "Not connected: plug in and press a key";
+    if (!on.length) return m.music_hubs_rig_plug_in();
     const name = midi.profile(on[0].id)?.alias ?? on[0].name;
-    return on.length > 1 ? `${name} and ${on.length - 1} more` : name;
+    return on.length > 1 ? m.music_hubs_rig_and_more({ name, count: on.length - 1 }) : name;
   }
+  const micName = $derived(inputName(settings.value.audioInputDeviceId, settings.value.audioInputLabel));
 </script>
 
 <section class="flex flex-col gap-4 rounded-2xl border border-ws-line bg-ws-surface p-4 sm:p-5" aria-labelledby="rig-title">
@@ -64,19 +66,19 @@
     <div class="min-w-0 flex-1">
       <h2 id="rig-title" class="flex items-center gap-2.5 font-display text-xl font-semibold">
         <span class="grid size-9 shrink-0 place-items-center rounded-xl text-ws-stage" style:background="var(--hue-create)" aria-hidden="true"><Cable class="size-5" /></span>
-        Your rig
+        {m.music_hubs_rig_title()}
       </h2>
       <!-- One status line: how many are live and what to do next. -->
       <p class="mt-1 text-sm" data-testid="rig-count">
-        <span class="tnum font-semibold">{litCount} of 4</span>
+        <span class="tnum font-semibold">{m.music_hubs_rig_count({ n: litCount })}</span>
         <span class="text-ws-soft"
-          >inputs connected{midi.enabled && !midi.sysexEnabled ? ", MPC lights off (not allowed)" : ""}. {!midi.supported
+          >{m.music_hubs_rig_inputs()}{midi.enabled && !midi.sysexEnabled ? m.music_hubs_rig_lights_off() : ""}. {!midi.supported
             ? ""
             : !midi.enabled
-              ? "Turn on MIDI for a keyboard, pads or the Aerophone (the browser asks: choose Allow), or start the microphone below."
+              ? m.music_hubs_rig_turn_on_hint()
               : micNext
-                ? "Next: test the microphone."
-                : "Play something and its tile lights up."}</span
+                ? m.music_hubs_rig_next_mic()
+                : m.music_hubs_rig_play_something()}</span
         >
       </p>
     </div>
@@ -85,22 +87,22 @@
         <!-- Rarely needed, so it waits behind a small overflow button. -->
         <div class="flex items-center gap-2">
           {#if moreOpen}
-            <button type="button" class={btn} onclick={() => (midi.disable(), (moreOpen = false), announce("MIDI is off on this page until you turn it on again."))}>Turn off MIDI</button>
+            <button type="button" class={btn} onclick={() => (midi.disable(), (moreOpen = false), announce(m.music_hubs_rig_midi_off_page()))}>{m.music_hubs_rig_turn_off()}</button>
           {/if}
           <button
             type="button"
             class="grid size-11 place-items-center rounded-full text-ws-soft hover:bg-ws-raised hover:text-ws-ink"
-            aria-label="More MIDI options"
+            aria-label={m.music_hubs_rig_more_midi()}
             aria-expanded={moreOpen}
             onclick={() => (moreOpen = !moreOpen)}><Ellipsis class="size-5" aria-hidden="true" /></button
           >
         </div>
       {:else}
-        <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? "MIDI is on." : midi.error)}>Turn on MIDI</button>
+        <button type="button" class="{btnPrimary} min-h-12 px-6 text-base max-sm:w-full" onclick={async () => announce((await midi.enable()) ? m.music_hubs_rig_midi_on() : midi.error)}>{m.music_hubs_rig_turn_on()}</button>
       {/if}
     {/if}
   </div>
-  {#if !midi.supported}<p class="text-sm">Web MIDI is unavailable in this browser. Use Chrome, Edge or another Chromium browser for the keyboard, the MPC and the Aerophone.</p>{/if}
+  {#if !midi.supported}<p class="text-sm">{m.music_hubs_rig_unsupported()}</p>{/if}
   {#if midi.error}<p class="text-sm font-medium text-destructive">{midi.error}</p>{/if}
 
   {@render tiles()}
@@ -108,9 +110,9 @@
   {#if midi.supported && !midi.enabled}
     <details class="group -my-2 text-sm">
       <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 font-medium text-instr-ink [&::-webkit-details-marker]:hidden">
-        Why the browser asks twice<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        {m.music_hubs_rig_why_twice()}<ChevronDown class="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <p class="text-ws-soft">The first prompt is for your notes. The second is for the MPC's pad lights and its link. Allow both. A keyboard alone needs only the first.</p>
+      <p class="text-ws-soft">{m.music_hubs_rig_why_twice_body()}</p>
     </details>
   {/if}
 
@@ -118,7 +120,7 @@
   {#if next && midi.enabled && !micNext}
     <div class="flex flex-wrap items-center gap-3 rounded-xl bg-instr-wash p-3">
       <div class="min-w-0 flex-1 basis-48">
-        <p class="font-semibold">Next step</p>
+        <p class="font-semibold">{m.music_hubs_rig_next_step()}</p>
         <p class="text-sm">{next.hint}</p>
       </div>
       {#if next.act}
@@ -154,7 +156,7 @@
         </div>
         <div class="flex shrink-0 flex-col items-end sm:items-center" aria-live="polite">
           {#if hit && lit}
-            <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
+            <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />{m.music_hubs_rig_heard()}</span>
             <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{hit.label}</span>
             {#if t.id !== "mpc"}{@render octave(hit.midi)}{/if}
           {:else if lit}
@@ -167,16 +169,16 @@
     <li class="tile flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:flex-col sm:gap-1 sm:text-center {midi.enabled ? '' : 'max-sm:p-2'}" data-lit={mic.state === "on" || undefined} style:--instr="var(--hue-guitar)" data-testid="rig-mic-tile">
       <span class="chip grid size-11 shrink-0 place-items-center rounded-xl" aria-hidden="true"><INSTRUMENT_ICON.voice class="size-5" /></span>
       <div class="min-w-0 flex-1 sm:w-full sm:flex-none">
-        <p class="font-semibold sm:text-base {midi.enabled ? '' : 'max-sm:text-sm'}">Microphone</p>
-        <p class="w-full text-[13px] text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{mic.state === "on" ? settings.value.audioInputLabel : "Off: start it below"}</p>
+        <p class="font-semibold sm:text-base {midi.enabled ? '' : 'max-sm:text-sm'}">{m.music_hubs_input_audio()}</p>
+        <p class="w-full text-[13px] text-ws-soft {midi.enabled ? '' : 'max-sm:sr-only'}">{mic.state === "on" ? micName : m.music_hubs_rig_mic_off()}</p>
       </div>
       <div class="flex shrink-0 flex-col items-end sm:items-center">
         {#if mic.state === "on" && mic.pitch}
-          <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />Heard</span>
+          <span class="flex items-center gap-1 text-[13px] font-medium text-success"><Check class="size-3.5" aria-hidden="true" />{m.music_hubs_rig_heard()}</span>
           <span class="tnum font-display text-2xl leading-none font-semibold sm:text-3xl">{noteName(mic.pitch.midi)}</span>
           {@render octave(mic.pitch.midi)}
         {:else if mic.state === "on"}
-          <span class="text-sm text-ws-soft">Play or sing</span>
+          <span class="text-sm text-ws-soft">{m.music_hubs_rig_play_or_sing()}</span>
         {/if}
       </div>
     </li>
@@ -186,19 +188,19 @@
 {#snippet micPanel()}
   <section id="mic" class="mic flex scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] flex-col gap-3 rounded-2xl p-3 sm:p-4" data-next={micNext || undefined} aria-labelledby="mic-title" data-testid="rig-mic">
     <div class="min-w-0">
-      <h3 id="mic-title" class="font-semibold">Microphone</h3>
+      <h3 id="mic-title" class="font-semibold">{m.music_hubs_input_audio()}</h3>
       <p class="text-[13px] text-ws-soft">
-        {mic.state === "on" ? `Listening on ${settings.value.audioInputLabel}` : `For guitar, ukulele and voice. Uses ${settings.value.audioInputLabel}.`}
+        {mic.state === "on" ? m.music_hubs_rig_listening_on({ name: micName }) : m.music_hubs_rig_mic_for({ name: micName })}
       </p>
-      {#if micNext}<p class="mt-0.5 text-sm font-semibold text-instr-ink">Next step: press Start microphone, then play or sing a note.</p>{/if}
+      {#if micNext}<p class="mt-0.5 text-sm font-semibold text-instr-ink">{m.music_hubs_rig_mic_next()}</p>{/if}
     </div>
     <MicCheck {announce} primary={micNext} />
   </section>
 {/snippet}
 
 <!-- One octave from C, the key just played lit and marked: the note is seen on a keyboard, not only named. -->
-{#snippet octave(m: number)}
-  {@const pc = ((m % 12) + 12) % 12}
+{#snippet octave(note: number)}
+  {@const pc = ((note % 12) + 12) % 12}
   {@const WHITE = [0, 2, 4, 5, 7, 9, 11]}
   {@const BLACK = [[1, 1], [3, 2], [6, 4], [8, 5], [10, 6]]}
   <svg viewBox="0 0 70 26" class="mt-1.5 h-7 w-[4.5rem]" aria-hidden="true">
