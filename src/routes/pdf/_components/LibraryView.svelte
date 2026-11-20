@@ -49,7 +49,10 @@
 <div class="page">
   <header class="bar">
     <div class="brand">
-      <img src={logoUrl} width="30" height="30" alt="" />
+      <!-- Narrator runs full screen outside the site chrome; its logo is the way home. -->
+      <a href="/" class="home-link" aria-label="Back to Gaspard's site">
+        <img src={logoUrl} width="30" height="30" alt="" />
+      </a>
       <div class="wordmark">
         <h1>narrator</h1>
         <span>READS ALOUD</span>
@@ -170,6 +173,14 @@
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     border-bottom: 1px solid var(--n-border-1);
+  }
+  .home-link {
+    display: flex;
+    border-radius: 8px;
+  }
+  .home-link:focus-visible {
+    outline: 2px solid var(--n-brand-blue);
+    outline-offset: 3px;
   }
   .brand {
     display: flex;

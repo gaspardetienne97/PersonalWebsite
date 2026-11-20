@@ -40,7 +40,7 @@ catalog:
   "@vitest/coverage-v8": ^4.1.0
 
   # Auth
-  better-auth: ~1.4.21
+  better-auth: ~1.4.22
 
   # UI
   bits-ui: ^2.15.1
