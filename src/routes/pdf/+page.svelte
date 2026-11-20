@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import type { NarratorDoc } from "@repo/pdf-core/domain";
   import { NarratorLibrary } from "@repo/pdf-core/stores/library";
   import { ReaderSettings } from "@repo/pdf-core/stores/settings";
@@ -28,10 +29,10 @@
 </script>
 
 <svelte:head>
-  <title>narrator — reads aloud</title>
+  <title>{m.narrator_head_title()}</title>
   <meta
     name="description"
-    content="Upload a PDF, EPUB, or text file — or paste anything — and have it read aloud with synced highlighting."
+    content={m.narrator_head_description()}
   />
 </svelte:head>
 

@@ -6,6 +6,7 @@
 // performance side by side; nothing here touches the app's microphone, the
 // input router or any saved data.
 import { LEVEL_FLOOR_DB } from "@repo/music-core/signal/level";
+import { m } from "@repo/i18n/messages.js";
 
 const CHUNK = 4096;
 // A Blob of self-contained JS, as the app's own capture worklet is built.
@@ -193,7 +194,7 @@ export class ClipInput {
         if (this.#stream === stream) {
           this.close();
           this.state = "error";
-          this.error = "This input was unplugged.";
+          this.error = m.music_runtime_clips_input_unplugged();
         }
       });
       return true;
@@ -204,10 +205,10 @@ export class ClipInput {
       this.state = "error";
       this.error =
         err.name === "NotAllowedError" || err.name === "SecurityError"
-          ? "Microphone access is blocked. Allow the microphone for this site, then tick the input again."
+          ? m.music_runtime_clips_input_blocked()
           : err.name === "NotFoundError" || err.name === "OverconstrainedError"
-            ? "This input isn't connected. Plug it in, then tick it again."
-            : `This input didn't start: ${err.message}`;
+            ? m.music_runtime_clips_input_missing()
+            : m.music_runtime_clips_input_failed({ error: err.message });
       return false;
     }
   }

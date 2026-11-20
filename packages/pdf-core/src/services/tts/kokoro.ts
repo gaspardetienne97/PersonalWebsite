@@ -9,22 +9,38 @@
  * audio. kokoro-js pairs WebGPU with fp32 and WASM with q8 — we do the same.
  */
 
+import { m } from "@repo/i18n/messages.js";
+
 const MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
 
 export interface KokoroVoice {
   id: string;
-  label: string;
+  /** The voice's own name ("Heart"), the same in every language. */
+  name: string;
+  /** Name and accent, in the interface language ("Heart — American"). */
+  readonly label: string;
   lang: string;
 }
 
+/** A voice whose label follows the interface language: a getter, so don't spread or clone it. */
+const voice = (id: string, name: string, lang: "en-US" | "en-GB"): KokoroVoice => ({
+  id,
+  name,
+  lang,
+  get label() {
+    const accent = lang === "en-GB" ? m.narrator_voice_british() : m.narrator_voice_american();
+    return m.narrator_voice_label({ name, accent });
+  },
+});
+
 /** Curated, higher-grade subset of Kokoro's voices (the full set is larger). */
 export const KOKORO_VOICES: KokoroVoice[] = [
-  { id: "af_heart", label: "Heart — American", lang: "en-US" },
-  { id: "af_bella", label: "Bella — American", lang: "en-US" },
-  { id: "am_michael", label: "Michael — American", lang: "en-US" },
-  { id: "am_fenrir", label: "Fenrir — American", lang: "en-US" },
-  { id: "bf_emma", label: "Emma — British", lang: "en-GB" },
-  { id: "bm_george", label: "George — British", lang: "en-GB" },
+  voice("af_heart", "Heart", "en-US"),
+  voice("af_bella", "Bella", "en-US"),
+  voice("am_michael", "Michael", "en-US"),
+  voice("am_fenrir", "Fenrir", "en-US"),
+  voice("bf_emma", "Emma", "en-GB"),
+  voice("bm_george", "George", "en-GB"),
 ];
 
 export const DEFAULT_KOKORO_VOICE = KOKORO_VOICES[0].id;
@@ -34,20 +50,29 @@ export type KokoroQuality = "recommended" | "compact";
 
 export interface KokoroQualityOption {
   id: KokoroQuality;
-  label: string;
-  detail: string;
+  readonly label: string;
+  readonly detail: string;
 }
 
+// Getters, so the text follows the interface language.
 export const KOKORO_QUALITIES: KokoroQualityOption[] = [
   {
     id: "recommended",
-    label: "Recommended",
-    detail: "Best quality. Uses your GPU when available (~330 MB), otherwise CPU (~90 MB).",
+    get label() {
+      return m.narrator_quality_recommended();
+    },
+    get detail() {
+      return m.narrator_quality_recommended_detail();
+    },
   },
   {
     id: "compact",
-    label: "Smaller",
-    detail: "CPU only, smaller download (~90 MB). Slower to synthesize.",
+    get label() {
+      return m.narrator_quality_compact();
+    },
+    get detail() {
+      return m.narrator_quality_compact_detail();
+    },
   },
 ];
 

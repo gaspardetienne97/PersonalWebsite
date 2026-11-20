@@ -21,6 +21,7 @@
 //     });
 //   (or launch Chromium with --use-fake-ui-for-media-stream
 //   --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=take.wav).
+import { m } from "@repo/i18n/messages.js";
 import { browser } from "$app/env";
 import { createInputFilter } from "@repo/music-core/signal/biquad";
 import { createListener } from "@repo/music-core/signal/listen";
@@ -179,7 +180,10 @@ async function refreshDevices() {
   const all = await navigator.mediaDevices.enumerateDevices();
   devices = all
     .filter((d) => d.kind === "audioinput")
-    .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Microphone ${i + 1}` }));
+    .map((d, i) => ({
+      deviceId: d.deviceId,
+      label: d.label || m.music_runtime_mic_device_label({ number: i + 1 }),
+    }));
 }
 
 /**
@@ -206,8 +210,7 @@ async function start(
       stream = opts.stream;
       ownsStream = false;
     } else {
-      if (!navigator.mediaDevices?.getUserMedia)
-        throw new Error("This browser has no microphone access.");
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error(m.music_runtime_mic_no_access());
       const deviceId = wanted;
       const got = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -253,14 +256,13 @@ async function start(
     halt();
     if (err.name === "NotAllowedError" || err.name === "SecurityError") {
       state = "denied";
-      error =
-        "Microphone access is blocked. Allow the microphone for this site (the icon in the address bar), then try again.";
+      error = m.music_runtime_mic_blocked();
     } else {
       state = "error";
       error =
         err.name === "NotFoundError" || err.name === "OverconstrainedError"
-          ? "No microphone found. Plug one in, or pick another input on Connect."
-          : `The microphone didn't start: ${err.message}`;
+          ? m.music_runtime_mic_not_found()
+          : m.music_runtime_mic_failed({ error: err.message });
     }
     return false;
   }
@@ -322,7 +324,7 @@ async function startSynthetic(
  * needs). The boost only affects the recording, never pitch detection.
  */
 function record(boostDb = 0): { stop(): Promise<Blob>; setBoost(db: number): void } {
-  if (!stream || !ctx || state !== "on") throw new Error("Start the microphone before recording.");
+  if (!stream || !ctx || state !== "on") throw new Error(m.music_runtime_mic_record_first());
   const src = ctx.createMediaStreamSource(stream);
   const gain = ctx.createGain();
   gain.gain.value = 10 ** (boostDb / 20);

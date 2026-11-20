@@ -3,23 +3,28 @@
 
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
 
+  import { LANGUAGES } from "./languages";
+
+  import { m } from "@repo/i18n/messages.js";
+  import { getLocale, setLocale } from "@repo/i18n/runtime.js";
   import { kokoroSupported } from "@repo/pdf-core";
   import { ACCENT_OPTIONS, type ReaderSettings, type VoiceEngine } from "@repo/pdf-core/stores/settings";
 
   let { settings }: { settings: ReaderSettings } = $props();
 
   const ENGINES: { value: VoiceEngine; label: string }[] = [
-    { value: "system", label: "System" },
-    { value: "natural", label: "Natural" },
+    { value: "system", label: m.narrator_engine_system() },
+    { value: "natural", label: m.narrator_engine_natural() },
   ];
   const naturalAvailable = kokoroSupported();
+  const locale = getLocale();
 </script>
 
-<div class="panel" role="group" aria-label="Reader settings panel">
-  <div class="section">Voice</div>
+<div class="panel" role="group" aria-label={m.narrator_panel_label()}>
+  <div class="section">{m.narrator_panel_voice()}</div>
 
   <div class="row">
-    <span class="label">Engine</span>
+    <span class="label">{m.narrator_panel_engine()}</span>
     <div class="seg">
       {#each ENGINES as o (o.value)}
         <button
@@ -34,19 +39,19 @@
   </div>
   <p class="hint">
     {#if settings.engine === "natural"}
-      Natural uses an in-browser neural voice (Kokoro), downloaded once then offline.
+      {m.narrator_panel_hint_natural()}
     {:else}
-      System uses your device's built-in voices — instant, no download.
+      {m.narrator_panel_hint_system()}
     {/if}
   </p>
   <a class="settings-link" href="/pdf/settings">
-    Voice settings &amp; downloads <ArrowRight size={13} strokeWidth={1.5} />
+    {m.narrator_panel_settings_link()} <ArrowRight size={13} strokeWidth={1.5} />
   </a>
 
-  <div class="section">Type</div>
+  <div class="section">{m.narrator_panel_type()}</div>
 
   <label class="row slider-row">
-    <span class="label">Text size <em>{settings.fontSize}px</em></span>
+    <span class="label">{m.narrator_panel_text_size()} <em>{settings.fontSize}px</em></span>
     <input
       type="range"
       min="16"
@@ -58,7 +63,7 @@
   </label>
 
   <label class="row slider-row">
-    <span class="label">Line spacing <em>{settings.lineHeight.toFixed(2)}</em></span>
+    <span class="label">{m.narrator_panel_line_spacing()} <em>{settings.lineHeight.toFixed(2)}</em></span>
     <input
       type="range"
       min="1.4"
@@ -69,17 +74,17 @@
     />
   </label>
 
-  <div class="section">Accent</div>
+  <div class="section">{m.narrator_panel_accent()}</div>
 
   <div class="row">
-    <span class="label">Accent color</span>
+    <span class="label">{m.narrator_panel_accent_color()}</span>
     <div class="swatches">
       {#each ACCENT_OPTIONS as color (color)}
         <button
           class="swatch"
           class:on={settings.accent === color && !settings.accentAuto}
           style:background={color}
-          aria-label="Accent {color}"
+          aria-label={m.narrator_panel_accent_swatch({ color })}
           onclick={() => {
             settings.update("accent", color);
             settings.update("accentAuto", false);
@@ -94,9 +99,20 @@
   </div>
 
   <button class="row toggle-row" onclick={() => settings.update("accentAuto", !settings.accentAuto)}>
-    <span class="label">Match each document</span>
+    <span class="label">{m.narrator_panel_match_document()}</span>
     <span class="toggle" class:on={settings.accentAuto}><span class="knob"></span></span>
   </button>
+
+  <div class="section">{m.narrator_language()}</div>
+
+  <!-- The interface language only: the voice reading the document stays as it is. Changing it reloads the page. -->
+  <div class="seg lang" role="group" aria-label={m.narrator_language()}>
+    {#each LANGUAGES as l (l.locale)}
+      <button class:on={locale === l.locale} aria-pressed={locale === l.locale} lang={l.locale} onclick={() => setLocale(l.locale)}>
+        {l.name}
+      </button>
+    {/each}
+  </div>
 </div>
 
 <style>
@@ -157,6 +173,10 @@
     background: var(--n-bg-2);
     color: var(--n-fg-0);
     box-shadow: var(--n-shadow-xs);
+  }
+  .seg.lang {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   .seg button:disabled {
     opacity: 0.4;

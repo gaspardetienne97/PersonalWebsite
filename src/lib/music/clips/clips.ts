@@ -3,10 +3,22 @@
 // example for Hear it. Nothing here is scored and nothing is saved to practice
 // data: the page at /music/clips records these to WAV files in a folder.
 import { noteName, type PlaybackSound } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
+import type { Locale } from "@repo/i18n/runtime.js";
 import { strumSlots, type Slot, type Stroke } from "../drills/guitar/strum-slots";
 
 export const SECTIONS = ["Room", "Guitar", "Ukulele", "Piano", "Aerophone", "Voice"] as const;
 export type Section = (typeof SECTIONS)[number];
+/** A section's name on screen; `Section` itself is an id. */
+export const sectionLabel = (s: Section): string =>
+  ({
+    Room: m.music_runtime_clips_section_room,
+    Guitar: m.music_runtime_clips_section_guitar,
+    Ukulele: m.music_runtime_clips_section_ukulele,
+    Piano: m.music_runtime_clips_section_piano,
+    Aerophone: m.music_runtime_clips_section_aerophone,
+    Voice: m.music_runtime_clips_section_voice,
+  })[s]();
 export type Fretted = "guitar" | "ukulele";
 
 /** Open strings as MIDI, string 1 (highest) first, as the fretboard and the chord data use. */
@@ -58,7 +70,10 @@ export interface Clip {
   /** File name stem after the number: `05-guitar-g.wav`. */
   slug: string;
   section: Section;
+  /** The title on screen, in the current language. */
   title: string;
+  /** The title in English, as the manifest file records it. */
+  fileTitle: string;
   /** What to play, in one or two plain sentences. */
   play: string;
   /** Target length of the whole clip, with a second of silence at each end. */
@@ -182,21 +197,40 @@ const MUTED_SLOTS = strumSlots(
   [0, 1, 2, 3].map((beat) => ({ beat, stroke: "mute" as const })),
 ).slots;
 
-type Draft = Omit<Clip, "n" | "section" | "sound" | "steps" | "example" | "visual"> &
-  Partial<Pick<Clip, "sound" | "steps" | "example" | "visual">>;
+/** A title in a given language (the current one when left out). */
+type Text = (locale?: Locale) => string;
+const text =
+  (msg: (inputs?: Record<string, never>, options?: { locale?: Locale }) => string): Text =>
+  (locale) =>
+    msg({}, { locale });
+
+type Draft = Omit<
+  Clip,
+  "n" | "section" | "sound" | "steps" | "example" | "visual" | "title" | "fileTitle"
+> &
+  Partial<Pick<Clip, "sound" | "steps" | "example" | "visual">> & { title: Text };
 
 function slowStrums(
   instrument: Fretted,
   s: Shape,
   slug: string,
   seconds: number,
-  extra = "",
+  extra?: Text,
 ): Draft {
   const ring = instrument === "guitar" ? 2 : 1.5;
   return {
     slug,
-    title: extra ? `${s.name} chord, ${extra}` : `${s.name} chord`,
-    play: `Strum down across the strings 4 times, slowly. Let each strum ring for ${ring === 2 ? "2 seconds" : "a second and a half"}.`,
+    title: (locale) =>
+      extra
+        ? m.music_runtime_clips_chord_title_extra(
+            { chord: s.name, extra: extra(locale) },
+            { locale },
+          )
+        : m.music_runtime_clips_chord_title({ chord: s.name }, { locale }),
+    play:
+      ring === 2
+        ? m.music_runtime_clips_slow_strums_guitar_play()
+        : m.music_runtime_clips_slow_strums_ukulele_play(),
     seconds,
     visual: { instrument, shapes: [s] },
     example: [0, 1, 2, 3].flatMap((i) => strum(s, instrument, i * ring, ring, 0)),
@@ -207,8 +241,12 @@ function progression(instrument: Fretted, shapes: Shape[], slug: string): Draft 
   const beat = 60 / 80;
   return {
     slug,
-    title: `${shapes.map((s) => s.name).join(", ")} at 80 BPM`,
-    play: `Play ${shapes.map((s) => s.name).join(", ")}: one down-strum on every beat, 4 beats on each chord.`,
+    title: (locale) =>
+      m.music_runtime_clips_progression_title(
+        { chords: shapes.map((s) => s.name).join(", ") },
+        { locale },
+      ),
+    play: m.music_runtime_clips_progression_play({ chords: shapes.map((s) => s.name).join(", ") }),
     seconds: 15,
     bpm: 80,
     click: "headphones",
@@ -222,12 +260,12 @@ function progression(instrument: Fretted, shapes: Shape[], slug: string): Draft 
   };
 }
 
-function pattern(instrument: Fretted, s: Shape, slug: string, title: string): Draft {
+function pattern(instrument: Fretted, s: Shape, slug: string, title: Text): Draft {
   const beat = 60 / 80;
   return {
     slug,
     title,
-    play: `Hold ${s.name} and strum down, down-up, up-down-up for 4 bars. Keep your hand moving down on every beat and up on every "&", and miss the strings where there's no arrow.`,
+    play: m.music_runtime_clips_pattern_play({ chord: s.name }),
     seconds: 15,
     bpm: 80,
     click: "headphones",
@@ -297,14 +335,14 @@ const openStrings = (
   order: number[],
   slug: string,
   seconds: number,
-  from: string,
+  play: string,
 ): Draft => {
   const open = OPEN_STRINGS[instrument];
   const midis = order.map((s) => open[s - 1]);
   return {
     slug,
-    title: "Open strings",
-    play: `Pluck each open string once, ${from}. Let each one ring for 2 seconds.`,
+    title: text(m.music_runtime_clips_open_strings_title),
+    play,
     seconds,
     steps: names(midis),
     visual: {
@@ -355,18 +393,21 @@ const PICK: { string: number; fret: number; slot: number; finger: string }[] = [
   { string: 2, fret: 1, slot: 7, finger: "m" },
 ];
 
+/** The syllables of the major scale, as sung in the current language. */
+const SOLFEGE = m.music_runtime_clips_solfege_syllables().split(" ");
+
 const DRAFTS: Record<Section, Draft[]> = {
   Room: [
     {
       slug: "room-silence",
-      title: "Room silence",
-      play: "Play nothing and stay quiet. This records the room on its own.",
+      title: text(m.music_runtime_clips_room_silence_title),
+      play: m.music_runtime_clips_room_silence_play(),
       seconds: 10,
     },
     {
       slug: "room-click-speakers",
-      title: "Metronome through the speakers",
-      play: "Play nothing. Take your headphones off, turn the metronome on below and let it click through the speakers.",
+      title: text(m.music_runtime_clips_room_click_title),
+      play: m.music_runtime_clips_room_click_play(),
       seconds: 15,
       bpm: 80,
       click: "speakers",
@@ -374,8 +415,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "room-talking",
-      title: "Talking",
-      play: "Talk normally for the whole clip, with no instrument.",
+      title: text(m.music_runtime_clips_room_talking_title),
+      play: m.music_runtime_clips_room_talking_play(),
       seconds: 10,
     },
   ],
@@ -385,12 +426,12 @@ const DRAFTS: Record<Section, Draft[]> = {
       [6, 5, 4, 3, 2, 1],
       "guitar-open-strings",
       15,
-      "from the low E string to the high E string",
+      m.music_runtime_clips_open_strings_guitar_play(),
     ),
-    slowStrums("guitar", G.G, "guitar-g", 10, "320003"),
+    slowStrums("guitar", G.G, "guitar-g", 10, () => "320003"),
     {
-      ...slowStrums("guitar", G.G33, "guitar-g-320033", 10, "B string on fret 3 (320033)"),
-      play: "The same G with your ring finger on the B string, fret 3. Strum down 4 times, slowly, and let each strum ring.",
+      ...slowStrums("guitar", G.G33, "guitar-g-320033", 10, text(m.music_runtime_clips_g33_extra)),
+      play: m.music_runtime_clips_g33_play(),
     },
     slowStrums("guitar", G.C, "guitar-c", 10),
     slowStrums("guitar", G.D, "guitar-d", 10),
@@ -400,11 +441,16 @@ const DRAFTS: Record<Section, Draft[]> = {
     slowStrums("guitar", G.A, "guitar-a", 10),
     slowStrums("guitar", G.Dm, "guitar-dm", 10),
     progression("guitar", [G.G, G.C, G.D, G.G], "guitar-g-c-d-g"),
-    pattern("guitar", G.G, "guitar-g-strum-pattern", "G with a strum pattern at 80 BPM"),
+    pattern(
+      "guitar",
+      G.G,
+      "guitar-g-strum-pattern",
+      text(m.music_runtime_clips_pattern_guitar_title),
+    ),
     {
       slug: "guitar-g-click-speakers",
-      title: "G with the metronome through the speakers",
-      play: "Take your headphones off and turn the metronome on below. Strum G 4 times, one strum every 2 clicks.",
+      title: text(m.music_runtime_clips_guitar_click_title),
+      play: m.music_runtime_clips_guitar_click_play(),
       seconds: 10,
       bpm: 80,
       click: "speakers",
@@ -416,30 +462,37 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "guitar-muted-strums",
-      title: "Muted strums",
-      play: "Rest your left hand flat across all six strings without pressing. Strum down 4 times: a dry click, no notes.",
+      title: text(m.music_runtime_clips_muted_title),
+      play: m.music_runtime_clips_muted_play(),
       seconds: 6,
       visual: { instrument: "guitar", strum: MUTED_SLOTS },
       example: [0, 1, 2, 3].flatMap((i) => strum(G.G, "guitar", i, 0.1, 0, "mute", i * 2)),
     },
     scale("guitar", upAndDown(GUITAR_C_SCALE), 1, {
       slug: "guitar-c-scale-slow",
-      title: "C major scale, one note a second",
-      play: "Play the C major scale in open position, up and back down. One note a second.",
+      title: text(m.music_runtime_clips_c_scale_slow_title),
+      play: m.music_runtime_clips_c_scale_slow_play(),
       seconds: 18,
     }),
     scale("guitar", upAndDown(GUITAR_C_SCALE), 0.5, {
       slug: "guitar-c-scale-fast",
-      title: "C major scale, two notes a second",
-      play: "The same scale, up and back down, at two notes a second.",
+      title: text(m.music_runtime_clips_c_scale_fast_title),
+      play: m.music_runtime_clips_c_scale_fast_play(),
       seconds: 10,
     }),
     {
       slug: "guitar-bends",
-      title: "Bends on the G string",
-      play: "G string, fret 7 (the note D). Pick, push the string up until it sounds like D#, let it back down. Then pick again and push further, up to E, and let it back.",
+      title: text(m.music_runtime_clips_bends_title),
+      play: m.music_runtime_clips_bends_play(),
       seconds: 10,
-      steps: ["D", "bend to D#", "back to D", "D", "bend to E", "back to D"],
+      steps: [
+        "D",
+        m.music_runtime_clips_step_bend_to({ note: "D#" }),
+        m.music_runtime_clips_step_back_to({ note: "D" }),
+        "D",
+        m.music_runtime_clips_step_bend_to({ note: "E" }),
+        m.music_runtime_clips_step_back_to({ note: "D" }),
+      ],
       visual: {
         instrument: "guitar",
         fret: { from: 5, to: 9, notes: BEND.map(() => ({ string: 3, fret: 7, label: "D" })) },
@@ -448,8 +501,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "guitar-fingerpick-c",
-      title: "Fingerpicked C at 70 BPM",
-      play: "Hold C. Your thumb plays string 5, then string 4, on the beats. Your index picks string 3 and your middle picks string 2 in between. Play the bar 4 times.",
+      title: text(m.music_runtime_clips_fingerpick_title),
+      play: m.music_runtime_clips_fingerpick_play(),
       seconds: 15,
       bpm: 70,
       click: "headphones",
@@ -471,7 +524,7 @@ const DRAFTS: Record<Section, Draft[]> = {
       [4, 3, 2, 1],
       "ukulele-open-strings",
       10,
-      "from the G string to the A string",
+      m.music_runtime_clips_open_strings_ukulele_play(),
     ),
     slowStrums("ukulele", U.C, "ukulele-c", 8),
     slowStrums("ukulele", U.Am, "ukulele-am", 8),
@@ -479,19 +532,24 @@ const DRAFTS: Record<Section, Draft[]> = {
     slowStrums("ukulele", U.G, "ukulele-g", 8),
     slowStrums("ukulele", U.G7, "ukulele-g7", 8),
     progression("ukulele", [U.C, U.Am, U.F, U.G], "ukulele-c-am-f-g"),
-    pattern("ukulele", U.C, "ukulele-c-island-strum", "C with the island strum at 80 BPM"),
+    pattern(
+      "ukulele",
+      U.C,
+      "ukulele-c-island-strum",
+      text(m.music_runtime_clips_pattern_ukulele_title),
+    ),
     scale("ukulele", UKULELE_C_SCALE, 1, {
       slug: "ukulele-c-scale",
-      title: "C major scale from the open C string",
-      play: "Play the C major scale up from the open C string. One note a second.",
+      title: text(m.music_runtime_clips_uke_scale_title),
+      play: m.music_runtime_clips_uke_scale_play(),
       seconds: 10,
     }),
   ],
   Piano: [
     {
       slug: "piano-c4-to-c5",
-      title: "C4 to C5 on the white keys",
-      play: "Play the white keys from middle C up to the next C. One note a second.",
+      title: text(m.music_runtime_clips_piano_white_title),
+      play: m.music_runtime_clips_piano_white_play(),
       seconds: 10,
       steps: names(C4_TO_C5, true),
       visual: { keys: { low: 57, high: 76, steps: C4_TO_C5.map((m) => [m]) } },
@@ -499,8 +557,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-low-notes",
-      title: "Low notes: C2, E2, G2, C3",
-      play: "Play C2, E2, G2 and C3, two octaves below middle C. One note every 2 seconds.",
+      title: text(m.music_runtime_clips_piano_low_title),
+      play: m.music_runtime_clips_piano_low_play(),
       seconds: 10,
       steps: names([36, 40, 43, 48], true),
       visual: { keys: { low: 33, high: 52, steps: [[36], [40], [43], [48]] } },
@@ -508,8 +566,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-triads",
-      title: "C, F, G, Am triads",
-      play: "Play each chord with three notes, root at the bottom. Hold each one for 2 seconds.",
+      title: text(m.music_runtime_clips_piano_triads_title),
+      play: m.music_runtime_clips_piano_triads_play(),
       seconds: 10,
       steps: ["C", "F", "G", "Am"],
       visual: { keys: { low: 57, high: 79, steps: TRIADS } },
@@ -517,8 +575,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-seventh-chords",
-      title: "Cmaj7, Dm7, G7",
-      play: "Play each chord with all four notes. Hold each one for 2 seconds.",
+      title: () => "Cmaj7, Dm7, G7",
+      play: m.music_runtime_clips_piano_sevenths_play(),
       seconds: 8,
       steps: ["Cmaj7", "Dm7", "G7"],
       visual: { keys: { low: 53, high: 76, steps: SEVENTHS } },
@@ -526,8 +584,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-scale-two-octaves",
-      title: "C major, two octaves at 100 BPM",
-      play: "Play the C major scale up two octaves and back down, two notes to each click.",
+      title: text(m.music_runtime_clips_piano_two_octaves_title),
+      play: m.music_runtime_clips_piano_two_octaves_play(),
       seconds: 15,
       bpm: 100,
       click: "headphones",
@@ -537,8 +595,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "piano-bass-and-triads",
-      title: "Bass note with a triad: C, F, G",
-      play: "Left hand plays one low note, right hand plays the triad above it: C2 with C, F2 with F, G2 with G. Hold each for 2 seconds.",
+      title: text(m.music_runtime_clips_piano_bass_title),
+      play: m.music_runtime_clips_piano_bass_play(),
       seconds: 8,
       steps: ["C", "F", "G"],
       visual: {
@@ -553,8 +611,8 @@ const DRAFTS: Record<Section, Draft[]> = {
   Aerophone: [
     {
       slug: "aerophone-c-scale",
-      title: "Written C major scale",
-      play: "Sax tone. Play the written C major scale up one octave, one note a second.",
+      title: text(m.music_runtime_clips_aero_scale_title),
+      play: m.music_runtime_clips_aero_scale_play(),
       seconds: 10,
       steps: names(C4_TO_C5, true),
       visual: { written: C4_TO_C5 },
@@ -562,8 +620,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "aerophone-long-note",
-      title: "One long note with vibrato",
-      play: "Hold a written G for 8 seconds. Keep it steady for the first 4, then add vibrato for the last 4.",
+      title: text(m.music_runtime_clips_aero_long_title),
+      play: m.music_runtime_clips_aero_long_play(),
       seconds: 10,
       steps: ["G4"],
       visual: { written: [67] },
@@ -571,8 +629,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "aerophone-tongued",
-      title: "Tongued notes: C, D, E, F, G",
-      play: "Play written C, D, E, F, G, two notes a second. Start each note with your tongue.",
+      title: text(m.music_runtime_clips_aero_tongued_title),
+      play: m.music_runtime_clips_aero_tongued_play(),
       seconds: 5,
       steps: names(C4_TO_C5.slice(0, 5), true),
       visual: { written: C4_TO_C5.slice(0, 5) },
@@ -580,8 +638,8 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "aerophone-octave-jump",
-      title: "Octave jump: C4 to C5",
-      play: "Jump from written C4 up to C5 and back, 3 times. Only the octave key moves.",
+      title: text(m.music_runtime_clips_aero_octave_title),
+      play: m.music_runtime_clips_aero_octave_play(),
       seconds: 8,
       steps: names(OCTAVE_JUMP, true),
       visual: { written: OCTAVE_JUMP },
@@ -591,11 +649,11 @@ const DRAFTS: Record<Section, Draft[]> = {
   Voice: [
     {
       slug: "voice-solfege",
-      title: "Sing do to do",
-      play: "Sing up the major scale on the syllables, one note a second. Start on any note that's comfortable.",
+      title: text(m.music_runtime_clips_solfege_title),
+      play: m.music_runtime_clips_solfege_play(),
       seconds: 10,
-      steps: ["do", "re", "mi", "fa", "so", "la", "ti", "do"],
-      visual: { syllables: ["do", "re", "mi", "fa", "so", "la", "ti", "do"] },
+      steps: SOLFEGE,
+      visual: { syllables: SOLFEGE },
       example: line(
         C4_TO_C5.map((m) => m - 12),
         1,
@@ -603,10 +661,10 @@ const DRAFTS: Record<Section, Draft[]> = {
     },
     {
       slug: "voice-hum",
-      title: "Hum one note",
-      play: "Hum one comfortable note and hold it steady.",
+      title: text(m.music_runtime_clips_hum_title),
+      play: m.music_runtime_clips_hum_play(),
       seconds: 6,
-      steps: ["hum"],
+      steps: [m.music_runtime_clips_step_hum()],
       visual: { syllables: ["mmm"] },
       example: line([55], 4),
     },
@@ -631,6 +689,8 @@ export const CLIPS: Clip[] = SECTIONS.flatMap((section) =>
   example: [],
   sound: SOUND[section],
   ...d,
+  title: d.title(),
+  fileTitle: d.title("en"),
   n: i + 1,
   section,
 }));

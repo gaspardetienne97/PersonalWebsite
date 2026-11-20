@@ -3,15 +3,17 @@
 // ponytail: needs FileSystemFileHandle.createWritable (Chromium, Firefox); Safari
 // main-thread writes would need a worker with createSyncAccessHandle.
 
-const UNAVAILABLE = "Local binary storage is unavailable";
+import { m } from "@repo/i18n/messages.js";
+
+const UNAVAILABLE = () => m.music_runtime_storage_unavailable();
 
 async function root(): Promise<FileSystemDirectoryHandle> {
   if (typeof navigator === "undefined" || !navigator.storage?.getDirectory)
-    throw new Error(UNAVAILABLE);
+    throw new Error(UNAVAILABLE());
   try {
     return await navigator.storage.getDirectory();
   } catch (e) {
-    throw new Error(`${UNAVAILABLE}: ${(e as Error).message}`);
+    throw new Error(`${UNAVAILABLE()}: ${(e as Error).message}`);
   }
 }
 
@@ -36,7 +38,7 @@ export async function putBinary(path: string, blob: Blob): Promise<void> {
   const name = p.pop()!;
   const dir = (await walk(p, true)).at(-1)!;
   const file = await dir.getFileHandle(name, { create: true });
-  if (!("createWritable" in file)) throw new Error(UNAVAILABLE);
+  if (!("createWritable" in file)) throw new Error(UNAVAILABLE());
   const w = await file.createWritable();
   await w.write(blob);
   await w.close();

@@ -2,6 +2,7 @@
 // lives here, not on a page: whenever MIDI is on, SysEx is granted and a profile
 // is flagged `controllerLink`, that output gets the init handshake once and a
 // heartbeat every second until MIDI is disabled or the link is dropped.
+import { m } from "@repo/i18n/messages.js";
 import { browser } from "$app/env";
 import { parseMidiMessage, isSysex, toHex } from "@repo/music-core/io/midi-message";
 import {
@@ -94,7 +95,7 @@ function setProfiles(next: DeviceProfile[]) {
 
 function persistProfiles() {
   return putSetting(PROFILES_KEY, profiles).catch((e) => {
-    error = `Device settings didn't save: ${(e as Error).message}`;
+    error = m.music_runtime_midi_profiles_not_saved({ error: (e as Error).message });
   });
 }
 
@@ -182,7 +183,10 @@ function send(outputId: string, bytes: number[] | Uint8Array): boolean {
     lastOutboundFrame = toHex(bytes);
     return true;
   } catch (e) {
-    error = `Couldn't send to ${out.name ?? outputId}: ${(e as Error).message}`;
+    error = m.music_runtime_midi_send_failed({
+      output: out.name ?? outputId,
+      error: (e as Error).message,
+    });
     return false;
   }
 }
@@ -196,8 +200,7 @@ function sendAll(frames: number[][], outputId?: string) {
 
 async function enable(): Promise<boolean> {
   if (!supported()) {
-    error =
-      "Web MIDI is unavailable in this browser. Use a Chromium browser, or the microphone and on-screen input.";
+    error = m.music_runtime_midi_unsupported();
     return false;
   }
   await profilesReady;
@@ -210,10 +213,10 @@ async function enable(): Promise<boolean> {
     try {
       access = await navigator.requestMIDIAccess({ sysex: false });
       sysexEnabled = false;
-      error = `SysEx wasn't allowed (${reason}), so MPC pad lights and the controller link are off. Plain MIDI works.`;
+      error = m.music_runtime_midi_no_sysex({ reason });
     } catch (second) {
       enabled = false;
-      error = `The browser refused MIDI access: ${(second as Error).message || reason}`;
+      error = m.music_runtime_midi_refused({ error: (second as Error).message || reason });
       return false;
     }
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import type { NarratorDoc } from "@repo/pdf-core/domain";
 
   import Equalizer from "./Equalizer.svelte";
@@ -11,7 +12,7 @@
   }: { doc: NarratorDoc; size?: number; radius?: number; playing?: boolean } = $props();
 
   const kindLabel = $derived(
-    ({ epub: "EPUB", pdf: "PDF", txt: "TXT", paste: "TEXT" as const })[doc.kind] ?? "DOC",
+    ({ epub: "EPUB", pdf: "PDF", txt: "TXT", paste: m.narrator_cover_text() })[doc.kind] ?? "DOC",
   );
 </script>
 

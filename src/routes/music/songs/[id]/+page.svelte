@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { m } from "@repo/i18n/messages.js";
   import { db } from "#lib/music/runtime/index.ts";
   import { btnPrimary } from "#lib/music/components/ui.ts";
   import Studio from "#lib/music/drills/studio/Studio.svelte";
@@ -14,7 +15,7 @@
   });
 </script>
 
-<svelte:head><title>{song ? `${song.title}, Song practice` : "Song practice"} | Woodshed</title></svelte:head>
+<svelte:head><title>{song ? m.music_runtime_songs_head_title({ title: song.title }) : m.music_runtime_songs_head_title_plain()}</title></svelte:head>
 
 <!-- Song practice is a session screen: dark in both themes, like a drill page (woodshed.css keys the palette on
      [data-drill-page]; the class makes `dark:` variants and components' own dark rules apply in the light theme). -->
@@ -23,11 +24,11 @@
   {#key song.id}<Studio {song} />{/key}
 {:else if song === null}
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">
-    <h1 class="font-display text-4xl font-semibold tracking-tight">Song not found</h1>
-    <p class="text-ws-soft">This song isn't saved in this browser. It may have been imported somewhere else.</p>
-    <a class={btnPrimary} href="/music/studio">Open your songs</a>
+    <h1 class="font-display text-4xl font-semibold tracking-tight">{m.music_runtime_songs_not_found()}</h1>
+    <p class="text-ws-soft">{m.music_runtime_songs_not_here()}</p>
+    <a class={btnPrimary} href="/music/studio">{m.music_runtime_songs_open_yours()}</a>
   </div>
 {:else}
-  <p class="text-ws-soft">Opening the song…</p>
+  <p class="text-ws-soft">{m.music_runtime_songs_opening()}</p>
 {/if}
 </div>

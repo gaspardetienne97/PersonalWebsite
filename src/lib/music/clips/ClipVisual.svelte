@@ -11,6 +11,7 @@
   import AerophoneKeys from "../components/AerophoneKeys.svelte";
   import type { CellMarks } from "../components/feedback.svelte";
   import StrumSlots from "../drills/guitar/StrumSlots.svelte";
+  import { m } from "@repo/i18n/messages.js";
   import { settings } from "../runtime";
   import { OPEN_STRINGS, type Clip } from "./clips";
 
@@ -36,7 +37,8 @@
   };
   /** Each shape once: a progression that comes back to a chord shows its box once, lit both times. */
   const shapes = $derived([...new Set(v.shapes ?? [])]);
-  const stringWord = $derived(instrument === "ukulele" ? "Ukulele" : "Guitar");
+  const shapeLabel = (chord: string) =>
+    instrument === "ukulele" ? m.music_runtime_clipvisual_ukulele_shape({ chord }) : m.music_runtime_clipvisual_guitar_shape({ chord });
 
   // The neck: every position of the clip, the one sounding (or picked) marked as the note to play now.
   const fretMarks = $derived.by((): FretMark[] => {
@@ -76,7 +78,7 @@
 
 <div class="flex flex-col gap-4" data-testid="clip-visual">
   {#if clip.steps.length > 1 && clip.steps.length <= 16}
-    <ol class="flex flex-wrap gap-1.5" aria-label="Steps of this clip, in order">
+    <ol class="flex flex-wrap gap-1.5" aria-label={m.music_runtime_clipvisual_steps_label()}>
       {#each clip.steps as name, i (i)}
         <li>
           <button
@@ -85,7 +87,7 @@
               ? 'border-transparent bg-instr-strong text-on-instr'
               : 'border-ws-line bg-ws-surface hover:bg-ws-raised'}"
             aria-current={i === shown ? "step" : undefined}
-            aria-label="Step {i + 1}: {name}"
+            aria-label={m.music_runtime_clipvisual_step_label({ number: i + 1, name })}
             onclick={() => pick(i)}>{name}</button
           >
         </li>
@@ -94,12 +96,12 @@
   {/if}
 
   {#if v.shapes}
-    <ul class="flex flex-wrap gap-2" aria-label="Chord shapes">
+    <ul class="flex flex-wrap gap-2" aria-label={m.music_runtime_clipvisual_shapes_label()}>
       {#each shapes as s (s)}
         {@const current = shapes.length > 1 && v.shapes[shown] === s}
         <li class="{shapes.length > 1 ? 'w-[7.75rem]' : 'w-40'} rounded-xl border bg-ws-surface p-2 {current ? 'border-instr-ink ring-2 ring-instr-ink' : 'border-ws-line'}" data-current={current || undefined}>
           <p class="text-center font-display text-xl font-semibold">{s.name}</p>
-          <ChordDiagram frets={s.frets} fingers={s.fingers} label="{stringWord} {s.name} chord shape" />
+          <ChordDiagram frets={s.frets} fingers={s.fingers} label={shapeLabel(s.name)} />
         </li>
       {/each}
     </ul>
@@ -107,7 +109,7 @@
 
   {#if v.strum}
     <div class="rounded-xl bg-ws-stage p-3 text-ws-stage-ink">
-      <StrumSlots slots={v.strum} lit={slot} label="Strumming, one bar" />
+      <StrumSlots slots={v.strum} lit={slot} label={m.music_runtime_clipvisual_strum_label()} />
     </div>
   {/if}
 
@@ -122,13 +124,13 @@
       interactive={false}
       showHeldPitches={false}
       compact
-      label="{stringWord} fretboard"
+      label={instrument === "ukulele" ? m.music_runtime_clipvisual_ukulele_fretboard() : m.music_runtime_clipvisual_guitar_fretboard()}
     />
     </div>
   {/if}
 
   {#if v.tab}
-    <svg viewBox="0 0 {TAB.w} {TAB.h}" class="h-auto w-full max-w-xl" role="img" aria-label="Tab for one bar: thumb on strings 5 and 4 on the beats, index on string 3 and middle on string 2 in between">
+    <svg viewBox="0 0 {TAB.w} {TAB.h}" class="h-auto w-full max-w-xl" role="img" aria-label={m.music_runtime_clipvisual_tab_label()}>
       {#each COUNTS as c, i (i)}
         <text x={TAB.left + 30 + i * TAB.col} y={TAB.top - 14} text-anchor="middle" class="tab-finger">{v.tab.notes.find((n) => n.slot === i)?.finger ?? ""}</text>
         <text x={TAB.left + 30 + i * TAB.col} y={TAB.top + 5 * TAB.row + 30} text-anchor="middle" class="tab-count" class:beat={i % 2 === 0}>{c}</text>
@@ -146,20 +148,20 @@
         <text {x} y={y + 5} text-anchor="middle" class="tab-fret" class:now={playing && n.slot === step}>{n.fret}</text>
       {/each}
     </svg>
-    <p class="text-sm text-ws-soft">T is your thumb, i your index finger, m your middle finger. The numbers are frets. The top line is the high E string.</p>
+    <p class="text-sm text-ws-soft">{m.music_runtime_clipvisual_tab_note()}</p>
   {/if}
 
   {#if v.keys}
-    <Piano low={v.keys.low} high={v.keys.high} fit={{ low: v.keys.low, high: v.keys.high }} minKey={18} marks={keyMarks} held={new Set()} interactive={false} names="c" label="Piano keys for this clip" />
-    {#if v.keys.left}<p class="text-sm text-ws-soft">The lowest lit key is for your left hand. The three above it are for your right.</p>{/if}
+    <Piano low={v.keys.low} high={v.keys.high} fit={{ low: v.keys.low, high: v.keys.high }} minKey={18} marks={keyMarks} held={new Set()} interactive={false} names="c" label={m.music_runtime_clipvisual_piano_label()} />
+    {#if v.keys.left}<p class="text-sm text-ws-soft">{m.music_runtime_clipvisual_left_hand()}</p>{/if}
   {/if}
 
   {#if written !== null}
     <div class="flex flex-wrap items-start gap-4">
       <AerophoneKeys midi={written - aeroShift} compact name={() => noteName(written, "flat")} />
       <p class="max-w-xs text-sm text-ws-soft">
-        Fingering for written {noteName(written, "flat")}. Notes are written pitch: finger them as you read them, whatever the transpose setting.
-        {#if clip.steps.length > 1}Pick a note above to see its fingering.{/if}
+        {m.music_runtime_clipvisual_fingering({ note: noteName(written, "flat") })}
+        {#if clip.steps.length > 1}{m.music_runtime_clipvisual_pick_note()}{/if}
       </p>
     </div>
   {/if}

@@ -4,6 +4,7 @@
   // other keys are Song Studio's setup.
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { m } from "@repo/i18n/messages.js";
   import { LEARNING_PATHS, type PathId } from "@repo/music-core/progress/paths";
   import { btnPrimary } from "#lib/music/components/ui.ts";
   import { addShelfSong, shelfSong } from "#lib/music/hubs/library/songs.ts";
@@ -42,14 +43,14 @@
   });
 </script>
 
-<svelte:head><title>{entry?.title ?? "Song"} | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_runtime_songs_shelf_head_title({ title: entry?.title ?? m.music_runtime_songs_shelf_song() })}</title></svelte:head>
 
 {#if error}
   <div class="mx-auto flex max-w-3xl flex-col items-start gap-3">
-    <h1 class="font-display text-4xl font-semibold tracking-tight">{entry?.title ?? "This song"} isn't in your songs yet</h1>
-    <p class="text-ws-soft">{error} Import its score from the path's song list, then come back.</p>
-    <a class={btnPrimary} href="/music/studio?tab=import&shelf={encodeURIComponent(key)}&for={encodeURIComponent(entry?.title ?? '')}">Import its score</a>
+    <h1 class="font-display text-4xl font-semibold tracking-tight">{m.music_runtime_songs_shelf_missing({ title: entry?.title ?? m.music_runtime_songs_shelf_this_song() })}</h1>
+    <p class="text-ws-soft">{m.music_runtime_songs_shelf_import_hint({ error })}</p>
+    <a class={btnPrimary} href="/music/studio?tab=import&shelf={encodeURIComponent(key)}&for={encodeURIComponent(entry?.title ?? '')}">{m.music_runtime_songs_shelf_import()}</a>
   </div>
 {:else}
-  <p class="text-ws-soft">Opening {entry?.title ?? "the song"}.</p>
+  <p class="text-ws-soft">{entry?.title ? m.music_runtime_songs_shelf_opening({ title: entry.title }) : m.music_runtime_songs_shelf_opening_song()}</p>
 {/if}
