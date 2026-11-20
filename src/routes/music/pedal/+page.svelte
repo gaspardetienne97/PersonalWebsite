@@ -28,6 +28,7 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { m } from "@repo/i18n/messages.js";
 
   const TEMPO = { min: 40, max: 120 };
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -59,26 +60,26 @@
 
   const barIndex = $derived(phase === "running" && now >= downbeat ? Math.min(bars.length - 1, Math.floor((now - downbeat) / barMs)) : null);
   /** Beside Stop on a phone: the chord now and the move ("Chord 2 of 4: F, then lift"). */
-  const cue = $derived(barIndex === null ? "" : `Chord ${barIndex + 1} of ${bars.length}: ${bars[barIndex].symbol}${mode === "practice" ? ", then lift and press" : ""}`);
+  const cue = $derived(barIndex === null ? "" : (mode === "practice" ? m.music_winds_pedal_cue_practice : m.music_winds_pedal_cue)({ n: barIndex + 1, total: bars.length, chord: bars[barIndex].symbol }));
   const current = $derived(barIndex === null ? (phase === "ready" ? bars[0] : null) : bars[barIndex]);
   /** The chart as timed notes, for Hear it first: each chord held for its bar. */
   const demoNotes = $derived<TimedNote[]>(bars.flatMap((b, k) => [b.leftHand, ...b.rightHand].map((midi, i) => ({ midi, beat: k * 4, dur: 4, hand: i === 0 ? ("left" as const) : ("right" as const) }))));
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
     if (transport.playing) {
-      for (const n of sounding(demoNotes, transport.beat)) out[n.midi] = { demo: true, label: n.hand === "left" ? "L" : "R", role: n.hand };
+      for (const n of sounding(demoNotes, transport.beat)) out[n.midi] = { demo: true, label: n.hand === "left" ? m.music_winds_stick_left() : m.music_winds_stick_right(), role: n.hand };
       return out;
     }
     if (mode !== "practice" || phase === "results" || !current) return out;
-    out[current.leftHand] = { target: true, label: "L", role: "left" };
-    for (const m of current.rightHand) out[m] = { target: true, label: "R", role: "right" };
+    out[current.leftHand] = { target: true, label: m.music_winds_stick_left(), role: "left" };
+    for (const midi of current.rightHand) out[midi] = { target: true, label: m.music_winds_stick_right(), role: "right" };
     return out;
   });
 
   const keyName = $derived(FLAT_NAMES[pc(s.key)]);
   /** The chords written out, a bar each: the root in the left hand, the chord in the right. */
   const written = $derived(bars.flatMap((b, k) => [{ midi: b.leftHand, startBeat: k * 4, durationBeats: 4, hand: "left" as const }, ...b.rightHand.map((midi) => ({ midi, startBeat: k * 4, durationBeats: 4, hand: "right" as const }))]));
-  const summaryLine = $derived<SetupClause[]>([{ text: `${progression.label} in ${keyName}`, focus: "progression" }, { text: `${bars.length} chords`, focus: "rounds" }, { text: "a chord a bar" }]);
+  const summaryLine = $derived<SetupClause[]>([{ text: m.music_winds_pedal_summary({ progression: progression.label, key: keyName }), focus: "progression" }, { text: m.music_winds_pedal_chords({ count: bars.length }), focus: "rounds" }, { text: m.music_winds_pedal_a_chord_a_bar() }]);
   const keys = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand])));
   const tight = $derived(spanOf(once.flatMap((b) => [b.leftHand, ...b.rightHand]), 0, false));
 
@@ -94,7 +95,7 @@
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Demo: a chord a bar, each ringing into the next. The pedal is yours to add.";
+    status = m.music_winds_pedal_demo();
     await transport.demo(demoNotes, bpm);
   }
 
@@ -136,17 +137,17 @@
       const pcs = new Set(ons.map((n) => pc(n.midi)));
       return {
         at: ons.length ? Math.min(...ons.map((n) => n.at)) : undefined,
-        ok: [b.leftHand, ...b.rightHand].every((m) => pcs.has(pc(m))),
+        ok: [b.leftHand, ...b.rightHand].every((midi) => pcs.has(pc(midi))),
       };
     });
   }
 
-  const VERDICT: Record<PedalVerdict, string> = {
-    clean: "Clean",
-    early: "Lifted early",
-    blurred: "Held through",
-    late: "Down late",
-    "no-chord": "No chord",
+  const VERDICT: Record<PedalVerdict, () => string> = {
+    clean: m.music_winds_pedal_v_clean,
+    early: m.music_winds_pedal_v_early,
+    blurred: m.music_winds_pedal_v_blurred,
+    late: m.music_winds_pedal_v_late,
+    "no-chord": m.music_winds_pedal_v_no_chord,
   };
 
   async function finish() {
@@ -176,7 +177,7 @@
       target: bars.flatMap((b) => [b.leftHand, ...b.rightHand]),
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
-    const fin = await run!.finish({ score, correct, headline: `${r.clean} of ${bars.length} pedal changes clean` });
+    const fin = await run!.finish({ score, correct, headline: m.music_winds_pedal_fin_headline({ clean: r.clean, total: bars.length }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -187,38 +188,38 @@
     const worst = (["early", "blurred", "late"] as const).map((v) => [v, count(v)] as const).sort((a, b) => b[1] - a[1])[0];
     summary = {
       headline: !measured
-        ? "No pedal arrived. Plug a sustain pedal into the keyboard: it sends CC 64 over MIDI."
+        ? m.music_winds_pedal_head_no_pedal()
         : correct
-          ? `Every change clean: lifted after each chord, down again straight away.`
+          ? m.music_winds_pedal_head_ok()
           : worst[1] === 0
-            ? `${r.clean} of ${bars.length} changes clean.`
+            ? m.music_winds_pedal_head_clean({ clean: r.clean, total: bars.length })
             : worst[0] === "early"
-              ? `${r.clean} of ${bars.length} clean. ${worst[1]} lifted before the new chord: that leaves a gap. Play the chord first, then lift.`
+              ? m.music_winds_pedal_head_early({ clean: r.clean, total: bars.length, count: worst[1] })
               : worst[0] === "blurred"
-                ? `${r.clean} of ${bars.length} clean. ${worst[1]} held through the change: the chords blur. Lift just after each new chord.`
-                : `${r.clean} of ${bars.length} clean. ${worst[1]} pressed down again late: the new chord loses its ring. Press straight back down.`,
+                ? m.music_winds_pedal_head_blurred({ clean: r.clean, total: bars.length, count: worst[1] })
+                : m.music_winds_pedal_head_late({ clean: r.clean, total: bars.length, count: worst[1] }),
       metric: measured ? `${r.clean}/${bars.length}` : pct(score),
-      metricLabel: measured ? "changes clean" : "score",
+      metricLabel: measured ? m.music_winds_pedal_changes_clean() : m.music_winds_score(),
       delta: fin.delta,
       best: fin.best,
       clean: correct && mode === "check",
       xp: fin.xp,
       mode,
-      cleanMeans: "every change lifted after the chord and pressed straight back",
+      cleanMeans: m.music_winds_pedal_clean_means(),
       rows: [
         measured
-          ? { label: "Pedal changes clean", value: r.score, text: `${r.clean} of ${bars.length}` }
-          : { label: "Pedal (no CC 64 arrived)", notMeasured: true },
+          ? { label: m.music_winds_pedal_row_clean(), value: r.score, text: m.music_winds_chop_of({ n: r.clean, total: bars.length }) }
+          : { label: m.music_winds_pedal_row_none(), notMeasured: true },
         ...(measured
           ? [
               // One row each, so a count never wraps away from its name.
-              { label: "Lifted before the chord", text: `${count("early")} of ${bars.length}` },
-              { label: "Held through the change", text: `${count("blurred")} of ${bars.length}` },
-              { label: "Pressed down late", text: `${count("late")} of ${bars.length}` },
-              { label: "Lift after the chord (median)", text: lifts.length ? `${Math.round(lifts[Math.floor(lifts.length / 2)])} ms` : "none" },
+              { label: m.music_winds_pedal_row_early(), text: m.music_winds_chop_of({ n: count("early"), total: bars.length }) },
+              { label: m.music_winds_pedal_row_blurred(), text: m.music_winds_chop_of({ n: count("blurred"), total: bars.length }) },
+              { label: m.music_winds_pedal_row_late(), text: m.music_winds_chop_of({ n: count("late"), total: bars.length }) },
+              { label: m.music_winds_pedal_row_lift(), text: lifts.length ? m.music_winds_stick_ms({ value: Math.round(lifts[Math.floor(lifts.length / 2)]) }) : m.music_winds_skills_none() },
             ]
           : []),
-        { label: "Chords right", value: chords, text: `${chordOk.filter(Boolean).length} of ${bars.length}` },
+        { label: m.music_winds_pedal_row_chords(), value: chords, text: m.music_winds_chop_of({ n: chordOk.filter(Boolean).length, total: bars.length }) },
       ],
       // Ungraded without a pedal: nothing to climb.
       advance: measured
@@ -233,7 +234,7 @@
     cancelAnimationFrame(raf);
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_winds_nothing_saved();
   }
 
   onDestroy(() => {
@@ -267,13 +268,13 @@
   });
 </script>
 
-<svelte:head><title>Pedal | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_winds_pedal_head_title()}</title></svelte:head>
 
 <DrillShell
-  title="Pedal"
+  title={m.music_winds_pedal_title()}
   lesson={{ lessons: [pedalLesson()] }}
   hue="piano"
-  blurb="Play the chord, then lift the sustain pedal and press it straight back, so each chord rings into the next without a blur."
+  blurb={m.music_winds_pedal_blurb()}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -288,22 +289,22 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
-      <Choice label="Progression" setupKey="progression" options={PEDAL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label }))} value={progression.id} onchange={(v) => cfg.set({ progression: v })} />
+      <Choice label={m.music_winds_pedal_progression()} setupKey="progression" options={PEDAL_PROGRESSIONS.map((p) => ({ value: p.id, label: p.label }))} value={progression.id} onchange={(v) => cfg.set({ progression: v })} />
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
-        <span class="font-medium">Key</span>
-        <KeyPicker label="Key" value={pc(s.key)} name={(p) => FLAT_NAMES[p]} onchange={(p) => cfg.set({ key: p })} />
+        <span class="font-medium">{m.music_winds_key()}</span>
+        <KeyPicker label={m.music_winds_key()} value={pc(s.key)} name={(p) => FLAT_NAMES[p]} onchange={(p) => cfg.set({ key: p })} />
       </div>
-      <Choice label="Times through" setupKey="rounds" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
+      <Choice label={m.music_winds_pedal_times_through()} setupKey="rounds" options={[1, 2, 4].map((n) => ({ value: n, label: String(n) }))} value={s.rounds} onchange={(v) => cfg.set({ rounds: v })} />
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Tempo comes from the top bar ({TEMPO.min} to {TEMPO.max} BPM). Lift within {PEDAL.liftWithinMs} ms after the chord and be back down within {PEDAL.repressWithinMs} ms: starting values, since no one publishes pedal timing.
+      {m.music_winds_pedal_setup_help({ min: TEMPO.min, max: TEMPO.max, lift: PEDAL.liftWithinMs, repress: PEDAL.repressWithinMs })}
     </p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Chord" value={barIndex === null ? "count-in" : `${barIndex + 1} of ${bars.length}`} />
-      <Stat label="Pedal" value={pedalDown ? "↓ Down" : "↑ Up"} tone={pedalDown ? "success" : undefined} />
+      <Stat label={m.music_winds_pedal_chord()} value={barIndex === null ? m.music_winds_pedal_count_in() : m.music_winds_chop_of({ n: barIndex + 1, total: bars.length })} />
+      <Stat label={m.music_winds_pedal_pedal()} value={pedalDown ? m.music_winds_pedal_down() : m.music_winds_pedal_up()} tone={pedalDown ? "success" : undefined} />
     {/if}
   {/snippet}
 
@@ -314,7 +315,7 @@
     {/if}
     {#if phase !== "ready"}{@render pedalLine()}{/if}
     <div class="flex flex-col justify-end" data-dock="instrument">
-      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label="Piano keyboard, {noteName(keys.low)} to {noteName(keys.high)}. Left hand root marked L, right hand chord R." />
+      <Piano low={keys.low} high={keys.high} fit={tight} {marks} {flashes} fill={phase === "running" || phase === "countin"} label={m.music_winds_pedal_piano_label({ low: noteName(keys.low), high: noteName(keys.high) })} />
     </div>
   {/snippet}
 
@@ -329,7 +330,7 @@
 {#snippet chart()}
   <!-- After a run a phone shows the cards two by two, so each verdict stays on its own card. Before one, a laptop or
        a tablet keeps a longer chart on one row, so the staff, the pedal line and the keys share the view. -->
-  <ol class="mb-3 grid gap-2 {result ? 'grid-cols-2 sm:grid-cols-4' : bars.length > 4 ? 'grid-cols-4 lg:grid-cols-8' : 'grid-cols-4'}" aria-label="Chord chart, a chord a bar">
+  <ol class="mb-3 grid gap-2 {result ? 'grid-cols-2 sm:grid-cols-4' : bars.length > 4 ? 'grid-cols-4 lg:grid-cols-8' : 'grid-cols-4'}" aria-label={m.music_winds_pedal_chart()}>
     {#each bars as b, k (k)}
       {@const v = result?.verdicts[k]}
       <li class="flex min-h-14 min-w-0 flex-col justify-center rounded-lg border px-3 py-1.5 {barIndex === k || demoBar === k ? 'border-instr bg-instr/20' : 'border-ws-stage-ink/15'}" aria-current={barIndex === k || demoBar === k ? "step" : undefined}>
@@ -339,10 +340,10 @@
             <span class="grid size-5 shrink-0 place-items-center rounded-full {v === 'clean' ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">
               {#if v === "clean"}<Check class="size-4" strokeWidth={3} />{:else}<X class="size-4" strokeWidth={3} />{/if}
             </span>
-            <span class="min-w-0">{VERDICT[v]}</span>
+            <span class="min-w-0">{VERDICT[v]()}</span>
           </span>
           <!-- The chord's own check, apart from the pedal's. "No chord" already says it. -->
-          {#if chordOk[k] === false && v !== "no-chord"}<span class="text-sm text-ws-stage-soft">Incomplete</span>{/if}
+          {#if chordOk[k] === false && v !== "no-chord"}<span class="text-sm text-ws-stage-soft">{m.music_winds_pedal_incomplete()}</span>{/if}
         {:else}
           <span class="text-sm text-ws-stage-soft">{b.roman}</span>
         {/if}
@@ -353,7 +354,7 @@
 
 {#snippet pedalLine()}
   <figure class="mb-3">
-    <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label="The pedal over the bars: a line where it was down, a gap where it was up">
+    <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="h-11 w-full" role="img" aria-label={m.music_winds_pedal_line_aria()}>
       {#each bars as _, k (k)}
         <line x1={(k / bars.length) * W} x2={(k / bars.length) * W} y1="4" y2={H - 4} class="bar" vector-effect="non-scaling-stroke" />
       {/each}
@@ -366,7 +367,7 @@
     </svg>
     <figcaption class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ws-stage-soft">
       <!-- The pedal's state now is in the HUD; the line here is its history. -->
-      <span>Pedal line: down where it runs, up in the gaps. Each gap sits just after a bar line.</span>
+      <span>{m.music_winds_pedal_line_caption()}</span>
     </figcaption>
   </figure>
 {/snippet}
