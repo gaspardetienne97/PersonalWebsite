@@ -1,7 +1,18 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_bb_check_text": "Le mode Contrôle cache les notes. Trouvez la fondamentale de la boîte, puis les autres notes d’après leur rôle autour d’elle.",
+  "music_cards_bb_six_text": "Cette boîte, ce sont six notes autour d’une fondamentale : {roles}. La frette de la fondamentale de l’exercice est la fondamentale sur la corde 6, et la fondamentale de la boîte elle-même est sur la corde {string}, {place}{tuning}. Touchez Écouter pour entendre la boîte de la corde grave à l’aiguë.",
+  "music_cards_bb_six_title": "Six notes autour de la fondamentale",
+  "music_cards_bb_title": "La boîte de B.B.",
   "music_cards_beat_on": "sur le {beat}",
   "music_cards_beat_on_and": "sur le et du {beat}",
+  "music_cards_boxes_item": "de la boîte {n} est {where}",
+  "music_cards_boxes_notes": " avec {perString} notes sur chacune des {count} cordes",
+  "music_cards_boxes_one_text": "Une boîte de la pentatonique mineure est une position de la main{notes}. Voici la boîte 1{tuning}, telle que l’exercice la place sur sa frette de fondamentale la plus basse. L’exercice joue une boîte de la corde grave à la corde aiguë.",
+  "music_cards_boxes_one_title": "Une boîte est une position de la main",
+  "music_cards_boxes_title": "Les cinq boîtes pentatoniques",
+  "music_cards_boxes_up_text": "Les cinq boîtes montent le long du manche. En comptant depuis la frette de la fondamentale sur la corde 6{tuning}, la frette la plus basse {list}. En mode Contrôle, les notes restent cachées, alors sachez où commence chaque boîte.",
+  "music_cards_boxes_up_title": "Cinq boîtes le long du manche",
   "music_cards_cadence_natural_7th": "Septième naturelle, {note}",
   "music_cards_cadence_pull_text": "La septième de V7 descend d’un demi-ton vers la tierce de l’accord de tonique. La tierce de V7 monte d’un demi-ton vers la tonique. C’est cette attraction qu’il faut écouter en mode Contrôle, où les touches restent éteintes.",
   "music_cards_cadence_pull_title": "V7 attire vers la maison",
@@ -15,6 +26,11 @@
   "music_cards_cadence_title": "Cadences",
   "music_cards_cadence_title_minor": "Cadences mineures",
   "music_cards_cadence_v7_note": "Fondamentale, tierce et septième, sans la quinte.",
+  "music_cards_caged_check_text": "Le mode Contrôle cache les notes de la forme. Sachez de quelle forme il s’agit, quelles cordes elle utilise et où elle se trouve. Puis jouez-la à partir de sa corde la plus grave.",
+  "music_cards_caged_five_text": "CAGED nomme cinq formes pour un accord majeur, d’après les accords ouverts C, A, G, E et D. Chacune joue le même accord, à cinq endroits du manche. Touchez Suivant pour voir où se trouve chacune{tuning}, en comptant depuis la frette de la fondamentale sur la corde 6.",
+  "music_cards_caged_five_title": "Cinq formes pour un accord",
+  "music_cards_caged_step": "La forme de {letter} utilise les cordes {first} à {last}, et sa frette la plus basse est {place}.",
+  "music_cards_caged_title": "Les cinq formes CAGED",
   "music_cards_charleston_count_text": "Le mode Contrôle cache ce qu’il faut jouer, alors comptez vous-même : {counts}, et rien d’autre dans la mesure. Laisser les autres temps vides, c’est ce qui fait ressortir la ligne de la main droite.",
   "music_cards_charleston_count_title": "Le compter en mode Contrôle",
   "music_cards_charleston_hits_text": "Le Charleston, ce sont deux coups de main gauche par mesure : {hits}. Chaque coup, ce sont les deux notes de la main gauche ensemble, comme {a} et {b} sur {chord}. Ensuite la main se repose jusqu’à la mesure suivante.",
@@ -181,6 +197,13 @@
   "music_cards_circle_wheel_title": "La roue par cœur",
   "music_cards_circle_worked_flats": "{key} majeur a {count} bémols : {names}.",
   "music_cards_circle_worked_sharps": "{key} majeur a {count} dièses : {names}.",
+  "music_cards_connected_check_text": "Le mode Contrôle cache les notes, alors sachez l’ordre des boîtes et dans quel sens va chacune.",
+  "music_cards_connected_high_low": "de la corde aiguë à la grave",
+  "music_cards_connected_low_high": "de la corde grave à l’aiguë",
+  "music_cards_connected_run_text": "Le parcours relié joint les cinq boîtes en une seule ligne qui monte le long du manche. Il joue la boîte 1 de la corde grave à l’aiguë, puis la boîte 2 de la corde aiguë jusqu’à la grave. Il continue ainsi jusqu’à la boîte 5.",
+  "music_cards_connected_run_title": "Un parcours à travers cinq boîtes",
+  "music_cards_connected_step": "Boîte {n} : {direction}, sa frette la plus basse {place}.",
+  "music_cards_connected_title": "Les boîtes reliées le long du manche",
   "music_cards_count_and": "{beat} et",
   "music_cards_dorian_all_text": "La gamme part d’une note différente pour chaque accord. Touchez Suivant pour chaque accord et pour savoir si sa gamme reste dans la tonalité.",
   "music_cards_dorian_all_title": "Les trois accords",
@@ -594,6 +617,50 @@
   "music_cards_minor_three_text": "Touchez chaque forme pour l’entendre. Le mineur harmonique est {harmonic}, avec {harmonicNotes} en A. Le mineur mélodique, tel que l’exercice le joue, hausse la sixte et la septième dans les deux sens : {melodic}, avec {melodicNotes} en A.",
   "music_cards_minor_three_title": "Trois formes en A",
   "music_cards_minor_title": "Les trois gammes mineures",
+  "music_cards_pos_above_it": "{count} au-dessus",
+  "music_cards_pos_above_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette au-dessus de la frette de la fondamentale",
+        "countPlural=other": "{count} frettes au-dessus de la frette de la fondamentale"
+      }
+    }
+  ],
+  "music_cards_pos_at_root": "sur la frette de la fondamentale",
+  "music_cards_pos_below_it": "{count} en dessous",
+  "music_cards_pos_below_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} frette sous la frette de la fondamentale",
+        "countPlural=other": "{count} frettes sous la frette de la fondamentale"
+      }
+    }
+  ],
+  "music_cards_pos_on_it": "dessus",
+  "music_cards_pos_tuning": "en accordage {name}",
+  "music_cards_role_2nd": "seconde",
+  "music_cards_role_3rd": "tierce",
+  "music_cards_role_4th": "quarte",
+  "music_cards_role_5th": "quinte",
+  "music_cards_role_6th": "sixte",
+  "music_cards_role_flat_3rd": "tierce bémol",
+  "music_cards_role_flat_5th": "quinte bémol",
+  "music_cards_role_flat_7th": "septième bémol",
+  "music_cards_role_root": "fondamentale",
   "music_cards_root_label": "fond.",
   "music_cards_rootless_251_text": "Touchez Suivant pour chaque accord. L’exercice peut aussi commencer en position B, ce qui échange A et B.",
   "music_cards_rootless_251_title": "Un ii-V-I en C",
@@ -750,5 +817,19 @@
   "music_cards_tip_two_hand_count_title": "Partager un seul compte",
   "music_cards_tip_two_hand_one_text": "Le réglage de pratique peut demander la main gauche seule ou la main droite seule. Apprenez d’abord chaque partie ainsi, puis jouez les deux mains.",
   "music_cards_tip_two_hand_one_title": "Une main à la fois",
-  "music_cards_tip_two_hand_title": "Garder les deux mains ensemble"
+  "music_cards_tip_two_hand_title": "Garder les deux mains ensemble",
+  "music_cards_triads_check_text": "Le mode Contrôle cache les notes. Connaissez les trois renversements et la place de chacun, et jouez chacun à partir de sa corde la plus grave.",
+  "music_cards_triads_step": "{inversion} : {notes}, frettes {frets}.",
+  "music_cards_triads_three_text_major": "Vous pouvez jouer une triade majeure dans trois renversements, chacun plus haut sur le manche que le précédent. L’exercice les joue sur les cordes {first} à {last}. Touchez Suivant pour {root} majeur{tuning} sur sa frette de fondamentale la plus basse.",
+  "music_cards_triads_three_text_minor": "Vous pouvez jouer une triade mineure dans trois renversements, chacun plus haut sur le manche que le précédent. L’exercice les joue sur les cordes {first} à {last}. Touchez Suivant pour {root} mineur{tuning} sur sa frette de fondamentale la plus basse.",
+  "music_cards_triads_three_title": "Trois renversements",
+  "music_cards_triads_title_major": "Triades majeures le long du manche",
+  "music_cards_triads_title_minor": "Triades mineures le long du manche",
+  "music_cards_two": "deux",
+  "music_cards_uke_item": "de la position {n} est {where}",
+  "music_cards_uke_one_text": "Une position de la pentatonique mineure est une position de la main{notes}. Voici la position 1{tuning}, telle que l’exercice la place sur sa frette de fondamentale la plus basse. L’exercice la joue de la corde {first} à la corde {last}.",
+  "music_cards_uke_one_title": "Une position est une position de la main",
+  "music_cards_uke_title": "Les cinq positions du ukulélé",
+  "music_cards_uke_up_text": "Les cinq positions montent le long du manche. En comptant depuis la frette de la fondamentale sur la corde 1{tuning}, la frette la plus basse {list}. En mode Contrôle, les notes restent cachées, alors sachez où commence chaque position.",
+  "music_cards_uke_up_title": "Cinq positions le long du manche"
 }

@@ -1,7 +1,18 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_bb_check_text": "El modo Prueba oculta las notas. Encuentra la fundamental de la caja y luego las otras notas por su función alrededor de ella.",
+  "music_cards_bb_six_text": "Esta caja son seis notas alrededor de una fundamental: {roles}. El traste de la fundamental del ejercicio es la fundamental en la cuerda 6, y la fundamental propia de la caja está en la cuerda {string}, {place}{tuning}. Toca Escuchar para oír la caja de la cuerda grave a la aguda.",
+  "music_cards_bb_six_title": "Seis notas alrededor de la fundamental",
+  "music_cards_bb_title": "La caja de B.B.",
   "music_cards_beat_on": "en el {beat}",
   "music_cards_beat_on_and": "en la y del {beat}",
+  "music_cards_boxes_item": "de la caja {n} está {where}",
+  "music_cards_boxes_notes": " con {perString} notas en cada una de las {count} cuerdas",
+  "music_cards_boxes_one_text": "Una caja de la pentatónica menor es una posición de la mano{notes}. Aquí está la caja 1{tuning}, como la ubica el ejercicio en su traste de fundamental más bajo. El ejercicio toca una caja desde la cuerda grave hasta la aguda.",
+  "music_cards_boxes_one_title": "Una caja es una posición de la mano",
+  "music_cards_boxes_title": "Las cinco cajas pentatónicas",
+  "music_cards_boxes_up_text": "Las cinco cajas suben por el diapasón. Contando desde el traste de la fundamental en la cuerda 6{tuning}, el traste más bajo {list}. En el modo Prueba las notas quedan ocultas, así que debes saber dónde empieza cada caja.",
+  "music_cards_boxes_up_title": "Cinco cajas a lo largo del diapasón",
   "music_cards_cadence_natural_7th": "7.ª natural, {note}",
   "music_cards_cadence_pull_text": "La 7.ª del V7 baja un semitono a la 3.ª del acorde de tónica. La 3.ª del V7 sube un semitono a la tónica. Esa atracción es lo que hay que escuchar en el modo Prueba, donde las teclas quedan apagadas.",
   "music_cards_cadence_pull_title": "El V7 tira hacia casa",
@@ -15,6 +26,11 @@
   "music_cards_cadence_title": "Cadencias",
   "music_cards_cadence_title_minor": "Cadencias menores",
   "music_cards_cadence_v7_note": "Fundamental, 3.ª y 7.ª, sin la 5.ª.",
+  "music_cards_caged_check_text": "El modo Prueba oculta las notas de la forma. Debes saber qué forma es, qué cuerdas usa y dónde está. Luego tócala desde su cuerda más grave hacia arriba.",
+  "music_cards_caged_five_text": "CAGED nombra cinco formas para un acorde mayor, por los acordes abiertos C, A, G, E y D. Cada una toca el mismo acorde, en cinco lugares del diapasón. Toca Siguiente para ver dónde está cada una{tuning}, contando desde el traste de la fundamental en la cuerda 6.",
+  "music_cards_caged_five_title": "Cinco formas para un acorde",
+  "music_cards_caged_step": "La forma de {letter} usa las cuerdas {first} a {last}, y su traste más bajo está {place}.",
+  "music_cards_caged_title": "Las cinco formas CAGED",
   "music_cards_charleston_count_text": "El modo Prueba oculta qué tocar, así que cuéntalo tú: {counts}, y nada más en el compás. Dejar vacíos los otros pulsos es lo que hace resaltar la línea de la mano derecha.",
   "music_cards_charleston_count_title": "Cuéntalo en el modo Prueba",
   "music_cards_charleston_hits_text": "El Charleston son dos golpes de la mano izquierda por compás: {hits}. Cada golpe son las dos notas de la mano izquierda juntas, como {a} y {b} sobre {chord}. Luego la mano descansa hasta el compás siguiente.",
@@ -181,6 +197,13 @@
   "music_cards_circle_wheel_title": "La rueda de memoria",
   "music_cards_circle_worked_flats": "{key} mayor tiene {count} bemoles: {names}.",
   "music_cards_circle_worked_sharps": "{key} mayor tiene {count} sostenidos: {names}.",
+  "music_cards_connected_check_text": "El modo Prueba oculta las notas, así que debes saber el orden de las cajas y en qué dirección va cada una.",
+  "music_cards_connected_high_low": "de la cuerda aguda a la grave",
+  "music_cards_connected_low_high": "de la cuerda grave a la aguda",
+  "music_cards_connected_run_text": "El recorrido conectado une las cinco cajas en una sola línea que sube por el diapasón. Toca la caja 1 de la cuerda grave a la aguda, luego la caja 2 de la cuerda aguda de vuelta a la grave. Sigue así hasta la caja 5.",
+  "music_cards_connected_run_title": "Un recorrido por cinco cajas",
+  "music_cards_connected_step": "Caja {n}: {direction}, su traste más bajo {place}.",
+  "music_cards_connected_title": "Las cajas unidas por el diapasón",
   "music_cards_count_and": "{beat} y",
   "music_cards_dorian_all_text": "La escala empieza en una nota distinta para cada acorde. Toca Siguiente para ver cada acorde y si su escala se queda dentro de la tonalidad.",
   "music_cards_dorian_all_title": "Los tres acordes",
@@ -594,6 +617,50 @@
   "music_cards_minor_three_text": "Toca cada forma para escucharla. La menor armónica es {harmonic}, con {harmonicNotes} en A. La menor melódica, como la toca el ejercicio, sube la 6.ª y la 7.ª en las dos direcciones: {melodic}, con {melodicNotes} en A.",
   "music_cards_minor_three_title": "Tres formas en A",
   "music_cards_minor_title": "Las tres escalas menores",
+  "music_cards_pos_above_it": "{count} arriba",
+  "music_cards_pos_above_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste arriba del traste de la fundamental",
+        "countPlural=other": "{count} trastes arriba del traste de la fundamental"
+      }
+    }
+  ],
+  "music_cards_pos_at_root": "en el traste de la fundamental",
+  "music_cards_pos_below_it": "{count} abajo",
+  "music_cards_pos_below_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} traste debajo del traste de la fundamental",
+        "countPlural=other": "{count} trastes debajo del traste de la fundamental"
+      }
+    }
+  ],
+  "music_cards_pos_on_it": "en él",
+  "music_cards_pos_tuning": "en afinación {name}",
+  "music_cards_role_2nd": "2.ª",
+  "music_cards_role_3rd": "3.ª",
+  "music_cards_role_4th": "4.ª",
+  "music_cards_role_5th": "5.ª",
+  "music_cards_role_6th": "6.ª",
+  "music_cards_role_flat_3rd": "3.ª bemol",
+  "music_cards_role_flat_5th": "5.ª bemol",
+  "music_cards_role_flat_7th": "7.ª bemol",
+  "music_cards_role_root": "fundamental",
   "music_cards_root_label": "fund.",
   "music_cards_rootless_251_text": "Toca Siguiente para cada acorde. El ejercicio también puede empezar en la posición B, lo que intercambia A y B.",
   "music_cards_rootless_251_title": "Un ii-V-I en C",
@@ -750,5 +817,19 @@
   "music_cards_tip_two_hand_count_title": "Comparte un mismo conteo",
   "music_cards_tip_two_hand_one_text": "La opción de práctica puede pedir solo la mano izquierda o solo la derecha. Aprende cada parte así primero y luego toca con las dos manos.",
   "music_cards_tip_two_hand_one_title": "Una mano a la vez",
-  "music_cards_tip_two_hand_title": "Mantener las dos manos juntas"
+  "music_cards_tip_two_hand_title": "Mantener las dos manos juntas",
+  "music_cards_triads_check_text": "El modo Prueba oculta las notas. Debes saber las tres inversiones y dónde está cada una, y tocar cada una desde su cuerda más grave hacia arriba.",
+  "music_cards_triads_step": "{inversion}: {notes}, trastes {frets}.",
+  "music_cards_triads_three_text_major": "Puedes tocar una tríada mayor en tres inversiones, cada una más arriba en el diapasón que la anterior. El ejercicio las toca en las cuerdas {first} a {last}. Toca Siguiente para ver {root} mayor{tuning} en su traste de fundamental más bajo.",
+  "music_cards_triads_three_text_minor": "Puedes tocar una tríada menor en tres inversiones, cada una más arriba en el diapasón que la anterior. El ejercicio las toca en las cuerdas {first} a {last}. Toca Siguiente para ver {root} menor{tuning} en su traste de fundamental más bajo.",
+  "music_cards_triads_three_title": "Tres inversiones",
+  "music_cards_triads_title_major": "Tríadas mayores a lo largo del diapasón",
+  "music_cards_triads_title_minor": "Tríadas menores a lo largo del diapasón",
+  "music_cards_two": "dos",
+  "music_cards_uke_item": "de la posición {n} está {where}",
+  "music_cards_uke_one_text": "Una posición de la pentatónica menor es una posición de la mano{notes}. Aquí está la posición 1{tuning}, como la ubica el ejercicio en su traste de fundamental más bajo. El ejercicio la toca de la cuerda {first} a la cuerda {last}.",
+  "music_cards_uke_one_title": "Una posición es una posición de la mano",
+  "music_cards_uke_title": "Las cinco posiciones del ukelele",
+  "music_cards_uke_up_text": "Las cinco posiciones suben por el diapasón. Contando desde el traste de la fundamental en la cuerda 1{tuning}, el traste más bajo {list}. En el modo Prueba las notas quedan ocultas, así que debes saber dónde empieza cada posición.",
+  "music_cards_uke_up_title": "Cinco posiciones a lo largo del diapasón"
 }

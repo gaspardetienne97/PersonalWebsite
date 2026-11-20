@@ -1,7 +1,18 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_bb_check_text": "Check hides the notes. Find the box's root, then find the other notes by their roles around it.",
+  "music_cards_bb_six_text": "This box is six notes around one root: the {roles}. The drill's root fret is the root note on string 6, and the box's own root is on string {string}, {place}{tuning}. Tap Hear it for the box low string to high.",
+  "music_cards_bb_six_title": "Six notes around the root",
+  "music_cards_bb_title": "The B.B. box",
   "music_cards_beat_on": "on {beat}",
   "music_cards_beat_on_and": "on the and of {beat}",
+  "music_cards_boxes_item": "box {n} is {where}",
+  "music_cards_boxes_notes": " with {perString} notes on each of the {count} strings",
+  "music_cards_boxes_one_text": "A box of the minor pentatonic is one hand position{notes}. Here is box 1{tuning}, as the drill places it at its lowest root fret. The drill plays a box from the low string to the high.",
+  "music_cards_boxes_one_title": "A box is a hand position",
+  "music_cards_boxes_title": "The five pentatonic boxes",
+  "music_cards_boxes_up_text": "The five boxes climb the neck. Counted from the root fret on string 6{tuning}, the lowest fret of {list}. In Check the notes stay hidden, so know where each box starts.",
+  "music_cards_boxes_up_title": "Five boxes up the neck",
   "music_cards_cadence_natural_7th": "Natural 7th, {note}",
   "music_cards_cadence_pull_text": "The 7th of V7 falls a half step to the 3rd of the tonic chord. The 3rd of V7 rises a half step to the tonic. That pull is what to listen for in Check, where the keys stay dark.",
   "music_cards_cadence_pull_title": "V7 pulls home",
@@ -15,6 +26,11 @@
   "music_cards_cadence_title": "Cadences",
   "music_cards_cadence_title_minor": "Minor cadences",
   "music_cards_cadence_v7_note": "Root, 3rd and 7th, with the 5th left out.",
+  "music_cards_caged_check_text": "Check hides the notes of the shape. Know which shape it is, which strings it uses and where it sits. Then play it from its lowest string up.",
+  "music_cards_caged_five_text": "CAGED names five shapes for a major chord, after the open chords C, A, G, E and D. Each one plays the same chord, in five places along the neck. Tap Next for where each sits{tuning}, counted from the root fret on string 6.",
+  "music_cards_caged_five_title": "Five shapes for one chord",
+  "music_cards_caged_step": "The {letter} shape uses strings {first} to {last}, and its lowest fret is {place}.",
+  "music_cards_caged_title": "The five CAGED shapes",
   "music_cards_charleston_count_text": "Check hides what to play, so count it yourself: {counts}, and nothing else in the bar. Leaving the other beats empty is what lets the right hand's line stand out.",
   "music_cards_charleston_count_title": "Count it in Check",
   "music_cards_charleston_hits_text": "The Charleston is two left-hand hits in a bar: {hits}. Each hit is the left hand's two notes together, such as {a} and {b} over {chord}. Then the hand rests until the next bar.",
@@ -181,6 +197,13 @@
   "music_cards_circle_wheel_title": "The wheel by heart",
   "music_cards_circle_worked_flats": "{key} major has {count} flats: {names}.",
   "music_cards_circle_worked_sharps": "{key} major has {count} sharps: {names}.",
+  "music_cards_connected_check_text": "Check hides the notes, so know the order of the boxes and which way each one runs.",
+  "music_cards_connected_high_low": "high string to low",
+  "music_cards_connected_low_high": "low string to high",
+  "music_cards_connected_run_text": "The connected run joins the five boxes into one line up the neck. It plays box 1 from the low string to the high, then box 2 from the high string back to the low. It carries on that way through box 5.",
+  "music_cards_connected_run_title": "One run through five boxes",
+  "music_cards_connected_step": "Box {n}: {direction}, its lowest fret {place}.",
+  "music_cards_connected_title": "The boxes joined up the neck",
   "music_cards_count_and": "{beat} and",
   "music_cards_dorian_all_text": "The scale starts from a different note for each chord. Tap Next for each chord and whether its scale stays inside the key.",
   "music_cards_dorian_all_title": "All three chords",
@@ -594,6 +617,50 @@
   "music_cards_minor_three_text": "Tap each form to hear it. Harmonic minor is {harmonic}, with {harmonicNotes} in A. Melodic minor, as the drill plays it, raises the 6th and 7th both ways: {melodic}, with {melodicNotes} in A.",
   "music_cards_minor_three_title": "Three forms in A",
   "music_cards_minor_title": "The three minor scales",
+  "music_cards_pos_above_it": "{count} above it",
+  "music_cards_pos_above_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret above the root fret",
+        "countPlural=other": "{count} frets above the root fret"
+      }
+    }
+  ],
+  "music_cards_pos_at_root": "at the root fret",
+  "music_cards_pos_below_it": "{count} below it",
+  "music_cards_pos_below_root": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fret below the root fret",
+        "countPlural=other": "{count} frets below the root fret"
+      }
+    }
+  ],
+  "music_cards_pos_on_it": "on it",
+  "music_cards_pos_tuning": "on {name}",
+  "music_cards_role_2nd": "2nd",
+  "music_cards_role_3rd": "3rd",
+  "music_cards_role_4th": "4th",
+  "music_cards_role_5th": "5th",
+  "music_cards_role_6th": "6th",
+  "music_cards_role_flat_3rd": "flat 3rd",
+  "music_cards_role_flat_5th": "flat 5th",
+  "music_cards_role_flat_7th": "flat 7th",
+  "music_cards_role_root": "root",
   "music_cards_root_label": "root",
   "music_cards_rootless_251_text": "Tap Next for each chord. The drill can start on position B instead, which swaps A and B.",
   "music_cards_rootless_251_title": "A ii-V-I in C",
@@ -750,5 +817,19 @@
   "music_cards_tip_two_hand_count_title": "Share one count",
   "music_cards_tip_two_hand_one_text": "The Practise setting can ask for Left only or Right only. Learn each part that way first, then play Both hands.",
   "music_cards_tip_two_hand_one_title": "One hand at a time",
-  "music_cards_tip_two_hand_title": "Keeping two hands together"
+  "music_cards_tip_two_hand_title": "Keeping two hands together",
+  "music_cards_triads_check_text": "Check hides the notes. Know the three inversions and where each sits, and play each from its lowest string up.",
+  "music_cards_triads_step": "{inversion}: {notes}, frets {frets}.",
+  "music_cards_triads_three_text_major": "You can play a major triad in three inversions, each higher up the neck than the one before. The drill plays them on strings {first} to {last}. Tap Next for {root} major{tuning} at its lowest root fret.",
+  "music_cards_triads_three_text_minor": "You can play a minor triad in three inversions, each higher up the neck than the one before. The drill plays them on strings {first} to {last}. Tap Next for {root} minor{tuning} at its lowest root fret.",
+  "music_cards_triads_three_title": "Three inversions",
+  "music_cards_triads_title_major": "Major triads up the neck",
+  "music_cards_triads_title_minor": "Minor triads up the neck",
+  "music_cards_two": "two",
+  "music_cards_uke_item": "position {n} is {where}",
+  "music_cards_uke_one_text": "A position of the minor pentatonic is one hand position{notes}. Here is position 1{tuning}, as the drill places it at its lowest root fret. The drill plays it from string {first} to string {last}.",
+  "music_cards_uke_one_title": "A position is a hand position",
+  "music_cards_uke_title": "The five ukulele positions",
+  "music_cards_uke_up_text": "The five positions climb the neck. Counted from the root fret on string 1{tuning}, the lowest fret of {list}. In Check the notes stay hidden, so know where each position starts.",
+  "music_cards_uke_up_title": "Five positions up the neck"
 }
