@@ -6,6 +6,7 @@ import { SCALE_PATTERNS } from "@repo/music-core/content/technique";
 import type { SkillMastery } from "@repo/music-core";
 import { SKILL_GRAPH, aggregateMastery } from "@repo/music-core/progress/graph";
 import { COACH_MIN_ATTEMPTS } from "@repo/music-core/progress/coach";
+import { m } from "@repo/i18n/messages.js";
 
 export interface ModeChip {
   id: string;
@@ -151,14 +152,14 @@ export function lastRun<R extends { exerciseId: string; endedAt: number; score?:
 
 const ear = (...slugs: string[]) => slugs.map((s) => row(`ear-${s}`));
 
-const EAR = "Ear";
+const EAR = m.music_hubs_layout_ear();
 
 export const DRILL_GROUPS: DrillGroup[] = [
   {
     id: "ear-notes",
     section: EAR,
-    title: "Notes and melody",
-    note: "Answer by choosing, playing it back, singing, or listening along.",
+    title: m.music_hubs_layout_notes(),
+    note: m.music_hubs_layout_notes_note(),
     rows: ear(
       "intervals",
       "interval-compare",
@@ -172,7 +173,7 @@ export const DRILL_GROUPS: DrillGroup[] = [
   {
     id: "ear-chords",
     section: EAR,
-    title: "Chords, scales and keys",
+    title: m.music_hubs_layout_chords(),
     rows: ear(
       "chord-qualities",
       "inversions",
@@ -184,23 +185,23 @@ export const DRILL_GROUPS: DrillGroup[] = [
       "bass-lines",
     ),
   },
-  { id: "ear-review", section: EAR, title: "Review", rows: ear("mixed") },
+  { id: "ear-review", section: EAR, title: m.music_hubs_layout_review(), rows: ear("mixed") },
   {
     id: "reading",
-    title: "Reading and rhythm",
+    title: m.music_hubs_layout_reading(),
     rows: [row("reading"), row("rhythm"), row("ear-feel")],
   },
   {
     id: "technique",
-    title: "Technique",
+    title: m.music_hubs_layout_technique(),
     rows: [
       row("scales"),
       row("two-hand"),
       part(
         "accompany",
         "patterns",
-        "Accompaniment patterns",
-        "Pop, ballad, boogie, stride and gospel hand patterns over any chord loop, in any key.",
+        m.music_hubs_layout_patterns(),
+        m.music_hubs_layout_patterns_blurb(),
         ["patterns"],
       ),
       row("pedal"),
@@ -209,22 +210,22 @@ export const DRILL_GROUPS: DrillGroup[] = [
       part(
         "pads",
         "technique",
-        "Pad technique",
-        "Strokes, rolls, accents and ghosts on the click, at a level you choose, and rudiments spread across the kit.",
+        m.music_hubs_layout_pad_technique(),
+        m.music_hubs_layout_pad_technique_blurb(),
         ["rudiment", "orchestrate", "dynamics"],
       ),
       part(
         "aerophone",
         "fingers",
-        "Aerophone fingers",
-        "A setup check, Roland's fingering lessons in order, then scales in every key, crossings over the octave and palm keys and trills.",
+        m.music_hubs_layout_aero_fingers(),
+        m.music_hubs_layout_aero_fingers_blurb(),
         ["calibrate", "fingering", "scales", "register", "trills"],
       ),
       part(
         "aerophone",
         "breath",
-        "Aerophone breath and tongue",
-        "Long tones at a level, a long-tone scale, swells, tonguing patterns, swing articulation, bite vibrato and landing intervals on a drone.",
+        m.music_hubs_layout_aero_breath(),
+        m.music_hubs_layout_aero_breath_blurb(),
         [
           "long-tone",
           "long-scale",
@@ -240,36 +241,34 @@ export const DRILL_GROUPS: DrillGroup[] = [
   },
   {
     id: "grooves",
-    title: "Grooves and time",
+    title: m.music_hubs_layout_grooves(),
     rows: [
       part(
         "pads",
         "grooves",
-        "Pad grooves",
-        "A repertoire of grooves in six levels, fills that land on the one, playing a bar back, an ostinato under a line, and holding the tempo alone.",
+        m.music_hubs_layout_pad_grooves(),
+        m.music_hubs_layout_pad_grooves_blurb(),
         ["groove", "fills", "echo", "ostinato", "steady"],
       ),
-      part(
-        "pads",
-        "beats",
-        "Beat making on the pads",
-        "Chop a loop onto the pads and play the slices, Note Repeat builds and rolls, and song-form pieces in one take.",
-        ["chop", "repeat", "song"],
-      ),
+      part("pads", "beats", m.music_hubs_layout_beats(), m.music_hubs_layout_beats_blurb(), [
+        "chop",
+        "repeat",
+        "song",
+      ]),
       row("strum"),
     ],
   },
   {
     id: "jazz",
-    title: "Play over changes",
+    title: m.music_hubs_layout_jazz(),
     rows: [
       row("voicings"),
       row("comping"),
       part(
         "accompany",
         "comping",
-        "Comping over changes",
-        "Shells or rootless voicings on a comping rhythm through the blues, a ii-V-I or any loop.",
+        m.music_hubs_layout_comping(),
+        m.music_hubs_layout_comping_blurb(),
         ["comping"],
       ),
       row("chord-scales"),
@@ -279,24 +278,24 @@ export const DRILL_GROUPS: DrillGroup[] = [
       part(
         "pads",
         "improvise",
-        "Improvise on the pads",
-        "Play anything over the band. Hear the take back as played, then nudged to the grid.",
+        m.music_hubs_layout_improvise(),
+        m.music_hubs_layout_improvise_blurb(),
         ["improvise"],
       ),
     ],
   },
-  { id: "theory", title: "Theory", rows: [row("circle")] },
-  { id: "studio", title: "Studio ears", rows: [row("listening")] },
+  { id: "theory", title: m.music_hubs_layout_theory(), rows: [row("circle")] },
+  { id: "studio", title: m.music_hubs_layout_studio(), rows: [row("listening")] },
   {
     id: "play",
-    title: "Phrases and songs",
+    title: m.music_hubs_layout_play(),
     rows: [
       row("phrases"),
       part(
         "accompany",
         "lead-sheet",
-        "Lead sheets",
-        "The melody in the right hand, roots, shells or chords in the left, from a lead sheet or your own score.",
+        m.music_hubs_layout_lead_sheets(),
+        m.music_hubs_layout_lead_sheets_blurb(),
         ["lead-sheet"],
       ),
       row("song-studio"),

@@ -8,6 +8,8 @@ import { PROGRESSIONS } from "@repo/music-core/content/jam";
 import { EAR_CHORD_QUALITIES } from "@repo/music-core/theory/chords";
 import { INTERVALS } from "@repo/music-core/theory/intervals";
 import { chordShapeById } from "@repo/music-core/theory/fretboard";
+import { formatList } from "@repo/i18n/format";
+import { m } from "@repo/i18n/messages.js";
 
 export type Stroke = "down" | "up" | "mute";
 
@@ -103,6 +105,27 @@ function fretDots(instrument: "guitar" | "ukulele", pcs: number[], from = 0, to 
 
 const CHORD_TONES: Record<string, number[]> = { major: [0, 4, 7], minor: [0, 3, 7] };
 
+/** A scale kind as the captions name it ("natural minor"). */
+const SCALE_NAME: Record<string, () => string> = {
+  major: m.music_hubs_preview_scale_major,
+  "natural-minor": m.music_hubs_preview_scale_natural_minor,
+  "harmonic-minor": m.music_hubs_preview_scale_harmonic_minor,
+  dorian: m.music_hubs_preview_scale_dorian,
+  phrygian: m.music_hubs_preview_scale_phrygian,
+  lydian: m.music_hubs_preview_scale_lydian,
+  mixolydian: m.music_hubs_preview_scale_mixolydian,
+  locrian: m.music_hubs_preview_scale_locrian,
+  "melodic-minor": m.music_hubs_preview_scale_melodic_minor,
+  "major-pentatonic": m.music_hubs_preview_scale_major_pentatonic,
+  "minor-pentatonic": m.music_hubs_preview_scale_minor_pentatonic,
+  blues: m.music_hubs_preview_scale_blues,
+  altered: m.music_hubs_preview_scale_altered,
+  "bebop-major": m.music_hubs_preview_scale_bebop_major,
+  "bebop-dominant": m.music_hubs_preview_scale_bebop_dominant,
+  "whole-tone": m.music_hubs_preview_scale_whole_tone,
+  diminished: m.music_hubs_preview_scale_diminished,
+};
+
 function scalePreview(q: URLSearchParams, instrument: Instrument | undefined): Preview {
   const kind = q.get("kind") ?? "major";
   const steps =
@@ -113,7 +136,7 @@ function scalePreview(q: URLSearchParams, instrument: Instrument | undefined): P
   const chordy = pattern === "arpeggio" || pattern === "triad-pairs" || pattern === "broken-chords";
   const minor = kind.includes("minor") || q.get("chord") === "minor";
   const offs = chordy ? [...CHORD_TONES[minor ? "minor" : "major"], 12] : steps;
-  const what = `${name(tonic)} ${kind.replace(/-/g, " ")}${chordy ? " arpeggio" : ""}`;
+  const what = { tonic: name(tonic), kind: SCALE_NAME[kind]?.() ?? kind.replace(/-/g, " ") };
   if (STRINGED(instrument)) {
     const { strings, dots } = fretDots(
       instrument,
@@ -125,11 +148,17 @@ function scalePreview(q: URLSearchParams, instrument: Instrument | undefined): P
       from: 0,
       to: 4,
       dots: dots.map((d) => ({ ...d, label: undefined })),
-      caption: `${what}, open position`,
+      caption: chordy
+        ? m.music_hubs_preview_arpeggio_open(what)
+        : m.music_hubs_preview_scale_open(what),
     };
   }
   const notes = offs.map((o) => tonic + o);
-  return keysFor(notes, `${what}, one octave`, { [tonic]: "1" });
+  return keysFor(
+    notes,
+    chordy ? m.music_hubs_preview_arpeggio_octave(what) : m.music_hubs_preview_scale_octave(what),
+    { [tonic]: "1" },
+  );
 }
 
 function rhythmPreview(id: string | null, caption?: string): Preview {
@@ -141,7 +170,7 @@ function rhythmPreview(id: string | null, caption?: string): Preview {
       steps: 4,
       perBeat: 1,
       hits: [0, 1, 2, 3].map((s) => ({ step: s, accent: s === 0 })),
-      caption: caption ?? "A steady pulse, four beats",
+      caption: caption ?? m.music_hubs_preview_steady_pulse(),
     };
   }
   const beats = p.meter.beats;
@@ -187,7 +216,9 @@ function strumPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"): Pre
     ? {
         ...r,
         chords: chords?.slice(0, 4),
-        caption: `Strum ${(chords ?? []).slice(0, 4).join(" ") || "the pattern"}, down and up`,
+        caption: chords?.length
+          ? m.music_hubs_preview_strum_chords({ chords: chords.slice(0, 4).join(" ") })
+          : m.music_hubs_preview_strum_pattern(),
       }
     : r;
 }
@@ -202,7 +233,7 @@ function chordsPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"): Pr
     frets: shape.frets,
     fingers: shape.fingers,
     name: shape.name,
-    caption: `${shape.name}, fingers in their colours`,
+    caption: m.music_hubs_preview_chord_fingers({ name: shape.name }),
   };
 }
 
@@ -217,7 +248,7 @@ function fretboardPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"):
       from: 1,
       to: 4,
       dots: [1, 2, 3, 4].map((f) => ({ string: s, fret: f, label: String(f) })),
-      caption: "One finger a fret: 1 2 3 4",
+      caption: m.music_hubs_preview_spider(),
     };
   }
   if (mode === "bends")
@@ -227,7 +258,7 @@ function fretboardPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"):
       from: 5,
       to: 8,
       dots: [{ string: Math.min(3, n), fret: 7, label: "↑" }],
-      caption: "Bend up to the target pitch",
+      caption: m.music_hubs_preview_bend(),
     };
   const string = Math.min(3, n);
   const open = TUNINGS[instrument][0].openStrings[string - 1];
@@ -237,7 +268,7 @@ function fretboardPreview(q: URLSearchParams, instrument: "guitar" | "ukulele"):
     from: 3,
     to: 7,
     dots: [{ string, fret: 5, label: name(open + 5) }],
-    caption: `Find ${name(open + 5)} on string ${string}, fret 5`,
+    caption: m.music_hubs_preview_find({ note: name(open + 5), string }),
   };
 }
 
@@ -257,7 +288,7 @@ function grooveLanes(id: string | null): Preview {
     steps: beats * perBeat,
     perBeat,
     lanes,
-    caption: `${g.label}, first bar`,
+    caption: m.music_hubs_preview_first_bar({ groove: g.label }),
   };
 }
 
@@ -305,7 +336,7 @@ function intervalPreview(q: URLSearchParams, instrument: Instrument | undefined)
   const tokens = (q.get("intervals") ?? "P5").split(",");
   const iv = INTERVALS.find((i) => i.token === tokens.at(-1)) ?? INTERVALS[6];
   const top = name(60 + iv.semitones);
-  const caption = `${iv.name}: C up to ${top}`;
+  const caption = m.music_hubs_preview_interval({ interval: iv.name, top });
   if (STRINGED(instrument)) {
     const f = intervalFrets(instrument, iv.semitones);
     return {
@@ -331,7 +362,15 @@ function qualityPreview(q: URLSearchParams): Preview {
     .flatMap((t) => EAR_CHORD_QUALITIES.find((c) => c.token === t) ?? []);
   const first = shown[0] ?? EAR_CHORD_QUALITIES[0];
   const notes = first.intervals.map((i) => 60 + i);
-  return keysFor(notes, `${shown.map((s) => s.label).join(" or ")}: hear the colour`);
+  return keysFor(
+    notes,
+    m.music_hubs_preview_quality({
+      qualities: formatList(
+        shown.map((s) => s.label),
+        "disjunction",
+      ),
+    }),
+  );
 }
 
 /**
@@ -354,11 +393,11 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       const t = tonicOf(q.get("tonic"));
       return keysFor(
         [t - 12, t - 8, t - 5, t, t + 2, t + 4, t + 5, t + 7],
-        `${name(t)}: left hand chord, right hand line`,
+        m.music_hubs_preview_two_hand({ tonic: name(t) }),
       );
     }
     case "/voicings":
-      return keysFor([62, 65, 69, 72], "Dm7: D F A C, the ii of C", {
+      return keysFor([62, 65, 69, 72], m.music_hubs_preview_voicing(), {
         62: "R",
         65: "3",
         69: "5",
@@ -366,11 +405,13 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       });
     case "/comping":
     case "/accompany":
-      return keysFor([48, 52, 58], "C7 shell: root, 3rd and 7th", { 48: "R", 52: "3", 58: "7" });
+      return keysFor([48, 52, 58], m.music_hubs_preview_shell(), { 48: "R", 52: "3", 58: "7" });
     case "/pedal":
-      return keysFor([48, 60, 64, 67], "Hold C, change the pedal with the chord");
+      return keysFor([48, 60, 64, 67], m.music_hubs_preview_pedal());
     case "/chord-scales":
-      return keysFor([62, 64, 65, 67, 69, 71, 72, 74], "D dorian over Dm7", { 62: "1" });
+      return keysFor([62, 64, 65, 67, 69, 71, 72, 74], m.music_hubs_preview_chord_scale(), {
+        62: "1",
+      });
     case "/licks":
     case "/call-response":
     case "/jam":
@@ -387,15 +428,14 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         kind: "staff",
         clef: "treble",
         notes: [62, 65, 69, 72, 71, 67],
-        caption:
-          route === "/licks" ? "A ii-V line: D F A C into the V" : "Hear a phrase, play an answer",
+        caption: route === "/licks" ? m.music_hubs_preview_lick() : m.music_hubs_preview_call(),
       };
     case "/phrases":
       return {
         kind: "staff",
         clef: "treble",
         notes: [60, 60, 67, 67, 69, 69, 67],
-        caption: "A short phrase, read and played",
+        caption: m.music_hubs_preview_phrase(),
       };
     case "/reading": {
       const bass = q.get("clefs") === "bass";
@@ -404,35 +444,40 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
             kind: "staff",
             clef: "bass",
             notes: [48, 50, 52, 55],
-            caption: "Name each note on the bass staff",
+            caption: m.music_hubs_preview_bass_staff(),
           }
         : {
             kind: "staff",
             clef: "treble",
             notes: [60, 62, 64, 67],
-            caption: "Name each note on the staff",
+            caption: m.music_hubs_preview_staff(),
           };
     }
     case "/aerophone": {
       const mode = q.get("mode") ?? "";
       if (/long|swell|vibrato|interval/.test(mode))
-        return { kind: "staff", clef: "treble", notes: [67], caption: "One long, steady tone" };
+        return {
+          kind: "staff",
+          clef: "treble",
+          notes: [67],
+          caption: m.music_hubs_preview_long_tone(),
+        };
       return {
         kind: "staff",
         clef: "treble",
         notes: [67, 69, 71, 72],
-        caption: "G A B C under the fingers",
+        caption: m.music_hubs_preview_fingers(),
       };
     }
     case "/rhythm":
       if (q.get("mode") === "dictation")
         return {
           ...(rhythmPreview("eighths") as Extract<Preview, { kind: "rhythm" }>),
-          caption: "Hear a bar, write its rhythm",
+          caption: m.music_hubs_preview_dictation(),
         };
       return rhythmPreview(
         q.get("pattern"),
-        q.get("pattern") ? undefined : "Tap with a steady pulse",
+        q.get("pattern") ? undefined : m.music_hubs_preview_tap(),
       );
     case "/strum":
       return strumPreview(q, strings);
@@ -447,29 +492,28 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       return {
         kind: "pads",
         lit: [0, 2, 5, 10],
-        caption:
-          mode === "chop" ? "A loop chopped onto the pads" : "Sixteen pads, the ones to play lit",
+        caption: mode === "chop" ? m.music_hubs_preview_chop() : m.music_hubs_preview_pads(),
       };
     }
     case "/circle":
-      return { kind: "circle", caption: "Keys a fifth apart, round the circle" };
+      return { kind: "circle", caption: m.music_hubs_preview_circle() };
     case "/ear/studio":
-      return { kind: "eq", caption: "One band boosted: hear where it is" };
+      return { kind: "eq", caption: m.music_hubs_preview_eq() };
     case "/ear/intervals":
     case "/ear/interval-compare":
       return intervalPreview(q, instrument);
     case "/ear/chord-qualities":
       return qualityPreview(q);
     case "/ear/inversions":
-      return keysFor([64, 67, 72], "First inversion: E G C, the 3rd in the bass", { 64: "3" });
+      return keysFor([64, 67, 72], m.music_hubs_preview_inversion(), { 64: "3" });
     case "/ear/scales":
       return keysFor(
         SCALE_DATA.semitonesByKind.major.map((s) => 60 + s),
-        "Major or minor: hear the scale",
+        m.music_hubs_preview_ear_scales(),
         { 60: "1" },
       );
     case "/ear/mixed":
-      return keysFor([60, 64, 67, 72], "A mixed review of what you hear: notes against home", {
+      return keysFor([60, 64, 67, 72], m.music_hubs_preview_mixed(), {
         60: "1",
         64: "3",
         67: "5",
@@ -484,9 +528,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
       const labels = Object.fromEntries(notes.map((m) => [m, String(major.indexOf(m - 60) + 1)]));
       return keysFor(
         notes,
-        steps.length === 2
-          ? "The tonic (do, 1) and 5"
-          : "Each note heard against the tonic (do, 1)",
+        steps.length === 2 ? m.music_hubs_preview_anchor() : m.music_hubs_preview_degrees(),
         labels,
       );
     }
@@ -500,14 +542,14 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         : route === "/ear/cadences"
           ? ["IV", "V", "I"]
           : ["I", "IV", "V", "I"];
-      return { kind: "changes", chords, caption: "Name the chords by number" };
+      return { kind: "changes", chords, caption: m.music_hubs_preview_numbers() };
     }
     case "/ear/bass-lines":
       return {
         kind: "staff",
         clef: "bass",
         notes: [48, 45, 41, 43],
-        caption: "Hear the bass line, write it",
+        caption: m.music_hubs_preview_bass_line(),
       };
     case "/ear/melody-dictation":
     case "/ear/wrong-note":
@@ -516,7 +558,7 @@ export function drillPreview(href: string, strip?: Instrument): Preview {
         kind: "staff",
         clef: "treble",
         notes: [64, 62, 60, 62, 64, 64, 64],
-        caption: "Hear a melody, find its notes",
+        caption: m.music_hubs_preview_melody(),
       };
     default:
       return { kind: "icon" };

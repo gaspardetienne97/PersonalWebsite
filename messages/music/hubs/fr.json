@@ -1,3 +1,344 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_hubs_minutes_short": "{minutes} min",
+  "music_hubs_n_of_total": "{n} sur {total}",
+  "music_hubs_done": "Terminé",
+  "music_hubs_now": "Maintenant",
+  "music_hubs_start": "Commencer",
+  "music_hubs_today_greeting_morning": "Ce matin, {instrument}",
+  "music_hubs_today_greeting_afternoon": "Cet après-midi, {instrument}",
+  "music_hubs_today_greeting_evening": "Ce soir, {instrument}",
+  "music_hubs_today_greeting_set": ", série d’exercices {n}",
+  "music_hubs_today_greeting_streak_first": ", jour 1 de la série",
+  "music_hubs_today_greeting_streak": ", série de {days} jours",
+  "music_hubs_today_title_complete": "Séance terminée",
+  "music_hubs_today_title_left": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Encore {count} minute",
+        "countPlural=other": "Encore {count} minutes"
+      }
+    }
+  ],
+  "music_hubs_today_title_plan": "La séance du jour, {minutes} minutes",
+  "music_hubs_today_adjust": "Ajuster",
+  "music_hubs_today_length": "Durée de la séance",
+  "music_hubs_today_day_routine": "Programme du {day}",
+  "music_hubs_today_day_instrument": "Instrument pour chaque {day}",
+  "music_hubs_today_day_repeats": "Se répète chaque {day}.",
+  "music_hubs_today_set_label": "La séance du jour",
+  "music_hubs_today_set_value": "{done} blocs terminés sur {total}",
+  "music_hubs_today_block_done_sr": "{label}, terminé",
+  "music_hubs_today_block_now_sr": "{label}, maintenant",
+  "music_hubs_today_block_now_minutes": "Maintenant, {minutes} min",
+  "music_hubs_today_not_measured": "Non mesuré",
+  "music_hubs_today_stars_label": "{n} étoiles sur 3 : {words}",
+  "music_hubs_today_stars_under70": "moins de 70 %",
+  "music_hubs_today_stars_70": "70 % ou plus",
+  "music_hubs_today_stars_85": "85 % ou plus",
+  "music_hubs_today_stars_clean": "un passage sans faute",
+  "music_hubs_today_n_of_3": "{n} sur 3",
+  "music_hubs_today_n_of_3_stars": "{n} étoiles sur 3",
+  "music_hubs_today_done_heading": "Terminé pour aujourd’hui : chaque bloc a été joué",
+  "music_hubs_today_done_detail": "{duration} de jeu. Les {minutes} minutes sont indicatives. La séance est terminée dès que chaque bloc a été joué une fois.",
+  "music_hubs_today_correct": "Justes",
+  "music_hubs_today_xp_earned": "XP gagnés",
+  "music_hubs_today_extra": "En plus :",
+  "music_hubs_today_repeat": "Refaire la séance",
+  "music_hubs_today_open_journal": "Ouvrir le journal",
+  "music_hubs_today_tomorrow": "Demain, {minutes} minutes de {instrument}",
+  "music_hubs_today_step_sr": "Étape {n} : ",
+  "music_hubs_today_step_done_sr": "Étape {n}, terminée : ",
+  "music_hubs_today_so_far": "{duration} jusqu’ici",
+  "music_hubs_today_start_with": "Commencer par {label}",
+  "music_hubs_again": "Encore",
+  "music_hubs_today_streak": "Série",
+  "music_hubs_today_focus_right": "{pct} % de réussite",
+  "music_hubs_today_focus_on": "en {name}",
+  "music_hubs_today_focus_answers": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "({count} réponse en Évaluation)",
+        "countPlural=other": "({count} réponses en Évaluation)"
+      }
+    }
+  ],
+  "music_hubs_today_coach_need": "Répondez à {count} questions en Évaluation pour trouver votre point faible.",
+  "music_hubs_today_coach_info_label": "Comment les points faibles sont trouvés",
+  "music_hubs_today_coach_info": "{summary} Un passage en Évaluation ne donne aucun indice et note chaque réponse.",
+  "music_hubs_today_coach_bar": "Réponses en Évaluation",
+  "music_hubs_today_practice_only": "La séance du jour s’est faite en Pratique. Seules les réponses en Évaluation comptent ici.",
+  "music_hubs_today_challenges": "Défis du jour",
+  "music_hubs_done_sr": "Terminé : ",
+  "music_hubs_today_xp_level": "Niveau XP {level}, {xp} XP au total.",
+  "music_hubs_paths_status_review": "À revoir",
+  "music_hubs_up_next": "À suivre",
+  "music_hubs_paths_status_in_progress": "En cours",
+  "music_hubs_paths_status_not_started": "Pas commencé",
+  "music_hubs_locked": "Verrouillé",
+  "music_hubs_paths_status_todo": "Lire et jouer",
+  "music_hubs_paths_strand_chords": "Accords et grattage",
+  "music_hubs_paths_strand_fingerpicking": "Fingerpicking",
+  "music_hubs_paths_strand_lead": "Solo",
+  "music_hubs_paths_strand_riffs": "Riffs",
+  "music_hubs_paths_strand_reading": "Lecture, théorie et oreille",
+  "music_hubs_paths_strand_ear": "Oreille",
+  "music_hubs_paths_strand_harmony": "Harmonie",
+  "music_hubs_paths_strand_songs": "Morceaux à l’oreille",
+  "music_hubs_paths_level": "Niveau {id}",
+  "music_hubs_paths_level_status": [
+    {
+      "declarations": [
+        "input total",
+        "input done",
+        "input name",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{name} : {done} étape sur {total}",
+        "totalPlural=other": "{name} : {done} étapes sur {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_level_status_passed": [
+    {
+      "declarations": [
+        "input total",
+        "input done",
+        "input name",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{name} : {done} étape réussie sur {total}",
+        "totalPlural=other": "{name} : {done} étapes réussies sur {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_goal": "Objectif : {goal}",
+  "music_hubs_paths_coming": "Bientôt",
+  "music_hubs_paths_almost": "Presque",
+  "music_hubs_paths_step_sr": "Étape {n} : ",
+  "music_hubs_paths_to_pass": "Pour réussir :",
+  "music_hubs_paths_waits_for": "En attente de : {needs}",
+  "music_hubs_paths_review_note": "Une étape suivante que vous avez réussie couvre déjà ceci. Servez-vous-en pour réviser.",
+  "music_hubs_paths_runs_passed": "{done} sur {total} réussis.",
+  "music_hubs_paths_passing_days": "C’est réussi pour l’instant : rejouez-le un autre jour pour confirmer.",
+  "music_hubs_paths_passing_runs": "C’est réussi pour l’instant : encore quelques passages en Évaluation pour confirmer.",
+  "music_hubs_paths_min_bpm": "Compte à {bpm} BPM ou plus vite.",
+  "music_hubs_paths_locked_note": "S’ouvre une fois les étapes précédentes réussies.",
+  "music_hubs_open": "Ouvrir",
+  "music_hubs_paths_song_list": "Liste de morceaux",
+  "music_hubs_paths_songs_played_of": [
+    {
+      "declarations": ["input pick", "input played", "local pickPlural = pick: plural"],
+      "selectors": ["pickPlural"],
+      "match": {
+        "pickPlural=one": "{played} morceau joué sur {pick}",
+        "pickPlural=other": "{played} morceaux joués sur {pick}"
+      }
+    }
+  ],
+  "music_hubs_paths_songs_along": "Morceaux pour jouer avec l’enregistrement",
+  "music_hubs_paths_songs_label": "Morceaux de la liste",
+  "music_hubs_paths_played_sr": "Joué : ",
+  "music_hubs_paths_pick_any": "Choisissez-en {pick}. Un morceau compte quand vous le jouez dans le mode Performance de la pratique des morceaux à 80 % ou plus, près du tempo de l’enregistrement, deux jours différents.",
+  "music_hubs_paths_play_in_songs": "Jouer dans la pratique des morceaux",
+  "music_hubs_paths_adding": "Ajout…",
+  "music_hubs_paths_add_to_songs": "Ajouter à mes morceaux",
+  "music_hubs_paths_import_score": "Importer sa partition",
+  "music_hubs_paths_days_of_2": "{n} jour(s) sur 2",
+  "music_hubs_paths_not_played": "Pas encore joué",
+  "music_hubs_paths_level_test": "Test de niveau",
+  "music_hubs_paths_level_passed": "Niveau réussi",
+  "music_hubs_paths_checkpoint": "Le point de contrôle à la fin du niveau",
+  "music_hubs_paths_nav": "Parcours",
+  "music_hubs_paths_steps_of": [
+    {
+      "declarations": ["input total", "input done", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{done} étape sur {total}",
+        "totalPlural=other": "{done} étapes sur {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_steps_passed": [
+    {
+      "declarations": ["input total", "input done", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{done} étape réussie sur {total}",
+        "totalPlural=other": "{done} étapes réussies sur {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_go_start": "Commencer",
+  "music_hubs_paths_go_checkin": "le bilan de départ",
+  "music_hubs_paths_go_path": "le parcours",
+  "music_hubs_paths_go_continue": "Continuer",
+  "music_hubs_paths_abrsm": "ABRSM est un organisme d’examens britannique. Ses grades de piano vont de 1 (première année) à 8 (avancé) ; {grade} correspond à un pianiste de niveau intermédiaire assuré.",
+  "music_hubs_paths_about": "À propos de ce parcours",
+  "music_hubs_paths_benchmark": "À la fin, le niveau se situe autour de {benchmark}.",
+  "music_hubs_paths_levels_steps": [
+    {
+      "declarations": ["input steps", "input levels", "local stepsPlural = steps: plural"],
+      "selectors": ["stepsPlural"],
+      "match": {
+        "stepsPlural=one": "{levels} niveaux, {steps} étape en tout.",
+        "stepsPlural=other": "{levels} niveaux, {steps} étapes en tout."
+      }
+    }
+  ],
+  "music_hubs_paths_steps_all": [
+    {
+      "declarations": ["input steps", "local stepsPlural = steps: plural"],
+      "selectors": ["stepsPlural"],
+      "match": {
+        "stepsPlural=one": "{steps} étape en tout.",
+        "stepsPlural=other": "{steps} étapes en tout."
+      }
+    }
+  ],
+  "music_hubs_paths_levels": "Niveaux",
+  "music_hubs_paths_level_passed_label": "{name} : {title}, réussi",
+  "music_hubs_paths_level_current_label": "{name} : {title}, en cours",
+  "music_hubs_paths_level_ahead_label": "{name} : {title}, à venir",
+  "music_hubs_paths_level_heading": "{name} : {title}",
+  "music_hubs_paths_checkin_intro": "Un court test de ce que vous jouez déjà, pour que ces étapes deviennent de courtes révisions.",
+  "music_hubs_paths_checkin_how": "Comment fonctionne le bilan de départ",
+  "music_hubs_paths_checkin_play": "Jouez chaque étape du bilan en Évaluation",
+  "music_hubs_paths_checkin_review": "Révisez chaque étape deux jours différents",
+  "music_hubs_paths_new_here": "Nouveau ici : {adds}",
+  "music_hubs_paths_steps_passed_label": "Étapes réussies",
+  "music_hubs_paths_done_of": "{done} sur {total} terminés",
+  "music_hubs_paths_passed": "Réussi",
+  "music_hubs_paths_songs_played": "Morceaux joués : {played} sur {pick}",
+  "music_hubs_paths_runs_so_far": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} passage en Évaluation jusqu’ici, avec une moyenne de {pct} %.",
+        "countPlural=other": "{count} passages en Évaluation jusqu’ici, les derniers avec une moyenne de {pct} %."
+      }
+    }
+  ],
+  "music_hubs_pair": "{a} : {b}",
+  "music_hubs_drills_mode_from_memory": "De mémoire",
+  "music_hubs_drills_search_label": "Rechercher des exercices",
+  "music_hubs_drills_search_placeholder": "Rechercher parmi {total} exercices",
+  "music_hubs_drills_filter": "Filtre d’instrument",
+  "music_hubs_drills_all": "Tous",
+  "music_hubs_drills_all_rest": "les instruments",
+  "music_hubs_drills_count_all": "{total} exercices pour tous les instruments",
+  "music_hubs_drills_count_for": "{total} exercices de {instrument}",
+  "music_hubs_drills_matching": "correspondant à « {q} »",
+  "music_hubs_drills_clear": "Effacer la recherche",
+  "music_hubs_drills_jump": "Aller à",
+  "music_hubs_drills_no_matches": "Aucun résultat",
+  "music_hubs_drills_no_matches_for": "Aucun résultat pour « {q} »",
+  "music_hubs_drills_try_word": "Essayez un autre mot.",
+  "music_hubs_drills_try_word_all": "Essayez un autre mot, ou cherchez dans tous les instruments.",
+  "music_hubs_drills_last": "Dernier : {pct}",
+  "music_hubs_drills_skill_score": "Score de compétence {pct}",
+  "music_hubs_drills_checked_of": "{n} réponses sur {total} en Évaluation",
+  "music_hubs_drills_not_measured_sr": ", pas encore mesuré",
+  "music_hubs_drills_start_here": "Commencez ici",
+  "music_hubs_drills_not_played": "Pas joué",
+  "music_hubs_drills_any_instrument": "Tout instrument",
+  "music_hubs_drills_exercises_in": "Exercices de {title}",
+  "music_hubs_drills_exercises": "Exercices",
+  "music_hubs_preview_scale_major": "gamme majeure",
+  "music_hubs_preview_scale_natural_minor": "gamme mineure naturelle",
+  "music_hubs_preview_scale_harmonic_minor": "gamme mineure harmonique",
+  "music_hubs_preview_scale_dorian": "mode dorien",
+  "music_hubs_preview_scale_phrygian": "mode phrygien",
+  "music_hubs_preview_scale_lydian": "mode lydien",
+  "music_hubs_preview_scale_mixolydian": "mode mixolydien",
+  "music_hubs_preview_scale_locrian": "mode locrien",
+  "music_hubs_preview_scale_melodic_minor": "gamme mineure mélodique",
+  "music_hubs_preview_scale_major_pentatonic": "pentatonique majeure",
+  "music_hubs_preview_scale_minor_pentatonic": "pentatonique mineure",
+  "music_hubs_preview_scale_blues": "gamme blues",
+  "music_hubs_preview_scale_altered": "gamme altérée",
+  "music_hubs_preview_scale_bebop_major": "gamme bebop majeure",
+  "music_hubs_preview_scale_bebop_dominant": "gamme bebop de dominante",
+  "music_hubs_preview_scale_whole_tone": "gamme par tons",
+  "music_hubs_preview_scale_diminished": "gamme diminuée",
+  "music_hubs_preview_scale_octave": "{tonic} : {kind}, une octave",
+  "music_hubs_preview_scale_open": "{tonic} : {kind}, position ouverte",
+  "music_hubs_preview_arpeggio_octave": "{tonic} : {kind} en arpège, une octave",
+  "music_hubs_preview_arpeggio_open": "{tonic} : {kind} en arpège, position ouverte",
+  "music_hubs_preview_steady_pulse": "Une pulsation régulière, quatre temps",
+  "music_hubs_preview_strum_chords": "Grattez {chords}, vers le bas et vers le haut",
+  "music_hubs_preview_strum_pattern": "Grattez le motif, vers le bas et vers le haut",
+  "music_hubs_preview_chord_fingers": "{name}, chaque doigt dans sa couleur",
+  "music_hubs_preview_spider": "Un doigt par frette : 1 2 3 4",
+  "music_hubs_preview_bend": "Tirez la corde jusqu’à la hauteur visée",
+  "music_hubs_preview_find": "Trouvez {note} sur la corde {string}, frette 5",
+  "music_hubs_preview_first_bar": "{groove}, première mesure",
+  "music_hubs_preview_interval": "{interval} : de C en montant jusqu’à {top}",
+  "music_hubs_preview_quality": "{qualities} : écoutez la couleur",
+  "music_hubs_preview_two_hand": "{tonic} : accord à la main gauche, ligne à la main droite",
+  "music_hubs_preview_voicing": "Dm7 : D F A C, le ii de C",
+  "music_hubs_preview_shell": "C7 en shell : fondamentale, tierce et septième",
+  "music_hubs_preview_pedal": "Tenez C, changez la pédale avec l’accord",
+  "music_hubs_preview_chord_scale": "D dorien sur Dm7",
+  "music_hubs_preview_lick": "Une ligne ii-V : D F A C vers le V",
+  "music_hubs_preview_call": "Écoutez une phrase, jouez une réponse",
+  "music_hubs_preview_phrase": "Une courte phrase, lue et jouée",
+  "music_hubs_preview_bass_staff": "Nommez chaque note sur la portée en clé de fa",
+  "music_hubs_preview_staff": "Nommez chaque note sur la portée",
+  "music_hubs_preview_long_tone": "Une note longue et stable",
+  "music_hubs_preview_fingers": "G A B C sous les doigts",
+  "music_hubs_preview_dictation": "Écoutez une mesure, écrivez son rythme",
+  "music_hubs_preview_tap": "Tapez sur une pulsation régulière",
+  "music_hubs_preview_chop": "Une boucle découpée sur les pads",
+  "music_hubs_preview_pads": "Seize pads, ceux à jouer allumés",
+  "music_hubs_preview_circle": "Des tonalités à une quinte d’écart, autour du cercle",
+  "music_hubs_preview_eq": "Une bande amplifiée : écoutez où elle se trouve",
+  "music_hubs_preview_inversion": "Premier renversement : E G C, la tierce à la basse",
+  "music_hubs_preview_ear_scales": "Majeure ou mineure : écoutez la gamme",
+  "music_hubs_preview_mixed": "Une révision variée de ce que vous entendez : des notes par rapport à la tonique",
+  "music_hubs_preview_anchor": "La tonique (do, 1) et le 5",
+  "music_hubs_preview_degrees": "Chaque note entendue par rapport à la tonique (do, 1)",
+  "music_hubs_preview_numbers": "Nommez les accords par leur numéro",
+  "music_hubs_preview_bass_line": "Écoutez la ligne de basse, écrivez-la",
+  "music_hubs_preview_melody": "Écoutez une mélodie, trouvez ses notes",
+  "music_hubs_layout_ear": "Oreille",
+  "music_hubs_layout_notes": "Notes et mélodie",
+  "music_hubs_layout_notes_note": "Répondez en choisissant, en le rejouant, en chantant ou en écoutant en même temps.",
+  "music_hubs_layout_chords": "Accords, gammes et tonalités",
+  "music_hubs_layout_review": "Révision",
+  "music_hubs_layout_reading": "Lecture et rythme",
+  "music_hubs_layout_technique": "Technique",
+  "music_hubs_layout_patterns": "Motifs d’accompagnement",
+  "music_hubs_layout_patterns_blurb": "Motifs de main pop, ballade, boogie, stride et gospel sur n’importe quelle boucle d’accords, dans n’importe quelle tonalité.",
+  "music_hubs_layout_pad_technique": "Technique des pads",
+  "music_hubs_layout_pad_technique_blurb": "Frappes, roulements, accents et notes fantômes sur le clic, au niveau de votre choix, et rudiments répartis sur tout le kit.",
+  "music_hubs_layout_aero_fingers": "Doigts sur l’Aerophone",
+  "music_hubs_layout_aero_fingers_blurb": "Une vérification du réglage, les leçons de doigté de Roland dans l’ordre, puis des gammes dans toutes les tonalités, les passages de l’octave et des clés de paume, et des trilles.",
+  "music_hubs_layout_aero_breath": "Souffle et langue sur l’Aerophone",
+  "music_hubs_layout_aero_breath_blurb": "Notes tenues par niveau, une gamme en notes tenues, des crescendos, des motifs de coups de langue, l’articulation swing, le vibrato de morsure et des intervalles d’arrivée sur un bourdon.",
+  "music_hubs_layout_grooves": "Grooves et tempo",
+  "music_hubs_layout_pad_grooves": "Grooves aux pads",
+  "music_hubs_layout_pad_grooves_blurb": "Un répertoire de grooves en six niveaux, des breaks qui retombent sur le un, rejouer une mesure, un ostinato sous une ligne, et tenir le tempo seul.",
+  "music_hubs_layout_beats": "Création de beats aux pads",
+  "music_hubs_layout_beats_blurb": "Découpez une boucle sur les pads et jouez les tranches, des montées et roulements en Note Repeat, et des morceaux complets en une seule prise.",
+  "music_hubs_layout_jazz": "Jouer sur une grille",
+  "music_hubs_layout_comping": "Accompagnement sur une grille",
+  "music_hubs_layout_comping_blurb": "Des shells ou des voicings sans fondamentale sur un rythme d’accompagnement, dans un blues, un ii-V-I ou n’importe quelle boucle.",
+  "music_hubs_layout_improvise": "Improviser aux pads",
+  "music_hubs_layout_improvise_blurb": "Jouez ce que vous voulez sur l’orchestre. Réécoutez la prise telle que jouée, puis recalée sur la grille.",
+  "music_hubs_layout_theory": "Théorie",
+  "music_hubs_layout_studio": "Oreille de studio",
+  "music_hubs_layout_play": "Phrases et morceaux",
+  "music_hubs_layout_lead_sheets": "Grilles mélodiques",
+  "music_hubs_layout_lead_sheets_blurb": "La mélodie à la main droite, fondamentales, shells ou accords à la main gauche, à partir d’une grille ou de votre propre partition."
 }

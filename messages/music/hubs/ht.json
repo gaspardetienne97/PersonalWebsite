@@ -1,3 +1,344 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_hubs_minutes_short": "{minutes} min",
+  "music_hubs_n_of_total": "{n} sou {total}",
+  "music_hubs_done": "Fini",
+  "music_hubs_now": "Kounye a",
+  "music_hubs_start": "Kòmanse",
+  "music_hubs_today_greeting_morning": "Maten an, {instrument}",
+  "music_hubs_today_greeting_afternoon": "Apremidi a, {instrument}",
+  "music_hubs_today_greeting_evening": "Aswè a, {instrument}",
+  "music_hubs_today_greeting_set": ", seri egzèsis {n}",
+  "music_hubs_today_greeting_streak_first": ", premye jou seri a",
+  "music_hubs_today_greeting_streak": ", seri {days} jou",
+  "music_hubs_today_title_complete": "Seyans lan fini",
+  "music_hubs_today_title_left": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Rete {count} minit",
+        "countPlural=other": "Rete {count} minit"
+      }
+    }
+  ],
+  "music_hubs_today_title_plan": "Seyans jodi a, {minutes} minit",
+  "music_hubs_today_adjust": "Ajiste",
+  "music_hubs_today_length": "Longè seyans lan",
+  "music_hubs_today_day_routine": "Pwogram {day}",
+  "music_hubs_today_day_instrument": "Enstriman pou chak {day}",
+  "music_hubs_today_day_repeats": "Sa repete chak {day}.",
+  "music_hubs_today_set_label": "Seyans jodi a",
+  "music_hubs_today_set_value": "{done} blòk fini sou {total}",
+  "music_hubs_today_block_done_sr": "{label}, fini",
+  "music_hubs_today_block_now_sr": "{label}, kounye a",
+  "music_hubs_today_block_now_minutes": "Kounye a, {minutes} min",
+  "music_hubs_today_not_measured": "Pa mezire",
+  "music_hubs_today_stars_label": "{n} zetwal sou 3 : {words}",
+  "music_hubs_today_stars_under70": "mwens pase 70%",
+  "music_hubs_today_stars_70": "70% oswa plis",
+  "music_hubs_today_stars_85": "85% oswa plis",
+  "music_hubs_today_stars_clean": "yon pasaj san erè",
+  "music_hubs_today_n_of_3": "{n} sou 3",
+  "music_hubs_today_n_of_3_stars": "{n} zetwal sou 3",
+  "music_hubs_today_done_heading": "Fini pou jodi a: ou jwe tout blòk yo",
+  "music_hubs_today_done_detail": "{duration} w ap jwe. {minutes} minit yo se yon gid. Seyans lan fini depi chak blòk gen yon pasaj.",
+  "music_hubs_today_correct": "Bon",
+  "music_hubs_today_xp_earned": "XP ou genyen",
+  "music_hubs_today_extra": "Anplis:",
+  "music_hubs_today_repeat": "Refè seyans lan",
+  "music_hubs_today_open_journal": "Louvri jounal la",
+  "music_hubs_today_tomorrow": "Demen, {minutes} minit {instrument}",
+  "music_hubs_today_step_sr": "Etap {n}: ",
+  "music_hubs_today_step_done_sr": "Etap {n}, fini: ",
+  "music_hubs_today_so_far": "{duration} jiskounye a",
+  "music_hubs_today_start_with": "Kòmanse ak {label}",
+  "music_hubs_again": "Ankò",
+  "music_hubs_today_streak": "Seri",
+  "music_hubs_today_focus_right": "{pct}% bon",
+  "music_hubs_today_focus_on": "sou {name}",
+  "music_hubs_today_focus_answers": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "({count} repons nan Evalyasyon)",
+        "countPlural=other": "({count} repons nan Evalyasyon)"
+      }
+    }
+  ],
+  "music_hubs_today_coach_need": "Reponn {count} kesyon nan Evalyasyon pou jwenn pwen fèb ou.",
+  "music_hubs_today_coach_info_label": "Kijan nou jwenn pwen fèb yo",
+  "music_hubs_today_coach_info": "{summary} Yon pasaj nan Evalyasyon pa bay okenn endis epi li bay nòt pou chak repons.",
+  "music_hubs_today_coach_bar": "Repons nan Evalyasyon",
+  "music_hubs_today_practice_only": "Seyans jodi a te fèt nan Pratik. Se sèlman repons nan Evalyasyon ki konte isit la.",
+  "music_hubs_today_challenges": "Defi jodi a",
+  "music_hubs_done_sr": "Fini: ",
+  "music_hubs_today_xp_level": "Nivo XP {level}, {xp} XP an tout.",
+  "music_hubs_paths_status_review": "Revize",
+  "music_hubs_up_next": "Pwochen",
+  "music_hubs_paths_status_in_progress": "Ap fèt",
+  "music_hubs_paths_status_not_started": "Poko kòmanse",
+  "music_hubs_locked": "Bloke",
+  "music_hubs_paths_status_todo": "Li epi jwe",
+  "music_hubs_paths_strand_chords": "Akò ak grate",
+  "music_hubs_paths_strand_fingerpicking": "Fingerpicking",
+  "music_hubs_paths_strand_lead": "Solo",
+  "music_hubs_paths_strand_riffs": "Riff",
+  "music_hubs_paths_strand_reading": "Lekti, teyori ak zòrèy",
+  "music_hubs_paths_strand_ear": "Zòrèy",
+  "music_hubs_paths_strand_harmony": "Amoni",
+  "music_hubs_paths_strand_songs": "Chante pa zòrèy",
+  "music_hubs_paths_level": "Nivo {id}",
+  "music_hubs_paths_level_status": [
+    {
+      "declarations": [
+        "input total",
+        "input done",
+        "input name",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{name}: {done} etap sou {total}",
+        "totalPlural=other": "{name}: {done} etap sou {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_level_status_passed": [
+    {
+      "declarations": [
+        "input total",
+        "input done",
+        "input name",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{name}: {done} etap pase sou {total}",
+        "totalPlural=other": "{name}: {done} etap pase sou {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_goal": "Objektif: {goal}",
+  "music_hubs_paths_coming": "Ap vini",
+  "music_hubs_paths_almost": "Prèske rive",
+  "music_hubs_paths_step_sr": "Etap {n}: ",
+  "music_hubs_paths_to_pass": "Pou pase:",
+  "music_hubs_paths_waits_for": "Ap tann: {needs}",
+  "music_hubs_paths_review_note": "Yon etap pi devan ou te pase gen sa ladan l deja. Sèvi avè l pou revize.",
+  "music_hubs_paths_runs_passed": "{done} sou {total} pase.",
+  "music_hubs_paths_passing_days": "Ou pase l kounye a: jwe l ankò yon lòt jou pou konfime.",
+  "music_hubs_paths_passing_runs": "Ou pase l kounye a: kèk lòt pasaj nan Evalyasyon pou konfime.",
+  "music_hubs_paths_min_bpm": "Li konte a {bpm} BPM oswa pi vit.",
+  "music_hubs_paths_locked_note": "L ap louvri lè ou pase etap ki anvan l yo.",
+  "music_hubs_open": "Louvri",
+  "music_hubs_paths_song_list": "Lis chante",
+  "music_hubs_paths_songs_played_of": [
+    {
+      "declarations": ["input pick", "input played", "local pickPlural = pick: plural"],
+      "selectors": ["pickPlural"],
+      "match": {
+        "pickPlural=one": "{played} chante jwe sou {pick}",
+        "pickPlural=other": "{played} chante jwe sou {pick}"
+      }
+    }
+  ],
+  "music_hubs_paths_songs_along": "Chante pou jwe ansanm ak yo",
+  "music_hubs_paths_songs_label": "Chante ki nan lis la",
+  "music_hubs_paths_played_sr": "Jwe: ",
+  "music_hubs_paths_pick_any": "Chwazi nenpòt {pick}. Yon chante konte lè ou jwe l nan mòd Pèfòmans nan Pratik chante a, ak 80% oswa plis, pre tempo anrejistreman an, de jou diferan.",
+  "music_hubs_paths_play_in_songs": "Jwe nan Pratik chante",
+  "music_hubs_paths_adding": "Ap ajoute…",
+  "music_hubs_paths_add_to_songs": "Ajoute nan chante mwen yo",
+  "music_hubs_paths_import_score": "Enpòte pati a",
+  "music_hubs_paths_days_of_2": "{n} jou sou 2",
+  "music_hubs_paths_not_played": "Poko jwe",
+  "music_hubs_paths_level_test": "Tès nivo",
+  "music_hubs_paths_level_passed": "Nivo pase",
+  "music_hubs_paths_checkpoint": "Tès ki nan fen nivo a",
+  "music_hubs_paths_nav": "Chemen",
+  "music_hubs_paths_steps_of": [
+    {
+      "declarations": ["input total", "input done", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{done} etap sou {total}",
+        "totalPlural=other": "{done} etap sou {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_steps_passed": [
+    {
+      "declarations": ["input total", "input done", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{done} etap pase sou {total}",
+        "totalPlural=other": "{done} etap pase sou {total}"
+      }
+    }
+  ],
+  "music_hubs_paths_go_start": "Kòmanse",
+  "music_hubs_paths_go_checkin": "tès depa a",
+  "music_hubs_paths_go_path": "chemen an",
+  "music_hubs_paths_go_continue": "Kontinye",
+  "music_hubs_paths_abrsm": "ABRSM se yon biwo egzamen nan Wayòm Ini. Grad pyano li yo soti 1 (premye ane) rive 8 (avanse); {grade} se yon pyanis nivo mwayen ki byen solid.",
+  "music_hubs_paths_about": "Konsènan chemen sa a",
+  "music_hubs_paths_benchmark": "Nan fen an, nivo a tou pre {benchmark}.",
+  "music_hubs_paths_levels_steps": [
+    {
+      "declarations": ["input steps", "input levels", "local stepsPlural = steps: plural"],
+      "selectors": ["stepsPlural"],
+      "match": {
+        "stepsPlural=one": "{levels} nivo, {steps} etap an tout.",
+        "stepsPlural=other": "{levels} nivo, {steps} etap an tout."
+      }
+    }
+  ],
+  "music_hubs_paths_steps_all": [
+    {
+      "declarations": ["input steps", "local stepsPlural = steps: plural"],
+      "selectors": ["stepsPlural"],
+      "match": {
+        "stepsPlural=one": "{steps} etap an tout.",
+        "stepsPlural=other": "{steps} etap an tout."
+      }
+    }
+  ],
+  "music_hubs_paths_levels": "Nivo",
+  "music_hubs_paths_level_passed_label": "{name}: {title}, pase",
+  "music_hubs_paths_level_current_label": "{name}: {title}, kounye a",
+  "music_hubs_paths_level_ahead_label": "{name}: {title}, pi devan",
+  "music_hubs_paths_level_heading": "{name}: {title}",
+  "music_hubs_paths_checkin_intro": "Yon ti tès sou sa ou deja konn jwe, konsa etap sa yo vin tounen ti revizyon.",
+  "music_hubs_paths_checkin_how": "Kijan tès depa a mache",
+  "music_hubs_paths_checkin_play": "Jwe chak etap tès depa a nan Evalyasyon",
+  "music_hubs_paths_checkin_review": "Revize chak etap de jou diferan",
+  "music_hubs_paths_new_here": "Sa ki nouvo: {adds}",
+  "music_hubs_paths_steps_passed_label": "Etap ki pase",
+  "music_hubs_paths_done_of": "{done} sou {total} fini",
+  "music_hubs_paths_passed": "Pase",
+  "music_hubs_paths_songs_played": "Chante ki jwe: {played} sou {pick}",
+  "music_hubs_paths_runs_so_far": [
+    {
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} pasaj nan Evalyasyon jiskounye a, ak yon mwayèn {pct}%.",
+        "countPlural=other": "{count} pasaj nan Evalyasyon jiskounye a, dènye yo gen yon mwayèn {pct}%."
+      }
+    }
+  ],
+  "music_hubs_pair": "{a}: {b}",
+  "music_hubs_drills_mode_from_memory": "Pa kè",
+  "music_hubs_drills_search_label": "Chèche egzèsis",
+  "music_hubs_drills_search_placeholder": "Chèche nan {total} egzèsis",
+  "music_hubs_drills_filter": "Filt enstriman",
+  "music_hubs_drills_all": "Tout",
+  "music_hubs_drills_all_rest": "enstriman yo",
+  "music_hubs_drills_count_all": "{total} egzèsis pou tout enstriman",
+  "music_hubs_drills_count_for": "{total} egzèsis pou {instrument}",
+  "music_hubs_drills_matching": "ki koresponn ak \"{q}\"",
+  "music_hubs_drills_clear": "Efase rechèch la",
+  "music_hubs_drills_jump": "Ale nan",
+  "music_hubs_drills_no_matches": "Pa jwenn anyen",
+  "music_hubs_drills_no_matches_for": "Pa jwenn anyen pou \"{q}\"",
+  "music_hubs_drills_try_word": "Eseye yon lòt mo.",
+  "music_hubs_drills_try_word_all": "Eseye yon lòt mo, oswa chèche nan tout enstriman yo.",
+  "music_hubs_drills_last": "Dènye: {pct}",
+  "music_hubs_drills_skill_score": "Pwen konpetans {pct}",
+  "music_hubs_drills_checked_of": "{n} repons sou {total} nan Evalyasyon",
+  "music_hubs_drills_not_measured_sr": ", poko mezire",
+  "music_hubs_drills_start_here": "Kòmanse isit la",
+  "music_hubs_drills_not_played": "Pa jwe",
+  "music_hubs_drills_any_instrument": "Nenpòt enstriman",
+  "music_hubs_drills_exercises_in": "Egzèsis nan {title}",
+  "music_hubs_drills_exercises": "Egzèsis",
+  "music_hubs_preview_scale_major": "gam majè",
+  "music_hubs_preview_scale_natural_minor": "gam minè natirèl",
+  "music_hubs_preview_scale_harmonic_minor": "gam minè amonik",
+  "music_hubs_preview_scale_dorian": "mòd doryen",
+  "music_hubs_preview_scale_phrygian": "mòd frijyen",
+  "music_hubs_preview_scale_lydian": "mòd lidyen",
+  "music_hubs_preview_scale_mixolydian": "mòd miksolidyen",
+  "music_hubs_preview_scale_locrian": "mòd lokryen",
+  "music_hubs_preview_scale_melodic_minor": "gam minè melodik",
+  "music_hubs_preview_scale_major_pentatonic": "pantatonik majè",
+  "music_hubs_preview_scale_minor_pentatonic": "pantatonik minè",
+  "music_hubs_preview_scale_blues": "gam blues",
+  "music_hubs_preview_scale_altered": "gam altere",
+  "music_hubs_preview_scale_bebop_major": "gam bebop majè",
+  "music_hubs_preview_scale_bebop_dominant": "gam bebop dominant",
+  "music_hubs_preview_scale_whole_tone": "gam ton antye",
+  "music_hubs_preview_scale_diminished": "gam diminye",
+  "music_hubs_preview_scale_octave": "{tonic}: {kind}, yon oktav",
+  "music_hubs_preview_scale_open": "{tonic}: {kind}, pozisyon ouvè",
+  "music_hubs_preview_arpeggio_octave": "{tonic}: {kind} an apèj, yon oktav",
+  "music_hubs_preview_arpeggio_open": "{tonic}: {kind} an apèj, pozisyon ouvè",
+  "music_hubs_preview_steady_pulse": "Yon pilsasyon regilye, kat tan",
+  "music_hubs_preview_strum_chords": "Grate {chords}, desann epi monte",
+  "music_hubs_preview_strum_pattern": "Grate modèl la, desann epi monte",
+  "music_hubs_preview_chord_fingers": "{name}, chak dwèt ak koulè pa l",
+  "music_hubs_preview_spider": "Yon dwèt pou chak frèt: 1 2 3 4",
+  "music_hubs_preview_bend": "Rale kòd la jiskaske ou rive sou nòt la",
+  "music_hubs_preview_find": "Jwenn {note} sou kòd {string}, frèt 5",
+  "music_hubs_preview_first_bar": "{groove}, premye mezi",
+  "music_hubs_preview_interval": "{interval}: soti C monte rive {top}",
+  "music_hubs_preview_quality": "{qualities}: tande koulè a",
+  "music_hubs_preview_two_hand": "{tonic}: akò ak men goch, liy ak men dwat",
+  "music_hubs_preview_voicing": "Dm7: D F A C, ii nan C",
+  "music_hubs_preview_shell": "C7 shell: rasin, tyès ak sèt",
+  "music_hubs_preview_pedal": "Kenbe C, chanje pedal la ak akò a",
+  "music_hubs_preview_chord_scale": "D doryen sou Dm7",
+  "music_hubs_preview_lick": "Yon liy ii-V: D F A C ki mennen sou V",
+  "music_hubs_preview_call": "Tande yon fraz, jwe yon repons",
+  "music_hubs_preview_phrase": "Yon ti fraz, li epi jwe",
+  "music_hubs_preview_bass_staff": "Bay non chak nòt sou pòtè kle fa a",
+  "music_hubs_preview_staff": "Bay non chak nòt sou pòtè a",
+  "music_hubs_preview_long_tone": "Yon nòt long ki estab",
+  "music_hubs_preview_fingers": "G A B C anba dwèt yo",
+  "music_hubs_preview_dictation": "Tande yon mezi, ekri ritm li",
+  "music_hubs_preview_tap": "Tape ak yon pilsasyon regilye",
+  "music_hubs_preview_chop": "Yon bouk ki koupe sou pad yo",
+  "music_hubs_preview_pads": "Sèz pad, sa pou jwe yo limen",
+  "music_hubs_preview_circle": "Tonalite ki gen yon kent ant yo, tout otou sèk la",
+  "music_hubs_preview_eq": "Yon bann ki ranfòse: tande kote li ye",
+  "music_hubs_preview_inversion": "Premye envèsyon: E G C, tyès la nan bas la",
+  "music_hubs_preview_ear_scales": "Majè oswa minè: tande gam lan",
+  "music_hubs_preview_mixed": "Yon revizyon melanje sou sa ou tande: nòt yo parapò ak tonik la",
+  "music_hubs_preview_anchor": "Tonik la (do, 1) ak 5",
+  "music_hubs_preview_degrees": "Chak nòt tande parapò ak tonik la (do, 1)",
+  "music_hubs_preview_numbers": "Bay non akò yo pa nimewo",
+  "music_hubs_preview_bass_line": "Tande liy bas la, ekri l",
+  "music_hubs_preview_melody": "Tande yon melodi, jwenn nòt li yo",
+  "music_hubs_layout_ear": "Zòrèy",
+  "music_hubs_layout_notes": "Nòt ak melodi",
+  "music_hubs_layout_notes_note": "Reponn lè ou chwazi, lè ou rejwe l, lè ou chante, oswa lè ou koute ansanm.",
+  "music_hubs_layout_chords": "Akò, gam ak tonalite",
+  "music_hubs_layout_review": "Revizyon",
+  "music_hubs_layout_reading": "Lekti ak ritm",
+  "music_hubs_layout_technique": "Teknik",
+  "music_hubs_layout_patterns": "Modèl akonpayman",
+  "music_hubs_layout_patterns_blurb": "Modèl men pop, balad, boogie, stride ak gospel sou nenpòt bouk akò, nan nenpòt tonalite.",
+  "music_hubs_layout_pad_technique": "Teknik pad",
+  "music_hubs_layout_pad_technique_blurb": "Kou, woulman, aksan ak ghost note sou klik la, nan nivo ou chwazi, ak rudiman ki gaye sou tout kit la.",
+  "music_hubs_layout_aero_fingers": "Dwèt sou Aerophone",
+  "music_hubs_layout_aero_fingers_blurb": "Yon verifikasyon konfigirasyon, leson dwate Roland yo nan lòd, apre sa gam nan tout tonalite, travèse oktav la ak kle pla men yo, ak tril.",
+  "music_hubs_layout_aero_breath": "Souf ak lang sou Aerophone",
+  "music_hubs_layout_aero_breath_blurb": "Nòt long pa nivo, yon gam nòt long, kreshendo, modèl kou lang, atikilasyon swing, vibrato mòde ak entèval aterisaj sou yon drone.",
+  "music_hubs_layout_grooves": "Groove ak tan",
+  "music_hubs_layout_pad_grooves": "Groove sou pad",
+  "music_hubs_layout_pad_grooves_blurb": "Yon repètwa groove sou sis nivo, fill ki tonbe sou en an, rejwe yon mezi, yon ostinato anba yon liy, ak kenbe tempo a pou kont ou.",
+  "music_hubs_layout_beats": "Fè beat sou pad yo",
+  "music_hubs_layout_beats_blurb": "Koupe yon bouk sou pad yo epi jwe moso yo, monte ak woulman ak Note Repeat, ak moso ki gen fòm chante nan yon sèl pran.",
+  "music_hubs_layout_jazz": "Jwe sou chanjman akò",
+  "music_hubs_layout_comping": "Akonpayman sou chanjman akò",
+  "music_hubs_layout_comping_blurb": "Shell oswa voicing san rasin sou yon ritm akonpayman nan blues la, yon ii-V-I oswa nenpòt bouk.",
+  "music_hubs_layout_improvise": "Enpwovize sou pad yo",
+  "music_hubs_layout_improvise_blurb": "Jwe nenpòt sa sou gwoup la. Tande pran an jan ou te jwe l, epi apre sa ajiste sou griy lan.",
+  "music_hubs_layout_theory": "Teyori",
+  "music_hubs_layout_studio": "Zòrèy estidyo",
+  "music_hubs_layout_play": "Fraz ak chante",
+  "music_hubs_layout_lead_sheets": "Lead sheet",
+  "music_hubs_layout_lead_sheets_blurb": "Melodi a nan men dwat, rasin, shell oswa akò nan men goch, apati yon lead sheet oswa pwòp pati ou."
 }
