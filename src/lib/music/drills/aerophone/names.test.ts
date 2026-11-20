@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vite-plus/test";
-import { aeroSpeller, fingeringWords } from "./names";
+import { afterEach, describe, expect, it } from "vite-plus/test";
+import { setNoteNaming } from "@repo/music-core";
+import { aeroSpeller, fingeringWords, namedNotes, namedKeys } from "./names";
 
 describe("aeroSpeller", () => {
   it("spells a heard note by the exercise key", () => {
@@ -23,5 +24,24 @@ describe("fingeringWords", () => {
   });
   it("is null outside the chart", () => {
     expect(fingeringWords(20)).toBeNull();
+  });
+});
+
+describe("named labels", () => {
+  afterEach(() => setNoteNaming("letters"));
+
+  it("leaves letters as they are", () => {
+    expect(namedNotes("C#5 to D5")).toBe("C#5 to D5");
+    expect(fingeringWords(86)).toContain("palm D");
+  });
+  it("names the notes in a label and in a key's words in fixed do", () => {
+    setNoteNaming("fixed");
+    expect(namedNotes("G4 A4")).toBe("Sol4 La4");
+    expect(namedNotes("De C#5 a D5")).toBe("De Do#5 a Re5");
+    expect(namedNotes("meñique izquierdo, de B a Bb")).toBe("meñique izquierdo, de Si a Sib");
+    expect(namedKeys("Alto Eb")).toBe("Alto Mib");
+    expect(fingeringWords(86)).toContain("palm Re");
+    // The labels printed on the instrument stay.
+    expect(fingeringWords(59)).toContain("B (left pinky)");
   });
 });

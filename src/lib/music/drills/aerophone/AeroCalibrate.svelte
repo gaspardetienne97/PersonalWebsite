@@ -17,6 +17,8 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { settings } from "#lib/music/runtime/index.ts";
   import BreathTrace from "./BreathTrace.svelte";
+  import { namedKeys } from "./names";
+  import { keyName, note } from "#lib/music/names.svelte.ts";
   import MidiStatus from "#lib/music/drills/pads/MidiStatus.svelte";
   import { m } from "@repo/i18n/messages.js";
 
@@ -29,14 +31,18 @@
   /** A step with no note for this long ends the check. */
   const WAIT_MS = 20000;
   const STEPS = [
-    { id: "key", label: m.music_winds_cal_key_check(), say: m.music_winds_cal_key_say() },
+    { id: "key", label: m.music_winds_cal_key_check(), say: m.music_winds_cal_key_say({ note: note(noteName(WRITTEN)) }) },
     { id: "soft", label: m.music_winds_cal_softest(), say: m.music_winds_cal_soft_say() },
     { id: "loud", label: m.music_winds_cal_loudest(), say: m.music_winds_cal_loud_say() },
   ] as const;
 
   const shift = $derived(writtenOffset("aerophone", settings.value));
-  const keyLabel = $derived(AEROPHONE_READING_KEYS.find((k) => k.id === settings.value.aerophoneKey)?.label ?? "C");
-  const name = (written: number) => fingeringFor(written)?.name ?? noteName(written);
+  /** A reading key's label ("C", "Alto Eb") with its key named as the user reads note names. */
+  const readingKey = (id: string) => namedKeys(AEROPHONE_READING_KEYS.find((k) => k.id === id)?.label ?? "C");
+  const keyLabel = $derived(readingKey(settings.value.aerophoneKey));
+  const name = (written: number) => note(fingeringFor(written)?.name ?? noteName(written));
+  /** Written G4, as the user reads note names. */
+  const g4 = $derived(name(WRITTEN));
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -127,8 +133,8 @@
         ? m.music_winds_aero_no_note()
         : !r.keyOk
           ? r.keyFits
-            ? m.music_winds_cal_head_key_fits({ received: noteName(received), fits: AEROPHONE_READING_KEYS.find((k) => k.id === r.keyFits)!.label, key: keyLabel })
-            : m.music_winds_cal_head_key_unknown({ received: noteName(received) })
+            ? m.music_winds_cal_head_key_fits({ note: g4, received: note(noteName(received)), fits: readingKey(r.keyFits), key: keyLabel })
+            : m.music_winds_cal_head_key_unknown({ note: g4, received: note(noteName(received)) })
           : !r.breathSeen
             ? m.music_winds_cal_head_no_breath()
             : !r.floorOk
@@ -160,7 +166,7 @@
       cleanMeans: m.music_winds_cal_every_check(),
       assistance: m.music_winds_cal_assistance(),
       rows: [
-        { label: m.music_winds_cal_row_key({ key: keyLabel }), value: r.keyOk ? 1 : 0, text: received === null ? m.music_winds_cal_no_note() : (r.keyOk ? m.music_winds_cal_as_read_right : m.music_winds_cal_as_read)({ note: name(received + shift) }) },
+        { label: m.music_winds_cal_row_key({ note: g4, key: keyLabel }), value: r.keyOk ? 1 : 0, text: received === null ? m.music_winds_cal_no_note() : (r.keyOk ? m.music_winds_cal_as_read_right : m.music_winds_cal_as_read)({ note: name(received + shift) }) },
         { label: m.music_winds_cal_row_breath(), value: r.breathSeen ? 1 : 0, text: r.breathSeen ? m.music_winds_yes() : m.music_winds_no() },
         r.floor === null ? { label: m.music_winds_cal_row_softest(), notMeasured: true } : { label: m.music_winds_cal_row_softest_p(), value: r.floorOk ? 1 : 0, text: pct(r.floor) },
         r.ceiling === null ? { label: m.music_winds_cal_row_loudest(), notMeasured: true } : { label: m.music_winds_cal_row_loudest_f(), value: r.ceilingOk ? 1 : 0, text: r.clipped ? m.music_winds_cal_pinned({ pct: pct(r.ceiling), pinned: pct(r.clipped) }) : pct(r.ceiling) },
@@ -187,7 +193,7 @@
   title={m.music_winds_aerophone_title()}
   hue="aerophone"
   blurb={m.music_winds_cal_blurb()}
-  summary={[{ text: m.music_winds_cal_sum_reading({ key: keyLabel }) }, { text: m.music_winds_cal_sum_steps() }]}
+  summary={[{ text: m.music_winds_cal_sum_reading({ key: keyLabel }) }, { text: m.music_winds_cal_sum_steps({ note: g4 }) }]}
   tabs={modes}
   tab="calibrate"
   ontab={onmode}
@@ -200,14 +206,14 @@
 >
   {#snippet setup()}
     <p class="text-sm text-ws-soft">
-      {m.music_winds_cal_setup_help({ key: keyLabel })}
+      {m.music_winds_cal_setup_help({ key: keyLabel, c: keyName("C"), eb: keyName("Eb"), bb: keyName("Bb") })}
     </p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
       <Stat label={m.music_winds_cal_step()} value={m.music_winds_chop_of({ n: Math.min(step + 1, STEPS.length), total: STEPS.length })} />
-      {#if received !== null}<Stat label={m.music_winds_cal_g4_came_in()} value={name(received + shift)} />{/if}
+      {#if received !== null}<Stat label={m.music_winds_cal_g4_came_in({ note: g4 })} value={name(received + shift)} />{/if}
     {:else if result}
       <Stat label={m.music_winds_cal_checks()} value={pct(result.score)} tone={result.correct ? "success" : "warn"} />
     {/if}
@@ -227,7 +233,7 @@
       <BreathTrace values={breath} target={Array(64).fill(BREATH_LEVELS[3].band[0])} measured={breath.length > 0} label={m.music_winds_cal_breath_label()} />
       {#if result && !result.keyOk && result.keyFits}
         {@const fits = result.keyFits}
-        <button type="button" class={btn} onclick={() => void settings.update({ aerophoneKey: fits })}>{m.music_winds_cal_read_in({ key: AEROPHONE_READING_KEYS.find((k) => k.id === fits)!.label })}</button>
+        <button type="button" class={btn} onclick={() => void settings.update({ aerophoneKey: fits })}>{m.music_winds_cal_read_in({ key: readingKey(fits) })}</button>
       {/if}
     </div>
   {/snippet}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { setNoteNaming } from "@repo/music-core";
 import { PAD_PRESETS } from "@repo/music-core/io/devices";
 import { explainNote, waitingReason } from "./midi-status";
 
@@ -34,6 +35,17 @@ describe("explainNote", () => {
   it("ignores note-offs and names wind notes", () => {
     expect(explainNote([0x89, 37, 0], priv)).toBeNull();
     expect(explainNote([0x90, 67, 80], ae)?.text).toBe("Hearing Aerophone AE-10. Last note: G4.");
+  });
+
+  it("names the wind note as the user reads note names", () => {
+    setNoteNaming("fixed");
+    try {
+      expect(explainNote([0x90, 67, 80], ae)?.text).toBe(
+        "Hearing Aerophone AE-10. Last note: Sol4.",
+      );
+    } finally {
+      setNoteNaming("letters");
+    }
   });
 });
 

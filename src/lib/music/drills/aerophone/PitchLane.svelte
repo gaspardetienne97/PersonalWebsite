@@ -2,6 +2,7 @@
   // The last 64 pitch samples against the target line; with a drone, the drone
   // gets its own lane so the interval reads as distance.
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { m } from "@repo/i18n/messages.js";
 
   interface Props {
@@ -13,7 +14,7 @@
     /** How notes are spelled, so the lane agrees with the page's chart (C#6, not Db6). */
     name?: (midi: number) => string;
   }
-  let { values, target, drone = null, label, name = (midi: number) => noteName(midi) }: Props = $props();
+  let { values, target, drone = null, label, name = (midi: number) => note(noteName(midi)) }: Props = $props();
   const W = 320;
   const H = 110;
   const lo = $derived(Math.min(target, drone ?? target) - 4);

@@ -3,7 +3,7 @@
 // became"). Pure: the same profile functions the runtime applies, so the line
 // cannot disagree with what the drill actually received.
 import type { DeviceProfile, Instrument } from "@repo/music-core";
-import { noteName } from "@repo/music-core";
+import { noteName, showNote } from "@repo/music-core";
 import { parseMidiMessage } from "@repo/music-core/io/midi-message";
 import { detectInstrument, rewritePadNote } from "@repo/music-core/io/devices";
 import { m } from "@repo/i18n/messages.js";
@@ -42,7 +42,7 @@ export function explainNote(
       false,
     );
   if (instrumentOf(port, profile) !== "mpc")
-    return said(m.music_winds_midi_hearing_note({ name, note: noteName(e.midi) }), true);
+    return said(m.music_winds_midi_hearing_note({ name, note: showNote(noteName(e.midi)) }), true);
   const mapped = rewritePadNote(e.midi, profile?.padNotes);
   if (profile?.padNotes && profile.padNotes.includes(e.midi))
     return said(m.music_winds_midi_hearing_pad({ name, pad: padLabel(mapped) }), true);
