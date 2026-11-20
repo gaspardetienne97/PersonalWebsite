@@ -125,6 +125,8 @@ const SCALE_NAME: Record<string, () => string> = {
   "whole-tone": m.music_hubs_preview_scale_whole_tone,
   diminished: m.music_hubs_preview_scale_diminished,
 };
+/** A scale kind ("natural-minor") named in words: "natural minor". */
+export const scaleKindName = (kind: string) => SCALE_NAME[kind]?.() ?? kind.replace(/-/g, " ");
 
 function scalePreview(q: URLSearchParams, instrument: Instrument | undefined): Preview {
   const kind = q.get("kind") ?? "major";
@@ -136,7 +138,7 @@ function scalePreview(q: URLSearchParams, instrument: Instrument | undefined): P
   const chordy = pattern === "arpeggio" || pattern === "triad-pairs" || pattern === "broken-chords";
   const minor = kind.includes("minor") || q.get("chord") === "minor";
   const offs = chordy ? [...CHORD_TONES[minor ? "minor" : "major"], 12] : steps;
-  const what = { tonic: name(tonic), kind: SCALE_NAME[kind]?.() ?? kind.replace(/-/g, " ") };
+  const what = { tonic: name(tonic), kind: scaleKindName(kind) };
   if (STRINGED(instrument)) {
     const { strings, dots } = fretDots(
       instrument,

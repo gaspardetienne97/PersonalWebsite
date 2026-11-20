@@ -335,9 +335,9 @@ export function runDelta(
   const now = Math.round(run.score * 100);
   const then = Math.round(prev.score! * 100);
   if (now > Math.round(Math.max(...before.map((r) => r.score!)) * 100))
-    return { kind: "best", text: m.music_hubs_delta_best({ then }) };
-  if (now > then) return { kind: "up", text: m.music_hubs_delta_up({ then }) };
-  if (now < then) return { kind: "down", text: m.music_hubs_delta_down({ then }) };
+    return { kind: "best", text: m.music_hubs_delta_best({ prev: then }) };
+  if (now > then) return { kind: "up", text: m.music_hubs_delta_up({ prev: then }) };
+  if (now < then) return { kind: "down", text: m.music_hubs_delta_down({ prev: then }) };
   return { kind: "same", text: m.music_hubs_delta_same() };
 }
 

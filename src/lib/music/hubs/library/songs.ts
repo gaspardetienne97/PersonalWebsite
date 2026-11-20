@@ -1,5 +1,6 @@
 // Saved repertoire: the db.songs row shape, file import into the canonical
 // score, and the facts a song card or Song Studio shows about a score.
+import { m } from "@repo/i18n/messages.js";
 import { noteName, type Score, type ScoreSection } from "@repo/music-core";
 import { midiToScore } from "@repo/music-core/io/midi-file";
 import { parseMusicXml, parseMxl } from "@repo/music-core/io/musicxml";
@@ -31,11 +32,9 @@ export async function importScoreFile(name: string, bytes: Uint8Array): Promise<
   else if (ext === "musicxml" || ext === "xml")
     score = parseMusicXml(new TextDecoder().decode(bytes));
   else if (ext === "mxl") score = await parseMxl(bytes);
-  else
-    throw new Error(
-      `"${name}" isn't a score Woodshed can read. Use MIDI (.mid), MusicXML (.musicxml or .xml) or compressed MusicXML (.mxl).`,
-    );
-  if (!score.voices.some((v) => v.notes.length)) throw new Error(`"${name}" has no notes in it.`);
+  else throw new Error(m.music_hubs_songs_not_score({ name }));
+  if (!score.voices.some((v) => v.notes.length))
+    throw new Error(m.music_hubs_songs_no_notes({ name }));
   if (!score.title?.trim() || /^untitled/i.test(score.title))
     score = { ...score, title: baseName(name) };
   return score;
@@ -63,7 +62,8 @@ const MINOR = ["Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#", 
 export function keyName(score: Pick<Score, "keyFifths" | "keyMode">): string | null {
   if (score.keyFifths === undefined) return null;
   const minor = score.keyMode === "minor";
-  return `${(minor ? MINOR : MAJOR)[score.keyFifths + 7]} ${minor ? "minor" : "major"}`;
+  const tonic = (minor ? MINOR : MAJOR)[score.keyFifths + 7];
+  return minor ? m.music_hubs_songs_key_minor({ tonic }) : m.music_hubs_songs_key_major({ tonic });
 }
 
 export interface ScoreFacts {
@@ -97,9 +97,9 @@ export function scoreFacts(score: Score): ScoreFacts {
 export const rangeText = (f: ScoreFacts) =>
   f.low === null || f.high === null
     ? f.notes
-      ? "drums only"
-      : "no notes"
-    : `${noteName(f.low)} to ${noteName(f.high)}`;
+      ? m.music_hubs_songs_drums_only()
+      : m.music_hubs_songs_no_notes_range()
+    : m.music_hubs_songs_range({ low: noteName(f.low), high: noteName(f.high) });
 
 export const durationText = (s: number) =>
   s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
@@ -116,6 +116,7 @@ export function songSections(score: Score): ScoreSection[] {
   for (let b = 0; b < bars; b += 4) {
     const last = Math.min(bars, b + 4);
     out.push({
+      // English on purpose: Song Studio builds its stored setup keys from these labels.
       label: last - b === 1 ? `Bar ${b + 1}` : `Bars ${b + 1} to ${last}`,
       startBeat: b * bar,
       endBeat: last * bar,
@@ -124,7 +125,7 @@ export function songSections(score: Score): ScoreSection[] {
   return out;
 }
 
-export const barsText = (n: number) => `${n} bar${n === 1 ? "" : "s"}`;
+export const barsText = (n: number) => m.music_hubs_songs_bars({ count: n });
 
 /** The library song saved for a shelf entry (`<path>/<song>`), if any. */
 export async function shelfSong(key: string): Promise<Song | undefined> {
@@ -138,7 +139,7 @@ export async function shelfScore(
   title: string,
 ): Promise<{ score: Score; name: string }> {
   const res = await fetch(`/api/music/scores/${key}`);
-  if (!res.ok) throw new Error(`The score for ${title} hasn't been downloaded yet.`);
+  if (!res.ok) throw new Error(m.music_hubs_songs_not_downloaded({ title }));
   const name =
     res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
     `${key.split("/")[1]}.mxl`;
@@ -191,11 +192,11 @@ export function shelfTags(song: { detail?: string; bpm?: number; diff?: number }
     song.diff === undefined
       ? undefined
       : song.diff <= 1
-        ? "Easier"
+        ? m.music_hubs_songs_easier()
         : song.diff === 2
-          ? "Medium"
-          : "Harder";
-  return [key && `Key of ${key}`, song.bpm && `${song.bpm} BPM`, level].filter(
+          ? m.music_hubs_songs_medium()
+          : m.music_hubs_songs_harder();
+  return [key && m.music_hubs_songs_key_of({ key }), song.bpm && `${song.bpm} BPM`, level].filter(
     (t): t is string => !!t,
   );
 }
