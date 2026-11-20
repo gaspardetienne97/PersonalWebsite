@@ -250,6 +250,18 @@
   "music_strings_frets_range": "frèt {start} rive {end}",
   "music_strings_frets_range_cap": "Frèt {start} rive {end}",
   "music_strings_fretting_hand": "Men ki peze frèt yo",
+  "music_strings_grade_extra": "nòt anplis",
+  "music_strings_grade_missing": "nòt ki manke",
+  "music_strings_grade_moved": "ou deplase {actual} demi ton, pi piti a se {least}",
+  "music_strings_grade_no_left_root": "pa gen rasin nan men gòch",
+  "music_strings_grade_not_closest": "se pa mouvman ki pi pre a",
+  "music_strings_grade_not_guide": "se pa tyès ak sèt nan rejis la",
+  "music_strings_grade_not_quite": "pa tout bon",
+  "music_strings_grade_right": "bon",
+  "music_strings_grade_root_not_lowest": "rasin lan pa pi ba a",
+  "music_strings_grade_wrong_bottom": "move nòt anba a",
+  "music_strings_grade_wrong_inversion": "move envèsyon",
+  "music_strings_grade_wrong_order": "nòt yo pa nan bon lòd",
   "music_strings_harm_every_string": "tout kòd yo, akòdaj {tuning}",
   "music_strings_harm_summary": "Amonik nan frèt 12, 7 ak 5",
   "music_strings_heard": "Tande",
@@ -257,6 +269,17 @@
   "music_strings_hearing": "Ap tande",
   "music_strings_in_tune": "byen akòde",
   "music_strings_interval": "Entèval",
+  "music_strings_inv_first": "premye envèsyon",
+  "music_strings_inv_root": "pozisyon rasin",
+  "music_strings_inv_second": "dezyèm envèsyon",
+  "music_strings_inv_third": "twazyèm envèsyon",
+  "music_strings_lane_early": "twò bonè",
+  "music_strings_lane_late": "twò ta",
+  "music_strings_lane_marks": "Mak sou liy lan jiskaprezan",
+  "music_strings_lane_missed": "rate",
+  "music_strings_lane_note_said": "{note}: {said}",
+  "music_strings_lane_on_time": "a lè",
+  "music_strings_lane_wrong_notes": "Move nòt: {n}",
   "music_strings_late": "Twò ta",
   "music_strings_late_ms": "Twò ta {ms} ms",
   "music_strings_left": "Ki rete",
@@ -570,8 +593,76 @@
   ],
   "music_strings_tuning_yours": "{name} (pa ou)",
   "music_strings_untimed": "san tan",
+  "music_strings_voicing_cadence": "{symbol} ({roman}) nan {inv}. Rasin nan men gòch.",
+  "music_strings_voicing_cadence_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} ({roman}) nan {inv}, li deplase {n} demi ton. Rasin nan men gòch.",
+        "nPlural=other": "{symbol} ({roman}) nan {inv}, li deplase {n} demi ton. Rasin nan men gòch."
+      }
+    }
+  ],
+  "music_strings_voicing_go_to_scale": "Gam pou itilize: {scale}",
+  "music_strings_voicing_gospel_root": "{symbol}: men dwat nan {inv}. Rasin lan nan men gòch.",
+  "music_strings_voicing_gospel_root_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol}: men dwat nan {inv}, li deplase {n} demi ton. Rasin lan nan men gòch.",
+        "nPlural=other": "{symbol}: men dwat nan {inv}, li deplase {n} demi ton. Rasin lan nan men gòch."
+      }
+    }
+  ],
+  "music_strings_voicing_gospel_slash": "{symbol}: men dwat nan {inv}. Bas ki apre slach la nan men gòch.",
+  "music_strings_voicing_gospel_slash_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol}: men dwat nan {inv}, li deplase {n} demi ton. Bas ki apre slach la nan men gòch.",
+        "nPlural=other": "{symbol}: men dwat nan {inv}, li deplase {n} demi ton. Bas ki apre slach la nan men gòch."
+      }
+    }
+  ],
+  "music_strings_voicing_guide_name": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "Tyès ak sèt {symbol}, ki deplase {n} demi ton pi piti.",
+        "nPlural=other": "Tyès ak sèt {symbol}, ki deplase {n} demi ton pi piti."
+      }
+    }
+  ],
+  "music_strings_voicing_inv_group": "I IV V I nan {symbol}",
+  "music_strings_voicing_inv_name": "{symbol} nan {inv}. Rasin nan men gòch.",
+  "music_strings_voicing_inv_name_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} nan {inv}, li deplase {n} demi ton. Rasin nan men gòch.",
+        "nPlural=other": "{symbol} nan {inv}, li deplase {n} demi ton. Rasin nan men gòch."
+      }
+    }
+  ],
+  "music_strings_voicing_keep_common": "Kenbe nòt komen yo. Deplase lòt yo pa chemen ki pi kout la.",
+  "music_strings_voicing_key_minor": "{key} minè",
+  "music_strings_voicing_root_left": "{name}. Rasin nan men gòch.",
+  "music_strings_voicing_rootless_a": "San rasin A (3 5 7 9)",
+  "music_strings_voicing_rootless_b": "San rasin B (7 9 3 5)",
+  "music_strings_voicing_rootless_half_dim": "San rasin A pou ii mwatye dimine a (b3 b5 b7 1)",
+  "music_strings_voicing_start_root": "Kòmanse nan pozisyon rasin.",
+  "music_strings_voicing_top_near_g": "Kenbe nòt anwo a toupre G. Deplase chak vwa pa chemen ki pi kout la.",
+  "music_strings_voicing_upper_structure": "Estrikti siperyè {triad} sou yon shell 1 3 7, li ajoute {adds}",
+  "music_strings_voicing_us_hint": "Estrikti siperyè ki pi popilè a: yon triyad majè yon ton pi wo pase rasin lan.",
+  "music_strings_voicing_v7_hint": "Twa nòt: rasin, tyès ak sèt, san kent lan. Apre sa sèt la desann sou tyès tonik la.",
   "music_strings_what_is_scored": "Sa ki konte",
   "music_strings_what_is_scored_about": "sa ki konte",
   "music_strings_with_every_note": "Ak tout nòt yo",
-  "music_strings_wrong_chord": "Move akò"
+  "music_strings_wrong_chord": "Move akò",
+  "music_strings_wrong_note": "Move nòt"
 }

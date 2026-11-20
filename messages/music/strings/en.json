@@ -250,6 +250,18 @@
   "music_strings_frets_range": "frets {start} to {end}",
   "music_strings_frets_range_cap": "Frets {start} to {end}",
   "music_strings_fretting_hand": "Fretting hand",
+  "music_strings_grade_extra": "extra notes",
+  "music_strings_grade_missing": "missing notes",
+  "music_strings_grade_moved": "moved {actual} semitones, {least} is the least",
+  "music_strings_grade_no_left_root": "no root in the left hand",
+  "music_strings_grade_not_closest": "not the closest move",
+  "music_strings_grade_not_guide": "not the 3rd and 7th in range",
+  "music_strings_grade_not_quite": "not quite",
+  "music_strings_grade_right": "right",
+  "music_strings_grade_root_not_lowest": "root not lowest",
+  "music_strings_grade_wrong_bottom": "wrong note at the bottom",
+  "music_strings_grade_wrong_inversion": "wrong inversion",
+  "music_strings_grade_wrong_order": "notes in the wrong order",
   "music_strings_harm_every_string": "every string, {tuning} tuning",
   "music_strings_harm_summary": "Harmonics at frets 12, 7 and 5",
   "music_strings_heard": "Heard",
@@ -257,6 +269,17 @@
   "music_strings_hearing": "Hearing",
   "music_strings_in_tune": "in tune",
   "music_strings_interval": "Interval",
+  "music_strings_inv_first": "first inversion",
+  "music_strings_inv_root": "root position",
+  "music_strings_inv_second": "second inversion",
+  "music_strings_inv_third": "third inversion",
+  "music_strings_lane_early": "early",
+  "music_strings_lane_late": "late",
+  "music_strings_lane_marks": "Lane marks so far",
+  "music_strings_lane_missed": "missed",
+  "music_strings_lane_note_said": "{note}: {said}",
+  "music_strings_lane_on_time": "on time",
+  "music_strings_lane_wrong_notes": "Wrong notes: {n}",
   "music_strings_late": "Late",
   "music_strings_late_ms": "Late {ms} ms",
   "music_strings_left": "Left",
@@ -570,8 +593,76 @@
   ],
   "music_strings_tuning_yours": "{name} (yours)",
   "music_strings_untimed": "untimed",
+  "music_strings_voicing_cadence": "{symbol} ({roman}) in {inv}. Root in the left hand.",
+  "music_strings_voicing_cadence_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} ({roman}) in {inv}, moving {n} semitone. Root in the left hand.",
+        "nPlural=other": "{symbol} ({roman}) in {inv}, moving {n} semitones. Root in the left hand."
+      }
+    }
+  ],
+  "music_strings_voicing_go_to_scale": "Go-to scale: {scale}",
+  "music_strings_voicing_gospel_root": "{symbol}: the right hand in {inv}. The root in the left hand.",
+  "music_strings_voicing_gospel_root_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol}: the right hand in {inv}, moving {n} semitone. The root in the left hand.",
+        "nPlural=other": "{symbol}: the right hand in {inv}, moving {n} semitones. The root in the left hand."
+      }
+    }
+  ],
+  "music_strings_voicing_gospel_slash": "{symbol}: the right hand in {inv}. The bass after the slash in the left hand.",
+  "music_strings_voicing_gospel_slash_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol}: the right hand in {inv}, moving {n} semitone. The bass after the slash in the left hand.",
+        "nPlural=other": "{symbol}: the right hand in {inv}, moving {n} semitones. The bass after the slash in the left hand."
+      }
+    }
+  ],
+  "music_strings_voicing_guide_name": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "The 3rd and 7th of {symbol}, moving {n} semitone at best.",
+        "nPlural=other": "The 3rd and 7th of {symbol}, moving {n} semitones at best."
+      }
+    }
+  ],
+  "music_strings_voicing_inv_group": "I IV V I in {symbol}",
+  "music_strings_voicing_inv_name": "{symbol} in {inv}. Root in the left hand.",
+  "music_strings_voicing_inv_name_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} in {inv}, moving {n} semitone. Root in the left hand.",
+        "nPlural=other": "{symbol} in {inv}, moving {n} semitones. Root in the left hand."
+      }
+    }
+  ],
+  "music_strings_voicing_keep_common": "Keep the common tones. Move the others the shortest way.",
+  "music_strings_voicing_key_minor": "{key} minor",
+  "music_strings_voicing_root_left": "{name}. Root in the left hand.",
+  "music_strings_voicing_rootless_a": "Rootless A (3 5 7 9)",
+  "music_strings_voicing_rootless_b": "Rootless B (7 9 3 5)",
+  "music_strings_voicing_rootless_half_dim": "Rootless A for the half-diminished ii (b3 b5 b7 1)",
+  "music_strings_voicing_start_root": "Start in root position.",
+  "music_strings_voicing_top_near_g": "Keep the top note near G. Move each voice the shortest way.",
+  "music_strings_voicing_upper_structure": "Upper structure {triad} over a 1 3 7 shell, adds {adds}",
+  "music_strings_voicing_us_hint": "The favourite upper structure: a major triad a whole step above the root.",
+  "music_strings_voicing_v7_hint": "Three notes: root, 3rd and 7th, the 5th left out. The 7th falls to the tonic's 3rd next.",
   "music_strings_what_is_scored": "What is scored",
   "music_strings_what_is_scored_about": "what is scored",
   "music_strings_with_every_note": "With every note",
-  "music_strings_wrong_chord": "Wrong chord"
+  "music_strings_wrong_chord": "Wrong chord",
+  "music_strings_wrong_note": "Wrong note"
 }

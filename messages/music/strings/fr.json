@@ -250,6 +250,18 @@
   "music_strings_frets_range": "frettes {start} à {end}",
   "music_strings_frets_range_cap": "Frettes {start} à {end}",
   "music_strings_fretting_hand": "Main sur le manche",
+  "music_strings_grade_extra": "notes en trop",
+  "music_strings_grade_missing": "notes manquantes",
+  "music_strings_grade_moved": "déplacement de {actual} demi-tons, le minimum est {least}",
+  "music_strings_grade_no_left_root": "pas de fondamentale à la main gauche",
+  "music_strings_grade_not_closest": "pas le déplacement le plus court",
+  "music_strings_grade_not_guide": "pas la tierce et la septième dans le registre",
+  "music_strings_grade_not_quite": "pas tout à fait",
+  "music_strings_grade_right": "juste",
+  "music_strings_grade_root_not_lowest": "la fondamentale n’est pas la plus grave",
+  "music_strings_grade_wrong_bottom": "mauvaise note à la basse",
+  "music_strings_grade_wrong_inversion": "mauvais renversement",
+  "music_strings_grade_wrong_order": "notes dans le mauvais ordre",
   "music_strings_harm_every_string": "toutes les cordes, accordage {tuning}",
   "music_strings_harm_summary": "Harmoniques aux frettes 12, 7 et 5",
   "music_strings_heard": "Entendu",
@@ -257,6 +269,17 @@
   "music_strings_hearing": "Écoute",
   "music_strings_in_tune": "justes",
   "music_strings_interval": "Intervalle",
+  "music_strings_inv_first": "premier renversement",
+  "music_strings_inv_root": "position fondamentale",
+  "music_strings_inv_second": "deuxième renversement",
+  "music_strings_inv_third": "troisième renversement",
+  "music_strings_lane_early": "en avance",
+  "music_strings_lane_late": "en retard",
+  "music_strings_lane_marks": "Repères de la piste jusqu’ici",
+  "music_strings_lane_missed": "manquée",
+  "music_strings_lane_note_said": "{note} : {said}",
+  "music_strings_lane_on_time": "à temps",
+  "music_strings_lane_wrong_notes": "Mauvaises notes : {n}",
   "music_strings_late": "En retard",
   "music_strings_late_ms": "En retard de {ms} ms",
   "music_strings_left": "Restant",
@@ -570,8 +593,76 @@
   ],
   "music_strings_tuning_yours": "{name} (la vôtre)",
   "music_strings_untimed": "sans tempo",
+  "music_strings_voicing_cadence": "{symbol} ({roman}) en {inv}. Fondamentale à la main gauche.",
+  "music_strings_voicing_cadence_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} ({roman}) en {inv}, en bougeant de {n} demi-ton. Fondamentale à la main gauche.",
+        "nPlural=other": "{symbol} ({roman}) en {inv}, en bougeant de {n} demi-tons. Fondamentale à la main gauche."
+      }
+    }
+  ],
+  "music_strings_voicing_go_to_scale": "Gamme de prédilection : {scale}",
+  "music_strings_voicing_gospel_root": "{symbol} : la main droite en {inv}. La fondamentale à la main gauche.",
+  "music_strings_voicing_gospel_root_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} : la main droite en {inv}, en bougeant de {n} demi-ton. La fondamentale à la main gauche.",
+        "nPlural=other": "{symbol} : la main droite en {inv}, en bougeant de {n} demi-tons. La fondamentale à la main gauche."
+      }
+    }
+  ],
+  "music_strings_voicing_gospel_slash": "{symbol} : la main droite en {inv}. La basse après la barre oblique à la main gauche.",
+  "music_strings_voicing_gospel_slash_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} : la main droite en {inv}, en bougeant de {n} demi-ton. La basse après la barre oblique à la main gauche.",
+        "nPlural=other": "{symbol} : la main droite en {inv}, en bougeant de {n} demi-tons. La basse après la barre oblique à la main gauche."
+      }
+    }
+  ],
+  "music_strings_voicing_guide_name": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "La tierce et la septième de {symbol}, en bougeant de {n} demi-ton au mieux.",
+        "nPlural=other": "La tierce et la septième de {symbol}, en bougeant de {n} demi-tons au mieux."
+      }
+    }
+  ],
+  "music_strings_voicing_inv_group": "I IV V I en {symbol}",
+  "music_strings_voicing_inv_name": "{symbol} en {inv}. Fondamentale à la main gauche.",
+  "music_strings_voicing_inv_name_moving": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{symbol} en {inv}, en bougeant de {n} demi-ton. Fondamentale à la main gauche.",
+        "nPlural=other": "{symbol} en {inv}, en bougeant de {n} demi-tons. Fondamentale à la main gauche."
+      }
+    }
+  ],
+  "music_strings_voicing_keep_common": "Gardez les notes communes. Déplacez les autres par le chemin le plus court.",
+  "music_strings_voicing_key_minor": "{key} mineur",
+  "music_strings_voicing_root_left": "{name}. Fondamentale à la main gauche.",
+  "music_strings_voicing_rootless_a": "Sans fondamentale A (3 5 7 9)",
+  "music_strings_voicing_rootless_b": "Sans fondamentale B (7 9 3 5)",
+  "music_strings_voicing_rootless_half_dim": "Sans fondamentale A pour le ii demi-diminué (b3 b5 b7 1)",
+  "music_strings_voicing_start_root": "Commencez en position fondamentale.",
+  "music_strings_voicing_top_near_g": "Gardez la note du haut près de G. Déplacez chaque voix par le chemin le plus court.",
+  "music_strings_voicing_upper_structure": "Structure supérieure {triad} sur un shell 1 3 7, ajoute {adds}",
+  "music_strings_voicing_us_hint": "La structure supérieure préférée : une triade majeure un ton au-dessus de la fondamentale.",
+  "music_strings_voicing_v7_hint": "Trois notes : fondamentale, tierce et septième, sans la quinte. La septième descend ensuite sur la tierce de la tonique.",
   "music_strings_what_is_scored": "Ce qui est noté",
   "music_strings_what_is_scored_about": "ce qui est noté",
   "music_strings_with_every_note": "Avec toutes les notes",
-  "music_strings_wrong_chord": "Mauvais accord"
+  "music_strings_wrong_chord": "Mauvais accord",
+  "music_strings_wrong_note": "Mauvaise note"
 }
