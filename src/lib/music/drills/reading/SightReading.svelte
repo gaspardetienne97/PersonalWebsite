@@ -48,6 +48,7 @@
   import { hitDrumKey } from "@repo/music-core/content/winds-pads";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
+  import { note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   interface Props {
     cfg: DrillSetup<ReadingSetup>;
@@ -64,6 +65,8 @@
   const meter = $derived(levelMeter(levelId, s.meter));
   const rungs = $derived(readingRungs(instrument));
   const key = $derived(keyByName(s.key) ?? KEY_SIGNATURES[0]);
+  // Movable do counts the phrase's names from the key it's written in.
+  useNamingKey(() => ({ tonic: key.tonic, minor: key.mode === "minor" }));
   // A single-line level tapped on the piano reads its one line too.
   const clefs = $derived<Clef[]>(
     fretted || aero || (s.follower === "tap" && !s.climb && readingLevel(readingLevelId(s.level)).reader === "line")
@@ -556,7 +559,7 @@
       for (const n of current.notes)
         // The wanted key carries its name (or its hand when both hands play), so the eye need not hunt for it; a C
         // already prints its name on the key, so it only lights.
-        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : pc(n.midi + transpose) === 0 ? undefined : noteName(n.midi + transpose), role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
+        out[n.midi + transpose] = { target: true, label: both ? (n.voiceId === "lh" ? "L" : "R") : pc(n.midi + transpose) === 0 ? undefined : note(noteName(n.midi + transpose)), role: both ? (n.voiceId === "lh" ? "left" : "right") : undefined };
     return out;
   });
   const allSounding = $derived(sounding.voices.flatMap((v) => v.notes.map((n) => n.midi)));
@@ -660,7 +663,7 @@
     {#if phase === "running" && live}
       <Stat label={tapping ? m.music_drills_reading_sight_tap() : words.one} value={m.music_drills_reading_x_of_y({ n: Math.min(live.index + 1, groups.length), total: groups.length })} />
       {#if hand}<Stat label={m.music_drills_reading_sight_stat_now()} value={hand} />{/if}
-      {#if mode === "practice" && current}<Stat label={m.music_drills_reading_sight_stat_next()} value={current.notes.map((n) => noteName(n.midi)).join(" + ")} />{/if}
+      {#if mode === "practice" && current}<Stat label={m.music_drills_reading_sight_stat_next()} value={current.notes.map((n) => note(noteName(n.midi))).join(" + ")} />{/if}
     {:else if hand && phase === "ready"}
       <Stat label={m.music_drills_reading_sight_stat_first()} value={hand} />
     {/if}
@@ -757,14 +760,14 @@
       {:else if useMic}
         <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
           <p class="text-sm text-ws-stage-soft">{m.music_drills_reading_sight_mic_note()}</p>
-          <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : m.music_drills_reading_no_pitch()}</p>
+          <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? note(noteName(mic.pitch.midi)) : m.music_drills_reading_no_pitch()}</p>
         </div>
       {:else if fretted && tuning}
         <Fretboard openStrings={tuning.openStrings} from={fretFrom} to={fretTo} marks={fretMarks} {flashes} label={m.music_drills_reading_fretboard_label({ instrument: instrumentName(instrument) })} />
       {:else if aero}
         <InstrumentStage instrument="aerophone" line={allSounding} marks={pianoMarks} {flashes} />
       {:else}
-        <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label={m.music_drills_reading_piano_label({ low: noteName(low), high: noteName(high) })} />
+        <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label={m.music_drills_reading_piano_label({ low: note(noteName(low)), high: note(noteName(high)) })} />
       {/if}
     </div>
   {/snippet}

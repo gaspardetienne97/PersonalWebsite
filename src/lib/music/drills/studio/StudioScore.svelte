@@ -16,6 +16,7 @@
   import NoteHighway, { type HighwayNote } from "#lib/music/notation/NoteHighway.svelte";
   import type { Hit } from "#lib/music/notation/highway.ts";
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { hideBefore } from "./studio";
   import { assignTab, barBeats, scoreGroups, type BeatRange, type TabTuning } from "#lib/music/notation/groups.ts";
   import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
@@ -121,7 +122,7 @@
   {#if drums}
     <StudioDrums score={drawn} {voiceIds} {cursorBeat} {groupStates} {flashes} {maxHeight} {bpm} {timed} />
   {:else if view === "highway"}
-    <NoteHighway notes={highway.notes} noteHits={highway.hits} strings={tuning.openStrings.map((m) => noteName(m, "flat", false))} beat={cursorBeat} barBeats={barBeats(score.meter)} />
+    <NoteHighway notes={highway.notes} noteHits={highway.hits} strings={tuning.openStrings.map((m) => note(noteName(m, "flat", false)))} beat={cursorBeat} barBeats={barBeats(score.meter)} />
   {:else if view === "waterfall"}
     <FallingKeys score={drawn} {voiceIds} {low} {high} beat={cursorBeat} {groupStates} {marks} {flashes} height={compact ? "min(34dvh, 16rem)" : "min(44dvh, 22rem)"} />
   {:else}

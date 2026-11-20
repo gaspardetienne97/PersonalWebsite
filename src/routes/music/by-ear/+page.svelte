@@ -32,6 +32,7 @@
   import { saveUserLick, secondsToBeats, LICK_FROM } from "#lib/music/user-licks.ts";
   import { importTrack, listTracks, trackKey } from "#lib/music/drills/jam/tracks.ts";
   import { envelope, takeKey } from "#lib/music/hubs/create/audioTakes.ts";
+  import { keyName, naming, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const cfg = new DrillSetup("by-ear", { mode: "learn", source: "", speed: "1", pitch: "0", part: "head" });
   const s = $derived(cfg.value);
@@ -119,6 +120,8 @@
       loop = null;
       sections = await getSetting<{ at: number; name: string }[]>(sectionKey(source), []);
       loaded = source;
+      // Movable do counts from the key; the other namings don't need it, so only then is it worked out here.
+      songKey = naming() === "movable" ? (keyOfRecording()[0] ?? null) : null;
       status = sourceTitle ? m.music_drills_byear_loaded({ name: sourceTitle, length: clock(duration) }) : m.music_drills_byear_loaded_unnamed({ length: clock(duration) });
       return true;
     } catch (e) {
@@ -215,6 +218,9 @@
   const flashes = new Flashes();
   let rated = $state<boolean | null>(null);
   let home = $state<{ answer: number; ranked: KeyGuess[]; tonics: number[] } | null>(null);
+  /** The recording's key, for movable do: names count from it (moved with the pitch shift). */
+  let songKey = $state.raw<KeyGuess | null>(null);
+  useNamingKey(() => (songKey ? { tonic: FLAT_NAMES[pc(songKey.tonicPc + Number(s.pitch))], minor: songKey.minor } : undefined));
   let homeAnswered = false;
   /** Sing along: each sung note with where in the recording it fell, and its tuning. */
   let sung: { midi: number; at: number; cents: number }[] = [];
@@ -296,6 +302,7 @@
     const ranked = keyOfRecording();
     const tonics = homeTonics(ranked);
     home = { answer, ranked, tonics };
+    songKey = ranked[0] ?? null;
     const right = tonics.includes(answer);
     const run = practice.beginRun({
       exerciseId: "ear.find-home",
@@ -309,11 +316,11 @@
       params: { mode: "home", recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration) },
     });
     await run.attempt({ promptId: `home-${loaded}`, correct: right, partialCredit: right ? 1 : 0, source: notes.length ? (notes[0].source ?? "click") : "click", target: FLAT_NAMES[tonics[0]], response: FLAT_NAMES[answer] });
-    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? m.music_drills_byear_home_run_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_run_wrong({ answer: FLAT_NAMES[answer], tonic: FLAT_NAMES[tonics[0]] }) });
+    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? m.music_drills_byear_home_run_right({ note: keyName(FLAT_NAMES[answer]) }) : m.music_drills_byear_home_run_wrong({ answer: keyName(FLAT_NAMES[answer]), tonic: keyName(FLAT_NAMES[tonics[0]]) }) });
     summary = {
-      headline: right ? m.music_drills_byear_home_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_wrong({ answer: FLAT_NAMES[answer], tonic: FLAT_NAMES[tonics[0]] }),
-      metric: FLAT_NAMES[answer],
-      metricLabel: right ? m.music_drills_byear_home_metric_right() : m.music_drills_byear_home_metric_wrong({ tonic: FLAT_NAMES[tonics[0]] }),
+      headline: right ? m.music_drills_byear_home_right({ note: keyName(FLAT_NAMES[answer]) }) : m.music_drills_byear_home_wrong({ answer: keyName(FLAT_NAMES[answer]), tonic: keyName(FLAT_NAMES[tonics[0]]) }),
+      metric: keyName(FLAT_NAMES[answer]),
+      metricLabel: right ? m.music_drills_byear_home_metric_right() : m.music_drills_byear_home_metric_wrong({ tonic: keyName(FLAT_NAMES[tonics[0]]) }),
       score: right ? 1 : 0,
       clean: right,
       cleanMeans: m.music_drills_byear_home_clean_means(),
@@ -326,7 +333,7 @@
     cap = null;
     player?.pause();
     phase = "results";
-    status = right ? m.music_drills_byear_home_status_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_status_wrong({ answer: FLAT_NAMES[answer], key: keyName(ranked[0]) });
+    status = right ? m.music_drills_byear_home_status_right({ note: keyName(FLAT_NAMES[answer]) }) : m.music_drills_byear_home_status_wrong({ answer: keyName(FLAT_NAMES[answer]), key: keyLabel(ranked[0]) });
   }
   /** Grade what was sung against the recording, and record it as a judged run. */
   async function finishSing() {
@@ -375,7 +382,8 @@
     status = savedLick;
   }
 
-  const keyName = (k: KeyGuess) => (k.minor ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: FLAT_NAMES[k.tonicPc] });
+  /** A key as text ("C major"): keys are absolute, so named as fixed do even in movable do. */
+  const keyLabel = (k: KeyGuess) => (k.minor ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: keyName(FLAT_NAMES[k.tonicPc]) });
   /** Results: hear a home note as its key's chord (minor when the recording's key is), to compare two homes. */
   const hearHome = (tonicPc: number) => {
     const minor = !!home?.ranked.find((k) => k.tonicPc === tonicPc)?.minor;
@@ -578,19 +586,19 @@
         {#if phase === "running" && mode === "home"}
           <div role="group" aria-label={m.music_drills_byear_tonic()} class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
             {#each FLAT_NAMES as name, i (i)}
-              <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{name}</button>
+              <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{keyName(name)}</button>
             {/each}
           </div>
         {:else if mode === "sing" && phase !== "results"}
           <p class="text-sm" aria-live="polite">
-            <span class="text-ws-stage-soft">{mic.pitch ? m.music_drills_byear_hearing({ note: noteName(mic.pitch.midi, "flat") }) : m.music_drills_byear_no_pitch()}</span>
-            <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
+            <span class="text-ws-stage-soft">{mic.pitch ? m.music_drills_byear_hearing({ note: note(noteName(mic.pitch.midi, "flat")) }) : m.music_drills_byear_no_pitch()}</span>
+            <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => note(noteName(n.midi, "flat"))).join(" ") : m.music_drills_byear_nothing_yet()}</span>
           </p>
         {:else if mode === "learn" && phase !== "results"}
           <div data-dock="instrument"><InstrumentStage line={[48, 84]} {flashes} interactive={phase === "running"} /></div>
           <p class="text-sm" aria-live="polite">
             <span class="text-ws-stage-soft">{m.music_drills_byear_you_played()}</span>
-            <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
+            <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => note(noteName(n.midi, "flat"))).join(" ") : m.music_drills_byear_nothing_yet()}</span>
           </p>
         {/if}
       </div>
@@ -610,12 +618,12 @@
         {#if !home.tonics.includes(home.answer)}
           <!-- A miss becomes a comparison: the two homes, each as its chord. -->
           <div class="flex flex-wrap gap-2">
-            <button type="button" class={btn} onclick={() => hearHome(home!.tonics[0])}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: FLAT_NAMES[home.tonics[0]] })}</button>
-            <button type="button" class={btn} onclick={() => hearHome(home!.answer)}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: FLAT_NAMES[home.answer] })}</button>
+            <button type="button" class={btn} onclick={() => hearHome(home!.tonics[0])}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: keyName(FLAT_NAMES[home.tonics[0]]) })}</button>
+            <button type="button" class={btn} onclick={() => hearHome(home!.answer)}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: keyName(FLAT_NAMES[home.answer]) })}</button>
           </div>
         {/if}
         <p class="text-sm text-ws-soft">
-          {home.tonics.length > 1 ? m.music_drills_byear_points_to_two({ key: keyName(home.ranked[0]), other: keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1]) }) : m.music_drills_byear_points_to({ key: keyName(home.ranked[0]) })}
+          {home.tonics.length > 1 ? m.music_drills_byear_points_to_two({ key: keyLabel(home.ranked[0]), other: keyLabel(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1]) }) : m.music_drills_byear_points_to({ key: keyLabel(home.ranked[0]) })}
           {m.music_drills_byear_key_caveat()}
         </p>
       {:else if mode === "sing"}
@@ -624,7 +632,7 @@
             {sing.correct ? m.music_drills_byear_sing_passes({ part: PART_NAME[part] }) : m.music_drills_byear_sing_fails({ count: sing.total - sing.inTune })}
             {part === "roots" ? m.music_drills_byear_sing_counts_bass() : m.music_drills_byear_sing_counts()}
           </p>
-          <p class="text-sm">{sing.notes.slice(-24).map((n) => `${noteName(n.midi, "flat")}${n.ok ? "" : "?"}`).join(" ")}</p>
+          <p class="text-sm">{sing.notes.slice(-24).map((n) => `${note(noteName(n.midi, "flat"))}${n.ok ? "" : "?"}`).join(" ")}</p>
         {:else}
           <p class="font-display text-2xl font-semibold">{m.music_drills_byear_too_few()}</p>
         {/if}
@@ -632,7 +640,7 @@
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {:else if mode === "learn"}
         <p class="font-display text-2xl font-semibold">{loop ? m.music_drills_byear_learn_played_loop({ count: played.length, a: clock(loop.a), b: clock(loop.b), pct: Math.round(Number(s.speed) * 100) }) : m.music_drills_byear_learn_played({ count: played.length, pct: Math.round(Number(s.speed) * 100) })}</p>
-        {#if played.length}<p class="text-sm">{played.slice(-32).map((n) => noteName(n.midi, "flat")).join(" ")}</p>{/if}
+        {#if played.length}<p class="text-sm">{played.slice(-32).map((n) => note(noteName(n.midi, "flat"))).join(" ")}</p>{/if}
         {#if rated === null}
           <!-- What you played on the keys beside the judgement, so you rate what you can see. -->
           <div class="grid items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">

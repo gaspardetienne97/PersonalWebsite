@@ -2,8 +2,9 @@
 // drawn with its text label (colour is never the only cue). The hue walks the
 // chromatic circle so neighbouring degrees differ and 1 is always the same gold.
 import { m } from "@repo/i18n/messages.js";
-import { noteName } from "@repo/music-core";
-import { SCALE_DEGREES } from "@repo/music-core/content/ear";
+import { noteName, pc, type NamingKey } from "@repo/music-core";
+import { promptKey, SCALE_DEGREES, type EarPrompt } from "@repo/music-core/content/ear";
+import { cadenceShift } from "./session";
 
 /** Each degree's role, in the current language (getters, so they read the locale when shown). */
 export const DEGREE_ROLE: Record<string, string> = {
@@ -53,6 +54,39 @@ export function degreeColor(label: string): string {
   const s = semitonesOf(label);
   const chromatic = label.startsWith("b") || label.startsWith("#");
   return `oklch(${chromatic ? 0.74 : 0.83} ${chromatic ? 0.1 : 0.13} ${(80 + s * 30) % 360})`;
+}
+
+/** Drills heard against a tonic (the first note played): their names count from it. */
+const TONIC_DRILLS = [
+  "scale-degree",
+  "melody-dictation",
+  "repertoire-transfer",
+  "error-detect",
+  "scale",
+];
+
+/**
+ * The key a prompt is heard in, for movable do: its tonic as a letter name (with
+ * flats, as the drill names its keys) and whether it's minor. Undefined for a
+ * prompt with no key (intervals, chord qualities, inversions, fine pitch).
+ */
+export function namingKeyOf(
+  p: EarPrompt & { keyPc?: number; minor?: boolean; fromPc?: number; written?: string[] },
+): NamingKey | undefined {
+  const tonic = (keyPc: number) => noteName(48 + pc(keyPc), "flat", false);
+  const k = promptKey(p);
+  if (k) return { tonic: tonic(k.keyPc), minor: k.minor };
+  if (p.drill === "key-change" && p.fromPc !== undefined) return { tonic: tonic(p.fromPc) };
+  if (p.drill === "cadence") return { tonic: tonic(cadenceShift(p.id)) };
+  if (TONIC_DRILLS.includes(p.drill) && p.playback[0]) {
+    // A melody in the minor degrees (b3, no 3) is in a minor key.
+    const degrees = p.written ?? p.choices;
+    return {
+      tonic: tonic(p.playback[0].midi[0]),
+      minor: p.minor ?? (degrees.includes("b3") && !degrees.includes("3")),
+    };
+  }
+  return undefined;
 }
 
 const LETTERS = "CDEFGAB";

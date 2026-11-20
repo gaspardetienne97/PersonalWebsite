@@ -19,7 +19,7 @@
   import Pause from "@lucide/svelte/icons/pause";
   import Upload from "@lucide/svelte/icons/upload";
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
-  import { JAM_GROUPS, jamToneRoles, keyText, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
   import { ACCOMP_PROGRESSIONS } from "@repo/music-core/content/accompany";
   import { REHARM_DEVICES, TUNES, chorusLabel, formatReharm, parseReharm, reharmDevice, reharmOptions, reharmonise, sectionStarts, tuneFromScore, type HeadNote, type ReharmDevice } from "@repo/music-core/content/tunes";
   import type { Progression } from "@repo/music-core/content/jam";
@@ -55,6 +55,8 @@
   import { pairNotes, saveTake, takeToSequence, type MidiTake } from "#lib/music/takes.ts";
   import Picker from "#lib/music/components/Picker.svelte";
   import LeadSheet from "#lib/music/drills/jam/LeadSheet.svelte";
+  import { keyLabel, namingKey } from "#lib/music/drills/jam/naming.ts";
+  import { chord as chordName, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   /** Jam's loops, the accompaniment's (minor blues, Bird blues, rhythm changes...) and the standards. */
   const POOL = [...ACCOMP_PROGRESSIONS, ...TUNES];
@@ -79,6 +81,8 @@
   const swaps = $derived(parseReharm(s.reharm));
   const meter = $derived(s.meter === 3 ? 3 : 4);
   const prog = $derived({ ...reharmonise(writtenProg, swaps), beatsPerBar: meter });
+  // Movable do counts from the key the tune is played in.
+  useNamingKey(() => namingKey(prog.key));
   /** The tune's melody in the chosen key, when it is one of your scores. */
   const head = $derived(library.find((l) => l.progression.id === base.id)?.head.map((n) => ({ ...n, midi: n.midi + s.transpose })) ?? null);
   const bpb = $derived(meter);
@@ -357,7 +361,7 @@
     const take: MidiTake = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      name: m.music_drills_changesjam_take_name({ name: prog.name, key: keyText(prog.key) }),
+      name: m.music_drills_changesjam_take_name({ name: prog.name, key: keyLabel(prog.key) }),
       notes: pairNotes(events, runStart, endAt),
       durationMs: Math.round(endAt - runStart),
       instrument: inst,
@@ -383,7 +387,7 @@
       },
       ["jam", prog.group],
     );
-    status = m.music_drills_changesjam_status_saved({ notes: m.music_drills_changesjam_notes_count({ count }), choruses: m.music_drills_changesjam_choruses_count({ count: choruses.length }), name: prog.name, key: keyText(prog.key) });
+    status = m.music_drills_changesjam_status_saved({ notes: m.music_drills_changesjam_notes_count({ count }), choruses: m.music_drills_changesjam_choruses_count({ count: choruses.length }), name: prog.name, key: keyLabel(prog.key) });
   }
 
   /** Pair each note-on with its release, in beats from the top of the form. */
@@ -419,7 +423,7 @@
     const take: MidiTake = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      name: m.music_drills_changesjam_take_name_game({ game: game.label, name: prog.name, key: keyText(prog.key) }),
+      name: m.music_drills_changesjam_take_name_game({ game: game.label, name: prog.name, key: keyLabel(prog.key) }),
       notes: pairNotes(events, runStart, endAt),
       durationMs: Math.round(endAt - runStart),
       instrument: inst,
@@ -487,7 +491,7 @@
 
   const summaryLine = $derived([
     // Three short chips by default (the tune, the game, the length); the rest only when changed from it.
-    { text: prog.name.includes(prog.key) ? prog.name : m.music_drills_changesjam_name_in_key({ name: prog.name, key: keyText(prog.key) }), focus: "progression" },
+    { text: prog.name.includes(prog.key) ? prog.name : m.music_drills_changesjam_name_in_key({ name: prog.name, key: keyLabel(prog.key) }), focus: "progression" },
     { text: game.id === "free" ? m.music_drills_changesjam_solo_over() : game.label.toLowerCase(), focus: "game" },
     { text: m.music_drills_changesjam_short_run({ count: runChoruses }), focus: "choruses" },
     ...(s.trade && !game.windows ? [{ text: s.trade === 4 ? m.music_drills_changesjam_trading_fours() : m.music_drills_changesjam_trading_twos(), focus: "trade" }] : []),
@@ -666,21 +670,21 @@
       />
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="transpose">
         <span class="font-medium">{m.music_drills_accompany_key()}</span>
-        <KeyPicker label={m.music_drills_accompany_key()} value={keyPc} onchange={pickKey} name={(k) => (k === base.keyPc ? m.music_drills_accompany_key_written({ key: FLAT_NAMES[k] }) : FLAT_NAMES[k])} />
-        <span class="text-ws-soft">{s.transpose ? m.music_drills_changesjam_transposed_from({ amount: `${s.transpose > 0 ? "+" : ""}${s.transpose}`, key: base.key }) : m.music_drills_changesjam_written_key()}</span>
+        <KeyPicker label={m.music_drills_accompany_key()} value={keyPc} onchange={pickKey} name={(k) => (k === base.keyPc ? m.music_drills_accompany_key_written({ key: keyName(FLAT_NAMES[k]) }) : keyName(FLAT_NAMES[k]))} />
+        <span class="text-ws-soft">{s.transpose ? m.music_drills_changesjam_transposed_from({ amount: `${s.transpose > 0 ? "+" : ""}${s.transpose}`, key: keyLabel(base.key) }) : m.music_drills_changesjam_written_key()}</span>
       </div>
     </div>
     <div class="mt-4 border-t border-ws-line pt-4" data-setup="reharm">
       <p class="text-sm font-medium">{m.music_drills_changesjam_reharm()}</p>
       <p class="text-sm text-ws-soft">{m.music_drills_changesjam_reharm_note()}</p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
-        <Picker class="w-auto min-w-40" label={m.music_drills_changesjam_chord_to_swap()} value={String(swapIndex)} options={writtenProg.chords.map((c, i) => ({ value: String(i), label: (swaps.has(i) ? m.music_drills_changesjam_swap_option_swapped : m.music_drills_changesjam_swap_option)({ n: i + 1, symbol: c.symbol }) }))} onchange={(v) => (swapAt = Number(v))} />
+        <Picker class="w-auto min-w-40" label={m.music_drills_changesjam_chord_to_swap()} value={String(swapIndex)} options={writtenProg.chords.map((c, i) => ({ value: String(i), label: (swaps.has(i) ? m.music_drills_changesjam_swap_option_swapped : m.music_drills_changesjam_swap_option)({ n: i + 1, symbol: chordName(c.symbol) }) }))} onchange={(v) => (swapAt = Number(v))} />
         {#each REHARM_DEVICES.filter((d) => reharmOptions(writtenProg, swapIndex).includes(d.id)) as d (d.id)}
           <button type="button" class={btn} aria-pressed={swaps.get(swapIndex) === d.id} title={d.about} onclick={() => toggleSwap(swapIndex, d.id)}>{d.label}</button>
         {/each}
       </div>
       {#if swaps.size}
-        <p class="mt-2 text-sm" data-testid="jam-reharm">{m.music_drills_changesjam_now_chords({ chords: prog.chords.map((c) => c.symbol).join(" ") })}</p>
+        <p class="mt-2 text-sm" data-testid="jam-reharm">{m.music_drills_changesjam_now_chords({ chords: prog.chords.map((c) => chordName(c.symbol)).join(" ") })}</p>
         <div class="mt-2 flex flex-wrap items-center gap-2">
           <button type="button" class={btn} aria-pressed={!!preview} onclick={hearChart}>{#if preview}<Square class="size-4" aria-hidden="true" />{m.music_drills_changesjam_stop()}{:else}<Play class="size-4" aria-hidden="true" />{m.music_drills_changesjam_hear_it()}{/if}</button>
           <a class={btn} href={compHref}>{m.music_drills_changesjam_comp_it()}</a>
@@ -738,7 +742,7 @@
     </div>
     <ol class="sr-only" aria-label={m.music_drills_changesjam_form_label({ name: prog.name })}>
       {#each prog.chords as c, i (i)}
-        <li aria-current={i === chordIdx ? "step" : undefined}>{(i === chordIdx ? m.music_drills_changesjam_form_item_now : m.music_drills_changesjam_form_item)({ symbol: c.symbol, count: c.bars })}</li>
+        <li aria-current={i === chordIdx ? "step" : undefined}>{(i === chordIdx ? m.music_drills_changesjam_form_item_now : m.music_drills_changesjam_form_item)({ symbol: chordName(c.symbol), count: c.bars })}</li>
       {/each}
     </ol>
     <!-- The form lane: chords as wide as their beats slide left past a fixed playhead, so the next one is always arriving. -->
@@ -750,7 +754,7 @@
           {@const off = b.state === "now" ? Math.max(0, Math.min(b.beats * scale.pxPerBeat - 80, -(scale.playheadX + (b.start - laneAt) * scale.pxPerBeat))) : 0}
           <div class="block" data-state={b.state} style:left="{b.start * scale.pxPerBeat}px" style:width="{b.beats * scale.pxPerBeat - 4}px">
             {#if b.state === "next"}<span class="next-tag">{m.music_drills_changesjam_next_tag()}</span>{/if}
-            <span class="sym font-display" style:margin-left="{off}px">{sym}</span>
+            <span class="sym font-display" style:margin-left="{off}px">{chordName(sym)}</span>
             <!-- A dot in the middle of each beat, lit once the playhead is in it; a bar's first beat is a dash. -->
             <span class="ticks">
               {#each Array.from({ length: Math.ceil(b.beats - 1e-6) }, (_, k) => k) as k (k)}
@@ -768,25 +772,25 @@
         <p class="text-sm text-ws-stage-soft">{m.music_drills_accompany_now()}</p>
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
           {#key chord.symbol}
-            <p class="now-chord font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chord.symbol}</p>
+            <p class="now-chord font-display text-5xl font-bold leading-none" data-testid="jam-chord">{chordName(chord.symbol)}</p>
           {/key}
           {#if showRoles && setPcs.length}
             <!-- A set game: the chips are the scored notes and nothing else, each with its degree over this chord, as the ringed keys say. -->
-            <ul class="flex flex-wrap gap-1.5" aria-label={m.music_drills_changesjam_scored_notes_over({ symbol: chord.symbol })}>
+            <ul class="flex flex-wrap gap-1.5" aria-label={m.music_drills_changesjam_scored_notes_over({ symbol: chordName(chord.symbol) })}>
               {#each setPcs as p (p)}
-                <li class="tone-chip set"><span class="text-[0.8125rem] font-medium">{toneLabel(chord.symbol, p)}</span>{FLAT_NAMES[p]}</li>
+                <li class="tone-chip set"><span class="text-[0.8125rem] font-medium">{toneLabel(chord.symbol, p)}</span>{note(FLAT_NAMES[p])}</li>
               {/each}
             </ul>
           {:else if showRoles && tones.length}
-            <ul class="flex flex-wrap gap-1.5" aria-label={m.music_drills_changesjam_chord_tones_of({ symbol: chord.symbol })}>
+            <ul class="flex flex-wrap gap-1.5" aria-label={m.music_drills_changesjam_chord_tones_of({ symbol: chordName(chord.symbol) })}>
               {#each tones as t (t.label)}
-                <li class="tone-chip"><span class="text-[0.8125rem] font-medium">{t.label}</span>{t.name}</li>
+                <li class="tone-chip"><span class="text-[0.8125rem] font-medium">{t.label}</span>{note(t.name)}</li>
               {/each}
             </ul>
           {/if}
         </div>
         <!-- One claim (contradiction 13): a set game names its scored set and only those notes, never a scale that lights others. -->
-        <p class="mt-2 text-ws-stage-soft">{#if showRoles}<span data-testid="jam-hint">{jamHint(game, prog.keyPc, chord)}{game.set && "key" in game.set ? ` ${m.music_drills_changesjam_set_note()}` : ""}</span>{" "}{/if}{m.music_drills_changesjam_next_chord_is({ symbol: prog.chords[(chordIdx + 1) % prog.chords.length].symbol })}</p>
+        <p class="mt-2 text-ws-stage-soft">{#if showRoles}<span data-testid="jam-hint">{jamHint(game, prog.keyPc, chord)}{game.set && "key" in game.set ? ` ${m.music_drills_changesjam_set_note()}` : ""}</span>{" "}{/if}{m.music_drills_changesjam_next_chord_is({ symbol: chordName(prog.chords[(chordIdx + 1) % prog.chords.length].symbol) })}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class={btnStage} onclick={playChord}><Music class="size-4" aria-hidden="true" />{m.music_drills_changesjam_hear_chord()}</button>
@@ -803,10 +807,10 @@
 
     <div class="flex flex-col justify-end" data-dock="instrument">
       {#if fretted}
-        <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} label={m.music_drills_changesjam_fretboard_label({ tuning: tuning.name, symbol: chord.symbol })} />
+        <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} label={m.music_drills_changesjam_fretboard_label({ tuning: tuning.name, symbol: chordName(chord.symbol) })} />
       {:else}
         <!-- Two octaves always on screen, a phone too: the keys narrow before any is cut. -->
-        <Piano low={48} high={84} fit={{ low: 60, high: 84 }} marks={pianoMarks} names="c" label={m.music_drills_changesjam_keyboard_label({ symbol: chord.symbol })} />
+        <Piano low={48} high={84} fit={{ low: 60, high: 84 }} marks={pianoMarks} names="c" label={m.music_drills_changesjam_keyboard_label({ symbol: chordName(chord.symbol) })} />
       {/if}
     </div>
 
@@ -816,7 +820,7 @@
         <span class="flex items-center gap-2"><span class="legend fill" style:background="var(--tone-scale)" aria-hidden="true"></span>{m.music_drills_changesjam_legend_scale()}</span>
         <span class="flex items-center gap-2"><span class="legend ring" aria-hidden="true"></span>{m.music_drills_changesjam_legend_avoid()}</span>
       {/if}
-      {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>{m.music_drills_changesjam_legend_set({ notes: setPcs.map((p) => FLAT_NAMES[p]).join(" ") })}</span>{/if}
+      {#if setPcs.length}<span class="flex items-center gap-2"><span class="legend set" aria-hidden="true"></span>{m.music_drills_changesjam_legend_set({ notes: setPcs.map((p) => note(FLAT_NAMES[p])).join(" ") })}</span>{/if}
       <span>{m.music_drills_changesjam_legend_numbers()}</span>
     </div>
 
@@ -825,15 +829,15 @@
       <ol class="mt-3 flex min-h-9 flex-wrap items-center gap-1.5 text-sm" aria-label={m.music_drills_changesjam_trail_label()} data-testid="jam-trail">
         {#if !played.length}<li class="text-ws-stage-soft">{m.music_drills_changesjam_trail_empty()}</li>{/if}
         {#each played.slice(-10) as n, i (played.length - Math.min(played.length, 10) + i)}
-          <li class="trail-note rounded-full px-3 py-1.5 text-base font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/15'}" data-role={showRoles ? roles[pc(n.midi)] : undefined}>{noteName(n.midi, "flat", false)}</li>
+          <li class="trail-note rounded-full px-3 py-1.5 text-base font-semibold {i === Math.min(played.length, 10) - 1 ? 'bg-ws-stage-ink text-ws-stage' : 'bg-ws-stage-ink/15'}" data-role={showRoles ? roles[pc(n.midi)] : undefined}>{note(noteName(n.midi, "flat", false))}</li>
         {/each}
       </ol>
     {/if}
     {#if lastNote && showRoles}
       <p class="mt-3 text-lg" data-testid="jam-last">
-        <span class="font-display font-semibold">{noteName(lastNote.midi)}</span>
+        <span class="font-display font-semibold">{note(noteName(lastNote.midi))}</span>
         <span class="role-pill" data-role={lastNote.role}>{lastNote.role === "chord" ? "●" : lastNote.role === "scale" ? "◐" : "○"} {ROLE_TEXT[lastNote.role]}</span>
-        <span class="text-ws-stage-soft">({lastNote.label} of {lastNote.symbol})</span>
+        <span class="text-ws-stage-soft">{m.music_drills_changesjam_last_degree_of({ degree: lastNote.label, symbol: chordName(lastNote.symbol) })}</span>
       </p>
     {/if}
     {#if phase === "running" && choruses.length && !checking}
@@ -883,7 +887,7 @@
                 </div>
                 <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-soft">
                   {#each c.report.perChord as pc_ (pc_.index)}
-                    <li><span class="font-medium text-ws-ink">{pc_.symbol}</span> {pc_.notes ? m.music_drills_changesjam_per_chord({ chord: pc_.chord, scale: pc_.scale, avoid: pc_.avoid }) : m.music_drills_changesjam_nothing_played()}</li>
+                    <li><span class="font-medium text-ws-ink">{chordName(pc_.symbol)}</span> {pc_.notes ? m.music_drills_changesjam_per_chord({ chord: pc_.chord, scale: pc_.scale, avoid: pc_.avoid }) : m.music_drills_changesjam_nothing_played()}</li>
                   {/each}
                 </ul>
               {/if}

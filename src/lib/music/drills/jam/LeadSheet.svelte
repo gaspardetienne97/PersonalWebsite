@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { chord } from "#lib/music/names.svelte.ts";
   // The chart as a band reads it: a staff with bar lines, a slash on every beat, the chord symbols over
   // the beat they start on, a section's letter boxed on its first bar, a double bar at the end. The bar
   // being played is washed in the hue and its beat's slash is lit; nothing else moves.
@@ -37,7 +38,7 @@
     <li class="bar" class:now={b.i === nowBar} class:end={b.i === bars.length - 1} data-bar={b.i + 1} data-now={b.i === nowBar ? "" : undefined}>
       <span class="syms" class:tight={b.chords.length > 1}>
         {#each b.chords as c, k (k)}
-          <span class="sym font-display" style:grid-column="{c.beat + 1} / {(b.chords[k + 1]?.beat ?? beatsPerBar) + 1}">{#if b.mark && k === 0}<span class="mark">{b.mark}</span>{/if}{c.symbol}</span>
+          <span class="sym font-display" style:grid-column="{c.beat + 1} / {(b.chords[k + 1]?.beat ?? beatsPerBar) + 1}">{#if b.mark && k === 0}<span class="mark">{b.mark}</span>{/if}{chord(c.symbol)}</span>
         {:else}
           {#if b.mark}<span class="sym"><span class="mark">{b.mark}</span></span>{/if}
         {/each}

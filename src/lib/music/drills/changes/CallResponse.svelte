@@ -8,7 +8,9 @@
   import { MediaQuery } from "svelte/reactivity";
   import { noteName, pc, type NoteEvent } from "@repo/music-core";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
-  import { chorusBars, keyText } from "@repo/music-core/content/jam";
+  import { chorusBars } from "@repo/music-core/content/jam";
+  import { keyLabel, namingKey } from "#lib/music/drills/jam/naming.ts";
+  import { chord, keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
   import { rng } from "@repo/music-core/content/random";
   import {
     BEATS_PER_BAR,
@@ -47,6 +49,8 @@
   const s = $derived(cfg.value);
   const callMode = $derived<CallMode>(s.mode === "answer" ? "answer" : "echo");
   const groove = $derived(grooveOf(s.groove));
+  // Movable do counts from the groove's key.
+  useNamingKey(() => namingKey(groove.key));
   const bars = $derived(s.bars === "2" ? 2 : 1);
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
 
@@ -151,7 +155,7 @@
       if (b >= -0.5 && b < bars * BEATS_PER_BAR) reply = [...reply, { beat: Math.max(0, b), midi: e.midi }];
     }
     if (mode !== "practice") {
-      heard = [...heard.slice(-7), noteName(e.midi, "flat")];
+      heard = [...heard.slice(-7), note(noteName(e.midi, "flat"))];
       return;
     }
     const bar = Math.floor((e.at - downbeat) / barMs());
@@ -163,7 +167,7 @@
     flashes.add(e.midi, good ? "correct" : "wrong");
     clearTimeout(inTimer);
     if (callMode === "echo" && good) inTimer = setTimeout(() => verdict?.kind === "in" && (verdict = null), 1400);
-    const name = noteName(e.midi, "flat");
+    const name = note(noteName(e.midi, "flat"));
     verdict = {
       // In the call is not yet right (order and time are judged as the turn ends): a neutral mark, not a tick.
       kind: callMode === "echo" ? (good ? "in" : "wrong") : good ? "right" : "wrong",
@@ -347,7 +351,7 @@
     return Array.from({ length: CALL_RANGE[1] - CALL_RANGE[0] + 1 }, (_, i) => CALL_RANGE[0] + i).filter((m) => pcs.includes(pc(m)));
   });
   const marks = $derived(
-    phase === "ready" && !demo?.playing ? Object.fromEntries(startTones.map((m) => [m, { role: "chord", label: noteName(m, "flat").replace(/\d+$/, "") } satisfies CellMarks])) : litMarks,
+    phase === "ready" && !demo?.playing ? Object.fromEntries(startTones.map((m) => [m, { role: "chord", label: note(noteName(m, "flat").replace(/\d+$/, "")) } satisfies CellMarks])) : litMarks,
   );
   /** The call on the lane: this turn's while running, the sample call before Start (what Hear it plays). */
   const sampleCall = $derived(callPhrase(rng(7), { groove, bar: 0, bars }));
@@ -359,11 +363,11 @@
   const blankLane = $derived(mode === "check" && !demo?.playing);
   const laneRows = $derived<LaneRow[]>([
     // Named with their octave (C4, E5), so the call and your notes compare pitch for pitch.
-    { id: "call", mark: sample ? m.music_drills_callresponse_mark_eg() : m.music_drills_callresponse_mark_call(), label: sample ? m.music_drills_callresponse_sample_call() : m.music_drills_callresponse_the_call(), hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
-    ...(phase === "running" ? [{ id: "you", mark: m.music_drills_callresponse_mark_you(), label: m.music_drills_callresponse_your_notes(), hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : noteName(r.midi, "flat") })) }] : []),
+    { id: "call", mark: sample ? m.music_drills_callresponse_mark_eg() : m.music_drills_callresponse_mark_call(), label: sample ? m.music_drills_callresponse_sample_call() : m.music_drills_callresponse_the_call(), hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : note(noteName(n.midi, "flat")) })) },
+    ...(phase === "running" ? [{ id: "you", mark: m.music_drills_callresponse_mark_you(), label: m.music_drills_callresponse_your_notes(), hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : note(noteName(r.midi, "flat")) })) }] : []),
   ]);
   const laneChords = $derived(
-    Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol })),
+    Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chord(chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol) })),
   );
   /** The keys span every call note of the run and everything you play, so a note never falls off the keyboard. */
   const keyLine = $derived([...CALL_RANGE, ...(phase === "ready" ? sampleCall : calls.flat()).map((n) => n.midi), ...reply.map((r) => r.midi)]);
@@ -380,7 +384,7 @@
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
     { text: callMode === "echo" ? m.music_drills_callresponse_echo_call() : m.music_drills_callresponse_answer_call(), focus: "mode" },
-    { text: m.music_drills_callresponse_over({ groove: grooveLabel.toLowerCase(), key: keyText(groove.key) }), focus: "groove" },
+    { text: m.music_drills_callresponse_over({ groove: grooveLabel.toLowerCase(), key: keyLabel(groove.key) }), focus: "groove" },
     { text: m.music_drills_callresponse_bar_calls({ count: bars }), focus: "bars" },
     { text: m.music_drills_callresponse_turns_at({ turns: CALL_TURNS, bpm }) },
   ]);
@@ -444,7 +448,7 @@
           {phase !== "running" ? m.music_drills_callresponse_listen_then_play() : !now ? m.music_drills_callresponse_get_ready() : now.part === "call" ? m.music_drills_callresponse_listen() : m.music_drills_callresponse_your_turn()}
         </p>
         <p class="text-sm text-ws-stage-soft">
-          {m.music_drills_callresponse_key_now({ key: groove.key.endsWith(" major") ? groove.key.split(" ")[0] : keyText(groove.key), chord: chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol })}
+          {m.music_drills_callresponse_key_now({ key: groove.key.endsWith(" major") ? keyName(groove.key.split(" ")[0]) : keyLabel(groove.key), chord: chord(chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol) })}
         </p>
       </div>
       <!-- The call as note blocks in time, lit as it plays; your notes fill the row under it as you play. -->
@@ -486,7 +490,7 @@
       <!-- A live phone run: this region takes the free height and the keys sit at its foot, under the thumb. -->
       <div class="flex flex-col justify-end" data-dock="instrument" data-grow={phone.current && phase === "running" ? "" : undefined}><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
-        <p class="text-sm text-ws-stage-soft">{m.music_drills_callresponse_ready_note({ chord: chordAtBar(groove, 0).symbol })}</p>
+        <p class="text-sm text-ws-stage-soft">{m.music_drills_callresponse_ready_note({ low: note("C4"), high: note("E5"), chord: chord(chordAtBar(groove, 0).symbol) })}</p>
       {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">{m.music_drills_callresponse_practice_note()}</p>{/if}
     </div>
   {/snippet}

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vite-plus/test";
 import { flashcardPrompt } from "@repo/music-core/content/reading";
 import { rng } from "@repo/music-core/content/random";
 import { TUNINGS } from "@repo/music-core/data/index";
+import { setNoteNaming } from "@repo/music-core";
 import {
+  keyLabel,
   combineLanes,
   kickGroups,
   KICK_MIDI,
@@ -187,5 +189,18 @@ describe("plain words for the cursor's steps and the follower", () => {
       64: { target: true, label: "✓" },
       65: { label: "✕" },
     });
+  });
+});
+
+describe("keyLabel", () => {
+  it("names the key's tonic as the note names setting reads it", () => {
+    expect(keyLabel("Bb major")).toBe("Bb major");
+    setNoteNaming("fixed");
+    try {
+      expect(keyLabel("Bb major")).toBe("Sib major");
+      expect(keyLabel("A minor")).toBe("La minor");
+    } finally {
+      setNoteNaming("letters");
+    }
   });
 });
