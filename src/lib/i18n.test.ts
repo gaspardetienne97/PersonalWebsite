@@ -39,4 +39,8 @@ describe("formatDate", () => {
     expect(intlLocale("es")).toBe("es-419");
     expect(new Intl.NumberFormat(intlLocale("es")).format(12345.6)).toBe("12,345.6");
   });
+
+  it("formats French as it is used in Haiti", () => {
+    expect(intlLocale("fr")).toBe("fr-HT");
+  });
 });

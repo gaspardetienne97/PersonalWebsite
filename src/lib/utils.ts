@@ -83,11 +83,12 @@ const CREOLE_MONTHS = [
 ];
 
 /**
- * The tag to hand `Intl` for a site locale. The Spanish here is Latin American,
- * and plain "es" would format dates and numbers the way Spain does.
+ * The tag to hand `Intl` for a site locale. The Spanish here is Latin American
+ * and the French is Haitian, while plain "es" and "fr" mean Spain and France.
  */
+const INTL_LOCALES: Record<string, string> = { es: "es-419", fr: "fr-HT" };
 export function intlLocale(locale: string = getLocale()) {
-  return locale === "es" ? "es-419" : locale;
+  return INTL_LOCALES[locale] ?? locale;
 }
 
 /** A date in the visitor's language (or the given locale). */
