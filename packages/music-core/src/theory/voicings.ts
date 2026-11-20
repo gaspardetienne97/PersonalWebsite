@@ -7,6 +7,7 @@
 import { TUNINGS, type ChordPosition, type ChordShape, type Tuning } from "../data";
 import { CHORD_TEMPLATES } from "./chords";
 import { FLAT_NAMES, pc } from "./notes";
+import { m } from "@repo/i18n/messages.js";
 
 export type VoicingKind = "open" | "barre" | "closed";
 
@@ -205,7 +206,11 @@ function judge(
     fingers,
     kind,
     label:
-      kind === "open" ? "Open position" : kind === "barre" ? `Barre at fret ${low}` : `Fret ${low}`,
+      kind === "open"
+        ? m.music_content_voicing_open_position()
+        : kind === "barre"
+          ? m.music_content_voicing_barre_at_fret({ fret: low })
+          : m.music_content_voicing_fret({ fret: low }),
     baseFret: hasOpen ? 0 : low,
     ...(barre ? { barre } : {}),
     needsBarre,
@@ -223,25 +228,25 @@ export const chordName = (rootPc: number, suffix: string) => `${FLAT_NAMES[pc(ro
 // usually the open position), in the same form the curated positions use.
 
 export const QUALITY_NAMES: Record<string, string> = {
-  maj: "major",
-  m: "minor",
-  dim: "diminished",
-  aug: "augmented",
-  sus2: "suspended 2nd",
-  sus4: "suspended 4th",
-  add9: "added 9th",
-  "6": "6th",
-  m6: "minor 6th",
-  maj7: "major 7th",
-  m7: "minor 7th",
-  "7": "dominant 7th",
-  "7sus4": "7th, suspended 4th",
-  m7b5: "half-diminished",
-  dim7: "diminished 7th",
-  "9": "dominant 9th",
-  maj9: "major 9th",
-  m9: "minor 9th",
-  "5": "power chord",
+  maj: m.music_content_voicing_quality_major(),
+  m: m.music_content_voicing_quality_minor(),
+  dim: m.music_content_voicing_quality_diminished(),
+  aug: m.music_content_voicing_quality_augmented(),
+  sus2: m.music_content_voicing_quality_suspended_2nd(),
+  sus4: m.music_content_voicing_quality_suspended_4th(),
+  add9: m.music_content_voicing_quality_added_9th(),
+  "6": m.music_content_voicing_quality_6th(),
+  m6: m.music_content_voicing_quality_minor_6th(),
+  maj7: m.music_content_voicing_quality_major_7th(),
+  m7: m.music_content_voicing_quality_minor_7th(),
+  "7": m.music_content_voicing_quality_dominant_7th(),
+  "7sus4": m.music_content_voicing_quality_7th_suspended_4th(),
+  m7b5: m.music_content_voicing_quality_half_diminished(),
+  dim7: m.music_content_voicing_quality_diminished_7th(),
+  "9": m.music_content_voicing_quality_dominant_9th(),
+  maj9: m.music_content_voicing_quality_major_9th(),
+  m9: m.music_content_voicing_quality_minor_9th(),
+  "5": m.music_content_voicing_quality_power_chord(),
 };
 
 export const generatedChordId = (
@@ -272,7 +277,11 @@ export function generatedPositions(id: string, tuning?: Tuning): ChordPosition[]
   const cacheKey = `${id}|${tuning.id}|${tuning.openStrings.join(",")}|${tuning.fretCount}`;
   const hit = posCache.get(cacheKey);
   if (hit) return hit;
-  const name = `${chordName(g.rootPc, g.quality.suffix)}, ${FLAT_NAMES[g.rootPc]} ${QUALITY_NAMES[g.quality.quality] ?? g.quality.quality}`;
+  const name = m.music_content_voicing_generated_name({
+    symbol: chordName(g.rootPc, g.quality.suffix),
+    root: FLAT_NAMES[g.rootPc],
+    quality: QUALITY_NAMES[g.quality.quality] ?? g.quality.quality,
+  });
   const out = chordVoicings(tuning, g.rootPc, g.quality.intervals).map((v, i): ChordPosition => {
     const fretted = v.frets.filter((f): f is number => f !== null && f > 0);
     const start = v.baseFret > 0 ? v.baseFret - 1 : 0;

@@ -46,3 +46,20 @@ export function localizeFields<T extends object>(
     }
   }
 }
+
+/** Turns `field` of each item into a getter that passes the item's English through `translate`. */
+export function localizeWith<T extends object>(
+  items: readonly T[],
+  field: keyof T & string,
+  translate: (english: string) => string,
+): void {
+  for (const item of items) {
+    const english = (item as Record<string, unknown>)[field];
+    if (typeof english !== "string") continue;
+    Object.defineProperty(item, field, {
+      get: () => translate(english),
+      enumerable: true,
+      configurable: true,
+    });
+  }
+}
