@@ -536,8 +536,7 @@ export function gradeExpression(input: {
   const beatOf = (t: number) => (t - startAt) / beatMs;
   const levels = playedLevels(input.notes, input.controls);
   const dyn = { right: 0, total: 0 };
-  const unmeasured =
-    levels === null ? m.music_drills_studio_unmeasured_level() : null;
+  const unmeasured = levels === null ? m.music_drills_studio_unmeasured_level() : null;
   if (levels) {
     const ds = [...marks.dynamics]
       .sort((a, b) => a.beat - b.beat)
@@ -672,7 +671,10 @@ export function tapScore(score: Score, voiceIds: readonly string[]): Score {
           at.set(k, { midi: TAP_MIDI, startBeat: n.startBeat, durationBeats: n.durationBeats });
       }
   const notes = [...at.values()].sort((a, b) => a.startBeat - b.startBeat);
-  return { ...score, voices: [{ id: TAP_VOICE, name: m.music_drills_studio_rhythm_voice(), notes }] };
+  return {
+    ...score,
+    voices: [{ id: TAP_VOICE, name: m.music_drills_studio_rhythm_voice(), notes }],
+  };
 }
 
 // ---------------------------------------------------------------------------
