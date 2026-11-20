@@ -33,6 +33,12 @@ import stringSpiderJson from "./string-spider.json";
 import tuningsJson from "./tunings.json";
 import twoHandJson from "./two-hand-patterns.json";
 import voicingDrillJson from "./voicing-drill.json";
+// Each sets getters on the JSON above so its shown text follows the locale.
+import "./i18n/ear";
+import "./i18n/jazz";
+import "./i18n/reading";
+import "./i18n/technique";
+import "./i18n/misc";
 
 type Hand = "left" | "right";
 type Link = { label: string; href: string };
