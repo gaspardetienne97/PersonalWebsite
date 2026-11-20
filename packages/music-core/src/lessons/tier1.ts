@@ -14,6 +14,8 @@ import { fillGroove } from "../content/pad-skills";
 import { parseChordSymbol } from "../theory/chords";
 import { isBlackKey, noteName, pc } from "../theory/notes";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
+import { m } from "@repo/i18n/messages.js";
+import { formatList, formatNumber } from "@repo/i18n/format";
 
 /**
  * The keys figure; `span` is every note the screen's steps will show, so the keyboard keeps its size
@@ -38,55 +40,44 @@ const chords = (...sets: number[][]): LessonSound => ({
 // Jazz voicing types
 
 const INTERVALS = [
-  "a unison",
-  "a minor 2nd",
-  "a major 2nd",
-  "a minor 3rd",
-  "a major 3rd",
-  "a perfect 4th",
-  "a tritone",
-  "a perfect 5th",
-  "a minor 6th",
-  "a major 6th",
-  "a minor 7th",
-  "a major 7th",
-  "an octave",
-  "a minor 9th",
-  "a major 9th",
-  "a minor 10th",
-  "a major 10th",
-  "a perfect 11th",
+  m.music_cards_tier1_interval_0,
+  m.music_cards_tier1_interval_1,
+  m.music_cards_tier1_interval_2,
+  m.music_cards_tier1_interval_3,
+  m.music_cards_tier1_interval_4,
+  m.music_cards_tier1_interval_5,
+  m.music_cards_tier1_interval_6,
+  m.music_cards_tier1_interval_7,
+  m.music_cards_tier1_interval_8,
+  m.music_cards_tier1_interval_9,
+  m.music_cards_tier1_interval_10,
+  m.music_cards_tier1_interval_11,
+  m.music_cards_tier1_interval_12,
+  m.music_cards_tier1_interval_13,
+  m.music_cards_tier1_interval_14,
+  m.music_cards_tier1_interval_15,
+  m.music_cards_tier1_interval_16,
+  m.music_cards_tier1_interval_17,
 ];
-const gap = (semis: number) => INTERVALS[semis] ?? `${semis} half steps`;
+const gap = (semis: number) =>
+  INTERVALS[semis]?.() ?? m.music_cards_half_steps({ count: semis });
 
 /** What the drill's type says in words, true of every chord the type gives. */
-const IDEAS: Record<JazzVoicingId, string> = {
-  sevenths:
-    "A seventh chord stacks the root, 3rd, 5th and 7th, all from the notes of the key. The chord on each degree gets its quality from the key: maj7 on the I and IV, m7 on the ii, iii and vi, 7 on the V and m7b5 on the vii. The drill plays them in root position, up the key and back.",
-  "so-what":
-    "The So What chord is a stack of 4ths with a 3rd on top, all from the dorian mode. The two lowest notes go in the left hand and the other three in the right. To stay in the mode, a 4th can grow to an augmented 4th and the top 3rd can shrink to a minor 3rd.",
-  quartal:
-    "A quartal stack is three notes a 4th apart, all in the left hand. The drill moves it up the dorian mode for two octaves. To stay in the mode, one of its 4ths is sometimes an augmented 4th.",
-  sus: "A 7sus chord voiced as a slash chord: the root and 5th in the left hand, and the major triad a whole step below the root in the right. For C7sus that triad is Bb major, written Bb/C. The right hand can use any inversion of the triad.",
-  "two-hand":
-    "A rootless voicing leaves the root to the bass. In a ii-V-I the left hand plays the 3rd and 7th (the 7th and 3rd on the V), and the right hand adds the 9th, 5th and 13th.",
-  close:
-    "A 4-way close voicing puts a melody note on top with the next three chord tones close below it, all within an octave. The drill goes through a ii-V-I with each chord tone on top in turn. A major chord with its root on top takes the 6th instead of the 7th.",
-  drop2:
-    "Drop-2 starts from the 4-way close voicing and drops its second voice from the top down an octave. That note goes in the left hand and the other three stay in the right. The chord spreads wider than the close voicing, with the same four notes.",
-  locked:
-    "In George Shearing's locked hands the melody note is doubled an octave below in the left hand, with a 4-way close chord under it in the right. A melody note that belongs to the major 6th chord (root, 3rd, 5th or 6th) gets that chord. Any other melody note gets the diminished seventh chord.",
-  garland:
-    "Red Garland's block chords on a 12-bar blues: the left hand plays the 3rd, 7th and 9th of the chord. The right hand plays the melody in octaves, with a note a 5th above the lower one between them. The drill gives one chord a bar.",
-  evans:
-    "Bill Evans's spreads on a ii-V-I use three notes in the left hand and two in the right. The left hand plays the 3rd, 7th and 9th, and on the V the 7th, 3rd and 13th. The top right-hand note is the melody, with one voice under it.",
-  monk: "Thelonious Monk's shells on a 12-bar blues keep the root in the left hand. On the I the right hand plays the 3rd, b7 and root. On the IV and V it plays the 3rd and b7, with the root and b9 together on top, a half step apart.",
-  upper:
-    "Each dominant in a tune gets a 1-3-7 shell in the left hand and a triad on top that adds colour tones. A b9 mark takes the VI triad (b9 13). Otherwise a dominant that resolves to a minor chord, or is marked alt, #9 or b13, takes the bVI triad (#9 b13), and any other takes the II triad (9 #11 13).",
-  "quartal-tune":
-    "Every chord in a tune's changes gets a left-hand stack of two 4ths taken from the chord's scale, with one of the chord's guide tones inside it: the 3rd or 7th, the 4th on a sus chord, or the 6th on a sixth or diminished chord. A chord on a diminished scale, such as a b9 dominant or a diminished 7th, has no such stack, so it gets a tritone under a 4th. The picture shows the first chord.",
-  "slash-tune":
-    "Every chord in a tune's changes becomes a triad over its root, chosen by the chord type. A minor 7th, 7sus or dominant takes the major triad a whole step below the root. A major 7th takes the triad on its 5th, and a half-diminished chord the minor triad on its b3.",
+const IDEAS: Record<JazzVoicingId, () => string> = {
+  sevenths: m.music_cards_tier1_idea_sevenths,
+  "so-what": m.music_cards_tier1_idea_so_what,
+  quartal: m.music_cards_tier1_idea_quartal,
+  sus: m.music_cards_tier1_idea_sus,
+  "two-hand": m.music_cards_tier1_idea_two_hand,
+  close: m.music_cards_tier1_idea_close,
+  drop2: m.music_cards_tier1_idea_drop2,
+  locked: m.music_cards_tier1_idea_locked,
+  garland: m.music_cards_tier1_idea_garland,
+  evans: m.music_cards_tier1_idea_evans,
+  monk: m.music_cards_tier1_idea_monk,
+  upper: m.music_cards_tier1_idea_upper,
+  "quartal-tune": m.music_cards_tier1_idea_quartal_tune,
+  "slash-tune": m.music_cards_tier1_idea_slash_tune,
 };
 
 /** A chord's note names by its own symbol, so flats and sharps come out right (Bb in C7, not A#). */
@@ -112,30 +103,40 @@ function voicingCard(id: JazzVoicingId, lessonId: string): Lesson {
   const c = exampleVoicing(id);
   const name = voicingNamer(c.symbol);
   const notes = [...c.left, ...c.right].sort((a, b) => a - b);
-  const marks = (ms: number[]) => keys(Object.fromEntries(ms.map((m) => [m, name(m)])), notes);
-  const steps: LessonStep[] = notes.map((m, i) => ({
-    text:
-      (i === 0
-        ? `Start on ${name(m)}, the lowest note,`
-        : `Add ${name(m)}, ${gap(m - notes[i - 1])} above ${name(notes[i - 1])},`) +
-      ` in the ${c.left.includes(m) ? "left" : "right"} hand.`,
-    figure: marks(notes.slice(0, i + 1)),
-  }));
+  const marks = (ms: number[]) => keys(Object.fromEntries(ms.map((x) => [x, name(x)])), notes);
+  const steps: LessonStep[] = notes.map((x, i) => {
+    const left = c.left.includes(x);
+    return {
+      text:
+        i === 0
+          ? (left ? m.music_cards_tier1_stack_start_left : m.music_cards_tier1_stack_start_right)({
+              note: name(x),
+            })
+          : (left ? m.music_cards_tier1_stack_add_left : m.music_cards_tier1_stack_add_right)({
+              note: name(x),
+              interval: gap(x - notes[i - 1]),
+              below: name(notes[i - 1]),
+            }),
+      figure: marks(notes.slice(0, i + 1)),
+    };
+  });
   return {
     id: lessonId,
     title: type.label,
     screens: [
       {
         title: type.label,
-        text: IDEAS[id],
+        text: IDEAS[id](),
         figure: marks(notes),
         sound: chords(
           ...[c, all[all.indexOf(c) + 1]].filter(Boolean).map((x) => [...x.left, ...x.right]),
         ),
       },
       {
-        title: "How it's stacked",
-        text: `Here is ${id === "monk" ? "the first chord with a cluster" : "the first one the drill gives"}, ${c.symbol}. Tap Next to add its notes from the bottom up.`,
+        title: m.music_cards_tier1_stacked_title(),
+        text: (id === "monk"
+          ? m.music_cards_tier1_stacked_text_monk
+          : m.music_cards_tier1_stacked_text)({ symbol: c.symbol }),
         figure: marks([notes[0]]),
         steps,
       },
@@ -159,10 +160,7 @@ export function jazzVoicingLesson(type: string): Lesson[] {
 
 /** A beat position as a count: 0 is "1", 0.5 is "1&". */
 const count = (beat: number) => `${Math.floor(beat) + 1}${beat % 1 ? "&" : ""}`;
-const countList = (beats: number[]) =>
-  beats.length < 2
-    ? beats.map(count).join("")
-    : `${beats.slice(0, -1).map(count).join(", ")} and ${count(beats[beats.length - 1])}`;
+const countList = (beats: number[]) => formatList(beats.map(count));
 
 const drums = (g: Record<GrooveLane, number[]>, lanes: GrooveLane[], bpm = 100): LessonSound => ({
   notes: GROOVE_LANES.filter((l) => lanes.includes(l.id)).flatMap((l) =>
@@ -192,51 +190,53 @@ export function grooveDictationLesson(): Lesson {
   const levels = GROOVE_LEVELS.map((l) => l.title.toLowerCase());
   return {
     id: "rhythm.groove-parts",
-    title: "Kick, snare and hi-hat",
+    title: m.music_cards_tier1_groove_title(),
     screens: [
       {
-        title: "The kick",
-        text: "The kick is the low drum, and it lands on beat 1 of every bar in every groove here. The other kick hits move around from groove to groove. Tap Hear it for a kick on beats 1 and 3.",
+        title: m.music_cards_tier1_groove_kick_title(),
+        text: m.music_cards_tier1_groove_kick_text(),
         sound: drums(g, ["kick"]),
         figure: grid(g, ["kick"]),
       },
       {
-        title: "The snare",
-        text: "The snare is the sharp crack on beats 2 and 4. The sixteenths level can add extra snare hits around it, and in trap the main snare moves to beat 3.",
+        title: m.music_cards_tier1_groove_snare_title(),
+        text: m.music_cards_tier1_groove_snare_text(),
         sound: drums(g, ["snare"]),
         figure: grid(g, ["snare"]),
       },
       {
-        title: "The hi-hat",
-        text: "The hi-hat keeps time with a steady run of hits. The first two levels play every eighth note, and the sixteenths and trap levels sometimes play every sixteenth.",
+        title: m.music_cards_tier1_groove_hat_title(),
+        text: m.music_cards_tier1_groove_hat_text(),
         sound: drums(g, ["hat"]),
         figure: grid(g, ["hat"]),
       },
       {
-        title: "All three together",
-        text: "Here is one bar of the simplest groove, counted 1 & 2 & 3 & 4 &, where & is the half beat. Tap Next to add the drums one at a time.",
+        title: m.music_cards_tier1_groove_all_title(),
+        text: m.music_cards_tier1_groove_all_text(),
         figure: grid(g, []),
         steps: [
           {
-            text: `The hi-hat plays on ${countList(g.hat)}.`,
+            text: m.music_cards_tier1_groove_hat_step({ counts: countList(g.hat) }),
             sound: drums(g, ["hat"]),
             figure: grid(g, ["hat"]),
           },
           {
-            text: `The snare joins on ${countList(g.snare)}.`,
+            text: m.music_cards_tier1_groove_snare_step({ counts: countList(g.snare) }),
             sound: drums(g, ["hat", "snare"]),
             figure: grid(g, ["hat", "snare"]),
           },
           {
-            text: `The kick lands on ${countList(g.kick)}.`,
+            text: m.music_cards_tier1_groove_kick_step({ counts: countList(g.kick) }),
             sound: drums(g, ["hat", "snare", "kick"]),
             figure: grid(g, ["hat", "snare", "kick"]),
           },
         ],
       },
       {
-        title: "Writing it on the grid",
-        text: `In the drill, each drum is a row and each column is a count, and the picture shows the example filled in. Mark the squares where you heard a hit, then check. The levels go ${levels.join(", then ")}.`,
+        title: m.music_cards_tier1_groove_grid_title(),
+        text: m.music_cards_tier1_groove_grid_text({
+          levels: levels.join(m.music_cards_tier1_then()),
+        }),
         figure: grid(g, ["hat", "snare", "kick"]),
       },
     ],
@@ -255,7 +255,11 @@ export function findHomeLesson(): Lesson {
     Object.fromEntries(ms.map((m) => [m, noteName(m, "flat", false)]));
   const cadence = keyCadence(0);
   const step = (i: number, text: string): LessonStep => ({
-    text: `${functionSymbol(0, ["I", "IV", "V", "I"][i])}, ${["the I", "the IV", "the V", "the I"][i]} chord. ${text}`,
+    text: m.music_cards_tier1_home_step({
+      symbol: functionSymbol(0, ["I", "IV", "V", "I"][i]),
+      numeral: ["I", "IV", "V", "I"][i],
+      text,
+    }),
     figure: keys(names(triad(["I", "IV", "V", "I"][i])), TRIAD_SPAN),
     sound: { notes: [{ midi: cadence[i].midi, at: 0, dur: 1.6 }] },
   });
@@ -264,52 +268,54 @@ export function findHomeLesson(): Lesson {
   /** The scale's first `n` notes by degree, the top 1 named home. */
   const scaleKeys = (n: number) =>
     keys(
-      Object.fromEntries(run.slice(0, n).map((m, i) => [m, i === 7 ? "home" : String(i + 1)])),
+      Object.fromEntries(
+        run.slice(0, n).map((x, i) => [x, i === 7 ? m.music_cards_tier1_home_label() : String(i + 1)]),
+      ),
       run,
     );
   const scaleSound = (n: number): LessonSound => ({
     notes: run
       .slice(0, n)
-      .map((m, i) => ({ midi: [m], at: i * 0.4, dur: i === n - 1 ? 1.2 : 0.38 })),
+      .map((x, i) => ({ midi: [x], at: i * 0.4, dur: i === n - 1 ? 1.2 : 0.38 })),
   });
   return {
     id: "by-ear.home",
-    title: "Finding home",
+    title: m.music_cards_tier1_home_title(),
     screens: [
       {
-        title: "Home is one note",
-        text: `In most music one note feels like the place the music rests. That note is the tonic, or home, and the key is named for it: in ${home} major home is ${home}.`,
-        figure: keys({ [C]: "home" }, [C - 5, C + 7]),
+        title: m.music_cards_tier1_home_one_title(),
+        text: m.music_cards_tier1_home_one_text({ note: home }),
+        figure: keys({ [C]: m.music_cards_tier1_home_label() }, [C - 5, C + 7]),
         sound: { notes: [{ midi: [C - 12], at: 0, dur: 4 }] },
       },
       {
-        title: "Unresolved or resolved",
-        text: "A major scale climbs 1 to 7, then reaches 1 again. Tap Unresolved to stop on 7, then Resolved to step up home.",
+        title: m.music_cards_tier1_home_resolve_title(),
+        text: m.music_cards_tier1_home_resolve_text(),
         figure: scaleKeys(7),
         options: [
-          { label: "Unresolved", sound: scaleSound(7), figure: scaleKeys(7) },
-          { label: "Resolved", sound: scaleSound(8), figure: scaleKeys(8) },
+          { label: m.music_cards_tier1_unresolved(), sound: scaleSound(7), figure: scaleKeys(7) },
+          { label: m.music_cards_tier1_resolved(), sound: scaleSound(8), figure: scaleKeys(8) },
         ],
       },
       {
-        title: "A cadence points home",
-        text: "Chords can lead away from home and back. Tap Next to hear one chord at a time.",
+        title: m.music_cards_tier1_home_cadence_title(),
+        text: m.music_cards_tier1_home_cadence_text(),
         figure: keys(names(triad("I")), TRIAD_SPAN),
         sound: { notes: cadence.map((e, i) => ({ midi: e.midi, at: i * 0.9, dur: 0.8 })) },
         steps: [
-          step(0, "This is home."),
-          step(1, "It moves away from home."),
-          step(2, "It sounds unfinished and wants to go home."),
-          step(3, "It sounds finished, because you're back home."),
+          step(0, m.music_cards_tier1_home_step_1()),
+          step(1, m.music_cards_tier1_home_step_2()),
+          step(2, m.music_cards_tier1_home_step_3()),
+          step(3, m.music_cards_tier1_home_step_4()),
         ],
       },
       {
-        title: "Finding it in a recording",
-        text: "Listen for the note the music settles on, the one where it could stop. Play it on your instrument, sing it, or pick it from the notes below. The octave doesn't matter.",
+        title: m.music_cards_tier1_home_recording_title(),
+        text: m.music_cards_tier1_home_recording_text(),
       },
       {
-        title: "How it's checked",
-        text: "The drill works out the key from the whole recording, so home belongs to the song and not to the stretch you looped. A minor key's home is its first note, and the relative key's tonic counts too, such as C and A. A song that changes key, or sits long away from home, can fool it.",
+        title: m.music_cards_tier1_home_checked_title(),
+        text: m.music_cards_tier1_home_checked_text(),
       },
     ],
   };
@@ -342,18 +348,17 @@ const TONES: Record<number, [label: string, degree: number]> = {
 /** A chord tone's name, spelled from the root's letter (D7 has F#, Dm7b5 has Ab). */
 const spellTone = (rootName: string, interval: number) =>
   spellAbove(rootName, interval, TONES[interval][1]);
-const ROLES: Record<string, string> = {
-  R: "the root, the note the chord is named for",
-  "3": "the 3rd, which makes the chord major",
-  b3: "the 3rd, which makes the chord minor",
-  "5": "the 5th",
-  b5: "the flat 5th",
-  b7: "the flat 7th",
-  "7": "the major 7th",
-  "6": "the 6th",
+/** What a tone does in the chord, as a sentence with its name. */
+const ROLES: Record<string, (i: { name: string }) => string> = {
+  R: m.music_cards_tier1_role_R,
+  "3": m.music_cards_tier1_role_3,
+  b3: m.music_cards_tier1_role_b3,
+  "5": m.music_cards_tier1_role_5,
+  b5: m.music_cards_tier1_role_b5,
+  b7: m.music_cards_tier1_role_b7,
+  "7": m.music_cards_tier1_role_7,
+  "6": m.music_cards_tier1_role_6,
 };
-const join = (a: string[]) =>
-  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
 
 /** The tones of a chord as the drill counts them: its labels, spelled names and midi notes above the root. */
 export function chordTones(symbol: string) {
@@ -373,14 +378,14 @@ export function chordTonesLesson(chord: string): Lesson {
       Object.fromEntries(tones.slice(0, n).map((t) => [t.midi, t.label])),
       tones.map((t) => t.midi),
     );
-  const names = join(tones.map((t) => t.name));
+  const names = formatList(tones.map((t) => t.name));
   return {
     id: "call-response.chord-tones",
-    title: "Chord tones",
+    title: m.music_cards_tier1_tones_title(),
     screens: [
       {
-        title: "The chord's tones",
-        text: `Your answer should finish on a tone of the chord that's playing. ${chord} is made of ${names}, lit on the keys.`,
+        title: m.music_cards_tier1_tones_chord_title(),
+        text: m.music_cards_tier1_tones_chord_text({ chord, names }),
         figure: upTo(tones.length),
         sound: {
           notes: [
@@ -390,19 +395,17 @@ export function chordTonesLesson(chord: string): Lesson {
         },
       },
       {
-        title: "Each tone",
-        text: "Tap Next to light the tones from the bottom up.",
+        title: m.music_cards_tier1_tones_each_title(),
+        text: m.music_cards_tier1_tones_each_text(),
         steps: tones.map((t, i) => ({
-          text: ROLES[t.label]
-            ? `${t.name} is ${ROLES[t.label]}.`
-            : `${t.name} is a tone of the chord.`,
+          text: (ROLES[t.label] ?? m.music_cards_tier1_role_other)({ name: t.name }),
           figure: upTo(i + 1),
           sound: { notes: [{ midi: [t.midi], at: 0, dur: 1 }] },
         })),
       },
       {
-        title: "Land on one",
-        text: "End your phrase on one of these tones and it sounds settled. Notes outside the chord are fine on the way there. The chord changes as the groove goes round, and the tones change with it.",
+        title: m.music_cards_tier1_tones_land_title(),
+        text: m.music_cards_tier1_tones_land_text(),
         figure: upTo(tones.length),
       },
     ],
@@ -429,7 +432,9 @@ const pulses = (rate: number, seconds: number, top = 67): LessonSound => ({
 
 const rateText = (set: (typeof VIBRATO_SETS)[number]) => {
   const r = vibratoRate(set);
-  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+  return Number.isInteger(r)
+    ? formatNumber(r)
+    : formatNumber(r, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 };
 
 export function biteVibratoLesson(): Lesson {
@@ -437,29 +442,40 @@ export function biteVibratoLesson(): Lesson {
   const slowest = VIBRATO_SETS[0];
   return {
     id: "aerophone.vibrato",
-    title: "Bite vibrato",
+    title: m.music_cards_tier1_vibrato_title(),
     screens: [
       {
-        title: "Vibrato from the bite",
-        text: "Hold a note and pulse your bite by wiggling your jaw lightly on the mouthpiece, with no hard squeeze. The Aerophone sends the bite as pitch bend, and the drill reads those values. If it says no bite arrived, set the bite to send pitch bend (E-Wind bite mode gives vibrato).",
+        title: m.music_cards_tier1_vibrato_bite_title(),
+        text: m.music_cards_tier1_vibrato_bite_text(),
         // A held G to pulse on: the fingering stays put, only the bite moves.
         figure: { kind: "aerophone", midi: 67 },
       },
       {
-        title: "Pulses a beat",
-        text: `The drill sets a tempo and a number of pulses a beat, so ${slowest.pulses} a beat at ${slowest.bpm} is ${rateText(slowest)} pulses a second. The top setting, ${going.pulses} a beat at ${going.bpm}, is ${rateText(going)} a second, the going rate from Larry Teal. Tap each rate to hear it.`,
+        title: m.music_cards_tier1_vibrato_pulses_title(),
+        text: m.music_cards_tier1_vibrato_pulses_text({
+          slowPulses: slowest.pulses,
+          slowBpm: slowest.bpm,
+          slowRate: rateText(slowest),
+          topPulses: going.pulses,
+          topBpm: going.bpm,
+          topRate: rateText(going),
+        }),
         options: VIBRATO_SETS.map((v) => ({
-          label: `${v.pulses} a beat at ${v.bpm}`,
+          label: m.music_cards_tier1_vibrato_option({ pulses: v.pulses, bpm: v.bpm }),
           sound: pulses(vibratoRate(v), 2),
         })),
       },
       {
-        title: "What you hear here",
-        text: "Each tap above alternates a note with the note a semitone below, one pair per pulse. The app can't bend a pitch, and real vibrato is much narrower than a semitone. So this shows the rate only, not the width.",
+        title: m.music_cards_tier1_vibrato_hear_title(),
+        text: m.music_cards_tier1_vibrato_hear_text(),
       },
       {
-        title: "What the drill checks",
-        text: `The drill listens for ${VIBRATO.seconds} seconds from your first note. You pass with the rate within ${Math.round(VIBRATO.rateTolerance * 100)} percent of the target and an evenness of at least ${Math.round(VIBRATO.evenness * 100)} percent. It shows how deep your pulses are but doesn't score that: aim for a small, even wobble around the note, not a slide between notes.`,
+        title: m.music_cards_tier1_vibrato_checks_title(),
+        text: m.music_cards_tier1_vibrato_checks_text({
+          seconds: VIBRATO.seconds,
+          tolerance: Math.round(VIBRATO.rateTolerance * 100),
+          evenness: Math.round(VIBRATO.evenness * 100),
+        }),
       },
     ],
   };
@@ -538,25 +554,33 @@ export function padImproviseLesson(): Lesson {
   const KICK = GROOVE_LANES.find((l) => l.id === "kick")!.midi;
   return {
     id: "pads.improvise",
-    title: "Improvising on the pads",
+    title: m.music_cards_tier1_pads_title(),
     screens: [
       {
-        title: "Play over the band",
-        text: "In this drill the band plays a loop and you play any pads and any rhythm over it. It's scored on time, meaning how close your hits sit to the sixteenth grid, and on keeping every bar going. A bar counts as kept going when it has at least two hits.",
+        title: m.music_cards_tier1_pads_band_title(),
+        text: m.music_cards_tier1_pads_band_text(),
         figure: padGrid([groove]),
       },
       {
-        title: "Vary the groove",
-        text: "Keep a groove going and change a little each time round. Tap Plain to hear one bar twice, or Varied to hear it then the same bar with one more kick on the & of 4. The grid shows the plain bar until you tap one.",
+        title: m.music_cards_tier1_pads_vary_title(),
+        text: m.music_cards_tier1_pads_vary_text(),
         figure: padGrid([groove]),
         options: [
-          { label: "Plain", sound: padSound([groove, groove]), figure: padGrid([groove]) },
-          { label: "Varied", sound: padSound([groove, varied]), figure: padGrid([varied]) },
+          {
+            label: m.music_cards_tier1_pads_plain(),
+            sound: padSound([groove, groove]),
+            figure: padGrid([groove]),
+          },
+          {
+            label: m.music_cards_tier1_pads_varied(),
+            sound: padSound([groove, varied]),
+            figure: padGrid([varied]),
+          },
         ],
       },
       {
-        title: "Add a fill",
-        text: "The grid shows a groove bar, then a fill bar with the same hi-hat and the snare playing eighths on 3 and 4. Hear it adds the crash and kick on the next bar's one. In the drill, with A fill every 4 or 8 bars set, the fill bar needs more hits than your usual bar and a hit on the next bar's one.",
+        title: m.music_cards_tier1_pads_fill_title(),
+        text: m.music_cards_tier1_pads_fill_text(),
         figure: padGrid([groove, fill]),
         sound: padSound(
           [groove, fill],
@@ -567,8 +591,8 @@ export function padImproviseLesson(): Lesson {
         ),
       },
       {
-        title: "Leave space",
-        text: "You don't have to fill every beat. This bar is only the kick and snare, with no hi-hat, and it still counts as kept going. Only a bar with no hits, or one hit, loses that part of the score.",
+        title: m.music_cards_tier1_pads_space_title(),
+        text: m.music_cards_tier1_pads_space_text(),
         figure: padGrid([bare]),
         sound: padSound([bare, bare]),
       },

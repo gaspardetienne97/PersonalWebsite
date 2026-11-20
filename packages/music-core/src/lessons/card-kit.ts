@@ -5,9 +5,10 @@ import { parseChordSymbol } from "../theory/chords";
 import { noteName, pc } from "../theory/notes";
 import type { Tuning } from "../theory/fretboard";
 import type { LessonSound } from "./types";
+import { formatList } from "@repo/i18n/format";
 
-export const join = (a: string[]) =>
-  a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`;
+/** "a, b and c" in the player's language (English leaves out the serial comma). */
+export const join = (a: string[]) => formatList(a);
 export const flat = (m: number) => noteName(m, "flat", false);
 export const sharp = (m: number) => noteName(m, "sharp", false);
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
