@@ -409,7 +409,7 @@ export function gradeItem(
       note: r.correct
         ? m.music_strings_grade_right()
         : r.membership
-          ? m.music_strings_grade_moved({ actual: r.actualSemitones, least: r.minimumSemitones })
+          ? m.music_strings_grade_moved({ actual: String(r.actualSemitones), least: String(r.minimumSemitones) })
           : m.music_strings_grade_not_guide(),
     };
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { evennessRow, noteName, pc } from "@repo/music-core";
@@ -57,6 +58,7 @@
   import { benchFromUrl, Transport } from "#lib/music/drills/piano/transport.svelte.ts";
   import { audio, settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
+  import { formatList } from "@repo/i18n/format";
 
   const LADDER_KEY = "technique.tempo-ladder.v1";
   const cfg = new DrillSetup("scales", {
@@ -124,8 +126,8 @@
   /** One note's time: the click divided by the notes to a click. */
   const stepMs = () => 60000 / bpm() / perBeat;
   const target = $derived(s.grade ? gradeSpeed(s.grade, pattern) : undefined);
-  const PER = { 1: "one note a click", 2: "two notes a click", 3: "three notes a click", 4: "four notes a click", 6: "six notes a click" } as const;
-  const PER_NAME: Record<number, string> = { 1: "quarters", 2: "eighths", 3: "triplets", 4: "sixteenths", 6: "sextuplets" };
+  const PER = { 1: m.music_strings_per_1(), 2: m.music_strings_per_2(), 3: m.music_strings_per_3(), 4: m.music_strings_per_4(), 6: m.music_strings_per_6() } as const;
+  const PER_NAME: Record<number, string> = { 1: m.music_strings_per_name_1(), 2: m.music_strings_per_name_2(), 3: m.music_strings_per_name_3(), 4: m.music_strings_per_name_4(), 6: m.music_strings_per_name_6() };
   /** One menu for the setups that set tempo and notes a click together: the hands-together preset, a plain start, or an ABRSM grade's speed. */
   function pickPreset(v: string) {
     if (v === "together") {
@@ -139,11 +141,11 @@
     }
   }
   const presetOptions = $derived([
-    ...(onPiano ? [{ value: "together", label: "Hands together, one octave, up, 80 BPM" }] : []),
-    { value: "plain", label: "One note a click, no grade target" },
+    ...(onPiano ? [{ value: "together", label: m.music_strings_scales_preset_together() }] : []),
+    { value: "plain", label: m.music_strings_scales_preset_plain() },
     ...ABRSM_SPEEDS.map((g) => {
       const sp = gradeSpeed(g.grade, pattern);
-      return { value: g.grade, label: sp ? `${g.grade}: ${sp[0]}, ${PER[sp[1]]}` : `${g.grade} (no speed for blocked chords)`, group: "ABRSM grade speeds (UK exam levels)", disabled: !sp };
+      return { value: g.grade, label: sp ? m.music_strings_scales_preset_grade({ grade: g.grade, bpm: sp[0], per: PER[sp[1]] }) : m.music_strings_scales_preset_no_speed({ grade: g.grade }), group: m.music_strings_scales_preset_group(), disabled: !sp };
     }),
   ]);
 
@@ -222,28 +224,54 @@
     return out;
   });
 
-  const scaleLabel = (k: string) => k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
-  const chordLabel = $derived(CHORD_KINDS.find((c) => c.id === s.chord)?.label.toLowerCase() ?? "major");
+  const SCALE_LABEL: Record<string, () => string> = {
+    major: m.music_strings_scale_major,
+    "natural-minor": m.music_strings_scale_natural_minor,
+    "harmonic-minor": m.music_strings_scale_harmonic_minor,
+    dorian: m.music_strings_scale_dorian,
+    phrygian: m.music_strings_scale_phrygian,
+    lydian: m.music_strings_scale_lydian,
+    mixolydian: m.music_strings_scale_mixolydian,
+    locrian: m.music_strings_scale_locrian,
+    "melodic-minor": m.music_strings_scale_melodic_minor,
+    "major-pentatonic": m.music_strings_scale_major_pentatonic,
+    "minor-pentatonic": m.music_strings_scale_minor_pentatonic,
+    blues: m.music_strings_scale_blues,
+    altered: m.music_strings_scale_altered,
+    "bebop-major": m.music_strings_scale_bebop_major,
+    "bebop-dominant": m.music_strings_scale_bebop_dominant,
+    "whole-tone": m.music_strings_scale_whole_tone,
+    diminished: m.music_strings_scale_diminished,
+    chromatic: m.music_strings_scale_chromatic,
+  };
+  const scaleLabel = (k: string) => SCALE_LABEL[k]?.() ?? k.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const CHORD_KIND_WORD: Record<string, () => string> = { major: m.music_strings_chordkind_major, minor: m.music_strings_chordkind_minor, "dominant-7": m.music_strings_chordkind_dominant_7, "diminished-7": m.music_strings_chordkind_diminished_7 };
+  const chordLabel = $derived((CHORD_KIND_WORD[s.chord] ?? CHORD_KIND_WORD.major)());
   const tonicName = (p: number) => noteName(p, "flat", false);
-  const INVERSIONS = ["root", "3rd", "5th", "7th"];
-  const what = $derived(
-    isScaleLine(pattern)
-      ? `${tonicName(s.tonic)} ${scaleLabel(s.kind).toLowerCase()} scale${pattern === "thirds" ? " in double thirds" : pattern === "octaves" ? " in octaves" : ""}`
-      : pattern === "arpeggio"
-        ? `${tonicName(s.tonic)} ${chordLabel} arpeggio${scaleSetup.inversion ? ` from the ${INVERSIONS[scaleSetup.inversion]}` : ""}`
-        : pattern === "triad-pairs"
-          ? `${tonicName(s.tonic)} and ${tonicName(s.tonic + 2)} ${s.chord === "minor" ? "minor" : "major"} triad pairs`
-          : `${tonicName(s.tonic)} ${chordLabel} ${pattern} chords`,
-  );
+  /** Where an arpeggio starts, by inversion: the chord tone's name. */
+  const INVERSIONS = ["", m.music_strings_inv_noun_1(), m.music_strings_inv_noun_2(), m.music_strings_inv_noun_3()];
+  const START_ON = [m.music_strings_scales_start_0, m.music_strings_scales_start_1, m.music_strings_scales_start_2, m.music_strings_scales_start_3];
+  const START_HINT = [undefined, m.music_strings_scales_start_hint_1, m.music_strings_scales_start_hint_2, m.music_strings_scales_start_hint_3];
+  const what = $derived.by(() => {
+    const tonic = tonicName(s.tonic);
+    if (isScaleLine(pattern)) {
+      const scale = scaleLabel(s.kind).toLowerCase();
+      return (pattern === "thirds" ? m.music_strings_scales_what_thirds : pattern === "octaves" ? m.music_strings_scales_what_octaves : m.music_strings_scales_what_scale)({ tonic, scale });
+    }
+    if (pattern === "arpeggio")
+      return scaleSetup.inversion ? m.music_strings_scales_what_arpeggio_from({ tonic, chord: chordLabel, from: INVERSIONS[scaleSetup.inversion] }) : m.music_strings_scales_what_arpeggio({ tonic, chord: chordLabel });
+    if (pattern === "triad-pairs") return (s.chord === "minor" ? m.music_strings_scales_what_pairs_minor : m.music_strings_scales_what_pairs_major)({ a: tonic, b: tonicName(s.tonic + 2) });
+    return (pattern === "blocked" ? m.music_strings_scales_what_blocked : m.music_strings_scales_what_broken)({ tonic, chord: chordLabel });
+  });
   const apartLabel = $derived(HANDS_APART.find((a) => a.id === scaleSetup.apart)!.label.toLowerCase());
   const setupLine = $derived<SetupClause[]>([
     { text: what, focus: "kind" },
-    { text: scaleSetup.span === "pentascale" ? "five notes" : scaleSetup.span.replace("-", " "), focus: "span" },
-    { text: s.motion === "up-down" ? "up and down" : s.motion, focus: "motion" },
-    onPiano ? { text: scaleSetup.hands === "both" ? (scaleSetup.apart === "octave" ? "hands together" : `hands together, ${apartLabel}`) : `${scaleSetup.hands} hand`, focus: "hands" } : { text: `on ${inst}` },
-    ...(s.rotate ? [{ text: "round the circle of keys", focus: "rotate" }] : []),
+    { text: scaleSetup.span === "pentascale" ? m.music_strings_span_five() : scaleSetup.span === "two-octave" ? m.music_strings_span_two_octave() : m.music_strings_span_one_octave(), focus: "span" },
+    { text: s.motion === "up-down" ? m.music_strings_motion_up_down() : s.motion === "down" ? m.music_strings_motion_down() : m.music_strings_motion_up(), focus: "motion" },
+    onPiano ? { text: scaleSetup.hands === "both" ? (scaleSetup.apart === "octave" ? m.music_strings_hands_together() : m.music_strings_hands_together_apart({ apart: apartLabel })) : scaleSetup.hands === "left" ? m.music_strings_left_hand() : m.music_strings_right_hand(), focus: "hands" } : { text: m.music_strings_on_inst({ inst }) },
+    ...(s.rotate ? [{ text: m.music_strings_scales_round_circle(), focus: "rotate" }] : []),
     ...(perBeat > 1 ? [{ text: PER[perBeat], focus: "per" }] : []),
-    ...(target ? [{ text: `aiming for ${s.grade} speed (${target[0]}, ${PER[target[1]]})`, focus: "preset" }] : []),
+    ...(target ? [{ text: m.music_strings_scales_aiming({ grade: s.grade, bpm: target[0], per: PER[target[1]] }), focus: "preset" }] : []),
   ]);
 
   function stopDemo() {
@@ -266,7 +294,7 @@
     });
     demo = handle;
     clock.follow(handle.startPerf, quarterMs());
-    status = "Demo: the whole line at tempo, lit as it sounds.";
+    status = m.music_strings_scales_demo();
     void handle.done.then(() => {
       if (demo === handle) stopDemo();
     });
@@ -287,9 +315,9 @@
       // Name both notes, so the red key or fret says what went wrong. Check says it after the slip,
       // played note first ("F, wanted G"); the target was never shown before it.
       flashes.add(e.midi, "wrong");
-      const want = expected.map((m) => noteName(m, spell, mode === "practice")).join(" ");
+      const want = expected.map((x) => noteName(x, spell, mode === "practice")).join(" ");
       const heard = noteName(e.midi, spell, mode === "practice");
-      verdict = { kind: "wrong", text: mode === "practice" ? `Wanted ${want}, heard ${heard}` : `${heard}, wanted ${want}`, key: (verdict?.key ?? 0) + 1 };
+      verdict = { kind: "wrong", text: mode === "practice" ? m.music_strings_scales_wanted_heard({ want, heard }) : m.music_strings_scales_heard_wanted({ heard, want }), key: (verdict?.key ?? 0) + 1 };
       // A quarter tone off rounds to the next note: say it is the tuning, not the playing.
       const miss = e.source === "audio" ? nearMiss(e.midi, e.cents, expected) : null;
       if (miss) {
@@ -345,14 +373,15 @@
   );
   /** What to do now, beside Stop on a phone: the note and its finger (or fret) in Practice, only where you are in Check. */
   const cue = $derived.by(() => {
-    if (phase === "countin") return "Count-in: play on the next 1";
+    if (phase === "countin") return m.music_strings_count_in();
     const st = steps[stepIndex];
     if (phase !== "running" || !st) return "";
-    if (mode === "check") return `Note ${stepIndex + 1} of ${steps.length}, in Check`;
+    if (mode === "check") return m.music_strings_line_cue_check({ n: stepIndex + 1, total: steps.length });
     const n = st.notes[0];
     const p = frets.get(n.midi);
-    const how = tuning && p ? (p.fret ? `string ${p.string}, fret ${p.fret}` : `open string ${p.string}`) : fingerFor(n) ? `finger ${fingerFor(n)}` : "";
-    return `Play ${st.notes.map((x) => noteName(x.midi, spell)).join(" + ")}${how && st.notes.length === 1 ? `, ${how}` : ""}`;
+    const how = tuning && p ? (p.fret ? m.music_strings_how_string_fret({ string: p.string, fret: p.fret }) : m.music_strings_how_open_string({ string: p.string })) : fingerFor(n) ? m.music_strings_how_finger({ finger: fingerFor(n)! }) : "";
+    const notes = st.notes.map((x) => noteName(x.midi, spell)).join(" + ");
+    return how && st.notes.length === 1 ? m.music_strings_play_notes_how({ notes, how }) : m.music_strings_play_notes({ notes });
   });
   const unplayable = $derived(tuning ? [...new Set(all.filter((m) => !frets.has(m)))] : []);
 
@@ -423,7 +452,7 @@
       target: steps.flatMap((st) => st.notes.map((n) => n.midi)),
       response: notes.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm()} BPM` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: m.music_strings_line_run_headline({ score: pct(r.score), bpm: bpm() }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -439,43 +468,43 @@
     summary = {
       // A slip is named before anything else: the counts and the marks below show it.
       headline: detuned.length
-        ? `${r.clean} of ${r.total} notes right. ${[...new Set(detuned.map((d) => noteName(d.midi, spell, false)))].join(" and ")} sounded about ${Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length)} cents out: tune your ${inst} in Tuner, then try again.`
+        ? m.music_strings_scales_detuned({ clean: r.clean, total: r.total, notes: [...new Set(detuned.map((d) => noteName(d.midi, spell, false)))].reduce((a, b) => m.music_strings_and_pair({ a, b })), cents: Math.round(detuned.reduce((a, d) => a + Math.abs(d.cents), 0) / detuned.length), inst })
         : r.slips.length
-          ? `${r.clean} of ${r.total} notes right. ${slipText(r.slips)}${r.pitch < 0.75 ? " Slow down until each note lands before the next." : ""}`
+          ? `${m.music_strings_scales_n_right({ clean: r.clean, total: r.total })} ${slipText(r.slips)}${r.pitch < 0.75 ? ` ${m.music_strings_scales_slow_down()}` : ""}`
           : r.correct
             ? target
               ? atSpeed
-                ? `Clean and even at ${s.grade} speed.`
-                : `Clean and even at ${bpm()} BPM. ${s.grade} speed is ${target[0]} with ${PER[target[1]]}.`
-              : `Clean and even at ${bpm()} BPM, ${PER[perBeat]}.`
+                ? m.music_strings_scales_clean_grade({ grade: s.grade })
+                : m.music_strings_scales_clean_bpm_grade({ bpm: bpm(), grade: s.grade, speed: target[0], per: PER[target[1]] })
+              : m.music_strings_scales_clean_bpm({ bpm: bpm(), per: PER[perBeat] })
             : r.pitch < 0.9
-              ? `${r.clean} of ${r.total} notes right. Slow down until each note lands before the next.`
-              : `Every note right, but the spacing wandered by ${Math.round(r.evennessErrorMs)} ms. Keep it even.`,
+              ? m.music_strings_scales_some_right({ clean: r.clean, total: r.total })
+              : m.music_strings_line_uneven({ ms: Math.round(r.evennessErrorMs) }),
       metric: pct(r.score),
-      metricLabel: "85% notes, 15% evenness",
+      metricLabel: m.music_strings_scales_metric(),
       // Exactly what gradeLine's correct tests: the score, and the preset's evenness floor when one is set.
-      cleanMeans: `a score of 90% or more${scaleSetup.minEvenness !== undefined ? `, with evenness at ${pct(scaleSetup.minEvenness)} or more` : ""}`,
+      cleanMeans: scaleSetup.minEvenness !== undefined ? m.music_strings_scales_clean_means_even({ pct: pct(scaleSetup.minEvenness) }) : m.music_strings_line_clean_means(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Notes right", value: r.pitch, text: `${r.clean} of ${r.total}${r.slips.length ? `, ${r.slips.length} ${r.slips.length > 1 ? "slips" : "slip"}` : ""}` },
+        { label: m.music_strings_notes_right(), value: r.pitch, text: r.slips.length ? m.music_strings_line_slips_text({ clean: r.clean, total: r.total, slips: r.slips.length }) : m.music_strings_n_of_total({ n: r.clean, total: r.total }) },
         evennessRow(r.evenness, r.clean, r.total),
         ...(pattern === "blocked"
           ? [
               r.chordTogether
-                ? { label: "Chord notes together (40 ms)", value: r.chordTogether.chords ? r.chordTogether.count / r.chordTogether.chords : 0, text: `${r.chordTogether.count} of ${r.chordTogether.chords}, ${Math.round(r.chordTogether.meanSpreadMs)} ms apart on average` }
-                : { label: "Chord notes together", notMeasured: true },
+                ? { label: m.music_strings_scales_chord_together_40(), value: r.chordTogether.chords ? r.chordTogether.count / r.chordTogether.chords : 0, text: m.music_strings_scales_chord_together_text({ n: r.chordTogether.count, total: r.chordTogether.chords, ms: Math.round(r.chordTogether.meanSpreadMs) }) }
+                : { label: m.music_strings_scales_chord_together(), notMeasured: true },
             ]
           : []),
-        ...(target ? [{ label: `${s.grade} speed (ABRSM, ${target[0]} with ${PER[target[1]]})`, value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? "reached" : `${Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100)}% of it` }] : []),
+        ...(target ? [{ label: m.music_strings_scales_grade_row({ grade: s.grade, speed: target[0], per: PER[target[1]] }), value: atSpeed ? 1 : (bpm() * perBeat) / (target[0] * target[1]), text: atSpeed ? m.music_strings_reached() : m.music_strings_pct_of_it({ pct: Math.round(((bpm() * perBeat) / (target[0] * target[1])) * 100) }) }] : []),
         ...(scaleSetup.hands === "both"
           ? [
               r.together
-                ? { label: "Hands together (40 ms)", value: r.together.beats ? r.together.count / r.together.beats : 0, text: `${r.together.count} of ${r.together.beats} beats` }
-                : { label: "Hands together", notMeasured: true },
+                ? { label: m.music_strings_hands_together_40(), value: r.together.beats ? r.together.count / r.together.beats : 0, text: m.music_strings_n_of_total_beats({ n: r.together.count, total: r.together.beats }) }
+                : { label: m.music_strings_hands_together_cap(), notMeasured: true },
             ]
           : []),
       ],
@@ -485,16 +514,16 @@
     if (s.rotate && r.correct && mode === "check") {
       const next = 60 + pc(s.tonic + 7);
       cfg.set({ tonic: next });
-      summary.rows = [...(summary.rows ?? []), { label: "Next key", text: `${tonicName(next)}, a fifth up` }];
+      summary.rows = [...(summary.rows ?? []), { label: m.music_strings_next_key(), text: m.music_strings_fifth_up({ key: tonicName(next) }) }];
     }
     status = summary.headline;
   }
 
   /** Where the slips were, by note number and name: "Slipped on note 5 (G4): a wrong note was played for it." */
   function slipText(at: number[]) {
-    const name = (i: number) => `note ${i + 1} (${steps[i].notes.map((n) => noteName(n.midi, spell)).join(" + ")})`;
-    const list = at.length > 2 ? `${at.length} notes` : at.map(name).join(" and ");
-    return `Slipped on ${list}: a wrong note came first${at.length > 1 ? " on each" : ""}.`;
+    const name = (i: number) => m.music_strings_scales_slip_note({ n: i + 1, notes: steps[i].notes.map((n) => noteName(n.midi, spell)).join(" + ") });
+    const list = at.length > 2 ? m.music_strings_scales_slip_count({ n: at.length }) : formatList(at.map(name));
+    return (at.length > 1 ? m.music_strings_scales_slipped_each : m.music_strings_scales_slipped)({ list });
   }
 
   /** Notes a click as steps; goals are the fastest ABRSM speed for two and four (blocked chords have none). */
@@ -513,7 +542,7 @@
     clock.stop();
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -523,19 +552,19 @@
   });
 
   const scaleOptions = [
-    ...SCALE_GROUPS.modes.map((k) => ({ value: k as string, label: scaleLabel(k), group: "Modes" })),
-    { value: "chromatic", label: "Chromatic", group: "Modes" },
-    ...SCALE_GROUPS.jazz.map((k) => ({ value: k as string, label: scaleLabel(k), group: "Jazz" })),
+    ...SCALE_GROUPS.modes.map((k) => ({ value: k as string, label: scaleLabel(k), group: m.music_strings_scales_group_modes() })),
+    { value: "chromatic", label: m.music_strings_scale_chromatic(), group: m.music_strings_scales_group_modes() },
+    ...SCALE_GROUPS.jazz.map((k) => ({ value: k as string, label: scaleLabel(k), group: m.music_strings_scales_group_jazz() })),
   ];
 </script>
 
-<svelte:head><title>Scales | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_strings_scales_page_title()}</title></svelte:head>
 
 <DrillShell
   lesson={cards.length ? { lessons: cards.flatMap((c) => conceptCard(c, tuning ? { tuning } : {})), trigger: "check" } : null}
-  title="Scales"
+  title={m.music_strings_scales_title()}
   hue="piano"
-  blurb="Scales, arpeggios and inversions, evenly at the click, up to a UK exam grade's speed."
+  blurb={m.music_strings_scales_blurb()}
   summary={setupLine}
   bind:phase
   bind:mode
@@ -551,89 +580,89 @@
   {#snippet setup()}
     <div class="flex flex-col gap-5">
       <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <legend class="mb-2 text-sm font-semibold text-ws-soft">What</legend>
-        <Choice label="Play" options={PATTERNS} value={pattern} onchange={(v) => cfg.set({ pattern: v, preset: false })} />
+        <legend class="mb-2 text-sm font-semibold text-ws-soft">{m.music_strings_what()}</legend>
+        <Choice label={m.music_strings_play()} options={PATTERNS} value={pattern} onchange={(v) => cfg.set({ pattern: v, preset: false })} />
         {#if isScaleLine(pattern)}
-          <Choice label="Scale" setupKey="kind" options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
+          <Choice label={m.music_strings_scale()} setupKey="kind" options={scaleOptions} value={s.kind} onchange={(v) => cfg.set({ kind: v, preset: false })} />
         {:else}
-          <Choice label="Chord" setupKey="kind" options={CHORD_KINDS.filter((c) => pattern !== "triad-pairs" || c.id === "major" || c.id === "minor").map((c) => ({ value: c.id as string, label: c.label }))} value={scaleSetup.chord} onchange={(v) => cfg.set({ chord: v, inversion: 0 })} />
+          <Choice label={m.music_strings_chord()} setupKey="kind" options={CHORD_KINDS.filter((c) => pattern !== "triad-pairs" || c.id === "major" || c.id === "minor").map((c) => ({ value: c.id as string, label: c.label }))} value={scaleSetup.chord} onchange={(v) => cfg.set({ chord: v, inversion: 0 })} />
           {#if pattern === "arpeggio"}
             <Choice
-              label="Start on"
+              label={m.music_strings_start_on()}
               setupKey="inversion"
-              options={INVERSIONS.slice(0, CHORD_KINDS.find((c) => c.id === s.chord)?.intervals.length ?? 3).map((label, i) => ({ value: i, label: i ? `The ${label}` : "The root", hint: i ? `An arpeggio in ${["", "first", "second", "third"][i]} inversion, from the ${label} to the ${label}.` : undefined }))}
+              options={INVERSIONS.slice(0, CHORD_KINDS.find((c) => c.id === s.chord)?.intervals.length ?? 3).map((_, i) => ({ value: i, label: START_ON[i](), hint: START_HINT[i]?.() }))}
               value={scaleSetup.inversion}
               onchange={(v) => cfg.set({ inversion: v })}
             />
           {/if}
         {/if}
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="tonic">
-          <span class="font-medium">Tonic</span>
-          <KeyPicker label="Tonic" value={s.tonic % 12} name={tonicName} onchange={(p) => cfg.set({ tonic: 60 + p })} />
+          <span class="font-medium">{m.music_strings_tonic()}</span>
+          <KeyPicker label={m.music_strings_tonic()} value={s.tonic % 12} name={tonicName} onchange={(p) => cfg.set({ tonic: 60 + p })} />
         </div>
       </fieldset>
       <fieldset class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <legend class="mb-2 text-sm font-semibold text-ws-soft">How</legend>
+        <legend class="mb-2 text-sm font-semibold text-ws-soft">{m.music_strings_how()}</legend>
         <Choice
-          label="Span"
+          label={m.music_strings_span()}
           setupKey="span"
           options={[
-            ...(isScaleLine(pattern) ? [{ value: "pentascale", label: "Five notes" }] : []),
-            { value: "one-octave", label: "One octave" },
-            { value: "two-octave", label: "Two octaves" },
+            ...(isScaleLine(pattern) ? [{ value: "pentascale", label: m.music_strings_five_notes() }] : []),
+            { value: "one-octave", label: m.music_strings_one_octave() },
+            { value: "two-octave", label: m.music_strings_two_octaves() },
           ]}
           value={scaleSetup.span}
           onchange={(v) => cfg.set({ span: v, preset: false })}
         />
         <Choice
-          label="Direction"
+          label={m.music_strings_direction()}
           setupKey="motion"
           options={[
-            { value: "up", label: "Up" },
-            { value: "down", label: "Down" },
-            { value: "up-down", label: "Up and down" },
+            { value: "up", label: m.music_strings_up() },
+            { value: "down", label: m.music_strings_down() },
+            { value: "up-down", label: m.music_strings_up_and_down() },
           ]}
           value={s.motion}
           onchange={(v) => cfg.set({ motion: v, preset: false })}
         />
         {#if onPiano}
           <Choice
-            label="Hands"
+            label={m.music_strings_hands()}
             setupKey="hands"
             options={[
-              { value: "right", label: "Right" },
-              { value: "left", label: "Left" },
-              { value: "both", label: "Both" },
+              { value: "right", label: m.music_strings_right_cap() },
+              { value: "left", label: m.music_strings_left_cap() },
+              { value: "both", label: m.music_strings_both() },
             ]}
             value={scaleSetup.hands}
             onchange={(v) => cfg.set({ hands: v, preset: false })}
           />
           {#if scaleSetup.hands === "both" && isScaleLine(pattern)}
-            <Choice label="Hands apart" setupKey="apart" options={HANDS_APART.map((a) => ({ value: a.id as string, label: a.label, hint: a.hint }))} value={scaleSetup.apart} onchange={(v) => cfg.set({ apart: v, preset: false })} />
+            <Choice label={m.music_strings_hands_apart()} setupKey="apart" options={HANDS_APART.map((a) => ({ value: a.id as string, label: a.label, hint: a.hint }))} value={scaleSetup.apart} onchange={(v) => cfg.set({ apart: v, preset: false })} />
           {/if}
         {/if}
         <Choice
-          label="Keys"
+          label={m.music_strings_keys()}
           setupKey="rotate"
           options={[
-            { value: "one", label: "This key" },
-            { value: "circle", label: "Round the circle", hint: "After a clean Check run the tonic moves up a fifth: C, G, D and on through all 12." },
+            { value: "one", label: m.music_strings_this_key() },
+            { value: "circle", label: m.music_strings_round_circle(), hint: m.music_strings_round_circle_hint() },
           ]}
           value={s.rotate ? "circle" : "one"}
           onchange={(v) => cfg.set({ rotate: v === "circle" })}
         />
-        <Choice label="Notes a click" setupKey="per" options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))} value={perBeat} onchange={(v) => cfg.set({ perBeat: v, grade: "", preset: false })} />
+        <Choice label={m.music_strings_notes_a_click()} setupKey="per" options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n), detail: PER_NAME[n] }))} value={perBeat} onchange={(v) => cfg.set({ perBeat: v, grade: "", preset: false })} />
         <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="preset">
-          <span class="font-medium">Preset</span>
-          <Picker label="Preset" action placeholder="Tempo and notes a click" options={presetOptions} onchange={pickPreset} />
+          <span class="font-medium">{m.music_strings_preset()}</span>
+          <Picker label={m.music_strings_preset()} action placeholder={m.music_strings_preset_placeholder()} options={presetOptions} onchange={pickPreset} />
         </div>
       </fieldset>
       {#if perBeat === 1}
         {@const proj = ladderProjection(ladders[key], bpm())}
         <!-- The tempo ladder for this exact setup: a record of what is unlocked, never a second next-run button. -->
         <div class="flex flex-col gap-2 text-sm" data-testid="tempo-ladder">
-          <span class="font-semibold text-ws-soft">Tempo ladder for this setup</span>
-          <ol class="flex flex-wrap gap-1.5" aria-label="Tempo ladder">
+          <span class="font-semibold text-ws-soft">{m.music_strings_ladder_for_setup()}</span>
+          <ol class="flex flex-wrap gap-1.5" aria-label={m.music_strings_ladder()}>
             {#each proj.rungs as r (r.bpm)}
               {@const here = r.bpm === bpm()}
               <li
@@ -645,29 +674,29 @@
                 aria-current={here ? "true" : undefined}
               >
                 {#if r.status === "unlocked"}<span aria-hidden="true">✓</span>{/if}{r.bpm}<span class="sr-only">
-                  BPM, {r.status === "unlocked" ? "unlocked" : r.status === "next" ? "next tempo" : "locked"}{here ? ", this run's tempo" : ""}</span
+                  {(here ? m.music_strings_ladder_sr_here : m.music_strings_ladder_sr)({ status: r.status === "unlocked" ? m.music_strings_ladder_unlocked() : r.status === "next" ? m.music_strings_ladder_next() : m.music_strings_ladder_locked() })}</span
                 >
               </li>
             {/each}
           </ol>
           <span class="text-ws-soft"
             >{bpm() < proj.rungs[0].bpm
-              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo. The ladder starts at ${proj.rungs[0].bpm} BPM.`
-              : "Two clean Check runs at a tempo unlock the next one. The ringed tempo is the one on the top bar."}</span
+              ? m.music_strings_ladder_below({ bpm: bpm(), start: proj.rungs[0].bpm })
+              : m.music_strings_ladder_help()}</span
           >
         </div>
       {/if}
-      <p class="text-sm text-ws-soft">Tempo comes from the top bar (40 to 180 BPM). Two clean runs at 85% raise it. At 120 BPM the next run moves from one note a click to two, then four. ABRSM's speeds are "a general guide".</p>
+      <p class="text-sm text-ws-soft">{m.music_strings_scales_tempo_help()}</p>
     </div>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Step" value="{Math.min(stepIndex + 1, steps.length)} of {steps.length}" />
-      {#if mode === "practice" && steps[stepIndex]}<Stat label="Next note" value={steps[stepIndex].notes.map((n) => noteName(n.midi, spell)).join(" + ")} />{/if}
+      <Stat label={m.music_strings_step()} value={m.music_strings_n_of_total({ n: Math.min(stepIndex + 1, steps.length), total: steps.length })} />
+      {#if mode === "practice" && steps[stepIndex]}<Stat label={m.music_strings_next_note()} value={steps[stepIndex].notes.map((n) => noteName(n.midi, spell)).join(" + ")} />{/if}
     {:else if result}
       <!-- Evenness waits for the results rows, where too few landed notes read Not measured. -->
-      <Stat label="Notes right" value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
+      <Stat label={m.music_strings_notes_right()} value="{result.clean}/{result.total}" tone={result.pitch >= 0.9 ? "success" : "warn"} />
     {/if}
   {/snippet}
 
@@ -682,10 +711,10 @@
           <!-- One line for the ladder; its rungs are in Setup. Checked runs climb it, the strip's BPM is this run. -->
           <p class="min-w-0 flex-1 basis-64 text-sm text-ws-stage-soft" data-testid="tempo-ladder-line">
             {bpm() < proj.rungs[0].bpm
-              ? `Practice at ${bpm()} BPM. Clean runs raise the tempo. The ladder starts at ${proj.rungs[0].bpm} BPM.`
+              ? m.music_strings_ladder_below({ bpm: bpm(), start: proj.rungs[0].bpm })
               : proj.rungs.some((r) => r.bpm === bpm())
-                ? `Tempo ladder: this run is at ${bpm()} BPM. Two clean Check runs here unlock the next tempo.`
-                : `Tempo ladder: starts at ${proj.rungs[0].bpm} BPM, and clean Check runs climb it.`}
+                ? m.music_strings_ladder_at({ bpm: bpm() })
+                : m.music_strings_ladder_starts({ bpm: proj.rungs[0].bpm })}
           </p>
         {/if}
         {#if views}<ViewSwitch class="ml-auto" />{/if}
@@ -694,7 +723,7 @@
     {#if mode === "check" && phase !== "results"}
       <!-- Check: no targets, only where you are in the line and the notes already played, named once they are behind you. -->
       <div class="mb-1 flex min-h-0 flex-col justify-center gap-3" data-testid="check-progress" data-dock="music">
-        <ol class="flex flex-wrap gap-1.5" aria-label="Steps played">
+        <ol class="flex flex-wrap gap-1.5" aria-label={m.music_strings_steps_played()}>
           {#each steps as st, i (i)}
             {@const done = phase === "running" && i < stepIndex}
             {@const now = phase === "running" && i === stepIndex}
@@ -709,15 +738,15 @@
             >
               {#if done}
                 <span aria-hidden="true">{played[i] === "wrong" ? "✕" : "✓"}</span>{st.notes.map((n) => noteName(n.midi, spell, false)).join("+")}
-                <span class="sr-only">{played[i] === "wrong" ? ", slipped" : ", clean"}</span>
+                <span class="sr-only">{played[i] === "wrong" ? m.music_strings_step_slipped() : m.music_strings_step_clean()}</span>
               {:else}
-                <span class="sr-only">Step {i + 1}{now ? ", now" : ""}</span><span aria-hidden="true">{i + 1}</span>
+                <span class="sr-only">{now ? m.music_strings_step_n_now({ n: i + 1 }) : m.music_strings_step_n({ n: i + 1 })}</span><span aria-hidden="true">{i + 1}</span>
               {/if}
             </li>
           {/each}
         </ol>
         <p class="text-sm text-ws-stage-soft">
-          Check: play the {what}, {steps.length} steps. No targets. The {tuning ? "frets" : "keys"} you play still light, and a slip is named.
+          {(tuning ? m.music_strings_scales_check_frets : m.music_strings_scales_check_keys)({ what, n: steps.length })}
         </p>
       </div>
     {/if}
@@ -737,10 +766,10 @@
       <div class="relative flex flex-col justify-end" data-dock="instrument">
       {#if tuning}
         <div style:--instr="var(--hue-{inst})">
-          <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings compact={phase === "ready"} heldName={mode === "check" ? (m) => noteName(m, spell, false) : undefined} label="{inst} fretboard" />
+          <Fretboard openStrings={tuning.openStrings} from={fretWindow.from} to={fretWindow.to} marks={fretMarks} {flashes} flashByPitch stringNames fingerRings compact={phase === "ready"} heldName={mode === "check" ? (x) => noteName(x, spell, false) : undefined} label={m.music_strings_inst_fretboard({ inst })} />
         </div>
         {#if unplayable.length}
-          <p class="mt-1 text-sm text-ws-stage-soft">{unplayable.map((m) => noteName(m, spell)).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+          <p class="mt-1 text-sm text-ws-stage-soft">{(unplayable.length > 1 ? m.music_strings_out_of_range_many : m.music_strings_out_of_range_one)({ notes: unplayable.map((x) => noteName(x, spell)).join(", "), inst })}</p>
         {/if}
       {:else}
         <InstrumentStage line={all} {low} {high} {marks} {flashes} spelling={spell} />
@@ -749,18 +778,18 @@
     {/if}
     {#if tuning && mode === "practice"}
       <!-- One badge per state on the neck, the same before, during and after a run. -->
-      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft {phase === 'ready' ? 'max-sm:hidden' : ''}" aria-label="What the marks on the neck mean">
-        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-ws-stage text-[0.8125rem] font-bold text-ws-stage-ink ring-2 ring-ws-stage-ink" aria-hidden="true">1</span>A note, with its finger (1 index to 4 little)</li>
-        <li class="flex items-center gap-1.5"><span class="size-5 rounded-md bg-ws-stage ring-2 ring-ws-stage-ink" aria-hidden="true"></span>The root</li>
-        <li class="flex items-center gap-1.5"><span class="size-5 rounded-full bg-ws-stage-ink" aria-hidden="true"></span>{phase === "running" ? "Play now" : demo ? "Sounding now" : "Play now, in a run"}</li>
+      <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-soft {phase === 'ready' ? 'max-sm:hidden' : ''}" aria-label={m.music_strings_neck_marks()}>
+        <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-ws-stage text-[0.8125rem] font-bold text-ws-stage-ink ring-2 ring-ws-stage-ink" aria-hidden="true">1</span>{m.music_strings_mark_note_finger()}</li>
+        <li class="flex items-center gap-1.5"><span class="size-5 rounded-md bg-ws-stage ring-2 ring-ws-stage-ink" aria-hidden="true"></span>{m.music_strings_mark_root()}</li>
+        <li class="flex items-center gap-1.5"><span class="size-5 rounded-full bg-ws-stage-ink" aria-hidden="true"></span>{phase === "running" ? m.music_strings_mark_play_now() : demo ? m.music_strings_mark_sounding() : m.music_strings_mark_play_now_run()}</li>
         {#if phase !== "ready"}
-          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-white" aria-hidden="true">✓</span>Played right</li>
-          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-white" aria-hidden="true">✕</span>Slipped or missed</li>
+          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-white" aria-hidden="true">✓</span>{m.music_strings_mark_played_right()}</li>
+          <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-white" aria-hidden="true">✕</span>{m.music_strings_mark_slipped_missed()}</li>
         {/if}
       </ul>
     {:else if onPiano && pattern === "scale" && phase === "ready"}
       <p class="mt-3 text-sm text-ws-stage-soft">
-        {fingerOf.size ? "Numbers are fingers, 1 thumb to 5 little finger, as the scale books print them." : "No standard fingering for this scale here: keep the thumb off the black keys and cross it under after 3 or 4."}
+        {fingerOf.size ? m.music_strings_scales_fingering() : m.music_strings_scales_no_fingering()}
       </p>
     {/if}
   {/snippet}
@@ -770,12 +799,12 @@
       <!-- The run written out with each step's mark: the same marks the counts above are made of. -->
       {#snippet figure()}
         <div class="flex flex-col gap-2" data-testid="scales-marked">
-          <p class="text-sm font-semibold">Your run, note by note</p>
+          <p class="text-sm font-semibold">{m.music_strings_line_your_run()}</p>
           <LineNotation notes={written} tuning={fretTuning(inst)} title={key} groupStates={lineStates} keyFifths={signature} meter={quartersPerClick > 1 ? [12, 8] : undefined} />
-          <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-soft" aria-label="What the marks mean">
-            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-success-foreground" aria-hidden="true">✓</span>Right first time</li>
-            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-[color:var(--on-destructive)]" aria-hidden="true">✕</span>Slipped: a wrong note first</li>
-            <li class="flex items-center gap-1.5"><span class="size-4 rounded-full border-2 border-ws-soft" aria-hidden="true"></span>Not played</li>
+          <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-soft" aria-label={m.music_strings_marks_mean()}>
+            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-success text-sm font-bold text-success-foreground" aria-hidden="true">✓</span>{m.music_strings_right_first_time()}</li>
+            <li class="flex items-center gap-1.5"><span class="grid size-5 place-items-center rounded-full bg-destructive text-sm font-bold text-[color:var(--on-destructive)]" aria-hidden="true">✕</span>{m.music_strings_slipped_wrong_first()}</li>
+            <li class="flex items-center gap-1.5"><span class="size-4 rounded-full border-2 border-ws-soft" aria-hidden="true"></span>{m.music_strings_not_played()}</li>
           </ul>
         </div>
       {/snippet}
