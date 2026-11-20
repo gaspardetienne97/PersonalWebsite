@@ -1,6 +1,8 @@
 // A fixed colour per drum, the way play-along apps colour their lanes: the
 // low drums warm, the cymbals cool, so a lane is known before it is read.
 // Always drawn with the drum's name (colour is never the only cue).
+import { m } from "@repo/i18n/messages.js";
+
 const HUE: Record<string, number> = {
   kick: 22,
   "808": 5,
@@ -57,11 +59,11 @@ export function orderLanes(ids: Iterable<string>): string[] {
 }
 
 export type Judgement = "perfect" | "early" | "late" | "miss";
-export const JUDGEMENT_TEXT: Record<Judgement, string> = {
-  perfect: "Perfect",
-  early: "Early",
-  late: "Late",
-  miss: "Miss",
+export const JUDGEMENT_TEXT: Record<Judgement, () => string> = {
+  perfect: m.music_winds_lanes_perfect,
+  early: m.music_winds_lanes_early,
+  late: m.music_winds_lanes_late,
+  miss: m.music_winds_lanes_miss,
 };
 
 // ---------------------------------------------------------------------------

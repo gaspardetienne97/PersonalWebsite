@@ -8,6 +8,7 @@
   import { CHOP_EDITS, CHOP_SOURCES, WRITTEN_ENDS, WRITTEN_GROOVES, setCheck, writtenPiece, type Dyn, type WrittenRole, type WrittenSection, type WrittenSong } from "@repo/music-core/content/pads-studio";
   import Picker from "#lib/music/components/Picker.svelte";
   import { btn } from "#lib/music/components/ui.ts";
+  import { m } from "@repo/i18n/messages.js";
 
   let { song, bpm, onchange, ondelete }: { song: WrittenSong; bpm: number; onchange: (song: WrittenSong) => void; ondelete: () => void } = $props();
 
@@ -18,18 +19,19 @@
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
   };
 
-  const GROOVES = WRITTEN_GROOVES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: `Level ${r.level}` }));
+  const GROOVES = WRITTEN_GROOVES.map((r) => ({ value: r.groove.value, label: `${r.groove.label} (${r.style})`, group: m.music_winds_song_level_group({ level: r.level }) }));
   const SOURCES = CHOP_SOURCES.map((x) => ({ value: x.id, label: x.label }));
   const ENDS = WRITTEN_ENDS.map((x) => ({ value: x.id, label: x.label }));
-  const BARS = [1, 2, 4, 8, 12, 16, 24, 32].map((n) => ({ value: String(n), label: `${n} bar${n > 1 ? "s" : ""}` }));
-  const DYNS = (["soft", "medium", "loud", "rising"] as Dyn[]).map((d) => ({ value: d, label: d === "rising" ? "Rising" : d.charAt(0).toUpperCase() + d.slice(1) }));
-  const edits = (source: string) => [{ value: "order", label: "Slices in order" }, ...CHOP_EDITS.filter((e) => !e.source || e.source === source).map((e) => ({ value: e.id, label: e.label }))];
+  const BARS = [1, 2, 4, 8, 12, 16, 24, 32].map((n) => ({ value: String(n), label: m.music_winds_bars_count({ count: n }) }));
+  const DYN_LABELS: Record<Dyn, () => string> = { soft: m.music_winds_song_dyn_soft, medium: m.music_winds_song_dyn_medium, loud: m.music_winds_song_dyn_loud, rising: m.music_winds_song_dyn_rising };
+  const DYNS = (["soft", "medium", "loud", "rising"] as Dyn[]).map((d) => ({ value: d, label: DYN_LABELS[d]() }));
+  const edits = (source: string) => [{ value: "order", label: m.music_winds_song_slices_in_order() }, ...CHOP_EDITS.filter((e) => !e.source || e.source === source).map((e) => ({ value: e.id, label: e.label }))];
   const ROLES: { role: WrittenRole; label: string }[] = [
-    { role: "intro", label: "Intro" },
-    { role: "groove", label: "Groove" },
-    { role: "chop", label: "Chop" },
-    { role: "solo", label: "Solo" },
-    { role: "end", label: "End" },
+    { role: "intro", label: m.music_winds_song_role_intro() },
+    { role: "groove", label: m.music_winds_song_role_groove() },
+    { role: "chop", label: m.music_winds_song_role_chop() },
+    { role: "solo", label: m.music_winds_song_role_solo() },
+    { role: "end", label: m.music_winds_song_role_end() },
   ];
 
   const write = (sections: WrittenSection[]) => onchange({ ...song, bpm, sections });
@@ -57,46 +59,46 @@
 
 <div class="flex flex-col gap-3 sm:col-span-2 lg:col-span-3" data-testid="song-builder">
   <label class="flex max-w-sm flex-col gap-1 text-sm">
-    <span class="font-medium">Name</span>
-    <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" value={song.label} onchange={(e) => onchange({ ...song, label: e.currentTarget.value.trim() || "My piece" })} />
+    <span class="font-medium">{m.music_winds_song_name()}</span>
+    <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" value={song.label} onchange={(e) => onchange({ ...song, label: e.currentTarget.value.trim() || m.music_winds_song_default_name() })} />
   </label>
-  <ol class="flex flex-col gap-2" aria-label="Sections, in order">
+  <ol class="flex flex-col gap-2" aria-label={m.music_winds_song_sections()}>
     {#each song.sections as sec, i (i)}
       {@const span = piece.spans[i]}
-      <li class="flex flex-wrap items-center gap-2 rounded-xl border border-ws-line p-2 text-sm" aria-label="{span.label}, bars {span.from + 1} to {span.from + span.bars}">
+      <li class="flex flex-wrap items-center gap-2 rounded-xl border border-ws-line p-2 text-sm" aria-label={m.music_winds_song_section_aria({ label: span.label, from: span.from + 1, to: span.from + span.bars })}>
         <span class="w-20 font-semibold capitalize">{span.label}</span>
         {#if sec.role === "chop"}
-          <Picker class="w-44" label="{span.label}: the loop on the slices" value={sec.ref} options={SOURCES} onchange={(v) => set(i, { ref: v })} />
-          <Picker class="w-56" label="{span.label}: the order" value={sec.edit ?? "order"} options={edits(sec.ref)} onchange={(v) => set(i, { edit: v })} />
+          <Picker class="w-44" label={m.music_winds_song_pick_source({ label: span.label })} value={sec.ref} options={SOURCES} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-56" label={m.music_winds_song_pick_order({ label: span.label })} value={sec.edit ?? "order"} options={edits(sec.ref)} onchange={(v) => set(i, { edit: v })} />
         {:else if sec.role === "end"}
-          <Picker class="w-72" label="{span.label}: a fill or a stop" value={sec.ref} options={ENDS} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-72" label={m.music_winds_song_pick_end({ label: span.label })} value={sec.ref} options={ENDS} onchange={(v) => set(i, { ref: v })} />
         {:else}
-          <Picker class="w-64" label={sec.role === "solo" ? `${span.label}: the loop under it` : `${span.label}: the groove`} value={sec.ref} options={GROOVES} onchange={(v) => set(i, { ref: v })} />
+          <Picker class="w-64" label={sec.role === "solo" ? m.music_winds_song_pick_loop({ label: span.label }) : m.music_winds_song_pick_groove({ label: span.label })} value={sec.ref} options={GROOVES} onchange={(v) => set(i, { ref: v })} />
         {/if}
         {#if sec.role !== "end"}
-          <Picker class="w-28" label="{span.label}: bars" value={String(sec.bars)} options={BARS} onchange={(v) => set(i, { bars: Number(v) })} />
+          <Picker class="w-28" label={m.music_winds_song_pick_bars({ label: span.label })} value={String(sec.bars)} options={BARS} onchange={(v) => set(i, { bars: Number(v) })} />
         {:else}
-          <span class="text-ws-soft">{span.bars} bar{span.bars > 1 ? "s" : ""}</span>
+          <span class="text-ws-soft">{m.music_winds_bars_count({ count: span.bars })}</span>
         {/if}
-        <Picker class="w-28" label="{span.label}: level" value={sec.dyn} options={DYNS} onchange={(v) => set(i, { dyn: v as Dyn })} />
+        <Picker class="w-28" label={m.music_winds_song_pick_level({ label: span.label })} value={sec.dyn} options={DYNS} onchange={(v) => set(i, { dyn: v as Dyn })} />
         <span class="ml-auto flex gap-1">
-          <button type="button" class="{btn} px-3" aria-label="Move {span.label} earlier" disabled={i === 0} onclick={() => move(i, -1)}><ArrowUp class="size-4" /></button>
-          <button type="button" class="{btn} px-3" aria-label="Move {span.label} later" disabled={i === song.sections.length - 1} onclick={() => move(i, 1)}><ArrowDown class="size-4" /></button>
-          <button type="button" class="{btn} px-3" aria-label="Remove {span.label}" disabled={song.sections.length === 1} onclick={() => write(song.sections.filter((_, k) => k !== i))}><Trash class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_earlier({ label: span.label })} disabled={i === 0} onclick={() => move(i, -1)}><ArrowUp class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_move_later({ label: span.label })} disabled={i === song.sections.length - 1} onclick={() => move(i, 1)}><ArrowDown class="size-4" /></button>
+          <button type="button" class="{btn} px-3" aria-label={m.music_winds_song_remove({ label: span.label })} disabled={song.sections.length === 1} onclick={() => write(song.sections.filter((_, k) => k !== i))}><Trash class="size-4" /></button>
         </span>
       </li>
     {/each}
   </ol>
   <div class="flex flex-wrap items-center gap-2 text-sm">
-    <span class="font-medium">Add</span>
+    <span class="font-medium">{m.music_winds_song_add()}</span>
     {#each ROLES as r (r.role)}
       <button type="button" class={btn} onclick={() => add(r.role)}>{r.label}</button>
     {/each}
-    <button type="button" class="{btn} ml-auto" onclick={ondelete}>Delete this piece</button>
+    <button type="button" class="{btn} ml-auto" onclick={ondelete}>{m.music_winds_song_delete()}</button>
   </div>
   <p class="text-sm" data-testid="set-check">
-    {piece.bars} bars, {time(check.minutes)} at {bpm} BPM.
-    {check.ok ? "In the set's shape: an intro, grooves from three levels, a chop, a solo, an end, 3 to 5 minutes." : `For the set (the path's last step) it still needs ${check.missing.join(", ")}.`}
-    <span class="text-ws-soft">Saved as you change it. A chop plays the loop's slices on A01 to A16. A solo is yours over the loop, scored on time and on keeping every bar going.</span>
+    {m.music_winds_song_length({ bars: piece.bars, time: time(check.minutes), bpm })}
+    {check.ok ? m.music_winds_song_set_ok() : m.music_winds_song_set_missing({ missing: check.missing.join(", ") })}
+    <span class="text-ws-soft">{m.music_winds_song_help()}</span>
   </p>
 </div>

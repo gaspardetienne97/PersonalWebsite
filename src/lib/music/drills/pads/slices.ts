@@ -10,6 +10,7 @@ import {
 import { audio } from "#lib/music/runtime/index.ts";
 import { wavePeaks, type WavePeaks } from "./lanes";
 import { kits } from "#lib/music/hubs/create/kitStore.svelte.ts";
+import { m } from "@repo/i18n/messages.js";
 
 /**
  * While this says yes for a hit's time, MIDI hits on A01 to A16 play the
@@ -63,7 +64,7 @@ export async function loadSlices(
     chokeGroup: 1,
   }));
   const { failed } = await audio.loadKit({ id: "chop", name: "Chop", pads });
-  if (failed.length) throw new Error(`${failed.length} slices couldn't be read`);
+  if (failed.length) throw new Error(m.music_winds_slices_unreadable({ count: failed.length }));
   return wavePeaks(left, length, CHOP_SLICES * perSlice);
 }
 
