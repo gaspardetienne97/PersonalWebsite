@@ -745,6 +745,7 @@
   "music_strings_spider_cross_each": "Cross each step",
   "music_strings_spider_cross_hint": "Needs two strings or more.",
   "music_strings_spider_crossing": "crossing strings",
+  "music_strings_spider_in_bursts": "in bursts",
   "music_strings_spider_crossing_label": "String crossing",
   "music_strings_spider_from_fret": "from fret {fret}",
   "music_strings_spider_from_open": "from the open strings",

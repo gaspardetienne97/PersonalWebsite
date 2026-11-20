@@ -373,7 +373,7 @@
               { text: stringsText(spiderSet), focus: "strings" },
               { text: startFret === 0 ? m.music_strings_spider_from_open() : m.music_strings_spider_from_fret({ fret: startFret }) },
               ...(crossing ? [{ text: m.music_strings_spider_crossing(), focus: "crossing" }] : []),
-              ...(burst ? [{ text: m.music_strings_spider_bursts(), focus: "burst" }] : []),
+              ...(burst ? [{ text: m.music_strings_spider_in_bursts(), focus: "burst" }] : []),
               ...(perBeat > 1 ? [per] : []),
               ...(target ? [{ text: m.music_strings_aiming_for({ target: target.label }), focus: "grade" }] : []),
             ]

@@ -760,6 +760,7 @@
   "music_strings_spider_cross_each": "Changer à chaque étape",
   "music_strings_spider_cross_hint": "Nécessite deux cordes ou plus.",
   "music_strings_spider_crossing": "en changeant de corde",
+  "music_strings_spider_in_bursts": "par rafales",
   "music_strings_spider_crossing_label": "Changement de corde",
   "music_strings_spider_from_fret": "à partir de la frette {fret}",
   "music_strings_spider_from_open": "à partir des cordes à vide",
