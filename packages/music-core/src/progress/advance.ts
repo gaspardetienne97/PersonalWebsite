@@ -15,6 +15,8 @@
 //   run: two fails at the floor tempo, or two in a row untimed, offer the
 //   easier one (hysteresis against rubber-banding; Hunicke 2005).
 
+import { m } from "@repo/i18n/messages.js";
+
 export const ADVANCE = {
   pass: 0.85,
   fail: 0.7,
@@ -105,8 +107,14 @@ export function advance(
   function words(n: Offer) {
     const tempo = n.bpm !== undefined ? `${n.bpm} BPM` : "";
     if (n.kind === "harder" || n.kind === "easier")
-      return [n.label, tempo && `at ${tempo}`].filter(Boolean).join(" ");
-    return n.kind === "top" ? "Same again" : tempo || "Same again";
+      return n.bpm === undefined
+        ? (n.label ?? "")
+        : n.label
+          ? m.music_cards_adv_at_tempo({ label: n.label, bpm: n.bpm })
+          : m.music_cards_adv_at_only({ bpm: n.bpm });
+    return n.kind === "top"
+      ? m.music_cards_adv_same_again()
+      : tempo || m.music_cards_adv_same_again();
   }
 
   if (state.passes >= ADVANCE.runs) {
@@ -117,7 +125,7 @@ export function advance(
         return offer({
           kind: "faster",
           bpm: Math.min(goal, bpm + Math.max(ADVANCE.minStep, round(bpm * ADVANCE.stepPct))),
-          reason: `${ADVANCE.runs} clean runs at ${bpm} BPM`,
+          reason: m.music_cards_adv_runs_at({ count: ADVANCE.runs, bpm }),
         });
       if (hasHarder)
         return offer({
@@ -125,25 +133,25 @@ export function advance(
           step: step + 1,
           bpm: startOf(step + 1),
           label: label(step + 1),
-          reason: `clean at the goal, ${goal} BPM`,
+          reason: m.music_cards_adv_clean_goal({ bpm: goal }),
         });
       const max = plan.tempo!.max ?? goal;
       if (bpm < max)
         return offer({
           kind: "faster",
           bpm: Math.min(max, bpm + Math.max(ADVANCE.minStep, round(bpm * ADVANCE.stepPct))),
-          reason: `past the goal on the hardest version`,
+          reason: m.music_cards_adv_past_goal(),
         });
-      return offer({ kind: "top", reason: `the hardest version at ${bpm} BPM, the top tempo` });
+      return offer({ kind: "top", reason: m.music_cards_adv_top({ bpm }) });
     }
     if (hasHarder)
       return offer({
         kind: "harder",
         step: step + 1,
         label: label(step + 1),
-        reason: `${ADVANCE.runs} clean runs`,
+        reason: m.music_cards_adv_runs({ count: ADVANCE.runs }),
       });
-    return offer({ kind: "top", reason: "clean on the hardest version" });
+    return offer({ kind: "top", reason: m.music_cards_adv_clean_hardest() });
   }
 
   if (fail) {
@@ -153,7 +161,7 @@ export function advance(
       return offer({
         kind: "slower",
         bpm: Math.max(floor, bpm - Math.max(ADVANCE.minStep, round(bpm * ADVANCE.stepPct))),
-        reason: "slower until it's clean",
+        reason: m.music_cards_adv_slower(),
       });
     if (state.fails >= ADVANCE.easierAfter && hasEasier)
       return offer({
@@ -161,7 +169,10 @@ export function advance(
         step: step - 1,
         bpm: timed ? Math.max(floor, Math.min(bpm, startOf(step - 1))) : undefined,
         label: label(step - 1),
-        reason: `${state.fails} runs under ${Math.round(ADVANCE.fail * 100)}%`,
+        reason: m.music_cards_adv_fails({
+          count: state.fails,
+          pct: Math.round(ADVANCE.fail * 100),
+        }),
       });
   }
 
@@ -170,7 +181,7 @@ export function advance(
     kind: "same",
     bpm: timed ? round(plan.bpm!) : undefined,
     reason: pass
-      ? `${need} more clean run${need > 1 ? "s" : ""} to move on`
-      : `${ADVANCE.runs} clean runs in a row (${Math.round(ADVANCE.pass * 100)}% or better) move on`,
+      ? m.music_cards_adv_more({ count: need })
+      : m.music_cards_adv_rule({ count: ADVANCE.runs, pct: Math.round(ADVANCE.pass * 100) }),
   });
 }

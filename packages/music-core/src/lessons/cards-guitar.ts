@@ -11,8 +11,9 @@ import {
 } from "../content/technique";
 import { midiAt, tuningById, type Tuning } from "../theory/fretboard";
 import { noteName, pc } from "../theory/notes";
-import { join, plural, run, sharp, tones, type CardOpts } from "./card-kit";
+import { join, run, sharp, tones, type CardOpts } from "./card-kit";
 import type { Lesson, LessonFigure, LessonStep } from "./types";
+import { m } from "@repo/i18n/messages.js";
 
 const STANDARD = tuningById("guitar.standard")!;
 const HIGH_G = tuningById("ukulele.high-g")!;
@@ -49,13 +50,17 @@ type Placed = ReturnType<typeof placed>;
 
 const place = (off: number) =>
   off === 0
-    ? "at the root fret"
+    ? m.music_cards_pos_at_root()
     : off > 0
-      ? `${plural(off, "fret")} above the root fret`
-      : `${plural(-off, "fret")} below the root fret`;
+      ? m.music_cards_pos_above_root({ count: off })
+      : m.music_cards_pos_below_root({ count: -off });
 /** A fret against the root fret, short: "on it", "2 above it", "2 below it". */
 const against = (off: number) =>
-  off === 0 ? "on it" : off > 0 ? `${off} above it` : `${-off} below it`;
+  off === 0
+    ? m.music_cards_pos_on_it()
+    : off > 0
+      ? m.music_cards_pos_above_it({ count: off })
+      : m.music_cards_pos_below_it({ count: -off });
 
 const figure = (
   x: Placed,
@@ -80,7 +85,17 @@ const lowToHigh = (x: Placed) =>
   [...x.targets].sort((a, b) => b.string - a.string || a.fret - b.fret).map((t) => t.midi);
 
 const tuningText = (t: Tuning) =>
-  t.id === STANDARD.id || t.id === HIGH_G.id ? "" : ` on ${t.name}`;
+  t.id === STANDARD.id || t.id === HIGH_G.id
+    ? ""
+    : ` ${m.music_cards_pos_tuning({ name: t.name })}`;
+/** " with two notes on each of the 6 strings", or nothing when the strings differ. */
+const notesEach = (perString: number | null, strings: number) =>
+  perString
+    ? m.music_cards_boxes_notes({
+        perString: perString === 2 ? m.music_cards_two() : String(perString),
+        count: strings,
+      })
+    : "";
 
 /** The CAGED forms, lowest on the neck first, with the letter from the data's id. */
 export const cagedForms = (tuning: Tuning = STANDARD) =>
@@ -122,22 +137,27 @@ export function caged(o: CardOpts): Lesson {
   const t = o.tuning ?? STANDARD;
   const forms = cagedForms(t);
   const steps: LessonStep[] = forms.map((f) => ({
-    text: `The ${f.letter} shape uses strings ${f.firstString} to ${f.lastString}, and its lowest fret is ${place(f.low)}.`,
+    text: m.music_cards_caged_step({
+      letter: f.letter,
+      first: f.firstString,
+      last: f.lastString,
+      place: place(f.low),
+    }),
     figure: figure(f, t),
     sound: run(lowToHigh(f), 0.25),
   }));
   return {
     id: "positions.caged",
-    title: "The five CAGED shapes",
+    title: m.music_cards_caged_title(),
     screens: [
       {
-        title: "Five shapes for one chord",
-        text: `CAGED names five shapes for a major chord, after the open chords C, A, G, E and D. Each one plays the same chord, in five places along the neck. Tap Next for where each sits${tuningText(t)}, counted from the root fret on string 6.`,
+        title: m.music_cards_caged_five_title(),
+        text: m.music_cards_caged_five_text({ tuning: tuningText(t) }),
         steps,
       },
       {
-        title: "Find it in Check",
-        text: "Check hides the notes of the shape. Know which shape it is, which strings it uses and where it sits. Then play it from its lowest string up.",
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_caged_check_text(),
       },
     ],
   };
@@ -150,17 +170,25 @@ export function pentatonicBoxes(o: CardOpts): Lesson {
   const perString = bx.every((b) => b.perString === bx[0].perString) ? bx[0].perString : null;
   return {
     id: "positions.boxes",
-    title: "The five pentatonic boxes",
+    title: m.music_cards_boxes_title(),
     screens: [
       {
-        title: "A box is a hand position",
-        text: `A box of the minor pentatonic is one hand position${perString ? ` with ${perString === 2 ? "two" : perString} notes on each of the ${b1.stringCount} strings` : ""}. Here is box 1${tuningText(t)}, as the drill places it at its lowest root fret. The drill plays a box from the low string to the high.`,
+        title: m.music_cards_boxes_one_title(),
+        text: m.music_cards_boxes_one_text({
+          notes: notesEach(perString, b1.stringCount),
+          tuning: tuningText(t),
+        }),
         figure: figure(b1, t),
         sound: run(lowToHigh(b1), 0.25),
       },
       {
-        title: "Five boxes up the neck",
-        text: `The five boxes climb the neck. Counted from the root fret on string 6${tuningText(t)}, the lowest fret of ${join(bx.map((b, i) => `box ${i + 1} is ${against(b.low)}`))}. In Check the notes stay hidden, so know where each box starts.`,
+        title: m.music_cards_boxes_up_title(),
+        text: m.music_cards_boxes_up_text({
+          tuning: tuningText(t),
+          list: join(
+            bx.map((b, i) => m.music_cards_boxes_item({ n: i + 1, where: against(b.low) })),
+          ),
+        }),
       },
     ],
   };
@@ -171,18 +199,23 @@ export function connectedBoxes(o: CardOpts): Lesson {
   const bx = boxes(t);
   return {
     id: "positions.connected",
-    title: "The boxes joined up the neck",
+    title: m.music_cards_connected_title(),
     screens: [
       {
-        title: "One run through five boxes",
-        text: "The connected run joins the five boxes into one line up the neck. It plays box 1 from the low string to the high, then box 2 from the high string back to the low. It carries on that way through box 5.",
+        title: m.music_cards_connected_run_title(),
+        text: m.music_cards_connected_run_text(),
         steps: bx.map((b, i) => ({
-          text: `Box ${i + 1}: ${i % 2 ? "high string to low" : "low string to high"}, its lowest fret ${place(b.low)}.`,
+          text: m.music_cards_connected_step({
+            n: i + 1,
+            direction:
+              i % 2 ? m.music_cards_connected_high_low() : m.music_cards_connected_low_high(),
+            place: place(b.low),
+          }),
         })),
       },
       {
-        title: "Find it in Check",
-        text: "Check hides the notes, so know the order of the boxes and which way each one runs.",
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_connected_check_text(),
       },
     ],
   };
@@ -194,55 +227,68 @@ export function ukuleBoxes(o: CardOpts): Lesson {
   const perString = ps.every((b) => b.perString === ps[0].perString) ? ps[0].perString : null;
   return {
     id: "positions.boxes-ukulele",
-    title: "The five ukulele positions",
+    title: m.music_cards_uke_title(),
     screens: [
       {
-        title: "A position is a hand position",
-        text: `A position of the minor pentatonic is one hand position${perString ? ` with ${perString === 2 ? "two" : perString} notes on each of the ${ps[0].stringCount} strings` : ""}. Here is position 1${tuningText(t)}, as the drill places it at its lowest root fret. The drill plays it from string ${ps[0].firstString} to string ${ps[0].lastString}.`,
+        title: m.music_cards_uke_one_title(),
+        text: m.music_cards_uke_one_text({
+          notes: notesEach(perString, ps[0].stringCount),
+          tuning: tuningText(t),
+          first: ps[0].firstString,
+          last: ps[0].lastString,
+        }),
         figure: figure(ps[0], t),
         sound: run(lowToHigh(ps[0]), 0.25),
       },
       {
-        title: "Five positions up the neck",
-        text: `The five positions climb the neck. Counted from the root fret on string 1${tuningText(t)}, the lowest fret of ${join(ps.map((b, i) => `position ${i + 1} is ${against(b.low)}`))}. In Check the notes stay hidden, so know where each position starts.`,
+        title: m.music_cards_uke_up_title(),
+        text: m.music_cards_uke_up_text({
+          tuning: tuningText(t),
+          list: join(ps.map((b, i) => m.music_cards_uke_item({ n: i + 1, where: against(b.low) }))),
+        }),
       },
     ],
   };
 }
 
 /** A note's role against the root, for the B.B. box. */
-const DEGREE: Record<number, string> = {
-  0: "root",
-  2: "2nd",
-  3: "flat 3rd",
-  4: "3rd",
-  5: "4th",
-  6: "flat 5th",
-  7: "5th",
-  9: "6th",
-  10: "flat 7th",
+const DEGREE: Record<number, () => string> = {
+  0: m.music_cards_role_root,
+  2: m.music_cards_role_2nd,
+  3: m.music_cards_role_flat_3rd,
+  4: m.music_cards_role_3rd,
+  5: m.music_cards_role_4th,
+  6: m.music_cards_role_flat_5th,
+  7: m.music_cards_role_5th,
+  9: m.music_cards_role_6th,
+  10: m.music_cards_role_flat_7th,
 };
 const role = (rootPc: number, midi: number) =>
-  DEGREE[pc(midi - rootPc)] ?? noteName(midi, "sharp", false);
+  DEGREE[pc(midi - rootPc)]?.() ?? noteName(midi, "sharp", false);
 
 export function bbBox(o: CardOpts): Lesson {
   const t = o.tuning ?? STANDARD;
   const x = placed("bb-box", t);
-  const own = x.targets.find((n) => role(x.rootPc, n.midi) === "root")!;
+  const own = x.targets.find((n) => pc(n.midi - x.rootPc) === 0)!;
   const roles = [...x.targets].sort((a, b) => a.midi - b.midi).map((n) => role(x.rootPc, n.midi));
   return {
     id: "positions.bb-box",
-    title: "The B.B. box",
+    title: m.music_cards_bb_title(),
     screens: [
       {
-        title: "Six notes around the root",
-        text: `This box is six notes around one root: the ${join(roles)}. The drill's root fret is the root note on string 6, and the box's own root is on string ${own.string}, ${place(own.fret - x.rootFret)}${tuningText(t)}. Tap Hear it for the box low string to high.`,
+        title: m.music_cards_bb_six_title(),
+        text: m.music_cards_bb_six_text({
+          roles: join(roles),
+          string: own.string,
+          place: place(own.fret - x.rootFret),
+          tuning: tuningText(t),
+        }),
         figure: figure(x, t, (m) => role(x.rootPc, m)),
         sound: run(lowToHigh(x), 0.25),
       },
       {
-        title: "Find it in Check",
-        text: "Check hides the notes. Find the box's root, then find the other notes by their roles around it.",
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_bb_check_text(),
       },
     ],
   };
@@ -259,29 +305,45 @@ export function triads(id: string, o: CardOpts): Lesson {
   const parts = [0, 1, 2].map((k) => x.targets.slice(k * 3, k * 3 + 3));
   const lowest = (ns: (typeof parts)[number]) => [...ns].sort((a, b) => a.midi - b.midi);
   const inversion = (ns: (typeof parts)[number]) =>
-    ({ 0: "root position", 3: "first inversion", 4: "first inversion", 7: "second inversion" })[
-      pc(lowest(ns)[0].midi - x.rootPc)
-    ] ?? "an inversion";
+    (
+      {
+        0: m.music_cards_inv_root,
+        3: m.music_cards_inv_first,
+        4: m.music_cards_inv_first,
+        7: m.music_cards_inv_second,
+      } as Record<number, () => string>
+    )[pc(lowest(ns)[0].midi - x.rootPc)]?.() ?? m.music_cards_inv_any();
   const stringsOf = x.targets.map((n) => n.string);
   return {
     id: `positions.${id}`,
-    title: minor ? "Minor triads up the neck" : "Major triads up the neck",
+    title: minor ? m.music_cards_triads_title_minor() : m.music_cards_triads_title_major(),
     screens: [
       {
-        title: "Three inversions",
-        text: `You can play a ${minor ? "minor" : "major"} triad in three inversions, each higher up the neck than the one before. The drill plays them on strings ${Math.max(...stringsOf)} to ${Math.min(...stringsOf)}. Tap Next for ${root} ${minor ? "minor" : "major"}${tuningText(t)} at its lowest root fret.`,
+        title: m.music_cards_triads_three_title(),
+        text: (minor
+          ? m.music_cards_triads_three_text_minor
+          : m.music_cards_triads_three_text_major)({
+          first: Math.max(...stringsOf),
+          last: Math.min(...stringsOf),
+          root,
+          tuning: tuningText(t),
+        }),
         steps: parts.map((ns) => {
           const ord = lowest(ns);
           return {
-            text: `${inversion(ns)}: ${ord.map((n) => sharp(n.midi)).join(" ")}, frets ${ns.map((n) => n.fret).join(" ")}.`,
+            text: m.music_cards_triads_step({
+              inversion: inversion(ns),
+              notes: ord.map((n) => sharp(n.midi)).join(" "),
+              frets: ns.map((n) => n.fret).join(" "),
+            }),
             figure: figure({ ...x, targets: ns }, t),
             sound: tones(ord.map((n) => n.midi)),
           };
         }),
       },
       {
-        title: "Find it in Check",
-        text: "Check hides the notes. Know the three inversions and where each sits, and play each from its lowest string up.",
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_triads_check_text(),
       },
     ],
   };

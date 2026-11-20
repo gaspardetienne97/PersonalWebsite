@@ -26,6 +26,7 @@ import aerophoneLevels from "../data/paths/aerophone.json";
 import padsLevels from "../data/paths/pads.json";
 import earLevels from "../data/paths/ear-theory.json";
 import readingLevels from "../data/paths/reading.json";
+import { m } from "@repo/i18n/messages.js";
 
 export type PathId =
   | "ear"
@@ -164,10 +165,9 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-1",
     order: 1,
-    title: "The order of sharps and flats",
-    summary:
-      "F C G D A E B for sharps (Father Charles Goes Down And Ends Battle), backwards for flats.",
-    detail: "Twenty questions over two days, 95% right within 2 seconds.",
+    title: m.music_cards_t1_title(),
+    summary: m.music_cards_t1_summary(),
+    detail: m.music_cards_t_detail_20_2(),
     href: CIRCLE("mode=order"),
     exerciseIds: ["theory.circle.order"],
     skillIds: ["theory.circle.order"],
@@ -178,11 +178,11 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-2",
     order: 2,
-    title: "Keys up to two sharps or flats",
-    summary: "C, G, F, D and Bb: from the key to its count, and from the count to the key.",
-    detail: "Twenty questions over two days, 95% right within 2 seconds.",
+    title: m.music_cards_t2_title(),
+    summary: m.music_cards_t2_summary(),
+    detail: m.music_cards_t_detail_20_2(),
     href: CIRCLE("mode=count&band=two"),
-    links: [{ label: "Start with C, G and F", href: CIRCLE("mode=count&band=near") }],
+    links: [{ label: m.music_cards_t2_link(), href: CIRCLE("mode=count&band=near") }],
     exerciseIds: ["theory.circle.count"],
     skillIds: ["theory.circle.count"],
     minAttempts: 20,
@@ -193,11 +193,11 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-3",
     order: 3,
-    title: "Every key, both ways",
-    summary: "Up to four, then all fifteen with the enharmonic keys, sharps and flats mixed.",
-    detail: "Twenty questions on all fifteen keys over two days, 95% right within 2 seconds.",
+    title: m.music_cards_t3_title(),
+    summary: m.music_cards_t3_summary(),
+    detail: m.music_cards_t3_detail(),
     href: CIRCLE("mode=count&band=all"),
-    links: [{ label: "Up to four", href: CIRCLE("mode=count&band=four") }],
+    links: [{ label: m.music_cards_t3_link(), href: CIRCLE("mode=count&band=four") }],
     exerciseIds: ["theory.circle.count"],
     skillIds: ["theory.circle.count"],
     minAttempts: 20,
@@ -208,11 +208,11 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-4",
     order: 4,
-    title: "Read signatures on the staff",
-    summary: "Name the key from its signature, treble clef first, then bass.",
-    detail: "Twenty questions on keys up to four over two days, 95% right within 3 seconds.",
+    title: m.music_cards_t4_title(),
+    summary: m.music_cards_t4_summary(),
+    detail: m.music_cards_t4_detail(),
     href: CIRCLE("mode=signature&band=four&clefs=treble"),
-    links: [{ label: "Bass and treble", href: CIRCLE("mode=signature&band=all&clefs=both") }],
+    links: [{ label: m.music_cards_t4_link(), href: CIRCLE("mode=signature&band=all&clefs=both") }],
     exerciseIds: ["theory.circle.signature"],
     skillIds: ["theory.circle.signature"],
     minAttempts: 20,
@@ -223,12 +223,11 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-5",
     order: 5,
-    title: "Neighbours and relative minors",
-    summary:
-      "One more sharp, one more flat, the relative minor a minor third down, and the key across.",
-    detail: "Twenty questions on keys up to four, 95% right within 2.5 seconds.",
+    title: m.music_cards_t5_title(),
+    summary: m.music_cards_t5_summary(),
+    detail: m.music_cards_t5_detail(),
     href: CIRCLE("mode=neighbours&band=four"),
-    links: [{ label: "Minor keys' signatures", href: CIRCLE("mode=count&band=four&minor=both") }],
+    links: [{ label: m.music_cards_t5_link(), href: CIRCLE("mode=count&band=four&minor=both") }],
     exerciseIds: ["theory.circle.neighbours"],
     skillIds: ["theory.circle.neighbours"],
     minAttempts: 20,
@@ -238,10 +237,9 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-6",
     order: 6,
-    title: "A key's chords",
-    summary:
-      "Read them off the wedge: IV, I and V outside, ii, vi and iii inside, vii° at the centre.",
-    detail: "Twenty questions on keys up to four, 95% right within 5 seconds.",
+    title: m.music_cards_t6_title(),
+    summary: m.music_cards_t6_summary(),
+    detail: m.music_cards_t6_detail(),
     href: CIRCLE("mode=chords&band=four"),
     exerciseIds: ["theory.circle.chords"],
     skillIds: ["theory.circle.chords"],
@@ -252,9 +250,9 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-7",
     order: 7,
-    title: "The circle from memory",
-    summary: "A blank wheel: put each key in its place.",
-    detail: "Twenty questions on all fifteen keys, 95% right within 3 seconds.",
+    title: m.music_cards_t7_title(),
+    summary: m.music_cards_t7_summary(),
+    detail: m.music_cards_t7_detail(),
     href: CIRCLE("mode=wheel&band=all"),
     exerciseIds: ["theory.circle.wheel"],
     skillIds: ["theory.circle.wheel"],
@@ -265,22 +263,21 @@ const THEORY_STEPS: RawStep[] = [
   {
     id: "T-8",
     order: 8,
-    title: "Round the circle on your instrument",
-    summary:
-      "Scales clockwise from C: C, G, D, A and E share a piano fingering. ii-V-I counter-clockwise, the way the changes move. On guitar, chord changes by fourths.",
+    title: m.music_cards_t8_title(),
+    summary: m.music_cards_t8_summary(),
     kind: "reference",
     href: "/music/library?tab=reference&section=circle",
     links: [
       {
-        label: "Scales",
+        label: m.music_cards_t8_link_scales(),
         href: "/music/play/scales?scale=major&tonic=G4&instrument=piano&bpm=72&motion=up&span=one-octave&hands=both",
       },
       {
-        label: "ii-V-I voicings",
+        label: m.music_cards_t8_link_voicings(),
         href: "/music/play/voicings?variant=major&instrument=piano&key=0&mode=check",
       },
       {
-        label: "Chord changes",
+        label: m.music_cards_t8_link_changes(),
         href: "/music/play/chord-perfect?mode=changes&instrument=guitar&tuning=guitar.standard&shape=guitar.c-major&to=guitar.f-major&timed=1&bpm=60&clock=4",
       },
     ],
@@ -292,9 +289,9 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-1",
     order: 1,
-    title: "Three bands on pink noise",
-    summary: "250 Hz, 1 kHz or 4 kHz, boosted 12 dB. Flip Flat and Changed as often as you like.",
-    detail: "Ten answers in Check at 90% or higher.",
+    title: m.music_cards_s1_title(),
+    summary: m.music_cards_s1_summary(),
+    detail: m.music_cards_s1_detail(),
     href: L("exercise=peak&bands=3&gain=12&material=noise"),
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
@@ -304,11 +301,13 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-2",
     order: 2,
-    title: "Five bands, then nine",
-    summary: "More bands, still 12 dB on noise. Nine is every octave from 63 Hz to 16 kHz.",
-    detail: "Twenty answers in Check on five bands or more, at 80% or higher.",
+    title: m.music_cards_s2_title(),
+    summary: m.music_cards_s2_summary(),
+    detail: m.music_cards_s2_detail(),
     href: L("exercise=peak&bands=5&gain=12&material=noise"),
-    links: [{ label: "All nine octaves", href: L("exercise=peak&bands=9&gain=12&material=noise") }],
+    links: [
+      { label: m.music_cards_s2_link(), href: L("exercise=peak&bands=9&gain=12&material=noise") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -318,12 +317,13 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-3",
     order: 3,
-    title: "Nine bands on loops",
-    summary:
-      "The drum loop, then the band loop. Music is harder than noise. An octave off counts half.",
-    detail: "Twenty answers in Check on nine bands over a loop, at 70% or higher.",
+    title: m.music_cards_s3_title(),
+    summary: m.music_cards_s3_summary(),
+    detail: m.music_cards_s3_detail(),
     href: L("exercise=peak&bands=9&gain=12&material=drums"),
-    links: [{ label: "The band loop", href: L("exercise=peak&bands=9&gain=12&material=music") }],
+    links: [
+      { label: m.music_cards_s3_link(), href: L("exercise=peak&bands=9&gain=12&material=music") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -333,11 +333,13 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-4",
     order: 4,
-    title: "Find the cut",
-    summary: "A band cut by 12 dB: harder than a boost, since you listen for what's missing.",
-    detail: "Twenty answers in Check on nine bands, at 70% or higher.",
+    title: m.music_cards_s4_title(),
+    summary: m.music_cards_s4_summary(),
+    detail: m.music_cards_s4_detail(),
     href: L("exercise=cut&bands=9&gain=12&material=noise"),
-    links: [{ label: "On the band loop", href: L("exercise=cut&bands=9&gain=12&material=music") }],
+    links: [
+      { label: m.music_cards_s4_link(), href: L("exercise=cut&bands=9&gain=12&material=music") },
+    ],
     exerciseIds: ["studio.cut"],
     skillIds: ["studio.eq-cut"],
     minAttempts: 20,
@@ -347,11 +349,13 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-5",
     order: 5,
-    title: "Smaller boosts",
-    summary: "6 dB, then 3 dB: closer to the moves you make in a real mix.",
-    detail: "Twenty answers in Check on nine bands at 6 dB or less, at 70% or higher.",
+    title: m.music_cards_s5_title(),
+    summary: m.music_cards_s5_summary(),
+    detail: m.music_cards_s5_detail(),
     href: L("exercise=peak&bands=9&gain=6&material=drums"),
-    links: [{ label: "3 dB", href: L("exercise=peak&bands=9&gain=3&material=drums") }],
+    links: [
+      { label: m.music_cards_s5_link(), href: L("exercise=peak&bands=9&gain=3&material=drums") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -361,14 +365,16 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-6",
     order: 6,
-    title: "Boost or cut, level and pan",
-    summary:
-      "Boost or cut at matched loudness, how many dB louder, and where it sits in the stereo field.",
-    detail: "Ten answers in Check each, at 80% or higher.",
+    title: m.music_cards_s6_title(),
+    summary: m.music_cards_s6_summary(),
+    detail: m.music_cards_s6_detail(),
     href: L("exercise=boost-or-cut&gain=6&material=music"),
     links: [
-      { label: "How many dB", href: L("exercise=level&levels=6,3,2&material=music") },
-      { label: "Pan position", href: L("exercise=pan&pans=5&material=music") },
+      {
+        label: m.music_cards_s6_link_level(),
+        href: L("exercise=level&levels=6,3,2&material=music"),
+      },
+      { label: m.music_cards_s6_link_pan(), href: L("exercise=pan&pans=5&material=music") },
     ],
     exerciseIds: ["studio.boost-or-cut", "studio.level", "studio.pan"],
     skillIds: ["studio.boost-or-cut", "studio.level", "studio.pan"],
@@ -378,14 +384,13 @@ const STUDIO_STEPS: RawStep[] = [
   {
     id: "S-7",
     order: 7,
-    title: "Compression and delay",
-    summary:
-      "How hard a drum loop is squashed (at matched loudness), and how long its echo is in note values.",
-    detail: "Ten answers in Check each, at 75% or higher.",
+    title: m.music_cards_s7_title(),
+    summary: m.music_cards_s7_summary(),
+    detail: m.music_cards_s7_detail(),
     href: L("exercise=compression&material=drums"),
     links: [
-      { label: "Delay time", href: L("exercise=delay&material=drums") },
-      { label: "With dotted 1/8", href: L("exercise=delay&delays=4&material=music") },
+      { label: m.music_cards_s7_link_delay(), href: L("exercise=delay&material=drums") },
+      { label: m.music_cards_s7_link_dotted(), href: L("exercise=delay&delays=4&material=music") },
     ],
     exerciseIds: ["studio.compression", "studio.delay"],
     skillIds: ["studio.compression", "studio.delay"],
@@ -428,14 +433,14 @@ export const LEARNING_PATHS: Record<PathId, LearningPath> = {
   reading: levelled(readingLevels),
   theory: path(
     "theory",
-    "Circle of fifths path",
-    "Know key signatures and the circle from memory, right and fast. Then take the circle to your instrument.",
+    m.music_cards_path_theory_title(),
+    m.music_cards_path_theory_subtitle(),
     THEORY_STEPS,
   ),
   studio: path(
     "studio",
-    "Studio ears path",
-    "Hear EQ, level and pan the way a producer does: noise first, then loops, smaller moves last.",
+    m.music_cards_path_studio_title(),
+    m.music_cards_path_studio_subtitle(),
     STUDIO_STEPS,
   ),
 };

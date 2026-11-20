@@ -4,6 +4,7 @@ import { DAY_MS, decayMastery, isDueForReview } from "./mastery";
 import routineData from "../data/daily-routine.json";
 import { CATALOG } from "../content/catalog";
 import { ADVANCE } from "./advance";
+import { m } from "@repo/i18n/messages.js";
 import type { PathProgress } from "./paths";
 
 export type StepId =
@@ -33,13 +34,25 @@ interface StepDef {
   for: Slot[];
 }
 
+type Message = (inputs?: object, options?: { locale?: "en" }) => string;
+const msg = (key: string) =>
+  (m as unknown as Record<string, Message | undefined>)[`music_cards_routine_${key}`];
+/** A step's words in the player's language; the English source wins when the message is stale. */
+const say = (key: string, english: string) => {
+  const f = msg(key);
+  return f && f({}, { locale: "en" }) === english ? f() : english;
+};
 const fromData = (id: string) => {
   const s =
     routineData.genericPlan.find((x) => x.id === id) ??
     Object.values(routineData.plansByInstrument)
       .flat()
       .find((x) => x.id === id)!;
-  return { label: s.label, description: s.description };
+  const key = id.replaceAll("-", "_");
+  return {
+    label: say(`${key}_label`, s.label),
+    description: say(`${key}_text`, s.description),
+  };
 };
 
 const PITCHED: Slot[] = ["piano", "guitar", "ukulele", "aerophone"];
@@ -62,44 +75,44 @@ export const STEPS: Record<StepId, StepDef> = {
   mpc: { ...fromData("mpc"), route: "/music/pads", for: ["mpc"] },
   aerophone: { ...fromData("aerophone"), route: "/music/aerophone", for: ["aerophone"] },
   "two-hand": {
-    label: "Two-hand piano",
-    description: "Independent hands, locked to one pulse.",
+    label: m.music_cards_routine_two_hand_label(),
+    description: m.music_cards_routine_two_hand_text(),
     route: "/music/two-hand",
     for: ["piano"],
   },
   comping: {
-    label: "Comping",
-    description: "A line over a left-hand comp rhythm.",
+    label: m.music_cards_routine_comping_label(),
+    description: m.music_cards_routine_comping_text(),
     route: "/music/changes/comping",
     for: ["piano"],
   },
   voicings: {
-    label: "ii-V-I voicings",
-    description: "Rootless voicings through the keys.",
+    label: m.music_cards_routine_voicings_label(),
+    description: m.music_cards_routine_voicings_text(),
     route: "/music/changes/voicings",
     for: ["piano"],
   },
   licks: {
-    label: "Lick recall",
-    description: "Hear a line, play it back.",
+    label: m.music_cards_routine_licks_label(),
+    description: m.music_cards_routine_licks_text(),
     route: "/music/changes/licks",
     for: ["none", ...PITCHED],
   },
   "chord-scales": {
-    label: "Chord-scale review",
-    description: "One go-to scale per chord in a ii-V-I.",
+    label: m.music_cards_routine_chord_scales_label(),
+    description: m.music_cards_routine_chord_scales_text(),
     route: "/music/changes/chord-scales",
     for: ["none", ...PITCHED],
   },
   phrases: {
-    label: "Play a tune",
-    description: "A famous tune or a stock lick, heard then played back.",
+    label: m.music_cards_routine_phrases_label(),
+    description: m.music_cards_routine_phrases_text(),
     route: "/music/phrases",
     for: [...PITCHED, "mpc"],
   },
   jam: {
-    label: "Jam",
-    description: "Improvise over a progression with the chord tones lit.",
+    label: m.music_cards_routine_jam_label(),
+    description: m.music_cards_routine_jam_text(),
     route: "/music/changes/jam",
     for: ["none", ...PITCHED, "mpc", "voice"],
   },
@@ -218,7 +231,11 @@ export function pickShelfSong(
   return (
     pick && {
       title: pick.song.title,
-      description: `${pick.song.artist}. A level ${level!.level.id} song on the ${progress.path.title}.`,
+      description: m.music_cards_routine_song_text({
+        artist: pick.song.artist,
+        level: level!.level.id,
+        path: progress.path.title,
+      }),
       href: `/music/songs/shelf/${pick.key}`,
       shelf: pick.key,
     }
@@ -297,10 +314,17 @@ export function snapBudget(minutes: number | undefined): Budget {
 
 /** Short tag for a block's role. */
 export function roleLabel(step: Pick<RoutineStep, "role" | "reason" | "id">): string {
-  if (step.role === "review") return step.reason === "warm-up" ? "Warm-up" : "Review";
-  if (step.role === "focus") return step.reason === "path" ? "Path" : "Focus";
-  if (step.role === "ear") return step.id === "reading" ? "Reading" : "Ear";
-  return { song: "Song", variety: "Variety", create: "Create" }[step.role];
+  if (step.role === "review")
+    return step.reason === "warm-up" ? m.music_cards_role_warm_up() : m.music_cards_role_review();
+  if (step.role === "focus")
+    return step.reason === "path" ? m.music_cards_role_path() : m.music_cards_role_focus();
+  if (step.role === "ear")
+    return step.id === "reading" ? m.music_cards_role_reading() : m.music_cards_role_ear();
+  return {
+    song: m.music_cards_role_song,
+    variety: m.music_cards_role_variety,
+    create: m.music_cards_role_create,
+  }[step.role]();
 }
 
 /** Sets the given params, keeping any query the href already has; `keep` ones only when absent. */
@@ -403,7 +427,10 @@ export function buildRoutine(input: {
         ? {
             id: "path",
             label: input.pathFocus.title,
-            description: `Next on the ${input.pathFocus.pathTitle}. ${input.pathFocus.summary}`,
+            description: m.music_cards_routine_next_on({
+              path: input.pathFocus.pathTitle,
+              summary: input.pathFocus.summary,
+            }),
             href: input.pathFocus.href,
             reason: "path",
             skillIds: input.pathFocus.skillIds,

@@ -5,6 +5,20 @@ import { CATALOG, exerciseIdFor, rhythmExerciseId } from "../content/catalog";
 import type { LearningPath, PathId, PathLink, PathStep } from "./paths";
 import { dayKey } from "./rewards";
 import type { LadderCriterion } from "./ladder";
+import { m } from "@repo/i18n/messages.js";
+
+type Message = (inputs?: object, options?: { locale?: "en" }) => string;
+/**
+ * A levelled path's title or subtitle in the player's language. The JSON is the source: its
+ * translation is used only while the message's English still matches it, so an edited file shows
+ * its own English rather than a stale translation.
+ */
+function pathText(id: string, part: "title" | "subtitle", english: string): string {
+  const msg = (m as unknown as Record<string, Message | undefined>)[
+    `music_cards_path_${id}_${part}`
+  ];
+  return msg && msg({}, { locale: "en" }) === english ? msg() : english;
+}
 
 export interface ScoreLink {
   label: string;
@@ -192,8 +206,8 @@ export function levelPath(raw: RawLevelPath): LearningPath {
   );
   return {
     id: raw.id,
-    title: raw.title,
-    subtitle: raw.subtitle,
+    title: pathText(raw.id, "title", raw.title),
+    subtitle: pathText(raw.id, "subtitle", raw.subtitle),
     benchmark: raw.benchmark,
     steps,
     levels: raw.levels.map((l) => ({

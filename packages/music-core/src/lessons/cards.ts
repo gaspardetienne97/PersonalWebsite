@@ -32,19 +32,10 @@ import {
   thumbUnder,
 } from "./cards-piano";
 import { chordTones, keys } from "./tier1";
-import {
-  degreeOf,
-  voicingInC,
-  flat,
-  join,
-  plural,
-  run,
-  sharp,
-  tones,
-  type CardOpts,
-} from "./card-kit";
+import { degreeOf, voicingInC, flat, join, run, sharp, tones, type CardOpts } from "./card-kit";
 import { positionLine } from "../theory/fretboard";
 import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
+import { m } from "@repo/i18n/messages.js";
 
 // ---------------------------------------------------------------------------
 // Scales
@@ -54,6 +45,18 @@ export function scaleFormula(kind: string): string[] {
   const s = scaleSemitones(kind)!;
   return s.slice(1).map((x, i) => ({ 1: "H", 2: "W", 3: "1.5" })[x - s[i]] ?? String(x - s[i]));
 }
+
+/** A formula step as the player's language writes it (W and H in English, T and S in Spanish). */
+export const stepName = (f: string) =>
+  f === "W"
+    ? m.music_cards_step_w()
+    : f === "H"
+      ? m.music_cards_step_h()
+      : f === "1.5"
+        ? m.music_cards_step_15()
+        : f;
+/** A scale's formula as shown: "W W H W W W H". */
+const formulaText = (kind: string) => scaleFormula(kind).map(stepName).join(" ");
 
 /**
  * The major formula drawn one step at a time: C4 to C5 on the keys (or, on a fretted
@@ -90,34 +93,47 @@ function majorFormula(o: CardOpts = {}): Lesson {
           notes,
         );
   /** After `n` steps: the root named, the steps taken as W or H on the note they reach, the rest by name. */
-  const fig = (n: number) => draw(names.map((nm, i) => (i > 0 && i <= n ? formula[i - 1] : nm)));
+  const fig = (n: number) =>
+    draw(names.map((nm, i) => (i > 0 && i <= n ? stepName(formula[i - 1]) : nm)));
   const halves = formula.flatMap((f, i) => (f === "H" ? [i] : []));
   const gap = (f: string) =>
     placed
       ? f === "W"
-        ? "a whole step, 2 frets on one string"
-        : "a half step, the next fret on one string"
+        ? m.music_cards_formula_gap_w_fret()
+        : m.music_cards_formula_gap_h_fret()
       : f === "W"
-        ? "one key skipped"
-        : "the very next key";
+        ? m.music_cards_formula_gap_w_key()
+        : m.music_cards_formula_gap_h_key();
   return {
     id: t ? `scales.major-formula.${t.instrument}` : "scales.major-formula",
-    title: "The major scale formula",
+    title: m.music_cards_formula_title(),
     screens: [
       {
-        title: "Whole steps and half steps",
-        text: `Every major scale follows one pattern of whole steps (W) and half steps (H): ${formula.join(" ")}. Tap Next to build C major one step at a time.`,
+        title: m.music_cards_formula_steps_title(),
+        text: m.music_cards_formula_steps_text({ formula: formula.map(stepName).join(" ") }),
         figure: fig(0),
         sound: run(notes),
         steps: formula.map((f, i) => ({
-          text: `${names[i]} to ${names[i + 1]}: ${f}, ${gap(f)}.`,
+          text: m.music_cards_formula_step({
+            from: names[i],
+            to: names[i + 1],
+            step: stepName(f),
+            gap: gap(f),
+          }),
           figure: fig(i + 1),
           sound: run([notes[i], notes[i + 1]], 0.5),
         })),
       },
       {
-        title: "Find it in Check",
-        text: `Check hides the notes, so the formula is your map. In any major scale the half steps fall between ${halves.map((i) => `notes ${i + 1} and ${i + 2}`).join(", and between ")}. In C that's ${join(halves.map((i) => `${names[i]} to ${names[i + 1]}`))}.`,
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_formula_check_text({
+          pairs: halves
+            .map((i) => m.music_cards_formula_notes_pair({ a: i + 1, b: i + 2 }))
+            .join(m.music_cards_formula_and_between()),
+          names: join(
+            halves.map((i) => m.music_cards_from_to({ from: names[i], to: names[i + 1] })),
+          ),
+        }),
         figure: draw(
           names.map((nm, i) => (halves.some((h) => i === h || i === h + 1) ? nm : null)),
         ),
@@ -137,26 +153,31 @@ function minorForms(): Lesson {
       .slice(0, 7)
       .filter((m) => !natural.includes(m))
       .map(sharp);
-  const form = (kind: string) => scaleFormula(kind).join(" ");
+  const form = formulaText;
   return {
     id: "scales.minor-forms",
-    title: "The three minor scales",
+    title: m.music_cards_minor_title(),
     screens: [
       {
-        title: "Natural minor",
-        text: `Natural minor follows ${form("natural-minor")}. The other two minor scales change its top notes. Harmonic minor raises the 7th by a half step, which leaves a step and a half under it.`,
+        title: m.music_cards_minor_natural_title(),
+        text: m.music_cards_minor_natural_text({ form: form("natural-minor") }),
         figure: fig(natural),
         sound: run(natural),
       },
       {
-        title: "Three forms in A",
-        text: `Tap each form to hear it. Harmonic minor is ${form("harmonic-minor")}, with ${join(changed("harmonic-minor"))} in A. Melodic minor, as the drill plays it, raises the 6th and 7th both ways: ${form("melodic-minor")}, with ${join(changed("melodic-minor"))} in A.`,
+        title: m.music_cards_minor_three_title(),
+        text: m.music_cards_minor_three_text({
+          harmonic: form("harmonic-minor"),
+          harmonicNotes: join(changed("harmonic-minor")),
+          melodic: form("melodic-minor"),
+          melodicNotes: join(changed("melodic-minor")),
+        }),
         options: ["natural-minor", "harmonic-minor", "melodic-minor"].map((k) => ({
           label: {
-            "natural-minor": "Natural",
-            "harmonic-minor": "Harmonic",
-            "melodic-minor": "Melodic",
-          }[k]!,
+            "natural-minor": m.music_cards_minor_natural,
+            "harmonic-minor": m.music_cards_minor_harmonic,
+            "melodic-minor": m.music_cards_minor_melodic,
+          }[k]!(),
           sound: run(at(k)),
           figure: fig(at(k)),
         })),
@@ -169,8 +190,12 @@ function minorForms(): Lesson {
 // Comping
 
 /** A beat as a player counts it: 0 is "1", 1.5 is "2 and". */
-const at = (b: number) => (b % 1 ? `on the and of ${Math.floor(b) + 1}` : `on ${b + 1}`);
-const count = (b: number) => `${Math.floor(b) + 1}${b % 1 ? " and" : ""}`;
+const at = (b: number) =>
+  b % 1
+    ? m.music_cards_beat_on_and({ beat: Math.floor(b) + 1 })
+    : m.music_cards_beat_on({ beat: b + 1 });
+const count = (b: number) =>
+  b % 1 ? m.music_cards_count_and({ beat: Math.floor(b) + 1 }) : String(Math.floor(b) + 1);
 
 function charleston(): Lesson {
   const p = COMPING_PATTERNS[0];
@@ -178,11 +203,28 @@ function charleston(): Lesson {
   const names = p.shellMidi.map(flat);
   return {
     id: "comping.charleston",
-    title: "The Charleston rhythm",
+    title: m.music_cards_charleston_title(),
     screens: [
       {
-        title: "Two hits in a bar",
-        text: `The Charleston is two left-hand hits in a bar: ${join(hits.map((h) => `one ${at(h.beat)}, ${h.durationBeats === 1 ? "held for a beat" : h.durationBeats < 1 ? "short" : `held for ${h.durationBeats} beats`}`))}. Each hit is the left hand's two notes together, such as ${names[0]} and ${names[1]} over ${p.chord}. Then the hand rests until the next bar.`,
+        title: m.music_cards_charleston_hits_title(),
+        text: m.music_cards_charleston_hits_text({
+          hits: join(
+            hits.map((h) =>
+              m.music_cards_hit_item({
+                at: at(h.beat),
+                length:
+                  h.durationBeats === 1
+                    ? m.music_cards_hit_one_beat()
+                    : h.durationBeats < 1
+                      ? m.music_cards_hit_short()
+                      : m.music_cards_hit_beats({ count: h.durationBeats }),
+              }),
+            ),
+          ),
+          a: names[0],
+          b: names[1],
+          chord: p.chord,
+        }),
         figure: {
           kind: "rhythm",
           bars: 1,
@@ -199,8 +241,10 @@ function charleston(): Lesson {
         },
       },
       {
-        title: "Count it in Check",
-        text: `Check hides what to play, so count it yourself: ${hits.map((h) => count(h.beat)).join(", ")}, and nothing else in the bar. Leaving the other beats empty is what lets the right hand's line stand out.`,
+        title: m.music_cards_charleston_count_title(),
+        text: m.music_cards_charleston_count_text({
+          counts: hits.map((h) => count(h.beat)).join(", "),
+        }),
       },
     ],
   };
@@ -230,56 +274,67 @@ function rootless(o: CardOpts): Lesson {
   const fig = (x: (typeof ex)[number]): LessonFigure =>
     keys(
       Object.fromEntries([
-        [x.t.displayMidi[0], "root"],
-        ...[...x.rh].sort((a, b) => a - b).map((m) => [m, degreeOf(x.t.symbol, m)]),
+        [x.t.displayMidi[0], m.music_cards_root_label()],
+        ...[...x.rh].sort((a, b) => a - b).map((n) => [n, degreeOf(x.t.symbol, n)]),
       ]),
       ex.flatMap((y) => y.t.displayMidi),
     );
   return {
     id: "voicings.rootless",
-    title: "Rootless voicings",
+    title: m.music_cards_rootless_title(),
     screens: [
       {
-        title: "Leave the root out",
+        title: m.music_cards_rootless_leave_title(),
         figure: fig(ex[0]),
         sound: hear(ex[0].t.displayMidi),
-        text: `A rootless voicing leaves the root to the bass: ${arp ? "you play the root, then four chord notes above it, one at a time" : "the left hand plays the root, the right hand four chord notes above it"}. Tap Position A (the 3rd lowest) or Position B (the 7th lowest) to see and hear each on ${ex[0].t.symbol}.`,
+        text: (arp ? m.music_cards_rootless_leave_text_arp : m.music_cards_rootless_leave_text)({
+          symbol: ex[0].t.symbol,
+        }),
         // The same chord in both positions, one keyboard each.
         options: [ex[0], b0].map((x) => ({
-          label: `Position ${x.pos}: ${x.d}`,
+          label: m.music_cards_rootless_position({ pos: x.pos, degrees: x.d }),
           sound: hear(x.t.displayMidi),
           figure: keys(
             Object.fromEntries([
-              [x.t.displayMidi[0], "root"],
-              ...[...x.rh].sort((a, c) => a - c).map((m) => [m, degreeOf(x.t.symbol, m)]),
+              [x.t.displayMidi[0], m.music_cards_root_label()],
+              ...[...x.rh].sort((a, c) => a - c).map((n) => [n, degreeOf(x.t.symbol, n)]),
             ]),
             [ex[0], b0].flatMap((y) => y.t.displayMidi),
           ),
         })),
       },
       {
-        title: "A ii-V-I in C",
-        text: "Tap Next for each chord. The drill can start on position B instead, which swaps A and B.",
+        title: m.music_cards_rootless_251_title(),
+        text: m.music_cards_rootless_251_text(),
         steps: ex.map((x) => ({
-          text: `${x.t.symbol}: position ${x.pos}, ${x.d} (${[...x.rh]
-            .sort((a, b) => a - b)
-            .map(flat)
-            .join(
-              " ",
-            )}) ${arp ? "above" : "in the right hand over"} ${flat(x.t.displayMidi[0])}${arp ? "" : " in the left"}.`,
+          text: (arp ? m.music_cards_rootless_step_arp : m.music_cards_rootless_step)({
+            symbol: x.t.symbol,
+            pos: x.pos,
+            degrees: x.d,
+            notes: [...x.rh]
+              .sort((a, b) => a - b)
+              .map(flat)
+              .join(" "),
+            root: flat(x.t.displayMidi[0]),
+          }),
           figure: fig(x),
           sound: tones(x.t.displayMidi),
         })),
       },
       {
-        title: "The voices barely move",
-        text: `Between one chord and the next in the same key, each of the four upper notes moves a whole step at most, counting note names and ignoring which octave the keys show. Some don't move at all. In Check the keys stay dark, so work out each chord's notes from its position.`,
+        title: m.music_cards_rootless_move_title(),
+        text: m.music_cards_rootless_move_text(),
       },
     ],
   };
 }
 
-const INVERSION = ["root position", "first inversion", "second inversion"];
+const INVERSION = [
+  m.music_cards_inv_root,
+  m.music_cards_inv_first,
+  m.music_cards_inv_second,
+  m.music_cards_inv_third,
+];
 const bars = (key = 0) => closestChords(key, [55, 76]);
 
 function inversions(o: CardOpts): Lesson {
@@ -288,34 +343,50 @@ function inversions(o: CardOpts): Lesson {
   const stay = (i: number) => bs[i].rightHand.filter((m) => bs[i - 1].rightHand.includes(m));
   const fig = (i: number): LessonFigure =>
     keys(
-      Object.fromEntries([[bs[i].leftHand, "root"], ...bs[i].rightHand.map((m) => [m, flat(m)])]),
+      Object.fromEntries([
+        [bs[i].leftHand, m.music_cards_root_label()],
+        ...bs[i].rightHand.map((n) => [n, flat(n)]),
+      ]),
       bs.flatMap((b) => [b.leftHand, ...b.rightHand]),
     );
   const steps: LessonStep[] = bs.map((b, i) => {
     const kept = i ? stay(i) : [];
+    const chord = {
+      symbol: b.symbol,
+      inversion: INVERSION[b.inversion](),
+      notes: b.rightHand.map(flat).join(" "),
+    };
     return {
-      text: `${b.symbol}: ${INVERSION[b.inversion]}, ${b.rightHand.map(flat).join(" ")}${i ? `, moving ${plural(b.movement, "half step")} in all. ${kept.length ? `${join(kept.map(flat))} ${kept.length > 1 ? "stay" : "stays"} where ${kept.length > 1 ? "they were" : "it was"}` : "No note stays"}.` : arp ? ", above its root." : ", over its root in the left hand."}`,
+      text: i
+        ? `${m.music_cards_inversions_move_step({ ...chord, steps: m.music_cards_half_steps({ count: b.movement }) })} ${
+            kept.length
+              ? m.music_cards_inversions_kept({ count: kept.length, notes: join(kept.map(flat)) })
+              : m.music_cards_inversions_none_kept()
+          }`
+        : (arp ? m.music_cards_inversions_first_step_arp : m.music_cards_inversions_first_step)(
+            chord,
+          ),
       figure: fig(i),
       sound: tones([b.leftHand, ...b.rightHand]),
     };
   });
   return {
     id: "voicings.inversions",
-    title: "Closest chords",
+    title: m.music_cards_inversions_title(),
     screens: [
       {
-        title: "Move as little as you can",
+        title: m.music_cards_inversions_move_title(),
         figure: fig(1),
-        text: `I IV V I in one key: a triad ${arp ? "played one note at a time, above its root" : "in the right hand over its root in the left"}. Aim to move the notes as little as you can from the chord before, keeping the notes the two chords share. In some keys ${arp ? "the range the drill uses" : "the range of the keyboard"} forces a bigger move.`,
+        text: (arp ? m.music_cards_inversions_move_text_arp : m.music_cards_inversions_move_text)(),
       },
       {
-        title: "I IV V I in C",
-        text: "Tap Next for each chord and what carries over.",
+        title: m.music_cards_inversions_c_title(),
+        text: m.music_cards_inversions_c_text(),
         steps,
       },
       {
-        title: "Find it in Check",
-        text: "Check hides the keys, so work forward from the chord before. Ask which note stays, then where the others go.",
+        title: m.music_cards_find_in_check_title(),
+        text: m.music_cards_inversions_check_text(),
       },
     ],
   };
@@ -323,14 +394,23 @@ function inversions(o: CardOpts): Lesson {
 
 function cadence(minor: boolean): Lesson {
   const bs = cadenceChords(0, minor, [55, 76]);
-  const tonic = minor ? "C minor" : "C major";
+  const tonic = minor ? m.music_cards_key_c_minor() : m.music_cards_key_c_major();
   const fig = (i: number): LessonFigure =>
     keys(
-      Object.fromEntries([[bs[i].leftHand, "root"], ...bs[i].rightHand.map((m) => [m, flat(m)])]),
+      Object.fromEntries([
+        [bs[i].leftHand, m.music_cards_root_label()],
+        ...bs[i].rightHand.map((n) => [n, flat(n)]),
+      ]),
       bs.flatMap((b) => [b.leftHand, ...b.rightHand]),
     );
   const steps: LessonStep[] = bs.map((b, i) => ({
-    text: `${b.roman} is ${b.symbol}: ${INVERSION[b.inversion] ?? "third inversion"}, ${b.rightHand.map(flat).join(" ")}.${b.roman === "V7" ? " Root, 3rd and 7th, with the 5th left out." : ""}`,
+    text:
+      m.music_cards_cadence_step({
+        roman: b.roman,
+        symbol: b.symbol,
+        inversion: (INVERSION[b.inversion] ?? m.music_cards_inv_third)(),
+        notes: b.rightHand.map(flat).join(" "),
+      }) + (b.roman === "V7" ? ` ${m.music_cards_cadence_v7_note()}` : ""),
     figure: fig(i),
     sound: tones([b.leftHand, ...b.rightHand]),
   }));
@@ -338,33 +418,37 @@ function cadence(minor: boolean): Lesson {
   const natural = (scaleSemitones("natural-minor")![6] + 60) % 12;
   return {
     id: minor ? "voicings.cadence-minor" : "voicings.cadence",
-    title: minor ? "Minor cadences" : "Cadences",
+    title: minor ? m.music_cards_cadence_title_minor() : m.music_cards_cadence_title(),
     screens: [
       {
-        title: "Roman numerals",
-        text: minor
-          ? `A Roman numeral names a chord by the scale degree its root sits on: i is the chord on the 1st note, iv on the 4th and V on the 5th. Small letters mean a minor chord and capitals a major one. Here are i iv i V7 i in ${tonic}.`
-          : `A Roman numeral names a chord by the scale degree its root sits on: I is the chord on the 1st note, IV on the 4th and V on the 5th. Capitals mean a major chord. Here are I IV I V7 I in ${tonic}.`,
+        title: m.music_cards_cadence_roman_title(),
+        text: (minor ? m.music_cards_cadence_roman_text_minor : m.music_cards_cadence_roman_text)({
+          tonic,
+        }),
         steps,
       },
       minor
         ? {
-            title: "The raised 7th",
-            text: `The V7 chord needs the 7th note raised by a half step: ${flat(60 + raised)} instead of ${flat(60 + natural)} in ${tonic}. That raised note is the 3rd of V7 and leads up to the tonic. Tap each to hear it.`,
+            title: m.music_cards_cadence_raised_title(),
+            text: m.music_cards_cadence_raised_text({
+              raised: flat(60 + raised),
+              natural: flat(60 + natural),
+              tonic,
+            }),
             options: [
               {
-                label: `Natural 7th, ${flat(60 + natural)}`,
+                label: m.music_cards_cadence_natural_7th({ note: flat(60 + natural) }),
                 sound: run([60 + natural - 12, 60], 0.5),
               },
               {
-                label: `Raised 7th, ${flat(60 + raised)}`,
+                label: m.music_cards_cadence_raised_7th({ note: flat(60 + raised) }),
                 sound: run([60 + raised - 12, 60], 0.5),
               },
             ],
           }
         : {
-            title: "V7 pulls home",
-            text: "The 7th of V7 falls a half step to the 3rd of the tonic chord. The 3rd of V7 rises a half step to the tonic. That pull is what to listen for in Check, where the keys stay dark.",
+            title: m.music_cards_cadence_pull_title(),
+            text: m.music_cards_cadence_pull_text(),
           },
     ],
   };
@@ -376,23 +460,19 @@ function cadence(minor: boolean): Lesson {
 /** The chord kinds the lead-sheet charts use, each with what its suffix adds (cards.test.ts checks the charts use no other). */
 export const SYMBOL_KINDS: { suffix: string; gloss: (names: Record<string, string>) => string }[] =
   [
-    { suffix: "", gloss: () => "A root alone means a major triad." },
-    { suffix: "m", gloss: () => "The m makes the 3rd minor." },
-    { suffix: "7", gloss: () => "A 7 adds the flat 7th." },
-    { suffix: "m7", gloss: () => "Minor, with the flat 7th added." },
-    { suffix: "maj7", gloss: () => "Maj7 adds the major 7th." },
-    {
-      suffix: "m7b5",
-      gloss: () => "Minor with a flat 5th and a flat 7th, also called half-diminished.",
-    },
+    { suffix: "", gloss: () => m.music_cards_gloss_major() },
+    { suffix: "m", gloss: () => m.music_cards_gloss_m() },
+    { suffix: "7", gloss: () => m.music_cards_gloss_7() },
+    { suffix: "m7", gloss: () => m.music_cards_gloss_m7() },
+    { suffix: "maj7", gloss: () => m.music_cards_gloss_maj7() },
+    { suffix: "m7b5", gloss: () => m.music_cards_gloss_m7b5() },
     {
       suffix: "7alt",
-      gloss: (n) =>
-        `Alt is a dominant with altered tones in place of the 5th: ${n.b9}, ${n["#9"]}, ${n["#11"]} and ${n.b13}.`,
+      gloss: (n) => m.music_cards_gloss_7alt({ b9: n.b9, s9: n["#9"], s11: n["#11"], b13: n.b13 }),
     },
-    { suffix: "add9", gloss: (n) => `Add9 adds the 9th, ${n["9"]}, with no 7th.` },
-    { suffix: "sus2", gloss: (n) => `Sus2 swaps the 3rd for the 2nd, ${n["2"]}.` },
-    { suffix: "sus4", gloss: (n) => `Sus4 swaps the 3rd for the 4th, ${n["4"]}.` },
+    { suffix: "add9", gloss: (n) => m.music_cards_gloss_add9({ note: n["9"] }) },
+    { suffix: "sus2", gloss: (n) => m.music_cards_gloss_sus2({ note: n["2"] }) },
+    { suffix: "sus4", gloss: (n) => m.music_cards_gloss_sus4({ note: n["4"] }) },
   ];
 
 function chordSymbols(): Lesson {
@@ -402,23 +482,23 @@ function chordSymbols(): Lesson {
     const t = all[i];
     const names = Object.fromEntries(t.map((x) => [x.label, x.name]));
     return {
-      text: `C${k.suffix} is ${join(t.map((x) => x.name))}. ${k.gloss(names)}`,
+      text: `${m.music_cards_symbols_step({ symbol: `C${k.suffix}`, notes: join(t.map((x) => x.name)) })} ${k.gloss(names)}`,
       figure: keys(Object.fromEntries(t.map((x) => [x.midi, x.name])), span),
       sound: tones(t.map((x) => x.midi)),
     };
   });
   return {
     id: "accompany.chord-symbols",
-    title: "Reading chord symbols",
+    title: m.music_cards_symbols_title(),
     screens: [
       {
-        title: "Root, then the kind",
-        text: "A chord symbol starts with the root note. What follows says which chord it is. Tap Next to build each kind on C.",
+        title: m.music_cards_symbols_root_title(),
+        text: m.music_cards_symbols_root_text(),
         steps,
       },
       {
-        title: "Slashes",
-        text: "A note after a slash is the lowest note. C/E is a C chord with E in the bass, and Am/G is A minor with G in the bass. You choose how to place the notes.",
+        title: m.music_cards_symbols_slash_title(),
+        text: m.music_cards_symbols_slash_text(),
       },
     ],
   };
@@ -440,19 +520,27 @@ function whyDorian(): Lesson {
     );
   return {
     id: "chord-scales.why",
-    title: "Why ii is Dorian",
+    title: m.music_cards_dorian_title(),
     screens: [
       {
-        title: "A scale for each chord",
-        text: `Over each chord of a ii-V-I you play its go-to scale. In C, ${ts[0].symbol} takes ${ts[0].scaleLabel}: ${names(ts[0]).join(" ")}. Those are the notes of C major, started on D, so nothing clashes with the key.`,
+        title: m.music_cards_dorian_scale_title(),
+        text: m.music_cards_dorian_scale_text({
+          symbol: ts[0].symbol,
+          scale: ts[0].scaleLabel,
+          notes: names(ts[0]).join(" "),
+        }),
         figure: fig(ts[0]),
         sound: run(ts[0].midi, 0.3),
       },
       {
-        title: "All three chords",
-        text: "The scale starts from a different note for each chord. Tap Next for each chord and whether its scale stays inside the key.",
+        title: m.music_cards_dorian_all_title(),
+        text: m.music_cards_dorian_all_text(),
         steps: ts.map((t) => ({
-          text: `${t.symbol} takes ${t.scaleLabel}: ${names(t).join(" ")}. ${outside(t).length ? `${join(outside(t))} isn't in C major.` : "It's all in C major."}`,
+          text: `${m.music_cards_scale_step({ symbol: t.symbol, scale: t.scaleLabel, notes: names(t).join(" ") })} ${
+            outside(t).length
+              ? m.music_cards_dorian_outside({ count: outside(t).length, notes: join(outside(t)) })
+              : m.music_cards_dorian_inside()
+          }`,
           figure: fig(t),
           sound: run(t.midi, 0.3),
         })),
@@ -504,67 +592,74 @@ const spiderRun = (o: CardOpts) =>
 
 const TIPS: Record<string, (o: CardOpts) => Lesson> = {
   "tips.strum": (o) =>
-    tip("tips.strum", "Strumming to be heard", [
+    tip("tips.strum", m.music_cards_tip_strum_title(), [
       {
-        title: "Fret first, then strum",
+        title: m.music_cards_tip_strum_fret_title(),
         figure: cShape(o),
         sound: tones(cChord(o), 0, 1.6),
-        text: "Put every finger down before you strum, so all the strings are ready. Strum once, in one smooth downward motion across the strings the shape uses. Let it ring until the app has named it.",
+        text: m.music_cards_tip_strum_fret_text(),
       },
       {
-        title: "If a note is missing",
-        text: "A dead or buzzing string usually has a finger resting on it, or pressing away from the fret. Press with the tip of the finger, close behind the fret. The app checks each chord tone, so a muted string can show up as a missing one.",
+        title: m.music_cards_tip_strum_missing_title(),
+        text: m.music_cards_tip_strum_missing_text(),
       },
     ]),
   "tips.chords": (o) =>
-    tip("tips.chords", "Fretting a clean chord", [
+    tip("tips.chords", m.music_cards_tip_chords_title(), [
       {
-        title: "Shape the hand",
+        title: m.music_cards_tip_chords_shape_title(),
         figure: cShape(o),
         sound: tones(cChord(o), 0, 1.6),
-        text: "Press with the tips of your fingers, close behind the fret. Keep the fingers arched so none of them touches the string next to its own.",
+        text: m.music_cards_tip_chords_shape_text(),
       },
       {
-        title: "Listen to each string",
-        text: "Sound the strings one at a time and listen: each should ring clearly, not buzz or fade. If one is dead, adjust the finger that should be pressing it, then play the shape again.",
+        title: m.music_cards_tip_chords_listen_title(),
+        text: m.music_cards_tip_chords_listen_text(),
       },
     ]),
   "tips.changes": (o) =>
-    tip("tips.changes", "Changing chords", [
+    tip("tips.changes", m.music_cards_tip_changes_title(), [
       {
-        title: "Move as one shape",
+        title: m.music_cards_tip_changes_shape_title(),
         figure: cShape(o),
-        text: "Lift all your fingers together and put them down together, rather than one at a time. Picture the next shape before the change. Go slowly enough that every change is clean, then speed up, landing on the beat when a clock runs.",
+        text: m.music_cards_tip_changes_shape_text(),
       },
       {
-        title: "Look for a guide finger",
-        text: "Some pairs of chords let a finger stay on its string or slide along it. Use that finger to guide the rest. Other pairs have none, so there you move every finger together.",
+        title: m.music_cards_tip_changes_guide_title(),
+        text: m.music_cards_tip_changes_guide_text(),
       },
     ]),
   "tips.spider": (o) =>
-    tip("tips.spider", "Spider technique", [
+    tip("tips.spider", m.music_cards_tip_spider_title(), [
       {
-        title: "One finger a fret",
+        title: m.music_cards_tip_spider_finger_title(),
         figure: spider(o),
         sound: run(spiderRun(o)),
-        text: "Each finger has its own fret: the index the first, the middle the second, the ring the third and the little finger the fourth. The pattern says which finger plays next. Keep the hand where it is and move only the fingers.",
+        text: m.music_cards_tip_spider_finger_text(),
       },
       {
-        title: "Even and relaxed",
-        text: "Press just hard enough for a clear note, and lift a finger only as far as it needs. Aim for each note the same length and loudness, evenly on the click. Start at a tempo where it feels easy, then raise it.",
+        title: m.music_cards_tip_spider_even_title(),
+        text: m.music_cards_tip_spider_even_text(),
       },
     ]),
   "tips.two-hand": () =>
-    tip("tips.two-hand", "Keeping two hands together", [
+    tip("tips.two-hand", m.music_cards_tip_two_hand_title(), [
       {
-        title: "One hand at a time",
-        figure: keys({ 48: "L", 50: "L", 52: "L", 60: "R", 62: "R", 64: "R" }),
+        title: m.music_cards_tip_two_hand_one_title(),
+        figure: keys({
+          48: m.music_cards_hand_left_short(),
+          50: m.music_cards_hand_left_short(),
+          52: m.music_cards_hand_left_short(),
+          60: m.music_cards_hand_right_short(),
+          62: m.music_cards_hand_right_short(),
+          64: m.music_cards_hand_right_short(),
+        }),
         sound: run([48, 50, 52, 60, 62, 64]),
-        text: "The Practise setting can ask for Left only or Right only. Learn each part that way first, then play Both hands.",
+        text: m.music_cards_tip_two_hand_one_text(),
       },
       {
-        title: "Share one count",
-        text: "Both hands follow the same click, so count the beats out loud. Where both hands play on the same beat, aim to land them together.",
+        title: m.music_cards_tip_two_hand_count_title(),
+        text: m.music_cards_tip_two_hand_count_text(),
       },
     ]),
 };
