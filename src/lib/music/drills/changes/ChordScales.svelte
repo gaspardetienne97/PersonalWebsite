@@ -28,14 +28,15 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { scaleTip } from "#lib/music/drills/piano/tones.ts";
+  import { m } from "@repo/i18n/messages.js";
 
   const TEMPO = { min: 40, max: 200 };
   /** Two bars a chord then one, major changes then minor. */
   const LADDER = [
-    { changes: "major", beats: 8, label: "Major, two bars a chord" },
-    { changes: "major", beats: 4, label: "Major, one bar a chord" },
-    { changes: "minor", beats: 8, label: "Minor, two bars a chord" },
-    { changes: "minor", beats: 4, label: "Minor, one bar a chord" },
+    { changes: "major", beats: 8, label: m.music_drills_chordscales_ladder_major_two() },
+    { changes: "major", beats: 4, label: m.music_drills_chordscales_ladder_major_one() },
+    { changes: "minor", beats: 8, label: m.music_drills_chordscales_ladder_minor_two() },
+    { changes: "minor", beats: 4, label: m.music_drills_chordscales_ladder_minor_one() },
   ];
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
   // `pattern`: empty plays the scales; 1235 or 3579 plays that pattern up and back on each chord, a bar each, through `keys` keys of the cycle.
@@ -122,7 +123,7 @@
   const plainHint = (h: string | undefined) =>
     !h
       ? ""
-      : h.replace(/\s+\u2014\s+/g, ": ").replace(/\s\+\s/g, " plus ").replace(/\s*\(JT\d+\)/g, "").replace(/\s*\/\s*/g, ", ");
+      : h.replace(/\s+\u2014\s+/g, ": ").replace(/\s\+\s/g, ` ${m.music_drills_chordscales_plus()} `).replace(/\s*\(JT\d+\)/g, "").replace(/\s*\/\s*/g, ", ");
   // The colour key sits on the keys you play: every key of the current chord's octave, by role.
   const marks = $derived.by(() => {
     const out: Record<number, CellMarks> = {};
@@ -137,30 +138,31 @@
     if (!showKey || !current) return out;
     const next = pattern && !transport.playing ? patternLine[phase === "running" ? nextIndex : 0] : undefined;
     if (next) out[next.midi] = { ...out[next.midi], target: true };
-    for (let m = current.midi[0]; m <= current.midi[0] + 12; m++) {
-      if (out[m]) continue;
-      out[m] = { label: toneLabel(m - current.midi[0], current.chord.intervals), role: current.roles[pc(m)] };
+    for (let k = current.midi[0]; k <= current.midi[0] + 12; k++) {
+      if (out[k]) continue;
+      out[k] = { label: toneLabel(k - current.midi[0], current.chord.intervals), role: current.roles[pc(k)] };
     }
     return out;
   });
 
+  const changesLabel = $derived(changes === "major" ? m.music_drills_voicings_v_major() : m.music_drills_voicings_v_minor());
   const summaryLine = $derived<SetupClause[]>(
     pattern
       ? [
-          { text: `${pattern.label} up and back on each chord`, focus: "pattern" },
-          { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} from ${key}`, focus: "key" },
-          { text: keyCount === 12 ? "all 12 keys" : `${keyCount} key${keyCount > 1 ? "s" : ""}`, focus: "keys" },
+          { text: m.music_drills_chordscales_up_and_back({ pattern: pattern.label }), focus: "pattern" },
+          { text: m.music_drills_voicings_summary_from({ label: changesLabel, key }), focus: "key" },
+          { text: keyCount === 12 ? m.music_drills_voicings_summary_all_keys() : m.music_drills_voicings_summary_keys({ count: keyCount }), focus: "keys" },
         ]
       : [
-          { text: `${changes === "major" ? "Major ii-V-I" : "Minor ii-V-i"} in ${key} (${targets.map((t) => t.symbol).join(" ")})`, focus: "key" },
-          { text: `${perChord === 8 ? "two bars" : "one bar"} per chord`, focus: "beats" },
+          { text: m.music_drills_chordscales_summary_in({ label: changesLabel, key, chords: targets.map((t) => t.symbol).join(" ") }), focus: "key" },
+          { text: perChord === 8 ? m.music_drills_chordscales_two_bars_per_chord() : m.music_drills_chordscales_one_bar_per_chord(), focus: "beats" },
         ],
   );
   const setupKey = $derived(`chord-scales:${changes}:${key}:${perChord}:${bpm}${pattern ? `:${pattern.id}:${keyCount}` : ""}`);
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = pattern ? `Demo playing, not scored: ${pattern.label} up and back on each chord, the chord in the left hand.` : "Demo playing, not scored: each chord in the left hand with its go-to scale on top.";
+    status = pattern ? m.music_drills_chordscales_demo_pattern({ pattern: pattern.label }) : m.music_drills_chordscales_demo_scales();
     await transport.demo(demoNotes, bpm);
   }
 
@@ -217,7 +219,12 @@
     return out;
   });
   /** Beside Stop on a phone: the chord now and, in Practice, its scale. */
-  const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? `${current.symbol}${mode === "practice" ? `: ${pattern ? `${pattern.label} pattern` : current.scaleLabel}` : ", names hidden"}` : "");
+  const cue = $derived(phase === "running" && transport.beat !== null && transport.beat >= 0 && current ? mode === "practice"
+        ? pattern
+          ? m.music_drills_chordscales_cue_pattern({ symbol: current.symbol, pattern: pattern.label })
+          : m.music_drills_chordscales_cue_scale({ symbol: current.symbol, scale: current.scaleLabel })
+        : m.music_drills_chordscales_cue_hidden({ symbol: current.symbol })
+      : "");
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -253,24 +260,24 @@
     summary = {
       headline:
         r.graded === 0
-          ? "No notes heard over the changes. Start on the first beat after the count-in."
+          ? m.music_drills_chordscales_h_silent()
           : r.correct
-            ? `Every chord got its scale: ${r.chords.map((c) => c.chord + c.scale).reduce((a, b) => a + b, 0)} notes inside, ${outside} outside.`
+            ? m.music_drills_chordscales_h_correct({ inside: r.chords.map((c) => c.chord + c.scale).reduce((a, b) => a + b, 0), outside })
             : r.graded < targets.length
-              ? `You played over ${r.graded} of ${targets.length} chords. Keep going through each change.`
-              : `${outside} note${outside === 1 ? "" : "s"} fell outside the scale, most over ${worst.symbol}.`,
+              ? m.music_drills_chordscales_h_partial({ played: r.graded, total: targets.length })
+              : m.music_drills_chordscales_h_outside({ count: outside, symbol: worst.symbol }),
       metric: pct(r.score),
-      metricLabel: "inside the scale",
+      metricLabel: m.music_drills_chordscales_metric_inside(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
-      cleanMeans: "every chord's notes inside its scale",
+      cleanMeans: m.music_drills_chordscales_clean_scales(),
       rows: r.chords.map((c, i) => ({
         label: `${c.symbol}, ${targets[i].scaleLabel}`,
         value: c.chord + c.scale + c.avoid ? c.score : null,
-        text: c.chord + c.scale + c.avoid ? `${c.chord} chord, ${c.scale} scale, ${c.avoid} outside` : "Nothing played",
+        text: c.chord + c.scale + c.avoid ? m.music_drills_chordscales_row_text({ chord: c.chord, scale: c.scale, avoid: c.avoid }) : m.music_drills_chordscales_nothing_played(),
       })),
       advance: ons.length
         ? await nextRun(`chord-scales.${key}`, { bpm, tempo: { min: TEMPO.min, goal: 150, max: TEMPO.max }, steps: LADDER, step: LADDER.findIndex((l) => l.changes === changes && l.beats === perChord) }, r, tempoAnd((i) => cfg.set({ changes: LADDER[i].changes, beats: LADDER[i].beats })))
@@ -303,26 +310,26 @@
     const slip = r.firstWrong === null ? null : targets[patternLine[r.firstWrong].chord];
     summary = {
       headline: !r.matched
-        ? "No notes matched. Hear it first, then start on the first beat after the count-in."
+        ? m.music_drills_chordscales_h_no_match()
         : r.correct
           ? mode === "check"
-            ? `${pattern!.label} through every chord, in Check.`
-            : `${pattern!.label} through every chord, all ${r.total} notes in order.`
-          : `${r.matched} of ${r.total} right. It first slipped over ${slip?.symbol ?? "a chord"}.`,
+            ? m.music_drills_chordscales_h_pattern_check({ pattern: pattern!.label })
+            : m.music_drills_chordscales_h_pattern_all({ pattern: pattern!.label, total: r.total })
+          : m.music_drills_chordscales_h_slipped({ matched: r.matched, total: r.total, symbol: slip?.symbol ?? m.music_drills_chordscales_a_chord() }),
       metric: pct(r.score),
-      metricLabel: "notes in order",
+      metricLabel: m.music_drills_chordscales_metric_order(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Notes in order", value: r.score, text: `${r.matched} of ${r.total}` },
+        { label: m.music_drills_chordscales_row_order(), value: r.score, text: m.music_drills_voicings_n_of({ n: r.matched, total: r.total }) },
         // Timing is judged on the notes that came in order, so it says how many of those.
-        { label: `Right notes on time (${Math.round(Math.min(180, ctx.beatMs / 4))} ms)`, value: r.matched ? r.onTime / r.matched : 0, text: `${r.onTime} of ${r.matched}` },
+        { label: m.music_drills_chordscales_row_on_time({ ms: Math.round(Math.min(180, ctx.beatMs / 4)) }), value: r.matched ? r.onTime / r.matched : 0, text: m.music_drills_voicings_n_of({ n: r.onTime, total: r.matched }) },
         ...perChordRows(),
       ],
-      cleanMeans: "every note in order",
+      cleanMeans: m.music_drills_chordscales_clean_order(),
       advance: ons.length ? await nextRun(`chord-scales.pattern.${pattern!.id}.${keyCount}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max } }, r) : undefined,
     };
     status = summary.headline;
@@ -334,15 +341,15 @@
     const marks = Object.values(patternStates);
     return targets.map((t, i) => {
       const own = patternLine.flatMap((n, k) => (n.chord === i ? [marks[k]] : []));
-      const right = own.filter((m) => m === "correct").length;
-      return { label: t.symbol, value: own.length ? right / own.length : 0, text: `${right} of ${own.length}` };
+      const right = own.filter((s) => s === "correct").length;
+      return { label: t.symbol, value: own.length ? right / own.length : 0, text: m.music_drills_voicings_n_of({ n: right, total: own.length }) };
     });
   }
 
   function stop() {
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing saved.";
+    status = m.music_drills_comping_stopped();
   }
 
   onDestroy(() => {
@@ -355,11 +362,11 @@
   title={CHANGES_TITLE}
   trainer={changesTrainer("chord-scales")}
   hue="piano"
-  blurb="As the ii-V-I moves, play the scale of the chord you're on, or a 1-2-3-5 or 3-5-7-9 pattern on each chord."
+  blurb={m.music_drills_chordscales_blurb()}
   summary={summaryLine}
   tabs={[
-    { id: "major", label: "Major ii-V-I" },
-    { id: "minor", label: "Minor ii-V-i" },
+    { id: "major", label: m.music_drills_voicings_v_major() },
+    { id: "minor", label: m.music_drills_voicings_v_minor() },
   ]}
   tab={changes}
   ontab={(id) => cfg.set({ changes: id })}
@@ -377,37 +384,37 @@
   {#snippet setup()}
     <div class="mb-4">
       <Choice
-        label="Play"
+        label={m.music_drills_chordscales_choice_play()}
         setupKey="pattern"
-        options={[{ value: "", label: "The scales" }, ...CHORD_PATTERNS.map((p) => ({ value: p.id as string, label: `${p.label} pattern` }))]}
+        options={[{ value: "", label: m.music_drills_chordscales_the_scales() }, ...CHORD_PATTERNS.map((p) => ({ value: p.id as string, label: m.music_drills_chordscales_pattern_label({ pattern: p.label }) }))]}
         value={pattern?.id ?? ""}
         onchange={(v) => cfg.set({ pattern: v })}
       />
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-1 text-sm" data-setup="key">
-        <span class="font-medium">{pattern ? "Start key" : "Key"}</span>
-        <KeyPicker label="Key" value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
+        <span class="font-medium">{pattern ? m.music_drills_voicings_kw_start_key() : m.music_drills_voicings_kw_key()}</span>
+        <KeyPicker label={m.music_drills_voicings_kw_key()} value={pcOf(key)!} name={(p) => KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C"} onchange={(p) => cfg.set({ key: KEY_CYCLE.find((k) => pcOf(k) === p) ?? "C" })} />
       </div>
       {#if pattern}
         <Choice
-          label="Keys"
+          label={m.music_drills_voicings_choice_keys()}
           setupKey="keys"
           options={[
-            { value: 1, label: "One" },
-            { value: 3, label: "Three" },
-            { value: 12, label: "All 12" },
+            { value: 1, label: m.music_drills_voicings_keys_one() },
+            { value: 3, label: m.music_drills_voicings_keys_three() },
+            { value: 12, label: m.music_drills_voicings_keys_all() },
           ]}
           value={keyCount}
           onchange={(v) => cfg.set({ keys: v })}
         />
       {:else}
         <Choice
-          label="Each chord lasts"
+          label={m.music_drills_chordscales_choice_lasts()}
           setupKey="beats"
           options={[
-            { value: 4, label: "One bar" },
-            { value: 8, label: "Two bars" },
+            { value: 4, label: m.music_drills_chordscales_one_bar() },
+            { value: 8, label: m.music_drills_chordscales_two_bars() },
           ]}
           value={perChord}
           onchange={(v) => cfg.set({ beats: v })}
@@ -418,14 +425,14 @@
 
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
-      <Stat label="Chord" value="{currentIndex + 1} of {targets.length}" />
+      <Stat label={m.music_drills_voicings_stat_chord()} value={m.music_drills_voicings_n_of({ n: currentIndex + 1, total: targets.length })} />
     {/if}
     <!-- After a run the HUD stays quiet: the results card says the numbers once (and a silent run has none). -->
   {/snippet}
 
   {#snippet stage()}
     <div class="flex min-h-0 flex-col" data-dock="music">
-    <ol class="mb-3 grid grid-cols-3 gap-2" aria-label="Chord chart">
+    <ol class="mb-3 grid grid-cols-3 gap-2" aria-label={m.music_drills_voicings_chord_chart()}>
       {#each targets.slice(chartFrom, chartFrom + 3) as t, j (t.symbol)}
         {@const i = chartFrom + j}
         {@const now = (phase === "running" || transport.playing) && i === currentIndex}
@@ -436,17 +443,17 @@
             <p class="truncate text-sm text-ws-stage-soft">{t.scaleLabel}</p>
             {#if scaleTip(t.scaleLabel) && phase !== "running"}<p class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{scaleTip(t.scaleLabel)}</p>{/if}
           {/if}
-          {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? `${done.avoid} outside` : done.chord + done.scale ? "all inside" : "not played"}</p>{/if}
+          {#if done}<p class="text-[0.8125rem] text-ws-stage-soft">{done.avoid ? m.music_drills_chordscales_n_outside({ count: done.avoid }) : done.chord + done.scale ? m.music_drills_chordscales_all_inside() : m.music_drills_voicings_not_played()}</p>{/if}
         </li>
       {/each}
     </ol>
     {#if mode === "practice" && current}
       <p class="mb-3 text-sm text-ws-stage-soft">
-        <span class="font-semibold text-ws-stage-ink">{current.symbol}: {current.scaleLabel}.</span>
-        {plainHint(current.hint)}{current.others.length ? ` These also count as inside: ${current.others.join(", ")}.` : ""}
+        <span class="font-semibold text-ws-stage-ink">{m.music_drills_chordscales_scale_line({ symbol: current.symbol, scale: current.scaleLabel })}</span>
+        {plainHint(current.hint)}{current.others.length ? ` ${m.music_drills_chordscales_also_inside({ scales: current.others.join(", ") })}` : ""}
       </p>
     {:else if mode === "check" && phase !== "results"}
-      <p class="mb-3 text-sm text-ws-stage-soft">Check: the scale names and the colour key are hidden. {pattern ? `Play ${pattern.label} up and back on each chord.` : "Play what fits each chord."}</p>
+      <p class="mb-3 text-sm text-ws-stage-soft">{m.music_drills_chordscales_check_hidden()} {pattern ? m.music_drills_chordscales_check_pattern({ pattern: pattern.label }) : m.music_drills_chordscales_check_fits()}</p>
     {/if}
     {#if mode === "practice" || transport.playing || phase === "results"}
       <!-- Each chord's symbol over its bars, so the change is read on the music itself. -->
@@ -459,12 +466,12 @@
     </div>
     <!-- The colour key goes with the colours on the keys: Check (and the results) hide both. -->
     {#if transport.playing || (mode === "practice" && phase !== "results")}
-    <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-ink" aria-label="Colour key">
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>Chord tone (filled, named R 3 5 7)</li>
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>Scale tone (filled, named as a tension)</li>
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>Outside the scale (muted, struck through)</li>
-      {#if pattern}<li class="flex items-center gap-1.5"><span class="key-swatch" data-role="order" aria-hidden="true">5</span>In the pattern, out of order</li>{/if}
-      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>{pattern ? "Not in the pattern" : "A note you just played outside"}</li>
+    <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ws-stage-ink" aria-label={m.music_drills_chordscales_colour_key()}>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="chord" aria-hidden="true">3</span>{m.music_drills_chordscales_key_chord()}</li>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="scale" aria-hidden="true">9</span>{m.music_drills_chordscales_key_scale()}</li>
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="avoid" aria-hidden="true">b9</span>{m.music_drills_chordscales_key_avoid()}</li>
+      {#if pattern}<li class="flex items-center gap-1.5"><span class="key-swatch" data-role="order" aria-hidden="true">5</span>{m.music_drills_chordscales_key_order()}</li>{/if}
+      <li class="flex items-center gap-1.5"><span class="key-swatch" data-role="wrong" aria-hidden="true">✕</span>{pattern ? m.music_drills_chordscales_key_not_pattern() : m.music_drills_chordscales_key_outside()}</li>
     </ul>
     {/if}
   {/snippet}
@@ -478,7 +485,7 @@
 {#snippet figure()}
   {#if pattern && patternResult && hits.length}
     <div class="stage rounded-2xl p-3">
-      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Where each note landed</p>
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">{m.music_drills_chordscales_figure_title()}</p>
       <LineNotation oneRow notes={written} tuning={fretTuning(inst)} title="{setupKey}-run" groupStates={patternStates} keyFifths={signatureFor(pcOf(key) ?? 0, changes === "major" ? "major" : "natural-minor")} chords={targets.map((t, i) => ({ symbol: t.symbol, startBeat: i * perChord, durationBeats: perChord }))} />
     </div>
   {/if}

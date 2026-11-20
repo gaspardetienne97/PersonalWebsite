@@ -29,12 +29,13 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { midi, settings } from "#lib/music/runtime/index.ts";
   import { goto } from "$app/navigation";
+  import { m } from "@repo/i18n/messages.js";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
 
   const TEMPO = { min: 60, max: 140 };
   const LH_STEPS = [
-    { id: "shell", label: "Shell, root and 7th" },
-    { id: "guide", label: "Guide tones, 3rd and 7th" },
+    { id: "shell", label: m.music_drills_comping_lh_shell() },
+    { id: "guide", label: m.music_drills_comping_lh_guide() },
   ];
   const BEATS_PER_BAR = 4;
 
@@ -117,14 +118,14 @@
     {
       id: "right",
       mark: "R",
-      label: "Right hand, the lick",
+      label: m.music_drills_comping_lane_right(),
       hand: "right",
       notes: notes.filter((n) => n.hand === "right").map((n) => ({ beat: n.beat, dur: n.dur, text: noteName(n.midi, "flat", false) })),
     },
     {
       id: "left",
       mark: "L",
-      label: "Left hand, Charleston",
+      label: m.music_drills_comping_lane_left(),
       hand: "left",
       notes: notes
         .filter((n) => n.hand === "left" && n.midi === lhMidi[0])
@@ -162,23 +163,23 @@
   const cue = $derived.by(() => {
     if (phase !== "running" || transport.beat === null || transport.beat < 0) return "";
     const bar = Math.min(p.bars, Math.floor(transport.beat / BEATS_PER_BAR) + 1);
-    if (mode !== "practice") return `Bar ${bar} of ${p.bars}: notes hidden`;
+    if (mode !== "practice") return m.music_drills_comping_cue_hidden({ bar, bars: p.bars });
     const now = due(transport.beat);
     const line = [...new Set(now.filter((n) => n.hand === "right").map((n) => noteName(n.midi, "flat", false)))];
     const shell = now.some((n) => n.hand === "left");
-    return `Bar ${bar}: ${[...line, ...(shell ? [`the ${p.chord} shell`] : [])].join(", and ") || "rest"}`;
+    return m.music_drills_comping_cue({ bar, items: [...line, ...(shell ? [m.music_drills_comping_cue_shell({ chord: p.chord })] : [])].join(m.music_drills_comping_cue_join()) || m.music_drills_comping_cue_rest() });
   });
 
   const summaryLine = $derived<SetupClause[]>([
     { text: p.label, focus: "pattern" },
-    { text: `${s.lh === "guide" ? "Guide tones (3rd and 7th)" : "Shell (root and 7th)"} in the left hand`, focus: "lh" },
-    { text: `${swing ? "Swung" : "Straight"} eighths`, focus: "feel" },
+    { text: s.lh === "guide" ? m.music_drills_comping_summary_guide() : m.music_drills_comping_summary_shell(), focus: "lh" },
+    { text: swing ? m.music_drills_comping_summary_swung() : m.music_drills_comping_summary_straight(), focus: "feel" },
   ]);
   const setupKey = $derived(`comping:${p.id}:${s.lh}:${s.feel}:${bpm}`);
 
   async function playDemo(speed = 1) {
     if (transport.playing) return transport.stop();
-    status = speed < 1 ? "Demo playing slowly, not scored. The lane shows what lands together." : "Demo playing, not scored. The lane shows what lands together.";
+    status = speed < 1 ? m.music_drills_comping_demo_slow() : m.music_drills_comping_demo();
     await transport.demo(notes, bpm, speed);
   }
 
@@ -196,7 +197,7 @@
     const err = want ? (beat < want.beat ? beat - want.beat : Math.max(0, beat - want.beat - slack(want.beat))) : 0;
     const v = want
       ? verdictOf(Math.abs(err) <= want.dur / 4 ? "ok" : err < 0 ? "early" : "late", err * clock0.beatMs)
-      : { kind: "wrong" as const, text: `Wrong note: ${noteName(e.midi, "flat")}` };
+      : { kind: "wrong" as const, text: m.music_drills_comping_wrong_note({ note: noteName(e.midi, "flat") }) };
     verdict = { ...v, key: (verdict?.key ?? 0) + 1 };
   }
 
@@ -272,48 +273,48 @@
     const errs = timed.map((m) => m.errorMs);
     const total = r.lick.total + r.comp.total;
     const rows: ResultRow[] = [
-      { label: "Right hand line", value: r.lick.matched / r.lick.total, text: `${r.lick.matched} of ${r.lick.total}` },
+      { label: m.music_drills_comping_row_right(), value: r.lick.matched / r.lick.total, text: m.music_drills_comping_count_of({ matched: r.lick.matched, total: r.lick.total }) },
       lhMeasured
         ? {
-            label: "Left hand Charleston",
+            label: m.music_drills_comping_row_left(),
             value: r.comp.total ? r.comp.matched / r.comp.total : 0,
-            text: `${r.comp.matched} of ${r.comp.total}${r.comp.extra ? `, ${r.comp.extra} extra` : ""}`,
+            text: r.comp.extra ? m.music_drills_comping_count_of_extra({ matched: r.comp.matched, total: r.comp.total, extra: r.comp.extra }) : m.music_drills_comping_count_of({ matched: r.comp.matched, total: r.comp.total }),
           }
-        : { label: "Left hand Charleston (on-screen input)", notMeasured: true },
-      timingRow(errs, total, r.windowMs, "Timing", r.windowMs / 2),
-      ...(r.lick.extra ? [{ label: "Wrong keys in the line", text: String(r.lick.extra) }] : []),
+        : { label: m.music_drills_comping_row_left_onscreen(), notMeasured: true },
+      timingRow(errs, total, r.windowMs, m.music_drills_comping_timing(), r.windowMs / 2),
+      ...(r.lick.extra ? [{ label: m.music_drills_comping_row_wrong_keys(), text: String(r.lick.extra) }] : []),
     ];
     const idx = COMPING_PATTERNS.findIndex((x) => x.id === p.id);
     const nextPattern = COMPING_PATTERNS[idx + 1];
     summary = {
       headline: !played.length
-        ? "Nothing landed. Come in on the first beat after the count-in."
+        ? m.music_drills_comping_h_nothing()
         : r.correct
-          ? `The line and the Charleston both landed at ${bpm} BPM.`
+          ? m.music_drills_comping_h_correct({ bpm })
           : r.lick.extra && r.lick.matched === r.lick.total && r.comp.matched === r.comp.total && !r.comp.extra && !r.comp.incomplete
-            ? `Every note landed, but ${r.lick.extra} wrong key${r.lick.extra > 1 ? "s" : ""} slipped into the line. Once more without ${r.lick.extra > 1 ? "them" : "it"}.`
+            ? m.music_drills_comping_h_wrong_keys({ count: r.lick.extra })
           : r.comp.extra
-            ? `The left hand added ${r.comp.extra} extra hit${r.comp.extra > 1 ? "s" : ""}. Charleston is one and the and-of-two, nothing else.`
+            ? m.music_drills_comping_h_extra({ count: r.comp.extra })
             : r.comp.incomplete
-              ? `${r.comp.incomplete} left-hand hit${r.comp.incomplete > 1 ? "s were" : " was"} missing a note. Strike both notes as one.`
+              ? m.music_drills_comping_h_incomplete({ count: r.comp.incomplete })
               : r.lick.matched < r.lick.total && lhMeasured && r.comp.matched < r.comp.total
-                ? `Right hand ${r.lick.matched} of ${r.lick.total}, left hand ${r.comp.matched} of ${r.comp.total}. Slow it down, or try each hand alone first.`
+                ? m.music_drills_comping_h_both({ rightMatched: r.lick.matched, rightTotal: r.lick.total, leftMatched: r.comp.matched, leftTotal: r.comp.total })
                 : r.lick.matched < r.lick.total
-                  ? `Right hand ${r.lick.matched} of ${r.lick.total}. Slow it down and let the last note sit.`
-                  : `Left hand ${r.comp.matched} of ${r.comp.total}. Keep the hits on one and the and-of-two.`,
+                  ? m.music_drills_comping_h_right({ matched: r.lick.matched, total: r.lick.total })
+                  : m.music_drills_comping_h_left({ matched: r.comp.matched, total: r.comp.total }),
       metric: pct(r.score),
-      metricLabel: "score",
+      metricLabel: m.music_drills_comping_metric_score(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
       rows,
-      cleanMeans: "the line and every shell hit on the beat",
+      cleanMeans: m.music_drills_comping_clean_means(),
       timing: timingBreakdown([...graded.right, ...(graded.left ?? [])], graded.onTimeMs),
       next:
         r.correct && mode === "check" && nextPattern
-          ? { label: nextPattern.label, href: `/music/changes/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: "the same lick transposed" }
+          ? { label: nextPattern.label, href: `/music/changes/comping?pattern=${nextPattern.id}&bpm=${bpm}`, reason: m.music_drills_comping_next_reason() }
           : undefined,
       advance: played.some((n) => n.kind === "noteon")
         ? await nextRun(`comping.${p.id}.${s.feel}`, { bpm, tempo: { min: TEMPO.min, goal: 120, max: TEMPO.max }, steps: LH_STEPS, step: s.lh === "guide" ? 1 : 0 }, r, tempoAnd((i) => cfg.set({ lh: LH_STEPS[i].id })))
@@ -325,7 +326,7 @@
   function stop() {
     timedRun.end();
     phase = "ready";
-    status = "Stopped. Nothing saved.";
+    status = m.music_drills_comping_stopped();
   }
 
   onDestroy(() => {
@@ -338,7 +339,7 @@
   title={CHANGES_TITLE}
   trainer={changesTrainer("comping")}
   hue="piano"
-  blurb="A blues line in the right hand over a Charleston shell in the left: one, and-of-two, nothing else."
+  blurb={m.music_drills_comping_blurb()}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -350,36 +351,36 @@
   onstart={start}
   onstop={stop}
   {cue}
-  requires={midi.inputs.length ? [] : [{ text: "left hand on MIDI", action: { label: "Connect a MIDI keyboard (on-screen keys play one note at a time, so only the right-hand line is scored)", run: () => goto("/music/connect") } }]}
+  requires={midi.inputs.length ? [] : [{ text: m.music_drills_comping_requires(), action: { label: m.music_drills_comping_requires_action(), run: () => goto("/music/connect") } }]}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-3">
-      <Choice label="Key" setupKey="pattern" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: parseChordSymbol(x.chord)!.rootName, detail: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
+      <Choice label={m.music_drills_comping_choice_key()} setupKey="pattern" options={COMPING_PATTERNS.map((x) => ({ value: x.id, label: parseChordSymbol(x.chord)!.rootName, detail: x.chord }))} value={p.id} onchange={(v) => cfg.set({ pattern: v })} />
       <Choice
-        label="Left hand"
+        label={m.music_drills_comping_choice_lh()}
         setupKey="lh"
         options={LH_STEPS.map((x) => ({ value: x.id, label: x.label }))}
         value={s.lh}
         onchange={(v) => cfg.set({ lh: v })}
       />
       <Choice
-        label="Eighths"
+        label={m.music_drills_comping_choice_eighths()}
         setupKey="feel"
         options={[
-          { value: "swing", label: "Swung" },
-          { value: "straight", label: "Straight" },
+          { value: "swing", label: m.music_drills_comping_swung() },
+          { value: "straight", label: m.music_drills_comping_straight() },
         ]}
         value={s.feel}
         onchange={(v) => cfg.set({ feel: v })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. This lick sits well from 76 to 104 BPM.</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_drills_comping_tempo_hint()}</p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <!-- The HUD's own readout counts the beats; this counts the bars. -->
-      <Stat label="Bar" value="{Math.min(totalBeats / BEATS_PER_BAR, Math.floor(Math.max(0, transport.beat) / BEATS_PER_BAR) + 1)} of {totalBeats / BEATS_PER_BAR}" />
+      <Stat label={m.music_drills_comping_stat_bar()} value={m.music_drills_comping_count_of({ matched: Math.min(totalBeats / BEATS_PER_BAR, Math.floor(Math.max(0, transport.beat) / BEATS_PER_BAR) + 1), total: totalBeats / BEATS_PER_BAR })} />
     {/if}
   {/snippet}
 
@@ -391,14 +392,13 @@
         <!-- The theory steps aside while the line runs, so the lane and the keys stay in view. -->
         {#if mode === "practice" && phase === "ready" && !transport.playing}
           <p class="text-ws-stage-soft">
-            Slide from the {noteName(p.lick[6].midiNote, "flat", false)} into the {noteName(p.lick[7].midiNote, "flat", false)}: the blue third, a minor third over a dominant chord, resolving up to the major third.
-            The rest of the line stays in {root.rootName} mixolydian.
+            {m.music_drills_comping_theory({ from: noteName(p.lick[6].midiNote, "flat", false), to: noteName(p.lick[7].midiNote, "flat", false), root: root.rootName })}
           </p>
           <!-- The two things to open sit on one row, so the lane and the keys keep the room. -->
           <div class="flex flex-wrap items-start gap-x-6 text-ws-stage-soft">
             {#if approach}
               <details class="min-w-0">
-                <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">Why it works: approach a note from a half step below</summary>
+                <summary class="flex min-h-11 w-fit cursor-pointer list-none items-center font-medium text-ws-stage-ink [&::-webkit-details-marker]:hidden">{m.music_drills_comping_why()}</summary>
                 <p>{approach.summary}</p>
               </details>
             {/if}
@@ -407,7 +407,7 @@
         {/if}
       </div>
       {#if phase === "ready" && mode === "practice" && !transport.playing}
-        <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => playDemo(0.6)}>Hear it at 60%</button>
+        <button type="button" class="min-h-11 rounded-full border border-ws-stage-ink/25 px-4 font-medium hover:bg-ws-stage-ink/10" onclick={() => playDemo(0.6)}>{m.music_drills_comping_hear_60()}</button>
       {/if}
     </div>
     <!-- The music grows into the free height (no spacer between the lane and the keys). -->
@@ -421,7 +421,7 @@
       beat={transport.beat}
       chords={[{ beat: 0, symbol: p.chord }]}
       hidden={mode === "check" && !transport.playing}
-      label="Beat lane: right hand lick of {p.lick.length} notes. Left hand shell on one and the and-of-two in each bar."
+      label={m.music_drills_comping_lane_label({ count: p.lick.length })}
       {outcomes}
       wrong={phase === "running" && mode === "practice" ? liveWrong : 0}
       strays={phase === "running" && mode === "practice" ? strays : []}
@@ -430,16 +430,16 @@
     <div class="flex flex-col" data-dock="instrument">
       <!-- The word for the last note has its own row between the lane and the keys, never over them. -->
       {#if phase === "running"}<Verdict kind={verdict?.kind} text={verdict?.text} key={verdict?.key ?? 0} rail />{/if}
-      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label="Piano keyboard, {noteName(span.low)} to {noteName(span.high)}. Left hand keys marked L, right hand R." />
+      <Piano low={span.low} high={span.high} fit={tight} {marks} {flashes} label={m.music_drills_comping_piano_label({ low: noteName(span.low), high: noteName(span.high) })} />
     </div>
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && (phase === "running" || phase === "countin")}
-        <p>Notes hidden. Keep the rhythm on the lane. Keys light only where you play.</p>
+        <p>{m.music_drills_comping_check_hidden()}</p>
       {:else if phase === "running" || phase === "countin"}
         <!-- A phone has the cue beside Stop; this line would only sit under the dock. -->
-        <p class="max-sm:hidden">Shell on one and the and-of-two, the line on top.</p>
+        <p class="max-sm:hidden">{m.music_drills_comping_running_hint()}</p>
       {:else}
-        {#if mode === "check" && phase !== "results"}<p class="mb-1">Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
+        {#if mode === "check" && phase !== "results"}<p class="mb-1">{m.music_drills_comping_check_intro()}</p>{/if}
         {#if !(mode === "practice" && phase === "ready" && !transport.playing)}{@render marked()}{/if}
       {/if}
     </div>
@@ -454,7 +454,7 @@
 
 {#snippet marked()}
   <details class="min-w-0">
-    <summary class="flex min-h-11 cursor-pointer items-center">How this is scored</summary>
+    <summary class="flex min-h-11 cursor-pointer items-center">{m.music_drills_comping_how_scored()}</summary>
     <div class="flex flex-col gap-1 pb-1">
       <p>{FINGERING_NOTE}</p>
     </div>
@@ -465,8 +465,8 @@
 {#snippet figure()}
   {#if graded}
     <div class="stage rounded-2xl p-3">
-      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Each note as it landed</p>
-      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: p.chord }]} label="Your run on the beat lane, each note marked on time, early, late or missed." {outcomes} wrong={result?.lick.extra ?? 0} strays={strays.length === (result?.lick.extra ?? 0) ? strays : []} />
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">{m.music_drills_comping_figure_title()}</p>
+      <BeatLane rows={lanes} beats={totalBeats} chords={[{ beat: 0, symbol: p.chord }]} label={m.music_drills_comping_figure_label()} {outcomes} wrong={result?.lick.extra ?? 0} strays={strays.length === (result?.lick.extra ?? 0) ? strays : []} />
     </div>
   {/if}
 {/snippet}

@@ -10,13 +10,8 @@
   "music_drills_accompany_check_pattern": "Tès: jwe modèl la dapre pati a. Nòt yo kache.",
   "music_drills_accompany_chord_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": ", {count} mezi",
         "countPlural=other": ", {count} mezi"
@@ -79,13 +74,8 @@
   "music_drills_accompany_progression": "Pwogresyon",
   "music_drills_accompany_reharmonised": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} akò rearmonize",
         "countPlural=other": "{count} akò rearmonize"
@@ -144,14 +134,8 @@
   "music_drills_byear_key_caveat": "Woodshed jwenn tonalite a nan tout anrejistreman an. Yon chante ki chanje tonalite oswa ki rete lontan lwen tonik la ka twonpe l.",
   "music_drills_byear_learn_played": [
     {
-      "declarations": [
-        "input count",
-        "input pct",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt jwe a {pct}%.",
         "countPlural=other": "{count} nòt jwe a {pct}%."
@@ -167,9 +151,7 @@
         "input pct",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt jwe soti {a} rive {b} a {pct}%.",
         "countPlural=other": "{count} nòt jwe soti {a} rive {b} a {pct}%."
@@ -195,13 +177,8 @@
   "music_drills_byear_marked_sections": "Seksyon ki make",
   "music_drills_byear_marks_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} mak. Tape youn pou mete l an bouk jiska pwochen an.",
         "countPlural=other": "{count} mak. Tape youn pou mete l an bouk jiska pwochen an."
@@ -223,13 +200,8 @@
   "music_drills_byear_not_yet": "Poko",
   "music_drills_byear_notes_played_ask": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt jwe. Èske ou jwenn pati a?",
         "countPlural=other": "{count} nòt jwe. Èske ou jwenn pati a?"
@@ -289,14 +261,8 @@
   "music_drills_byear_sing_run": "{right} sou {total} nòt chante ak anrejistreman an",
   "music_drills_byear_sing_too_few": [
     {
-      "declarations": [
-        "input count",
-        "input min",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input min", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Se sèlman {count} nòt chante ki tande: chante omwen {min} ak anrejistreman an. Anyen pa sove.",
         "countPlural=other": "Se sèlman {count} nòt chante ki tande: chante omwen {min} ak anrejistreman an. Anyen pa sove."
@@ -324,6 +290,77 @@
   "music_drills_byear_tune_label": "Melodi a",
   "music_drills_byear_what_to_do": "Sa pou fè",
   "music_drills_byear_you_played": "Ou jwe:",
+  "music_drills_callresponse_answer_call": "Reponn apèl la",
+  "music_drills_callresponse_answer_hint": "Pwòp fraz ou: rete sou griy lan epi fini sou yon nòt akò a.",
+  "music_drills_callresponse_answer_it": "Reponn li",
+  "music_drills_callresponse_bar_calls": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "apèl {count} mezi",
+        "countPlural=other": "apèl {count} mezi"
+      }
+    }
+  ],
+  "music_drills_callresponse_blurb": "Yon ti apèl kout sou mizik gwoup la, apre sa se tou pa w: repete l, oswa reponn ak pwòp fraz ou.",
+  "music_drills_callresponse_choice_groove": "Groove",
+  "music_drills_callresponse_choice_length": "Longè apèl la",
+  "music_drills_callresponse_choice_part": "Pati pa w",
+  "music_drills_callresponse_chord_tone": "{name}, yon nòt akò a",
+  "music_drills_callresponse_clean_answer": "chak repons alè sou yon nòt akò a",
+  "music_drills_callresponse_clean_echo": "chak apèl repete",
+  "music_drills_callresponse_cue_answer": "Tou pa w: reponn li",
+  "music_drills_callresponse_cue_countin": "Kont: apèl la vini anvan",
+  "music_drills_callresponse_cue_echo": "Tou pa w: repete l",
+  "music_drills_callresponse_cue_listen_call": "Koute apèl la",
+  "music_drills_callresponse_demo": "Yon egzanp apèl sou mizik gwoup la, touch li yo limen pandan l ap jwe. San pwen.",
+  "music_drills_callresponse_echo_call": "Repete apèl la",
+  "music_drills_callresponse_echo_hint": "Rejwe apèl la, alè, nan nenpòt oktav.",
+  "music_drills_callresponse_echo_text": "{matched} nòt sou {total}, {onTime} alè",
+  "music_drills_callresponse_ended_off": "Fini deyò akò a, {pct} alè",
+  "music_drills_callresponse_get_ready": "Pare w",
+  "music_drills_callresponse_h_answer": "{right} repons sou {total} tonbe alè a {bpm} BPM.",
+  "music_drills_callresponse_h_echo": "{right} apèl sou {total} repete a {bpm} BPM.",
+  "music_drills_callresponse_in_call": "{name} nan apèl la",
+  "music_drills_callresponse_key_now": "Tonalite {key}, kounye a {chord}",
+  "music_drills_callresponse_landed": "Fini sou yon nòt akò a, {pct} alè",
+  "music_drills_callresponse_lane_running": "Tou {turn}: apèl la, {callCount} nòt, ak nòt ou yo jiskaprezan, {replyCount}",
+  "music_drills_callresponse_lane_sample": "Yon egzanp apèl: {count} nòt sou {chords}",
+  "music_drills_callresponse_listen": "Koute",
+  "music_drills_callresponse_listen_then_play": "Koute, apre sa jwe",
+  "music_drills_callresponse_mark_call": "Apèl",
+  "music_drills_callresponse_mark_eg": "Egz.",
+  "music_drills_callresponse_mark_you": "Ou",
+  "music_drills_callresponse_metric_answer": "fen ak tan",
+  "music_drills_callresponse_metric_echo": "nòt ak tan",
+  "music_drills_callresponse_no_answer": "Pa gen repons",
+  "music_drills_callresponse_not_in_call": "{name} pa nan apèl la",
+  "music_drills_callresponse_note_check": "San endis. Sa konte nan pwen konpetans ou.",
+  "music_drills_callresponse_note_practice": "Endis yo parèt. Esè ki pwòp fè w avanse.",
+  "music_drills_callresponse_notes_heard": "Nòt ki tande:",
+  "music_drills_callresponse_off_chord": "{name}, deyò akò a",
+  "music_drills_callresponse_over": "sou yon {groove} an {key}",
+  "music_drills_callresponse_practice_note": "Touch apèl la limen pandan l ap jwe. Nòt ou yo klere ak yon tik oswa yon kwa.",
+  "music_drills_callresponse_ready_note": "Liy lan montre yon egzanp apèl. Chak tou pote yon nouvo ant C4 ak E5. Chak kòmanse epi fini sou yon nòt akò: touch ki limen yo se nòt {chord}, premye akò a.",
+  "music_drills_callresponse_reason_past_goal": "pwòp a {bpm} BPM, pi lwen pase objektif {goal} la",
+  "music_drills_callresponse_row_turn": "Tou {n}",
+  "music_drills_callresponse_sample_call": "Yon egzanp apèl",
+  "music_drills_callresponse_stat_right": "Tou ki bon",
+  "music_drills_callresponse_stat_turn": "Tou",
+  "music_drills_callresponse_status_saved": "Repons {n} anrejistre.",
+  "music_drills_callresponse_status_turn": "Tou {n}: {text}.",
+  "music_drills_callresponse_step_one": "Apèl yon mezi",
+  "music_drills_callresponse_step_two": "Apèl de mezi",
+  "music_drills_callresponse_stopped": "Kanpe anvan premye repons lan. Anyen pa anrejistre.",
+  "music_drills_callresponse_take_saved": "Pran an anrejistre nan Anrejistre.",
+  "music_drills_callresponse_tempo_note": "Regle tempo a nan ba anlè a. Chak esè anrejistre kòm yon pran ou ka koute nan Anrejistre.",
+  "music_drills_callresponse_the_call": "Apèl la",
+  "music_drills_callresponse_turns": "Tou yo",
+  "music_drills_callresponse_turns_at": "{turns} tou a {bpm} BPM",
+  "music_drills_callresponse_you_played": "Ou jwe:",
+  "music_drills_callresponse_your_notes": "Nòt ou yo",
+  "music_drills_callresponse_your_turn": "Tou pa w",
   "music_drills_changes_head_title": "{title} | Woodshed",
   "music_drills_changes_not_found": "Pa gen fason sa a pou jwe sou chanjman akò yo",
   "music_drills_changes_stopped": "Kanpe. Anyen pa anrejistre.",
@@ -355,13 +392,8 @@
   "music_drills_changesjam_chorus_progress": "{name}, {n} sou {total}",
   "music_drills_changesjam_choruses_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} chorus",
         "countPlural=other": "{count} chorus"
@@ -379,14 +411,8 @@
   "music_drills_changesjam_difficulty_intermediate": "mwayen",
   "music_drills_changesjam_form_bars": [
     {
-      "declarations": [
-        "input count",
-        "input name",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name} ({count} mezi)",
         "countPlural=other": "{name} ({count} mezi)"
@@ -401,9 +427,7 @@
         "input sections",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {sections} ({count} mezi)",
         "countPlural=other": "{name}, {sections} ({count} mezi)"
@@ -412,14 +436,8 @@
   ],
   "music_drills_changesjam_form_item": [
     {
-      "declarations": [
-        "input count",
-        "input symbol",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input symbol", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{symbol}, {count} mezi",
         "countPlural=other": "{symbol}, {count} mezi"
@@ -428,14 +446,8 @@
   ],
   "music_drills_changesjam_form_item_now": [
     {
-      "declarations": [
-        "input count",
-        "input symbol",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input symbol", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{symbol}, {count} mezi, kounye a",
         "countPlural=other": "{symbol}, {count} mezi, kounye a"
@@ -481,13 +493,8 @@
   "music_drills_changesjam_no_trading": "Pa chanje",
   "music_drills_changesjam_notes_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt",
         "countPlural=other": "{count} nòt"
@@ -513,14 +520,8 @@
   "music_drills_changesjam_reports_label": "Rapò chorus yo",
   "music_drills_changesjam_results_title": [
     {
-      "declarations": [
-        "input count",
-        "input choruses",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input choruses", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt sou {choruses}.",
         "countPlural=other": "{count} nòt sou {choruses}."
@@ -537,13 +538,8 @@
   "music_drills_changesjam_share_label": "{chord}% nòt akò, {scale}% nòt gam, {avoid}% nòt pou evite",
   "music_drills_changesjam_short_run": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "esè kout: {count} chorus",
         "countPlural=other": "esè kout: {count} chorus"
@@ -563,9 +559,7 @@
         "input rests",
         "local phrasesPlural = phrases: plural"
       ],
-      "selectors": [
-        "phrasesPlural"
-      ],
+      "selectors": ["phrasesPlural"],
       "match": {
         "phrasesPlural=one": "{notes} nòt, ranje {range}. {phrases} fraz ki dire {bars} mezi an mwayèn, {rests}.",
         "phrasesPlural=other": "{notes} nòt, ranje {range}. {phrases} fraz ki dire {bars} mezi an mwayèn, {rests}."
@@ -603,9 +597,293 @@
   "music_drills_changesjam_written_at": "Ekri a {bpm} BPM. Chanje tempo a nan ba anlè a.",
   "music_drills_changesjam_written_key": "Tonalite ki ekri a.",
   "music_drills_changesjam_your_song": "Chante ou: akò li ak melodi li.",
+  "music_drills_chordscales_a_chord": "yon akò",
+  "music_drills_chordscales_all_inside": "tout anndan",
+  "music_drills_chordscales_also_inside": "Sa yo konte kòm anndan tou: {scales}.",
+  "music_drills_chordscales_blurb": "Pandan ii-V-I a ap avanse, jwe gam akò kote ou ye a, oswa yon motif 1-2-3-5 oswa 3-5-7-9 sou chak akò.",
+  "music_drills_chordscales_check_fits": "Jwe sa ki mache ak chak akò.",
+  "music_drills_chordscales_check_hidden": "Tès: non gam yo ak lejann koulè yo kache.",
+  "music_drills_chordscales_check_pattern": "Jwe {pattern} monte desann sou chak akò.",
+  "music_drills_chordscales_choice_lasts": "Chak akò dire",
+  "music_drills_chordscales_choice_play": "Jwe",
+  "music_drills_chordscales_clean_order": "tout nòt yo nan lòd",
+  "music_drills_chordscales_clean_scales": "nòt chak akò anndan gam li",
+  "music_drills_chordscales_colour_key": "Lejann koulè",
+  "music_drills_chordscales_cue_hidden": "{symbol}, non yo kache",
+  "music_drills_chordscales_cue_pattern": "{symbol}: motif {pattern}",
+  "music_drills_chordscales_cue_scale": "{symbol}: {scale}",
+  "music_drills_chordscales_demo_pattern": "Demo a ap jwe, san pwen: {pattern} monte desann sou chak akò, akò a nan men gòch.",
+  "music_drills_chordscales_demo_scales": "Demo a ap jwe, san pwen: chak akò nan men gòch ak gam prensipal li anlè.",
+  "music_drills_chordscales_figure_title": "Kote chak nòt tonbe",
+  "music_drills_chordscales_h_correct": "Chak akò jwenn gam li: {inside} nòt anndan, {outside} deyò.",
+  "music_drills_chordscales_h_no_match": "Okenn nòt pa koresponn. Koute l anvan, apre sa kòmanse sou premye tan an apre kont lan.",
+  "music_drills_chordscales_h_outside": [
+    {
+      "declarations": ["input count", "input symbol", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} nòt tonbe deyò gam lan, sitou sou {symbol}.",
+        "countPlural=other": "{count} nòt tonbe deyò gam lan, sitou sou {symbol}."
+      }
+    }
+  ],
+  "music_drills_chordscales_h_partial": "Ou jwe sou {played} akò sou {total}. Kontinye jwe nan chak chanjman.",
+  "music_drills_chordscales_h_pattern_all": "{pattern} sou tout akò yo, tout {total} nòt yo nan lòd.",
+  "music_drills_chordscales_h_pattern_check": "{pattern} sou tout akò yo, nan tès.",
+  "music_drills_chordscales_h_silent": "Pa gen nòt ki tande sou akò yo. Kòmanse sou premye tan an apre kont lan.",
+  "music_drills_chordscales_h_slipped": "{matched} sou {total} bon. Premye erè a te sou {symbol}.",
+  "music_drills_chordscales_key_avoid": "Deyò gam lan (pal, bare)",
+  "music_drills_chordscales_key_chord": "Nòt akò (plen, non R 3 5 7)",
+  "music_drills_chordscales_key_not_pattern": "Pa nan motif la",
+  "music_drills_chordscales_key_order": "Nan motif la, men pa nan lòd",
+  "music_drills_chordscales_key_outside": "Yon nòt ou fèk jwe deyò",
+  "music_drills_chordscales_key_scale": "Nòt gam (plen, non tankou yon tansyon)",
+  "music_drills_chordscales_ladder_major_one": "Majè, yon mezi pou chak akò",
+  "music_drills_chordscales_ladder_major_two": "Majè, de mezi pou chak akò",
+  "music_drills_chordscales_ladder_minor_one": "Minè, yon mezi pou chak akò",
+  "music_drills_chordscales_ladder_minor_two": "Minè, de mezi pou chak akò",
+  "music_drills_chordscales_metric_inside": "anndan gam lan",
+  "music_drills_chordscales_metric_order": "nòt nan lòd",
+  "music_drills_chordscales_n_outside": "{count} deyò",
+  "music_drills_chordscales_nothing_played": "Anyen pa jwe",
+  "music_drills_chordscales_one_bar": "Yon mezi",
+  "music_drills_chordscales_one_bar_per_chord": "yon mezi pou chak akò",
+  "music_drills_chordscales_pattern_label": "Motif {pattern}",
+  "music_drills_chordscales_plus": "plis",
+  "music_drills_chordscales_row_on_time": "Bon nòt alè ({ms} ms)",
+  "music_drills_chordscales_row_order": "Nòt nan lòd",
+  "music_drills_chordscales_row_text": "{chord} nan akò a, {scale} nan gam lan, {avoid} deyò",
+  "music_drills_chordscales_scale_line": "{symbol}: {scale}.",
+  "music_drills_chordscales_summary_in": "{label} an {key} ({chords})",
+  "music_drills_chordscales_the_scales": "Gam yo",
+  "music_drills_chordscales_two_bars": "De mezi",
+  "music_drills_chordscales_two_bars_per_chord": "de mezi pou chak akò",
+  "music_drills_chordscales_up_and_back": "{pattern} monte desann sou chak akò",
+  "music_drills_circle_back_today": "Retounen nan Jodi a",
+  "music_drills_circle_band_all": "Tout 15 tonalite yo",
+  "music_drills_circle_band_all_clause": "tout 15 tonalite yo",
+  "music_drills_circle_band_four": "4 dyèz oswa bemòl",
+  "music_drills_circle_band_four_clause": "jiska 4 dyèz oswa bemòl",
+  "music_drills_circle_band_near": "C, G ak F",
+  "music_drills_circle_band_near_clause": "tonalite C, G ak F",
+  "music_drills_circle_band_two": "2 dyèz oswa bemòl",
+  "music_drills_circle_band_two_clause": "jiska 2 dyèz oswa bemòl",
+  "music_drills_circle_blank_wheel": "Yon sèk kent vid",
+  "music_drills_circle_blank_wheel_tap": "Yon sèk kent vid: tape kote tonalite a ale",
+  "music_drills_circle_blurb": "Amati ak lòd yo, vit. Bon nan 2 s oswa mwens se fasilite. Pi dousman vle di ou toujou ap chèche l.",
+  "music_drills_circle_chart_label": "{tune}, akò pou analize yo",
+  "music_drills_circle_clean_analysis": "tout akò yo bon",
+  "music_drills_circle_clean_fluent": "tout repons yo bon nan {secs} s oswa mwens",
+  "music_drills_circle_cue_analysis": "Chwazi sant tonal la, epi fonksyon li",
+  "music_drills_circle_cue_on_wheel": "Tape tonalite a sou sèk la oswa yon bouton",
+  "music_drills_circle_cue_pick": "Chwazi yon repons",
+  "music_drills_circle_cue_wheel": "Tape kote tonalite a ale",
+  "music_drills_circle_figure_caption": "Tonalite seri sa a: ✓ rapid epi bon, ✕ pou revize",
+  "music_drills_circle_figure_label": "Tonalite seri sa a: make ✓ lè yo rapid epi bon, ✕ pou revize",
+  "music_drills_circle_group_answers": "Repons",
+  "music_drills_circle_group_function": "Fonksyon",
+  "music_drills_circle_group_key_centre": "Sant tonal",
+  "music_drills_circle_headline_all": "Tout {count} yo bon epi rapid.",
+  "music_drills_circle_headline_analysis_all": "Tout {count} akò {tune} yo bon.",
+  "music_drills_circle_headline_analysis_some": "{right} sou {total} akò bon: {keys} tonalite ak {fns} fonksyon.",
+  "music_drills_circle_headline_some": "{right} sou {total} bon, {fluent} nan {secs} s oswa mwens.",
+  "music_drills_circle_intro_aim": "{blurb} Eseye reponn nan {secs} segonn oswa mwens: sa se sonje, se pa chèche.",
+  "music_drills_circle_intro_analysis": "{tune}, akò pa akò: bay sant tonal chak akò ak fonksyon li la. Repons yo soti nan yon analiz ki baze sou règ. San limit tan.",
+  "music_drills_circle_it_was_rule": "Se te {answer}. {rule}",
+  "music_drills_circle_metric_analysis": "analiz",
+  "music_drills_circle_metric_fluency": "fasilite",
+  "music_drills_circle_mode_check": "Pa gen endis. Sa konte nan pwen konpetans ou.",
+  "music_drills_circle_mode_practice": "Endis yo parèt. Seri san fot fè ou avanse.",
+  "music_drills_circle_next": "Pwochen",
+  "music_drills_circle_none_right": "Poko gen youn ki bon",
+  "music_drills_circle_page_title": "Sèk kent yo | Woodshed",
+  "music_drills_circle_question_n": "Kesyon {n}",
+  "music_drills_circle_review": "Revize {keys}",
+  "music_drills_circle_right_in": "Bon, nan {secs} s.",
+  "music_drills_circle_right_slow": "Bon, nan {secs} s: eseye fè l anba {target} s.",
+  "music_drills_circle_row_bars": "Mezi pou revize",
+  "music_drills_circle_row_chords_right": "Akò ki bon",
+  "music_drills_circle_row_functions": "Fonksyon",
+  "music_drills_circle_row_key_centres": "Sant tonal",
+  "music_drills_circle_row_keys": "Tonalite pou revize",
+  "music_drills_circle_row_right": "Bon",
+  "music_drills_circle_row_typical": "Repons abityèl",
+  "music_drills_circle_row_within": "Nan {secs} s oswa mwens",
+  "music_drills_circle_rule_borrowed": "Pwòp akò {key} majè: {own}. Prete nan {key} minè: {borrowed}.",
+  "music_drills_circle_rule_chords": "{key} majè: {chords}. Pòsyon an: IV I V deyò, ii vi iii anndan.",
+  "music_drills_circle_rule_flats": "{key} majè gen {count} ({list}): bemòl anvan dènye a, {prev}, bay non tonalite a. Relatif minè li se {minor}.",
+  "music_drills_circle_rule_neighbours": "Nan sans zegwi mont lan, ou ajoute yon dyèz (yon kent pi wo). Nan lòt sans lan, ou ajoute yon bemòl (yon kat pi wo). Relatif minè a se yon tyès minè pi ba.",
+  "music_drills_circle_rule_order": "Dyèz: F C G D A E B, chak youn yon kent pi wo. Bemòl: menm lòd la lanvè (BEAD-GCF).",
+  "music_drills_circle_rule_plain": "{key} majè gen {count}. Relatif minè li se {minor}.",
+  "music_drills_circle_rule_secondary": "Yon dominant segondè se yon akò sèt dominant yon kent pi wo pase akò li mennen ladan. Nan {key}: {list}.",
+  "music_drills_circle_rule_sharps": "{key} majè gen {count} ({list}): dènye dyèz la, {last}, se yon demi ton anba {key}. Relatif minè li se {minor}.",
+  "music_drills_circle_rule_wheel": "Apati C anwo a, nan sans zegwi mont lan: G D A E B F#, apre sa Db Ab Eb Bb F pou retounen sou C.",
+  "music_drills_circle_secs": "{secs} s",
+  "music_drills_circle_see_results": "Wè rezilta yo",
+  "music_drills_circle_setup_analysis_note": "Chak akò nan mizik la, chak seksyon yon fwa: chwazi sant tonal li, epi fonksyon li la. Analiz la swiv twa règ. Yon akò ou rive sou li apati pwòp V7 li, sibstitisyon triton li oswa yon backdoor se I yon nouvo tonalite. Yon ii-V se pou tonalite li rezoud ladan. Yon dominant ki rezoud sou nenpòt lòt bagay se yon V de. Apre yon erè, ou wè règ ki aplike a.",
+  "music_drills_circle_setup_bass": "Fa",
+  "music_drills_circle_setup_both": "Toude",
+  "music_drills_circle_setup_clef": "Kle",
+  "music_drills_circle_setup_keys_asked": "Tonalite yo mande",
+  "music_drills_circle_setup_major": "Majè",
+  "music_drills_circle_setup_major_minor": "Majè ak minè",
+  "music_drills_circle_setup_note": "Reponn ak bouton yo oswa touch nimewo yo (1 pou premye a). {link} gen amati ak akò chak tonalite.",
+  "music_drills_circle_setup_note_link": "Sèk la nan Studio",
+  "music_drills_circle_setup_treble": "Sòl",
+  "music_drills_circle_setup_tune": "Mizik",
+  "music_drills_circle_setup_up_to": "Jiska",
+  "music_drills_circle_sig_caption": "{key} majè: {accidentals}",
+  "music_drills_circle_sig_caption_none": "{key} majè, san dyèz ni bemòl",
+  "music_drills_circle_sig_title": "Amati",
+  "music_drills_circle_stat_fast": "Rapid epi bon",
+  "music_drills_circle_stat_question": "Kesyon",
+  "music_drills_circle_stat_right": "Bon jiskaprezan",
+  "music_drills_circle_status_ask": "{n} sou {total}. {ask}",
+  "music_drills_circle_stopped": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kanpe apre {count} repons.",
+        "countPlural=other": "Kanpe apre {count} repons."
+      }
+    }
+  ],
+  "music_drills_circle_sum_bass": "kle fa",
+  "music_drills_circle_sum_chords": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} akò, chak seksyon yon fwa",
+        "countPlural=other": "{count} akò, chak seksyon yon fwa"
+      }
+    }
+  ],
+  "music_drills_circle_sum_fluent": "fasilite: bon nan {secs} s oswa mwens",
+  "music_drills_circle_sum_major_minor": "majè ak minè",
+  "music_drills_circle_sum_major_only": "majè sèlman",
+  "music_drills_circle_sum_questions": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} kesyon",
+        "countPlural=other": "{count} kesyon"
+      }
+    }
+  ],
+  "music_drills_circle_sum_treble": "kle sòl",
+  "music_drills_circle_sum_treble_bass": "sòl ak fa",
+  "music_drills_circle_sum_untimed": "san limit tan",
+  "music_drills_circle_tab_analysis": "Analize yon mizik",
+  "music_drills_circle_tab_borrowed": "Akò prete",
+  "music_drills_circle_tab_chords": "Akò nan yon tonalite",
+  "music_drills_circle_tab_count": "Amati",
+  "music_drills_circle_tab_neighbours": "Tonalite vwazen",
+  "music_drills_circle_tab_order": "Lòd dyèz ak bemòl",
+  "music_drills_circle_tab_secondary": "Dominant segondè",
+  "music_drills_circle_tab_signature": "Li yon amati",
+  "music_drills_circle_tab_wheel": "Ranpli sèk la",
+  "music_drills_circle_title": "Sèk kent yo",
+  "music_drills_circle_under_tenth": "mwens pase 0.1 s",
+  "music_drills_circle_verdict_right": "Bon: {answer}.",
+  "music_drills_circle_verdict_right_time": "Bon: {answer}, {secs} s.",
+  "music_drills_circle_verdict_slow_time": "Bon, men dousman: {answer}, {secs} s.",
+  "music_drills_circle_verdict_was": "Se te {answer}.",
+  "music_drills_circle_verdict_you_said": "Ou te di {answer}.",
+  "music_drills_circle_wheel_label": "Sèk kent yo",
+  "music_drills_circle_wheel_label_key": "Sèk la, ak tonalite kesyon sa a",
+  "music_drills_circle_wheel_position": "{key} nan pozisyon {n}",
+  "music_drills_circle_wheel_tap_key": "Sèk kent yo: tape tonalite a",
+  "music_drills_circle_wheel_top": "{key} anwo",
+  "music_drills_circle_x_of_y": "{n} sou {total}",
+  "music_drills_comping_blurb": "Yon liy blues nan men dwat sou yon shell Charleston nan men gòch: en, \"e\" apre de a, anyen lòt.",
+  "music_drills_comping_check_hidden": "Nòt yo kache. Swiv ritm lan sou liy lan. Touch yo limen sèlman kote ou jwe.",
+  "music_drills_comping_check_intro": "Tès: liy lan kenbe ritm lan, nòt yo kache.",
+  "music_drills_comping_choice_eighths": "Kwòch",
+  "music_drills_comping_choice_key": "Tonalite",
+  "music_drills_comping_choice_lh": "Men gòch",
+  "music_drills_comping_clean_means": "liy lan ak chak kou shell la sou tan an",
+  "music_drills_comping_count_of": "{matched} sou {total}",
+  "music_drills_comping_count_of_extra": "{matched} sou {total}, {extra} anplis",
+  "music_drills_comping_cue": "Mezi {bar}: {items}",
+  "music_drills_comping_cue_hidden": "Mezi {bar} sou {bars}: nòt yo kache",
+  "music_drills_comping_cue_join": ", ak ",
+  "music_drills_comping_cue_rest": "poz",
+  "music_drills_comping_cue_shell": "shell {chord} la",
+  "music_drills_comping_demo": "Demo a ap jwe, san pwen. Liy lan montre sa ki tonbe ansanm.",
+  "music_drills_comping_demo_slow": "Demo a ap jwe dousman, san pwen. Liy lan montre sa ki tonbe ansanm.",
+  "music_drills_comping_figure_label": "Esè ou sou liy tan an, chak nòt make alè, twò bonè, twò ta oswa rate.",
+  "music_drills_comping_figure_title": "Chak nòt jan li tonbe",
+  "music_drills_comping_h_both": "Men dwat {rightMatched} sou {rightTotal}, men gòch {leftMatched} sou {leftTotal}. Ralanti, oswa eseye chak men poukont li anvan.",
+  "music_drills_comping_h_correct": "Liy lan ak Charleston lan tou de tonbe byen a {bpm} BPM.",
+  "music_drills_comping_h_extra": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Men gòch la ajoute {count} kou anplis. Charleston se en ak \"e\" apre de a, anyen lòt.",
+        "countPlural=other": "Men gòch la ajoute {count} kou anplis. Charleston se en ak \"e\" apre de a, anyen lòt."
+      }
+    }
+  ],
+  "music_drills_comping_h_incomplete": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} kou men gòch te manke yon nòt. Frape de nòt yo ansanm.",
+        "countPlural=other": "{count} kou men gòch te manke yon nòt. Frape de nòt yo ansanm."
+      }
+    }
+  ],
+  "music_drills_comping_h_left": "Men gòch {matched} sou {total}. Kenbe kou yo sou en ak \"e\" apre de a.",
+  "music_drills_comping_h_nothing": "Anyen pa tonbe. Antre sou premye tan an apre kont lan.",
+  "music_drills_comping_h_right": "Men dwat {matched} sou {total}. Ralanti epi kite dènye nòt la poze.",
+  "music_drills_comping_h_wrong_keys": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tout nòt yo tonbe, men {count} move touch glise nan liy lan. Yon lòt fwa ankò, san li.",
+        "countPlural=other": "Tout nòt yo tonbe, men {count} move touch glise nan liy lan. Yon lòt fwa ankò, san li."
+      }
+    }
+  ],
+  "music_drills_comping_hear_60": "Koute l a 60%",
+  "music_drills_comping_how_scored": "Kijan yo bay pwen",
+  "music_drills_comping_lane_label": "Liy tan: lick {count} nòt nan men dwat. Shell men gòch sou en ak \"e\" apre de nan chak mezi.",
+  "music_drills_comping_lane_left": "Men gòch, Charleston",
+  "music_drills_comping_lane_right": "Men dwat, lick la",
+  "music_drills_comping_lh_guide": "Nòt gid, 3yèm ak 7yèm",
+  "music_drills_comping_lh_shell": "Shell, rasin ak 7yèm",
+  "music_drills_comping_metric_score": "pwen",
+  "music_drills_comping_next_reason": "menm lick la transpoze",
+  "music_drills_comping_piano_label": "Klavye pyano, soti {low} rive {high}. Touch men gòch yo make L, men dwat yo R.",
+  "music_drills_comping_requires": "men gòch sou MIDI",
+  "music_drills_comping_requires_action": "Konekte yon klavye MIDI (touch sou ekran yo jwe yon sèl nòt alafwa, kidonk se sèlman liy men dwat la ki gen pwen)",
+  "music_drills_comping_row_left": "Charleston men gòch",
+  "music_drills_comping_row_left_onscreen": "Charleston men gòch (klavye sou ekran)",
+  "music_drills_comping_row_right": "Liy men dwat",
+  "music_drills_comping_row_wrong_keys": "Move touch nan liy lan",
+  "music_drills_comping_running_hint": "Shell la sou en ak \"e\" apre de a, liy lan anlè.",
+  "music_drills_comping_stat_bar": "Mezi",
+  "music_drills_comping_stopped": "Kanpe. Anyen pa anrejistre.",
+  "music_drills_comping_straight": "Dwat",
+  "music_drills_comping_summary_guide": "Nòt gid (3yèm ak 7yèm) nan men gòch",
+  "music_drills_comping_summary_shell": "Shell (rasin ak 7yèm) nan men gòch",
+  "music_drills_comping_summary_straight": "Kwòch dwat",
+  "music_drills_comping_summary_swung": "Kwòch swing",
+  "music_drills_comping_swung": "Swing",
+  "music_drills_comping_tempo_hint": "Regle tempo a nan ba anlè a. Lick sa a mache byen ant 76 ak 104 BPM.",
+  "music_drills_comping_theory": "Glise soti nan {from} pou rive nan {to}: tyès blue la, yon tyès minè sou yon akò dominant, ki monte rezoud sou tyès majè a. Rès liy lan rete nan {root} miksolidyen.",
+  "music_drills_comping_timing": "Presizyon ritm",
+  "music_drills_comping_why": "Poukisa sa mache: rive sou yon nòt soti yon demi ton anba",
+  "music_drills_comping_wrong_note": "Move nòt: {note}",
   "music_drills_ear_cadence_label": "{label} ({chords})",
   "music_drills_ear_chord_to": "{from} pou {to}",
-  "music_drills_ear_clean_check": "tout repons yo bon, nan yon wonn evalyasyon",
+  "music_drills_ear_clean_check": "tout repons yo bon, nan yon wonn tès",
   "music_drills_ear_clean_ladder": "{right} sou {asked} bon oswa plis",
   "music_drills_ear_compare_first_bigger": "Premye a pi gran",
   "music_drills_ear_compare_first_short": "Premye",
@@ -650,14 +928,8 @@
   "music_drills_ear_pitch_lower": "Pi ba",
   "music_drills_ear_reveal_chosen_interval": [
     {
-      "declarations": [
-        "input count",
-        "input name",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {count} demi ton",
         "countPlural=other": "{name}, {count} demi ton"
@@ -676,9 +948,7 @@
         "input name",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {a} desann rive {b}, {count} demi ton",
         "countPlural=other": "{name}, {a} desann rive {b}, {count} demi ton"
@@ -694,9 +964,7 @@
         "input name",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {a} ak {b}, {count} demi ton",
         "countPlural=other": "{name}, {a} ak {b}, {count} demi ton"
@@ -712,9 +980,7 @@
         "input name",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {a} monte rive {b}, {count} demi ton",
         "countPlural=other": "{name}, {a} monte rive {b}, {count} demi ton"
@@ -744,13 +1010,8 @@
   "music_drills_ear_visual_all_at_once": "Tout jwe ansanm",
   "music_drills_ear_visual_arpeggiated": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Akò an apèj, {count} nòt",
         "countPlural=other": "Akò an apèj, {count} nòt"
@@ -762,13 +1023,8 @@
   "music_drills_ear_visual_chords_in_key": "{chords} nan {key}: {names}",
   "music_drills_ear_visual_chords_in_turn": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} akò, youn apre lòt",
         "countPlural=other": "{count} akò, youn apre lòt"
@@ -779,14 +1035,8 @@
   "music_drills_ear_visual_heard_aria": "Sa ou te tande, nòt pa nòt",
   "music_drills_ear_visual_interval": [
     {
-      "declarations": [
-        "input count",
-        "input name",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{name}, {count} demi ton",
         "countPlural=other": "{name}, {count} demi ton"
@@ -802,13 +1052,8 @@
   "music_drills_ear_visual_note_n": "Nòt {n}",
   "music_drills_ear_visual_notes_in_turn": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt, youn apre lòt",
         "countPlural=other": "{count} nòt, youn apre lòt"
@@ -875,13 +1120,8 @@
   "music_drills_eardrill_blocked_save_song": "Anrejistre yon chante ak pati li anvan.",
   "music_drills_eardrill_cadences_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} kadans",
         "countPlural=other": "{count} kadans"
@@ -905,13 +1145,8 @@
   "music_drills_eardrill_chord_size": "Gwosè akò a",
   "music_drills_eardrill_chords_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} akò",
         "countPlural=other": "{count} akò"
@@ -965,13 +1200,8 @@
   "music_drills_eardrill_in_the_bass": "Nan bas la: {hint}.",
   "music_drills_eardrill_intervals_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} entèval",
         "countPlural=other": "{count} entèval"
@@ -992,13 +1222,8 @@
   "music_drills_eardrill_inv_hint_third": "tyès la pou {name}",
   "music_drills_eardrill_inversions_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pozisyon",
         "countPlural=other": "{count} pozisyon"
@@ -1096,13 +1321,8 @@
   "music_drills_eardrill_playing": "Ap jwe",
   "music_drills_eardrill_qualities_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} kalite akò",
         "countPlural=other": "{count} kalite akò"
@@ -1119,13 +1339,8 @@
   "music_drills_eardrill_res_back_today": "Retounen nan Jodi a",
   "music_drills_eardrill_res_coach": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Ankò: sa ou te melanje ({count} kesyon)",
         "countPlural=other": "Ankò: sa ou te melanje ({count} kesyon)"
@@ -1151,13 +1366,8 @@
   "music_drills_eardrill_right_so_far": "Bon jiskaprezan",
   "music_drills_eardrill_scales_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} gam",
         "countPlural=other": "{count} gam"
@@ -1213,13 +1423,8 @@
   "music_drills_eardrill_status_stopped": "Kanpe.",
   "music_drills_eardrill_status_stopped_after": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Kanpe apre {count} repons. Repons ou yo anrejistre.",
         "countPlural=other": "Kanpe apre {count} repons. Repons ou yo anrejistre."
@@ -1276,6 +1481,9 @@
   "music_drills_eardrill_you_played_tonic": "Ou te jwe: {notes}. Touch ki make 1 an se tonik la, {note}",
   "music_drills_eardrill_your_progression": "Pwogresyon ou",
   "music_drills_earroute_not_found": "Egzèsis zòrèy sa a pa egziste",
+  "music_drills_jam_tracks_missing": "Odyo pis sa a pa nan navigatè sa a ankò. Enpòte l ankò.",
+  "music_drills_jam_tracks_not_audio": "\"{name}\" pa yon fichye odyo. Chwazi yon fichye odyo, tankou yon MP3 oswa yon WAV.",
+  "music_drills_jam_tracks_too_big": "\"{name}\" depase 250 MB. Chwazi yon fichye ki pi piti.",
   "music_drills_licks_about": "Sou lick sa a",
   "music_drills_licks_bar": "Mezi {n}",
   "music_drills_licks_blurb": "Koute yon fraz ki transkri sou chanjman akò yo, epi jwe l ankò. Koupe l an moso, fè l tounen an bouk, epi mennen l nan tout tonalite yo.",
@@ -1336,13 +1544,13 @@
   "music_drills_licks_verdict_off_beat": "{note}, twò lwen tan an",
   "music_drills_licks_whole": "Tout lick la",
   "music_drills_phrases_all_notes": "Tout {total} nòt yo nan lòd.",
-  "music_drills_phrases_all_notes_check": "Tout {total} nòt yo nan lòd, nan evalyasyon.",
+  "music_drills_phrases_all_notes_check": "Tout {total} nòt yo nan lòd, nan tès.",
   "music_drills_phrases_all_steps": "Tout {total} etap yo nan lòd.",
-  "music_drills_phrases_all_steps_check": "Tout {total} etap yo nan lòd, nan evalyasyon.",
+  "music_drills_phrases_all_steps_check": "Tout {total} etap yo nan lòd, nan tès.",
   "music_drills_phrases_as_saved": "Jan l sove a",
   "music_drills_phrases_blurb": "Ti fraz popilè pou enstriman ou: melodi ki pi popilè nan domèn piblik ak lick klasik yon stil. Tande youn, epi jwe l.",
-  "music_drills_phrases_check_notes": "Evalyasyon: nòt yo kache. {count} nòt: tande l, epi jwe l.",
-  "music_drills_phrases_check_steps": "Evalyasyon: nòt yo kache. {count} etap: tande l, epi jwe l.",
+  "music_drills_phrases_check_notes": "Tès: nòt yo kache. {count} nòt: tande l, epi jwe l.",
+  "music_drills_phrases_check_steps": "Tès: nòt yo kache. {count} etap: tande l, epi jwe l.",
   "music_drills_phrases_clean_notes": "chak nòt nan lòd",
   "music_drills_phrases_clean_steps": "chak etap nan lòd",
   "music_drills_phrases_cue_note_hidden": "Nòt {n} sou {total}, nòt yo kache",
@@ -1403,6 +1611,744 @@
   "music_drills_phrases_where_notes": "Kote chak nòt tonbe",
   "music_drills_phrases_where_steps": "Kote chak etap tonbe",
   "music_drills_phrases_your_licks": "Lick ou yo",
+  "music_drills_reading_clef_bass_clause": "kle fa",
+  "music_drills_reading_clef_both_clause": "kle sòl ak kle fa",
+  "music_drills_reading_clef_treble_clause": "kle sòl",
+  "music_drills_reading_flash_all_right": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tout {count} kat yo byen li.",
+        "countPlural=other": "Tout {count} kat yo byen li."
+      }
+    }
+  ],
+  "music_drills_reading_flash_answer_mic": "jwe l devan mikwo a",
+  "music_drills_reading_flash_answer_name": "di non li",
+  "music_drills_reading_flash_answer_play": "jwe l",
+  "music_drills_reading_flash_blurb": "Li nòt ki sou pòte a, epi di non li oswa jwe l.",
+  "music_drills_reading_flash_clean": "tout kat yo bon",
+  "music_drills_reading_flash_crossed_clefs": "kle kwaze",
+  "music_drills_reading_flash_cue_name": "Di non nòt ou wè a",
+  "music_drills_reading_flash_cue_play": "Jwe nòt ou wè a",
+  "music_drills_reading_flash_hint_answer": "Endis: {answer}",
+  "music_drills_reading_flash_hint_button": "Endis: montre non an",
+  "music_drills_reading_flash_it_was": "Se te {name}.",
+  "music_drills_reading_flash_kind_notes": "nòt poukont yo",
+  "music_drills_reading_flash_kind_notes_acc": "nòt poukont yo ak altèrasyon",
+  "music_drills_reading_flash_kind_satb": "akò kat vwa",
+  "music_drills_reading_flash_kind_triads": "triyad",
+  "music_drills_reading_flash_metric": "byen li",
+  "music_drills_reading_flash_mic_prompt": "Jwe nòt la sou {instrument} ou. Mikwo a ap koute.",
+  "music_drills_reading_flash_mode_check": "Pa gen endis. Sa konte nan pwen konpetans ou.",
+  "music_drills_reading_flash_mode_practice": "Endis yo parèt. Seri san fot fè ou avanse.",
+  "music_drills_reading_flash_names_label": "Non nòt yo",
+  "music_drills_reading_flash_next_card": "Pwochen kat",
+  "music_drills_reading_flash_range": "{low} rive {high}",
+  "music_drills_reading_flash_right": "Bon: {answer}.",
+  "music_drills_reading_flash_row_bass": "Kle fa",
+  "music_drills_reading_flash_row_treble": "Kle sòl",
+  "music_drills_reading_flash_sample": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Yon kat egzanp. Yon seri gen {count} kat.",
+        "countPlural=other": "Yon kat egzanp. Yon seri gen {count} kat."
+      }
+    }
+  ],
+  "music_drills_reading_flash_some_right": "{right} sou {total} byen li. Ou rate: {missed}.",
+  "music_drills_reading_flash_stat_card": "Kat",
+  "music_drills_reading_flash_stat_right": "Bon jiskaprezan",
+  "music_drills_reading_flash_status_name": "Kat {n} sou {total}. Di non li.",
+  "music_drills_reading_flash_status_play": "Kat {n} sou {total}. Jwe l.",
+  "music_drills_reading_flash_title": "Li nòt",
+  "music_drills_reading_flash_wrong_answered": "Ou reponn {name}. Se te {expected}.",
+  "music_drills_reading_flash_wrong_played": "Ou jwe {name}. Se te {expected}.",
+  "music_drills_reading_flash_you_answered": "Ou reponn {name}.",
+  "music_drills_reading_flash_you_played": "Ou jwe {name}.",
+  "music_drills_reading_flashcard_title": "Kat",
+  "music_drills_reading_follower_performance": "Kenbe tempo a",
+  "music_drills_reading_follower_tap": "Frape ritm lan",
+  "music_drills_reading_follower_wait": "Tann mwen",
+  "music_drills_reading_fretboard_label": "Manch {instrument}",
+  "music_drills_reading_hand_both": "De men",
+  "music_drills_reading_hand_left": "Men gòch",
+  "music_drills_reading_hand_right": "Men dwat",
+  "music_drills_reading_instrument_aerophone": "Aerophone",
+  "music_drills_reading_instrument_guitar": "gita",
+  "music_drills_reading_instrument_piano": "pyano",
+  "music_drills_reading_instrument_ukulele": "ukulele",
+  "music_drills_reading_key_major": "{note} majè",
+  "music_drills_reading_key_minor": "{note} minè",
+  "music_drills_reading_level_clause": "nivo {level}",
+  "music_drills_reading_mic_error": "Mikwo a pa t ka demare. Otorize l nan navigatè a, epi peze Kòmanse.",
+  "music_drills_reading_mode_perf_check": "{name}: anyen pa limen. Seri sa a konte.",
+  "music_drills_reading_mode_perf_practice": "{name}: nòt yo limen, kidonk sa pa konte.",
+  "music_drills_reading_mode_tap_check": "{name}: pa gen endis. Seri sa a konte.",
+  "music_drills_reading_mode_tap_practice": "{name}: endis yo parèt, kidonk sa pa konte.",
+  "music_drills_reading_mode_wait_check": "{name}: anyen pa limen, men li tann, kidonk sa pa konte.",
+  "music_drills_reading_mode_wait_practice": "{name}: nòt yo limen, kisè a tann. Pratik sèlman.",
+  "music_drills_reading_no_pitch": "Poko gen nòt",
+  "music_drills_reading_off": "Non",
+  "music_drills_reading_on": "Wi",
+  "music_drills_reading_page_title_flashcards": "Li nòt | Woodshed",
+  "music_drills_reading_page_title_sight": "Li a premye vi | Woodshed",
+  "music_drills_reading_piano_label": "Klavye pyano, {low} rive {high}",
+  "music_drills_reading_position_fifth": "Senkyèm",
+  "music_drills_reading_position_fifth_clause": "senkyèm pozisyon",
+  "music_drills_reading_position_open": "Ouvè",
+  "music_drills_reading_position_open_clause": "pozisyon ouvè",
+  "music_drills_reading_position_second": "Dezyèm",
+  "music_drills_reading_position_second_clause": "dezyèm pozisyon",
+  "music_drills_reading_position_up": "Pi wo sou manch lan",
+  "music_drills_reading_position_up_clause": "pozisyon wo sou manch lan",
+  "music_drills_reading_retry_missed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Ankò: nòt ou rate yo ({count})",
+        "countPlural=other": "Ankò: nòt ou rate yo ({count})"
+      }
+    }
+  ],
+  "music_drills_reading_see_results": "Wè rezilta yo",
+  "music_drills_reading_setup_30s": "30 segonn",
+  "music_drills_reading_setup_30s_hint": "Kòmanse ap louvri apre 30 segonn: chèche tonalite a, mezi a ak mezi ki pi difisil la, epi chantonnen mezi 1.",
+  "music_drills_reading_setup_accidentals": "Altèrasyon",
+  "music_drills_reading_setup_accidentals_off_hint": "Nòt tonalite a sèlman.",
+  "music_drills_reading_setup_accidentals_on_hint": "Dyèz, bemòl ak bekar anplis nòt tonalite a.",
+  "music_drills_reading_setup_answer": "Reponn pa",
+  "music_drills_reading_setup_answer_name": "Bay non li",
+  "music_drills_reading_setup_answer_play": "Jwe li",
+  "music_drills_reading_setup_bars": "Mezi",
+  "music_drills_reading_setup_beats": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tan",
+        "countPlural=other": "{count} tan"
+      }
+    }
+  ],
+  "music_drills_reading_setup_card": "Kat",
+  "music_drills_reading_setup_card_note": "Yon sèl nòt",
+  "music_drills_reading_setup_card_satb": "Akò kat vwa",
+  "music_drills_reading_setup_card_satb_hint": "Yon akò ki louvri tankou yon koral sou de pòte yo, ki rele dapre triyad li.",
+  "music_drills_reading_setup_card_triad": "Triyad",
+  "music_drills_reading_setup_clef_bass": "Fa",
+  "music_drills_reading_setup_clef_both": "Toude",
+  "music_drills_reading_setup_clef_crossed": "Kwaze",
+  "music_drills_reading_setup_clef_crossed_hint": "Nòt mitan yo sou nenpòt kle: men gòch li kle sòl, men dwat li kle fa.",
+  "music_drills_reading_setup_clef_treble": "Sòl",
+  "music_drills_reading_setup_clefs": "Kle",
+  "music_drills_reading_setup_climb_note": "Monte a swiv tempo a, kat mezi pa fraz, apati nivo {rung} sou {total} ({label}). {pass}% oswa plis fè ou monte yon nivo, mwens se yon fot, epi {strikes} fot fini li.",
+  "music_drills_reading_setup_frets_hint": "Frèt {from} rive {to}.",
+  "music_drills_reading_setup_highest": "Nòt ki pi wo",
+  "music_drills_reading_setup_key": "Tonalite",
+  "music_drills_reading_setup_kick": "Liy kick",
+  "music_drills_reading_setup_kick_hint": "Yon kick sou chak nwa anba ritm lan: yon pad kick (MIDI 36) oswa bouton Kick la. Toude gen pwen.",
+  "music_drills_reading_setup_kick_on": "Kick sou chak tan",
+  "music_drills_reading_setup_level": "Nivo",
+  "music_drills_reading_setup_level_hint": "{description} Ritm: {rhythm}.",
+  "music_drills_reading_setup_levels_own": "Pa nivo a",
+  "music_drills_reading_setup_look_ahead": "Gade devan",
+  "music_drills_reading_setup_look_first": "Gade anvan",
+  "music_drills_reading_setup_lowest": "Nòt ki pi ba",
+  "music_drills_reading_setup_mask2_hint": "Nòt ou jwe yo kache, epi se 2 pwochen tan yo sèlman ki parèt, konsa je ou rete devan men ou.",
+  "music_drills_reading_setup_mask4_hint": "Nòt ou jwe yo kache, epi se 4 pwochen tan yo sèlman ki parèt.",
+  "music_drills_reading_setup_meter": "Mezi",
+  "music_drills_reading_setup_mic": "Mikwo",
+  "music_drills_reading_setup_mic_off_hint": "Reponn sou ekran an oswa pa MIDI.",
+  "music_drills_reading_setup_mic_on_hint": "Jwe enstriman ou devan mikwo a.",
+  "music_drills_reading_setup_normal": "Nòmal",
+  "music_drills_reading_setup_pace": "Vitès",
+  "music_drills_reading_setup_perf_hint": "Kisè a avanse ak klik la. Yo bay pwen pou presizyon ritm ou.",
+  "music_drills_reading_setup_position": "Pozisyon",
+  "music_drills_reading_setup_relaxed": "Lejè",
+  "music_drills_reading_setup_relaxed_hint": "Yon nòt ki yon ti jan bonè oswa an reta toujou konte kòm a lè.",
+  "music_drills_reading_setup_run": "Seri",
+  "music_drills_reading_setup_run_climb": "Monte nivo yo",
+  "music_drills_reading_setup_run_one": "Yon fraz",
+  "music_drills_reading_setup_strict": "Sevè",
+  "music_drills_reading_setup_strict_hint": "Se sèlman yon nòt ki pre tan an ki konte kòm a lè.",
+  "music_drills_reading_setup_tap_hint": "Make tan an ak nenpòt touch, bouton Frape a oswa Espas. Se ritm lan sèlman ki gen pwen.",
+  "music_drills_reading_setup_tempo_note": "Regle tempo a nan ba anwo a (40 rive 200 BPM).",
+  "music_drills_reading_setup_timing": "Presizyon",
+  "music_drills_reading_setup_wait_hint": "Kisè a tann jiskaske ou jwe bon nòt yo. Se ak gid, kidonk li pa janm chanje pwen konpetans ou.",
+  "music_drills_reading_sight_at_bpm": "{follower} a {bpm} BPM, {timing}",
+  "music_drills_reading_sight_at_bpm_swung": "{follower} a {bpm} BPM, ak swing, {timing}",
+  "music_drills_reading_sight_bars_of": [
+    {
+      "declarations": ["input count", "input meter", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi {meter}",
+        "countPlural=other": "{count} mezi {meter}"
+      }
+    }
+  ],
+  "music_drills_reading_sight_beats_ahead": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tan devan",
+        "countPlural=other": "{count} tan devan"
+      }
+    }
+  ],
+  "music_drills_reading_sight_blurb": "Li yon ti fraz epi jwe l, nan pwòp vitès ou oswa a lè ak klik la.",
+  "music_drills_reading_sight_by_mic": "{instrument} ak mikwo",
+  "music_drills_reading_sight_clean_perf": "tout nòt yo bon epi a lè",
+  "music_drills_reading_sight_clean_wait": "tout nòt yo bon depi premye fwa",
+  "music_drills_reading_sight_climb_again": "Monte ankò",
+  "music_drills_reading_sight_climb_from": "Monte nivo apati {level}",
+  "music_drills_reading_sight_climb_out": "Twa fot. Ou rive nan {label}, nivo {n} sou {total}.",
+  "music_drills_reading_sight_climb_out_low": "Twa fot sou {here}. Kòmanse monte a yon nivo pi ba, oswa ralanti tempo a.",
+  "music_drills_reading_sight_climb_strike": "{pct} sou {here}: fot {strikes} sou {max}. Yon nouvo fraz nan menm nivo a.",
+  "music_drills_reading_sight_climb_top": "Ou pase nivo ki pi wo a, {here}. Pa gen anyen pi wo pou monte.",
+  "music_drills_reading_sight_climb_up": "{pct} sou {here}: ou monte yon nivo, nan {label}.",
+  "music_drills_reading_sight_cue_click": "Jwe a lè ak klik la",
+  "music_drills_reading_sight_cue_group": "Jwe nòt oswa akò {n} sou {total}",
+  "music_drills_reading_sight_cue_note": "Jwe nòt {n} sou {total}",
+  "music_drills_reading_sight_cue_tap": "Frape ritm lan",
+  "music_drills_reading_sight_demo": "Demonstrasyon ap jwe, san pwen.",
+  "music_drills_reading_sight_every_beat": "chak tan",
+  "music_drills_reading_sight_figure_label": "Fraz la, chak nòt make",
+  "music_drills_reading_sight_go": "Ale.",
+  "music_drills_reading_sight_hide_tab": "Kache tablati a",
+  "music_drills_reading_sight_kick": "Kick",
+  "music_drills_reading_sight_kick_clause": "kick sou chak tan",
+  "music_drills_reading_sight_kick_pad_note": "Yon pad kick (MIDI 36) konte tou.",
+  "music_drills_reading_sight_loaded_groups": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Nòt oswa akò ou rate a chaje. Peze Kòmanse.",
+        "countPlural=other": "{count} nòt ak akò ou rate yo chaje. Peze Kòmanse."
+      }
+    }
+  ],
+  "music_drills_reading_sight_loaded_notes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Nòt ou rate a chaje. Peze Kòmanse.",
+        "countPlural=other": "{count} nòt ou rate yo chaje. Peze Kòmanse."
+      }
+    }
+  ],
+  "music_drills_reading_sight_look_block": "Gade anvan, {secs} s: chèche tonalite a, mezi a ak mezi ki pi difisil la, epi chantonnen mezi 1.",
+  "music_drills_reading_sight_metric_first": "bon depi premye fwa",
+  "music_drills_reading_sight_metric_score": "pwen",
+  "music_drills_reading_sight_mic_note": "Mikwo a ap koute pandan seri a ap mache. Nòt yo jwenn pwen dapre non yo, nan nenpòt oktav.",
+  "music_drills_reading_sight_ms": "{ms} ms",
+  "music_drills_reading_sight_new_phrase": "Nouvo fraz",
+  "music_drills_reading_sight_new_phrase_status": "Yon nouvo fraz.",
+  "music_drills_reading_sight_next_phrase": "Pwochen fraz",
+  "music_drills_reading_sight_or_space": "oswa Espas",
+  "music_drills_reading_sight_paused": "An poz.",
+  "music_drills_reading_sight_perf_clean": "Li epi jwe a lè: {matched} sou {expected} nòt.",
+  "music_drills_reading_sight_perf_some": "{matched} sou {expected} nòt, {onTime} a lè.",
+  "music_drills_reading_sight_perf_some_extra": "{matched} sou {expected} nòt, {onTime} a lè, {extra} an plis.",
+  "music_drills_reading_sight_row_best": "Pi bon nivo sou enstriman sa a",
+  "music_drills_reading_sight_row_best_text": "{n}, {label}",
+  "music_drills_reading_sight_row_climb": "Monte",
+  "music_drills_reading_sight_row_climb_text": [
+    {
+      "declarations": [
+        "input phrases",
+        "input max",
+        "input rung",
+        "input strikes",
+        "input total",
+        "local phrasesPlural = phrases: plural"
+      ],
+      "selectors": ["phrasesPlural"],
+      "match": {
+        "phrasesPlural=one": "nivo {rung} sou {total}, {strikes} fot sou {max}, {phrases} fraz",
+        "phrasesPlural=other": "nivo {rung} sou {total}, {strikes} fot sou {max}, {phrases} fraz"
+      }
+    }
+  ],
+  "music_drills_reading_sight_row_extra": "Nòt an plis",
+  "music_drills_reading_sight_row_first_groups": "Nòt ak akò bon depi premye fwa",
+  "music_drills_reading_sight_row_first_notes": "Nòt bon depi premye fwa",
+  "music_drills_reading_sight_row_kick": "Kick sou chak tan",
+  "music_drills_reading_sight_row_kick_text": "{matched} sou {expected}, {onTime} a lè",
+  "music_drills_reading_sight_row_matched": "Nòt ki koresponn",
+  "music_drills_reading_sight_row_mean_error": "Mwayèn ekat",
+  "music_drills_reading_sight_row_on_time": "A lè",
+  "music_drills_reading_sight_row_on_time_text": "{onTime} a lè, {early} bonè, {late} an reta",
+  "music_drills_reading_sight_row_timing": "Presizyon",
+  "music_drills_reading_sight_row_timing_text": "Pa gen pwen nan {name}. Limen klik la pou jwenn pwen pou presizyon.",
+  "music_drills_reading_sight_row_wrong": "Move nòt",
+  "music_drills_reading_sight_show_tab": "Montre tablati a",
+  "music_drills_reading_sight_stat_first": "Premye",
+  "music_drills_reading_sight_stat_level": "Nivo",
+  "music_drills_reading_sight_stat_next": "Pwochen",
+  "music_drills_reading_sight_stat_now": "Kounye a",
+  "music_drills_reading_sight_stat_strikes": "Fot",
+  "music_drills_reading_sight_status_tap": "Frape ritm lan: nenpòt touch, bouton Frape a oswa Espas.",
+  "music_drills_reading_sight_status_tap_kick": "Frape ritm lan: nenpòt touch, bouton Frape a oswa Espas. Kick sou chak tan: yon pad kick oswa bouton Kick la.",
+  "music_drills_reading_sight_status_wait": "Jwe sa kisè a montre. Li tann ou.",
+  "music_drills_reading_sight_stopped": "Kanpe. Anyen pa anrejistre.",
+  "music_drills_reading_sight_tab_hidden": "Tablati a rete kache pou ou li pòte a.",
+  "music_drills_reading_sight_tap": "Frape",
+  "music_drills_reading_sight_tap_note": "Nenpòt touch oswa pad MIDI konte tou. Se ritm lan sèlman ki gen pwen.",
+  "music_drills_reading_sight_tapping": "ap frape ritm lan",
+  "music_drills_reading_sight_timing_normal": "presizyon nòmal",
+  "music_drills_reading_sight_timing_relaxed": "presizyon lejè",
+  "music_drills_reading_sight_timing_strict": "presizyon sevè",
+  "music_drills_reading_sight_title": "Li a premye vi",
+  "music_drills_reading_step_note": "Nòt",
+  "music_drills_reading_step_note_or_chord": "Nòt oswa akò",
+  "music_drills_reading_step_notes": "nòt",
+  "music_drills_reading_step_notes_and_chords": "nòt ak akò",
+  "music_drills_reading_stopped_saved": "Kanpe. Repons ou yo anrejistre.",
+  "music_drills_reading_tab_flashcards": "Kat",
+  "music_drills_reading_tab_sight": "Li a premye vi",
+  "music_drills_reading_wait_all_groups": [
+    {
+      "declarations": ["input total", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "Tout {total} nòt ak akò yo bon depi premye fwa.",
+        "totalPlural=other": "Tout {total} nòt ak akò yo bon depi premye fwa."
+      }
+    }
+  ],
+  "music_drills_reading_wait_all_notes": [
+    {
+      "declarations": ["input total", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "Tout {total} nòt yo bon depi premye fwa.",
+        "totalPlural=other": "Tout {total} nòt yo bon depi premye fwa."
+      }
+    }
+  ],
+  "music_drills_reading_wait_some_groups": [
+    {
+      "declarations": [
+        "input wrong",
+        "input clean",
+        "input total",
+        "local wrongPlural = wrong: plural"
+      ],
+      "selectors": ["wrongPlural"],
+      "match": {
+        "wrongPlural=one": "{clean} sou {total} nòt ak akò bon depi premye fwa, ak {wrong} move nòt sou wout la.",
+        "wrongPlural=other": "{clean} sou {total} nòt ak akò bon depi premye fwa, ak {wrong} move nòt sou wout la."
+      }
+    }
+  ],
+  "music_drills_reading_wait_some_notes": [
+    {
+      "declarations": [
+        "input wrong",
+        "input clean",
+        "input total",
+        "local wrongPlural = wrong: plural"
+      ],
+      "selectors": ["wrongPlural"],
+      "match": {
+        "wrongPlural=one": "{clean} sou {total} nòt bon depi premye fwa, ak {wrong} move nòt sou wout la.",
+        "wrongPlural=other": "{clean} sou {total} nòt bon depi premye fwa, ak {wrong} move nòt sou wout la."
+      }
+    }
+  ],
+  "music_drills_reading_x_of_y": "{n} sou {total}",
+  "music_drills_rhythm_answers": "Repons",
+  "music_drills_rhythm_back_today": "Retounen nan Jodi a",
+  "music_drills_rhythm_bar": "Mezi {n}",
+  "music_drills_rhythm_bars": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi",
+        "countPlural=other": "{count} mezi"
+      }
+    }
+  ],
+  "music_drills_rhythm_beat_n": "Tan {n}",
+  "music_drills_rhythm_beat_word": "tan",
+  "music_drills_rhythm_blurb_dictation": "Tande yon ritm sou klik la, epi make kote chak nòt te tonbe.",
+  "music_drills_rhythm_blurb_echo": "Tande yon ritm sou klik la, epi frape l ankò nan mezi ki vin apre yo.",
+  "music_drills_rhythm_blurb_groove": "Tande yon groove batri sou klik la, epi mete kick, caisse claire ak hi-hat li yo sou griy la.",
+  "music_drills_rhythm_blurb_pulse": "Frape tan an avèk klik la. W ap wè si w devan, dèyè oswa nan mitan.",
+  "music_drills_rhythm_blurb_read": "Li ritm nan epi frape l. Pòz yo fè pati mizik la: yon frap nan yon pòz koute pwen.",
+  "music_drills_rhythm_cell_no_note": "pa gen nòt",
+  "music_drills_rhythm_cell_note": "yon nòt",
+  "music_drills_rhythm_check_groove": "Verifye groove mwen",
+  "music_drills_rhythm_check_note": "San endis. Li konte nan pwen konpetans ou.",
+  "music_drills_rhythm_check_rhythm": "Verifye ritm mwen",
+  "music_drills_rhythm_chip_missed": "Rate",
+  "music_drills_rhythm_chip_offset": "{offset}, {verdict}",
+  "music_drills_rhythm_chord_held": "{chord} kenbe",
+  "music_drills_rhythm_chord_missed": "{chord} rate",
+  "music_drills_rhythm_chords_no_pitch": "Ritm sèlman: pa t gen okenn wotè nòt ki tande",
+  "music_drills_rhythm_clean_dict_hits": "chak kou byen ekri, anyen anplis",
+  "music_drills_rhythm_clean_dict_notes": "chak nòt byen ekri, anyen anplis",
+  "music_drills_rhythm_clean_score": "yon pwen 85% oswa plis",
+  "music_drills_rhythm_clean_timing": "yon pwen presizyon ritm 85% oswa plis",
+  "music_drills_rhythm_clear": "Efase",
+  "music_drills_rhythm_compare_heard": "Tande",
+  "music_drills_rhythm_compare_label": "Sa w tande ak sa w ekri, kaz pa kaz",
+  "music_drills_rhythm_compare_row_heard": "{drum} tande",
+  "music_drills_rhythm_compare_title": "Sa w te tande, ak sa w te ekri",
+  "music_drills_rhythm_compare_you_wrote": "Sa w ekri",
+  "music_drills_rhythm_cue_countin": "Konte: jwe sou pwochen 1 an",
+  "music_drills_rhythm_cue_mark_hits": "Make chak kou, epi verifye",
+  "music_drills_rhythm_cue_mark_notes": "Make chak nòt, epi verifye",
+  "music_drills_rhythm_demo_playing": "Demonstrasyon an ap jwe, san pwen. Modèl la limen pandan l ap sonnen.",
+  "music_drills_rhythm_dict_all_hits": "Tout {count} kou yo byen ekri.",
+  "music_drills_rhythm_dict_all_notes": "Tout {count} nòt yo byen ekri.",
+  "music_drills_rhythm_dict_empty": "Make nòt ou te tande yo sou griy la anvan.",
+  "music_drills_rhythm_dict_right_hits": "{right} kou sou {total} bon.",
+  "music_drills_rhythm_dict_right_hits_extra": "{right} kou sou {total} bon, {extra} anplis.",
+  "music_drills_rhythm_dict_right_notes": "{right} nòt sou {total} bon.",
+  "music_drills_rhythm_dict_right_notes_extra": "{right} nòt sou {total} bon, {extra} anplis.",
+  "music_drills_rhythm_dir_early": "{ms} ms twò bonè",
+  "music_drills_rhythm_dir_late": "{ms} ms an reta",
+  "music_drills_rhythm_dir_on": "sou klik la ({offset})",
+  "music_drills_rhythm_early": "Twò bonè",
+  "music_drills_rhythm_every_beat_title": "Chak tan, an ms parapò ak klik la",
+  "music_drills_rhythm_every_hit": "Chak frap",
+  "music_drills_rhythm_every_note_key": "+ vle di an reta, − vle di twò bonè. Nan {pocket} ms, li konte a tan.",
+  "music_drills_rhythm_every_note_title": "Chak nòt, an ms parapò ak klik la",
+  "music_drills_rhythm_extra_or_rest": "Anplis oswa nan yon pòz",
+  "music_drills_rhythm_feel_ask": "{n} sou {total}. Dwat, swing, shuffle oswa 12/8?",
+  "music_drills_rhythm_feel_blurb": "Tande yon groove epi di ki feeling li genyen: dwat, swing, shuffle oswa 12/8.",
+  "music_drills_rhythm_feel_clean_means": "{pass} sou {total} bon oswa plis",
+  "music_drills_rhythm_feel_cue": "Di ki feeling ou tande",
+  "music_drills_rhythm_feel_ear_title": "Zòrèy",
+  "music_drills_rhythm_feel_groove_n": "Groove {n}",
+  "music_drills_rhythm_feel_grooves": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} groove",
+        "countPlural=other": "{count} groove"
+      }
+    }
+  ],
+  "music_drills_rhythm_feel_head_title": "Feeling ritm | Woodshed",
+  "music_drills_rhythm_feel_headline_fail": "{n} sou {total} bon. Yon seri pwòp mande {pass}.",
+  "music_drills_rhythm_feel_headline_pass": "{n} sou {total}: ou tande feeling la.",
+  "music_drills_rhythm_feel_heard_as": "{feel} ou tande kòm",
+  "music_drills_rhythm_feel_intro": "Dwat, swing, shuffle, 12/8",
+  "music_drills_rhythm_feel_pass_clean": "{pass} bon pou yon seri pwòp",
+  "music_drills_rhythm_feel_question": "Ki feeling li ye?",
+  "music_drills_rhythm_feel_reveal_right": "Bon: {feel}, {groove} a {bpm} BPM.",
+  "music_drills_rhythm_feel_reveal_wrong": "Pa egzakteman: {feel}, {groove} a {bpm} BPM.",
+  "music_drills_rhythm_feel_right_status": "Bon: {feel}. {hint}",
+  "music_drills_rhythm_feel_stat_groove": "Groove",
+  "music_drills_rhythm_feel_stopped": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Kanpe apre {count} repons.",
+        "countPlural=other": "Kanpe apre {count} repons."
+      }
+    }
+  ],
+  "music_drills_rhythm_feel_wrong_status": "Se te {feel}: {hint}",
+  "music_drills_rhythm_fig_echo_caption": "Ritm ou te tande a, ak frap ou yo",
+  "music_drills_rhythm_fig_echo_label": "{pattern}, {count} nòt, chak frap make anba l",
+  "music_drills_rhythm_fig_notation_label": "{pattern}, chak nòt make: vèt a tan oswa prèske, wouj rate",
+  "music_drills_rhythm_grid_cell": "Mezi {bar}, {count} {beat}",
+  "music_drills_rhythm_grid_cell_drum": "{drum}, mezi {bar}, {count} {beat}",
+  "music_drills_rhythm_grid_cell_state": "{label}, {state}",
+  "music_drills_rhythm_grid_label_faint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi, ritm nan desine lejè pandan l ap tande",
+        "countPlural=other": "{count} mezi, ritm nan desine lejè pandan l ap tande"
+      }
+    }
+  ],
+  "music_drills_rhythm_grid_label_hidden": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi, modèl la kache jiska lafen",
+        "countPlural=other": "{count} mezi, modèl la kache jiska lafen"
+      }
+    }
+  ],
+  "music_drills_rhythm_grid_label_pattern": "{pattern}, {bars} mezi, {notes} nòt ak {rests} pòz",
+  "music_drills_rhythm_grid_label_pulse": "{count} tan nwa",
+  "music_drills_rhythm_group_rhythms": "Ritm",
+  "music_drills_rhythm_group_strums_guitar": "Grate gita",
+  "music_drills_rhythm_group_strums_other": "Grate {instrument}",
+  "music_drills_rhythm_group_strums_ukulele": "Grate ukulele",
+  "music_drills_rhythm_head_title": "Ritm | Woodshed",
+  "music_drills_rhythm_headphones_note": "Sèvi ak kas: klik la nan opalè yo ta konte kòm yon frap.",
+  "music_drills_rhythm_hear_again": "Tande l ankò",
+  "music_drills_rhythm_hit_sr": "{label}: {offset}, {verdict}",
+  "music_drills_rhythm_hit_sr_missed": "{label}: rate",
+  "music_drills_rhythm_landed_all_on_time": "tout a tan",
+  "music_drills_rhythm_landed_beats": [
+    {
+      "declarations": ["input total", "input landed", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{landed} tan sou {total} tonbe.",
+        "totalPlural=other": "{landed} tan sou {total} tonbe."
+      }
+    }
+  ],
+  "music_drills_rhythm_landed_beats_parts": [
+    {
+      "declarations": [
+        "input total",
+        "input landed",
+        "input parts",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{landed} tan sou {total} tonbe, {parts}.",
+        "totalPlural=other": "{landed} tan sou {total} tonbe, {parts}."
+      }
+    }
+  ],
+  "music_drills_rhythm_landed_n_early": "{n} twò bonè",
+  "music_drills_rhythm_landed_n_late": "{n} an reta",
+  "music_drills_rhythm_landed_n_on_time": "{n} a tan",
+  "music_drills_rhythm_landed_notes": [
+    {
+      "declarations": ["input total", "input landed", "local totalPlural = total: plural"],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{landed} nòt sou {total} frape.",
+        "totalPlural=other": "{landed} nòt sou {total} frape."
+      }
+    }
+  ],
+  "music_drills_rhythm_landed_notes_parts": [
+    {
+      "declarations": [
+        "input total",
+        "input landed",
+        "input parts",
+        "local totalPlural = total: plural"
+      ],
+      "selectors": ["totalPlural"],
+      "match": {
+        "totalPlural=one": "{landed} nòt sou {total} frape, {parts}.",
+        "totalPlural=other": "{landed} nòt sou {total} frape, {parts}."
+      }
+    }
+  ],
+  "music_drills_rhythm_landed_on_time_one": "a tan",
+  "music_drills_rhythm_late": "An reta",
+  "music_drills_rhythm_length_bars": [
+    {
+      "declarations": ["input count", "input perBar", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi {perBar} tan",
+        "countPlural=other": "{count} mezi {perBar} tan"
+      }
+    }
+  ],
+  "music_drills_rhythm_length_beats": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tan",
+        "countPlural=other": "{count} tan"
+      }
+    }
+  ],
+  "music_drills_rhythm_level_n": "Nivo {n}",
+  "music_drills_rhythm_listen": "Koute",
+  "music_drills_rhythm_listen_first": "Koute anvan: griy la ouvri lè l fini.",
+  "music_drills_rhythm_metric_right": "bon",
+  "music_drills_rhythm_metric_score": "pwen",
+  "music_drills_rhythm_metric_timing": "presizyon ritm",
+  "music_drills_rhythm_mic_failed": "Mikwo a pa t ka demare. Otorize l nan navigatè a, epi peze Kòmanse.",
+  "music_drills_rhythm_mic_off_hint": "Frap, touch MIDI ak pad yo konte.",
+  "music_drills_rhythm_mic_on_hint": "Bat men ak nòt mikwo a tande konte tou.",
+  "music_drills_rhythm_midi_count": "Touch MIDI ak pad yo konte tou.",
+  "music_drills_rhythm_midi_count_mic": "Touch MIDI ak pad yo konte tou, ak mikwo a.",
+  "music_drills_rhythm_missed": "Rate",
+  "music_drills_rhythm_next": "Pwochen",
+  "music_drills_rhythm_notation_label": [
+    {
+      "declarations": [
+        "input count",
+        "input notes",
+        "input pattern",
+        "input rests",
+        "local countPlural = count: plural"
+      ],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{pattern} an notasyon ritm, {count} mezi, {notes} nòt ak {rests} pòz",
+        "countPlural=other": "{pattern} an notasyon ritm, {count} mezi, {notes} nòt ak {rests} pòz"
+      }
+    }
+  ],
+  "music_drills_rhythm_notation_stopped": "motè ki desine patisyon an kanpe ({error})",
+  "music_drills_rhythm_notation_swing": "Swing: kwòch yo ekri egal, men yo jwe yo long-kout.",
+  "music_drills_rhythm_notation_title": "Yon pòtè ritm: yon sèl liy, san wotè nòt. De ba ki nan kòmansman an make l.",
+  "music_drills_rhythm_note_n": "Nòt {n}",
+  "music_drills_rhythm_note_n_stroke": "Nòt {n}, {stroke}",
+  "music_drills_rhythm_of": "{n} sou {total}",
+  "music_drills_rhythm_off": "Etenn",
+  "music_drills_rhythm_off_early": "{label} twò bonè {ms} ms",
+  "music_drills_rhythm_off_late": "{label} an reta {ms} ms",
+  "music_drills_rhythm_off_list": "{list}. Bann nan se a tan, nan {pocket} ms.",
+  "music_drills_rhythm_off_missed": "{label} rate",
+  "music_drills_rhythm_off_none": "Chak tan nan {pocket} ms klik la.",
+  "music_drills_rhythm_on": "Limen",
+  "music_drills_rhythm_on_time": "A tan",
+  "music_drills_rhythm_or_space": "oswa Espas",
+  "music_drills_rhythm_pads_label": "Pad: nenpòt pad se yon frap",
+  "music_drills_rhythm_pads_note": "Nenpòt pad konte, sou MPC a oswa isit la. Espas tou.",
+  "music_drills_rhythm_pads_note_mic": "Nenpòt pad konte, sou MPC a oswa isit la, ak mikwo a. Espas tou.",
+  "music_drills_rhythm_pattern_slips": "{landed}; {slips}.",
+  "music_drills_rhythm_practice_note_echo": "Frap yo make pandan w ap jwe. Seri pwòp fè w avanse.",
+  "music_drills_rhythm_practice_note_target": "Ritm nan parèt lejè pandan w ap tande l: se yon endis. Etenn li nan Reglaj.",
+  "music_drills_rhythm_practice_note_write": "Tande l ankò nenpòt lè. Seri pwòp fè w avanse.",
+  "music_drills_rhythm_pulse_centred": "{landed} {ms} ms ekar an mwayèn.",
+  "music_drills_rhythm_pulse_dragged": "{landed} Ou te trennen, {ms} ms dèyè klik la an mwayèn: avanse yon ti kras.",
+  "music_drills_rhythm_pulse_no_taps": "Pa gen okenn frap ki tonbe sou tan yo. Peze gwo bouton an, peze Espas, oswa jwe nenpòt touch.",
+  "music_drills_rhythm_pulse_rushed": "{landed} Ou te prese, {ms} ms devan klik la an mwayèn: kite tan an vin jwenn ou.",
+  "music_drills_rhythm_ready_bars": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi sou klik la.",
+        "countPlural=other": "{count} mezi sou klik la."
+      }
+    }
+  ],
+  "music_drills_rhythm_ready_bars_drums": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} mezi batri sou klik la.",
+        "countPlural=other": "{count} mezi batri sou klik la."
+      }
+    }
+  ],
+  "music_drills_rhythm_ready_then_groove": "Apre sa, peze kaz kick, caisse claire ak hi-hat yo kote chak tanbou te frape.",
+  "music_drills_rhythm_ready_then_notes": "Apre sa, peze yon kaz pou chak nòt ou te tande.",
+  "music_drills_rhythm_right": "Bon",
+  "music_drills_rhythm_right_so_far": "Bon jiskaprezan",
+  "music_drills_rhythm_row_beats_hit": "Tan ou frape",
+  "music_drills_rhythm_row_chords": "Akò",
+  "music_drills_rhythm_row_extra_marks": "Mak anplis",
+  "music_drills_rhythm_row_extra_taps": "Frap anplis",
+  "music_drills_rhythm_row_missed_notes": "Nòt ki rate",
+  "music_drills_rhythm_row_needs_two_taps": "Fò gen de frap",
+  "music_drills_rhythm_row_no_taps": "Pa gen frap",
+  "music_drills_rhythm_row_notes_found": "Nòt ou jwenn",
+  "music_drills_rhythm_row_on_average": "An mwayèn",
+  "music_drills_rhythm_row_taps_in_rests": "Frap nan pòz yo",
+  "music_drills_rhythm_row_timing": "Presizyon ritm",
+  "music_drills_rhythm_row_varies_by": "Varyasyon",
+  "music_drills_rhythm_see_results": "Wè rezilta yo",
+  "music_drills_rhythm_setup_grooves": "Groove",
+  "music_drills_rhythm_setup_length": "Longè",
+  "music_drills_rhythm_setup_mic": "Mikwo",
+  "music_drills_rhythm_setup_pattern": "Modèl",
+  "music_drills_rhythm_setup_rhythms": "Ritm",
+  "music_drills_rhythm_setup_target": "Gid",
+  "music_drills_rhythm_slip_extra": "{n} anplis",
+  "music_drills_rhythm_slip_rest": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} frap nan yon pòz",
+        "countPlural=other": "{count} frap nan yon pòz"
+      }
+    }
+  ],
+  "music_drills_rhythm_spread_little_loose": "{ms} ms, yon ti jan lach",
+  "music_drills_rhythm_spread_loose": "{ms} ms, lach",
+  "music_drills_rhythm_spread_tight": "{ms} ms, sere",
+  "music_drills_rhythm_starts_after_countin": "Kòmanse apre konte a.",
+  "music_drills_rhythm_stat_bar": "Mezi",
+  "music_drills_rhythm_stat_now": "Kounye a",
+  "music_drills_rhythm_stat_step": "Etap",
+  "music_drills_rhythm_stat_taps": "Frap",
+  "music_drills_rhythm_status_dictation_listen": "Tande modèl la. Make nòt yo pandan w ap tande yo, oswa lè l fini.",
+  "music_drills_rhythm_status_dictation_write": "Make chak nòt ou te tande sou griy la, epi verifye l.",
+  "music_drills_rhythm_status_echo_listen": "Tande modèl la. Frape l ankò nan mezi ki vin apre yo.",
+  "music_drills_rhythm_status_echo_turn": "Se tou pa w: frape l ankò.",
+  "music_drills_rhythm_status_pulse": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Frape {count} tan avèk klik la.",
+        "countPlural=other": "Frape {count} tan avèk klik la."
+      }
+    }
+  ],
+  "music_drills_rhythm_status_read": "Frape modèl la: {pattern}.",
+  "music_drills_rhythm_step_listen": "1 sou 3: Koute",
+  "music_drills_rhythm_step_write": "2 sou 3: Ekri l",
+  "music_drills_rhythm_stopped": "Kanpe. Anyen pa sove.",
+  "music_drills_rhythm_stroke_down": "anba",
+  "music_drills_rhythm_stroke_mute": "toufe",
+  "music_drills_rhythm_stroke_up": "anwo",
+  "music_drills_rhythm_strum_key": "↓ anba, ↑ anwo, ✕ grate toufe (yon kou san wotè). Akò yo jwenn pwen lè mikwo a oswa MIDI a tande wotè nòt yo.",
+  "music_drills_rhythm_summary_faint_target": "gid lejè",
+  "music_drills_rhythm_summary_mic_on": "mikwo limen",
+  "music_drills_rhythm_tap": "Frape",
+  "music_drills_rhythm_tap_cell_hits": "Peze yon kaz pou chak kou ou te tande.",
+  "music_drills_rhythm_tap_cell_notes": "Peze yon kaz pou chak nòt ou te tande.",
+  "music_drills_rhythm_tap_early_ms": "Twò bonè {ms} ms",
+  "music_drills_rhythm_tap_extra": "Frap anplis",
+  "music_drills_rhythm_tap_in_rest": "Nan yon pòz",
+  "music_drills_rhythm_tap_late_ms": "An reta {ms} ms",
+  "music_drills_rhythm_tapkey_title": "A tan vle di nan 15 ms klik la.",
+  "music_drills_rhythm_target_faint": "Lejè",
+  "music_drills_rhythm_target_faint_hint": "Nan pratik, ritm nan desine lejè pandan w ap tande l. Seri a konte kòm yon seri ak endis.",
+  "music_drills_rhythm_target_off_hint": "Anyen pa desine jiska lafen.",
+  "music_drills_rhythm_tempo_note": "Regle tempo a nan ba anlè a ({min} rive {max} BPM).",
+  "music_drills_rhythm_title": "Ritm",
+  "music_drills_rhythm_triplets_hint": "Nan dikte, triyolè yo pa ladan: griy la pa gen plas pou yo.",
+  "music_drills_rhythm_unheard": "Pa t gen anyen ki tande, kidonk pa gen frap ki make.",
+  "music_drills_rhythm_v_extra": "anplis",
+  "music_drills_rhythm_v_missed": "rate",
+  "music_drills_rhythm_v_nothing": "anyen",
+  "music_drills_rhythm_v_right": "bon",
+  "music_drills_rhythm_word_early": "twò bonè",
+  "music_drills_rhythm_word_late": "an reta",
+  "music_drills_rhythm_word_on_time": "a tan",
+  "music_drills_rhythm_written_marks": "Mak ou yo, kòm nòt (se pa repons lan)",
+  "music_drills_rhythm_written_marks_label": "Ritm ou an notasyon: {count} nòt make",
+  "music_drills_rhythm_written_played": "Sa ki te jwe a, ekri",
+  "music_drills_rhythm_written_played_label": "Sa ki te jwe a, an notasyon ritm: {count} nòt",
+  "music_drills_rhythm_written_ready": "Mak ou yo parèt isit la kòm nòt",
+  "music_drills_rhythm_your_groove": "Groove ou",
+  "music_drills_rhythm_your_rhythm": "Ritm ou",
+  "music_drills_rhythm_your_turn": "Tou pa w",
+  "music_drills_rhythm_your_turn_tap_back": "Se tou pa w: frape l ankò",
   "music_drills_studio_aero_fingerings": "Dwate Aerophone pou liy ki anwo nan vwa ou chwazi yo.",
   "music_drills_studio_after_look": "Apre yon ti gade",
   "music_drills_studio_again": "Ankò",
@@ -1420,13 +2366,8 @@
   "music_drills_studio_bar_n": "mezi {n}",
   "music_drills_studio_bars_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} mezi",
         "countPlural=other": "{count} mezi"
@@ -1438,13 +2379,8 @@
   "music_drills_studio_best_take": "Pi bon pran",
   "music_drills_studio_breaths_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} mak respirasyon",
         "countPlural=other": "{count} mak respirasyon"
@@ -1462,9 +2398,7 @@
         "input tap",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{head}.{tap} Kont anvan: {count} mezi.",
         "countPlural=other": "{head}.{tap} Kont anvan: {count} mezi."
@@ -1483,9 +2417,7 @@
         "input total",
         "local wrongPlural = wrong: plural"
       ],
-      "selectors": [
-        "wrongPlural"
-      ],
+      "selectors": ["wrongPlural"],
       "match": {
         "wrongPlural=one": "{clean} nòt oswa akò sou {total} bon premye fwa, {wrong} move nòt",
         "wrongPlural=other": "{clean} nòt oswa akò sou {total} bon premye fwa, {wrong} move nòt"
@@ -1503,9 +2435,7 @@
         "input hits",
         "local barsPlural = bars: plural"
       ],
-      "selectors": [
-        "barsPlural"
-      ],
+      "selectors": ["barsPlural"],
       "match": {
         "barsPlural=one": "Pati batri: {drums}. {hits} kout sou {bars} mezi",
         "barsPlural=other": "Pati batri: {drums}. {hits} kout sou {bars} mezi"
@@ -1521,13 +2451,8 @@
   "music_drills_studio_dynamics_breaths": "Nyans ak respirasyon",
   "music_drills_studio_dynamics_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nyans",
         "countPlural=other": "{count} nyans"
@@ -1595,13 +2520,8 @@
   "music_drills_studio_ears_steps": "Etap",
   "music_drills_studio_ears_stopped": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Kanpe apre {count} repons.",
         "countPlural=other": "Kanpe apre {count} repons."
@@ -1636,13 +2556,8 @@
   "music_drills_studio_few_notes": "kèk nòt",
   "music_drills_studio_fit_folded": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} nòt deplase yon oktav",
         "countPlural=other": "{count} nòt deplase yon oktav"
@@ -1652,13 +2567,8 @@
   "music_drills_studio_fit_instrument": "Adapte l ak enstriman an",
   "music_drills_studio_fit_moved_down": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Desann yon oktav",
         "countPlural=other": "Desann {count} oktav"
@@ -1667,13 +2577,8 @@
   ],
   "music_drills_studio_fit_moved_up": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Monte yon oktav",
         "countPlural=other": "Monte {count} oktav"
@@ -1688,13 +2593,8 @@
   "music_drills_studio_go": "Ale!",
   "music_drills_studio_hairpins_count": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} siy kresendo",
         "countPlural=other": "{count} siy kresendo"
@@ -1713,13 +2613,8 @@
   "music_drills_studio_hint_marks": "Chante a make {marks}. Yo parèt sou pòtè a.",
   "music_drills_studio_hint_memory_bars": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Premye mezi a kache pandan seri a. Yon pran a 90% kache youn anplis.",
         "countPlural=other": "{count} premye mezi yo kache pandan seri a. Yon pran a 90% kache youn anplis."
@@ -1753,9 +2648,7 @@
         "input played",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{played} sou {bars}, pi long erè {beats} tan",
         "countPlural=other": "{played} sou {bars}, pi long erè {beats} tan"
@@ -1884,13 +2777,8 @@
   "music_drills_studio_sum_custom_unset": "pasaj ou chwazi (poko fikse)",
   "music_drills_studio_sum_down": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} demi ton pi ba",
         "countPlural=other": "{count} demi ton pi ba"
@@ -1904,13 +2792,8 @@
   "music_drills_studio_sum_partner": "Woodshed jwe {parts}",
   "music_drills_studio_sum_perf": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Pèfòmans, {count} pran",
         "countPlural=other": "Pèfòmans, {count} pran"
@@ -1919,13 +2802,8 @@
   ],
   "music_drills_studio_sum_sections": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} seksyon",
         "countPlural=other": "{count} seksyon"
@@ -1937,13 +2815,8 @@
   "music_drills_studio_sum_tapping": "w ap tape ritm lan",
   "music_drills_studio_sum_up": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} demi ton pi wo",
         "countPlural=other": "{count} demi ton pi wo"
@@ -1983,9 +2856,7 @@
         "input total",
         "local wrongPlural = wrong: plural"
       ],
-      "selectors": [
-        "wrongPlural"
-      ],
+      "selectors": ["wrongPlural"],
       "match": {
         "wrongPlural=one": "{clean} sou {total} bon premye fwa, {wrong} move nòt.",
         "wrongPlural=other": "{clean} sou {total} bon premye fwa, {wrong} move nòt."
@@ -1993,5 +2864,139 @@
     }
   ],
   "music_drills_studio_wait_status": "Mòd tann: jwe {range} nan pwòp vitès ou. Woodshed ap tann chak nòt.",
-  "music_drills_studio_whole_song": "Tout chante a"
+  "music_drills_studio_whole_song": "Tout chante a",
+  "music_drills_voicings_and": "{a} ak {b}",
+  "music_drills_voicings_arp_aerophone": "Mòd apèj: Aerophone lan jwe yon sèl nòt alafwa, kidonk chak voicing jwenn pwen tankou yon apèj. Jwe rasin lan anvan, apre sa lòt nòt yo nan nenpòt lòd.",
+  "music_drills_voicings_arp_voice": "Mòd apèj: vwa ou chante yon sèl nòt alafwa, kidonk chak voicing jwenn pwen tankou yon apèj. Chante rasin lan anvan, apre sa lòt nòt yo nan nenpòt lòd.",
+  "music_drills_voicings_blurb": "Voicing djaz, envèsyon ki pi pre ak kadans nan tout tonalite yo. San kwonomèt: pran tan ou pou jwenn chak akò.",
+  "music_drills_voicings_cell_missed": "✕ Rate {notes}",
+  "music_drills_voicings_cell_now": "kounye a",
+  "music_drills_voicings_cell_right": "✓ bon",
+  "music_drills_voicings_check_guide": "Apati {notes}, jwenn nòt gid {symbol} yo.",
+  "music_drills_voicings_check_hidden": "Tès: voicing la ak endis yo kache.",
+  "music_drills_voicings_check_play": "Jwe {symbol}, rasin lan nan men gòch.",
+  "music_drills_voicings_choice_keys": "Tonalite",
+  "music_drills_voicings_choice_on_tune": "Sou mizik la",
+  "music_drills_voicings_choice_position": "Premye pozisyon",
+  "music_drills_voicings_choice_progression": "Pwogresyon",
+  "music_drills_voicings_choice_tune": "Mizik",
+  "music_drills_voicings_choice_voicing": "Voicing",
+  "music_drills_voicings_chord_by_chord": "Akò pa akò",
+  "music_drills_voicings_chord_chart": "Tablo akò",
+  "music_drills_voicings_clean_means": "tout akò yo bon",
+  "music_drills_voicings_collected": "Nòt ki ranmase: {notes}. Touch sou ekran yo jwe youn alafwa, kidonk nou pa mezire si yo kenbe ansanm.",
+  "music_drills_voicings_cue": "Akò {n} sou {total}: {symbol}",
+  "music_drills_voicings_cue_hidden": "Akò {n} sou {total}: {symbol}, voicing la kache",
+  "music_drills_voicings_demo": "Demo a ap jwe, san pwen: {chords}, chak akò limen lè l sonnen.",
+  "music_drills_voicings_group_of": [
+    {
+      "declarations": ["input count", "input group", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{group} sou {count} tonalite",
+        "countPlural=other": "{group} sou {count} tonalite"
+      }
+    }
+  ],
+  "music_drills_voicings_guide_hint": "Apati {notes}: jwenn 3yèm ak 7yèm {symbol} ki pi pre yo.",
+  "music_drills_voicings_h_all": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tout {count} akò yo bon.",
+        "countPlural=other": "Tout {count} akò yo bon."
+      }
+    }
+  ],
+  "music_drills_voicings_h_all_check": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tout {count} akò yo bon, nan tès.",
+        "countPlural=other": "Tout {count} akò yo bon, nan tès."
+      }
+    }
+  ],
+  "music_drills_voicings_h_some": "{right} sou {total} bon.",
+  "music_drills_voicings_h_worst": "{right} sou {total} bon. Gade {symbol} ankò: {note}.",
+  "music_drills_voicings_hidden_check": "Voicing la kache: touch yo limen sèlman kote ou jwe.",
+  "music_drills_voicings_key_marks": "Mak sou touch yo",
+  "music_drills_voicings_keys_all": "Tout 12",
+  "music_drills_voicings_keys_one": "Youn",
+  "music_drills_voicings_keys_show": "Touch yo montre L pou rasin men gòch la ak R pou men dwat. Pa gen dwate pou voicing yo: sèvi ak sa ki konfòtab pou ou.",
+  "music_drills_voicings_keys_show_jazz": "Touch yo montre L pou men gòch ak R pou men dwat. Pa gen dwate pou voicing yo: sèvi ak sa ki konfòtab pou ou.",
+  "music_drills_voicings_keys_three": "Twa",
+  "music_drills_voicings_kw_blues_in": "Blues an",
+  "music_drills_voicings_kw_dorian_on": "Doryen sou",
+  "music_drills_voicings_kw_key": "Tonalite",
+  "music_drills_voicings_kw_set_from": "Seri apati",
+  "music_drills_voicings_kw_start_key": "Tonalite pou kòmanse",
+  "music_drills_voicings_label_missing": "{symbol}: manke {notes}",
+  "music_drills_voicings_label_right": "{symbol}: bon",
+  "music_drills_voicings_label_wants": "{symbol}: nòt li bezwen yo",
+  "music_drills_voicings_mark_play": "Jwe touch sa a",
+  "music_drills_voicings_mark_right": "Bon nòt",
+  "music_drills_voicings_mark_wrong": "Pa nan akò a",
+  "music_drills_voicings_metric_label": "akò ki bon",
+  "music_drills_voicings_n_of": "{n} sou {total}",
+  "music_drills_voicings_not_played": "pa jwe",
+  "music_drills_voicings_nothing_yet": "anyen pou kounye a",
+  "music_drills_voicings_on_tunes_changes": "Sou akò yon mizik",
+  "music_drills_voicings_piano_label": "Klavye pyano, soti {low} rive {high}. Rasin men gòch la make L, nòt men dwat yo R.",
+  "music_drills_voicings_play": "Jwe {symbol}.",
+  "music_drills_voicings_row_held_arp": "Kenbe ansanm (mòd apèj)",
+  "music_drills_voicings_row_held_screen": "Kenbe ansanm (touch sou ekran)",
+  "music_drills_voicings_row_right_notes": "Bon nòt",
+  "music_drills_voicings_row_right_notes_text": "{n} akò sou {total}",
+  "music_drills_voicings_row_score": "Pwen",
+  "music_drills_voicings_row_scoring": "Pwen",
+  "music_drills_voicings_row_scoring_text": "chak akò jwenn pwen pandan ou te kenbe tout nòt li yo ansanm",
+  "music_drills_voicings_same_in": "Menm bagay la an {key}",
+  "music_drills_voicings_score_played": "Bay pwen pou sa m jwe",
+  "music_drills_voicings_setup_note": "Sou MIDI, chak akò jwenn pwen pandan ou kenbe l, san nòt anplis. Touch sou ekran yo ranmase nòt yo youn apre lòt. Yon enstriman ki jwe yon sèl nòt jwe chak voicing an apèj.",
+  "music_drills_voicings_skipped": "sote",
+  "music_drills_voicings_stat_chord": "Akò",
+  "music_drills_voicings_stat_right": "Bon jiskaprezan",
+  "music_drills_voicings_status_note": "{symbol}: {note}.",
+  "music_drills_voicings_status_right": "{symbol}: bon.",
+  "music_drills_voicings_step_all": "Tout 12 tonalite yo",
+  "music_drills_voicings_step_one": "Yon tonalite",
+  "music_drills_voicings_step_three": "Twa tonalite",
+  "music_drills_voicings_stopped": "Kanpe. Akò ou te fini yo anrejistre. Rès yo pa anrejistre.",
+  "music_drills_voicings_stuck": "Ou bloke sou yon akò:",
+  "music_drills_voicings_summary_all_keys": "tout 12 tonalite yo",
+  "music_drills_voicings_summary_arpeggios": "an apèj",
+  "music_drills_voicings_summary_from": "{label} apati {key}",
+  "music_drills_voicings_summary_from_dorian": "{label} apati {key} doryen",
+  "music_drills_voicings_summary_in": "{label} an {key}",
+  "music_drills_voicings_summary_keys": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tonalite",
+        "countPlural=other": "{count} tonalite"
+      }
+    }
+  ],
+  "music_drills_voicings_summary_position": "kòmanse nan pozisyon {position}",
+  "music_drills_voicings_summary_tune": "{label}: {tune}",
+  "music_drills_voicings_symbol_in": "{symbol} an {group}",
+  "music_drills_voicings_tab_altered": "Altere",
+  "music_drills_voicings_tab_cadence": "Kadans",
+  "music_drills_voicings_tab_cadence_minor": "Kadans minè",
+  "music_drills_voicings_tab_gospel": "Gospel",
+  "music_drills_voicings_tab_inversions": "Akò pi pre",
+  "music_drills_voicings_tab_jazz": "Kalite djaz",
+  "music_drills_voicings_tab_voice_leading": "Nòt gid",
+  "music_drills_voicings_v_altered": "Dominant altere",
+  "music_drills_voicings_v_cadence": "Kadans I IV I V7 I",
+  "music_drills_voicings_v_cadence_minor": "Kadans minè i iv i V7 i",
+  "music_drills_voicings_v_gospel": "Akò gospel ak balad",
+  "music_drills_voicings_v_inversions": "Akò ki pi pre, I IV V I",
+  "music_drills_voicings_v_major": "ii-V-I majè",
+  "music_drills_voicings_v_minor": "ii-V-i minè",
+  "music_drills_voicings_v_voice_leading": "Nòt gid nan tout tonalite yo"
 }
