@@ -12,7 +12,7 @@
   import { noteName } from "@repo/music-core";
   import { FLAT_NAMES, pc } from "@repo/music-core/theory/notes";
   import { signatureFor } from "@repo/music-core/theory/circle";
-  import { JAM_GROUPS, barBeats, chorusBars, transposeProgression } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, barBeats, chorusBars, keyText as progKeyText, transposeProgression } from "@repo/music-core/content/jam";
   import { TUNES, formatReharm, parseReharm, reharmDevice, reharmonise } from "@repo/music-core/content/tunes";
   import { backingNotes } from "#lib/music/drills/jam/backing.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
@@ -416,7 +416,7 @@
   ];
   const progressionHint = $derived.by(() => {
     if (charted) return m.music_drills_accompany_prog_charted({ about: CHART_LEVELS.find((l) => l.id === base.id)!.about });
-    const p = { chords: (tab === "comping" ? compProg : base).chords.map((c) => c.symbol).join(" "), key: base.key };
+    const p = { chords: (tab === "comping" ? compProg : base).chords.map((c) => c.symbol).join(" "), key: progKeyText(base.key) };
     const artist = base.song?.artist;
     if (artist) return swaps.size ? m.music_drills_accompany_prog_written_artist_reharm({ ...p, artist }) : m.music_drills_accompany_prog_written_artist({ ...p, artist });
     return swaps.size ? m.music_drills_accompany_prog_written_reharm(p) : m.music_drills_accompany_prog_written(p);

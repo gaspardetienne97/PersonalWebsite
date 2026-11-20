@@ -8,7 +8,7 @@
   import { MediaQuery } from "svelte/reactivity";
   import { noteName, pc, type NoteEvent } from "@repo/music-core";
   import { parseChordSymbol } from "@repo/music-core/theory/chords";
-  import { chorusBars } from "@repo/music-core/content/jam";
+  import { chorusBars, keyText } from "@repo/music-core/content/jam";
   import { rng } from "@repo/music-core/content/random";
   import {
     BEATS_PER_BAR,
@@ -246,7 +246,7 @@
       await saveTake({
         id: crypto.randomUUID(),
         createdAt: Date.now(),
-        name: `Call and response: ${CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name}, ${callMode}`,
+        name: (callMode === "echo" ? m.music_drills_callresponse_take_echo : m.music_drills_callresponse_take_answer)({ groove: grooveLabel }),
         notes: pairNotes(all, downbeat, performance.now()),
         durationMs: Math.round(performance.now() - downbeat),
         instrument: runInstrument(all),
@@ -260,8 +260,8 @@
       { score, correct: right === turns.length },
       tempoAnd((i) => cfg.set({ bars: String(i + 1) })),
     );
-    // Played past the goal: say the tempo played and the goal in one breath, not "clean at the goal".
-    if (bpm > goal && advance.reason.startsWith("clean at the goal")) advance.reason = m.music_drills_callresponse_reason_past_goal({ bpm, goal });
+    // Played past the goal: say the tempo played and the goal in one breath, not "clean at the goal" (the timed move to two-bar calls).
+    if (bpm > goal && advance.kind === "harder") advance.reason = m.music_drills_callresponse_reason_past_goal({ bpm, goal });
     summary = {
       headline: `${(callMode === "echo" ? m.music_drills_callresponse_h_echo : m.music_drills_callresponse_h_answer)({ right, total: turns.length, bpm })}${all.length ? ` ${m.music_drills_callresponse_take_saved()}` : ""}`,
       metric: pct(score),
@@ -380,7 +380,7 @@
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
     { text: callMode === "echo" ? m.music_drills_callresponse_echo_call() : m.music_drills_callresponse_answer_call(), focus: "mode" },
-    { text: m.music_drills_callresponse_over({ groove: grooveLabel.toLowerCase(), key: groove.key }), focus: "groove" },
+    { text: m.music_drills_callresponse_over({ groove: grooveLabel.toLowerCase(), key: keyText(groove.key) }), focus: "groove" },
     { text: m.music_drills_callresponse_bar_calls({ count: bars }), focus: "bars" },
     { text: m.music_drills_callresponse_turns_at({ turns: CALL_TURNS, bpm }) },
   ]);
@@ -444,7 +444,7 @@
           {phase !== "running" ? m.music_drills_callresponse_listen_then_play() : !now ? m.music_drills_callresponse_get_ready() : now.part === "call" ? m.music_drills_callresponse_listen() : m.music_drills_callresponse_your_turn()}
         </p>
         <p class="text-sm text-ws-stage-soft">
-          {m.music_drills_callresponse_key_now({ key: groove.key.replace(/ major$/, ""), chord: chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol })}
+          {m.music_drills_callresponse_key_now({ key: groove.key.endsWith(" major") ? groove.key.split(" ")[0] : keyText(groove.key), chord: chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol })}
         </p>
       </div>
       <!-- The call as note blocks in time, lit as it plays; your notes fill the row under it as you play. -->

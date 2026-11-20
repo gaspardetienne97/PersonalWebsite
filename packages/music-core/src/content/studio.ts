@@ -5,6 +5,7 @@
 // pink noise before music, cuts after boosts.
 
 import { pick, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export type StudioExercise =
   | "peak"
@@ -43,65 +44,115 @@ export const DELAY_SETS = {
 /** "1/8, 333 ms" */
 export const delayLabel = (ms: number) => {
   const beats = ms / BEAT_MS;
-  const name = [
-    [0.25, "1/16"],
-    [0.5, "1/8"],
-    [0.75, "Dotted 1/8"],
-    [1, "1/4"],
-  ].find(([b]) => Math.abs((b as number) - beats) < 0.01)?.[1];
-  return `${name ? `${name}, ` : ""}${Math.round(ms)} ms`;
+  const name = (
+    [
+      [0.25, () => "1/16"],
+      [0.5, () => "1/8"],
+      [0.75, () => m.music_content_studio_delay_dotted_eighth()],
+      [1, () => "1/4"],
+    ] as const
+  ).find(([b]) => Math.abs(b - beats) < 0.01)?.[1]();
+  return name
+    ? m.music_content_studio_delay_named({ name, ms: Math.round(ms) })
+    : `${Math.round(ms)} ms`;
 };
 export const compLabel = (c: string) =>
-  c === "none" ? "None" : c === "light" ? "Light (2.5:1)" : "Heavy (12:1)";
+  c === "none"
+    ? m.music_content_studio_comp_none()
+    : c === "light"
+      ? m.music_content_studio_comp_light()
+      : m.music_content_studio_comp_heavy();
 
-export const STUDIO_EXERCISES: {
-  id: StudioExercise;
-  title: string;
-  ask: string;
-  skillId: string;
+/** The exercises; `title` and `ask` are getters, so they read the current language. */
+export const STUDIO_EXERCISES: readonly {
+  readonly id: StudioExercise;
+  readonly title: string;
+  readonly ask: string;
+  readonly skillId: string;
 }[] = [
   {
     id: "peak",
-    title: "Find the boost",
-    ask: "Which band was boosted?",
+    get title() {
+      return m.music_content_studio_peak_title();
+    },
+    get ask() {
+      return m.music_content_studio_peak_ask();
+    },
     skillId: "studio.eq-peak",
   },
-  { id: "cut", title: "Find the cut", ask: "Which band was cut?", skillId: "studio.eq-cut" },
+  {
+    id: "cut",
+    get title() {
+      return m.music_content_studio_cut_title();
+    },
+    get ask() {
+      return m.music_content_studio_cut_ask();
+    },
+    skillId: "studio.eq-cut",
+  },
   {
     id: "boost-or-cut",
-    title: "Boost or cut",
-    ask: "Was it boosted or cut? (The levels are matched.)",
+    get title() {
+      return m.music_content_studio_boc_title();
+    },
+    get ask() {
+      return m.music_content_studio_boc_ask();
+    },
     skillId: "studio.boost-or-cut",
   },
   {
     id: "level",
-    title: "How many dB",
-    ask: "How many dB louder is Changed?",
+    get title() {
+      return m.music_content_studio_level_title();
+    },
+    get ask() {
+      return m.music_content_studio_level_ask();
+    },
     skillId: "studio.level",
   },
   {
     id: "pan",
-    title: "Where is it panned",
-    ask: "Where was Changed panned?",
+    get title() {
+      return m.music_content_studio_pan_title();
+    },
+    get ask() {
+      return m.music_content_studio_pan_ask();
+    },
     skillId: "studio.pan",
   },
   {
     id: "compression",
-    title: "How compressed",
-    ask: "How hard is Changed compressed? (The levels are matched.)",
+    get title() {
+      return m.music_content_studio_compression_title();
+    },
+    get ask() {
+      return m.music_content_studio_compression_ask();
+    },
     skillId: "studio.compression",
   },
   {
     id: "delay",
-    title: "Delay time",
-    ask: "How long is the echo on Changed?",
+    get title() {
+      return m.music_content_studio_delay_title();
+    },
+    get ask() {
+      return m.music_content_studio_delay_ask();
+    },
     skillId: "studio.delay",
   },
 ];
 
 export const bandLabel = (hz: number) => (hz >= 1000 ? `${hz / 1000} kHz` : `${hz} Hz`);
 export const panLabel = (p: number) =>
-  p === 0 ? "Centre" : `${Math.abs(p) === 1 ? "Hard" : "Half"} ${p < 0 ? "left" : "right"}`;
+  p === 0
+    ? m.music_content_studio_pan_centre()
+    : Math.abs(p) === 1
+      ? p < 0
+        ? m.music_content_studio_pan_hard_left()
+        : m.music_content_studio_pan_hard_right()
+      : p < 0
+        ? m.music_content_studio_pan_half_left()
+        : m.music_content_studio_pan_half_right();
 
 export interface StudioChange {
   eq?: { freq: number; gainDb: number; q: number };

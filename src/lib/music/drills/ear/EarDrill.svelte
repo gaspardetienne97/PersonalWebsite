@@ -1473,7 +1473,7 @@
     tokens
       .map((t) => EAR_INVERSIONS.find((x) => x.token === t))
       .filter((x) => !!x)
-      .map((x) => [m.music_drills_eardrill_inv_hint_root, m.music_drills_eardrill_inv_hint_third, m.music_drills_eardrill_inv_hint_fifth, m.music_drills_eardrill_inv_hint_seventh][x.position]({ name: x.name.replace(/^Seventh, /, "").toLowerCase() }))
+      .map((x) => [m.music_drills_eardrill_inv_hint_root, m.music_drills_eardrill_inv_hint_third, m.music_drills_eardrill_inv_hint_fifth, m.music_drills_eardrill_inv_hint_seventh][x.position]())
       .join(", ");
   const showAnswer = $derived(answer === "listen-along" || step === "revealed" || (step === "feedback" && (mode === "practice" || (!!current && isPhrase(current)))));
   /** Items in plain words: a range of intervals, a set's own name, or the names themselves. */

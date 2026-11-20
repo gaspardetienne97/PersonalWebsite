@@ -19,7 +19,7 @@
   import Pause from "@lucide/svelte/icons/pause";
   import Upload from "@lucide/svelte/icons/upload";
   import { FLAT_NAMES, noteName, pc, type NoteEvent } from "@repo/music-core";
-  import { JAM_GROUPS, jamToneRoles, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
+  import { JAM_GROUPS, jamToneRoles, keyText, swings, transposeProgression, chorusBars } from "@repo/music-core/content/jam";
   import { ACCOMP_PROGRESSIONS } from "@repo/music-core/content/accompany";
   import { REHARM_DEVICES, TUNES, chorusLabel, formatReharm, parseReharm, reharmDevice, reharmOptions, reharmonise, sectionStarts, tuneFromScore, type HeadNote, type ReharmDevice } from "@repo/music-core/content/tunes";
   import type { Progression } from "@repo/music-core/content/jam";
@@ -357,11 +357,11 @@
     const take: MidiTake = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      name: `Jam: ${prog.name} in ${prog.key}`,
+      name: m.music_drills_changesjam_take_name({ name: prog.name, key: keyText(prog.key) }),
       notes: pairNotes(events, runStart, endAt),
       durationMs: Math.round(endAt - runStart),
       instrument: inst,
-      note: choruses.map((c) => `Chorus ${c.n}: ${c.report.headline}`).join("\n"),
+      note: choruses.map((c) => m.music_drills_changesjam_take_note_line({ chorus: m.music_drills_changesjam_chorus({ n: c.n }), text: c.report.headline })).join("\n"),
     };
     await saveTake(take);
     savedTake = take;
@@ -383,7 +383,7 @@
       },
       ["jam", prog.group],
     );
-    status = m.music_drills_changesjam_status_saved({ notes: m.music_drills_changesjam_notes_count({ count }), choruses: m.music_drills_changesjam_choruses_count({ count: choruses.length }), name: prog.name, key: prog.key });
+    status = m.music_drills_changesjam_status_saved({ notes: m.music_drills_changesjam_notes_count({ count }), choruses: m.music_drills_changesjam_choruses_count({ count: choruses.length }), name: prog.name, key: keyText(prog.key) });
   }
 
   /** Pair each note-on with its release, in beats from the top of the form. */
@@ -419,11 +419,11 @@
     const take: MidiTake = {
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      name: `Jam: ${game.label} over ${prog.name} in ${prog.key}`,
+      name: m.music_drills_changesjam_take_name_game({ game: game.label, name: prog.name, key: keyText(prog.key) }),
       notes: pairNotes(events, runStart, endAt),
       durationMs: Math.round(endAt - runStart),
       instrument: inst,
-      note: g.choruses.map((c) => `${chorusName(c.index, done)}: ${pct(c.score)}`).join("\n"),
+      note: g.choruses.map((c) => m.music_drills_changesjam_take_note_line({ chorus: chorusName(c.index, done), text: pct(c.score) })).join("\n"),
     };
     await saveTake(take);
     savedTake = take;
@@ -487,7 +487,7 @@
 
   const summaryLine = $derived([
     // Three short chips by default (the tune, the game, the length); the rest only when changed from it.
-    { text: prog.name.includes(prog.key) ? prog.name : m.music_drills_changesjam_name_in_key({ name: prog.name, key: prog.key }), focus: "progression" },
+    { text: prog.name.includes(prog.key) ? prog.name : m.music_drills_changesjam_name_in_key({ name: prog.name, key: keyText(prog.key) }), focus: "progression" },
     { text: game.id === "free" ? m.music_drills_changesjam_solo_over() : game.label.toLowerCase(), focus: "game" },
     { text: m.music_drills_changesjam_short_run({ count: runChoruses }), focus: "choruses" },
     ...(s.trade && !game.windows ? [{ text: s.trade === 4 ? m.music_drills_changesjam_trading_fours() : m.music_drills_changesjam_trading_twos(), focus: "trade" }] : []),

@@ -195,16 +195,39 @@ const articulation = (): Lesson => {
   };
 };
 
-/** The landing intervals' names, by semitones; the content's English label for any other. */
-const INTERVAL_NAMES: Record<number, () => string> = {
-  5: m.music_lessons_technique_interval_5,
-  7: m.music_lessons_technique_interval_7,
-  12: m.music_lessons_technique_interval_12,
-  4: m.music_lessons_technique_interval_4,
-  3: m.music_lessons_technique_interval_3,
+type LandingSemitones = (typeof LANDING_INTERVALS)[number]["semitones"];
+/** Each landing interval's name, and its option label each way, as whole phrases. */
+const INTERVAL_NAMES: Record<
+  LandingSemitones,
+  { name: () => string; up: () => string; down: () => string }
+> = {
+  5: {
+    name: m.music_lessons_technique_interval_5,
+    up: m.music_lessons_technique_landing_up_5,
+    down: m.music_lessons_technique_landing_down_5,
+  },
+  7: {
+    name: m.music_lessons_technique_interval_7,
+    up: m.music_lessons_technique_landing_up_7,
+    down: m.music_lessons_technique_landing_down_7,
+  },
+  12: {
+    name: m.music_lessons_technique_interval_12,
+    up: m.music_lessons_technique_landing_up_12,
+    down: m.music_lessons_technique_landing_down_12,
+  },
+  4: {
+    name: m.music_lessons_technique_interval_4,
+    up: m.music_lessons_technique_landing_up_4,
+    down: m.music_lessons_technique_landing_down_4,
+  },
+  3: {
+    name: m.music_lessons_technique_interval_3,
+    up: m.music_lessons_technique_landing_up_3,
+    down: m.music_lessons_technique_landing_down_3,
+  },
 };
-const intervalName = (i: (typeof LANDING_INTERVALS)[number]) =>
-  INTERVAL_NAMES[i.semitones]?.() ?? i.label;
+const intervalName = (i: (typeof LANDING_INTERVALS)[number]) => INTERVAL_NAMES[i.semitones].name();
 
 /** The drill's drones are written notes; the example uses the highest, so both directions stay on the chart. */
 const WRITTEN_DRONE = 72;
@@ -231,9 +254,7 @@ const landing = (shift: number): Lesson => {
             if (target === undefined) return [];
             return [
               {
-                label: (dir === "up"
-                  ? m.music_lessons_technique_landing_up
-                  : m.music_lessons_technique_landing_down)({ interval: intervalName(i) }),
+                label: INTERVAL_NAMES[i.semitones][dir](),
                 sound: {
                   notes: [
                     { midi: [concert(WRITTEN_DRONE)], at: 0, dur: 3.5 },

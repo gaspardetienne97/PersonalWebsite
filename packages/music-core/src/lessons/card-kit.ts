@@ -11,7 +11,6 @@ import { formatList } from "@repo/i18n/format";
 export const join = (a: string[]) => formatList(a);
 export const flat = (m: number) => noteName(m, "flat", false);
 export const sharp = (m: number) => noteName(m, "sharp", false);
-export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 export const tones = (ms: number[], at = 0, dur = 1.4): LessonSound => ({
   notes: [{ midi: ms, at, dur }],
 });
