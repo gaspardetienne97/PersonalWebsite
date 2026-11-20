@@ -16,7 +16,8 @@ export function readPatterns(instrument: string) {
     (p) => p.id !== "quarter-pulse" && (!p.chords?.length || p.id.startsWith(`${instrument}-`)),
   ).map((p) => ({
     value: p.id,
-    label: p.label.replace(/^(Guitar|Ukulele): /, ""),
+    // A strum is listed under its instrument, so its label drops the "Guitar: " prefix, in any language.
+    label: /^(guitar|ukulele)-/.test(p.id) ? p.label.replace(/^[^:]*:\s*/, "") : p.label,
     group: p.chords?.length ? strumsGroup(instrument) : m.music_drills_rhythm_group_rhythms(),
   }));
 }
