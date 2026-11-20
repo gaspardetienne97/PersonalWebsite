@@ -67,9 +67,9 @@ const worked = (fifths: number): LessonStep => {
   const n = Math.abs(fifths);
   const first = k.accidentals.slice(0, n);
   const names = n === 2 ? formatList(first) : first.join(", ");
-  const text = (fifths > 0 ? m.music_cards_circle_worked_sharps : m.music_cards_circle_worked_flats)(
-    { key: k.major, count: n, names },
-  );
+  const text = (
+    fifths > 0 ? m.music_cards_circle_worked_sharps : m.music_cards_circle_worked_flats
+  )({ key: k.major, count: n, names });
   return { text, figure: sig(fifths, n) };
 };
 
@@ -188,7 +188,10 @@ const SIGNATURE = (): Lesson => ({
       title: m.music_cards_circle_signature_bass_title(),
       text: m.music_cards_circle_signature_bass_text(),
       steps: [3, -3].map((f) => ({
-        text: m.music_cards_circle_signature_bass_step({ key: keyAt(f).major, accidentals: acc(f) }),
+        text: m.music_cards_circle_signature_bass_step({
+          key: keyAt(f).major,
+          accidentals: acc(f),
+        }),
         figure: sig(f, Math.abs(f), "bass"),
       })),
     },
@@ -444,7 +447,11 @@ const SECONDARY = (): Lesson => ({
       title: m.music_cards_circle_secondary_four_title(),
       text: m.music_cards_circle_secondary_four_text(),
       options: SECONDARY_IN_C.map((s) => ({
-        label: m.music_cards_circle_secondary_option({ name: s.name, dom: s.dom, target: s.target }),
+        label: m.music_cards_circle_secondary_option({
+          name: s.name,
+          dom: s.dom,
+          target: s.target,
+        }),
         sound: play(s.dom, s.target),
       })),
     },

@@ -59,8 +59,7 @@ const INTERVALS = [
   m.music_cards_tier1_interval_16,
   m.music_cards_tier1_interval_17,
 ];
-const gap = (semis: number) =>
-  INTERVALS[semis]?.() ?? m.music_cards_half_steps({ count: semis });
+const gap = (semis: number) => INTERVALS[semis]?.() ?? m.music_cards_half_steps({ count: semis });
 
 /** What the drill's type says in words, true of every chord the type gives. */
 const IDEAS: Record<JazzVoicingId, () => string> = {
@@ -269,7 +268,9 @@ export function findHomeLesson(): Lesson {
   const scaleKeys = (n: number) =>
     keys(
       Object.fromEntries(
-        run.slice(0, n).map((x, i) => [x, i === 7 ? m.music_cards_tier1_home_label() : String(i + 1)]),
+        run
+          .slice(0, n)
+          .map((x, i) => [x, i === 7 ? m.music_cards_tier1_home_label() : String(i + 1)]),
       ),
       run,
     );

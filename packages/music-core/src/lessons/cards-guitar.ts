@@ -85,7 +85,9 @@ const lowToHigh = (x: Placed) =>
   [...x.targets].sort((a, b) => b.string - a.string || a.fret - b.fret).map((t) => t.midi);
 
 const tuningText = (t: Tuning) =>
-  t.id === STANDARD.id || t.id === HIGH_G.id ? "" : ` ${m.music_cards_pos_tuning({ name: t.name })}`;
+  t.id === STANDARD.id || t.id === HIGH_G.id
+    ? ""
+    : ` ${m.music_cards_pos_tuning({ name: t.name })}`;
 /** " with two notes on each of the 6 strings", or nothing when the strings differ. */
 const notesEach = (perString: number | null, strings: number) =>
   perString
@@ -183,7 +185,9 @@ export function pentatonicBoxes(o: CardOpts): Lesson {
         title: m.music_cards_boxes_up_title(),
         text: m.music_cards_boxes_up_text({
           tuning: tuningText(t),
-          list: join(bx.map((b, i) => m.music_cards_boxes_item({ n: i + 1, where: against(b.low) }))),
+          list: join(
+            bx.map((b, i) => m.music_cards_boxes_item({ n: i + 1, where: against(b.low) })),
+          ),
         }),
       },
     ],
@@ -203,7 +207,8 @@ export function connectedBoxes(o: CardOpts): Lesson {
         steps: bx.map((b, i) => ({
           text: m.music_cards_connected_step({
             n: i + 1,
-            direction: i % 2 ? m.music_cards_connected_high_low() : m.music_cards_connected_low_high(),
+            direction:
+              i % 2 ? m.music_cards_connected_high_low() : m.music_cards_connected_low_high(),
             place: place(b.low),
           }),
         })),
@@ -301,12 +306,12 @@ export function triads(id: string, o: CardOpts): Lesson {
   const lowest = (ns: (typeof parts)[number]) => [...ns].sort((a, b) => a.midi - b.midi);
   const inversion = (ns: (typeof parts)[number]) =>
     (
-      ({
+      {
         0: m.music_cards_inv_root,
         3: m.music_cards_inv_first,
         4: m.music_cards_inv_first,
         7: m.music_cards_inv_second,
-      }) as Record<number, () => string>
+      } as Record<number, () => string>
     )[pc(lowest(ns)[0].midi - x.rootPc)]?.() ?? m.music_cards_inv_any();
   const stringsOf = x.targets.map((n) => n.string);
   return {
@@ -315,7 +320,9 @@ export function triads(id: string, o: CardOpts): Lesson {
     screens: [
       {
         title: m.music_cards_triads_three_title(),
-        text: (minor ? m.music_cards_triads_three_text_minor : m.music_cards_triads_three_text_major)({
+        text: (minor
+          ? m.music_cards_triads_three_text_minor
+          : m.music_cards_triads_three_text_major)({
           first: Math.max(...stringsOf),
           last: Math.min(...stringsOf),
           root,

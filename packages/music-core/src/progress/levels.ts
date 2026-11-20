@@ -14,7 +14,9 @@ type Message = (inputs?: object, options?: { locale?: "en" }) => string;
  * its own English rather than a stale translation.
  */
 function pathText(id: string, part: "title" | "subtitle", english: string): string {
-  const msg = (m as unknown as Record<string, Message | undefined>)[`music_cards_path_${id}_${part}`];
+  const msg = (m as unknown as Record<string, Message | undefined>)[
+    `music_cards_path_${id}_${part}`
+  ];
   return msg && msg({}, { locale: "en" }) === english ? msg() : english;
 }
 

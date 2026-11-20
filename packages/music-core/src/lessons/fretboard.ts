@@ -141,7 +141,9 @@ export function fretboardLessons(
       ? ` ${m.music_cards_fb_irregular({
           count: odd.length,
           list: differing(pairs, span, common, (f) =>
-            f > 5 ? m.music_cards_fb_fret_n_past({ fret: f }) : m.music_cards_fb_fret_n({ fret: f }),
+            f > 5
+              ? m.music_cards_fb_fret_n_past({ fret: f })
+              : m.music_cards_fb_fret_n({ fret: f }),
           ),
         })}`
       : "";

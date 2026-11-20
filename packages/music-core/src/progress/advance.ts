@@ -112,7 +112,9 @@ export function advance(
         : n.label
           ? m.music_cards_adv_at_tempo({ label: n.label, bpm: n.bpm })
           : m.music_cards_adv_at_only({ bpm: n.bpm });
-    return n.kind === "top" ? m.music_cards_adv_same_again() : tempo || m.music_cards_adv_same_again();
+    return n.kind === "top"
+      ? m.music_cards_adv_same_again()
+      : tempo || m.music_cards_adv_same_again();
   }
 
   if (state.passes >= ADVANCE.runs) {

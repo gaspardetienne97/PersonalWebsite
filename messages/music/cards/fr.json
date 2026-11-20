@@ -18,14 +18,8 @@
   "music_cards_adv_clean_hardest": "propre sur la version la plus difficile",
   "music_cards_adv_fails": [
     {
-      "declarations": [
-        "input count",
-        "input pct",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} passage sous {pct} %",
         "countPlural=other": "{count} passages sous {pct} %"
@@ -34,13 +28,8 @@
   ],
   "music_cards_adv_more": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "encore {count} passage propre pour avancer",
         "countPlural=other": "encore {count} passages propres pour avancer"
@@ -50,14 +39,8 @@
   "music_cards_adv_past_goal": "au-delà de l’objectif sur la version la plus difficile",
   "music_cards_adv_rule": [
     {
-      "declarations": [
-        "input count",
-        "input pct",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} passage propre d’affilée ({pct} % ou mieux) fait avancer",
         "countPlural=other": "{count} passages propres d’affilée ({pct} % ou mieux) font avancer"
@@ -66,13 +49,8 @@
   ],
   "music_cards_adv_runs": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} passage propre",
         "countPlural=other": "{count} passages propres"
@@ -81,14 +59,8 @@
   ],
   "music_cards_adv_runs_at": [
     {
-      "declarations": [
-        "input count",
-        "input bpm",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input bpm", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} passage propre à {bpm} BPM",
         "countPlural=other": "{count} passages propres à {bpm} BPM"
@@ -189,13 +161,8 @@
   "music_cards_circle_count_title": "Compter les dièses et les bémols",
   "music_cards_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bémol",
         "countPlural=other": "{count} bémols"
@@ -244,13 +211,8 @@
   "music_cards_circle_secondary_v_of_v": "{dom} est V/V : une quinte au-dessus de G, il mène à G.",
   "music_cards_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} dièse",
         "countPlural=other": "{count} dièses"
@@ -271,14 +233,8 @@
   "music_cards_circle_signature_title": "Lire une armure",
   "music_cards_circle_wheel_ccw_step": [
     {
-      "declarations": [
-        "input key",
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input key", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{key} est à {count} pas de C dans le sens inverse des aiguilles d’une montre.",
         "countPlural=other": "{key} est à {count} pas de C dans le sens inverse des aiguilles d’une montre."
@@ -287,14 +243,8 @@
   ],
   "music_cards_circle_wheel_cw_step": [
     {
-      "declarations": [
-        "input key",
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input key", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{key} est à {count} pas de C dans le sens des aiguilles d’une montre.",
         "countPlural=other": "{key} est à {count} pas de C dans le sens des aiguilles d’une montre."
@@ -317,14 +267,8 @@
   "music_cards_coach_practise": "Pratiquer {name}",
   "music_cards_coach_sessions": [
     {
-      "declarations": [
-        "input count",
-        "input on",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input on", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} séance enregistrée sur {on}.",
         "countPlural=other": "{count} séances enregistrées sur {on}."
@@ -335,13 +279,8 @@
   "music_cards_coach_solid_title": "Tout ce qui est mesuré est solide",
   "music_cards_coach_streak": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} jour dans votre série actuelle.",
         "countPlural=other": "{count} jours dans votre série actuelle."
@@ -364,14 +303,8 @@
   "music_cards_cs_minor_inside": "Tout est dans C mineur naturel.",
   "music_cards_cs_minor_outside": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} n’est pas dans C mineur naturel.",
         "countPlural=other": "{notes} ne sont pas dans C mineur naturel."
@@ -387,14 +320,8 @@
   "music_cards_dorian_inside": "Tout est dans C majeur.",
   "music_cards_dorian_outside": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} n’est pas dans C majeur.",
         "countPlural=other": "{notes} ne sont pas dans C majeur."
@@ -580,13 +507,8 @@
   "music_cards_fb_fret_n_past": "la frette {fret} (au-delà de cette figure)",
   "music_cards_fb_frets": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette",
         "countPlural=other": "{count} frettes"
@@ -596,15 +518,8 @@
   "music_cards_fb_from_to": "De la {lo} à la {hi} : {rel}.",
   "music_cards_fb_gap_item": [
     {
-      "declarations": [
-        "input count",
-        "input lo",
-        "input hi",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input lo", "input hi", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette de la {lo} à la {hi}",
         "countPlural=other": "{count} frettes de la {lo} à la {hi}"
@@ -617,14 +532,8 @@
   "music_cards_fb_intervals_title": "Les intervalles comme des formes",
   "music_cards_fb_irregular": [
     {
-      "declarations": [
-        "input count",
-        "input list",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input list", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Paire irrégulière : {list}.",
         "countPlural=other": "Paires irrégulières : {list}."
@@ -639,9 +548,7 @@
         "input common",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "La paire irrégulière a un écart de {list} au lieu de {common}. Une forme qui traverse un écart plus petit monte, et un écart plus grand descend, de la différence. Touchez Suivant pour voir la quinte à travers elle.",
         "countPlural=other": "Les paires irrégulières ont des écarts de {list} au lieu de {common}. Une forme qui traverse un écart plus petit monte, et un écart plus grand descend, de la différence. Touchez Suivant pour voir la quinte à travers chacune."
@@ -674,13 +581,8 @@
   "music_cards_fb_open_title": "Les cordes à vide",
   "music_cards_fb_rel_higher": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette plus haut",
         "countPlural=other": "{count} frettes plus haut"
@@ -689,13 +591,8 @@
   ],
   "music_cards_fb_rel_lower": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette plus bas",
         "countPlural=other": "{count} frettes plus bas"
@@ -744,13 +641,8 @@
   "music_cards_guide_title": "Notes guides",
   "music_cards_half_steps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} demi-ton",
         "countPlural=other": "{count} demi-tons"
@@ -775,14 +667,8 @@
   "music_cards_inversions_first_step_arp": "{symbol} : {inversion}, {notes}, au-dessus de sa fondamentale.",
   "music_cards_inversions_kept": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} reste à sa place.",
         "countPlural=other": "{notes} restent à leur place."
@@ -840,13 +726,8 @@
   "music_cards_pos_above_it": "{count} au-dessus",
   "music_cards_pos_above_root": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette au-dessus de la frette de la fondamentale",
         "countPlural=other": "{count} frettes au-dessus de la frette de la fondamentale"
@@ -857,13 +738,8 @@
   "music_cards_pos_below_it": "{count} en dessous",
   "music_cards_pos_below_root": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frette sous la frette de la fondamentale",
         "countPlural=other": "{count} frettes sous la frette de la fondamentale"

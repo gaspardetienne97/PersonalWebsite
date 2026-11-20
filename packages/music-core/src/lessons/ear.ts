@@ -125,9 +125,9 @@ const intervals = {
       );
     return card("ear.intervals", m.music_cards_ear_intervals_title(), {
       title: m.music_cards_ear_intervals_intro_title(),
-      text: (sign > 0 ? m.music_cards_ear_intervals_intro_up : m.music_cards_ear_intervals_intro_down)(
-        { from: name(60), to: name(60 + sign * 4) },
-      ),
+      text: (sign > 0
+        ? m.music_cards_ear_intervals_intro_up
+        : m.music_cards_ear_intervals_intro_down)({ from: name(60), to: name(60 + sign * 4) }),
       // Two notes with the count between them, from the first screen: the idea drawn before Next.
       figure: counted(4),
       steps: ["m2", "P5", "P8"].map((t) => {
@@ -310,8 +310,8 @@ const qualities = {
     ];
     const cue = qualityCue(token, o.items ?? [token]);
     const heard = cue.filter((c) => c.kind !== "none7");
-    const words = heard.map(
-      (c) => ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n](),
+    const words = heard.map((c) =>
+      ({ third: THIRDS, fifth: FIFTHS, seventh: SEVENTHS })[c.kind as "third"][c.n](),
     );
     // The cue is part of the id: a set that needs another cue shows the item again.
     const no7 = cue.some((c) => c.kind === "none7");

@@ -83,14 +83,21 @@ export function coach(input: {
   if (due.length)
     insights.push(
       due.length > 3
-        ? m.music_cards_coach_due_more({ skills: due.slice(0, 3).join(", "), count: due.length - 3 })
+        ? m.music_cards_coach_due_more({
+            skills: due.slice(0, 3).join(", "),
+            count: due.length - 3,
+          })
         : m.music_cards_coach_due({ skills: due.join(", ") }),
     );
 
   if (attempts < COACH_MIN_ATTEMPTS) {
     return {
       headline: m.music_cards_coach_unmeasured_title(),
-      summary: m.music_cards_coach_unmeasured_text({ min: COACH_MIN_ATTEMPTS, on, count: attempts }),
+      summary: m.music_cards_coach_unmeasured_text({
+        min: COACH_MIN_ATTEMPTS,
+        on,
+        count: attempts,
+      }),
       measured: false,
       insights,
       action: {

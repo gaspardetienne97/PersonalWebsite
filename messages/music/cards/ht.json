@@ -18,14 +18,8 @@
   "music_cards_adv_clean_hardest": "pwòp sou vèsyon ki pi difisil la",
   "music_cards_adv_fails": [
     {
-      "declarations": [
-        "input count",
-        "input pct",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pase anba {pct}%",
         "countPlural=other": "{count} pase anba {pct}%"
@@ -34,13 +28,8 @@
   ],
   "music_cards_adv_more": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pase pwòp anplis pou avanse",
         "countPlural=other": "{count} pase pwòp anplis pou avanse"
@@ -50,14 +39,8 @@
   "music_cards_adv_past_goal": "pi lwen pase objektif la sou vèsyon ki pi difisil la",
   "music_cards_adv_rule": [
     {
-      "declarations": [
-        "input count",
-        "input pct",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input pct", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pase pwòp youn dèyè lòt ({pct}% oswa plis) fè w avanse",
         "countPlural=other": "{count} pase pwòp youn dèyè lòt ({pct}% oswa plis) fè w avanse"
@@ -66,13 +49,8 @@
   ],
   "music_cards_adv_runs": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pase pwòp",
         "countPlural=other": "{count} pase pwòp"
@@ -81,14 +59,8 @@
   ],
   "music_cards_adv_runs_at": [
     {
-      "declarations": [
-        "input count",
-        "input bpm",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input bpm", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} pase pwòp a {bpm} BPM",
         "countPlural=other": "{count} pase pwòp a {bpm} BPM"
@@ -189,13 +161,8 @@
   "music_cards_circle_count_title": "Konte dyèz ak bemòl",
   "music_cards_circle_flats": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} bemòl",
         "countPlural=other": "{count} bemòl"
@@ -244,13 +211,8 @@
   "music_cards_circle_secondary_v_of_v": "{dom} se V/V: yon kent anwo G, li mennen sou G.",
   "music_cards_circle_sharps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} dyèz",
         "countPlural=other": "{count} dyèz"
@@ -271,14 +233,8 @@
   "music_cards_circle_signature_title": "Li yon armi",
   "music_cards_circle_wheel_ccw_step": [
     {
-      "declarations": [
-        "input key",
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input key", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{key} se {count} pa depi C nan sans kontrè revèy la.",
         "countPlural=other": "{key} se {count} pa depi C nan sans kontrè revèy la."
@@ -287,14 +243,8 @@
   ],
   "music_cards_circle_wheel_cw_step": [
     {
-      "declarations": [
-        "input key",
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input key", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{key} se {count} pa depi C nan sans revèy la.",
         "countPlural=other": "{key} se {count} pa depi C nan sans revèy la."
@@ -317,14 +267,8 @@
   "music_cards_coach_practise": "Pratike {name}",
   "music_cards_coach_sessions": [
     {
-      "declarations": [
-        "input count",
-        "input on",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input on", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} seyans anrejistre sou {on}.",
         "countPlural=other": "{count} seyans anrejistre sou {on}."
@@ -335,13 +279,8 @@
   "music_cards_coach_solid_title": "Tout sa ki mezire solid",
   "music_cards_coach_streak": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} jou nan seri w ap fè kounye a.",
         "countPlural=other": "{count} jou nan seri w ap fè kounye a."
@@ -364,14 +303,8 @@
   "music_cards_cs_minor_inside": "Tout nan C minè natirèl.",
   "music_cards_cs_minor_outside": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} pa nan C minè natirèl.",
         "countPlural=other": "{notes} pa nan C minè natirèl."
@@ -387,14 +320,8 @@
   "music_cards_dorian_inside": "Tout nan C majè.",
   "music_cards_dorian_outside": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} pa nan C majè.",
         "countPlural=other": "{notes} pa nan C majè."
@@ -580,13 +507,8 @@
   "music_cards_fb_fret_n_past": "frèt {fret} (pi lwen pase desen sa a)",
   "music_cards_fb_frets": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt",
         "countPlural=other": "{count} frèt"
@@ -596,15 +518,8 @@
   "music_cards_fb_from_to": "Soti nan {lo} rive nan {hi}: {rel}.",
   "music_cards_fb_gap_item": [
     {
-      "declarations": [
-        "input count",
-        "input lo",
-        "input hi",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input lo", "input hi", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt soti nan {lo} rive nan {hi}",
         "countPlural=other": "{count} frèt soti nan {lo} rive nan {hi}"
@@ -617,14 +532,8 @@
   "music_cards_fb_intervals_title": "Entèval yo kòm fòm",
   "music_cards_fb_irregular": [
     {
-      "declarations": [
-        "input count",
-        "input list",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input list", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Pè ki pa regilye: {list}.",
         "countPlural=other": "Pè ki pa regilye: {list}."
@@ -639,9 +548,7 @@
         "input common",
         "local countPlural = count: plural"
       ],
-      "selectors": [
-        "countPlural"
-      ],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "Pè ki pa regilye a gen yon distans {list} olye de {common}. Yon fòm ki travèse yon distans pi piti monte, epi yon distans pi gran desann, selon diferans lan. Peze Pwochen pou w wè kent lan sou li.",
         "countPlural=other": "Pè ki pa regilye yo gen distans {list} olye de {common}. Yon fòm ki travèse yon distans pi piti monte, epi yon distans pi gran desann, selon diferans lan. Peze Pwochen pou w wè kent lan sou chak."
@@ -674,13 +581,8 @@
   "music_cards_fb_open_title": "Kòd vid yo",
   "music_cards_fb_rel_higher": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt pi wo",
         "countPlural=other": "{count} frèt pi wo"
@@ -689,13 +591,8 @@
   ],
   "music_cards_fb_rel_lower": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt pi ba",
         "countPlural=other": "{count} frèt pi ba"
@@ -744,13 +641,8 @@
   "music_cards_guide_title": "Nòt gid",
   "music_cards_half_steps": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} demi ton",
         "countPlural=other": "{count} demi ton"
@@ -775,14 +667,8 @@
   "music_cards_inversions_first_step_arp": "{symbol}: {inversion}, {notes}, anwo rasin li.",
   "music_cards_inversions_kept": [
     {
-      "declarations": [
-        "input count",
-        "input notes",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "input notes", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{notes} rete kote l te ye a.",
         "countPlural=other": "{notes} rete kote l te ye a."
@@ -840,13 +726,8 @@
   "music_cards_pos_above_it": "{count} anwo l",
   "music_cards_pos_above_root": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt anwo frèt rasin lan",
         "countPlural=other": "{count} frèt anwo frèt rasin lan"
@@ -857,13 +738,8 @@
   "music_cards_pos_below_it": "{count} anba l",
   "music_cards_pos_below_root": [
     {
-      "declarations": [
-        "input count",
-        "local countPlural = count: plural"
-      ],
-      "selectors": [
-        "countPlural"
-      ],
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
       "match": {
         "countPlural=one": "{count} frèt anba frèt rasin lan",
         "countPlural=other": "{count} frèt anba frèt rasin lan"

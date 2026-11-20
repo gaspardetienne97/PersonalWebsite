@@ -32,16 +32,7 @@ import {
   thumbUnder,
 } from "./cards-piano";
 import { chordTones, keys } from "./tier1";
-import {
-  degreeOf,
-  voicingInC,
-  flat,
-  join,
-  run,
-  sharp,
-  tones,
-  type CardOpts,
-} from "./card-kit";
+import { degreeOf, voicingInC, flat, join, run, sharp, tones, type CardOpts } from "./card-kit";
 import { positionLine } from "../theory/fretboard";
 import type { Lesson, LessonFigure, LessonScreen, LessonStep } from "./types";
 import { m } from "@repo/i18n/messages.js";
@@ -139,7 +130,9 @@ function majorFormula(o: CardOpts = {}): Lesson {
           pairs: halves
             .map((i) => m.music_cards_formula_notes_pair({ a: i + 1, b: i + 2 }))
             .join(m.music_cards_formula_and_between()),
-          names: join(halves.map((i) => m.music_cards_from_to({ from: names[i], to: names[i + 1] }))),
+          names: join(
+            halves.map((i) => m.music_cards_from_to({ from: names[i], to: names[i + 1] })),
+          ),
         }),
         figure: draw(
           names.map((nm, i) => (halves.some((h) => i === h || i === h + 1) ? nm : null)),
@@ -475,8 +468,7 @@ export const SYMBOL_KINDS: { suffix: string; gloss: (names: Record<string, strin
     { suffix: "m7b5", gloss: () => m.music_cards_gloss_m7b5() },
     {
       suffix: "7alt",
-      gloss: (n) =>
-        m.music_cards_gloss_7alt({ b9: n.b9, s9: n["#9"], s11: n["#11"], b13: n.b13 }),
+      gloss: (n) => m.music_cards_gloss_7alt({ b9: n.b9, s9: n["#9"], s11: n["#11"], b13: n.b13 }),
     },
     { suffix: "add9", gloss: (n) => m.music_cards_gloss_add9({ note: n["9"] }) },
     { suffix: "sus2", gloss: (n) => m.music_cards_gloss_sus2({ note: n["2"] }) },

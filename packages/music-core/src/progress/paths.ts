@@ -305,7 +305,9 @@ const STUDIO_STEPS: RawStep[] = [
     summary: m.music_cards_s2_summary(),
     detail: m.music_cards_s2_detail(),
     href: L("exercise=peak&bands=5&gain=12&material=noise"),
-    links: [{ label: m.music_cards_s2_link(), href: L("exercise=peak&bands=9&gain=12&material=noise") }],
+    links: [
+      { label: m.music_cards_s2_link(), href: L("exercise=peak&bands=9&gain=12&material=noise") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -319,7 +321,9 @@ const STUDIO_STEPS: RawStep[] = [
     summary: m.music_cards_s3_summary(),
     detail: m.music_cards_s3_detail(),
     href: L("exercise=peak&bands=9&gain=12&material=drums"),
-    links: [{ label: m.music_cards_s3_link(), href: L("exercise=peak&bands=9&gain=12&material=music") }],
+    links: [
+      { label: m.music_cards_s3_link(), href: L("exercise=peak&bands=9&gain=12&material=music") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -333,7 +337,9 @@ const STUDIO_STEPS: RawStep[] = [
     summary: m.music_cards_s4_summary(),
     detail: m.music_cards_s4_detail(),
     href: L("exercise=cut&bands=9&gain=12&material=noise"),
-    links: [{ label: m.music_cards_s4_link(), href: L("exercise=cut&bands=9&gain=12&material=music") }],
+    links: [
+      { label: m.music_cards_s4_link(), href: L("exercise=cut&bands=9&gain=12&material=music") },
+    ],
     exerciseIds: ["studio.cut"],
     skillIds: ["studio.eq-cut"],
     minAttempts: 20,
@@ -347,7 +353,9 @@ const STUDIO_STEPS: RawStep[] = [
     summary: m.music_cards_s5_summary(),
     detail: m.music_cards_s5_detail(),
     href: L("exercise=peak&bands=9&gain=6&material=drums"),
-    links: [{ label: m.music_cards_s5_link(), href: L("exercise=peak&bands=9&gain=3&material=drums") }],
+    links: [
+      { label: m.music_cards_s5_link(), href: L("exercise=peak&bands=9&gain=3&material=drums") },
+    ],
     exerciseIds: ["studio.peak"],
     skillIds: ["studio.eq-peak"],
     minAttempts: 20,
@@ -362,7 +370,10 @@ const STUDIO_STEPS: RawStep[] = [
     detail: m.music_cards_s6_detail(),
     href: L("exercise=boost-or-cut&gain=6&material=music"),
     links: [
-      { label: m.music_cards_s6_link_level(), href: L("exercise=level&levels=6,3,2&material=music") },
+      {
+        label: m.music_cards_s6_link_level(),
+        href: L("exercise=level&levels=6,3,2&material=music"),
+      },
       { label: m.music_cards_s6_link_pan(), href: L("exercise=pan&pans=5&material=music") },
     ],
     exerciseIds: ["studio.boost-or-cut", "studio.level", "studio.pan"],
