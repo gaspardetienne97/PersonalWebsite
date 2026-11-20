@@ -10,6 +10,7 @@ import { scaleSemitones } from "../theory/scales";
 import { PROGRESSIONS, barBeats, type JamGroup, type Progression } from "./jam";
 import { nearestVoicing, placeVoicing } from "./piano";
 import { rng, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export type Hand = "left" | "right";
 /** Notes one hand strikes together, `beat` from the start of the run. */
@@ -89,7 +90,7 @@ export const ACCOMP_PROGRESSIONS: Progression[] = [
     ["Am", 1],
     ["G", 1],
   ]),
-  prog("minor-blues", "Minor blues", "blues", "C minor", 100, [
+  prog("minor-blues", m.music_content_accompany_prog_minor_blues(), "blues", "C minor", 100, [
     ["Cm7", 4],
     ["Fm7", 2],
     ["Cm7", 2],
@@ -109,13 +110,13 @@ export const ACCOMP_PROGRESSIONS: Progression[] = [
     ["G", 1],
     ["C", 1],
   ]),
-  prog("pop-add9-sus", "I-V-vi-IV, add9 and sus", "pop", "C major", 80, [
+  prog("pop-add9-sus", m.music_content_accompany_prog_add9_sus(), "pop", "C major", 80, [
     ["Cadd9", 1],
     ["Gsus4", 1],
     ["Asus2", 1],
     ["Fadd9", 1],
   ]),
-  prog("bird-blues", "Bird blues", "jazz", "F major", 140, [
+  prog("bird-blues", m.music_content_accompany_prog_bird_blues(), "jazz", "F major", 140, [
     ["Fmaj7", 1],
     ["Em7b5", 0.5],
     ["A7", 0.5],
@@ -137,7 +138,7 @@ export const ACCOMP_PROGRESSIONS: Progression[] = [
     ["Gm7", 0.5],
     ["C7", 0.5],
   ]),
-  prog("rhythm-changes", "Rhythm changes, A section", "jazz", "Bb major", 160, [
+  prog("rhythm-changes", m.music_content_accompany_prog_rhythm_changes(), "jazz", "Bb major", 160, [
     ...RHYTHM_TURNAROUND,
     ...RHYTHM_TURNAROUND,
     ["Fm7", 0.5],
@@ -149,7 +150,7 @@ export const ACCOMP_PROGRESSIONS: Progression[] = [
     ["Cm7", 0.5],
     ["F7", 0.5],
   ]),
-  prog("dominant-cycle", "Dominant cycle (the rhythm bridge)", "jazz", "Bb major", 120, [
+  prog("dominant-cycle", m.music_content_accompany_prog_dominant_cycle(), "jazz", "Bb major", 120, [
     ["D7", 2],
     ["G7", 2],
     ["C7", 2],
@@ -166,18 +167,18 @@ export const wholeBars = (p: Progression) => p.chords.every((c) => Number.isInte
 export const CHART_LEVELS: { id: string; label: string; about: string }[] = [
   {
     id: "chart-1",
-    label: "Chart 1: one chord a bar",
-    about: "Eight bars of triads, one a bar, closing on V and I.",
+    label: m.music_content_accompany_chart_1_label(),
+    about: m.music_content_accompany_chart_1_about(),
   },
   {
     id: "chart-2",
-    label: "Chart 2: two chords in some bars",
-    about: "Sevenths join the triads, and some bars change chord on beat 3.",
+    label: m.music_content_accompany_chart_2_label(),
+    about: m.music_content_accompany_chart_2_about(),
   },
   {
     id: "chart-3",
-    label: "Chart 3: sus, add9 and slash bass",
-    about: "Sus and add9 colours and slash chords (the bass named after the slash).",
+    label: m.music_content_accompany_chart_3_label(),
+    about: m.music_content_accompany_chart_3_about(),
   },
 ];
 const CHART_POOLS: string[][] = [
@@ -362,9 +363,9 @@ const cycle = (seq: number[], n: number) =>
 
 export type PatternGroup = "pop" | "blues" | "gospel";
 export const PATTERN_GROUPS: { id: PatternGroup; label: string }[] = [
-  { id: "pop", label: "Pop and ballad" },
-  { id: "blues", label: "Blues, boogie and stride" },
-  { id: "gospel", label: "Gospel" },
+  { id: "pop", label: m.music_content_accompany_group_pop() },
+  { id: "blues", label: m.music_content_accompany_group_blues() },
+  { id: "gospel", label: m.music_content_accompany_group_gospel() },
 ];
 
 export interface AccompPattern {
@@ -382,35 +383,35 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "block-1",
     n: 1,
-    label: "Block chords on 1",
+    label: m.music_content_accompany_block_1_label(),
     group: "pop",
     about:
-      "Both hands strike the chord on beat 1 and hold the bar: the root below, the chord above.",
+      m.music_content_accompany_block_1_about(),
     bar: ({ v }) => [L(0, 4, v.bass), R(0, 4, ...v.rh)],
   },
   {
     id: "block-1-3",
     n: 2,
-    label: "Block chords on 1 and 3",
+    label: m.music_content_accompany_block_13_label(),
     group: "pop",
-    about: "The root and the chord together on beats 1 and 3.",
+    about: m.music_content_accompany_block_13_about(),
     bar: ({ v }) => [L(0, 2, v.bass), R(0, 2, ...v.rh), L(2, 2, v.bass), R(2, 2, ...v.rh)],
   },
   {
     id: "root-fifth-octave",
     n: 3,
-    label: "Root, fifth, octave",
+    label: m.music_content_accompany_r58_label(),
     group: "pop",
     about:
-      "The left hand walks root, fifth, octave, fifth in quarters under a held right-hand chord.",
+      m.music_content_accompany_r58_about(),
     bar: ({ v }) => [...[0, 7, 12, 7].map((o, i) => L(i, 1, v.bass + o)), R(0, 4, ...v.rh)],
   },
   {
     id: "rock-octaves",
     n: 4,
-    label: "Rock octave eighths",
+    label: m.music_content_accompany_rock_label(),
     group: "pop",
-    about: "Left-hand octaves on every eighth, the right hand's chord on 1 and 3.",
+    about: m.music_content_accompany_rock_about(),
     bar: ({ v }) => [
       ...Array.from({ length: 8 }, (_, i) => L(i / 2, 0.5, v.bass, v.bass + 12)),
       R(0, 2, ...v.rh),
@@ -420,18 +421,18 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "broken-triad",
     n: 5,
-    label: "Broken chord eighths",
+    label: m.music_content_accompany_broken_label(),
     group: "pop",
-    about: "The right hand rocks up and down the chord in eighths over a held root.",
+    about: m.music_content_accompany_broken_about(),
     bar: ({ v }) => [L(0, 4, v.bass), ...eighths("right", cycle(upDown(v.rh), 8))],
   },
   {
     id: "ballad-arpeggio",
     n: 6,
-    label: "Ballad arpeggio, 1-5-8-10",
+    label: m.music_content_accompany_ballad_label(),
     group: "pop",
     about:
-      "The left hand climbs root, fifth, octave and tenth twice a bar under a held right-hand chord.",
+      m.music_content_accompany_ballad_about(),
     bar: ({ v }) => {
       const t = v.bass + 12 + third(v.chord);
       return [...eighths("left", cycle([v.bass, v.bass + 7, v.bass + 12, t], 8)), R(0, 4, ...v.rh)];
@@ -440,10 +441,10 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "three-three-two",
     n: 7,
-    label: "3+3+2 eighths",
+    label: m.music_content_accompany_332_label(),
     group: "pop",
     about:
-      "The right hand runs down the chord in groups of three, three and two. The root lands with each group.",
+      m.music_content_accompany_332_about(),
     bar: ({ v }) => {
       const down = [...v.rh].sort((a, b) => b - a).slice(0, 3);
       return [
@@ -457,9 +458,9 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "pop-syncopation",
     n: 8,
-    label: "Pop syncopation, 1, and-of-2, 4",
+    label: m.music_content_accompany_pop_sync_label(),
     group: "pop",
-    about: "Both hands together on 1, the and of 2, and 4.",
+    about: m.music_content_accompany_pop_sync_about(),
     bar: ({ v }) =>
       [
         [0, 1.5],
@@ -470,9 +471,9 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "alberti",
     n: 9,
-    label: "Alberti bass",
+    label: m.music_content_accompany_alberti_label(),
     group: "pop",
-    about: "Low, high, middle, high in the left hand, the right hand's chord on 1 and 3.",
+    about: m.music_content_accompany_alberti_about(),
     bar: ({ v }) => {
       const [a, b, c] = v.lh;
       return [...eighths("left", cycle([a, c, b, c], 8)), R(0, 2, ...v.rh), R(2, 2, ...v.rh)];
@@ -481,10 +482,10 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "spread-1-5-10",
     n: 11,
-    label: "Spread 1-5-10",
+    label: m.music_content_accompany_spread_label(),
     group: "pop",
     about:
-      "The left hand opens root, fifth, tenth, fifth in quarters under a held right-hand chord.",
+      m.music_content_accompany_spread_about(),
     bar: ({ v }) => {
       const t = v.bass + 12 + third(v.chord);
       return [...[v.bass, v.bass + 7, t, v.bass + 7].map((m, i) => L(i, 1, m)), R(0, 4, ...v.rh)];
@@ -493,9 +494,9 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "half-time-push",
     n: 16,
-    label: "Half time with pushes",
+    label: m.music_content_accompany_half_time_label(),
     group: "pop",
-    about: "Root and chord on 1, then the next bar's chord pushed early on the and of 4.",
+    about: m.music_content_accompany_half_time_about(),
     bar: ({ v, next }) => [
       L(0, 3.5, v.bass),
       R(0, 3.5, ...v.rh),
@@ -506,10 +507,10 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "boogie",
     n: 12,
-    label: "Boogie bass, chords on 2 and 4",
+    label: m.music_content_accompany_boogie_label(),
     group: "blues",
     about:
-      "Eight to the bar, up the chord and back (1 3 5 6 b7 6 5 3) and swung, with right-hand chords on 2 and 4.",
+      m.music_content_accompany_boogie_about(),
     swing: true,
     bar: ({ v }) => {
       const b = 36 + pc(v.chord.rootPc - 36);
@@ -520,9 +521,9 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "shuffle-fifth-sixth",
     n: 12,
-    label: "Shuffle, fifth to sixth",
+    label: m.music_content_accompany_shuffle_label(),
     group: "blues",
-    about: "The rock and roll left hand: root and fifth, root and sixth, in swung eighths.",
+    about: m.music_content_accompany_shuffle_about(),
     swing: true,
     bar: ({ v }) => {
       const b = 36 + pc(v.chord.rootPc - 36);
@@ -532,9 +533,9 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "stride-lite",
     n: 13,
-    label: "Stride-lite",
+    label: m.music_content_accompany_stride_lite_label(),
     group: "blues",
-    about: "Left hand only: the root on 1, the chord on 2, the fifth on 3, the chord on 4.",
+    about: m.music_content_accompany_stride_lite_about(),
     bar: ({ v }) => {
       const b = bassOf(v.chord);
       const ch = lead(undefined, handPcs(v.chord).slice(0, 3), [50, 62]);
@@ -544,10 +545,10 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "stride",
     n: 13,
-    label: "Stride, octave and tenth",
+    label: m.music_content_accompany_stride_label(),
     group: "blues",
     about:
-      "Left hand only: the root in octaves on 1, the chord on 2, a tenth on 3, the chord on 4.",
+      m.music_content_accompany_stride_about(),
     bar: ({ v }) => {
       const b = bassOf(v.chord);
       const ch = lead(undefined, handPcs(v.chord).slice(0, 3), [50, 62]);
@@ -562,10 +563,10 @@ export const ACCOMP_PATTERNS: AccompPattern[] = [
   {
     id: "gospel-1-4-1",
     n: 14,
-    label: "Gospel 1-4-1",
+    label: m.music_content_accompany_gospel_label(),
     group: "gospel",
     about:
-      "The chord, its IV over the same bass on the and of 2, and back on 4: the gospel and rock 1-4-1.",
+      m.music_content_accompany_gospel_about(),
     bar: ({ v }) => [L(0, 4, v.bass), R(0, 1.5, ...v.rh), R(1.5, 1.5, ...v.four), R(3, 1, ...v.rh)],
   },
 ];
@@ -664,11 +665,11 @@ export interface CompRhythm {
   meter?: 3;
 }
 export const COMP_RHYTHMS: CompRhythm[] = [
-  { id: "whole", label: "Whole notes", about: "One chord a bar, on 1, held.", hits: [[0, 4]] },
+  { id: "whole", label: m.music_content_accompany_comp_whole_label(), about: m.music_content_accompany_comp_whole_about(), hits: [[0, 4]] },
   {
     id: "halves",
-    label: "Two to the bar",
-    about: "On 1 and 3.",
+    label: m.music_content_accompany_comp_two_label(),
+    about: m.music_content_accompany_comp_two_about(),
     hits: [
       [0, 2],
       [2, 2],
@@ -676,8 +677,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "charleston",
-    label: "Charleston",
-    about: "On 1 and the and of 2.",
+    label: m.music_content_accompany_comp_charleston_label(),
+    about: m.music_content_accompany_comp_charleston_about(),
     hits: [
       [0, 1],
       [1.5, 0.5],
@@ -685,8 +686,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "garland",
-    label: "And of 2, and of 4",
-    about: "Red Garland's offbeats: the and of 2, then the next chord early on the and of 4.",
+    label: m.music_content_accompany_comp_and24_label(),
+    about: m.music_content_accompany_comp_and24_about(),
     hits: [
       [1.5, 1],
       [3.5, 0.5, true],
@@ -694,8 +695,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "stabs",
-    label: "And of 2, and 4",
-    about: "Short stabs on the and of 2 and on 4, room for a line on top.",
+    label: m.music_content_accompany_comp_and2_4_label(),
+    about: m.music_content_accompany_comp_and2_4_about(),
     hits: [
       [1.5, 0.5],
       [3, 1],
@@ -703,8 +704,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "bossa",
-    label: "Bossa",
-    about: "On 1, the and of 2 and 4, straight eighths.",
+    label: m.music_content_accompany_comp_bossa_label(),
+    about: m.music_content_accompany_comp_bossa_about(),
     hits: [
       [0, 1.5],
       [1.5, 1.5],
@@ -714,9 +715,9 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "hard-bop",
-    label: "Hard-bop hits",
+    label: m.music_content_accompany_comp_hardbop_label(),
     about:
-      "Short hits with the drummer: on 1, the and of 2, then the next chord pushed on the and of 4.",
+      m.music_content_accompany_comp_hardbop_about(),
     hits: [
       [0, 0.5],
       [1.5, 0.5],
@@ -725,8 +726,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "waltz",
-    label: "Waltz: 1 and the and of 2",
-    about: "Jazz waltz comping in 3/4: on 1, then the and of 2.",
+    label: m.music_content_accompany_comp_waltz1_label(),
+    about: m.music_content_accompany_comp_waltz1_about(),
     hits: [
       [0, 1],
       [1.5, 1],
@@ -735,8 +736,8 @@ export const COMP_RHYTHMS: CompRhythm[] = [
   },
   {
     id: "waltz-23",
-    label: "Waltz: 2 and 3",
-    about: "In 3/4, leave 1 to the bass and comp on 2 and 3.",
+    label: m.music_content_accompany_comp_waltz2_label(),
+    about: m.music_content_accompany_comp_waltz2_about(),
     hits: [
       [1, 1],
       [2, 1],
@@ -757,36 +758,36 @@ export interface CompVoicing {
 export const COMP_VOICINGS: CompVoicing[] = [
   {
     id: "shell-137",
-    label: "Shells 1-3-7",
-    about: "Left hand: root, 3rd, 7th (the 5th on a triad).",
+    label: m.music_content_accompany_lh_137_label(),
+    about: m.music_content_accompany_lh_137_about(),
   },
-  { id: "shell-173", label: "Shells 1-7-3", about: "Left hand: root, 7th, then the 3rd on top." },
+  { id: "shell-173", label: m.music_content_accompany_lh_173_label(), about: m.music_content_accompany_lh_173_about() },
   {
     id: "shells",
-    label: "Shells, alternating",
-    about: "Left hand: 1-3-7 or 1-7-3, whichever moves least from the chord before.",
+    label: m.music_content_accompany_lh_alt_label(),
+    about: m.music_content_accompany_lh_alt_about(),
   },
   {
     id: "rootless",
-    label: "Rootless A and B",
+    label: m.music_content_accompany_lh_rootless_label(),
     about:
-      "Left hand: 3 5 7 9 or 7 9 3 5 (3 13 7 9 or 7 9 3 13 on a dominant), whichever moves least. The bass player has the root.",
+      m.music_content_accompany_lh_rootless_about(),
   },
   {
     id: "root-rootless",
-    label: "Root, then rootless",
-    about: "Left hand: the root. Right hand: rootless A or B.",
+    label: m.music_content_accompany_lh_root_then_label(),
+    about: m.music_content_accompany_lh_root_then_about(),
   },
   {
     id: "two-feel",
-    label: "Two-feel bass and guide tones",
-    about: "Left hand: root on 1, fifth on 3. Right hand: the 3rd and 7th on the rhythm.",
+    label: m.music_content_accompany_lh_two_feel_label(),
+    about: m.music_content_accompany_lh_two_feel_about(),
   },
   {
     id: "octave-stabs",
-    label: "Octave stabs",
+    label: m.music_content_accompany_lh_octave_label(),
     about:
-      "Left hand: the root in octaves, short, with the right hand (Horace Silver's punches). Right hand: rootless A or B.",
+      m.music_content_accompany_lh_octave_about(),
   },
 ];
 
@@ -965,7 +966,7 @@ export const LEAD_SHEETS: LeadSheet[] = [
   sheet(
     "twinkle",
     "Twinkle, Twinkle",
-    "Traditional French, 1761",
+    m.music_content_accompany_source_twinkle(),
     96,
     0,
     [...TWINKLE_A, ...TWINKLE_B, ...TWINKLE_B, ...TWINKLE_A],
@@ -991,7 +992,7 @@ export const LEAD_SHEETS: LeadSheet[] = [
   sheet(
     "ode-to-joy",
     "Ode to Joy",
-    "Beethoven, Symphony No. 9 (1824)",
+    m.music_content_accompany_source_ode(),
     96,
     0,
     [
@@ -1105,8 +1106,8 @@ export function generatedLeadSheet(
   }
   return {
     id: `generated-${p.id}`,
-    title: `A melody over ${p.name}`,
-    source: "Generated",
+    title: m.music_content_accompany_melody_over({ name: p.name }),
+    source: m.music_content_accompany_source_generated(),
     bpm: Math.min(p.bpm, 96),
     keyPc: pc(p.keyPc + transpose),
     melody,
@@ -1118,13 +1119,13 @@ export function generatedLeadSheet(
 export const LEAD_LEVELS: { id: string; label: string; about: string }[] = [
   {
     id: "lead-1",
-    label: "Jazz lead sheet 1",
-    about: "Quarters and eighths, chord tones on 1 and 3, played swung.",
+    label: m.music_content_accompany_lead_1_label(),
+    about: m.music_content_accompany_lead_1_about(),
   },
   {
     id: "lead-2",
-    label: "Jazz lead sheet 2",
-    about: "Eighth-note lines and anticipations: the and of 4 tied into the next chord.",
+    label: m.music_content_accompany_lead_2_label(),
+    about: m.music_content_accompany_lead_2_about(),
   },
 ];
 export const isLeadLevel = (id: string) => LEAD_LEVELS.some((l) => l.id === id);
@@ -1190,8 +1191,8 @@ export function jazzLeadSheet(level: string, p: Progression, transpose = 0, seed
   return {
     ...base,
     id: `${id}-${p.id}`,
-    title: `${level0.label} over ${p.name}`,
-    source: "Generated",
+    title: m.music_content_accompany_level_over({ level: level0.label, name: p.name }),
+    source: m.music_content_accompany_source_generated(),
     melody,
   };
 }
@@ -1217,7 +1218,7 @@ export function leadSheetFromScore(score: Score): LeadSheet | null {
   return {
     id: `song-${score.id}`,
     title: score.title,
-    source: "Your songs",
+    source: m.music_content_accompany_source_your_songs(),
     bpm: score.bpm,
     keyPc: [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5][(((score.keyFifths ?? 0) % 12) + 12) % 12],
     melody,
@@ -1227,23 +1228,23 @@ export function leadSheetFromScore(score: Score): LeadSheet | null {
 
 export type LeadLeft = "roots" | "shells" | "rootless" | "chords";
 export const LEAD_LEFT: { id: LeadLeft; label: string; about: string }[] = [
-  { id: "roots", label: "Left-hand roots", about: "The root on each chord and each bar line." },
+  { id: "roots", label: m.music_content_accompany_left_roots_label(), about: m.music_content_accompany_left_roots_about() },
   {
     id: "shells",
-    label: "Left-hand shells",
-    about: "Root and 7th (root and 5th on a triad) on each chord and each bar line.",
+    label: m.music_content_accompany_left_shells_label(),
+    about: m.music_content_accompany_left_shells_about(),
   },
   {
     id: "rootless",
-    label: "Left-hand rootless",
+    label: m.music_content_accompany_left_rootless_label(),
     about:
-      "Rootless A or B (3 5 7 9 or 7 9 3 5) on each chord and each bar line, whichever moves least.",
+      m.music_content_accompany_left_rootless_about(),
   },
   {
     id: "chords",
-    label: "Chords under the melody",
+    label: m.music_content_accompany_under_melody_label(),
     about:
-      "The left hand on roots. On each chord change the right hand adds the chord below the melody note.",
+      m.music_content_accompany_under_melody_about(),
   },
 ];
 
