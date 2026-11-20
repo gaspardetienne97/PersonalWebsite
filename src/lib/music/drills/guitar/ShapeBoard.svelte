@@ -3,6 +3,7 @@
   // colours (a barre is one bar), open strings an O and muted strings an x on the
   // nut. `show=false` hides the shape (Check); strings in `heard` show a ring and
   // a check either way (what was played is no secret).
+  import { m } from "@repo/i18n/messages.js";
   import type { ChordShape, Tuning } from "@repo/music-core/data/index";
   import { chordPerfectTargets } from "@repo/music-core/content/technique";
   import { tuningById } from "@repo/music-core/theory/fretboard";
@@ -23,7 +24,7 @@
     /** Rows 32 px apart, so a six-string neck fits a laptop's first view. */
     compact?: boolean;
   }
-  let { shape, show = true, demo = null, flashes, label = "Fretboard", interactive = true, tuning: given, heard = [], compact = false }: Props = $props();
+  let { shape, show = true, demo = null, flashes, label = m.music_strings_fretboard_label(), interactive = true, tuning: given, heard = [], compact = false }: Props = $props();
 
   const tuning = $derived(given ?? tuningById(shape.tuningId)!);
   const targets = $derived(chordPerfectTargets(shape, tuning));

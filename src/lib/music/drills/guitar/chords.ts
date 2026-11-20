@@ -19,6 +19,7 @@ import {
 import { shapePcs } from "@repo/music-core/content/technique";
 import { CHANGE_GAP_MS, clusterByGap } from "@repo/music-core/scoring/timing";
 import type { Fretted } from "./fretted";
+import { m } from "@repo/i18n/messages.js";
 
 export const shapesFor = (instrument: Fretted) =>
   CHORD_SHAPES.filter((s) => s.instrument === instrument);
@@ -62,8 +63,12 @@ export function toneName(midi: number, c: ChordRef, withOctave = true) {
 
 /** The common five first, then the rest in the identifier's order. */
 export const COMMON_QUALITIES = ["maj", "m", "7", "maj7", "m7"];
-export const QUALITY_LABEL: Record<string, string> = { maj: "Major", m: "Minor", "5": "5 (power)" };
-export const qualityLabel = (q: string) => QUALITY_LABEL[q] ?? suffixOf(q);
+const QUALITY_LABEL: Record<string, () => string> = {
+  maj: m.music_strings_quality_major,
+  m: m.music_strings_quality_minor,
+  "5": m.music_strings_quality_power,
+};
+export const qualityLabel = (q: string) => QUALITY_LABEL[q]?.() ?? suffixOf(q);
 
 /** The symbol a shape sounds, named by the same identifier that grades a strum. */
 export const chordSymbol = (shape: Pick<ChordShape, "frets" | "tuningId">, tuning?: Tuning) => {
@@ -122,10 +127,10 @@ export const SHELL_QUALITIES = ["maj7", "m7", "7"];
 const SHELL_ID = /^shell\.guitar\.(\d+)\.(.+)$/;
 /** Each form: the strings (root first) and the chord tones on them, as 3 for the 3rd and 7 for the 7th. */
 const SHELL_FORMS: { strings: number[]; tones: (1 | 3 | 7)[]; label: string }[] = [
-  { strings: [6, 5, 4], tones: [1, 3, 7], label: "1-3-7, root on 6" },
-  { strings: [6, 4, 3], tones: [1, 7, 3], label: "1-7-3, root on 6" },
-  { strings: [5, 4, 3], tones: [1, 3, 7], label: "1-3-7, root on 5" },
-  { strings: [5, 3, 2], tones: [1, 7, 3], label: "1-7-3, root on 5" },
+  { strings: [6, 5, 4], tones: [1, 3, 7], label: m.music_strings_shell_form_137_6() },
+  { strings: [6, 4, 3], tones: [1, 7, 3], label: m.music_strings_shell_form_173_6() },
+  { strings: [5, 4, 3], tones: [1, 3, 7], label: m.music_strings_shell_form_137_5() },
+  { strings: [5, 3, 2], tones: [1, 7, 3], label: m.music_strings_shell_form_173_5() },
 ];
 
 /** A shell chord's four forms on a tuning, as positions 0 to 3; each note the closest fret to the root's. */
@@ -133,7 +138,7 @@ export function shellPositions(c: ChordRef, tuning: Tuning): ChordPosition[] {
   const third = c.quality === "m7" ? 3 : 4;
   const seventh = c.quality === "maj7" ? 11 : 10;
   const id = `shell.guitar.${pc(c.root)}.${c.quality}`;
-  const name = `${chordLabel(c)} shell`;
+  const name = m.music_strings_shell_name({ chord: chordLabel(c) });
   return SHELL_FORMS.map((form, i): ChordPosition => {
     const open = (s: number) => tuning.openStrings[s - 1];
     const r = pc(c.root - open(form.strings[0]));

@@ -1,5 +1,6 @@
 <script lang="ts">
   // Chord-Perfect (catalog 4.5): Build, Pick, Strum and identify, Changes.
+  import { m } from "@repo/i18n/messages.js";
   import { onMount } from "svelte";
   import { page } from "$app/state";
   import ShapeDrill from "#lib/music/drills/guitar/ShapeDrill.svelte";
@@ -14,7 +15,7 @@
   onMount(() => void applyBenchParams().then(() => (ready = true)));
 </script>
 
-<svelte:head><title>Chords | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_strings_chords_title()}</title></svelte:head>
 
 {#if ready}
   {#key mode}

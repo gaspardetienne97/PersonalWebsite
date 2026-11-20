@@ -1,6 +1,7 @@
 <script lang="ts">
   // The same chord at other places up the neck as a row of chord boxes, so the
   // shapes are seen before one is picked (position 0 is the open or curated shape).
+  import { m } from "@repo/i18n/messages.js";
   import type { ChordPosition } from "@repo/music-core/data/index";
   import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import { shortPosition } from "./chords";
@@ -10,7 +11,7 @@
 </script>
 
 {#if positions.length > 1}
-  <div class="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="group" aria-label="Neck position">
+  <div class="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="group" aria-label={m.music_strings_position_picker_label()}>
     {#each positions as p, i (p.id)}
       <button
         type="button"

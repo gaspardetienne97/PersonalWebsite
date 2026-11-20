@@ -3,12 +3,13 @@
   // missing (dashed, "missing"), other tones heard (hollow, "extra"). Words and
   // form carry the meaning, colour only repeats it. `plain` (before a run) shows
   // the target tones with no verdict.
+  import { m } from "@repo/i18n/messages.js";
   import { FLAT_NAMES } from "@repo/music-core";
 
   let {
     expected = [],
     heard = [],
-    label = "Tones",
+    label = m.music_strings_tonemap_label(),
     plain = false,
     name = (pc: number) => FLAT_NAMES[pc],
   }: {
@@ -23,7 +24,7 @@
     ...expected.map((pc) => ({ pc, state: plain ? ("tone" as const) : heard.includes(pc) ? ("hit" as const) : ("missing" as const) })),
     ...heard.filter((pc) => !expected.includes(pc)).map((pc) => ({ pc, state: "extra" as const })),
   ]);
-  const word = { hit: "heard", missing: "missing", extra: "extra", tone: "" };
+  const word = { hit: m.music_strings_tonemap_heard(), missing: m.music_strings_tonemap_missing(), extra: m.music_strings_tonemap_extra(), tone: "" };
 </script>
 
 <ul class="flex flex-wrap gap-1.5" aria-label={label}>
@@ -39,9 +40,9 @@
     >
       <span class="font-display text-base font-semibold">{name(c.pc)}</span>
       {#if c.state !== "tone"}<span class="text-[13px]">{c.state === "hit" ? "✓" : word[c.state]}</span>{/if}
-      {#if c.state === "hit"}<span class="sr-only">heard</span>{/if}
+      {#if c.state === "hit"}<span class="sr-only">{word.hit}</span>{/if}
     </li>
   {:else}
-    <li class="text-sm text-ws-stage-soft">No tones yet.</li>
+    <li class="text-sm text-ws-stage-soft">{m.music_strings_tonemap_empty()}</li>
   {/each}
 </ul>

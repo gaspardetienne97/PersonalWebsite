@@ -2,6 +2,7 @@
 // strum judged against the stroke it was nearest: on time, early or late by so
 // many ms, or missed. Pure, so the strum page and its tests share it.
 import { timingBreakdown } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
 export type Stroke = "down" | "up" | "mute";
 export interface SlotStroke {
@@ -58,10 +59,10 @@ export type StrokeVerdict = { kind: "ontime" | "early" | "late"; text: string };
 /** A strum `offMs` from its stroke: on time within `onTimeMs`, else early or late by the signed ms. */
 export function strokeVerdict(offMs: number, onTimeMs: number): StrokeVerdict {
   const ms = Math.round(offMs);
-  if (Math.abs(ms) <= onTimeMs) return { kind: "ontime", text: "On time" };
+  if (Math.abs(ms) <= onTimeMs) return { kind: "ontime", text: m.music_strings_on_time() };
   return ms < 0
-    ? { kind: "early", text: `Early ${-ms} ms` }
-    : { kind: "late", text: `Late ${ms} ms` };
+    ? { kind: "early", text: m.music_strings_early_ms({ ms: -ms }) }
+    : { kind: "late", text: m.music_strings_late_ms({ ms }) };
 }
 
 /**
