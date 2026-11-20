@@ -3,6 +3,7 @@
 // comes back. It also owns "never overwrite a differing file": every restored
 // asset carries its sha256 for that comparison.
 import JSZip from "jszip";
+import { m } from "@repo/i18n/messages.js";
 
 export const DATA_BACKUP_FORMAT = "woodshed-data-backup";
 export const FULL_BACKUP_FORMAT = "woodshed-full-backup";
@@ -158,27 +159,32 @@ function checkTables(
   allowMissing: BackupTable[],
   errors: BackupIssue[],
 ) {
-  if (!isObj(tables)) return void errors.push({ path, message: "must be an object of tables" });
+  if (!isObj(tables))
+    return void errors.push({ path, message: m.music_content_backup_object_of_tables() });
   for (const table of BACKUP_TABLES) {
     const rows = tables[table];
     const at = `${path}.${table}`;
     if (rows === undefined && allowMissing.includes(table)) continue;
     if (!Array.isArray(rows)) {
-      errors.push({ path: at, message: "must be an array of rows" });
+      errors.push({ path: at, message: m.music_content_backup_array_of_rows() });
       continue;
     }
     const { key, fields } = SCHEMA[table];
     const seen = new Set<unknown>();
     rows.forEach((row, i) => {
       const rp = `${at}[${i}]`;
-      if (!isObj(row)) return void errors.push({ path: rp, message: "must be an object" });
+      if (!isObj(row))
+        return void errors.push({ path: rp, message: m.music_content_backup_must_be_object() });
       for (const [field, spec] of Object.entries(fields)) {
         const optional = spec.endsWith("?");
         const want = spec.replace("?", "") as Kind;
         const v = row[field];
         if (v === undefined || (optional && v === null)) {
           if (!optional)
-            errors.push({ path: `${rp}.${field}`, message: `is missing (expected ${want})` });
+            errors.push({
+              path: `${rp}.${field}`,
+              message: m.music_content_backup_missing_expected({ kind: want }),
+            });
         } else if (
           want === "key" ? !["string", "number"].includes(kindOf(v)) : kindOf(v) !== want
         ) {
@@ -186,13 +192,18 @@ function checkTables(
             path: `${rp}.${field}`,
             message:
               want === "key"
-                ? "must be a string or number key"
-                : `must be ${want === "array" ? "an" : "a"} ${want}`,
+                ? m.music_content_backup_key_kind()
+                : (want === "array"
+                    ? m.music_content_backup_must_be_an
+                    : m.music_content_backup_must_be_a)({ kind: want }),
           });
         }
       }
       if (seen.has(row[key]))
-        errors.push({ path: `${rp}.${key}`, message: `duplicates an earlier ${key}` });
+        errors.push({
+          path: `${rp}.${key}`,
+          message: m.music_content_backup_duplicates_field({ field: key }),
+        });
       seen.add(row[key]);
     });
   }
@@ -201,37 +212,39 @@ function checkTables(
 /** Validate a parsed data backup (current or legacy) and return it in the current shape. */
 export function validateDataBackup(input: unknown, path = "backup"): BackupRead<DataBackup> {
   const errors: BackupIssue[] = [];
-  if (!isObj(input)) return { ok: false, errors: [{ path, message: "is not a backup object" }] };
+  if (!isObj(input))
+    return { ok: false, errors: [{ path, message: m.music_content_backup_not_backup() }] };
   const versions = ACCEPTED_DATA[input.format as string];
   if (!versions)
     return {
       ok: false,
-      errors: [{ path: `${path}.format`, message: "is not a Woodshed data backup" }],
+      errors: [{ path: `${path}.format`, message: m.music_content_backup_not_data_backup() }],
     };
   if (!versions.includes(input.version as number))
     errors.push({
       path: `${path}.version`,
-      message: `version ${String(input.version)} is not supported`,
+      message: m.music_content_backup_version({ version: String(input.version) }),
     });
   const legacy = input.format !== DATA_BACKUP_FORMAT;
   if (typeof input.exportedAt !== "string" || Number.isNaN(Date.parse(input.exportedAt)))
-    errors.push({ path: `${path}.exportedAt`, message: "must be an ISO date" });
+    errors.push({ path: `${path}.exportedAt`, message: m.music_content_backup_iso_date() });
   checkTables(input.tables, `${path}.tables`, legacy ? ["midiTakes"] : [], errors);
   const media = input.media;
-  if (!isObj(media)) errors.push({ path: `${path}.media`, message: "must be an object" });
+  if (!isObj(media))
+    errors.push({ path: `${path}.media`, message: m.music_content_backup_must_be_object() });
   else {
     if (media.included !== false)
       errors.push({
         path: `${path}.media.included`,
-        message: "must be false: a data backup holds no media",
+        message: m.music_content_backup_no_media(),
       });
     for (const k of ["backingTracks", "audioTakes", "samples"] as const)
       if (!isCount(media[k]))
-        errors.push({ path: `${path}.media.${k}`, message: "must be a whole number ≥ 0" });
+        errors.push({ path: `${path}.media.${k}`, message: m.music_content_backup_whole_number() });
   }
   if (errors.length) return { ok: false, errors };
   const t = input.tables as Record<string, Row[]>;
-  const m = media as Row;
+  const counts = media as Row;
   return {
     ok: true,
     legacy,
@@ -242,9 +255,9 @@ export function validateDataBackup(input: unknown, path = "backup"): BackupRead<
       tables: Object.fromEntries(BACKUP_TABLES.map((k) => [k, t[k] ?? []])) as DataBackup["tables"],
       media: {
         included: false,
-        backingTracks: m.backingTracks as number,
-        audioTakes: m.audioTakes as number,
-        samples: m.samples as number,
+        backingTracks: counts.backingTracks as number,
+        audioTakes: counts.audioTakes as number,
+        samples: counts.samples as number,
       },
     },
   };
@@ -290,12 +303,11 @@ export function buildDataBackup(
     media: { included: false, ...excluded },
   };
   const check = validateDataBackup(backup);
-  if (!check.ok)
-    throw new BackupError("Some saved data is malformed, so no backup was made.", check.errors);
+  if (!check.ok) throw new BackupError(m.music_content_backup_malformed(), check.errors);
   const json = JSON.stringify(backup);
   const bytes = utf8Length(json);
   if (bytes > DATA_BACKUP_LIMIT)
-    throw new BackupError(`The backup is ${(bytes / MiB).toFixed(1)} MiB, over the 50 MiB limit.`);
+    throw new BackupError(m.music_content_backup_too_big({ size: (bytes / MiB).toFixed(1) }));
   const counts = tableCounts(backup);
   return {
     backup,
@@ -310,13 +322,13 @@ export function buildDataBackup(
 export function readDataBackup(input: string | Uint8Array): BackupRead<DataBackup> {
   const size = typeof input === "string" ? utf8Length(input) : input.length;
   if (size > DATA_BACKUP_LIMIT)
-    return { ok: false, errors: [{ path: "file", message: "is over the 50 MiB limit" }] };
+    return { ok: false, errors: [{ path: "file", message: m.music_content_backup_over_50() }] };
   try {
     return validateDataBackup(
       JSON.parse(typeof input === "string" ? input : new TextDecoder().decode(input)),
     );
   } catch {
-    return { ok: false, errors: [{ path: "file", message: "is not valid JSON" }] };
+    return { ok: false, errors: [{ path: "file", message: m.music_content_backup_not_json() }] };
   }
 }
 
@@ -358,7 +370,7 @@ export async function buildFullBackup(
 ): Promise<Uint8Array> {
   if (assets.length > FULL_BACKUP_MAX_FILES)
     throw new BackupError(
-      `${assets.length} media files is over the ${FULL_BACKUP_MAX_FILES} file limit.`,
+      m.music_content_backup_too_many_files({ count: assets.length, max: FULL_BACKUP_MAX_FILES }),
     );
   const keys = new Set<string>();
   const zip = new JSZip();
@@ -366,12 +378,11 @@ export async function buildFullBackup(
   let total = 0;
   for (const [i, a] of assets.entries()) {
     if (!a.key || keys.has(a.key))
-      throw new BackupError(`Media key "${a.key}" is empty or repeated.`);
+      throw new BackupError(m.music_content_backup_media_key({ key: a.key }));
     keys.add(a.key);
     const bytes = new Uint8Array(await a.blob.arrayBuffer());
     total += bytes.length;
-    if (total > FULL_BACKUP_LIMIT)
-      throw new BackupError("The media is over the 250 MiB full-backup limit.");
+    if (total > FULL_BACKUP_LIMIT) throw new BackupError(m.music_content_backup_media_over_250());
     const path = `media/${i}`;
     zip.file(path, bytes, { createFolders: false });
     entries.push({
@@ -391,11 +402,10 @@ export async function buildFullBackup(
   };
   const json = JSON.stringify(manifest);
   if (utf8Length(json) > DATA_BACKUP_LIMIT)
-    throw new BackupError("The manifest is over the 50 MiB limit.");
+    throw new BackupError(m.music_content_backup_manifest_over_50());
   zip.file("manifest.json", json);
   const out = await zip.generateAsync({ type: "uint8array", compression: "STORE" });
-  if (out.length > FULL_BACKUP_LIMIT)
-    throw new BackupError("The full backup is over the 250 MiB limit.");
+  if (out.length > FULL_BACKUP_LIMIT) throw new BackupError(m.music_content_backup_full_over_250());
   return out;
 }
 
@@ -437,15 +447,17 @@ export async function readFullBackup(
     ok: false as const,
     errors: [{ path, message }],
   });
-  if (bytes.length > FULL_BACKUP_LIMIT) return fail("file", "is over the 250 MiB limit");
+  if (bytes.length > FULL_BACKUP_LIMIT) return fail("file", m.music_content_backup_over_250());
   const dir = zipDirectory(bytes);
-  if (!dir) return fail("file", "is not a readable ZIP");
+  if (!dir) return fail("file", m.music_content_backup_not_zip());
   if (dir.names.length > FULL_BACKUP_MAX_FILES + 1)
-    return fail("file", `holds more than ${FULL_BACKUP_MAX_FILES} media files`);
-  if (new Set(dir.names).size !== dir.names.length) return fail("file", "lists a file twice");
+    return fail("file", m.music_content_backup_holds_more({ max: FULL_BACKUP_MAX_FILES }));
+  if (new Set(dir.names).size !== dir.names.length)
+    return fail("file", m.music_content_backup_listed_twice());
   const manifestSize = dir.sizes.get("manifest.json");
-  if (manifestSize === undefined) return fail("manifest.json", "is missing");
-  if (manifestSize > DATA_BACKUP_LIMIT) return fail("manifest.json", "is over the 50 MiB limit");
+  if (manifestSize === undefined) return fail("manifest.json", m.music_content_backup_missing());
+  if (manifestSize > DATA_BACKUP_LIMIT)
+    return fail("manifest.json", m.music_content_backup_over_50());
 
   let zip: JSZip;
   let manifest: unknown;
@@ -453,60 +465,62 @@ export async function readFullBackup(
     zip = await JSZip.loadAsync(bytes);
     manifest = JSON.parse(await zip.file("manifest.json")!.async("string"));
   } catch {
-    return fail("manifest.json", "could not be read as JSON");
+    return fail("manifest.json", m.music_content_backup_unreadable_json());
   }
   if (!isObj(manifest) || !ACCEPTED_FULL[manifest.format as string])
-    return fail("manifest.format", "is not a Woodshed full backup");
+    return fail("manifest.format", m.music_content_backup_not_full_backup());
   const errors: BackupIssue[] = [];
   if (!ACCEPTED_FULL[manifest.format as string].includes(manifest.version as number))
     errors.push({
       path: "manifest.version",
-      message: `version ${String(manifest.version)} is not supported`,
+      message: m.music_content_backup_version({ version: String(manifest.version) }),
     });
   const data = validateDataBackup(manifest.data, "manifest.data");
   if (!data.ok) errors.push(...data.errors);
   const assets = manifest.assets;
-  if (!Array.isArray(assets)) errors.push({ path: "manifest.assets", message: "must be an array" });
+  if (!Array.isArray(assets))
+    errors.push({ path: "manifest.assets", message: m.music_content_backup_must_be_array() });
   else {
     const keys = new Set<string>();
     assets.forEach((a, i) => {
       const p = `manifest.assets[${i}]`;
-      if (!isObj(a)) return void errors.push({ path: p, message: "must be an object" });
+      if (!isObj(a))
+        return void errors.push({ path: p, message: m.music_content_backup_must_be_object() });
       if (typeof a.key !== "string" || !a.key)
-        errors.push({ path: `${p}.key`, message: "must be a non-empty string" });
+        errors.push({ path: `${p}.key`, message: m.music_content_backup_non_empty_string() });
       else if (keys.has(a.key))
-        errors.push({ path: `${p}.key`, message: "duplicates an earlier key" });
+        errors.push({ path: `${p}.key`, message: m.music_content_backup_duplicate_key() });
       else keys.add(a.key);
       if (a.path !== `media/${i}`)
-        errors.push({ path: `${p}.path`, message: `must be media/${i}` });
+        errors.push({ path: `${p}.path`, message: m.music_content_backup_must_be_media({ i }) });
       if (!isCount(a.size))
-        errors.push({ path: `${p}.size`, message: "must be a whole number ≥ 0" });
+        errors.push({ path: `${p}.size`, message: m.music_content_backup_whole_number() });
       if (typeof a.mimeType !== "string")
-        errors.push({ path: `${p}.mimeType`, message: "must be a string" });
+        errors.push({ path: `${p}.mimeType`, message: m.music_content_backup_must_be_string() });
       if (typeof a.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(a.sha256))
-        errors.push({ path: `${p}.sha256`, message: "must be a hex SHA-256" });
+        errors.push({ path: `${p}.sha256`, message: m.music_content_backup_hex_sha() });
       const listed = dir.sizes.get(`media/${i}`);
       if (listed === undefined)
-        errors.push({ path: `${p}.path`, message: `media/${i} is missing from the archive` });
+        errors.push({ path: `${p}.path`, message: m.music_content_backup_media_missing({ i }) });
       else if (listed !== a.size)
         errors.push({
           path: `${p}.size`,
-          message: `says ${String(a.size)} bytes but the archive holds ${listed}`,
+          message: m.music_content_backup_size_mismatch({ size: String(a.size), listed }),
         });
     });
     const expected = new Set(["manifest.json", ...assets.map((_, i) => `media/${i}`)]);
     for (const name of dir.names)
       if (!expected.has(name) && !name.endsWith("/"))
-        errors.push({ path: name, message: "is in the archive but not in the manifest" });
+        errors.push({ path: name, message: m.music_content_backup_not_in_manifest() });
   }
   if (errors.length || !data.ok) return { ok: false, errors };
 
   const restored: RestoredAsset[] = [];
   for (const a of assets as AssetEntry[]) {
     const file = await zip.file(a.path)!.async("uint8array");
-    if (file.length !== a.size) return fail(a.path, `is ${file.length} bytes, expected ${a.size}`);
-    if ((await sha256(file)) !== a.sha256)
-      return fail(a.path, "does not match its SHA-256; the file is damaged");
+    if (file.length !== a.size)
+      return fail(a.path, m.music_content_backup_wrong_size({ actual: file.length, size: a.size }));
+    if ((await sha256(file)) !== a.sha256) return fail(a.path, m.music_content_backup_damaged());
     restored.push({
       ...a,
       blob: new Blob([file as Uint8Array<ArrayBuffer>], { type: a.mimeType }),

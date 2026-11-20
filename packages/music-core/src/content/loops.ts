@@ -8,6 +8,7 @@ import { clamp, noteName, pc } from "../theory/notes";
 import type { EarPrompt, PlaybackEvent } from "./ear";
 import { SONG_PROGRESSIONS } from "./jam";
 import { randInt, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export type LoopSet =
   | "songs"
@@ -21,23 +22,47 @@ export type LoopSet =
   | "tritone";
 
 export const LOOP_SETS: { id: LoopSet; label: string; hint: string }[] = [
-  { id: "songs", label: "Song loops", hint: "Real songs' chords, in a key you hear first." },
-  { id: "pop", label: "Pop loops", hint: "I, IV, V and vi in the four loops pop is made of." },
-  { id: "rock", label: "Rock loops", hint: "bVII, bVI and bIII: the rock and Mixolydian loops." },
+  {
+    id: "songs",
+    label: m.music_content_loops_songs_label(),
+    hint: m.music_content_loops_songs_hint(),
+  },
+  { id: "pop", label: m.music_content_loops_pop_label(), hint: m.music_content_loops_pop_hint() },
+  {
+    id: "rock",
+    label: m.music_content_loops_rock_label(),
+    hint: m.music_content_loops_rock_hint(),
+  },
   {
     id: "minor",
-    label: "Minor loops",
-    hint: "i, iv, v and V, with bVI, bIII and bVII from the natural minor.",
+    label: m.music_content_loops_minor_label(),
+    hint: m.music_content_loops_minor_hint(),
   },
   {
     id: "borrowed",
-    label: "Borrowed chords",
-    hint: "iv, bVI, bVII and bIII beside I, IV, V and vi.",
+    label: m.music_content_loops_borrowed_label(),
+    hint: m.music_content_loops_borrowed_hint(),
   },
-  { id: "secondary", label: "Secondary dominants", hint: "V7/V, V7/vi, V7/ii and V7/IV." },
-  { id: "modal", label: "Modal vamps", hint: "Dorian, Mixolydian, Lydian, Phrygian and Aeolian." },
-  { id: "turnarounds", label: "Turnarounds", hint: "I-vi-ii-V, iii-VI-ii-V and the backdoor." },
-  { id: "tritone", label: "Tritone subs", hint: "bII7 to I against V7 to I." },
+  {
+    id: "secondary",
+    label: m.music_content_loops_secondary_label(),
+    hint: m.music_content_loops_secondary_hint(),
+  },
+  {
+    id: "modal",
+    label: m.music_content_loops_modal_label(),
+    hint: m.music_content_loops_modal_hint(),
+  },
+  {
+    id: "turnarounds",
+    label: m.music_content_loops_turnarounds_label(),
+    hint: m.music_content_loops_turnarounds_hint(),
+  },
+  {
+    id: "tritone",
+    label: m.music_content_loops_tritone_label(),
+    hint: m.music_content_loops_tritone_hint(),
+  },
 ];
 
 export interface ChordLoop {
@@ -177,7 +202,9 @@ export const CHORD_LOOPS: ChordLoop[] = [
   loop("pop", "twist", "I IV V IV", { songs: "Twist and Shout, La Bamba" }),
   loop("pop", "pop-iv-vi", "I IV vi V"),
   loop("rock", "rock-bvii-iv", "I bVII IV", { songs: "Sweet Home Alabama, Gloria" }),
-  loop("rock", "rock-bvii-iv-i", "I bVII IV I", { songs: "Hey Jude, the coda" }),
+  loop("rock", "rock-bvii-iv-i", "I bVII IV I", {
+    songs: m.music_content_loops_song_hey_jude_coda(),
+  }),
   loop("rock", "aeolian-shuttle", "i bVII bVI bVII", {
     minor: true,
     songs: "All Along the Watchtower",
@@ -253,7 +280,11 @@ export function loopPrompt(
     at += bars;
     return ev;
   });
-  const key = `${noteName(48 + keyPc, "flat", false)} ${l.minor ? "minor" : "major"}`;
+  const note = noteName(48 + keyPc, "flat", false);
+  const key = l.minor
+    ? m.music_content_loops_key_minor({ note })
+    : m.music_content_loops_key_major({ note });
+  const chords = l.numerals.map((t) => numeralSymbol(keyPc, t)).join(", ");
   return {
     id: `loop-${l.id}-${keyPc}`,
     drill: "loop",
@@ -262,7 +293,9 @@ export function loopPrompt(
     answer: l.numerals.join(" "),
     choices: opts.choices ?? loopPalette(l.set),
     difficulty: opts.difficulty,
-    caption: `${l.name}${l.songs ? `, as in ${l.songs}` : ""}. In ${key}: ${l.numerals.map((t) => numeralSymbol(keyPc, t)).join(", ")}`,
+    caption: l.songs
+      ? m.music_content_loops_caption_songs({ name: l.name, songs: l.songs, key, chords })
+      : m.music_content_loops_caption({ name: l.name, key, chords }),
     keyPc,
     minor: !!l.minor,
     beat,

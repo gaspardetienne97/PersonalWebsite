@@ -1,5 +1,6 @@
 // Tap-along latency estimate (hardware notes §7, scoring rules §13).
 // Positive offset = the input arrives late; the router subtracts it once.
+import { m } from "@repo/i18n/messages.js";
 
 export const CALIBRATION = {
   bpm: 90,
@@ -62,7 +63,7 @@ export function estimateOffset(
     return {
       ok: false,
       reason: "too-few-clicks",
-      message: `The run stopped early. Let all ${C.clicks} clicks play, then tap along again.`,
+      message: m.music_content_calibration_too_few({ clicks: C.clicks }),
     };
   const scored = clickTimesMs.slice(C.warmup, C.clicks);
   const taps = [...tapTimesMs].sort((a, b) => a - b);
@@ -75,7 +76,11 @@ export function estimateOffset(
       ok: false,
       reason: "missed-clicks",
       answered,
-      message: `Tap once on every click. ${answered} of the last ${scored.length} clicks had a tap; ${C.minAnswered} are needed.`,
+      message: m.music_content_calibration_missed({
+        answered,
+        total: scored.length,
+        needed: C.minAnswered,
+      }),
     };
   const offsetMs = Math.round(median(diffs));
   const iqrMs = iqr(diffs);
@@ -85,7 +90,7 @@ export function estimateOffset(
       reason: "too-loose",
       answered,
       iqrMs,
-      message: `Your taps were too spread out to trust (they varied by ${Math.round(iqrMs)} ms; ${C.maxIqrMs} ms or less is needed). Try again with one steady tap per click.`,
+      message: m.music_content_calibration_loose({ spread: Math.round(iqrMs), max: C.maxIqrMs }),
     };
   if (Math.abs(offsetMs) > C.maxOffsetMs)
     return {
@@ -93,7 +98,7 @@ export function estimateOffset(
       reason: "out-of-range",
       answered,
       iqrMs,
-      message: `That came out at ${offsetMs} ms, beyond the ${C.maxOffsetMs} ms this can correct. Check the device and try again.`,
+      message: m.music_content_calibration_out_of_range({ offset: offsetMs, max: C.maxOffsetMs }),
     };
   return { ok: true, offsetMs, iqrMs, answered };
 }

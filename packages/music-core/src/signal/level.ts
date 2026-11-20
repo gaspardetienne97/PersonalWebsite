@@ -1,3 +1,5 @@
+import { m } from "@repo/i18n/messages.js";
+
 // Input meter numbers (catalog 4.12): floor -60 dB, advice bands at -1 / -6 / -30 dB.
 export const LEVEL_FLOOR_DB = -60;
 
@@ -18,10 +20,10 @@ export function peakDb(buf: Float32Array): number {
 export type LevelTone = "clipping" | "hot" | "good" | "quiet";
 
 export function levelAdvice(db: number): { tone: LevelTone; label: string } {
-  if (db >= -1) return { tone: "clipping", label: "Clipping" };
-  if (db >= -6) return { tone: "hot", label: "A little hot" };
-  if (db >= -30) return { tone: "good", label: "Good level" };
-  return { tone: "quiet", label: "Quiet" };
+  if (db >= -1) return { tone: "clipping", label: m.music_content_level_clipping() };
+  if (db >= -6) return { tone: "hot", label: m.music_content_level_hot() };
+  if (db >= -30) return { tone: "good", label: m.music_content_level_good() };
+  return { tone: "quiet", label: m.music_content_level_quiet() };
 }
 
 /**

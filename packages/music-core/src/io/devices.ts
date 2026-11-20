@@ -6,20 +6,21 @@ import type {
   NoteEvent,
   PreferredSurface,
 } from "../types";
+import { m } from "@repo/i18n/messages.js";
 
 type ParsedMidiLike = NoteEvent | ControlEvent;
 
 export const PAD_PRESETS = {
   "chromatic-36": {
-    label: "Chromatic from 36 (C1)",
+    label: m.music_content_devices_chromatic_36(),
     notes: Array.from({ length: 16 }, (_, i) => 36 + i),
   },
   "akai-classic": {
-    label: "Akai Classic MPC map",
+    label: m.music_content_devices_akai_classic(),
     notes: [37, 36, 42, 82, 40, 38, 46, 44, 48, 47, 45, 43, 49, 55, 51, 53],
   },
   "chromatic-37": {
-    label: "Chromatic from 37",
+    label: m.music_content_devices_chromatic_37(),
     notes: Array.from({ length: 16 }, (_, i) => 37 + i),
   },
 } as const;

@@ -10,7 +10,9 @@ import { parseChordSymbol } from "../theory/chords";
 import { signatureFor } from "../theory/circle";
 import { diatonicNames, spellInKey } from "../theory/spelling";
 import { scaleSemitones } from "../theory/scales";
-import { TUNES } from "./tunes";
+import { englishTuneName, TUNES } from "./tunes";
+import { formatList } from "@repo/i18n/format";
+import { m } from "@repo/i18n/messages.js";
 
 export type JazzVoicingId =
   | "sevenths"
@@ -44,112 +46,100 @@ const BLOCK = "harmony.voicings.block-chords";
 export const JAZZ_VOICING_TYPES: JazzVoicingType[] = [
   {
     id: "sevenths",
-    label: "Diatonic sevenths",
+    label: m.music_content_jv_sevenths_label(),
     key: "major",
-    about: "The seventh chord on each degree of the key, root position, up the key and back.",
+    about: m.music_content_jv_sevenths_about(),
     skillId: "harmony.voicings.diatonic-sevenths",
   },
   {
     id: "so-what",
-    label: "So What",
+    label: m.music_content_jv_so_what_label(),
     key: "dorian",
-    about:
-      "Three 4ths and a major 3rd on top, moved through the dorian mode: two notes in the left hand, three in the right.",
+    about: m.music_content_jv_so_what_about(),
     skillId: QUARTAL,
   },
   {
     id: "quartal",
-    label: "Quartal stacks",
+    label: m.music_content_jv_quartal_label(),
     key: "dorian",
-    about:
-      "Three-note stacks of 4ths in the left hand, moved up the dorian mode for two octaves, as McCoy Tyner comps.",
+    about: m.music_content_jv_quartal_about(),
     skillId: QUARTAL,
   },
   {
     id: "sus",
-    label: "Sus and slash",
+    label: m.music_content_jv_sus_label(),
     key: "dorian",
-    about:
-      "Each 7sus as a slash chord: the root and 5th in the left hand, the major triad a whole step below the root in the right (C/D for D7sus). The Maiden Voyage set: up a minor 3rd, then down a whole step twice.",
+    about: m.music_content_jv_sus_about(),
     skillId: QUARTAL,
   },
   {
     id: "two-hand",
-    label: "Two-handed rootless",
+    label: m.music_content_jv_two_hand_label(),
     key: "major",
-    about:
-      "ii-V-I with no root: the left hand plays 3-7 (7-3 on the V), the right hand 9, 5 and 13 above it.",
+    about: m.music_content_jv_two_hand_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "close",
-    label: "4-way close",
+    label: m.music_content_jv_close_label(),
     key: "major",
-    about:
-      "A melody note on top with the next three chord tones close below it, through each chord tone of a ii-V-I. A major chord with the root on top takes the 6th.",
+    about: m.music_content_jv_close_about(),
     skillId: BLOCK,
   },
   {
     id: "drop2",
-    label: "Drop-2",
+    label: m.music_content_jv_drop2_label(),
     key: "major",
-    about: "4-way close with the second voice from the top dropped an octave into the left hand.",
+    about: m.music_content_jv_drop2_about(),
     skillId: BLOCK,
   },
   {
     id: "locked",
-    label: "Locked hands",
+    label: m.music_content_jv_locked_label(),
     key: "major",
-    about:
-      "George Shearing's block chords up the scale and back: the melody doubled an octave below in the left hand, 4-way close under it in the right, the I6 on chord tones and the diminished seventh on the passing notes.",
+    about: m.music_content_jv_locked_about(),
     skillId: BLOCK,
   },
   {
     id: "garland",
-    label: "Red Garland block chords",
+    label: m.music_content_jv_garland_label(),
     key: "blues",
-    about:
-      "A 12-bar blues: the left hand plays 3-7-9, the right hand the melody in octaves with the 5th inside.",
+    about: m.music_content_jv_garland_about(),
     skillId: BLOCK,
   },
   {
     id: "evans",
-    label: "Evans spreads",
+    label: m.music_content_jv_evans_label(),
     key: "major",
-    about:
-      "Bill Evans spreads on a ii-V-I: a three-note left hand (3-7-9, then 7-3-13 on the V) and two notes in the right, the melody with one voice under it.",
+    about: m.music_content_jv_evans_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "monk",
-    label: "Monk clusters",
+    label: m.music_content_jv_monk_label(),
     key: "blues",
-    about:
-      "Thelonious Monk's shells on a 12-bar blues, the root in the left hand: 3-b7-1 on the I, and on the IV and V the 3rd and 7th with the root and b9 together on top, a half step apart.",
+    about: m.music_content_jv_monk_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "upper",
-    label: "Upper structures on a tune",
+    label: m.music_content_jv_upper_label(),
     key: "tune",
-    about:
-      "Every dominant in a tune's changes: a 1-3-7 shell in the left hand and a triad on top. The II triad (9 #11 13) on a dominant going to major, the bVI (#9 b13) on one going to minor or marked altered, the VI (b9 13) on one marked b9.",
+    about: m.music_content_jv_upper_about(),
     skillId: TWO_HANDED,
   },
   {
     id: "quartal-tune",
-    label: "Quartal on a tune",
+    label: m.music_content_jv_quartal_tune_label(),
     key: "tune",
-    about:
-      "Every chord in a tune's changes as a left-hand stack of two 4ths from the chord's scale, with its 3rd or 7th inside: 7-3-6 on a major 7th, 11-b7-b3 on a minor 7th, 5-1-4 on a 7sus.",
+    about: m.music_content_jv_quartal_tune_about(),
     skillId: QUARTAL,
   },
   {
     id: "slash-tune",
-    label: "Slash chords on a tune",
+    label: m.music_content_jv_slash_tune_label(),
     key: "tune",
-    about:
-      "Every chord in a tune's changes as a triad over its root, as Herbie Hancock voices them: the major triad a whole step below the root on a minor 7th (m11), a 7sus or a dominant (9sus), the triad on the 5th over a major 7th (maj9), the minor triad on the b3 over a half-diminished.",
+    about: m.music_content_jv_slash_tune_about(),
     skillId: QUARTAL,
   },
 ];
@@ -241,14 +231,16 @@ const upAndBack = (top: number) => [
   ...Array.from({ length: top }, (_, i) => top - 1 - i),
 ];
 
+/** `groupId` is the group's English name, which the id is built from; `group` is what is shown. */
 function chord(
   type: JazzVoicingType,
-  group: string,
+  groupId: string,
   index: number,
   c: Omit<JazzVoicingChord, "id" | "group" | "skillIds" | "order"> & { order?: boolean },
+  group = groupId,
 ): JazzVoicingChord {
   return {
-    id: `${type.id}-${group.replace(/\s+/g, "-")}-${index + 1}`,
+    id: `${type.id}-${groupId.replace(/\s+/g, "-")}-${index + 1}`,
     group,
     order: true,
     skillIds: [type.skillId],
@@ -309,23 +301,31 @@ export function jazzVoicingChords(
   if (id === "sevenths") {
     const tonic = above(k, 55);
     const group = `${keyName} major`;
+    const label = m.music_content_jv_group_major({ key: keyName });
     return upAndBack(7).map((d, i) => {
       const root = scaleMidi(tonic, MAJOR, d);
       const notes = [0, 2, 4, 6].map((s) => scaleMidi(tonic, MAJOR, d + s));
       const symbol = `${name(root)}${SEVENTH[d % 7]}`;
       const numeral = NUMERALS[d % 7];
-      return chord(type, group, i, {
-        symbol,
-        left: [],
-        right: notes,
-        name: `${symbol}, the ${numeral}: root position, 1 3 5 7 from the bottom.`,
-        ask: `Play ${symbol} in root position.`,
-      });
+      return chord(
+        type,
+        group,
+        i,
+        {
+          symbol,
+          left: [],
+          right: notes,
+          name: m.music_content_jv_sevenths_name({ symbol, numeral }),
+          ask: m.music_content_jv_sevenths_ask({ symbol }),
+        },
+        label,
+      );
     });
   }
 
   if (id === "so-what" || id === "quartal") {
     const group = `${keyName} dorian`;
+    const label = m.music_content_jv_group_dorian({ key: keyName });
     const tonic = above(k, id === "so-what" ? 50 : 48);
     const steps = id === "so-what" ? [0, 3, 6, 9, 11] : [0, 3, 6];
     const bottoms = id === "so-what" ? upAndBack(7) : Array.from({ length: 15 }, (_, i) => i);
@@ -333,19 +333,30 @@ export function jazzVoicingChords(
       const notes = steps.map((s) => scaleMidi(tonic, DORIAN, d + s));
       const names = notes.map(name).join(" ");
       const bottom = name(notes[0]);
-      return chord(type, group, i, {
-        symbol: `on ${bottom}`,
-        left: id === "so-what" ? notes.slice(0, 2) : notes,
-        right: id === "so-what" ? notes.slice(2) : [],
-        name:
-          id === "so-what"
-            ? `So What chord on ${bottom}: ${names}. 4ths up from ${bottom} in ${group}, a 3rd on top. ${names.split(" ").slice(0, 2).join(" ")} in the left hand.`
-            : `Stack of 4ths on ${bottom}: ${names}, all in the left hand, every note in ${group}.`,
-        ask:
-          id === "so-what"
-            ? `${group}: the So What chord with ${bottom} at the bottom.`
-            : `${group}: the left-hand stack of 4ths on ${bottom}.`,
-      });
+      return chord(
+        type,
+        group,
+        i,
+        {
+          symbol: m.music_content_jv_on({ note: bottom }),
+          left: id === "so-what" ? notes.slice(0, 2) : notes,
+          right: id === "so-what" ? notes.slice(2) : [],
+          name:
+            id === "so-what"
+              ? m.music_content_jv_so_what_name({
+                  bottom,
+                  notes: names,
+                  group: label,
+                  left: names.split(" ").slice(0, 2).join(" "),
+                })
+              : m.music_content_jv_quartal_name({ bottom, notes: names, group: label }),
+          ask:
+            id === "so-what"
+              ? m.music_content_jv_so_what_ask({ group: label, bottom })
+              : m.music_content_jv_quartal_ask({ group: label, bottom }),
+        },
+        label,
+      );
     });
   }
 
@@ -353,6 +364,7 @@ export function jazzVoicingChords(
     // The Maiden Voyage set from its first chord: up a minor 3rd, then down a whole step twice.
     const roots = [0, 3, 1, -1].map((r) => pc(k + r));
     const group = `${keyName}7sus set`;
+    const label = m.music_content_jv_group_sus({ key: keyName });
     let rh: number[] = [];
     return roots.map((r, i) => {
       const nm = speller(r, "major");
@@ -362,45 +374,46 @@ export function jazzVoicingChords(
       rh = nearestTriad(triad, Math.max(58, left[1] + 1), rh);
       const symbol = `${nm(r)}7sus`;
       const slash = `${nm(r + 10)}/${nm(r)}`;
-      return chord(type, group, i, {
-        symbol,
-        left,
-        right: rh,
-        name: `${symbol} as ${slash}: ${nm(r)} and ${nm(r + 7)} in the left hand, the ${nm(r + 10)} triad in the right, any inversion.`,
-        ask: `Play ${symbol} as a slash chord, the root lowest.`,
-        order: false,
-      });
+      return chord(
+        type,
+        group,
+        i,
+        {
+          symbol,
+          left,
+          right: rh,
+          name: m.music_content_jv_sus_name({
+            symbol,
+            slash,
+            root: nm(r),
+            fifth: nm(r + 7),
+            triad: nm(r + 10),
+          }),
+          ask: m.music_content_jv_sus_ask({ symbol }),
+          order: false,
+        },
+        label,
+      );
     });
   }
 
   if (id === "two-hand" || id === "evans" || id === "close" || id === "drop2") {
     const group = `${keyName} major`;
+    const label = m.music_content_jv_group_major({ key: keyName });
     const chords = twoFiveOne(k, name);
     if (id === "two-hand" || id === "evans") {
       // Left- and right-hand tones above each root; the V takes the B form.
       const forms: Record<string, [number[], number[], string]> =
         id === "two-hand"
           ? {
-              m7: [[3, 10], [14, 7, 9], "3-7 in the left hand, 9-5-13 in the right"],
-              "7": [[10, 4], [14, 7, 9], "7-3 in the left hand, 9-5-13 in the right"],
-              maj7: [[4, 11], [14, 7, 9], "3-7 in the left hand, 9-5-13 in the right"],
+              m7: [[3, 10], [14, 7, 9], m.music_content_jv_how_37_9513()],
+              "7": [[10, 4], [14, 7, 9], m.music_content_jv_how_73_9513()],
+              maj7: [[4, 11], [14, 7, 9], m.music_content_jv_how_37_9513()],
             }
           : {
-              m7: [
-                [3, 10, 14],
-                [7, 12],
-                "3-7-9 in the left hand, the 5th and the root in the right",
-              ],
-              "7": [
-                [10, 4, 9],
-                [14, 7],
-                "7-3-13 in the left hand, the 9th and the 5th in the right",
-              ],
-              maj7: [
-                [4, 11, 14],
-                [9, 4],
-                "3-7-9 in the left hand, the 6th and the 3rd in the right",
-              ],
+              m7: [[3, 10, 14], [7, 12], m.music_content_jv_how_379_51()],
+              "7": [[10, 4, 9], [14, 7], m.music_content_jv_how_7313_95()],
+              maj7: [[4, 11, 14], [9, 4], m.music_content_jv_how_379_63()],
             };
       return chords.map((c, i) => {
         const [lh, rh, how] = forms[c.quality];
@@ -412,13 +425,21 @@ export function jazzVoicingChords(
           rh.map((t) => c.root + t),
           left[left.length - 1] + 1,
         );
-        return chord(type, group, i, {
-          symbol: c.symbol,
-          left,
-          right,
-          name: `${c.symbol}, no root: ${how}.`,
-          ask: `Play ${c.symbol} ${id === "evans" ? "as a spread" : "two-handed"}, no root.`,
-        });
+        return chord(
+          type,
+          group,
+          i,
+          {
+            symbol: c.symbol,
+            left,
+            right,
+            name: m.music_content_jv_no_root_name({ symbol: c.symbol, how }),
+            ask: (id === "evans"
+              ? m.music_content_jv_ask_spread
+              : m.music_content_jv_ask_two_handed)({ symbol: c.symbol }),
+          },
+          label,
+        );
       });
     }
     // Close and drop-2: the melody on each chord tone in turn, the next three below.
@@ -432,22 +453,34 @@ export function jazzVoicingChords(
         const closeV = stack([...below, melodyPc], melody - 11);
         const notes = id === "close" ? closeV : [closeV[2] - 12, closeV[0], closeV[1], closeV[3]];
         const mel = name(melodyPc);
-        return chord(type, group, ci * 4 + ti, {
-          symbol: `${symbol} (${mel})`,
-          left: id === "close" ? [] : [notes[0]],
-          right: id === "close" ? notes : notes.slice(1),
-          name:
-            id === "close"
-              ? `${symbol} under a melody ${mel}: ${notes.map(name).join(" ")}, all within an octave.`
-              : `${symbol} under a melody ${mel}: drop the second voice from the top an octave, ${notes.map(name).join(" ")}.`,
-          ask: `${symbol} with ${mel} on top, ${id === "close" ? "4-way close" : "drop-2"}.`,
-        });
+        const spelled = notes.map(name).join(" ");
+        return chord(
+          type,
+          group,
+          ci * 4 + ti,
+          {
+            symbol: `${symbol} (${mel})`,
+            left: id === "close" ? [] : [notes[0]],
+            right: id === "close" ? notes : notes.slice(1),
+            name: (id === "close" ? m.music_content_jv_close_name : m.music_content_jv_drop2_name)({
+              symbol,
+              mel,
+              notes: spelled,
+            }),
+            ask: (id === "close" ? m.music_content_jv_close_ask : m.music_content_jv_drop2_ask)({
+              symbol,
+              mel,
+            }),
+          },
+          label,
+        );
       }),
     );
   }
 
   if (id === "locked") {
     const group = `${keyName} major`;
+    const label = m.music_content_jv_group_major({ key: keyName });
     const tonic = above(k, 67);
     const six = [0, 4, 7, 9].map((t) => pc(k + t));
     const dim = [11, 2, 5, 8].map((t) => pc(k + t));
@@ -462,18 +495,29 @@ export function jazzVoicingChords(
       const right = stack([...below, pc(melody)], melody - 11);
       const symbol = set === six ? `${keyName}6` : dimName;
       const mel = name(melody);
-      return chord(type, group, i, {
-        symbol: `${symbol} (${mel})`,
-        left: [melody - 12],
-        right,
-        name: `Melody ${mel}: ${set === six ? `a chord tone, so ${keyName}6` : `a passing note, so ${dimName}`} close under it (${right.map(spell).join(" ")}), and ${mel} an octave down in the left hand.`,
-        ask: `Locked hands on the melody ${mel}.`,
-      });
+      const spelled = right.map(spell).join(" ");
+      return chord(
+        type,
+        group,
+        i,
+        {
+          symbol: `${symbol} (${mel})`,
+          left: [melody - 12],
+          right,
+          name:
+            set === six
+              ? m.music_content_jv_locked_name_tone({ mel, chord: `${keyName}6`, notes: spelled })
+              : m.music_content_jv_locked_name_passing({ mel, chord: dimName, notes: spelled }),
+          ask: m.music_content_jv_locked_ask({ mel }),
+        },
+        label,
+      );
     });
   }
 
   if (id === "garland" || id === "monk") {
     const group = `${keyName} blues`;
+    const label = m.music_content_jv_group_blues({ key: keyName });
     const bars: [number, "7" | "m7"][] = id === "garland" ? BLUES : MONK_BLUES.map((d) => [d, "7"]);
     return bars.map(([deg, quality], i) => {
       const root = pc(k + deg);
@@ -486,13 +530,25 @@ export function jazzVoicingChords(
           (onI ? [4, 10, 12] : [4, 10, 12, 13]).map((t) => root + t),
           52,
         );
-        return chord(type, group, i, {
-          symbol,
-          left,
-          right,
-          name: `${symbol}, bar ${i + 1}: ${onI ? "3-b7-1, the root on top a whole step above the 7th" : "3-b7, then the root and b9 a half step apart on top"} (${right.map(tone).join(" ")}), the root in the left hand.`,
-          ask: `Bar ${i + 1}, ${symbol}: Monk's ${onI ? "3-b7-1" : "3-b7-1-b9 cluster"}.`,
-        });
+        const inputs = { symbol, bar: i + 1, notes: right.map(tone).join(" ") };
+        return chord(
+          type,
+          group,
+          i,
+          {
+            symbol,
+            left,
+            right,
+            name: onI
+              ? m.music_content_jv_monk_name_i(inputs)
+              : m.music_content_jv_monk_name_other(inputs),
+            ask: (onI ? m.music_content_jv_monk_ask_i : m.music_content_jv_monk_ask_other)({
+              bar: i + 1,
+              symbol,
+            }),
+          },
+          label,
+        );
       }
       const third = quality === "m7" ? 3 : 4;
       const melody = above(pc(k + GARLAND_MELODY[i]), 76);
@@ -500,13 +556,24 @@ export function jazzVoicingChords(
       let left = stack([root + third, root + 10, root + 14], 45);
       while (left[left.length - 1] >= right[0]) left = left.map((m) => m - 12);
       const mel = tone(melody);
-      return chord(type, group, i, {
-        symbol: `${symbol} (${mel})`,
-        left,
-        right,
-        name: `Bar ${i + 1}: ${left.map(tone).join(" ")} (3-7-9) in the left hand. ${mel} in octaves with ${tone(melody - 5)} inside in the right.`,
-        ask: `Bar ${i + 1}, ${symbol} with ${mel} on top: Garland block chord.`,
-      });
+      return chord(
+        type,
+        group,
+        i,
+        {
+          symbol: `${symbol} (${mel})`,
+          left,
+          right,
+          name: m.music_content_jv_garland_name({
+            bar: i + 1,
+            left: left.map(tone).join(" "),
+            mel,
+            inner: tone(melody - 5),
+          }),
+          ask: m.music_content_jv_garland_ask({ bar: i + 1, symbol, mel }),
+        },
+        label,
+      );
     });
   }
 
@@ -540,14 +607,25 @@ export function jazzVoicingChords(
     const triad = [0, 4, 7].map((t) => r + us.triad + t);
     const right = stack(triad, Math.max(left[2] + 1, 60));
     out.push(
-      chord(type, tune.name, out.length, {
-        symbol: c.symbol,
-        left,
-        right,
-        name: `${c.symbol}: the ${us.label} triad, ${nm(r + us.triad)} major, over a 1-3-7 shell. It adds ${us.adds}. Any inversion on top.`,
-        ask: `${c.symbol}: an upper-structure triad over a 1-3-7 shell.`,
-        order: false,
-      }),
+      chord(
+        type,
+        englishTuneName(tune.id) ?? tune.name,
+        out.length,
+        {
+          symbol: c.symbol,
+          left,
+          right,
+          name: m.music_content_jv_upper_name({
+            symbol: c.symbol,
+            numeral: us.label,
+            triad: nm(r + us.triad),
+            adds: us.adds,
+          }),
+          ask: m.music_content_jv_upper_ask({ symbol: c.symbol }),
+          order: false,
+        },
+        tune.name,
+      ),
     );
   });
   return out;
@@ -594,7 +672,8 @@ function slashTriad(intervals: readonly number[]): {
     return has(9)
       ? { at: 3, kind: "dim", adds: "b3 b5 6" }
       : { at: 3, kind: "m", adds: "b3 b5 b7" };
-  if (has(10)) return { at: 10, kind: "", adds: has(3) ? "b7 9 11" : "b7 9 11, a 9sus sound" };
+  if (has(10))
+    return { at: 10, kind: "", adds: has(3) ? "b7 9 11" : m.music_content_jv_adds_9sus() };
   if (has(3)) return { at: 5, kind: "", adds: "11 13 1" };
   return { at: 7, kind: "", adds: "5 7 9" };
 }
@@ -619,13 +698,23 @@ function tuneVoicings(type: JazzVoicingType, tune: (typeof TUNES)[number]): Jazz
         48,
       );
       out.push(
-        chord(type, tune.name, out.length, {
-          symbol: c.symbol,
-          left,
-          right: [],
-          name: `${c.symbol}: 4ths from ${nm(r + st[0])}, ${left.map((m) => nm(m)).join(" ")}, in the left hand.`,
-          ask: `${c.symbol}: a left-hand stack of 4ths with its 3rd or 7th inside.`,
-        }),
+        chord(
+          type,
+          englishTuneName(tune.id) ?? tune.name,
+          out.length,
+          {
+            symbol: c.symbol,
+            left,
+            right: [],
+            name: m.music_content_jv_quartal_tune_name({
+              symbol: c.symbol,
+              from: nm(r + st[0]),
+              notes: left.map((n) => nm(n)).join(" "),
+            }),
+            ask: m.music_content_jv_quartal_tune_ask({ symbol: c.symbol }),
+          },
+          tune.name,
+        ),
       );
       continue;
     }
@@ -636,14 +725,30 @@ function tuneVoicings(type: JazzVoicingType, tune: (typeof TUNES)[number]): Jazz
     rh = nearestTriad(triad, Math.max(58, left[left.length - 1] + 1), rh);
     const slash = `${nm(r + t.at)}${t.kind}/${parsed.rootName}`;
     out.push(
-      chord(type, tune.name, out.length, {
-        symbol: c.symbol,
-        left,
-        right: rh,
-        name: `${c.symbol} as ${slash}: ${left.map((m) => nm(m)).join(" and ")} in the left hand, the ${nm(r + t.at)}${t.kind === "" ? " major" : t.kind === "m" ? " minor" : " diminished"} triad in the right (${t.adds}). Any inversion.`,
-        ask: `${c.symbol} as a slash chord, the root lowest.`,
-        order: false,
-      }),
+      chord(
+        type,
+        englishTuneName(tune.id) ?? tune.name,
+        out.length,
+        {
+          symbol: c.symbol,
+          left,
+          right: rh,
+          name: (t.kind === ""
+            ? m.music_content_jv_slash_name_major
+            : t.kind === "m"
+              ? m.music_content_jv_slash_name_minor
+              : m.music_content_jv_slash_name_diminished)({
+            symbol: c.symbol,
+            slash,
+            left: formatList(left.map((n) => nm(n))),
+            triad: nm(r + t.at),
+            adds: t.adds,
+          }),
+          ask: m.music_content_jv_slash_ask({ symbol: c.symbol }),
+          order: false,
+        },
+        tune.name,
+      ),
     );
   }
   return out;

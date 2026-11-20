@@ -9,6 +9,7 @@ import { scaleSemitones } from "../theory/scales";
 import type { Score } from "../types";
 import type { JamChord, Progression } from "./jam";
 import { goToScale } from "./piano";
+import { m } from "@repo/i18n/messages.js";
 
 interface TuneSpec {
   id: string;
@@ -57,7 +58,18 @@ function sectionChords(chart: string): JamChord[] {
   return out;
 }
 
+/** Descriptive tune names (not titles), shown in the current language. */
+const NAMES: Record<string, () => string> = {
+  "jazz-blues": m.music_content_tunes_jazz_blues_name,
+  "minor-blues": m.music_content_tunes_minor_blues_name,
+  "rhythm-changes": m.music_content_tunes_rhythm_changes_name,
+};
+const ENGLISH_NAMES = new Map<string, string>();
+/** A tune's name in English, for ids built from it (`name` follows the locale). */
+export const englishTuneName = (id: string) => ENGLISH_NAMES.get(id);
+
 function tune(spec: TuneSpec): Progression {
+  ENGLISH_NAMES.set(`tune-${spec.id}`, spec.name);
   const keyPc = parseChordSymbol(spec.key.split(" ")[0])!.rootPc;
   const order = spec.form.split(/\s+/);
   const chords: JamChord[] = [];
@@ -69,7 +81,7 @@ function tune(spec: TuneSpec): Progression {
   }
   return {
     id: `tune-${spec.id}`,
-    name: spec.name,
+    name: NAMES[spec.id]?.() ?? spec.name,
     key: spec.key,
     keyPc,
     group: "standards",
@@ -89,7 +101,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "jazz-blues",
     name: "Jazz blues in F",
-    composer: "Traditional form (Bags' Groove, Now's the Time)",
+    composer: m.music_content_tunes_jazz_blues_composer(),
     key: "F major",
     bpm: 120,
     feel: "swing",
@@ -113,7 +125,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "minor-blues",
     name: "Minor blues in C",
-    composer: "Traditional form (Mr. P.C., Equinox)",
+    composer: m.music_content_tunes_minor_blues_composer(),
     key: "C minor",
     bpm: 140,
     feel: "swing",
@@ -183,7 +195,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "rhythm-changes",
     name: "Rhythm changes in Bb",
-    composer: "After George Gershwin's I Got Rhythm (Oleo, Anthropology)",
+    composer: m.music_content_tunes_rhythm_changes_composer(),
     key: "Bb major",
     bpm: 160,
     feel: "swing",
@@ -198,7 +210,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "all-of-me",
     name: "All of Me",
-    composer: "Gerald Marks and Seymour Simons",
+    composer: m.music_content_tunes_all_of_me_composer(),
     key: "C major",
     bpm: 140,
     feel: "swing",
@@ -212,7 +224,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "satin-doll",
     name: "Satin Doll",
-    composer: "Duke Ellington and Billy Strayhorn",
+    composer: m.music_content_tunes_satin_doll_composer(),
     key: "C major",
     bpm: 130,
     feel: "swing",
@@ -289,7 +301,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "well-you-neednt",
     name: "Well You Needn't",
-    composer: "Thelonious Monk (his own bridge)",
+    composer: m.music_content_tunes_well_you_neednt_composer(),
     key: "F",
     bpm: 160,
     feel: "swing",
@@ -303,7 +315,7 @@ export const TUNES: Progression[] = [
   tune({
     id: "epistrophy",
     name: "Epistrophy",
-    composer: "Thelonious Monk and Kenny Clarke",
+    composer: m.music_content_tunes_epistrophy_composer(),
     key: "Db",
     bpm: 160,
     feel: "swing",
@@ -580,10 +592,10 @@ export function sectionStarts(p: Progression): { label: string; bar: number; bar
  * and out when there are three or more, solos between them.
  */
 export function chorusLabel(k: number, total: number): string {
-  if (total >= 3 && k === 0) return "Head";
-  if (total >= 3 && k === total - 1) return "Head out";
-  if (total >= 3) return `Solo ${k}`;
-  return `Chorus ${k + 1}`;
+  if (total >= 3 && k === 0) return m.music_content_tunes_chorus_head();
+  if (total >= 3 && k === total - 1) return m.music_content_tunes_chorus_head_out();
+  if (total >= 3) return m.music_content_tunes_chorus_solo({ n: k });
+  return m.music_content_tunes_chorus({ n: k + 1 });
 }
 
 // ---------------------------------------------------------------------------
@@ -600,33 +612,33 @@ export type ReharmDevice =
 export const REHARM_DEVICES: { id: ReharmDevice; label: string; about: string }[] = [
   {
     id: "tritone",
-    label: "Tritone sub",
-    about: "A dominant becomes the dominant a tritone away (G7 to Db7).",
+    label: m.music_content_tunes_reharm_tritone_label(),
+    about: m.music_content_tunes_reharm_tritone_about(),
   },
   {
     id: "related-ii",
-    label: "Related ii",
-    about: "A dominant shares its time with its ii (G7 becomes Dm7 G7).",
+    label: m.music_content_tunes_reharm_related_ii_label(),
+    about: m.music_content_tunes_reharm_related_ii_about(),
   },
   {
     id: "backdoor",
-    label: "Backdoor ii-V",
-    about: "Reach the next chord from iv7 to bVII7 (Fm7 Bb7 to C).",
+    label: m.music_content_tunes_reharm_backdoor_label(),
+    about: m.music_content_tunes_reharm_backdoor_about(),
   },
   {
     id: "secondary",
-    label: "Secondary dominant",
-    about: "The chord becomes the dominant of the chord after it (Am7 before Dm7 becomes A7).",
+    label: m.music_content_tunes_reharm_secondary_label(),
+    about: m.music_content_tunes_reharm_secondary_about(),
   },
   {
     id: "passing-dim",
-    label: "Passing diminished",
-    about: "Its second half becomes a diminished 7th a half step below the next chord.",
+    label: m.music_content_tunes_reharm_passing_dim_label(),
+    about: m.music_content_tunes_reharm_passing_dim_about(),
   },
   {
     id: "chromatic-ii-v",
-    label: "Chromatic ii-V",
-    about: "Its second half becomes the ii-V a half step above the next chord (Ebm7 Ab7 to Dm7).",
+    label: m.music_content_tunes_reharm_chromatic_label(),
+    about: m.music_content_tunes_reharm_chromatic_about(),
   },
 ];
 

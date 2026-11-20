@@ -12,6 +12,7 @@ import {
 } from "../data";
 import { pc } from "./notes";
 import { generatedChord, generatedPositions } from "./voicings";
+import { m } from "@repo/i18n/messages.js";
 
 export type { ChordPosition, ChordShape, Tuning };
 export interface FretPosition {
@@ -28,13 +29,18 @@ export const tuningById = (id: string) => CURATED_TUNINGS.find((t) => t.id === i
 
 /** Validate a user tuning. Returns the first problem, or null when it is usable. */
 export function validateCustomTuning(t: Tuning): string | null {
-  if (!t.id.startsWith("custom.")) return "A custom tuning id must start with custom.";
+  if (!t.id.startsWith("custom.")) return m.music_content_fretboard_custom_id();
   const strings = t.instrument === "guitar" ? 6 : 4;
-  if (t.openStrings.length !== strings) return `A ${t.instrument} tuning needs ${strings} strings.`;
+  if (t.openStrings.length !== strings)
+    return (
+      t.instrument === "guitar"
+        ? m.music_content_fretboard_guitar_strings
+        : m.music_content_fretboard_ukulele_strings
+    )({ strings });
   if (!t.openStrings.every((m) => Number.isInteger(m) && m >= 0 && m <= 127))
-    return "Open strings must be MIDI notes 0 to 127.";
+    return m.music_content_fretboard_open_strings();
   if (!Number.isInteger(t.fretCount) || t.fretCount < 1 || t.fretCount > 36)
-    return "Frets must be 1 to 36.";
+    return m.music_content_fretboard_frets();
   return null;
 }
 

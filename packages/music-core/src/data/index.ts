@@ -33,6 +33,13 @@ import stringSpiderJson from "./string-spider.json";
 import tuningsJson from "./tunings.json";
 import twoHandJson from "./two-hand-patterns.json";
 import voicingDrillJson from "./voicing-drill.json";
+// Each sets getters on the JSON above so its shown text follows the locale.
+import "./i18n/ear";
+import "./i18n/jazz";
+import "./i18n/reading";
+import "./i18n/technique";
+import "./i18n/misc";
+import { localizeFields } from "./localize";
 
 type Hand = "left" | "right";
 type Link = { label: string; href: string };
@@ -1019,6 +1026,17 @@ export const SKILL_GRAPH_SEED = {
   skills: [...(skillGraphJson.skills as Skill[]), ...APP_SKILLS],
   relationships: [...(skillGraphJson.relationships as SkillRelationship[]), ...APP_RELATIONSHIPS],
 };
+// Skill names follow the locale; ids that differ only in case or a sign get distinct key parts.
+localizeFields(
+  SKILL_GRAPH_SEED.skills,
+  "music_content_skill",
+  (s) =>
+    s.id
+      .replace("#", "sharp")
+      .replace(".M", ".maj")
+      .replace(/\.m(\d)/, ".min$1"),
+  ["name"],
+);
 
 // ---------------------------------------------------------------------------
 // Tunings. Open strings are string-1-first (highest pitch first).

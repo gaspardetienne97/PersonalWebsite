@@ -22,6 +22,7 @@
 import { parseChordSymbol } from "../theory/chords";
 import { pc } from "../theory/notes";
 import type { Progression } from "./jam";
+import { m } from "@repo/i18n/messages.js";
 
 type Kind = "maj" | "min" | "dom" | "half" | "dim";
 export interface Key {
@@ -243,23 +244,43 @@ export function functionRule(fn: string): string {
   switch (fn) {
     case "I":
     case "i":
-      return "A key's I: the home chord, or a major chord reached from its own V7, tritone sub or backdoor. A minor i needs its whole iiø7 V7 and two bars.";
+      return m.music_content_analysis_rule_tonic();
     case "V":
-      return "The V: a dominant that resolves down a fifth to the key's I, or a ii-V left hanging. A hanging ii-V names the key a fifth below.";
+      return m.music_content_analysis_rule_dominant();
     case "V of":
-      return "A secondary dominant: it resolves down a fifth to a chord that isn't a key's I. It belongs to that chord's key.";
+      return m.music_content_analysis_rule_secondary();
     case "ii":
     case "iiø":
-      return "The ii of a ii-V: a minor (or half-diminished) chord a fourth below the V.";
+      return m.music_content_analysis_rule_ii();
     case "Related ii":
-      return "A related ii: the ii before a secondary dominant or a tritone sub.";
+      return m.music_content_analysis_rule_related_ii();
     case "Tritone sub":
-      return "A tritone sub: a dominant that resolves down a half step, in place of the V a tritone away.";
+      return m.music_content_analysis_rule_tritone_sub();
     case "Backdoor":
-      return "A backdoor: bVII7 going up a step to I. The iv7 before it pairs with it.";
+      return m.music_content_analysis_rule_backdoor();
     case "Passing dim":
-      return "A passing diminished 7th: it links two chords a step apart.";
+      return m.music_content_analysis_rule_passing_dim();
     default:
-      return "Not part of a cadence. It's named in the last key reached, or in the next key when it's none of the last key's chords. iv and bVI count as borrowed from the minor.";
+      return m.music_content_analysis_rule_other();
+  }
+}
+
+/** A function as shown on its button: the answer values above are kept as ids. */
+export function functionLabel(fn: string): string {
+  switch (fn) {
+    case "V of":
+      return m.music_content_analysis_fn_v_of();
+    case "Related ii":
+      return m.music_content_analysis_fn_related_ii();
+    case "Tritone sub":
+      return m.music_content_analysis_fn_tritone_sub();
+    case "Backdoor":
+      return m.music_content_analysis_fn_backdoor();
+    case "Passing dim":
+      return m.music_content_analysis_fn_passing_dim();
+    case "Other":
+      return m.music_content_analysis_fn_other();
+    default:
+      return fn;
   }
 }

@@ -1,5 +1,6 @@
 // MPC sample kit export (hardware notes §8): XPM 2.1 Drum Program plus Samples/.
 import JSZip from "jszip";
+import { m } from "@repo/i18n/messages.js";
 
 export const BANKS = { A: [36, 51], B: [52, 67], C: [68, 83], D: [84, 99] } as const;
 export type Bank = keyof typeof BANKS;
@@ -63,7 +64,10 @@ export function sampleFileError(fileName: string): string | null {
   const ext = splitName(fileName).ext.slice(1).toLowerCase();
   return SAMPLE_EXTENSIONS.includes(ext)
     ? null
-    : `"${fileName}" is not a sample the MPC can load. Use ${SAMPLE_EXTENSIONS.join(", ")}.`;
+    : m.music_content_mpc_kit_bad_sample({
+        file: fileName,
+        formats: SAMPLE_EXTENSIONS.join(", "),
+      });
 }
 
 // Filename tokens -> bank A note. First match wins, specific before general.
@@ -189,7 +193,7 @@ export function buildKitFiles(kit: SampleKit, samples: KitSample[]): KitFile[] {
     const names: string[] = [];
     for (const layer of pad.layers.slice(0, 4)) {
       const sample = byId.get(layer.sampleId);
-      if (!sample) throw new Error(`Pad ${pad.note} points at a sample that is not in the kit.`);
+      if (!sample) throw new Error(m.music_content_mpc_kit_missing_sample({ note: pad.note }));
       const err = sampleFileError(sample.fileName);
       if (err) throw new Error(err);
       const key = `${pad.note}:${sample.id}`;

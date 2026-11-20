@@ -12,10 +12,12 @@ import {
   diatonicNames,
   enharmonicEqual,
   keyByName,
+  keyNameLabel,
   spellInKey,
   type KeySignature,
 } from "../theory/spelling";
 import { pick, randInt, type Rand } from "./random";
+import { m } from "@repo/i18n/messages.js";
 
 export type Clef = "treble" | "bass";
 
@@ -46,7 +48,7 @@ export const READING_METERS: Record<
   "5/4": { beats: 5, beatUnit: 4, label: "5/4" },
   "7/8": { beats: 7, beatUnit: 8, label: "7/8" },
   "5/8": { beats: 5, beatUnit: 8, label: "5/8" },
-  changing: { beats: 4, beatUnit: 4, label: "4/4, 3/4, 5/8 every 2 bars" },
+  changing: { beats: 4, beatUnit: 4, label: m.music_content_reading_meter_changing() },
 };
 /** The "changing" meter: a change every 2 bars, through these in turn. */
 export const CHANGING_METERS: ReadingMeter[] = ["simple", "3/4", "5/8"];
@@ -108,10 +110,9 @@ const grand: Clef[] = ["treble", "bass"];
 const MORE_LEVELS: ReadingLevel[] = [
   {
     id: "piano-4",
-    label: "Piano 4",
-    description:
-      "Hands together at about ABRSM Grade 2: a five-finger melody over left-hand roots and fifths.",
-    rhythm: "dotted quarter and eighth, ties, quarter and half rests",
+    label: m.music_content_reading_piano_4_label(),
+    description: m.music_content_reading_piano_4_description(),
+    rhythm: m.music_content_reading_piano_4_rhythm(),
     recommendedDifficulty: 0.75,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 79 },
@@ -123,10 +124,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "piano-5",
-    label: "Piano 5",
-    description:
-      "About ABRSM Grade 3: the right hand leaves the five-finger position, the left plays two-note chords.",
-    rhythm: "sixteenths, 3/8",
+    label: m.music_content_reading_piano_5_label(),
+    description: m.music_content_reading_piano_5_description(),
+    rhythm: m.music_content_reading_piano_5_rhythm(),
     recommendedDifficulty: 0.8,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 84 },
@@ -138,10 +138,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "piano-6",
-    label: "Piano 6",
-    description:
-      "About ABRSM Grade 4: broken chords, Alberti and waltz bass, chromatic passing notes, pickups.",
-    rhythm: "6/8 and pickups",
+    label: m.music_content_reading_piano_6_label(),
+    description: m.music_content_reading_piano_6_description(),
+    rhythm: m.music_content_reading_piano_6_rhythm(),
     recommendedDifficulty: 0.85,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 84 },
@@ -153,10 +152,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "piano-7",
-    label: "Piano 7",
-    description:
-      "About ABRSM Grade 5: chorale texture, a melody with a lower voice over left-hand chords.",
-    rhythm: "syncopation over the beat, dotted eighth and sixteenth",
+    label: m.music_content_reading_piano_7_label(),
+    description: m.music_content_reading_piano_7_description(),
+    rhythm: m.music_content_reading_piano_7_rhythm(),
     recommendedDifficulty: 0.9,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 86 },
@@ -168,10 +166,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "piano-8",
-    label: "Piano 8",
-    description:
-      "About ABRSM Grade 6: right-hand octaves and three-note chords, triplets, the left hand moving into the treble clef, 9/8 and 5/4, longer phrases.",
-    rhythm: "eighth triplets, and all of the above in 9/8 and 5/4",
+    label: m.music_content_reading_piano_8_label(),
+    description: m.music_content_reading_piano_8_description(),
+    rhythm: m.music_content_reading_piano_8_rhythm(),
     recommendedDifficulty: 0.95,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 41, highestMidi: 88 },
@@ -183,10 +180,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "piano-9",
-    label: "Piano 9",
-    description:
-      "About ABRSM Grade 7: five sharps or flats, 7/8 and 5/8, triplets and sixteenth syncopation, wider leaps, clef changes. No 8va or tempo changes yet.",
-    rhythm: "7/8 and 5/8 in their groups, quarter and eighth triplets, sixteenth syncopation",
+    label: m.music_content_reading_piano_9_label(),
+    description: m.music_content_reading_piano_9_description(),
+    rhythm: m.music_content_reading_piano_9_rhythm(),
     recommendedDifficulty: 0.97,
     recommendedClefs: grand,
     recommendedRange: { lowestMidi: 36, highestMidi: 91 },
@@ -198,10 +194,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "line-4",
-    label: "Line 4",
-    description:
-      "One line at about ABRSM Grade 2 to 3: leaps to a fifth, scale and arpeggio fragments.",
-    rhythm: "rests, ties, dotted quarter and eighth, 2/4 and 3/4",
+    label: m.music_content_reading_line_4_label(),
+    description: m.music_content_reading_line_4_description(),
+    rhythm: m.music_content_reading_line_4_rhythm(),
     recommendedDifficulty: 0.75,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 52, highestMidi: 84 },
@@ -213,9 +208,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "line-5",
-    label: "Line 5",
-    description: "One line at about ABRSM Grade 3 to 4: leaps to an octave, accidentals, pickups.",
-    rhythm: "sixteenths, 6/8 with eighths and quarters",
+    label: m.music_content_reading_line_5_label(),
+    description: m.music_content_reading_line_5_description(),
+    rhythm: m.music_content_reading_line_5_rhythm(),
     recommendedDifficulty: 0.82,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 52, highestMidi: 86 },
@@ -227,11 +222,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "line-6",
-    label: "Line 6",
-    description:
-      "One line at about ABRSM Grade 4 to 5: chromatic neighbour and passing notes, triplets.",
-    rhythm:
-      "syncopation over the beat and the sixteenth, dotted eighth and sixteenth, eighth triplets, 2/2 and 3/8",
+    label: m.music_content_reading_line_6_label(),
+    description: m.music_content_reading_line_6_description(),
+    rhythm: m.music_content_reading_line_6_rhythm(),
     recommendedDifficulty: 0.9,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 52, highestMidi: 89 },
@@ -243,10 +236,9 @@ const MORE_LEVELS: ReadingLevel[] = [
   },
   {
     id: "line-jazz",
-    label: "Jazz lines",
-    description:
-      "Jazz heads: chord tones on the beat, blue notes and chromatic approaches, anticipations of 1 and 3. Written straight, played swung.",
-    rhythm: "swing eighths written straight, anticipations tied over the beat",
+    label: m.music_content_reading_jazz_label(),
+    description: m.music_content_reading_jazz_description(),
+    rhythm: m.music_content_reading_jazz_rhythm(),
     recommendedDifficulty: 0.85,
     recommendedClefs: ["treble"],
     recommendedRange: { lowestMidi: 55, highestMidi: 84 },
@@ -1173,7 +1165,11 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
     }
     return {
       id: piano ? (clef === "treble" ? "rh" : "lh") : "melody",
-      name: piano ? (clef === "treble" ? "Right hand" : "Left hand") : "Melody",
+      name: piano
+        ? clef === "treble"
+          ? m.music_content_piano_right_hand()
+          : m.music_content_piano_left_hand()
+        : m.music_content_reading_melody_voice(),
       clef,
       ...(piano ? { hand: clef === "treble" ? ("right" as const) : ("left" as const) } : {}),
       notes,
@@ -1182,7 +1178,7 @@ export function sightReadingScore(rand: Rand, opts: SightReadingOptions): Score 
   if (accompanied && gen.clefChange) clefChange(rand, voices, barQuarters(meter), measures);
   return {
     id: `sight-${opts.level}-${Math.floor(rand() * 2 ** 32).toString(36)}`,
-    title: `${level.label} sight-reading`,
+    title: m.music_content_reading_sight_title({ level: level.label }),
     bpm: opts.bpm,
     meter,
     keyFifths: k.fifths,
@@ -1287,7 +1283,7 @@ export function practiceMissedScore(score: Score, missed: ScoreGroup[]): Score {
   return {
     ...score,
     id: `${score.id}-missed`,
-    title: `${score.title}: missed notes`,
+    title: m.music_content_reading_missed_title({ title: score.title }),
     voices,
     lengthBeats,
     sections: undefined,
@@ -1308,7 +1304,7 @@ export const readingRungs = (instrument: string) =>
       level: l.id,
       key,
       clefs: l.recommendedClefs,
-      label: `${l.label}, ${key}`,
+      label: m.music_content_reading_rung_label({ level: l.label, key: keyNameLabel(key) }),
     })),
   );
 export const READING_RUNGS = readingRungs("piano");

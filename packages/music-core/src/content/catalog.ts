@@ -11,6 +11,7 @@ import { RHYTHM_PATTERNS, rhythmSkills } from "./rhythm";
 import { LICK_CATEGORIES, LICK_CATEGORY_LABEL, lickSkills } from "./piano";
 import { chordShapeSkills } from "./technique";
 import { aerophoneSkills, GROOVES, grooveSkills } from "./winds-pads";
+import { m } from "@repo/i18n/messages.js";
 
 export interface DrillMode {
   id: string;
@@ -77,30 +78,29 @@ const EAR_EXERCISE: Record<string, string> = {
   mixed: "ear.mixed",
 };
 const EAR_MODE_LABEL: Record<string, string> = {
-  choice: "Choice",
-  "play-back": "Play it back",
-  voice: "Sing it",
-  listen: "Pocket recall",
-  "listen-along": "Listen along",
+  choice: m.music_content_catalog_mode_choice(),
+  "play-back": m.music_content_catalog_mode_play_it_back(),
+  voice: m.music_content_catalog_mode_sing_it(),
+  listen: m.music_content_catalog_mode_pocket_recall(),
+  "listen-along": m.music_content_catalog_mode_listen_along(),
 };
 const EAR_BLURB: Record<string, string> = {
-  intervals: "Hear two notes and name the distance between them.",
-  "interval-compare": "Hear two intervals and say which one is bigger.",
-  "chord-qualities": "Hear a chord and say whether it is major, minor or another quality.",
-  cadences: "Hear two chords that end a phrase and name the cadence.",
-  "chord-functions": "Hear a chord after the key is set and name its place in the key, I to vii°.",
-  progressions:
-    "Hear three or four chords starting on I and write down the rest, or hear where a key change goes.",
-  "song-loops": "Hear a song's chord loop as a groove after the key is set and name every chord.",
-  scales: "Hear a scale over its tonic and name it, from major and minor to the modes.",
-  inversions: "Hear a chord and say which of its notes is in the bass.",
-  "bass-lines": "Hear chords from I and write down the bass line by degree.",
-  "fine-pitch": "Hear whether a note is a few cents sharp or flat of another.",
-  "wrong-note": "Follow a written melody by ear and find the note that was played wrong.",
-  "scale-degrees": "Hear the tonic, then a note, and name its place in the key.",
-  "melody-dictation": "Hear a three or four note phrase and play it back in order.",
-  "repertoire-transfer": "Hear a short phrase from one of your saved songs and play it back.",
-  mixed: "A short mix of the nine ear drills that adapts to you. Pick which go in.",
+  intervals: m.music_content_catalog_ear_intervals_blurb(),
+  "interval-compare": m.music_content_catalog_ear_interval_compare_blurb(),
+  "chord-qualities": m.music_content_catalog_ear_chord_qualities_blurb(),
+  cadences: m.music_content_catalog_ear_cadences_blurb(),
+  "chord-functions": m.music_content_catalog_ear_chord_functions_blurb(),
+  progressions: m.music_content_catalog_ear_progressions_blurb(),
+  "song-loops": m.music_content_catalog_ear_song_loops_blurb(),
+  scales: m.music_content_catalog_ear_scales_blurb(),
+  inversions: m.music_content_catalog_ear_inversions_blurb(),
+  "bass-lines": m.music_content_catalog_ear_bass_lines_blurb(),
+  "fine-pitch": m.music_content_catalog_ear_fine_pitch_blurb(),
+  "wrong-note": m.music_content_catalog_ear_wrong_note_blurb(),
+  "scale-degrees": m.music_content_catalog_ear_scale_degrees_blurb(),
+  "melody-dictation": m.music_content_catalog_ear_melody_dictation_blurb(),
+  "repertoire-transfer": m.music_content_catalog_ear_repertoire_transfer_blurb(),
+  mixed: m.music_content_catalog_ear_mixed_blurb(),
 };
 
 const earEntries = EAR_DRILLS.map((d) =>
@@ -126,20 +126,20 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "reading",
     route: "/music/reading",
-    title: "Note reading",
-    blurb: "Read notes on the staff and name or play them, or play a short generated phrase.",
+    title: m.music_content_catalog_reading_title(),
+    blurb: m.music_content_catalog_reading_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "reading",
     modality: "read",
     modes: [
-      mode("flashcards", "Flashcards", "reading.flashcard.note-id", [
+      mode("flashcards", m.music_content_catalog_mode_flashcards(), "reading.flashcard.note-id", [
         "reading.treble",
         "reading.treble.landmarks",
         "reading.bass",
         "reading.bass.landmarks",
         "reading.polyphonic",
       ]),
-      mode("sight-reading", "Sight-reading", "reading.sight-reading", [
+      mode("sight-reading", m.music_content_catalog_mode_sight_reading(), "reading.sight-reading", [
         "reading.treble",
         "reading.treble.stepwise",
         "reading.bass",
@@ -151,25 +151,28 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "rhythm",
     route: "/music/rhythm",
-    title: "Rhythm",
-    blurb: "Tap a steady pulse, read a pattern and tap it, or hear one and tap or write it back.",
+    title: m.music_content_catalog_rhythm_title(),
+    blurb: m.music_content_catalog_rhythm_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "rhythm",
     modality: "tapped",
     modes: [
-      mode("pulse", "Pulse", "rhythm.pulse", rhythmSkills("pulse")),
+      mode("pulse", m.music_content_catalog_mode_pulse(), "rhythm.pulse", rhythmSkills("pulse")),
       mode(
         "read-and-tap",
-        "Read and tap",
+        m.music_content_catalog_mode_read_and_tap(),
         rhythmExerciseId("quarter-pulse"),
         uniq(RHYTHM_PATTERNS.flatMap((p) => rhythmSkills(p.id))),
       ),
-      mode("echo", "Echo", "rhythm.echo", ["rhythm.subdivisions", "ear.rhythm-echo"]),
-      mode("groove", "Groove dictation", "rhythm.groove-dictation", [
+      mode("echo", m.music_content_catalog_mode_echo(), "rhythm.echo", [
+        "rhythm.subdivisions",
+        "ear.rhythm-echo",
+      ]),
+      mode("groove", m.music_content_catalog_mode_groove_dictation(), "rhythm.groove-dictation", [
         "rhythm.subdivisions",
         "ear.groove-dictation",
       ]),
-      mode("dictation", "Dictation", "rhythm.dictation", [
+      mode("dictation", m.music_content_catalog_mode_dictation(), "rhythm.dictation", [
         "rhythm.subdivisions",
         "ear.rhythm-dictation",
       ]),
@@ -178,8 +181,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "scales",
     route: "/music/scales",
-    title: "Scales",
-    blurb: "Play a scale, an arpeggio or a broken chord evenly at the target tempo, in any key.",
+    title: m.music_content_catalog_scales_title(),
+    blurb: m.music_content_catalog_scales_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "technique",
     modality: "played",
@@ -197,9 +200,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "two-hand",
     route: "/music/two-hand",
-    title: "Two hands",
-    blurb:
-      "Each hand plays its own part: a steady pulse under a moving line, or both hands mirroring.",
+    title: m.music_content_catalog_two_hand_title(),
+    blurb: m.music_content_catalog_two_hand_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -209,9 +211,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "pedal",
     route: "/music/pedal",
-    title: "Pedal",
-    blurb:
-      "Legato pedalling: lift the sustain pedal just after each chord and press it straight back.",
+    title: m.music_content_catalog_pedal_title(),
+    blurb: m.music_content_catalog_pedal_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -221,8 +222,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "comping",
     route: "/music/changes/comping",
-    title: "Comping",
-    blurb: "Play a blues phrase in the right hand over a Charleston shell in the left.",
+    title: m.music_content_catalog_comping_title(),
+    blurb: m.music_content_catalog_comping_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
@@ -232,18 +233,19 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "accompany",
     route: "/music/changes/accompany",
-    title: "Accompaniment",
-    blurb:
-      "Play pop, blues and gospel patterns, jazz comping or a lead sheet over a chord chart in any key.",
+    title: m.music_content_catalog_accompany_title(),
+    blurb: m.music_content_catalog_accompany_blurb(),
     instruments: ["piano"],
     capability: "technique",
     modality: "played",
     modes: [
-      mode("patterns", "Patterns", "technique.piano.accompaniment", [
+      mode("patterns", m.music_content_catalog_mode_patterns(), "technique.piano.accompaniment", [
         "technique.piano.two-hand-independence",
       ]),
-      mode("comping", "Comping", "technique.piano.comping-changes", ["technique.piano.comping"]),
-      mode("lead-sheet", "Lead sheet", "technique.piano.lead-sheet", [
+      mode("comping", m.music_content_catalog_comping_title(), "technique.piano.comping-changes", [
+        "technique.piano.comping",
+      ]),
+      mode("lead-sheet", m.music_content_catalog_mode_lead_sheet(), "technique.piano.lead-sheet", [
         "technique.piano.two-hand-independence",
       ]),
     ],
@@ -251,25 +253,35 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "voicings",
     route: "/music/changes/voicings",
-    title: "Voicings",
-    blurb: "Play rootless jazz voicings through a ii-V-I in all twelve keys.",
+    title: m.music_content_catalog_voicings_title(),
+    blurb: m.music_content_catalog_voicings_blurb(),
     instruments: ["piano"],
     capability: "harmony",
     modality: "played",
     modes: [
-      mode("major", "Major", "voicing-drill", ["harmony.ii-v-i", "harmony.ii-v-i.voicings.major"]),
-      mode("minor", "Minor", "voicing-drill", ["harmony.ii-v-i", "harmony.ii-v-i.voicings.minor"]),
-      mode("altered", "Altered", "voicing-drill", [
+      mode("major", m.music_content_catalog_mode_major(), "voicing-drill", [
+        "harmony.ii-v-i",
+        "harmony.ii-v-i.voicings.major",
+      ]),
+      mode("minor", m.music_content_catalog_mode_minor(), "voicing-drill", [
+        "harmony.ii-v-i",
+        "harmony.ii-v-i.voicings.minor",
+      ]),
+      mode("altered", m.music_content_catalog_mode_altered(), "voicing-drill", [
         "harmony.ii-v-i",
         "harmony.ii-v-i.voicings.altered",
       ]),
-      mode("inversions", "Voice leading", "voicing-drill", [
+      mode("inversions", m.music_content_catalog_mode_voice_leading(), "voicing-drill", [
         "harmony.ii-v-i",
         "harmony.ii-v-i.voice-leading",
       ]),
-      mode("cadence", "Cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
-      mode("cadence-minor", "Minor cadences", "voicing-drill", ["harmony.keyboard-cadences"]),
-      mode("jazz", "Jazz types", "voicing-drill", [
+      mode("cadence", m.music_content_catalog_mode_cadences(), "voicing-drill", [
+        "harmony.keyboard-cadences",
+      ]),
+      mode("cadence-minor", m.music_content_catalog_mode_minor_cadences(), "voicing-drill", [
+        "harmony.keyboard-cadences",
+      ]),
+      mode("jazz", m.music_content_catalog_mode_jazz_types(), "voicing-drill", [
         "harmony.voicings.diatonic-sevenths",
         "harmony.voicings.quartal",
         "harmony.voicings.two-handed",
@@ -280,8 +292,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "licks",
     route: "/music/changes/licks",
-    title: "Jazz licks",
-    blurb: "Hear a transcribed line over the changes, then play it back.",
+    title: m.music_content_catalog_licks_title(),
+    blurb: m.music_content_catalog_licks_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "harmony",
     modality: "played",
@@ -292,9 +304,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "phrases",
     route: "/music/phrases",
-    title: "Phrases",
-    blurb:
-      "Popular short phrases for your instrument: famous public-domain tunes and a style's stock licks, heard and played back.",
+    title: m.music_content_catalog_phrases_title(),
+    blurb: m.music_content_catalog_phrases_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone", "mpc"],
     capability: "technique",
     modality: "played",
@@ -309,88 +320,110 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "chord-scales",
     route: "/music/changes/chord-scales",
-    title: "Chord scales",
-    blurb: "As a ii-V-I moves, play the go-to scale for each chord.",
+    title: m.music_content_catalog_chord_scales_title(),
+    blurb: m.music_content_catalog_chord_scales_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "harmony",
     modality: "played",
     modes: [
-      mode("major", "Major ii-V-I", "jazz.chord-scales", ["harmony.ii-v-i.chord-scales.major"]),
-      mode("minor", "Minor ii-V-i", "jazz.chord-scales", ["harmony.ii-v-i.chord-scales.minor"]),
+      mode("major", m.music_content_catalog_mode_major_ii_v_i(), "jazz.chord-scales", [
+        "harmony.ii-v-i.chord-scales.major",
+      ]),
+      mode("minor", m.music_content_catalog_mode_minor_ii_v_i(), "jazz.chord-scales", [
+        "harmony.ii-v-i.chord-scales.minor",
+      ]),
     ],
   }),
   entry({
     id: "fretboard",
     route: "/music/fretboard",
-    title: "Fretboard",
-    blurb: "Work finger patterns, box shapes, note names and intervals on the neck.",
+    title: m.music_content_catalog_fretboard_title(),
+    blurb: m.music_content_catalog_fretboard_blurb(),
     instruments: GUITAR_UKE,
     capability: "technique",
     modality: "played",
     modes: [
-      mode("spider", "Spider", "technique.guitar.spider", [
+      mode("spider", m.music_content_catalog_mode_spider(), "technique.guitar.spider", [
         "technique.strings.spider",
         "technique.strings.spider.permutations",
         "technique.guitar.spider",
         "technique.ukulele.spider",
       ]),
-      mode("positions", "Positions", "technique.guitar.positions", [
+      mode("positions", m.music_content_catalog_mode_positions(), "technique.guitar.positions", [
         "technique.strings.spider",
         "technique.guitar.spider",
       ]),
-      mode("note-finder", "Note finder", "technique.guitar.note-finder", [
-        "technique.strings.note-finder",
+      mode(
+        "note-finder",
+        m.music_content_catalog_mode_note_finder(),
         "technique.guitar.note-finder",
-        "technique.ukulele.note-finder",
+        [
+          "technique.strings.note-finder",
+          "technique.guitar.note-finder",
+          "technique.ukulele.note-finder",
+        ],
+      ),
+      mode(
+        "interval-recall",
+        m.music_content_catalog_mode_interval_recall(),
+        "technique.guitar.interval-recall",
+        [
+          "technique.guitar.intervals",
+          "technique.guitar.intervals.3",
+          "technique.guitar.intervals.4",
+          "technique.guitar.intervals.7",
+          "technique.guitar.intervals.12",
+        ],
+      ),
+      mode("legato", m.music_content_catalog_mode_legato(), "technique.guitar.legato", [
+        "technique.legato",
       ]),
-      mode("interval-recall", "Interval recall", "technique.guitar.interval-recall", [
-        "technique.guitar.intervals",
-        "technique.guitar.intervals.3",
-        "technique.guitar.intervals.4",
-        "technique.guitar.intervals.7",
-        "technique.guitar.intervals.12",
-      ]),
-      mode("legato", "Hammer-ons and pull-offs", "technique.guitar.legato", ["technique.legato"]),
-      mode("bends", "Bends and vibrato", "technique.guitar.bends", [
+      mode("bends", m.music_content_catalog_mode_bends(), "technique.guitar.bends", [
         "technique.bends",
         "technique.vibrato",
       ]),
-      mode("harmonics", "Harmonics", "technique.guitar.harmonics", ["technique.strings"]),
+      mode("harmonics", m.music_content_catalog_mode_harmonics(), "technique.guitar.harmonics", [
+        "technique.strings",
+      ]),
     ],
   }),
   entry({
     id: "chords",
     route: "/music/chords",
-    title: "Chords",
-    blurb: "Fret an open chord string by string, strum it, or change between two chords in time.",
+    title: m.music_content_catalog_chords_title(),
+    blurb: m.music_content_catalog_chords_blurb(),
     instruments: GUITAR_UKE,
     capability: "technique",
     modality: "played",
     modes: [
-      mode("build", "Build", "technique.guitar.chord-perfect", [
+      mode("build", m.music_content_catalog_mode_build(), "technique.guitar.chord-perfect", [
         ...chordShapeSkills("guitar", "build"),
         "technique.ukulele.chord-perfect",
       ]),
-      mode("pick", "Pick", "technique.guitar.chord-pick", [
+      mode("pick", m.music_content_catalog_mode_pick(), "technique.guitar.chord-pick", [
         ...chordShapeSkills("guitar", "pick"),
         "technique.ukulele.chord-perfect",
       ]),
-      mode("strum", "Strum and identify", "technique.guitar.open-chord-id", [
-        ...chordShapeSkills("guitar", "strum"),
-        "technique.ukulele.open-chord-id",
-      ]),
-      mode("changes", "Changes", "technique.guitar.chord-changes", [
+      mode(
+        "strum",
+        m.music_content_catalog_mode_strum_identify(),
+        "technique.guitar.open-chord-id",
+        [...chordShapeSkills("guitar", "strum"), "technique.ukulele.open-chord-id"],
+      ),
+      mode("changes", m.music_content_catalog_mode_changes(), "technique.guitar.chord-changes", [
         ...chordShapeSkills("guitar", "changes"),
         "technique.ukulele.chord-changes",
       ]),
-      mode("fingerpick", "Fingerpicking", "technique.fingerpicking", ["technique.fingerpicking"]),
+      mode("fingerpick", m.music_content_catalog_mode_fingerpicking(), "technique.fingerpicking", [
+        "technique.fingerpicking",
+      ]),
     ],
   }),
   entry({
     id: "strum",
     route: "/music/strum",
-    title: "Strum a progression",
-    blurb: "Strum a known chord progression in time while the microphone follows along.",
+    title: m.music_content_catalog_strum_title(),
+    blurb: m.music_content_catalog_strum_blurb(),
     instruments: GUITAR_UKE,
     capability: "harmony",
     modality: "played",
@@ -401,15 +434,14 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "pads",
     route: "/music/pads",
-    title: "Pads",
-    blurb:
-      "Finger-drumming technique, a repertoire of grooves in six levels, and holding the tempo without a click.",
+    title: m.music_content_catalog_pads_title(),
+    blurb: m.music_content_catalog_pads_blurb(),
     instruments: ["mpc"],
     capability: "technique",
     modality: "played",
     modes: [
       // The path data records every rudiment (singles, sixteenths, paradiddles) under this id.
-      mode("rudiment", "Technique", "technique.mpc.single-strokes", [
+      mode("rudiment", m.music_content_catalog_mode_technique(), "technique.mpc.single-strokes", [
         "technique.mpc",
         "technique.mpc.single-strokes",
         "technique.mpc.paradiddles",
@@ -418,95 +450,136 @@ export const CATALOG: CatalogEntry[] = [
       ]),
       mode(
         "groove",
-        "Grooves",
+        m.music_content_catalog_mode_grooves(),
         "technique.mpc.groove",
         uniq([...GROOVES.flatMap((g) => grooveSkills(g.value)), ...TOPICS.map(topicSkill)]),
       ),
-      mode("steady", "Hold the tempo", "technique.mpc.steadiness", [
+      mode("steady", m.music_content_catalog_mode_hold_tempo(), "technique.mpc.steadiness", [
         "technique.mpc",
         "technique.mpc.steadiness",
       ]),
-      mode("dynamics", "Dynamics", "technique.mpc.dynamics", [
+      mode("dynamics", m.music_content_catalog_mode_dynamics(), "technique.mpc.dynamics", [
         "technique.mpc",
         "technique.mpc.dynamics",
       ]),
-      mode("fills", "Fills", "technique.mpc.fills", ["technique.mpc", "technique.mpc.fills"]),
-      mode("echo", "Play it back", "technique.mpc.echo", ["technique.mpc", "technique.mpc.echo"]),
-      mode("ostinato", "Ostinato and a line", "technique.mpc.ostinato", [
+      mode("fills", m.music_content_catalog_mode_fills(), "technique.mpc.fills", [
+        "technique.mpc",
+        "technique.mpc.fills",
+      ]),
+      mode("echo", m.music_content_catalog_mode_play_it_back(), "technique.mpc.echo", [
+        "technique.mpc",
+        "technique.mpc.echo",
+      ]),
+      mode("ostinato", m.music_content_catalog_mode_ostinato(), "technique.mpc.ostinato", [
         "technique.mpc",
         "technique.mpc.independence",
       ]),
-      mode("orchestrate", "Rudiments on the kit", "technique.mpc.orchestrate", [
+      mode("orchestrate", m.music_content_catalog_mode_orchestrate(), "technique.mpc.orchestrate", [
         "technique.mpc",
         "technique.mpc.orchestration",
       ]),
-      mode("improvise", "Improvise", "technique.mpc.improvise", [
+      mode("improvise", m.music_content_catalog_mode_improvise(), "technique.mpc.improvise", [
         "technique.mpc",
         "technique.mpc.improvise",
       ]),
-      mode("chop", "Chop", "technique.mpc.chop", ["technique.mpc", "technique.mpc.chop"]),
-      mode("repeat", "Note repeat", "technique.mpc.repeat", [
+      mode("chop", m.music_content_catalog_mode_chop(), "technique.mpc.chop", [
+        "technique.mpc",
+        "technique.mpc.chop",
+      ]),
+      mode("repeat", m.music_content_catalog_mode_note_repeat(), "technique.mpc.repeat", [
         "technique.mpc",
         "technique.mpc.repeat",
       ]),
-      mode("song", "Song form", "technique.mpc.song", ["technique.mpc", "technique.mpc.song"]),
+      mode("song", m.music_content_catalog_mode_song_form(), "technique.mpc.song", [
+        "technique.mpc",
+        "technique.mpc.song",
+      ]),
     ],
   }),
   entry({
     id: "aerophone",
     route: "/music/aerophone",
     title: "Aerophone",
-    blurb:
-      "Learn the fingerings in Roland's lesson order, then hold, swell and tongue notes and land intervals against a drone.",
+    blurb: m.music_content_catalog_aerophone_blurb(),
     instruments: ["aerophone"],
     capability: "technique",
     modality: "played",
     modes: [
-      mode("fingering", "Fingering", "technique.aerophone.fingering", aerophoneSkills("fingering")),
-      mode("long-tone", "Long tone", "technique.aerophone.long-tone", aerophoneSkills("long-tone")),
-      mode("swell", "Swell", "technique.aerophone.swell", aerophoneSkills("swell")),
+      mode(
+        "fingering",
+        m.music_content_catalog_mode_fingering(),
+        "technique.aerophone.fingering",
+        aerophoneSkills("fingering"),
+      ),
+      mode(
+        "long-tone",
+        m.music_content_catalog_mode_long_tone(),
+        "technique.aerophone.long-tone",
+        aerophoneSkills("long-tone"),
+      ),
+      mode(
+        "swell",
+        m.music_content_catalog_mode_swell(),
+        "technique.aerophone.swell",
+        aerophoneSkills("swell"),
+      ),
       mode(
         "articulation",
-        "Articulation",
+        m.music_content_catalog_mode_articulation(),
         "technique.aerophone.articulation",
         aerophoneSkills("articulation"),
       ),
       mode(
         "interval-landing",
-        "Interval landing",
+        m.music_content_catalog_mode_interval_landing(),
         "technique.aerophone.interval-landing",
         aerophoneSkills("interval-landing"),
       ),
       mode(
         "scales",
-        "Scales and arpeggios",
+        m.music_content_catalog_mode_scales_arpeggios(),
         "technique.aerophone.scales",
         aerophoneSkills("scales"),
       ),
       mode(
         "tonguing",
-        "Tonguing patterns",
+        m.music_content_catalog_mode_tonguing(),
         "technique.aerophone.tonguing",
         aerophoneSkills("tonguing"),
       ),
       mode(
         "register",
-        "Register crossings",
+        m.music_content_catalog_mode_register(),
         "technique.aerophone.register",
         aerophoneSkills("register"),
       ),
-      mode("trills", "Trills", "technique.aerophone.trills", aerophoneSkills("trills")),
-      mode("vibrato", "Bite vibrato", "technique.aerophone.vibrato", aerophoneSkills("vibrato")),
-      mode("swing", "Swing articulation", "technique.aerophone.swing", aerophoneSkills("swing")),
+      mode(
+        "trills",
+        m.music_content_catalog_mode_trills(),
+        "technique.aerophone.trills",
+        aerophoneSkills("trills"),
+      ),
+      mode(
+        "vibrato",
+        m.music_content_catalog_mode_bite_vibrato(),
+        "technique.aerophone.vibrato",
+        aerophoneSkills("vibrato"),
+      ),
+      mode(
+        "swing",
+        m.music_content_catalog_mode_swing(),
+        "technique.aerophone.swing",
+        aerophoneSkills("swing"),
+      ),
       mode(
         "long-scale",
-        "Long-tone scale",
+        m.music_content_catalog_mode_long_scale(),
         "technique.aerophone.long-scale",
         aerophoneSkills("long-scale"),
       ),
       mode(
         "calibrate",
-        "Setup check",
+        m.music_content_catalog_mode_setup_check(),
         "technique.aerophone.calibrate",
         aerophoneSkills("calibrate"),
       ),
@@ -515,8 +588,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "circle",
     route: "/music/circle",
-    title: "Circle of fifths",
-    blurb: "Key signatures, the order of sharps and flats, neighbours and each key's chords, fast.",
+    title: m.music_content_catalog_circle_title(),
+    blurb: m.music_content_catalog_circle_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "reading",
     modality: "recognized",
@@ -527,9 +600,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "listening",
     route: "/music/ear/studio",
-    title: "Studio ears",
-    blurb:
-      "Hear a loop flat and changed, and name the change: an EQ band, a level, a pan, compression or a delay.",
+    title: m.music_content_catalog_listening_title(),
+    blurb: m.music_content_catalog_listening_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "heard",
@@ -540,37 +612,39 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "by-ear",
     route: "/music/by-ear",
-    title: "Learn by ear",
-    blurb:
-      "Loop a part of a recording you own, slow it down, mark its sections and play it back, or find its tonic.",
+    title: m.music_content_catalog_by_ear_title(),
+    blurb: m.music_content_catalog_by_ear_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "played",
     modes: [
-      mode("learn", "Learn a part", "ear.by-ear", ["ear.by-ear"]),
-      mode("home", "Find the tonic", "ear.find-home", ["ear.find-home"]),
-      mode("sing", "Sing along", "ear.by-ear.sing", ["ear.by-ear"]),
+      mode("learn", m.music_content_catalog_mode_learn_part(), "ear.by-ear", ["ear.by-ear"]),
+      mode("home", m.music_content_catalog_mode_find_tonic(), "ear.find-home", ["ear.find-home"]),
+      mode("sing", m.music_content_catalog_mode_sing_along(), "ear.by-ear.sing", ["ear.by-ear"]),
     ],
   }),
   entry({
     id: "call-response",
     route: "/music/changes/call-response",
-    title: "Call and response",
-    blurb:
-      "Hear a short call over a groove and play it back in time, or answer it with your own phrase that lands on a chord tone.",
+    title: m.music_content_catalog_call_response_title(),
+    blurb: m.music_content_catalog_call_response_blurb(),
     instruments: ["piano", "guitar", "ukulele", "aerophone"],
     capability: "ear",
     modality: "played",
     modes: [
-      mode("echo", "Echo the call", "ear.call-response.echo", ["ear.call-response"]),
-      mode("answer", "Answer it", "ear.call-response.answer", ["ear.call-response"]),
+      mode("echo", m.music_content_catalog_mode_echo_call(), "ear.call-response.echo", [
+        "ear.call-response",
+      ]),
+      mode("answer", m.music_content_catalog_mode_answer(), "ear.call-response.answer", [
+        "ear.call-response",
+      ]),
     ],
   }),
   entry({
     id: "ear-feel",
     route: "/music/ear/feel",
-    title: "Feel",
-    blurb: "Hear a groove and say whether it is straight, swung, a shuffle or in 12/8.",
+    title: m.music_content_catalog_feel_title(),
+    blurb: m.music_content_catalog_feel_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "ear",
     modality: "heard",
@@ -580,8 +654,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "lab",
     route: "/music/lab",
-    title: "Practice lab",
-    blurb: "Play freely and record everything, with or without a backing track.",
+    title: m.music_content_catalog_lab_title(),
+    blurb: m.music_content_catalog_lab_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "technique",
     modality: "played",
@@ -591,8 +665,8 @@ export const CATALOG: CatalogEntry[] = [
   entry({
     id: "jam",
     route: "/music/changes/jam",
-    title: "Jam",
-    blurb: "Solo over a progression with the chord tones lit for each chord.",
+    title: m.music_content_catalog_jam_title(),
+    blurb: m.music_content_catalog_jam_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "harmony",
     modality: "played",
@@ -603,8 +677,8 @@ export const CATALOG: CatalogEntry[] = [
     id: "song-studio",
     // Song practice lives at /music/songs/[id]; the library is where a song is picked.
     route: "/music/library?tab=songs",
-    title: "Song practice",
-    blurb: "Play through one of your saved songs while Woodshed waits for you or keeps time.",
+    title: m.music_content_catalog_song_title(),
+    blurb: m.music_content_catalog_song_blurb(),
     instruments: [...INSTRUMENTS],
     capability: "reading",
     modality: "played",
