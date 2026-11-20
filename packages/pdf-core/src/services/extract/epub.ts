@@ -1,6 +1,8 @@
 /** EPUB extraction — unzip with JSZip, walk the OPF spine, read each
  * XHTML document's block text as one chapter. */
 
+import { m } from "@repo/i18n/messages.js";
+import { formatNumber } from "@repo/i18n/format";
 import JSZip from "jszip";
 
 import type { NarratorChapter } from "../../domain/types";
@@ -20,13 +22,13 @@ export async function extractEpub(
   const parser = new DOMParser();
 
   const containerXml = await readEntry(zip, "META-INF/container.xml");
-  if (!containerXml) throw new Error("Not a valid EPUB — missing META-INF/container.xml.");
+  if (!containerXml) throw new Error(m.narrator_extract_epub_no_container());
   const container = parser.parseFromString(containerXml, "application/xml");
   const opfPath = container.querySelector("rootfile")?.getAttribute("full-path");
-  if (!opfPath) throw new Error("Not a valid EPUB — no package document declared.");
+  if (!opfPath) throw new Error(m.narrator_extract_epub_no_package());
 
   const opfXml = await readEntry(zip, opfPath);
-  if (!opfXml) throw new Error("Not a valid EPUB — package document not found.");
+  if (!opfXml) throw new Error(m.narrator_extract_epub_package_missing());
   const opf = parser.parseFromString(opfXml, "application/xml");
   const opfDir = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
 
@@ -45,7 +47,7 @@ export async function extractEpub(
     .map((ref) => ref.getAttribute("idref"))
     .map((id) => (id ? hrefById.get(id) : undefined))
     .filter((href): href is string => Boolean(href));
-  if (spineHrefs.length === 0) throw new Error("Not a valid EPUB — empty spine.");
+  if (spineHrefs.length === 0) throw new Error(m.narrator_extract_epub_empty_spine());
 
   progress("clean");
   progress("chapters");
@@ -67,16 +69,19 @@ export async function extractEpub(
 
     chapters.push({
       id: "ch-" + (chapters.length + 1),
-      title: heading || docHtml.title?.trim() || `Chapter ${chapters.length + 1}`,
+      title:
+        heading ||
+        docHtml.title?.trim() ||
+        m.narrator_extract_chapter({ number: chapters.length + 1 }),
       paragraphs,
     });
   }
-  if (chapters.length === 0) throw new Error("No readable text found in this EPUB.");
+  if (chapters.length === 0) throw new Error(m.narrator_extract_epub_no_text());
 
   return {
     title,
     author,
-    meta: `EPUB · ${wordCount(chapters).toLocaleString()} words`,
+    meta: m.narrator_extract_epub_meta({ words: formatNumber(wordCount(chapters)) }),
     chapters,
   };
 }

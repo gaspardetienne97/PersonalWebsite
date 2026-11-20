@@ -11,6 +11,7 @@
   import Type from "@lucide/svelte/icons/type";
   import Upload from "@lucide/svelte/icons/upload";
 
+  import { m } from "@repo/i18n/messages.js";
   import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import type { NarratorLibrary } from "@repo/pdf-core/stores/library";
 
@@ -50,22 +51,22 @@
   <header class="bar">
     <div class="brand">
       <!-- Narrator runs full screen outside the site chrome; its logo is the way home. -->
-      <a href="/" class="home-link" aria-label="Back to Gaspard's site">
+      <a href="/" class="home-link" aria-label={m.narrator_library_home()}>
         <img src={logoUrl} width="30" height="30" alt="" />
       </a>
       <div class="wordmark">
         <h1>narrator</h1>
-        <span>READS ALOUD</span>
+        <span>{m.narrator_library_tagline()}</span>
       </div>
     </div>
     <div class="search-wrap">
       <Search size={16} strokeWidth={1.5} style="color: var(--n-fg-3)" />
-      <input bind:value={query} placeholder="Search your library" aria-label="Search your library" />
+      <input bind:value={query} placeholder={m.narrator_library_search()} aria-label={m.narrator_library_search()} />
     </div>
-    <a class="icon-btn" href="/pdf/settings" title="Voice settings" aria-label="Voice settings">
+    <a class="icon-btn" href="/pdf/settings" title={m.narrator_voice_settings()} aria-label={m.narrator_voice_settings()}>
       <SlidersHorizontal size={18} strokeWidth={1.5} />
     </a>
-    <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> Add document</Btn>
+    <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> {m.narrator_add_document()}</Btn>
   </header>
 
   <main class="main">
@@ -78,15 +79,15 @@
         <div class="hero hero-card">
           <Cover {doc} size={132} radius={16} />
           <div class="hero-body">
-            <div class="eyebrow" style:color={doc.accent}>Continue listening</div>
+            <div class="eyebrow" style:color={doc.accent}>{m.narrator_library_continue()}</div>
             <h2>{doc.title}</h2>
             <p class="hero-sub">{doc.author} · {ch ? ch.title : ""}</p>
             <div class="hero-progress">
               <div class="track"><div style:width="{progress * 100}%" style:background={doc.accent}></div></div>
-              <span>{fmt(model.total * (1 - progress))} left</span>
+              <span>{m.narrator_library_time_left({ time: fmt(model.total * (1 - progress)) })}</span>
             </div>
             <div class="hero-actions">
-              <Btn variant="primary" onclick={() => onopen(doc.id)}><Play size={18} strokeWidth={1.5} /> Resume</Btn>
+              <Btn variant="primary" onclick={() => onopen(doc.id)}><Play size={18} strokeWidth={1.5} /> {m.narrator_library_resume()}</Btn>
               {#if doc.voice}
                 <Pill accent={doc.accent}><Mic size={13} strokeWidth={1.5} /> {doc.voice}</Pill>
               {/if}
@@ -99,19 +100,18 @@
             <div class="add-hero-glow"></div>
             <div class="add-hero-icon"><Upload size={44} strokeWidth={1.5} style="color: #fff" /></div>
             <div class="hero-body">
-              <div class="eyebrow n-gradient-text" style="font-weight: 700">Get started</div>
-              <h2>Add your first document</h2>
+              <div class="eyebrow n-gradient-text" style="font-weight: 700">{m.narrator_library_get_started()}</div>
+              <h2>{m.narrator_library_add_first()}</h2>
               <p class="add-hero-sub">
-                Upload a PDF, EPUB, or text file — or paste anything — and I'll read it aloud, highlighting each
-                word as it goes.
+                {m.narrator_library_add_first_sub()}
               </p>
               <div class="hero-actions">
-                <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> Add document</Btn>
+                <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> {m.narrator_add_document()}</Btn>
                 <div class="kind-pills">
                   <Pill><FileText size={13} strokeWidth={1.5} /> PDF</Pill>
                   <Pill><BookOpen size={13} strokeWidth={1.5} /> EPUB</Pill>
-                  <Pill><Type size={13} strokeWidth={1.5} /> Text</Pill>
-                  <Pill><Quote size={13} strokeWidth={1.5} /> Paste</Pill>
+                  <Pill><Type size={13} strokeWidth={1.5} /> {m.narrator_kind_text()}</Pill>
+                  <Pill><Quote size={13} strokeWidth={1.5} /> {m.narrator_kind_paste()}</Pill>
                 </div>
               </div>
             </div>
@@ -121,17 +121,17 @@
     {/if}
 
     <div class="lib-head">
-      <h3>Your Library</h3>
-      <span>{filtered.length} document{filtered.length === 1 ? "" : "s"}</span>
+      <h3>{m.narrator_library_heading()}</h3>
+      <span>{m.narrator_library_count({ count: filtered.length })}</span>
     </div>
 
     {#if empty && !q}
       <div class="empty">
         <div class="empty-icon"><Headphones size={28} strokeWidth={1.5} style="color: var(--n-fg-3)" /></div>
-        <div class="empty-title">No narrations yet</div>
-        <div class="empty-sub">Add a PDF, EPUB, or text file — or paste something — and it'll appear here.</div>
+        <div class="empty-title">{m.narrator_library_empty_title()}</div>
+        <div class="empty-sub">{m.narrator_library_empty_sub()}</div>
         <Btn variant="primary" class="empty-add" onclick={onadd}>
-          <Plus size={18} strokeWidth={1.5} /> Add document
+          <Plus size={18} strokeWidth={1.5} /> {m.narrator_add_document()}
         </Btn>
       </div>
     {:else}
@@ -148,8 +148,8 @@
         {#if !q}
           <button class="add-card" onclick={onadd}>
             <div class="add-card-icon"><Plus size={24} strokeWidth={1.5} /></div>
-            <div class="add-card-title">Add document</div>
-            <div class="add-card-sub">PDF, EPUB, text file, or paste</div>
+            <div class="add-card-title">{m.narrator_add_document()}</div>
+            <div class="add-card-sub">{m.narrator_library_add_card_sub()}</div>
           </button>
         {/if}
       </div>

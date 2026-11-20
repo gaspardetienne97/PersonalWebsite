@@ -9,6 +9,7 @@
   import Type from "@lucide/svelte/icons/type";
   import X from "@lucide/svelte/icons/x";
 
+  import { m } from "@repo/i18n/messages.js";
   import type { DocKind, NarratorDoc } from "@repo/pdf-core/domain";
   import {
     ACCEPT_BY_KIND,
@@ -24,19 +25,48 @@
 
   let { onclose, oncreate }: { onclose: () => void; oncreate: (doc: NarratorDoc) => void } = $props();
 
+  // `drop` and `choose` label the file picker; the paste tab shows a text box instead.
   const TABS = [
-    { id: "pdf", label: "PDF", icon: FileText, hint: "Digital PDFs with a text layer. Outline becomes chapters." },
-    { id: "epub", label: "EPUB", icon: BookOpen, hint: "Chapters and metadata are detected for you." },
-    { id: "txt", label: "Text file", icon: Type, hint: ".txt and .md — headings become chapters." },
-    { id: "paste", label: "Paste", icon: Quote, hint: "Drop in any text and start listening." },
+    {
+      id: "pdf",
+      label: "PDF",
+      icon: FileText,
+      hint: m.narrator_add_hint_pdf(),
+      drop: m.narrator_add_drop_pdf(),
+      choose: m.narrator_add_choose_pdf(),
+    },
+    {
+      id: "epub",
+      label: "EPUB",
+      icon: BookOpen,
+      hint: m.narrator_add_hint_epub(),
+      drop: m.narrator_add_drop_epub(),
+      choose: m.narrator_add_choose_epub(),
+    },
+    {
+      id: "txt",
+      label: m.narrator_add_tab_txt(),
+      icon: Type,
+      hint: m.narrator_add_hint_txt(),
+      drop: m.narrator_add_drop_txt(),
+      choose: m.narrator_add_choose_txt(),
+    },
+    {
+      id: "paste",
+      label: m.narrator_kind_paste(),
+      icon: Quote,
+      hint: m.narrator_add_hint_paste(),
+      drop: m.narrator_add_drop_txt(),
+      choose: m.narrator_add_choose_txt(),
+    },
   ] as const;
 
   const STAGES: { k: ExtractStage; label: string; sub: string }[] = [
-    { k: "read", label: "Reading file", sub: "decoding bytes" },
-    { k: "extract", label: "Extracting text", sub: "pulling out the words" },
-    { k: "clean", label: "Cleaning & normalizing", sub: "joining hyphenation, fixing line breaks" },
-    { k: "chapters", label: "Detecting chapters", sub: "building the outline" },
-    { k: "narration", label: "Preparing narration", sub: "tokenizing for the reader" },
+    { k: "read", label: m.narrator_add_stage_read(), sub: m.narrator_add_stage_read_sub() },
+    { k: "extract", label: m.narrator_add_stage_extract(), sub: m.narrator_add_stage_extract_sub() },
+    { k: "clean", label: m.narrator_add_stage_clean(), sub: m.narrator_add_stage_clean_sub() },
+    { k: "chapters", label: m.narrator_add_stage_chapters(), sub: m.narrator_add_stage_chapters_sub() },
+    { k: "narration", label: m.narrator_add_stage_narration(), sub: m.narrator_add_stage_narration_sub() },
   ];
 
   let tab = $state<DocKind>("pdf");
@@ -56,7 +86,7 @@
   async function handleFile(file: File) {
     if (busy) return;
     if (!kindForFile(file)) {
-      error = `“${file.name}” isn't a supported format. Use PDF, EPUB, .txt, or .md.`;
+      error = m.narrator_add_unsupported({ name: file.name });
       return;
     }
     error = null;
@@ -71,7 +101,7 @@
       setTimeout(() => oncreate(doc), 350);
     } catch (e) {
       busy = false;
-      error = e instanceof Error ? e.message : "Couldn't read that file.";
+      error = e instanceof Error ? e.message : m.narrator_add_read_failed();
     }
   }
 
@@ -81,17 +111,17 @@
   }
 </script>
 
-<div class="overlay" role="dialog" aria-modal="true" aria-label="Add a document">
+<div class="overlay" role="dialog" aria-modal="true" aria-label={m.narrator_add_dialog()}>
   <div class="sheet">
     <div class="glow"></div>
     <div class="content">
       <div class="head">
-        <button class="icon-btn" onclick={onclose} aria-label="Back"><ArrowLeft size={18} strokeWidth={1.5} /></button>
+        <button class="icon-btn" onclick={onclose} aria-label={m.narrator_back()}><ArrowLeft size={18} strokeWidth={1.5} /></button>
         <div>
-          <h2 class="n-gradient-text">Add a document</h2>
-          <p>I'll read it out loud for you.</p>
+          <h2 class="n-gradient-text">{m.narrator_add_dialog()}</h2>
+          <p>{m.narrator_add_subtitle()}</p>
         </div>
-        <button class="icon-btn close" onclick={onclose} aria-label="Close"><X size={18} strokeWidth={1.5} /></button>
+        <button class="icon-btn close" onclick={onclose} aria-label={m.narrator_close()}><X size={18} strokeWidth={1.5} /></button>
       </div>
 
       {#if busy}
@@ -100,7 +130,7 @@
             <Equalizer color="var(--n-brand-blue)" size={40} />
             <div class="ring"></div>
           </div>
-          <h3>Building your narration</h3>
+          <h3>{m.narrator_add_building()}</h3>
           <p class="pipe-sub">{fileName}</p>
           <div class="steps">
             {#each STAGES as step, i (step.k)}
@@ -143,8 +173,8 @@
           {#if tab === "paste"}
             <textarea
               bind:value={text}
-              placeholder="Paste or type anything — an article, an email, your notes…"
-              aria-label="Text to narrate"
+              placeholder={m.narrator_add_paste_placeholder()}
+              aria-label={m.narrator_add_paste_label()}
             ></textarea>
           {:else}
             <input
@@ -152,7 +182,7 @@
               type="file"
               accept={ACCEPT_BY_KIND[tab]}
               class="file-input"
-              aria-label="Choose a {activeTab.label} file"
+              aria-label={activeTab.choose}
               onchange={(e) => {
                 const file = e.currentTarget.files?.[0];
                 if (file) void handleFile(file);
@@ -185,8 +215,8 @@
               }}
             >
               <div class="drop-icon"><activeTab.icon size={28} strokeWidth={1.5} /></div>
-              <div class="drop-title">Drop your {activeTab.label} here</div>
-              <div class="drop-sub">or <span>browse files</span></div>
+              <div class="drop-title">{activeTab.drop}</div>
+              <div class="drop-sub">{m.narrator_add_drop_or()} <span>{m.narrator_add_browse()}</span></div>
               <div class="drop-hint">{activeTab.hint}</div>
             </div>
           {/if}
@@ -197,11 +227,11 @@
 
           <div class="voice-row">
             <div class="voice-label">
-              <Mic size={16} strokeWidth={1.5} style="color: var(--n-brand-blue)" /> Narrator voice
+              <Mic size={16} strokeWidth={1.5} style="color: var(--n-brand-blue)" /> {m.narrator_narrator_voice()}
             </div>
             <div class="voice-chips">
               {#if voiceChoices.length === 0}
-                <span class="voice-chip active">System default</span>
+                <span class="voice-chip active">{m.narrator_add_system_default()}</span>
               {:else}
                 {#each voiceChoices as v (v.voiceURI)}
                   <button
@@ -218,7 +248,7 @@
 
           {#if tab === "paste"}
             <Btn variant="primary" class="narrate-btn" disabled={!text.trim()} onclick={startPaste}>
-              <Sparkles size={16} strokeWidth={1.5} /> Narrate this text
+              <Sparkles size={16} strokeWidth={1.5} /> {m.narrator_add_narrate()}
             </Btn>
           {/if}
         </div>

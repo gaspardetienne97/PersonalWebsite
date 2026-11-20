@@ -5,6 +5,7 @@
  * come from the PDF outline when present, otherwise pages are grouped.
  */
 
+import { m } from "@repo/i18n/messages.js";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
@@ -48,13 +49,13 @@ export async function extractPdf(file: File, progress: ExtractProgress): Promise
     chapters.push({ id: "ch-" + (index + 1), title: range.title, paragraphs });
   }
   if (chapters.length === 0) {
-    throw new Error("No readable text found in this PDF — it may be a scan without a text layer.");
+    throw new Error(m.narrator_extract_pdf_no_text());
   }
 
   return {
     title,
     author,
-    meta: `PDF · ${doc.numPages} page${doc.numPages === 1 ? "" : "s"}`,
+    meta: m.narrator_extract_pdf_meta({ count: doc.numPages }),
     chapters,
   };
 }
@@ -118,7 +119,10 @@ async function outlineRanges(doc: PDFDocumentProxy): Promise<PageRange[] | null>
       const dest = typeof item.dest === "string" ? await doc.getDestination(item.dest) : item.dest;
       if (!dest || typeof dest[0] !== "object") continue;
       const page = (await doc.getPageIndex(dest[0])) + 1;
-      starts.push({ title: item.title || `Section ${starts.length + 1}`, page });
+      starts.push({
+        title: item.title || m.narrator_extract_section({ number: starts.length + 1 }),
+        page,
+      });
     }
     if (starts.length < 2) return null;
 
@@ -130,7 +134,7 @@ async function outlineRanges(doc: PDFDocumentProxy): Promise<PageRange[] | null>
     }));
     // Front matter before the first outline entry.
     if (ranges[0].from > 1) {
-      ranges.unshift({ title: "Front matter", from: 1, to: ranges[0].from - 1 });
+      ranges.unshift({ title: m.narrator_extract_front_matter(), from: 1, to: ranges[0].from - 1 });
     }
     return ranges;
   } catch {
@@ -140,12 +144,12 @@ async function outlineRanges(doc: PDFDocumentProxy): Promise<PageRange[] | null>
 
 function fallbackRanges(numPages: number): PageRange[] {
   if (numPages <= PAGES_PER_FALLBACK_CHAPTER) {
-    return [{ title: "Document", from: 1, to: numPages }];
+    return [{ title: m.narrator_extract_document(), from: 1, to: numPages }];
   }
   const ranges: PageRange[] = [];
   for (let from = 1; from <= numPages; from += PAGES_PER_FALLBACK_CHAPTER) {
     const to = Math.min(from + PAGES_PER_FALLBACK_CHAPTER - 1, numPages);
-    ranges.push({ title: `Pages ${from}–${to}`, from, to });
+    ranges.push({ title: m.narrator_extract_pages({ from, to }), from, to });
   }
   return ranges;
 }

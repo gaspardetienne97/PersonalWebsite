@@ -1,5 +1,7 @@
 /** File → NarratorDoc extraction entry point. */
 
+import { m } from "@repo/i18n/messages.js";
+import { formatNumber } from "@repo/i18n/format";
 import type { DocKind, NarratorDoc } from "../../domain/types";
 import { extractEpub } from "./epub";
 import { paragraphsFromText, wordCount } from "./normalize";
@@ -41,7 +43,7 @@ export async function extractFile(
 ): Promise<NarratorDoc> {
   const kind = kindForFile(file);
   if (!kind) {
-    throw new Error(`Unsupported file type: ${file.name}. Use PDF, EPUB, .txt, or .md.`);
+    throw new Error(m.narrator_extract_unsupported({ name: file.name }));
   }
 
   const extractor = kind === "pdf" ? extractPdf : kind === "epub" ? extractEpub : extractTxt;
@@ -55,13 +57,14 @@ export async function extractFile(
 export function extractPaste(text: string, voice: string): NarratorDoc | null {
   const paragraphs = paragraphsFromText(text);
   if (paragraphs.length === 0) return null;
-  const title = paragraphs[0].split(/[.!?]/)[0].slice(0, 48).trim() || "Pasted text";
-  const chapters = [{ id: "ch-1", title: "Pasted text", paragraphs }];
+  const title =
+    paragraphs[0].split(/[.!?]/)[0].slice(0, 48).trim() || m.narrator_extract_pasted_text();
+  const chapters = [{ id: "ch-1", title: m.narrator_extract_pasted_text(), paragraphs }];
   return toDoc(
     {
       title,
-      author: "Pasted text",
-      meta: `Pasted · ${wordCount(chapters).toLocaleString()} words`,
+      author: m.narrator_extract_pasted_text(),
+      meta: m.narrator_extract_paste_meta({ words: formatNumber(wordCount(chapters)) }),
       chapters,
     },
     "paste",

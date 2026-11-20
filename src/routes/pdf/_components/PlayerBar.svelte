@@ -9,6 +9,7 @@
   import SkipBack from "@lucide/svelte/icons/skip-back";
   import SkipForward from "@lucide/svelte/icons/skip-forward";
 
+  import { m } from "@repo/i18n/messages.js";
   import { KOKORO_VOICES } from "@repo/pdf-core";
   import { fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import type { NarrationPlayer } from "@repo/pdf-core/stores/narration";
@@ -43,8 +44,8 @@
   const systemVoices = $derived(voiceCatalog.preferred);
   const voiceLabel = $derived(
     isNatural
-      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label.split(" — ")[0] ?? "Natural")
-      : (player.voice ?? "Voice"),
+      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.name ?? m.narrator_player_natural())
+      : (player.voice ?? m.narrator_player_voice()),
   );
 
   function scrub(e: MouseEvent) {
@@ -61,25 +62,25 @@
 
 {#snippet transport()}
   <div class="transport" class:panel={variant === "panel"}>
-    <button class="ctrl" title="Previous sentence" onclick={() => player.prevSentence()}>
+    <button class="ctrl" title={m.narrator_player_previous()} onclick={() => player.prevSentence()}>
       <SkipBack size={20} strokeWidth={1.5} />
     </button>
     <button
       class="play"
       style:background={accent}
       style:box-shadow="0 6px 20px color-mix(in srgb, {accent} 45%, transparent)"
-      aria-label={player.playing ? "Pause" : "Play"}
+      aria-label={player.playing ? m.narrator_player_pause() : m.narrator_player_play()}
       onclick={() => player.toggle()}
     >
       {#if player.playing && player.modelLoading}
-        <span class="play-spinner" title="Loading neural voice"></span>
+        <span class="play-spinner" title={m.narrator_player_loading_voice()}></span>
       {:else if player.playing}
         <Pause size={24} strokeWidth={2} style="color: #fff" />
       {:else}
         <Play size={24} strokeWidth={2} style="color: #fff; margin-left: 2px" />
       {/if}
     </button>
-    <button class="ctrl" title="Next sentence" onclick={() => player.nextSentence()}>
+    <button class="ctrl" title={m.narrator_player_next()} onclick={() => player.nextSentence()}>
       <SkipForward size={20} strokeWidth={1.5} />
     </button>
   </div>
@@ -123,7 +124,7 @@
               }}
             >
               {s % 1 === 0 ? s + ".0" : s}x
-              {#if s === 1}<span class="pop-note">normal</span>{/if}
+              {#if s === 1}<span class="pop-note">{m.narrator_player_normal()}</span>{/if}
             </button>
           {/each}
         </div>
@@ -132,12 +133,12 @@
 
     <div class="pop-anchor">
       <button class="chip" class:open={open === "chapters"} onclick={() => togglePop("chapters")}>
-        <List size={15} strokeWidth={1.5} /> Chapters
+        <List size={15} strokeWidth={1.5} /> {m.narrator_player_chapters()}
       </button>
       {#if open === "chapters"}
         <div class="pop right chapters-pop" class:up={openUp}>
           <div class="pop-head">
-            <span>Chapters</span>
+            <span>{m.narrator_player_chapters()}</span>
             <span>{player.model.chapters.length}</span>
           </div>
           <div class="pop-scroll">
@@ -164,13 +165,13 @@
       </button>
       {#if open === "voice"}
         <div class="pop right voices-pop" class:up={openUp}>
-          <div class="pop-label">{isNatural ? "Natural voice (Kokoro)" : "Narrator voice"}</div>
+          <div class="pop-label">{isNatural ? m.narrator_player_natural_kokoro() : m.narrator_narrator_voice()}</div>
           {#if player.usingFallback}
-            <div class="pop-note-row">Natural voice unavailable here — using the system voice.</div>
+            <div class="pop-note-row">{m.narrator_player_fallback()}</div>
           {/if}
           {#if isNatural && player.modelLoading}
             <div class="pop-note-row loading">
-              Loading neural voice… {Math.round(player.modelProgress * 100)}%
+              {m.narrator_player_loading_progress({ percent: Math.round(player.modelProgress * 100) })}
             </div>
           {/if}
           <div class="pop-scroll">
@@ -192,7 +193,7 @@
                 </button>
               {/each}
             {:else if systemVoices.length === 0}
-              <div class="pop-empty">Using the system default voice</div>
+              <div class="pop-empty">{m.narrator_player_system_default()}</div>
             {:else}
               {#each systemVoices as v (v.voiceURI)}
                 <button

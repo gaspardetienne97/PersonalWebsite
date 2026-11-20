@@ -2,6 +2,7 @@
   import Clock from "@lucide/svelte/icons/clock";
   import Trash2 from "@lucide/svelte/icons/trash-2";
 
+  import { m } from "@repo/i18n/messages.js";
   import { fmt, type NarrationModel, type NarratorDoc } from "@repo/pdf-core/domain";
 
   import Cover from "./Cover.svelte";
@@ -44,8 +45,8 @@
     <button
       class="trash"
       class:visible={hover && !confirming}
-      title="Remove from library"
-      aria-label="Remove {doc.title} from library"
+      title={m.narrator_doc_remove_title()}
+      aria-label={m.narrator_doc_remove_label({ title: doc.title })}
       onclick={(e) => {
         e.stopPropagation();
         confirming = true;
@@ -72,11 +73,11 @@
     <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
     <div class="confirm" onclick={(e) => e.stopPropagation()}>
       <div class="confirm-icon"><Trash2 size={20} strokeWidth={1.5} /></div>
-      <div class="confirm-title">Remove this document?</div>
-      <div class="confirm-sub">It will leave your library.</div>
+      <div class="confirm-title">{m.narrator_doc_confirm_title()}</div>
+      <div class="confirm-sub">{m.narrator_doc_confirm_sub()}</div>
       <div class="confirm-actions">
-        <button class="cancel" onclick={() => (confirming = false)}>Cancel</button>
-        <button class="remove" onclick={() => onremove(doc.id)}>Remove</button>
+        <button class="cancel" onclick={() => (confirming = false)}>{m.narrator_cancel()}</button>
+        <button class="remove" onclick={() => onremove(doc.id)}>{m.narrator_doc_remove()}</button>
       </div>
     </div>
   {/if}

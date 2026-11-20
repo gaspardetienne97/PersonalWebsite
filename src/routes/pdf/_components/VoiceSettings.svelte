@@ -10,6 +10,9 @@
   import Zap from "@lucide/svelte/icons/zap";
   import { onDestroy } from "svelte";
 
+  import { m } from "@repo/i18n/messages.js";
+  import { getLocale, setLocale } from "@repo/i18n/runtime.js";
+
   import {
     clearKokoro,
     KOKORO_QUALITIES,
@@ -25,6 +28,7 @@
   import { voiceCatalog } from "@repo/pdf-core/stores/voices";
 
   import logoUrl from "../logo-G.svg";
+  import { LANGUAGES } from "./languages";
 
   const settings = new ReaderSettings();
 
@@ -32,13 +36,14 @@
     "The quick brown fox jumps over the lazy dog, and this is how this narrator voice sounds out loud.";
 
   const ENGINES: { value: VoiceEngine; label: string; hint: string }[] = [
-    { value: "system", label: "System", hint: "Your device's built-in voices. Instant, no download." },
+    { value: "system", label: m.narrator_engine_system(), hint: m.narrator_settings_engine_system_hint() },
     {
       value: "natural",
-      label: "Natural (neural)",
-      hint: "A high-quality voice that runs in your browser. Downloaded once, then offline.",
+      label: m.narrator_settings_engine_natural(),
+      hint: m.narrator_settings_engine_natural_hint(),
     },
   ];
+  const locale = getLocale();
 
   const naturalAvailable = kokoroSupported();
   const onGpu = webgpuAvailable();
@@ -100,7 +105,7 @@
       };
       await audio.play();
     } catch (e) {
-      previewError = e instanceof Error ? e.message : "Couldn't synthesize a preview.";
+      previewError = e instanceof Error ? e.message : m.narrator_settings_preview_failed();
       previewing = null;
       modelState = kokoroLoaded() ? "ready" : "idle";
     }
@@ -153,17 +158,39 @@
 <div class="narrator">
   <div class="wrap">
     <header class="head">
-      <a class="back" href="/pdf" aria-label="Back to library"><ArrowLeft size={18} strokeWidth={1.5} /></a>
+      <a class="back" href="/pdf" aria-label={m.narrator_back_to_library()}><ArrowLeft size={18} strokeWidth={1.5} /></a>
       <img src={logoUrl} width="28" height="28" alt="" />
       <div>
-        <h1>Voice settings</h1>
-        <p>Choose how the narrator reads aloud, preview voices, and manage downloads.</p>
+        <h1>{m.narrator_voice_settings()}</h1>
+        <p>{m.narrator_settings_intro()}</p>
       </div>
     </header>
 
+    <!-- Interface language: menus and messages only, never the voice that reads. Changing it reloads the page. -->
+    <section class="card">
+      <h2>{m.narrator_language()}</h2>
+      <p class="muted">{m.narrator_language_note()}</p>
+      <div class="quality">
+        {#each LANGUAGES as l (l.locale)}
+          <button
+            class="quality-opt"
+            class:on={locale === l.locale}
+            aria-pressed={locale === l.locale}
+            lang={l.locale}
+            onclick={() => setLocale(l.locale)}
+          >
+            <div class="quality-top">
+              <strong>{l.name}</strong>
+              {#if locale === l.locale}<Check size={14} strokeWidth={2} />{/if}
+            </div>
+          </button>
+        {/each}
+      </div>
+    </section>
+
     <!-- Engine -->
     <section class="card">
-      <h2>Reading voice</h2>
+      <h2>{m.narrator_settings_reading_voice()}</h2>
       <div class="engine-grid">
         {#each ENGINES as e (e.value)}
           <button
@@ -190,11 +217,11 @@
     {#if naturalAvailable}
       <section class="card">
         <div class="card-head">
-          <h2>Natural voice</h2>
-          <span class="badge">{onGpu ? "GPU accelerated" : "CPU"}</span>
+          <h2>{m.narrator_natural_voice()}</h2>
+          <span class="badge">{onGpu ? m.narrator_settings_gpu() : "CPU"}</span>
         </div>
 
-        <div class="sub">Model quality</div>
+        <div class="sub">{m.narrator_settings_model_quality()}</div>
         <div class="quality">
           {#each KOKORO_QUALITIES as q (q.id)}
             <button class="quality-opt" class:on={settings.modelQuality === q.id} onclick={() => setQuality(q.id)}>
@@ -213,22 +240,22 @@
 
         <div class="model-row">
           {#if modelState === "ready"}
-            <span class="model-state ok"><Check size={14} strokeWidth={2} /> Model ready</span>
-            <button class="ghost danger" onclick={clearModel}><Trash2 size={14} strokeWidth={1.5} /> Clear download</button>
+            <span class="model-state ok"><Check size={14} strokeWidth={2} /> {m.narrator_settings_model_ready()}</span>
+            <button class="ghost danger" onclick={clearModel}><Trash2 size={14} strokeWidth={1.5} /> {m.narrator_settings_clear_download()}</button>
           {:else if modelState === "downloading"}
-            <span class="model-state"><span class="spin"></span> Downloading… {Math.round(dlProgress * 100)}%</span>
+            <span class="model-state"><span class="spin"></span> {m.narrator_settings_downloading({ percent: Math.round(dlProgress * 100) })}</span>
           {:else if modelState === "error"}
-            <span class="model-state err">Download failed</span>
-            <button class="ghost" onclick={downloadModel}><Download size={14} strokeWidth={1.5} /> Retry</button>
+            <span class="model-state err">{m.narrator_settings_download_failed()}</span>
+            <button class="ghost" onclick={downloadModel}><Download size={14} strokeWidth={1.5} /> {m.narrator_settings_retry()}</button>
           {:else}
             <button class="ghost" onclick={downloadModel}>
-              <Download size={14} strokeWidth={1.5} /> Download model now
+              <Download size={14} strokeWidth={1.5} /> {m.narrator_settings_download_now()}
             </button>
-            <span class="model-hint">Or just press preview / play — it downloads on first use.</span>
+            <span class="model-hint">{m.narrator_settings_download_hint()}</span>
           {/if}
         </div>
 
-        <div class="sub">Voices</div>
+        <div class="sub">{m.narrator_settings_voices()}</div>
         <ul class="voices">
           {#each KOKORO_VOICES as v (v.id)}
             {@const active = settings.engine === "natural" && settings.naturalVoice === v.id}
@@ -236,7 +263,7 @@
               <button
                 class="preview"
                 class:playing={previewing === "nat:" + v.id}
-                aria-label="Preview {v.label}"
+                aria-label={m.narrator_settings_preview({ name: v.label })}
                 onclick={() => previewNatural(v.id)}
               >
                 {#if previewing === "nat:" + v.id}<Pause size={15} strokeWidth={2} />{:else}<Play
@@ -256,7 +283,7 @@
                   settings.update("engine", "natural");
                 }}
               >
-                {#if active}<Check size={14} strokeWidth={2} /> Selected{:else}Use{/if}
+                {#if active}<Check size={14} strokeWidth={2} /> {m.narrator_settings_selected()}{:else}{m.narrator_settings_use()}{/if}
               </button>
             </li>
           {/each}
@@ -268,18 +295,17 @@
     <!-- System -->
     <section class="card">
       <div class="card-head">
-        <h2>System voices</h2>
+        <h2>{m.narrator_settings_system_voices()}</h2>
         <div class="filters">
-          <label><input type="checkbox" bind:checked={onlyLang} /> My language</label>
-          <label><input type="checkbox" bind:checked={onlyLocal} /> On-device only</label>
+          <label><input type="checkbox" bind:checked={onlyLang} /> {m.narrator_settings_my_language()}</label>
+          <label><input type="checkbox" bind:checked={onlyLocal} /> {m.narrator_settings_on_device()}</label>
         </div>
       </div>
       <p class="muted">
-        These come from your operating system. Quality varies a lot — preview to find a good one. On macOS you can
-        download better "premium" voices in System Settings → Accessibility → Spoken Content.
+        {m.narrator_settings_system_note()}
       </p>
       {#if systemVoices.length === 0}
-        <p class="muted">No matching voices. Try unchecking the filters.</p>
+        <p class="muted">{m.narrator_settings_no_voices()}</p>
       {:else}
         <ul class="voices">
           {#each systemVoices as v (v.voiceURI)}
@@ -288,7 +314,7 @@
               <button
                 class="preview"
                 class:playing={previewing === "sys:" + v.name}
-                aria-label="Preview {v.name}"
+                aria-label={m.narrator_settings_preview({ name: v.name })}
                 onclick={() => previewSystem(v.name)}
               >
                 {#if previewing === "sys:" + v.name}<Pause size={15} strokeWidth={2} />{:else}<Play
@@ -298,7 +324,7 @@
               </button>
               <div class="voice-meta">
                 <span class="voice-name">{v.name}</span>
-                <span class="voice-lang">{v.lang}{v.localService ? "" : " · network"}</span>
+                <span class="voice-lang">{v.localService ? v.lang : m.narrator_settings_network({ lang: v.lang })}</span>
               </div>
               <button
                 class="choose"
@@ -308,7 +334,7 @@
                   settings.update("engine", "system");
                 }}
               >
-                {#if active}<Check size={14} strokeWidth={2} /> Selected{:else}Use{/if}
+                {#if active}<Check size={14} strokeWidth={2} /> {m.narrator_settings_selected()}{:else}{m.narrator_settings_use()}{/if}
               </button>
             </li>
           {/each}

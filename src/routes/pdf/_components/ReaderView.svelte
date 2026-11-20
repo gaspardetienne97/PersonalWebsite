@@ -6,6 +6,7 @@
   import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
   import { onDestroy } from "svelte";
 
+  import { m } from "@repo/i18n/messages.js";
   import { KOKORO_VOICES } from "@repo/pdf-core";
   import type { NarratorDoc } from "@repo/pdf-core/domain";
   import { NarrationPlayer } from "@repo/pdf-core/stores/narration";
@@ -53,37 +54,37 @@
   const chapterTitle = $derived(player.model.chapters[player.chapterIndex]?.title ?? "");
   const voiceLabel = $derived(
     player.engineMode === "natural"
-      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label ?? "Natural voice")
-      : (player.voice ?? "System voice"),
+      ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label ?? m.narrator_natural_voice())
+      : (player.voice ?? m.narrator_system_voice()),
   );
 </script>
 
 {#snippet styleToggle()}
-  <div class="seg" role="group" aria-label="Reading style">
+  <div class="seg" role="group" aria-label={m.narrator_reader_style()}>
     <button
       class="seg-btn"
       class:on={readStyle === "flow"}
-      title="Flow view"
+      title={m.narrator_reader_flow_view()}
       aria-pressed={readStyle === "flow"}
       onclick={() => (readStyle = "flow")}
     >
-      <AudioWaveform size={15} strokeWidth={1.5} /><span class="seg-label">Flow</span>
+      <AudioWaveform size={15} strokeWidth={1.5} /><span class="seg-label">{m.narrator_reader_flow()}</span>
     </button>
     <button
       class="seg-btn"
       class:on={readStyle === "doc"}
-      title="Document view"
+      title={m.narrator_reader_document_view()}
       aria-pressed={readStyle === "doc"}
       onclick={() => (readStyle = "doc")}
     >
-      <AlignLeft size={15} strokeWidth={1.5} /><span class="seg-label">Document</span>
+      <AlignLeft size={15} strokeWidth={1.5} /><span class="seg-label">{m.narrator_reader_document()}</span>
     </button>
   </div>
 {/snippet}
 
 {#snippet topBar(showToggle: boolean)}
   <div class="top">
-    <button class="back" onclick={onclose} title="Back to library" aria-label="Back to library">
+    <button class="back" onclick={onclose} title={m.narrator_back_to_library()} aria-label={m.narrator_back_to_library()}>
       <ArrowLeft size={18} strokeWidth={1.5} />
     </button>
     <div class="top-meta">
@@ -98,8 +99,8 @@
         <button
           class="back"
           class:active={settingsOpen}
-          title="Reader settings"
-          aria-label="Reader settings"
+          title={m.narrator_reader_settings()}
+          aria-label={m.narrator_reader_settings()}
           onclick={() => (settingsOpen = !settingsOpen)}
         >
           <SlidersHorizontal size={16} strokeWidth={1.5} />
