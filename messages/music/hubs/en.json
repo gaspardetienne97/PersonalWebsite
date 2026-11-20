@@ -152,7 +152,16 @@
   "music_hubs_paths_adding": "Adding…",
   "music_hubs_paths_add_to_songs": "Add to my songs",
   "music_hubs_paths_import_score": "Import its score",
-  "music_hubs_paths_days_of_2": "{n} of 2 days",
+  "music_hubs_paths_days_of_2": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{n} of 2 days",
+        "nPlural=other": "{n} of 2 days"
+      }
+    }
+  ],
   "music_hubs_paths_not_played": "Not played yet",
   "music_hubs_paths_level_test": "Level test",
   "music_hubs_paths_level_passed": "Level passed",
@@ -2207,5 +2216,14 @@
   "music_hubs_kits_intro": "Your own sounds on pads. The beat in Create plays them.",
   "music_hubs_ref_head": "Chords and scales | Woodshed",
   "music_hubs_ref_page_intro": "Every chord, scale and key in one place, to look up while you write or practise.",
-  "music_hubs_ref_page_status": "Showing the chord and scale reference."
+  "music_hubs_ref_page_status": "Showing the chord and scale reference.",
+  "music_hubs_bg_play_beat": "Play beat",
+  "music_hubs_bg_bar_step": "Bar {bar}, step {step}",
+  "music_hubs_bg_sample_on_pad": "Sample on {pad}",
+  "music_hubs_kp_tap_letter": "Tap a pad to hear it, or press the letter shown on it.",
+  "music_hubs_kp_tap_bank_a": "Tap a pad to hear it. The computer keys play bank A.",
+  "music_hubs_cr_not_saved_lower": "not saved",
+  "music_hubs_cr_unsaved_lower": "unsaved changes",
+  "music_hubs_cr_saved_lower": "saved",
+  "music_hubs_tv_lick_title": "{title}, first bars"
 }

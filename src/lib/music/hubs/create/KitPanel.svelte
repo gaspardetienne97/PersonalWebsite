@@ -184,7 +184,7 @@
             <Picker class="w-auto min-w-36" label={m.music_hubs_kp_kit()} value={kit?.id} options={kits.kits.map((k) => ({ value: k.id, label: k.name }))} onchange={(id) => kits.select(id)} />
           </div>
         </div>
-        <p class="text-sm text-ws-soft">Tap a pad to hear it{bank === "A" ? ", or press the letter shown on it." : ". The computer keys play bank A."}</p>
+        <p class="text-sm text-ws-soft">{bank === "A" ? m.music_hubs_kp_tap_letter() : m.music_hubs_kp_tap_bank_a()}</p>
 
         {#if assigning}
           <p class="flex flex-wrap items-center gap-2 rounded-xl bg-instr-wash px-3 py-2 text-sm">

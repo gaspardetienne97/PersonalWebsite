@@ -152,7 +152,16 @@
   "music_hubs_paths_adding": "Ap ajoute…",
   "music_hubs_paths_add_to_songs": "Ajoute nan chante mwen yo",
   "music_hubs_paths_import_score": "Enpòte pati a",
-  "music_hubs_paths_days_of_2": "{n} jou sou 2",
+  "music_hubs_paths_days_of_2": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{n} jou sou 2",
+        "nPlural=other": "{n} jou sou 2"
+      }
+    }
+  ],
   "music_hubs_paths_not_played": "Poko jwe",
   "music_hubs_paths_level_test": "Tès nivo",
   "music_hubs_paths_level_passed": "Nivo pase",
@@ -2207,5 +2216,14 @@
   "music_hubs_kits_intro": "Pwòp son ou sou pad yo. Beat nan Kreye jwe yo.",
   "music_hubs_ref_head": "Akò ak gam | Woodshed",
   "music_hubs_ref_page_intro": "Tout akò, gam ak tonalite nan yon sèl kote, pou chèche pandan w ap ekri oswa pratike.",
-  "music_hubs_ref_page_status": "N ap montre referans akò ak gam yo."
+  "music_hubs_ref_page_status": "N ap montre referans akò ak gam yo.",
+  "music_hubs_bg_play_beat": "Jwe beat la",
+  "music_hubs_bg_bar_step": "Mezi {bar}, etap {step}",
+  "music_hubs_bg_sample_on_pad": "Echantiyon sou {pad}",
+  "music_hubs_kp_tap_letter": "Tape yon pad pou tande l, oswa peze lèt ki make sou li a.",
+  "music_hubs_kp_tap_bank_a": "Tape yon pad pou tande l. Touch òdinatè a jwe bank A.",
+  "music_hubs_cr_not_saved_lower": "pa sere",
+  "music_hubs_cr_unsaved_lower": "chanjman ki pa sere",
+  "music_hubs_cr_saved_lower": "sere",
+  "music_hubs_tv_lick_title": "{title}, premye mezi yo"
 }

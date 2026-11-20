@@ -154,7 +154,7 @@
     <div class="mb-3 flex items-center gap-2 sm:gap-3">
       <!-- The song bar's Play is the main transport; this plays the beat alone. -->
       <button type="button" class="{btnStage} shrink-0" aria-pressed={soloing} onclick={playGroove}>
-        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />Stop{:else}<Play class="size-4 fill-current" aria-hidden="true" />Play beat{/if}
+        {#if soloing}<Square class="size-4 fill-current" aria-hidden="true" />{m.music_hubs_stop()}{:else}<Play class="size-4 fill-current" aria-hidden="true" />{m.music_hubs_bg_play_beat()}{/if}
       </button>
       <h2 class="min-w-0 flex-1 truncate font-display text-xl font-semibold">{pattern.name}</h2>
       <!-- One menu for what the beat sounds like: presets, sample kits, the live pads. -->
@@ -205,7 +205,7 @@
             {#each Array.from({ length: total }, (_, i) => i) as s (s)}
               <th scope="col" class="stephead" class:beat={s % 4 === 0} class:bar={s % STEPS === 0} data-step={s} data-now={playhead === s || undefined}>
                 <span aria-hidden="true">{s % 4 === 0 ? (s % STEPS) / 4 + 1 : ""}{#if s % STEPS === 0 && total > STEPS}<span class="barnum">bar {s / STEPS + 1}</span>{/if}</span>
-                <span class="sr-only">Bar {Math.floor(s / STEPS) + 1}, step {(s % STEPS) + 1}</span>
+                <span class="sr-only">{m.music_hubs_bg_bar_step({ bar: Math.floor(s / STEPS) + 1, step: (s % STEPS) + 1 })}</span>
               </th>
             {/each}
           </tr>
@@ -216,7 +216,7 @@
               <th scope="row" class="rowhead" class:playing={rowHit(row.midi)}>
                 <button type="button" class="rowlabel" onclick={() => audition(row)} aria-label={m.music_hubs_bg_hear({ name: row.sample ?? row.name })}>
                   <span class="flex max-w-full items-center gap-1"><span class="font-semibold break-words sm:hidden" aria-hidden="true">{tag(row)}</span><span class="truncate font-semibold max-sm:hidden">{row.sample ?? row.name}</span><Volume class="size-3 shrink-0 opacity-60 max-sm:hidden" aria-hidden="true" /></span>
-                  {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">Sample on {padLabel(row.midi)}</span>{/if}
+                  {#if row.sample}<span class="text-[0.8125rem] text-ws-stage-soft max-sm:hidden">{m.music_hubs_bg_sample_on_pad({ pad: padLabel(row.midi) })}</span>{/if}
                 </button>
               </th>
               {#each Array.from({ length: total }, (_, i) => i) as s (s)}

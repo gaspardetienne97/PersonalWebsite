@@ -152,7 +152,16 @@
   "music_hubs_paths_adding": "Ajout…",
   "music_hubs_paths_add_to_songs": "Ajouter à mes morceaux",
   "music_hubs_paths_import_score": "Importer sa partition",
-  "music_hubs_paths_days_of_2": "{n} jour(s) sur 2",
+  "music_hubs_paths_days_of_2": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{n} jour sur 2",
+        "nPlural=other": "{n} jours sur 2"
+      }
+    }
+  ],
   "music_hubs_paths_not_played": "Pas encore joué",
   "music_hubs_paths_level_test": "Test de niveau",
   "music_hubs_paths_level_passed": "Niveau réussi",
@@ -2207,5 +2216,14 @@
   "music_hubs_kits_intro": "Vos propres sons sur les pads. Le beat de Créer les joue.",
   "music_hubs_ref_head": "Accords et gammes | Woodshed",
   "music_hubs_ref_page_intro": "Tous les accords, gammes et tonalités au même endroit, à consulter pendant que vous composez ou pratiquez.",
-  "music_hubs_ref_page_status": "Affichage de la référence des accords et des gammes."
+  "music_hubs_ref_page_status": "Affichage de la référence des accords et des gammes.",
+  "music_hubs_bg_play_beat": "Jouer le beat",
+  "music_hubs_bg_bar_step": "Mesure {bar}, pas {step}",
+  "music_hubs_bg_sample_on_pad": "Échantillon sur {pad}",
+  "music_hubs_kp_tap_letter": "Touchez un pad pour l’entendre, ou appuyez sur la lettre indiquée dessus.",
+  "music_hubs_kp_tap_bank_a": "Touchez un pad pour l’entendre. Les touches de l’ordinateur jouent la banque A.",
+  "music_hubs_cr_not_saved_lower": "non enregistré",
+  "music_hubs_cr_unsaved_lower": "modifications non enregistrées",
+  "music_hubs_cr_saved_lower": "enregistré",
+  "music_hubs_tv_lick_title": "{title}, premières mesures"
 }

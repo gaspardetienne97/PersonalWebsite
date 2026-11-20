@@ -182,7 +182,7 @@
   async function saveLick() {
     if (!editor?.noteCount) return announce(m.music_hubs_tv_add_one_lick());
     const score = editor.toScore();
-    const id = await saveUserLick({ title: `${score.title || "Transcription"}, first bars`, from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
+    const id = await saveUserLick({ title: m.music_hubs_tv_lick_title({ title: score.title || m.music_hubs_tr_transcription() }), from: "a transcription", bpm: score.bpm, notes: score.voices[0]?.notes ?? [] });
     announce(id ? m.music_hubs_tv_lick_saved() : m.music_hubs_tv_lick_empty());
   }
 

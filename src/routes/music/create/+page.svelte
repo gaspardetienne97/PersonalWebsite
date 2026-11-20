@@ -195,7 +195,7 @@
       <h1 class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{m.music_hubs_cr_title()}</h1>
       <p class="max-w-prose text-ws-soft max-sm:hidden">{m.music_hubs_cr_intro()}</p>
       <!-- On a phone the song's name rides under the title, so the bar below stays one row. -->
-      <p class="text-sm break-words text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? "not saved" : session.changed ? "unsaved changes" : "saved"}</p>
+      <p class="text-sm break-words text-ws-soft sm:hidden"><span class="font-semibold text-ws-ink">{session.songName}</span>, {!session.saved ? m.music_hubs_cr_not_saved_lower() : session.changed ? m.music_hubs_cr_unsaved_lower() : m.music_hubs_cr_saved_lower()}</p>
     </div>
     <!-- From sm up the editor switch rides in the title row, so every drum row fits a laptop screen. -->
     {@render editorToggle("max-sm:hidden sm:ml-auto")}

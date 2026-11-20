@@ -152,7 +152,16 @@
   "music_hubs_paths_adding": "Agregando…",
   "music_hubs_paths_add_to_songs": "Agregar a mis canciones",
   "music_hubs_paths_import_score": "Importar su partitura",
-  "music_hubs_paths_days_of_2": "{n} de 2 días",
+  "music_hubs_paths_days_of_2": [
+    {
+      "declarations": ["input n", "local nPlural = n: plural"],
+      "selectors": ["nPlural"],
+      "match": {
+        "nPlural=one": "{n} de 2 días",
+        "nPlural=other": "{n} de 2 días"
+      }
+    }
+  ],
   "music_hubs_paths_not_played": "Aún sin tocar",
   "music_hubs_paths_level_test": "Prueba de nivel",
   "music_hubs_paths_level_passed": "Nivel superado",
@@ -2207,5 +2216,14 @@
   "music_hubs_kits_intro": "Tus propios sonidos en los pads. El beat de Crear los toca.",
   "music_hubs_ref_head": "Acordes y escalas | Woodshed",
   "music_hubs_ref_page_intro": "Todos los acordes, escalas y tonalidades en un solo lugar, para consultar mientras compones o practicas.",
-  "music_hubs_ref_page_status": "Mostrando la referencia de acordes y escalas."
+  "music_hubs_ref_page_status": "Mostrando la referencia de acordes y escalas.",
+  "music_hubs_bg_play_beat": "Tocar beat",
+  "music_hubs_bg_bar_step": "Compás {bar}, paso {step}",
+  "music_hubs_bg_sample_on_pad": "Muestra en {pad}",
+  "music_hubs_kp_tap_letter": "Toca un pad para oírlo o presiona la letra que muestra.",
+  "music_hubs_kp_tap_bank_a": "Toca un pad para oírlo. Las teclas de la computadora tocan el banco A.",
+  "music_hubs_cr_not_saved_lower": "sin guardar",
+  "music_hubs_cr_unsaved_lower": "cambios sin guardar",
+  "music_hubs_cr_saved_lower": "guardada",
+  "music_hubs_tv_lick_title": "{title}, primeros compases"
 }
