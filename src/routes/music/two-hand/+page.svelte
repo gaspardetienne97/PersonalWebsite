@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import type { NoteEvent } from "@repo/music-core";
   import { noteName } from "@repo/music-core";
@@ -30,16 +31,17 @@
   import { settings } from "#lib/music/runtime/index.ts";
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { evennessRow } from "@repo/music-core";
+  import { formatList } from "@repo/i18n/format";
 
   const TEMPO = { min: 50, max: 140 };
   const BARS = 2;
   const ABOUT = (tonicName: string): Record<TwoHandPatternId, string> => ({
-    "lh-pulse-rh-line": "Left hand holds the root on every beat while the right hand runs eighths up and down the scale.",
-    "rh-pulse-lh-line": "Roles swapped: the right hand keeps the pulse, the left hand runs the eighth-note line.",
-    "lh-shell-rh-line": "Left hand walks root, fifth, seventh, fifth. The right hand plays an eighth-note fragment over it.",
-    "alberti-rh-holds": "Left hand plays an Alberti figure in eighths. The right hand holds one note per beat.",
-    "contrary-motion-scale": "Both hands run the scale in eighths, moving in opposite directions.",
-    "contrary-five": `Both thumbs on ${tonicName}, an octave apart. Walk outward, then back, same finger in both hands on every beat.`,
+    "lh-pulse-rh-line": m.music_strings_th_about_lh_pulse(),
+    "rh-pulse-lh-line": m.music_strings_th_about_rh_pulse(),
+    "lh-shell-rh-line": m.music_strings_th_about_lh_shell(),
+    "alberti-rh-holds": m.music_strings_th_about_alberti(),
+    "contrary-motion-scale": m.music_strings_th_about_contrary_scale(),
+    "contrary-five": m.music_strings_th_about_contrary_five({ tonic: tonicName }),
   });
 
   let mode = $state<DrillMode>(benchFromUrl(TEMPO));
@@ -131,7 +133,7 @@
       .map((h) => ({
         id: h,
         mark: h === "left" ? "L" : "R",
-        label: h === "left" ? "Left hand" : "Right hand",
+        label: h === "left" ? m.music_strings_left_hand_cap() : m.music_strings_right_hand_cap(),
         hand: h,
         notes: notes.filter((n) => n.hand === h).map((n) => ({ beat: n.beat, dur: n.dur, text: noteName(n.midi, "flat", false) })),
       }))
@@ -150,25 +152,25 @@
   const cue = $derived.by(() => {
     if (phase !== "running" || transport.beat === null || transport.beat < 0) return "";
     const b = transport.beat;
-    const where = `Bar ${Math.min(BARS, Math.floor(b / 4) + 1)}, beat ${(Math.floor(b) % 4) + 1}`;
-    if (mode !== "practice") return `${where}, in Check`;
+    const at = { bar: Math.min(BARS, Math.floor(b / 4) + 1), beat: (Math.floor(b) % 4) + 1 };
+    if (mode !== "practice") return m.music_strings_th_cue_check(at);
     const names = [...new Set(due(b).sort((x, y) => x.midi - y.midi).map((n) => noteName(n.midi, "flat", false)))];
-    return names.length ? `Beat ${(Math.floor(b) % 4) + 1}: ${names.join(" and ")}` : where;
+    return names.length ? m.music_strings_th_cue_notes({ beat: at.beat, notes: names.reduce((a, b) => m.music_strings_and_pair({ a, b })) }) : m.music_strings_th_cue_where(at);
   });
 
   const patternLabel = $derived(TWO_HAND_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern);
   const tonicName = $derived(noteName(tonic, "flat", false));
   const about = $derived(ABOUT(tonicName));
   const summaryLine = $derived<SetupClause[]>([
-    { text: `${patternLabel} from ${tonicName}`, focus: "pattern" },
-    { text: hand === "both" ? "both hands" : `${hand} hand only`, focus: "hand" },
-    ...(s.dynamics ? [{ text: "melody louder", focus: "dynamics" }] : []),
+    { text: m.music_strings_th_pattern_from({ pattern: patternLabel, tonic: tonicName }), focus: "pattern" },
+    { text: hand === "both" ? m.music_strings_both_hands() : hand === "left" ? m.music_strings_left_hand_only() : m.music_strings_right_hand_only(), focus: "hand" },
+    ...(s.dynamics ? [{ text: m.music_strings_melody_louder(), focus: "dynamics" }] : []),
   ]);
   const setupKey = $derived(`two-hand:${pattern}:${s.tonic}:${hand}:${s.dynamics ? "dyn" : "flat"}:${bpm}`);
 
   async function playDemo() {
     if (transport.playing) return transport.stop();
-    status = "Demo: both hands at tempo. Notes in one column of the lane strike together.";
+    status = m.music_strings_th_demo();
     await transport.demo(notes, bpm);
   }
 
@@ -193,7 +195,7 @@
   /** "Wrong note: Bb4, wanted E4": the due note nearest the one played, when there is one. */
   const wrongText = (midi: number, dueNow: readonly TimedNote[]) => {
     const near = [...dueNow].sort((a, b) => Math.abs(a.midi - midi) - Math.abs(b.midi - midi))[0];
-    return `Wrong note: ${noteName(midi, "flat")}${near ? `, wanted ${noteName(near.midi, "flat")}` : ""}`;
+    return near ? m.music_strings_th_wrong_wanted({ played: noteName(midi, "flat"), want: noteName(near.midi, "flat") }) : m.music_strings_th_wrong({ played: noteName(midi, "flat") });
   };
 
   function start(ctx: RunContext) {
@@ -253,7 +255,7 @@
       target: rendering.targetEvents.map((t) => t.midiNote),
       response: played.filter((n) => n.kind === "noteon").map((n) => n.midi),
     });
-    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: `${pct(r.score)} at ${bpm} BPM` });
+    const fin = await run!.finish({ score: r.score, correct: r.correct, headline: m.music_strings_line_run_headline({ score: pct(r.score), bpm }) });
     if (!fin.heard) {
       summary = silentRun();
       status = summary.headline;
@@ -271,51 +273,51 @@
     const togetherShare = r.together && r.together.beats ? r.together.count / r.together.beats : null;
     const togetherFine = togetherShare === null || togetherShare >= 0.8;
     const headline = !r.hands.some((h) => h.matched)
-      ? "No notes landed on the beats. Start on the first click after the count-in."
+      ? m.music_strings_th_none_landed()
       : r.wrong && r.score >= 0.9 && togetherFine
-        ? `Every part landed, but ${r.wrong} wrong key${r.wrong > 1 ? "s" : ""} slipped in. Once more without ${r.wrong > 1 ? "them" : "it"}.`
+        ? m.music_strings_th_wrong_keys({ n: r.wrong })
         : r.correct
         ? togetherShare !== null
-          ? `Clean, and the hands struck together on ${r.together!.count} of ${r.together!.beats} beats.`
+          ? m.music_strings_th_clean_together({ n: r.together!.count, total: r.together!.beats })
           : mode === "check"
-            ? `Both parts clean at ${bpm} BPM, in Check.`
-            : `Both parts clean at ${bpm} BPM.`
+            ? m.music_strings_th_clean_check({ bpm })
+            : m.music_strings_th_clean({ bpm })
         : r.pitch >= 0.9 && togetherShare !== null && togetherShare < 0.8
-          ? `Every note right, but the hands struck together on only ${r.together!.count} of ${r.together!.beats} beats.`
+          ? m.music_strings_th_not_together({ n: r.together!.count, total: r.together!.beats })
           : weak && weak.pitch < 0.9
-            ? `The ${weak.hand} hand found ${weak.matched} of ${weak.total} notes. Slow down and let that hand lead.`
-            : `The notes are right but the spacing wandered. Keep both hands on the click.`;
+            ? (weak.hand === "left" ? m.music_strings_th_weak_left : m.music_strings_th_weak_right)({ n: weak.matched, total: weak.total })
+            : m.music_strings_th_spacing();
     const rows: ResultRow[] = r.hands.map((h) => ({
-      label: `${h.hand === "left" ? "Left" : "Right"} hand notes`,
+      label: h.hand === "left" ? m.music_strings_th_left_notes() : m.music_strings_th_right_notes(),
       value: h.pitch,
-      text: `${h.matched} of ${h.total}`,
+      text: m.music_strings_n_of_total({ n: h.matched, total: h.total }),
     }));
     // Evenness is read from the spacings of the notes that landed: too few and it is not measured (K3).
     rows.push(evennessRow(r.evenness, r.hands.reduce((t, h) => t + h.matched, 0), r.hands.reduce((t, h) => t + h.total, 0)));
     if (measuresTogether)
       rows.push(
         r.together
-          ? { label: "Hands landed together", value: togetherShare ?? 0, text: `${r.together.count} of ${r.together.beats} beats` }
-          : { label: "Hands together (on-screen input)", notMeasured: true },
+          ? { label: m.music_strings_th_landed_together(), value: togetherShare ?? 0, text: m.music_strings_n_of_total_beats({ n: r.together.count, total: r.together.beats }) }
+          : { label: m.music_strings_th_together_onscreen(), notMeasured: true },
       );
-    if (r.wrong) rows.push({ label: "Wrong keys struck", text: String(r.wrong) });
+    if (r.wrong) rows.push({ label: m.music_strings_th_wrong_keys_row(), text: String(r.wrong) });
     if (s.dynamics)
-      rows.push(r.dynamics === null ? { label: "Dynamics, melody louder", notMeasured: true } : { label: "Dynamics, melody louder", value: r.dynamics });
+      rows.push(r.dynamics === null ? { label: m.music_strings_th_dynamics_row(), notMeasured: true } : { label: m.music_strings_th_dynamics_row(), value: r.dynamics });
     return {
       headline,
       metric: pct(r.score),
-      metricLabel: "score",
+      metricLabel: m.music_strings_score(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
       xp: fin.xp,
       mode,
       rows,
-      cleanMeans: measuresTogether ? "every note on its beat, hands together, no wrong keys" : "every note on its beat, no wrong keys",
+      cleanMeans: measuresTogether ? m.music_strings_th_clean_together_means() : m.music_strings_th_clean_means(),
       timing: heard.length ? timingOf(Object.values(outcomes).flat()) : undefined,
       next:
         r.correct && mirror && mode === "check"
-          ? { label: "Closest chords, I IV V I", href: "/music/changes/voicings?variant=inversions&key=0", reason: "the next harmony step on the piano path" }
+          ? { label: m.music_strings_th_next_label(), href: "/music/changes/voicings?variant=inversions&key=0", reason: m.music_strings_th_next_reason() }
           : undefined,
     };
   }
@@ -325,7 +327,7 @@
     transport.stop();
     cap?.stop();
     phase = "ready";
-    status = "Nothing saved.";
+    status = m.music_strings_nothing_saved();
   }
 
   onDestroy(() => {
@@ -335,13 +337,13 @@
   });
 </script>
 
-<svelte:head><title>Two hands | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_strings_th_page_title()}</title></svelte:head>
 
 <DrillShell
   lesson={{ lessons: conceptCard("tips.two-hand"), trigger: "check" }}
-  title="Two hands"
+  title={m.music_strings_th_title()}
   hue="piano"
-  blurb="Each hand plays its own part on the click. Mirror hands asks them to strike together."
+  blurb={m.music_strings_th_blurb()}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -356,35 +358,35 @@
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
-      <Choice label="Pattern" setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
-      <Choice label="Tonic" options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
-      <Choice label="Hands" setupKey="hand" options={TWO_HAND_MODES.map((m) => ({ value: m.id as string, label: m.id === "both" ? "Both hands" : `${m.label} only` }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
+      <Choice label={m.music_strings_pattern()} setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
+      <Choice label={m.music_strings_tonic()} options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
+      <Choice label={m.music_strings_hands()} setupKey="hand" options={TWO_HAND_MODES.map((x) => ({ value: x.id as string, label: x.id === "both" ? m.music_strings_both_hands_cap() : x.id === "left" ? m.music_strings_left_only() : m.music_strings_right_only() }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
     </div>
     <div class="mt-4 sm:max-w-sm">
       <Choice
-        label="Dynamics"
+        label={m.music_strings_dynamics()}
         setupKey="dynamics"
         options={[
-          { value: "flat", label: "Off" },
-          { value: "dyn", label: `Melody louder` },
+          { value: "flat", label: m.music_strings_off() },
+          { value: "dyn", label: m.music_strings_melody_louder_cap() },
         ]}
         value={s.dynamics ? "dyn" : "flat"}
         onchange={(v) => cfg.set({ dynamics: v === "dyn" })}
       />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Tempo comes from the top bar. Mirror hands starts at 60 to 66 BPM. Dynamics asks the melody hand to play louder. Velocity needs MIDI.</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_strings_th_setup_help()}</p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running" && transport.beat !== null}
       <!-- The HUD's own readout counts the beats; this counts the bars. -->
-      <Stat label="Bar" value="{Math.min(totalBeats / 4, Math.floor(Math.max(0, transport.beat) / 4) + 1)} of {totalBeats / 4}" />
+      <Stat label={m.music_strings_bar()} value={m.music_strings_n_of_total({ n: Math.min(totalBeats / 4, Math.floor(Math.max(0, transport.beat) / 4) + 1), total: totalBeats / 4 })} />
     {/if}
   {/snippet}
 
   {#snippet stage()}
     {@const live = phase === "running" || phase === "countin"}
-    {@const pianoLabel = `Piano keyboard, ${noteName(span.low)} to ${noteName(span.high)}. Left hand keys marked L, right hand R.`}
+    {@const pianoLabel = m.music_strings_th_piano_label({ low: noteName(span.low), high: noteName(span.high) })}
     {#if falling && (mode === "practice" || transport.playing || phase === "results")}
       {#if !live}<div class="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">{@render about_()}<ViewSwitch /></div>{/if}
       <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={pianoLabel} />
@@ -402,7 +404,7 @@
           beat={transport.beat}
           {eighths}
           hidden={mode === "check" && !transport.playing}
-          label="Beat lane: {lanes.map((l) => `${l.label}, ${l.notes.length} notes`).join('; ')}. Notes in one column strike together."
+          label={m.music_strings_th_lane_label({ rows: lanes.map((l) => m.music_strings_th_lane_row({ label: l.label, n: l.notes.length })).join("; ") })}
           {outcomes}
           wrong={phase === "running" && mode === "practice" ? wrongShown : 0}
           strays={phase === "running" && mode === "practice" ? strays : []}
@@ -416,17 +418,17 @@
     {/if}
     <div class="mt-3 text-sm text-ws-stage-soft">
       {#if mode === "check" && live}
-        <p>Notes hidden. Keep the rhythm. Keys light only where you play.</p>
+        <p>{m.music_strings_th_notes_hidden()}</p>
       {:else if live || phase === "results"}
-        {#if s.dynamics}<p>Play the {rendering.melodyHand} hand louder.</p>{/if}
+        {#if s.dynamics}<p>{rendering.melodyHand === "left" ? m.music_strings_th_play_left_louder() : m.music_strings_th_play_right_louder()}</p>{/if}
       {:else}
         <details>
-          <summary class="flex min-h-11 cursor-pointer items-center">How this is marked</summary>
+          <summary class="flex min-h-11 cursor-pointer items-center">{m.music_strings_th_how_marked()}</summary>
           <div class="flex flex-col gap-1 pb-1">
-            <p>{mirror ? FINGERING_NOTE : "Keys show L and R. Fingering is written only for Mirror hands."}</p>
-            {#if measuresTogether}<p>Hands landed together needs MIDI: both hands within 40 ms. On-screen keys play one note at a time, so an on-screen run shows it as not measured.</p>{/if}
-            {#if s.dynamics}<p>Dynamics: play the {rendering.melodyHand} hand louder. Velocity needs MIDI. On-screen keys can't measure it.</p>{/if}
-            {#if mode === "check"}<p>Check: the lane keeps the rhythm, the notes are hidden.</p>{/if}
+            <p>{mirror ? FINGERING_NOTE : m.music_strings_th_keys_lr()}</p>
+            {#if measuresTogether}<p>{m.music_strings_th_together_midi()}</p>{/if}
+            {#if s.dynamics}<p>{rendering.melodyHand === "left" ? m.music_strings_th_dynamics_left() : m.music_strings_th_dynamics_right()}</p>{/if}
+            {#if mode === "check"}<p>{m.music_strings_th_check_note()}</p>{/if}
           </div>
         </details>
       {/if}
@@ -451,8 +453,8 @@
 {#snippet figure()}
   {#if heard.length}
     <div class="stage rounded-2xl p-3">
-      <p class="mb-2 text-sm font-medium text-ws-stage-soft">Each note as it landed</p>
-      <BeatLane rows={lanes} beats={totalBeats} {eighths} label="Your run on the beat lane: {lanes.map((l) => `${l.label}`).join(' and ')}, each note marked on time, early, late or missed." {outcomes} wrong={wrongShown} strays={strays.length === wrongShown ? strays : []} />
+      <p class="mb-2 text-sm font-medium text-ws-stage-soft">{m.music_strings_th_each_note()}</p>
+      <BeatLane rows={lanes} beats={totalBeats} {eighths} label={m.music_strings_th_run_lane({ hands: formatList(lanes.map((l) => l.label)) })} {outcomes} wrong={wrongShown} strays={strays.length === wrongShown ? strays : []} />
     </div>
   {/if}
 {/snippet}
