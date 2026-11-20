@@ -2,7 +2,7 @@
 // line is a staff on piano and the Aerophone, tab on guitar and ukulele.
 import { expect, test, type Page } from "@playwright/test";
 import { choose, installFakeMidi, PORTS } from "./fixtures";
-import { PHRASES } from "../../packages/music-core/src/content/phrases";
+import { allPhrases } from "../../packages/music-core/src/content/phrases";
 
 const SHOTS = "docs/screenshots/rebuild/phrases";
 
@@ -149,7 +149,7 @@ test.describe("phrases", () => {
     } as const;
     for (const inst of ["piano", "guitar", "ukulele", "aerophone"] as const) {
       await pick(page, labels[inst]);
-      for (const p of PHRASES.filter((x) => x.instrument === inst)) {
+      for (const p of allPhrases().filter((x) => x.instrument === inst)) {
         await page.goto(`/music/phrases?phrase=${p.id}`);
         await expect(page.getByTestId("phrase"), p.id).toContainText(p.title);
         await expect(
